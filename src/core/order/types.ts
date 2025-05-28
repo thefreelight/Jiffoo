@@ -32,7 +32,7 @@ export interface OrderResponse {
     product: {
       id: string;
       name: string;
-      images: string[];
+      images: string;
     };
   }[];
   user?: {

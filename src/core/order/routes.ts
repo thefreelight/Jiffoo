@@ -6,9 +6,6 @@ import { authMiddleware, adminMiddleware } from '@/core/auth/middleware';
 export async function orderRoutes(fastify: FastifyInstance) {
   // Create order (authenticated users)
   fastify.post('/', {
-    schema: {
-      body: CreateOrderSchema
-    },
     preHandler: [authMiddleware]
   }, async (request, reply) => {
     try {
@@ -86,9 +83,6 @@ export async function orderRoutes(fastify: FastifyInstance) {
 
   // Update order status (admin only)
   fastify.patch('/:id/status', {
-    schema: {
-      body: UpdateOrderStatusSchema
-    },
     preHandler: [authMiddleware, adminMiddleware]
   }, async (request, reply) => {
     try {

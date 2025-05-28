@@ -5,7 +5,7 @@ export const CreateProductSchema = z.object({
   description: z.string().optional(),
   price: z.number().positive('Price must be positive'),
   stock: z.number().int().min(0, 'Stock cannot be negative').default(0),
-  images: z.array(z.string().url()).default([]),
+  images: z.string().default(""),
 });
 
 export const UpdateProductSchema = z.object({
@@ -13,7 +13,7 @@ export const UpdateProductSchema = z.object({
   description: z.string().optional(),
   price: z.number().positive().optional(),
   stock: z.number().int().min(0).optional(),
-  images: z.array(z.string().url()).optional(),
+  images: z.string().optional(),
 });
 
 export type CreateProductRequest = z.infer<typeof CreateProductSchema>;
@@ -25,7 +25,7 @@ export interface ProductResponse {
   description?: string;
   price: number;
   stock: number;
-  images: string[];
+  images: string;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -45,9 +45,6 @@ export async function productRoutes(fastify: FastifyInstance) {
 
   // Create product (admin only)
   fastify.post('/', {
-    schema: {
-      body: CreateProductSchema
-    },
     preHandler: [authMiddleware, adminMiddleware]
   }, async (request, reply) => {
     try {
@@ -63,9 +60,6 @@ export async function productRoutes(fastify: FastifyInstance) {
 
   // Update product (admin only)
   fastify.put('/:id', {
-    schema: {
-      body: UpdateProductSchema
-    },
     preHandler: [authMiddleware, adminMiddleware]
   }, async (request, reply) => {
     try {
@@ -98,15 +92,6 @@ export async function productRoutes(fastify: FastifyInstance) {
 
   // Update product stock (admin only)
   fastify.patch('/:id/stock', {
-    schema: {
-      body: {
-        type: 'object',
-        properties: {
-          quantity: { type: 'number' }
-        },
-        required: ['quantity']
-      }
-    },
     preHandler: [authMiddleware, adminMiddleware]
   }, async (request, reply) => {
     try {

@@ -5,29 +5,7 @@ import { authMiddleware } from './middleware';
 
 export async function authRoutes(fastify: FastifyInstance) {
   // Register
-  fastify.post('/register', {
-    schema: {
-      body: RegisterSchema,
-      response: {
-        201: {
-          type: 'object',
-          properties: {
-            user: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                email: { type: 'string' },
-                username: { type: 'string' },
-                avatar: { type: 'string' },
-                role: { type: 'string' }
-              }
-            },
-            token: { type: 'string' }
-          }
-        }
-      }
-    }
-  }, async (request, reply) => {
+  fastify.post('/register', async (request, reply) => {
     try {
       const result = await AuthService.register(request.body as any);
       return reply.status(201).send(result);
@@ -40,29 +18,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   });
 
   // Login
-  fastify.post('/login', {
-    schema: {
-      body: LoginSchema,
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            user: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                email: { type: 'string' },
-                username: { type: 'string' },
-                avatar: { type: 'string' },
-                role: { type: 'string' }
-              }
-            },
-            token: { type: 'string' }
-          }
-        }
-      }
-    }
-  }, async (request, reply) => {
+  fastify.post('/login', async (request, reply) => {
     try {
       const result = await AuthService.login(request.body as any);
       return reply.send(result);

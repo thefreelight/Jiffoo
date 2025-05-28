@@ -53,9 +53,6 @@ export async function userRoutes(fastify: FastifyInstance) {
 
   // Update user profile
   fastify.put('/:id', {
-    schema: {
-      body: UpdateUserSchema
-    },
     preHandler: [authMiddleware]
   }, async (request, reply) => {
     try {
@@ -81,9 +78,6 @@ export async function userRoutes(fastify: FastifyInstance) {
 
   // Update user role (admin only)
   fastify.patch('/:id/role', {
-    schema: {
-      body: UpdateUserRoleSchema
-    },
     preHandler: [authMiddleware, adminMiddleware]
   }, async (request, reply) => {
     try {

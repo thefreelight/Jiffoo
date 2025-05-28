@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -16,7 +16,7 @@ model User {
   username  String   @unique
   password  String
   avatar    String?
-  role      Role     @default(USER)
+  role      String   @default("USER")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -32,7 +32,7 @@ model Product {
   description String?
   price       Float
   stock       Int      @default(0)
-  images      String[]
+  images      String   @default("")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -43,12 +43,12 @@ model Product {
 }
 
 model Order {
-  id          String      @id @default(cuid())
+  id          String   @id @default(cuid())
   userId      String
-  status      OrderStatus @default(PENDING)
+  status      String   @default("PENDING")
   totalAmount Float
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relations
   user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -71,15 +71,4 @@ model OrderItem {
   @@map("order_items")
 }
 
-enum Role {
-  USER
-  ADMIN
-}
 
-enum OrderStatus {
-  PENDING
-  PAID
-  CANCELLED
-  SHIPPED
-  DELIVERED
-}

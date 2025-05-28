@@ -6,9 +6,6 @@ import { authMiddleware } from '@/core/auth/middleware';
 export async function paymentRoutes(fastify: FastifyInstance) {
   // Process payment
   fastify.post('/process', {
-    schema: {
-      body: ProcessPaymentSchema
-    },
     preHandler: [authMiddleware]
   }, async (request, reply) => {
     try {
