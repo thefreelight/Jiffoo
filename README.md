@@ -1,316 +1,392 @@
-# 🛒 Jiffoo Mall - Fastify + TypeScript 商城系统
+# 🛍️ Jiffoo Mall - Modern E-commerce Platform
 
-基于 Fastify + TypeScript 技术栈的现代化电商系统，具有完整的用户管理、商品管理、订单处理和支付功能。
+[中文](#中文文档) | **English**
 
-## 🚀 技术栈
+A comprehensive, full-stack e-commerce platform built with modern technologies, featuring a robust backend API and a beautiful, responsive frontend interface.
 
-- **框架**: Fastify + TypeScript
-- **ORM**: Prisma
-- **数据库**: SQLite (开发) / PostgreSQL (生产)
-- **身份认证**: JWT
-- **缓存**: Redis
-- **文件上传**: Multer + 本地存储
-- **邮件服务**: Nodemailer
-- **日志系统**: Pino (Fastify 内置)
-- **插件系统**: 基于 Hook + Metadata 注入
-- **国际化**: 自研 i18n 系统
-- **API 文档**: Swagger/OpenAPI
+## 🌟 Features
 
-## 📁 项目结构
+### Core E-commerce Features
+- **User Authentication & Authorization** - JWT-based auth with role-based permissions
+- **Product Management** - Complete CRUD operations with image uploads
+- **Shopping Cart & Orders** - Full shopping experience with order tracking
+- **Search & Filtering** - Advanced search with intelligent suggestions
+- **Inventory Management** - Real-time stock tracking with alerts
+- **Payment Integration** - Ready for payment gateway integration
+
+### Advanced Features
+- **Redis Caching** - High-performance caching layer
+- **Comprehensive Logging** - Operation tracking and audit trails
+- **Fine-grained Permissions** - Resource-level access control
+- **Sales Analytics** - Business intelligence and reporting
+- **Email Notifications** - Template-based notification system
+- **File Upload System** - Secure file handling with validation
+- **Plugin Architecture** - Extensible modular system
+- **Internationalization** - Multi-language support (15 languages)
+
+## 🏗️ Tech Stack
+
+### Backend
+- **Framework**: Fastify + TypeScript
+- **Database**: SQLite (dev) / PostgreSQL (prod) with Prisma ORM
+- **Authentication**: JWT with bcrypt password hashing
+- **Caching**: Redis for high-performance data caching
+- **File Upload**: Multer with image processing
+- **Email**: Nodemailer with template support
+- **Validation**: Zod schema validation
+- **Documentation**: OpenAPI/Swagger integration
+
+### Frontend
+- **Framework**: Next.js 15 with App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS with custom design system
+- **UI Components**: Radix UI primitives
+- **State Management**: Zustand + React Query
+- **Forms**: React Hook Form with Zod validation
+- **Animations**: Framer Motion
+- **Icons**: Lucide React
+
+### DevOps & Tools
+- **Package Manager**: pnpm with workspace support
+- **Build Tool**: Turbo for monorepo builds
+- **Code Quality**: ESLint + Prettier
+- **Type Safety**: TypeScript strict mode
+- **API Testing**: Built-in Swagger UI
+- **Development**: Hot reload for both frontend and backend
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 18+ 
+- pnpm (recommended) or npm
+- Redis (optional, for caching)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd jiffoo-mall
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pnpm install
+   ```
+
+3. **Set up environment variables**
+   ```bash
+   # Backend environment
+   cp apps/backend/.env.example apps/backend/.env
+   
+   # Edit the .env file with your configuration
+   ```
+
+4. **Initialize the database**
+   ```bash
+   pnpm --filter backend db:generate
+   pnpm --filter backend db:push
+   pnpm --filter backend db:seed
+   ```
+
+5. **Start development servers**
+   ```bash
+   # Start both frontend and backend
+   pnpm dev
+   
+   # Or start individually
+   pnpm --filter backend dev    # Backend: http://localhost:3001
+   pnpm --filter frontend dev   # Frontend: http://localhost:3002
+   ```
+
+## 📁 Project Structure
 
 ```
-src/
-├── core/              # 核心模块
-│   ├── auth/          # 认证模块
-│   ├── user/          # 用户管理
-│   ├── product/       # 商品管理
-│   ├── order/         # 订单处理
-│   ├── search/        # 搜索优化
-│   ├── cache/         # Redis 缓存
-│   ├── logging/       # 操作日志
-│   ├── permissions/   # 细粒度权限
-│   ├── statistics/    # 销售统计
-│   ├── notifications/ # 通知系统
-│   ├── inventory/     # 库存管理
-│   ├── upload/        # 文件上传
-│   └── i18n/          # 国际化
-├── plugins/           # 插件系统
-├── config/            # 配置文件
-├── utils/             # 工具函数
-├── middleware/        # 中间件
-├── types/             # TypeScript 类型定义
-├── prisma/            # Prisma schema
-└── server.ts          # 服务器入口
+jiffoo-mall/
+├── apps/
+│   ├── backend/              # Fastify API server
+│   │   ├── src/
+│   │   │   ├── routes/       # API route handlers
+│   │   │   ├── services/     # Business logic
+│   │   │   ├── middleware/   # Custom middleware
+│   │   │   ├── core/         # Core systems (cache, logging, etc.)
+│   │   │   └── plugins/      # Plugin system
+│   │   ├── prisma/           # Database schema and migrations
+│   │   └── uploads/          # File upload storage
+│   └── frontend/             # Next.js web application
+│       ├── src/
+│       │   ├── app/          # App Router pages
+│       │   ├── components/   # React components
+│       │   ├── lib/          # Utility functions
+│       │   ├── hooks/        # Custom React hooks
+│       │   └── store/        # State management
+│       └── public/           # Static assets
+├── packages/
+│   └── shared/               # Shared types and utilities
+└── docs/                     # Documentation
 ```
 
-## 🛠️ 快速开始
+## 🔧 Configuration
 
-### 1. 安装依赖
+### Environment Variables
 
-```bash
-pnpm install
-```
-
-### 2. 环境配置
-
-复制 `.env` 文件并配置：
-
-```bash
+#### Backend (.env)
+```env
 # Database
-DATABASE_URL="file:./dev.db"  # SQLite for development
-# DATABASE_URL="postgresql://user:password@localhost:5432/mall"  # PostgreSQL for production
+DATABASE_URL="file:./dev.db"
 
 # JWT
-JWT_SECRET="your-super-secret-jwt-key-change-in-production"
+JWT_SECRET="your-super-secret-jwt-key"
+JWT_EXPIRES_IN="7d"
+
+# Redis (optional)
+REDIS_URL="redis://localhost:6379"
+
+# Email (optional)
+SMTP_HOST="smtp.ethereal.email"
+SMTP_PORT=587
+SMTP_USER="your-email@example.com"
+SMTP_PASS="your-password"
 
 # Server
 PORT=3001
-HOST="0.0.0.0"
 NODE_ENV="development"
-
-# Redis
-REDIS_URL="redis://localhost:6379"
-
-# Email (可选)
-SMTP_HOST="smtp.gmail.com"
-SMTP_PORT=587
-SMTP_USER="your-email@gmail.com"
-SMTP_PASS="your-app-password"
-
-# File Upload
-UPLOAD_DIR="./uploads"
-MAX_FILE_SIZE=10485760  # 10MB
-
-# i18n
-DEFAULT_LANGUAGE="zh-CN"
-FALLBACK_LANGUAGE="en-US"
 ```
 
-### 3. 数据库初始化
+## 📚 API Documentation
+
+The API documentation is automatically generated and available at:
+- **Swagger UI**: http://localhost:3001/docs
+- **OpenAPI JSON**: http://localhost:3001/openapi.json
+
+### Key API Endpoints
+
+#### Authentication
+- `POST /api/auth/register` - User registration
+- `POST /api/auth/login` - User login
+- `GET /api/auth/profile` - Get user profile
+
+#### Products
+- `GET /api/products` - List products with pagination
+- `GET /api/products/:id` - Get product details
+- `POST /api/products` - Create product (admin)
+- `PUT /api/products/:id` - Update product (admin)
+
+#### Orders
+- `GET /api/orders` - List user orders
+- `POST /api/orders` - Create new order
+- `GET /api/orders/:id` - Get order details
+
+#### Search
+- `GET /api/search/products` - Search products
+- `GET /api/search/suggestions` - Get search suggestions
+
+## 🧪 Testing
 
 ```bash
-# 生成 Prisma 客户端
-pnpm db:generate
+# Run backend tests
+pnpm --filter backend test
 
-# 运行数据库迁移
-pnpm db:migrate
+# Run frontend tests
+pnpm --filter frontend test
 
-# 初始化种子数据
-pnpm db:seed
-
-# (可选) 打开 Prisma Studio
-pnpm db:studio
+# Run all tests
+pnpm test
 ```
 
-### 4. 启动 Redis (可选，用于缓存)
+## 🚀 Deployment
 
+### Production Build
 ```bash
-# 使用 Docker 启动 Redis
-docker run -d -p 6379:6379 redis:alpine
+# Build all packages
+pnpm build
 
-# 或者使用本地安装的 Redis
-redis-server
+# Start production servers
+pnpm start
 ```
 
-### 5. 启动开发服务器
-
+### Docker Deployment
 ```bash
-pnpm dev
+# Build and run with Docker Compose
+docker-compose up -d
 ```
 
-服务器将在 `http://localhost:3001` 启动。
+### Environment Setup
+1. Set up PostgreSQL database
+2. Configure Redis for caching
+3. Set up email service (SMTP)
+4. Configure file storage (local/cloud)
+5. Set production environment variables
 
-### 6. 访问 API 文档
+## 🔌 Plugin System
 
-打开浏览器访问：
-- API 文档: http://localhost:3001/docs
-- 健康检查: http://localhost:3001/health
+The platform includes a powerful plugin system for extending functionality:
+
+```typescript
+// Example plugin
+export const myPlugin: Plugin = {
+  name: 'my-plugin',
+  version: '1.0.0',
+  async register(fastify) {
+    fastify.get('/api/my-plugin/hello', async () => {
+      return { message: 'Hello from plugin!' };
+    });
+  }
+};
+```
+
+## 🌍 Internationalization
+
+Supports 15 languages with automatic detection:
+- English (en-US) - Default
+- Chinese Simplified (zh-CN)
+- Japanese (ja-JP)
+- Korean (ko-KR)
+- Spanish (es-ES)
+- French (fr-FR)
+- And more...
+
+## 📊 Monitoring & Analytics
+
+### Built-in Analytics
+- User behavior tracking
+- Sales performance metrics
+- Inventory monitoring
+- System performance stats
+
+### Health Checks
+- `GET /health` - System health status
+- `GET /api/cache/health` - Cache system status
+- `GET /api/plugins/health` - Plugin system status
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with modern web technologies
+- Inspired by best practices in e-commerce development
+- Community-driven development approach
+
+## 📞 Support
+
+For support and questions:
+- Create an issue on GitHub
+- Check the documentation
+- Review the API documentation at `/docs`
+
+---
+
+# 中文文档
+
+**中文** | [English](#jiffoo-mall---modern-e-commerce-platform)
+
+一个使用现代技术构建的全面全栈电商平台，具有强大的后端 API 和美观的响应式前端界面。
 
 ## 🌟 功能特性
 
-### 🔐 用户认证与授权
-- JWT 认证机制
-- 角色权限管理 (USER, ADMIN, SUPER_ADMIN)
-- 安全的密码加密存储
-- 完整的登录/登出流程
+### 核心电商功能
+- **用户认证与授权** - 基于 JWT 的认证，支持角色权限管理
+- **商品管理** - 完整的 CRUD 操作，支持图片上传
+- **购物车与订单** - 完整的购物体验，支持订单跟踪
+- **搜索与筛选** - 高级搜索功能，智能搜索建议
+- **库存管理** - 实时库存跟踪，库存预警
+- **支付集成** - 支持支付网关集成
 
-### 🛍️ 商品管理
-- 商品 CRUD 操作
-- 图片上传和管理
-- 库存跟踪
-- 分类和标签系统
+### 高级功能
+- **Redis 缓存** - 高性能缓存层
+- **全面日志记录** - 操作跟踪和审计日志
+- **细粒度权限** - 资源级访问控制
+- **销售分析** - 商业智能和报表
+- **邮件通知** - 基于模板的通知系统
+- **文件上传系统** - 安全的文件处理和验证
+- **插件架构** - 可扩展的模块化系统
+- **国际化** - 多语言支持（15种语言）
 
-### 🛒 订单管理
-- 购物车功能
-- 订单创建和状态管理
-- 订单查询和筛选
-- 订单统计分析
+## 🏗️ 技术栈
 
-### 🔍 搜索优化
-- 全文搜索功能
-- 智能搜索建议
-- 高级筛选 (价格、分类、库存)
-- 搜索性能优化
+### 后端
+- **框架**: Fastify + TypeScript
+- **数据库**: SQLite（开发）/ PostgreSQL（生产）+ Prisma ORM
+- **认证**: JWT + bcrypt 密码加密
+- **缓存**: Redis 高性能数据缓存
+- **文件上传**: Multer + 图片处理
+- **邮件**: Nodemailer + 模板支持
+- **验证**: Zod 模式验证
+- **文档**: OpenAPI/Swagger 集成
 
-### 💾 Redis 缓存
-- 多层缓存策略
-- 自动缓存失效
-- 缓存性能监控
-- 数据一致性保证
+### 前端
+- **框架**: Next.js 15 + App Router
+- **语言**: TypeScript
+- **样式**: Tailwind CSS + 自定义设计系统
+- **UI 组件**: Radix UI 原语
+- **状态管理**: Zustand + React Query
+- **表单**: React Hook Form + Zod 验证
+- **动画**: Framer Motion
+- **图标**: Lucide React
 
-### 📝 操作日志
-- 全面的操作记录
-- 日志分类和查询
-- 用户行为分析
-- 系统监控
+### 开发工具
+- **包管理器**: pnpm + workspace 支持
+- **构建工具**: Turbo monorepo 构建
+- **代码质量**: ESLint + Prettier
+- **类型安全**: TypeScript 严格模式
+- **API 测试**: 内置 Swagger UI
+- **开发**: 前后端热重载
 
-### 🔐 细粒度权限
-- 资源级权限控制
-- 操作权限管理
-- 角色权限分配
-- 权限继承机制
+## 🚀 快速开始
 
-### 📊 销售统计
-- 实时销售数据
-- 多维度统计分析
-- 商品销售排行
-- 用户行为分析
+### 环境要求
+- Node.js 18+ 
+- pnpm（推荐）或 npm
+- Redis（可选，用于缓存）
 
-### 📧 通知系统
-- 邮件通知
-- 短信通知 (可扩展)
-- 通知模板管理
-- 批量通知功能
+### 安装步骤
 
-### 📦 库存管理
-- 实时库存跟踪
-- 库存预警
-- 库存操作记录
-- 库存分析报告
+1. **克隆仓库**
+   ```bash
+   git clone <repository-url>
+   cd jiffoo-mall
+   ```
 
-### 📁 文件上传
-- 多格式文件支持
-- 文件安全验证
-- 存储管理
-- 文件处理
+2. **安装依赖**
+   ```bash
+   pnpm install
+   ```
 
-### 🔌 插件系统
-- 模块化架构
-- 动态插件加载
-- 插件生命周期管理
-- 标准化插件 API
+3. **设置环境变量**
+   ```bash
+   # 后端环境变量
+   cp apps/backend/.env.example apps/backend/.env
+   
+   # 编辑 .env 文件配置
+   ```
 
-### 🌍 国际化 (i18n)
-- 15 种语言支持
-- 智能语言检测
-- 翻译管理系统
-- 本地化数据格式
-- 高性能翻译缓存
+4. **初始化数据库**
+   ```bash
+   pnpm --filter backend db:generate
+   pnpm --filter backend db:push
+   pnpm --filter backend db:seed
+   ```
 
-## 📚 API 文档
+5. **启动开发服务器**
+   ```bash
+   # 同时启动前后端
+   pnpm dev
+   
+   # 或单独启动
+   pnpm --filter backend dev    # 后端: http://localhost:3001
+   pnpm --filter frontend dev   # 前端: http://localhost:3002
+   ```
 
-### 认证接口
+---
 
-- `POST /api/auth/register` - 用户注册
-- `POST /api/auth/login` - 用户登录
-- `GET /api/auth/me` - 获取当前用户信息
-
-### 用户管理
-
-- `GET /api/users` - 获取用户列表 (管理员)
-- `GET /api/users/:id` - 获取用户详情
-- `PUT /api/users/:id` - 更新用户信息
-- `PATCH /api/users/:id/role` - 更新用户角色 (管理员)
-- `DELETE /api/users/:id` - 删除用户 (管理员)
-
-### 商品管理
-
-- `GET /api/products` - 获取商品列表 (公开)
-- `GET /api/products/:id` - 获取商品详情 (公开)
-- `POST /api/products` - 创建商品 (管理员)
-- `PUT /api/products/:id` - 更新商品 (管理员)
-- `DELETE /api/products/:id` - 删除商品 (管理员)
-- `PATCH /api/products/:id/stock` - 更新库存 (管理员)
-
-### 订单管理
-
-- `POST /api/orders` - 创建订单
-- `GET /api/orders/my-orders` - 获取我的订单
-- `GET /api/orders` - 获取所有订单 (管理员)
-- `GET /api/orders/:id` - 获取订单详情
-- `PATCH /api/orders/:id/status` - 更新订单状态 (管理员)
-- `POST /api/orders/:id/cancel` - 取消订单
-
-### 支付处理
-
-- `POST /api/payments/process` - 处理支付
-- `GET /api/payments/status/:orderId` - 获取支付状态
-
-## 🔧 开发脚本
-
-```bash
-# 开发模式
-pnpm dev
-
-# 构建项目
-pnpm build
-
-# 生产模式启动
-pnpm start
-
-# 数据库相关
-pnpm db:generate    # 生成 Prisma 客户端
-pnpm db:migrate     # 运行迁移
-pnpm db:studio      # 打开 Prisma Studio
-pnpm db:reset       # 重置数据库
-```
-
-## 🔐 认证说明
-
-系统使用 JWT 进行身份认证：
-
-1. 用户注册/登录后获得 JWT token
-2. 在请求头中携带 token：`Authorization: Bearer <token>`
-3. 系统支持两种角色：`USER` 和 `ADMIN`
-
-## 🧩 插件系统
-
-系统支持插件扩展，插件需要实现 `Plugin` 接口：
-
-```typescript
-interface Plugin {
-  name: string;
-  register(app: FastifyInstance): Promise<void>;
-}
-```
-
-将插件文件放在 `src/plugins/` 目录下，系统会自动加载。
-
-## 📝 数据模型
-
-### User (用户)
-- id, email, username, password
-- avatar, role, createdAt, updatedAt
-
-### Product (商品)
-- id, name, description, price
-- stock, images, createdAt, updatedAt
-
-### Order (订单)
-- id, userId, status, totalAmount
-- createdAt, updatedAt
-
-### OrderItem (订单项)
-- id, orderId, productId
-- quantity, unitPrice
-
-## 🚀 部署
-
-1. 设置生产环境变量
-2. 构建项目：`pnpm build`
-3. 运行迁移：`pnpm db:migrate`
-4. 启动服务：`pnpm start`
-
-## 📄 许可证
-
-MIT License
+**Happy coding! 🚀**
