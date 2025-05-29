@@ -18,6 +18,8 @@ import { paymentRoutes } from '@/core/payment/routes';
 import { uploadRoutes } from '@/core/upload/routes';
 import { searchRoutes } from '@/core/search/routes';
 import { cacheRoutes } from '@/core/cache/routes';
+import { statisticsRoutes } from '@/core/statistics/routes';
+import { permissionRoutes } from '@/core/permissions/routes';
 
 // Import plugin system
 import { DefaultPluginManager } from '@/plugins/manager';
@@ -84,7 +86,9 @@ async function buildApp() {
           payments: '/api/payments',
           upload: '/api/upload',
           search: '/api/search',
-          cache: '/api/cache'
+          cache: '/api/cache',
+          statistics: '/api/statistics',
+          permissions: '/api/permissions'
         },
         documentation: {
           swagger_ui: '/docs',
@@ -428,6 +432,8 @@ async function buildApp() {
     await fastify.register(uploadRoutes, { prefix: '/api/upload' });
     await fastify.register(searchRoutes, { prefix: '/api/search' });
     await fastify.register(cacheRoutes, { prefix: '/api/cache' });
+    await fastify.register(statisticsRoutes, { prefix: '/api/statistics' });
+    await fastify.register(permissionRoutes, { prefix: '/api/permissions' });
 
     // Initialize plugin system
     const pluginManager = new DefaultPluginManager(fastify);
@@ -489,6 +495,8 @@ async function start() {
     app.log.info(`🔍 Search API available at http://${env.HOST}:${env.PORT}/api/search`);
     app.log.info(`📁 Upload API available at http://${env.HOST}:${env.PORT}/api/upload`);
     app.log.info(`💾 Cache API available at http://${env.HOST}:${env.PORT}/api/cache`);
+    app.log.info(`📊 Statistics API available at http://${env.HOST}:${env.PORT}/api/statistics`);
+    app.log.info(`🔐 Permissions API available at http://${env.HOST}:${env.PORT}/api/permissions`);
 
     LoggerService.logSystem('Server started successfully', {
       port: env.PORT,

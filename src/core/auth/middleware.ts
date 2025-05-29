@@ -13,7 +13,7 @@ export async function authMiddleware(
 ) {
   try {
     const authHeader = request.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return reply.status(401).send({
         error: 'Unauthorized',
@@ -23,7 +23,7 @@ export async function authMiddleware(
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
     const payload = JwtUtils.verify(token);
-    
+
     request.user = payload;
   } catch (error) {
     return reply.status(401).send({
@@ -44,7 +44,7 @@ export async function adminMiddleware(
     });
   }
 
-  if (request.user.role !== 'ADMIN') {
+  if (request.user.role !== 'ADMIN' && request.user.role !== 'SUPER_ADMIN') {
     return reply.status(403).send({
       error: 'Forbidden',
       message: 'Admin access required'
