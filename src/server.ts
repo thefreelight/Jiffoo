@@ -25,6 +25,7 @@ import { notificationRoutes } from '@/core/notifications/routes';
 
 // Import plugin system
 import { DefaultPluginManager } from '@/plugins/manager';
+import { pluginRoutes } from '@/plugins/routes';
 
 const fastify = Fastify({
   logger: {
@@ -92,7 +93,8 @@ async function buildApp() {
           statistics: '/api/statistics',
           permissions: '/api/permissions',
           inventory: '/api/inventory',
-          notifications: '/api/notifications'
+          notifications: '/api/notifications',
+          plugins: '/api/plugins'
         },
         documentation: {
           swagger_ui: '/docs',
@@ -440,11 +442,15 @@ async function buildApp() {
     await fastify.register(permissionRoutes, { prefix: '/api/permissions' });
     await fastify.register(inventoryRoutes, { prefix: '/api/inventory' });
     await fastify.register(notificationRoutes, { prefix: '/api/notifications' });
+    await fastify.register(pluginRoutes, { prefix: '/api/plugins' });
 
     // Initialize plugin system
     const pluginManager = new DefaultPluginManager(fastify);
     const pluginsDir = path.join(__dirname, 'plugins');
     await pluginManager.loadPluginsFromDirectory(pluginsDir);
+
+    // Store plugin manager in fastify instance for access in routes
+    (fastify as any).pluginManager = pluginManager;
 
     // Global error handler
     fastify.setErrorHandler((error, request, reply) => {
@@ -505,6 +511,7 @@ async function start() {
     app.log.info(`🔐 Permissions API available at http://${env.HOST}:${env.PORT}/api/permissions`);
     app.log.info(`📦 Inventory API available at http://${env.HOST}:${env.PORT}/api/inventory`);
     app.log.info(`📧 Notifications API available at http://${env.HOST}:${env.PORT}/api/notifications`);
+    app.log.info(`🔌 Plugins API available at http://${env.HOST}:${env.PORT}/api/plugins`);
 
     LoggerService.logSystem('Server started successfully', {
       port: env.PORT,
