@@ -1,7 +1,13 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import multipart from '@fastify/multipart';
+import staticFiles from '@fastify/static';
+import path from 'path';
 import { env } from '@/config/env';
 import { prisma } from '@/config/database';
+import { redisCache } from '@/core/cache/redis';
+import { logger, LoggerService } from '@/core/logger/logger';
+import { accessLogMiddleware, errorLogMiddleware } from '@/core/logger/middleware';
 
 // Import routes
 import { authRoutes } from '@/core/auth/routes';
@@ -9,10 +15,12 @@ import { userRoutes } from '@/core/user/routes';
 import { productRoutes } from '@/core/product/routes';
 import { orderRoutes } from '@/core/order/routes';
 import { paymentRoutes } from '@/core/payment/routes';
+import { uploadRoutes } from '@/core/upload/routes';
+import { searchRoutes } from '@/core/search/routes';
+import { cacheRoutes } from '@/core/cache/routes';
 
 // Import plugin system
 import { DefaultPluginManager } from '@/plugins/manager';
-import path from 'path';
 
 const fastify = Fastify({
   logger: {
@@ -22,11 +30,42 @@ const fastify = Fastify({
 
 async function buildApp() {
   try {
+    // Initialize Redis connection
+    try {
+      await redisCache.connect();
+      LoggerService.logSystem('Redis connected successfully');
+    } catch (error) {
+      LoggerService.logError(error as Error, { context: 'Redis connection' });
+      if (env.NODE_ENV !== 'development') {
+        throw error;
+      }
+    }
+
+    // Register multipart for file uploads
+    await fastify.register(multipart, {
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+        files: 1
+      }
+    });
+
+    // Register static files
+    await fastify.register(staticFiles, {
+      root: path.join(process.cwd(), 'uploads'),
+      prefix: '/uploads/'
+    });
+
     // Register CORS
     await fastify.register(cors, {
       origin: env.NODE_ENV === 'development' ? true : false,
       credentials: true,
     });
+
+    // Add access logging middleware
+    fastify.addHook('onRequest', accessLogMiddleware);
+
+    // Add error handling
+    fastify.setErrorHandler(errorLogMiddleware);
 
     // Root endpoint - Welcome page
     fastify.get('/', async () => {
@@ -42,7 +81,10 @@ async function buildApp() {
           users: '/api/users',
           products: '/api/products',
           orders: '/api/orders',
-          payments: '/api/payments'
+          payments: '/api/payments',
+          upload: '/api/upload',
+          search: '/api/search',
+          cache: '/api/cache'
         },
         documentation: {
           swagger_ui: '/docs',
@@ -200,6 +242,103 @@ async function buildApp() {
                 }
               }
             }
+          },
+          '/api/search/products': {
+            get: {
+              tags: ['search'],
+              summary: '高级商品搜索',
+              description: '支持关键词、价格范围、分类等多维度搜索',
+              parameters: [
+                {
+                  name: 'q',
+                  in: 'query',
+                  description: '搜索关键词',
+                  schema: { type: 'string' }
+                },
+                {
+                  name: 'minPrice',
+                  in: 'query',
+                  description: '最低价格',
+                  schema: { type: 'number', minimum: 0 }
+                },
+                {
+                  name: 'maxPrice',
+                  in: 'query',
+                  description: '最高价格',
+                  schema: { type: 'number', minimum: 0 }
+                },
+                {
+                  name: 'inStock',
+                  in: 'query',
+                  description: '是否有库存',
+                  schema: { type: 'boolean' }
+                }
+              ],
+              responses: {
+                '200': {
+                  description: '搜索结果',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          products: { type: 'array' },
+                          pagination: { type: 'object' },
+                          filters: { type: 'object' },
+                          sort: { type: 'object' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/upload/product-image': {
+            post: {
+              tags: ['upload'],
+              summary: '上传商品图片',
+              description: '上传商品图片，支持 JPEG、PNG、WebP 格式，最大 5MB',
+              security: [{ bearerAuth: [] }],
+              requestBody: {
+                content: {
+                  'multipart/form-data': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        file: {
+                          type: 'string',
+                          format: 'binary'
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              responses: {
+                '200': {
+                  description: '上传成功',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          success: { type: 'boolean' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              filename: { type: 'string' },
+                              url: { type: 'string' },
+                              size: { type: 'number' }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         components: {
@@ -286,6 +425,9 @@ async function buildApp() {
     await fastify.register(productRoutes, { prefix: '/api/products' });
     await fastify.register(orderRoutes, { prefix: '/api/orders' });
     await fastify.register(paymentRoutes, { prefix: '/api/payments' });
+    await fastify.register(uploadRoutes, { prefix: '/api/upload' });
+    await fastify.register(searchRoutes, { prefix: '/api/search' });
+    await fastify.register(cacheRoutes, { prefix: '/api/cache' });
 
     // Initialize plugin system
     const pluginManager = new DefaultPluginManager(fastify);
@@ -343,26 +485,42 @@ async function start() {
     });
 
     app.log.info(`🚀 Server running on http://${env.HOST}:${env.PORT}`);
-    app.log.info(`📚 API Documentation available at http://${env.HOST}:${env.PORT}/health`);
+    app.log.info(`📚 API Documentation available at http://${env.HOST}:${env.PORT}/docs`);
+    app.log.info(`🔍 Search API available at http://${env.HOST}:${env.PORT}/api/search`);
+    app.log.info(`📁 Upload API available at http://${env.HOST}:${env.PORT}/api/upload`);
+    app.log.info(`💾 Cache API available at http://${env.HOST}:${env.PORT}/api/cache`);
+
+    LoggerService.logSystem('Server started successfully', {
+      port: env.PORT,
+      host: env.HOST,
+      environment: env.NODE_ENV
+    });
 
   } catch (error) {
+    LoggerService.logError(error as Error, { context: 'Server startup' });
     console.error('Error starting server:', error);
     process.exit(1);
   }
 }
 
 // Handle graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully');
-  await prisma.$disconnect();
-  process.exit(0);
-});
+const gracefulShutdown = async (signal: string) => {
+  LoggerService.logSystem(`Received ${signal}, shutting down gracefully`);
 
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully');
-  await prisma.$disconnect();
-  process.exit(0);
-});
+  try {
+    await redisCache.disconnect();
+    await prisma.$disconnect();
+
+    LoggerService.logSystem('Server shutdown completed');
+    process.exit(0);
+  } catch (error) {
+    LoggerService.logError(error as Error, { context: 'Graceful shutdown' });
+    process.exit(1);
+  }
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 
 // Start the server
 if (require.main === module) {

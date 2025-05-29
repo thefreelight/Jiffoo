@@ -1,16 +1,29 @@
 import { prisma } from '@/config/database';
 import { CreateProductRequest, UpdateProductRequest } from './types';
+import { CacheService } from '@/core/cache/service';
+import { LoggerService, OperationType } from '@/core/logger/logger';
 
 export class ProductService {
   static async getAllProducts(page = 1, limit = 10, search?: string) {
+    const filters = { search };
+
+    // 尝试从缓存获取
+    const cached = await CacheService.getProductList(page, limit, filters);
+    if (cached) {
+      LoggerService.logCache('GET', `product_list_${page}_${limit}`, true);
+      return cached;
+    }
+
     const skip = (page - 1) * limit;
-    
+
     const where = search ? {
       OR: [
-        { name: { contains: search, mode: 'insensitive' as const } },
-        { description: { contains: search, mode: 'insensitive' as const } },
+        { name: { contains: search } },
+        { description: { contains: search } },
       ],
     } : {};
+
+    LoggerService.logDatabase('SELECT', 'product', { where, skip, take: limit });
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
@@ -24,7 +37,7 @@ export class ProductService {
       prisma.product.count({ where }),
     ]);
 
-    return {
+    const result = {
       products,
       pagination: {
         page,
@@ -33,12 +46,35 @@ export class ProductService {
         totalPages: Math.ceil(total / limit),
       },
     };
+
+    // 缓存结果
+    await CacheService.setProductList(page, limit, result, filters);
+    LoggerService.logCache('SET', `product_list_${page}_${limit}`, false);
+
+    return result;
   }
 
   static async getProductById(id: string) {
-    return prisma.product.findUnique({
+    // 尝试从缓存获取
+    const cached = await CacheService.getProduct(id);
+    if (cached) {
+      LoggerService.logCache('GET', `product_${id}`, true);
+      return cached;
+    }
+
+    LoggerService.logDatabase('SELECT', 'product', { id });
+
+    const product = await prisma.product.findUnique({
       where: { id },
     });
+
+    if (product) {
+      // 缓存产品信息
+      await CacheService.setProduct(id, product);
+      LoggerService.logCache('SET', `product_${id}`, false);
+    }
+
+    return product;
   }
 
   static async createProduct(data: CreateProductRequest) {
