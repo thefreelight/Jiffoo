@@ -1,16 +1,27 @@
 {
   "name": "jiffoo-mall",
   "version": "1.0.0",
-  "description": "Fastify + TypeScript 商城系统",
-  "main": "dist/server.js",
+  "description": "Modern e-commerce platform with Next.js frontend and Fastify backend",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
-    "db:reset": "prisma migrate reset"
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "clean": "turbo run clean",
+    "dev:backend": "pnpm --filter backend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:all": "turbo run dev --parallel",
+    "db:generate": "pnpm --filter backend db:generate",
+    "db:migrate": "pnpm --filter backend db:migrate",
+    "db:studio": "pnpm --filter backend db:studio",
+    "db:reset": "pnpm --filter backend db:reset",
+    "db:seed": "pnpm --filter backend db:seed"
   },
   "keywords": [
     "fastify",
@@ -21,38 +32,13 @@
   "author": "Jiffoo Team",
   "license": "MIT",
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^20.10.0",
-    "prisma": "^5.7.0",
-    "tsx": "^4.6.0",
+    "turbo": "^2.3.0",
     "typescript": "^5.3.0"
   },
-  "dependencies": {
-    "@fastify/cors": "^8.4.0",
-    "@fastify/jwt": "^7.2.4",
-    "@fastify/multipart": "^7.0.0",
-    "@fastify/static": "^6.0.0",
-    "@fastify/swagger": "^8.0.0",
-    "@fastify/swagger-ui": "^4.0.0",
-    "@prisma/client": "^5.7.0",
-    "@types/bull": "^4.10.4",
-    "@types/nodemailer": "^6.4.17",
-    "bcryptjs": "^2.4.3",
-    "bull": "^4.16.5",
-    "date-fns": "^4.1.0",
-    "dotenv": "^16.5.0",
-    "fastify": "^4.24.0",
-    "ioredis": "^5.6.1",
-    "jsonwebtoken": "^9.0.2",
-    "multer": "^2.0.0",
-    "node-cron": "^4.0.7",
-    "nodemailer": "^7.0.3",
-    "redis": "^5.1.1",
-    "sharp": "^0.34.2",
-    "twilio": "^5.6.1",
-    "winston": "^3.17.0",
-    "winston-daily-rotate-file": "^5.0.0",
-    "zod": "^3.22.4"
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
   }
 }
