@@ -24,6 +24,9 @@ model User {
   orders                   Order[]
   inventoryRecords         InventoryRecord[]
   notificationPreferences  NotificationPreference[]
+  languagePreference       UserLanguagePreference?
+  createdTranslations      Translation[] @relation("TranslationCreator")
+  updatedTranslations      Translation[] @relation("TranslationUpdater")
 
   @@map("users")
 }
@@ -204,4 +207,62 @@ model NotificationPreference {
   @@unique([userId, category])
 }
 
+// 多语言支持表
+model TranslationKey {
+  id          String @id @default(cuid())
+  key         String
+  namespace   String @default("common")
+  defaultValue String?
+  description String?
+  context     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
+  translations Translation[]
+
+  @@unique([key, namespace])
+  @@index([namespace])
+  @@map("translation_keys")
+}
+
+model Translation {
+  id         String @id @default(cuid())
+  key        String
+  namespace  String @default("common")
+  language   String // SupportedLanguage enum
+  value      String
+  pluralForm String?
+  context    String?
+  isApproved Boolean @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  createdBy  String?
+  updatedBy  String?
+
+  translationKey TranslationKey @relation(fields: [key, namespace], references: [key, namespace], onDelete: Cascade)
+  creator        User?          @relation("TranslationCreator", fields: [createdBy], references: [id])
+  updater        User?          @relation("TranslationUpdater", fields: [updatedBy], references: [id])
+
+  @@unique([key, namespace, language])
+  @@index([language])
+  @@index([namespace, language])
+  @@index([isApproved])
+  @@map("translations")
+}
+
+model UserLanguagePreference {
+  id               String @id @default(cuid())
+  userId           String @unique
+  preferredLanguage String @default("zh-CN") // SupportedLanguage enum
+  timezone         String @default("Asia/Shanghai")
+  dateFormat       String @default("YYYY-MM-DD")
+  timeFormat       String @default("HH:mm:ss")
+  numberFormat     String @default("1,234.56")
+  currencyFormat   String @default("¥1,234.56")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_language_preferences")
+}

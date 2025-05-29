@@ -27,6 +27,10 @@ import { notificationRoutes } from '@/core/notifications/routes';
 import { DefaultPluginManager } from '@/plugins/manager';
 import { pluginRoutes } from '@/plugins/routes';
 
+// Import i18n system
+import { i18nRoutes } from '@/core/i18n/routes';
+import { I18nMiddleware } from '@/core/i18n/middleware';
+
 const fastify = Fastify({
   logger: {
     level: env.NODE_ENV === 'development' ? 'info' : 'warn',
@@ -66,6 +70,11 @@ async function buildApp() {
       credentials: true,
     });
 
+    // Register i18n middleware globally
+    await fastify.register(async function (fastify) {
+      fastify.addHook('onRequest', I18nMiddleware.create());
+    });
+
     // Add access logging middleware
     fastify.addHook('onRequest', accessLogMiddleware);
 
@@ -94,7 +103,8 @@ async function buildApp() {
           permissions: '/api/permissions',
           inventory: '/api/inventory',
           notifications: '/api/notifications',
-          plugins: '/api/plugins'
+          plugins: '/api/plugins',
+          i18n: '/api/i18n'
         },
         documentation: {
           swagger_ui: '/docs',
@@ -443,6 +453,7 @@ async function buildApp() {
     await fastify.register(inventoryRoutes, { prefix: '/api/inventory' });
     await fastify.register(notificationRoutes, { prefix: '/api/notifications' });
     await fastify.register(pluginRoutes, { prefix: '/api/plugins' });
+    await fastify.register(i18nRoutes, { prefix: '/api/i18n' });
 
     // Initialize plugin system
     const pluginManager = new DefaultPluginManager(fastify);
@@ -512,6 +523,7 @@ async function start() {
     app.log.info(`📦 Inventory API available at http://${env.HOST}:${env.PORT}/api/inventory`);
     app.log.info(`📧 Notifications API available at http://${env.HOST}:${env.PORT}/api/notifications`);
     app.log.info(`🔌 Plugins API available at http://${env.HOST}:${env.PORT}/api/plugins`);
+    app.log.info(`🌍 i18n API available at http://${env.HOST}:${env.PORT}/api/i18n`);
 
     LoggerService.logSystem('Server started successfully', {
       port: env.PORT,
