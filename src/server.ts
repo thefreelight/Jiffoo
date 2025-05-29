@@ -20,6 +20,8 @@ import { searchRoutes } from '@/core/search/routes';
 import { cacheRoutes } from '@/core/cache/routes';
 import { statisticsRoutes } from '@/core/statistics/routes';
 import { permissionRoutes } from '@/core/permissions/routes';
+import { inventoryRoutes } from '@/core/inventory/routes';
+import { notificationRoutes } from '@/core/notifications/routes';
 
 // Import plugin system
 import { DefaultPluginManager } from '@/plugins/manager';
@@ -88,7 +90,9 @@ async function buildApp() {
           search: '/api/search',
           cache: '/api/cache',
           statistics: '/api/statistics',
-          permissions: '/api/permissions'
+          permissions: '/api/permissions',
+          inventory: '/api/inventory',
+          notifications: '/api/notifications'
         },
         documentation: {
           swagger_ui: '/docs',
@@ -434,6 +438,8 @@ async function buildApp() {
     await fastify.register(cacheRoutes, { prefix: '/api/cache' });
     await fastify.register(statisticsRoutes, { prefix: '/api/statistics' });
     await fastify.register(permissionRoutes, { prefix: '/api/permissions' });
+    await fastify.register(inventoryRoutes, { prefix: '/api/inventory' });
+    await fastify.register(notificationRoutes, { prefix: '/api/notifications' });
 
     // Initialize plugin system
     const pluginManager = new DefaultPluginManager(fastify);
@@ -497,6 +503,8 @@ async function start() {
     app.log.info(`💾 Cache API available at http://${env.HOST}:${env.PORT}/api/cache`);
     app.log.info(`📊 Statistics API available at http://${env.HOST}:${env.PORT}/api/statistics`);
     app.log.info(`🔐 Permissions API available at http://${env.HOST}:${env.PORT}/api/permissions`);
+    app.log.info(`📦 Inventory API available at http://${env.HOST}:${env.PORT}/api/inventory`);
+    app.log.info(`📧 Notifications API available at http://${env.HOST}:${env.PORT}/api/notifications`);
 
     LoggerService.logSystem('Server started successfully', {
       port: env.PORT,
