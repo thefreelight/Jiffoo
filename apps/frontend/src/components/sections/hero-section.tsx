@@ -47,7 +47,7 @@ export function HeroSection() {
                 transition={{ duration: 0.6, delay: 0.4 }}
                 className="text-lg text-muted-foreground max-w-md"
               >
-                Experience premium quality products with lightning-fast delivery 
+                Experience premium quality products with lightning-fast delivery
                 and exceptional customer service. Your satisfaction is our priority.
               </motion.p>
             </div>
@@ -86,17 +86,17 @@ export function HeroSection() {
               transition={{ duration: 0.6, delay: 0.6 }}
               className="flex flex-col sm:flex-row gap-4"
             >
-              <Button size="lg" className="group" asChild>
-                <Link href="/products">
+              <Link href="/products">
+                <Button size="lg" className="group">
                   Shop Now
                   <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </Link>
-              </Button>
-              <Button size="lg" variant="outline" asChild>
-                <Link href="/categories">
+                </Button>
+              </Link>
+              <Link href="/categories">
+                <Button size="lg" variant="outline">
                   Browse Categories
-                </Link>
-              </Button>
+                </Button>
+              </Link>
             </motion.div>
 
             {/* Stats */}
@@ -136,7 +136,7 @@ export function HeroSection() {
                 className="object-cover"
                 priority
               />
-              
+
               {/* Floating Cards */}
               <motion.div
                 initial={{ opacity: 0, y: 50 }}

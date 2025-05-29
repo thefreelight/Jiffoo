@@ -123,12 +123,12 @@ export function CategorySection() {
           viewport={{ once: true }}
           className="text-center mt-12"
         >
-          <Button size="lg" variant="outline" asChild>
-            <Link href="/categories">
+          <Link href="/categories">
+            <Button size="lg" variant="outline">
               View All Categories
               <ArrowRight className="ml-2 h-4 w-4" />
-            </Link>
-          </Button>
+            </Button>
+          </Link>
         </motion.div>
       </div>
     </section>

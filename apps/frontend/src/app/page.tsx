@@ -1,4 +1,3 @@
-import { Suspense } from 'react';
 import { Header } from '@/components/layout/header';
 import { Footer } from '@/components/layout/footer';
 import { HeroSection } from '@/components/sections/hero-section';
@@ -6,7 +5,6 @@ import { FeaturedProducts } from '@/components/sections/featured-products';
 import { CategorySection } from '@/components/sections/category-section';
 import { StatsSection } from '@/components/sections/stats-section';
 import { NewsletterSection } from '@/components/sections/newsletter-section';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 export default function HomePage() {
   return (
@@ -28,32 +26,13 @@ export default function HomePage() {
         {/* Main content */}
         <div className="bg-background">
           <Header />
-          
+
           <main className="flex-1">
-            {/* Hero Section */}
-            <Suspense fallback={<LoadingSpinner />}>
-              <HeroSection />
-            </Suspense>
-
-            {/* Category Section */}
-            <Suspense fallback={<LoadingSpinner />}>
-              <CategorySection />
-            </Suspense>
-
-            {/* Featured Products */}
-            <Suspense fallback={<LoadingSpinner />}>
-              <FeaturedProducts />
-            </Suspense>
-
-            {/* Stats Section */}
-            <Suspense fallback={<LoadingSpinner />}>
-              <StatsSection />
-            </Suspense>
-
-            {/* Newsletter Section */}
-            <Suspense fallback={<LoadingSpinner />}>
-              <NewsletterSection />
-            </Suspense>
+            <HeroSection />
+            <CategorySection />
+            <FeaturedProducts />
+            <StatsSection />
+            <NewsletterSection />
           </main>
 
           <Footer />
