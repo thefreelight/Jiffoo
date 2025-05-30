@@ -93,17 +93,29 @@ export async function i18nRoutes(fastify: FastifyInstance) {
       }
     }
   }, async (request, reply) => {
-    const { key } = request.params as { key: string };
+    const { key: rawKey } = request.params as { key: string };
     const { lang, namespace, defaultValue } = request.query as {
       lang?: string;
       namespace?: string;
       defaultValue?: string;
     };
 
+    // Parse namespace.key format
+    let parsedKey = rawKey;
+    let parsedNamespace = namespace || TranslationNamespace.COMMON;
+
+    if (rawKey.includes('.') && !namespace) {
+      const parts = rawKey.split('.');
+      if (parts.length === 2) {
+        parsedNamespace = parts[0];
+        parsedKey = parts[1];
+      }
+    }
+
     const result = await I18nService.translate({
-      key,
+      key: parsedKey,
       language: (lang as SupportedLanguage) || request.language,
-      namespace: namespace || TranslationNamespace.COMMON,
+      namespace: parsedNamespace,
       defaultValue
     });
 

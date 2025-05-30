@@ -3,9 +3,10 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, ShoppingCart, User, Menu, Globe, Heart } from 'lucide-react';
+import { Search, ShoppingCart, User, Menu, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { useAuthStore } from '@/store/auth';
 import { useCartStore } from '@/store/cart';
 import { cn } from '@/lib/utils';
@@ -80,9 +81,9 @@ export function Header() {
           {/* Actions */}
           <div className="flex items-center space-x-2">
             {/* Language Selector */}
-            <Button variant="ghost" size="icon" className="hidden sm:flex">
-              <Globe className="h-4 w-4" />
-            </Button>
+            <div className="hidden sm:flex">
+              <LanguageSwitcher />
+            </div>
 
             {/* Wishlist */}
             <Button variant="ghost" size="icon" className="hidden sm:flex">
@@ -190,7 +191,7 @@ export function Header() {
               >
                 Deals
               </Link>
-              
+
               {!isAuthenticated && (
                 <div className="flex flex-col space-y-2 pt-4 border-t">
                   <Button
