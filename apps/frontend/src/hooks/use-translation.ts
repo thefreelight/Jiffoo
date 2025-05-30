@@ -14,36 +14,20 @@ export function useTranslation() {
   useEffect(() => {
     setIsHydrated(true);
     const savedLanguage = localStorage.getItem('language') || 'en-US';
-    if (savedLanguage !== currentLanguage) {
-      translationCache.clear();
-      setCurrentLanguage(savedLanguage);
-    }
+    setCurrentLanguage(savedLanguage);
   }, []);
 
-  useEffect(() => {
-    if (!isHydrated) return;
-
-    const savedLanguage = localStorage.getItem('language') || 'en-US';
-    if (savedLanguage !== currentLanguage) {
-      // 清除缓存，因为语言已经改变
-      translationCache.clear();
-      setCurrentLanguage(savedLanguage);
-    }
-  }, [currentLanguage, isHydrated]);
-
-  // 监听语言变化事件
+  // 监听语言变化事件（简化版本，避免依赖循环）
   useEffect(() => {
     const handleLanguageChange = () => {
       const newLanguage = localStorage.getItem('language') || 'en-US';
-      if (newLanguage !== currentLanguage) {
-        translationCache.clear();
-        setCurrentLanguage(newLanguage);
-      }
+      translationCache.clear();
+      setCurrentLanguage(newLanguage);
     };
 
     window.addEventListener('storage', handleLanguageChange);
     return () => window.removeEventListener('storage', handleLanguageChange);
-  }, [currentLanguage]);
+  }, []); // 空依赖数组，避免循环
 
   const t = async (key: string, namespace: string = 'common', defaultValue?: string): Promise<string> => {
     // 如果还没有水合，返回默认值

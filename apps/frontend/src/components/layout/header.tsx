@@ -7,16 +7,53 @@ import { Search, ShoppingCart, User, Menu, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { useTranslation } from '@/hooks/use-translation';
 import { useAuthStore } from '@/store/auth';
 import { useCartStore } from '@/store/cart';
 import { cn } from '@/lib/utils';
 
 export function Header() {
   const router = useRouter();
+  const { currentLanguage } = useTranslation();
   const { user, isAuthenticated, logout } = useAuthStore();
   const { cart, toggleCart } = useCartStore();
   const [searchQuery, setSearchQuery] = React.useState('');
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+
+  // 简单的翻译映射
+  const translations: Record<string, Record<string, string>> = {
+    'en-US': {
+      searchPlaceholder: 'Search products...',
+      products: 'Products',
+      categories: 'Categories',
+      deals: 'Deals',
+      login: 'Login',
+      signUp: 'Sign Up',
+      logout: 'Logout',
+    },
+    'zh-CN': {
+      searchPlaceholder: '搜索商品...',
+      products: '商品',
+      categories: '分类',
+      deals: '优惠',
+      login: '登录',
+      signUp: '注册',
+      logout: '退出',
+    },
+    'ja-JP': {
+      searchPlaceholder: '商品を検索...',
+      products: '商品',
+      categories: 'カテゴリー',
+      deals: 'セール',
+      login: 'ログイン',
+      signUp: '新規登録',
+      logout: 'ログアウト',
+    },
+  };
+
+  const t = (key: string) => {
+    return translations[currentLanguage]?.[key] || translations['en-US'][key] || key;
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,7 +85,7 @@ export function Header() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
-                placeholder="Search products..."
+                placeholder={t('searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 pr-4"
@@ -62,19 +99,19 @@ export function Header() {
               href="/products"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              Products
+              {t('products')}
             </Link>
             <Link
               href="/categories"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              Categories
+              {t('categories')}
             </Link>
             <Link
               href="/deals"
               className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
             >
-              Deals
+              {t('deals')}
             </Link>
           </nav>
 
@@ -117,7 +154,7 @@ export function Header() {
                   onClick={handleLogout}
                   className="hidden sm:flex"
                 >
-                  Logout
+                  {t('logout')}
                 </Button>
               </div>
             ) : (
@@ -128,14 +165,14 @@ export function Header() {
                   onClick={() => router.push('/auth/login')}
                   className="hidden sm:flex"
                 >
-                  Login
+                  {t('login')}
                 </Button>
                 <Button
                   size="sm"
                   onClick={() => router.push('/auth/register')}
                   className="hidden sm:flex"
                 >
-                  Sign Up
+                  {t('signUp')}
                 </Button>
               </div>
             )}
@@ -158,7 +195,7 @@ export function Header() {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search products..."
+              placeholder={t('searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 pr-4"
@@ -175,21 +212,21 @@ export function Header() {
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Products
+                {t('products')}
               </Link>
               <Link
                 href="/categories"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Categories
+                {t('categories')}
               </Link>
               <Link
                 href="/deals"
                 className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => setIsMenuOpen(false)}
               >
-                Deals
+                {t('deals')}
               </Link>
 
               {!isAuthenticated && (
@@ -201,7 +238,7 @@ export function Header() {
                       setIsMenuOpen(false);
                     }}
                   >
-                    Login
+                    {t('login')}
                   </Button>
                   <Button
                     onClick={() => {
@@ -209,7 +246,7 @@ export function Header() {
                       setIsMenuOpen(false);
                     }}
                   >
-                    Sign Up
+                    {t('signUp')}
                   </Button>
                 </div>
               )}
