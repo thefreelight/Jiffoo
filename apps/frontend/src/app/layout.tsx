@@ -6,8 +6,10 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import '@/styles/globals.css';
 import { Providers } from './providers';
 import { Toaster } from '@/components/ui/toaster';
+import { Header } from '@/components/layout/header';
+import { Footer } from '@/components/layout/footer';
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-inter',
@@ -73,9 +75,11 @@ export default function RootLayout({
       <body className={`${inter.variable} font-sans antialiased`}>
         <Providers>
           <div className="relative flex min-h-screen flex-col">
-            <div className="flex-1">
+            <Header />
+            <main className="flex-1">
               {children}
-            </div>
+            </main>
+            <Footer />
           </div>
           <Toaster />
         </Providers>
