@@ -20,6 +20,7 @@ import {
   LockClosedIcon,
   ComponentInstanceIcon
 } from '@radix-ui/react-icons'
+import { CurrencyDollarIcon } from '@heroicons/react/24/outline'
 
 interface SidebarProps {
   className?: string
@@ -33,70 +34,85 @@ const navigation = [
     current: false,
   },
   {
+    name: 'Products',
+    href: '/products',
+    icon: ArchiveIcon,
+    current: false,
+    children: [
+      { name: 'All Products', href: '/products' },
+      { name: 'Add Product', href: '/products/create' },
+      { name: 'Categories', href: '/products/categories' },
+      { name: 'Inventory', href: '/products/inventory' },
+    ],
+  },
+  {
+    name: 'Orders',
+    href: '/orders',
+    icon: ReaderIcon,
+    current: false,
+    children: [
+      { name: 'All Orders', href: '/orders' },
+      { name: 'Pending', href: '/orders/pending' },
+      { name: 'Processing', href: '/orders/processing' },
+      { name: 'Shipped', href: '/orders/shipped' },
+      { name: 'Delivered', href: '/orders/delivered' },
+    ],
+  },
+  {
+    name: 'Customers',
+    href: '/customers',
+    icon: PersonIcon,
+    current: false,
+    children: [
+      { name: 'All Customers', href: '/customers' },
+      { name: 'Customer Groups', href: '/customers/groups' },
+      { name: 'Reviews', href: '/customers/reviews' },
+    ],
+  },
+  {
     name: 'Analytics',
     href: '/analytics',
     icon: BarChartIcon,
     current: false,
-  },
-  {
-    name: 'E-commerce',
-    href: '/ecommerce',
-    icon: ArchiveIcon,
-    current: false,
     children: [
-      { name: 'Products', href: '/ecommerce/products' },
-      { name: 'Orders', href: '/ecommerce/orders' },
-      { name: 'Customers', href: '/ecommerce/customers' },
+      { name: 'Sales Report', href: '/analytics/sales' },
+      { name: 'Product Analytics', href: '/analytics/products' },
+      { name: 'Customer Analytics', href: '/analytics/customers' },
     ],
   },
   {
-    name: 'Community',
-    href: '/community',
-    icon: PersonIcon,
+    name: 'Marketing',
+    href: '/marketing',
+    icon: ComponentInstanceIcon,
     current: false,
+    children: [
+      { name: 'Promotions', href: '/marketing/promotions' },
+      { name: 'Coupons', href: '/marketing/coupons' },
+      { name: 'Email Campaigns', href: '/marketing/emails' },
+    ],
   },
   {
     name: 'Finance',
     href: '/finance',
-    icon: ReaderIcon,
+    icon: CurrencyDollarIcon,
     current: false,
-  },
-  {
-    name: 'Job Board',
-    href: '/jobs',
-    icon: ComponentInstanceIcon,
-    current: false,
-  },
-  {
-    name: 'Tasks',
-    href: '/tasks',
-    icon: MixerHorizontalIcon,
-    current: false,
-  },
-  {
-    name: 'Messages',
-    href: '/messages',
-    icon: ChatBubbleIcon,
-    current: false,
-    badge: '4',
-  },
-  {
-    name: 'Calendar',
-    href: '/calendar',
-    icon: CalendarIcon,
-    current: false,
-  },
-  {
-    name: 'Campaigns',
-    href: '/campaigns',
-    icon: ReaderIcon,
-    current: false,
+    children: [
+      { name: 'Revenue', href: '/finance/revenue' },
+      { name: 'Payments', href: '/finance/payments' },
+      { name: 'Refunds', href: '/finance/refunds' },
+    ],
   },
   {
     name: 'Settings',
     href: '/settings',
     icon: GearIcon,
     current: false,
+    children: [
+      { name: 'General', href: '/settings/general' },
+      { name: 'Payment Methods', href: '/settings/payments' },
+      { name: 'Shipping', href: '/settings/shipping' },
+      { name: 'Taxes', href: '/settings/taxes' },
+    ],
   },
 ]
 
@@ -137,9 +153,9 @@ export function Sidebar({ className }: SidebarProps) {
         {!isCollapsed && (
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">A</span>
+              <span className="text-white font-bold text-sm">J</span>
             </div>
-            <span className="font-semibold text-gray-900">Acme Inc.</span>
+            <span className="font-semibold text-gray-900">Jiffoo Mall</span>
           </div>
         )}
         <button
@@ -164,11 +180,11 @@ export function Sidebar({ className }: SidebarProps) {
             </h3>
           </div>
         )}
-        
+
         {navigation.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
           const isExpanded = expandedItems.includes(item.name)
-          
+
           return (
             <div key={item.name}>
               <Link
@@ -212,7 +228,7 @@ export function Sidebar({ className }: SidebarProps) {
                   </>
                 )}
               </Link>
-              
+
               {/* Submenu */}
               {item.children && isExpanded && !isCollapsed && (
                 <div className="ml-8 mt-1 space-y-1">
@@ -244,10 +260,10 @@ export function Sidebar({ className }: SidebarProps) {
             </h3>
           </div>
         )}
-        
+
         {moreNavigation.map((item) => {
           const isActive = pathname === item.href
-          
+
           return (
             <Link
               key={item.name}

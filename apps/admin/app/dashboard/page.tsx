@@ -6,7 +6,7 @@ import { useAuthStore } from '../../lib/store'
 import { Sidebar } from '../../components/layout/sidebar'
 import { Header } from '../../components/layout/header'
 import { StatsCard } from '../../components/dashboard/stats-card'
-import { DirectVsIndirectChart, RealTimeValueChart } from '../../components/dashboard/charts'
+import { SalesChannelChart, RealTimeOrdersChart } from '../../components/dashboard/charts'
 import {
   CurrencyDollarIcon,
   ArrowTrendingDownIcon,
@@ -51,37 +51,45 @@ export default function DashboardPage() {
         <main className="flex-1 overflow-y-auto p-6">
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <StatsCard
-              title="Acme Plus"
-              value="$24,780"
-              change="+49%"
+              title="Total Revenue"
+              value="¥156,780"
+              change="+12.5%"
               changeType="increase"
               color="blue"
               icon={<CurrencyDollarIcon className="w-5 h-5" />}
             />
             <StatsCard
-              title="Acme Advanced"
-              value="$17,489"
-              change="-14%"
-              changeType="decrease"
-              color="purple"
-              icon={<ArrowTrendingDownIcon className="w-5 h-5" />}
-            />
-            <StatsCard
-              title="Acme Professional"
-              value="$9,962"
-              change="+20%"
+              title="Total Orders"
+              value="2,847"
+              change="+8.2%"
               changeType="increase"
               color="green"
               icon={<ArrowTrendingUpIcon className="w-5 h-5" />}
+            />
+            <StatsCard
+              title="Total Products"
+              value="1,234"
+              change="+15.3%"
+              changeType="increase"
+              color="purple"
+              icon={<ArrowTrendingUpIcon className="w-5 h-5" />}
+            />
+            <StatsCard
+              title="Active Users"
+              value="8,567"
+              change="-2.1%"
+              changeType="decrease"
+              color="orange"
+              icon={<ArrowTrendingDownIcon className="w-5 h-5" />}
             />
           </div>
 
           {/* Charts */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DirectVsIndirectChart />
-            <RealTimeValueChart />
+            <SalesChannelChart />
+            <RealTimeOrdersChart />
           </div>
         </main>
       </div>
