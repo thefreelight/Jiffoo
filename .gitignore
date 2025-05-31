@@ -8,6 +8,8 @@ pnpm-debug.log*
 # Build outputs
 dist/
 build/
+.next/
+.turbo/
 
 # Environment variables
 .env
