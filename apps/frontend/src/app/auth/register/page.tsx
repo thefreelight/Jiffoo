@@ -6,17 +6,17 @@ import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/hooks/use-translation';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuthStore } from '@/store/auth';
 import { useToast } from '@/components/ui/toaster';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function RegisterPage() {
   const { currentLanguage } = useTranslation();
-  const { login } = useAuth();
+  const { login } = useAuthStore();
   const { toast } = useToast();
   const router = useRouter();
-  
+
   const [formData, setFormData] = React.useState({
     name: '',
     email: '',
@@ -139,7 +139,7 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validation
     if (!formData.name.trim()) {
       toast({
@@ -210,7 +210,7 @@ export default function RegisterPage() {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
+
       // Mock registration success
       login({
         id: '1',

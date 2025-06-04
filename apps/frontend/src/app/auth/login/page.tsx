@@ -6,17 +6,17 @@ import { Eye, EyeOff, Mail, Lock, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useTranslation } from '@/hooks/use-translation';
-import { useAuth } from '@/hooks/use-auth';
+import { useAuthStore } from '@/store/auth';
 import { useToast } from '@/components/ui/toaster';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const { currentLanguage } = useTranslation();
-  const { login } = useAuth();
+  const { login } = useAuthStore();
   const { toast } = useToast();
   const router = useRouter();
-  
+
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
@@ -99,7 +99,7 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validation
     if (!email) {
       toast({
@@ -130,7 +130,7 @@ export default function LoginPage() {
     try {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       // Mock login success
       login({
         id: '1',
