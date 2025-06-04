@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { tenantManager } from './tenant-manager';
 import { salesManager } from '@/core/sales/sales-manager';
-import { authMiddleware, adminMiddleware } from '@/core/auth/middleware';
+import { authMiddleware, adminMiddleware, requirePermission, tenantMiddleware, auditLog } from '@/core/auth/middleware';
 import { z } from 'zod';
 
 // 请求验证模式
@@ -52,7 +52,7 @@ const grantLicenseSchema = z.object({
 });
 
 export async function tenantRoutes(fastify: FastifyInstance) {
-  
+
   /**
    * 注册新租户
    * POST /api/tenants/register
@@ -121,7 +121,7 @@ export async function tenantRoutes(fastify: FastifyInstance) {
    * POST /api/tenants/:id/activate
    */
   fastify.post('/:id/activate', {
-    preHandler: [authMiddleware, adminMiddleware],
+    preHandler: [authMiddleware, requirePermission('tenants.update'), auditLog('ACTIVATE', 'tenants')],
     schema: {
       tags: ['tenants'],
       summary: '激活租户',
@@ -170,7 +170,7 @@ export async function tenantRoutes(fastify: FastifyInstance) {
    * POST /api/tenants/price-controls
    */
   fastify.post('/price-controls', {
-    preHandler: [authMiddleware, adminMiddleware],
+    preHandler: [authMiddleware, requirePermission('pricing.create'), auditLog('CREATE', 'pricing')],
     schema: {
       tags: ['tenants'],
       summary: '设置价格控制',
@@ -214,7 +214,7 @@ export async function tenantRoutes(fastify: FastifyInstance) {
    * POST /api/tenants/:id/pricing
    */
   fastify.post('/:id/pricing', {
-    preHandler: [authMiddleware],
+    preHandler: [authMiddleware, tenantMiddleware, requirePermission('tenant.pricing.*'), auditLog('UPDATE', 'tenant_pricing')],
     schema: {
       tags: ['tenants'],
       summary: '设置租户定价',
@@ -271,7 +271,7 @@ export async function tenantRoutes(fastify: FastifyInstance) {
    * POST /api/tenants/:id/licenses
    */
   fastify.post('/:id/licenses', {
-    preHandler: [authMiddleware, adminMiddleware],
+    preHandler: [authMiddleware, requirePermission('tenants.update'), auditLog('GRANT_LICENSE', 'tenant_licenses')],
     schema: {
       tags: ['tenants'],
       summary: '授权租户产品',
@@ -337,7 +337,7 @@ export async function tenantRoutes(fastify: FastifyInstance) {
    * GET /api/tenants/:id
    */
   fastify.get('/:id', {
-    preHandler: [authMiddleware],
+    preHandler: [authMiddleware, tenantMiddleware, requirePermission('tenant.view')],
     schema: {
       tags: ['tenants'],
       summary: '获取租户信息',

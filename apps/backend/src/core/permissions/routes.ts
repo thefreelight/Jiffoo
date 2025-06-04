@@ -43,7 +43,7 @@ export async function permissionRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { userId } = request.params as { userId: string };
-      
+
       // 获取用户信息
       const { prisma } = await import('@/config/database');
       const user = await prisma.user.findUnique({
@@ -58,7 +58,7 @@ export async function permissionRoutes(fastify: FastifyInstance) {
       }
 
       const permissions = await PermissionService.getUserPermissions(userId, user.role as UserRole);
-      
+
       return reply.send({
         userId,
         userRole: user.role,
@@ -182,9 +182,14 @@ export async function permissionRoutes(fastify: FastifyInstance) {
         }>;
       };
 
+      // 获取用户的主要角色（从JWT token或roles数组中）
+      const userRole = user.role ||
+                      (user.roles && user.roles.length > 0 ? user.roles[0].role?.name : null) ||
+                      'USER';
+
       const contexts = checks.map(check => ({
-        userId: user.id,
-        userRole: user.role as UserRole,
+        userId: user.id || user.userId,
+        userRole: userRole as UserRole,
         resource: check.resource,
         action: check.action,
         resourceId: check.resourceId
@@ -228,9 +233,9 @@ export async function permissionRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { userId } = request.params as { userId: string };
-      
+
       await PermissionService.clearUserPermissionCache(userId);
-      
+
       return reply.send({
         success: true,
         message: `Permission cache cleared for user ${userId}`
@@ -306,7 +311,7 @@ export async function permissionRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { DEFAULT_ROLE_PERMISSIONS } = await import('./types');
-      
+
       return reply.send({
         roles: DEFAULT_ROLE_PERMISSIONS
       });

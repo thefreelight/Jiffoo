@@ -40,6 +40,10 @@ model User {
   tenantUsers             TenantUser[]
   customerSales           Sale[] @relation("CustomerSales")
 
+  // 权限管理相关关系
+  userRoles               UserRole[]
+  auditLogs               AuditLog[] @relation("UserAuditLogs")
+
   @@map("users")
 }
 
@@ -289,6 +293,8 @@ model Tenant {
   pricing         TenantPricing[]
   dataSync        TenantDataSync[]
   revenueSharing  RevenueSharing[] @relation("TenantRevenue")
+  userRoles       UserRole[] @relation("TenantUserRoles")
+  auditLogs       AuditLog[] @relation("TenantAuditLogs")
 
   @@index([status])
   @@index([agencyFeePaid])
@@ -503,6 +509,119 @@ model RevenueSharing {
   @@index([settlementStatus])
   @@index([settlementDate])
   @@map("revenue_sharing")
+}
+
+// 权限管理系统
+
+// 角色表
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique // 'SUPER_ADMIN', 'ADMIN', 'TENANT_ADMIN', 'TENANT_MANAGER', 'USER'
+  displayName String
+  description String?
+  level       Int      @default(0) // 权限级别，数字越大权限越高
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  userRoles   UserRole[]
+  rolePermissions RolePermission[]
+
+  @@index([name])
+  @@index([level])
+  @@map("roles")
+}
+
+// 权限表
+model Permission {
+  id          String   @id @default(cuid())
+  name        String   @unique // 'users.create', 'tenants.manage', 'sales.view'
+  displayName String
+  description String?
+  module      String   // 'users', 'tenants', 'sales', 'plugins', 'templates'
+  action      String   // 'create', 'read', 'update', 'delete', 'manage'
+  resource    String?  // 具体资源，如 'own', 'all', 'tenant'
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  rolePermissions RolePermission[]
+
+  @@index([module])
+  @@index([action])
+  @@map("permissions")
+}
+
+// 用户角色关联表
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  roleId    String
+  tenantId  String?  // 租户ID，null表示全局角色
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  tenant    Tenant?  @relation("TenantUserRoles", fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, tenantId], name: "user_role_tenant_unique")
+  @@index([userId])
+  @@index([roleId])
+  @@index([tenantId])
+  @@map("user_roles")
+}
+
+// 角色权限关联表
+model RolePermission {
+  id           String   @id @default(cuid())
+  roleId       String
+  permissionId String
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([roleId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+// 操作日志表
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  tenantId    String?
+  action      String   // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT'
+  module      String   // 'users', 'tenants', 'sales', 'plugins'
+  resourceId  String?  // 被操作的资源ID
+  resourceType String? // 被操作的资源类型
+  oldValues   String?  // JSON格式的旧值
+  newValues   String?  // JSON格式的新值
+  ipAddress   String?
+  userAgent   String?
+  success     Boolean  @default(true)
+  errorMessage String?
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user        User?    @relation("UserAuditLogs", fields: [userId], references: [id])
+  tenant      Tenant?  @relation("TenantAuditLogs", fields: [tenantId], references: [id])
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([action])
+  @@index([module])
+  @@index([createdAt])
+  @@map("audit_logs")
 }
 
 // 库存记录表

@@ -19,7 +19,6 @@ import { uploadRoutes } from '@/core/upload/routes';
 import { searchRoutes } from '@/core/search/routes';
 import { cacheRoutes } from '@/core/cache/routes';
 import { statisticsRoutes } from '@/core/statistics/routes';
-import { permissionRoutes } from '@/core/permissions/routes';
 import { inventoryRoutes } from '@/core/inventory/routes';
 import { notificationRoutes } from '@/core/notifications/routes';
 
@@ -38,6 +37,7 @@ import { saasRoutes } from '@/core/saas/saas-routes';
 import { templateRoutes } from '@/core/templates/template-manager';
 import { tenantRoutes } from '@/core/tenant/tenant-routes';
 import { salesRoutes } from '@/core/sales/sales-routes';
+import { permissionRoutes as authPermissionRoutes } from '@/core/auth/permission-routes';
 
 const fastify = Fastify({
   logger: {
@@ -118,7 +118,8 @@ async function buildApp() {
           saas: '/api/saas',
           templates: '/api/templates',
           tenants: '/api/tenants',
-          sales: '/api/sales'
+          sales: '/api/sales',
+          permissions: '/api/permissions'
         },
         documentation: {
           swagger_ui: '/docs',
@@ -463,7 +464,6 @@ async function buildApp() {
     await fastify.register(searchRoutes, { prefix: '/api/search' });
     await fastify.register(cacheRoutes, { prefix: '/api/cache' });
     await fastify.register(statisticsRoutes, { prefix: '/api/statistics' });
-    await fastify.register(permissionRoutes, { prefix: '/api/permissions' });
     await fastify.register(inventoryRoutes, { prefix: '/api/inventory' });
     await fastify.register(notificationRoutes, { prefix: '/api/notifications' });
     await fastify.register(pluginRoutes, { prefix: '/api/plugins' });
@@ -476,6 +476,7 @@ async function buildApp() {
     await fastify.register(templateRoutes, { prefix: '/api/templates' });
     await fastify.register(tenantRoutes, { prefix: '/api/tenants' });
     await fastify.register(salesRoutes, { prefix: '/api/sales' });
+    await fastify.register(authPermissionRoutes, { prefix: '/api/permissions' });
 
     // Initialize plugin system
     const pluginManager = new DefaultPluginManager(fastify);
@@ -552,6 +553,7 @@ async function start() {
     app.log.info(`🎨 Templates API available at http://${env.HOST}:${env.PORT}/api/templates`);
     app.log.info(`🏢 Tenants API available at http://${env.HOST}:${env.PORT}/api/tenants`);
     app.log.info(`💰 Sales API available at http://${env.HOST}:${env.PORT}/api/sales`);
+    app.log.info(`🔐 Permissions API available at http://${env.HOST}:${env.PORT}/api/permissions`);
 
     LoggerService.logSystem('Server started successfully', {
       port: env.PORT,

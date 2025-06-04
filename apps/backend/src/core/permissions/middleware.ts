@@ -9,7 +9,7 @@ import { LoggerService } from '@/core/logger/logger';
 export function requirePermission(resource: Resource, action: Action) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     const user = (request as any).user;
-    
+
     if (!user) {
       LoggerService.logSecurity('UNAUTHORIZED_ACCESS', {
         resource,
@@ -18,28 +18,33 @@ export function requirePermission(resource: Resource, action: Action) {
         url: request.url,
         method: request.method
       });
-      
+
       return reply.status(401).send({
         error: 'Unauthorized',
         message: 'Authentication required'
       });
     }
 
+    // 获取用户的主要角色（从JWT token或roles数组中）
+    const userRole = user.role ||
+                    (user.roles && user.roles.length > 0 ? user.roles[0].role?.name : null) ||
+                    'USER';
+
     const context: PermissionContext = {
-      userId: user.id,
-      userRole: user.role as UserRole,
+      userId: user.id || user.userId,
+      userRole: userRole as UserRole,
       resource,
       action,
       resourceId: (request.params as any)?.id,
       additionalData: {
-        ownerId: user.id,
+        ownerId: user.id || user.userId,
         body: request.body,
         query: request.query
       }
     };
 
     const result = await PermissionService.checkPermission(context);
-    
+
     if (!result.allowed) {
       LoggerService.logSecurity('PERMISSION_DENIED', {
         userId: user.id,
@@ -51,7 +56,7 @@ export function requirePermission(resource: Resource, action: Action) {
         url: request.url,
         method: request.method
       });
-      
+
       return reply.status(403).send({
         error: 'Forbidden',
         message: result.reason || 'Insufficient permissions'
@@ -69,7 +74,7 @@ export function requirePermission(resource: Resource, action: Action) {
 export function requireRole(minRole: UserRole) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     const user = (request as any).user;
-    
+
     if (!user) {
       return reply.status(401).send({
         error: 'Unauthorized',
@@ -85,19 +90,23 @@ export function requireRole(minRole: UserRole) {
       [UserRole.SUPER_ADMIN]: 4
     };
 
-    const userLevel = roleHierarchy[user.role as UserRole] || 0;
+    // 获取用户的主要角色（从JWT token或roles数组中）
+    const userRole = user.role ||
+                    (user.roles && user.roles.length > 0 ? user.roles[0].role?.name : null) ||
+                    'USER';
+    const userLevel = roleHierarchy[userRole as UserRole] || 0;
     const requiredLevel = roleHierarchy[minRole];
 
     if (userLevel < requiredLevel) {
       LoggerService.logSecurity('INSUFFICIENT_ROLE', {
         userId: user.id,
-        userRole: user.role,
+        userRole: userRole,
         requiredRole: minRole,
         ip: request.ip,
         url: request.url,
         method: request.method
       });
-      
+
       return reply.status(403).send({
         error: 'Forbidden',
         message: `Requires ${minRole} role or higher`
@@ -113,7 +122,7 @@ export function requireOwnership(resourceIdParam: string = 'id') {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     const user = (request as any).user;
     const resourceId = (request.params as any)[resourceIdParam];
-    
+
     if (!user) {
       return reply.status(401).send({
         error: 'Unauthorized',
@@ -121,8 +130,13 @@ export function requireOwnership(resourceIdParam: string = 'id') {
       });
     }
 
+    // 获取用户的主要角色（从JWT token或roles数组中）
+    const userRole = user.role ||
+                    (user.roles && user.roles.length > 0 ? user.roles[0].role?.name : null) ||
+                    'USER';
+
     // 管理员可以访问所有资源
-    if (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) {
+    if (userRole === UserRole.ADMIN || userRole === UserRole.SUPER_ADMIN) {
       return;
     }
 
@@ -135,7 +149,7 @@ export function requireOwnership(resourceIdParam: string = 'id') {
         url: request.url,
         method: request.method
       });
-      
+
       return reply.status(403).send({
         error: 'Forbidden',
         message: 'You can only access your own resources'
@@ -149,7 +163,7 @@ export function requireOwnership(resourceIdParam: string = 'id') {
  */
 export async function adminMiddleware(request: FastifyRequest, reply: FastifyReply) {
   const user = (request as any).user;
-  
+
   if (!user) {
     return reply.status(401).send({
       error: 'Unauthorized',
@@ -158,7 +172,7 @@ export async function adminMiddleware(request: FastifyRequest, reply: FastifyRep
   }
 
   const isAdmin = await PermissionService.isAdmin(user.id, user.role);
-  
+
   if (!isAdmin) {
     LoggerService.logSecurity('ADMIN_ACCESS_DENIED', {
       userId: user.id,
@@ -167,7 +181,7 @@ export async function adminMiddleware(request: FastifyRequest, reply: FastifyRep
       url: request.url,
       method: request.method
     });
-    
+
     return reply.status(403).send({
       error: 'Forbidden',
       message: 'Administrator access required'
@@ -180,7 +194,7 @@ export async function adminMiddleware(request: FastifyRequest, reply: FastifyRep
  */
 export async function superAdminMiddleware(request: FastifyRequest, reply: FastifyReply) {
   const user = (request as any).user;
-  
+
   if (!user) {
     return reply.status(401).send({
       error: 'Unauthorized',
@@ -189,7 +203,7 @@ export async function superAdminMiddleware(request: FastifyRequest, reply: Fasti
   }
 
   const isSuperAdmin = await PermissionService.isSuperAdmin(user.id, user.role);
-  
+
   if (!isSuperAdmin) {
     LoggerService.logSecurity('SUPER_ADMIN_ACCESS_DENIED', {
       userId: user.id,
@@ -198,7 +212,7 @@ export async function superAdminMiddleware(request: FastifyRequest, reply: Fasti
       url: request.url,
       method: request.method
     });
-    
+
     return reply.status(403).send({
       error: 'Forbidden',
       message: 'Super administrator access required'
@@ -212,10 +226,10 @@ export async function superAdminMiddleware(request: FastifyRequest, reply: Fasti
 export function Permission(resource: Resource, action: Action) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
-    
+
     descriptor.value = async function (request: FastifyRequest, reply: FastifyReply, ...args: any[]) {
       const user = (request as any).user;
-      
+
       if (!user) {
         return reply.status(401).send({
           error: 'Unauthorized',
@@ -223,16 +237,21 @@ export function Permission(resource: Resource, action: Action) {
         });
       }
 
+      // 获取用户的主要角色（从JWT token或roles数组中）
+      const userRole = user.role ||
+                      (user.roles && user.roles.length > 0 ? user.roles[0].role?.name : null) ||
+                      'USER';
+
       const context: PermissionContext = {
-        userId: user.id,
-        userRole: user.role as UserRole,
+        userId: user.id || user.userId,
+        userRole: userRole as UserRole,
         resource,
         action,
         resourceId: (request.params as any)?.id
       };
 
       const result = await PermissionService.checkPermission(context);
-      
+
       if (!result.allowed) {
         return reply.status(403).send({
           error: 'Forbidden',
@@ -242,7 +261,7 @@ export function Permission(resource: Resource, action: Action) {
 
       return method.apply(this, [request, reply, ...args]);
     };
-    
+
     return descriptor;
   };
 }
