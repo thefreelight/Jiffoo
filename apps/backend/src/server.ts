@@ -31,6 +31,14 @@ import { pluginRoutes } from '@/plugins/routes';
 import { i18nRoutes } from '@/core/i18n/routes';
 import { I18nMiddleware } from '@/core/i18n/middleware';
 
+// Import commercialization routes
+import { licenseRoutes } from '@/core/licensing/license-routes';
+import { pluginStoreRoutes } from '@/core/plugin-store/plugin-store-routes';
+import { saasRoutes } from '@/core/saas/saas-routes';
+import { templateRoutes } from '@/core/templates/template-manager';
+import { tenantRoutes } from '@/core/tenant/tenant-routes';
+import { salesRoutes } from '@/core/sales/sales-routes';
+
 const fastify = Fastify({
   logger: {
     level: env.NODE_ENV === 'development' ? 'info' : 'warn',
@@ -104,7 +112,13 @@ async function buildApp() {
           inventory: '/api/inventory',
           notifications: '/api/notifications',
           plugins: '/api/plugins',
-          i18n: '/api/i18n'
+          i18n: '/api/i18n',
+          licenses: '/api/licenses',
+          pluginStore: '/api/plugin-store',
+          saas: '/api/saas',
+          templates: '/api/templates',
+          tenants: '/api/tenants',
+          sales: '/api/sales'
         },
         documentation: {
           swagger_ui: '/docs',
@@ -455,6 +469,14 @@ async function buildApp() {
     await fastify.register(pluginRoutes, { prefix: '/api/plugins' });
     await fastify.register(i18nRoutes, { prefix: '/api/i18n' });
 
+    // Commercialization routes
+    await fastify.register(licenseRoutes, { prefix: '/api/licenses' });
+    await fastify.register(pluginStoreRoutes, { prefix: '/api/plugin-store' });
+    await fastify.register(saasRoutes, { prefix: '/api/saas' });
+    await fastify.register(templateRoutes, { prefix: '/api/templates' });
+    await fastify.register(tenantRoutes, { prefix: '/api/tenants' });
+    await fastify.register(salesRoutes, { prefix: '/api/sales' });
+
     // Initialize plugin system
     const pluginManager = new DefaultPluginManager(fastify);
     const pluginsDir = path.join(__dirname, 'plugins');
@@ -524,6 +546,12 @@ async function start() {
     app.log.info(`📧 Notifications API available at http://${env.HOST}:${env.PORT}/api/notifications`);
     app.log.info(`🔌 Plugins API available at http://${env.HOST}:${env.PORT}/api/plugins`);
     app.log.info(`🌍 i18n API available at http://${env.HOST}:${env.PORT}/api/i18n`);
+    app.log.info(`🔑 Licenses API available at http://${env.HOST}:${env.PORT}/api/licenses`);
+    app.log.info(`🏪 Plugin Store API available at http://${env.HOST}:${env.PORT}/api/plugin-store`);
+    app.log.info(`☁️ SaaS API available at http://${env.HOST}:${env.PORT}/api/saas`);
+    app.log.info(`🎨 Templates API available at http://${env.HOST}:${env.PORT}/api/templates`);
+    app.log.info(`🏢 Tenants API available at http://${env.HOST}:${env.PORT}/api/tenants`);
+    app.log.info(`💰 Sales API available at http://${env.HOST}:${env.PORT}/api/sales`);
 
     LoggerService.logSystem('Server started successfully', {
       port: env.PORT,

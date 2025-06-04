@@ -24,6 +24,14 @@ A comprehensive, full-stack e-commerce platform built with modern technologies, 
 - **Plugin Architecture** - Extensible modular system
 - **Internationalization** - Multi-language support (15 languages)
 
+### 🏢 Commercial Features
+- **Plugin Store** - Marketplace for premium plugins with subscription model
+- **License Management** - Secure license validation and usage tracking
+- **Custom SaaS Applications** - Enterprise-grade solution licensing
+- **Template Marketplace** - Design templates with multiple license types
+- **Multi-tenant OEM System** - White-label reseller network with revenue sharing
+- **Unified Sales Platform** - Integrated direct and OEM sales processing
+
 ## 🏗️ Tech Stack
 
 ### Backend
@@ -57,7 +65,7 @@ A comprehensive, full-stack e-commerce platform built with modern technologies, 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+ 
+- Node.js 18+
 - pnpm (recommended) or npm
 - Redis (optional, for caching)
 
@@ -78,7 +86,7 @@ A comprehensive, full-stack e-commerce platform built with modern technologies, 
    ```bash
    # Backend environment
    cp apps/backend/.env.example apps/backend/.env
-   
+
    # Edit the .env file with your configuration
    ```
 
@@ -93,7 +101,7 @@ A comprehensive, full-stack e-commerce platform built with modern technologies, 
    ```bash
    # Start both frontend and backend
    pnpm dev
-   
+
    # Or start individually
    pnpm --filter backend dev    # Backend: http://localhost:3001
    pnpm --filter frontend dev   # Frontend: http://localhost:3002
@@ -180,6 +188,14 @@ The API documentation is automatically generated and available at:
 #### Search
 - `GET /api/search/products` - Search products
 - `GET /api/search/suggestions` - Get search suggestions
+
+#### Commercial APIs
+- `GET /api/plugin-store/plugins` - Browse plugin marketplace
+- `POST /api/plugin-store/purchase` - Purchase premium plugins
+- `GET /api/licenses/validate` - Validate plugin licenses
+- `GET /api/templates` - Browse template marketplace
+- `POST /api/tenants/register` - Register OEM tenant
+- `POST /api/sales/process` - Process unified sales (direct/OEM)
 
 ## 🧪 Testing
 
@@ -312,6 +328,14 @@ For support and questions:
 - **插件架构** - 可扩展的模块化系统
 - **国际化** - 多语言支持（15种语言）
 
+### 🏢 商业化功能
+- **插件商店** - 高级插件市场，支持订阅模式
+- **许可证管理** - 安全的许可证验证和使用量跟踪
+- **定制SaaS应用** - 企业级解决方案授权
+- **模板市场** - 设计模板，支持多种许可证类型
+- **多租户OEM系统** - 白标代理商网络，支持收入分成
+- **统一销售平台** - 集成直销和OEM销售处理
+
 ## 🏗️ 技术栈
 
 ### 后端
@@ -345,7 +369,7 @@ For support and questions:
 ## 🚀 快速开始
 
 ### 环境要求
-- Node.js 18+ 
+- Node.js 18+
 - pnpm（推荐）或 npm
 - Redis（可选，用于缓存）
 
@@ -366,7 +390,7 @@ For support and questions:
    ```bash
    # 后端环境变量
    cp apps/backend/.env.example apps/backend/.env
-   
+
    # 编辑 .env 文件配置
    ```
 
@@ -381,7 +405,7 @@ For support and questions:
    ```bash
    # 同时启动前后端
    pnpm dev
-   
+
    # 或单独启动
    pnpm --filter backend dev    # 后端: http://localhost:3001
    pnpm --filter frontend dev   # 前端: http://localhost:3002

@@ -28,6 +28,18 @@ model User {
   createdTranslations      Translation[] @relation("TranslationCreator")
   updatedTranslations      Translation[] @relation("TranslationUpdater")
 
+  // 商业化相关关系
+  pluginLicenses          PluginLicense[]
+  subscriptions           Subscription[]
+
+  // SaaS 和模板相关关系
+  saasInstances           SaasInstance[]
+  templatePurchases       TemplatePurchase[]
+
+  // 多租户OEM相关关系
+  tenantUsers             TenantUser[]
+  customerSales           Sale[] @relation("CustomerSales")
+
   @@map("users")
 }
 
@@ -82,14 +94,415 @@ model OrderItem {
 
 model Payment {
   id        String   @id @default(cuid())
-  orderId   String   @unique
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId   String?  @unique
+  order     Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
   amount    Float
-  method    String   // 'CREDIT_CARD', 'PAYPAL', 'BANK_TRANSFER'
+  method    String   // 'CREDIT_CARD', 'PAYPAL', 'BANK_TRANSFER', 'STRIPE'
   status    String   // 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'
   reference String?  // 外部支付系统的引用ID
+  stripePaymentIntentId String? @unique
+  metadata  String?  // JSON格式的额外信息
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([status])
+  @@index([stripePaymentIntentId])
+}
+
+// SaaS 服务相关表
+
+// SaaS 实例表
+model SaasInstance {
+  id            String   @id @default(cuid())
+  userId        String
+  instanceName  String
+  subdomain     String   @unique
+  customDomain  String?  @unique
+  planId        String
+  status        String   @default("active") // 'active', 'suspended', 'terminated'
+  region        String   @default("us-east-1")
+  version       String   @default("latest")
+  settings      String   // JSON格式的实例配置
+  resources     String   // JSON格式的资源配置
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan          SaasPlan @relation(fields: [planId], references: [id])
+  backups       SaasBackup[]
+  metrics       SaasMetrics[]
+
+  @@index([userId])
+  @@index([subdomain])
+  @@index([status])
+  @@map("saas_instances")
+}
+
+// SaaS 计划表
+model SaasPlan {
+  id            String   @id @default(cuid())
+  name          String
+  displayName   String
+  description   String?
+  price         Float
+  currency      String   @default("USD")
+  billing       String   // 'monthly', 'yearly'
+  features      String   // JSON格式的功能列表
+  limits        String   // JSON格式的限制 (存储、带宽、用户数等)
+  isActive      Boolean  @default(true)
+  stripePriceId String?  @unique
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  instances     SaasInstance[]
+
+  @@map("saas_plans")
+}
+
+// SaaS 备份表
+model SaasBackup {
+  id           String   @id @default(cuid())
+  instanceId   String
+  backupType   String   // 'manual', 'scheduled', 'pre-update'
+  size         BigInt   // 备份大小 (bytes)
+  status       String   @default("pending") // 'pending', 'completed', 'failed'
+  storageUrl   String?  // 备份文件存储位置
+  metadata     String?  // JSON格式的备份元数据
+  createdAt    DateTime @default(now())
+  completedAt  DateTime?
+
+  // Relations
+  instance     SaasInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@index([instanceId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("saas_backups")
+}
+
+// SaaS 指标表
+model SaasMetrics {
+  id           String   @id @default(cuid())
+  instanceId   String
+  metricType   String   // 'cpu', 'memory', 'storage', 'bandwidth', 'requests'
+  value        Float
+  unit         String   // '%', 'MB', 'GB', 'requests/min'
+  timestamp    DateTime @default(now())
+
+  // Relations
+  instance     SaasInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+
+  @@index([instanceId])
+  @@index([metricType])
+  @@index([timestamp])
+  @@map("saas_metrics")
+}
+
+// 模板市场表
+model Template {
+  id            String   @id @default(cuid())
+  name          String
+  displayName   String
+  description   String
+  category      String   // 'ecommerce', 'blog', 'portfolio', 'business'
+  tags          String   // JSON格式的标签数组
+  pricing       String   // JSON格式的定价信息
+  features      String   // JSON格式的功能列表
+  preview       String   // 预览图片URL
+  demoUrl       String?  // 演示网站URL
+  downloadUrl   String?  // 下载链接
+  version       String   @default("1.0.0")
+  author        String
+  authorEmail   String
+  downloads     Int      @default(0)
+  rating        Float    @default(0)
+  reviewCount   Int      @default(0)
+  status        String   @default("active") // 'active', 'deprecated', 'beta'
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  purchases     TemplatePurchase[]
+
+  @@index([category])
+  @@index([status])
+  @@index([downloads])
+  @@index([rating])
+  @@map("templates")
+}
+
+// 模板购买记录表
+model TemplatePurchase {
+  id           String   @id @default(cuid())
+  userId       String
+  templateId   String
+  price        Float
+  currency     String   @default("USD")
+  licenseType  String   // 'single', 'extended', 'developer'
+  status       String   @default("completed") // 'pending', 'completed', 'refunded'
+  downloadCount Int     @default(0)
+  maxDownloads Int      @default(5)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template     Template @relation(fields: [templateId], references: [id])
+
+  @@index([userId])
+  @@index([templateId])
+  @@index([status])
+  @@map("template_purchases")
+}
+
+// 多租户OEM系统表
+
+// 租户表
+model Tenant {
+  id              String   @id @default(cuid())
+  companyName     String
+  contactName     String
+  contactEmail    String   @unique
+  contactPhone    String?
+  agencyFee       Float
+  agencyFeePaid   Boolean  @default(false)
+  agencyLevel     String   // 'basic', 'industry', 'global'
+  status          String   @default("pending") // 'pending', 'active', 'suspended', 'terminated'
+  domain          String?  @unique
+  subdomain       String?  @unique
+  branding        String   // JSON格式的品牌定制信息
+  settings        String   // JSON格式的租户设置
+  contractStart   DateTime?
+  contractEnd     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  users           TenantUser[]
+  licenses        TenantLicense[]
+  sales           Sale[]
+  pricing         TenantPricing[]
+  dataSync        TenantDataSync[]
+  revenueSharing  RevenueSharing[] @relation("TenantRevenue")
+
+  @@index([status])
+  @@index([agencyFeePaid])
+  @@index([domain])
+  @@map("tenants")
+}
+
+// 租户用户表
+model TenantUser {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      String   @default("member") // 'admin', 'manager', 'member'
+  status    String   @default("active") // 'active', 'suspended'
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+  @@map("tenant_users")
+}
+
+// 产品价格控制表
+model PriceControl {
+  id            String   @id @default(cuid())
+  productType   String   // 'plugin', 'saas-app', 'template'
+  productId     String
+  productName   String
+  basePrice     Float    // Jiffoo设置的底价
+  currency      String   @default("USD")
+  minMargin     Float    @default(0) // 最低加价幅度 (%)
+  maxDiscount   Float    @default(0) // 最大折扣幅度 (%)
+  effectiveDate DateTime @default(now())
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  tenantPricing TenantPricing[]
+
+  @@unique([productType, productId])
+  @@index([productType])
+  @@index([productId])
+  @@index([isActive])
+  @@map("price_controls")
+}
+
+// 租户定价表
+model TenantPricing {
+  id              String   @id @default(cuid())
+  tenantId        String
+  priceControlId  String
+  sellingPrice    Float
+  marginAmount    Float    // 加价金额
+  marginPercent   Float    // 加价百分比
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  tenant          Tenant       @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  priceControl    PriceControl @relation(fields: [priceControlId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, priceControlId])
+  @@index([tenantId])
+  @@index([priceControlId])
+  @@map("tenant_pricing")
+}
+
+// 租户许可证表
+model TenantLicense {
+  id                String   @id @default(cuid())
+  tenantId          String
+  productType       String   // 'plugin', 'saas-app', 'template'
+  productId         String
+  licenseType       String   // 'oem', 'reseller', 'distributor'
+  authorizedFeatures String  // JSON格式的授权功能列表
+  brandingRights    Boolean  @default(false)
+  resaleRights      Boolean  @default(false)
+  maxUsers          Int?     // 最大用户数限制
+  maxInstances      Int?     // 最大实例数限制
+  expiresAt         DateTime?
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, productType, productId])
+  @@index([tenantId])
+  @@index([productType])
+  @@index([productId])
+  @@index([isActive])
+  @@map("tenant_licenses")
+}
+
+// 销售记录表 (统一直销和OEM销售)
+model Sale {
+  id              String   @id @default(cuid())
+  productType     String   // 'plugin', 'saas-app', 'template'
+  productId       String
+  productName     String
+  customerId      String
+  customerEmail   String
+
+  // 销售渠道信息
+  channel         String   // 'direct', 'oem-tenant'
+  tenantId        String?  // 如果是租户销售
+
+  // 定价信息
+  sellingPrice    Float
+  basePrice       Float    // Jiffoo底价
+  marginAmount    Float    // 加价金额
+  marginPercent   Float    // 加价百分比
+  currency        String   @default("USD")
+
+  // 分润信息
+  jiffooRevenue   Float    // Jiffoo收入
+  tenantRevenue   Float?   // 租户收入 (如果是OEM销售)
+  platformFee     Float    @default(0) // 平台手续费
+
+  // 支付信息
+  paymentStatus   String   @default("pending") // 'pending', 'completed', 'failed', 'refunded'
+  paymentMethod   String?
+  paymentReference String?
+
+  // 许可证信息
+  licenseId       String?  // 关联的许可证ID
+  licenseType     String   // 'trial', 'monthly', 'yearly', 'lifetime'
+
+  // 时间信息
+  saleDate        DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  tenant          Tenant?  @relation(fields: [tenantId], references: [id])
+  customer        User     @relation("CustomerSales", fields: [customerId], references: [id])
+  revenueSharing  RevenueSharing?
+
+  @@index([channel])
+  @@index([tenantId])
+  @@index([customerId])
+  @@index([productType])
+  @@index([productId])
+  @@index([paymentStatus])
+  @@index([saleDate])
+  @@map("sales")
+}
+
+// 租户数据同步配置表
+model TenantDataSync {
+  id              String   @id @default(cuid())
+  tenantId        String
+  syncType        String   // 'users', 'orders', 'products', 'analytics'
+  syncEndpoint    String   // 租户数据接收接口
+  syncFrequency   String   @default("daily") // 'realtime', 'hourly', 'daily', 'weekly'
+  syncFormat      String   @default("json") // 'json', 'csv', 'xml'
+  encryptionKey   String?  // 数据加密密钥
+  isActive        Boolean  @default(true)
+  lastSyncAt      DateTime?
+  lastSyncStatus  String?  // 'success', 'failed', 'partial'
+  syncCount       Int      @default(0)
+  errorCount      Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  tenant          Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, syncType])
+  @@index([tenantId])
+  @@index([syncType])
+  @@index([isActive])
+  @@index([lastSyncAt])
+  @@map("tenant_data_sync")
+}
+
+// 分润结算表
+model RevenueSharing {
+  id              String   @id @default(cuid())
+  saleId          String   @unique
+  tenantId        String
+
+  // 收入分配
+  totalAmount     Float
+  jiffooShare     Float    // Jiffoo分成
+  tenantShare     Float    // 租户分成
+  platformFee     Float    // 平台手续费
+
+  // 结算信息
+  settlementStatus String  @default("pending") // 'pending', 'processing', 'completed', 'failed'
+  settlementDate   DateTime?
+  settlementMethod String? // 'bank_transfer', 'paypal', 'stripe'
+  settlementReference String?
+
+  // 时间信息
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  sale            Sale     @relation(fields: [saleId], references: [id])
+  tenant          Tenant   @relation("TenantRevenue", fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@index([settlementStatus])
+  @@index([settlementDate])
+  @@map("revenue_sharing")
 }
 
 // 库存记录表
@@ -190,6 +603,102 @@ model NotificationTemplate {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+// 商业化相关表
+
+// 插件许可证表
+model PluginLicense {
+  id            String   @id @default(cuid())
+  pluginName    String
+  licenseKey    String   @unique
+  userId        String
+  licenseType   String   // 'trial', 'monthly', 'yearly', 'lifetime'
+  status        String   @default("active") // 'active', 'expired', 'suspended', 'revoked'
+  features      String   // JSON格式的功能列表
+  usageLimits   String?  // JSON格式的使用限制
+  expiresAt     DateTime?
+  activatedAt   DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  usageRecords  PluginUsage[]
+
+  @@index([pluginName])
+  @@index([userId])
+  @@index([status])
+  @@index([expiresAt])
+  @@map("plugin_licenses")
+}
+
+// 插件使用记录表
+model PluginUsage {
+  id           String   @id @default(cuid())
+  licenseId    String
+  featureName  String
+  usageCount   Int      @default(0)
+  lastUsedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  // Relations
+  license      PluginLicense @relation(fields: [licenseId], references: [id], onDelete: Cascade)
+
+  @@unique([licenseId, featureName], name: "licenseId_featureName")
+  @@index([licenseId])
+  @@index([featureName])
+  @@index([lastUsedAt])
+  @@map("plugin_usage")
+}
+
+// 订阅计划表
+model SubscriptionPlan {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  price        Float
+  currency     String   @default("USD")
+  interval     String   // 'month', 'year'
+  features     String   // JSON格式的功能列表
+  limits       String?  // JSON格式的限制
+  isActive     Boolean  @default(true)
+  stripePriceId String? @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  subscriptions Subscription[]
+
+  @@map("subscription_plans")
+}
+
+// 用户订阅表
+model Subscription {
+  id                String   @id @default(cuid())
+  userId            String
+  planId            String
+  status            String   @default("active") // 'active', 'canceled', 'past_due', 'unpaid'
+  stripeSubscriptionId String? @unique
+  stripeCustomerId  String?
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  // Relations
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan              SubscriptionPlan @relation(fields: [planId], references: [id])
+  payments          Payment[]
+
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+  @@index([stripeSubscriptionId])
+  @@map("subscriptions")
+}
+
+
 
 // 通知偏好设置表
 model NotificationPreference {

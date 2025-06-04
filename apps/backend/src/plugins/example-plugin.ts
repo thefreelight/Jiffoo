@@ -1,11 +1,16 @@
 import { FastifyInstance } from 'fastify';
-import { Plugin } from './types';
+import { Plugin, PluginLicenseType } from './types';
 
 const examplePlugin: Plugin = {
   name: 'example-plugin',
   version: '1.0.0',
   description: 'An example plugin for demonstration',
-  
+  author: 'Jiffoo Team',
+  license: {
+    type: PluginLicenseType.MIT,
+    features: ['basic']
+  },
+
   async register(app: FastifyInstance) {
     // Add a simple route
     app.get('/api/plugins/example', async (request, reply) => {
