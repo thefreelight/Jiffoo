@@ -16,7 +16,12 @@ export function Header() {
   const router = useRouter();
   const { currentLanguage } = useTranslation();
   const { user, isAuthenticated, logout } = useAuthStore();
-  const { cart, toggleCart } = useCartStore();
+  const { cart, toggleCart, fetchCart } = useCartStore();
+
+  // Initialize cart on component mount
+  React.useEffect(() => {
+    fetchCart().catch(console.error);
+  }, [fetchCart]);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
@@ -131,7 +136,7 @@ export function Header() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={toggleCart}
+              onClick={() => router.push('/cart')}
               className="relative"
             >
               <ShoppingCart className="h-4 w-4" />
