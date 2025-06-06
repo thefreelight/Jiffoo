@@ -18,7 +18,8 @@ import {
   BarChartIcon,
   MixerHorizontalIcon,
   LockClosedIcon,
-  ComponentInstanceIcon
+  ComponentInstanceIcon,
+  CubeIcon
 } from '@radix-ui/react-icons'
 import { CurrencyDollarIcon } from '@heroicons/react/24/outline'
 
@@ -100,6 +101,17 @@ const navigation = [
       { name: 'Revenue', href: '/finance/revenue' },
       { name: 'Payments', href: '/finance/payments' },
       { name: 'Refunds', href: '/finance/refunds' },
+    ],
+  },
+  {
+    name: 'Plugins',
+    href: '/plugins',
+    icon: CubeIcon,
+    current: false,
+    children: [
+      { name: 'Plugin Store', href: '/plugins' },
+      { name: 'Installed Plugins', href: '/plugins?tab=installed' },
+      { name: 'Licenses', href: '/plugins/licenses' },
     ],
   },
   {
