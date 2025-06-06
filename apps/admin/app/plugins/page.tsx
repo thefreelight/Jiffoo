@@ -6,12 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { 
-  Search, 
-  Download, 
-  Settings, 
-  Shield, 
-  Star, 
+import {
+  Search,
+  Download,
+  Settings,
+  Shield,
+  Star,
   DollarSign,
   Globe,
   CreditCard,
@@ -71,11 +71,11 @@ export default function PluginsPage() {
   const fetchPluginData = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch marketplace data
       const marketplaceResponse = await fetch('/api/payments/plugins/marketplace');
       const marketplaceData = await marketplaceResponse.json();
-      
+
       if (marketplaceData.success) {
         setStats({
           totalAvailable: marketplaceData.data.totalAvailable,
@@ -87,7 +87,7 @@ export default function PluginsPage() {
       // Fetch available plugins
       const availableResponse = await fetch('/api/payments/plugins/available');
       const availableData = await availableResponse.json();
-      
+
       if (availableData.success) {
         setPlugins(availableData.data.plugins);
       }
@@ -101,7 +101,7 @@ export default function PluginsPage() {
           },
         });
         const installedData = await installedResponse.json();
-        
+
         if (installedData.success) {
           setInstalledPlugins(installedData.data.plugins);
         }
@@ -134,7 +134,7 @@ export default function PluginsPage() {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         alert(`Plugin installed successfully!`);
         fetchPluginData(); // Refresh data
@@ -214,7 +214,7 @@ export default function PluginsPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -226,7 +226,7 @@ export default function PluginsPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -238,7 +238,7 @@ export default function PluginsPage() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -264,7 +264,7 @@ export default function PluginsPage() {
             className="pl-10"
           />
         </div>
-        
+
         <select
           value={selectedLicense}
           onChange={(e) => setSelectedLicense(e.target.value)}
@@ -289,7 +289,7 @@ export default function PluginsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPlugins.map((plugin) => {
               const isInstalled = installedPlugins.some(installed => installed.id === plugin.id);
-              
+
               return (
                 <Card key={plugin.id} className="hover:shadow-lg transition-shadow">
                   <CardHeader>
@@ -305,12 +305,12 @@ export default function PluginsPage() {
                       </Badge>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="space-y-4">
                     <p className="text-sm text-gray-600 line-clamp-3">
                       {plugin.description}
                     </p>
-                    
+
                     {/* Payment Methods */}
                     <div className="flex flex-wrap gap-2">
                       {plugin.methods.slice(0, 3).map((method) => (
@@ -323,7 +323,7 @@ export default function PluginsPage() {
                         <span className="text-xs text-gray-500">+{plugin.methods.length - 3} more</span>
                       )}
                     </div>
-                    
+
                     {/* Features */}
                     <div className="flex flex-wrap gap-1">
                       {plugin.features.slice(0, 4).map((feature) => (
@@ -337,7 +337,7 @@ export default function PluginsPage() {
                         </Badge>
                       )}
                     </div>
-                    
+
                     {/* Price and Install */}
                     <div className="flex justify-between items-center pt-2">
                       <div className="flex items-center gap-1">
@@ -352,7 +352,7 @@ export default function PluginsPage() {
                           <span className="font-semibold text-green-600">Free</span>
                         )}
                       </div>
-                      
+
                       {isInstalled ? (
                         <Badge className="bg-green-100 text-green-800">
                           <CheckCircle className="w-3 h-3 mr-1" />
@@ -417,18 +417,22 @@ export default function PluginsPage() {
                       </div>
                     </div>
                   </CardHeader>
-                  
+
                   <CardContent className="space-y-4">
                     <p className="text-sm text-gray-600 line-clamp-2">
                       {plugin.description}
                     </p>
-                    
+
                     <div className="flex justify-between items-center">
-                      <Button variant="outline" size="sm">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.location.href = `/plugins/${plugin.id}/configure`}
+                      >
                         <Settings className="w-3 h-3 mr-1" />
                         Configure
                       </Button>
-                      
+
                       <Button
                         variant={plugin.isActive ? "destructive" : "default"}
                         size="sm"

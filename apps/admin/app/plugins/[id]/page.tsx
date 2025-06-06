@@ -6,12 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  ArrowLeft, 
-  Download, 
-  Settings, 
-  Shield, 
-  Star, 
+import {
+  ArrowLeft,
+  Download,
+  Settings,
+  Shield,
+  Star,
   DollarSign,
   Globe,
   CreditCard,
@@ -86,11 +86,11 @@ export default function PluginDetailPage() {
   const fetchPluginDetail = async () => {
     try {
       setLoading(true);
-      
+
       // Fetch available plugins and find the one we need
       const response = await fetch('/api/payments/plugins/available');
       const data = await response.json();
-      
+
       if (data.success) {
         const foundPlugin = data.data.plugins.find((p: any) => p.id === params.id);
         if (foundPlugin) {
@@ -267,7 +267,7 @@ export default function PluginDetailPage() {
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         alert(`Plugin installed successfully!`);
         setPlugin({ ...plugin, isInstalled: true });
@@ -341,17 +341,28 @@ export default function PluginDetailPage() {
           ) : (
             <div className="text-2xl font-bold text-green-600">Free</div>
           )}
-          {plugin.isInstalled ? (
-            <Badge className="bg-green-100 text-green-800">
-              <CheckCircle className="w-4 h-4 mr-1" />
-              Installed
-            </Badge>
-          ) : (
-            <Button onClick={handleInstallPlugin} className="flex items-center gap-2">
-              <Download className="w-4 h-4" />
-              Install Plugin
-            </Button>
-          )}
+          <div className="flex items-center gap-3">
+            {plugin.isInstalled ? (
+              <>
+                <Badge className="bg-green-100 text-green-800">
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Installed
+                </Badge>
+                <Button
+                  onClick={() => router.push(`/plugins/${plugin.id}/configure`)}
+                  className="flex items-center gap-2"
+                >
+                  <Settings className="w-4 h-4" />
+                  Configure
+                </Button>
+              </>
+            ) : (
+              <Button onClick={handleInstallPlugin} className="flex items-center gap-2">
+                <Download className="w-4 h-4" />
+                Install Plugin
+              </Button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -514,14 +525,14 @@ export default function PluginDetailPage() {
                     <h4 className="font-semibold text-blue-900 mb-2">Standard Fees</h4>
                     <p className="text-blue-800">{plugin.documentation.pricing.transactionFees}</p>
                   </div>
-                  
+
                   {plugin.documentation.pricing.internationalFees && (
                     <div className="p-4 bg-orange-50 rounded-lg">
                       <h4 className="font-semibold text-orange-900 mb-2">International Fees</h4>
                       <p className="text-orange-800">{plugin.documentation.pricing.internationalFees}</p>
                     </div>
                   )}
-                  
+
                   {plugin.documentation.pricing.disputeFee && (
                     <div className="p-4 bg-red-50 rounded-lg">
                       <h4 className="font-semibold text-red-900 mb-2">Dispute Fee</h4>
@@ -529,7 +540,7 @@ export default function PluginDetailPage() {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="p-4 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600">
                     <AlertTriangle className="w-4 h-4 inline mr-1" />
