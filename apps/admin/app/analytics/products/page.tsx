@@ -30,8 +30,8 @@ import {
   ArrowLeftIcon,
   CalendarIcon,
   ArrowDownTrayIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon,
   CubeIcon,
   ExclamationTriangleIcon,
   CheckCircleIcon,
@@ -148,7 +148,7 @@ export default function ProductAnalyticsPage() {
                 <p className="text-sm font-medium text-gray-600">Total Products</p>
                 <p className="text-2xl font-bold text-gray-900">1,234</p>
                 <div className="flex items-center mt-1">
-                  <TrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
+                  <ArrowTrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
                   <span className="text-sm text-green-600">+15.3%</span>
                 </div>
               </div>
@@ -184,12 +184,12 @@ export default function ProductAnalyticsPage() {
                 <p className="text-sm font-medium text-gray-600">Avg Profit Margin</p>
                 <p className="text-2xl font-bold text-gray-900">29.2%</p>
                 <div className="flex items-center mt-1">
-                  <TrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
+                  <ArrowTrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
                   <span className="text-sm text-green-600">+2.1%</span>
                 </div>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <TrendingUpIcon className="w-6 h-6 text-green-600" />
+                <ArrowTrendingUpIcon className="w-6 h-6 text-green-600" />
               </div>
             </div>
           </CardContent>
@@ -202,7 +202,7 @@ export default function ProductAnalyticsPage() {
                 <p className="text-sm font-medium text-gray-600">Out of Stock</p>
                 <p className="text-2xl font-bold text-gray-900">5</p>
                 <div className="flex items-center mt-1">
-                  <TrendingDownIcon className="w-4 h-4 text-red-500 mr-1" />
+                  <ArrowTrendingDownIcon className="w-4 h-4 text-red-500 mr-1" />
                   <span className="text-sm text-red-600">Critical</span>
                 </div>
               </div>

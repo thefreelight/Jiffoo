@@ -29,8 +29,8 @@ import {
   ArrowLeftIcon,
   CalendarIcon,
   ArrowDownTrayIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
+  ArrowTrendingUpIcon,
+  ArrowTrendingDownIcon,
   CurrencyDollarIcon,
   ShoppingCartIcon,
 } from '@heroicons/react/24/outline'
@@ -142,7 +142,7 @@ export default function SalesAnalyticsPage() {
                 <p className="text-sm font-medium text-gray-600">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-900">¥240,000</p>
                 <div className="flex items-center mt-1">
-                  <TrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
+                  <ArrowTrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
                   <span className="text-sm text-green-600">+12.5%</span>
                 </div>
               </div>
@@ -160,7 +160,7 @@ export default function SalesAnalyticsPage() {
                 <p className="text-sm font-medium text-gray-600">Total Orders</p>
                 <p className="text-2xl font-bold text-gray-900">560</p>
                 <div className="flex items-center mt-1">
-                  <TrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
+                  <ArrowTrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
                   <span className="text-sm text-green-600">+8.2%</span>
                 </div>
               </div>
@@ -178,7 +178,7 @@ export default function SalesAnalyticsPage() {
                 <p className="text-sm font-medium text-gray-600">Avg Order Value</p>
                 <p className="text-2xl font-bold text-gray-900">¥429</p>
                 <div className="flex items-center mt-1">
-                  <TrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
+                  <ArrowTrendingUpIcon className="w-4 h-4 text-green-500 mr-1" />
                   <span className="text-sm text-green-600">+4.1%</span>
                 </div>
               </div>
@@ -196,12 +196,12 @@ export default function SalesAnalyticsPage() {
                 <p className="text-sm font-medium text-gray-600">Conversion Rate</p>
                 <p className="text-2xl font-bold text-gray-900">3.24%</p>
                 <div className="flex items-center mt-1">
-                  <TrendingDownIcon className="w-4 h-4 text-red-500 mr-1" />
+                  <ArrowTrendingDownIcon className="w-4 h-4 text-red-500 mr-1" />
                   <span className="text-sm text-red-600">-0.3%</span>
                 </div>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <TrendingUpIcon className="w-6 h-6 text-orange-600" />
+                <ArrowTrendingUpIcon className="w-6 h-6 text-orange-600" />
               </div>
             </div>
           </CardContent>
@@ -354,9 +354,9 @@ export default function SalesAnalyticsPage() {
                     <p className="font-medium text-gray-900">¥{product.revenue.toLocaleString()}</p>
                     <div className="flex items-center">
                       {product.growth > 0 ? (
-                        <TrendingUpIcon className="w-3 h-3 text-green-500 mr-1" />
+                        <ArrowTrendingUpIcon className="w-3 h-3 text-green-500 mr-1" />
                       ) : (
-                        <TrendingDownIcon className="w-3 h-3 text-red-500 mr-1" />
+                        <ArrowTrendingDownIcon className="w-3 h-3 text-red-500 mr-1" />
                       )}
                       <span className={`text-xs ${product.growth > 0 ? 'text-green-600' : 'text-red-600'}`}>
                         {product.growth > 0 ? '+' : ''}{product.growth}%
