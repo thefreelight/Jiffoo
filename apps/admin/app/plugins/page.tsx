@@ -30,18 +30,8 @@ interface Plugin {
   author: string;
   license: 'free' | 'basic' | 'premium' | 'enterprise';
   price?: number;
-  regions: string[];
-  currencies: string[];
   methods: string[];
   features: string[];
-  requirements: {
-    minCoreVersion: string;
-    dependencies?: string[];
-  };
-  configuration: {
-    required: string[];
-    optional: string[];
-  };
   isInstalled?: boolean;
   isActive?: boolean;
 }
@@ -81,7 +71,7 @@ export default function PluginsPage() {
           description: 'Accept credit card and debit card payments via Stripe. Supports 3D Secure, Apple Pay, Google Pay, and 135+ currencies worldwide.',
           author: 'Jiffoo Team',
           version: '2.1.0',
-          license: 'premium',
+          license: 'premium' as const,
           price: 29,
           methods: ['credit_card', 'debit_card', 'apple_pay', 'google_pay'],
           features: ['3D_Secure', 'Multi_Currency', 'Recurring_Payments', 'Fraud_Protection', 'Real_Time_Analytics'],
@@ -94,7 +84,7 @@ export default function PluginsPage() {
           description: 'Integrate PayPal payments with support for PayPal Credit, Express Checkout, and international transactions.',
           author: 'Jiffoo Team',
           version: '1.8.5',
-          license: 'premium',
+          license: 'premium' as const,
           price: 19,
           methods: ['paypal', 'paypal_credit'],
           features: ['Express_Checkout', 'International_Support', 'Buyer_Protection', 'Mobile_Optimized'],
@@ -107,7 +97,7 @@ export default function PluginsPage() {
           description: 'Accept payments from Chinese customers using WeChat Pay. Perfect for businesses targeting the Chinese market.',
           author: 'Payment Solutions Inc',
           version: '1.2.3',
-          license: 'premium',
+          license: 'premium' as const,
           price: 39,
           methods: ['wechat_pay'],
           features: ['QR_Code_Payments', 'Mobile_App_Integration', 'CNY_Support', 'Real_Time_Settlement'],
@@ -120,7 +110,7 @@ export default function PluginsPage() {
           description: 'Enable Alipay payments for seamless transactions with Chinese customers. Supports both domestic and international Alipay.',
           author: 'Payment Solutions Inc',
           version: '1.5.2',
-          license: 'premium',
+          license: 'premium' as const,
           price: 35,
           methods: ['alipay'],
           features: ['Domestic_Alipay', 'International_Alipay', 'QR_Payments', 'Mobile_SDK'],
@@ -133,7 +123,7 @@ export default function PluginsPage() {
           description: 'Accept Bitcoin, Ethereum, and other major cryptocurrencies. Automatic conversion to fiat currency available.',
           author: 'CryptoGate Ltd',
           version: '3.0.1',
-          license: 'enterprise',
+          license: 'enterprise' as const,
           price: 99,
           methods: ['bitcoin', 'ethereum', 'litecoin'],
           features: ['Multi_Crypto_Support', 'Auto_Conversion', 'Cold_Storage', 'Tax_Reporting'],
@@ -146,7 +136,7 @@ export default function PluginsPage() {
           description: 'Direct bank transfers and ACH payments. Perfect for high-value transactions with lower processing fees.',
           author: 'FinTech Solutions',
           version: '2.3.0',
-          license: 'basic',
+          license: 'basic' as const,
           price: 15,
           methods: ['bank_transfer', 'ach'],
           features: ['ACH_Support', 'SEPA_Transfers', 'Low_Fees', 'Batch_Processing'],
@@ -270,7 +260,7 @@ export default function PluginsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black relative overflow-hidden">
+    <div className="bg-gradient-to-br from-gray-900 via-gray-800 to-black relative overflow-hidden min-h-full">
       {/* Background Effects */}
       <div className="absolute inset-0">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"></div>
@@ -278,18 +268,15 @@ export default function PluginsPage() {
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-8 space-y-8">
         {/* Header */}
-        <div className="text-center space-y-6">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-3xl shadow-2xl mb-6 relative">
-            <Package className="w-10 h-10 text-white" />
-            <div className="absolute -inset-1 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-3xl blur opacity-30"></div>
+        <div className="text-center space-y-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-2xl shadow-xl mb-4 relative">
+            <Package className="w-8 h-8 text-white" />
+            <div className="absolute -inset-1 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-2xl blur opacity-30"></div>
           </div>
-          <div className="space-y-4">
-            <h1 className="text-6xl font-black bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
-              Plugin Store
-            </h1>
-            <p className="text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+          <div className="space-y-3">
+            <p className="text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
               Transform your payment experience with cutting-edge, enterprise-grade plugins
             </p>
             <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
@@ -300,7 +287,7 @@ export default function PluginsPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="group relative">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
             <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-2xl hover:shadow-blue-500/25 transition-all duration-500">
@@ -427,138 +414,25 @@ export default function PluginsPage() {
 
         {/* Tabs */}
         <Tabs defaultValue="marketplace" className="space-y-8">
-        <div className="flex justify-center">
-          <TabsList className="bg-gray-800/90 border border-gray-700/50 p-2 rounded-2xl backdrop-blur-xl">
-            <TabsTrigger
-              value="marketplace"
-              className="px-8 py-4 rounded-xl text-gray-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white font-bold text-lg"
-            >
-              Marketplace ({plugins.length})
-            </TabsTrigger>
-            <TabsTrigger
-              value="installed"
-              className="px-8 py-4 rounded-xl text-gray-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-emerald-600 data-[state=active]:text-white font-bold text-lg"
-            >
-              Installed ({installedPlugins.length})
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value="marketplace" className="space-y-12">
-          {/* Featured Plugins */}
-          <div className="space-y-8">
-            <div className="text-center">
-              <h2 className="text-4xl font-black text-white mb-4">Featured Plugins</h2>
-              <p className="text-gray-400 text-lg">Hand-picked premium solutions for enterprise success</p>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {filteredPlugins.slice(0, 2).map((plugin) => {
-                const isInstalled = installedPlugins.some(installed => installed.id === plugin.id);
-                return (
-                  <div key={plugin.id} className="group relative">
-                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-3xl blur opacity-30 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
-                    <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-2xl hover:shadow-blue-500/25 transition-all duration-500 overflow-hidden">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-2xl"></div>
-                      <CardContent className="p-10 relative">
-                        <div className="flex items-start justify-between mb-8">
-                          <div className="flex items-center gap-6">
-                            <div className="relative">
-                              <div className="p-4 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-2xl shadow-2xl">
-                                {getMethodIcon(plugin.methods[0])}
-                              </div>
-                              <div className="absolute -inset-1 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-2xl blur opacity-30"></div>
-                            </div>
-                            <div>
-                              <h3 className="text-2xl font-black text-white mb-2">{plugin.name}</h3>
-                              <p className="text-gray-400">by {plugin.author} • v{plugin.version}</p>
-                            </div>
-                          </div>
-                          <Badge className={`${getLicenseBadgeColor(plugin.license)} px-4 py-2 text-sm font-bold`}>
-                            {plugin.license.toUpperCase()}
-                          </Badge>
-                        </div>
-
-                        <p className="text-gray-300 mb-8 leading-relaxed text-lg">
-                          {plugin.description}
-                        </p>
-
-                        <div className="space-y-6">
-                          {/* Payment Methods */}
-                          <div>
-                            <p className="text-sm font-bold text-white mb-4">Payment Methods</p>
-                            <div className="flex flex-wrap gap-3">
-                              {plugin.methods.map((method) => (
-                                <div key={method} className="flex items-center gap-3 bg-gray-700/50 px-4 py-3 rounded-xl border border-gray-600/50">
-                                  {getMethodIcon(method)}
-                                  <span className="text-sm font-medium text-white">{method.replace('_', ' ')}</span>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Features */}
-                          <div>
-                            <p className="text-sm font-bold text-white mb-4">Key Features</p>
-                            <div className="flex flex-wrap gap-2">
-                              {plugin.features.map((feature) => (
-                                <Badge key={feature} className="bg-gray-700/50 text-gray-300 border-gray-600/50 px-3 py-1">
-                                  {feature.replace('_', ' ')}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Price and Actions */}
-                          <div className="flex items-center justify-between pt-6 border-t border-gray-700/50">
-                            <div className="flex items-center gap-2">
-                              {plugin.price ? (
-                                <>
-                                  <DollarSign className="w-6 h-6 text-green-400" />
-                                  <span className="text-3xl font-black text-green-400">
-                                    ${plugin.price}
-                                  </span>
-                                  <span className="text-gray-400 text-lg">/month</span>
-                                </>
-                              ) : (
-                                <span className="text-3xl font-black text-green-400">Free</span>
-                              )}
-                            </div>
-
-                            <div className="flex gap-4">
-                              <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 px-6 py-3">
-                                View Details
-                              </Button>
-                              {isInstalled ? (
-                                <div className="flex items-center gap-2 bg-green-500/20 text-green-400 px-6 py-3 rounded-xl border border-green-500/30">
-                                  <CheckCircle className="w-5 h-5" />
-                                  <span className="font-bold">Installed</span>
-                                </div>
-                              ) : (
-                                <Button
-                                  onClick={() => handleInstallPlugin(plugin.id)}
-                                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-8 py-3 font-bold"
-                                >
-                                  <Download className="w-5 h-5 mr-2" />
-                                  Install Now
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                );
-              })}
-            </div>
+          <div className="flex justify-center">
+            <TabsList className="bg-gray-800/90 border border-gray-700/50 p-2 rounded-2xl backdrop-blur-xl">
+              <TabsTrigger
+                value="marketplace"
+                className="px-8 py-4 rounded-xl text-gray-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white font-bold text-lg"
+              >
+                Marketplace ({plugins.length})
+              </TabsTrigger>
+              <TabsTrigger
+                value="installed"
+                className="px-8 py-4 rounded-xl text-gray-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-emerald-600 data-[state=active]:text-white font-bold text-lg"
+              >
+                Installed ({installedPlugins.length})
+              </TabsTrigger>
+            </TabsList>
           </div>
 
-          {/* All Plugins */}
-          <div className="space-y-8">
-            <div className="text-center">
-              <h2 className="text-4xl font-black text-white mb-4">All Plugins</h2>
-              <p className="text-gray-400 text-lg">Complete collection of payment solutions</p>
-            </div>
+          <TabsContent value="marketplace" className="space-y-12">
+            {/* Plugin Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredPlugins.map((plugin) => {
                 const isInstalled = installedPlugins.some(installed => installed.id === plugin.id);
@@ -662,135 +536,123 @@ export default function PluginsPage() {
                 );
               })}
             </div>
-          </div>
-        </TabsContent>
+          </TabsContent>
 
-        <TabsContent value="installed" className="space-y-8">
-          {installedPlugins.length === 0 ? (
-            <div className="relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-gray-600 to-gray-800 rounded-3xl blur opacity-20"></div>
-              <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-2xl">
-                <CardContent className="p-16 text-center">
-                  <div className="relative">
-                    <div className="w-32 h-32 bg-gradient-to-br from-gray-700 to-gray-800 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl">
-                      <Package className="w-16 h-16 text-gray-400" />
+          <TabsContent value="installed" className="space-y-8">
+            {installedPlugins.length === 0 ? (
+              <div className="relative">
+                <div className="absolute -inset-1 bg-gradient-to-r from-gray-600 to-gray-800 rounded-3xl blur opacity-20"></div>
+                <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-2xl">
+                  <CardContent className="p-16 text-center">
+                    <div className="relative">
+                      <div className="w-32 h-32 bg-gradient-to-br from-gray-700 to-gray-800 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl">
+                        <Package className="w-16 h-16 text-gray-400" />
+                      </div>
+                      <div className="absolute -inset-2 bg-gradient-to-br from-gray-600 to-gray-800 rounded-3xl blur opacity-20"></div>
                     </div>
-                    <div className="absolute -inset-2 bg-gradient-to-br from-gray-600 to-gray-800 rounded-3xl blur opacity-20"></div>
-                  </div>
-                  <h3 className="text-3xl font-black text-white mb-4">No plugins installed yet</h3>
-                  <p className="text-gray-400 mb-10 max-w-lg mx-auto leading-relaxed text-lg">
-                    Install plugins from the marketplace to extend your payment capabilities and unlock enterprise features.
-                  </p>
-                  <Button
-                    onClick={() => setSearchTerm('')}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-10 py-4 text-lg font-bold"
-                  >
-                    <Package className="w-5 h-5 mr-3" />
-                    Browse Marketplace
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {installedPlugins.map((plugin) => (
-                <div key={plugin.id} className="group relative">
-                  <div className="absolute -inset-1 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl blur opacity-30 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
-                  <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-2xl hover:shadow-green-500/25 transition-all duration-500 overflow-hidden">
-                    <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full blur-xl"></div>
-                    <CardHeader className="pb-4 relative">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-4">
-                          <div className="relative">
-                            <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg">
-                              <CheckCircle className="w-6 h-6 text-white" />
-                            </div>
-                            <div className="absolute -inset-1 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl blur opacity-30"></div>
-                          </div>
-                          <div className="flex-1">
-                            <CardTitle className="text-lg text-white group-hover:text-green-400 transition-colors font-bold">
-                              {plugin.name}
-                            </CardTitle>
-                            <CardDescription className="text-sm mt-1 text-gray-400">
-                              by {plugin.author} • v{plugin.version}
-                            </CardDescription>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {plugin.isActive ? (
-                            <div className="flex items-center gap-2 bg-green-500/20 text-green-400 px-4 py-2 rounded-xl border border-green-500/30">
-                              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-                              <span className="text-sm font-bold">Active</span>
-                            </div>
-                          ) : (
-                            <div className="flex items-center gap-2 bg-gray-500/20 text-gray-400 px-4 py-2 rounded-xl border border-gray-500/30">
-                              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                              <span className="text-sm font-bold">Inactive</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardHeader>
-
-                    <CardContent className="space-y-6 relative">
-                      <p className="text-sm text-gray-300 line-clamp-2 leading-relaxed">
-                        {plugin.description}
-                      </p>
-
-                      {/* Plugin Stats */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 text-center">
-                          <p className="text-xs text-blue-400 font-bold">Uptime</p>
-                          <p className="text-xl font-black text-blue-300 mt-1">99.9%</p>
-                        </div>
-                        <div className="bg-green-500/20 border border-green-500/30 rounded-xl p-4 text-center">
-                          <p className="text-xs text-green-400 font-bold">Transactions</p>
-                          <p className="text-xl font-black text-green-300 mt-1">1.2k</p>
-                        </div>
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="flex gap-3 pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => window.location.href = `/plugins/${plugin.id}/configure`}
-                          className="flex-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/20 bg-blue-500/10"
-                        >
-                          <Settings className="w-4 h-4 mr-2" />
-                          Configure
-                        </Button>
-
-                        <Button
-                          size="sm"
-                          className={`flex-1 font-bold ${
-                            plugin.isActive
-                              ? "bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30"
-                              : "bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30"
-                          }`}
-                        >
-                          {plugin.isActive ? (
-                            <>
-                              <AlertCircle className="w-4 h-4 mr-2" />
-                              Deactivate
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Activate
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                    <h3 className="text-3xl font-black text-white mb-4">No plugins installed yet</h3>
+                    <p className="text-gray-400 mb-10 max-w-lg mx-auto leading-relaxed text-lg">
+                      Install plugins from the marketplace to extend your payment capabilities and unlock enterprise features.
+                    </p>
+                    <Button
+                      onClick={() => setSearchTerm('')}
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-10 py-4 text-lg font-bold"
+                    >
+                      <Package className="w-5 h-5 mr-3" />
+                      Browse Marketplace
+                    </Button>
+                  </CardContent>
                 </Card>
-              ))}
-            </div>
-          )}
-        </TabsContent>
-      </Tabs>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {installedPlugins.map((plugin) => (
+                  <div key={plugin.id} className="group relative">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl blur opacity-30 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+                    <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-2xl hover:shadow-green-500/25 transition-all duration-500 overflow-hidden">
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full blur-xl"></div>
+                      <CardHeader className="pb-4 relative">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-4">
+                            <div className="relative">
+                              <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg">
+                                <CheckCircle className="w-6 h-6 text-white" />
+                              </div>
+                              <div className="absolute -inset-1 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl blur opacity-30"></div>
+                            </div>
+                            <div className="flex-1">
+                              <CardTitle className="text-lg text-white group-hover:text-green-400 transition-colors font-bold">
+                                {plugin.name}
+                              </CardTitle>
+                              <CardDescription className="text-sm mt-1 text-gray-400">
+                                by {plugin.author} • v{plugin.version}
+                              </CardDescription>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {plugin.isActive ? (
+                              <div className="flex items-center gap-2 bg-green-500/20 text-green-400 px-4 py-2 rounded-xl border border-green-500/30">
+                                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                                <span className="text-sm font-bold">Active</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 bg-gray-500/20 text-gray-400 px-4 py-2 rounded-xl border border-gray-500/30">
+                                <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                                <span className="text-sm font-bold">Inactive</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </CardHeader>
+
+                      <CardContent className="space-y-6 relative">
+                        <p className="text-sm text-gray-300 line-clamp-2 leading-relaxed">
+                          {plugin.description}
+                        </p>
+
+                        {/* Plugin Stats */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 text-center">
+                            <p className="text-xs text-blue-400 font-bold">Uptime</p>
+                            <p className="text-xl font-black text-blue-300 mt-1">99.9%</p>
+                          </div>
+                          <div className="bg-green-500/20 border border-green-500/30 rounded-xl p-4 text-center">
+                            <p className="text-xs text-green-400 font-bold">Transactions</p>
+                            <p className="text-xl font-black text-green-300 mt-1">1.2k</p>
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="flex gap-3 pt-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.location.href = `/plugins/${plugin.id}/configure`}
+                            className="flex-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/20 bg-blue-500/10"
+                          >
+                            <Settings className="w-4 h-4 mr-2" />
+                            Configure
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            className={`flex-1 font-bold ${
+                              plugin.isActive
+                                ? "bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30"
+                                : "bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30"
+                            }`}
+                          >
+                            {plugin.isActive ? "Deactivate" : "Activate"}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );

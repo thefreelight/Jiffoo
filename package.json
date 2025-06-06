@@ -1,6 +1,6 @@
 {
   "name": "jiffoo-mall",
-  "version": "1.0.0",
+  "version": "0.2.0",
   "description": "Modern e-commerce platform with Next.js frontend and Fastify backend",
   "private": true,
   "workspaces": [

@@ -5,190 +5,102 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.0.0] - 2024-12-04
+## [0.2.0] - 2025-06-06
 
-### 🎉 Major Release: Complete Commercial Ecosystem
+### 🎨 Enhanced Admin Dashboard & Plugin Store Integration
 
-This release transforms Jiffoo Mall from an open-source e-commerce platform into a comprehensive commercial ecosystem with multiple revenue streams and business models.
+#### ✨ Added
+- **Unified Admin Layout**: Complete management dashboard with sidebar navigation and header
+- **Plugin Store Integration**: Fully integrated plugin marketplace within admin interface
+- **Modern UI Components**: Glassmorphism design with dark theme and gradient effects
+- **Navigation System**: Comprehensive sidebar with all management modules
+- **Authentication Flow**: Secure admin login with demo credentials
+- **Responsive Design**: Mobile-friendly admin interface
 
-### ✨ Added
+#### 🔧 Technical Improvements
+- **Layout Architecture**: Modular layout components for consistent admin experience
+- **State Management**: Enhanced Zustand stores for UI and authentication
+- **Component Library**: Extended UI components with Tailwind CSS and Radix UI
+- **TypeScript Integration**: Full type safety across admin components
+- **Dependency Management**: Added js-cookie and @types/js-cookie for session management
 
-#### 🏢 Multi-tenant OEM System
-- **Tenant Management**: Complete OEM tenant registration and management system
-- **Price Control**: Unified base price setting with tenant pricing validation
-- **License Authorization**: Product-specific licensing for OEM partners
-- **Revenue Sharing**: Automatic revenue calculation and distribution
-- **Data Synchronization**: Tenant data flow back to Jiffoo for analytics
-- **Brand Customization**: Full white-label capabilities for OEM partners
+#### 🏗️ Admin Modules Structure
+- **Dashboard**: Main overview page (framework ready)
+- **Products**: Product management interface (framework ready)
+- **Orders**: Order processing system (framework ready)
+- **Customers**: Customer management (framework ready)
+- **Analytics**: Business intelligence dashboard (framework ready)
+- **Marketing**: Campaign management (framework ready)
+- **Finance**: Financial reporting (framework ready)
+- **Plugins**: Complete plugin store and management ✅
+- **Settings**: System configuration (framework ready)
 
-#### 💰 Unified Sales Platform
-- **Multi-channel Sales**: Integrated direct and OEM sales processing
-- **License Generation**: Automatic license key generation for all products
-- **Payment Processing**: Unified payment handling across channels
-- **Sales Analytics**: Comprehensive sales statistics and reporting
-- **Customer Management**: Unified customer data across all channels
-
-#### 🏪 Plugin Store & Marketplace
-- **Plugin Catalog**: Comprehensive plugin marketplace with categories
-- **Subscription Management**: Monthly/yearly subscription handling
-- **Trial System**: 14-day free trial for all premium plugins
-- **License Validation**: Secure server-side license verification
-- **Usage Tracking**: Real-time feature usage monitoring
-
-#### 🎨 Template Marketplace
-- **Template Library**: Rich collection of design templates
-- **Multi-license Types**: Single-site, extended, and developer licenses
-- **Purchase System**: Complete transaction flow for template sales
-- **Download Management**: Secure template file delivery
-- **Version Control**: Template updates and maintenance
-
-#### 🔐 Enhanced License Management
-- **JWT + AES Encryption**: Double-layer security for license keys
-- **Feature-based Licensing**: Granular feature control per license
-- **Expiration Management**: Automatic license expiry handling
-- **Usage Analytics**: Detailed usage statistics and insights
-- **Offline Validation**: Cached license validation for performance
-
-#### 📊 Business Intelligence
-- **Revenue Analytics**: Multi-stream revenue tracking and forecasting
-- **Customer Insights**: User behavior and purchase pattern analysis
-- **OEM Performance**: Tenant sales performance and commission tracking
-- **Product Metrics**: Plugin and template performance analytics
-- **Market Intelligence**: Competitive analysis and pricing insights
-
-### 🏗️ Technical Improvements
-
-#### Database Architecture
-- **New Tables**: Added 8 new tables for commercial features
-  - `tenants` - OEM tenant management
-  - `price_controls` - Product pricing control
-  - `tenant_pricing` - Tenant-specific pricing
-  - `tenant_licenses` - Product authorization for tenants
-  - `sales` - Unified sales records
-  - `revenue_sharing` - Automatic revenue distribution
-  - `tenant_data_sync` - Data synchronization configuration
-  - `saas_instances` - SaaS application instances
-  - `template_purchases` - Template marketplace transactions
-
-#### API Enhancements
-- **New API Endpoints**: 40+ new endpoints for commercial features
-  - `/api/tenants/*` - Tenant management APIs
-  - `/api/sales/*` - Unified sales processing APIs
-  - `/api/plugin-store/*` - Plugin marketplace APIs
-  - `/api/templates/*` - Template marketplace APIs
-  - `/api/licenses/*` - Enhanced license management APIs
-  - `/api/saas/*` - SaaS application management APIs
-
-#### Performance Optimizations
-- **Redis Caching**: Enhanced caching for commercial data
-- **Database Indexing**: Optimized indexes for commercial queries
-- **API Rate Limiting**: Protection against abuse
-- **Concurrent Processing**: Improved handling of multiple transactions
-
-### 💼 Business Model Implementation
-
-#### Revenue Streams
-1. **Plugin Subscriptions**: $57,100/month projected
-2. **Custom SaaS Applications**: $470,000/month projected
-3. **Template Sales**: $8,000/month projected
-4. **OEM Network**: $120,000/month projected
-5. **Total Projected ARR**: $7,861,200
-
-#### Pricing Strategy
-- **Plugin Subscriptions**: $99-$299/month
-- **Custom SaaS Licensing**: $25,000-$500,000 per project
-- **Template Licenses**: $39-$999 per template
-- **OEM Agency Fees**: $10,000-$100,000 one-time
-- **Platform Fees**: 10-20% commission on OEM sales
-
-### 🔧 Configuration Changes
-
-#### Environment Variables
-```env
-# New commercial features
-STRIPE_SECRET_KEY="sk_test_..."
-STRIPE_WEBHOOK_SECRET="whsec_..."
-LICENSE_ENCRYPTION_KEY="your-license-encryption-key"
-OEM_PLATFORM_FEE_RATE="0.15"
-```
-
-#### Database Migrations
-- **Migration**: `20241204_add_multi_tenant_oem`
-- **Migration**: `20241204_add_saas_and_templates`
-
-### 📚 Documentation Updates
-
-#### New Documentation
-- `COMMERCIALIZATION_DEMO.md` - Complete commercial features overview
-- `MULTI_TENANT_OEM_DEMO.md` - OEM system detailed documentation
-- Updated `README.md` with commercial features
-- Enhanced API documentation with commercial endpoints
-
-### 🧪 Testing
-
-#### New Test Coverage
-- Tenant management system tests
-- Sales processing workflow tests
-- License validation and security tests
-- OEM pricing control tests
-- Revenue sharing calculation tests
-
-### 🚀 Deployment
-
-#### Production Readiness
-- **Scalability**: Designed for high-volume commercial operations
-- **Security**: Enterprise-grade security for commercial transactions
-- **Monitoring**: Comprehensive logging and analytics
-- **Backup**: Automated backup for commercial data
-
-### 🔄 Migration Guide
-
-#### From v1.x to v2.0.0
-1. **Database Migration**: Run new migrations for commercial tables
-2. **Environment Setup**: Add new environment variables
-3. **API Integration**: Update client applications for new endpoints
-4. **License System**: Migrate existing users to new license system
-
-### 🎯 Future Roadmap
-
-#### Planned Features
-- **API Marketplace**: Third-party API integrations
-- **Advanced Analytics**: AI-powered business insights
-- **Global Expansion**: Multi-currency and localization
-- **Enterprise Features**: Advanced security and compliance
+#### 🎨 UI/UX Enhancements
+- **Dark Theme Plugin Store**: Premium gradient backgrounds with glassmorphism effects
+- **Statistics Cards**: Interactive cards with hover animations and real-time data
+- **Search & Filters**: Advanced plugin filtering with license type selection
+- **Plugin Cards**: Detailed plugin information with pricing and installation status
+- **Tab Navigation**: Marketplace and Installed plugins with smooth transitions
 
 ---
 
-## [1.0.0] - 2024-11-15
+## [0.1.1-beta] - 2025-06-04
 
-### 🎉 Initial Release
+### 🔧 Plugin Configuration & UI Refinements
 
 #### ✨ Added
-- **Core E-commerce Features**: Complete product, order, and user management
-- **Authentication System**: JWT-based authentication with role-based permissions
-- **Search & Filtering**: Advanced product search with intelligent suggestions
-- **Plugin Architecture**: Extensible modular system for custom functionality
-- **Internationalization**: Multi-language support for 15 languages
-- **Caching System**: Redis-based high-performance caching
-- **File Upload**: Secure file handling with image processing
-- **Email Notifications**: Template-based notification system
-- **Admin Dashboard**: Comprehensive administrative interface
-- **API Documentation**: Auto-generated OpenAPI/Swagger documentation
+- **Advanced Plugin Configuration Interface**: Dynamic configuration forms based on plugin schemas
+- **Real-time Field Validation**: Error messages and pattern validation for API keys
+- **Configuration Templates**: Pre-built templates for quick setup scenarios
+- **Configuration History**: Track and manage configuration changes
+- **Test Configuration**: Validate plugin settings before activation
 
-#### 🏗️ Technical Foundation
+#### 🎨 UI Improvements
+- **Refined Plugin Store Design**: Enhanced visual design with better spacing and typography
+- **Configuration Tabs**: Multi-tab interface (Configuration, Templates, Examples, History)
+- **Sensitive Field Handling**: Show/hide toggles for API keys and passwords
+- **Copy-to-Clipboard**: Easy copying of configuration values
+
+#### 🔧 Technical Enhancements
+- **Schema-driven Forms**: Automatic form generation based on plugin configuration schemas
+- **Type Validation**: Runtime validation for different field types
+- **Template System**: Category-based template organization
+- **One-click Setup**: Template application with preview functionality
+
+---
+
+## [0.1.0-beta] - 2025-06-02
+
+### 🎉 Initial Plugin Store & Payment System
+
+#### ✨ Added
+- **Plugin Store Frontend**: Complete plugin marketplace interface
+- **Payment Plugin System**: Comprehensive backend for payment processing
+- **Plugin Management**: Installation, configuration, and license management
+- **Search & Discovery**: Plugin search with filtering and categorization
+- **License System**: Secure license validation and management
+
+#### 🏗️ Core Features
+- **Plugin Architecture**: Modular plugin system with hot-loading
+- **Payment Gateways**: Support for Stripe, PayPal, WeChat Pay, Alipay, Cryptocurrency
+- **Admin Interface**: Basic admin dashboard structure
+- **API System**: RESTful APIs for plugin management
+- **Database Schema**: Complete database structure for plugins and licenses
+
+#### 🔧 Technical Foundation
 - **Backend**: Fastify + TypeScript + Prisma ORM
 - **Frontend**: Next.js 15 + Tailwind CSS + Radix UI
 - **Database**: SQLite (dev) / PostgreSQL (prod)
-- **Caching**: Redis for performance optimization
-- **Testing**: Comprehensive test suite
-- **DevOps**: Docker support and CI/CD ready
+- **Authentication**: JWT-based authentication system
+- **Documentation**: OpenAPI/Swagger documentation
 
-#### 📚 Documentation
-- Complete setup and installation guide
-- API documentation with examples
-- Plugin development guide
-- Internationalization usage guide
-- Deployment instructions
+**Note**: This project follows [Semantic Versioning](https://semver.org/).
+
+### 🚀 What's Next (v0.3.0)
+- Complete dashboard implementation with real data visualization
+- Product management system with CRUD operations
+- Order processing workflow with status management
+- Customer analytics and management interface
 
 ---
 
