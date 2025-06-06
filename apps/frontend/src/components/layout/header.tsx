@@ -150,7 +150,12 @@ export function Header() {
             {/* User Menu */}
             {isAuthenticated ? (
               <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="icon">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => router.push('/profile')}
+                  title="Profile"
+                >
                   <User className="h-4 w-4" />
                 </Button>
                 <Button
@@ -234,27 +239,50 @@ export function Header() {
                 {t('deals')}
               </Link>
 
-              {!isAuthenticated && (
-                <div className="flex flex-col space-y-2 pt-4 border-t">
-                  <Button
-                    variant="ghost"
-                    onClick={() => {
-                      router.push('/auth/login');
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    {t('login')}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      router.push('/auth/register');
-                      setIsMenuOpen(false);
-                    }}
-                  >
-                    {t('signUp')}
-                  </Button>
-                </div>
-              )}
+              <div className="flex flex-col space-y-2 pt-4 border-t">
+                {isAuthenticated ? (
+                  <>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        router.push('/profile');
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      Profile
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        handleLogout();
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      {t('logout')}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        router.push('/auth/login');
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      {t('login')}
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        router.push('/auth/register');
+                        setIsMenuOpen(false);
+                      }}
+                    >
+                      {t('signUp')}
+                    </Button>
+                  </>
+                )}
+              </div>
             </nav>
           </div>
         )}

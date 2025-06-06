@@ -102,18 +102,70 @@ model Payment {
   order     Order?   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   subscriptionId String?
   subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  // Enhanced payment fields for new architecture
   amount    Float
-  method    String   // 'CREDIT_CARD', 'PAYPAL', 'BANK_TRANSFER', 'STRIPE'
-  status    String   // 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'
-  reference String?  // 外部支付系统的引用ID
-  stripePaymentIntentId String? @unique
+  currency  String   @default("USD")
+  method    String   // 'CREDIT_CARD', 'PAYPAL', 'BANK_TRANSFER', 'STRIPE', 'MOCK'
+  paymentMethod String? // New enum-based payment method
+  status    String   // 'PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED', 'REFUNDED', 'PARTIALLY_REFUNDED'
+
+  // Provider information
+  provider  String?  // Payment provider name (e.g., 'stripe', 'paypal', 'mock')
+  providerResponse String? // JSON response from payment provider
+
+  // Transaction details
+  transactionId String? // Provider transaction ID
+  reference String?  // 外部支付系统的引用ID (legacy)
+  stripePaymentIntentId String? @unique // Legacy Stripe field
+
+  // Additional fields
+  clientSecret String? // For client-side payment completion
+  redirectUrl  String? // For redirect-based payments
+  webhookUrl   String? // Webhook notification URL
+
+  // Metadata and audit
   metadata  String?  // JSON格式的额外信息
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Relations
+  refunds   Refund[]
+
   @@index([subscriptionId])
   @@index([status])
+  @@index([provider])
+  @@index([transactionId])
   @@index([stripePaymentIntentId])
+  @@map("payments")
+}
+
+// New Refund model for the payment system
+model Refund {
+  id        String   @id @default(cuid())
+  paymentId String
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  amount    Float
+  currency  String   @default("USD")
+  status    String   // 'PENDING', 'COMPLETED', 'FAILED'
+  reason    String?
+
+  // Provider information
+  provider  String?  // Payment provider name
+  providerRefundId String? // Provider's refund ID
+  providerResponse String? // JSON response from provider
+
+  // Metadata and audit
+  metadata  String?  // JSON格式的额外信息
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([paymentId])
+  @@index([status])
+  @@index([provider])
+  @@index([providerRefundId])
+  @@map("refunds")
 }
 
 // SaaS 服务相关表

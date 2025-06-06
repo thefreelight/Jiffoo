@@ -200,23 +200,26 @@ export default function ProductsPage() {
           <div className="flex flex-col lg:flex-row gap-4 items-center justify-between">
             {/* Search */}
             <div className="flex-1 max-w-md">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder={t('searchPlaceholder')}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
+              <Link href="/products/search">
+                <div className="relative cursor-pointer">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder={t('searchPlaceholder')}
+                    className="pl-10 cursor-pointer"
+                    readOnly
+                  />
+                </div>
+              </Link>
             </div>
 
             {/* Controls */}
             <div className="flex items-center gap-4">
-              <Button variant="outline" size="sm">
-                <Filter className="h-4 w-4 mr-2" />
-                {t('filters')}
-              </Button>
+              <Link href="/products/search">
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-2" />
+                  {t('filters')}
+                </Button>
+              </Link>
 
               <select
                 value={sortBy}
@@ -261,8 +264,8 @@ export default function ProductsPage() {
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className={`grid gap-6 ${
-            viewMode === 'grid' 
-              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' 
+            viewMode === 'grid'
+              ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
               : 'grid-cols-1'
           }`}>
             {mockProducts.map((product, index) => (
@@ -282,7 +285,7 @@ export default function ProductsPage() {
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    
+
                     {/* Badges */}
                     <div className="absolute top-3 left-3 flex flex-col gap-2">
                       {product.isNew && (

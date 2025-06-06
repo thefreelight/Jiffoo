@@ -17,6 +17,8 @@ interface AuthActions {
   logout: () => void;
   getProfile: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
+  changePassword: (data: { currentPassword: string; newPassword: string }) => Promise<void>;
+  updateLanguagePreferences: (data: any) => Promise<void>;
   clearError: () => void;
   setLoading: (loading: boolean) => void;
 }
@@ -35,17 +37,17 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       login: async (email: string, password: string) => {
         try {
           set({ isLoading: true, error: null });
-          
+
           const response = await authApi.login(email, password);
-          
+
           if (response.success && response.data) {
             const { user, token } = response.data;
-            
+
             // Store token in localStorage
             if (typeof window !== 'undefined') {
               localStorage.setItem('auth_token', token);
             }
-            
+
             set({
               user,
               token,
@@ -68,17 +70,17 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       register: async (data: { email: string; password: string; name: string }) => {
         try {
           set({ isLoading: true, error: null });
-          
+
           const response = await authApi.register(data);
-          
+
           if (response.success && response.data) {
             const { user, token } = response.data;
-            
+
             // Store token in localStorage
             if (typeof window !== 'undefined') {
               localStorage.setItem('auth_token', token);
             }
-            
+
             set({
               user,
               token,
@@ -103,12 +105,12 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('auth_token');
         }
-        
+
         // Call logout API (optional, for server-side cleanup)
         authApi.logout().catch(() => {
           // Ignore errors on logout
         });
-        
+
         set({
           user: null,
           token: null,
@@ -120,9 +122,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       getProfile: async () => {
         try {
           set({ isLoading: true, error: null });
-          
+
           const response = await authApi.getProfile();
-          
+
           if (response.success && response.data) {
             set({
               user: response.data,
@@ -137,7 +139,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             isLoading: false,
             error: error.response?.data?.message || error.message || 'Failed to get profile',
           });
-          
+
           // If unauthorized, logout
           if (error.response?.status === 401) {
             get().logout();
@@ -148,9 +150,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
       updateProfile: async (data: Partial<User>) => {
         try {
           set({ isLoading: true, error: null });
-          
+
           const response = await authApi.updateProfile(data);
-          
+
           if (response.success && response.data) {
             set({
               user: response.data,
@@ -171,6 +173,52 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
       clearError: () => {
         set({ error: null });
+      },
+
+      changePassword: async (data: { currentPassword: string; newPassword: string }) => {
+        try {
+          set({ isLoading: true, error: null });
+
+          const response = await authApi.changePassword(data);
+
+          if (response.success) {
+            set({
+              isLoading: false,
+              error: null,
+            });
+          } else {
+            throw new Error(response.message || 'Failed to change password');
+          }
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.response?.data?.message || error.message || 'Failed to change password',
+          });
+          throw error;
+        }
+      },
+
+      updateLanguagePreferences: async (data: any) => {
+        try {
+          set({ isLoading: true, error: null });
+
+          const response = await authApi.updateLanguagePreferences(data);
+
+          if (response.success) {
+            set({
+              isLoading: false,
+              error: null,
+            });
+          } else {
+            throw new Error(response.message || 'Failed to update language preferences');
+          }
+        } catch (error: any) {
+          set({
+            isLoading: false,
+            error: error.response?.data?.message || error.message || 'Failed to update language preferences',
+          });
+          throw error;
+        }
       },
 
       setLoading: (loading: boolean) => {

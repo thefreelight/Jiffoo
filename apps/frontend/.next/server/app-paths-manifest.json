@@ -1,7 +1,9 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/page": "app/page.js",
+  "/products/[id]/page": "app/products/[id]/page.js",
+  "/order-success/page": "app/order-success/page.js",
   "/products/page": "app/products/page.js",
-  "/categories/page": "app/categories/page.js",
-  "/auth/login/page": "app/auth/login/page.js"
+  "/page": "app/page.js",
+  "/auth/login/page": "app/auth/login/page.js",
+  "/auth/register/page": "app/auth/register/page.js"
 }

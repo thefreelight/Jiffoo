@@ -12,9 +12,11 @@ import { accessLogMiddleware, errorLogMiddleware } from '@/core/logger/middlewar
 // Import routes
 import { authRoutes } from '@/core/auth/routes';
 import { userRoutes } from '@/core/user/routes';
-import { productRoutes } from '@/core/product/routes';
-import { orderRoutes } from '@/core/order/routes';
+import { userProfileRoutes } from '@/core/user/profile-routes';
 import { paymentRoutes } from '@/core/payment/routes';
+import { productRoutes } from '@/core/product/routes';
+import { cartRoutes } from '@/core/cart/routes';
+import { orderRoutes } from '@/core/order/routes';
 import { uploadRoutes } from '@/core/upload/routes';
 import { searchRoutes } from '@/core/search/routes';
 import { cacheRoutes } from '@/core/cache/routes';
@@ -102,6 +104,7 @@ async function buildApp() {
           auth: '/api/auth',
           users: '/api/users',
           products: '/api/products',
+          cart: '/api/cart',
           orders: '/api/orders',
           payments: '/api/payments',
           upload: '/api/upload',
@@ -457,9 +460,11 @@ async function buildApp() {
     // API routes
     await fastify.register(authRoutes, { prefix: '/api/auth' });
     await fastify.register(userRoutes, { prefix: '/api/users' });
-    await fastify.register(productRoutes, { prefix: '/api/products' });
-    await fastify.register(orderRoutes, { prefix: '/api/orders' });
+    await fastify.register(userProfileRoutes, { prefix: '/api/user' });
     await fastify.register(paymentRoutes, { prefix: '/api/payments' });
+    await fastify.register(productRoutes, { prefix: '/api/products' });
+    await fastify.register(cartRoutes, { prefix: '/api/cart' });
+    await fastify.register(orderRoutes, { prefix: '/api/orders' });
     await fastify.register(uploadRoutes, { prefix: '/api/upload' });
     await fastify.register(searchRoutes, { prefix: '/api/search' });
     await fastify.register(cacheRoutes, { prefix: '/api/cache' });

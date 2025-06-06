@@ -73,10 +73,16 @@ export const authApi = {
     apiClient.post('/api/auth/logout'),
 
   getProfile: () =>
-    apiClient.get('/api/auth/profile'),
+    apiClient.get('/api/user/profile'),
 
   updateProfile: (data: any) =>
-    apiClient.put('/api/auth/profile', data),
+    apiClient.put('/api/user/profile', data),
+
+  changePassword: (data: { currentPassword: string; newPassword: string }) =>
+    apiClient.post('/api/user/profile/change-password', data),
+
+  updateLanguagePreferences: (data: any) =>
+    apiClient.put('/api/user/profile/language-preferences', data),
 
   refreshToken: () =>
     apiClient.post('/api/auth/refresh'),
@@ -101,6 +107,16 @@ export const productsApi = {
 
   getProductReviews: (productId: string) =>
     apiClient.get(`/api/products/${productId}/reviews`),
+
+  // Search and filter APIs
+  getSearchSuggestions: (query: string, limit = 5) =>
+    apiClient.get('/api/products/search/suggestions', { params: { q: query, limit } }),
+
+  getPriceRanges: () =>
+    apiClient.get('/api/products/price-ranges'),
+
+  getPopularSearchTerms: (limit = 10) =>
+    apiClient.get('/api/products/search/popular', { params: { limit } }),
 };
 
 // Cart API
@@ -137,6 +153,13 @@ export const ordersApi = {
 
   cancelOrder: (id: string) =>
     apiClient.patch(`/api/orders/${id}/cancel`),
+
+  // User orders
+  getUserOrders: (params?: any) =>
+    apiClient.get('/api/user/orders', { params }),
+
+  getUserOrderStats: () =>
+    apiClient.get('/api/user/orders/stats'),
 };
 
 // Users API
