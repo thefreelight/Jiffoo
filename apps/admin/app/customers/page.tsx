@@ -1,8 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Sidebar } from '../../components/layout/sidebar'
-import { Header } from '../../components/layout/header'
+import Link from 'next/link'
 import { Button } from '../../components/ui/button'
 import {
   MagnifyingGlassIcon,
@@ -108,26 +107,20 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        
-        <main className="flex-1 overflow-y-auto p-6">
-          {/* Page Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
-                <p className="text-gray-600 mt-1">Manage your customer relationships</p>
-              </div>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <UserPlusIcon className="w-4 h-4 mr-2" />
-                Add Customer
-              </Button>
-            </div>
+    <div className="p-6">
+      {/* Page Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Customers</h1>
+            <p className="text-gray-600 mt-1">Manage your customer relationships</p>
           </div>
+          <Button className="bg-blue-600 hover:bg-blue-700">
+            <UserPlusIcon className="w-4 h-4 mr-2" />
+            Add Customer
+          </Button>
+        </div>
+      </div>
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
@@ -295,8 +288,6 @@ export default function CustomersPage() {
               <Button variant="outline" size="sm">Next</Button>
             </div>
           </div>
-        </main>
-      </div>
     </div>
   )
 }
