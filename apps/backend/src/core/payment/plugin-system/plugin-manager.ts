@@ -2,6 +2,10 @@ import { EventEmitter } from 'events';
 import { PaymentProvider, PaymentPluginMetadata, PaymentConfig } from '../types';
 import { LoggerService } from '@/utils/logger';
 import { LicenseService } from '@/core/licensing/license-service';
+import { StripePaymentProvider } from '../providers/stripe-provider';
+import { PayPalPaymentProvider } from '../providers/paypal-provider';
+import { stripePaymentPluginMetadata } from '../plugins/stripe-payment-plugin';
+import { paypalPaymentPluginMetadata } from '../plugins/paypal-payment-plugin';
 
 export interface PaymentPlugin {
   metadata: PaymentPluginMetadata;
@@ -42,7 +46,7 @@ export class PaymentPluginManager extends EventEmitter {
 
       // Create provider instance
       const provider = new providerClass();
-      
+
       // Initialize provider
       await provider.initialize(config);
 
@@ -142,41 +146,69 @@ export class PaymentPluginManager extends EventEmitter {
       {
         id: 'stripe-payment-plugin',
         name: 'Stripe Payment Plugin',
-        description: 'Accept credit card payments via Stripe',
+        description: 'Accept credit card and debit card payments via Stripe. Supports major currencies and regions with advanced features like saved payment methods and recurring payments.',
         version: '1.0.0',
         author: 'Jiffoo Team',
         license: 'basic',
         price: 29,
-        regions: ['US', 'EU', 'CA', 'AU'],
+        regions: ['US', 'EU', 'CA', 'AU', 'GB'],
         currencies: ['USD', 'EUR', 'GBP', 'CAD', 'AUD'],
         methods: ['credit_card', 'debit_card'],
-        features: ['webhooks', 'refunds', 'saved_payment_methods'],
+        features: [
+          'credit_card_processing',
+          'debit_card_processing',
+          'webhooks',
+          'refunds',
+          'partial_refunds',
+          'saved_payment_methods',
+          'recurring_payments',
+          'fraud_protection',
+          'pci_compliance',
+          'real_time_processing',
+          'multi_currency',
+          'dispute_management'
+        ],
         requirements: {
           minCoreVersion: '1.0.0',
+          dependencies: ['stripe'],
         },
         configuration: {
           required: ['apiKey', 'webhookSecret'],
-          optional: ['environment'],
+          optional: ['environment', 'currency', 'region', 'captureMethod', 'statementDescriptor'],
         },
       },
       {
         id: 'paypal-payment-plugin',
         name: 'PayPal Payment Plugin',
-        description: 'Accept payments via PayPal',
+        description: 'Accept payments via PayPal. Supports global payments with PayPal\'s trusted checkout experience and buyer protection.',
         version: '1.0.0',
         author: 'Jiffoo Team',
         license: 'basic',
         price: 29,
         regions: ['*'],
-        currencies: ['USD', 'EUR', 'GBP'],
+        currencies: ['USD', 'EUR', 'GBP', 'CAD', 'AUD'],
         methods: ['paypal'],
-        features: ['webhooks', 'refunds'],
+        features: [
+          'paypal_checkout',
+          'buyer_protection',
+          'global_payments',
+          'webhooks',
+          'refunds',
+          'partial_refunds',
+          'fraud_protection',
+          'mobile_optimized',
+          'one_touch_payments',
+          'guest_checkout',
+          'multi_currency',
+          'dispute_resolution'
+        ],
         requirements: {
           minCoreVersion: '1.0.0',
+          dependencies: ['@paypal/paypal-server-sdk'],
         },
         configuration: {
           required: ['clientId', 'clientSecret'],
-          optional: ['environment'],
+          optional: ['environment', 'currency', 'region', 'brandName', 'landingPage'],
         },
       },
       {
@@ -228,7 +260,7 @@ export class PaymentPluginManager extends EventEmitter {
   async installPlugin(pluginId: string, licenseKey?: string): Promise<void> {
     const availablePlugins = this.getAvailablePlugins();
     const pluginMetadata = availablePlugins.find(p => p.id === pluginId);
-    
+
     if (!pluginMetadata) {
       throw new Error(`Plugin ${pluginId} not found in registry`);
     }
@@ -245,19 +277,69 @@ export class PaymentPluginManager extends EventEmitter {
       }
     }
 
-    // For now, we'll simulate plugin installation
-    // In a real implementation, this would download and load the plugin
     LoggerService.logInfo(`Installing plugin ${pluginId}...`);
-    
-    // Simulate installation delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    LoggerService.logInfo(`Plugin ${pluginId} installed successfully`);
 
-    this.emit('plugin.installed', {
-      pluginId,
-      metadata: pluginMetadata,
-    });
+    try {
+      // Load and register the actual plugin
+      await this.loadAndRegisterPlugin(pluginId, licenseKey);
+
+      LoggerService.logInfo(`Plugin ${pluginId} installed successfully`);
+
+      this.emit('plugin.installed', {
+        pluginId,
+        metadata: pluginMetadata,
+      });
+    } catch (error) {
+      LoggerService.logError(`Failed to install plugin ${pluginId}`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Load and register a real plugin
+   */
+  private async loadAndRegisterPlugin(pluginId: string, licenseKey?: string): Promise<void> {
+    try {
+      switch (pluginId) {
+        case 'stripe-payment-plugin':
+          await this.registerPlugin(
+            stripePaymentPluginMetadata,
+            StripePaymentProvider,
+            {
+              environment: 'sandbox',
+              currency: 'USD' as any,
+              region: 'US',
+              // Note: In production, these would come from secure configuration
+              apiKey: process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder',
+              webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || 'whsec_placeholder',
+            },
+            licenseKey
+          );
+          break;
+
+        case 'paypal-payment-plugin':
+          await this.registerPlugin(
+            paypalPaymentPluginMetadata,
+            PayPalPaymentProvider,
+            {
+              environment: 'sandbox',
+              currency: 'USD' as any,
+              region: 'global',
+              // Note: In production, these would come from secure configuration
+              clientId: process.env.PAYPAL_CLIENT_ID || 'paypal_client_id_placeholder',
+              clientSecret: process.env.PAYPAL_CLIENT_SECRET || 'paypal_client_secret_placeholder',
+            },
+            licenseKey
+          );
+          break;
+
+        default:
+          throw new Error(`Unknown plugin: ${pluginId}`);
+      }
+    } catch (error) {
+      LoggerService.logError(`Failed to load plugin ${pluginId}`, error);
+      throw new Error(`Plugin loading failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
   }
 
   /**
@@ -271,7 +353,7 @@ export class PaymentPluginManager extends EventEmitter {
 
     // Remove plugin files (simulated)
     LoggerService.logInfo(`Uninstalling plugin ${pluginId}...`);
-    
+
     this.emit('plugin.uninstalled', { pluginId });
   }
 
@@ -324,7 +406,7 @@ export class PaymentPluginManager extends EventEmitter {
    */
   getPluginStats() {
     const plugins = Array.from(this.plugins.values());
-    
+
     return {
       total: plugins.length,
       active: plugins.filter(p => p.isActive).length,
@@ -343,7 +425,7 @@ export class PaymentPluginManager extends EventEmitter {
    */
   async healthCheck(): Promise<Record<string, boolean>> {
     const results: Record<string, boolean> = {};
-    
+
     for (const [pluginId, plugin] of this.plugins) {
       if (plugin.isActive) {
         try {
@@ -356,7 +438,7 @@ export class PaymentPluginManager extends EventEmitter {
         results[pluginId] = false; // Inactive plugins are considered unhealthy
       }
     }
-    
+
     return results;
   }
 }
