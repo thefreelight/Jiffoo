@@ -270,431 +270,521 @@ export default function PluginsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/20 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl"></div>
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-12">
         {/* Header */}
-        <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg mb-4">
-            <Package className="w-8 h-8 text-white" />
+        <div className="text-center space-y-6">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-3xl shadow-2xl mb-6 relative">
+            <Package className="w-10 h-10 text-white" />
+            <div className="absolute -inset-1 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-3xl blur opacity-30"></div>
           </div>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            Plugin Store
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Extend your payment capabilities with powerful, enterprise-grade plugins
-          </p>
+          <div className="space-y-4">
+            <h1 className="text-6xl font-black bg-gradient-to-r from-white via-blue-100 to-purple-100 bg-clip-text text-transparent">
+              Plugin Store
+            </h1>
+            <p className="text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
+              Transform your payment experience with cutting-edge, enterprise-grade plugins
+            </p>
+            <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span>Live • Updated daily • Trusted by 10,000+ merchants</span>
+            </div>
+          </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Available Plugins</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats?.totalAvailable || 12}</p>
-                  <p className="text-xs text-green-600 mt-1">+2 this month</p>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="group relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+            <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-2xl hover:shadow-blue-500/25 transition-all duration-500">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Available Plugins</p>
+                    <p className="text-4xl font-black text-white mt-2">{stats?.totalAvailable || 12}</p>
+                    <div className="flex items-center gap-1 mt-2">
+                      <div className="w-1 h-1 bg-green-400 rounded-full"></div>
+                      <p className="text-xs text-green-400">+2 this month</p>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl shadow-lg">
+                    <Package className="w-8 h-8 text-white" />
+                  </div>
                 </div>
-                <div className="p-3 bg-blue-100 rounded-xl">
-                  <Package className="w-8 h-8 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Installed</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats?.totalInstalled || 3}</p>
-                  <p className="text-xs text-blue-600 mt-1">Active & Running</p>
+          <div className="group relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+            <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-2xl hover:shadow-green-500/25 transition-all duration-500">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Installed</p>
+                    <p className="text-4xl font-black text-white mt-2">{stats?.totalInstalled || 3}</p>
+                    <div className="flex items-center gap-1 mt-2">
+                      <div className="w-1 h-1 bg-green-400 rounded-full animate-pulse"></div>
+                      <p className="text-xs text-green-400">Active & Running</p>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg">
+                    <CheckCircle className="w-8 h-8 text-white" />
+                  </div>
                 </div>
-                <div className="p-3 bg-green-100 rounded-xl">
-                  <CheckCircle className="w-8 h-8 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Premium Plugins</p>
-                  <p className="text-3xl font-bold text-gray-900">{stats?.byLicense.premium || 8}</p>
-                  <p className="text-xs text-purple-600 mt-1">Enterprise Ready</p>
+          <div className="group relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+            <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-2xl hover:shadow-purple-500/25 transition-all duration-500">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Premium Plugins</p>
+                    <p className="text-4xl font-black text-white mt-2">{stats?.byLicense.premium || 8}</p>
+                    <div className="flex items-center gap-1 mt-2">
+                      <div className="w-1 h-1 bg-purple-400 rounded-full"></div>
+                      <p className="text-xs text-purple-400">Enterprise Ready</p>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-gradient-to-br from-purple-500 to-pink-600 rounded-2xl shadow-lg">
+                    <Star className="w-8 h-8 text-white" />
+                  </div>
                 </div>
-                <div className="p-3 bg-purple-100 rounded-xl">
-                  <Star className="w-8 h-8 text-purple-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Revenue Impact</p>
-                  <p className="text-3xl font-bold text-gray-900">+24%</p>
-                  <p className="text-xs text-emerald-600 mt-1">vs last month</p>
+          <div className="group relative">
+            <div className="absolute -inset-1 bg-gradient-to-r from-orange-600 to-red-600 rounded-2xl blur opacity-25 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+            <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-2xl hover:shadow-orange-500/25 transition-all duration-500">
+              <CardContent className="p-8">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-400">Revenue Impact</p>
+                    <p className="text-4xl font-black text-white mt-2">+24%</p>
+                    <div className="flex items-center gap-1 mt-2">
+                      <div className="w-1 h-1 bg-orange-400 rounded-full"></div>
+                      <p className="text-xs text-orange-400">vs last month</p>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-gradient-to-br from-orange-500 to-red-600 rounded-2xl shadow-lg">
+                    <Shield className="w-8 h-8 text-white" />
+                  </div>
                 </div>
-                <div className="p-3 bg-emerald-100 rounded-xl">
-                  <Shield className="w-8 h-8 text-emerald-600" />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="relative">
+          <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-3xl blur opacity-20"></div>
+          <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-2xl">
+            <CardContent className="p-8">
+              <div className="flex flex-col lg:flex-row gap-6 items-center">
+                <div className="relative flex-1 w-full">
+                  <Search className="absolute left-6 top-1/2 transform -translate-y-1/2 text-gray-400 w-6 h-6" />
+                  <Input
+                    placeholder="Search plugins by name, category, or feature..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-16 pr-6 py-4 text-lg border-0 bg-gray-700/50 text-white placeholder-gray-400 focus:bg-gray-700 focus:ring-2 focus:ring-blue-500 rounded-2xl"
+                  />
+                </div>
+
+                <div className="flex gap-4">
+                  <select
+                    value={selectedLicense}
+                    onChange={(e) => setSelectedLicense(e.target.value)}
+                    className="px-6 py-4 border-0 bg-gray-700/50 text-white rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                  >
+                    <option value="all">All Licenses</option>
+                    <option value="free">Free</option>
+                    <option value="basic">Basic</option>
+                    <option value="premium">Premium</option>
+                    <option value="enterprise">Enterprise</option>
+                  </select>
+
+                  <Button className="px-8 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium">
+                    <Filter className="w-5 h-5 mr-2" />
+                    Advanced Filters
+                  </Button>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Search and Filters */}
-        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-          <CardContent className="p-6">
-            <div className="flex flex-col lg:flex-row gap-4 items-center">
-              <div className="relative flex-1 w-full">
-                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <Input
-                  placeholder="Search plugins by name, category, or feature..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-12 pr-4 py-3 text-lg border-0 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500 rounded-xl"
-                />
-              </div>
+        {/* Tabs */}
+        <Tabs defaultValue="marketplace" className="space-y-8">
+        <div className="flex justify-center">
+          <TabsList className="bg-gray-800/90 border border-gray-700/50 p-2 rounded-2xl backdrop-blur-xl">
+            <TabsTrigger
+              value="marketplace"
+              className="px-8 py-4 rounded-xl text-gray-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white font-bold text-lg"
+            >
+              Marketplace ({plugins.length})
+            </TabsTrigger>
+            <TabsTrigger
+              value="installed"
+              className="px-8 py-4 rounded-xl text-gray-400 data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-600 data-[state=active]:to-emerald-600 data-[state=active]:text-white font-bold text-lg"
+            >
+              Installed ({installedPlugins.length})
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-              <div className="flex gap-3">
-                <select
-                  value={selectedLicense}
-                  onChange={(e) => setSelectedLicense(e.target.value)}
-                  className="px-4 py-3 border-0 bg-gray-50 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                >
-                  <option value="all">All Licenses</option>
-                  <option value="free">Free</option>
-                  <option value="basic">Basic</option>
-                  <option value="premium">Premium</option>
-                  <option value="enterprise">Enterprise</option>
-                </select>
-
-                <Button variant="outline" className="px-6 py-3 rounded-xl border-0 bg-gray-50 hover:bg-gray-100">
-                  <Filter className="w-4 h-4 mr-2" />
-                  Filters
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-      {/* Tabs */}
-      <Tabs defaultValue="marketplace" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="marketplace">Marketplace</TabsTrigger>
-          <TabsTrigger value="installed">Installed ({installedPlugins.length})</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="marketplace" className="space-y-6">
+        <TabsContent value="marketplace" className="space-y-12">
           {/* Featured Plugins */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">Featured Plugins</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="space-y-8">
+            <div className="text-center">
+              <h2 className="text-4xl font-black text-white mb-4">Featured Plugins</h2>
+              <p className="text-gray-400 text-lg">Hand-picked premium solutions for enterprise success</p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
               {filteredPlugins.slice(0, 2).map((plugin) => {
                 const isInstalled = installedPlugins.some(installed => installed.id === plugin.id);
                 return (
-                  <Card key={plugin.id} className="bg-gradient-to-br from-white to-blue-50/50 border-0 shadow-xl hover:shadow-2xl transition-all duration-300 group">
-                    <CardContent className="p-8">
-                      <div className="flex items-start justify-between mb-6">
-                        <div className="flex items-center gap-4">
-                          <div className="p-3 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-lg">
-                            {getMethodIcon(plugin.methods[0])}
-                          </div>
-                          <div>
-                            <h3 className="text-xl font-bold text-gray-900">{plugin.name}</h3>
-                            <p className="text-gray-600">by {plugin.author} • v{plugin.version}</p>
-                          </div>
-                        </div>
-                        <Badge className={`${getLicenseBadgeColor(plugin.license)} px-3 py-1`}>
-                          {plugin.license}
-                        </Badge>
-                      </div>
-
-                      <p className="text-gray-700 mb-6 leading-relaxed">
-                        {plugin.description}
-                      </p>
-
-                      <div className="space-y-4">
-                        {/* Payment Methods */}
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 mb-2">Payment Methods</p>
-                          <div className="flex flex-wrap gap-2">
-                            {plugin.methods.map((method) => (
-                              <div key={method} className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border">
-                                {getMethodIcon(method)}
-                                <span className="text-sm font-medium">{method.replace('_', ' ')}</span>
+                  <div key={plugin.id} className="group relative">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-3xl blur opacity-30 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+                    <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-2xl hover:shadow-blue-500/25 transition-all duration-500 overflow-hidden">
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-2xl"></div>
+                      <CardContent className="p-10 relative">
+                        <div className="flex items-start justify-between mb-8">
+                          <div className="flex items-center gap-6">
+                            <div className="relative">
+                              <div className="p-4 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-2xl shadow-2xl">
+                                {getMethodIcon(plugin.methods[0])}
                               </div>
-                            ))}
+                              <div className="absolute -inset-1 bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 rounded-2xl blur opacity-30"></div>
+                            </div>
+                            <div>
+                              <h3 className="text-2xl font-black text-white mb-2">{plugin.name}</h3>
+                              <p className="text-gray-400">by {plugin.author} • v{plugin.version}</p>
+                            </div>
                           </div>
+                          <Badge className={`${getLicenseBadgeColor(plugin.license)} px-4 py-2 text-sm font-bold`}>
+                            {plugin.license.toUpperCase()}
+                          </Badge>
                         </div>
 
-                        {/* Features */}
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 mb-2">Key Features</p>
-                          <div className="flex flex-wrap gap-2">
-                            {plugin.features.map((feature) => (
-                              <Badge key={feature} variant="outline" className="bg-white">
-                                {feature.replace('_', ' ')}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
+                        <p className="text-gray-300 mb-8 leading-relaxed text-lg">
+                          {plugin.description}
+                        </p>
 
-                        {/* Price and Actions */}
-                        <div className="flex items-center justify-between pt-4 border-t">
-                          <div className="flex items-center gap-2">
-                            {plugin.price ? (
-                              <>
-                                <DollarSign className="w-5 h-5 text-green-600" />
-                                <span className="text-2xl font-bold text-green-600">
-                                  ${plugin.price}
-                                </span>
-                                <span className="text-gray-600">/month</span>
-                              </>
-                            ) : (
-                              <span className="text-2xl font-bold text-green-600">Free</span>
-                            )}
+                        <div className="space-y-6">
+                          {/* Payment Methods */}
+                          <div>
+                            <p className="text-sm font-bold text-white mb-4">Payment Methods</p>
+                            <div className="flex flex-wrap gap-3">
+                              {plugin.methods.map((method) => (
+                                <div key={method} className="flex items-center gap-3 bg-gray-700/50 px-4 py-3 rounded-xl border border-gray-600/50">
+                                  {getMethodIcon(method)}
+                                  <span className="text-sm font-medium text-white">{method.replace('_', ' ')}</span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
 
-                          <div className="flex gap-3">
-                            <Button variant="outline" size="sm" onClick={() => window.location.href = `/plugins/${plugin.id}`}>
-                              View Details
-                            </Button>
-                            {isInstalled ? (
-                              <Badge className="bg-green-100 text-green-800 px-4 py-2">
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                Installed
-                              </Badge>
-                            ) : (
-                              <Button
-                                size="sm"
-                                onClick={() => handleInstallPlugin(plugin.id)}
-                                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-6"
-                              >
-                                <Download className="w-4 h-4 mr-2" />
-                                Install Now
+                          {/* Features */}
+                          <div>
+                            <p className="text-sm font-bold text-white mb-4">Key Features</p>
+                            <div className="flex flex-wrap gap-2">
+                              {plugin.features.map((feature) => (
+                                <Badge key={feature} className="bg-gray-700/50 text-gray-300 border-gray-600/50 px-3 py-1">
+                                  {feature.replace('_', ' ')}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Price and Actions */}
+                          <div className="flex items-center justify-between pt-6 border-t border-gray-700/50">
+                            <div className="flex items-center gap-2">
+                              {plugin.price ? (
+                                <>
+                                  <DollarSign className="w-6 h-6 text-green-400" />
+                                  <span className="text-3xl font-black text-green-400">
+                                    ${plugin.price}
+                                  </span>
+                                  <span className="text-gray-400 text-lg">/month</span>
+                                </>
+                              ) : (
+                                <span className="text-3xl font-black text-green-400">Free</span>
+                              )}
+                            </div>
+
+                            <div className="flex gap-4">
+                              <Button variant="outline" className="border-gray-600 text-gray-300 hover:bg-gray-700 px-6 py-3">
+                                View Details
                               </Button>
-                            )}
+                              {isInstalled ? (
+                                <div className="flex items-center gap-2 bg-green-500/20 text-green-400 px-6 py-3 rounded-xl border border-green-500/30">
+                                  <CheckCircle className="w-5 h-5" />
+                                  <span className="font-bold">Installed</span>
+                                </div>
+                              ) : (
+                                <Button
+                                  onClick={() => handleInstallPlugin(plugin.id)}
+                                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-8 py-3 font-bold"
+                                >
+                                  <Download className="w-5 h-5 mr-2" />
+                                  Install Now
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </div>
                 );
               })}
             </div>
           </div>
 
           {/* All Plugins */}
-          <div className="space-y-4">
-            <h2 className="text-2xl font-bold text-gray-900">All Plugins</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="space-y-8">
+            <div className="text-center">
+              <h2 className="text-4xl font-black text-white mb-4">All Plugins</h2>
+              <p className="text-gray-400 text-lg">Complete collection of payment solutions</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredPlugins.map((plugin) => {
                 const isInstalled = installedPlugins.some(installed => installed.id === plugin.id);
 
                 return (
-                  <Card key={plugin.id} className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 group">
-                    <CardHeader className="pb-4">
-                      <div className="flex justify-between items-start">
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-lg">
-                            {getMethodIcon(plugin.methods[0])}
+                  <div key={plugin.id} className="group relative">
+                    <div className="absolute -inset-1 bg-gradient-to-r from-gray-600 to-gray-800 rounded-2xl blur opacity-20 group-hover:opacity-50 transition duration-500"></div>
+                    <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden">
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-full blur-xl"></div>
+                      <CardHeader className="pb-4 relative">
+                        <div className="flex justify-between items-start">
+                          <div className="flex items-center gap-4">
+                            <div className="relative">
+                              <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+                                {getMethodIcon(plugin.methods[0])}
+                              </div>
+                              <div className="absolute -inset-1 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl blur opacity-20"></div>
+                            </div>
+                            <div className="flex-1">
+                              <CardTitle className="text-lg text-white group-hover:text-blue-400 transition-colors font-bold">
+                                {plugin.name}
+                              </CardTitle>
+                              <CardDescription className="text-sm mt-1 text-gray-400">
+                                by {plugin.author} • v{plugin.version}
+                              </CardDescription>
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <CardTitle className="text-lg group-hover:text-blue-600 transition-colors">
-                              {plugin.name}
-                            </CardTitle>
-                            <CardDescription className="text-sm mt-1">
-                              by {plugin.author} • v{plugin.version}
-                            </CardDescription>
-                          </div>
+                          <Badge className={`${getLicenseBadgeColor(plugin.license)} font-bold`}>
+                            {plugin.license.toUpperCase()}
+                          </Badge>
                         </div>
-                        <Badge className={getLicenseBadgeColor(plugin.license)}>
-                          {plugin.license}
-                        </Badge>
-                      </div>
-                    </CardHeader>
+                      </CardHeader>
 
-                    <CardContent className="space-y-4">
-                      <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
-                        {plugin.description}
-                      </p>
+                      <CardContent className="space-y-6 relative">
+                        <p className="text-sm text-gray-300 line-clamp-2 leading-relaxed">
+                          {plugin.description}
+                        </p>
 
-                      {/* Payment Methods */}
-                      <div className="flex flex-wrap gap-2">
-                        {plugin.methods.slice(0, 2).map((method) => (
-                          <div key={method} className="flex items-center gap-1 text-xs bg-gray-100 px-2 py-1 rounded-lg">
-                            {getMethodIcon(method)}
-                            <span>{method.replace('_', ' ')}</span>
-                          </div>
-                        ))}
-                        {plugin.methods.length > 2 && (
-                          <span className="text-xs text-gray-500 px-2 py-1">+{plugin.methods.length - 2} more</span>
-                        )}
-                      </div>
-
-                      {/* Features */}
-                      <div className="flex flex-wrap gap-1">
-                        {plugin.features.slice(0, 3).map((feature) => (
-                          <Badge key={feature} variant="outline" className="text-xs">
-                            {feature.replace('_', ' ')}
-                          </Badge>
-                        ))}
-                        {plugin.features.length > 3 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{plugin.features.length - 3}
-                          </Badge>
-                        )}
-                      </div>
-
-                      {/* Price and Install */}
-                      <div className="flex justify-between items-center pt-4 border-t">
-                        <div className="flex items-center gap-1">
-                          {plugin.price ? (
-                            <>
-                              <DollarSign className="w-4 h-4 text-green-600" />
-                              <span className="font-bold text-green-600">
-                                ${plugin.price}/mo
-                              </span>
-                            </>
-                          ) : (
-                            <span className="font-bold text-green-600">Free</span>
+                        {/* Payment Methods */}
+                        <div className="flex flex-wrap gap-2">
+                          {plugin.methods.slice(0, 2).map((method) => (
+                            <div key={method} className="flex items-center gap-2 text-xs bg-gray-700/50 text-gray-300 px-3 py-2 rounded-lg border border-gray-600/50">
+                              {getMethodIcon(method)}
+                              <span>{method.replace('_', ' ')}</span>
+                            </div>
+                          ))}
+                          {plugin.methods.length > 2 && (
+                            <span className="text-xs text-gray-500 px-3 py-2">+{plugin.methods.length - 2} more</span>
                           )}
                         </div>
 
-                        {isInstalled ? (
-                          <Badge className="bg-green-100 text-green-800">
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Installed
-                          </Badge>
-                        ) : (
-                          <Button
-                            size="sm"
-                            onClick={() => handleInstallPlugin(plugin.id)}
-                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
-                          >
-                            <Download className="w-3 h-3 mr-1" />
-                            Install
-                          </Button>
-                        )}
-                      </div>
-                    </CardContent>
-                  </Card>
+                        {/* Features */}
+                        <div className="flex flex-wrap gap-2">
+                          {plugin.features.slice(0, 3).map((feature) => (
+                            <Badge key={feature} className="text-xs bg-gray-700/50 text-gray-300 border-gray-600/50">
+                              {feature.replace('_', ' ')}
+                            </Badge>
+                          ))}
+                          {plugin.features.length > 3 && (
+                            <Badge className="text-xs bg-gray-700/50 text-gray-300 border-gray-600/50">
+                              +{plugin.features.length - 3}
+                            </Badge>
+                          )}
+                        </div>
+
+                        {/* Price and Install */}
+                        <div className="flex justify-between items-center pt-4 border-t border-gray-700/50">
+                          <div className="flex items-center gap-1">
+                            {plugin.price ? (
+                              <>
+                                <DollarSign className="w-4 h-4 text-green-400" />
+                                <span className="font-bold text-green-400 text-lg">
+                                  ${plugin.price}
+                                </span>
+                                <span className="text-gray-400 text-sm">/mo</span>
+                              </>
+                            ) : (
+                              <span className="font-bold text-green-400 text-lg">Free</span>
+                            )}
+                          </div>
+
+                          {isInstalled ? (
+                            <div className="flex items-center gap-2 bg-green-500/20 text-green-400 px-3 py-2 rounded-lg border border-green-500/30">
+                              <CheckCircle className="w-4 h-4" />
+                              <span className="text-sm font-bold">Installed</span>
+                            </div>
+                          ) : (
+                            <Button
+                              size="sm"
+                              onClick={() => handleInstallPlugin(plugin.id)}
+                              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-4 py-2 font-bold"
+                            >
+                              <Download className="w-4 h-4 mr-2" />
+                              Install
+                            </Button>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
                 );
               })}
             </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="installed" className="space-y-6">
+        <TabsContent value="installed" className="space-y-8">
           {installedPlugins.length === 0 ? (
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-xl">
-              <CardContent className="p-12 text-center">
-                <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                  <Package className="w-12 h-12 text-gray-400" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">No plugins installed yet</h3>
-                <p className="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed">
-                  Install plugins from the marketplace to extend your payment capabilities and unlock new features.
-                </p>
-                <Button
-                  onClick={() => setSearchTerm('')}
-                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-8 py-3"
-                >
-                  <Package className="w-4 h-4 mr-2" />
-                  Browse Marketplace
-                </Button>
-              </CardContent>
-            </Card>
+            <div className="relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-gray-600 to-gray-800 rounded-3xl blur opacity-20"></div>
+              <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-2xl">
+                <CardContent className="p-16 text-center">
+                  <div className="relative">
+                    <div className="w-32 h-32 bg-gradient-to-br from-gray-700 to-gray-800 rounded-3xl flex items-center justify-center mx-auto mb-8 shadow-2xl">
+                      <Package className="w-16 h-16 text-gray-400" />
+                    </div>
+                    <div className="absolute -inset-2 bg-gradient-to-br from-gray-600 to-gray-800 rounded-3xl blur opacity-20"></div>
+                  </div>
+                  <h3 className="text-3xl font-black text-white mb-4">No plugins installed yet</h3>
+                  <p className="text-gray-400 mb-10 max-w-lg mx-auto leading-relaxed text-lg">
+                    Install plugins from the marketplace to extend your payment capabilities and unlock enterprise features.
+                  </p>
+                  <Button
+                    onClick={() => setSearchTerm('')}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 px-10 py-4 text-lg font-bold"
+                  >
+                    <Package className="w-5 h-5 mr-3" />
+                    Browse Marketplace
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {installedPlugins.map((plugin) => (
-                <Card key={plugin.id} className="bg-white/80 backdrop-blur-sm border-0 shadow-xl hover:shadow-2xl transition-all duration-300 group">
-                  <CardHeader className="pb-4">
-                    <div className="flex justify-between items-start">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-green-600 to-emerald-600 rounded-lg">
-                          <CheckCircle className="w-5 h-5 text-white" />
+                <div key={plugin.id} className="group relative">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl blur opacity-30 group-hover:opacity-75 transition duration-1000 group-hover:duration-200"></div>
+                  <Card className="relative bg-gray-800/90 backdrop-blur-xl border border-gray-700/50 shadow-2xl hover:shadow-green-500/25 transition-all duration-500 overflow-hidden">
+                    <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-green-500/20 to-emerald-500/20 rounded-full blur-xl"></div>
+                    <CardHeader className="pb-4 relative">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-4">
+                          <div className="relative">
+                            <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg">
+                              <CheckCircle className="w-6 h-6 text-white" />
+                            </div>
+                            <div className="absolute -inset-1 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl blur opacity-30"></div>
+                          </div>
+                          <div className="flex-1">
+                            <CardTitle className="text-lg text-white group-hover:text-green-400 transition-colors font-bold">
+                              {plugin.name}
+                            </CardTitle>
+                            <CardDescription className="text-sm mt-1 text-gray-400">
+                              by {plugin.author} • v{plugin.version}
+                            </CardDescription>
+                          </div>
                         </div>
-                        <div className="flex-1">
-                          <CardTitle className="text-lg group-hover:text-green-600 transition-colors">
-                            {plugin.name}
-                          </CardTitle>
-                          <CardDescription className="text-sm mt-1">
-                            by {plugin.author} • v{plugin.version}
-                          </CardDescription>
+                        <div className="flex items-center gap-2">
+                          {plugin.isActive ? (
+                            <div className="flex items-center gap-2 bg-green-500/20 text-green-400 px-4 py-2 rounded-xl border border-green-500/30">
+                              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                              <span className="text-sm font-bold">Active</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 bg-gray-500/20 text-gray-400 px-4 py-2 rounded-xl border border-gray-500/30">
+                              <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                              <span className="text-sm font-bold">Inactive</span>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {plugin.isActive ? (
-                          <Badge className="bg-green-100 text-green-800 px-3 py-1">
-                            <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-                            Active
-                          </Badge>
-                        ) : (
-                          <Badge className="bg-gray-100 text-gray-800 px-3 py-1">
-                            <div className="w-2 h-2 bg-gray-400 rounded-full mr-2"></div>
-                            Inactive
-                          </Badge>
-                        )}
+                    </CardHeader>
+
+                    <CardContent className="space-y-6 relative">
+                      <p className="text-sm text-gray-300 line-clamp-2 leading-relaxed">
+                        {plugin.description}
+                      </p>
+
+                      {/* Plugin Stats */}
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="bg-blue-500/20 border border-blue-500/30 rounded-xl p-4 text-center">
+                          <p className="text-xs text-blue-400 font-bold">Uptime</p>
+                          <p className="text-xl font-black text-blue-300 mt-1">99.9%</p>
+                        </div>
+                        <div className="bg-green-500/20 border border-green-500/30 rounded-xl p-4 text-center">
+                          <p className="text-xs text-green-400 font-bold">Transactions</p>
+                          <p className="text-xl font-black text-green-300 mt-1">1.2k</p>
+                        </div>
                       </div>
-                    </div>
-                  </CardHeader>
 
-                  <CardContent className="space-y-6">
-                    <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">
-                      {plugin.description}
-                    </p>
+                      {/* Action Buttons */}
+                      <div className="flex gap-3 pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.location.href = `/plugins/${plugin.id}/configure`}
+                          className="flex-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/20 bg-blue-500/10"
+                        >
+                          <Settings className="w-4 h-4 mr-2" />
+                          Configure
+                        </Button>
 
-                    {/* Plugin Stats */}
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-blue-50 rounded-lg p-3 text-center">
-                        <p className="text-xs text-blue-600 font-medium">Uptime</p>
-                        <p className="text-lg font-bold text-blue-900">99.9%</p>
+                        <Button
+                          size="sm"
+                          className={`flex-1 font-bold ${
+                            plugin.isActive
+                              ? "bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30"
+                              : "bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30"
+                          }`}
+                        >
+                          {plugin.isActive ? (
+                            <>
+                              <AlertCircle className="w-4 h-4 mr-2" />
+                              Deactivate
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Activate
+                            </>
+                          )}
+                        </Button>
                       </div>
-                      <div className="bg-green-50 rounded-lg p-3 text-center">
-                        <p className="text-xs text-green-600 font-medium">Transactions</p>
-                        <p className="text-lg font-bold text-green-900">1.2k</p>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-3 pt-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.location.href = `/plugins/${plugin.id}/configure`}
-                        className="flex-1 border-blue-200 text-blue-600 hover:bg-blue-50"
-                      >
-                        <Settings className="w-3 h-3 mr-2" />
-                        Configure
-                      </Button>
-
-                      <Button
-                        variant={plugin.isActive ? "destructive" : "default"}
-                        size="sm"
-                        className="flex-1"
-                      >
-                        {plugin.isActive ? (
-                          <>
-                            <AlertCircle className="w-3 h-3 mr-2" />
-                            Deactivate
-                          </>
-                        ) : (
-                          <>
-                            <CheckCircle className="w-3 h-3 mr-2" />
-                            Activate
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
+                    </CardContent>
+                  </Card>
+                </div>
                 </Card>
               ))}
             </div>
