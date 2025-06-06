@@ -1,9 +1,16 @@
 'use client'
 
 import { useState } from 'react'
-import { Sidebar } from '../../components/layout/sidebar'
-import { Header } from '../../components/layout/header'
 import { Button } from '../../components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   CogIcon,
   CreditCardIcon,
@@ -13,6 +20,8 @@ import {
   ShieldCheckIcon,
   BellIcon,
   UserGroupIcon,
+  CheckCircleIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 
 const settingsSections = [
@@ -217,12 +226,179 @@ export default function SettingsPage() {
     </div>
   )
 
+  const renderShippingSettings = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Shipping Zones</h3>
+        <div className="space-y-4">
+          {[
+            { name: 'Domestic (China)', regions: 'All provinces in China', rate: 'Free shipping over ¥99' },
+            { name: 'Hong Kong & Macau', regions: 'Hong Kong, Macau', rate: '¥25 flat rate' },
+            { name: 'International', regions: 'Rest of world', rate: '¥150 flat rate' },
+          ].map((zone, index) => (
+            <Card key={index}>
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium text-gray-900">{zone.name}</h4>
+                    <p className="text-sm text-gray-600">{zone.regions}</p>
+                    <p className="text-sm text-blue-600 mt-1">{zone.rate}</p>
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button variant="outline" size="sm">Edit</Button>
+                    <Button variant="outline" size="sm">Delete</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Button className="mt-4">Add Shipping Zone</Button>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Delivery Options</h3>
+        <div className="space-y-4">
+          {[
+            { name: 'Standard Delivery', time: '3-5 business days', price: '¥15', enabled: true },
+            { name: 'Express Delivery', time: '1-2 business days', price: '¥35', enabled: true },
+            { name: 'Same Day Delivery', time: 'Same day (selected areas)', price: '¥50', enabled: false },
+          ].map((option, index) => (
+            <div key={index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div className="flex items-center">
+                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mr-4">
+                  <TruckIcon className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <div className="font-medium text-gray-900">{option.name}</div>
+                  <div className="text-sm text-gray-500">{option.time} • {option.price}</div>
+                </div>
+              </div>
+              <label className="flex items-center">
+                <input
+                  type="checkbox"
+                  defaultChecked={option.enabled}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="ml-2 text-sm text-gray-700">Enabled</span>
+              </label>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+
+  const renderSecuritySettings = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Authentication</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+            <div>
+              <h4 className="font-medium text-gray-900">Two-Factor Authentication</h4>
+              <p className="text-sm text-gray-600">Add an extra layer of security to admin accounts</p>
+            </div>
+            <div className="flex items-center">
+              <Badge className="bg-green-100 text-green-800 mr-3">
+                <CheckCircleIcon className="w-3 h-3 mr-1" />
+                Enabled
+              </Badge>
+              <Button variant="outline" size="sm">Configure</Button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+            <div>
+              <h4 className="font-medium text-gray-900">Session Timeout</h4>
+              <p className="text-sm text-gray-600">Automatically log out inactive users</p>
+            </div>
+            <Select defaultValue="30">
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="15">15 minutes</SelectItem>
+                <SelectItem value="30">30 minutes</SelectItem>
+                <SelectItem value="60">1 hour</SelectItem>
+                <SelectItem value="120">2 hours</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+            <div>
+              <h4 className="font-medium text-gray-900">Login Attempts</h4>
+              <p className="text-sm text-gray-600">Maximum failed login attempts before account lockout</p>
+            </div>
+            <Select defaultValue="5">
+              <SelectTrigger className="w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="3">3</SelectItem>
+                <SelectItem value="5">5</SelectItem>
+                <SelectItem value="10">10</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Data Protection</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+            <div>
+              <h4 className="font-medium text-gray-900">SSL Certificate</h4>
+              <p className="text-sm text-gray-600">Secure data transmission with HTTPS</p>
+            </div>
+            <Badge className="bg-green-100 text-green-800">
+              <CheckCircleIcon className="w-3 h-3 mr-1" />
+              Active
+            </Badge>
+          </div>
+
+          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+            <div>
+              <h4 className="font-medium text-gray-900">Data Backup</h4>
+              <p className="text-sm text-gray-600">Automatic daily backups of store data</p>
+            </div>
+            <div className="flex items-center space-x-3">
+              <Badge className="bg-blue-100 text-blue-800">Daily at 2:00 AM</Badge>
+              <Button variant="outline" size="sm">Configure</Button>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+            <div>
+              <h4 className="font-medium text-gray-900">Activity Logging</h4>
+              <p className="text-sm text-gray-600">Track admin actions and system events</p>
+            </div>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                defaultChecked={true}
+                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <span className="ml-2 text-sm text-gray-700">Enabled</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+
   const renderContent = () => {
     switch (activeSection) {
       case 'general':
         return renderGeneralSettings()
       case 'payments':
         return renderPaymentSettings()
+      case 'shipping':
+        return renderShippingSettings()
+      case 'security':
+        return renderSecuritySettings()
       default:
         return (
           <div className="text-center py-12">
@@ -235,69 +411,61 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      <Sidebar />
-      
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <Header />
-        
-        <main className="flex-1 overflow-y-auto p-6">
-          {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-            <p className="text-gray-600 mt-1">Manage your store configuration and preferences</p>
+    <div className="p-6">
+      {/* Page Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+        <p className="text-gray-600 mt-1">Manage your store configuration and preferences</p>
+      </div>
+
+      <div className="flex gap-6">
+        {/* Settings Navigation */}
+        <div className="w-80 bg-white rounded-lg border border-gray-200 p-6">
+          <nav className="space-y-2">
+            {settingsSections.map((section) => {
+              const Icon = section.icon
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveSection(section.id)}
+                  className={`w-full flex items-start p-3 rounded-lg text-left transition-colors ${
+                    activeSection === section.id
+                      ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                      : 'hover:bg-gray-50 text-gray-700'
+                  }`}
+                >
+                  <Icon className="w-5 h-5 mt-0.5 mr-3 flex-shrink-0" />
+                  <div>
+                    <div className="font-medium">{section.name}</div>
+                    <div className="text-sm text-gray-500 mt-1">{section.description}</div>
+                  </div>
+                </button>
+              )
+            })}
+          </nav>
+        </div>
+
+        {/* Settings Content */}
+        <div className="flex-1 bg-white rounded-lg border border-gray-200 p-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-900">
+              {settingsSections.find(s => s.id === activeSection)?.name}
+            </h2>
+            <p className="text-gray-600 mt-1">
+              {settingsSections.find(s => s.id === activeSection)?.description}
+            </p>
           </div>
 
-          <div className="flex gap-6">
-            {/* Settings Navigation */}
-            <div className="w-80 bg-white rounded-lg border border-gray-200 p-6">
-              <nav className="space-y-2">
-                {settingsSections.map((section) => {
-                  const Icon = section.icon
-                  return (
-                    <button
-                      key={section.id}
-                      onClick={() => setActiveSection(section.id)}
-                      className={`w-full flex items-start p-3 rounded-lg text-left transition-colors ${
-                        activeSection === section.id
-                          ? 'bg-blue-50 text-blue-700 border border-blue-200'
-                          : 'hover:bg-gray-50 text-gray-700'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5 mt-0.5 mr-3 flex-shrink-0" />
-                      <div>
-                        <div className="font-medium">{section.name}</div>
-                        <div className="text-sm text-gray-500 mt-1">{section.description}</div>
-                      </div>
-                    </button>
-                  )
-                })}
-              </nav>
-            </div>
+          {renderContent()}
 
-            {/* Settings Content */}
-            <div className="flex-1 bg-white rounded-lg border border-gray-200 p-6">
-              <div className="mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {settingsSections.find(s => s.id === activeSection)?.name}
-                </h2>
-                <p className="text-gray-600 mt-1">
-                  {settingsSections.find(s => s.id === activeSection)?.description}
-                </p>
-              </div>
-
-              {renderContent()}
-
-              {/* Save Button */}
-              <div className="mt-8 pt-6 border-t border-gray-200">
-                <div className="flex justify-end space-x-3">
-                  <Button variant="outline">Cancel</Button>
-                  <Button className="bg-blue-600 hover:bg-blue-700">Save Changes</Button>
-                </div>
-              </div>
+          {/* Save Button */}
+          <div className="mt-8 pt-6 border-t border-gray-200">
+            <div className="flex justify-end space-x-3">
+              <Button variant="outline">Cancel</Button>
+              <Button className="bg-blue-600 hover:bg-blue-700">Save Changes</Button>
             </div>
           </div>
-        </main>
+        </div>
       </div>
     </div>
   )

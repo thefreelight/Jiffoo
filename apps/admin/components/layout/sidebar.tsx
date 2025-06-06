@@ -115,6 +115,17 @@ const navigation = [
     ],
   },
   {
+    name: 'Users',
+    href: '/users',
+    icon: PersonIcon,
+    current: false,
+    children: [
+      { name: 'All Users', href: '/users' },
+      { name: 'Roles & Permissions', href: '/users/roles' },
+      { name: 'Activity Log', href: '/users/activity' },
+    ],
+  },
+  {
     name: 'Settings',
     href: '/settings',
     icon: GearIcon,
