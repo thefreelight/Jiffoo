@@ -1,3 +1,36 @@
+# Jiffoo Mall Core 🔒 v1.0.0-beta.1
+
+**Private Development Repository** - Complete Jiffoo Mall with all features for internal development and testing.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)](https://nextjs.org/)
+[![Fastify](https://img.shields.io/badge/Fastify-4.29-green.svg)](https://www.fastify.io/)
+
+> 🎉 **Beta版本现已发布！** 核心功能完整，欢迎测试和反馈。
+>
+> ⚠️ **This is a private repository** containing the full-featured version of Jiffoo Mall.
+> For the public open-source version, see: [jiffoo-mall](https://github.com/thefreelight/jiffoo-mall)
+
+## 🏗️ Repository Purpose
+
+This repository serves as:
+- 🔧 **Primary development environment** - All features, rapid iteration
+- 🧪 **Internal testing platform** - Full functionality testing
+- 📦 **Source for open-source sync** - Automated sync to public repository
+- 🚀 **Production deployment option** - Complete, ready-to-deploy version
+
+## 🔄 Dual Environment Strategy
+
+```
+Development Flow:
+1. Develop in jiffoo-mall-core (this repo) - Full features, fast iteration
+2. Sync to jiffoo-mall (public) - User experience testing
+3. Test as end user - Install plugins, verify upgrade path
+4. Deploy either version - Core (complete) or Public + Plugins
+```
+
+---
 
 # 🛍️ Jiffoo Mall - Modern E-commerce Platform
 

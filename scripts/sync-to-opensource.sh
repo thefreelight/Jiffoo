@@ -59,6 +59,36 @@ find . -name "*.ts" -type f -exec sed -i.bak 's/COMMERCIAL_FEATURE=true/COMMERCI
 find . -name "*.tsx" -type f -exec sed -i.bak 's/COMMERCIAL_FEATURE=true/COMMERCIAL_FEATURE=false/g' {} \;
 find . -name "*.js" -type f -exec sed -i.bak 's/COMMERCIAL_FEATURE=true/COMMERCIAL_FEATURE=false/g' {} \;
 
+# 清理可能遗漏的商业功能目录
+print_info "清理可能遗漏的商业功能..."
+rm -rf commercial-repo-setup jiffoo-mall-commercial develop_doc logs src 2>/dev/null || true
+rm -rf apps/backend/src/core/saas apps/backend/src/core/saas-marketplace 2>/dev/null || true
+rm -rf apps/backend/src/core/licensing apps/backend/src/core/plugin-store 2>/dev/null || true
+rm -rf apps/backend/src/core/templates apps/backend/src/core/tenant 2>/dev/null || true
+rm -rf apps/backend/src/core/sales apps/backend/src/plugins/premium 2>/dev/null || true
+rm -rf apps/backend/src/plugins/core 2>/dev/null || true
+rm -rf apps/admin/app/business-model apps/admin/app/finance 2>/dev/null || true
+rm -rf apps/admin/app/licenses apps/admin/app/marketplace 2>/dev/null || true
+rm -rf apps/admin/app/plugin-store apps/admin/app/plugins/licenses 2>/dev/null || true
+rm -rf apps/admin/app/api/commercial apps/admin/app/test-config 2>/dev/null || true
+rm -rf apps/frontend/src/app/plugin-store 2>/dev/null || true
+rm -f apps/backend/src/routes/license-routes.ts 2>/dev/null || true
+rm -f apps/backend/src/plugins/premium-analytics-plugin.ts 2>/dev/null || true
+rm -f apps/backend/src/plugins/license-service.ts 2>/dev/null || true
+rm -f apps/backend/src/plugins/monetization-examples.ts 2>/dev/null || true
+rm -f apps/backend/src/plugins/api-control.ts 2>/dev/null || true
+rm -f apps/backend/src/plugins/ecosystem-control.ts 2>/dev/null || true
+
+# 清理商业相关文档
+rm -f AI_FIRST_STRATEGY.md BUSINESS_MODEL.md BUSINESS_STRATEGY.md 2>/dev/null || true
+rm -f COMMERCIALIZATION_*.md COMMERCIAL_*.md HYBRID_BUSINESS_*.md 2>/dev/null || true
+rm -f MULTI_TENANT_OEM_*.md LICENSE-COMMERCIAL.md 2>/dev/null || true
+rm -f DEPLOYMENT_ARCHITECTURE_ANALYSIS.md DUAL_ENVIRONMENT_*.md 2>/dev/null || true
+rm -f FEATURES_COMPLETED.md FEATURE_COMPLETION_SUMMARY.md 2>/dev/null || true
+rm -f PLUGIN_DEVELOPMENT_GUIDE.md PROJECT_FINAL_SUMMARY.md 2>/dev/null || true
+rm -f REPOSITORY_ARCHITECTURE.md setup-commercial-repo.sh 2>/dev/null || true
+rm -f setup-dual-environment.sh test-*.sh test-*.js 2>/dev/null || true
+
 # 清理备份文件
 find . -name "*.bak" -delete
 
@@ -67,6 +97,30 @@ if [ -f "package.json" ]; then
     sed -i.bak 's/"name": "jiffoo-mall-core"/"name": "jiffoo"/' package.json
     sed -i.bak 's/"description": ".*"/"description": "A comprehensive, full-stack e-commerce platform built with modern technologies"/' package.json
     rm package.json.bak 2>/dev/null || true
+fi
+
+# 清理 server.ts 中的商业路由引用
+if [ -f "apps/backend/src/server.ts" ]; then
+    print_info "清理 server.ts 中的商业功能引用..."
+    # 移除商业路由的导入
+    sed -i.bak '/import.*licensing/d' apps/backend/src/server.ts
+    sed -i.bak '/import.*plugin-store/d' apps/backend/src/server.ts
+    sed -i.bak '/import.*saas/d' apps/backend/src/server.ts
+    sed -i.bak '/import.*template/d' apps/backend/src/server.ts
+    sed -i.bak '/import.*tenant/d' apps/backend/src/server.ts
+    sed -i.bak '/import.*sales/d' apps/backend/src/server.ts
+    sed -i.bak '/import.*saas-marketplace/d' apps/backend/src/server.ts
+
+    # 移除商业路由的注册
+    sed -i.bak '/licenseRoutes/d' apps/backend/src/server.ts
+    sed -i.bak '/pluginStoreRoutes/d' apps/backend/src/server.ts
+    sed -i.bak '/saasRoutes/d' apps/backend/src/server.ts
+    sed -i.bak '/templateRoutes/d' apps/backend/src/server.ts
+    sed -i.bak '/tenantRoutes/d' apps/backend/src/server.ts
+    sed -i.bak '/salesRoutes/d' apps/backend/src/server.ts
+    sed -i.bak '/saasMarketplaceRoutes/d' apps/backend/src/server.ts
+
+    rm apps/backend/src/server.ts.bak 2>/dev/null || true
 fi
 
 # 更新 README 为开源版本
