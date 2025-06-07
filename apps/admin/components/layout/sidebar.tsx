@@ -19,8 +19,7 @@ import {
   MixerHorizontalIcon,
   LockClosedIcon,
   ComponentInstanceIcon,
-  CubeIcon,
-  GlobeIcon
+  CubeIcon
 } from '@radix-ui/react-icons'
 import { CurrencyDollarIcon } from '@heroicons/react/24/outline'
 
@@ -153,6 +152,16 @@ const navigation = [
 ]
 
 const moreNavigation = [
+  {
+    name: 'Plugin Store',
+    href: '/plugin-store',
+    icon: CubeIcon,
+  },
+  {
+    name: 'Business Model',
+    href: '/business-model',
+    icon: CurrencyDollarIcon,
+  },
   {
     name: 'Authentication',
     href: '/auth',

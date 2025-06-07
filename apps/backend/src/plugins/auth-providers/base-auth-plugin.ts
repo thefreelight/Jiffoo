@@ -8,6 +8,7 @@ export interface AuthProviderConfig {
   clientSecret: string;
   redirectUri: string;
   scope: string[];
+  licenseKey?: string;
 }
 
 export interface UserProfile {
@@ -192,9 +193,9 @@ export class AuthPluginManager {
       // Dynamic import of plugin
       const pluginModule = await import(`./providers/${pluginId}-plugin`);
       const PluginClass = pluginModule.default;
-      
+
       const plugin = new PluginClass(config);
-      
+
       // Validate license
       const licenseKey = await this.getLicenseKey(pluginId);
       if (licenseKey) {
@@ -203,10 +204,10 @@ export class AuthPluginManager {
 
       // Register plugin
       AuthPluginRegistry.register(plugin);
-      
+
       // Activate plugin
       await plugin.onActivate();
-      
+
       console.log(`Auth plugin ${pluginId} loaded successfully`);
     } catch (error) {
       console.error(`Failed to load auth plugin ${pluginId}:`, error);
@@ -229,3 +230,132 @@ export class AuthPluginManager {
     return null;
   }
 }
+
+// Demo auth plugins for open source version
+class DemoWeChatAuthPlugin extends BaseAuthPlugin {
+  constructor(config: AuthProviderConfig) {
+    super('wechat', 'WeChat Login (Demo)', '1.0.0-demo', 0, config);
+    this.isLicensed = false; // Demo version - not licensed
+  }
+
+  generateAuthUrl(state: string): string {
+    // Demo implementation - shows the concept but doesn't actually work
+    console.log('🚨 Demo Version: WeChat authentication requires commercial license');
+    console.log('Visit https://jiffoo.com/plugins/wechat-auth for full version');
+
+    const params = new URLSearchParams({
+      appid: this.config.clientId || 'demo_app_id',
+      redirect_uri: this.config.redirectUri,
+      response_type: 'code',
+      scope: 'snsapi_login',
+      state,
+    });
+    return `https://open.weixin.qq.com/connect/qrconnect?${params.toString()}`;
+  }
+
+  async exchangeCodeForUser(code: string, state: string): Promise<UserProfile> {
+    // Demo implementation - returns mock data
+    console.log('🚨 Demo Version: This is mock data. Real WeChat integration requires commercial license.');
+
+    return {
+      id: 'demo_wechat_user',
+      email: 'demo@example.com',
+      name: 'Demo WeChat User',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=64&h=64&fit=crop',
+      profile: {
+        provider: 'wechat-demo',
+        isDemo: true,
+        upgradeUrl: 'https://jiffoo.com/plugins/wechat-auth'
+      }
+    };
+  }
+
+  async refreshUserToken(refreshToken: string): Promise<{ accessToken: string; refreshToken?: string }> {
+    console.log('🚨 Demo Version: Token refresh requires commercial license');
+    return { accessToken: 'demo_access_token', refreshToken: 'demo_refresh_token' };
+  }
+
+  protected getDefaultScope(): string[] {
+    return ['snsapi_login'];
+  }
+}
+
+class DemoGoogleAuthPlugin extends BaseAuthPlugin {
+  constructor(config: AuthProviderConfig) {
+    super('google', 'Google Login (Demo)', '1.0.0-demo', 0, config);
+    this.isLicensed = false; // Demo version - free but limited
+  }
+
+  generateAuthUrl(state: string): string {
+    // This actually works for Google OAuth - it's a good demo
+    const params = new URLSearchParams({
+      client_id: this.config.clientId || 'demo_client_id',
+      redirect_uri: this.config.redirectUri,
+      response_type: 'code',
+      scope: this.config.scope.join(' '),
+      state,
+    });
+    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+  }
+
+  async exchangeCodeForUser(code: string, state: string): Promise<UserProfile> {
+    // Demo implementation with limited functionality
+    console.log('🚨 Demo Version: Limited to 100 authentications per month');
+    console.log('Upgrade to commercial license for unlimited usage');
+
+    // In demo version, we could actually implement basic Google OAuth
+    // but with usage limitations
+    return {
+      id: 'demo_google_user',
+      email: 'demo@gmail.com',
+      name: 'Demo Google User',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=64&h=64&fit=crop',
+      profile: {
+        provider: 'google-demo',
+        isDemo: true,
+        usageLimit: 100,
+        upgradeUrl: 'https://jiffoo.com/plugins/google-auth-pro'
+      }
+    };
+  }
+
+  async refreshUserToken(refreshToken: string): Promise<{ accessToken: string; refreshToken?: string }> {
+    console.log('🚨 Demo Version: Token refresh has limitations');
+    return { accessToken: 'demo_access_token', refreshToken: 'demo_refresh_token' };
+  }
+
+  protected getDefaultScope(): string[] {
+    return ['openid', 'email', 'profile'];
+  }
+}
+
+// Initialize demo plugins for open source version
+const initializeAuthPlugins = () => {
+  console.log('🚀 Initializing Jiffoo Mall Demo Authentication Plugins');
+  console.log('💡 These are demonstration versions with limited functionality');
+  console.log('🔗 Visit https://jiffoo.com/plugins for commercial versions');
+
+  // Register Demo WeChat plugin
+  const wechatConfig: AuthProviderConfig = {
+    clientId: process.env.WECHAT_CLIENT_ID || '',
+    clientSecret: process.env.WECHAT_CLIENT_SECRET || '',
+    redirectUri: process.env.WECHAT_REDIRECT_URI || 'http://localhost:3001/auth/wechat/callback',
+    scope: ['snsapi_login'],
+  };
+  AuthPluginRegistry.register(new DemoWeChatAuthPlugin(wechatConfig));
+
+  // Register Demo Google plugin
+  const googleConfig: AuthProviderConfig = {
+    clientId: process.env.GOOGLE_CLIENT_ID || '',
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    redirectUri: process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/auth/google/callback',
+    scope: ['openid', 'email', 'profile'],
+  };
+  AuthPluginRegistry.register(new DemoGoogleAuthPlugin(googleConfig));
+
+  console.log('✅ Demo authentication plugins initialized');
+  console.log('📊 Available providers:', AuthPluginRegistry.getAll().map(p => p.getPluginInfo().name));
+};
+
+// Initialize plugins on module load
+initializeAuthPlugins();

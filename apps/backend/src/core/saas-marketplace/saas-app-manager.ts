@@ -1,357 +1,350 @@
 /**
- * SaaS Application Marketplace Manager
- * Allows integration and selling of external SaaS applications
+ * SaaS Application Manager
+ * Handles SaaS app marketplace, installations, and integrations
  */
 
 import { prisma } from '@/config/database';
-import { JwtUtils } from '@/utils/jwt';
+import jwt from 'jsonwebtoken';
+import { randomBytes } from 'crypto';
 
-export interface SaaSApplication {
+export interface SaaSApp {
   id: string;
   name: string;
   description: string;
   version: string;
   author: string;
-  authorId: string; // Your user ID for your apps
   category: string;
-  price: number; // Monthly price in cents
+  price: number;
   currency: string;
-  billingType: 'monthly' | 'yearly' | 'one-time' | 'usage-based';
-  
-  // Integration details
-  apiEndpoint: string;
-  webhookUrl?: string;
-  ssoEnabled: boolean;
-  dataSync: boolean;
-  
-  // App metadata
+  billingType: string;
   logo: string;
-  screenshots: string[];
   features: string[];
-  requirements: string[];
-  documentation: string;
-  support: string;
-  
-  // Business info
-  isActive: boolean;
-  isApproved: boolean;
-  totalInstalls: number;
   rating: number;
   reviewCount: number;
-  
-  // Revenue sharing
-  revenueShare: number; // Percentage that goes to Jiffoo (e.g., 30)
-  
-  createdAt: Date;
-  updatedAt: Date;
+  totalInstalls: number;
+  isActive: boolean;
+  isApproved: boolean;
 }
 
-export interface SaaSInstallation {
+export interface AppInstallation {
   id: string;
   userId: string;
   appId: string;
   subscriptionId: string;
-  status: 'active' | 'suspended' | 'cancelled';
+  status: string;
   installedAt: Date;
   lastAccessedAt: Date;
-  
-  // SSO configuration
-  ssoConfig?: {
-    clientId: string;
-    clientSecret: string;
-    redirectUri: string;
-  };
-  
-  // Data sync configuration
-  syncConfig?: {
-    enabled: boolean;
-    lastSyncAt: Date;
-    syncFrequency: 'realtime' | 'hourly' | 'daily';
-  };
+}
+
+export interface RevenueData {
+  totalRevenue: number;
+  platformRevenue: number;
+  developerRevenue: number;
+  subscriptions: number;
+  period: string;
+  breakdown: {
+    month: string;
+    revenue: number;
+    subscriptions: number;
+  }[];
 }
 
 export class SaaSAppManager {
-  // Register a new SaaS application
-  static async registerApp(appData: Partial<SaaSApplication>, authorId: string): Promise<SaaSApplication> {
-    const app = await prisma.saaSApplication.create({
-      data: {
+  private static readonly SSO_TOKEN_EXPIRY = 3600; // 1 hour
+  private static readonly JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+
+  /**
+   * Get marketplace apps with filtering
+   */
+  static async getMarketplaceApps(category?: string, search?: string): Promise<SaaSApp[]> {
+    try {
+      // For now, return mock data
+      // In production, this would query the database
+      const mockApps: SaaSApp[] = [
+        {
+          id: 'analytics-pro',
+          name: 'Analytics Pro',
+          description: 'Advanced analytics and reporting for your e-commerce business',
+          version: '2.1.0',
+          author: 'Your Company',
+          category: 'Analytics',
+          price: 49.99,
+          currency: 'USD',
+          billingType: 'monthly',
+          logo: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=64&h=64&fit=crop',
+          features: ['Real-time analytics', 'Custom dashboards', 'Export reports', 'API access'],
+          rating: 4.8,
+          reviewCount: 234,
+          totalInstalls: 1567,
+          isActive: true,
+          isApproved: true,
+        },
+        {
+          id: 'crm-suite',
+          name: 'CRM Suite',
+          description: 'Complete customer relationship management solution',
+          version: '1.5.2',
+          author: 'Your Company',
+          category: 'Productivity',
+          price: 79.99,
+          currency: 'USD',
+          billingType: 'monthly',
+          logo: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=64&h=64&fit=crop',
+          features: ['Contact management', 'Sales pipeline', 'Email integration', 'Mobile app'],
+          rating: 4.6,
+          reviewCount: 189,
+          totalInstalls: 892,
+          isActive: true,
+          isApproved: true,
+        },
+        {
+          id: 'inventory-manager',
+          name: 'Inventory Manager',
+          description: 'Smart inventory management with predictive analytics',
+          version: '3.0.1',
+          author: 'Your Company',
+          category: 'Operations',
+          price: 39.99,
+          currency: 'USD',
+          billingType: 'monthly',
+          logo: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=64&h=64&fit=crop',
+          features: ['Stock tracking', 'Low stock alerts', 'Demand forecasting', 'Supplier management'],
+          rating: 4.7,
+          reviewCount: 156,
+          totalInstalls: 743,
+          isActive: true,
+          isApproved: true,
+        },
+      ];
+
+      let filteredApps = mockApps;
+
+      if (category && category !== 'All') {
+        filteredApps = filteredApps.filter(app => app.category === category);
+      }
+
+      if (search) {
+        const searchLower = search.toLowerCase();
+        filteredApps = filteredApps.filter(app =>
+          app.name.toLowerCase().includes(searchLower) ||
+          app.description.toLowerCase().includes(searchLower) ||
+          app.features.some(feature => feature.toLowerCase().includes(searchLower))
+        );
+      }
+
+      return filteredApps;
+    } catch (error) {
+      throw new Error(`Failed to get marketplace apps: ${error.message}`);
+    }
+  }
+
+  /**
+   * Install SaaS app for user
+   */
+  static async installApp(userId: string, appId: string): Promise<AppInstallation> {
+    try {
+      // Check if app exists and is approved
+      // In production, this would query the SaaSApplication table
+      const app = await this.getAppById(appId);
+      if (!app || !app.isApproved || !app.isActive) {
+        throw new Error('Application not available for installation');
+      }
+
+      // Check if already installed
+      const existingInstallation = await prisma.saaSInstallation.findUnique({
+        where: {
+          userId_appId: {
+            userId,
+            appId,
+          },
+        },
+      });
+
+      if (existingInstallation) {
+        throw new Error('Application already installed');
+      }
+
+      // Create installation record
+      const installation = await prisma.saaSInstallation.create({
+        data: {
+          userId,
+          appId,
+          subscriptionId: this.generateSubscriptionId(),
+          status: 'active',
+        },
+      });
+
+      // Update install count (in production, this would be in SaaSApplication table)
+      // For now, we'll just return the installation
+
+      return installation;
+    } catch (error) {
+      throw new Error(`App installation failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get user's installed apps
+   */
+  static async getUserApps(userId: string): Promise<any[]> {
+    try {
+      const installations = await prisma.saaSInstallation.findMany({
+        where: { userId },
+        orderBy: { installedAt: 'desc' },
+      });
+
+      // In production, this would join with SaaSApplication table
+      // For now, return mock data based on installations
+      const mockUserApps = installations.map(installation => ({
+        id: installation.id,
+        appId: installation.appId,
+        name: 'Sample App',
+        status: installation.status,
+        installedAt: installation.installedAt,
+        lastAccessedAt: installation.lastAccessedAt,
+        subscriptionId: installation.subscriptionId,
+      }));
+
+      return mockUserApps;
+    } catch (error) {
+      throw new Error(`Failed to get user apps: ${error.message}`);
+    }
+  }
+
+  /**
+   * Generate SSO token for app access
+   */
+  static async generateSSOToken(userId: string, appId: string): Promise<string> {
+    try {
+      // Verify user has access to the app
+      const installation = await prisma.saaSInstallation.findUnique({
+        where: {
+          userId_appId: {
+            userId,
+            appId,
+          },
+        },
+      });
+
+      if (!installation || installation.status !== 'active') {
+        throw new Error('User does not have access to this application');
+      }
+
+      // Update last accessed time
+      await prisma.saaSInstallation.update({
+        where: { id: installation.id },
+        data: { lastAccessedAt: new Date() },
+      });
+
+      // Generate SSO token
+      const ssoToken = jwt.sign(
+        {
+          userId,
+          appId,
+          installationId: installation.id,
+          type: 'sso',
+        },
+        this.JWT_SECRET,
+        { expiresIn: `${this.SSO_TOKEN_EXPIRY}s` }
+      );
+
+      return ssoToken;
+    } catch (error) {
+      throw new Error(`SSO token generation failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Register new SaaS app
+   */
+  static async registerApp(appData: any, authorId: string): Promise<any> {
+    try {
+      // In production, this would create a record in SaaSApplication table
+      // For now, return mock success response
+      return {
+        id: this.generateAppId(),
         ...appData,
         authorId,
-        isActive: false, // Requires approval
+        isActive: false,
         isApproved: false,
         totalInstalls: 0,
         rating: 0,
         reviewCount: 0,
-        revenueShare: 30, // Default 30% to Jiffoo
-      } as any
-    });
-
-    return app as SaaSApplication;
-  }
-
-  // Install SaaS app for a user
-  static async installApp(userId: string, appId: string): Promise<SaaSInstallation> {
-    const app = await prisma.saaSApplication.findUnique({
-      where: { id: appId }
-    });
-
-    if (!app || !app.isActive || !app.isApproved) {
-      throw new Error('Application not available for installation');
-    }
-
-    // Check if already installed
-    const existing = await prisma.saaSInstallation.findFirst({
-      where: { userId, appId }
-    });
-
-    if (existing) {
-      throw new Error('Application already installed');
-    }
-
-    // Create subscription (this would integrate with payment system)
-    const subscription = await this.createSubscription(userId, app);
-
-    // Generate SSO credentials if needed
-    const ssoConfig = app.ssoEnabled ? await this.generateSSOConfig(appId, userId) : undefined;
-
-    const installation = await prisma.saaSInstallation.create({
-      data: {
-        userId,
-        appId,
-        subscriptionId: subscription.id,
-        status: 'active',
-        installedAt: new Date(),
-        lastAccessedAt: new Date(),
-        ssoConfig,
-        syncConfig: app.dataSync ? {
-          enabled: true,
-          lastSyncAt: new Date(),
-          syncFrequency: 'daily',
-        } : undefined,
-      }
-    });
-
-    // Update install count
-    await prisma.saaSApplication.update({
-      where: { id: appId },
-      data: { totalInstalls: { increment: 1 } }
-    });
-
-    // Notify the SaaS app about new installation
-    await this.notifyAppInstallation(app, installation);
-
-    return installation as SaaSInstallation;
-  }
-
-  // Generate SSO token for accessing SaaS app
-  static async generateSSOToken(userId: string, appId: string): Promise<string> {
-    const installation = await prisma.saaSInstallation.findFirst({
-      where: { userId, appId, status: 'active' },
-      include: { app: true, user: true }
-    });
-
-    if (!installation) {
-      throw new Error('Application not installed or not active');
-    }
-
-    // Update last accessed
-    await prisma.saaSInstallation.update({
-      where: { id: installation.id },
-      data: { lastAccessedAt: new Date() }
-    });
-
-    // Generate SSO token with app-specific claims
-    const ssoToken = JwtUtils.sign({
-      userId: installation.user.id,
-      email: installation.user.email,
-      role: installation.user.role,
-      appId: installation.app.id,
-      installationId: installation.id,
-      type: 'sso_token',
-      iss: 'jiffoo-mall',
-      aud: installation.app.apiEndpoint,
-    });
-
-    return ssoToken;
-  }
-
-  // Handle data sync between Jiffoo and SaaS app
-  static async syncData(installationId: string, direction: 'to_app' | 'from_app', data: any): Promise<void> {
-    const installation = await prisma.saaSInstallation.findUnique({
-      where: { id: installationId },
-      include: { app: true, user: true }
-    });
-
-    if (!installation || !installation.syncConfig?.enabled) {
-      throw new Error('Data sync not enabled for this installation');
-    }
-
-    try {
-      if (direction === 'to_app') {
-        // Send data to SaaS app
-        await this.sendDataToApp(installation.app, data);
-      } else {
-        // Receive data from SaaS app
-        await this.receiveDataFromApp(installation.app, data);
-      }
-
-      // Update sync timestamp
-      await prisma.saaSInstallation.update({
-        where: { id: installationId },
-        data: {
-          syncConfig: {
-            ...installation.syncConfig,
-            lastSyncAt: new Date(),
-          }
-        }
-      });
+        createdAt: new Date(),
+      };
     } catch (error) {
-      console.error('Data sync failed:', error);
-      throw error;
+      throw new Error(`App registration failed: ${error.message}`);
     }
   }
 
-  // Get user's installed apps
-  static async getUserApps(userId: string): Promise<SaaSInstallation[]> {
-    return prisma.saaSInstallation.findMany({
-      where: { userId },
-      include: {
-        app: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            logo: true,
-            category: true,
-            version: true,
-          }
-        }
+  /**
+   * Calculate revenue for an app
+   */
+  static async calculateRevenue(appId: string, period: 'month' | 'year'): Promise<RevenueData> {
+    try {
+      // In production, this would calculate actual revenue from subscriptions
+      // For now, return mock data
+      const mockRevenue: RevenueData = {
+        totalRevenue: 15680,
+        platformRevenue: 4704, // 30% platform fee
+        developerRevenue: 10976, // 70% to developer
+        subscriptions: 156,
+        period,
+        breakdown: [
+          { month: '2024-01', revenue: 12450, subscriptions: 124 },
+          { month: '2024-02', revenue: 13680, subscriptions: 136 },
+          { month: '2024-03', revenue: 15680, subscriptions: 156 },
+        ],
+      };
+
+      return mockRevenue;
+    } catch (error) {
+      throw new Error(`Revenue calculation failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Sync data with SaaS app
+   */
+  static async syncData(installationId: string, direction: 'to_app' | 'from_app', data: any): Promise<void> {
+    try {
+      // Find installation
+      const installation = await prisma.saaSInstallation.findUnique({
+        where: { id: installationId },
+      });
+
+      if (!installation) {
+        throw new Error('Installation not found');
       }
-    }) as Promise<SaaSInstallation[]>;
-  }
 
-  // Get marketplace apps
-  static async getMarketplaceApps(category?: string, search?: string): Promise<SaaSApplication[]> {
-    const where: any = {
-      isActive: true,
-      isApproved: true,
-    };
-
-    if (category) {
-      where.category = category;
-    }
-
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    return prisma.saaSApplication.findMany({
-      where,
-      orderBy: [
-        { rating: 'desc' },
-        { totalInstalls: 'desc' },
-      ]
-    }) as Promise<SaaSApplication[]>;
-  }
-
-  // Calculate revenue for app owner
-  static async calculateRevenue(appId: string, period: 'month' | 'year'): Promise<{
-    totalRevenue: number;
-    jiffooShare: number;
-    authorShare: number;
-    subscriptions: number;
-  }> {
-    const app = await prisma.saaSApplication.findUnique({
-      where: { id: appId }
-    });
-
-    if (!app) {
-      throw new Error('App not found');
-    }
-
-    // This would integrate with the payment system
-    // For now, return mock data
-    const totalRevenue = app.totalInstalls * app.price;
-    const jiffooShare = totalRevenue * (app.revenueShare / 100);
-    const authorShare = totalRevenue - jiffooShare;
-
-    return {
-      totalRevenue,
-      jiffooShare,
-      authorShare,
-      subscriptions: app.totalInstalls,
-    };
-  }
-
-  // Private helper methods
-  private static async createSubscription(userId: string, app: SaaSApplication) {
-    // This would integrate with the payment system
-    // For now, return mock subscription
-    return {
-      id: `sub_${Date.now()}`,
-      userId,
-      appId: app.id,
-      status: 'active',
-      amount: app.price,
-      currency: app.currency,
-      billingType: app.billingType,
-    };
-  }
-
-  private static async generateSSOConfig(appId: string, userId: string) {
-    return {
-      clientId: `jiffoo_${appId}_${userId}`,
-      clientSecret: `secret_${Date.now()}`,
-      redirectUri: `/apps/${appId}/callback`,
-    };
-  }
-
-  private static async notifyAppInstallation(app: SaaSApplication, installation: SaaSInstallation) {
-    if (app.webhookUrl) {
-      try {
-        await fetch(app.webhookUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Jiffoo-Event': 'app.installed',
-          },
-          body: JSON.stringify({
-            event: 'app.installed',
-            app_id: app.id,
-            installation_id: installation.id,
-            user_id: installation.userId,
-            timestamp: new Date().toISOString(),
-          }),
-        });
-      } catch (error) {
-        console.error('Failed to notify app installation:', error);
-      }
+      // In production, this would handle actual data synchronization
+      // For now, just log the sync operation
+      console.log(`Data sync ${direction} for installation ${installationId}:`, data);
+    } catch (error) {
+      throw new Error(`Data synchronization failed: ${error.message}`);
     }
   }
 
-  private static async sendDataToApp(app: SaaSApplication, data: any) {
-    // Send data to external SaaS app
-    await fetch(`${app.apiEndpoint}/sync/receive`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${await this.getAppApiKey(app.id)}`,
-      },
-      body: JSON.stringify(data),
-    });
+  /**
+   * Get app by ID (mock implementation)
+   */
+  private static async getAppById(appId: string): Promise<SaaSApp | null> {
+    const apps = await this.getMarketplaceApps();
+    return apps.find(app => app.id === appId) || null;
   }
 
-  private static async receiveDataFromApp(app: SaaSApplication, data: any) {
-    // Process data received from external SaaS app
-    // This would update Jiffoo's database with synced data
-    console.log('Received data from app:', app.name, data);
+  /**
+   * Generate unique subscription ID
+   */
+  private static generateSubscriptionId(): string {
+    return `sub_${randomBytes(16).toString('hex')}`;
   }
 
-  private static async getAppApiKey(appId: string): Promise<string> {
-    // Generate or retrieve API key for app communication
-    return `api_key_${appId}`;
+  /**
+   * Generate unique app ID
+   */
+  private static generateAppId(): string {
+    return `app_${randomBytes(16).toString('hex')}`;
   }
+
 }

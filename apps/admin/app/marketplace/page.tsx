@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '../../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -20,132 +20,82 @@ import {
   ArrowDownTrayIcon,
   CurrencyDollarIcon,
   ShieldCheckIcon,
-  GlobeAltIcon,
   CogIcon,
   UserGroupIcon,
   ChartBarIcon,
   BoltIcon,
   DevicePhoneMobileIcon,
 } from '@heroicons/react/24/outline'
+import { apiClient, type SaaSApp, type AuthProvider, type MarketplaceCategory } from '@/lib/api-client'
 
-// Mock data for SaaS applications
-const saasApps = [
-  {
-    id: 'analytics-pro',
-    name: 'Analytics Pro',
-    description: 'Advanced analytics and reporting for your e-commerce business',
-    author: 'Your Company',
-    category: 'Analytics',
-    price: 49.99,
-    currency: 'USD',
-    billing: 'monthly',
-    rating: 4.8,
-    reviews: 234,
-    installs: 1567,
-    logo: 'https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=64&h=64&fit=crop',
-    features: ['Real-time analytics', 'Custom dashboards', 'Export reports', 'API access'],
-    isInstalled: false,
-  },
-  {
-    id: 'crm-suite',
-    name: 'CRM Suite',
-    description: 'Complete customer relationship management solution',
-    author: 'Your Company',
-    category: 'Productivity',
-    price: 79.99,
-    currency: 'USD',
-    billing: 'monthly',
-    rating: 4.6,
-    reviews: 189,
-    installs: 892,
-    logo: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=64&h=64&fit=crop',
-    features: ['Contact management', 'Sales pipeline', 'Email integration', 'Mobile app'],
-    isInstalled: true,
-  },
-  {
-    id: 'inventory-manager',
-    name: 'Inventory Manager',
-    description: 'Smart inventory management with predictive analytics',
-    author: 'Your Company',
-    category: 'Operations',
-    price: 39.99,
-    currency: 'USD',
-    billing: 'monthly',
-    rating: 4.7,
-    reviews: 156,
-    installs: 743,
-    logo: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=64&h=64&fit=crop',
-    features: ['Stock tracking', 'Low stock alerts', 'Demand forecasting', 'Supplier management'],
-    isInstalled: false,
-  },
-]
 
-// Mock data for authentication plugins
-const authPlugins = [
-  {
-    id: 'wechat-login',
-    name: 'WeChat Login',
-    description: 'Enable WeChat social login for Chinese customers',
-    price: 29.99,
-    currency: 'USD',
-    billing: 'monthly',
-    rating: 4.9,
-    reviews: 89,
-    installs: 456,
-    logo: 'https://images.unsplash.com/photo-1611262588024-d12430b98920?w=64&h=64&fit=crop',
-    features: ['WeChat OAuth 2.0', 'Mobile optimized', 'User profile sync', 'Secure authentication'],
-    isInstalled: false,
-    isLicensed: false,
-  },
-  {
-    id: 'google-login',
-    name: 'Google Login',
-    description: 'Google OAuth 2.0 authentication integration',
-    price: 19.99,
-    currency: 'USD',
-    billing: 'monthly',
-    rating: 4.8,
-    reviews: 234,
-    installs: 1234,
-    logo: 'https://images.unsplash.com/photo-1573804633927-bfcbcd909acd?w=64&h=64&fit=crop',
-    features: ['Google OAuth 2.0', 'One-click login', 'Profile import', 'Multi-language'],
-    isInstalled: true,
-    isLicensed: true,
-  },
-  {
-    id: 'github-login',
-    name: 'GitHub Login',
-    description: 'GitHub OAuth authentication for developers',
-    price: 15.99,
-    currency: 'USD',
-    billing: 'monthly',
-    rating: 4.7,
-    reviews: 67,
-    installs: 234,
-    logo: 'https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=64&h=64&fit=crop',
-    features: ['GitHub OAuth', 'Developer profiles', 'Repository access', 'Team integration'],
-    isInstalled: false,
-    isLicensed: false,
-  },
-]
 
 export default function MarketplacePage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [activeTab, setActiveTab] = useState('saas-apps')
 
-  const categories = ['All', 'Analytics', 'Productivity', 'Operations', 'Marketing', 'Finance']
+  // API data states
+  const [saasApps, setSaasApps] = useState<SaaSApp[]>([])
+  const [authProviders, setAuthProviders] = useState<AuthProvider[]>([])
+  const [categories, setCategories] = useState<MarketplaceCategory[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Load data from API
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+
+        // Load SaaS apps
+        const appsResponse = await apiClient.getMarketplaceApps({
+          category: selectedCategory === 'All' ? undefined : selectedCategory,
+          search: searchTerm || undefined,
+        })
+
+        if (appsResponse.success && appsResponse.data) {
+          setSaasApps(appsResponse.data.data || [])
+        }
+
+        // Load categories
+        const categoriesResponse = await apiClient.getMarketplaceCategories()
+        if (categoriesResponse.success && categoriesResponse.data) {
+          setCategories([
+            { id: 'All', name: 'All', count: 0 },
+            ...categoriesResponse.data
+          ])
+        }
+
+        // Load auth providers
+        const providersResponse = await apiClient.getAuthProviders()
+        if (providersResponse.success && providersResponse.data) {
+          setAuthProviders(providersResponse.data)
+        }
+
+      } catch (err) {
+        console.error('Failed to load marketplace data:', err)
+        setError('Failed to load marketplace data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadData()
+  }, [selectedCategory, searchTerm])
 
   const filteredSaasApps = saasApps.filter(app => {
-    const matchesSearch = app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         app.description.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = searchTerm === '' ||
+      app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.description.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = selectedCategory === 'All' || app.category === selectedCategory
     return matchesSearch && matchesCategory
   })
 
-  const filteredAuthPlugins = authPlugins.filter(plugin => {
-    const matchesSearch = plugin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         plugin.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredAuthPlugins = authProviders.filter(provider => {
+    const matchesSearch = searchTerm === '' ||
+      provider.name.toLowerCase().includes(searchTerm.toLowerCase())
     return matchesSearch
   })
 
@@ -157,6 +107,60 @@ export default function MarketplacePage() {
       return <Badge className="bg-blue-100 text-blue-800">Licensed</Badge>
     }
     return <Badge variant="outline">Available</Badge>
+  }
+
+  const handleInstallApp = async (appId: string) => {
+    try {
+      const response = await apiClient.installApp(appId)
+      if (response.success) {
+        // Refresh the apps list
+        const appsResponse = await apiClient.getMarketplaceApps({
+          category: selectedCategory === 'All' ? undefined : selectedCategory,
+          search: searchTerm || undefined,
+        })
+        if (appsResponse.success && appsResponse.data) {
+          setSaasApps(appsResponse.data.data || [])
+        }
+      } else {
+        setError(response.error || 'Failed to install app')
+      }
+    } catch (err) {
+      console.error('Failed to install app:', err)
+      setError('Failed to install app')
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading marketplace...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="text-red-500 mb-4">
+              <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <p className="text-gray-600 mb-4">{error}</p>
+            <Button onClick={() => window.location.reload()}>
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -239,7 +243,7 @@ export default function MarketplacePage() {
                 <p className="text-sm text-gray-600 mt-1">In marketplace</p>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <GlobeAltIcon className="w-6 h-6 text-orange-600" />
+                <ChartBarIcon className="w-6 h-6 text-orange-600" />
               </div>
             </div>
           </CardContent>
@@ -269,7 +273,9 @@ export default function MarketplacePage() {
                 </SelectTrigger>
                 <SelectContent>
                   {categories.map(category => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name} {category.count > 0 && `(${category.count})`}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -346,6 +352,7 @@ export default function MarketplacePage() {
                       className="flex-1"
                       variant={app.isInstalled ? "outline" : "default"}
                       disabled={app.isInstalled}
+                      onClick={() => !app.isInstalled && handleInstallApp(app.id)}
                     >
                       {app.isInstalled ? 'Installed' : 'Install'}
                     </Button>
@@ -361,75 +368,72 @@ export default function MarketplacePage() {
 
         <TabsContent value="auth-plugins" className="mt-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredAuthPlugins.map((plugin) => (
-              <Card key={plugin.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center space-x-3">
-                      <img
-                        src={plugin.logo}
-                        alt={plugin.name}
-                        className="w-12 h-12 rounded-lg object-cover"
-                      />
-                      <div>
-                        <CardTitle className="text-lg">{plugin.name}</CardTitle>
-                        <CardDescription>Authentication Plugin</CardDescription>
+            {filteredAuthPlugins.length > 0 ? (
+              filteredAuthPlugins.map((provider) => (
+                <Card key={provider.id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                          <ShieldCheckIcon className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">{provider.name}</CardTitle>
+                          <CardDescription>v{provider.version}</CardDescription>
+                        </div>
+                      </div>
+                      <Badge
+                        className={
+                          provider.isLicensed
+                            ? "bg-green-100 text-green-800"
+                            : provider.isConfigured
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-gray-100 text-gray-800"
+                        }
+                      >
+                        {provider.isLicensed ? 'Licensed' : provider.isConfigured ? 'Configured' : 'Available'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600 text-sm mb-4">
+                      OAuth 2.0 authentication provider for {provider.name.toLowerCase()} social login
+                    </p>
+
+                    <div className="mb-4">
+                      <div className="flex flex-wrap gap-1">
+                        <Badge variant="outline" className="text-xs">OAuth 2.0</Badge>
+                        <Badge variant="outline" className="text-xs">Social Login</Badge>
+                        <Badge variant="outline" className="text-xs">Secure</Badge>
                       </div>
                     </div>
-                    {getStatusBadge(plugin)}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-600 text-sm mb-4">{plugin.description}</p>
 
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex items-center space-x-1">
-                        <StarIcon className="w-4 h-4 text-yellow-400 fill-current" />
-                        <span className="text-sm font-medium">{plugin.rating}</span>
-                        <span className="text-sm text-gray-500">({plugin.reviews})</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <ArrowDownTrayIcon className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-500">{plugin.installs}</span>
-                      </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        className="flex-1"
+                        variant={provider.isLicensed ? "outline" : "default"}
+                        disabled={provider.isLicensed}
+                      >
+                        {provider.isLicensed ? 'Licensed' : 'Purchase'}
+                      </Button>
+                      <Link href={`/marketplace/auth/${provider.id}/config`}>
+                        <Button variant="outline" size="sm">
+                          Configure
+                        </Button>
+                      </Link>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-gray-900">${plugin.price}</p>
-                      <p className="text-xs text-gray-500">/{plugin.billing}</p>
-                    </div>
-                  </div>
-
-                  <div className="mb-4">
-                    <div className="flex flex-wrap gap-1">
-                      {plugin.features.slice(0, 2).map((feature, index) => (
-                        <Badge key={index} variant="outline" className="text-xs">
-                          {feature}
-                        </Badge>
-                      ))}
-                      {plugin.features.length > 2 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{plugin.features.length - 2} more
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex space-x-2">
-                    <Button
-                      className="flex-1"
-                      variant={plugin.isInstalled ? "outline" : "default"}
-                      disabled={plugin.isInstalled}
-                    >
-                      {plugin.isInstalled ? 'Installed' : 'Purchase'}
-                    </Button>
-                    <Button variant="outline" size="sm">
-                      Configure
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <ShieldCheckIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">No authentication providers found</p>
+                <p className="text-sm text-gray-500 mt-2">
+                  {searchTerm ? 'Try adjusting your search terms' : 'Check back later for new providers'}
+                </p>
+              </div>
+            )}
           </div>
         </TabsContent>
       </Tabs>

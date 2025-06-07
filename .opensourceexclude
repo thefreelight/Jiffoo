@@ -1,0 +1,18 @@
+# 排除商业功能的文件和目录
+**/commercial/
+**/premium/
+**/*-commercial.*
+**/*-premium.*
+**/*-enterprise.*
+.env.local
+.env.production
+/internal/
+/private/
+/enterprise/
+/commercial/
+/premium/
+node_modules/
+dist/
+.git/
+*.log
+.DS_Store

@@ -1,0 +1,50 @@
+{
+  "name": "jiffoo-mall-commercial",
+  "version": "1.0.0",
+  "description": "Commercial plugins and SaaS services for Jiffoo Mall",
+  "private": true,
+  "license": "COMMERCIAL",
+  "author": "Jiffoo Mall Team",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thefreelight/jiffoo-mall-commercial.git"
+  },
+  "workspaces": [
+    "plugins/*",
+    "saas-services/*",
+    "enterprise/*",
+    "tools/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "clean": "turbo run clean",
+    "create-plugin": "node scripts/create-plugin.js",
+    "build:plugin": "node scripts/build-plugin.js",
+    "test:plugin": "node scripts/test-plugin.js",
+    "release": "node scripts/release.js",
+    "license:validate": "node scripts/validate-licenses.js"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "turbo": "^1.10.0",
+    "typescript": "^5.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "ts-jest": "^29.0.0"
+  },
+  "dependencies": {
+    "jsonwebtoken": "^9.0.0",
+    "crypto": "^1.0.1",
+    "axios": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}

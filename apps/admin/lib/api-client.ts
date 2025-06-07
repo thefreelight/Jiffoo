@@ -40,7 +40,7 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     try {
       const url = `${this.baseUrl}${endpoint}`;
-      
+
       const defaultHeaders = {
         'Content-Type': 'application/json',
       };
@@ -66,7 +66,7 @@ class ApiClient {
       }
 
       const data = await response.json();
-      
+
       return {
         success: true,
         data,
@@ -220,6 +220,103 @@ class ApiClient {
 
     return this.request<PaginatedResponse<any>>(`/search/products?${searchParams}`);
   }
+
+  // SaaS Marketplace methods
+  async getMarketplaceApps(params: { category?: string; search?: string; page?: number; limit?: number } = {}) {
+    const searchParams = new URLSearchParams();
+    if (params.category) searchParams.set('category', params.category);
+    if (params.search) searchParams.set('search', params.search);
+    if (params.page) searchParams.set('page', params.page.toString());
+    if (params.limit) searchParams.set('limit', params.limit.toString());
+
+    return this.request<{ data: SaaSApp[]; pagination: any }>(`/marketplace/apps?${searchParams}`);
+  }
+
+  async getMarketplaceCategories() {
+    return this.request<MarketplaceCategory[]>('/marketplace/categories');
+  }
+
+  async getAppDetails(appId: string) {
+    return this.request<SaaSApp>(`/marketplace/apps/${appId}`);
+  }
+
+  async installApp(appId: string) {
+    return this.request<AppInstallation>(`/marketplace/apps/${appId}/install`, {
+      method: 'POST',
+    });
+  }
+
+  async getUserApps() {
+    return this.request<AppInstallation[]>('/my/apps');
+  }
+
+  async uninstallApp(appId: string) {
+    return this.request(`/my/apps/${appId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async generateSSOToken(appId: string) {
+    return this.request<{ ssoToken: string; expiresIn: number }>(`/my/apps/${appId}/sso`, {
+      method: 'POST',
+    });
+  }
+
+  // OAuth 2.0 and Authentication methods
+  async getAuthProviders() {
+    return this.request<AuthProvider[]>('/auth/providers');
+  }
+
+  async getAuthProviderConfig(providerId: string) {
+    return this.request<any>(`/auth/${providerId}/config`);
+  }
+
+  async updateAuthProviderConfig(providerId: string, config: any) {
+    return this.request(`/auth/${providerId}/config`, {
+      method: 'PUT',
+      body: JSON.stringify(config),
+    });
+  }
+
+  async testAuthProvider(providerId: string) {
+    return this.request<{ authUrl: string }>(`/auth/${providerId}/test`);
+  }
+
+  // Plugin Store methods
+  async getPlugins(params: { category?: string; search?: string; installed?: boolean } = {}) {
+    const searchParams = new URLSearchParams();
+    if (params.category) searchParams.set('category', params.category);
+    if (params.search) searchParams.set('search', params.search);
+    if (params.installed !== undefined) searchParams.set('installed', params.installed.toString());
+
+    return this.request<Plugin[]>(`/plugin-store/plugins?${searchParams}`);
+  }
+
+  async purchasePlugin(pluginId: string) {
+    return this.request(`/plugin-store/plugins/${pluginId}/purchase`, {
+      method: 'POST',
+    });
+  }
+
+  async getPluginLicenses() {
+    return this.request<PluginLicense[]>('/licenses');
+  }
+
+  // Developer methods
+  async getDeveloperApps() {
+    return this.request<DeveloperApp[]>('/developer/apps');
+  }
+
+  async registerApp(appData: any) {
+    return this.request('/developer/apps', {
+      method: 'POST',
+      body: JSON.stringify(appData),
+    });
+  }
+
+  async getAppRevenue(appId: string, period: 'month' | 'year' = 'month') {
+    return this.request<RevenueData>(`/developer/apps/${appId}/revenue?period=${period}`);
+  }
 }
 
 // Export singleton instance
@@ -280,4 +377,102 @@ export type DashboardStats = {
   ordersGrowth: number;
   productsGrowth: number;
   usersGrowth: number;
+};
+
+// SaaS Marketplace types
+export type SaaSApp = {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  author: string;
+  category: string;
+  price: number;
+  currency: string;
+  billingType: string;
+  logo: string;
+  features: string[];
+  rating: number;
+  reviewCount: number;
+  totalInstalls: number;
+  isActive: boolean;
+  isApproved: boolean;
+};
+
+export type MarketplaceCategory = {
+  id: string;
+  name: string;
+  count: number;
+};
+
+export type AppInstallation = {
+  id: string;
+  appId: string;
+  name: string;
+  status: string;
+  installedAt: string;
+  lastAccessedAt: string;
+  subscriptionId: string;
+};
+
+// Authentication types
+export type AuthProvider = {
+  id: string;
+  name: string;
+  version: string;
+  isConfigured: boolean;
+  isLicensed: boolean;
+};
+
+// Plugin types
+export type Plugin = {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  author: string;
+  category: string;
+  price: number;
+  currency: string;
+  billingType: string;
+  logo: string;
+  features: string[];
+  rating: number;
+  reviewCount: number;
+  totalInstalls: number;
+  isInstalled: boolean;
+  isLicensed: boolean;
+};
+
+export type PluginLicense = {
+  id: string;
+  pluginId: string;
+  pluginName: string;
+  licenseKey: string;
+  status: string;
+  expiresAt: string;
+  createdAt: string;
+};
+
+// Developer types
+export type DeveloperApp = {
+  id: string;
+  name: string;
+  status: string;
+  totalInstalls: number;
+  monthlyRevenue: number;
+  rating: number;
+};
+
+export type RevenueData = {
+  totalRevenue: number;
+  platformRevenue: number;
+  developerRevenue: number;
+  subscriptions: number;
+  period: string;
+  breakdown: {
+    month: string;
+    revenue: number;
+    subscriptions: number;
+  }[];
 };

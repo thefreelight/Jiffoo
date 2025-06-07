@@ -65,7 +65,7 @@ export async function oauth2Routes(fastify: FastifyInstance) {
       }
 
       const authUrl = plugin.generateAuthUrl(state || 'default');
-      
+
       return {
         success: true,
         data: {
@@ -87,10 +87,10 @@ export async function oauth2Routes(fastify: FastifyInstance) {
   fastify.get('/auth/:provider/callback', async (request, reply) => {
     try {
       const { provider } = request.params as { provider: string };
-      const { code, state, error } = request.query as { 
-        code?: string; 
-        state?: string; 
-        error?: string; 
+      const { code, state, error } = request.query as {
+        code?: string;
+        state?: string;
+        error?: string;
       };
 
       if (error) {
@@ -139,13 +139,13 @@ export async function oauth2Routes(fastify: FastifyInstance) {
   // OAuth 2.0 token endpoint (for SaaS apps)
   fastify.post('/oauth2/token', async (request, reply) => {
     try {
-      const { 
-        grant_type, 
-        code, 
-        client_id, 
-        client_secret, 
+      const {
+        grant_type,
+        code,
+        client_id,
+        client_secret,
         redirect_uri,
-        refresh_token 
+        refresh_token
       } = request.body as any;
 
       if (grant_type === 'authorization_code') {
@@ -158,7 +158,7 @@ export async function oauth2Routes(fastify: FastifyInstance) {
         }
 
         const result = await OAuth2Service.handleAuthorizationCode(code, '', client_id);
-        
+
         return {
           access_token: result.accessToken,
           refresh_token: result.refreshToken,
@@ -176,7 +176,7 @@ export async function oauth2Routes(fastify: FastifyInstance) {
         }
 
         const result = await OAuth2Service.refreshAccessToken(refresh_token);
-        
+
         return {
           access_token: result.accessToken,
           refresh_token: result.refreshToken,
@@ -229,12 +229,12 @@ export async function oauth2Routes(fastify: FastifyInstance) {
   // Get OAuth 2.0 authorization info (for debugging)
   fastify.get('/oauth2/authorize', async (request, reply) => {
     try {
-      const { 
-        response_type, 
-        client_id, 
-        redirect_uri, 
-        scope, 
-        state 
+      const {
+        response_type,
+        client_id,
+        redirect_uri,
+        scope,
+        state
       } = request.query as any;
 
       if (response_type !== 'code') {
@@ -273,13 +273,83 @@ export async function oauth2Routes(fastify: FastifyInstance) {
     }
   });
 
-  // Disconnect social account
-  fastify.delete('/auth/:provider/disconnect', {
-    preHandler: [fastify.authenticate]
-  }, async (request, reply) => {
+  // Get provider configuration
+  fastify.get('/auth/:provider/config', async (request, reply) => {
     try {
       const { provider } = request.params as { provider: string };
-      const userId = (request.user as any).userId;
+
+      const plugin = AuthPluginRegistry.get(provider);
+      if (!plugin) {
+        return reply.status(404).send({
+          success: false,
+          error: `Authentication provider '${provider}' not found`,
+        });
+      }
+
+      // Return current configuration (without secrets for security)
+      return {
+        success: true,
+        data: {
+          clientId: process.env[`${provider.toUpperCase()}_CLIENT_ID`] || '',
+          redirectUri: process.env[`${provider.toUpperCase()}_REDIRECT_URI`] || `${process.env.FRONTEND_URL || 'http://localhost:3003'}/auth/${provider}/callback`,
+          enabled: plugin.isConfigured(),
+        },
+      };
+    } catch (error) {
+      fastify.log.error('Failed to get provider config:', error);
+      return reply.status(500).send({
+        success: false,
+        error: 'Failed to get provider configuration',
+      });
+    }
+  });
+
+  // Update provider configuration
+  fastify.put('/auth/:provider/config', async (request, reply) => {
+    try {
+      const { provider } = request.params as { provider: string };
+      const { clientId, clientSecret, redirectUri, enabled } = request.body as any;
+
+      const plugin = AuthPluginRegistry.get(provider);
+      if (!plugin) {
+        return reply.status(404).send({
+          success: false,
+          error: `Authentication provider '${provider}' not found`,
+        });
+      }
+
+      // In a real implementation, you would save these to a secure configuration store
+      // For demo purposes, we'll just validate and return success
+      if (!clientId || !clientSecret) {
+        return reply.status(400).send({
+          success: false,
+          error: 'Client ID and Client Secret are required',
+        });
+      }
+
+      // Update environment variables (in production, use a secure config store)
+      process.env[`${provider.toUpperCase()}_CLIENT_ID`] = clientId;
+      process.env[`${provider.toUpperCase()}_CLIENT_SECRET`] = clientSecret;
+      process.env[`${provider.toUpperCase()}_REDIRECT_URI`] = redirectUri;
+
+      return {
+        success: true,
+        message: 'Configuration updated successfully',
+      };
+    } catch (error) {
+      fastify.log.error('Failed to update provider config:', error);
+      return reply.status(500).send({
+        success: false,
+        error: 'Failed to update provider configuration',
+      });
+    }
+  });
+
+  // Disconnect social account
+  fastify.delete('/auth/:provider/disconnect', async (request, reply) => {
+    try {
+      const { provider } = request.params as { provider: string };
+      const userId = 'demo-user'; // Mock user ID for demo
 
       // This would be implemented to remove social account connection
       // For now, return success

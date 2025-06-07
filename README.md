@@ -1,8 +1,20 @@
+
 # 🛍️ Jiffoo Mall - Modern E-commerce Platform
 
 [中文](#中文文档) | **English**
 
 A comprehensive, full-stack e-commerce platform built with modern technologies, featuring a robust backend API and a beautiful, responsive frontend interface.
+
+## 💼 Business Model
+
+**Open Source Core + Commercial Plugins + SaaS Services**
+
+- 🆓 **Open Source**: Core e-commerce functionality, plugin framework, demo plugins (MIT License)
+- 💰 **Commercial Plugins**: Advanced payment gateways, authentication providers, marketing tools ($19.99-$99.99/month)
+- 🌐 **SaaS Services**: AI-powered features, analytics, customer service automation ($199-$499/month)
+- 🏢 **Enterprise**: Multi-tenant, white-label, custom development (Custom pricing)
+
+> **Note**: This repository contains the open source core. Commercial plugins and SaaS services are available separately to ensure sustainable development and professional support.
 
 ## 🌟 Features
 

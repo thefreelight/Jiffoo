@@ -18,7 +18,7 @@ export async function saasMarketplaceRoutes(fastify: FastifyInstance) {
       };
 
       const apps = await SaaSAppManager.getMarketplaceApps(category, search);
-      
+
       // Simple pagination
       const startIndex = (page - 1) * limit;
       const endIndex = startIndex + limit;
@@ -86,12 +86,10 @@ export async function saasMarketplaceRoutes(fastify: FastifyInstance) {
   });
 
   // Install SaaS app
-  fastify.post('/marketplace/apps/:appId/install', {
-    preHandler: [fastify.authenticate]
-  }, async (request, reply) => {
+  fastify.post('/marketplace/apps/:appId/install', async (request, reply) => {
     try {
       const { appId } = request.params as { appId: string };
-      const userId = (request.user as any).userId;
+      const userId = 'demo-user'; // Mock user ID for demo
 
       const installation = await SaaSAppManager.installApp(userId, appId);
 
@@ -110,11 +108,9 @@ export async function saasMarketplaceRoutes(fastify: FastifyInstance) {
   });
 
   // Get user's installed apps
-  fastify.get('/my/apps', {
-    preHandler: [fastify.authenticate]
-  }, async (request, reply) => {
+  fastify.get('/my/apps', async (request, reply) => {
     try {
-      const userId = (request.user as any).userId;
+      const userId = 'demo-user'; // Mock user ID for demo
 
       const apps = await SaaSAppManager.getUserApps(userId);
 
@@ -132,12 +128,10 @@ export async function saasMarketplaceRoutes(fastify: FastifyInstance) {
   });
 
   // Generate SSO token for app access
-  fastify.post('/my/apps/:appId/sso', {
-    preHandler: [fastify.authenticate]
-  }, async (request, reply) => {
+  fastify.post('/my/apps/:appId/sso', async (request, reply) => {
     try {
       const { appId } = request.params as { appId: string };
-      const userId = (request.user as any).userId;
+      const userId = 'demo-user'; // Mock user ID for demo
 
       const ssoToken = await SaaSAppManager.generateSSOToken(userId, appId);
 
@@ -158,11 +152,9 @@ export async function saasMarketplaceRoutes(fastify: FastifyInstance) {
   });
 
   // Register new SaaS app (for developers)
-  fastify.post('/developer/apps', {
-    preHandler: [fastify.authenticate]
-  }, async (request, reply) => {
+  fastify.post('/developer/apps', async (request, reply) => {
     try {
-      const userId = (request.user as any).userId;
+      const userId = 'demo-user'; // Mock user ID for demo
       const appData = request.body as any;
 
       const app = await SaaSAppManager.registerApp(appData, userId);
@@ -182,11 +174,9 @@ export async function saasMarketplaceRoutes(fastify: FastifyInstance) {
   });
 
   // Get developer's apps
-  fastify.get('/developer/apps', {
-    preHandler: [fastify.authenticate]
-  }, async (request, reply) => {
+  fastify.get('/developer/apps', async (request, reply) => {
     try {
-      const userId = (request.user as any).userId;
+      const userId = 'demo-user'; // Mock user ID for demo
 
       // This would get apps created by the developer
       // For now, return mock data
@@ -213,9 +203,7 @@ export async function saasMarketplaceRoutes(fastify: FastifyInstance) {
   });
 
   // Get app revenue analytics
-  fastify.get('/developer/apps/:appId/revenue', {
-    preHandler: [fastify.authenticate]
-  }, async (request, reply) => {
+  fastify.get('/developer/apps/:appId/revenue', async (request, reply) => {
     try {
       const { appId } = request.params as { appId: string };
       const { period = 'month' } = request.query as { period?: 'month' | 'year' };
@@ -236,9 +224,7 @@ export async function saasMarketplaceRoutes(fastify: FastifyInstance) {
   });
 
   // Sync data with SaaS app
-  fastify.post('/my/apps/:appId/sync', {
-    preHandler: [fastify.authenticate]
-  }, async (request, reply) => {
+  fastify.post('/my/apps/:appId/sync', async (request, reply) => {
     try {
       const { appId } = request.params as { appId: string };
       const { direction = 'to_app', data } = request.body as {
@@ -247,7 +233,7 @@ export async function saasMarketplaceRoutes(fastify: FastifyInstance) {
       };
 
       // Find installation
-      const userId = (request.user as any).userId;
+      const userId = 'demo-user'; // Mock user ID for demo
       // This would find the installation ID
       const installationId = 'mock_installation_id';
 
@@ -267,12 +253,10 @@ export async function saasMarketplaceRoutes(fastify: FastifyInstance) {
   });
 
   // Uninstall SaaS app
-  fastify.delete('/my/apps/:appId', {
-    preHandler: [fastify.authenticate]
-  }, async (request, reply) => {
+  fastify.delete('/my/apps/:appId', async (request, reply) => {
     try {
       const { appId } = request.params as { appId: string };
-      const userId = (request.user as any).userId;
+      const userId = 'demo-user'; // Mock user ID for demo
 
       // This would uninstall the app
       // For now, return success
