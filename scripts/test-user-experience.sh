@@ -45,7 +45,12 @@ cd "$TEST_DIR"
 
 # 克隆开源版本
 print_info "克隆开源版本..."
-git clone ../Jiffoo jiffoo-test
+OPENSOURCE_DIR="../Jiffoo"
+if [ ! -d "$OPENSOURCE_DIR" ]; then
+    print_error "开源仓库目录不存在: $OPENSOURCE_DIR"
+    exit 1
+fi
+git clone "$OPENSOURCE_DIR" jiffoo-test
 cd jiffoo-test
 
 # 测试安装过程
