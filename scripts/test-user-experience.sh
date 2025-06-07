@@ -32,6 +32,10 @@ echo ""
 
 # 步骤1: 同步到开源版本
 print_info "步骤1: 同步到开源版本"
+# 确保在正确的目录
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CORE_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$CORE_DIR"
 ./scripts/sync-to-opensource.sh
 
 # 步骤2: 全新安装测试
@@ -48,6 +52,9 @@ print_info "克隆开源版本..."
 OPENSOURCE_DIR="../Jiffoo"
 if [ ! -d "$OPENSOURCE_DIR" ]; then
     print_error "开源仓库目录不存在: $OPENSOURCE_DIR"
+    print_info "当前目录: $(pwd)"
+    print_info "查找开源仓库..."
+    ls -la ../
     exit 1
 fi
 git clone "$OPENSOURCE_DIR" jiffoo-test
