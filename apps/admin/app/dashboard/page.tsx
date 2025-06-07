@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { StatsCard } from '../../components/dashboard/stats-card'
 import { SalesChannelChart, RealTimeOrdersChart } from '../../components/dashboard/charts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { useDashboardStats, useOrders } from '../../lib/hooks/use-api'
 import {
   CurrencyDollarIcon,
   ArrowTrendingDownIcon,
@@ -46,52 +46,19 @@ interface SystemStatus {
 }
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null)
-  const [recentOrders, setRecentOrders] = useState<RecentOrder[]>([])
-  const [systemStatus, setSystemStatus] = useState<SystemStatus | null>(null)
-  const [loading, setLoading] = useState(true)
+  // Use API hooks for real data
+  const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats()
+  const { data: ordersData, isLoading: ordersLoading } = useOrders({ limit: 5 })
 
-  useEffect(() => {
-    fetchDashboardData()
-  }, [])
-
-  const fetchDashboardData = async () => {
-    try {
-      setLoading(true)
-
-      // Mock data - in real app, fetch from API
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Simulate API call
-
-      setStats({
-        totalRevenue: 156780,
-        totalOrders: 2847,
-        totalProducts: 1234,
-        activeUsers: 8567,
-        revenueChange: 12.5,
-        ordersChange: 8.2,
-        productsChange: 15.3,
-        usersChange: -2.1
-      })
-
-      setRecentOrders([
-        { id: 'ORD-001', customer: 'John Doe', amount: 299.99, status: 'pending', date: '2025-06-06' },
-        { id: 'ORD-002', customer: 'Jane Smith', amount: 159.50, status: 'processing', date: '2025-06-06' },
-        { id: 'ORD-003', customer: 'Bob Johnson', amount: 89.99, status: 'shipped', date: '2025-06-05' },
-        { id: 'ORD-004', customer: 'Alice Brown', amount: 199.99, status: 'delivered', date: '2025-06-05' },
-        { id: 'ORD-005', customer: 'Charlie Wilson', amount: 79.99, status: 'cancelled', date: '2025-06-04' }
-      ])
-
-      setSystemStatus({
-        plugins: { active: 6, total: 8 },
-        uptime: '99.9%',
-        lastBackup: '2 hours ago'
-      })
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error)
-    } finally {
-      setLoading(false)
-    }
+  // Mock system status for now (can be moved to API later)
+  const systemStatus = {
+    plugins: { active: 6, total: 8 },
+    uptime: '99.9%',
+    lastBackup: '2 hours ago'
   }
+
+  const loading = statsLoading || ordersLoading
+  const recentOrders = ordersData?.data || []
 
   const getStatusColor = (status: RecentOrder['status']) => {
     switch (status) {
@@ -110,6 +77,24 @@ export default function DashboardPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-2 text-gray-600">Loading dashboard...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (statsError) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center">
+          <ExclamationTriangleIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-gray-600">Failed to load dashboard data</p>
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </Button>
         </div>
       </div>
     )
@@ -139,33 +124,33 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
           title="Total Revenue"
-          value={`¥${stats?.totalRevenue.toLocaleString()}`}
-          change={`${stats?.revenueChange > 0 ? '+' : ''}${stats?.revenueChange}%`}
-          changeType={stats?.revenueChange >= 0 ? "increase" : "decrease"}
+          value={`¥${stats?.totalRevenue?.toLocaleString() || '0'}`}
+          change={`${stats?.revenueGrowth > 0 ? '+' : ''}${stats?.revenueGrowth || 0}%`}
+          changeType={stats?.revenueGrowth >= 0 ? "increase" : "decrease"}
           color="blue"
           icon={<CurrencyDollarIcon className="w-5 h-5" />}
         />
         <StatsCard
           title="Total Orders"
-          value={stats?.totalOrders.toLocaleString() || '0'}
-          change={`${stats?.ordersChange > 0 ? '+' : ''}${stats?.ordersChange}%`}
-          changeType={stats?.ordersChange >= 0 ? "increase" : "decrease"}
+          value={stats?.totalOrders?.toLocaleString() || '0'}
+          change={`${stats?.ordersGrowth > 0 ? '+' : ''}${stats?.ordersGrowth || 0}%`}
+          changeType={stats?.ordersGrowth >= 0 ? "increase" : "decrease"}
           color="green"
           icon={<ShoppingBagIcon className="w-5 h-5" />}
         />
         <StatsCard
           title="Total Products"
-          value={stats?.totalProducts.toLocaleString() || '0'}
-          change={`${stats?.productsChange > 0 ? '+' : ''}${stats?.productsChange}%`}
-          changeType={stats?.productsChange >= 0 ? "increase" : "decrease"}
+          value={stats?.totalProducts?.toLocaleString() || '0'}
+          change={`${stats?.productsGrowth > 0 ? '+' : ''}${stats?.productsGrowth || 0}%`}
+          changeType={stats?.productsGrowth >= 0 ? "increase" : "decrease"}
           color="purple"
           icon={<CubeIcon className="w-5 h-5" />}
         />
         <StatsCard
-          title="Active Users"
-          value={stats?.activeUsers.toLocaleString() || '0'}
-          change={`${stats?.usersChange > 0 ? '+' : ''}${stats?.usersChange}%`}
-          changeType={stats?.usersChange >= 0 ? "increase" : "decrease"}
+          title="Total Users"
+          value={stats?.totalUsers?.toLocaleString() || '0'}
+          change={`${stats?.usersGrowth > 0 ? '+' : ''}${stats?.usersGrowth || 0}%`}
+          changeType={stats?.usersGrowth >= 0 ? "increase" : "decrease"}
           color="orange"
           icon={<UsersIcon className="w-5 h-5" />}
         />
@@ -201,7 +186,7 @@ export default function DashboardPage() {
                       </div>
                       <div>
                         <p className="font-medium text-gray-900">{order.id}</p>
-                        <p className="text-sm text-gray-600">{order.customer}</p>
+                        <p className="text-sm text-gray-600">{order.user?.username || order.user?.email || 'Unknown'}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-4">
@@ -209,8 +194,8 @@ export default function DashboardPage() {
                         {order.status}
                       </Badge>
                       <div className="text-right">
-                        <p className="font-medium text-gray-900">¥{order.amount}</p>
-                        <p className="text-sm text-gray-600">{order.date}</p>
+                        <p className="font-medium text-gray-900">¥{order.totalAmount?.toFixed(2) || '0.00'}</p>
+                        <p className="text-sm text-gray-600">{new Date(order.createdAt).toLocaleDateString()}</p>
                       </div>
                     </div>
                   </div>
