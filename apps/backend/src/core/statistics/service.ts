@@ -247,14 +247,14 @@ export class StatisticsService {
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
     // 获取商品详情
-    const productIds = topProducts.map(item => item.productId);
+    const productIds = topProducts.map((item: any) => item.productId);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
       select: { id: true, name: true }
     });
 
-    const topProductsWithDetails = topProducts.map(item => {
-      const product = products.find(p => p.id === item.productId);
+    const topProductsWithDetails = topProducts.map((item: any) => {
+      const product = products.find((p: any) => p.id === item.productId);
       return {
         id: item.productId,
         name: product?.name || 'Unknown Product',
@@ -327,7 +327,7 @@ export class StatisticsService {
 
     // 处理角色统计
     const roleStats: Record<string, number> = {};
-    usersByRole.forEach(item => {
+    usersByRole.forEach((item: any) => {
       roleStats[item.role] = item._count.role;
     });
 
@@ -335,7 +335,7 @@ export class StatisticsService {
     const growthTrend: Array<{ date: string; count: number }> = [];
     const dailyCounts: Record<string, number> = {};
 
-    userGrowthData.forEach(user => {
+    userGrowthData.forEach((user: any) => {
       const date = format(user.createdAt, 'yyyy-MM-dd');
       dailyCounts[date] = (dailyCounts[date] || 0) + 1;
     });
@@ -416,14 +416,14 @@ export class StatisticsService {
     ]);
 
     // 获取热销商品详情
-    const productIds = topSellingData.map(item => item.productId);
+    const productIds = topSellingData.map((item: any) => item.productId);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
       select: { id: true, name: true, stock: true }
     });
 
-    const topSellingProducts = topSellingData.map(item => {
-      const product = products.find(p => p.id === item.productId);
+    const topSellingProducts = topSellingData.map((item: any) => {
+      const product = products.find((p: any) => p.id === item.productId);
       return {
         id: item.productId,
         name: product?.name || 'Unknown Product',

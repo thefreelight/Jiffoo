@@ -1,10 +1,13 @@
 import { FastifyInstance } from 'fastify';
-import { Plugin } from './types';
+import { Plugin, PluginLicenseType } from './types';
 
 const i18nDemoPlugin: Plugin = {
   name: 'i18n-demo-plugin',
   version: '1.0.0',
   description: 'Demonstration plugin showing i18n integration',
+  license: {
+    type: PluginLicenseType.MIT
+  },
   
   async register(app: FastifyInstance) {
     // 多语言欢迎消息

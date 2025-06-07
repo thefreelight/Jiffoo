@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { Plugin } from './types';
+import { Plugin, PluginLicenseType } from './types';
 import { authMiddleware } from '@/core/auth/middleware';
 import { requireRole } from '@/core/permissions/middleware';
 import { UserRole } from '@/core/permissions/types';
@@ -84,6 +84,9 @@ const analyticsPlugin: Plugin = {
   name: 'analytics-plugin',
   version: '1.0.0',
   description: 'Advanced analytics and monitoring plugin for API usage tracking',
+  license: {
+    type: PluginLicenseType.MIT
+  },
   
   async register(app: FastifyInstance) {
     const collector = new AnalyticsCollector();

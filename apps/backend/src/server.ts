@@ -126,8 +126,7 @@ async function buildApp() {
           saas: '/api/saas',
           templates: '/api/templates',
           tenants: '/api/tenants',
-          sales: '/api/sales',
-          permissions: '/api/permissions'
+          sales: '/api/sales'
         },
         documentation: {
           swagger_ui: '/docs',
@@ -557,7 +556,6 @@ async function start() {
     app.log.info(`📁 Upload API available at http://${env.HOST}:${env.PORT}/api/upload`);
     app.log.info(`💾 Cache API available at http://${env.HOST}:${env.PORT}/api/cache`);
     app.log.info(`📊 Statistics API available at http://${env.HOST}:${env.PORT}/api/statistics`);
-    app.log.info(`🔐 Permissions API available at http://${env.HOST}:${env.PORT}/api/permissions`);
     app.log.info(`📦 Inventory API available at http://${env.HOST}:${env.PORT}/api/inventory`);
     app.log.info(`📧 Notifications API available at http://${env.HOST}:${env.PORT}/api/notifications`);
     app.log.info(`🔌 Plugins API available at http://${env.HOST}:${env.PORT}/api/plugins`);

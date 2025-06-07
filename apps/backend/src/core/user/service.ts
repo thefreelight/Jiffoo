@@ -291,7 +291,7 @@ export class UserService {
       _count: { status: true }
     });
 
-    const statusStats = statusCounts.reduce((acc, item) => {
+    const statusStats = statusCounts.reduce((acc: any, item: any) => {
       acc[item.status.toLowerCase()] = item._count.status;
       return acc;
     }, {} as Record<string, number>);

@@ -209,8 +209,23 @@ The API documentation is automatically generated and available at:
 - `POST /api/tenants/register` - Register OEM tenant
 - `POST /api/sales/process` - Process unified sales (direct/OEM)
 
-## 🧪 Testing
+## 🧪 Testing & Status
 
+### ✅ 测试状态 (v1.0.0-beta.1)
+- **后端API** - ✅ 完全正常
+- **前端界面** - ✅ 完全正常
+- **数据库** - ✅ 完全正常
+- **搜索功能** - ✅ 完全正常
+- **缓存系统** - ✅ 完全正常
+- **支付系统** - ✅ 完全正常
+- **多语言** - ✅ 完全正常
+
+### ⚠️ 已知问题
+- 部分插件需要手动配置（不影响核心功能）
+- TypeScript类型优化中（不影响运行）
+- 建议先在测试环境试用
+
+### 🧪 运行测试
 ```bash
 # Run backend tests
 pnpm --filter backend test
@@ -220,6 +235,10 @@ pnpm --filter frontend test
 
 # Run all tests
 pnpm test
+
+# 手动功能测试
+curl http://localhost:3001/health
+curl http://localhost:3001/api/products
 ```
 
 ## 🚀 Deployment

@@ -78,7 +78,7 @@ export async function oauth2Routes(fastify: FastifyInstance) {
       fastify.log.error('OAuth authorization failed:', error);
       return reply.status(500).send({
         success: false,
-        error: error.message || 'Authorization failed',
+        error: (error as any)?.message || 'Authorization failed',
       });
     }
   });
@@ -117,7 +117,7 @@ export async function oauth2Routes(fastify: FastifyInstance) {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       };
 
-      reply.setCookie('auth_token', result.token, cookieOptions);
+      (reply as any).setCookie('auth_token', result.token, cookieOptions);
 
       return {
         success: true,
@@ -131,7 +131,7 @@ export async function oauth2Routes(fastify: FastifyInstance) {
       fastify.log.error('OAuth callback failed:', error);
       return reply.status(500).send({
         success: false,
-        error: error.message || 'Authentication failed',
+        error: (error as any)?.message || 'Authentication failed',
       });
     }
   });

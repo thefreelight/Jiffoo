@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
-import { authMiddleware, requireRole } from '@/middleware/auth';
-import { UserRole } from '@prisma/client';
+import { authMiddleware, requireRole } from '@/core/auth/middleware';
+import { UserRole } from '@/core/permissions/types';
 import { licenseService } from './license-service';
 
 // 模拟插件商店数据

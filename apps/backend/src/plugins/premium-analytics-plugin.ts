@@ -1,8 +1,8 @@
 import { FastifyInstance } from 'fastify';
 import { Plugin, PluginLicenseType } from './types';
 import { licenseService } from './license-service';
-import { authMiddleware, requireRole } from '@/middleware/auth';
-import { UserRole } from '@prisma/client';
+import { authMiddleware, requireRole } from '@/core/auth/middleware';
+import { UserRole } from '@/core/permissions/types';
 
 const premiumAnalyticsPlugin: Plugin = {
   name: 'premium-analytics-plugin',

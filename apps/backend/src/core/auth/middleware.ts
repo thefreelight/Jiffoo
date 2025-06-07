@@ -31,8 +31,8 @@ export async function authMiddleware(
 
     // 获取租户ID (如果在请求中)
     const tenantId = request.headers['x-tenant-id'] as string ||
-                     request.query?.tenantId as string ||
-                     request.body?.tenantId as string;
+                     (request.query as any)?.tenantId as string ||
+                     (request.body as any)?.tenantId as string;
 
     // 加载用户权限和角色
     try {
@@ -145,7 +145,7 @@ export async function tenantMiddleware(
     });
   }
 
-  const tenantId = request.params?.tenantId ||
+  const tenantId = (request.params as any)?.tenantId ||
                    request.headers['x-tenant-id'] ||
                    request.user.tenantId;
 
@@ -210,7 +210,7 @@ export function auditLog(action: string, module: string) {
       // 记录操作日志
       if (request.user) {
         const success = reply.statusCode < 400;
-        const resourceId = request.params?.id || request.body?.id;
+        const resourceId = (request.params as any)?.id || (request.body as any)?.id;
         const resourceType = module;
 
         permissionManager.logAction(
