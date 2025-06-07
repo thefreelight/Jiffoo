@@ -36,6 +36,11 @@ model User {
   saasInstances           SaasInstance[]
   templatePurchases       TemplatePurchase[]
 
+  // OAuth 2.0 和社交登录相关关系
+  socialAccounts          SocialAccount[]
+  oauth2Tokens            OAuth2AccessToken[]
+  saasInstallations       SaaSInstallation[]
+
   // 多租户OEM相关关系
   tenantUsers             TenantUser[]
   customerSales           Sale[] @relation("CustomerSales")
@@ -945,4 +950,148 @@ model UserLanguagePreference {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("user_language_preferences")
+}
+
+// OAuth 2.0 和社交登录相关表
+
+// 社交账户表
+model SocialAccount {
+  id           String   @id @default(cuid())
+  userId       String
+  provider     String   // 'wechat', 'google', 'github', 'alipay'
+  providerId   String   // 第三方平台的用户ID
+  accessToken  String?  // 访问令牌
+  refreshToken String?  // 刷新令牌
+  profile      String?  // JSON格式的用户资料
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([userId])
+  @@index([provider])
+  @@map("social_accounts")
+}
+
+// OAuth 2.0 授权码表
+model OAuth2AuthorizationCode {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  state       String
+  userId      String
+  clientId    String
+  scope       String
+  redirectUri String
+  expiresAt   DateTime
+  used        Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([code])
+  @@index([clientId])
+  @@index([expiresAt])
+  @@map("oauth2_authorization_codes")
+}
+
+// OAuth 2.0 访问令牌表
+model OAuth2AccessToken {
+  id           String   @id @default(cuid())
+  accessToken  String   @unique
+  refreshToken String?  @unique
+  userId       String
+  clientId     String
+  scope        String
+  tokenType    String   @default("Bearer")
+  expiresAt    DateTime
+  revoked      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([expiresAt])
+  @@index([revoked])
+  @@map("oauth2_access_tokens")
+}
+
+// SaaS 应用市场表
+model SaaSApplication {
+  id            String   @id @default(cuid())
+  name          String
+  description   String
+  version       String
+  author        String
+  authorId      String   // 应用开发者ID
+  category      String   // 'productivity', 'analytics', 'marketing', 'finance'
+  price         Float    // 月费价格 (分)
+  currency      String   @default("USD")
+  billingType   String   @default("monthly") // 'monthly', 'yearly', 'one-time', 'usage-based'
+
+  // 集成配置
+  apiEndpoint   String   // 应用API端点
+  webhookUrl    String?  // Webhook通知URL
+  ssoEnabled    Boolean  @default(false)
+  dataSync      Boolean  @default(false)
+
+  // 应用元数据
+  logo          String
+  screenshots   String   // JSON数组
+  features      String   // JSON数组
+  requirements  String   // JSON数组
+  documentation String
+  support       String
+
+  // 业务信息
+  isActive      Boolean  @default(false)
+  isApproved    Boolean  @default(false)
+  totalInstalls Int      @default(0)
+  rating        Float    @default(0)
+  reviewCount   Int      @default(0)
+  revenueShare  Float    @default(30) // Jiffoo平台分成百分比
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  installations SaaSInstallation[]
+
+  @@index([authorId])
+  @@index([category])
+  @@index([isActive])
+  @@index([isApproved])
+  @@map("saas_applications")
+}
+
+// SaaS 应用安装表
+model SaaSInstallation {
+  id             String   @id @default(cuid())
+  userId         String
+  appId          String
+  subscriptionId String
+  status         String   @default("active") // 'active', 'suspended', 'cancelled'
+  installedAt    DateTime @default(now())
+  lastAccessedAt DateTime @default(now())
+
+  // SSO 配置
+  ssoConfig      String?  // JSON格式的SSO配置
+
+  // 数据同步配置
+  syncConfig     String?  // JSON格式的同步配置
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  user User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  app  SaaSApplication @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, appId])
+  @@index([userId])
+  @@index([appId])
+  @@index([status])
+  @@map("saas_installations")
 }

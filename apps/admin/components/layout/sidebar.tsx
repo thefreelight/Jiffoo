@@ -19,7 +19,8 @@ import {
   MixerHorizontalIcon,
   LockClosedIcon,
   ComponentInstanceIcon,
-  CubeIcon
+  CubeIcon,
+  GlobeIcon
 } from '@radix-ui/react-icons'
 import { CurrencyDollarIcon } from '@heroicons/react/24/outline'
 
@@ -112,6 +113,18 @@ const navigation = [
       { name: 'Plugin Store', href: '/plugins' },
       { name: 'Installed Plugins', href: '/plugins?tab=installed' },
       { name: 'Licenses', href: '/plugins/licenses' },
+    ],
+  },
+  {
+    name: 'Marketplace',
+    href: '/marketplace',
+    icon: ComponentInstanceIcon,
+    current: false,
+    children: [
+      { name: 'SaaS Apps', href: '/marketplace?tab=saas-apps' },
+      { name: 'Auth Plugins', href: '/marketplace?tab=auth-plugins' },
+      { name: 'My Apps', href: '/marketplace/my-apps' },
+      { name: 'Developer Portal', href: '/marketplace/developer' },
     ],
   },
   {
