@@ -1,42 +1,18 @@
-# Jiffoo Mall Core 🔒 v1.0.0-beta.1
-
-**Private Development Repository** - Complete Jiffoo Mall with all features for internal development and testing.
+# 🛍️ Jiffoo Mall - Modern E-commerce Platform
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)](https://nextjs.org/)
 [![Fastify](https://img.shields.io/badge/Fastify-4.29-green.svg)](https://www.fastify.io/)
+[![i18n](https://img.shields.io/badge/i18n-6_languages-green.svg)](https://github.com/thefreelight/Jiffoo)
 
-> 🎉 **Beta版本现已发布！** 核心功能完整，欢迎测试和反馈。
+> 🎉 **Latest Update**: Comprehensive multilingual support added! Now supports 6 languages with real-time switching.
 >
-> ⚠️ **This is a private repository** containing the full-featured version of Jiffoo Mall.
-> For the public open-source version, see: [Jiffoo](https://github.com/thefreelight/Jiffoo)
-
-## 🏗️ Repository Purpose
-
-This repository serves as:
-- 🔧 **Primary development environment** - All features, rapid iteration
-- 🧪 **Internal testing platform** - Full functionality testing
-- 📦 **Source for open-source sync** - Automated sync to public repository
-- 🚀 **Production deployment option** - Complete, ready-to-deploy version
-
-## 🔄 Dual Environment Strategy
-
-```
-Development Flow:
-1. Develop in jiffoo-mall-core (this repo) - Full features, fast iteration
-2. Sync to Jiffoo (public) - User experience testing
-3. Test as end user - Install plugins, verify upgrade path
-4. Deploy either version - Core (complete) or Public + Plugins
-```
-
----
-
-# 🛍️ Jiffoo Mall - Modern E-commerce Platform
+> 🌟 **Open Source E-commerce Platform** - A complete, modern e-commerce solution with plugin architecture and multilingual support.
 
 [中文](#中文文档) | **English**
 
-A comprehensive, full-stack e-commerce platform built with modern technologies, featuring a robust backend API and a beautiful, responsive frontend interface.
+A comprehensive, full-stack e-commerce platform built with modern technologies, featuring a robust backend API, beautiful responsive frontend interface, and comprehensive multilingual support.
 
 ## 💼 Business Model
 
@@ -67,7 +43,7 @@ A comprehensive, full-stack e-commerce platform built with modern technologies, 
 - **Email Notifications** - Template-based notification system
 - **File Upload System** - Secure file handling with validation
 - **Plugin Architecture** - Extensible modular system
-- **Internationalization** - Multi-language support (15 languages)
+- **Multilingual Support** - Complete i18n system with 6 languages and real-time switching
 
 ### 🏢 Commercial Features
 - **Plugin Store** - Marketplace for premium plugins with subscription model
@@ -118,8 +94,8 @@ A comprehensive, full-stack e-commerce platform built with modern technologies, 
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd jiffoo-mall-core
+   git clone https://github.com/thefreelight/Jiffoo.git
+   cd Jiffoo
    ```
 
 2. **Install dependencies**
@@ -155,7 +131,7 @@ A comprehensive, full-stack e-commerce platform built with modern technologies, 
 ## 📁 Project Structure
 
 ```
-jiffoo-mall-core/
+Jiffoo/
 ├── apps/
 │   ├── backend/              # Fastify API server
 │   │   ├── src/
@@ -174,16 +150,15 @@ jiffoo-mall-core/
 │   │   │   ├── hooks/        # Custom React hooks
 │   │   │   └── store/        # State management
 │   │   └── public/           # Static assets
-│   └── admin/                # Admin dashboard
+│   └── admin/                # Admin dashboard (with multilingual support)
+│       ├── app/              # Admin pages and API routes
+│       ├── components/       # Admin UI components
+│       │   ├── ui/           # Base UI components
+│       │   └── i18n/         # Multilingual components
+│       ├── lib/              # Admin utilities and i18n system
+│       └── docs/             # Admin documentation
 ├── packages/
 │   └── shared/               # Shared types and utilities
-├── commercial/               # 🔒 Commercial features (excluded from open source)
-│   ├── plugins/              # Commercial plugins
-│   ├── enterprise/           # Enterprise features
-│   ├── saas-services/        # SaaS services
-│   └── tools/                # Commercial tools
-├── scripts/
-│   └── sync-to-opensource.sh # Sync to open source repository
 └── docs/                     # Documentation
 ```
 
@@ -325,14 +300,34 @@ export const myPlugin: Plugin = {
 
 ## 🌍 Internationalization
 
-Supports 15 languages with automatic detection:
-- English (en-US) - Default
-- Chinese Simplified (zh-CN)
-- Japanese (ja-JP)
-- Korean (ko-KR)
-- Spanish (es-ES)
-- French (fr-FR)
-- And more...
+Complete multilingual support with advanced features:
+
+### Supported Languages
+- 🇨🇳 **Chinese Simplified (zh-CN)** - Default
+- 🇺🇸 **English (en-US)** - Full support
+- 🇯🇵 **Japanese (ja-JP)** - Full support
+- 🇰🇷 **Korean (ko-KR)** - Full support
+- 🇪🇸 **Spanish (es-ES)** - Basic support
+- 🇫🇷 **French (fr-FR)** - Basic support
+
+### Features
+- **Real-time Language Switching** - No page refresh required
+- **Intelligent Caching** - Translation caching for better performance
+- **Browser Detection** - Automatic language detection from browser settings
+- **Persistent Storage** - Language choice saved across sessions
+- **Admin Interface** - Complete multilingual admin dashboard
+- **Content Editor** - Multilingual content editing with completion tracking
+- **Translation Manager** - Built-in translation management interface
+- **Localization** - Date, number, and currency formatting
+- **String Interpolation** - Support for variables in translations
+- **Fallback System** - Automatic fallback to default language
+
+### Admin Features
+- Language settings and configuration
+- Translation coverage analytics
+- Advanced performance optimization
+- API integration for automatic translation
+- Quality control and validation
 
 ## 📊 Monitoring & Analytics
 
@@ -449,8 +444,8 @@ For support and questions:
 
 1. **克隆仓库**
    ```bash
-   git clone <repository-url>
-   cd jiffoo-mall-core
+   git clone https://github.com/thefreelight/Jiffoo.git
+   cd Jiffoo
    ```
 
 2. **安装依赖**

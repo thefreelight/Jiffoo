@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 设置语言Cookie（30天过期）
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     cookieStore.set('admin-language', language, {
       maxAge: 30 * 24 * 60 * 60, // 30 days
       httpOnly: false, // 允许客户端访问
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
 // GET - 获取用户语言偏好
 export async function GET(request: NextRequest) {
   try {
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const savedLanguage = cookieStore.get('admin-language')?.value;
 
     // 从Accept-Language头获取浏览器偏好
@@ -169,7 +169,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // 保存设置到Cookie
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     
     if (language) {
       cookieStore.set('admin-language', language, {
