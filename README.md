@@ -1,81 +1,33 @@
-# Jiffoo Mall Core 🔒 v1.0.0-beta.1
-
-**Private Development Repository** - Complete Jiffoo Mall with all features for internal development and testing.
+# 🛍️ Jiffoo Mall - Modern E-commerce Platform
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)](https://nextjs.org/)
 [![Fastify](https://img.shields.io/badge/Fastify-4.29-green.svg)](https://www.fastify.io/)
 
-> 🎉 **Beta版本现已发布！** 核心功能完整，欢迎测试和反馈。
->
-> ⚠️ **This is a private repository** containing the full-featured version of Jiffoo Mall.
-> For the public open-source version, see: [jiffoo-mall](https://github.com/thefreelight/jiffoo-mall)
-
-## 🏗️ Repository Purpose
-
-This repository serves as:
-- 🔧 **Primary development environment** - All features, rapid iteration
-- 🧪 **Internal testing platform** - Full functionality testing
-- 📦 **Source for open-source sync** - Automated sync to public repository
-- 🚀 **Production deployment option** - Complete, ready-to-deploy version
-
-## 🔄 Dual Environment Strategy
-
-```
-Development Flow:
-1. Develop in jiffoo-mall-core (this repo) - Full features, fast iteration
-2. Sync to jiffoo-mall (public) - User experience testing
-3. Test as end user - Install plugins, verify upgrade path
-4. Deploy either version - Core (complete) or Public + Plugins
-```
-
----
-
-# 🛍️ Jiffoo Mall - Modern E-commerce Platform
-
 [中文](#中文文档) | **English**
 
 A comprehensive, full-stack e-commerce platform built with modern technologies, featuring a robust backend API and a beautiful, responsive frontend interface.
-
-## 💼 Business Model
-
-**Open Source Core + Commercial Plugins + SaaS Services**
-
-- 🆓 **Open Source**: Core e-commerce functionality, plugin framework, demo plugins (MIT License)
-- 💰 **Commercial Plugins**: Advanced payment gateways, authentication providers, marketing tools ($19.99-$99.99/month)
-- 🌐 **SaaS Services**: AI-powered features, analytics, customer service automation ($199-$499/month)
-- 🏢 **Enterprise**: Multi-tenant, white-label, custom development (Custom pricing)
-
-> **Note**: This repository contains the open source core. Commercial plugins and SaaS services are available separately to ensure sustainable development and professional support.
 
 ## 🌟 Features
 
 ### Core E-commerce Features
 - **User Authentication & Authorization** - JWT-based auth with role-based permissions
-- **Product Management** - Complete CRUD operations with image uploads
+- **Product Management** - Complete CRUD operations with image upload support
 - **Shopping Cart & Orders** - Full shopping experience with order tracking
-- **Search & Filtering** - Advanced search with intelligent suggestions
-- **Inventory Management** - Real-time stock tracking with alerts
+- **Search & Filtering** - Advanced search functionality with smart suggestions
+- **Inventory Management** - Real-time stock tracking with low-stock alerts
 - **Payment Integration** - Ready for payment gateway integration
 
 ### Advanced Features
 - **Redis Caching** - High-performance caching layer
-- **Comprehensive Logging** - Operation tracking and audit trails
-- **Fine-grained Permissions** - Resource-level access control
+- **Comprehensive Logging** - Operation tracking and audit logs
+- **Granular Permissions** - Resource-level access control
 - **Sales Analytics** - Business intelligence and reporting
 - **Email Notifications** - Template-based notification system
 - **File Upload System** - Secure file handling with validation
 - **Plugin Architecture** - Extensible modular system
 - **Internationalization** - Multi-language support (15 languages)
-
-### 🏢 Commercial Features
-- **Plugin Store** - Marketplace for premium plugins with subscription model
-- **License Management** - Secure license validation and usage tracking
-- **Custom SaaS Applications** - Enterprise-grade solution licensing
-- **Template Marketplace** - Design templates with multiple license types
-- **Multi-tenant OEM System** - White-label reseller network with revenue sharing
-- **Unified Sales Platform** - Integrated direct and OEM sales processing
 
 ## 🏗️ Tech Stack
 
@@ -118,8 +70,8 @@ A comprehensive, full-stack e-commerce platform built with modern technologies, 
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd jiffoo-mall
+   git clone https://github.com/thefreelight/Jiffoo.git
+   cd Jiffoo
    ```
 
 2. **Install dependencies**
@@ -142,7 +94,7 @@ A comprehensive, full-stack e-commerce platform built with modern technologies, 
    pnpm --filter backend db:seed
    ```
 
-5. **Start development servers**
+5. **Start the development servers**
    ```bash
    # Start both frontend and backend
    pnpm dev
@@ -155,7 +107,7 @@ A comprehensive, full-stack e-commerce platform built with modern technologies, 
 ## 📁 Project Structure
 
 ```
-jiffoo-mall/
+Jiffoo/
 ├── apps/
 │   ├── backend/              # Fastify API server
 │   │   ├── src/
@@ -166,180 +118,79 @@ jiffoo-mall/
 │   │   │   └── plugins/      # Plugin system
 │   │   ├── prisma/           # Database schema and migrations
 │   │   └── uploads/          # File upload storage
-│   └── frontend/             # Next.js web application
-│       ├── src/
-│       │   ├── app/          # App Router pages
-│       │   ├── components/   # React components
-│       │   ├── lib/          # Utility functions
-│       │   ├── hooks/        # Custom React hooks
-│       │   └── store/        # State management
-│       └── public/           # Static assets
+│   ├── frontend/             # Next.js web application
+│   │   ├── src/
+│   │   │   ├── app/          # App Router pages
+│   │   │   ├── components/   # React components
+│   │   │   ├── lib/          # Utility functions
+│   │   │   ├── hooks/        # Custom React hooks
+│   │   │   └── stores/       # Zustand stores
+│   │   └── public/           # Static assets
 ├── packages/
 │   └── shared/               # Shared types and utilities
-└── docs/                     # Documentation
+├── turbo.json               # Turbo build configuration
+└── pnpm-workspace.yaml      # pnpm workspace configuration
 ```
 
-## 🔧 Configuration
+## 🔌 Plugin System
 
-### Environment Variables
+Jiffoo Mall features an extensible plugin architecture that allows you to add custom functionality:
 
-#### Backend (.env)
-```env
-# Database
-DATABASE_URL="file:./dev.db"
+- **Payment Plugins** - Integrate with various payment providers
+- **Shipping Plugins** - Add custom shipping methods and calculators
+- **Analytics Plugins** - Extend reporting and analytics capabilities
+- **UI Plugins** - Add custom components and themes
 
-# JWT
-JWT_SECRET="your-super-secret-jwt-key"
-JWT_EXPIRES_IN="7d"
+## 🌐 API Documentation
 
-# Redis (optional)
-REDIS_URL="redis://localhost:6379"
-
-# Email (optional)
-SMTP_HOST="smtp.ethereal.email"
-SMTP_PORT=587
-SMTP_USER="your-email@example.com"
-SMTP_PASS="your-password"
-
-# Server
-PORT=3001
-NODE_ENV="development"
-```
-
-## 📚 API Documentation
-
-The API documentation is automatically generated and available at:
+Once the backend is running, you can access the interactive API documentation at:
 - **Swagger UI**: http://localhost:3001/docs
-- **OpenAPI JSON**: http://localhost:3001/openapi.json
+- **OpenAPI Spec**: http://localhost:3001/docs/json
 
-### Key API Endpoints
+## 🧪 Testing
 
-#### Authentication
-- `POST /api/auth/register` - User registration
-- `POST /api/auth/login` - User login
-- `GET /api/auth/profile` - Get user profile
-
-#### Products
-- `GET /api/products` - List products with pagination
-- `GET /api/products/:id` - Get product details
-- `POST /api/products` - Create product (admin)
-- `PUT /api/products/:id` - Update product (admin)
-
-#### Orders
-- `GET /api/orders` - List user orders
-- `POST /api/orders` - Create new order
-- `GET /api/orders/:id` - Get order details
-
-#### Search
-- `GET /api/search/products` - Search products
-- `GET /api/search/suggestions` - Get search suggestions
-
-#### Commercial APIs
-- `GET /api/plugin-store/plugins` - Browse plugin marketplace
-- `POST /api/plugin-store/purchase` - Purchase premium plugins
-- `GET /api/licenses/validate` - Validate plugin licenses
-- `GET /api/templates` - Browse template marketplace
-- `POST /api/tenants/register` - Register OEM tenant
-- `POST /api/sales/process` - Process unified sales (direct/OEM)
-
-## 🧪 Testing & Status
-
-### ✅ 测试状态 (v1.0.0-beta.1)
-- **后端API** - ✅ 完全正常
-- **前端界面** - ✅ 完全正常
-- **数据库** - ✅ 完全正常
-- **搜索功能** - ✅ 完全正常
-- **缓存系统** - ✅ 完全正常
-- **支付系统** - ✅ 完全正常
-- **多语言** - ✅ 完全正常
-
-### ⚠️ 已知问题
-- 部分插件需要手动配置（不影响核心功能）
-- TypeScript类型优化中（不影响运行）
-- 建议先在测试环境试用
-
-### 🧪 运行测试
 ```bash
+# Run all tests
+pnpm test
+
 # Run backend tests
 pnpm --filter backend test
 
 # Run frontend tests
 pnpm --filter frontend test
 
-# Run all tests
-pnpm test
-
-# 手动功能测试
-curl http://localhost:3001/health
-curl http://localhost:3001/api/products
+# Run tests in watch mode
+pnpm test:watch
 ```
 
-## 🚀 Deployment
+## 🚀 Production Deployment
 
-### Production Build
+### Using Docker
+
 ```bash
-# Build all packages
+# Build the application
 pnpm build
 
-# Start production servers
-pnpm start
-```
+# Build Docker images
+docker-compose build
 
-### Docker Deployment
-```bash
-# Build and run with Docker Compose
+# Start the application
 docker-compose up -d
 ```
 
-### Environment Setup
-1. Set up PostgreSQL database
-2. Configure Redis for caching
-3. Set up email service (SMTP)
-4. Configure file storage (local/cloud)
-5. Set production environment variables
+### Manual Deployment
 
-## 🔌 Plugin System
+```bash
+# Build the application
+pnpm build
 
-The platform includes a powerful plugin system for extending functionality:
-
-```typescript
-// Example plugin
-export const myPlugin: Plugin = {
-  name: 'my-plugin',
-  version: '1.0.0',
-  async register(fastify) {
-    fastify.get('/api/my-plugin/hello', async () => {
-      return { message: 'Hello from plugin!' };
-    });
-  }
-};
+# Start the production server
+pnpm start
 ```
 
-## 🌍 Internationalization
-
-Supports 15 languages with automatic detection:
-- English (en-US) - Default
-- Chinese Simplified (zh-CN)
-- Japanese (ja-JP)
-- Korean (ko-KR)
-- Spanish (es-ES)
-- French (fr-FR)
-- And more...
-
-## 📊 Monitoring & Analytics
-
-### Built-in Analytics
-- User behavior tracking
-- Sales performance metrics
-- Inventory monitoring
-- System performance stats
-
-### Health Checks
-- `GET /health` - System health status
-- `GET /api/cache/health` - Cache system status
-- `GET /api/plugins/health` - Plugin system status
-
 ## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -392,14 +243,6 @@ For support and questions:
 - **插件架构** - 可扩展的模块化系统
 - **国际化** - 多语言支持（15种语言）
 
-### 🏢 商业化功能
-- **插件商店** - 高级插件市场，支持订阅模式
-- **许可证管理** - 安全的许可证验证和使用量跟踪
-- **定制SaaS应用** - 企业级解决方案授权
-- **模板市场** - 设计模板，支持多种许可证类型
-- **多租户OEM系统** - 白标代理商网络，支持收入分成
-- **统一销售平台** - 集成直销和OEM销售处理
-
 ## 🏗️ 技术栈
 
 ### 后端
@@ -441,8 +284,8 @@ For support and questions:
 
 1. **克隆仓库**
    ```bash
-   git clone <repository-url>
-   cd jiffoo-mall
+   git clone https://github.com/thefreelight/Jiffoo.git
+   cd Jiffoo
    ```
 
 2. **安装依赖**

@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/components/ui/toast';
+import { LoginModal } from '@/components/auth/login-modal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -54,6 +57,11 @@ export default function PluginsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLicense, setSelectedLicense] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingInstallId, setPendingInstallId] = useState<string | null>(null);
+
+  const { isAuthenticated, getAuthToken } = useAuth();
+  const { addToast } = useToast();
 
   useEffect(() => {
     fetchPluginData();
@@ -105,15 +113,15 @@ export default function PluginsPage() {
           isActive: false,
         },
         {
-          id: 'alipay-plugin',
-          name: 'Alipay Gateway',
-          description: 'Enable Alipay payments for seamless transactions with Chinese customers. Supports both domestic and international Alipay.',
-          author: 'Payment Solutions Inc',
-          version: '1.5.2',
+          id: 'alipay-pro',
+          name: 'Alipay Professional',
+          description: 'Complete Alipay integration with advanced features for production use. Supports web, WAP, and app payments with enterprise-grade security.',
+          author: 'Jiffoo Team',
+          version: '2.1.0',
           license: 'premium' as const,
-          price: 35,
-          methods: ['alipay'],
-          features: ['Domestic_Alipay', 'International_Alipay', 'QR_Payments', 'Mobile_SDK'],
+          price: 39.99,
+          methods: ['alipay', 'alipay_wap', 'alipay_app'],
+          features: ['RSA2_Encryption', 'Webhook_Support', 'Full_Refunds', 'Partial_Refunds', 'Payment_Analytics', 'Multi_Environment', 'QR_Code_Payments', 'Mobile_Optimized'],
           isInstalled: false,
           isActive: false,
         },
@@ -183,15 +191,44 @@ export default function PluginsPage() {
   };
 
   const handleInstallPlugin = async (pluginId: string) => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      setPendingInstallId(pluginId);
+      setShowLoginModal(true);
+      return;
+    }
+
+    await performInstallation(pluginId);
+  };
+
+  const performInstallation = async (pluginId: string) => {
     try {
-      const token = localStorage.getItem('authToken');
+      const token = getAuthToken();
       if (!token) {
-        alert('Please login to install plugins');
+        addToast({
+          type: 'error',
+          title: 'Authentication Required',
+          description: 'Please login to install plugins'
+        });
         return;
       }
 
+      // Show loading toast
+      addToast({
+        type: 'info',
+        title: 'Installing Plugin',
+        description: 'Please wait while we install the plugin...',
+        duration: 3000
+      });
+
       // For demo purposes, we'll use test license keys
-      const licenseKey = pluginId === 'stripe-payment-plugin' ? 'stripe-license-123' : 'paypal-license-456';
+      const licenseKeys = {
+        'stripe-payment-plugin': 'stripe-license-123',
+        'paypal-payment-plugin': 'paypal-license-456',
+        'alipay-pro': 'alipay-pro-demo-123',
+        'wechat-pay-plugin': 'wechat-license-789'
+      };
+      const licenseKey = licenseKeys[pluginId] || 'demo-license-key';
 
       const response = await fetch(`/api/payments/plugins/${pluginId}/install`, {
         method: 'POST',
@@ -205,14 +242,36 @@ export default function PluginsPage() {
       const data = await response.json();
 
       if (data.success) {
-        alert(`Plugin installed successfully!`);
+        addToast({
+          type: 'success',
+          title: 'Plugin Installed Successfully!',
+          description: `${data.data?.pluginId || pluginId} has been installed and activated.`,
+          duration: 5000
+        });
         fetchPluginData(); // Refresh data
       } else {
-        alert(`Installation failed: ${data.message}`);
+        addToast({
+          type: 'error',
+          title: 'Installation Failed',
+          description: data.message || 'Failed to install plugin. Please try again.',
+          duration: 7000
+        });
       }
     } catch (error) {
       console.error('Installation failed:', error);
-      alert('Installation failed. Please try again.');
+      addToast({
+        type: 'error',
+        title: 'Installation Error',
+        description: 'An unexpected error occurred. Please check your connection and try again.',
+        duration: 7000
+      });
+    }
+  };
+
+  const handleLoginSuccess = () => {
+    if (pendingInstallId) {
+      performInstallation(pendingInstallId);
+      setPendingInstallId(null);
     }
   };
 
@@ -654,6 +713,16 @@ export default function PluginsPage() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Login Modal */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => {
+          setShowLoginModal(false);
+          setPendingInstallId(null);
+        }}
+        onSuccess={handleLoginSuccess}
+      />
     </div>
   );
 }

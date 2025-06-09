@@ -4,6 +4,8 @@ import './globals.css'
 import { AdminLayout } from '../components/layout/admin-layout'
 import { QueryProvider } from '../lib/providers/query-provider'
 import { Toaster } from 'sonner'
+import { AuthProvider } from '../hooks/useAuth'
+import { ToastProvider } from '../components/ui/toast'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,10 +22,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <QueryProvider>
-          <AdminLayout>{children}</AdminLayout>
-          <Toaster position="top-right" richColors />
-        </QueryProvider>
+        <AuthProvider>
+          <ToastProvider>
+            <QueryProvider>
+              <AdminLayout>{children}</AdminLayout>
+              <Toaster position="top-right" richColors />
+            </QueryProvider>
+          </ToastProvider>
+        </AuthProvider>
       </body>
     </html>
   )

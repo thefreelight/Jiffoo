@@ -283,6 +283,124 @@ export default function PluginConfigurePage() {
             ],
           },
         },
+        'alipay-pro': {
+          id: 'alipay-pro',
+          name: 'Alipay Professional',
+          version: '2.1.0',
+          author: 'Jiffoo Team',
+          description: 'Complete Alipay integration with advanced features for production use',
+          isInstalled: true,
+          isActive: true,
+          currentConfig: {
+            environment: 'sandbox',
+            signType: 'RSA2',
+            charset: 'utf-8',
+            sandbox: true,
+          },
+          schema: {
+            type: 'object',
+            properties: {
+              appId: {
+                type: 'string',
+                description: 'Your Alipay App ID from the developer console',
+                pattern: '^[0-9]{16}$',
+                minLength: 16,
+                maxLength: 16,
+                sensitive: false,
+                required: true,
+                placeholder: '2021000000000000'
+              },
+              privateKey: {
+                type: 'string',
+                description: 'RSA private key for signing requests (PEM format)',
+                minLength: 100,
+                sensitive: true,
+                required: true,
+                multiline: true,
+                placeholder: '-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----'
+              },
+              alipayPublicKey: {
+                type: 'string',
+                description: 'Alipay public key for verifying responses (PEM format)',
+                minLength: 100,
+                sensitive: true,
+                required: true,
+                multiline: true,
+                placeholder: '-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----'
+              },
+              sandbox: {
+                type: 'boolean',
+                default: true,
+                description: 'Enable sandbox environment for testing',
+              },
+              signType: {
+                type: 'string',
+                enum: ['RSA2', 'RSA'],
+                default: 'RSA2',
+                description: 'Signature algorithm (RSA2 recommended)',
+              },
+              charset: {
+                type: 'string',
+                enum: ['utf-8', 'gbk'],
+                default: 'utf-8',
+                description: 'Character encoding for requests',
+              },
+              notifyUrl: {
+                type: 'string',
+                description: 'URL for receiving payment notifications (webhooks)',
+                pattern: '^https?://.+',
+                placeholder: 'https://your-domain.com/webhooks/alipay'
+              },
+              returnUrl: {
+                type: 'string',
+                description: 'URL to redirect users after payment completion',
+                pattern: '^https?://.+',
+                placeholder: 'https://your-domain.com/payment/success'
+              },
+              timeoutExpress: {
+                type: 'string',
+                default: '30m',
+                description: 'Payment timeout (e.g., 30m, 1h, 1d)',
+                pattern: '^[0-9]+[mhd]$'
+              }
+            },
+            required: ['appId', 'privateKey', 'alipayPublicKey'],
+            additionalProperties: false,
+          },
+          documentation: {
+            overview: 'Configure your Alipay Professional integration. Ensure you have the correct App ID and RSA keys from your Alipay developer account.',
+            examples: [
+              {
+                title: 'Sandbox Setup',
+                config: {
+                  appId: '2021000000000000',
+                  privateKey: '-----BEGIN RSA PRIVATE KEY-----\n[Your Private Key]\n-----END RSA PRIVATE KEY-----',
+                  alipayPublicKey: '-----BEGIN PUBLIC KEY-----\n[Alipay Public Key]\n-----END PUBLIC KEY-----',
+                  sandbox: true,
+                  signType: 'RSA2',
+                  charset: 'utf-8',
+                  notifyUrl: 'https://your-domain.com/webhooks/alipay',
+                  returnUrl: 'https://your-domain.com/payment/success',
+                  timeoutExpress: '30m'
+                },
+              },
+              {
+                title: 'Production Setup',
+                config: {
+                  appId: '2021000000000001',
+                  privateKey: '-----BEGIN RSA PRIVATE KEY-----\n[Your Production Private Key]\n-----END RSA PRIVATE KEY-----',
+                  alipayPublicKey: '-----BEGIN PUBLIC KEY-----\n[Alipay Production Public Key]\n-----END PUBLIC KEY-----',
+                  sandbox: false,
+                  signType: 'RSA2',
+                  charset: 'utf-8',
+                  notifyUrl: 'https://your-domain.com/webhooks/alipay',
+                  returnUrl: 'https://your-domain.com/payment/success',
+                  timeoutExpress: '1h'
+                },
+              },
+            ],
+          },
+        },
       };
 
       const pluginConfig = mockPluginConfigs[params.id as string];

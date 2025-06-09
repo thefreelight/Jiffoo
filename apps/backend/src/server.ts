@@ -33,18 +33,10 @@ import { i18nRoutes } from '@/core/i18n/routes';
 import { I18nMiddleware } from '@/core/i18n/middleware';
 
 // Import commercialization routes
-import { licenseRoutes } from '@/core/licensing/license-routes';
-import { licenseRoutes as newLicenseRoutes } from '@/routes/license-routes';
-import { pluginStoreRoutes } from '@/core/plugin-store/plugin-store-routes';
-import { saasRoutes } from '@/core/saas/saas-routes';
-import { templateRoutes } from '@/core/templates/template-manager';
-import { tenantRoutes } from '@/core/tenant/tenant-routes';
-import { salesRoutes } from '@/core/sales/sales-routes';
 import { permissionRoutes as authPermissionRoutes } from '@/core/auth/permission-routes';
 
 // Import OAuth 2.0 and SaaS marketplace routes
 import { oauth2Routes } from '@/core/auth/oauth2-routes';
-import { saasMarketplaceRoutes } from '@/core/saas-marketplace/saas-routes';
 
 const fastify = Fastify({
   logger: {
@@ -479,18 +471,11 @@ async function buildApp() {
     await fastify.register(i18nRoutes, { prefix: '/api/i18n' });
 
     // Commercialization routes
-    await fastify.register(licenseRoutes, { prefix: '/api/licenses' });
     await fastify.register(newLicenseRoutes, { prefix: '/api' });
-    await fastify.register(pluginStoreRoutes, { prefix: '/api/plugin-store' });
-    await fastify.register(saasRoutes, { prefix: '/api/saas' });
-    await fastify.register(templateRoutes, { prefix: '/api/templates' });
-    await fastify.register(tenantRoutes, { prefix: '/api/tenants' });
-    await fastify.register(salesRoutes, { prefix: '/api/sales' });
     await fastify.register(authPermissionRoutes, { prefix: '/api/permissions' });
 
     // OAuth 2.0 and SaaS marketplace routes
     await fastify.register(oauth2Routes, { prefix: '' }); // No prefix for OAuth routes
-    await fastify.register(saasMarketplaceRoutes, { prefix: '/api' });
 
     // Initialize plugin system
     const pluginManager = new DefaultPluginManager(fastify);

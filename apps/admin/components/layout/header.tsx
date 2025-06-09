@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '../../lib/store'
+import { useAuth } from '../../hooks/useAuth'
 import { Button } from '../ui/button'
 import {
   MagnifyingGlassIcon,
@@ -29,7 +29,7 @@ interface HeaderProps {
 
 export function Header({ title = "Dashboard" }: HeaderProps) {
   const router = useRouter()
-  const { user, logout } = useAuthStore()
+  const { user, logout } = useAuth()
   const [isDark, setIsDark] = useState(false)
 
   const handleLogout = () => {
