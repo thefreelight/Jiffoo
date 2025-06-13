@@ -3,6 +3,16 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '../../components/ui/button'
+import { useUsers } from '../../lib/hooks/use-api'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import {
   MagnifyingGlassIcon,
   FunnelIcon,
@@ -10,86 +20,45 @@ import {
   EnvelopeIcon,
   PhoneIcon,
   UserPlusIcon,
+  ExclamationTriangleIcon,
+  UsersIcon,
+  CurrencyDollarIcon,
+  ShoppingBagIcon,
 } from '@heroicons/react/24/outline'
-
-// Mock customer data
-const customers = [
-  {
-    id: 1,
-    name: 'Zhang Wei',
-    email: 'zhang.wei@email.com',
-    phone: '+86 138 0013 8000',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
-    joinDate: '2023-06-15',
-    totalOrders: 12,
-    totalSpent: 45600,
-    status: 'Active',
-    location: 'Beijing, China',
-    lastOrder: '2024-01-10',
-  },
-  {
-    id: 2,
-    name: 'Li Mei',
-    email: 'li.mei@email.com',
-    phone: '+86 139 0013 9000',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face',
-    joinDate: '2023-08-22',
-    totalOrders: 8,
-    totalSpent: 23400,
-    status: 'Active',
-    location: 'Shanghai, China',
-    lastOrder: '2024-01-12',
-  },
-  {
-    id: 3,
-    name: 'Wang Lei',
-    email: 'wang.lei@email.com',
-    phone: '+86 137 0013 7000',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face',
-    joinDate: '2023-03-10',
-    totalOrders: 25,
-    totalSpent: 89200,
-    status: 'VIP',
-    location: 'Guangzhou, China',
-    lastOrder: '2024-01-14',
-  },
-  {
-    id: 4,
-    name: 'Chen Xiao',
-    email: 'chen.xiao@email.com',
-    phone: '+86 136 0013 6000',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face',
-    joinDate: '2023-11-05',
-    totalOrders: 3,
-    totalSpent: 8900,
-    status: 'Active',
-    location: 'Shenzhen, China',
-    lastOrder: '2024-01-08',
-  },
-  {
-    id: 5,
-    name: 'Liu Yang',
-    email: 'liu.yang@email.com',
-    phone: '+86 135 0013 5000',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face',
-    joinDate: '2023-01-20',
-    totalOrders: 0,
-    totalSpent: 0,
-    status: 'Inactive',
-    location: 'Hangzhou, China',
-    lastOrder: 'Never',
-  },
-]
 
 export default function CustomersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('All')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(10)
 
-  const filteredCustomers = customers.filter(customer => {
-    const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         customer.phone.includes(searchTerm)
-    const matchesStatus = selectedStatus === 'All' || customer.status === selectedStatus
+  // API hooks
+  const {
+    data: usersData,
+    isLoading,
+    error,
+    refetch
+  } = useUsers({
+    page: currentPage,
+    limit: pageSize,
+    search: searchTerm,
+    role: 'customer' // Only fetch customers
+  })
+
+  const users = usersData?.data || []
+  const pagination = usersData?.pagination
+
+  // Filter users locally for immediate feedback
+  const filteredCustomers = users.filter(user => {
+    if (!user) return false
+    const matchesSearch = searchTerm === '' ||
+      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+
+    // Map user status to customer status
+    const customerStatus = user.role === 'vip' ? 'VIP' :
+                          user.isActive ? 'Active' : 'Inactive'
+    const matchesStatus = selectedStatus === 'All' || customerStatus === selectedStatus
     return matchesSearch && matchesStatus
   })
 
@@ -104,6 +73,96 @@ export default function CustomersPage() {
       default:
         return 'bg-gray-100 text-gray-800'
     }
+  }
+
+  const getCustomerStatus = (user: any) => {
+    if (user.role === 'vip') return 'VIP'
+    return user.isActive ? 'Active' : 'Inactive'
+  }
+
+  // Calculate stats from users data
+  const customerStats = {
+    total: pagination?.total || 0,
+    active: users.filter(user => user.isActive).length,
+    vip: users.filter(user => user.role === 'vip').length,
+    newThisMonth: users.filter(user => {
+      const createdDate = new Date(user.createdAt)
+      const now = new Date()
+      return createdDate.getMonth() === now.getMonth() &&
+             createdDate.getFullYear() === now.getFullYear()
+    }).length,
+  }
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <ExclamationTriangleIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load customers</h3>
+              <p className="text-gray-600 mb-4">There was an error loading the customer data.</p>
+              <Button onClick={() => refetch()}>Try Again</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  const getCustomerStatus = (user: any) => {
+    if (user.role === 'vip') return 'VIP'
+    return user.isActive ? 'Active' : 'Inactive'
+  }
+
+  // Calculate stats from users data
+  const customerStats = {
+    total: pagination?.total || 0,
+    active: users.filter(user => user.isActive).length,
+    vip: users.filter(user => user.role === 'vip').length,
+    newThisMonth: users.filter(user => {
+      const createdDate = new Date(user.createdAt)
+      const now = new Date()
+      return createdDate.getMonth() === now.getMonth() &&
+             createdDate.getFullYear() === now.getFullYear()
+    }).length,
+  }
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <ExclamationTriangleIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load customers</h3>
+              <p className="text-gray-600 mb-4">There was an error loading the customer data.</p>
+              <Button onClick={() => refetch()}>Try Again</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -124,170 +183,223 @@ export default function CustomersPage() {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-center">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600">Total Customers</p>
-                  <p className="text-2xl font-bold text-gray-900">8,567</p>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Total Customers</p>
+                    <p className="text-2xl font-bold text-gray-900">{customerStats.total.toLocaleString()}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <UsersIcon className="w-6 h-6 text-blue-600" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <UserPlusIcon className="w-6 h-6 text-blue-600" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">Active</p>
+                    <p className="text-2xl font-bold text-green-600">{customerStats.active}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                    <UsersIcon className="w-6 h-6 text-green-600" />
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-center">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600">Active</p>
-                  <p className="text-2xl font-bold text-green-600">7,234</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">VIP</p>
+                    <p className="text-2xl font-bold text-purple-600">{customerStats.vip}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <UsersIcon className="w-6 h-6 text-purple-600" />
+                  </div>
                 </div>
-                <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                  <UserPlusIcon className="w-6 h-6 text-green-600" />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center">
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-600">New This Month</p>
+                    <p className="text-2xl font-bold text-blue-600">{customerStats.newThisMonth}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <UserPlusIcon className="w-6 h-6 text-blue-600" />
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-center">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600">VIP</p>
-                  <p className="text-2xl font-bold text-purple-600">456</p>
-                </div>
-                <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                  <UserPlusIcon className="w-6 h-6 text-purple-600" />
-                </div>
-              </div>
-            </div>
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <div className="flex items-center">
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-600">New This Month</p>
-                  <p className="text-2xl font-bold text-blue-600">234</p>
-                </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                  <UserPlusIcon className="w-6 h-6 text-blue-600" />
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Filters */}
-          <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search customers..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+          <Card className="mb-6">
+            <CardContent className="p-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search customers by name or email..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+                    <SelectTrigger className="w-40">
+                      <SelectValue placeholder="All Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="All">All Status</SelectItem>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="VIP">VIP</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline">
+                    <FunnelIcon className="w-4 h-4 mr-2" />
+                    More Filters
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <select
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            </CardContent>
+          </Card>
+
+          {/* Customers Table */}
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b border-gray-200">
+                    <tr>
+                      <th className="text-left py-3 px-6 font-medium text-gray-900">Customer</th>
+                      <th className="text-left py-3 px-6 font-medium text-gray-900">Contact</th>
+                      <th className="text-left py-3 px-6 font-medium text-gray-900">Join Date</th>
+                      <th className="text-left py-3 px-6 font-medium text-gray-900">Role</th>
+                      <th className="text-left py-3 px-6 font-medium text-gray-900">Status</th>
+                      <th className="text-left py-3 px-6 font-medium text-gray-900">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {filteredCustomers.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center">
+                          <div className="text-gray-500">
+                            {searchTerm ? 'No customers found matching your search.' : 'No customers found.'}
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredCustomers.map((customer) => (
+                        <tr key={customer.id} className="hover:bg-gray-50">
+                          <td className="py-4 px-6">
+                            <div className="flex items-center">
+                              <div className="w-10 h-10 bg-gray-200 rounded-full mr-4 flex items-center justify-center">
+                                <span className="text-sm font-medium text-gray-600">
+                                  {customer.username?.charAt(0)?.toUpperCase() || 'U'}
+                                </span>
+                              </div>
+                              <div>
+                                <div className="font-medium text-gray-900">{customer.username || 'Unknown'}</div>
+                                <div className="text-sm text-gray-500">ID: {customer.id}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="text-sm">
+                              <div className="text-gray-900">{customer.email || 'No email'}</div>
+                              <div className="text-gray-500">{customer.phone || 'No phone'}</div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-6 text-gray-600">
+                            {customer.createdAt ? new Date(customer.createdAt).toLocaleDateString() : 'Unknown'}
+                          </td>
+                          <td className="py-4 px-6">
+                            <Badge className={customer.role === 'vip' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'}>
+                              {customer.role || 'user'}
+                            </Badge>
+                          </td>
+                          <td className="py-4 px-6">
+                            <Badge className={getStatusColor(getCustomerStatus(customer))}>
+                              {getCustomerStatus(customer)}
+                            </Badge>
+                          </td>
+                          <td className="py-4 px-6">
+                            <div className="flex items-center space-x-2">
+                              <Link href={`/customers/${customer.id}`}>
+                                <Button variant="ghost" size="sm">
+                                  <EyeIcon className="w-4 h-4" />
+                                </Button>
+                              </Link>
+                              <Button variant="ghost" size="sm">
+                                <EnvelopeIcon className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="sm">
+                                <PhoneIcon className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Pagination */}
+          {pagination && (
+            <div className="mt-6 flex items-center justify-between">
+              <div className="text-sm text-gray-700">
+                Showing <span className="font-medium">{((currentPage - 1) * pageSize) + 1}</span> to{' '}
+                <span className="font-medium">
+                  {Math.min(currentPage * pageSize, pagination.total)}
+                </span> of{' '}
+                <span className="font-medium">{pagination.total}</span> results
+              </div>
+              <div className="flex items-center space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
                 >
-                  <option value="All">All Status</option>
-                  <option value="Active">Active</option>
-                  <option value="VIP">VIP</option>
-                  <option value="Inactive">Inactive</option>
-                </select>
-                <Button variant="outline">
-                  <FunnelIcon className="w-4 h-4 mr-2" />
-                  More Filters
+                  Previous
+                </Button>
+                {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                  const page = i + 1
+                  return (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </Button>
+                  )
+                })}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                  disabled={currentPage === pagination.totalPages}
+                >
+                  Next
                 </Button>
               </div>
             </div>
-          </div>
-
-          {/* Customers Table */}
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left py-3 px-6 font-medium text-gray-900">Customer</th>
-                    <th className="text-left py-3 px-6 font-medium text-gray-900">Contact</th>
-                    <th className="text-left py-3 px-6 font-medium text-gray-900">Location</th>
-                    <th className="text-left py-3 px-6 font-medium text-gray-900">Join Date</th>
-                    <th className="text-left py-3 px-6 font-medium text-gray-900">Orders</th>
-                    <th className="text-left py-3 px-6 font-medium text-gray-900">Total Spent</th>
-                    <th className="text-left py-3 px-6 font-medium text-gray-900">Status</th>
-                    <th className="text-left py-3 px-6 font-medium text-gray-900">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredCustomers.map((customer) => (
-                    <tr key={customer.id} className="hover:bg-gray-50">
-                      <td className="py-4 px-6">
-                        <div className="flex items-center">
-                          <img
-                            src={customer.avatar}
-                            alt={customer.name}
-                            className="w-10 h-10 rounded-full mr-4"
-                          />
-                          <div>
-                            <div className="font-medium text-gray-900">{customer.name}</div>
-                            <div className="text-sm text-gray-500">ID: {customer.id}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="text-sm">
-                          <div className="text-gray-900">{customer.email}</div>
-                          <div className="text-gray-500">{customer.phone}</div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-6 text-gray-600">{customer.location}</td>
-                      <td className="py-4 px-6 text-gray-600">{customer.joinDate}</td>
-                      <td className="py-4 px-6">
-                        <div className="text-gray-900 font-medium">{customer.totalOrders}</div>
-                        <div className="text-sm text-gray-500">Last: {customer.lastOrder}</div>
-                      </td>
-                      <td className="py-4 px-6 font-medium text-gray-900">¥{customer.totalSpent.toLocaleString()}</td>
-                      <td className="py-4 px-6">
-                        <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(customer.status)}`}>
-                          {customer.status}
-                        </span>
-                      </td>
-                      <td className="py-4 px-6">
-                        <div className="flex items-center space-x-2">
-                          <button className="p-1 text-gray-400 hover:text-blue-600">
-                            <EyeIcon className="w-4 h-4" />
-                          </button>
-                          <button className="p-1 text-gray-400 hover:text-blue-600">
-                            <EnvelopeIcon className="w-4 h-4" />
-                          </button>
-                          <button className="p-1 text-gray-400 hover:text-blue-600">
-                            <PhoneIcon className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Pagination */}
-          <div className="mt-6 flex items-center justify-between">
-            <div className="text-sm text-gray-700">
-              Showing <span className="font-medium">1</span> to <span className="font-medium">{filteredCustomers.length}</span> of{' '}
-              <span className="font-medium">{customers.length}</span> results
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm">Previous</Button>
-              <Button variant="outline" size="sm">1</Button>
-              <Button variant="outline" size="sm">2</Button>
-              <Button variant="outline" size="sm">3</Button>
-              <Button variant="outline" size="sm">Next</Button>
-            </div>
-          </div>
+          )}
     </div>
   )
 }

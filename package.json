@@ -1,7 +1,7 @@
 {
-  "name": "jiffoo-mall-core",
+  "name": "jiffoo",
   "version": "0.2.0",
-  "description": "Jiffoo Mall Core - Private development repository with full features",
+  "description": "A comprehensive, full-stack e-commerce platform built with modern technologies",
   "private": true,
   "workspaces": [
     "apps/*",

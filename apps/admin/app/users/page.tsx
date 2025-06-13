@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '../../components/ui/button'
+import { useUsers, useDeleteUser } from '../../lib/hooks/use-api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -23,6 +24,7 @@ import {
   UserIcon,
   EnvelopeIcon,
   CalendarIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 
 // Mock user data
@@ -121,8 +123,41 @@ export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedRole, setSelectedRole] = useState('All')
   const [selectedStatus, setSelectedStatus] = useState('All')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(10)
 
-  const filteredUsers = users.filter(user => {
+  // API hooks
+  const {
+    data: usersData,
+    isLoading,
+    error,
+    refetch
+  } = useUsers({
+    page: currentPage,
+    limit: pageSize,
+    search: searchTerm,
+    role: selectedRole !== 'All' ? selectedRole : undefined
+  })
+
+  const deleteUserMutation = useDeleteUser()
+
+  const apiUsers = usersData?.data || []
+  const pagination = usersData?.pagination
+
+  // Combine API users with mock data for demonstration
+  const allUsers = [...users, ...apiUsers.map(user => ({
+    id: user.id,
+    name: user.username || 'Unknown',
+    email: user.email || 'No email',
+    role: user.role || 'user',
+    status: user.isActive ? 'active' : 'inactive',
+    avatar: `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face`,
+    lastLogin: user.lastLoginAt || user.createdAt,
+    createdAt: user.createdAt,
+    permissions: user.role === 'admin' ? ['all'] : ['basic']
+  }))]
+
+  const filteredUsers = allUsers.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = selectedRole === 'All' || user.role === selectedRole
@@ -130,6 +165,17 @@ export default function UsersPage() {
 
     return matchesSearch && matchesRole && matchesStatus
   })
+
+  const handleDeleteUser = async (userId: string) => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
+      try {
+        await deleteUserMutation.mutateAsync(userId)
+        refetch()
+      } catch (error) {
+        console.error('Failed to delete user:', error)
+      }
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -170,6 +216,33 @@ export default function UsersPage() {
     }
   }
 
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <ExclamationTriangleIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load users</h3>
+              <p className="text-gray-600 mb-4">There was an error loading the user data.</p>
+              <Button onClick={() => refetch()}>Try Again</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="p-6">
       {/* Page Header */}
@@ -197,7 +270,7 @@ export default function UsersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{allUsers.length}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                 <UserIcon className="w-6 h-6 text-blue-600" />
@@ -212,7 +285,7 @@ export default function UsersPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Users</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {users.filter(u => u.status === 'active').length}
+                  {allUsers.filter(u => u.status === 'active').length}
                 </p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -308,7 +381,7 @@ export default function UsersPage() {
             <CardHeader>
               <CardTitle>Users</CardTitle>
               <CardDescription>
-                Showing {filteredUsers.length} of {users.length} users
+                Showing {filteredUsers.length} of {allUsers.length} users
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -354,15 +427,22 @@ export default function UsersPage() {
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center space-x-2">
-                            <button className="p-1 text-gray-400 hover:text-blue-600">
-                              <EyeIcon className="w-4 h-4" />
-                            </button>
-                            <button className="p-1 text-gray-400 hover:text-blue-600">
+                            <Link href={`/users/${user.id}`}>
+                              <Button variant="ghost" size="sm">
+                                <EyeIcon className="w-4 h-4" />
+                              </Button>
+                            </Link>
+                            <Button variant="ghost" size="sm">
                               <PencilIcon className="w-4 h-4" />
-                            </button>
-                            <button className="p-1 text-gray-400 hover:text-red-600">
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteUser(user.id.toString())}
+                              disabled={deleteUserMutation.isPending}
+                            >
                               <TrashIcon className="w-4 h-4" />
-                            </button>
+                            </Button>
                           </div>
                         </td>
                       </tr>
