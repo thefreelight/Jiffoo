@@ -13,27 +13,31 @@ import { useRouter } from 'next/navigation';
 
 export default function RegisterPage() {
   const { currentLanguage } = useTranslation();
-  const { login } = useAuthStore();
+  const { register, isLoading, error, clearError } = useAuthStore();
   const { toast } = useToast();
   const router = useRouter();
 
   const [formData, setFormData] = React.useState({
-    name: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
   });
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
-  const [isLoading, setIsLoading] = React.useState(false);
   const [acceptTerms, setAcceptTerms] = React.useState(false);
+
+  // Clear any previous errors when component mounts
+  React.useEffect(() => {
+    clearError();
+  }, [clearError]);
 
   const translations: Record<string, Record<string, string>> = {
     'en-US': {
       title: 'Create Account',
       subtitle: 'Join Jiffoo Mall and start your shopping journey',
-      nameLabel: 'Full Name',
-      namePlaceholder: 'Enter your full name',
+      usernameLabel: 'Username',
+      usernamePlaceholder: 'Choose a username',
       emailLabel: 'Email Address',
       emailPlaceholder: 'Enter your email',
       passwordLabel: 'Password',
@@ -46,12 +50,12 @@ export default function RegisterPage() {
       orContinueWith: 'Or continue with',
       google: 'Google',
       facebook: 'Facebook',
-      nameRequired: 'Full name is required',
+      usernameRequired: 'Username is required',
       emailRequired: 'Email is required',
       passwordRequired: 'Password is required',
       confirmPasswordRequired: 'Please confirm your password',
       invalidEmail: 'Please enter a valid email address',
-      passwordTooShort: 'Password must be at least 8 characters',
+      passwordTooShort: 'Password must be at least 6 characters',
       passwordMismatch: 'Passwords do not match',
       registerSuccess: 'Account created successfully!',
       registerError: 'Failed to create account',
@@ -63,8 +67,8 @@ export default function RegisterPage() {
     'zh-CN': {
       title: '创建账户',
       subtitle: '加入 Jiffoo 商城，开始您的购物之旅',
-      nameLabel: '姓名',
-      namePlaceholder: '请输入您的姓名',
+      usernameLabel: '用户名',
+      usernamePlaceholder: '选择一个用户名',
       emailLabel: '邮箱地址',
       emailPlaceholder: '请输入邮箱',
       passwordLabel: '密码',
@@ -77,12 +81,12 @@ export default function RegisterPage() {
       orContinueWith: '或者使用以下方式继续',
       google: '谷歌',
       facebook: '脸书',
-      nameRequired: '姓名是必填项',
+      usernameRequired: '用户名是必填项',
       emailRequired: '邮箱是必填项',
       passwordRequired: '密码是必填项',
       confirmPasswordRequired: '请确认您的密码',
       invalidEmail: '请输入有效的邮箱地址',
-      passwordTooShort: '密码至少需要8个字符',
+      passwordTooShort: '密码至少需要6个字符',
       passwordMismatch: '密码不匹配',
       registerSuccess: '账户创建成功！',
       registerError: '创建账户失败',
@@ -94,8 +98,8 @@ export default function RegisterPage() {
     'ja-JP': {
       title: 'アカウント作成',
       subtitle: 'Jiffoo Mallに参加してショッピングの旅を始めましょう',
-      nameLabel: '氏名',
-      namePlaceholder: 'お名前を入力',
+      usernameLabel: 'ユーザー名',
+      usernamePlaceholder: 'ユーザー名を選択',
       emailLabel: 'メールアドレス',
       emailPlaceholder: 'メールアドレスを入力',
       passwordLabel: 'パスワード',
@@ -108,12 +112,12 @@ export default function RegisterPage() {
       orContinueWith: 'または以下で続行',
       google: 'Google',
       facebook: 'Facebook',
-      nameRequired: '氏名は必須です',
+      usernameRequired: 'ユーザー名は必須です',
       emailRequired: 'メールアドレスは必須です',
       passwordRequired: 'パスワードは必須です',
       confirmPasswordRequired: 'パスワードを確認してください',
       invalidEmail: '有効なメールアドレスを入力してください',
-      passwordTooShort: 'パスワードは8文字以上である必要があります',
+      passwordTooShort: 'パスワードは6文字以上である必要があります',
       passwordMismatch: 'パスワードが一致しません',
       registerSuccess: 'アカウントが正常に作成されました！',
       registerError: 'アカウントの作成に失敗しました',
@@ -140,10 +144,13 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Clear any previous errors
+    clearError();
+
     // Validation
-    if (!formData.name.trim()) {
+    if (!formData.username.trim()) {
       toast({
-        title: t('nameRequired'),
+        title: t('usernameRequired'),
         variant: 'destructive',
       });
       return;
@@ -173,7 +180,7 @@ export default function RegisterPage() {
       return;
     }
 
-    if (formData.password.length < 8) {
+    if (formData.password.length < 6) {
       toast({
         title: t('passwordTooShort'),
         variant: 'destructive',
@@ -205,32 +212,26 @@ export default function RegisterPage() {
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      // Mock registration success
-      login({
-        id: '1',
+      // 使用真实的API调用进行注册
+      await register({
         email: formData.email,
-        name: formData.name,
-        avatar: null,
+        username: formData.username,
+        password: formData.password,
       });
 
       toast({
         title: t('registerSuccess'),
       });
 
+      // 注册成功后跳转到首页
       router.push('/');
-    } catch (error) {
+    } catch (error: any) {
+      // 错误已经在store中处理，这里只需要显示toast
       toast({
-        title: t('registerError'),
+        title: error.message || t('registerError'),
         variant: 'destructive',
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -247,21 +248,28 @@ export default function RegisterPage() {
         <p className="text-muted-foreground">{t('subtitle')}</p>
       </div>
 
+      {/* Display error if any */}
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-red-600 text-sm">{error}</p>
+        </div>
+      )}
+
       {/* Registration Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Name Field */}
+        {/* Username Field */}
         <div className="space-y-2">
-          <label htmlFor="name" className="text-sm font-medium">
-            {t('nameLabel')}
+          <label htmlFor="username" className="text-sm font-medium">
+            {t('usernameLabel')}
           </label>
           <div className="relative">
             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              id="name"
+              id="username"
               type="text"
-              placeholder={t('namePlaceholder')}
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
+              placeholder={t('usernamePlaceholder')}
+              value={formData.username}
+              onChange={(e) => handleInputChange('username', e.target.value)}
               className="pl-10"
               disabled={isLoading}
             />
@@ -307,6 +315,7 @@ export default function RegisterPage() {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              disabled={isLoading}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -333,6 +342,7 @@ export default function RegisterPage() {
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              disabled={isLoading}
             >
               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -346,7 +356,8 @@ export default function RegisterPage() {
             id="acceptTerms"
             checked={acceptTerms}
             onChange={(e) => setAcceptTerms(e.target.checked)}
-            className="mt-1 rounded"
+            className="mt-1 w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+            disabled={isLoading}
           />
           <label htmlFor="acceptTerms" className="text-sm text-muted-foreground">
             {t('acceptTerms').split('Terms of Service')[0]}
@@ -364,55 +375,71 @@ export default function RegisterPage() {
         <Button
           type="submit"
           className="w-full"
-          size="lg"
-          loading={isLoading}
+          disabled={isLoading}
         >
-          {t('signUp')}
-          <ArrowRight className="ml-2 h-4 w-4" />
+          {isLoading ? (
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <span>Creating account...</span>
+            </div>
+          ) : (
+            <div className="flex items-center space-x-2">
+              <span>{t('signUp')}</span>
+              <ArrowRight className="w-4 h-4" />
+            </div>
+          )}
         </Button>
       </form>
 
-      {/* Divider */}
-      <div className="my-6">
+      {/* Social Login */}
+      <div className="mt-6">
         <div className="relative">
           <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t" />
+            <span className="w-full border-t" />
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="bg-white dark:bg-gray-900 px-4 text-muted-foreground">
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
               {t('orContinueWith')}
             </span>
           </div>
         </div>
-      </div>
 
-      {/* Social Login */}
-      <div className="grid grid-cols-2 gap-4">
-        <Button variant="outline" className="w-full">
-          <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-            <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-            <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-            <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-          </svg>
-          {t('google')}
-        </Button>
-        <Button variant="outline" className="w-full">
-          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-          </svg>
-          {t('facebook')}
-        </Button>
+        <div className="grid grid-cols-2 gap-3 mt-6">
+          <Button variant="outline" disabled={isLoading}>
+            <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+              <path
+                fill="currentColor"
+                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+              />
+              <path
+                fill="currentColor"
+                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+              />
+              <path
+                fill="currentColor"
+                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+              />
+              <path
+                fill="currentColor"
+                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+              />
+            </svg>
+            {t('google')}
+          </Button>
+          <Button variant="outline" disabled={isLoading}>
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+            </svg>
+            {t('facebook')}
+          </Button>
+        </div>
       </div>
 
       {/* Sign In Link */}
       <div className="text-center mt-6">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-muted-foreground">
           {t('haveAccount')}{' '}
-          <Link
-            href="/auth/login"
-            className="text-primary hover:underline font-medium"
-          >
+          <Link href="/auth/login" className="text-primary hover:underline font-medium">
             {t('signIn')}
           </Link>
         </p>

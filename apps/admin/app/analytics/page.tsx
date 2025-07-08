@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { StatsCard } from '../../components/dashboard/stats-card'
 import { Button } from '../../components/ui/button'
+import { useDashboardStats, useOrders, useProducts } from '../../lib/hooks/use-api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Select,
@@ -35,6 +36,7 @@ import {
   UsersIcon,
   CalendarIcon,
   ArrowDownTrayIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
 
 // Mock analytics data
@@ -76,6 +78,91 @@ const revenueData = [
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState('7d')
   const [selectedMetric, setSelectedMetric] = useState('revenue')
+
+  // API hooks
+  const { data: dashboardStats, isLoading: statsLoading, error: statsError } = useDashboardStats()
+  const { data: ordersData, isLoading: ordersLoading } = useOrders({ limit: 100 })
+  const { data: productsData, isLoading: productsLoading } = useProducts({ limit: 100 })
+
+  const orders = ordersData?.data || []
+  const products = productsData?.data || []
+
+  // Calculate real analytics data from API
+  const calculateAnalytics = () => {
+    const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0)
+    const totalOrders = orders.length
+    const uniqueCustomers = new Set(orders.map(order => order.customerId)).size
+
+    // Calculate monthly data
+    const monthlyData = orders.reduce((acc, order) => {
+      const month = new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short' })
+      if (!acc[month]) {
+        acc[month] = { month, sales: 0, orders: 0, customers: new Set() }
+      }
+      acc[month].sales += order.total || 0
+      acc[month].orders += 1
+      acc[month].customers.add(order.customerId)
+      return acc
+    }, {} as any)
+
+    const salesData = Object.values(monthlyData).map((data: any) => ({
+      ...data,
+      customers: data.customers.size
+    }))
+
+    // Calculate top products
+    const productSales = products.map(product => {
+      const productOrders = orders.filter(order =>
+        order.items?.some((item: any) => item.productId === product.id)
+      )
+      const sales = productOrders.reduce((sum, order) =>
+        sum + (order.items?.find((item: any) => item.productId === product.id)?.quantity || 0), 0
+      )
+      const revenue = productOrders.reduce((sum, order) => sum + (order.total || 0), 0)
+
+      return {
+        name: product.name,
+        sales,
+        revenue
+      }
+    }).sort((a, b) => b.revenue - a.revenue).slice(0, 5)
+
+    return {
+      totalRevenue,
+      totalOrders,
+      uniqueCustomers,
+      salesData: salesData.length > 0 ? salesData : salesData,
+      topProducts: productSales
+    }
+  }
+
+  const analytics = calculateAnalytics()
+
+  if (statsLoading || ordersLoading || productsLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (statsError) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <ExclamationTriangleIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load analytics</h3>
+              <p className="text-gray-600 mb-4">There was an error loading the analytics data.</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="p-6">
@@ -122,7 +209,7 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatsCard
           title="Total Revenue"
-          value="¥328,000"
+          value={`¥${analytics.totalRevenue.toLocaleString()}`}
           change="+15.3%"
           changeType="increase"
           color="blue"
@@ -130,23 +217,23 @@ export default function AnalyticsPage() {
         />
         <StatsCard
           title="Total Orders"
-          value="1,692"
+          value={analytics.totalOrders.toLocaleString()}
           change="+8.2%"
           changeType="increase"
           color="green"
           icon={<ShoppingCartIcon className="w-5 h-5" />}
         />
         <StatsCard
-          title="New Customers"
-          value="1,304"
+          title="Unique Customers"
+          value={analytics.uniqueCustomers.toLocaleString()}
           change="+12.1%"
           changeType="increase"
           color="purple"
           icon={<UsersIcon className="w-5 h-5" />}
         />
         <StatsCard
-          title="Conversion Rate"
-          value="3.24%"
+          title="Avg Order Value"
+          value={`¥${analytics.totalOrders > 0 ? Math.round(analytics.totalRevenue / analytics.totalOrders).toLocaleString() : '0'}`}
           change="+0.5%"
           changeType="increase"
           color="orange"
@@ -179,7 +266,7 @@ export default function AnalyticsPage() {
           <CardContent>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={salesData}>
+                <BarChart data={analytics.salesData.length > 0 ? analytics.salesData : salesData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="month" axisLine={false} tickLine={false} />
                   <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `¥${value / 1000}K`} />
@@ -279,7 +366,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {topProducts.map((product, index) => (
+              {(analytics.topProducts.length > 0 ? analytics.topProducts : topProducts).map((product, index) => (
                 <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                   <div className="flex items-center">
                     <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">

@@ -9,43 +9,53 @@ interface AuthState {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
+  isChecking: boolean
   login: (email: string, password: string) => Promise<void>
   logout: () => void
   checkAuth: () => Promise<void>
   updateUser: (user: User) => void
+  getAuthToken: () => string | null
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   isAuthenticated: false,
-  isLoading: false,
+  isLoading: true, // 初始状态设为loading，直到认证检查完成
+  isChecking: false,
 
   login: async (email: string, password: string) => {
     set({ isLoading: true })
     try {
-      // 模拟 API 调用延迟
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // 调用真实的后端API
+      const response = await fetch('http://localhost:3001/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
 
-      // 模拟登录验证
-      if (email === 'admin@jiffoo.com' && password === '123456') {
+      const data = await response.json()
+
+      if (response.ok && data.success) {
         const user = {
-          id: '1',
-          email: 'admin@jiffoo.com',
-          name: 'Admin User',
-          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face',
-          role: 'ADMIN' as any,
+          id: data.data.user.id,
+          email: data.data.user.email,
+          name: data.data.user.username,
+          avatar: data.data.user.avatar,
+          role: data.data.user.role as any,
           isActive: true,
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
           lastLoginAt: new Date().toISOString()
         }
 
-        const token = 'mock-admin-token-' + Date.now()
-        Cookies.set('admin_token', token, { expires: 7 })
+        // 保存真实的JWT token
+        Cookies.set('admin_token', data.data.token, { expires: 7 })
         set({ user, isAuthenticated: true, isLoading: false })
       } else {
         set({ isLoading: false })
-        throw new Error('Invalid credentials')
+        throw new Error(data.message || 'Login failed')
       }
     } catch (error) {
       set({ isLoading: false })
@@ -54,43 +64,75 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: () => {
-    authApi.logout()
+    Cookies.remove('admin_token')
     set({ user: null, isAuthenticated: false })
   },
 
   checkAuth: async () => {
-    const token = Cookies.get('admin_token')
-    if (!token) {
-      set({ isAuthenticated: false })
+    const currentState = get()
+    
+    // 如果正在检查，跳过重复检查
+    if (currentState.isChecking) {
       return
     }
 
+    // 如果已经认证且有用户信息，跳过检查
+    if (currentState.isAuthenticated && currentState.user) {
+      return
+    }
+
+    const token = Cookies.get('admin_token')
+    if (!token) {
+      set({ isAuthenticated: false, isLoading: false, isChecking: false })
+      return
+    }
+
+    set({ isLoading: true, isChecking: true })
+
     try {
-      // 模拟检查已存在的 token
-      if (token.startsWith('mock-admin-token-')) {
-        const user = {
-          id: '1',
-          email: 'admin@jiffoo.com',
-          name: 'Admin User',
-          avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face',
-          role: 'ADMIN' as any,
-          isActive: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          lastLoginAt: new Date().toISOString()
+      // 验证真实的JWT token
+      const response = await fetch('http://localhost:3001/api/user/profile', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.data) {
+          const user = {
+            id: data.data.id,
+            email: data.data.email,
+            name: data.data.username,
+            avatar: data.data.avatar,
+            role: data.data.role as any,
+            isActive: true,
+            createdAt: data.data.createdAt,
+            updatedAt: data.data.updatedAt,
+            lastLoginAt: new Date().toISOString()
+          }
+          set({ user, isAuthenticated: true, isLoading: false, isChecking: false })
+        } else {
+          throw new Error('Invalid user data')
         }
-        set({ user, isAuthenticated: true })
       } else {
-        throw new Error('Invalid token')
+        throw new Error('Token validation failed')
       }
     } catch (error) {
+      console.warn('Auth check failed:', error)
       Cookies.remove('admin_token')
-      set({ user: null, isAuthenticated: false })
+      set({ user: null, isAuthenticated: false, isLoading: false, isChecking: false })
     }
   },
 
   updateUser: (user: User) => {
     set({ user })
+  },
+
+  getAuthToken: () => {
+    return Cookies.get('admin_token') || null
   },
 }))
 

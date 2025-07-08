@@ -4,7 +4,6 @@ import './globals.css'
 import { AdminLayout } from '../components/layout/admin-layout'
 import { QueryProvider } from '../lib/providers/query-provider'
 import { Toaster } from 'sonner'
-import { AuthProvider } from '../hooks/useAuth'
 import { ToastProvider } from '../components/ui/toast'
 import { I18nProvider } from '../lib/i18n'
 
@@ -23,16 +22,14 @@ export default function RootLayout({
   return (
     <html lang="zh">
       <body className={inter.className}>
-        <AuthProvider>
-          <ToastProvider>
-            <QueryProvider>
-              <I18nProvider>
-                <AdminLayout>{children}</AdminLayout>
-                <Toaster position="top-right" richColors />
-              </I18nProvider>
-            </QueryProvider>
-          </ToastProvider>
-        </AuthProvider>
+        <ToastProvider>
+          <QueryProvider>
+            <I18nProvider>
+              <AdminLayout>{children}</AdminLayout>
+              <Toaster position="top-right" richColors />
+            </I18nProvider>
+          </QueryProvider>
+        </ToastProvider>
       </body>
     </html>
   )

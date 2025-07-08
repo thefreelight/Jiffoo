@@ -13,7 +13,7 @@ interface AuthState {
 
 interface AuthActions {
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { email: string; password: string; name: string }) => Promise<void>;
+  register: (data: { email: string; password: string; username: string }) => Promise<void>;
   logout: () => void;
   getProfile: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
@@ -67,7 +67,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
-      register: async (data: { email: string; password: string; name: string }) => {
+      register: async (data: { email: string; password: string; username: string }) => {
         try {
           set({ isLoading: true, error: null });
 

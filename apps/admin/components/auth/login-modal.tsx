@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/lib/store';
 import { useToast } from '@/components/ui/toast';
 import { Eye, EyeOff, Lock, Mail, Loader2 } from 'lucide-react';
 
@@ -19,51 +19,38 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   const [email, setEmail] = useState('admin@jiffoo.com');
   const [password, setPassword] = useState('admin123');
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   
-  const { login } = useAuth();
+  const { login, isLoading } = useAuthStore();
   const { addToast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
     if (!email || !password) {
-      addToast({
-        type: 'error',
-        title: 'Validation Error',
-        description: 'Please enter both email and password'
-      });
+      setError('Please enter both email and password');
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      const success = await login(email, password);
+      await login(email, password);
       
-      if (success) {
-        addToast({
-          type: 'success',
-          title: 'Login Successful',
-          description: 'Welcome back to Jiffoo Mall Admin!'
-        });
-        onClose();
-        onSuccess?.();
-      } else {
-        addToast({
-          type: 'error',
-          title: 'Login Failed',
-          description: 'Invalid email or password. Please try again.'
-        });
-      }
-    } catch (error) {
+      addToast({
+        type: 'success',
+        title: 'Login Successful',
+        description: 'Welcome back to Jiffoo Mall Admin!'
+      });
+      onClose();
+      onSuccess?.();
+    } catch (error: any) {
+      const errorMessage = error.message || 'Invalid email or password. Please try again.';
+      setError(errorMessage);
       addToast({
         type: 'error',
-        title: 'Login Error',
-        description: 'An unexpected error occurred. Please try again.'
+        title: 'Login Failed',
+        description: errorMessage
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -101,6 +88,13 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                 <div><strong>Password:</strong> admin123</div>
               </div>
             </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
 
             {/* Email Field */}
             <div className="space-y-2">

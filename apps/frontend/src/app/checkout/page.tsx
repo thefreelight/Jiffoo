@@ -2,14 +2,14 @@
 
 import * as React from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeft, CreditCard, Truck, Shield } from 'lucide-react';
+import { ArrowLeft, CreditCard, Truck, Shield, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useTranslation } from '@/hooks/use-translation';
 import { useCartStore } from '@/store/cart';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
+import { SafeImage } from '@/components/ui/safe-image';
 
 export default function CheckoutPage() {
   const { currentLanguage } = useTranslation();
@@ -334,12 +334,13 @@ export default function CheckoutPage() {
                 <div className="space-y-4 mb-6">
                   {cart.items.map((item) => (
                     <div key={item.id} className="flex gap-3">
-                      <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-muted">
-                        <Image
+                      <div className="relative w-16 h-16 rounded-lg overflow-hidden">
+                        <SafeImage
                           src={item.productImage}
                           alt={item.productName}
                           fill
                           className="object-cover"
+                          fallbackIcon={<ShoppingBag className="h-4 w-4 text-gray-400" />}
                         />
                       </div>
                       <div className="flex-1">

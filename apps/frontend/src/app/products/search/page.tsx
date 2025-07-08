@@ -22,7 +22,8 @@ import {
   Search,
   SlidersHorizontal,
   X,
-  Loader2
+  Loader2,
+  ShoppingBag
 } from 'lucide-react';
 import { productsApi } from '@/lib/api';
 
@@ -290,15 +291,27 @@ export default function ProductSearchPage() {
                         viewMode === 'list' ? 'flex' : ''
                       }`}>
                         {/* Product Image */}
-                        <div className={`relative overflow-hidden ${
+                        <div className={`relative overflow-hidden bg-muted flex items-center justify-center ${
                           viewMode === 'list' ? 'w-48 h-48' : 'aspect-square'
                         }`}>
-                          <Image
-                            src={product.images}
-                            alt={product.name}
-                            fill
-                            className="object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
+                          {product.images && 
+                           product.images !== '[]' && 
+                           product.images !== '' && 
+                           !product.images.startsWith('[') ? (
+                            <Image
+                              src={product.images}
+                              alt={product.name}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+                              <ShoppingBag className="h-12 w-12 text-gray-400" />
+                            </div>
+                          )}
                           
                           {/* Wishlist Button */}
                           <Button

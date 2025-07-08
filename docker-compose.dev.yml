@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: jiffoo-postgres-dev
+    environment:
+      POSTGRES_DB: jiffoo_mall_dev
+      POSTGRES_USER: jiffoo
+      POSTGRES_PASSWORD: jiffoo_dev_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    networks:
+      - jiffoo-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jiffoo -d jiffoo_mall_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: jiffoo-redis-dev
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - jiffoo-dev-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend API (Development with hot reload)
+  backend:
+    image: node:18-alpine
+    container_name: jiffoo-backend-dev
+    working_dir: /app
+    environment:
+      NODE_ENV: development
+      PORT: 8001
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://jiffoo:jiffoo_dev_password@postgres:5432/jiffoo_mall_dev
+      JWT_SECRET: dev-jwt-secret-key
+      JWT_EXPIRES_IN: 7d
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_DB: 0
+    ports:
+      - "8001:8001"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./apps/backend/uploads:/app/uploads
+      - ./apps/backend/logs:/app/logs
+    command: sh -c "npm install -g pnpm && cd apps/backend && pnpm install && pnpm exec prisma generate && pnpm exec prisma db push && pnpm dev"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - jiffoo-dev-network
+
+  # Frontend Web App (Development with hot reload)
+  frontend:
+    image: node:18-alpine
+    container_name: jiffoo-frontend-dev
+    working_dir: /app
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:8001
+    ports:
+      - "3000:3002"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "npm install -g pnpm && cd apps/frontend && pnpm install && pnpm dev"
+    depends_on:
+      - backend
+    networks:
+      - jiffoo-dev-network
+
+  # Admin Dashboard (Development with hot reload)
+  admin:
+    image: node:18-alpine
+    container_name: jiffoo-admin-dev
+    working_dir: /app
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:8001
+    ports:
+      - "3001:3003"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "npm install -g pnpm && cd apps/admin && pnpm install && pnpm dev"
+    depends_on:
+      - backend
+    networks:
+      - jiffoo-dev-network
+
+volumes:
+  postgres_dev_data:
+  redis_dev_data:
+
+networks:
+  jiffoo-dev-network:
+    driver: bridge

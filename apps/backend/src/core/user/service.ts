@@ -13,11 +13,20 @@ export interface ChangePasswordRequest {
 }
 
 export class UserService {
-  static async getAllUsers(page = 1, limit = 10) {
+  static async getAllUsers(page = 1, limit = 10, search?: string) {
     const skip = (page - 1) * limit;
+
+    // 构建搜索条件
+    const whereCondition = search ? {
+      OR: [
+        { username: { contains: search, mode: 'insensitive' as const } },
+        { email: { contains: search, mode: 'insensitive' as const } }
+      ]
+    } : {};
 
     const [users, total] = await Promise.all([
       prisma.user.findMany({
+        where: whereCondition,
         skip,
         take: limit,
         select: {
@@ -33,7 +42,7 @@ export class UserService {
           createdAt: 'desc',
         },
       }),
-      prisma.user.count(),
+      prisma.user.count({ where: whereCondition }),
     ]);
 
     return {

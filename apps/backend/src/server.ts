@@ -33,18 +33,10 @@ import { i18nRoutes } from '@/core/i18n/routes';
 import { I18nMiddleware } from '@/core/i18n/middleware';
 
 // Import commercialization routes
-import { licenseRoutes } from '@/core/licensing/license-routes';
-import { licenseRoutes as newLicenseRoutes } from '@/routes/license-routes';
-import { pluginStoreRoutes } from '@/core/plugin-store/plugin-store-routes';
-import { saasRoutes } from '@/core/saas/saas-routes';
-import { templateRoutes } from '@/core/templates/template-manager';
-import { tenantRoutes } from '@/core/tenant/tenant-routes';
-import { salesRoutes } from '@/core/sales/sales-routes';
 import { permissionRoutes as authPermissionRoutes } from '@/core/auth/permission-routes';
 
 // Import OAuth 2.0 and SaaS marketplace routes
 import { oauth2Routes } from '@/core/auth/oauth2-routes';
-import { saasMarketplaceRoutes } from '@/core/saas-marketplace/saas-routes';
 
 const fastify = Fastify({
   logger: {
@@ -143,7 +135,7 @@ async function buildApp() {
         openapi: '3.0.0',
         info: {
           title: 'Jiffoo Mall API',
-          description: 'Fastify + TypeScript 商城系统 API 文档',
+          description: 'Fastify + TypeScript 商城系统 API 文档 - 现代化电商平台完整API',
           version: '1.0.0',
           contact: {
             name: 'Jiffoo Team',
@@ -161,12 +153,28 @@ async function buildApp() {
           }
         ],
         tags: [
+          { name: 'system', description: '系统接口' },
           { name: 'auth', description: '认证相关接口' },
           { name: 'users', description: '用户管理接口' },
           { name: 'products', description: '商品管理接口' },
+          { name: 'cart', description: '购物车接口' },
           { name: 'orders', description: '订单管理接口' },
           { name: 'payments', description: '支付管理接口' },
-          { name: 'system', description: '系统接口' }
+          { name: 'upload', description: '文件上传接口' },
+          { name: 'search', description: '搜索接口' },
+          { name: 'cache', description: '缓存管理接口' },
+          { name: 'statistics', description: '统计分析接口' },
+          { name: 'inventory', description: '库存管理接口' },
+          { name: 'notifications', description: '通知系统接口' },
+          { name: 'plugins', description: '插件系统接口' },
+          { name: 'i18n', description: '国际化接口' },
+          { name: 'licenses', description: '许可证管理接口' },
+          { name: 'plugin-store', description: '插件商店接口' },
+          { name: 'saas', description: 'SaaS服务接口' },
+          { name: 'templates', description: '模板市场接口' },
+          { name: 'tenants', description: '租户管理接口' },
+          { name: 'sales', description: '销售管理接口' },
+          { name: 'permissions', description: '权限管理接口' }
         ],
         paths: {
           '/': {
@@ -186,7 +194,9 @@ async function buildApp() {
                           version: { type: 'string' },
                           description: { type: 'string' },
                           environment: { type: 'string' },
-                          timestamp: { type: 'string', format: 'date-time' }
+                          timestamp: { type: 'string', format: 'date-time' },
+                          endpoints: { type: 'object' },
+                          documentation: { type: 'object' }
                         }
                       }
                     }
@@ -219,11 +229,161 @@ async function buildApp() {
               }
             }
           },
+          '/api/auth/register': {
+            post: {
+              tags: ['auth'],
+              summary: '用户注册',
+              description: '注册新用户账户',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      required: ['email', 'password', 'name'],
+                      properties: {
+                        email: { type: 'string', format: 'email' },
+                        password: { type: 'string', minLength: 6 },
+                        name: { type: 'string' }
+                      }
+                    }
+                  }
+                }
+              },
+              responses: {
+                '201': {
+                  description: '注册成功',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          user: { type: 'object' },
+                          token: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                },
+                '400': {
+                  description: '注册失败',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          error: { type: 'string' },
+                          message: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/auth/login': {
+            post: {
+              tags: ['auth'],
+              summary: '用户登录',
+              description: '用户登录获取访问令牌',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      required: ['email', 'password'],
+                      properties: {
+                        email: { type: 'string', format: 'email' },
+                        password: { type: 'string' }
+                      }
+                    }
+                  }
+                }
+              },
+              responses: {
+                '200': {
+                  description: '登录成功',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          user: { type: 'object' },
+                          token: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                },
+                '401': {
+                  description: '登录失败',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          error: { type: 'string' },
+                          message: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/auth/me': {
+            get: {
+              tags: ['auth'],
+              summary: '获取当前用户信息',
+              description: '获取当前登录用户的详细信息',
+              security: [{ bearerAuth: [] }],
+              responses: {
+                '200': {
+                  description: '用户信息',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          user: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'string' },
+                              email: { type: 'string' },
+                              name: { type: 'string' },
+                              role: { type: 'string' },
+                              createdAt: { type: 'string', format: 'date-time' }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                '401': {
+                  description: '未授权',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          error: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
           '/api/products': {
             get: {
               tags: ['products'],
               summary: '获取商品列表',
-              description: '获取所有商品的分页列表，支持搜索',
+              description: '获取所有商品的分页列表，支持搜索和筛选',
               parameters: [
                 {
                   name: 'page',
@@ -242,6 +402,42 @@ async function buildApp() {
                   in: 'query',
                   description: '搜索关键词',
                   schema: { type: 'string' }
+                },
+                {
+                  name: 'category',
+                  in: 'query',
+                  description: '商品分类',
+                  schema: { type: 'string' }
+                },
+                {
+                  name: 'minPrice',
+                  in: 'query',
+                  description: '最低价格',
+                  schema: { type: 'number', minimum: 0 }
+                },
+                {
+                  name: 'maxPrice',
+                  in: 'query',
+                  description: '最高价格',
+                  schema: { type: 'number', minimum: 0 }
+                },
+                {
+                  name: 'inStock',
+                  in: 'query',
+                  description: '是否有库存',
+                  schema: { type: 'boolean' }
+                },
+                {
+                  name: 'sortBy',
+                  in: 'query',
+                  description: '排序字段',
+                  schema: { type: 'string', enum: ['name', 'price', 'createdAt', 'stock'], default: 'createdAt' }
+                },
+                {
+                  name: 'sortOrder',
+                  in: 'query',
+                  description: '排序方向',
+                  schema: { type: 'string', enum: ['asc', 'desc'], default: 'desc' }
                 }
               ],
               responses: {
@@ -263,6 +459,8 @@ async function buildApp() {
                                 price: { type: 'number' },
                                 stock: { type: 'integer' },
                                 images: { type: 'string' },
+                                category: { type: 'string' },
+                                totalSold: { type: 'integer' },
                                 createdAt: { type: 'string', format: 'date-time' },
                                 updatedAt: { type: 'string', format: 'date-time' }
                               }
@@ -283,6 +481,481 @@ async function buildApp() {
                   }
                 }
               }
+            },
+            post: {
+              tags: ['products'],
+              summary: '创建商品',
+              description: '创建新商品（管理员权限）',
+              security: [{ bearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      required: ['name', 'description', 'price', 'stock'],
+                      properties: {
+                        name: { type: 'string' },
+                        description: { type: 'string' },
+                        price: { type: 'number', minimum: 0 },
+                        stock: { type: 'integer', minimum: 0 },
+                        category: { type: 'string' },
+                        images: { type: 'string' }
+                      }
+                    }
+                  }
+                }
+              },
+              responses: {
+                '201': {
+                  description: '商品创建成功',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          product: { type: 'object' }
+                        }
+                      }
+                    }
+                  }
+                },
+                '400': {
+                  description: '创建失败',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          error: { type: 'string' },
+                          message: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/products/{id}': {
+            get: {
+              tags: ['products'],
+              summary: '获取商品详情',
+              description: '根据ID获取商品详细信息',
+              parameters: [
+                {
+                  name: 'id',
+                  in: 'path',
+                  required: true,
+                  description: '商品ID',
+                  schema: { type: 'string' }
+                }
+              ],
+              responses: {
+                '200': {
+                  description: '商品详情',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          product: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'string' },
+                              name: { type: 'string' },
+                              description: { type: 'string' },
+                              price: { type: 'number' },
+                              stock: { type: 'integer' },
+                              images: { type: 'string' },
+                              category: { type: 'string' },
+                              totalSold: { type: 'integer' },
+                              createdAt: { type: 'string', format: 'date-time' },
+                              updatedAt: { type: 'string', format: 'date-time' }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                '404': {
+                  description: '商品不存在',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          error: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            put: {
+              tags: ['products'],
+              summary: '更新商品',
+              description: '更新商品信息（管理员权限）',
+              security: [{ bearerAuth: [] }],
+              parameters: [
+                {
+                  name: 'id',
+                  in: 'path',
+                  required: true,
+                  description: '商品ID',
+                  schema: { type: 'string' }
+                }
+              ],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string' },
+                        description: { type: 'string' },
+                        price: { type: 'number', minimum: 0 },
+                        stock: { type: 'integer', minimum: 0 },
+                        category: { type: 'string' },
+                        images: { type: 'string' }
+                      }
+                    }
+                  }
+                }
+              },
+              responses: {
+                '200': {
+                  description: '更新成功',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          product: { type: 'object' }
+                        }
+                      }
+                    }
+                  }
+                },
+                '404': {
+                  description: '商品不存在'
+                }
+              }
+            },
+            delete: {
+              tags: ['products'],
+              summary: '删除商品',
+              description: '删除商品（管理员权限）',
+              security: [{ bearerAuth: [] }],
+              parameters: [
+                {
+                  name: 'id',
+                  in: 'path',
+                  required: true,
+                  description: '商品ID',
+                  schema: { type: 'string' }
+                }
+              ],
+              responses: {
+                '204': {
+                  description: '删除成功'
+                },
+                '404': {
+                  description: '商品不存在'
+                }
+              }
+            }
+          },
+          '/api/cart': {
+            get: {
+              tags: ['cart'],
+              summary: '获取购物车',
+              description: '获取当前用户的购物车内容',
+              responses: {
+                '200': {
+                  description: '购物车内容',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          success: { type: 'boolean' },
+                          data: {
+                            type: 'object',
+                            properties: {
+                              items: {
+                                type: 'array',
+                                items: {
+                                  type: 'object',
+                                  properties: {
+                                    id: { type: 'string' },
+                                    productId: { type: 'string' },
+                                    productName: { type: 'string' },
+                                    productImage: { type: 'string' },
+                                    price: { type: 'number' },
+                                    quantity: { type: 'integer' },
+                                    variantId: { type: 'string' },
+                                    variantName: { type: 'string' },
+                                    maxQuantity: { type: 'integer' }
+                                  }
+                                }
+                              },
+                              total: { type: 'number' },
+                              itemCount: { type: 'integer' },
+                              subtotal: { type: 'number' },
+                              tax: { type: 'number' },
+                              shipping: { type: 'number' }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/cart/add': {
+            post: {
+              tags: ['cart'],
+              summary: '添加商品到购物车',
+              description: '将商品添加到购物车',
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      required: ['productId', 'quantity'],
+                      properties: {
+                        productId: { type: 'string' },
+                        quantity: { type: 'integer', minimum: 1 },
+                        variantId: { type: 'string' }
+                      }
+                    }
+                  }
+                }
+              },
+              responses: {
+                '200': {
+                  description: '添加成功',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          success: { type: 'boolean' },
+                          data: { type: 'object' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/orders': {
+            get: {
+              tags: ['orders'],
+              summary: '获取订单列表',
+              description: '获取用户的订单列表（用户）或所有订单（管理员）',
+              security: [{ bearerAuth: [] }],
+              parameters: [
+                {
+                  name: 'page',
+                  in: 'query',
+                  description: '页码',
+                  schema: { type: 'integer', minimum: 1, default: 1 }
+                },
+                {
+                  name: 'limit',
+                  in: 'query',
+                  description: '每页数量',
+                  schema: { type: 'integer', minimum: 1, maximum: 100, default: 10 }
+                }
+              ],
+              responses: {
+                '200': {
+                  description: '订单列表',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          orders: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                id: { type: 'string' },
+                                userId: { type: 'string' },
+                                status: { type: 'string' },
+                                total: { type: 'number' },
+                                items: { type: 'array' },
+                                createdAt: { type: 'string', format: 'date-time' },
+                                updatedAt: { type: 'string', format: 'date-time' }
+                              }
+                            }
+                          },
+                          pagination: { type: 'object' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            post: {
+              tags: ['orders'],
+              summary: '创建订单',
+              description: '创建新订单',
+              security: [{ bearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      required: ['items'],
+                      properties: {
+                        items: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              productId: { type: 'string' },
+                              quantity: { type: 'integer', minimum: 1 },
+                              price: { type: 'number', minimum: 0 }
+                            }
+                          }
+                        },
+                        shippingAddress: { type: 'object' },
+                        paymentMethod: { type: 'string' }
+                      }
+                    }
+                  }
+                }
+              },
+              responses: {
+                '201': {
+                  description: '订单创建成功',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          order: { type: 'object' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/orders/{id}': {
+            get: {
+              tags: ['orders'],
+              summary: '获取订单详情',
+              description: '根据ID获取订单详细信息',
+              security: [{ bearerAuth: [] }],
+              parameters: [
+                {
+                  name: 'id',
+                  in: 'path',
+                  required: true,
+                  description: '订单ID',
+                  schema: { type: 'string' }
+                }
+              ],
+              responses: {
+                '200': {
+                  description: '订单详情',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          order: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'string' },
+                              userId: { type: 'string' },
+                              status: { type: 'string' },
+                              total: { type: 'number' },
+                              items: { type: 'array' },
+                              shippingAddress: { type: 'object' },
+                              paymentMethod: { type: 'string' },
+                              createdAt: { type: 'string', format: 'date-time' },
+                              updatedAt: { type: 'string', format: 'date-time' }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                '404': {
+                  description: '订单不存在'
+                }
+              }
+            }
+          },
+          '/api/payments/process': {
+            post: {
+              tags: ['payments'],
+              summary: '处理支付',
+              description: '处理订单支付',
+              security: [{ bearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      required: ['orderId', 'paymentMethod'],
+                      properties: {
+                        orderId: { type: 'string' },
+                        paymentMethod: { type: 'string', enum: ['STRIPE', 'MOCK', 'PAYPAL'] },
+                        amount: { type: 'number', minimum: 0 },
+                        currency: { type: 'string', default: 'USD' }
+                      }
+                    }
+                  }
+                }
+              },
+              responses: {
+                '200': {
+                  description: '支付处理成功',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          success: { type: 'boolean' },
+                          payment: {
+                            type: 'object',
+                            properties: {
+                              id: { type: 'string' },
+                              status: { type: 'string' },
+                              amount: { type: 'number' },
+                              currency: { type: 'string' },
+                              transactionId: { type: 'string' }
+                            }
+                          },
+                          message: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                },
+                '400': {
+                  description: '支付处理失败'
+                }
+              }
             }
           },
           '/api/search/products': {
@@ -295,6 +968,12 @@ async function buildApp() {
                   name: 'q',
                   in: 'query',
                   description: '搜索关键词',
+                  schema: { type: 'string' }
+                },
+                {
+                  name: 'category',
+                  in: 'query',
+                  description: '商品分类',
                   schema: { type: 'string' }
                 },
                 {
@@ -314,6 +993,30 @@ async function buildApp() {
                   in: 'query',
                   description: '是否有库存',
                   schema: { type: 'boolean' }
+                },
+                {
+                  name: 'sortBy',
+                  in: 'query',
+                  description: '排序字段',
+                  schema: { type: 'string', enum: ['name', 'price', 'createdAt', 'updatedAt', 'stock'], default: 'createdAt' }
+                },
+                {
+                  name: 'sortOrder',
+                  in: 'query',
+                  description: '排序方向',
+                  schema: { type: 'string', enum: ['asc', 'desc'], default: 'desc' }
+                },
+                {
+                  name: 'page',
+                  in: 'query',
+                  description: '页码',
+                  schema: { type: 'integer', minimum: 1, default: 1 }
+                },
+                {
+                  name: 'limit',
+                  in: 'query',
+                  description: '每页数量',
+                  schema: { type: 'integer', minimum: 1, maximum: 100, default: 10 }
                 }
               ],
               responses: {
@@ -324,8 +1027,32 @@ async function buildApp() {
                       schema: {
                         type: 'object',
                         properties: {
-                          products: { type: 'array' },
-                          pagination: { type: 'object' },
+                          products: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                id: { type: 'string' },
+                                name: { type: 'string' },
+                                description: { type: 'string' },
+                                price: { type: 'number' },
+                                stock: { type: 'integer' },
+                                images: { type: 'string' },
+                                totalSold: { type: 'integer' },
+                                createdAt: { type: 'string', format: 'date-time' },
+                                updatedAt: { type: 'string', format: 'date-time' }
+                              }
+                            }
+                          },
+                          pagination: {
+                            type: 'object',
+                            properties: {
+                              page: { type: 'integer' },
+                              limit: { type: 'integer' },
+                              total: { type: 'integer' },
+                              totalPages: { type: 'integer' }
+                            }
+                          },
                           filters: { type: 'object' },
                           sort: { type: 'object' }
                         }
@@ -374,6 +1101,459 @@ async function buildApp() {
                               size: { type: 'number' }
                             }
                           }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/plugin-store/plugins': {
+            get: {
+              tags: ['plugin-store'],
+              summary: '获取插件列表',
+              description: '获取插件商店中的所有可用插件',
+              parameters: [
+                {
+                  name: 'q',
+                  in: 'query',
+                  description: '搜索关键词',
+                  schema: { type: 'string' }
+                },
+                {
+                  name: 'category',
+                  in: 'query',
+                  description: '插件分类',
+                  schema: { type: 'string' }
+                },
+                {
+                  name: 'page',
+                  in: 'query',
+                  description: '页码',
+                  schema: { type: 'integer', minimum: 1, default: 1 }
+                },
+                {
+                  name: 'limit',
+                  in: 'query',
+                  description: '每页数量',
+                  schema: { type: 'integer', minimum: 1, maximum: 50, default: 20 }
+                },
+                {
+                  name: 'sort',
+                  in: 'query',
+                  description: '排序方式',
+                  schema: { type: 'string', enum: ['name', 'rating', 'downloads', 'updated'], default: 'rating' }
+                }
+              ],
+              responses: {
+                '200': {
+                  description: '插件列表',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          plugins: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                id: { type: 'string' },
+                                name: { type: 'string' },
+                                displayName: { type: 'string' },
+                                version: { type: 'string' },
+                                description: { type: 'string' },
+                                category: { type: 'string' },
+                                tags: { type: 'array', items: { type: 'string' } },
+                                pricing: { type: 'object' },
+                                features: { type: 'array', items: { type: 'string' } },
+                                stats: { type: 'object' },
+                                status: { type: 'string' }
+                              }
+                            }
+                          },
+                          pagination: { type: 'object' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/plugin-store/plugins/{id}': {
+            get: {
+              tags: ['plugin-store'],
+              summary: '获取插件详情',
+              description: '获取指定插件的详细信息',
+              parameters: [
+                {
+                  name: 'id',
+                  in: 'path',
+                  required: true,
+                  description: '插件ID',
+                  schema: { type: 'string' }
+                }
+              ],
+              responses: {
+                '200': {
+                  description: '插件详情',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          plugin: { type: 'object' },
+                          userLicense: { type: 'object' }
+                        }
+                      }
+                    }
+                  }
+                },
+                '404': {
+                  description: '插件不存在'
+                }
+              }
+            }
+          },
+          '/api/licenses/generate': {
+            post: {
+              tags: ['licenses'],
+              summary: '生成插件许可证',
+              description: '为用户生成新的插件许可证（管理员权限）',
+              security: [{ bearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      required: ['pluginName', 'licenseType', 'features'],
+                      properties: {
+                        pluginName: { type: 'string' },
+                        licenseType: { type: 'string', enum: ['trial', 'monthly', 'yearly', 'lifetime'] },
+                        features: { type: 'array', items: { type: 'string' } },
+                        usageLimits: { type: 'object' },
+                        durationDays: { type: 'integer' },
+                        targetUserId: { type: 'string' }
+                      }
+                    }
+                  }
+                }
+              },
+              responses: {
+                '200': {
+                  description: '许可证生成成功',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          success: { type: 'boolean' },
+                          licenseKey: { type: 'string' },
+                          expiresAt: { type: 'string', format: 'date-time' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/licenses/validate': {
+            get: {
+              tags: ['licenses'],
+              summary: '验证插件许可证',
+              description: '验证用户的插件许可证是否有效',
+              security: [{ bearerAuth: [] }],
+              parameters: [
+                {
+                  name: 'pluginName',
+                  in: 'query',
+                  required: true,
+                  description: '插件名称',
+                  schema: { type: 'string' }
+                }
+              ],
+              responses: {
+                '200': {
+                  description: '许可证验证结果',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          valid: { type: 'boolean' },
+                          features: { type: 'array', items: { type: 'string' } },
+                          usageRemaining: { type: 'object' },
+                          expiresAt: { type: 'string', format: 'date-time' },
+                          reason: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/saas/plans': {
+            get: {
+              tags: ['saas'],
+              summary: '获取SaaS计划',
+              description: '获取所有可用的SaaS托管计划',
+              responses: {
+                '200': {
+                  description: 'SaaS计划列表',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          plans: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                id: { type: 'string' },
+                                name: { type: 'string' },
+                                displayName: { type: 'string' },
+                                description: { type: 'string' },
+                                price: { type: 'number' },
+                                currency: { type: 'string' },
+                                billing: { type: 'string' },
+                                features: { type: 'array', items: { type: 'string' } },
+                                limits: { type: 'object' }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/saas/instances': {
+            post: {
+              tags: ['saas'],
+              summary: '创建SaaS实例',
+              description: '为用户创建新的SaaS实例',
+              security: [{ bearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      required: ['instanceName', 'subdomain', 'planId'],
+                      properties: {
+                        instanceName: { type: 'string', minLength: 1, maxLength: 50 },
+                        subdomain: { type: 'string', minLength: 3, maxLength: 30, pattern: '^[a-z0-9-]+$' },
+                        planId: { type: 'string' },
+                        region: { type: 'string' },
+                        customDomain: { type: 'string' }
+                      }
+                    }
+                  }
+                }
+              },
+              responses: {
+                '200': {
+                  description: 'SaaS实例创建成功',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          success: { type: 'boolean' },
+                          instanceId: { type: 'string' },
+                          subdomain: { type: 'string' },
+                          accessUrl: { type: 'string' },
+                          message: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                },
+                '400': {
+                  description: '创建失败'
+                }
+              }
+            }
+          },
+          '/api/templates': {
+            get: {
+              tags: ['templates'],
+              summary: '获取模板列表',
+              description: '获取模板市场中的所有可用模板',
+              parameters: [
+                {
+                  name: 'q',
+                  in: 'query',
+                  description: '搜索关键词',
+                  schema: { type: 'string' }
+                },
+                {
+                  name: 'category',
+                  in: 'query',
+                  description: '模板分类',
+                  schema: { type: 'string' }
+                },
+                {
+                  name: 'page',
+                  in: 'query',
+                  description: '页码',
+                  schema: { type: 'integer', minimum: 1, default: 1 }
+                },
+                {
+                  name: 'limit',
+                  in: 'query',
+                  description: '每页数量',
+                  schema: { type: 'integer', minimum: 1, maximum: 50, default: 20 }
+                }
+              ],
+              responses: {
+                '200': {
+                  description: '模板列表',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          templates: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                id: { type: 'string' },
+                                name: { type: 'string' },
+                                displayName: { type: 'string' },
+                                description: { type: 'string' },
+                                category: { type: 'string' },
+                                tags: { type: 'array', items: { type: 'string' } },
+                                pricing: { type: 'object' },
+                                features: { type: 'array', items: { type: 'string' } },
+                                preview: { type: 'string' },
+                                demoUrl: { type: 'string' },
+                                version: { type: 'string' },
+                                author: { type: 'string' },
+                                stats: { type: 'object' },
+                                status: { type: 'string' }
+                              }
+                            }
+                          },
+                          pagination: { type: 'object' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/templates/purchase': {
+            post: {
+              tags: ['templates'],
+              summary: '购买模板',
+              description: '购买或下载模板',
+              security: [{ bearerAuth: [] }],
+              requestBody: {
+                required: true,
+                content: {
+                  'application/json': {
+                    schema: {
+                      type: 'object',
+                      required: ['templateId', 'licenseType'],
+                      properties: {
+                        templateId: { type: 'string' },
+                        licenseType: { type: 'string', enum: ['single', 'extended', 'developer'] }
+                      }
+                    }
+                  }
+                }
+              },
+              responses: {
+                '200': {
+                  description: '购买成功',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          success: { type: 'boolean' },
+                          purchaseId: { type: 'string' },
+                          downloadUrl: { type: 'string' },
+                          message: { type: 'string' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/statistics/dashboard': {
+            get: {
+              tags: ['statistics'],
+              summary: '获取仪表板统计数据',
+              description: '获取系统总体统计数据，包括用户、商品、订单、收入等（管理员权限）',
+              security: [{ bearerAuth: [] }],
+              responses: {
+                '200': {
+                  description: '仪表板统计数据',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          totalUsers: { type: 'integer' },
+                          totalProducts: { type: 'integer' },
+                          totalOrders: { type: 'integer' },
+                          totalRevenue: { type: 'number' },
+                          todayOrders: { type: 'integer' },
+                          todayRevenue: { type: 'number' },
+                          userGrowth: { type: 'number' },
+                          orderGrowth: { type: 'number' },
+                          revenueGrowth: { type: 'number' }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          '/api/i18n/languages': {
+            get: {
+              tags: ['i18n'],
+              summary: '获取支持的语言列表',
+              description: '获取系统支持的所有语言信息',
+              responses: {
+                '200': {
+                  description: '语言列表',
+                  content: {
+                    'application/json': {
+                      schema: {
+                        type: 'object',
+                        properties: {
+                          languages: {
+                            type: 'array',
+                            items: {
+                              type: 'object',
+                              properties: {
+                                code: { type: 'string' },
+                                name: { type: 'string' },
+                                nativeName: { type: 'string' },
+                                direction: { type: 'string', enum: ['ltr', 'rtl'] },
+                                region: { type: 'string' },
+                                flag: { type: 'string' },
+                                enabled: { type: 'boolean' }
+                              }
+                            }
+                          },
+                          total: { type: 'integer' }
                         }
                       }
                     }
@@ -479,18 +1659,11 @@ async function buildApp() {
     await fastify.register(i18nRoutes, { prefix: '/api/i18n' });
 
     // Commercialization routes
-    await fastify.register(licenseRoutes, { prefix: '/api/licenses' });
     await fastify.register(newLicenseRoutes, { prefix: '/api' });
-    await fastify.register(pluginStoreRoutes, { prefix: '/api/plugin-store' });
-    await fastify.register(saasRoutes, { prefix: '/api/saas' });
-    await fastify.register(templateRoutes, { prefix: '/api/templates' });
-    await fastify.register(tenantRoutes, { prefix: '/api/tenants' });
-    await fastify.register(salesRoutes, { prefix: '/api/sales' });
     await fastify.register(authPermissionRoutes, { prefix: '/api/permissions' });
 
     // OAuth 2.0 and SaaS marketplace routes
     await fastify.register(oauth2Routes, { prefix: '' }); // No prefix for OAuth routes
-    await fastify.register(saasMarketplaceRoutes, { prefix: '/api' });
 
     // Initialize plugin system
     const pluginManager = new DefaultPluginManager(fastify);

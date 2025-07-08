@@ -129,22 +129,40 @@ export class ProductService {
   }
 
   static async createProduct(data: CreateProductRequest) {
-    return prisma.product.create({
+    const product = await prisma.product.create({
       data,
     });
+
+    // 清除商品相关缓存，确保新商品立即显示
+    await CacheService.clearProductCache();
+    LoggerService.logCache('CLEAR', 'product_*', false);
+
+    return product;
   }
 
   static async updateProduct(id: string, data: UpdateProductRequest) {
-    return prisma.product.update({
+    const product = await prisma.product.update({
       where: { id },
       data,
     });
+
+    // 清除商品相关缓存
+    await CacheService.clearProductCache();
+    LoggerService.logCache('CLEAR', 'product_*', false);
+
+    return product;
   }
 
   static async deleteProduct(id: string) {
-    return prisma.product.delete({
+    const product = await prisma.product.delete({
       where: { id },
     });
+
+    // 清除商品相关缓存
+    await CacheService.clearProductCache();
+    LoggerService.logCache('CLEAR', 'product_*', false);
+
+    return product;
   }
 
   static async updateStock(id: string, quantity: number) {

@@ -26,12 +26,26 @@ export interface PaginatedResponse<T> {
   };
 }
 
+export interface ProductsResponse {
+  products: Product[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  filters: {
+    sortBy: string;
+    sortOrder: string;
+  };
+}
+
 class ApiClient {
   private baseUrl: string;
 
   constructor() {
-    // Use Next.js API proxy
-    this.baseUrl = '/api';
+    // Use direct backend API
+    this.baseUrl = 'http://localhost:3001/api';
   }
 
   private async request<T>(
@@ -45,9 +59,11 @@ class ApiClient {
         'Content-Type': 'application/json',
       };
 
-      // Get auth token from localStorage if available
+      // Get auth token from cookies if available
       if (typeof window !== 'undefined') {
-        const token = localStorage.getItem('auth_token');
+        // Import Cookies dynamically to avoid SSR issues
+        const Cookies = require('js-cookie');
+        const token = Cookies.get('admin_token');
         if (token) {
           (defaultHeaders as any)['Authorization'] = `Bearer ${token}`;
         }
@@ -65,7 +81,25 @@ class ApiClient {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
+      // 处理无内容响应（如DELETE操作）
+      let data = null;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const text = await response.text();
+        if (text) {
+          data = JSON.parse(text);
+        }
+      } else if (response.status !== 204) {
+        // 如果不是JSON且不是204无内容状态，尝试解析
+        const text = await response.text();
+        if (text) {
+          try {
+            data = JSON.parse(text);
+          } catch {
+            data = text;
+          }
+        }
+      }
 
       return {
         success: true,
@@ -108,7 +142,7 @@ class ApiClient {
     if (params.limit) searchParams.set('limit', params.limit.toString());
     if (params.search) searchParams.set('search', params.search);
 
-    return this.request<PaginatedResponse<any>>(`/products?${searchParams}`);
+    return this.request<ProductsResponse>(`/products?${searchParams}`);
   }
 
   async getProduct(id: string) {
@@ -332,6 +366,9 @@ export type Product = {
   images: string;
   createdAt: string;
   updatedAt: string;
+  sku?: string;
+  category?: string;
+  sales?: number;
 };
 
 export type Order = {

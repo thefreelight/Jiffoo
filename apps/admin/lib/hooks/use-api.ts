@@ -3,7 +3,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient, PaginationParams, Product, Order, User, DashboardStats } from '../api-client';
+import { apiClient, PaginationParams, Product, Order, User, DashboardStats, ProductsResponse } from '../api-client';
 import { toast } from 'sonner';
 
 // Query keys
@@ -42,7 +42,8 @@ export function useProduct(id: string) {
       if (!response.success) {
         throw new Error(response.error || 'Failed to fetch product');
       }
-      return response.data;
+      // 后端返回的格式是 { product: {...} }，需要提取product字段
+      return response.data?.product || response.data;
     },
     enabled: !!id,
   });
@@ -60,7 +61,15 @@ export function useCreateProduct() {
       return response.data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.products });
+      // 清除所有商品相关的查询缓存
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.products,
+        exact: false 
+      });
+      queryClient.refetchQueries({ 
+        queryKey: queryKeys.products,
+        exact: false 
+      });
       toast.success('Product created successfully');
     },
     onError: (error: Error) => {
@@ -81,7 +90,10 @@ export function useUpdateProduct() {
       return response.data;
     },
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.products });
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.products,
+        exact: false 
+      });
       queryClient.invalidateQueries({ queryKey: queryKeys.product(id) });
       toast.success('Product updated successfully');
     },
@@ -102,8 +114,21 @@ export function useDeleteProduct() {
       }
       return response.data;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.products });
+    onSuccess: (_, deletedId) => {
+      // 清除所有商品相关的查询缓存
+      queryClient.invalidateQueries({ 
+        queryKey: queryKeys.products,
+        exact: false // 这会匹配所有以 ['products'] 开头的查询键
+      });
+      // 删除特定商品的缓存
+      queryClient.removeQueries({ 
+        queryKey: queryKeys.product(deletedId) 
+      });
+      // 强制重新获取商品列表
+      queryClient.refetchQueries({ 
+        queryKey: queryKeys.products,
+        exact: false 
+      });
       toast.success('Product deleted successfully');
     },
     onError: (error: Error) => {
@@ -189,6 +214,27 @@ export function useUser(id: string) {
       return response.data;
     },
     enabled: !!id,
+  });
+}
+
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.deleteUser(id);
+      if (!response.success) {
+        throw new Error(response.error || 'Failed to delete user');
+      }
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.users });
+      toast.success('User deleted successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
   });
 }
 

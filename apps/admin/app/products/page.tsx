@@ -34,16 +34,22 @@ export default function ProductsPage() {
 
   const deleteProductMutation = useDeleteProduct()
 
-  const products = productsData?.data || []
+  const products = productsData?.products || []
   const pagination = productsData?.pagination
 
   const handleDeleteProduct = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this product?')) {
-      await deleteProductMutation.mutateAsync(id)
+      try {
+        await deleteProductMutation.mutateAsync(id)
+        // 强制重新获取数据
+        await refetch()
+      } catch (error) {
+        console.error('Failed to delete product:', error)
+      }
     }
   }
 
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = products.filter((product: any) => {
     const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory
     return matchesCategory
   })
@@ -170,12 +176,28 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredProducts.map((product) => (
+              {filteredProducts.map((product: any) => (
                 <tr key={product.id} className="hover:bg-gray-50">
                   <td className="py-4 px-6">
                     <div className="flex items-center">
                       <img
-                        src={product.images ? JSON.parse(product.images)[0] : 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop'}
+                        src={(() => {
+                          if (!product.images) return 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop';
+                          
+                          // 如果已经是有效的URL，直接使用
+                          if (typeof product.images === 'string' && (product.images.startsWith('http') || product.images.startsWith('/'))) {
+                            return product.images;
+                          }
+                          
+                          // 尝试解析JSON格式的图片数组
+                          try {
+                            const images = JSON.parse(product.images);
+                            return Array.isArray(images) && images.length > 0 ? images[0] : 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop';
+                          } catch {
+                            // 如果解析失败，检查是否是直接的URL字符串
+                            return product.images.startsWith('http') ? product.images : 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop';
+                          }
+                        })()}
                         alt={product.name}
                         className="w-12 h-12 rounded-lg object-cover mr-4"
                         onError={(e) => {
@@ -183,7 +205,9 @@ export default function ProductsPage() {
                         }}
                       />
                       <div>
-                        <div className="font-medium text-gray-900">{product.name}</div>
+                        <Link href={`/products/${product.id}/edit`}>
+                          <div className="font-medium text-gray-900 hover:text-blue-600 cursor-pointer">{product.name}</div>
+                        </Link>
                         <div className="text-sm text-gray-500">{product.description?.substring(0, 50)}...</div>
                       </div>
                     </div>

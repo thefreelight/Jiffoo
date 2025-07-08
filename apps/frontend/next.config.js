@@ -27,6 +27,10 @@ const nextConfig = {
         hostname: 'localhost',
         port: '3001',
       },
+      {
+        protocol: 'https',
+        hostname: 'example.com',
+      },
     ],
   },
   // API proxy to backend

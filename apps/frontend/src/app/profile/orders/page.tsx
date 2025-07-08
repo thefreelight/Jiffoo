@@ -324,13 +324,25 @@ export default function OrdersPage() {
                   <div className="space-y-3">
                     {order.items.map((item) => (
                       <div key={item.id} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                        <div className="w-16 h-16 relative">
-                          <Image
-                            src={item.product.images}
-                            alt={item.product.name}
-                            fill
-                            className="object-cover rounded-md"
-                          />
+                        <div className="w-16 h-16 relative bg-muted rounded-md flex items-center justify-center">
+                          {item.product.images && 
+                           item.product.images !== '[]' && 
+                           item.product.images !== '' && 
+                           !item.product.images.startsWith('[') ? (
+                            <Image
+                              src={item.product.images}
+                              alt={item.product.name}
+                              fill
+                              className="object-cover rounded-md"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center rounded-md">
+                              <ShoppingBag className="h-6 w-6 text-gray-400" />
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1">
                           <h4 className="font-medium">{item.product.name}</h4>

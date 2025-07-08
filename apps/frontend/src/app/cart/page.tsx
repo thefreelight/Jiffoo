@@ -6,7 +6,8 @@ import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/use-translation';
 import { useCartStore } from '@/store/cart';
-import Image from 'next/image';
+import { useAuthStore } from '@/store/auth';
+import { SafeImage } from '@/components/ui/safe-image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
@@ -14,6 +15,7 @@ export default function CartPage() {
   const { currentLanguage } = useTranslation();
   const router = useRouter();
   const { cart, updateQuantity, removeItem, isLoading } = useCartStore();
+  const { isAuthenticated } = useAuthStore();
 
   const translations: Record<string, Record<string, string>> = {
     'en-US': {
@@ -84,6 +86,14 @@ export default function CartPage() {
   };
 
   const handleCheckout = () => {
+    // 检查用户是否已登录
+    if (!isAuthenticated) {
+      // 保存当前路径，登录后可以返回
+      sessionStorage.setItem('redirectAfterLogin', '/checkout');
+      router.push('/auth/login');
+      return;
+    }
+    
     router.push('/checkout');
   };
 
@@ -140,12 +150,13 @@ export default function CartPage() {
                 >
                   <div className="flex gap-4">
                     {/* Product Image */}
-                    <div className="relative w-24 h-24 rounded-lg overflow-hidden bg-muted">
-                      <Image
+                    <div className="relative w-24 h-24 rounded-lg overflow-hidden">
+                      <SafeImage
                         src={item.productImage}
                         alt={item.productName}
                         fill
                         className="object-cover"
+                        fallbackIcon={<ShoppingBag className="h-8 w-8 text-gray-400" />}
                       />
                     </div>
 

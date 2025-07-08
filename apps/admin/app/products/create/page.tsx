@@ -21,6 +21,8 @@ import {
   PlusIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
+import { useCreateProduct } from '../../../lib/hooks/use-api'
+import { toast } from 'sonner'
 
 interface ProductFormData {
   name: string
@@ -64,8 +66,10 @@ const categories = [
 
 export default function CreateProductPage() {
   const router = useRouter()
-  const [loading, setLoading] = useState(false)
   const [currentTag, setCurrentTag] = useState('')
+  
+  // 使用React Query hook
+  const createProductMutation = useCreateProduct()
 
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
@@ -100,7 +104,7 @@ export default function CreateProductPage() {
       setFormData(prev => ({
         ...prev,
         [parent]: {
-          ...prev[parent as keyof ProductFormData],
+          ...(prev[parent as keyof ProductFormData] as any),
           [child]: value
         }
       }))
@@ -131,20 +135,25 @@ export default function CreateProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // 准备API数据格式，匹配后端API期望的格式
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        price: formData.price,
+        stock: formData.quantity,
+        images: formData.images.length > 0 ? JSON.stringify(formData.images) : JSON.stringify([])
+      }
 
-      console.log('Product data:', formData)
-
-      // Redirect to products list
+      // 使用React Query mutation
+      await createProductMutation.mutateAsync(productData)
+      
+      // 成功后重定向到商品列表
       router.push('/products')
     } catch (error) {
       console.error('Failed to create product:', error)
-    } finally {
-      setLoading(false)
+      // toast已经在hook中处理了，这里不需要额外处理
     }
   }
 
@@ -172,10 +181,10 @@ export default function CreateProductPage() {
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={createProductMutation.isPending}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            {loading ? 'Creating...' : 'Create Product'}
+            {createProductMutation.isPending ? 'Creating...' : 'Create Product'}
           </Button>
         </div>
       </div>
@@ -240,7 +249,8 @@ export default function CreateProductPage() {
                       id="price"
                       type="number"
                       step="0.01"
-                      value={formData.price}
+                      min="0"
+                      value={formData.price || ''}
                       onChange={(e) => handleInputChange('price', parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                       required
@@ -252,7 +262,8 @@ export default function CreateProductPage() {
                       id="comparePrice"
                       type="number"
                       step="0.01"
-                      value={formData.comparePrice}
+                      min="0"
+                      value={formData.comparePrice || ''}
                       onChange={(e) => handleInputChange('comparePrice', parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
@@ -263,7 +274,8 @@ export default function CreateProductPage() {
                       id="cost"
                       type="number"
                       step="0.01"
-                      value={formData.cost}
+                      min="0"
+                      value={formData.cost || ''}
                       onChange={(e) => handleInputChange('cost', parseFloat(e.target.value) || 0)}
                       placeholder="0.00"
                     />
@@ -291,13 +303,15 @@ export default function CreateProductPage() {
                 {formData.trackQuantity && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="quantity">Quantity</Label>
+                      <Label htmlFor="quantity">Quantity *</Label>
                       <Input
                         id="quantity"
                         type="number"
-                        value={formData.quantity}
+                        min="0"
+                        value={formData.quantity || ''}
                         onChange={(e) => handleInputChange('quantity', parseInt(e.target.value) || 0)}
                         placeholder="0"
+                        required
                       />
                     </div>
                     <div>
@@ -305,7 +319,8 @@ export default function CreateProductPage() {
                       <Input
                         id="lowStockThreshold"
                         type="number"
-                        value={formData.lowStockThreshold}
+                        min="0"
+                        value={formData.lowStockThreshold || ''}
                         onChange={(e) => handleInputChange('lowStockThreshold', parseInt(e.target.value) || 0)}
                         placeholder="5"
                       />
@@ -313,7 +328,7 @@ export default function CreateProductPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="sku">SKU</Label>
                     <Input
@@ -340,7 +355,7 @@ export default function CreateProductPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Shipping</CardTitle>
-                <CardDescription>Physical product properties</CardDescription>
+                <CardDescription>Physical product information</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -349,33 +364,36 @@ export default function CreateProductPage() {
                     id="weight"
                     type="number"
                     step="0.01"
-                    value={formData.weight}
+                    min="0"
+                    value={formData.weight || ''}
                     onChange={(e) => handleInputChange('weight', parseFloat(e.target.value) || 0)}
                     placeholder="0.00"
                   />
                 </div>
-
                 <div>
                   <Label>Dimensions (cm)</Label>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-4">
                     <Input
                       type="number"
                       step="0.01"
-                      value={formData.dimensions.length}
+                      min="0"
+                      value={formData.dimensions.length || ''}
                       onChange={(e) => handleInputChange('dimensions.length', parseFloat(e.target.value) || 0)}
                       placeholder="Length"
                     />
                     <Input
                       type="number"
                       step="0.01"
-                      value={formData.dimensions.width}
+                      min="0"
+                      value={formData.dimensions.width || ''}
                       onChange={(e) => handleInputChange('dimensions.width', parseFloat(e.target.value) || 0)}
                       placeholder="Width"
                     />
                     <Input
                       type="number"
                       step="0.01"
-                      value={formData.dimensions.height}
+                      min="0"
+                      value={formData.dimensions.height || ''}
                       onChange={(e) => handleInputChange('dimensions.height', parseFloat(e.target.value) || 0)}
                       placeholder="Height"
                     />
@@ -388,7 +406,7 @@ export default function CreateProductPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Search Engine Optimization</CardTitle>
-                <CardDescription>Improve product discoverability</CardDescription>
+                <CardDescription>Improve your product's search visibility</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
@@ -400,7 +418,6 @@ export default function CreateProductPage() {
                     placeholder="SEO optimized title"
                   />
                 </div>
-
                 <div>
                   <Label htmlFor="seoDescription">SEO Description</Label>
                   <Textarea
@@ -417,48 +434,7 @@ export default function CreateProductPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Product Images */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Images</CardTitle>
-                <CardDescription>Add product photos</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <PhotoIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-sm text-gray-600 mb-2">
-                    Drag and drop images here, or click to browse
-                  </p>
-                  <Button variant="outline" size="sm">
-                    Choose Files
-                  </Button>
-                </div>
-                {formData.images.length > 0 && (
-                  <div className="grid grid-cols-2 gap-2 mt-4">
-                    {formData.images.map((image, index) => (
-                      <div key={index} className="relative">
-                        <img
-                          src={image}
-                          alt={`Product ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const newImages = formData.images.filter((_, i) => i !== index)
-                            handleInputChange('images', newImages)
-                          }}
-                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-            {/* Product Status */}
+            {/* Status */}
             <Card>
               <CardHeader>
                 <CardTitle>Product Status</CardTitle>
@@ -466,25 +442,27 @@ export default function CreateProductPage() {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="status">Status</Label>
-                  <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value: 'active' | 'draft' | 'archived') => handleInputChange('status', value)}
+                  >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="draft">Draft</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="archived">Archived</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div className="flex items-center space-x-2">
                   <Switch
                     id="featured"
                     checked={formData.featured}
                     onCheckedChange={(checked) => handleInputChange('featured', checked)}
                   />
-                  <Label htmlFor="featured">Featured Product</Label>
+                  <Label htmlFor="featured">Featured product</Label>
                 </div>
               </CardContent>
             </Card>
@@ -497,7 +475,10 @@ export default function CreateProductPage() {
               <CardContent className="space-y-4">
                 <div>
                   <Label htmlFor="category">Category</Label>
-                  <Select value={formData.category} onValueChange={(value) => handleInputChange('category', value)}>
+                  <Select
+                    value={formData.category}
+                    onValueChange={(value) => handleInputChange('category', value)}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -510,17 +491,27 @@ export default function CreateProductPage() {
                     </SelectContent>
                   </Select>
                 </div>
-
                 <div>
                   <Label htmlFor="tags">Tags</Label>
                   <div className="flex space-x-2">
                     <Input
+                      id="tags"
                       value={currentTag}
                       onChange={(e) => setCurrentTag(e.target.value)}
                       placeholder="Add tag"
-                      onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          addTag()
+                        }
+                      }}
                     />
-                    <Button type="button" size="sm" onClick={addTag}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={addTag}
+                    >
                       <PlusIcon className="w-4 h-4" />
                     </Button>
                   </div>
@@ -544,6 +535,49 @@ export default function CreateProductPage() {
                     </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Images */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Product Images</CardTitle>
+                <CardDescription>Add product photos</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                  <PhotoIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">Drag and drop images here</p>
+                  <p className="text-sm text-gray-500 mb-4">or click to browse</p>
+                  <Button variant="outline" size="sm">
+                    Choose Files
+                  </Button>
+                </div>
+                {formData.images.length > 0 && (
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    {formData.images.map((image, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={image}
+                          alt={`Product ${index + 1}`}
+                          className="w-full h-24 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setFormData(prev => ({
+                              ...prev,
+                              images: prev.images.filter((_, i) => i !== index)
+                            }))
+                          }}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        >
+                          <XMarkIcon className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>

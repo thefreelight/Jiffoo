@@ -9,11 +9,18 @@ export async function userRoutes(fastify: FastifyInstance) {
     preHandler: [authMiddleware, adminMiddleware]
   }, async (request, reply) => {
     try {
-      const { page = 1, limit = 10 } = request.query as any;
-      const result = await UserService.getAllUsers(Number(page), Number(limit));
-      return reply.send(result);
+      const { page = 1, limit = 10, search } = request.query as any;
+      const result = await UserService.getAllUsers(Number(page), Number(limit), search);
+      
+      // 返回与前端期望一致的数据格式
+      return reply.send({
+        success: true,
+        data: result.users,
+        pagination: result.pagination
+      });
     } catch (error) {
       return reply.status(500).send({
+        success: false,
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error'
       });

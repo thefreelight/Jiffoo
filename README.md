@@ -6,9 +6,9 @@
 [![Fastify](https://img.shields.io/badge/Fastify-4.29-green.svg)](https://www.fastify.io/)
 [![i18n](https://img.shields.io/badge/i18n-6_languages-green.svg)](https://github.com/thefreelight/Jiffoo)
 
-> 🎉 **Latest Update**: Comprehensive multilingual support added! Now supports 6 languages with real-time switching.
+> 🎉 **Latest Update**: Complete multilingual system implemented! Full i18n support with 6 languages, real-time switching, and comprehensive admin interface.
 >
-> 🌟 **Open Source E-commerce Platform** - A complete, modern e-commerce solution with plugin architecture and multilingual support.
+> 🌟 **Open Source E-commerce Platform** - A complete, modern e-commerce solution with plugin architecture, advanced multilingual support, and enterprise-ready features.
 
 [中文](#中文文档) | **English**
 
@@ -43,7 +43,7 @@ A comprehensive, full-stack e-commerce platform built with modern technologies, 
 - **Email Notifications** - Template-based notification system
 - **File Upload System** - Secure file handling with validation
 - **Plugin Architecture** - Extensible modular system
-- **Multilingual Support** - Complete i18n system with 6 languages and real-time switching
+- **Multilingual Support** - Complete i18n system with 6 languages, real-time switching, and admin management
 
 ### 🏢 Commercial Features
 - **Plugin Store** - Marketplace for premium plugins with subscription model
@@ -120,12 +120,13 @@ A comprehensive, full-stack e-commerce platform built with modern technologies, 
 
 5. **Start development servers**
    ```bash
-   # Start both frontend and backend
+   # Start all services (backend, frontend, admin)
    pnpm dev
 
    # Or start individually
-   pnpm --filter backend dev    # Backend: http://localhost:3001
+   pnpm --filter backend dev    # Backend API: http://localhost:3001
    pnpm --filter frontend dev   # Frontend: http://localhost:3002
+   pnpm --filter admin dev      # Admin Dashboard: http://localhost:3003
    ```
 
 ## 📁 Project Structure
@@ -227,14 +228,16 @@ The API documentation is automatically generated and available at:
 
 ## 🧪 Testing & Status
 
-### ✅ 测试状态 (v1.0.0-beta.1)
-- **后端API** - ✅ 完全正常
-- **前端界面** - ✅ 完全正常
+### ✅ 测试状态 (v1.0.0-beta.2)
+- **后端API** - ✅ 完全正常 (端口3001)
+- **前端界面** - ✅ 完全正常 (端口3002)
+- **管理界面** - ✅ 完全正常 (端口3003)
 - **数据库** - ✅ 完全正常
 - **搜索功能** - ✅ 完全正常
 - **缓存系统** - ✅ 完全正常
 - **支付系统** - ✅ 完全正常
-- **多语言** - ✅ 完全正常
+- **多语言系统** - ✅ 完全正常 (6种语言，实时切换)
+- **翻译管理** - ✅ 完全正常 (管理界面集成)
 
 ### ⚠️ 已知问题
 - 部分插件需要手动配置（不影响核心功能）
@@ -311,23 +314,25 @@ Complete multilingual support with advanced features:
 - 🇫🇷 **French (fr-FR)** - Basic support
 
 ### Features
-- **Real-time Language Switching** - No page refresh required
-- **Intelligent Caching** - Translation caching for better performance
+- **Real-time Language Switching** - No page refresh required, instant UI updates
+- **Intelligent Caching** - Translation caching for optimal performance
 - **Browser Detection** - Automatic language detection from browser settings
-- **Persistent Storage** - Language choice saved across sessions
-- **Admin Interface** - Complete multilingual admin dashboard
+- **Persistent Storage** - Language choice saved across sessions (localStorage + cookies)
+- **Admin Interface** - Complete multilingual admin dashboard with live preview
 - **Content Editor** - Multilingual content editing with completion tracking
-- **Translation Manager** - Built-in translation management interface
-- **Localization** - Date, number, and currency formatting
-- **String Interpolation** - Support for variables in translations
-- **Fallback System** - Automatic fallback to default language
+- **Translation Manager** - Built-in translation management with import/export
+- **Localization** - Date, number, and currency formatting per locale
+- **String Interpolation** - Support for variables in translations `{{variable}}`
+- **Fallback System** - Automatic fallback to default language for missing translations
+- **TypeScript Support** - Full type safety for translation keys and values
 
 ### Admin Features
-- Language settings and configuration
-- Translation coverage analytics
-- Advanced performance optimization
-- API integration for automatic translation
-- Quality control and validation
+- **Language Settings** - Complete configuration interface with real-time preview
+- **Translation Coverage** - Analytics and completion tracking per language
+- **Advanced Configuration** - Performance optimization and caching settings
+- **API Integration** - Ready for automatic translation service integration
+- **Quality Control** - Translation validation and quality assurance tools
+- **Test Pages** - Built-in testing interfaces for multilingual functionality
 
 ## 📊 Monitoring & Analytics
 

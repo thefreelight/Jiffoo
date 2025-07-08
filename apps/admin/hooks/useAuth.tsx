@@ -31,27 +31,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const checkAuthStatus = async () => {
     try {
-      let token = localStorage.getItem('authToken');
-      
-      // Auto-login for demo purposes
-      if (!token) {
-        token = 'demo-token-' + Date.now();
-        localStorage.setItem('authToken', token);
+      const token = localStorage.getItem('authToken');
+
+      // 只有当存在有效token时才设置用户为已认证
+      if (token && token !== 'null' && token !== 'undefined') {
+        // 在真实应用中，这里应该验证token的有效性
+        // 现在我们只是检查token是否存在
+        const mockUser: User = {
+          id: 'admin-123',
+          email: 'admin@jiffoo.com',
+          name: 'Admin User',
+          role: 'admin'
+        };
+
+        setUser(mockUser);
+      } else {
+        // 如果没有有效token，确保用户状态为null
+        setUser(null);
+        localStorage.removeItem('authToken');
       }
-
-      // For demo purposes, we'll create a mock user if token exists
-      // In real app, you'd validate the token with your backend
-      const mockUser: User = {
-        id: 'admin-123',
-        email: 'admin@jiffoo.com',
-        name: 'Admin User',
-        role: 'admin'
-      };
-
-      setUser(mockUser);
     } catch (error) {
       console.error('Auth check failed:', error);
       localStorage.removeItem('authToken');
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -62,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true);
 
       // Mock login - in real app, call your auth API
-      if (email === 'admin@jiffoo.com' && password === 'admin123') {
+      if (email === 'admin@jiffoo.com' && password === '123456') {
         const mockToken = 'mock-jwt-token-' + Date.now();
         localStorage.setItem('authToken', mockToken);
 

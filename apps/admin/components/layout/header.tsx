@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '../../hooks/useAuth'
+import { useAuthStore } from '@/lib/store'
 import { useI18n, formatDate } from '../../lib/i18n'
 import { Button } from '../ui/button'
 import { LanguageSwitcher } from '../ui/language-switcher'
@@ -31,13 +31,15 @@ interface HeaderProps {
 
 export function Header({ title = "Dashboard" }: HeaderProps) {
   const router = useRouter()
-  const { user, logout } = useAuth()
+  const { user, logout } = useAuthStore()
   const { t, language } = useI18n()
   const [isDark, setIsDark] = useState(false)
 
   const handleLogout = () => {
     logout()
-    router.push('/')
+    // 清除可能保存的重定向路径
+    sessionStorage.removeItem('redirectPath')
+    router.push('/auth/login')
   }
 
   const toggleTheme = () => {

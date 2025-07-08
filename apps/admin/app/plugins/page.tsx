@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/lib/store';
 import { useToast } from '@/components/ui/toast';
 import { LoginModal } from '@/components/auth/login-modal';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,7 +60,7 @@ export default function PluginsPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pendingInstallId, setPendingInstallId] = useState<string | null>(null);
 
-  const { isAuthenticated, getAuthToken } = useAuth();
+  const { isAuthenticated, getAuthToken } = useAuthStore();
   const { addToast } = useToast();
 
   useEffect(() => {
@@ -222,7 +222,7 @@ export default function PluginsPage() {
       });
 
       // For demo purposes, we'll use test license keys
-      const licenseKeys = {
+      const licenseKeys: Record<string, string> = {
         'stripe-payment-plugin': 'stripe-license-123',
         'paypal-payment-plugin': 'paypal-license-456',
         'alipay-pro': 'alipay-pro-demo-123',

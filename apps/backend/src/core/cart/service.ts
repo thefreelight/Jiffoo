@@ -35,7 +35,7 @@ export class CartService {
       const cacheKey = `${this.CART_CACHE_PREFIX}${sessionId}`;
       
       // Try to get from cache first
-      const cachedCart = await CacheService.get(cacheKey);
+      const cachedCart = await CacheService.get<string>(cacheKey);
       if (cachedCart) {
         return JSON.parse(cachedCart);
       }
@@ -51,7 +51,7 @@ export class CartService {
       };
 
       // Cache the empty cart
-      await CacheService.set(cacheKey, JSON.stringify(emptyCart), this.CART_CACHE_TTL);
+      await CacheService.set(cacheKey, JSON.stringify(emptyCart), { ttl: this.CART_CACHE_TTL });
       
       return emptyCart;
     } catch (error) {
@@ -73,32 +73,11 @@ export class CartService {
       // Get current cart
       const currentCart = await this.getCart(sessionId);
       
-      // Mock product data (in real app, fetch from database)
-      const mockProducts: Record<string, any> = {
-        '1': {
-          id: '1',
-          name: 'Wireless Headphones',
-          image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop',
-          price: 99.99,
-          stock: 15,
-        },
-        '2': {
-          id: '2',
-          name: 'Smart Watch',
-          image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop',
-          price: 199.99,
-          stock: 8,
-        },
-        '3': {
-          id: '3',
-          name: 'Designer Jacket',
-          image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&h=400&fit=crop',
-          price: 159.99,
-          stock: 5,
-        },
-      };
-
-      const product = mockProducts[productId];
+      // Fetch product from database
+      const product = await prisma.product.findUnique({
+        where: { id: productId }
+      });
+      
       if (!product) {
         throw new Error('Product not found');
       }
@@ -125,7 +104,7 @@ export class CartService {
           id: `${productId}-${variantId || 'default'}-${Date.now()}`,
           productId,
           productName: product.name,
-          productImage: product.image,
+          productImage: product.images || '',
           price: product.price,
           quantity,
           variantId,
@@ -140,7 +119,7 @@ export class CartService {
       const updatedCart = this.calculateCartTotals(currentCart);
       
       // Cache the updated cart
-      await CacheService.set(cacheKey, JSON.stringify(updatedCart), this.CART_CACHE_TTL);
+      await CacheService.set(cacheKey, JSON.stringify(updatedCart), { ttl: this.CART_CACHE_TTL });
       
       return updatedCart;
     } catch (error) {
@@ -182,7 +161,7 @@ export class CartService {
       const updatedCart = this.calculateCartTotals(currentCart);
       
       // Cache the updated cart
-      await CacheService.set(cacheKey, JSON.stringify(updatedCart), this.CART_CACHE_TTL);
+      await CacheService.set(cacheKey, JSON.stringify(updatedCart), { ttl: this.CART_CACHE_TTL });
       
       return updatedCart;
     } catch (error) {
@@ -206,7 +185,7 @@ export class CartService {
       const updatedCart = this.calculateCartTotals(currentCart);
       
       // Cache the updated cart
-      await CacheService.set(cacheKey, JSON.stringify(updatedCart), this.CART_CACHE_TTL);
+      await CacheService.set(cacheKey, JSON.stringify(updatedCart), { ttl: this.CART_CACHE_TTL });
       
       return updatedCart;
     } catch (error) {

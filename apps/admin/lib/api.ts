@@ -30,9 +30,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear token and redirect to login
+      // Clear token but don't force redirect - let the auth store handle it
       Cookies.remove('admin_token')
-      window.location.href = '/login'
+      console.warn('Authentication failed, token cleared')
     }
     return Promise.reject(error)
   }
@@ -47,7 +47,7 @@ export const authApi = {
 
   logout: () => {
     Cookies.remove('admin_token')
-    window.location.href = '/'
+    // Don't force redirect - let the auth store handle it
   }
 }
 

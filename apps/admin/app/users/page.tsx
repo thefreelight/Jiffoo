@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '../../components/ui/button'
+import { useUsers, useDeleteUser } from '../../lib/hooks/use-api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -23,113 +24,76 @@ import {
   UserIcon,
   EnvelopeIcon,
   CalendarIcon,
+  ExclamationTriangleIcon,
 } from '@heroicons/react/24/outline'
-
-// Mock user data
-const users = [
-  {
-    id: 1,
-    name: 'Zhang Wei',
-    email: 'zhang.wei@jiffoo.com',
-    role: 'Super Admin',
-    status: 'active',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face',
-    lastLogin: '2024-01-20T10:30:00Z',
-    createdAt: '2023-06-15T09:00:00Z',
-    permissions: ['all']
-  },
-  {
-    id: 2,
-    name: 'Li Ming',
-    email: 'li.ming@jiffoo.com',
-    role: 'Admin',
-    status: 'active',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face',
-    lastLogin: '2024-01-19T16:45:00Z',
-    createdAt: '2023-08-22T14:30:00Z',
-    permissions: ['products', 'orders', 'customers']
-  },
-  {
-    id: 3,
-    name: 'Wang Fang',
-    email: 'wang.fang@jiffoo.com',
-    role: 'Manager',
-    status: 'active',
-    avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face',
-    lastLogin: '2024-01-20T08:15:00Z',
-    createdAt: '2023-09-10T11:20:00Z',
-    permissions: ['orders', 'customers']
-  },
-  {
-    id: 4,
-    name: 'Chen Hao',
-    email: 'chen.hao@jiffoo.com',
-    role: 'Editor',
-    status: 'inactive',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=40&h=40&fit=crop&crop=face',
-    lastLogin: '2024-01-15T12:00:00Z',
-    createdAt: '2023-11-05T16:45:00Z',
-    permissions: ['products']
-  },
-  {
-    id: 5,
-    name: 'Liu Yan',
-    email: 'liu.yan@jiffoo.com',
-    role: 'Support',
-    status: 'active',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=40&h=40&fit=crop&crop=face',
-    lastLogin: '2024-01-19T14:30:00Z',
-    createdAt: '2023-12-01T10:15:00Z',
-    permissions: ['customers']
-  }
-]
-
-const roles = [
-  {
-    name: 'Super Admin',
-    description: 'Full access to all features and settings',
-    color: 'bg-red-100 text-red-800',
-    users: 1
-  },
-  {
-    name: 'Admin',
-    description: 'Access to most features except system settings',
-    color: 'bg-blue-100 text-blue-800',
-    users: 1
-  },
-  {
-    name: 'Manager',
-    description: 'Manage orders, customers, and basic operations',
-    color: 'bg-green-100 text-green-800',
-    users: 1
-  },
-  {
-    name: 'Editor',
-    description: 'Manage products and content',
-    color: 'bg-purple-100 text-purple-800',
-    users: 1
-  },
-  {
-    name: 'Support',
-    description: 'Customer support and basic access',
-    color: 'bg-orange-100 text-orange-800',
-    users: 1
-  }
-]
 
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedRole, setSelectedRole] = useState('All')
   const [selectedStatus, setSelectedStatus] = useState('All')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(10)
 
-  const filteredUsers = users.filter(user => {
+  // API hooks
+  const {
+    data: usersData,
+    isLoading,
+    error,
+    refetch
+  } = useUsers({
+    page: currentPage,
+    limit: pageSize,
+    search: searchTerm
+  })
+
+  const deleteUserMutation = useDeleteUser()
+
+  const apiUsers = usersData?.data || []
+  const pagination = usersData?.pagination
+
+  console.log('API Users Data:', apiUsers); // 调试日志
+  console.log('Users Data:', usersData); // 调试日志
+
+  // 正确映射API用户数据
+  const mappedApiUsers = apiUsers.map(user => ({
+    id: user.id,
+    name: user.username || 'Unknown',
+    email: user.email || 'No email',
+    role: user.role === 'ADMIN' ? 'Admin' : user.role === 'USER' ? 'User' : user.role,
+    status: 'active', // API中没有isActive字段，默认为active
+    avatar: user.avatar || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face`,
+    lastLogin: user.updatedAt || user.createdAt,
+    createdAt: user.createdAt,
+    permissions: user.role === 'ADMIN' ? ['all'] : ['basic']
+  }))
+
+  // 只显示真实的API用户，移除模拟数据
+  const allUsers = mappedApiUsers
+
+  console.log('Mapped Users:', allUsers); // 调试日志
+
+  const filteredUsers = allUsers.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = selectedRole === 'All' || user.role === selectedRole
+    const matchesRole = selectedRole === 'All' || 
+                       user.role === selectedRole ||
+                       (selectedRole === 'Admin' && user.role === 'ADMIN') ||
+                       (selectedRole === 'User' && user.role === 'USER')
     const matchesStatus = selectedStatus === 'All' || user.status === selectedStatus
 
     return matchesSearch && matchesRole && matchesStatus
   })
+
+  const handleDeleteUser = async (userId: string) => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
+      try {
+        await deleteUserMutation.mutateAsync(userId)
+        refetch()
+      } catch (error) {
+        console.error('Failed to delete user:', error)
+      }
+    }
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -145,8 +109,17 @@ export default function UsersPage() {
   }
 
   const getRoleColor = (role: string) => {
-    const roleData = roles.find(r => r.name === role)
-    return roleData?.color || 'bg-gray-100 text-gray-800'
+    // 简化角色颜色逻辑，不再依赖roles数组
+    switch (role) {
+      case 'Admin':
+      case 'ADMIN':
+        return 'bg-blue-100 text-blue-800'
+      case 'User':
+      case 'USER':
+        return 'bg-green-100 text-green-800'
+      default:
+        return 'bg-gray-100 text-gray-800'
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -168,6 +141,33 @@ export default function UsersPage() {
       const diffInDays = Math.floor(diffInHours / 24)
       return `${diffInDays} days ago`
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">
+        <Card>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <ExclamationTriangleIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load users</h3>
+              <p className="text-gray-600 mb-4">There was an error loading the user data.</p>
+              <Button onClick={() => refetch()}>Try Again</Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   return (
@@ -197,7 +197,7 @@ export default function UsersPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">{users.length}</p>
+                <p className="text-2xl font-bold text-gray-900">{allUsers.length}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
                 <UserIcon className="w-6 h-6 text-blue-600" />
@@ -212,7 +212,7 @@ export default function UsersPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Users</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {users.filter(u => u.status === 'active').length}
+                  {allUsers.filter(u => u.status === 'active').length}
                 </p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -226,8 +226,8 @@ export default function UsersPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Roles</p>
-                <p className="text-2xl font-bold text-gray-900">{roles.length}</p>
+                <p className="text-sm font-medium text-gray-600">角色类型</p>
+                <p className="text-2xl font-bold text-gray-900">2</p>
               </div>
               <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
                 <ShieldCheckIcon className="w-6 h-6 text-purple-600" />
@@ -274,9 +274,8 @@ export default function UsersPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="All">All Roles</SelectItem>
-                  {roles.map(role => (
-                    <SelectItem key={role.name} value={role.name}>{role.name}</SelectItem>
-                  ))}
+                  <SelectItem value="Admin">Admin</SelectItem>
+                  <SelectItem value="User">User</SelectItem>
                 </SelectContent>
               </Select>
 
@@ -301,14 +300,14 @@ export default function UsersPage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Users Table */}
-        <div className="lg:col-span-2">
+        <div>
           <Card>
             <CardHeader>
-              <CardTitle>Users</CardTitle>
+              <CardTitle>用户列表</CardTitle>
               <CardDescription>
-                Showing {filteredUsers.length} of {users.length} users
+                显示 {filteredUsers.length} / {allUsers.length} 个用户
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -316,11 +315,11 @@ export default function UsersPage() {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">User</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Role</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Status</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Last Login</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">Actions</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-900">用户</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-900">角色</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-900">状态</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-900">最后登录</th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-900">操作</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -354,78 +353,28 @@ export default function UsersPage() {
                         </td>
                         <td className="py-4 px-4">
                           <div className="flex items-center space-x-2">
-                            <button className="p-1 text-gray-400 hover:text-blue-600">
-                              <EyeIcon className="w-4 h-4" />
-                            </button>
-                            <button className="p-1 text-gray-400 hover:text-blue-600">
+                            <Link href={`/users/${user.id}`}>
+                              <Button variant="ghost" size="sm">
+                                <EyeIcon className="w-4 h-4" />
+                              </Button>
+                            </Link>
+                            <Button variant="ghost" size="sm">
                               <PencilIcon className="w-4 h-4" />
-                            </button>
-                            <button className="p-1 text-gray-400 hover:text-red-600">
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteUser(user.id.toString())}
+                              disabled={deleteUserMutation.isPending}
+                            >
                               <TrashIcon className="w-4 h-4" />
-                            </button>
+                            </Button>
                           </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Roles Sidebar */}
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Roles & Permissions</CardTitle>
-              <CardDescription>Manage user roles and access levels</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {roles.map((role, index) => (
-                  <div key={index} className="p-4 border border-gray-200 rounded-lg">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium text-gray-900">{role.name}</h4>
-                      <Badge variant="outline">{role.users} user{role.users !== 1 ? 's' : ''}</Badge>
-                    </div>
-                    <p className="text-sm text-gray-600 mb-3">{role.description}</p>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" size="sm">Edit</Button>
-                      <Button variant="outline" size="sm">Permissions</Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <Button className="w-full mt-4">Create New Role</Button>
-            </CardContent>
-          </Card>
-
-          {/* Recent Activity */}
-          <Card className="mt-6">
-            <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Latest user actions</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  { user: 'Zhang Wei', action: 'Updated product pricing', time: '2 hours ago' },
-                  { user: 'Li Ming', action: 'Processed 5 orders', time: '4 hours ago' },
-                  { user: 'Wang Fang', action: 'Added new customer', time: '6 hours ago' },
-                  { user: 'Liu Yan', action: 'Responded to support ticket', time: '8 hours ago' },
-                ].map((activity, index) => (
-                  <div key={index} className="flex items-start space-x-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <UserIcon className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{activity.user}</p>
-                      <p className="text-sm text-gray-600">{activity.action}</p>
-                      <p className="text-xs text-gray-500 mt-1">{activity.time}</p>
-                    </div>
-                  </div>
-                ))}
               </div>
             </CardContent>
           </Card>

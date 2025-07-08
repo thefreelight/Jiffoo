@@ -7,10 +7,18 @@ const nextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3001/api/:path*',
+        destination: 'http://127.0.0.1:3001/api/:path*',
       },
     ];
   },
+  // Enable standalone output for Docker
+  output: 'standalone',
+  // Optimize bundle
+  swcMinify: true,
+  // Enable React strict mode
+  reactStrictMode: true,
+  // Transpile shared package
+  transpilePackages: ['shared'],
 }
 
 module.exports = nextConfig

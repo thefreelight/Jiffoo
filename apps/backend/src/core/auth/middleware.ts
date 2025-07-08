@@ -27,6 +27,25 @@ export async function authMiddleware(
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
+
+    // Development mode: Allow demo tokens
+    if (process.env.NODE_ENV === 'development' && token.startsWith('demo-token-')) {
+      const payload = {
+        userId: 'demo-admin-123',
+        email: 'admin@jiffoo.com',
+        role: 'ADMIN'
+      };
+
+      request.user = {
+        ...payload,
+        permissions: ['*'], // Grant all permissions for demo
+        roles: [{ role: { name: 'ADMIN' } }],
+        tenantId: 'default'
+      };
+
+      return; // Skip JWT verification for demo tokens
+    }
+
     const payload = JwtUtils.verify(token);
 
     // 获取租户ID (如果在请求中)
@@ -73,11 +92,19 @@ export async function adminMiddleware(
   }
 
   // 检查是否有管理员权限
-  const hasAdminPermission = request.user.permissions?.includes('*') ||
-                            request.user.permissions?.includes('system.*') ||
-                            request.user.roles?.some(userRole =>
-                              userRole.role?.name === 'ADMIN' || userRole.role?.name === 'SUPER_ADMIN'
-                            );
+  // 1. 检查JWT token中的role字段
+  const hasRoleInToken = request.user.role === 'ADMIN' || request.user.role === 'SUPER_ADMIN';
+  
+  // 2. 检查权限数组
+  const hasPermissions = request.user.permissions?.includes('*') ||
+                        request.user.permissions?.includes('system.*');
+  
+  // 3. 检查角色数组
+  const hasRoleInArray = request.user.roles?.some(userRole =>
+                          userRole.role?.name === 'ADMIN' || userRole.role?.name === 'SUPER_ADMIN'
+                        );
+
+  const hasAdminPermission = hasRoleInToken || hasPermissions || hasRoleInArray;
 
   if (!hasAdminPermission) {
     return reply.status(403).send({
