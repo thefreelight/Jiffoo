@@ -10,7 +10,7 @@
 >
 > 🌟 **Open Source E-commerce Platform** - A complete, modern e-commerce solution with plugin architecture, advanced multilingual support, and enterprise-ready features.
 
-[中文](#中文文档) | **English**
+**English**
 
 A comprehensive, full-stack e-commerce platform built with modern technologies, featuring a robust backend API, beautiful responsive frontend interface, and comprehensive multilingual support.
 
@@ -228,21 +228,21 @@ The API documentation is automatically generated and available at:
 
 ## 🧪 Testing & Status
 
-### ✅ 测试状态 (v1.0.0-beta.2)
-- **后端API** - ✅ 完全正常 (端口3001)
-- **前端界面** - ✅ 完全正常 (端口3002)
-- **管理界面** - ✅ 完全正常 (端口3003)
-- **数据库** - ✅ 完全正常
-- **搜索功能** - ✅ 完全正常
-- **缓存系统** - ✅ 完全正常
-- **支付系统** - ✅ 完全正常
-- **多语言系统** - ✅ 完全正常 (6种语言，实时切换)
-- **翻译管理** - ✅ 完全正常 (管理界面集成)
+### ✅ Testing Status (v1.0.0-beta.2)
+- **Backend API** - ✅ Fully operational (port 3001)
+- **Frontend Interface** - ✅ Fully operational (port 3002)
+- **Admin Interface** - ✅ Fully operational (port 3003)
+- **Database** - ✅ Fully operational
+- **Search Functionality** - ✅ Fully operational
+- **Cache System** - ✅ Fully operational
+- **Payment System** - ✅ Fully operational
+- **Multilingual System** - ✅ Fully operational (6 languages, real-time switching)
+- **Translation Management** - ✅ Fully operational (admin interface integrated)
 
-### ⚠️ 已知问题
-- 部分插件需要手动配置（不影响核心功能）
-- TypeScript类型优化中（不影响运行）
-- 建议先在测试环境试用
+### ⚠️ Known Issues
+- Some plugins require manual configuration (does not affect core functionality)
+- TypeScript type optimization in progress (does not affect runtime)
+- Recommended to test in staging environment first
 
 ### 🧪 运行测试
 ```bash
@@ -255,7 +255,7 @@ pnpm --filter frontend test
 # Run all tests
 pnpm test
 
-# 手动功能测试
+# Manual functional testing
 curl http://localhost:3001/health
 curl http://localhost:3001/api/products
 ```
@@ -371,117 +371,6 @@ For support and questions:
 - Create an issue on GitHub
 - Check the documentation
 - Review the API documentation at `/docs`
-
----
-
-# 中文文档
-
-**中文** | [English](#jiffoo-mall---modern-e-commerce-platform)
-
-一个使用现代技术构建的全面全栈电商平台，具有强大的后端 API 和美观的响应式前端界面。
-
-## 🌟 功能特性
-
-### 核心电商功能
-- **用户认证与授权** - 基于 JWT 的认证，支持角色权限管理
-- **商品管理** - 完整的 CRUD 操作，支持图片上传
-- **购物车与订单** - 完整的购物体验，支持订单跟踪
-- **搜索与筛选** - 高级搜索功能，智能搜索建议
-- **库存管理** - 实时库存跟踪，库存预警
-- **支付集成** - 支持支付网关集成
-
-### 高级功能
-- **Redis 缓存** - 高性能缓存层
-- **全面日志记录** - 操作跟踪和审计日志
-- **细粒度权限** - 资源级访问控制
-- **销售分析** - 商业智能和报表
-- **邮件通知** - 基于模板的通知系统
-- **文件上传系统** - 安全的文件处理和验证
-- **插件架构** - 可扩展的模块化系统
-- **国际化** - 多语言支持（15种语言）
-
-### 🏢 商业化功能
-- **插件商店** - 高级插件市场，支持订阅模式
-- **许可证管理** - 安全的许可证验证和使用量跟踪
-- **定制SaaS应用** - 企业级解决方案授权
-- **模板市场** - 设计模板，支持多种许可证类型
-- **多租户OEM系统** - 白标代理商网络，支持收入分成
-- **统一销售平台** - 集成直销和OEM销售处理
-
-## 🏗️ 技术栈
-
-### 后端
-- **框架**: Fastify + TypeScript
-- **数据库**: SQLite（开发）/ PostgreSQL（生产）+ Prisma ORM
-- **认证**: JWT + bcrypt 密码加密
-- **缓存**: Redis 高性能数据缓存
-- **文件上传**: Multer + 图片处理
-- **邮件**: Nodemailer + 模板支持
-- **验证**: Zod 模式验证
-- **文档**: OpenAPI/Swagger 集成
-
-### 前端
-- **框架**: Next.js 15 + App Router
-- **语言**: TypeScript
-- **样式**: Tailwind CSS + 自定义设计系统
-- **UI 组件**: Radix UI 原语
-- **状态管理**: Zustand + React Query
-- **表单**: React Hook Form + Zod 验证
-- **动画**: Framer Motion
-- **图标**: Lucide React
-
-### 开发工具
-- **包管理器**: pnpm + workspace 支持
-- **构建工具**: Turbo monorepo 构建
-- **代码质量**: ESLint + Prettier
-- **类型安全**: TypeScript 严格模式
-- **API 测试**: 内置 Swagger UI
-- **开发**: 前后端热重载
-
-## 🚀 快速开始
-
-### 环境要求
-- Node.js 18+
-- pnpm（推荐）或 npm
-- Redis（可选，用于缓存）
-
-### 安装步骤
-
-1. **克隆仓库**
-   ```bash
-   git clone https://github.com/thefreelight/Jiffoo.git
-   cd Jiffoo
-   ```
-
-2. **安装依赖**
-   ```bash
-   pnpm install
-   ```
-
-3. **设置环境变量**
-   ```bash
-   # 后端环境变量
-   cp apps/backend/.env.example apps/backend/.env
-
-   # 编辑 .env 文件配置
-   ```
-
-4. **初始化数据库**
-   ```bash
-   pnpm --filter backend db:generate
-   pnpm --filter backend db:push
-   pnpm --filter backend db:seed
-   ```
-
-5. **启动开发服务器**
-   ```bash
-   # 同时启动前后端
-   pnpm dev
-
-   # 或单独启动
-   pnpm --filter backend dev    # 后端: http://localhost:3001
-   pnpm --filter frontend dev   # 前端: http://localhost:3002
-   ```
 
 ---
 
