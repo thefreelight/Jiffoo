@@ -389,7 +389,20 @@ export async function notificationRoutes(fastify: FastifyInstance) {
         }
       });
 
-      await NotificationService.queueNotification(notification);
+      await NotificationService.queueNotification({
+        ...notification,
+        type: notification.type as any,
+        status: notification.status as any,
+        category: notification.category as any,
+        priority: notification.priority as any,
+        templateType: notification.templateType as any || undefined,
+        scheduledAt: notification.scheduledAt || undefined,
+        sentAt: notification.sentAt || undefined,
+        deliveredAt: notification.deliveredAt || undefined,
+        failedAt: notification.failedAt || undefined,
+        errorMessage: notification.errorMessage || undefined,
+        data: notification.data || undefined
+      });
 
       return reply.send({
         success: true,

@@ -7,97 +7,66 @@ import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/use-translation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/api';
 
-// Mock new arrivals data
-const newArrivals = [
-  {
-    id: 1,
-    name: 'Ultra-Slim Laptop',
-    nameZh: '超薄笔记本电脑',
-    nameJa: 'ウルトラスリムノートパソコン',
-    price: 899.99,
-    originalPrice: null,
-    rating: 4.8,
-    reviews: 45,
-    image: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=400&fit=crop',
-    category: 'Electronics',
-    addedDate: '2024-05-28',
-    isHot: true,
-  },
-  {
-    id: 2,
-    name: 'Sustainable Bamboo T-Shirt',
-    nameZh: '可持续竹纤维T恤',
-    nameJa: '持続可能な竹繊維Tシャツ',
-    price: 29.99,
-    originalPrice: null,
-    rating: 4.6,
-    reviews: 23,
-    image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
-    category: 'Fashion',
-    addedDate: '2024-05-27',
-    isHot: false,
-  },
-  {
-    id: 3,
-    name: 'Smart Air Purifier',
-    nameZh: '智能空气净化器',
-    nameJa: 'スマート空気清浄機',
-    price: 199.99,
-    originalPrice: null,
-    rating: 4.7,
-    reviews: 67,
-    image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop',
-    category: 'Home & Garden',
-    addedDate: '2024-05-26',
-    isHot: true,
-  },
-  {
-    id: 4,
-    name: 'Wireless Charging Pad',
-    nameZh: '无线充电板',
-    nameJa: 'ワイヤレス充電パッド',
-    price: 39.99,
-    originalPrice: null,
-    rating: 4.4,
-    reviews: 89,
-    image: 'https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400&h=400&fit=crop',
-    category: 'Electronics',
-    addedDate: '2024-05-25',
-    isHot: false,
-  },
-  {
-    id: 5,
-    name: 'Ergonomic Office Chair',
-    nameZh: '人体工学办公椅',
-    nameJa: '人間工学オフィスチェア',
-    price: 299.99,
-    originalPrice: null,
-    rating: 4.9,
-    reviews: 156,
-    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=400&fit=crop',
-    category: 'Home & Garden',
-    addedDate: '2024-05-24',
-    isHot: true,
-  },
-  {
-    id: 6,
-    name: 'Premium Yoga Mat',
-    nameZh: '高级瑜伽垫',
-    nameJa: 'プレミアムヨガマット',
-    price: 79.99,
-    originalPrice: null,
-    rating: 4.5,
-    reviews: 234,
-    image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop',
-    category: 'Sports',
-    addedDate: '2024-05-23',
-    isHot: false,
-  },
-];
+interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  stock: number;
+  images?: string;
+  category?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function NewArrivalsPage() {
   const { currentLanguage } = useTranslation();
+
+  // 使用真实API获取产品数据
+  const { data: productsData, isLoading, error } = useQuery({
+    queryKey: ['products'],
+    queryFn: async () => {
+      const response = await api.get('/api/products');
+      return response.data;
+    },
+  });
+
+  const products = productsData?.products || [];
+
+  // 辅助函数：获取产品图片
+  const getProductImage = (product: Product) => {
+    if (!product.images) return '/placeholder-product.jpg';
+
+    try {
+      const parsed = JSON.parse(product.images);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed[0];
+      }
+    } catch (e) {
+      if (product.images.trim() && product.images !== '[]') {
+        return product.images;
+      }
+    }
+
+    return '/placeholder-product.jpg';
+  };
+
+  // 辅助函数：检查库存
+  const isInStock = (product: Product) => {
+    return product.stock > 0;
+  };
+
+  // 辅助函数：检查是否是新品（最近7天创建的）
+  const isNewArrival = (product: Product) => {
+    const createdDate = new Date(product.createdAt);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - createdDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays <= 7;
+  };
 
   const translations: Record<string, Record<string, string>> = {
     'en-US': {
@@ -105,77 +74,36 @@ export default function NewArrivalsPage() {
       subtitle: 'Discover the latest products just added to our collection',
       hotItem: 'Hot',
       justAdded: 'Just Added',
-      addedOn: 'Added on',
-      reviews: 'reviews',
+      showingItems: 'Showing {count} new arrivals',
       addToCart: 'Add to Cart',
-      addToWishlist: 'Add to Wishlist',
+      reviews: 'reviews',
+      outOfStock: 'Out of Stock',
+      inStock: 'In Stock',
       viewAll: 'View All Products',
-      sortBy: 'Sort by',
-      newest: 'Newest First',
-      oldest: 'Oldest First',
-      priceHigh: 'Price: High to Low',
-      priceLow: 'Price: Low to High',
-      rating: 'Highest Rated',
-      showingItems: 'Showing {count} new items',
+      stayUpdated: 'Stay Updated',
+      stayUpdatedDesc: 'Be the first to know about our latest arrivals and exclusive offers.',
+      subscribeNewsletter: 'Subscribe to Newsletter',
     },
     'zh-CN': {
-      title: '新品上架',
-      subtitle: '发现刚刚添加到我们系列中的最新产品',
+      title: '新品上市',
+      subtitle: '发现我们最新添加到收藏中的产品',
       hotItem: '热门',
-      justAdded: '刚刚上架',
-      addedOn: '上架于',
-      reviews: '条评价',
+      justAdded: '刚刚添加',
+      showingItems: '显示 {count} 个新品',
       addToCart: '加入购物车',
-      addToWishlist: '加入收藏',
-      viewAll: '查看所有商品',
-      sortBy: '排序',
-      newest: '最新优先',
-      oldest: '最早优先',
-      priceHigh: '价格：从高到低',
-      priceLow: '价格：从低到高',
-      rating: '评分最高',
-      showingItems: '显示 {count} 个新商品',
-    },
-    'ja-JP': {
-      title: '新着商品',
-      subtitle: 'コレクションに追加されたばかりの最新商品を発見',
-      hotItem: 'ホット',
-      justAdded: '新着',
-      addedOn: '追加日',
-      reviews: 'レビュー',
-      addToCart: 'カートに追加',
-      addToWishlist: 'ウィッシュリストに追加',
-      viewAll: 'すべての商品を見る',
-      sortBy: '並び替え',
-      newest: '新着順',
-      oldest: '古い順',
-      priceHigh: '価格：高い順',
-      priceLow: '価格：安い順',
-      rating: '評価の高い順',
-      showingItems: '{count}個の新商品を表示',
+      reviews: '评论',
+      outOfStock: '缺货',
+      inStock: '有库存',
+      viewAll: '查看所有产品',
+      stayUpdated: '保持更新',
+      stayUpdatedDesc: '第一时间了解我们的最新产品和独家优惠。',
+      subscribeNewsletter: '订阅新闻通讯',
     },
   };
 
-  const t = (key: string) => {
-    return translations[currentLanguage]?.[key] || translations['en-US'][key] || key;
-  };
+  const t = (key: string) => translations[currentLanguage]?.[key] || translations['en-US'][key] || key;
 
-  const getProductName = (product: any) => {
-    switch (currentLanguage) {
-      case 'zh-CN':
-        return product.nameZh;
-      case 'ja-JP':
-        return product.nameJa;
-      default:
-        return product.name;
-    }
-  };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString(currentLanguage === 'zh-CN' ? 'zh-CN' : 
-                                   currentLanguage === 'ja-JP' ? 'ja-JP' : 'en-US');
-  };
 
   const [sortBy, setSortBy] = React.useState('newest');
 
@@ -207,7 +135,7 @@ export default function NewArrivalsPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="text-sm text-muted-foreground">
-              {t('showingItems').replace('{count}', newArrivals.length.toString())}
+              {isLoading ? 'Loading...' : t('showingItems').replace('{count}', products.length.toString())}
             </div>
             
             <div className="flex items-center gap-4">
@@ -231,8 +159,21 @@ export default function NewArrivalsPage() {
       {/* Products Grid */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {newArrivals.map((product, index) => (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading new arrivals...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-500 mb-2">Error loading products</p>
+              <p className="text-muted-foreground">Please try again later</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {products.map((product: Product, index: number) => (
               <motion.div
                 key={product.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -244,20 +185,22 @@ export default function NewArrivalsPage() {
                   {/* Product Image */}
                   <div className="relative aspect-square overflow-hidden">
                     <Image
-                      src={product.image}
-                      alt={getProductName(product)}
+                      src={getProductImage(product)}
+                      alt={product.name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    
+
                     {/* Badges */}
                     <div className="absolute top-3 left-3 flex flex-col gap-2">
-                      <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                        {t('justAdded')}
-                      </span>
-                      {product.isHot && (
+                      {isNewArrival(product) && (
+                        <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full font-medium">
+                          {t('justAdded')}
+                        </span>
+                      )}
+                      {!isInStock(product) && (
                         <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                          {t('hotItem')}
+                          {t('outOfStock')}
                         </span>
                       )}
                     </div>
@@ -276,55 +219,49 @@ export default function NewArrivalsPage() {
                   <div className="p-4">
                     <Link href={`/products/${product.id}`}>
                       <h3 className="font-semibold text-lg mb-2 hover:text-primary transition-colors">
-                        {getProductName(product)}
+                        {product.name}
                       </h3>
                     </Link>
 
                     {/* Added Date */}
                     <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
                       <Clock className="h-4 w-4" />
-                      <span>{t('addedOn')} {formatDate(product.addedDate)}</span>
+                      <span>Added {new Date(product.createdAt).toLocaleDateString()}</span>
                     </div>
 
-                    {/* Rating */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < Math.floor(product.rating)
-                                ? 'text-yellow-400 fill-current'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        ({product.reviews} {t('reviews')})
+                    {/* Description */}
+                    {product.description && (
+                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                        {product.description}
+                      </p>
+                    )}
+
+                    {/* Stock Info */}
+                    <div className="flex items-center gap-2 mb-3 text-sm">
+                      <span className={isInStock(product) ? 'text-green-600' : 'text-red-600'}>
+                        {isInStock(product) ? `${t('inStock')} (${product.stock})` : t('outOfStock')}
                       </span>
                     </div>
 
                     {/* Price */}
                     <div className="flex items-center gap-2 mb-4">
                       <span className="text-xl font-bold">${product.price}</span>
-                      {product.originalPrice && (
-                        <span className="text-sm text-muted-foreground line-through">
-                          ${product.originalPrice}
-                        </span>
-                      )}
                     </div>
 
                     {/* Add to Cart Button */}
-                    <Button className="w-full">
+                    <Button
+                      className="w-full"
+                      disabled={!isInStock(product)}
+                    >
                       <ShoppingCart className="h-4 w-4 mr-2" />
-                      {t('addToCart')}
+                      {isInStock(product) ? t('addToCart') : t('outOfStock')}
                     </Button>
                   </div>
                 </div>
               </motion.div>
             ))}
           </div>
+          )}
         </div>
       </section>
 

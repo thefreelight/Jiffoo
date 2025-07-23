@@ -79,7 +79,20 @@ export class NotificationService {
 
     // 如果是立即发送，加入队列
     if (!scheduledAt || scheduledAt <= new Date()) {
-      await this.queueNotification(notification);
+      await this.queueNotification({
+        ...notification,
+        type: notification.type as any,
+        status: notification.status as any,
+        category: notification.category as any,
+        priority: notification.priority as any,
+        templateType: notification.templateType as any || undefined,
+        scheduledAt: notification.scheduledAt || undefined,
+        sentAt: notification.sentAt || undefined,
+        deliveredAt: notification.deliveredAt || undefined,
+        failedAt: notification.failedAt || undefined,
+        errorMessage: notification.errorMessage || undefined,
+        data: notification.data || undefined
+      });
     }
 
     LoggerService.logSystem('Notification created', {
@@ -89,7 +102,20 @@ export class NotificationService {
       recipient
     });
 
-    return notification;
+    return {
+      ...notification,
+      type: notification.type as any,
+      status: notification.status as any,
+      category: notification.category as any,
+      priority: notification.priority as any,
+      templateType: notification.templateType as any || undefined,
+      scheduledAt: notification.scheduledAt || undefined,
+      sentAt: notification.sentAt || undefined,
+      deliveredAt: notification.deliveredAt || undefined,
+      failedAt: notification.failedAt || undefined,
+      errorMessage: notification.errorMessage || undefined,
+      data: notification.data || undefined
+    };
   }
 
   /**
@@ -288,7 +314,12 @@ export class NotificationService {
       await CacheService.set(cacheKey, template, { ttl: this.CACHE_TTL, prefix: 'notification:' });
     }
 
-    return template;
+    return template ? {
+      ...template,
+      type: template.type as any,
+      description: template.description || '',
+      variables: template.variables ? JSON.parse(template.variables) : []
+    } : null;
   }
 
   /**
@@ -431,7 +462,10 @@ export class NotificationService {
 
     notifications.forEach(notification => {
       // 按状态统计
-      stats.byStatus[notification.status] = (stats.byStatus[notification.status] || 0) + 1;
+      const status = notification.status as keyof typeof stats.byStatus;
+      if (status in stats.byStatus) {
+        stats.byStatus[status] = (stats.byStatus[status] || 0) + 1;
+      }
       
       switch (notification.status) {
         case NotificationStatus.SENT:
@@ -450,10 +484,16 @@ export class NotificationService {
       }
 
       // 按类型统计
-      stats.byType[notification.type] = (stats.byType[notification.type] || 0) + 1;
+      const type = notification.type as keyof typeof stats.byType;
+      if (type in stats.byType) {
+        stats.byType[type] = (stats.byType[type] || 0) + 1;
+      }
       
       // 按类别统计
-      stats.byCategory[notification.category] = (stats.byCategory[notification.category] || 0) + 1;
+      const category = notification.category as keyof typeof stats.byCategory;
+      if (category in stats.byCategory) {
+        stats.byCategory[category] = (stats.byCategory[category] || 0) + 1;
+      }
     });
 
     // 计算成功率

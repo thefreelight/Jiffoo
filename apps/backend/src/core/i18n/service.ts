@@ -241,7 +241,7 @@ export class I18nService {
 
       // 缓存结果
       if (this.config.cacheEnabled && !fallback) {
-        await CacheService.set(cacheKey, value, this.config.cacheTTL, 'i18n:');
+        await CacheService.set(cacheKey, value, { ttl: this.config.cacheTTL });
         LoggerService.logCache('SET', cacheKey, false);
       }
 

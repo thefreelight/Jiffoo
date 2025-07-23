@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Filter, Grid, List, Star, Heart, ShoppingCart, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,58 +10,26 @@ import { useTranslation } from '@/hooks/use-translation';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/api';
 
-// Mock search results
-const mockResults = [
-  {
-    id: 1,
-    name: 'Wireless Bluetooth Headphones',
-    nameZh: '无线蓝牙耳机',
-    nameJa: 'ワイヤレスBluetoothヘッドフォン',
-    price: 89.99,
-    originalPrice: 119.99,
-    rating: 4.5,
-    reviews: 234,
-    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop',
-    category: 'Electronics',
-    brand: 'TechSound',
-    inStock: true,
-  },
-  {
-    id: 2,
-    name: 'Smart Fitness Watch',
-    nameZh: '智能健身手表',
-    nameJa: 'スマートフィットネスウォッチ',
-    price: 199.99,
-    originalPrice: null,
-    rating: 4.7,
-    reviews: 156,
-    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop',
-    category: 'Electronics',
-    brand: 'FitTech',
-    inStock: true,
-  },
-  {
-    id: 3,
-    name: 'Premium Coffee Beans',
-    nameZh: '优质咖啡豆',
-    nameJa: 'プレミアムコーヒー豆',
-    price: 24.99,
-    originalPrice: 29.99,
-    rating: 4.8,
-    reviews: 89,
-    image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&h=400&fit=crop',
-    category: 'Food & Beverages',
-    brand: 'BrewMaster',
-    inStock: false,
-  },
-];
+interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  stock: number;
+  images?: string;
+  category?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
-export default function SearchPage() {
+function SearchPageContent() {
   const { currentLanguage } = useTranslation();
   const searchParams = useSearchParams();
   const initialQuery = searchParams.get('q') || '';
-  
+
   const [searchQuery, setSearchQuery] = React.useState(initialQuery);
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = React.useState('relevance');
@@ -71,6 +40,70 @@ export default function SearchPage() {
     rating: '',
     inStock: false,
   });
+
+  // 使用真实API进行搜索
+  const { data: searchResults, isLoading, error } = useQuery({
+    queryKey: ['search', searchQuery, filters, sortBy],
+    queryFn: async () => {
+      if (!searchQuery.trim()) {
+        return { products: [] };
+      }
+
+      try {
+        const response = await api.get('/api/products/search', {
+          params: {
+            q: searchQuery,
+            category: filters.category,
+            sortBy: sortBy,
+            inStock: filters.inStock,
+          }
+        });
+        return response.data;
+      } catch (error) {
+        console.error('Search API error:', error);
+        // 如果搜索API不存在，回退到普通产品列表
+        const response = await api.get('/api/products');
+        const allProducts = response.data.products || [];
+        // 简单的客户端搜索过滤
+        const filtered = allProducts.filter((product: Product) =>
+          product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (product.description && product.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+        return { products: filtered };
+      }
+    },
+    enabled: !!searchQuery.trim(),
+  });
+
+  const products = searchResults?.products || [];
+
+  // 辅助函数：获取产品图片
+  const getProductImage = (product: Product) => {
+    if (!product.images) return '/placeholder-product.jpg';
+
+    try {
+      const parsed = JSON.parse(product.images);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed[0];
+      }
+    } catch (e) {
+      if (product.images.trim() && product.images !== '[]') {
+        return product.images;
+      }
+    }
+
+    return '/placeholder-product.jpg';
+  };
+
+  // 辅助函数：获取产品名称
+  const getProductName = (product: Product) => {
+    return product.name || 'Unnamed Product';
+  };
+
+  // 辅助函数：检查库存
+  const isInStock = (product: Product) => {
+    return product.stock > 0;
+  };
 
   const translations: Record<string, Record<string, string>> = {
     'en-US': {
@@ -178,16 +211,7 @@ export default function SearchPage() {
     return translations[currentLanguage]?.[key] || translations['en-US'][key] || key;
   };
 
-  const getProductName = (product: any) => {
-    switch (currentLanguage) {
-      case 'zh-CN':
-        return product.nameZh;
-      case 'ja-JP':
-        return product.nameJa;
-      default:
-        return product.name;
-    }
-  };
+
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -226,7 +250,7 @@ export default function SearchPage() {
               </p>
             )}
             <p className="text-sm text-muted-foreground">
-              {mockResults.length} {t('resultsFound')}
+              {isLoading ? 'Searching...' : `${products.length} ${t('resultsFound')}`}
             </p>
           </motion.div>
         </div>
@@ -384,13 +408,25 @@ export default function SearchPage() {
             </div>
 
             {/* Results */}
-            {mockResults.length > 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                  <p className="text-muted-foreground">Searching products...</p>
+                </div>
+              </div>
+            ) : error ? (
+              <div className="text-center py-12">
+                <p className="text-red-500 mb-2">Error loading search results</p>
+                <p className="text-muted-foreground">Please try again later</p>
+              </div>
+            ) : products.length > 0 ? (
               <div className={`grid gap-6 ${
-                viewMode === 'grid' 
-                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3' 
+                viewMode === 'grid'
+                  ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
                   : 'grid-cols-1'
               }`}>
-                {mockResults.map((product, index) => (
+                {products.map((product: Product, index: number) => (
                   <motion.div
                     key={product.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -402,14 +438,14 @@ export default function SearchPage() {
                       {/* Product Image */}
                       <div className="relative aspect-square overflow-hidden">
                         <Image
-                          src={product.image}
+                          src={getProductImage(product)}
                           alt={getProductName(product)}
                           fill
                           className="object-cover group-hover:scale-105 transition-transform duration-300"
                         />
-                        
+
                         {/* Stock Status */}
-                        {!product.inStock && (
+                        {!isInStock(product) && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                             <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
                               {t('outOfStock')}
@@ -435,44 +471,29 @@ export default function SearchPage() {
                           </h3>
                         </Link>
 
-                        <p className="text-sm text-muted-foreground mb-2">{product.brand}</p>
-
-                        {/* Rating */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="flex items-center">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`h-4 w-4 ${
-                                  i < Math.floor(product.rating)
-                                    ? 'text-yellow-400 fill-current'
-                                    : 'text-gray-300'
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          <span className="text-sm text-muted-foreground">
-                            ({product.reviews} {t('reviews')})
-                          </span>
-                        </div>
+                        {product.description && (
+                          <p className="text-sm text-muted-foreground mb-2 line-clamp-2">{product.description}</p>
+                        )}
 
                         {/* Price */}
                         <div className="flex items-center gap-2 mb-4">
                           <span className="text-xl font-bold">${product.price}</span>
-                          {product.originalPrice && (
-                            <span className="text-sm text-muted-foreground line-through">
-                              ${product.originalPrice}
-                            </span>
-                          )}
+                        </div>
+
+                        {/* Stock Info */}
+                        <div className="flex items-center gap-2 mb-4">
+                          <span className={`text-sm ${isInStock(product) ? 'text-green-600' : 'text-red-600'}`}>
+                            {isInStock(product) ? `${t('inStock')} (${product.stock})` : t('outOfStock')}
+                          </span>
                         </div>
 
                         {/* Add to Cart Button */}
-                        <Button 
-                          className="w-full" 
-                          disabled={!product.inStock}
+                        <Button
+                          className="w-full"
+                          disabled={!isInStock(product)}
                         >
                           <ShoppingCart className="h-4 w-4 mr-2" />
-                          {product.inStock ? t('addToCart') : t('outOfStock')}
+                          {isInStock(product) ? t('addToCart') : t('outOfStock')}
                         </Button>
                       </div>
                     </div>
@@ -495,5 +516,13 @@ export default function SearchPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <SearchPageContent />
+    </Suspense>
   );
 }

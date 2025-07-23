@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -46,7 +46,7 @@ interface SearchFilters {
   sortOrder: string;
 }
 
-export default function ProductSearchPage() {
+function ProductSearchPageContent() {
   const { t, currentLanguage } = useTranslation();
   const { addToCart } = useCartStore();
   const { toast } = useToast();
@@ -91,7 +91,7 @@ export default function ProductSearchPage() {
       };
 
       const response = await productsApi.getProducts(params);
-      setProducts(response.products);
+      setProducts(response.data);
       setPagination(response.pagination);
     } catch (error) {
       console.error('Failed to load products:', error);
@@ -213,10 +213,7 @@ export default function ProductSearchPage() {
           {searchQuery && (
             <div className="flex items-center justify-between mb-4">
               <p className="text-gray-600">
-                {t('products.searchResults', { 
-                  query: searchQuery, 
-                  count: pagination.total 
-                })}
+                {`${t('products.searchResults')} "${searchQuery}" (${pagination.total})`}
               </p>
               {searchQuery && (
                 <Button
@@ -262,8 +259,8 @@ export default function ProductSearchPage() {
                   {t('products.noResults')}
                 </h3>
                 <p className="text-gray-600 mb-6">
-                  {searchQuery 
-                    ? t('products.noResultsForQuery', { query: searchQuery })
+                  {searchQuery
+                    ? `${t('products.noResultsForQuery')} "${searchQuery}"`
                     : t('products.noProductsFound')
                   }
                 </p>
@@ -339,8 +336,8 @@ export default function ProductSearchPage() {
                           {/* Stock Status */}
                           <div className="mb-4">
                             <Badge variant={product.stock > 0 ? 'default' : 'destructive'}>
-                              {product.stock > 0 
-                                ? t('products.inStock', { count: product.stock })
+                              {product.stock > 0
+                                ? `${t('products.inStock')} (${product.stock})`
                                 : t('products.outOfStock')
                               }
                             </Badge>
@@ -391,5 +388,13 @@ export default function ProductSearchPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ProductSearchPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+      <ProductSearchPageContent />
+    </Suspense>
   );
 }

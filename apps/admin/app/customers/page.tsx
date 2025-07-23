@@ -56,7 +56,7 @@ export default function CustomersPage() {
   }
 
   // Filter users locally for immediate feedback
-  const filteredCustomers = users.filter(user => {
+  const filteredCustomers = users.filter((user: any) => {
     if (!user) return false
     const matchesSearch = searchTerm === '' ||
       user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -90,8 +90,8 @@ export default function CustomersPage() {
   const customerStats = {
     total: pagination.total,
     active: users.length, // 所有用户都被认为是活跃的
-    vip: users.filter(user => user.role === 'VIP').length,
-    newThisMonth: users.filter(user => {
+    vip: users.filter((user: any) => user.role === 'VIP').length,
+    newThisMonth: users.filter((user: any) => {
       if (!user.createdAt) return false
       const createdDate = new Date(user.createdAt)
       const now = new Date()
@@ -263,7 +263,7 @@ export default function CustomersPage() {
                         </td>
                       </tr>
                     ) : (
-                      filteredCustomers.map((customer) => (
+                      filteredCustomers.map((customer: any) => (
                         <tr key={customer.id} className="hover:bg-gray-50">
                           <td className="py-4 px-6">
                             <div className="flex items-center">

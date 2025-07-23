@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/lib/store';
 import { AdminLayout } from './admin-layout';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
@@ -10,12 +10,17 @@ interface ConditionalLayoutProps {
 }
 
 export function ConditionalLayout({ children }: ConditionalLayoutProps) {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, checkAuth } = useAuthStore();
   const pathname = usePathname();
   const router = useRouter();
 
   // 登录页面路径
   const isLoginPage = pathname === '/';
+
+  // 初始化认证检查
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   // 路由保护：未认证用户访问受保护页面时重定向到登录页
   useEffect(() => {

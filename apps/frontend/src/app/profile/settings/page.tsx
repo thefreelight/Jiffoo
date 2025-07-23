@@ -29,7 +29,7 @@ export default function ProfileSettingsPage() {
   
   const [isLoading, setIsLoading] = useState(false);
   const [profileData, setProfileData] = useState({
-    username: user?.username || '',
+    username: user?.name || '',
     email: user?.email || '',
     avatar: user?.avatar || ''
   });

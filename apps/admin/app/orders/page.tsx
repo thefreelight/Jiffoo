@@ -69,7 +69,7 @@ export default function OrdersPage() {
   }
 
   // Filter orders locally for immediate feedback
-  const filteredOrders = orders.filter(order => {
+  const filteredOrders = orders.filter((order: any) => {
     if (!order) return false
     const matchesSearch = searchTerm === '' ||
       order.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -137,9 +137,9 @@ export default function OrdersPage() {
   // Calculate stats from orders data
   const orderStats = {
     total: pagination?.total || 0,
-    pending: orders.filter(order => order.status?.toLowerCase() === 'pending').length,
-    processing: orders.filter(order => order.status?.toLowerCase() === 'processing').length,
-    delivered: orders.filter(order => order.status?.toLowerCase() === 'delivered').length,
+    pending: orders.filter((order: any) => order.status?.toLowerCase() === 'pending').length,
+    processing: orders.filter((order: any) => order.status?.toLowerCase() === 'processing').length,
+    delivered: orders.filter((order: any) => order.status?.toLowerCase() === 'delivered').length,
   }
 
   if (isLoading) {
@@ -316,7 +316,7 @@ export default function OrdersPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredOrders.map((order) => (
+                  filteredOrders.map((order: any) => (
                     <tr key={order.id} className="hover:bg-gray-50">
                       <td className="py-4 px-6">
                         <div className="font-medium text-blue-600">{order.id}</div>

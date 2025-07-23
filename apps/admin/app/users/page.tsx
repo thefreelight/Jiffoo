@@ -55,7 +55,7 @@ export default function UsersPage() {
   console.log('Users Data:', usersData); // 调试日志
 
   // 正确映射API用户数据
-  const mappedApiUsers = apiUsers.map(user => ({
+  const mappedApiUsers = apiUsers.map((user: any) => ({
     id: user.id,
     name: user.username || 'Unknown',
     email: user.email || 'No email',
@@ -72,7 +72,7 @@ export default function UsersPage() {
 
   console.log('Mapped Users:', allUsers); // 调试日志
 
-  const filteredUsers = allUsers.filter(user => {
+  const filteredUsers = allUsers.filter((user: any) => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = selectedRole === 'All' || 
@@ -212,7 +212,7 @@ export default function UsersPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Users</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {allUsers.filter(u => u.status === 'active').length}
+                  {allUsers.filter((u: any) => u.status === 'active').length}
                 </p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -323,7 +323,7 @@ export default function UsersPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {filteredUsers.map((user) => (
+                    {filteredUsers.map((user: any) => (
                       <tr key={user.id} className="hover:bg-gray-50">
                         <td className="py-4 px-4">
                           <div className="flex items-center">

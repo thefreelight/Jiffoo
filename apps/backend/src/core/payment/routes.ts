@@ -2,11 +2,12 @@ import { FastifyInstance } from 'fastify';
 import { PaymentService } from './service';
 import { ProcessPaymentSchema, PaymentMethod } from './types';
 import { authMiddleware } from '@/core/auth/middleware';
-import { paymentPluginRoutes } from './plugin-routes';
+
 
 export async function paymentRoutes(fastify: FastifyInstance) {
-  // Initialize payment service
-  await PaymentService.initialize();
+  // Initialize payment service with Fastify instance
+  await PaymentService.initialize(fastify);
+
   // Process payment
   fastify.post('/process', {
     preHandler: [authMiddleware]
@@ -202,9 +203,9 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   // Get available payment providers
   fastify.get('/providers', {
     schema: {
-      tags: ['payments'],
-      summary: 'Get available payment providers',
-      description: 'Get list of available payment providers and their capabilities'
+      // tags: ['payments'],
+      // summary: 'Get available payment providers',
+      // description: 'Get list of available payment providers and their capabilities'
     }
   }, async (request, reply) => {
     try {
@@ -269,8 +270,8 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   // Health check for payment providers
   fastify.get('/health', {
     schema: {
-      summary: 'Payment system health check',
-      description: 'Check the health status of all payment providers'
+      // summary: 'Payment system health check',
+      // description: 'Check the health status of all payment providers'
     }
   }, async (request, reply) => {
     try {
@@ -294,6 +295,6 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Register plugin management routes
-  await paymentPluginRoutes(fastify);
+  // Plugin management routes moved to /api/plugins
+  // Legacy plugin routes are now handled by the new unified plugin management system
 }

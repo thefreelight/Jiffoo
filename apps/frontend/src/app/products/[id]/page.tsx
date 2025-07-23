@@ -231,8 +231,35 @@ export default function ProductPage({ params }: ProductPageProps) {
     );
   }
 
-  // 生成商品图片数组（如果只有一张图片，重复使用）
-  const productImages = product.images ? [product.images] : ['/placeholder-product.jpg'];
+  // 生成商品图片数组（处理不同的图片数据格式）
+  const productImages = (() => {
+    if (!product.images) {
+      return ['/placeholder-product.jpg'];
+    }
+
+    // 如果images是字符串，尝试解析为JSON
+    if (typeof product.images === 'string') {
+      try {
+        const parsed = JSON.parse(product.images);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        // 如果解析失败，当作单个图片URL处理
+        if (product.images.trim() && product.images !== '[]') {
+          return [product.images];
+        }
+      }
+    }
+
+    // 如果images是数组
+    if (Array.isArray(product.images) && product.images.length > 0) {
+      return product.images;
+    }
+
+    // 默认使用占位图片
+    return ['/placeholder-product.jpg'];
+  })();
 
   return (
     <div className="min-h-screen bg-background">

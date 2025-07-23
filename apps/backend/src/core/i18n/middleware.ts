@@ -64,7 +64,7 @@ export class I18nMiddleware {
           request.language = language;
           
           // 设置语言 cookie
-          reply.setCookie(this.options.cookieName, language, {
+          (reply as any).setCookie(this.options.cookieName, language, {
             maxAge: 365 * 24 * 60 * 60, // 1 year
             httpOnly: false,
             secure: process.env.NODE_ENV === 'production',
@@ -94,7 +94,7 @@ export class I18nMiddleware {
     }
 
     // 2. 检查 Cookie
-    const cookieLang = request.cookies?.[this.options.cookieName];
+    const cookieLang = (request as any).cookies?.[this.options.cookieName];
     if (cookieLang && this.isValidLanguage(cookieLang)) {
       return cookieLang as SupportedLanguage;
     }
@@ -182,7 +182,7 @@ export const localizeResponseMiddleware = async (
   reply: FastifyReply
 ) => {
   // 添加响应后处理钩子
-  reply.addHook('onSend', async (request, reply, payload) => {
+  (reply as any).addHook('onSend', async (request: any, reply: any, payload: any) => {
     if (reply.getHeader('content-type')?.toString().includes('application/json')) {
       try {
         const data = JSON.parse(payload as string);

@@ -42,10 +42,9 @@ const nextConfig = {
       },
     ];
   },
-  // Enable standalone output for Docker
-  output: 'standalone',
-  // Optimize bundle
-  swcMinify: true,
+  // Enable standalone output for Docker (disabled due to Windows symlink issues)
+  // output: 'standalone',
+  // swcMinify is now enabled by default in Next.js 15
   // Enable React strict mode
   reactStrictMode: true,
   // Transpile shared package

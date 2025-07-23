@@ -278,6 +278,7 @@ function getStaticTranslation(key: string, language: SupportedLanguage): string 
       'plugins.store': '插件商店',
       'plugins.installed': '已安装插件',
       'plugins.licenses': '许可证',
+      'plugins.payment_test': '支付测试',
 
       // 应用市场
       'marketplace.saas_apps': 'SaaS应用',
@@ -413,6 +414,7 @@ function getStaticTranslation(key: string, language: SupportedLanguage): string 
       'plugins.store': 'Plugin Store',
       'plugins.installed': 'Installed Plugins',
       'plugins.licenses': 'Licenses',
+      'plugins.payment_test': 'Payment Test',
 
       // Marketplace
       'marketplace.saas_apps': 'SaaS Apps',

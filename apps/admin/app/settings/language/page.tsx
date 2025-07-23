@@ -194,7 +194,6 @@ export default function LanguageSettingsPage() {
                       <Switch
                         checked={isEnabled}
                         onCheckedChange={() => handleToggleLanguage(lang.code)}
-                        size="sm"
                       />
                     )}
                   </div>

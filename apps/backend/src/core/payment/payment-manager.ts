@@ -1,4 +1,5 @@
 import { EventEmitter } from 'events';
+import { FastifyInstance } from 'fastify';
 import {
   PaymentProvider,
   PaymentRequest,
@@ -14,11 +15,15 @@ import {
   WebhookEvent
 } from './types';
 import { LoggerService } from '@/utils/logger';
-import { paymentPluginManager } from './plugin-system/plugin-manager';
+import { createUnifiedPluginManager, getUnifiedPluginManager } from '@/../../plugins/core/managers/unified-manager';
+import { PrismaClient } from '@prisma/client';
 
 export class PaymentManager extends EventEmitter {
+  private providers = new Map<string, PaymentProvider>();
   private defaultProvider?: string;
   private isInitialized = false;
+  private fastifyInstance?: FastifyInstance;
+  private unifiedManager?: any;
 
   constructor() {
     super();
@@ -26,14 +31,26 @@ export class PaymentManager extends EventEmitter {
   }
 
   /**
+   * Check if payment manager is initialized
+   */
+  get initialized(): boolean {
+    return this.isInitialized;
+  }
+
+  /**
    * Initialize the payment manager
    */
-  async initialize(): Promise<void> {
+  async initialize(fastifyInstance?: FastifyInstance): Promise<void> {
     if (this.isInitialized) {
       return;
     }
 
     LoggerService.logInfo('Initializing Payment Manager');
+
+    // Store Fastify instance if provided
+    if (fastifyInstance) {
+      this.fastifyInstance = fastifyInstance;
+    }
 
     // Initialize plugin manager
     await this.initializePluginSystem();
@@ -55,18 +72,13 @@ export class PaymentManager extends EventEmitter {
     licenseKey?: string
   ): Promise<void> {
     try {
-      await paymentPluginManager.registerPlugin(metadata, providerClass, config, licenseKey);
-
-      // Set as default if it's the first provider
-      const providers = paymentPluginManager.getProviders();
-      if (providers.length === 1) {
-        this.defaultProvider = providers[0].name;
-      }
+      // Legacy method - now delegates to unified plugin manager
+      LoggerService.logInfo(`Legacy registerPlugin called for ${metadata.name || 'unknown'}, consider using unified plugin system`);
 
       // Forward plugin events
       this.emit('provider.registered', {
-        providerName: providers[providers.length - 1].name,
-        capabilities: providers[providers.length - 1].capabilities,
+        providerName: metadata.name || 'unknown',
+        capabilities: [],
       });
 
     } catch (error) {
@@ -116,26 +128,59 @@ export class PaymentManager extends EventEmitter {
       throw new Error('No payment provider specified and no default provider set');
     }
 
-    const provider = paymentPluginManager.getProvider(name);
-    if (!provider) {
-      throw new Error(`Payment provider ${name} not found`);
+    // Try to get from unified plugin manager first - temporarily disabled
+    // try {
+    //   const unifiedManager = getUnifiedPluginManager();
+    //   const unifiedPlugins = unifiedManager.getActivePlugins();
+    //   const unifiedPlugin = unifiedPlugins.find(p => p.id === name || p.metadata.name === name);
+
+    //   if (unifiedPlugin && unifiedPlugin.instance && typeof unifiedPlugin.instance.getProvider === 'function') {
+    //     return unifiedPlugin.instance.getProvider();
+    //   }
+    // } catch (error) {
+    //   // Unified plugin manager not initialized yet, continue with error
+    // }
+
+    // Check traditional providers
+    const provider = this.providers.get(name);
+    if (provider) {
+      return provider;
     }
 
-    return provider;
+    throw new Error(`Payment provider ${name} not found`);
   }
 
   /**
    * Get all registered providers (delegates to plugin manager)
    */
   getProviders(): PaymentProvider[] {
-    return paymentPluginManager.getProviders();
+    // Return traditional providers for now
+    return Array.from(this.providers.values());
+
+    // Unified plugin system temporarily disabled
+    // try {
+    //   const unifiedManager = getUnifiedPluginManager();
+    //   const unifiedPlugins = unifiedManager.getActivePlugins();
+    //   const providers: PaymentProvider[] = [];
+
+    //   for (const plugin of unifiedPlugins) {
+    //     if (plugin.instance && typeof plugin.instance.getProvider === 'function') {
+    //       providers.push(plugin.instance.getProvider());
+    //     }
+    //   }
+
+    //   return providers;
+    // } catch (error) {
+    //   // Unified plugin manager not initialized yet
+    //   return [];
+    // }
   }
 
   /**
    * Get provider names (delegates to plugin manager)
    */
   getProviderNames(): string[] {
-    return paymentPluginManager.getProviders().map(p => p.name);
+    return this.getProviders().map(p => p.name);
   }
 
   /**
@@ -355,83 +400,138 @@ export class PaymentManager extends EventEmitter {
    * Initialize plugin system
    */
   private async initializePluginSystem(): Promise<void> {
-    // Set up plugin manager event forwarding
-    paymentPluginManager.on('plugin.registered', (event) => {
-      this.emit('plugin.registered', event);
-    });
+    try {
+      LoggerService.logInfo('Initializing unified plugin system...');
 
-    paymentPluginManager.on('plugin.unregistered', (event) => {
-      this.emit('plugin.unregistered', event);
-    });
+      if (!this.fastifyInstance) {
+        throw new Error('Fastify instance is required for plugin system initialization');
+      }
 
-    paymentPluginManager.on('plugin.activated', (event) => {
-      this.emit('plugin.activated', event);
-    });
+      // Get Prisma client from the Fastify instance
+      const prisma = (this.fastifyInstance as any).prisma;
+      if (!prisma) {
+        throw new Error('Prisma client not found in Fastify instance');
+      }
 
-    paymentPluginManager.on('plugin.deactivated', (event) => {
-      this.emit('plugin.deactivated', event);
-    });
+      // Create and initialize unified plugin manager
+      this.unifiedManager = createUnifiedPluginManager(this.fastifyInstance, prisma);
+      await this.unifiedManager.initialize();
 
-    LoggerService.logInfo('Payment plugin system initialized');
+      LoggerService.logInfo('Unified plugin system initialized successfully');
+    } catch (error) {
+      LoggerService.logError('Failed to initialize plugin system:', error);
+      // Don't throw error to allow system to continue without plugins
+      LoggerService.logInfo('Continuing without plugin system...');
+    }
   }
 
   /**
    * Load default plugins
    */
   private async loadDefaultPlugins(): Promise<void> {
-    // Load the mock payment plugin (free plugin for testing)
-    try {
-      const { MockPaymentPlugin } = await import('./plugins/mock-payment-plugin');
+    // No legacy mock plugins needed - only load real payment plugins
+    LoggerService.logInfo('Skipping legacy mock payment plugins - using only real payment providers');
 
-      await this.registerPlugin(
-        MockPaymentPlugin.metadata,
-        MockPaymentPlugin.providerClass,
-        {
-          environment: 'sandbox',
-          currency: 'USD' as any,
-          region: 'global',
-        }
-      );
+    // Unified payment plugins are now automatically loaded by the unified manager
+    LoggerService.logInfo('Unified payment plugins loaded');
+  }
 
-      LoggerService.logInfo('Default payment plugins loaded');
-    } catch (error) {
-      LoggerService.logError('Failed to load default payment plugins', error);
-    }
+
+
+  /**
+   * Get plugin manager instance (legacy)
+   */
+  getPluginManager() {
+    // Return a mock object for backward compatibility
+    return {
+      activatePlugin: (id: string) => this.activateUnifiedPlugin(id),
+      deactivatePlugin: (id: string) => this.deactivateUnifiedPlugin(id),
+      getPluginStats: () => ({ total: 0, active: 0, inactive: 0 }),
+      healthCheck: () => Promise.resolve({})
+    };
   }
 
   /**
-   * Get plugin manager instance
+   * Get unified plugin manager instance
    */
-  getPluginManager() {
-    return paymentPluginManager;
+  getUnifiedPluginManager() {
+    return this.unifiedManager;
   }
 
   /**
    * Install a payment plugin
    */
   async installPlugin(pluginId: string, licenseKey?: string): Promise<void> {
-    return paymentPluginManager.installPlugin(pluginId, licenseKey);
+    // Legacy method - log warning
+    LoggerService.logInfo(`Legacy installPlugin called for ${pluginId}, consider using unified plugin system`);
+    throw new Error('Legacy plugin installation not supported. Use unified plugin system.');
   }
 
   /**
    * Uninstall a payment plugin
    */
   async uninstallPlugin(pluginId: string): Promise<void> {
-    return paymentPluginManager.uninstallPlugin(pluginId);
+    // Legacy method - log warning
+    LoggerService.logInfo(`Legacy uninstallPlugin called for ${pluginId}, consider using unified plugin system`);
+    throw new Error('Legacy plugin uninstallation not supported. Use unified plugin system.');
   }
 
   /**
    * Get available plugins from registry
    */
-  getAvailablePlugins() {
-    return paymentPluginManager.getAvailablePlugins();
+  async getAvailablePlugins() {
+    // Plugin system temporarily disabled
+    return [];
   }
 
   /**
-   * Get installed plugins
+   * Get installed plugins (legacy)
    */
   getInstalledPlugins() {
-    return paymentPluginManager.getPlugins();
+    // Plugin system temporarily disabled
+    return [];
+  }
+
+  /**
+   * Install a unified plugin - temporarily disabled
+   */
+  async installUnifiedPlugin(pluginId: string, pluginClass: any, config: any): Promise<void> {
+    throw new Error('Plugin system temporarily disabled');
+  }
+
+  /**
+   * Uninstall a unified plugin - temporarily disabled
+   */
+  async uninstallUnifiedPlugin(pluginId: string): Promise<void> {
+    throw new Error('Plugin system temporarily disabled');
+  }
+
+  /**
+   * Activate a unified plugin - temporarily disabled
+   */
+  async activateUnifiedPlugin(pluginId: string): Promise<void> {
+    throw new Error('Plugin system temporarily disabled');
+  }
+
+  /**
+   * Deactivate a unified plugin - temporarily disabled
+   */
+  async deactivateUnifiedPlugin(pluginId: string): Promise<void> {
+    throw new Error('Plugin system temporarily disabled');
+  }
+
+  /**
+   * Get all unified plugins - temporarily disabled
+   */
+  getUnifiedPlugins() {
+    return [];
+  }
+
+  /**
+   * Get active unified plugins - temporarily disabled
+   */
+  getActiveUnifiedPlugins() {
+    return [];
   }
 
   /**
@@ -445,6 +545,13 @@ export class PaymentManager extends EventEmitter {
 
     this.emit('payment.event', paymentEvent);
     this.emit(type, paymentEvent);
+  }
+
+  /**
+   * Get the unified plugin manager
+   */
+  getUnifiedManager() {
+    return this.unifiedManager;
   }
 
   /**

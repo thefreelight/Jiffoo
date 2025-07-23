@@ -8,7 +8,7 @@ import { InventoryOperation } from './types';
 export async function inventoryRoutes(fastify: FastifyInstance) {
   // 获取库存统计 (管理员及以上)
   fastify.get('/stats', {
-    preHandler: [authMiddleware, requireRole(UserRole.MANAGER)],
+    preHandler: [authMiddleware, requireRole(UserRole.ADMIN)],
     schema: {
       tags: ['inventory'],
       summary: '获取库存统计',
@@ -119,7 +119,7 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
 
   // 批量更新库存 (管理员及以上)
   fastify.post('/bulk-update', {
-    preHandler: [authMiddleware, requireRole(UserRole.MANAGER)],
+    preHandler: [authMiddleware, requireRole(UserRole.ADMIN)],
     schema: {
       tags: ['inventory'],
       summary: '批量更新库存',
@@ -186,7 +186,7 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
       };
 
       const records = await InventoryService.bulkUpdateInventory({
-        operations,
+        operations: operations.map(op => ({ ...op, operatorId: request.user?.userId || 'system' })),
         reason: reason || 'Bulk inventory update',
         operatorId: user.userId
       });
@@ -291,7 +291,7 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
 
   // 获取商品库存配置 (管理员及以上)
   fastify.get('/config/:productId', {
-    preHandler: [authMiddleware, requireRole(UserRole.MANAGER)],
+    preHandler: [authMiddleware, requireRole(UserRole.ADMIN)],
     schema: {
       tags: ['inventory'],
       summary: '获取商品库存配置',
@@ -344,7 +344,7 @@ export async function inventoryRoutes(fastify: FastifyInstance) {
 
   // 设置商品库存配置 (管理员及以上)
   fastify.put('/config/:productId', {
-    preHandler: [authMiddleware, requireRole(UserRole.MANAGER)],
+    preHandler: [authMiddleware, requireRole(UserRole.ADMIN)],
     schema: {
       tags: ['inventory'],
       summary: '设置商品库存配置',

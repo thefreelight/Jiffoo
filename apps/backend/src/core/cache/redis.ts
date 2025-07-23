@@ -12,7 +12,6 @@ export class RedisCache {
       port: env.REDIS_PORT || 6379,
       password: env.REDIS_PASSWORD || undefined,
       db: env.REDIS_DB || 0,
-      retryDelayOnFailover: 100,
       maxRetriesPerRequest: 3,
       lazyConnect: true,
     });

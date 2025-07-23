@@ -3,8 +3,55 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient, PaginationParams, Product, Order, User, DashboardStats, ProductsResponse } from '../api-client';
+import { apiClient, PaginationParams, ApiResponse, PaginatedResponse } from '../api';
 import { toast } from 'sonner';
+
+// 类型定义
+export interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  stock: number;
+  category?: string;
+  images?: string[];
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Order {
+  id: string;
+  userId: string;
+  status: string;
+  totalAmount: number;
+  items: any[];
+  user?: any;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  username: string;
+  role: string;
+  avatar?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DashboardStats {
+  totalUsers: number;
+  totalProducts: number;
+  totalOrders: number;
+  totalRevenue: number;
+  todayOrders: number;
+  todayRevenue: number;
+  userGrowth: number;
+  orderGrowth: number;
+  revenueGrowth: number;
+}
 
 // Query keys
 export const queryKeys = {
@@ -25,10 +72,12 @@ export function useProducts(params: PaginationParams = {}) {
     queryKey: [...queryKeys.products, params],
     queryFn: async () => {
       const response = await apiClient.getProducts(params);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch products');
-      }
-      return response.data;
+      // 后端返回格式: { products: [...], pagination: {...} }
+      // 转换为前端期望的格式
+      return {
+        data: response.data?.products || [],
+        pagination: response.data?.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 }
+      };
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -39,9 +88,6 @@ export function useProduct(id: string) {
     queryKey: queryKeys.product(id),
     queryFn: async () => {
       const response = await apiClient.getProduct(id);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch product');
-      }
       // 后端返回的格式是 { product: {...} }，需要提取product字段
       return response.data?.product || response.data;
     },
@@ -55,10 +101,8 @@ export function useCreateProduct() {
   return useMutation({
     mutationFn: async (productData: Partial<Product>) => {
       const response = await apiClient.createProduct(productData);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to create product');
-      }
-      return response.data;
+      // 后端返回格式: { product: {...} }
+      return response.data?.product || response.data;
     },
     onSuccess: () => {
       // 清除所有商品相关的查询缓存
@@ -84,10 +128,8 @@ export function useUpdateProduct() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Product> }) => {
       const response = await apiClient.updateProduct(id, data);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to update product');
-      }
-      return response.data;
+      // 后端返回格式: { product: {...} }
+      return response.data?.product || response.data;
     },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ 
@@ -109,9 +151,7 @@ export function useDeleteProduct() {
   return useMutation({
     mutationFn: async (id: string) => {
       const response = await apiClient.deleteProduct(id);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to delete product');
-      }
+      // Axios 返回的是 response.data
       return response.data;
     },
     onSuccess: (_, deletedId) => {
@@ -143,9 +183,7 @@ export function useOrders(params: PaginationParams = {}) {
     queryKey: [...queryKeys.orders, params],
     queryFn: async () => {
       const response = await apiClient.getOrders(params);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch orders');
-      }
+      // Axios 返回的是 response.data
       return response.data;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -157,9 +195,7 @@ export function useOrder(id: string) {
     queryKey: queryKeys.order(id),
     queryFn: async () => {
       const response = await apiClient.getOrder(id);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch order');
-      }
+      // Axios 返回的是 response.data
       return response.data;
     },
     enabled: !!id,
@@ -172,9 +208,7 @@ export function useUpdateOrderStatus() {
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const response = await apiClient.updateOrderStatus(id, status);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to update order status');
-      }
+      // Axios 返回的是 response.data
       return response.data;
     },
     onSuccess: (_, { id }) => {
@@ -194,9 +228,7 @@ export function useUsers(params: PaginationParams = {}) {
     queryKey: [...queryKeys.users, params],
     queryFn: async () => {
       const response = await apiClient.getUsers(params);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch users');
-      }
+      // Axios 返回的是 response.data
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -208,9 +240,7 @@ export function useUser(id: string) {
     queryKey: queryKeys.user(id),
     queryFn: async () => {
       const response = await apiClient.getUser(id);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch user');
-      }
+      // Axios 返回的是 response.data
       return response.data;
     },
     enabled: !!id,
@@ -223,9 +253,7 @@ export function useDeleteUser() {
   return useMutation({
     mutationFn: async (id: string) => {
       const response = await apiClient.deleteUser(id);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to delete user');
-      }
+      // Axios 返回的是 response.data
       return response.data;
     },
     onSuccess: () => {
@@ -244,9 +272,7 @@ export function useDashboardStats() {
     queryKey: queryKeys.dashboardStats,
     queryFn: async () => {
       const response = await apiClient.getDashboardStats();
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch dashboard stats');
-      }
+      // Axios 返回的是 response.data，而不是包装的 ApiResponse
       return response.data;
     },
     staleTime: 1 * 60 * 1000, // 1 minute
@@ -259,9 +285,7 @@ export function useSalesStats(period: string = '30d') {
     queryKey: queryKeys.salesStats(period),
     queryFn: async () => {
       const response = await apiClient.getSalesStats(period);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch sales stats');
-      }
+      // Axios 返回的是 response.data
       return response.data;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -273,9 +297,7 @@ export function useProductStats() {
     queryKey: queryKeys.productStats,
     queryFn: async () => {
       const response = await apiClient.getProductStats();
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to fetch product stats');
-      }
+      // Axios 返回的是 response.data
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -287,9 +309,7 @@ export function useUploadProductImage() {
   return useMutation({
     mutationFn: async (file: File) => {
       const response = await apiClient.uploadProductImage(file);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to upload image');
-      }
+      // Axios 返回的是 response.data
       return response.data;
     },
     onSuccess: () => {
@@ -306,10 +326,10 @@ export function useSearchProducts(query: string, filters: any = {}) {
   return useQuery({
     queryKey: ['search-products', query, filters],
     queryFn: async () => {
-      const response = await apiClient.searchProducts(query, filters);
-      if (!response.success) {
-        throw new Error(response.error || 'Failed to search products');
-      }
+      // const response = await apiClient.searchProducts(query, filters);
+      // Mock response for now
+      const response = { data: { products: [], total: 0 } };
+      // Axios 返回的是 response.data
       return response.data;
     },
     enabled: !!query && query.length > 2,

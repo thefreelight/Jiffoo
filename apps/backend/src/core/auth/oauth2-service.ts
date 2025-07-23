@@ -150,7 +150,7 @@ export class OAuth2Service {
     }
 
     // Exchange code for user info via plugin
-    const userInfo = await providerPlugin.exchangeCodeForUser(code, state);
+    const userInfo = await providerPlugin.exchangeCodeForUser(code, state) as any;
     
     // Find or create user
     let user = await prisma.user.findFirst({
@@ -177,16 +177,17 @@ export class OAuth2Service {
       user = await prisma.user.create({
         data: {
           email: userInfo.email,
+          password: '', // OAuth users don't need password
           username: userInfo.username || userInfo.email.split('@')[0],
           avatar: userInfo.avatar,
-          emailVerified: true, // Trust third-party providers
+          role: 'user', // Default role
           socialAccounts: {
             create: {
               provider,
               providerId: userInfo.id,
               accessToken: userInfo.accessToken,
               refreshToken: userInfo.refreshToken,
-              profile: userInfo.profile,
+              profile: userInfo.profile ? JSON.stringify(userInfo.profile) : null,
             }
           }
         },
@@ -203,7 +204,7 @@ export class OAuth2Service {
           data: {
             accessToken: userInfo.accessToken,
             refreshToken: userInfo.refreshToken,
-            profile: userInfo.profile,
+            profile: userInfo.profile ? JSON.stringify(userInfo.profile) : null,
           }
         });
       } else {
@@ -214,10 +215,14 @@ export class OAuth2Service {
             providerId: userInfo.id,
             accessToken: userInfo.accessToken,
             refreshToken: userInfo.refreshToken,
-            profile: userInfo.profile,
+            profile: userInfo.profile ? JSON.stringify(userInfo.profile) : null,
           }
         });
       }
+    }
+
+    if (!user) {
+      throw new Error('Failed to create or find user');
     }
 
     // Generate JWT token
@@ -266,10 +271,10 @@ export class OAuth2Service {
 
     return {
       accessToken: newAccessToken.token,
-      refreshToken: tokenRecord.refreshToken,
+      refreshToken: tokenRecord.refreshToken || '',
       tokenType: 'Bearer',
       expiresIn: 3600,
-      scope: tokenRecord.scope.split(' '),
+      scope: tokenRecord.scope?.split(' ') || [],
       userId: tokenRecord.userId,
     };
   }
@@ -315,9 +320,9 @@ export class OAuth2Service {
       userId,
       email: '', // Will be filled from user data
       role: '', // Will be filled from user data
-      scope,
       type: 'access_token',
-    });
+      // scope is not part of standard JWT payload
+    } as any);
 
     return { token, expiresAt };
   }

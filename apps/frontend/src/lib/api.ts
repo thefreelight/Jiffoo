@@ -91,16 +91,38 @@ export const authApi = {
 // Products API
 export const productsApi = {
   getProducts: (params?: any): Promise<PaginatedResponse<any>> =>
-    apiClient.get('/api/products', { params }).then((res) => res.data),
+    api.get('/api/products', { params }).then((res) => {
+      // 后端返回格式: { products: [...], pagination: {...} }
+      // 转换为前端期望的格式: { data: [...], pagination: {...} }
+      const data = res.data;
+      return {
+        data: data.products || [],
+        pagination: data.pagination || { page: 1, limit: 10, total: 0, totalPages: 0, hasNext: false, hasPrev: false }
+      };
+    }),
 
   getProduct: (id: string) =>
-    apiClient.get(`/api/products/${id}`),
+    api.get(`/api/products/${id}`).then((res) => {
+      // 后端返回格式: { product: {...} }
+      // 转换为前端期望的格式: { success: true, data: {...} }
+      return {
+        success: true,
+        data: res.data.product
+      };
+    }),
 
   searchProducts: (query: string, filters?: any) =>
     apiClient.get('/api/products/search', { params: { q: query, ...filters } }),
 
   getCategories: () =>
-    apiClient.get('/api/products/categories'),
+    api.get('/api/products/categories').then((res) => {
+      // 后端返回格式: { categories: [...] }
+      // 转换为前端期望的格式: { success: true, data: [...] }
+      return {
+        success: true,
+        data: res.data.categories || []
+      };
+    }),
 
   getFeaturedProducts: () =>
     apiClient.get('/api/products/featured'),

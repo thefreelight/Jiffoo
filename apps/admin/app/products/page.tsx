@@ -34,7 +34,7 @@ export default function ProductsPage() {
 
   const deleteProductMutation = useDeleteProduct()
 
-  const products = productsData?.products || []
+  const products = productsData?.data || []
   const pagination = productsData?.pagination
 
   const handleDeleteProduct = async (id: string) => {

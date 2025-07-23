@@ -327,22 +327,23 @@ export class PermissionManager {
         userPermissions = await this.getUserPermissions(userId, tenantId);
         await redisCache.set(cacheKey, JSON.stringify(userPermissions), 3600);
       } else {
-        userPermissions = JSON.parse(userPermissions);
+        userPermissions = JSON.parse(userPermissions as string);
       }
 
+      const permissions = userPermissions as string[];
       // 检查是否有超级权限
-      if (userPermissions.includes('*')) {
+      if (permissions.includes('*')) {
         return true;
       }
 
       // 检查具体权限
-      if (userPermissions.includes(permission)) {
+      if (permissions.includes(permission)) {
         return true;
       }
 
       // 检查模块权限
       const [module] = permission.split('.');
-      if (userPermissions.includes(`${module}.*`)) {
+      if (permissions.includes(`${module}.*`)) {
         return true;
       }
 
@@ -426,7 +427,9 @@ export class PermissionManager {
   async clearUserPermissionCache(userId: string): Promise<void> {
     const keys = await redisCache.keys(`user-permissions:${userId}:*`);
     if (keys.length > 0) {
-      await redisCache.del(...keys);
+      for (const key of keys) {
+        await redisCache.del(key);
+      }
     }
   }
 

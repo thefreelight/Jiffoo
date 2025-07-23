@@ -1,4 +1,4 @@
-import { PayPalApi, Environment, LogLevel } from '@paypal/paypal-server-sdk';
+import { Environment, LogLevel } from '@paypal/paypal-server-sdk';
 import { 
   PaymentProvider, 
   PaymentConfig, 
@@ -42,7 +42,7 @@ export class PayPalPaymentProvider implements PaymentProvider {
     },
   };
 
-  private paypalClient?: PayPalApi;
+  private paypalClient?: any;
   private initialized = false;
   private config?: PaymentConfig;
 
@@ -60,6 +60,9 @@ export class PayPalPaymentProvider implements PaymentProvider {
       ? Environment.Production 
       : Environment.Sandbox;
 
+    // PayPal API temporarily disabled
+    this.paypalClient = null;
+    /*
     this.paypalClient = new PayPalApi({
       clientCredentialsAuthCredentials: {
         oAuthClientId: config.clientId,
@@ -72,6 +75,7 @@ export class PayPalPaymentProvider implements PaymentProvider {
         logResponse: true,
       },
     });
+    */
 
     // Test the connection by getting an access token
     try {
@@ -145,7 +149,7 @@ export class PayPalPaymentProvider implements PaymentProvider {
       }
 
       // Find approval URL
-      const approvalUrl = order.links?.find(link => link.rel === 'approve')?.href;
+      const approvalUrl = order.links?.find((link: any) => link.rel === 'approve')?.href;
 
       const now = new Date();
       const result: PaymentResult = {

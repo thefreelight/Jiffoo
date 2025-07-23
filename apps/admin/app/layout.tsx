@@ -25,7 +25,7 @@ export default function RootLayout({
         <ToastProvider>
           <QueryProvider>
             <I18nProvider>
-              <AdminLayout>{children}</AdminLayout>
+              <ConditionalLayout>{children}</ConditionalLayout>
               <Toaster position="top-right" richColors />
             </I18nProvider>
           </QueryProvider>

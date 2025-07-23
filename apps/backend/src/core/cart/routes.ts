@@ -191,9 +191,9 @@ export async function cartRoutes(fastify: FastifyInstance) {
   // Clear cart
   fastify.delete('/clear', {
     schema: {
-      tags: ['cart'],
-      summary: 'Clear cart',
-      description: 'Remove all items from the shopping cart'
+      // tags: ['cart'],
+      // summary: 'Clear cart',
+      // description: 'Remove all items from the shopping cart'
     }
   }, async (request, reply) => {
     try {

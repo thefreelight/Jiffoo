@@ -147,7 +147,7 @@ export default function CreateProductPage() {
       }
 
       // 使用React Query mutation
-      await createProductMutation.mutateAsync(productData)
+      await createProductMutation.mutateAsync(productData as any)
       
       // 成功后重定向到商品列表
       router.push('/products')

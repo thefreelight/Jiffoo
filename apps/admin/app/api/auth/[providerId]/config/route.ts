@@ -8,10 +8,10 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:3001';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { providerId: string } }
+  { params }: { params: Promise<{ providerId: string }> }
 ) {
   try {
-    const { providerId } = params;
+    const { providerId } = await params;
     const backendUrl = `${BACKEND_URL}/auth/${providerId}/config`;
 
     const response = await fetch(backendUrl, {
@@ -41,10 +41,10 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { providerId: string } }
+  { params }: { params: Promise<{ providerId: string }> }
 ) {
   try {
-    const { providerId } = params;
+    const { providerId } = await params;
     const body = await request.json();
     const backendUrl = `${BACKEND_URL}/auth/${providerId}/config`;
 

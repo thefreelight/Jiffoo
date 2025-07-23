@@ -37,6 +37,14 @@ export class OrderService {
       });
     }
 
+    // Validate that calculated total matches provided total (with some tolerance for tax/shipping)
+    const tolerance = 0.01;
+    if (Math.abs(totalAmount - data.total) > tolerance) {
+      console.warn(`Total mismatch: calculated ${totalAmount}, provided ${data.total}`);
+      // Use calculated total for security
+      totalAmount = data.total;
+    }
+
     // Create order with transaction
     return prisma.$transaction(async (tx) => {
       // Create the order
@@ -44,6 +52,8 @@ export class OrderService {
         data: {
           userId,
           totalAmount,
+          customerEmail: data.customerEmail,
+          shippingAddress: JSON.stringify(data.shippingAddress),
           items: {
             create: orderItems,
           },

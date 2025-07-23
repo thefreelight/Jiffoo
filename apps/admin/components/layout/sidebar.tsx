@@ -28,8 +28,20 @@ interface SidebarProps {
   className?: string
 }
 
+interface NavigationItem {
+  nameKey: string;
+  href: string;
+  icon: any;
+  current: boolean;
+  badge?: string;
+  children?: Array<{
+    nameKey: string;
+    href: string;
+  }>;
+}
+
 // 导航配置 - 使用翻译键
-const getNavigation = (t: (key: string, defaultValue?: string) => string) => [
+const getNavigation = (t: (key: string, defaultValue?: string) => string): NavigationItem[] => [
   {
     nameKey: 'nav.dashboard',
     href: '/dashboard',
@@ -114,6 +126,7 @@ const getNavigation = (t: (key: string, defaultValue?: string) => string) => [
       { nameKey: 'plugins.store', href: '/plugins' },
       { nameKey: 'plugins.installed', href: '/plugins?tab=installed' },
       { nameKey: 'plugins.licenses', href: '/plugins/licenses' },
+      { nameKey: 'plugins.payment_test', href: '/payment-test' },
     ],
   },
   {

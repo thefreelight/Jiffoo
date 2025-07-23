@@ -171,9 +171,9 @@ export async function userProfileRoutes(fastify: FastifyInstance) {
   fastify.get('/orders/stats', {
     preHandler: [authMiddleware],
     schema: {
-      tags: ['user'],
-      summary: 'Get user order statistics',
-      description: 'Get user order statistics and summary'
+      // tags: ['user'],
+      // summary: 'Get user order statistics',
+      // description: 'Get user order statistics and summary'
     }
   }, async (request, reply) => {
     try {

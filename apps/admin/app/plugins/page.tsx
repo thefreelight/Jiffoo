@@ -22,7 +22,8 @@ import {
   CheckCircle,
   AlertCircle,
   Package,
-  Filter
+  Filter,
+  Trash2
 } from 'lucide-react';
 
 interface Plugin {
@@ -71,10 +72,10 @@ export default function PluginsPage() {
     try {
       setLoading(true);
 
-      // Mock data for demonstration
-      const mockPlugins = [
+      // Base mock data for marketplace plugins (without installation status)
+      const basePlugins = [
         {
-          id: 'stripe-payment-plugin',
+          id: 'stripe-official',
           name: 'Stripe Payment Gateway',
           description: 'Accept credit card and debit card payments via Stripe. Supports 3D Secure, Apple Pay, Google Pay, and 135+ currencies worldwide.',
           author: 'Jiffoo Team',
@@ -83,8 +84,8 @@ export default function PluginsPage() {
           price: 29,
           methods: ['credit_card', 'debit_card', 'apple_pay', 'google_pay'],
           features: ['3D_Secure', 'Multi_Currency', 'Recurring_Payments', 'Fraud_Protection', 'Real_Time_Analytics'],
-          isInstalled: true,
-          isActive: true,
+          isInstalled: false,
+          isActive: false,
         },
         {
           id: 'paypal-payment-plugin',
@@ -96,8 +97,8 @@ export default function PluginsPage() {
           price: 19,
           methods: ['paypal', 'paypal_credit'],
           features: ['Express_Checkout', 'International_Support', 'Buyer_Protection', 'Mobile_Optimized'],
-          isInstalled: true,
-          isActive: true,
+          isInstalled: false,
+          isActive: false,
         },
         {
           id: 'wechat-pay-plugin',
@@ -113,7 +114,7 @@ export default function PluginsPage() {
           isActive: false,
         },
         {
-          id: 'alipay-pro',
+          id: 'alipay-official',
           name: 'Alipay Professional',
           description: 'Complete Alipay integration with advanced features for production use. Supports web, WAP, and app payments with enterprise-grade security.',
           author: 'Jiffoo Team',
@@ -153,35 +154,75 @@ export default function PluginsPage() {
         },
       ];
 
-      setPlugins(mockPlugins);
-      setInstalledPlugins(mockPlugins.filter(p => p.isInstalled));
-
-      setStats({
-        totalAvailable: mockPlugins.length,
-        totalInstalled: mockPlugins.filter(p => p.isInstalled).length,
-        byLicense: {
-          free: 0,
-          basic: mockPlugins.filter(p => p.license === 'basic').length,
-          premium: mockPlugins.filter(p => p.license === 'premium').length,
-          enterprise: mockPlugins.filter(p => p.license === 'enterprise').length,
-        },
-      });
-
-      // Try to fetch real data from API as fallback
+      // Fetch real plugin status from API
       try {
-        const marketplaceResponse = await fetch('/api/payments/plugins/marketplace');
+        const marketplaceResponse = await fetch('/api/plugin-store/plugins');
         if (marketplaceResponse.ok) {
           const marketplaceData = await marketplaceResponse.json();
-          if (marketplaceData.success) {
+          if (marketplaceData.plugins) {
+            // Update base plugins with real installation status
+            const updatedPlugins = basePlugins.map(basePlugin => {
+              const realPlugin = marketplaceData.plugins.find((p: any) => p.id === basePlugin.id);
+              if (realPlugin) {
+                // Map API status to frontend boolean flags
+                const isInstalled = realPlugin.status === 'active' || realPlugin.status === 'inactive';
+                const isActive = realPlugin.status === 'active';
+
+                return {
+                  ...basePlugin,
+                  isInstalled,
+                  isActive,
+                };
+              }
+              return basePlugin;
+            });
+
+            setPlugins(updatedPlugins);
+            setInstalledPlugins(updatedPlugins.filter(p => p.isInstalled));
+
             setStats({
-              totalAvailable: marketplaceData.data.totalAvailable,
-              totalInstalled: marketplaceData.data.totalInstalled,
-              byLicense: marketplaceData.data.byLicense,
+              totalAvailable: updatedPlugins.length,
+              totalInstalled: updatedPlugins.filter(p => p.isInstalled).length,
+              byLicense: {
+                free: 0,
+                basic: updatedPlugins.filter(p => p.license === 'basic').length,
+                premium: updatedPlugins.filter(p => p.license === 'premium').length,
+                enterprise: updatedPlugins.filter(p => p.license === 'enterprise').length,
+              },
+            });
+          } else {
+            // Fallback to base plugins if API doesn't return plugin data
+            setPlugins(basePlugins);
+            setInstalledPlugins(basePlugins.filter(p => p.isInstalled));
+            setStats({
+              totalAvailable: basePlugins.length,
+              totalInstalled: basePlugins.filter(p => p.isInstalled).length,
+              byLicense: {
+                free: 0,
+                basic: basePlugins.filter(p => p.license === 'basic').length,
+                premium: basePlugins.filter(p => p.license === 'premium').length,
+                enterprise: basePlugins.filter(p => p.license === 'enterprise').length,
+              },
             });
           }
+        } else {
+          throw new Error('API response not ok');
         }
       } catch (apiError) {
-        console.log('API not available, using mock data');
+        console.log('API not available, using base mock data:', apiError);
+        // Fallback to base plugins
+        setPlugins(basePlugins);
+        setInstalledPlugins(basePlugins.filter(p => p.isInstalled));
+        setStats({
+          totalAvailable: basePlugins.length,
+          totalInstalled: basePlugins.filter(p => p.isInstalled).length,
+          byLicense: {
+            free: 0,
+            basic: basePlugins.filter(p => p.license === 'basic').length,
+            premium: basePlugins.filter(p => p.license === 'premium').length,
+            enterprise: basePlugins.filter(p => p.license === 'enterprise').length,
+          },
+        });
       }
     } catch (error) {
       console.error('Failed to fetch plugin data:', error);
@@ -213,31 +254,58 @@ export default function PluginsPage() {
         return;
       }
 
+      // Find the plugin to check if it's already installed
+      const plugin = plugins.find(p => p.id === pluginId);
+      const isInstalled = plugin?.isInstalled || false;
+      const isActive = plugin?.isActive || false;
+
       // Show loading toast
       addToast({
         type: 'info',
-        title: 'Installing Plugin',
-        description: 'Please wait while we install the plugin...',
+        title: isInstalled ? 'Activating Plugin' : 'Installing Plugin',
+        description: isInstalled ? 'Please wait while we activate the plugin...' : 'Please wait while we install the plugin...',
         duration: 3000
       });
 
-      // For demo purposes, we'll use test license keys
-      const licenseKeys: Record<string, string> = {
-        'stripe-payment-plugin': 'stripe-license-123',
-        'paypal-payment-plugin': 'paypal-license-456',
-        'alipay-pro': 'alipay-pro-demo-123',
-        'wechat-pay-plugin': 'wechat-license-789'
-      };
-      const licenseKey = licenseKeys[pluginId] || 'demo-license-key';
+      let response;
 
-      const response = await fetch(`/api/payments/plugins/${pluginId}/install`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ licenseKey }),
-      });
+      if (isInstalled && !isActive) {
+        // Plugin is installed but not active, so activate it
+        response = await fetch(`/api/plugins/${pluginId}/activate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+      } else if (!isInstalled) {
+        // Plugin is not installed, so install it
+        // For demo purposes, we'll use test license keys
+        const licenseKeys: Record<string, string> = {
+          'stripe-official': 'stripe-license-123',
+          'paypal-payment-plugin': 'paypal-license-456',
+          'alipay-official': 'alipay-pro-demo-123',
+          'wechat-pay-plugin': 'wechat-license-789'
+        };
+        const licenseKey = licenseKeys[pluginId] || 'demo-license-key';
+
+        response = await fetch(`/api/plugins/${pluginId}/install`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ licenseKey }),
+        });
+      } else {
+        // Plugin is already installed and active
+        addToast({
+          type: 'info',
+          title: 'Plugin Already Active',
+          description: 'This plugin is already installed and active.'
+        });
+        return;
+      }
 
       const data = await response.json();
 
@@ -263,6 +331,150 @@ export default function PluginsPage() {
         type: 'error',
         title: 'Installation Error',
         description: 'An unexpected error occurred. Please check your connection and try again.',
+        duration: 7000
+      });
+    }
+  };
+
+  const handleTogglePlugin = async (pluginId: string, isActive: boolean) => {
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        addToast({
+          type: 'error',
+          title: 'Authentication Required',
+          description: 'Please login to manage plugins.',
+          duration: 5000
+        });
+        return;
+      }
+
+      const action = isActive ? 'deactivate' : 'activate';
+      addToast({
+        type: 'info',
+        title: `${isActive ? 'Deactivating' : 'Activating'} Plugin`,
+        description: `Please wait while we ${action} the plugin...`,
+        duration: 3000
+      });
+
+      const response = await fetch(`/api/plugins/${pluginId}/${action}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+      });
+
+      let data;
+      try {
+        const text = await response.text();
+        data = text ? JSON.parse(text) : { success: response.ok };
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        data = { success: response.ok };
+      }
+
+      if (data.success) {
+        addToast({
+          type: 'success',
+          title: `Plugin ${isActive ? 'Deactivated' : 'Activated'}`,
+          description: `${pluginId} has been ${isActive ? 'deactivated' : 'activated'} successfully.`,
+          duration: 5000
+        });
+        fetchPluginData(); // Refresh data
+      } else {
+        addToast({
+          type: 'error',
+          title: `${isActive ? 'Deactivation' : 'Activation'} Failed`,
+          description: data.message || `Failed to ${action} plugin. Please try again.`,
+          duration: 7000
+        });
+      }
+    } catch (error) {
+      console.error(`Plugin ${isActive ? 'deactivation' : 'activation'} failed:`, error);
+      addToast({
+        type: 'error',
+        title: `${isActive ? 'Deactivation' : 'Activation'} Error`,
+        description: 'An unexpected error occurred.',
+        duration: 7000
+      });
+    }
+  };
+
+  const handleUninstallPlugin = async (pluginId: string) => {
+    try {
+      const token = getAuthToken();
+      if (!token) {
+        addToast({
+          type: 'error',
+          title: 'Authentication Required',
+          description: 'Please login to manage plugins.',
+          duration: 5000
+        });
+        return;
+      }
+
+      // 确认对话框
+      const confirmed = window.confirm(
+        `Are you sure you want to uninstall ${pluginId}?\n\n` +
+        `This will:\n` +
+        `• Completely remove the plugin from your system\n` +
+        `• Delete plugin configuration and data\n` +
+        `• Cannot be undone without reinstalling\n\n` +
+        `Your business data (orders, users) will remain safe.`
+      );
+
+      if (!confirmed) {
+        return;
+      }
+
+      addToast({
+        type: 'info',
+        title: 'Uninstalling Plugin',
+        description: `Please wait while we completely remove ${pluginId}...`,
+        duration: 3000
+      });
+
+      const response = await fetch(`http://localhost:3001/api/plugins/${pluginId}/uninstall`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      let data;
+      try {
+        const text = await response.text();
+        data = text ? JSON.parse(text) : { success: response.ok };
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        data = { success: response.ok };
+      }
+
+      if (data.success) {
+        addToast({
+          type: 'success',
+          title: 'Plugin Uninstalled',
+          description: `${pluginId} has been completely removed from your system.`,
+          duration: 5000
+        });
+        fetchPluginData(); // Refresh data
+      } else {
+        addToast({
+          type: 'error',
+          title: 'Uninstallation Failed',
+          description: data.message || 'Failed to uninstall plugin. Please try again.',
+          duration: 7000
+        });
+      }
+    } catch (error) {
+      console.error('Plugin uninstall failed:', error);
+      addToast({
+        type: 'error',
+        title: 'Uninstallation Failed',
+        description: 'An unexpected error occurred. Please try again.',
         duration: 7000
       });
     }
@@ -682,26 +894,40 @@ export default function PluginsPage() {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex gap-3 pt-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => window.location.href = `/plugins/${plugin.id}/configure`}
-                            className="flex-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/20 bg-blue-500/10"
-                          >
-                            <Settings className="w-4 h-4 mr-2" />
-                            Configure
-                          </Button>
+                        <div className="space-y-2 pt-2">
+                          {/* First Row: Configure and Toggle */}
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.location.href = `/plugins/${plugin.id}/configure`}
+                              className="flex-1 border-blue-500/30 text-blue-400 hover:bg-blue-500/20 bg-blue-500/10"
+                            >
+                              <Settings className="w-4 h-4 mr-2" />
+                              Configure
+                            </Button>
 
+                            <Button
+                              size="sm"
+                              onClick={() => handleTogglePlugin(plugin.id, plugin.isActive || false)}
+                              className={`flex-1 font-bold ${
+                                plugin.isActive
+                                  ? "bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30"
+                                  : "bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30"
+                              }`}
+                            >
+                              {plugin.isActive ? "Deactivate" : "Activate"}
+                            </Button>
+                          </div>
+
+                          {/* Second Row: Uninstall Button */}
                           <Button
                             size="sm"
-                            className={`flex-1 font-bold ${
-                              plugin.isActive
-                                ? "bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30"
-                                : "bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30"
-                            }`}
+                            onClick={() => handleUninstallPlugin(plugin.id)}
+                            className="w-full bg-orange-500/20 border border-orange-500/30 text-orange-400 hover:bg-orange-500/30 font-bold"
                           >
-                            {plugin.isActive ? "Deactivate" : "Activate"}
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Uninstall Plugin
                           </Button>
                         </div>
                       </CardContent>

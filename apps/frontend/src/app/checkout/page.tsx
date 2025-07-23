@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useTranslation } from '@/hooks/use-translation';
 import { useCartStore } from '@/store/cart';
 import { useRouter } from 'next/navigation';
+import { apiClient } from '@/lib/api';
 import { SafeImage } from '@/components/ui/safe-image';
 
 export default function CheckoutPage() {
@@ -23,11 +24,7 @@ export default function CheckoutPage() {
     address: '',
     city: '',
     postalCode: '',
-    country: '',
-    cardNumber: '',
-    expiryDate: '',
-    cvv: '',
-    cardName: '',
+    country: 'US'
   });
 
   const translations: Record<string, Record<string, string>> = {
@@ -43,17 +40,13 @@ export default function CheckoutPage() {
       city: 'City',
       postalCode: 'Postal Code',
       country: 'Country',
-      paymentMethod: 'Payment Method',
-      cardNumber: 'Card Number',
-      expiryDate: 'MM/YY',
-      cvv: 'CVV',
-      cardName: 'Name on Card',
+
       orderSummary: 'Order Summary',
       subtotal: 'Subtotal',
       tax: 'Tax',
       shipping: 'Shipping',
       total: 'Total',
-      placeOrder: 'Place Order',
+      placeOrder: 'Continue to Payment',
       processing: 'Processing...',
       free: 'Free',
       secureCheckout: 'Secure Checkout',
@@ -71,17 +64,13 @@ export default function CheckoutPage() {
       city: '城市',
       postalCode: '邮政编码',
       country: '国家',
-      paymentMethod: '支付方式',
-      cardNumber: '卡号',
-      expiryDate: '月/年',
-      cvv: '安全码',
-      cardName: '持卡人姓名',
+
       orderSummary: '订单摘要',
       subtotal: '小计',
       tax: '税费',
       shipping: '运费',
       total: '总计',
-      placeOrder: '下单',
+      placeOrder: '继续支付',
       processing: '处理中...',
       free: '免费',
       secureCheckout: '安全结账',
@@ -109,7 +98,7 @@ export default function CheckoutPage() {
       tax: '税金',
       shipping: '送料',
       total: '合計',
-      placeOrder: '注文する',
+      placeOrder: '支払いに進む',
       processing: '処理中...',
       free: '無料',
       secureCheckout: 'セキュアチェックアウト',
@@ -130,14 +119,68 @@ export default function CheckoutPage() {
     setIsProcessing(true);
 
     try {
-      // Simulate order processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Clear cart and redirect to success page
-      await clearCart();
-      router.push('/order-success');
+      // Create order first
+      const orderResponse = await apiClient.post('/api/orders', {
+        items: cart.items.map(item => ({
+          productId: item.productId,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        shippingAddress: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          address: formData.address,
+          city: formData.city,
+          postalCode: formData.postalCode,
+          country: formData.country
+        },
+        customerEmail: formData.email,
+        total: cart.total
+      });
+
+      if (!orderResponse.order) {
+        throw new Error('Failed to create order');
+      }
+
+      const order = orderResponse.order;
+      const orderId = order.id;
+
+      // Create Stripe checkout session
+      const checkoutResponse = await apiClient.post('/plugins/stripe-official/api/create-checkout-session', {
+        amount: cart.total,
+        currency: 'USD',
+        orderId: orderId,
+        customerEmail: formData.email,
+        successUrl: `${window.location.origin}/order-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: `${window.location.origin}/checkout`,
+        items: cart.items.map(item => ({
+          name: item.productName,
+          description: item.productName, // Use productName as description since we don't have a separate description field
+          quantity: item.quantity,
+          price: item.price,
+          images: item.productImage ? [item.productImage] : []
+        })),
+        metadata: {
+          orderId: orderId,
+          customerEmail: formData.email
+        }
+      });
+
+      if (!checkoutResponse.success) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const checkoutSession = checkoutResponse;
+
+      if (checkoutSession.success && checkoutSession.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = checkoutSession.url;
+      } else {
+        throw new Error('Invalid checkout session response');
+      }
     } catch (error) {
       console.error('Order failed:', error);
+      alert('Failed to process order. Please try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -257,56 +300,7 @@ export default function CheckoutPage() {
                   </div>
                 </motion.div>
 
-                {/* Payment Method */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.2 }}
-                  className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border p-6"
-                >
-                  <h2 className="text-xl font-semibold mb-4">{t('paymentMethod')}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
-                      <Label htmlFor="cardNumber">{t('cardNumber')}</Label>
-                      <Input
-                        id="cardNumber"
-                        value={formData.cardNumber}
-                        onChange={(e) => handleInputChange('cardNumber', e.target.value)}
-                        placeholder="1234 5678 9012 3456"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="expiryDate">{t('expiryDate')}</Label>
-                      <Input
-                        id="expiryDate"
-                        value={formData.expiryDate}
-                        onChange={(e) => handleInputChange('expiryDate', e.target.value)}
-                        placeholder="MM/YY"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="cvv">{t('cvv')}</Label>
-                      <Input
-                        id="cvv"
-                        value={formData.cvv}
-                        onChange={(e) => handleInputChange('cvv', e.target.value)}
-                        placeholder="123"
-                        required
-                      />
-                    </div>
-                    <div className="md:col-span-2">
-                      <Label htmlFor="cardName">{t('cardName')}</Label>
-                      <Input
-                        id="cardName"
-                        value={formData.cardName}
-                        onChange={(e) => handleInputChange('cardName', e.target.value)}
-                        required
-                      />
-                    </div>
-                  </div>
-                </motion.div>
+
 
                 <Button 
                   type="submit" 

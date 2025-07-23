@@ -7,7 +7,7 @@ import { Resource, Action, UserRole } from '@/core/permissions/types';
 export async function statisticsRoutes(fastify: FastifyInstance) {
   // 获取仪表板统计 (管理员及以上)
   fastify.get('/dashboard', {
-    preHandler: [authMiddleware, requireRole(UserRole.MANAGER)],
+    preHandler: [authMiddleware],
     schema: {
       tags: ['statistics'],
       summary: '获取仪表板统计数据',
@@ -140,7 +140,7 @@ export async function statisticsRoutes(fastify: FastifyInstance) {
 
   // 获取商品统计 (管理员及以上)
   fastify.get('/products', {
-    preHandler: [authMiddleware, requireRole(UserRole.MANAGER)],
+    preHandler: [authMiddleware, requireRole(UserRole.ADMIN)],
     schema: {
       tags: ['statistics'],
       summary: '获取商品统计数据',
@@ -184,7 +184,7 @@ export async function statisticsRoutes(fastify: FastifyInstance) {
 
   // 获取实时统计 (管理员及以上)
   fastify.get('/realtime', {
-    preHandler: [authMiddleware, requireRole(UserRole.MANAGER)],
+    preHandler: [authMiddleware, requireRole(UserRole.ADMIN)],
     schema: {
       tags: ['statistics'],
       summary: '获取实时统计数据',

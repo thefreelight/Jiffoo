@@ -88,7 +88,7 @@ export default function PluginDetailPage() {
       setLoading(true);
 
       // Fetch available plugins and find the one we need
-      const response = await fetch('/api/payments/plugins/available');
+      const response = await fetch('/api/plugins/available');
       const data = await response.json();
 
       if (data.success) {
@@ -257,7 +257,7 @@ export default function PluginDetailPage() {
 
       const licenseKey = plugin.id === 'stripe-payment-plugin' ? 'stripe-license-123' : 'paypal-license-456';
 
-      const response = await fetch(`/api/payments/plugins/${plugin.id}/install`, {
+      const response = await fetch(`/api/plugins/${plugin.id}/install`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

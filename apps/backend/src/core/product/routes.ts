@@ -94,9 +94,9 @@ export async function productRoutes(fastify: FastifyInstance) {
   // Get categories (public)
   fastify.get('/categories', {
     schema: {
-      tags: ['products'],
-      summary: 'Get product categories',
-      description: 'Get all available product categories with counts'
+      // tags: ['products'],
+      // summary: 'Get product categories',
+      // description: 'Get all available product categories with counts'
     }
   }, async (request, reply) => {
     try {
@@ -113,9 +113,9 @@ export async function productRoutes(fastify: FastifyInstance) {
   // Get price ranges (public)
   fastify.get('/price-ranges', {
     schema: {
-      tags: ['products'],
-      summary: 'Get price ranges',
-      description: 'Get price range statistics for filtering'
+      // tags: ['products'],
+      // summary: 'Get price ranges',
+      // description: 'Get price range statistics for filtering'
     }
   }, async (request, reply) => {
     try {
@@ -232,9 +232,13 @@ export async function productRoutes(fastify: FastifyInstance) {
       const { quantity } = request.body as { quantity: number };
 
       const product = await ProductService.updateStock(id, quantity);
-      return reply.send({ product });
+      return reply.send({
+        success: true,
+        data: product
+      });
     } catch (error) {
       return reply.status(400).send({
+        success: false,
         error: 'Stock update failed',
         message: error instanceof Error ? error.message : 'Unknown error'
       });

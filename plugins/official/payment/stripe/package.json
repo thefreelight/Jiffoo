@@ -1,0 +1,54 @@
+{
+  "name": "@jiffoo/stripe-official-plugin",
+  "version": "1.0.0",
+  "description": "Stripe Official Payment Plugin for Jiffoo Mall",
+  "private": true,
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "jest",
+    "lint": "eslint src/**/*.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@jiffoo/plugin-core": "workspace:*",
+    "stripe": "^14.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0"
+  },
+  "peerDependencies": {
+    "fastify": "^4.0.0"
+  },
+  "keywords": [
+    "jiffoo",
+    "plugin",
+    "payment",
+    "stripe",
+    "credit-card",
+    "ecommerce"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jiffoo/plugins.git",
+    "directory": "plugins/official/payment/stripe"
+  },
+  "bugs": {
+    "url": "https://github.com/jiffoo/plugins/issues"
+  },
+  "homepage": "https://jiffoo.com/plugins/stripe"
+}

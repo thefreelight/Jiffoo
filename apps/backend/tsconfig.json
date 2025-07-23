@@ -4,7 +4,6 @@
     "module": "commonjs",
     "lib": ["ES2022"],
     "outDir": "./dist",
-    "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -15,12 +14,13 @@
     "sourceMap": true,
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
-    "baseUrl": "./src",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["*"],
-      "@/core/*": ["core/*"],
-      "@/config/*": ["config/*"],
-      "@/utils/*": ["utils/*"]
+      "@/*": ["src/*"],
+      "@/core/*": ["src/core/*"],
+      "@/config/*": ["src/config/*"],
+      "@/utils/*": ["src/utils/*"],
+      "@/plugins/*": ["../../plugins/*"]
     }
   },
   "include": ["src/**/*"],

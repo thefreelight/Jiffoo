@@ -7,103 +7,57 @@ import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/use-translation';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useQuery } from '@tanstack/react-query';
+import api from '@/lib/api';
 
-// Mock bestsellers data
-const bestsellers = [
-  {
-    id: 1,
-    name: 'Wireless Noise-Cancelling Headphones',
-    nameZh: '无线降噪耳机',
-    nameJa: 'ワイヤレスノイズキャンセリングヘッドフォン',
-    price: 149.99,
-    originalPrice: 199.99,
-    rating: 4.9,
-    reviews: 1247,
-    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop',
-    category: 'Electronics',
-    soldCount: 2847,
-    rank: 1,
-    isTopSeller: true,
-  },
-  {
-    id: 2,
-    name: 'Smart Fitness Tracker',
-    nameZh: '智能健身追踪器',
-    nameJa: 'スマートフィットネストラッカー',
-    price: 89.99,
-    originalPrice: 129.99,
-    rating: 4.7,
-    reviews: 892,
-    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop',
-    category: 'Electronics',
-    soldCount: 1956,
-    rank: 2,
-    isTopSeller: true,
-  },
-  {
-    id: 3,
-    name: 'Premium Coffee Maker',
-    nameZh: '高级咖啡机',
-    nameJa: 'プレミアムコーヒーメーカー',
-    price: 199.99,
-    originalPrice: 249.99,
-    rating: 4.8,
-    reviews: 634,
-    image: 'https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=400&h=400&fit=crop',
-    category: 'Home & Garden',
-    soldCount: 1523,
-    rank: 3,
-    isTopSeller: true,
-  },
-  {
-    id: 4,
-    name: 'Organic Cotton Bedsheet Set',
-    nameZh: '有机棉床单套装',
-    nameJa: 'オーガニックコットンベッドシーツセット',
-    price: 79.99,
-    originalPrice: 99.99,
-    rating: 4.6,
-    reviews: 456,
-    image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=400&fit=crop',
-    category: 'Home & Garden',
-    soldCount: 1234,
-    rank: 4,
-    isTopSeller: false,
-  },
-  {
-    id: 5,
-    name: 'Professional Running Shoes',
-    nameZh: '专业跑步鞋',
-    nameJa: 'プロフェッショナルランニングシューズ',
-    price: 129.99,
-    originalPrice: 159.99,
-    rating: 4.7,
-    reviews: 789,
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop',
-    category: 'Sports',
-    soldCount: 987,
-    rank: 5,
-    isTopSeller: false,
-  },
-  {
-    id: 6,
-    name: 'Skincare Essentials Kit',
-    nameZh: '护肤精华套装',
-    nameJa: 'スキンケアエッセンシャルキット',
-    price: 69.99,
-    originalPrice: 89.99,
-    rating: 4.5,
-    reviews: 567,
-    image: 'https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=400&h=400&fit=crop',
-    category: 'Beauty',
-    soldCount: 876,
-    rank: 6,
-    isTopSeller: false,
-  },
-];
+interface Product {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  stock: number;
+  images?: string;
+  category?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function BestsellersPage() {
   const { currentLanguage } = useTranslation();
+
+  // 使用真实API获取产品数据（作为bestsellers的替代）
+  const { data: productsData, isLoading, error } = useQuery({
+    queryKey: ['products'],
+    queryFn: async () => {
+      const response = await api.get('/api/products');
+      return response.data;
+    },
+  });
+
+  const products = productsData?.products || [];
+
+  // 辅助函数：获取产品图片
+  const getProductImage = (product: Product) => {
+    if (!product.images) return '/placeholder-product.jpg';
+
+    try {
+      const parsed = JSON.parse(product.images);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed[0];
+      }
+    } catch (e) {
+      if (product.images.trim() && product.images !== '[]') {
+        return product.images;
+      }
+    }
+
+    return '/placeholder-product.jpg';
+  };
+
+  // 辅助函数：检查库存
+  const isInStock = (product: Product) => {
+    return product.stock > 0;
+  };
 
   const translations: Record<string, Record<string, string>> = {
     'en-US': {
@@ -270,7 +224,7 @@ export default function BestsellersPage() {
         <div className="container mx-auto px-4">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="text-sm text-muted-foreground">
-              {t('showingItems').replace('{count}', bestsellers.length.toString())}
+              {isLoading ? 'Loading...' : t('showingItems').replace('{count}', products.length.toString())}
             </div>
             
             <div className="flex items-center gap-4">
@@ -293,8 +247,21 @@ export default function BestsellersPage() {
       {/* Products Grid */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {bestsellers.map((product, index) => (
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+                <p className="text-muted-foreground">Loading products...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-red-500 mb-2">Error loading products</p>
+              <p className="text-muted-foreground">Please try again later</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {products.map((product: Product, index: number) => (
               <motion.div
                 key={product.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -305,23 +272,23 @@ export default function BestsellersPage() {
                 <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden relative">
                   {/* Rank Badge */}
                   <div className="absolute top-3 left-3 z-10 bg-white dark:bg-gray-800 rounded-full p-2 shadow-md">
-                    {getRankIcon(product.rank)}
+                    <Crown className="h-4 w-4 text-yellow-500" />
                   </div>
 
                   {/* Product Image */}
                   <div className="relative aspect-square overflow-hidden">
                     <Image
-                      src={product.image}
-                      alt={getProductName(product)}
+                      src={getProductImage(product)}
+                      alt={product.name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    
-                    {/* Top Seller Badge */}
-                    {product.isTopSeller && (
-                      <div className="absolute top-3 right-3">
-                        <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium">
-                          {t('topSeller')}
+
+                    {/* Stock Status */}
+                    {!isInStock(product) && (
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                        <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-medium">
+                          Out of Stock
                         </span>
                       </div>
                     )}
@@ -340,55 +307,42 @@ export default function BestsellersPage() {
                   <div className="p-4">
                     <Link href={`/products/${product.id}`}>
                       <h3 className="font-semibold text-lg mb-2 hover:text-primary transition-colors">
-                        {getProductName(product)}
+                        {product.name}
                       </h3>
                     </Link>
 
-                    {/* Sales Info */}
+                    {/* Stock Info */}
                     <div className="flex items-center gap-2 mb-3 text-sm text-muted-foreground">
                       <TrendingUp className="h-4 w-4" />
-                      <span>{product.soldCount.toLocaleString()} {t('sold')}</span>
+                      <span>{isInStock(product) ? `${product.stock} in stock` : 'Out of stock'}</span>
                     </div>
 
-                    {/* Rating */}
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="flex items-center">
-                        {[...Array(5)].map((_, i) => (
-                          <Star
-                            key={i}
-                            className={`h-4 w-4 ${
-                              i < Math.floor(product.rating)
-                                ? 'text-yellow-400 fill-current'
-                                : 'text-gray-300'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        ({product.reviews.toLocaleString()} {t('reviews')})
-                      </span>
-                    </div>
+                    {/* Description */}
+                    {product.description && (
+                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                        {product.description}
+                      </p>
+                    )}
 
                     {/* Price */}
                     <div className="flex items-center gap-2 mb-4">
                       <span className="text-xl font-bold">${product.price}</span>
-                      {product.originalPrice && (
-                        <span className="text-sm text-muted-foreground line-through">
-                          ${product.originalPrice}
-                        </span>
-                      )}
                     </div>
 
                     {/* Add to Cart Button */}
-                    <Button className="w-full">
+                    <Button
+                      className="w-full"
+                      disabled={!isInStock(product)}
+                    >
                       <ShoppingCart className="h-4 w-4 mr-2" />
-                      {t('addToCart')}
+                      {isInStock(product) ? t('addToCart') : 'Out of Stock'}
                     </Button>
                   </div>
                 </div>
               </motion.div>
             ))}
           </div>
+          )}
         </div>
       </section>
 

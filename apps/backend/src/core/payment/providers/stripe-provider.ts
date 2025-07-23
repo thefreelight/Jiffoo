@@ -57,7 +57,7 @@ export class StripePaymentProvider implements PaymentProvider {
     
     // Initialize Stripe with API key
     this.stripe = new Stripe(config.apiKey, {
-      apiVersion: '2024-12-18.acacia',
+      apiVersion: '2025-05-28.basil',
       typescript: true,
     });
 
@@ -95,11 +95,10 @@ export class StripePaymentProvider implements PaymentProvider {
       // Convert amount to cents (Stripe uses smallest currency unit)
       const amountInCents = Math.round(request.amount.value * 100);
 
-      // Create PaymentIntent
-      const paymentIntent = await this.stripe.paymentIntents.create({
+      // Prepare PaymentIntent parameters
+      const paymentIntentParams: any = {
         amount: amountInCents,
         currency: request.amount.currency.toLowerCase(),
-        customer: request.customer.id,
         description: request.description || `Payment for order ${request.orderId}`,
         metadata: {
           orderId: request.orderId,
@@ -109,8 +108,20 @@ export class StripePaymentProvider implements PaymentProvider {
         automatic_payment_methods: {
           enabled: true,
         },
-        return_url: request.returnUrl,
-      });
+      };
+
+      // Only add customer if it's a valid Stripe customer ID (starts with 'cus_')
+      if (request.customer.id && request.customer.id.startsWith('cus_')) {
+        paymentIntentParams.customer = request.customer.id;
+      }
+
+      // Add return URL if provided
+      if (request.returnUrl) {
+        paymentIntentParams.return_url = request.returnUrl;
+      }
+
+      // Create PaymentIntent
+      const paymentIntent = await this.stripe.paymentIntents.create(paymentIntentParams);
 
       const now = new Date();
       const result: PaymentResult = {
@@ -325,7 +336,7 @@ export class StripePaymentProvider implements PaymentProvider {
         event.signature || '',
         this.config.webhookSecret
       );
-      
+
       return true;
     } catch (error) {
       LoggerService.logError('Stripe webhook verification failed', error);
@@ -333,7 +344,40 @@ export class StripePaymentProvider implements PaymentProvider {
     }
   }
 
-  async handleWebhook(event: WebhookEvent): Promise<void> {
+  async constructWebhookEvent(payload: string | Buffer, signature: string): Promise<any> {
+    if (!this.initialized || !this.stripe || !this.config?.webhookSecret) {
+      throw new Error('Stripe not initialized or webhook secret not configured');
+    }
+
+    try {
+      // Use Stripe's constructEvent to verify and parse the webhook
+      const event = this.stripe.webhooks.constructEvent(
+        payload,
+        signature,
+        this.config.webhookSecret
+      );
+
+      return event;
+    } catch (error) {
+      LoggerService.logError('Failed to construct webhook event', error);
+      throw error;
+    }
+  }
+
+  async handleWebhook(event: any): Promise<void> {
+    // Legacy method signature support
+    if (typeof event === 'string' || Buffer.isBuffer(event)) {
+      const payload = event;
+      const signature = arguments[1] as string;
+      const webhookEvent = await this.constructWebhookEvent(payload, signature);
+      return this.processWebhookEvent(webhookEvent);
+    }
+
+    // Direct event object
+    return this.processWebhookEvent(event);
+  }
+
+  async processWebhookEvent(event: any): Promise<void> {
     LoggerService.logInfo(`Handling Stripe webhook event ${event.type}`);
     
     // Handle different webhook events

@@ -89,12 +89,12 @@ export default function AnalyticsPage() {
 
   // Calculate real analytics data from API
   const calculateAnalytics = () => {
-    const totalRevenue = orders.reduce((sum, order) => sum + (order.total || 0), 0)
+    const totalRevenue = orders.reduce((sum: number, order: any) => sum + (order.total || 0), 0)
     const totalOrders = orders.length
-    const uniqueCustomers = new Set(orders.map(order => order.customerId)).size
+    const uniqueCustomers = new Set(orders.map((order: any) => order.customerId)).size
 
     // Calculate monthly data
-    const monthlyData = orders.reduce((acc, order) => {
+    const monthlyData = orders.reduce((acc: any, order: any) => {
       const month = new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short' })
       if (!acc[month]) {
         acc[month] = { month, sales: 0, orders: 0, customers: new Set() }
@@ -111,21 +111,21 @@ export default function AnalyticsPage() {
     }))
 
     // Calculate top products
-    const productSales = products.map(product => {
-      const productOrders = orders.filter(order =>
+    const productSales = products.map((product: any) => {
+      const productOrders = orders.filter((order: any) =>
         order.items?.some((item: any) => item.productId === product.id)
       )
-      const sales = productOrders.reduce((sum, order) =>
+      const sales = productOrders.reduce((sum: number, order: any) =>
         sum + (order.items?.find((item: any) => item.productId === product.id)?.quantity || 0), 0
       )
-      const revenue = productOrders.reduce((sum, order) => sum + (order.total || 0), 0)
+      const revenue = productOrders.reduce((sum: number, order: any) => sum + (order.total || 0), 0)
 
       return {
         name: product.name,
         sales,
         revenue
       }
-    }).sort((a, b) => b.revenue - a.revenue).slice(0, 5)
+    }).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 5)
 
     return {
       totalRevenue,
@@ -366,7 +366,7 @@ export default function AnalyticsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {(analytics.topProducts.length > 0 ? analytics.topProducts : topProducts).map((product, index) => (
+              {(analytics.topProducts.length > 0 ? analytics.topProducts : topProducts).map((product: any, index: number) => (
                 <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                   <div className="flex items-center">
                     <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">

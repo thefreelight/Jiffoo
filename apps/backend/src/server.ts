@@ -25,18 +25,26 @@ import { inventoryRoutes } from '@/core/inventory/routes';
 import { notificationRoutes } from '@/core/notifications/routes';
 
 // Import plugin system
-import { DefaultPluginManager } from '@/plugins/manager';
-import { pluginRoutes } from '@/plugins/routes';
+import { pluginManagementRoutes } from '@/core/plugins/plugin-management-routes';
+
 
 // Import i18n system
 import { i18nRoutes } from '@/core/i18n/routes';
 import { I18nMiddleware } from '@/core/i18n/middleware';
 
 // Import commercialization routes
+import { licenseRoutes } from '@/core/licensing/license-routes';
+import { licenseRoutes as newLicenseRoutes } from '@/routes/license-routes';
+import { pluginStoreRoutes } from '@/core/plugin-store/plugin-store-routes';
+import { saasRoutes } from '@/core/saas/saas-routes';
+import { templateRoutes } from '@/core/templates/template-manager';
+import { tenantRoutes } from '@/core/tenant/tenant-routes';
+import { salesRoutes } from '@/core/sales/sales-routes';
 import { permissionRoutes as authPermissionRoutes } from '@/core/auth/permission-routes';
 
 // Import OAuth 2.0 and SaaS marketplace routes
 import { oauth2Routes } from '@/core/auth/oauth2-routes';
+import { saasMarketplaceRoutes } from '@/core/saas-marketplace/saas-routes';
 
 const fastify = Fastify({
   logger: {
@@ -75,6 +83,30 @@ async function buildApp() {
     await fastify.register(cors, {
       origin: env.NODE_ENV === 'development' ? true : false,
       credentials: true,
+    });
+
+    // Register Prisma client as a decorator
+    fastify.decorate('prisma', prisma);
+
+    // Add content type parser for application/x-www-form-urlencoded
+    fastify.addContentTypeParser('application/x-www-form-urlencoded', { parseAs: 'string' }, function (req, body, done) {
+      try {
+        // For empty body, return empty object
+        const bodyStr = typeof body === 'string' ? body : body.toString();
+        if (!bodyStr || bodyStr.trim() === '') {
+          done(null, {});
+        } else {
+          // Parse URL-encoded data
+          const parsed = new URLSearchParams(bodyStr);
+          const result: Record<string, any> = {};
+          for (const [key, value] of parsed) {
+            result[key] = value;
+          }
+          done(null, result);
+        }
+      } catch (err) {
+        done(err as Error, undefined);
+      }
     });
 
     // Register i18n middleware globally
@@ -1641,6 +1673,10 @@ async function buildApp() {
       };
     });
 
+    // Initialize payment service first to set up plugin proxy routes at root level
+    const { PaymentService } = await import('@/core/payment/service');
+    await PaymentService.initializePluginProxyRoutes(fastify);
+
     // API routes
     await fastify.register(authRoutes, { prefix: '/api/auth' });
     await fastify.register(userRoutes, { prefix: '/api/users' });
@@ -1655,23 +1691,29 @@ async function buildApp() {
     await fastify.register(statisticsRoutes, { prefix: '/api/statistics' });
     await fastify.register(inventoryRoutes, { prefix: '/api/inventory' });
     await fastify.register(notificationRoutes, { prefix: '/api/notifications' });
-    await fastify.register(pluginRoutes, { prefix: '/api/plugins' });
+    // Legacy plugin routes removed - now handled by payment plugin routes
     await fastify.register(i18nRoutes, { prefix: '/api/i18n' });
 
+    // Plugin management routes
+    await fastify.register(pluginManagementRoutes, { prefix: '/api/plugins' });
+
+
+
     // Commercialization routes
+    await fastify.register(licenseRoutes, { prefix: '/api/licenses' });
     await fastify.register(newLicenseRoutes, { prefix: '/api' });
+    await fastify.register(pluginStoreRoutes, { prefix: '/api/plugin-store' });
+    await fastify.register(saasRoutes, { prefix: '/api/saas' });
+    await fastify.register(templateRoutes, { prefix: '/api/templates' });
+    await fastify.register(tenantRoutes, { prefix: '/api/tenants' });
+    await fastify.register(salesRoutes, { prefix: '/api/sales' });
     await fastify.register(authPermissionRoutes, { prefix: '/api/permissions' });
 
     // OAuth 2.0 and SaaS marketplace routes
     await fastify.register(oauth2Routes, { prefix: '' }); // No prefix for OAuth routes
+    await fastify.register(saasMarketplaceRoutes, { prefix: '/api' });
 
-    // Initialize plugin system
-    const pluginManager = new DefaultPluginManager(fastify);
-    const pluginsDir = path.join(__dirname, 'plugins');
-    await pluginManager.loadPluginsFromDirectory(pluginsDir);
-
-    // Store plugin manager in fastify instance for access in routes
-    (fastify as any).pluginManager = pluginManager;
+    // Legacy plugin system initialization removed - now using unified plugin manager
 
     // Global error handler
     fastify.setErrorHandler((error, request, reply) => {

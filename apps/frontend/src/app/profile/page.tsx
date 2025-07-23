@@ -97,11 +97,11 @@ export default function ProfilePage() {
         <div className="mb-8">
           <div className="flex items-center space-x-4">
             <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xl font-bold">
-              {user?.username?.charAt(0).toUpperCase() || 'U'}
+              {user?.name?.charAt(0).toUpperCase() || 'U'}
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                {t('profile.welcome')}, {user?.username}!
+                {t('profile.welcome')}, {user?.name}!
               </h1>
               <p className="text-gray-600">{user?.email}</p>
             </div>

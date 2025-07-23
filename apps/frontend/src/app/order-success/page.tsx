@@ -5,17 +5,53 @@ import { motion } from 'framer-motion';
 import { CheckCircle, Package, Mail, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTranslation } from '@/hooks/use-translation';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCartStore } from '@/store/cart';
 import Link from 'next/link';
 
 export default function OrderSuccessPage() {
   const { currentLanguage } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { clearCart } = useCartStore();
+  const [orderNumber, setOrderNumber] = React.useState<string>('');
+  const [isVerifying, setIsVerifying] = React.useState(true);
 
-  // Generate a mock order number
-  const orderNumber = React.useMemo(() => {
-    return `JF${Date.now().toString().slice(-6)}`;
-  }, []);
+  // Handle Stripe checkout session verification
+  React.useEffect(() => {
+    const sessionId = searchParams.get('session_id');
+
+    if (sessionId) {
+      // Verify the Stripe session and get order details
+      verifyStripeSession(sessionId);
+    } else {
+      // Fallback to mock order number if no session_id
+      setOrderNumber(`JF${Date.now().toString().slice(-6)}`);
+      setIsVerifying(false);
+      clearCart();
+    }
+  }, [searchParams, clearCart]);
+
+  const verifyStripeSession = async (sessionId: string) => {
+    try {
+      const response = await fetch(`/api/plugins/stripe/verify-session?session_id=${sessionId}`);
+
+      if (response.ok) {
+        const data = await response.json();
+        setOrderNumber(data.orderId || `JF${Date.now().toString().slice(-6)}`);
+        // Clear cart after successful payment verification
+        await clearCart();
+      } else {
+        // Fallback if verification fails
+        setOrderNumber(`JF${Date.now().toString().slice(-6)}`);
+      }
+    } catch (error) {
+      console.error('Failed to verify Stripe session:', error);
+      setOrderNumber(`JF${Date.now().toString().slice(-6)}`);
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   const translations: Record<string, Record<string, string>> = {
     'en-US': {

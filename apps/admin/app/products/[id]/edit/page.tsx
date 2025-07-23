@@ -94,7 +94,7 @@ export default function EditProductPage() {
       console.log('提交的商品数据:', productData); // 调试日志
 
       // 使用React Query mutation
-      await updateProductMutation.mutateAsync({ id: productId, data: productData })
+      await updateProductMutation.mutateAsync({ id: productId, data: productData as any })
       
       // 成功后重定向到商品列表
       router.push('/products')

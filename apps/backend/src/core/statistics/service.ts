@@ -404,7 +404,7 @@ export class StatisticsService {
         },
         _sum: {
           quantity: true,
-          price: true
+          unitPrice: true
         },
         orderBy: {
           _sum: {

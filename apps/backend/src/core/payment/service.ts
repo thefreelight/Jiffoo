@@ -1,7 +1,7 @@
 import { prisma } from '@/config/database';
 import { ProcessPaymentRequest } from './types';
 import { paymentManager } from './payment-manager';
-import { MockPaymentProvider } from './providers/mock-provider';
+// import { MockPaymentProvider } from './providers/mock-provider';
 import {
   PaymentRequest,
   PaymentResult,
@@ -14,14 +14,35 @@ import {
   PaymentMethod
 } from './types';
 import { LoggerService } from '@/utils/logger';
+import { FastifyInstance } from 'fastify';
 
 export class PaymentService {
   private static initialized = false;
 
   /**
+   * Initialize plugin proxy routes at root level (called from server.ts)
+   */
+  static async initializePluginProxyRoutes(fastifyInstance: FastifyInstance): Promise<void> {
+    try {
+      LoggerService.logInfo('Initializing plugin proxy routes at root level...');
+
+      // Initialize payment manager first to ensure plugins are loaded
+      await paymentManager.initialize(fastifyInstance);
+
+      // Register plugin proxy routes at root level
+      await this.registerPluginProxyRoutes(fastifyInstance);
+
+      LoggerService.logInfo('Plugin proxy routes initialized successfully');
+    } catch (error) {
+      LoggerService.logError('Failed to initialize plugin proxy routes', error);
+      throw error;
+    }
+  }
+
+  /**
    * Initialize the payment service with new architecture
    */
-  static async initialize(): Promise<void> {
+  static async initialize(fastifyInstance?: FastifyInstance): Promise<void> {
     if (this.initialized) {
       return;
     }
@@ -29,8 +50,13 @@ export class PaymentService {
     try {
       LoggerService.logInfo('Initializing Payment Service');
 
-      // Initialize payment manager
-      await paymentManager.initialize();
+      // Initialize payment manager with Fastify instance (if not already done)
+      if (!paymentManager.initialized) {
+        await paymentManager.initialize(fastifyInstance);
+      }
+
+      // Plugin proxy routes are now registered at root level in server.ts
+      // No need to register them here
 
       // The mock provider is now loaded as a plugin in the payment manager
       // No need to register it here as it's handled by the plugin system
@@ -46,6 +72,83 @@ export class PaymentService {
       throw error;
     }
   }
+
+  /**
+   * 预注册插件代理路由
+   */
+  private static async registerPluginProxyRoutes(fastify: FastifyInstance): Promise<void> {
+    try {
+      LoggerService.logInfo('Registering plugin proxy routes...');
+
+      // 注册通用代理路由来处理所有插件路由
+      const proxyHandler = async (request: any, reply: any) => {
+        console.log(`🔄 Proxy handler called: ${request.method} ${request.url}`);
+        console.log(`🔄 Request params:`, request.params);
+
+        const { pluginId } = request.params;
+        const method = request.method.toUpperCase();
+        const url = request.url;
+
+        // 提取插件特定的路径
+        // 路由模式: /plugins/:pluginId/api/*
+        // 我们需要提取 /api/* 后面的部分
+        const pluginPath = url.replace(`/plugins/${pluginId}/api`, '');
+
+        console.log(`🔄 Proxy request: ${method} ${url} -> Plugin: ${pluginId}, Path: ${pluginPath}`);
+
+        // 获取统一插件管理器
+        const paymentManagerInstance = paymentManager;
+        const unifiedManager = paymentManagerInstance.getUnifiedManager();
+
+        if (!unifiedManager) {
+          return reply.status(503).send({
+            error: 'Service unavailable',
+            message: 'Plugin system not initialized'
+          });
+        }
+
+        // 委托给路由管理器处理
+        const routeManager = (unifiedManager as any).routeManager;
+        if (routeManager && typeof routeManager.handleProxyRequest === 'function') {
+          return await routeManager.handleProxyRequest(request, reply);
+        }
+
+        return reply.status(404).send({
+          error: 'Plugin not found',
+          message: `Plugin ${pluginId} is not installed or active`
+        });
+      };
+
+      // 注册通配符路由来捕获所有插件请求
+      // 使用更具体的路由模式避免与现有路由冲突
+      // 现有路由使用 /plugins/:pluginId/activate 等模式
+      // 我们使用 /plugins/:pluginId/api/* 来避免冲突
+      // Fastify 通配符语法: 使用 * 来捕获剩余路径
+      const pluginRoutePattern = '/plugins/:pluginId/api/*';
+
+      // 添加测试路由来验证路由注册
+      fastify.get('/plugins/test-route', async (request, reply) => {
+        return reply.send({ message: 'Test route works!' });
+      });
+
+      fastify.all(pluginRoutePattern, proxyHandler);
+
+      console.log(`🔧 Registered proxy route pattern: ${pluginRoutePattern}`);
+
+      LoggerService.logInfo('Plugin proxy routes registered successfully');
+    } catch (error) {
+      LoggerService.logError('Failed to register plugin proxy routes', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get payment manager instance
+   */
+  static getPaymentManager() {
+    return paymentManager;
+  }
+
   /**
    * Process payment using new architecture
    */

@@ -28,7 +28,7 @@ export function requirePermission(resource: Resource, action: Action) {
     // 获取用户的主要角色（从JWT token或roles数组中）
     const userRole = user.role ||
                     (user.roles && user.roles.length > 0 ? user.roles[0].role?.name : null) ||
-                    'USER';
+                    'CUSTOMER';
 
     const context: PermissionContext = {
       userId: user.id || user.userId,
@@ -91,9 +91,10 @@ export function requireRole(minRole: UserRole) {
     };
 
     // 获取用户的主要角色（从JWT token或roles数组中）
+    // 优先使用JWT token中的简单角色字符串，然后才是复杂的roles数组
     const userRole = user.role ||
                     (user.roles && user.roles.length > 0 ? user.roles[0].role?.name : null) ||
-                    'USER';
+                    'CUSTOMER';
     const userLevel = roleHierarchy[userRole as UserRole] || 0;
     const requiredLevel = roleHierarchy[minRole];
 
@@ -133,7 +134,7 @@ export function requireOwnership(resourceIdParam: string = 'id') {
     // 获取用户的主要角色（从JWT token或roles数组中）
     const userRole = user.role ||
                     (user.roles && user.roles.length > 0 ? user.roles[0].role?.name : null) ||
-                    'USER';
+                    'CUSTOMER';
 
     // 管理员可以访问所有资源
     if (userRole === UserRole.ADMIN || userRole === UserRole.SUPER_ADMIN) {
@@ -240,7 +241,7 @@ export function Permission(resource: Resource, action: Action) {
       // 获取用户的主要角色（从JWT token或roles数组中）
       const userRole = user.role ||
                       (user.roles && user.roles.length > 0 ? user.roles[0].role?.name : null) ||
-                      'USER';
+                      'CUSTOMER';
 
       const context: PermissionContext = {
         userId: user.id || user.userId,

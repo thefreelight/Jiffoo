@@ -8,10 +8,10 @@ const BACKEND_URL = process.env.BACKEND_URL || 'http://127.0.0.1:3001';
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { providerId: string } }
+  { params }: { params: Promise<{ providerId: string }> }
 ) {
   try {
-    const { providerId } = params;
+    const { providerId } = await params;
     const backendUrl = `${BACKEND_URL}/auth/${providerId}/authorize?state=test`;
 
     const response = await fetch(backendUrl, {

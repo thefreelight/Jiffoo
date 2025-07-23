@@ -9,9 +9,16 @@ export async function orderRoutes(fastify: FastifyInstance) {
     preHandler: [authMiddleware]
   }, async (request, reply) => {
     try {
-      const order = await OrderService.createOrder(request.user!.userId, request.body as any);
+      console.log('📦 Order creation request body:', JSON.stringify(request.body, null, 2));
+      const validatedData = CreateOrderSchema.parse(request.body);
+      console.log('✅ Order data validated successfully');
+      const order = await OrderService.createOrder(request.user!.userId, validatedData);
       return reply.status(201).send({ order });
     } catch (error) {
+      console.error('❌ Order creation error:', error);
+      if (error instanceof Error && error.name === 'ZodError') {
+        console.error('🔍 Validation errors:', (error as any).errors);
+      }
       return reply.status(400).send({
         error: 'Order creation failed',
         message: error instanceof Error ? error.message : 'Unknown error'

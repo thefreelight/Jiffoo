@@ -112,7 +112,12 @@ export class InventoryService {
       success: true
     });
 
-    return result;
+    return {
+      ...result,
+      operation: result.operation as InventoryOperation,
+      reason: result.reason || undefined,
+      reference: result.reference || undefined
+    };
   }
 
   /**
@@ -232,7 +237,7 @@ export class InventoryService {
 
     if (existingAlert) {
       // 更新现有警告
-      return await prisma.inventoryAlert.update({
+      const alert = await prisma.inventoryAlert.update({
         where: { id: existingAlert.id },
         data: {
           currentStock: alertData.currentStock,
@@ -248,7 +253,13 @@ export class InventoryService {
     });
 
     // 发送通知
-    await this.sendInventoryNotification(alert);
+    const typedAlert = {
+      ...alert,
+      alertType: alert.alertType as AlertType,
+      resolvedAt: alert.resolvedAt || undefined,
+      resolvedBy: alert.resolvedBy || undefined
+    };
+    await this.sendInventoryNotification(typedAlert);
 
     LoggerService.logSystem('Inventory alert created', {
       alertId: alert.id,
@@ -257,7 +268,7 @@ export class InventoryService {
       currentStock: alert.currentStock
     });
 
-    return alert;
+    return typedAlert;
   }
 
   /**
@@ -385,7 +396,8 @@ export class InventoryService {
       if (!alert.isResolved) {
         alertStats.unresolved += alert._count.alertType;
       }
-      alertStats.byType[alert.alertType] = (alertStats.byType[alert.alertType] || 0) + alert._count.alertType;
+      const alertType = alert.alertType as AlertType;
+      alertStats.byType[alertType] = (alertStats.byType[alertType] || 0) + alert._count.alertType;
     });
 
     const stats: InventoryStats = {
@@ -455,7 +467,12 @@ export class InventoryService {
     ]);
 
     return {
-      records,
+      records: records.map(record => ({
+        ...record,
+        operation: record.operation as InventoryOperation,
+        reason: record.reason || undefined,
+        reference: record.reference || undefined
+      })),
       total,
       page,
       limit

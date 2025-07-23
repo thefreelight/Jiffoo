@@ -290,6 +290,9 @@ export class LicenseServer {
    * Check if domain is allowed for license
    */
   private static isDomainAllowed(domain: string, allowedDomains: string[]): boolean {
+    // Handle undefined or null domain
+    if (!domain) return false;
+
     // Remove port from domain
     const cleanDomain = domain.split(':')[0];
     

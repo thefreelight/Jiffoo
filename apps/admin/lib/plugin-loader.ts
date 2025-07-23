@@ -74,7 +74,7 @@ export class FrontendPluginLoader {
     } catch (error) {
       return {
         valid: false,
-        reason: `Plugin loading failed: ${error.message}`
+        reason: `Plugin loading failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }
@@ -157,7 +157,7 @@ export class FrontendPluginLoader {
     } catch (error) {
       return {
         valid: false,
-        reason: `Signature validation failed: ${error.message}`
+        reason: `Signature validation failed: ${error instanceof Error ? error.message : 'Unknown error'}`
       };
     }
   }

@@ -97,18 +97,44 @@ const categoryData: Record<string, any> = {
 };
 
 interface CategoryPageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
 export default function CategoryPage({ params }: CategoryPageProps) {
-  const { currentLanguage } = useTranslation();
+  const [slug, setSlug] = React.useState<string>('');
+  const [currentLanguage, setCurrentLanguage] = React.useState<string>('en-US');
   const [searchQuery, setSearchQuery] = React.useState('');
   const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = React.useState('featured');
 
-  const category = categoryData[params.slug];
+  // 处理params的异步解析
+  React.useEffect(() => {
+    const resolveParams = async () => {
+      const resolvedParams = await params;
+      setSlug(resolvedParams.slug);
+    };
+    resolveParams();
+  }, [params]);
+
+  // 如果slug还没有解析，显示加载状态
+  if (!slug) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading category...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const category = categoryData[slug];
 
   if (!category) {
     notFound();
