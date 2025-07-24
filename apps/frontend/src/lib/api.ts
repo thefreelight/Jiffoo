@@ -3,7 +3,7 @@ import { ApiResponse, PaginatedResponse } from 'shared';
 
 // Create axios instance
 const api: AxiosInstance = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001',
+  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -264,6 +264,33 @@ export const i18nApi = {
 
   updateUserPreferences: (preferences: any) =>
     apiClient.put('/api/i18n/user/preferences', preferences),
+};
+
+// Update Management API
+export const updateApi = {
+  // 获取当前版本信息
+  getVersion: () =>
+    axios.get('http://localhost:3004/api/version').then(res => res.data),
+
+  // 获取更新状态
+  getStatus: () =>
+    axios.get('http://localhost:3004/api/status').then(res => res.data),
+
+  // 获取部署状态
+  getDeploymentStatus: () =>
+    axios.get('http://localhost:3004/api/deployment/status').then(res => res.data),
+
+  // 检查更新
+  checkUpdate: () =>
+    axios.post('http://localhost:3004/api/update').then(res => res.data),
+
+  // 获取更新历史
+  getUpdateHistory: () =>
+    axios.get('http://localhost:3004/api/update/history').then(res => res.data),
+
+  // 回滚到上一个版本
+  rollback: () =>
+    axios.post('http://localhost:3004/api/rollback').then(res => res.data),
 };
 
 export default api;

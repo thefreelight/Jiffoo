@@ -72,7 +72,7 @@ export default function PaymentTestPage() {
       });
 
       // 调用Stripe插件的支付接口
-      const response = await fetch('http://localhost:3001/plugins/stripe-official/api/create-payment-intent', {
+      const response = await fetch('http://localhost:8001/plugins/stripe-official/api/create-payment-intent', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -156,7 +156,7 @@ export default function PaymentTestPage() {
       });
 
       // 调用支付宝插件的支付接口
-      const response = await fetch('http://localhost:3001/plugins/alipay-official/api/create-payment', {
+      const response = await fetch('http://localhost:8001/plugins/alipay-official/api/create-payment', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

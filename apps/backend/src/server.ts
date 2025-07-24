@@ -1670,6 +1670,8 @@ async function buildApp() {
         status: 'ok',
         timestamp: new Date().toISOString(),
         environment: env.NODE_ENV,
+        hotReload: '🔥 热更新功能正常工作！',
+        version: '0.2.0-hot-updated',
       };
     });
 

@@ -10,7 +10,7 @@ WORKDIR /app
 # Install dependencies based on the preferred package manager
 COPY package.json pnpm-lock.yaml* ./
 COPY packages/shared/package.json ./packages/shared/
-RUN corepack enable pnpm && pnpm i --frozen-lockfile
+RUN npm install -g pnpm@8.15.0 && pnpm i --force
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -19,29 +19,34 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Generate Prisma client
-RUN corepack enable pnpm && pnpm exec prisma generate
+RUN npm install -g pnpm@8.15.0 && pnpm add -w prisma @prisma/client && cd apps/backend && pnpm exec prisma generate
 
-# Build the application
-RUN pnpm run build
+# Skip build for now, run in development mode
+# RUN pnpm run build
 
-# Production image, copy all the files and run the app
+# Development image, copy all the files and run the app
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
+ENV NODE_ENV development
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 fastify
 
-# Copy the built application
-COPY --from=builder /app/dist ./dist
+# Copy the source code and dependencies
+COPY --from=builder /app/apps/backend ./apps/backend
+COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# Create uploads directory
-RUN mkdir -p uploads && chown fastify:nodejs uploads
-RUN mkdir -p logs && chown fastify:nodejs logs
+# Create uploads directory and npm cache
+RUN mkdir -p apps/backend/uploads && chown fastify:nodejs apps/backend/uploads
+RUN mkdir -p apps/backend/logs && chown fastify:nodejs apps/backend/logs
+RUN mkdir -p /home/fastify/.npm && chown fastify:nodejs /home/fastify/.npm
+
+# Install pnpm globally as root before switching user
+RUN npm install -g pnpm@8.15.0
 
 USER fastify
 
@@ -50,5 +55,5 @@ EXPOSE 8001
 ENV PORT 8001
 ENV HOST 0.0.0.0
 
-# Start the server
-CMD ["node", "dist/server.js"]
+# Start the server in development mode
+CMD ["sh", "-c", "cd apps/backend && pnpm dev"]

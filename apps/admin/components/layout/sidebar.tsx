@@ -162,6 +162,7 @@ const getNavigation = (t: (key: string, defaultValue?: string) => string): Navig
       { nameKey: 'settings.payments', href: '/settings/payments' },
       { nameKey: 'settings.shipping', href: '/settings/shipping' },
       { nameKey: 'settings.taxes', href: '/settings/taxes' },
+      { nameKey: 'settings.system_updates', href: '/system/updates' },
     ],
   },
 ];

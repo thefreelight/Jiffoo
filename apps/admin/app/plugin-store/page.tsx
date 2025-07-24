@@ -65,7 +65,7 @@ export default function PluginStorePage() {
         setLoading(true)
         setError(null)
 
-        const response = await fetch('http://localhost:3001/api/plugin-store/plugins', {
+        const response = await fetch('http://localhost:8001/api/plugin-store/plugins', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'

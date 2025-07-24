@@ -27,7 +27,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true })
     try {
       // 调用真实的后端API
-      const response = await fetch('http://localhost:3001/api/auth/login', {
+      const response = await fetch('http://localhost:8001/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       // 验证真实的JWT token
-      const response = await fetch('http://localhost:3001/api/user/profile', {
+      const response = await fetch('http://localhost:8001/api/user/profile', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,

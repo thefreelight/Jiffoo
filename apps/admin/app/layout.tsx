@@ -7,6 +7,9 @@ import { Toaster } from 'sonner'
 import { ToastProvider } from '../components/ui/toast'
 import { I18nProvider } from '../lib/i18n'
 
+// 临时使用AdminLayout作为ConditionalLayout
+const ConditionalLayout = AdminLayout
+
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
