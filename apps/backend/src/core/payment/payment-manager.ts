@@ -128,18 +128,43 @@ export class PaymentManager extends EventEmitter {
       throw new Error('No payment provider specified and no default provider set');
     }
 
-    // Try to get from unified plugin manager first - temporarily disabled
-    // try {
-    //   const unifiedManager = getUnifiedPluginManager();
-    //   const unifiedPlugins = unifiedManager.getActivePlugins();
-    //   const unifiedPlugin = unifiedPlugins.find(p => p.id === name || p.metadata.name === name);
+    // Try to get from unified plugin manager first
+    try {
+      if (this.unifiedManager) {
+        const activePlugins = this.unifiedManager.getActivePlugins();
 
-    //   if (unifiedPlugin && unifiedPlugin.instance && typeof unifiedPlugin.instance.getProvider === 'function') {
-    //     return unifiedPlugin.instance.getProvider();
-    //   }
-    // } catch (error) {
-    //   // Unified plugin manager not initialized yet, continue with error
-    // }
+        // Look for plugin by provider name (e.g., "stripe")
+        for (const plugin of activePlugins) {
+          if (plugin.metadata.type === 'payment') {
+            let provider = null;
+
+            // Try getProvider method first
+            if (plugin.implementation && typeof plugin.implementation.getProvider === 'function') {
+              provider = plugin.implementation.getProvider();
+            }
+            // Try direct provider property access
+            else if (plugin.implementation && plugin.implementation.provider) {
+              provider = plugin.implementation.provider;
+            }
+
+            // Check if this plugin provides the requested provider
+            if (provider && provider.name === name) {
+              return provider;
+            }
+
+            // Also check by plugin ID (e.g., "stripe-official")
+            if (plugin.metadata.id === name || plugin.metadata.name === name) {
+              if (provider) {
+                return provider;
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      LoggerService.logError('Error getting provider from unified plugin manager:', error);
+      // Continue to check traditional providers
+    }
 
     // Check traditional providers
     const provider = this.providers.get(name);
@@ -154,26 +179,55 @@ export class PaymentManager extends EventEmitter {
    * Get all registered providers (delegates to plugin manager)
    */
   getProviders(): PaymentProvider[] {
-    // Return traditional providers for now
-    return Array.from(this.providers.values());
+    const providers: PaymentProvider[] = [];
 
-    // Unified plugin system temporarily disabled
-    // try {
-    //   const unifiedManager = getUnifiedPluginManager();
-    //   const unifiedPlugins = unifiedManager.getActivePlugins();
-    //   const providers: PaymentProvider[] = [];
+    LoggerService.logInfo('Getting payment providers...');
+    LoggerService.logInfo(`Unified manager available: ${!!this.unifiedManager}`);
 
-    //   for (const plugin of unifiedPlugins) {
-    //     if (plugin.instance && typeof plugin.instance.getProvider === 'function') {
-    //       providers.push(plugin.instance.getProvider());
-    //     }
-    //   }
+    // Get providers from unified plugin system
+    try {
+      if (this.unifiedManager) {
+        const activePlugins = this.unifiedManager.getActivePlugins();
+        LoggerService.logInfo(`Found ${activePlugins.length} active plugins`);
 
-    //   return providers;
-    // } catch (error) {
-    //   // Unified plugin manager not initialized yet
-    //   return [];
-    // }
+        for (const plugin of activePlugins) {
+          if (plugin.metadata.type === 'payment' && plugin.implementation) {
+            // Try getProvider method first
+            if (typeof plugin.implementation.getProvider === 'function') {
+              try {
+                const provider = plugin.implementation.getProvider();
+                if (provider) {
+                  providers.push(provider);
+                }
+              } catch (providerError) {
+                LoggerService.logError(`Error getting provider from plugin ${plugin.metadata.id}:`, providerError);
+              }
+            }
+            // Try direct provider property access
+            else if (plugin.implementation.provider) {
+              try {
+                const provider = plugin.implementation.provider;
+                if (provider && provider.name) {
+                  providers.push(provider);
+                }
+              } catch (providerError) {
+                LoggerService.logError(`Error getting provider from plugin ${plugin.metadata.id} provider property:`, providerError);
+              }
+            }
+          }
+        }
+      }
+    } catch (error) {
+      LoggerService.logError('Error getting providers from unified plugin manager:', error);
+    }
+
+    // Add traditional providers
+    const traditionalProviders = Array.from(this.providers.values());
+    LoggerService.logInfo(`Found ${traditionalProviders.length} traditional providers`);
+    providers.push(...traditionalProviders);
+
+    LoggerService.logInfo(`Total providers found: ${providers.length}`);
+    return providers;
   }
 
   /**

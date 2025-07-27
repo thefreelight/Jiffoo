@@ -48,13 +48,24 @@ export class StripePaymentProvider implements PaymentProvider {
 
   async initialize(config: PaymentConfig): Promise<void> {
     LoggerService.logInfo('Initializing Stripe Payment Provider');
-    
+
     if (!config.apiKey) {
       throw new Error('Stripe API key is required');
     }
 
     this.config = config;
-    
+
+    // Check if we're in demo mode
+    const isDemoMode = process.env.STRIPE_DEMO_MODE === 'true' ||
+                      config.apiKey.includes('demo') ||
+                      config.apiKey.includes('test_demo');
+
+    if (isDemoMode) {
+      LoggerService.logInfo('Stripe Payment Provider running in DEMO mode - skipping API validation');
+      this.initialized = true;
+      return;
+    }
+
     // Initialize Stripe with API key
     this.stripe = new Stripe(config.apiKey, {
       apiVersion: '2025-05-28.basil',
@@ -85,11 +96,53 @@ export class StripePaymentProvider implements PaymentProvider {
   }
 
   async createPayment(request: PaymentRequest): Promise<PaymentResult> {
-    if (!this.initialized || !this.stripe) {
+    if (!this.initialized) {
       throw new Error('Stripe Payment Provider not initialized');
     }
 
     LoggerService.logInfo(`Creating Stripe payment for order ${request.orderId}`);
+
+    // Check if we're in demo mode
+    const isDemoMode = process.env.STRIPE_DEMO_MODE === 'true' ||
+                      this.config?.apiKey?.includes('demo') ||
+                      this.config?.apiKey?.includes('test_demo');
+
+    if (isDemoMode) {
+      LoggerService.logInfo('Creating DEMO Stripe payment');
+
+      // Return a mock successful payment for demo purposes
+      const mockPaymentId = `pi_demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const now = new Date();
+
+      return {
+        success: true,
+        paymentId: mockPaymentId,
+        status: PaymentStatus.COMPLETED,
+        amount: request.amount,
+        transactionId: mockPaymentId,
+        clientSecret: `${mockPaymentId}_secret_demo`,
+        providerResponse: {
+          provider: 'stripe',
+          paymentIntentId: mockPaymentId,
+          status: 'succeeded',
+          amount: Math.round(request.amount.value * 100),
+          currency: request.amount.currency.toLowerCase(),
+          demo: true,
+        },
+        metadata: {
+          provider: 'stripe',
+          environment: 'demo',
+          paymentIntentId: mockPaymentId,
+          demo: true,
+        },
+        createdAt: now,
+        updatedAt: now,
+      };
+    }
+
+    if (!this.stripe) {
+      throw new Error('Stripe not initialized for real payments');
+    }
 
     try {
       // Convert amount to cents (Stripe uses smallest currency unit)

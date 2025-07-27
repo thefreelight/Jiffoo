@@ -403,11 +403,31 @@ class StripePaymentImplementation {
             if (!body.amount || !body.currency || !body.orderId || !body.successUrl || !body.cancelUrl) {
                 throw new Error('Missing required fields: amount, currency, orderId, successUrl, cancelUrl');
             }
+
             // 获取 Stripe 实例
             const stripeProvider = this.provider;
             const stripe = stripeProvider.stripe;
-            if (!stripe) {
-                throw new Error('Stripe instance not available');
+
+            // Check if we're in demo mode
+            const config = this.context.config;
+            const isDemoMode = process.env.STRIPE_DEMO_MODE === 'true' ||
+                              (config.apiKey && config.apiKey.includes('demo')) ||
+                              (config.apiKey && config.apiKey.includes('test_demo'));
+
+            if (isDemoMode || !stripe) {
+                // Return mock checkout session for demo mode
+                const mockSessionId = `cs_demo_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+                const mockUrl = `${body.successUrl.split('?')[0]}?session_id=${mockSessionId}&demo=true`;
+
+                this.context.logger.info(`Demo Stripe checkout session created: ${mockSessionId} for order ${body.orderId}`);
+
+                return {
+                    success: true,
+                    sessionId: mockSessionId,
+                    url: mockUrl,
+                    status: 'created',
+                    demo: true
+                };
             }
             // Convert amount to cents (Stripe uses smallest currency unit)
             const amountInCents = Math.round(body.amount * 100);

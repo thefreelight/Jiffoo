@@ -324,6 +324,13 @@ class StripePaymentImplementation implements PaymentPluginImplementation {
     }
   }
 
+  /**
+   * Get the payment provider instance
+   */
+  getProvider(): any {
+    return this.provider;
+  }
+
   async validateConfig(config: any): Promise<boolean> {
     try {
       if (!config.apiKey || typeof config.apiKey !== 'string') {
@@ -850,6 +857,16 @@ class StripeOfficialPlugin implements UnifiedPlugin {
     } catch (error) {
       return false;
     }
+  }
+
+  /**
+   * Get the payment provider instance
+   */
+  getProvider(): any {
+    if (!this.implementation) {
+      throw new Error('Stripe plugin not initialized');
+    }
+    return this.implementation.getProvider();
   }
 }
 
