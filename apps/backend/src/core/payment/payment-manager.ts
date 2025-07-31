@@ -15,7 +15,7 @@ import {
   WebhookEvent
 } from './types';
 import { LoggerService } from '@/utils/logger';
-import { createUnifiedPluginManager, getUnifiedPluginManager } from '@/../../plugins/core/managers/unified-manager';
+import { createUnifiedPluginManager, getUnifiedPluginManager } from '../../../../../plugins/core/managers/unified-manager';
 import { PrismaClient } from '@prisma/client';
 
 export class PaymentManager extends EventEmitter {

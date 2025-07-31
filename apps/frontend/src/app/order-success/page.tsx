@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle, Package, Mail, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -9,7 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCartStore } from '@/store/cart';
 import Link from 'next/link';
 
-export default function OrderSuccessPage() {
+function OrderSuccessContent() {
   const { currentLanguage } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -247,5 +248,13 @@ export default function OrderSuccessPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OrderSuccessPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <OrderSuccessContent />
+    </Suspense>
   );
 }

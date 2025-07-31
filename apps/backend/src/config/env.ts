@@ -2,10 +2,21 @@ import { z } from 'zod';
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load environment variables from root directory first, then local
+// Load environment variables from multiple locations
+// 1. Current directory (.env)
+dotenv.config();
+// 2. Backend directory (.env)
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+// 3. Root directory (.env)
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+// 4. Local override (.env.local)
 dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
-dotenv.config(); // Load from current directory as fallback
+
+// Debug: Log which environment variables are loaded
+console.log('Environment variables loaded:');
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'SET' : 'NOT SET');
+console.log('NODE_ENV:', process.env.NODE_ENV);
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),

@@ -75,6 +75,13 @@ export class PluginStoreManager {
   private pluginCatalog: Map<string, PluginMetadata> = new Map();
   private initialized = false;
 
+  // 开源版本连接到官方插件商店和授权服务
+  private static readonly PLUGIN_STORE_URL = process.env.PLUGIN_STORE_URL || 'https://plugins.jiffoo.com';
+  private static readonly LICENSE_SERVER_URL = process.env.LICENSE_SERVER_URL || 'https://license.jiffoo.com';
+  private static readonly STORE_API_KEY = process.env.PLUGIN_STORE_API_KEY;
+  private static readonly CACHE_TTL = 3600; // 1 hour
+  private static readonly CACHE_PREFIX = 'plugin-store:';
+
   constructor() {
     // 同步初始化插件目录
     this.initializeCatalogSync();

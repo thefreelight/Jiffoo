@@ -138,11 +138,11 @@ export default function CheckoutPage() {
         total: cart.total
       });
 
-      if (!orderResponse || !orderResponse.order) {
+      if (!orderResponse || !(orderResponse as any).order) {
         throw new Error('Failed to create order');
       }
 
-      const order = orderResponse.order;
+      const order = (orderResponse as any).order;
       const orderId = order.id;
 
       // Create Stripe checkout session
@@ -172,9 +172,9 @@ export default function CheckoutPage() {
 
       const checkoutSession = checkoutResponse;
 
-      if (checkoutSession && checkoutSession.url) {
+      if (checkoutSession && (checkoutSession as any).url) {
         // Redirect to Stripe Checkout
-        window.location.href = checkoutSession.url;
+        window.location.href = (checkoutSession as any).url;
       } else {
         throw new Error('Invalid checkout session response');
       }

@@ -5,7 +5,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "tsc",
+    "build": "tsc && npx tsc-alias",
     "start": "node dist/server.js",
     "lint": "eslint src --ext .ts",
     "type-check": "tsc --noEmit",
@@ -34,7 +34,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@fastify/cors": "^8.4.0",
+    "@fastify/cors": "^8.0.0",
     "@fastify/jwt": "^7.2.4",
     "@fastify/multipart": "^7.0.0",
     "@fastify/static": "^6.0.0",

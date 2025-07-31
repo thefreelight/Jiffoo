@@ -90,6 +90,9 @@ export const logger = winston.createLogger({
   exitOnError: false
 });
 
+// Export Logger type for compatibility
+export type Logger = winston.Logger;
+
 // 操作日志类型
 export enum OperationType {
   CREATE = 'CREATE',
