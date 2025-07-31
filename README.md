@@ -1,19 +1,19 @@
-# 🔥 Jiffoo Mall - Modern E-commerce Platform with UNBREAKABLE Plugin Ecosystem 🔥
+# 🔥 Jiffoo Mall - Open Source E-commerce Platform 🔥
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black.svg)](https://nextjs.org/)
 [![Fastify](https://img.shields.io/badge/Fastify-4.29-green.svg)](https://www.fastify.io/)
 [![i18n](https://img.shields.io/badge/i18n-6_languages-green.svg)](https://github.com/thefreelight/Jiffoo)
-[![Plugin Reliability](https://img.shields.io/badge/Plugin_Reliability-99.999%25-brightgreen.svg)](https://github.com/thefreelight/Jiffoo)
+[![Plugin System](https://img.shields.io/badge/Plugin_System-Extensible-brightgreen.svg)](https://github.com/thefreelight/Jiffoo)
 [![Architecture](https://img.shields.io/badge/Architecture-Microservice-blue.svg)](https://github.com/thefreelight/Jiffoo)
-[![Cloud Native](https://img.shields.io/badge/Cloud_Native-Kubernetes-326CE5.svg)](https://github.com/thefreelight/Jiffoo)
+[![Cloud Native](https://img.shields.io/badge/Cloud_Native-Ready-326CE5.svg)](https://github.com/thefreelight/Jiffoo)
 
-> 🔥 **BREAKTHROUGH ACHIEVEMENT**: **99.999% Reliable Plugin Ecosystem** - UNBREAKABLE foundation achieved!
+> 🌟 **Open Source E-commerce Platform** - A complete, modern e-commerce solution with extensible plugin architecture, advanced multilingual support, and production-ready features.
 >
 > 🎉 **Latest Update**: Revolutionary plugin ecosystem with microservice architecture, achieving enterprise-grade reliability and unlimited scalability.
 >
-> 🌟 **Open Source E-commerce Platform** - A complete, modern e-commerce solution with **UNBREAKABLE** plugin architecture, advanced multilingual support, and enterprise-ready features.
+> 🔥 **100% Open Source** - MIT Licensed, community-driven development, no hidden commercial features.
 
 **English**
 
@@ -21,15 +21,15 @@ A comprehensive, full-stack e-commerce platform built with modern technologies, 
 
 ## 🌟 Features
 
-### 🔥 Revolutionary Plugin Ecosystem (99.999% Reliable)
+### 🔥 Revolutionary Plugin Ecosystem
 - **🏗️ Microservice Architecture** - Each plugin runs as independent microservice
-- **☸️ Kubernetes-Native** - Cloud-native deployment with auto-scaling
+- **☸️ Cloud-Native** - Kubernetes-ready deployment with auto-scaling
 - **🔄 Hot-Swappable** - Zero-downtime plugin installation/removal
-- **💎 Enterprise-Grade Reliability** - 99.999% uptime guarantee
-- **⚡ High Performance** - Millisecond response times, optimized memory usage
-- **🛡️ Bank-Level Security** - JWT authentication, role-based access control
-- **📊 Complete Observability** - Health monitoring, metrics, distributed tracing
-- **🔧 Developer-Friendly SDK** - Comprehensive TypeScript SDK with full type safety
+- **💎 Production-Ready** - Battle-tested reliability and performance
+- **⚡ High Performance** - Optimized for speed and efficiency
+- **🛡️ Secure** - JWT authentication, role-based access control
+- **📊 Observable** - Health monitoring, metrics, and logging
+- **🔧 Developer-Friendly** - Comprehensive TypeScript SDK
 
 ### Core E-commerce Features
 - **User Authentication & Authorization** - JWT-based auth with role-based permissions
@@ -49,169 +49,97 @@ A comprehensive, full-stack e-commerce platform built with modern technologies, 
 - **Plugin Architecture** - Extensible modular system
 - **Multilingual Support** - Complete i18n system with 6 languages, real-time switching, and admin management
 
-### 🏢 Commercial Features
-- **Plugin Store** - Marketplace for premium plugins with subscription model
-- **License Management** - Secure license validation and usage tracking
-- **Custom SaaS Applications** - Enterprise-grade solution licensing
-- **Template Marketplace** - Design templates with multiple license types
-- **Multi-tenant OEM System** - White-label reseller network with revenue sharing
-- **Unified Sales Platform** - Integrated direct and OEM sales processing
-
 ## 🏗️ Tech Stack
 
 ### Backend
 - **Framework**: Fastify + TypeScript
 - **Database**: SQLite (dev) / PostgreSQL (prod) with Prisma ORM
 - **Authentication**: JWT with bcrypt password hashing
-- **Caching**: Redis for high-performance data caching
-- **File Upload**: Multer with image processing
-- **Email**: Nodemailer with template support
-- **Validation**: Zod schema validation
-- **Documentation**: OpenAPI/Swagger integration
+- **Caching**: Redis for session management and performance
+- **File Storage**: Local filesystem with upload validation
+- **Logging**: Winston with structured logging
+- **API Documentation**: Swagger/OpenAPI integration
 
 ### Frontend
 - **Framework**: Next.js 15 with App Router
-- **Language**: TypeScript
+- **Language**: TypeScript with strict type checking
 - **Styling**: Tailwind CSS with custom design system
-- **UI Components**: Radix UI primitives
-- **State Management**: Zustand + React Query
+- **State Management**: Zustand for client state
 - **Forms**: React Hook Form with Zod validation
-- **Animations**: Framer Motion
-- **Icons**: Lucide React
+- **UI Components**: Custom component library
+- **Internationalization**: next-i18next with 6 languages
 
-### DevOps & Tools
-- **Package Manager**: pnpm with workspace support
-- **Build Tool**: Turbo for monorepo builds
-- **Code Quality**: ESLint + Prettier
-- **Type Safety**: TypeScript strict mode
-- **API Testing**: Built-in Swagger UI
-- **Development**: Hot reload for both frontend and backend
+### Admin Panel
+- **Framework**: Next.js 15 with TypeScript
+- **Authentication**: JWT-based admin authentication
+- **UI**: Modern dashboard with responsive design
+- **Features**: User management, product management, order tracking
+- **Analytics**: Sales reports and business intelligence
+
+### DevOps & Infrastructure
+- **Containerization**: Docker with multi-stage builds
+- **Orchestration**: Docker Compose for development
+- **Database**: PostgreSQL with automated migrations
+- **Caching**: Redis for performance optimization
+- **Monitoring**: Health checks and logging
+- **Deployment**: Production-ready configuration
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js 18+
-- pnpm (recommended) or npm
-- Redis (optional, for caching)
+- Node.js 18+ and pnpm
+- Docker and Docker Compose
+- PostgreSQL (for production)
+- Redis (for caching)
 
-### Installation
+### Development Setup
+```bash
+# Clone the repository
+git clone https://github.com/thefreelight/Jiffoo.git
+cd Jiffoo
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/thefreelight/Jiffoo.git
-   cd Jiffoo
-   ```
+# Install dependencies
+pnpm install
 
-2. **Install dependencies**
-   ```bash
-   pnpm install
-   ```
+# Set up environment variables
+cp .env.example .env.local
 
-3. **Set up environment variables**
-   ```bash
-   # Backend environment
-   cp apps/backend/.env.example apps/backend/.env
-
-   # Edit the .env file with your configuration
-   ```
-
-4. **Initialize the database**
-   ```bash
-   pnpm --filter backend db:generate
-   pnpm --filter backend db:push
-   pnpm --filter backend db:seed
-   ```
-
-5. **Start development servers**
-   ```bash
-   # Start all services (backend, frontend, admin)
-   pnpm dev
-
-   # Or start individually
-   pnpm --filter backend dev    # Backend API: http://localhost:3001
-   pnpm --filter frontend dev   # Frontend: http://localhost:3002
-   pnpm --filter admin dev      # Admin Dashboard: http://localhost:3003
-   ```
-
-## 📁 Project Structure
-
-```
-Jiffoo/
-├── apps/
-│   ├── backend/              # Fastify API server
-│   │   ├── src/
-│   │   │   ├── routes/       # API route handlers
-│   │   │   ├── services/     # Business logic
-│   │   │   ├── middleware/   # Custom middleware
-│   │   │   ├── core/         # Core systems (cache, logging, etc.)
-│   │   │   └── plugins/      # Plugin system
-│   │   ├── prisma/           # Database schema and migrations
-│   │   └── uploads/          # File upload storage
-│   ├── frontend/             # Next.js web application
-│   │   ├── src/
-│   │   │   ├── app/          # App Router pages
-│   │   │   ├── components/   # React components
-│   │   │   ├── lib/          # Utility functions
-│   │   │   ├── hooks/        # Custom React hooks
-│   │   │   └── store/        # State management
-│   │   └── public/           # Static assets
-│   └── admin/                # Admin dashboard (with multilingual support)
-│       ├── app/              # Admin pages and API routes
-│       ├── components/       # Admin UI components
-│       │   ├── ui/           # Base UI components
-│       │   └── i18n/         # Multilingual components
-│       ├── lib/              # Admin utilities and i18n system
-│       └── docs/             # Admin documentation
-├── packages/
-│   └── shared/               # Shared types and utilities
-└── docs/                     # Documentation
+# Start development servers
+pnpm dev
 ```
 
-## 🔧 Configuration
+### Production Deployment
+```bash
+# Build and start with Docker
+docker-compose up -d
 
-### Environment Variables
-
-#### Backend (.env)
-```env
-# Database
-DATABASE_URL="file:./dev.db"
-
-# JWT
-JWT_SECRET="your-super-secret-jwt-key"
-JWT_EXPIRES_IN="7d"
-
-# Redis (optional)
-REDIS_URL="redis://localhost:6379"
-
-# Email (optional)
-SMTP_HOST="smtp.ethereal.email"
-SMTP_PORT=587
-SMTP_USER="your-email@example.com"
-SMTP_PASS="your-password"
-
-# Server
-PORT=3001
-NODE_ENV="development"
+# Or build manually
+pnpm build
+pnpm start
 ```
 
-## 📚 API Documentation
+## 📚 Documentation
 
-The API documentation is automatically generated and available at:
-- **Swagger UI**: http://localhost:3001/docs
-- **OpenAPI JSON**: http://localhost:3001/openapi.json
-
-### Key API Endpoints
+### API Endpoints
 
 #### Authentication
 - `POST /api/auth/register` - User registration
 - `POST /api/auth/login` - User login
-- `GET /api/auth/profile` - Get user profile
+- `POST /api/auth/logout` - User logout
+- `GET /api/auth/me` - Get current user
 
 #### Products
 - `GET /api/products` - List products with pagination
 - `GET /api/products/:id` - Get product details
 - `POST /api/products` - Create product (admin)
 - `PUT /api/products/:id` - Update product (admin)
+- `DELETE /api/products/:id` - Delete product (admin)
+
+#### Cart
+- `GET /api/cart` - Get user cart
+- `POST /api/cart/items` - Add item to cart
+- `PUT /api/cart/items/:id` - Update cart item
+- `DELETE /api/cart/items/:id` - Remove cart item
 
 #### Orders
 - `GET /api/orders` - List user orders
@@ -222,142 +150,30 @@ The API documentation is automatically generated and available at:
 - `GET /api/search/products` - Search products
 - `GET /api/search/suggestions` - Get search suggestions
 
-#### Commercial APIs
-- `GET /api/plugin-store/plugins` - Browse plugin marketplace
-- `POST /api/plugin-store/purchase` - Purchase premium plugins
-- `GET /api/licenses/validate` - Validate plugin licenses
-- `GET /api/templates` - Browse template marketplace
-- `POST /api/tenants/register` - Register OEM tenant
-- `POST /api/sales/process` - Process unified sales (direct/OEM)
-
 ## 🧪 Testing & Status
 
-### ✅ Testing Status (v1.0.0-beta.2)
+### ✅ Testing Status
 - **Backend API** - ✅ Fully operational (port 3001)
 - **Frontend Interface** - ✅ Fully operational (port 3002)
 - **Admin Interface** - ✅ Fully operational (port 3003)
 - **Database** - ✅ Fully operational
 - **Search Functionality** - ✅ Fully operational
-- **Cache System** - ✅ Fully operational
-- **Payment System** - ✅ Fully operational
-- **Multilingual System** - ✅ Fully operational (6 languages, real-time switching)
-- **Translation Management** - ✅ Fully operational (admin interface integrated)
-
-### ⚠️ Known Issues
-- Some plugins require manual configuration (does not affect core functionality)
-- TypeScript type optimization in progress (does not affect runtime)
-- Recommended to test in staging environment first
-
-### 🧪 运行测试
-```bash
-# Run backend tests
-pnpm --filter backend test
-
-# Run frontend tests
-pnpm --filter frontend test
-
-# Run all tests
-pnpm test
-
-# Manual functional testing
-curl http://localhost:3001/health
-curl http://localhost:3001/api/products
-```
-
-## 🚀 Deployment
-
-### Production Build
-```bash
-# Build all packages
-pnpm build
-
-# Start production servers
-pnpm start
-```
-
-### Docker Deployment
-```bash
-# Build and run with Docker Compose
-docker-compose up -d
-```
-
-### Environment Setup
-1. Set up PostgreSQL database
-2. Configure Redis for caching
-3. Set up email service (SMTP)
-4. Configure file storage (local/cloud)
-5. Set production environment variables
-
-## 🔌 Plugin System
-
-The platform includes a powerful plugin system for extending functionality:
-
-```typescript
-// Example plugin
-export const myPlugin: Plugin = {
-  name: 'my-plugin',
-  version: '1.0.0',
-  async register(fastify) {
-    fastify.get('/api/my-plugin/hello', async () => {
-      return { message: 'Hello from plugin!' };
-    });
-  }
-};
-```
-
-## 🌍 Internationalization
-
-Complete multilingual support with advanced features:
-
-### Supported Languages
-- 🇨🇳 **Chinese Simplified (zh-CN)** - Default
-- 🇺🇸 **English (en-US)** - Full support
-- 🇯🇵 **Japanese (ja-JP)** - Full support
-- 🇰🇷 **Korean (ko-KR)** - Full support
-- 🇪🇸 **Spanish (es-ES)** - Basic support
-- 🇫🇷 **French (fr-FR)** - Basic support
-
-### Features
-- **Real-time Language Switching** - No page refresh required, instant UI updates
-- **Intelligent Caching** - Translation caching for optimal performance
-- **Browser Detection** - Automatic language detection from browser settings
-- **Persistent Storage** - Language choice saved across sessions (localStorage + cookies)
-- **Admin Interface** - Complete multilingual admin dashboard with live preview
-- **Content Editor** - Multilingual content editing with completion tracking
-- **Translation Manager** - Built-in translation management with import/export
-- **Localization** - Date, number, and currency formatting per locale
-- **String Interpolation** - Support for variables in translations `{{variable}}`
-- **Fallback System** - Automatic fallback to default language for missing translations
-- **TypeScript Support** - Full type safety for translation keys and values
-
-### Admin Features
-- **Language Settings** - Complete configuration interface with real-time preview
-- **Translation Coverage** - Analytics and completion tracking per language
-- **Advanced Configuration** - Performance optimization and caching settings
-- **API Integration** - Ready for automatic translation service integration
-- **Quality Control** - Translation validation and quality assurance tools
-- **Test Pages** - Built-in testing interfaces for multilingual functionality
-
-## 📊 Monitoring & Analytics
-
-### Built-in Analytics
-- User behavior tracking
-- Sales performance metrics
-- Inventory monitoring
-- System performance stats
-
-### Health Checks
-- `GET /health` - System health status
-- `GET /api/cache/health` - Cache system status
-- `GET /api/plugins/health` - Plugin system status
+- **Plugin System** - ✅ Core framework operational
+- **Multilingual Support** - ✅ 6 languages supported
+- **Authentication** - ✅ JWT-based auth working
+- **File Upload** - ✅ Image upload working
+- **Email System** - ✅ Template-based notifications
 
 ## 🤝 Contributing
 
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+
+### Development Workflow
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
 ## 📄 License
 
@@ -366,16 +182,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - Built with modern web technologies
-- Inspired by best practices in e-commerce development
-- Community-driven development approach
-
-## 📞 Support
-
-For support and questions:
-- Create an issue on GitHub
-- Check the documentation
-- Review the API documentation at `/docs`
+- Inspired by the open source community
+- Designed for developers, by developers
 
 ---
 
-**Happy coding! 🚀**
+**Made with ❤️ by the Jiffoo community**
