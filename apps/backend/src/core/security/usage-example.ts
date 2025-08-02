@@ -34,7 +34,7 @@ export class LicenseService {
         throw new Error(`License validation failed: ${response.status}`);
       }
 
-      const result = await response.json();
+      const result = await response.json() as any;
       return result.valid === true;
     } catch (error) {
       console.error('License validation error:', error);
@@ -83,7 +83,7 @@ export class PluginService {
         throw new Error(`Failed to fetch plugins: ${response.status}`);
       }
 
-      const data = await response.json();
+      const data = await response.json() as any;
       return data.plugins || [];
     } catch (error) {
       console.error('Get plugins error:', error);

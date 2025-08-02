@@ -21,6 +21,8 @@ COPY . .
 # Generate Prisma client
 RUN npm install -g pnpm@8.15.0 && pnpm add -w prisma @prisma/client && cd apps/backend && pnpm exec prisma generate
 
+# Note: TypeScript validation is handled in CI/CD pipeline to avoid version conflicts
+
 # Skip build for now, run in development mode
 # RUN pnpm run build
 
@@ -42,10 +44,10 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/pnpm-workspace.yaml ./pnpm-workspace.yaml
 
-# Create uploads directory and npm cache
-RUN mkdir -p apps/backend/uploads && chown fastify:nodejs apps/backend/uploads
-RUN mkdir -p apps/backend/logs && chown fastify:nodejs apps/backend/logs
-RUN mkdir -p /home/fastify/.npm && chown fastify:nodejs /home/fastify/.npm
+# Create uploads directory and npm cache with proper permissions
+RUN mkdir -p apps/backend/uploads && chown -R fastify:nodejs apps/backend/uploads
+RUN mkdir -p apps/backend/logs && chown -R fastify:nodejs apps/backend/logs && chmod -R 755 apps/backend/logs
+RUN mkdir -p /home/fastify/.npm && chown -R fastify:nodejs /home/fastify/.npm
 
 # Install pnpm globally as root before switching user
 RUN npm install -g pnpm@8.15.0

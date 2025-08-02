@@ -257,7 +257,7 @@ export async function commercialVerificationMiddleware(
     
   } catch (error) {
     console.error('Commercial verification middleware error:', error);
-    logSuspiciousRequest(request, 'Verification middleware error', { error: error.message });
+    logSuspiciousRequest(request, 'Verification middleware error', { error: error instanceof Error ? error.message : String(error) });
     
     return reply.status(500).send({
       success: false,

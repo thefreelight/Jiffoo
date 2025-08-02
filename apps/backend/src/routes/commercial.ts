@@ -57,7 +57,9 @@ export default async function commercialRoutes(fastify: FastifyInstance) {
           return;
         }
 
-        const result = await pluginStoreService.purchasePlugin(pluginId, userEmail, paymentToken);
+        // 动态导入混淆后的商业服务器配置
+        const { pluginService } = require('../core/commercial-servers');
+        const result = await pluginService.purchasePlugin(pluginId, userEmail, paymentToken);
         
         if (result.success) {
           reply.send(result);
@@ -89,7 +91,9 @@ export default async function commercialRoutes(fastify: FastifyInstance) {
           return;
         }
 
-        const pluginData = await pluginStoreService.downloadPlugin(pluginId, licenseKey);
+        // 动态导入混淆后的商业服务器配置
+        const { pluginService } = require('../core/commercial-servers');
+        const pluginData = await pluginService.downloadPlugin(pluginId, licenseKey);
         
         if (!pluginData) {
           reply.status(404).send({
@@ -119,6 +123,8 @@ export default async function commercialRoutes(fastify: FastifyInstance) {
     // 浏览 SaaS 服务
     fastify.get('/saas/services', async (request, reply) => {
       try {
+        // 动态导入混淆后的商业服务器配置
+        const { saasService } = require('../core/commercial-servers');
         const services = await saasService.browseServices();
         
         reply.send({
@@ -153,6 +159,8 @@ export default async function commercialRoutes(fastify: FastifyInstance) {
           return;
         }
 
+        // 动态导入混淆后的商业服务器配置
+        const { saasService } = require('../core/commercial-servers');
         const result = await saasService.subscribe(serviceId, planId, userEmail, paymentToken);
         
         if (result.success) {
@@ -190,6 +198,8 @@ export default async function commercialRoutes(fastify: FastifyInstance) {
           return;
         }
 
+        // 动态导入混淆后的商业服务器配置
+        const { licenseService } = require('../core/commercial-servers');
         const isValid = await licenseService.validateLicense(licenseKey, pluginId);
         
         reply.send({
@@ -214,6 +224,8 @@ export default async function commercialRoutes(fastify: FastifyInstance) {
     // 检查更新
     fastify.get('/updates/check', async (request, reply) => {
       try {
+        // 动态导入混淆后的商业服务器配置
+        const { updateService } = require('../core/commercial-servers');
         const updateInfo = await updateService.checkForUpdates();
         
         reply.send({

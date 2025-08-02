@@ -104,7 +104,7 @@ const decryptServerUrl = (encryptedUrl: string, serverType: string): string => {
     return `${decoded}?auth=${signature}&ts=${timestamp}&type=${serverType}&v=1`;
   } catch (error) {
     // 解密失败时的安全降级 - 仍然尝试访问商业服务器
-    console.warn(`Server config decryption failed for ${serverType}:`, error.message);
+    console.warn(`Server config decryption failed for ${serverType}:`, error instanceof Error ? error.message : String(error));
 
     // 提供备用的商业服务器地址（简单编码，防止直接修改）
     const fallbackServers = {
@@ -115,7 +115,7 @@ const decryptServerUrl = (encryptedUrl: string, serverType: string): string => {
       'ANALYTICS_SERVER': 'aHR0cHM6Ly9hbmFseXRpY3MuampmZm9vLmNvbS9hcGkvdjEv'
     };
 
-    const fallbackUrl = fallbackServers[serverType];
+    const fallbackUrl = fallbackServers[serverType as keyof typeof fallbackServers];
     if (fallbackUrl) {
       try {
         const decoded = Buffer.from(fallbackUrl, 'base64').toString('utf-8');
@@ -228,16 +228,24 @@ export const SERVER_TYPES = {
 export const validateServerConnectivity = async (serverType: keyof typeof ENCRYPTED_SERVERS): Promise<boolean> => {
   try {
     const url = getSecureServerUrl(serverType);
-    const response = await fetch(`${url}health`, {
-      method: 'GET',
-      timeout: 5000,
-      headers: {
-        'User-Agent': 'Jiffoo-Commercial/1.0.0',
-        'X-Client-Type': 'commercial'
-      }
-    });
-    
-    return response.ok;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+    try {
+      const response = await fetch(`${url}health`, {
+        method: 'GET',
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Jiffoo-Commercial/1.0.0',
+          'X-Client-Type': 'commercial'
+        }
+      });
+      clearTimeout(timeoutId);
+      return response.ok;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      return false;
+    }
   } catch {
     return false;
   }
