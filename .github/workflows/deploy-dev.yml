@@ -131,6 +131,61 @@ jobs:
         # Wait for Redis to be ready
         kubectl wait --for=condition=available --timeout=300s deployment/redis -n ${{ steps.namespace.outputs.namespace }}
         
+    - name: 🗃️ Run Database Migration
+      run: |
+        # Create migration job
+        cat <<EOF | kubectl apply -f -
+        apiVersion: batch/v1
+        kind: Job
+        metadata:
+          name: db-migration-${{ github.run_number }}
+          namespace: ${{ steps.namespace.outputs.namespace }}
+          labels:
+            app: db-migration
+            run: "${{ github.run_number }}"
+        spec:
+          ttlSecondsAfterFinished: 300
+          template:
+            metadata:
+              labels:
+                app: db-migration
+                run: "${{ github.run_number }}"
+            spec:
+              restartPolicy: Never
+              containers:
+              - name: migration
+                image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:dev-deployment-${{ github.sha }}
+                command: ["/bin/sh"]
+                args:
+                  - -c
+                  - |
+                    echo "🗃️ Running database migrations..."
+                    cd /app
+                    npx prisma migrate deploy
+                    echo "✅ Database migrations completed!"
+                env:
+                - name: DATABASE_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: backend-secrets
+                      key: database-url
+                resources:
+                  requests:
+                    cpu: 100m
+                    memory: 256Mi
+                  limits:
+                    cpu: 500m
+                    memory: 512Mi
+              imagePullSecrets:
+              - name: ghcr-secret
+        EOF
+        
+        # Wait for migration to complete
+        kubectl wait --for=condition=complete --timeout=300s job/db-migration-${{ github.run_number }} -n ${{ steps.namespace.outputs.namespace }}
+        
+        # Show migration logs
+        kubectl logs job/db-migration-${{ github.run_number }} -n ${{ steps.namespace.outputs.namespace }}
+        
     - name: 🚀 Deploy Backend
       run: |
         # Create backend deployment
