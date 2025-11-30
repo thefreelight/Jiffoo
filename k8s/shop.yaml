@@ -1,0 +1,71 @@
+# Jiffoo Mall - Shop Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shop
+  namespace: jiffoo
+  labels:
+    app.kubernetes.io/name: jiffoo
+    app.kubernetes.io/component: shop
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: shop
+  template:
+    metadata:
+      labels:
+        app: shop
+        app.kubernetes.io/name: jiffoo
+        app.kubernetes.io/component: shop
+    spec:
+      containers:
+        - name: shop
+          image: jiffoo/shop:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3004
+              name: http
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: NEXT_PUBLIC_API_URL
+              value: "https://api.jiffoo.example.com"
+            - name: API_SERVICE_URL
+              value: "http://api-service:3001"
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3004
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3004
+            initialDelaySeconds: 30
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shop-service
+  namespace: jiffoo
+  labels:
+    app.kubernetes.io/name: jiffoo
+    app.kubernetes.io/component: shop
+spec:
+  type: ClusterIP
+  selector:
+    app: shop
+  ports:
+    - port: 3004
+      targetPort: 3004
+      name: http

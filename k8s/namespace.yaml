@@ -1,0 +1,8 @@
+# Jiffoo Mall - Kubernetes Namespace
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: jiffoo
+  labels:
+    app.kubernetes.io/name: jiffoo
+    app.kubernetes.io/component: platform
