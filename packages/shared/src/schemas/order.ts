@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const addressSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, 'Invalid phone number'),
+  phone: z.string().regex(/^\+?[\d\s\-()]+$/, 'Invalid phone number'),
   street: z.string().min(1, 'Street address is required'),
   city: z.string().min(1, 'City is required'),
   state: z.string().min(1, 'State is required'),

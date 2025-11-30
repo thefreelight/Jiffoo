@@ -1,39 +1,30 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { AdminLayout } from '../components/layout/admin-layout'
-import { QueryProvider } from '../lib/providers/query-provider'
-import { Toaster } from 'sonner'
-import { ToastProvider } from '../components/ui/toast'
-import { I18nProvider } from '../lib/i18n'
-
-// 临时使用AdminLayout作为ConditionalLayout
-const ConditionalLayout = AdminLayout
-
-const inter = Inter({ subsets: ['latin'] })
+import type { Metadata } from "next";
+import "./globals.css";
+import { SuperAdminLayout } from '@/components/layout/super-admin-layout';
+import { AuthGuard } from '@/components/auth/auth-guard';
+import { Toaster } from 'sonner';
+import { I18nProvider } from '@/lib/i18n';
 
 export const metadata: Metadata = {
-  title: 'Jiffoo Admin - Management Dashboard',
-  description: 'Modern admin dashboard for Jiffoo e-commerce platform',
-}
+  title: "Jiffoo Mall - Super Admin Dashboard",
+  description: "Jiffoo Multi-Tenant Platform Management System - Super Admin Panel",
+};
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
-    <html lang="zh">
-      <body className={inter.className}>
-        <ToastProvider>
-          <QueryProvider>
-            <I18nProvider>
-              <ConditionalLayout>{children}</ConditionalLayout>
-              <Toaster position="top-right" richColors />
-            </I18nProvider>
-          </QueryProvider>
-        </ToastProvider>
+    <html lang="en">
+      <body className="font-sans">
+        <I18nProvider defaultLanguage="zh-CN">
+          <AuthGuard>
+            <SuperAdminLayout>{children}</SuperAdminLayout>
+          </AuthGuard>
+          <Toaster position="top-right" richColors />
+        </I18nProvider>
       </body>
     </html>
-  )
+  );
 }

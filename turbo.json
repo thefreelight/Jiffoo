@@ -1,10 +1,42 @@
 {
   "$schema": "https://turbo.build/schema.json",
-  "globalDependencies": ["**/.env.*local"],
+  "remoteCache": {
+    "enabled": true,
+    "signature": false
+  },
+  "globalDependencies": [".env", "**/.env.*local"],
+  "globalEnv": [
+    "NODE_ENV",
+    "LOG_LEVEL",
+    "DATABASE_URL",
+    "REDIS_URL",
+    "API_PORT",
+    "API_HOST",
+    "CORS_ORIGIN",
+    "CORS_ENABLED",
+    "JWT_SECRET",
+    "JWT_EXPIRES_IN",
+    "API_SERVICE_URL",
+    "NEXT_PUBLIC_API_URL",
+    "NEXT_PUBLIC_ADMIN_URL",
+    "NEXT_PUBLIC_TENANT_URL",
+    "NEXT_PUBLIC_SHOP_URL",
+    "NEXT_PUBLIC_AGENT_URL",
+    "NEXT_PUBLIC_WHITE_LABEL_URL",
+    "NEXT_PUBLIC_DISTRIBUTION_PLUGIN_URL",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_PUBLISHABLE_KEY",
+    "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+    "STRIPE_WEBHOOK_SECRET",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "RESEND_API_KEY",
+    "RESEND_WEBHOOK_SECRET"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "build/**"]
     },
     "dev": {
       "cache": false,
@@ -15,6 +47,9 @@
     },
     "type-check": {
       "dependsOn": ["^type-check"]
+    },
+    "test": {
+      "dependsOn": ["^test"]
     },
     "clean": {
       "cache": false
@@ -34,6 +69,29 @@
     },
     "db:seed": {
       "cache": false
+    },
+    "docker:build": {
+      "dependsOn": ["build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "Dockerfile*",
+        "docker-compose*.yml",
+        "../../package.json",
+        "../../pnpm-lock.yaml",
+        "../../pnpm-workspace.yaml"
+      ],
+      "env": [
+        "DOCKER_REGISTRY",
+        "IMAGE_TAG"
+      ]
+    },
+    "deploy": {
+      "dependsOn": ["docker:build"],
+      "cache": false,
+      "env": [
+        "KUBECONFIG",
+        "KUBE_NAMESPACE"
+      ]
     }
   }
 }

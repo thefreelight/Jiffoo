@@ -1,0 +1,26 @@
+{
+  "name": "@shop-themes/default",
+  "version": "1.0.0",
+  "description": "Jiffoo Mall 默认主题",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "sideEffects": [
+    "./src/tokens.css"
+  ],
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.15.0",
+    "lucide-react": "^0.460.0",
+    "shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.8.3"
+  }
+}

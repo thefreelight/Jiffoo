@@ -1,74 +1,37 @@
 {
   "name": "@jiffoo/plugin-sdk",
-  "version": "0.1.0",
-  "description": "Jiffoo Plugin Microservice SDK - Core framework for building plugin microservices",
+  "version": "1.0.0",
+  "description": "SDK for building external plugins for Jiffoo Mall platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
-    "test": "jest",
-    "lint": "eslint src --ext .ts",
-    "clean": "rm -rf dist",
-    "prepublishOnly": "npm run clean && npm run build"
+    "clean": "rimraf dist"
   },
   "keywords": [
     "jiffoo",
     "plugin",
-    "microservice",
     "sdk",
-    "framework"
+    "external-plugin"
   ],
   "author": "Jiffoo Team",
   "license": "MIT",
-  "dependencies": {
-    "@fastify/cors": "^9.0.1",
-    "@fastify/helmet": "^11.1.1",
-    "@fastify/rate-limit": "^9.1.0",
-    "@fastify/swagger": "^8.14.0",
-    "@fastify/swagger-ui": "^2.1.0",
-    "@opentelemetry/api": "^1.7.0",
-    "@opentelemetry/auto-instrumentations-node": "^0.40.3",
-    "@opentelemetry/exporter-jaeger": "^1.18.1",
-    "@opentelemetry/sdk-node": "^0.45.1",
-    "axios": "^1.6.2",
-    "dotenv": "^16.3.1",
-    "fastify": "^4.29.1",
-    "ioredis": "^5.3.2",
-    "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.3",
-    "pino": "^8.17.2",
-    "pino-pretty": "^10.3.1",
-    "prometheus-api-metrics": "^3.2.2",
-    "uuid": "^9.0.1",
-    "yaml": "^2.3.4",
-    "zod": "^3.22.4"
-  },
   "devDependencies": {
-    "@types/jest": "^29.5.8",
-    "@types/jsonwebtoken": "^9.0.5",
-    "@types/node": "^20.10.0",
-    "@types/pg": "^8.10.9",
-    "@types/uuid": "^9.0.7",
-    "@typescript-eslint/eslint-plugin": "^6.13.0",
-    "@typescript-eslint/parser": "^6.13.0",
-    "eslint": "^8.55.0",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.1.1",
-    "typescript": "^5.3.0"
+    "typescript": "^5.0.0",
+    "rimraf": "^5.0.0",
+    "@types/node": "^20.0.0"
   },
-  "optionalDependencies": {
-    "kubernetes-client": "^10.0.0"
+  "peerDependencies": {
+    "express": "^4.18.0"
   },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/jiffoo/jiffoo-plugin-sdk.git"
-  },
-  "bugs": {
-    "url": "https://github.com/jiffoo/jiffoo-plugin-sdk/issues"
-  },
-  "homepage": "https://docs.jiffoo.io/plugin-sdk"
+  "peerDependenciesMeta": {
+    "express": {
+      "optional": true
+    }
+  }
 }
+

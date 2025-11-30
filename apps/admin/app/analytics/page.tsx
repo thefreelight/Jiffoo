@@ -1,483 +1,314 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { StatsCard } from '../../components/dashboard/stats-card'
-import { Button } from '../../components/ui/button'
-import { useDashboardStats, useOrders, useProducts } from '../../lib/hooks/use-api'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area,
-} from 'recharts'
-import {
-  CurrencyDollarIcon,
-  ArrowTrendingUpIcon,
-  ShoppingCartIcon,
-  UsersIcon,
-  CalendarIcon,
-  ArrowDownTrayIcon,
-  ExclamationTriangleIcon,
-} from '@heroicons/react/24/outline'
+import { BarChart3, Building2, Calendar, DollarSign, ShoppingCart, TrendingUp, TrendingDown, Users, AlertCircle } from 'lucide-react'
+import { useEffect, useState } from 'react'
 
-// Mock analytics data
-const salesData = [
-  { month: 'Jan', sales: 45000, orders: 234, customers: 189 },
-  { month: 'Feb', sales: 52000, orders: 267, customers: 201 },
-  { month: 'Mar', sales: 48000, orders: 245, customers: 195 },
-  { month: 'Apr', sales: 61000, orders: 312, customers: 234 },
-  { month: 'May', sales: 55000, orders: 289, customers: 218 },
-  { month: 'Jun', sales: 67000, orders: 345, customers: 267 },
-]
+import { platformStatsApi, tenantManagementApi, userManagementApi, orderManagementApi } from '@/lib/api'
 
-const categoryData = [
-  { name: 'Electronics', value: 45, color: '#3B82F6' },
-  { name: 'Fashion', value: 25, color: '#10B981' },
-  { name: 'Home & Garden', value: 15, color: '#F59E0B' },
-  { name: 'Sports', value: 10, color: '#EF4444' },
-  { name: 'Others', value: 5, color: '#8B5CF6' },
-]
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useI18n } from '@/lib/i18n'
 
-const topProducts = [
-  { name: 'iPhone 15 Pro Max', sales: 234, revenue: 2339400 },
-  { name: 'MacBook Pro 16"', sales: 89, revenue: 1779111 },
-  { name: 'Samsung 4K TV', sales: 67, revenue: 334933 },
-  { name: 'Nike Air Max', sales: 156, revenue: 140244 },
-  { name: 'Adidas Ultraboost', sales: 198, revenue: 257202 },
-]
-
-const revenueData = [
-  { date: '01/01', revenue: 12000 },
-  { date: '01/02', revenue: 15000 },
-  { date: '01/03', revenue: 18000 },
-  { date: '01/04', revenue: 14000 },
-  { date: '01/05', revenue: 22000 },
-  { date: '01/06', revenue: 19000 },
-  { date: '01/07', revenue: 25000 },
-]
+interface AnalyticsData {
+  overview: {
+    totalRevenue: number
+    revenueGrowth: number
+    totalTenants: number
+    tenantGrowth: number
+    totalUsers: number
+    userGrowth: number
+    totalOrders: number
+    orderGrowth: number
+  }
+  revenueByMonth: Array<{
+    month: string
+    revenue: number
+    tenants: number
+    users: number
+  }>
+  tenantsByLevel: Array<{
+    level: string
+    count: number
+    percentage: number
+  }>
+  topTenants: Array<{
+    id: string
+    name: string
+    revenue: number
+    users: number
+    orders: number
+  }>
+}
 
 export default function AnalyticsPage() {
-  const [timeRange, setTimeRange] = useState('7d')
-  const [selectedMetric, setSelectedMetric] = useState('revenue')
+  const { t } = useI18n()
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [dateRange, setDateRange] = useState('30d')
 
-  // API hooks
-  const { data: dashboardStats, isLoading: statsLoading, error: statsError } = useDashboardStats()
-  const { data: ordersData, isLoading: ordersLoading } = useOrders({ limit: 100 })
-  const { data: productsData, isLoading: productsLoading } = useProducts({ limit: 100 })
+  useEffect(() => {
+    fetchAnalyticsData()
+  }, [dateRange])
 
-  const orders = ordersData?.data || []
-  const products = productsData?.data || []
+  const fetchAnalyticsData = async () => {
+    try {
+      setLoading(true)
 
-  // Calculate real analytics data from API
-  const calculateAnalytics = () => {
-    const totalRevenue = orders.reduce((sum: number, order: any) => sum + (order.total || 0), 0)
-    const totalOrders = orders.length
-    const uniqueCustomers = new Set(orders.map((order: any) => order.customerId)).size
+      // 📌 使用真实的后端 API 获取分析数据
+      // 调用已实现的端点：platformStatsApi, tenantManagementApi, userManagementApi, orderManagementApi
+      const [dashboardStats, tenantStats, userStats, orderStats] = await Promise.all([
+        platformStatsApi.getDashboardStats().catch(() => null),
+        tenantManagementApi.getTenantStats().catch(() => null),
+        userManagementApi.getUserStats().catch(() => null),
+        orderManagementApi.getOrderStats().catch(() => null)
+      ])
 
-    // Calculate monthly data
-    const monthlyData = orders.reduce((acc: any, order: any) => {
-      const month = new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short' })
-      if (!acc[month]) {
-        acc[month] = { month, sales: 0, orders: 0, customers: new Set() }
+      const realDashboard = dashboardStats?.data || {}
+      const realTenantStats = tenantStats?.data || {}
+      const realUserStats = userStats?.data || {}
+      const realOrderStats = orderStats?.data || {}
+
+      console.log('Analytics API responses:', {
+        dashboard: realDashboard,
+        tenants: realTenantStats,
+        users: realUserStats,
+        orders: realOrderStats
+      })
+
+      // 创建分析数据，基于真实的后端数据
+      const analyticsData: AnalyticsData = {
+        overview: {
+          totalRevenue: realDashboard.totalRevenue || 0,
+          revenueGrowth: 0, // 暂无增长数据
+          totalTenants: realTenantStats.totalTenants || 0,
+          tenantGrowth: 0, // 暂无增长数据
+          totalUsers: realUserStats.totalUsers || 0,
+          userGrowth: 0, // 暂无增长数据
+          totalOrders: realOrderStats.totalOrders || 0,
+          orderGrowth: 0 // 暂无增长数据
+        },
+        revenueByMonth: [], // 详细图表功能待后端按月分组统计接口实现
+        tenantsByLevel: [], // 租户分布统计功能待后端实现
+        topTenants: [] // 顶级租户统计功能待后端实现
       }
-      acc[month].sales += order.total || 0
-      acc[month].orders += 1
-      acc[month].customers.add(order.customerId)
-      return acc
-    }, {} as any)
 
-    const salesData = Object.values(monthlyData).map((data: any) => ({
-      ...data,
-      customers: data.customers.size
-    }))
-
-    // Calculate top products
-    const productSales = products.map((product: any) => {
-      const productOrders = orders.filter((order: any) =>
-        order.items?.some((item: any) => item.productId === product.id)
-      )
-      const sales = productOrders.reduce((sum: number, order: any) =>
-        sum + (order.items?.find((item: any) => item.productId === product.id)?.quantity || 0), 0
-      )
-      const revenue = productOrders.reduce((sum: number, order: any) => sum + (order.total || 0), 0)
-
-      return {
-        name: product.name,
-        sales,
-        revenue
-      }
-    }).sort((a: any, b: any) => b.revenue - a.revenue).slice(0, 5)
-
-    return {
-      totalRevenue,
-      totalOrders,
-      uniqueCustomers,
-      salesData: salesData.length > 0 ? salesData : salesData,
-      topProducts: productSales
+      setAnalyticsData(analyticsData)
+    } catch (error) {
+      console.error('Failed to fetch analytics data:', error)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const analytics = calculateAnalytics()
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount)
+  }
 
-  if (statsLoading || ordersLoading || productsLoading) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      </div>
+  const getTrendIcon = (growth: number) => {
+    return growth >= 0 ? (
+      <TrendingUp className="h-4 w-4 text-green-500" />
+    ) : (
+      <TrendingDown className="h-4 w-4 text-red-500" />
     )
   }
 
-  if (statsError) {
+  const getTrendColor = (growth: number) => {
+    return growth >= 0 ? 'text-green-600' : 'text-red-600'
+  }
+
+  if (loading) {
     return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center">
-              <ExclamationTriangleIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load analytics</h3>
-              <p className="text-gray-600 mb-4">There was an error loading the analytics data.</p>
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Analytics & Reports</h1>
+            <p className="text-gray-600 mt-2">Platform performance insights</p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="bg-white rounded-lg shadow p-6 animate-pulse">
+              <div className="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+              <div className="h-8 bg-gray-200 rounded w-1/2 mb-2"></div>
+              <div className="h-3 bg-gray-200 rounded w-2/3"></div>
             </div>
-          </CardContent>
-        </Card>
+          ))}
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="p-6">
+    <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
-          <p className="text-gray-600 mt-1">Track your business performance and insights</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            {t('analytics.title', 'Analytics & Reports')}
+          </h1>
+          <p className="text-gray-600 mt-2">
+            {t('analytics.description', 'Platform performance insights and business metrics')}
+          </p>
         </div>
+        
         <div className="flex items-center space-x-3">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="1y">Last year</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm">
-            <CalendarIcon className="w-4 h-4 mr-2" />
-            Custom Range
-          </Button>
-          <Link href="/analytics/sales">
-            <Button variant="outline" size="sm">
-              📊 Sales Report
-            </Button>
-          </Link>
-          <Link href="/analytics/products">
-            <Button variant="outline" size="sm">
-              📦 Product Report
-            </Button>
-          </Link>
-          <Button variant="outline" size="sm">
-            <ArrowDownTrayIcon className="w-4 h-4 mr-2" />
-            Export
-          </Button>
+          <select
+            value={dateRange}
+            onChange={(e) => setDateRange(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+            <option value="90d">Last 90 days</option>
+            <option value="1y">Last year</option>
+          </select>
+          
+          <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 h-10 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white">
+            <Calendar className="h-4 w-4 mr-2" />
+            Export Report
+          </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatsCard
-          title="Total Revenue"
-          value={`¥${analytics.totalRevenue.toLocaleString()}`}
-          change="+15.3%"
-          changeType="increase"
-          color="blue"
-          icon={<CurrencyDollarIcon className="w-5 h-5" />}
-        />
-        <StatsCard
-          title="Total Orders"
-          value={analytics.totalOrders.toLocaleString()}
-          change="+8.2%"
-          changeType="increase"
-          color="green"
-          icon={<ShoppingCartIcon className="w-5 h-5" />}
-        />
-        <StatsCard
-          title="Unique Customers"
-          value={analytics.uniqueCustomers.toLocaleString()}
-          change="+12.1%"
-          changeType="increase"
-          color="purple"
-          icon={<UsersIcon className="w-5 h-5" />}
-        />
-        <StatsCard
-          title="Avg Order Value"
-          value={`¥${analytics.totalOrders > 0 ? Math.round(analytics.totalRevenue / analytics.totalOrders).toLocaleString() : '0'}`}
-          change="+0.5%"
-          changeType="increase"
-          color="orange"
-          icon={<ArrowTrendingUpIcon className="w-5 h-5" />}
-        />
-      </div>
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Sales Trend */}
+      {/* Key Metrics Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardHeader>
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Sales Trend</CardTitle>
-                <CardDescription>Monthly sales performance</CardDescription>
+                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {formatCurrency(analyticsData?.overview.totalRevenue || 0)}
+                </p>
+                <div className="flex items-center mt-2">
+                  {getTrendIcon(analyticsData?.overview.revenueGrowth || 0)}
+                  <span className={`text-sm ml-1 ${getTrendColor(analyticsData?.overview.revenueGrowth || 0)}`}>
+                    {analyticsData?.overview.revenueGrowth}%
+                  </span>
+                </div>
               </div>
-              <Select value={selectedMetric} onValueChange={setSelectedMetric}>
-                <SelectTrigger className="w-24">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="revenue">Revenue</SelectItem>
-                  <SelectItem value="orders">Orders</SelectItem>
-                  <SelectItem value="customers">Customers</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={analytics.salesData.length > 0 ? analytics.salesData : salesData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="month" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `¥${value / 1000}K`} />
-                  <Tooltip formatter={(value: any) => [`¥${value.toLocaleString()}`, 'Sales']} />
-                  <Bar dataKey="sales" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <DollarSign className="h-8 w-8 text-green-500" />
             </div>
           </CardContent>
         </Card>
 
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Tenants</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {analyticsData?.overview.totalTenants}
+                </p>
+                <div className="flex items-center mt-2">
+                  {getTrendIcon(analyticsData?.overview.tenantGrowth || 0)}
+                  <span className={`text-sm ml-1 ${getTrendColor(analyticsData?.overview.tenantGrowth || 0)}`}>
+                    {analyticsData?.overview.tenantGrowth}%
+                  </span>
+                </div>
+              </div>
+              <Building2 className="h-8 w-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Users</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {analyticsData?.overview.totalUsers}
+                </p>
+                <div className="flex items-center mt-2">
+                  {getTrendIcon(analyticsData?.overview.userGrowth || 0)}
+                  <span className={`text-sm ml-1 ${getTrendColor(analyticsData?.overview.userGrowth || 0)}`}>
+                    {analyticsData?.overview.userGrowth}%
+                  </span>
+                </div>
+              </div>
+              <Users className="h-8 w-8 text-purple-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Orders</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {analyticsData?.overview.totalOrders}
+                </p>
+                <div className="flex items-center mt-2">
+                  {getTrendIcon(analyticsData?.overview.orderGrowth || 0)}
+                  <span className={`text-sm ml-1 ${getTrendColor(analyticsData?.overview.orderGrowth || 0)}`}>
+                    {analyticsData?.overview.orderGrowth}%
+                  </span>
+                </div>
+              </div>
+              <ShoppingCart className="h-8 w-8 text-orange-500" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Charts and Detailed Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Trend */}
         <Card>
           <CardHeader>
-            <CardTitle>Daily Revenue</CardTitle>
-            <CardDescription>Revenue trend over time</CardDescription>
+            <CardTitle className="flex items-center">
+              <BarChart3 className="h-5 w-5 mr-2" />
+              Revenue Trend
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueData}>
-                  <defs>
-                    <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
-                      <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} />
-                  <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => `¥${value / 1000}K`} />
-                  <Tooltip formatter={(value: any) => [`¥${value.toLocaleString()}`, 'Revenue']} />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#10B981"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorRevenue)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle className="h-12 w-12 text-yellow-500 mb-4" />
+              <p className="text-gray-600 font-medium mb-2">功能待开发</p>
+              <p className="text-sm text-gray-500">
+                详细收入趋势图表功能待后端按月分组统计接口实现
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Tenant Distribution */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Tenant Distribution by Level</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle className="h-12 w-12 text-yellow-500 mb-4" />
+              <p className="text-gray-600 font-medium mb-2">功能待开发</p>
+              <p className="text-sm text-gray-500">
+                租户分布统计功能待后端维度统计接口实现
+              </p>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Category Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Sales by Category</CardTitle>
-            <CardDescription>Product category performance</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={80}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {categoryData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value: any) => [`${value}%`, 'Share']} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-4 space-y-2">
-              {categoryData.map((category, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div
-                      className="w-3 h-3 rounded-full mr-2"
-                      style={{ backgroundColor: category.color }}
-                    ></div>
-                    <span className="text-sm text-gray-600">{category.name}</span>
-                  </div>
-                  <span className="text-sm font-medium text-gray-900">{category.value}%</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Top Products */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Top Selling Products</CardTitle>
-            <CardDescription>Best performing products by revenue</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {(analytics.topProducts.length > 0 ? analytics.topProducts : topProducts).map((product: any, index: number) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                      <span className="text-blue-600 font-medium text-sm">{index + 1}</span>
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900">{product.name}</div>
-                      <div className="text-sm text-gray-500">{product.sales} units sold</div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-medium text-gray-900">¥{product.revenue.toLocaleString()}</div>
-                    <div className="text-sm text-gray-500">Revenue</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Additional Analytics Sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-8">
-        {/* Customer Analytics */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Customer Insights</CardTitle>
-            <CardDescription>Customer behavior and demographics</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">Average Order Value</p>
-                  <p className="text-sm text-gray-600">Per customer transaction</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-blue-600">¥194</p>
-                  <p className="text-sm text-green-600">+12.5%</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">Customer Lifetime Value</p>
-                  <p className="text-sm text-gray-600">Average customer value</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-green-600">¥1,247</p>
-                  <p className="text-sm text-green-600">+8.3%</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">Repeat Purchase Rate</p>
-                  <p className="text-sm text-gray-600">Returning customers</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-purple-600">68.4%</p>
-                  <p className="text-sm text-green-600">+5.2%</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Performance Metrics */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Performance Metrics</CardTitle>
-            <CardDescription>Key business performance indicators</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">Cart Abandonment Rate</p>
-                  <p className="text-sm text-gray-600">Incomplete purchases</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-orange-600">23.7%</p>
-                  <p className="text-sm text-red-600">+2.1%</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-indigo-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">Page Views</p>
-                  <p className="text-sm text-gray-600">Total site visits</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-indigo-600">45,678</p>
-                  <p className="text-sm text-green-600">+18.9%</p>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-pink-50 rounded-lg">
-                <div>
-                  <p className="font-medium text-gray-900">Bounce Rate</p>
-                  <p className="text-sm text-gray-600">Single page visits</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-xl font-bold text-pink-600">34.2%</p>
-                  <p className="text-sm text-green-600">-4.7%</p>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Top Performing Tenants */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Top Performing Tenants</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <AlertCircle className="h-12 w-12 text-yellow-500 mb-4" />
+            <p className="text-gray-600 font-medium mb-2">功能待开发</p>
+            <p className="text-sm text-gray-500">
+              顶级租户排名统计功能待后端实现
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

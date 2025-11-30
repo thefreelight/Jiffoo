@@ -2,10 +2,11 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
-    "lib": ["ES2020"],
+    "lib": ["ES2020", "DOM"],
+    "jsx": "react-jsx",
     "declaration": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    "rootDir": ".",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -13,8 +14,24 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "noEmit": false
+    "noEmit": false,
+    "allowSyntheticDefaultImports": true,
+    "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/**/*",
+    "config/**/*",
+    "api/**/*",
+    "utils/**/*",
+    "index.ts",
+    "src/logger/types/browser-globals.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

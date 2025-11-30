@@ -4,11 +4,45 @@
   "description": "Shared types and utilities for Jiffoo Mall",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./logger": {
+      "types": "./dist/src/logger/index.d.ts",
+      "default": "./dist/src/logger/index.js"
+    },
+    "./logger/*": {
+      "types": "./dist/src/logger/*.d.ts",
+      "default": "./dist/src/logger/*.js"
+    },
+    "./src/logger/index.browser": {
+      "types": "./dist/src/logger/index.browser.d.ts",
+      "default": "./dist/src/logger/index.browser.js"
+    },
+    "./config/env": {
+      "types": "./dist/config/env.d.ts",
+      "default": "./dist/config/env.js"
+    },
+    "./config/*": {
+      "types": "./dist/config/*.d.ts",
+      "default": "./dist/config/*.js"
+    },
+    "./src/i18n": {
+      "types": "./dist/src/i18n/index.d.ts",
+      "default": "./dist/src/i18n/index.js"
+    },
+    "./src/i18n/*": {
+      "types": "./dist/src/i18n/*.d.ts",
+      "default": "./dist/src/i18n/*.js"
+    }
+  },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "node ../../node_modules/typescript/bin/tsc",
+    "dev": "node ../../node_modules/typescript/bin/tsc --watch",
     "lint": "eslint src --ext .ts",
-    "type-check": "tsc --noEmit",
+    "type-check": "node ../../node_modules/typescript/bin/tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "keywords": [
@@ -19,10 +53,16 @@
   "author": "Jiffoo Team",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^20.10.0",
-    "typescript": "^5.3.0"
+    "@eslint/js": "^9.36.0",
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.2.0",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^9.36.0",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
+    "axios": "^1.11.0",
     "zod": "^3.22.4"
   }
 }

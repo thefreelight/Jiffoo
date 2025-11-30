@@ -1,385 +1,242 @@
+/**
+ * Users Management Page - Super Admin
+ *
+ * 列表只做入口：搜索/筛选、统计卡片、进入详情页
+ * 所有操作（编辑、状态切换、删除）统一在详情页 /users/[id] 进行
+ *
+ * 只展示普通终端用户（role === 'USER'）
+ * 不展示 TENANT_ADMIN、SUPER_ADMIN
+ */
 'use client'
 
-import { useState } from 'react'
+import { User, Users, ChevronLeft, ChevronRight, Eye, XCircle, RefreshCw } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { Button } from '../../components/ui/button'
-import { useUsers, useDeleteUser } from '../../lib/hooks/use-api'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import {
-  MagnifyingGlassIcon,
-  FunnelIcon,
-  UserPlusIcon,
-  EyeIcon,
-  PencilIcon,
-  TrashIcon,
-  ShieldCheckIcon,
-  UserIcon,
-  EnvelopeIcon,
-  CalendarIcon,
-  ExclamationTriangleIcon,
-} from '@heroicons/react/24/outline'
 
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useUsersStore } from '@/store/users'
+import { getUserStatusConfig, getStatusBadgeClass } from '@/lib/status-utils'
+
+// ============ Main Page Component ============
 export default function UsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedRole, setSelectedRole] = useState('All')
-  const [selectedStatus, setSelectedStatus] = useState('All')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize] = useState(10)
+  // 状态筛选：ACTIVE/INACTIVE（基于 effectiveStatus）
+  const [statusFilter, setStatusFilter] = useState('all')
 
-  // API hooks
+  // 使用 Zustand store 获取用户数据
   const {
-    data: usersData,
-    isLoading,
-    error,
-    refetch
-  } = useUsers({
-    page: currentPage,
-    limit: pageSize,
-    search: searchTerm
-  })
+    users,
+    isLoading: loading,
+    stats,
+    pagination,
+    setFilters,
+    setPage,
+    setLimit,
+    fetchUsers,
+    fetchUserStats
+  } = useUsersStore()
 
-  const deleteUserMutation = useDeleteUser()
+  useEffect(() => {
+    fetchUsers()
+    fetchUserStats()
+  }, [])
 
-  const apiUsers = usersData?.data || []
-  const pagination = usersData?.pagination
-
-  console.log('API Users Data:', apiUsers); // 调试日志
-  console.log('Users Data:', usersData); // 调试日志
-
-  // 正确映射API用户数据
-  const mappedApiUsers = apiUsers.map((user: any) => ({
-    id: user.id,
-    name: user.username || 'Unknown',
-    email: user.email || 'No email',
-    role: user.role === 'ADMIN' ? 'Admin' : user.role === 'USER' ? 'User' : user.role,
-    status: 'active', // API中没有isActive字段，默认为active
-    avatar: user.avatar || `https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face`,
-    lastLogin: user.updatedAt || user.createdAt,
-    createdAt: user.createdAt,
-    permissions: user.role === 'ADMIN' ? ['all'] : ['basic']
-  }))
-
-  // 只显示真实的API用户，移除模拟数据
-  const allUsers = mappedApiUsers
-
-  console.log('Mapped Users:', allUsers); // 调试日志
-
-  const filteredUsers = allUsers.filter((user: any) => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = selectedRole === 'All' || 
-                       user.role === selectedRole ||
-                       (selectedRole === 'Admin' && user.role === 'ADMIN') ||
-                       (selectedRole === 'User' && user.role === 'USER')
-    const matchesStatus = selectedStatus === 'All' || user.status === selectedStatus
-
-    return matchesSearch && matchesRole && matchesStatus
-  })
-
-  const handleDeleteUser = async (userId: string) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await deleteUserMutation.mutateAsync(userId)
-        refetch()
-      } catch (error) {
-        console.error('Failed to delete user:', error)
-      }
-    }
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-800'
-      case 'inactive':
-        return 'bg-gray-100 text-gray-800'
-      case 'suspended':
-        return 'bg-red-100 text-red-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getRoleColor = (role: string) => {
-    // 简化角色颜色逻辑，不再依赖roles数组
-    switch (role) {
-      case 'Admin':
-      case 'ADMIN':
-        return 'bg-blue-100 text-blue-800'
-      case 'User':
-      case 'USER':
-        return 'bg-green-100 text-green-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+  useEffect(() => {
+    // 后端已强制 role='USER'，前端只需传 search 和 isActive
+    setFilters({
+      search: searchTerm,
+      isActive: statusFilter !== 'all' ? statusFilter === 'ACTIVE' : undefined
     })
-  }
-
-  const formatLastLogin = (dateString: string) => {
-    const date = new Date(dateString)
-    const now = new Date()
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
-
-    if (diffInHours < 24) {
-      return `${diffInHours} hours ago`
-    } else {
-      const diffInDays = Math.floor(diffInHours / 24)
-      return `${diffInDays} days ago`
-    }
-  }
-
-  if (isLoading) {
-    return (
-      <div className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="p-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="text-center">
-              <ExclamationTriangleIcon className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Failed to load users</h3>
-              <p className="text-gray-600 mb-4">There was an error loading the user data.</p>
-              <Button onClick={() => refetch()}>Try Again</Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
+  }, [searchTerm, statusFilter, setFilters])
 
   return (
-    <div className="p-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between mb-8">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
-          <p className="text-gray-600 mt-1">Manage admin users and their permissions</p>
+          <h1 className="text-3xl font-bold tracking-tight">Users</h1>
+          <p className="text-muted-foreground">
+            Manage end users across all tenants (role: USER only)
+          </p>
         </div>
-        <div className="flex space-x-3">
-          <Button variant="outline">
-            <ShieldCheckIcon className="w-4 h-4 mr-2" />
-            Manage Roles
-          </Button>
-          <Button className="bg-blue-600 hover:bg-blue-700">
-            <UserPlusIcon className="w-4 h-4 mr-2" />
-            Add User
-          </Button>
-        </div>
+        <Button onClick={() => { fetchUsers(); fetchUserStats() }} disabled={loading}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Users</p>
-                <p className="text-2xl font-bold text-gray-900">{allUsers.length}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <UserIcon className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.totalUsers || users.length}</div>
+            <p className="text-xs text-muted-foreground">All tenants</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Users</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {allUsers.filter((u: any) => u.status === 'active').length}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <UserIcon className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <User className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.activeUsers || users.filter(u => u.effectiveStatus === 'ACTIVE').length}</div>
+            <p className="text-xs text-muted-foreground">Currently active</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">角色类型</p>
-                <p className="text-2xl font-bold text-gray-900">2</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <ShieldCheckIcon className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Inactive Users</CardTitle>
+            <XCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.inactiveUsers || users.filter(u => u.effectiveStatus === 'INACTIVE').length}</div>
+            <p className="text-xs text-muted-foreground">Currently inactive</p>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Online Now</p>
-                <p className="text-2xl font-bold text-gray-900">3</p>
-              </div>
-              <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
-                <UserIcon className="w-6 h-6 text-orange-600" />
-              </div>
-            </div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Tenants</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats?.uniqueTenants || new Set(users.map(u => u.tenantId)).size}</div>
+            <p className="text-xs text-muted-foreground">Unique tenants</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Filters */}
-      <Card className="mb-6">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <MagnifyingGlassIcon className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  type="text"
-                  placeholder="Search users..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3">
-              <Select value={selectedRole} onValueChange={setSelectedRole}>
-                <SelectTrigger className="w-40">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All Roles</SelectItem>
-                  <SelectItem value="Admin">Admin</SelectItem>
-                  <SelectItem value="User">User</SelectItem>
-                </SelectContent>
-              </Select>
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex-1 min-w-[200px]">
+          <Input
+            placeholder="Search users by name or email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        {/* 状态筛选：基于 effectiveStatus (ACTIVE/INACTIVE) */}
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="all">All Status</option>
+          <option value="ACTIVE">Active</option>
+          <option value="INACTIVE">Inactive</option>
+        </select>
+      </div>
 
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="All">All Status</SelectItem>
-                  <SelectItem value="active">Active</SelectItem>
-                  <SelectItem value="inactive">Inactive</SelectItem>
-                  <SelectItem value="suspended">Suspended</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button variant="outline">
-                <FunnelIcon className="w-4 h-4 mr-2" />
-                More Filters
-              </Button>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Users</CardTitle>
+            <div className="text-sm text-muted-foreground">
+              {pagination.total > 0 ? (
+                <>
+                  Showing {(pagination.page - 1) * pagination.limit + 1} to {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
+                </>
+              ) : (
+                'No users'
+              )}
             </div>
           </div>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8">Loading users...</div>
+          ) : users.length === 0 ? (
+            <div className="text-center py-8">No users found</div>
+          ) : (
+            <div className="space-y-2">
+              {users.map((user) => {
+                const statusConfig = getUserStatusConfig(user.effectiveStatus);
+                return (
+                  <Link key={user.id} href={`/users/${user.id}`}>
+                    <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors cursor-pointer">
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold">{user.firstName || user.username} {user.lastName || ''}</h3>
+                            {/* 用户有效状态徽章 */}
+                            <span className={getStatusBadgeClass(statusConfig)}>
+                              {statusConfig.label}
+                            </span>
+                            {/* 租户状态提示（如果租户非 ACTIVE） */}
+                            {user.tenant?.status && user.tenant.status !== 'ACTIVE' && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                Tenant: {user.tenant.status}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground">{user.email}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Tenant: {user.tenant?.companyName || user.tenantId || 'N/A'}
+                            {user.lastLoginAt && ` • Last login: ${new Date(user.lastLoginAt).toLocaleDateString()}`}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant="outline" title="View Details">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+
+              {/* Pagination */}
+              {pagination.totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-sm text-muted-foreground">Per page:</span>
+                    <select
+                      value={pagination.limit}
+                      onChange={(e) => setLimit(parseInt(e.target.value))}
+                      className="px-2 py-1 border border-gray-300 rounded text-sm"
+                    >
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                      <option value="50">50</option>
+                      <option value="100">100</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(pagination.page - 1)}
+                      disabled={pagination.page === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+
+                    <span className="text-sm text-muted-foreground">
+                      Page {pagination.page} of {pagination.totalPages}
+                    </span>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage(pagination.page + 1)}
+                      disabled={pagination.page >= pagination.totalPages}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
-
-      <div className="grid grid-cols-1 gap-6">
-        {/* Users Table */}
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>用户列表</CardTitle>
-              <CardDescription>
-                显示 {filteredUsers.length} / {allUsers.length} 个用户
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">用户</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">角色</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">状态</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">最后登录</th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">操作</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200">
-                    {filteredUsers.map((user: any) => (
-                      <tr key={user.id} className="hover:bg-gray-50">
-                        <td className="py-4 px-4">
-                          <div className="flex items-center">
-                            <img
-                              src={user.avatar}
-                              alt={user.name}
-                              className="w-10 h-10 rounded-full mr-3"
-                            />
-                            <div>
-                              <div className="font-medium text-gray-900">{user.name}</div>
-                              <div className="text-sm text-gray-500">{user.email}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <Badge className={getRoleColor(user.role)}>
-                            {user.role}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-4">
-                          <Badge className={getStatusColor(user.status)}>
-                            {user.status}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-4 text-gray-600">
-                          {formatLastLogin(user.lastLogin)}
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center space-x-2">
-                            <Link href={`/users/${user.id}`}>
-                              <Button variant="ghost" size="sm">
-                                <EyeIcon className="w-4 h-4" />
-                              </Button>
-                            </Link>
-                            <Button variant="ghost" size="sm">
-                              <PencilIcon className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteUser(user.id.toString())}
-                              disabled={deleteUserMutation.isPending}
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
     </div>
   )
 }

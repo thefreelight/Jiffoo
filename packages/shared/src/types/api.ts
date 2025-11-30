@@ -1,5 +1,5 @@
 // API Response Types
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
@@ -23,7 +23,7 @@ export interface ApiError {
   message: string;
   code?: string;
   statusCode: number;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 // Query Parameters
@@ -50,36 +50,36 @@ export interface DateRangeParams {
   endDate?: string;
 }
 
-// API Endpoints
+// API Endpoints - 移除/api前缀，由baseURL提供
 export interface ApiEndpoints {
   // Auth
-  login: '/api/auth/login';
-  register: '/api/auth/register';
-  logout: '/api/auth/logout';
-  refresh: '/api/auth/refresh';
-  profile: '/api/auth/profile';
-  
+  login: '/auth/login';
+  register: '/auth/register';
+  logout: '/auth/logout';
+  refresh: '/auth/refresh';
+  profile: '/auth/profile';
+
   // Products
-  products: '/api/products';
-  productById: '/api/products/:id';
-  productSearch: '/api/products/search';
-  
+  products: '/products';
+  productById: '/products/:id';
+  productSearch: '/products/search';
+
   // Cart
-  cart: '/api/cart';
-  cartAdd: '/api/cart/add';
-  cartUpdate: '/api/cart/update';
-  cartRemove: '/api/cart/remove';
-  cartClear: '/api/cart/clear';
-  
+  cart: '/cart';
+  cartAdd: '/cart/add';
+  cartUpdate: '/cart/update';
+  cartRemove: '/cart/remove';
+  cartClear: '/cart/clear';
+
   // Orders
-  orders: '/api/orders';
-  orderById: '/api/orders/:id';
-  orderCreate: '/api/orders';
-  orderUpdate: '/api/orders/:id';
-  
+  orders: '/orders';
+  orderById: '/orders/:id';
+  orderCreate: '/orders';
+  orderUpdate: '/orders/:id';
+
   // Users
-  users: '/api/users';
-  userById: '/api/users/:id';
+  users: '/users';
+  userById: '/users/:id';
   
   // Admin
   adminStats: '/api/admin/stats';

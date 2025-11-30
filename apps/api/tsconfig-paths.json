@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "baseUrl": "./dist",
+    "paths": {
+      "@/*": ["./*"],
+      "@/core/*": ["./core/*"],
+      "@/config/*": ["./config/*"],
+      "@/utils/*": ["./utils/*"]
+    }
+  }
+}

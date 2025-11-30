@@ -1,72 +1,72 @@
 export const API_ENDPOINTS = {
-  // Auth
+  // Auth - 统一的认证端点（移除/api前缀，由baseURL提供）
   AUTH: {
-    LOGIN: '/api/auth/login',
-    REGISTER: '/api/auth/register',
-    LOGOUT: '/api/auth/logout',
-    REFRESH: '/api/auth/refresh',
-    PROFILE: '/api/auth/profile',
-    FORGOT_PASSWORD: '/api/auth/forgot-password',
-    RESET_PASSWORD: '/api/auth/reset-password',
-    CHANGE_PASSWORD: '/api/auth/change-password',
+    LOGIN: '/auth/login',
+    REGISTER: '/auth/register',
+    LOGOUT: '/auth/logout',
+    REFRESH: '/auth/refresh',
+    PROFILE: '/auth/me', // 获取用户资料
+    UPDATE_PROFILE: '/user/profile', // 更新用户资料
+    FORGOT_PASSWORD: '/auth/forgot-password',
+    RESET_PASSWORD: '/auth/reset-password',
+    CHANGE_PASSWORD: '/auth/change-password', // 认证模块中的修改密码端点
+  },
+
+  // Account - 用户账户管理端点
+  ACCOUNT: {
+    PROFILE: '/account/profile', // 获取和更新个人资料
   },
   
   // Products
   PRODUCTS: {
-    LIST: '/api/products',
-    DETAIL: '/api/products/:id',
-    SEARCH: '/api/products/search',
-    CATEGORIES: '/api/products/categories',
-    FEATURED: '/api/products/featured',
-    REVIEWS: '/api/products/:id/reviews',
+    LIST: '/products',
+    DETAIL: '/products/:id',
+    SEARCH: '/products/search',
+    CATEGORIES: '/products/categories',
+    FEATURED: '/products/featured',
+    REVIEWS: '/products/:id/reviews',
   },
-  
+
   // Cart
   CART: {
-    GET: '/api/cart',
-    ADD: '/api/cart/add',
-    UPDATE: '/api/cart/update',
-    REMOVE: '/api/cart/remove/:id',
-    CLEAR: '/api/cart/clear',
+    GET: '/cart',
+    ADD: '/cart/add',
+    UPDATE: '/cart/update',
+    REMOVE: '/cart/remove/:id',
+    CLEAR: '/cart/clear',
   },
-  
+
   // Orders
   ORDERS: {
-    LIST: '/api/orders',
-    DETAIL: '/api/orders/:id',
-    CREATE: '/api/orders',
-    UPDATE: '/api/orders/:id',
-    CANCEL: '/api/orders/:id/cancel',
-    TRACK: '/api/orders/:id/track',
+    LIST: '/orders',
+    DETAIL: '/orders/:id',
+    CREATE: '/orders',
+    UPDATE: '/orders/:id',
+    CANCEL: '/orders/:id/cancel',
+    TRACK: '/orders/:id/track',
   },
-  
+
   // Users
   USERS: {
-    LIST: '/api/users',
-    DETAIL: '/api/users/:id',
-    UPDATE: '/api/users/:id',
-    DELETE: '/api/users/:id',
-    ADDRESSES: '/api/users/:id/addresses',
+    LIST: '/users',
+    DETAIL: '/users/:id',
+    UPDATE: '/users/:id',
+    DELETE: '/users/:id',
+    ADDRESSES: '/users/:id/addresses',
   },
-  
+
   // Admin
   ADMIN: {
-    STATS: '/api/admin/stats',
-    USERS: '/api/admin/users',
-    ORDERS: '/api/admin/orders',
-    PRODUCTS: '/api/admin/products',
+    STATS: '/admin/stats',
+    USERS: '/admin/users',
+    ORDERS: '/admin/orders',
+    PRODUCTS: '/admin/products',
   },
   
   // Upload
-  UPLOAD: '/api/upload',
-  
-  // I18n
-  I18N: {
-    LANGUAGES: '/api/i18n/languages',
-    TRANSLATE: '/api/i18n/translate/:key',
-    BATCH: '/api/i18n/translate/batch',
-    SWITCH: '/api/i18n/language/switch',
-  },
+  UPLOAD: '/upload',
+
+  // I18n endpoints removed - English only
 } as const;
 
 export const USER_ROLES = {
