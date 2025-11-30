@@ -1,165 +1,91 @@
-# Jiffoo Mall - Kubernetes Deployment Guide
+# Jiffoo Mall (Open Source) - Kubernetes 部署指南
 
-## 🏗️ Architecture Overview
+## 📋 概述
 
-```
-                            ┌─────────────────────────────────────────────────────────┐
-                            │                   Ingress Controller                     │
-                            │               (nginx-ingress / traefik)                  │
-                            └─────────────────────────────────────────────────────────┘
-                                      │              │              │
-                                      ▼              ▼              ▼
-┌─────────────────────────────────────────────────────────────────────────────────────┐
-│                              Kubernetes Cluster (namespace: jiffoo)                  │
-│  ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐                   │
-│  │  shop-service   │   │   api-service   │   │  admin-service  │                   │
-│  │  (Port: 3004)   │   │  (Port: 3001)   │   │  (Port: 3002)   │                   │
-│  │   2 replicas    │   │   2 replicas    │   │   1 replica     │                   │
-│  └────────┬────────┘   └────────┬────────┘   └────────┬────────┘                   │
-│           │                     │                     │                             │
-│           │                     ▼                     │                             │
-│           │            ┌─────────────────┐            │                             │
-│           │            │ postgres-service│            │                             │
-│           │            │  (Port: 5432)   │            │                             │
-│           │            └────────┬────────┘            │                             │
-│           │                     │                     │                             │
-│           │            ┌─────────────────┐            │                             │
-│           └───────────▶│  redis-service  │◀───────────┘                             │
-│                        │  (Port: 6379)   │                                          │
-│                        └─────────────────┘                                          │
-└─────────────────────────────────────────────────────────────────────────────────────┘
-```
+本目录包含 Jiffoo Mall 开源版的 Kubernetes 部署配置文件。
 
-## 📊 Service & Port Assignment
+## 🌐 域名规划
 
-| Service | Container Port | Service Port | Type | Domain (Subdomain Mode) |
-|---------|----------------|--------------|------|-------------------------|
-| **shop** | 3004 | 3004 | ClusterIP | shop.jiffoo.example.com |
-| **api** | 3001 | 3001 | ClusterIP | api.jiffoo.example.com |
-| **admin** | 3002 | 3002 | ClusterIP | admin.jiffoo.example.com |
-| **postgres** | 5432 | 5432 | ClusterIP | (internal only) |
-| **redis** | 6379 | 6379 | ClusterIP | (internal only) |
+### 内部环境 (VPN 访问)
+| 服务 | 域名 | 端口 |
+|------|------|------|
+| Shop | shop.lafdru.local | 80 |
+| API | api.lafdru.local | 80 |
+| Admin | admin.lafdru.local | 80 |
 
-## 🚀 Quick Start
+### 外部环境 (公网访问)
+| 服务 | URL | NodePort |
+|------|-----|----------|
+| Shop | http://jiffoo.chfastpay.com:31001 | 31001 |
+| API | http://jiffoo.chfastpay.com:31002 | 31002 |
+| Admin | http://jiffoo.chfastpay.com:31003 | 31003 |
 
-### 1. Create Namespace
+## 📁 文件说明
+
+| 文件 | 说明 |
+|------|------|
+| `namespace.yaml` | 命名空间定义 |
+| `configmap.yaml` | 配置映射 |
+| `secrets.yaml` | 敏感信息（需修改默认密码） |
+| `postgres.yaml` | PostgreSQL 数据库 |
+| `redis.yaml` | Redis 缓存 |
+| `api.yaml` | API 后端服务 |
+| `shop.yaml` | 商城前端服务 |
+| `admin.yaml` | 管理后台服务 |
+| `ingress-internal.yaml` | 内部 Ingress（子域名模式） |
+
+## 🚀 快速部署
+
 ```bash
+# 1. 创建命名空间
 kubectl apply -f namespace.yaml
-```
 
-### 2. Deploy Configuration & Secrets
-```bash
-# ⚠️ Edit secrets.yaml first to set your own passwords!
+# 2. 部署配置（⚠️ 先修改 secrets.yaml 中的密码！）
 kubectl apply -f configmap.yaml
 kubectl apply -f secrets.yaml
-```
 
-### 3. Deploy Infrastructure
-```bash
+# 3. 部署基础设施
 kubectl apply -f postgres.yaml
 kubectl apply -f redis.yaml
 
-# Wait for databases to be ready
-kubectl -n jiffoo wait --for=condition=ready pod -l app=postgres --timeout=120s
-kubectl -n jiffoo wait --for=condition=ready pod -l app=redis --timeout=60s
-```
+# 4. 等待数据库就绪
+kubectl wait --for=condition=ready pod -l app=postgres -n jiffoo-opensource --timeout=120s
+kubectl wait --for=condition=ready pod -l app=redis -n jiffoo-opensource --timeout=60s
 
-### 4. Build & Push Docker Images
-```bash
-# From the Jiffoo project root
-docker build -t your-registry/jiffoo-api:latest -f apps/api/Dockerfile .
-docker build -t your-registry/jiffoo-shop:latest -f apps/shop/Dockerfile .
-docker build -t your-registry/jiffoo-admin:latest -f apps/admin/Dockerfile .
-
-docker push your-registry/jiffoo-api:latest
-docker push your-registry/jiffoo-shop:latest
-docker push your-registry/jiffoo-admin:latest
-```
-
-### 5. Deploy Applications
-```bash
-# Update image references in yaml files first!
+# 5. 部署应用
 kubectl apply -f api.yaml
 kubectl apply -f shop.yaml
 kubectl apply -f admin.yaml
+
+# 6. 部署内部 Ingress
+kubectl apply -f ingress-internal.yaml
 ```
 
-### 6. Deploy Ingress
-```bash
-# Option A: Subdomain mode (recommended)
-kubectl apply -f ingress.yaml
+## 🔧 端口规划
 
-# Option B: Single domain / path mode
-kubectl apply -f ingress-single-domain.yaml
-```
+| 端口范围 | 项目 |
+|----------|------|
+| 30001-30009 | jiffoo-mall-core (商业版) |
+| 30030-30101 | 基础设施 (Grafana, Prometheus 等) |
+| **31001-31009** | **Jiffoo 开源版** |
+| 32xxx | 预留其他项目 |
 
-## 🌐 Domain Configuration
+## ⚠️ 注意事项
 
-### Option A: Subdomain Mode (Recommended)
-```
-shop.jiffoo.example.com  → Shop Frontend
-api.jiffoo.example.com   → API Backend
-admin.jiffoo.example.com → Admin Dashboard
-```
+1. **修改密码**: 部署前务必修改 `secrets.yaml` 中的默认密码
+2. **DNS 配置**: 内部域名需要在 DNS 服务器或 hosts 文件中配置
+3. **存储**: PostgreSQL 使用 PVC，确保集群有可用的 StorageClass
+4. **镜像仓库**: 默认使用 `harbor.lafdru.local`，根据实际情况修改
 
-### Option B: Path Mode
-```
-jiffoo.example.com/        → Shop Frontend
-jiffoo.example.com/api/*   → API Backend
-jiffoo.example.com/admin/* → Admin Dashboard
-```
+## 📊 资源需求
 
-## 🔧 Customization
-
-### Change Domain
-1. Edit `configmap.yaml` - update PLATFORM_*_DOMAIN values
-2. Edit `ingress.yaml` - update host values
-3. Update TLS certificate secret names
-
-### Change Resources
-Edit the `resources` section in each deployment yaml:
-```yaml
-resources:
-  requests:
-    memory: "256Mi"
-    cpu: "250m"
-  limits:
-    memory: "1Gi"
-    cpu: "1000m"
-```
-
-### Enable HPA (Auto-scaling)
-```bash
-kubectl apply -f hpa.yaml  # Create HPA configuration
-```
-
-## 📁 File Structure
-
-```
-k8s/
-├── namespace.yaml          # Namespace definition
-├── configmap.yaml          # Non-sensitive configuration
-├── secrets.yaml            # Sensitive data (passwords, keys)
-├── postgres.yaml           # PostgreSQL StatefulSet + Service
-├── redis.yaml              # Redis Deployment + Service
-├── api.yaml                # API Backend Deployment + Service
-├── shop.yaml               # Shop Frontend Deployment + Service
-├── admin.yaml              # Admin Dashboard Deployment + Service
-├── ingress.yaml            # Ingress (subdomain mode)
-├── ingress-single-domain.yaml  # Ingress (path mode)
-└── README.md               # This file
-```
-
-## ⚠️ Production Checklist
-
-- [ ] Change all default passwords in `secrets.yaml`
-- [ ] Set up external PostgreSQL (RDS, Cloud SQL, etc.) for production
-- [ ] Set up external Redis (ElastiCache, Memorystore, etc.) for production
-- [ ] Configure proper resource limits
-- [ ] Set up cert-manager for HTTPS
-- [ ] Configure backup strategy for database
-- [ ] Set up monitoring (Prometheus, Grafana)
-- [ ] Configure log aggregation (ELK, Loki)
+| 组件 | CPU (请求/限制) | 内存 (请求/限制) |
+|------|-----------------|------------------|
+| API | 250m / 1000m | 256Mi / 1Gi |
+| Shop | 200m / 500m | 256Mi / 512Mi |
+| Admin | 200m / 500m | 256Mi / 512Mi |
+| PostgreSQL | 250m / 1000m | 256Mi / 1Gi |
+| Redis | 100m / 500m | 64Mi / 256Mi |
 
 ---
 

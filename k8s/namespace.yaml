@@ -1,8 +1,9 @@
-# Jiffoo Mall - Kubernetes Namespace
+# Jiffoo Mall (Open Source) - Kubernetes Namespace
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: jiffoo
+  name: jiffoo-opensource
   labels:
-    app.kubernetes.io/name: jiffoo
+    app.kubernetes.io/name: jiffoo-opensource
     app.kubernetes.io/component: platform
+    environment: production

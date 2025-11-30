@@ -1,11 +1,11 @@
-# Jiffoo Mall - ConfigMap
+# Jiffoo Mall (Open Source) - ConfigMap
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: jiffoo-config
-  namespace: jiffoo
+  namespace: jiffoo-opensource
   labels:
-    app.kubernetes.io/name: jiffoo
+    app.kubernetes.io/name: jiffoo-opensource
 data:
   # Environment
   NODE_ENV: "production"
@@ -22,16 +22,22 @@ data:
   # Database (use secrets for credentials)
   DATABASE_HOST: "postgres-service"
   DATABASE_PORT: "5432"
-  DATABASE_NAME: "jiffoo_mall"
+  DATABASE_NAME: "jiffoo_opensource"
   
   # Redis
   REDIS_URL: "redis://redis-service:6379"
   
-  # Domain Configuration (customize for your deployment)
-  PLATFORM_MAIN_DOMAIN: "jiffoo.example.com"
-  PLATFORM_FRONTEND_DOMAIN: "shop.jiffoo.example.com"
-  PLATFORM_ADMIN_DOMAIN: "admin.jiffoo.example.com"
-  PLATFORM_API_DOMAIN: "api.jiffoo.example.com"
+  # Internal Domain Configuration (VPN access)
+  PLATFORM_MAIN_DOMAIN: "lafdru.local"
+  PLATFORM_SHOP_DOMAIN: "shop.lafdru.local"
+  PLATFORM_ADMIN_DOMAIN: "admin.lafdru.local"
+  PLATFORM_API_DOMAIN: "api.lafdru.local"
   
-  # Internal Service URLs
+  # External Domain Configuration (Public access)
+  EXTERNAL_BASE_URL: "http://jiffoo.chfastpay.com"
+  EXTERNAL_SHOP_URL: "http://jiffoo.chfastpay.com:31001"
+  EXTERNAL_API_URL: "http://jiffoo.chfastpay.com:31002"
+  EXTERNAL_ADMIN_URL: "http://jiffoo.chfastpay.com:31003"
+  
+  # Internal Service URLs (for server-side requests)
   API_SERVICE_URL: "http://api-service:3001"

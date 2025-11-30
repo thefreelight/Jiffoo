@@ -1,0 +1,442 @@
+# 🚀 Jiffoo Mall (Open Source) - GitLab CI/CD Pipeline
+# 内网 GitLab CI/CD 配置，使用 Kubernetes Executor
+
+# 全局变量
+variables:
+  # Git SSL 配置（自签名证书）
+  GIT_SSL_NO_VERIFY: "true"
+
+  # Harbor Registry
+  REGISTRY: "harbor.lafdru.local"
+  REGISTRY_URL: "https://harbor.lafdru.local"
+  HARBOR_DOMAIN: "harbor.lafdru.local"
+  HARBOR_USERNAME: "admin"
+  HARBOR_PASSWORD: "Harbor@2024"
+  IMAGE_NAME: "jiffoo-opensource"
+
+  # HTTP Proxy (for accessing Docker Hub)
+  HTTP_PROXY: "http://192.168.0.106:7890"
+  HTTPS_PROXY: "http://192.168.0.106:7890"
+  NO_PROXY: "localhost,127.0.0.1,192.168.0.0/16,10.0.0.0/8,harbor.lafdru.local,git.lafdru.local,.lafdru.local"
+  
+  # API Service URLs
+  API_SERVICE_URL: "http://jiffoo.chfastpay.com:31002"
+  
+  # Next.js Public Environment Variables
+  NEXT_PUBLIC_API_URL: "http://jiffoo.chfastpay.com:31002"
+  NEXT_PUBLIC_SHOP_URL: "http://jiffoo.chfastpay.com:31001"
+  NEXT_PUBLIC_ADMIN_URL: "http://jiffoo.chfastpay.com:31003"
+  
+  # Node.js
+  NODE_ENV: "production"
+  
+  # Docker
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  
+  # Git
+  GIT_DEPTH: 1
+  GIT_STRATEGY: fetch
+
+# 定义 stages
+stages:
+  - prepare
+  - build
+  - test
+  - deploy
+  - notify
+
+# 🎯 准备阶段
+prepare:
+  stage: prepare
+  image: alpine:latest
+  timeout: 5 minutes
+  script:
+    - |
+      echo "🎯 Determining environment and version..."
+
+      if echo "$CI_COMMIT_TAG" | grep -q "^v"; then
+        ENVIRONMENT="prod"
+        NAMESPACE="jiffoo-opensource"
+        VERSION="$CI_COMMIT_TAG"
+      else
+        ENVIRONMENT="dev"
+        NAMESPACE="jiffoo-opensource"
+        SHORT_SHA=$(echo "$CI_COMMIT_SHA" | cut -c1-7)
+        VERSION="main-${SHORT_SHA}"
+      fi
+
+      echo "📊 Environment: $ENVIRONMENT"
+      echo "📦 Namespace: $NAMESPACE"
+      echo "🏷️ Version: $VERSION"
+
+      echo "ENVIRONMENT=$ENVIRONMENT" >> build.env
+      echo "NAMESPACE=$NAMESPACE" >> build.env
+      echo "VERSION=$VERSION" >> build.env
+  artifacts:
+    reports:
+      dotenv: build.env
+    expire_in: 1 hour
+
+# 🏗️ 构建模板
+.build_template: &build_template
+  stage: build
+  image: gcr.io/kaniko-project/executor:debug
+  before_script:
+    - |
+      echo "🔧 Setting up Kaniko environment..."
+      export HTTP_PROXY="$HTTP_PROXY"
+      export HTTPS_PROXY="$HTTPS_PROXY"
+      export NO_PROXY="$NO_PROXY"
+      
+      echo "192.168.0.114 harbor.lafdru.local" >> /etc/hosts
+      mkdir -p /kaniko/.docker
+      AUTH=$(echo -n "$HARBOR_USERNAME:$HARBOR_PASSWORD" | base64)
+      
+      cat > /kaniko/.docker/config.json <<EOF
+      {
+        "auths": {
+          "$REGISTRY": {
+            "auth": "$AUTH"
+          }
+        }
+      }
+      EOF
+      echo "✅ Kaniko configured for HTTPS registry: $REGISTRY"
+  script:
+    - |
+      echo "🐳 Building Docker image for $SERVICE with Kaniko..."
+
+      IMAGE_TAG="$REGISTRY/$IMAGE_NAME/$SERVICE:$VERSION"
+      LATEST_TAG="$REGISTRY/$IMAGE_NAME/$SERVICE:latest"
+      BUILD_TIME=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+      /kaniko/executor \
+        --context=$CI_PROJECT_DIR \
+        --dockerfile=apps/$SERVICE/Dockerfile \
+        --destination=$IMAGE_TAG \
+        --destination=$LATEST_TAG \
+        --skip-tls-verify \
+        --cache=true \
+        --cache-ttl=24h \
+        --build-arg HTTP_PROXY="$HTTP_PROXY" \
+        --build-arg HTTPS_PROXY="$HTTPS_PROXY" \
+        --build-arg NO_PROXY="$NO_PROXY" \
+        --build-arg BUILD_SHA="$CI_COMMIT_SHORT_SHA" \
+        --build-arg BUILD_TIME="$BUILD_TIME" \
+        --build-arg APP_VERSION="$VERSION"
+
+      echo "✅ Build and push completed for $SERVICE"
+  needs:
+    - prepare
+  dependencies:
+    - prepare
+  timeout: 45 minutes
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+# 构建任务
+build:api:
+  <<: *build_template
+  variables:
+    SERVICE: "api"
+
+build:shop:
+  <<: *build_template
+  variables:
+    SERVICE: "shop"
+
+build:admin:
+  <<: *build_template
+  variables:
+    SERVICE: "admin"
+
+# 🧪 测试阶段
+test:type-check:
+  stage: test
+  image: node:20-alpine
+  before_script:
+    - export NODE_ENV=development
+    - corepack enable
+    - corepack prepare pnpm@10.11.0 --activate
+    - pnpm install --frozen-lockfile
+    - pnpm --filter shared build
+  script:
+    - echo "🔍 Running TypeScript type check..."
+    - pnpm type-check
+  allow_failure: false
+  only:
+    - main
+    - merge_requests
+    - tags
+
+# 🚀 部署到 Kubernetes
+deploy:
+  stage: deploy
+  image: bitnami/kubectl:latest
+  before_script:
+    - |
+      echo "🔐 Setting up Kubernetes credentials..."
+      if [ -n "$KUBECONFIG" ] && [ -f "$KUBECONFIG" ]; then
+        mkdir -p ~/.kube
+        cp "$KUBECONFIG" ~/.kube/config
+        chmod 600 ~/.kube/config
+        export KUBECONFIG=~/.kube/config
+      fi
+      kubectl cluster-info
+  script:
+    - |
+      echo "🚀 Deploying to Kubernetes..."
+      echo "📦 Namespace: $NAMESPACE"
+      echo "🏷️ Version: $VERSION"
+
+      # 检查 namespace
+      if ! kubectl get namespace "$NAMESPACE" 2>/dev/null; then
+        kubectl create namespace "$NAMESPACE"
+      fi
+
+      # 更新镜像
+      FAILED_SERVICES=""
+      for SERVICE in api shop admin; do
+        echo "📦 Updating $SERVICE..."
+        if kubectl get deployment "jiffoo-opensource-$SERVICE" -n "$NAMESPACE" 2>/dev/null; then
+          if kubectl set image deployment/jiffoo-opensource-$SERVICE \
+            $SERVICE=$REGISTRY/$IMAGE_NAME/$SERVICE:$VERSION \
+            -n $NAMESPACE; then
+            echo "✅ Successfully updated $SERVICE"
+          else
+            FAILED_SERVICES="$FAILED_SERVICES $SERVICE"
+          fi
+        else
+          echo "⚠️ Deployment jiffoo-opensource-$SERVICE not found"
+          FAILED_SERVICES="$FAILED_SERVICES $SERVICE"
+        fi
+      done
+
+      if [ -n "$FAILED_SERVICES" ]; then
+        echo "⚠️ Some services failed:$FAILED_SERVICES"
+      else
+        echo "✅ All services updated!"
+      fi
+  needs:
+    - prepare
+    - build:api
+    - build:shop
+    - build:admin
+  dependencies:
+    - prepare
+  only:
+    - main
+    - tags
+  allow_failure: true
+
+# ============================================
+# 🔔 飞书通知
+# ============================================
+
+notify-success:
+  stage: notify
+  image: curlimages/curl:latest
+  script:
+    - |
+      echo "📢 Sending success notification to Feishu..."
+
+      if [ -z "$FEISHU_WEBHOOK_URL" ]; then
+        echo "⚠️ FEISHU_WEBHOOK_URL is not set, skipping notification"
+        exit 0
+      fi
+
+      COMMIT_SHORT_SHA=$(echo $CI_COMMIT_SHA | cut -c1-8)
+      BASE_URL="http://jiffoo.chfastpay.com"
+      PIPELINE_URL="$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID"
+
+      curl -X POST "$FEISHU_WEBHOOK_URL" \
+        -H 'Content-Type: application/json' \
+        -d "{
+          \"msg_type\": \"interactive\",
+          \"card\": {
+            \"header\": {
+              \"title\": {
+                \"tag\": \"plain_text\",
+                \"content\": \"�� Jiffoo 开源版部署通知\"
+              },
+              \"template\": \"green\"
+            },
+            \"elements\": [
+              {
+                \"tag\": \"div\",
+                \"text\": {
+                  \"tag\": \"lark_md\",
+                  \"content\": \"**状态:** ✅ 部署成功\\n**项目:** Jiffoo Mall (Open Source)\\n**版本:** $CI_COMMIT_REF_NAME-$COMMIT_SHORT_SHA\\n**分支:** $CI_COMMIT_REF_NAME\\n**触发者:** $GITLAB_USER_NAME\"
+                }
+              },
+              {
+                \"tag\": \"hr\"
+              },
+              {
+                \"tag\": \"div\",
+                \"text\": {
+                  \"tag\": \"lark_md\",
+                  \"content\": \"**服务状态:**\\napi: ✅ 成功\\nshop: ✅ 成功\\nadmin: ✅ 成功\"
+                }
+              },
+              {
+                \"tag\": \"hr\"
+              },
+              {
+                \"tag\": \"div\",
+                \"text\": {
+                  \"tag\": \"lark_md\",
+                  \"content\": \"🌐 **外部访问地址** (NodePort):\"
+                }
+              },
+              {
+                \"tag\": \"action\",
+                \"actions\": [
+                  {
+                    \"tag\": \"button\",
+                    \"text\": {
+                      \"tag\": \"plain_text\",
+                      \"content\": \"🛒 Shop\"
+                    },
+                    \"type\": \"default\",
+                    \"url\": \"${BASE_URL}:31001\"
+                  },
+                  {
+                    \"tag\": \"button\",
+                    \"text\": {
+                      \"tag\": \"plain_text\",
+                      \"content\": \"🔧 API\"
+                    },
+                    \"type\": \"default\",
+                    \"url\": \"${BASE_URL}:31002\"
+                  },
+                  {
+                    \"tag\": \"button\",
+                    \"text\": {
+                      \"tag\": \"plain_text\",
+                      \"content\": \"👩‍💼 Admin\"
+                    },
+                    \"type\": \"default\",
+                    \"url\": \"${BASE_URL}:31003\"
+                  }
+                ]
+              },
+              {
+                \"tag\": \"hr\"
+              },
+              {
+                \"tag\": \"div\",
+                \"text\": {
+                  \"tag\": \"lark_md\",
+                  \"content\": \"🏠 **内部访问地址** (VPN):\"
+                }
+              },
+              {
+                \"tag\": \"div\",
+                \"text\": {
+                  \"tag\": \"lark_md\",
+                  \"content\": \"• Shop: http://shop.lafdru.local\\n• API: http://api.lafdru.local\\n• Admin: http://admin.lafdru.local\"
+                }
+              },
+              {
+                \"tag\": \"hr\"
+              },
+              {
+                \"tag\": \"action\",
+                \"actions\": [
+                  {
+                    \"tag\": \"button\",
+                    \"text\": {
+                      \"tag\": \"plain_text\",
+                      \"content\": \"📋 查看部署详情\"
+                    },
+                    \"type\": \"primary\",
+                    \"url\": \"$PIPELINE_URL\"
+                  }
+                ]
+              }
+            ]
+          }
+        }"
+
+      echo "✅ Notification sent"
+  only:
+    - main
+    - tags
+  when: on_success
+
+notify-failure:
+  stage: notify
+  image: curlimages/curl:latest
+  script:
+    - |
+      echo "📢 Sending failure notification to Feishu..."
+
+      if [ -z "$FEISHU_WEBHOOK_URL" ]; then
+        echo "⚠️ FEISHU_WEBHOOK_URL is not set, skipping notification"
+        exit 0
+      fi
+
+      COMMIT_SHORT_SHA=$(echo $CI_COMMIT_SHA | cut -c1-8)
+      PIPELINE_URL="$CI_PROJECT_URL/-/pipelines/$CI_PIPELINE_ID"
+
+      curl -X POST "$FEISHU_WEBHOOK_URL" \
+        -H 'Content-Type: application/json' \
+        -d "{
+          \"msg_type\": \"interactive\",
+          \"card\": {
+            \"header\": {
+              \"title\": {
+                \"tag\": \"plain_text\",
+                \"content\": \"🚀 Jiffoo 开源版部署通知\"
+              },
+              \"template\": \"red\"
+            },
+            \"elements\": [
+              {
+                \"tag\": \"div\",
+                \"text\": {
+                  \"tag\": \"lark_md\",
+                  \"content\": \"**状态:** ❌ 部署失败\\n**项目:** Jiffoo Mall (Open Source)\\n**版本:** $CI_COMMIT_REF_NAME-$COMMIT_SHORT_SHA\\n**分支:** $CI_COMMIT_REF_NAME\\n**触发者:** $GITLAB_USER_NAME\"
+                }
+              },
+              {
+                \"tag\": \"hr\"
+              },
+              {
+                \"tag\": \"div\",
+                \"text\": {
+                  \"tag\": \"lark_md\",
+                  \"content\": \"⚠️ **部署过程中发生错误，请查看 Pipeline 日志排查问题。**\"
+                }
+              },
+              {
+                \"tag\": \"hr\"
+              },
+              {
+                \"tag\": \"action\",
+                \"actions\": [
+                  {
+                    \"tag\": \"button\",
+                    \"text\": {
+                      \"tag\": \"plain_text\",
+                      \"content\": \"📋 查看部署详情\"
+                    },
+                    \"type\": \"danger\",
+                    \"url\": \"$PIPELINE_URL\"
+                  }
+                ]
+              }
+            ]
+          }
+        }"
+
+      echo "✅ Notification sent"
+  only:
+    - main
+    - tags
+  when: on_failure

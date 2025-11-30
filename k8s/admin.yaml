@@ -1,11 +1,11 @@
-# Jiffoo Mall - Admin Dashboard Deployment
+# Jiffoo Mall (Open Source) - Admin Dashboard Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: admin
-  namespace: jiffoo
+  name: jiffoo-opensource-admin
+  namespace: jiffoo-opensource
   labels:
-    app.kubernetes.io/name: jiffoo
+    app.kubernetes.io/name: jiffoo-opensource
     app.kubernetes.io/component: admin
 spec:
   replicas: 1
@@ -16,12 +16,12 @@ spec:
     metadata:
       labels:
         app: admin
-        app.kubernetes.io/name: jiffoo
+        app.kubernetes.io/name: jiffoo-opensource
         app.kubernetes.io/component: admin
     spec:
       containers:
         - name: admin
-          image: jiffoo/admin:latest
+          image: harbor.lafdru.local/jiffoo-opensource/admin:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 3002
@@ -30,7 +30,7 @@ spec:
             - name: NODE_ENV
               value: "production"
             - name: NEXT_PUBLIC_API_URL
-              value: "https://api.jiffoo.example.com"
+              value: "http://jiffoo.chfastpay.com:31002"
             - name: API_SERVICE_URL
               value: "http://api-service:3001"
           resources:
@@ -57,9 +57,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: admin-service
-  namespace: jiffoo
+  namespace: jiffoo-opensource
   labels:
-    app.kubernetes.io/name: jiffoo
+    app.kubernetes.io/name: jiffoo-opensource
     app.kubernetes.io/component: admin
 spec:
   type: ClusterIP
@@ -68,4 +68,23 @@ spec:
   ports:
     - port: 3002
       targetPort: 3002
+      name: http
+---
+# NodePort for external access
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-nodeport
+  namespace: jiffoo-opensource
+  labels:
+    app.kubernetes.io/name: jiffoo-opensource
+    app.kubernetes.io/component: admin
+spec:
+  type: NodePort
+  selector:
+    app: admin
+  ports:
+    - port: 3002
+      targetPort: 3002
+      nodePort: 31003
       name: http

@@ -1,9 +1,9 @@
-# Jiffoo Mall - PostgreSQL StatefulSet
+# Jiffoo Mall (Open Source) - PostgreSQL StatefulSet
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: postgres-pvc
-  namespace: jiffoo
+  namespace: jiffoo-opensource
 spec:
   accessModes:
     - ReadWriteOnce
@@ -15,9 +15,9 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres
-  namespace: jiffoo
+  namespace: jiffoo-opensource
   labels:
-    app.kubernetes.io/name: jiffoo
+    app.kubernetes.io/name: jiffoo-opensource
     app.kubernetes.io/component: database
 spec:
   serviceName: postgres-service
@@ -29,7 +29,7 @@ spec:
     metadata:
       labels:
         app: postgres
-        app.kubernetes.io/name: jiffoo
+        app.kubernetes.io/name: jiffoo-opensource
         app.kubernetes.io/component: database
     spec:
       containers:
@@ -40,7 +40,7 @@ spec:
               name: postgres
           env:
             - name: POSTGRES_DB
-              value: "jiffoo_mall"
+              value: "jiffoo_opensource"
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -63,12 +63,12 @@ spec:
               cpu: "1000m"
           readinessProbe:
             exec:
-              command: ["pg_isready", "-U", "jiffoo", "-d", "jiffoo_mall"]
+              command: ["pg_isready", "-U", "jiffoo", "-d", "jiffoo_opensource"]
             initialDelaySeconds: 5
             periodSeconds: 10
           livenessProbe:
             exec:
-              command: ["pg_isready", "-U", "jiffoo", "-d", "jiffoo_mall"]
+              command: ["pg_isready", "-U", "jiffoo", "-d", "jiffoo_opensource"]
             initialDelaySeconds: 30
             periodSeconds: 10
       volumes:
@@ -80,9 +80,9 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgres-service
-  namespace: jiffoo
+  namespace: jiffoo-opensource
   labels:
-    app.kubernetes.io/name: jiffoo
+    app.kubernetes.io/name: jiffoo-opensource
     app.kubernetes.io/component: database
 spec:
   type: ClusterIP
