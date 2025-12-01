@@ -49,7 +49,7 @@ export interface PayPalPaymentResponse {
 /**
  * PayPal Payment Plugin Stub Implementation
  */
-export class PayPalPaymentPlugin implements PaymentPluginImplementation {
+export class PayPalPaymentPlugin {
   private config: PayPalConfig;
   private context: PluginContext;
 

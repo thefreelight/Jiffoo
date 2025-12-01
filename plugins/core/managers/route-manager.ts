@@ -216,7 +216,7 @@ export class DynamicRouteManager {
   /**
    * 调用插件处理器
    */
-  private async callPluginHandler(pluginId: string, handlerName: string, request: any, reply: any) {
+  private async callPluginHandler(pluginId: string, handlerName: string | ((...args: any[]) => any), request: any, reply: any) {
     try {
       // 特殊处理测试插件
       if (pluginId === 'test-plugin') {

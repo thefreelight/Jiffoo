@@ -48,7 +48,7 @@ export interface StripePaymentResponse {
 /**
  * Stripe Payment Plugin Stub Implementation
  */
-export class StripePaymentPlugin implements PaymentPluginImplementation {
+export class StripePaymentPlugin {
   private config: StripeConfig;
   private context: PluginContext;
 
