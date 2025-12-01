@@ -13,8 +13,6 @@ ENV NO_PROXY=${NO_PROXY}
 
 # Install dependencies only when needed
 FROM base AS deps
-# Configure Alpine mirrors for faster package installation
-
 RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
@@ -34,7 +32,10 @@ RUN pnpm install --frozen-lockfile
 FROM base AS builder
 WORKDIR /app
 
-# Copy dependencies from deps stage
+# Install pnpm in builder stage too
+RUN npm install -g pnpm@9.0.0
+
+# Copy ALL node_modules from deps stage (pnpm hoists to root)
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/shop/node_modules ./apps/shop/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
@@ -42,19 +43,28 @@ COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_module
 # Copy source code
 COPY . .
 
+# Create shop-themes node_modules symlink for pnpm workspace resolution
+RUN mkdir -p packages/shop-themes/default/node_modules && \
+    cd packages/shop-themes/default/node_modules && \
+    ln -sf ../../../node_modules/.pnpm/clsx@*/node_modules/clsx clsx 2>/dev/null || true && \
+    ln -sf ../../../node_modules/.pnpm/framer-motion@*/node_modules/framer-motion framer-motion 2>/dev/null || true && \
+    ln -sf ../../../node_modules/.pnpm/lucide-react@*/node_modules/lucide-react lucide-react 2>/dev/null || true
+
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-# Set backend URL for build-time rewrites configuration
 ENV BACKEND_SERVICE_URL=http://backend:3001
 
-# Build shared package first (required for workspace dependency resolution)
+# Build shared package first
 RUN cd packages/shared && npm run build
+
+# Install shop-themes dependencies directly if symlinks failed
+RUN cd packages/shop-themes/default && pnpm install --ignore-scripts 2>/dev/null || true
 
 # Build the Next.js application
 RUN cd apps/shop && npx next build
 
-# Production image, copy all the files and run next
+# Production image
 FROM base AS runner
 WORKDIR /app
 
@@ -65,7 +75,6 @@ ENV PORT 3000
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy the built application
 COPY --from=builder /app/apps/shop/public ./apps/shop/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/shop/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/shop/.next/static ./apps/shop/.next/static
