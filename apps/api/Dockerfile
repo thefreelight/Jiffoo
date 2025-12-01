@@ -108,4 +108,4 @@ USER api
 
 EXPOSE 8001
 
-CMD ["node", "apps/api/dist/server.js"]
+CMD ["node", "apps/api/dist/apps/api/src/server.js"]
