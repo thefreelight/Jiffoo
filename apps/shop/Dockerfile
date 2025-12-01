@@ -38,7 +38,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/shop/node_modules ./apps/shop/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
-COPY --from=deps /app/packages/shop-themes/default/node_modules ./packages/shop-themes/default/node_modules
 
 # Copy source code
 COPY . .
