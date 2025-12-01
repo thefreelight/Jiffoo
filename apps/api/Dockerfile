@@ -16,8 +16,6 @@ ENV HTTP_PROXY=${HTTP_PROXY}
 ENV HTTPS_PROXY=${HTTPS_PROXY}
 ENV NO_PROXY=${NO_PROXY}
 
-# Configure Alpine mirrors for faster package installation
-
 # Install system dependencies
 RUN apk add --no-cache \
     libc6-compat \
@@ -34,10 +32,20 @@ WORKDIR /app
 
 # Dependencies stage
 FROM base AS deps
+
+# Skip Prisma engine download during install (we'll do it in builder stage with retries)
+ENV PRISMA_SKIP_POSTINSTALL_GENERATE=true
+
 # Copy workspace files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
+
+# Configure pnpm for better network handling
+RUN pnpm config set network-timeout 300000 && \
+    pnpm config set fetch-retries 5 && \
+    pnpm config set fetch-retry-mintimeout 20000 && \
+    pnpm config set fetch-retry-maxtimeout 120000
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
@@ -62,8 +70,11 @@ RUN mkdir -p /app/plugins
 # Build shared package first
 RUN pnpm --filter shared build
 
-# Generate Prisma client
-RUN pnpm --filter api prisma generate
+# Generate Prisma client with retries
+RUN for i in 1 2 3 4 5; do \
+      pnpm --filter api prisma generate && break || \
+      echo "Prisma generate attempt $i failed, retrying in 10s..." && sleep 10; \
+    done
 
 # Build api service
 RUN pnpm --filter api build
@@ -96,7 +107,6 @@ COPY --from=builder --chown=api:nodejs /app/packages/shared/package.json ./packa
 COPY --from=builder --chown=api:nodejs /app/plugins ./plugins
 
 # Copy production dependencies from builder (includes Prisma generated client)
-# Must copy from builder, not deps, because prisma generate runs in builder stage
 COPY --from=builder --chown=api:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=api:nodejs /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder --chown=api:nodejs /app/packages/shared/node_modules ./packages/shared/node_modules
