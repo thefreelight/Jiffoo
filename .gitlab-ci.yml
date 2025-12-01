@@ -336,11 +336,36 @@ notify-success:
                 }
               },
               {
-                \"tag\": \"div\",
-                \"text\": {
-                  \"tag\": \"lark_md\",
-                  \"content\": \"• Shop: http://shop.lafdru.local\\n• API: http://api.lafdru.local\\n• Admin: http://admin.lafdru.local\"
-                }
+                \"tag\": \"action\",
+                \"actions\": [
+                  {
+                    \"tag\": \"button\",
+                    \"text\": {
+                      \"tag\": \"plain_text\",
+                      \"content\": \"🛒 Shop\"
+                    },
+                    \"type\": \"default\",
+                    \"url\": \"http://shop.lafdru.local\"
+                  },
+                  {
+                    \"tag\": \"button\",
+                    \"text\": {
+                      \"tag\": \"plain_text\",
+                      \"content\": \"🔧 API\"
+                    },
+                    \"type\": \"default\",
+                    \"url\": \"http://api.lafdru.local\"
+                  },
+                  {
+                    \"tag\": \"button\",
+                    \"text\": {
+                      \"tag\": \"plain_text\",
+                      \"content\": \"👩‍💼 Admin\"
+                    },
+                    \"type\": \"default\",
+                    \"url\": \"http://admin.lafdru.local\"
+                  }
+                ]
               },
               {
                 \"tag\": \"hr\"
