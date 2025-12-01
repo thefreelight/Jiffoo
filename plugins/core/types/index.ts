@@ -40,7 +40,9 @@ export interface PluginDependency {
 export interface PluginRoute {
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   path: string;
-  handler: string;
+  url?: string;  // Alias for path (compatibility)
+  prefix?: string;
+  handler: string | ((...args: any[]) => any);
   auth?: boolean;
   permissions?: string[];
 }
@@ -108,26 +110,18 @@ export interface LicenseValidationResult {
 export const PLUGIN_REGISTRY_URL = 'https://plugins.jiffoo.com';
 export const PLUGIN_API_VERSION = '1.0.0';
 
-// Route Definition alias for compatibility
-export type RouteDefinition = PluginRoute;
-
-// Route Definition alias for compatibility
-export type RouteDefinition = PluginRoute;
-
-// Route Definition alias for compatibility
-export type RouteDefinition = PluginRoute;
-
-// Payment Plugin Implementation Interface
-export interface PaymentPluginImplementation {
-  id: string;
-  name: string;
-  version: string;
-  initialize(context: PluginContext): Promise<void>;
-  processPayment(params: PaymentParams): Promise<PaymentResult>;
-  refund(transactionId: string, amount?: number): Promise<RefundResult>;
-  getPaymentStatus(transactionId: string): Promise<PaymentStatus>;
+// Route Definition type with url support
+export interface RouteDefinition {
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  url: string;
+  path?: string;
+  prefix?: string;
+  handler: string | ((...args: any[]) => any);
+  auth?: boolean;
+  permissions?: string[];
 }
 
+// Payment Plugin Types
 export interface PluginContext {
   config: Record<string, any>;
   logger: any;
@@ -149,6 +143,12 @@ export interface PaymentResult {
   redirectUrl?: string;
 }
 
+export interface RefundRequest {
+  paymentId: string;
+  amount?: number;
+  reason?: string;
+}
+
 export interface RefundResult {
   success: boolean;
   refundId?: string;
@@ -156,3 +156,13 @@ export interface RefundResult {
 }
 
 export type PaymentStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded';
+
+export interface PaymentPluginImplementation {
+  id: string;
+  name: string;
+  version: string;
+  initialize(context: PluginContext): Promise<void>;
+  processPayment(params: PaymentParams): Promise<PaymentResult>;
+  refund(request: RefundRequest): Promise<RefundResult>;
+  getPaymentStatus(transactionId: string): Promise<PaymentStatus>;
+}
