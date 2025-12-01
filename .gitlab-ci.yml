@@ -261,7 +261,7 @@ notify-success:
             \"header\": {
               \"title\": {
                 \"tag\": \"plain_text\",
-                \"content\": \"�� Jiffoo 开源版部署通知\"
+                \"content\": \"✅ Jiffoo 开源版部署通知\"
               },
               \"template\": \"green\"
             },
