@@ -212,6 +212,7 @@ export class DynamicRouteManager {
       }
     };
   }
+
   /**
    * 调用插件处理器
    */
@@ -221,7 +222,6 @@ export class DynamicRouteManager {
       if (typeof handlerName === 'function') {
         return await handlerName(request, reply);
       }
-
       // 特殊处理测试插件
       if (pluginId === 'test-plugin') {
         return await this.handleTestPluginRoute(handlerName, request, reply);
@@ -258,6 +258,8 @@ export class DynamicRouteManager {
       throw error;
     }
   }
+
+  /**
    * 处理测试插件路由
    */
   private async handleTestPluginRoute(handlerName: string, request: any, reply: any) {
