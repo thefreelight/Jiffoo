@@ -40,6 +40,15 @@ export {
   isProduction
 } from './context';
 
+// Validators
+export {
+  validateManifest,
+  validateSettingsSchema,
+  validateSettings,
+  VALID_CATEGORIES,
+  VALID_CAPABILITIES
+} from './validators';
+
 // Type definitions
 export type {
   PlatformHeaders,
@@ -54,4 +63,12 @@ export type {
   PluginResponse,
   NextFunction
 } from './types';
+
+export type {
+  ValidationResult,
+  ValidationError,
+  SettingsFieldType,
+  SettingsField,
+  SettingsSchema
+} from './validators';
 

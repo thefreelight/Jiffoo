@@ -1,0 +1,19 @@
+#!/bin/sh
+
+echo "🔍 Pre-commit: Verifying backend build..."
+
+# Build shared package first (required for backend)
+pnpm --filter shared build
+if [ $? -ne 0 ]; then
+  echo "❌ Failed to build shared package"
+  exit 1
+fi
+
+# Verify backend can compile
+pnpm --filter backend build
+if [ $? -ne 0 ]; then
+  echo "❌ Failed to build backend - check tsconfig.json paths"
+  exit 1
+fi
+
+echo "✅ Build verification passed!"

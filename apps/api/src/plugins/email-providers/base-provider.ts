@@ -5,7 +5,7 @@
  */
 
 export interface EmailProviderConfig {
-  mode: 'platform' | 'byok';  // Platform模式 or Bring Your Own Key
+  mode?: 'platform' | 'byok';  // Platform模式 or Bring Your Own Key
   apiKey?: string;
   webhookSecret?: string;
   customSettings?: Record<string, any>;

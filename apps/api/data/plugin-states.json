@@ -1,0 +1,19 @@
+{
+  "stripe-payment": {
+    "slug": "stripe-payment",
+    "enabled": true,
+    "installed": true,
+    "config": {
+      "mode": "platform"
+    },
+    "name": "Stripe Payment",
+    "version": "1.0.0",
+    "description": "Accept credit card payments with Stripe. Supports one-time payments, subscriptions, and more.",
+    "author": "Jiffoo Team",
+    "category": "payment",
+    "icon": "💳",
+    "source": "builtin",
+    "installedAt": "2025-12-09T03:11:38.116Z",
+    "enabledAt": "2025-12-09T03:11:38.116Z"
+  }
+}

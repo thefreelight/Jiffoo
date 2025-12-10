@@ -50,6 +50,15 @@ export default function ProductPage({ params }: ProductPageProps) {
   const agentId = useAgentId();
   const isAgentMall = useIsAgentMall();
 
+  // 使用 ref 存储 agentId 和 isAgentMall 以避免无限循环
+  const agentIdRef = React.useRef(agentId);
+  const isAgentMallRef = React.useRef(isAgentMall);
+
+  React.useEffect(() => {
+    agentIdRef.current = agentId;
+    isAgentMallRef.current = isAgentMall;
+  }, [agentId, isAgentMall]);
+
   // Load product data with locale for translated content
   // 🆕 传递 agentId 以获取 Agent Mall 授权商品和价格
   React.useEffect(() => {
@@ -61,7 +70,7 @@ export default function ProductPage({ params }: ProductPageProps) {
         const response = await ProductService.getProductById(
           resolvedParams.id,
           nav.locale,
-          isAgentMall ? agentId : undefined
+          isAgentMallRef.current ? agentIdRef.current : undefined
         );
         setProduct(response.product);
         // 🆕 自动选择第一个可用变体
@@ -72,7 +81,8 @@ export default function ProductPage({ params }: ProductPageProps) {
           }
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : getText('common.errors.general', 'Failed to load product'));
+        const errorMessage = 'Failed to load product';
+        setError(err instanceof Error ? err.message : errorMessage);
         console.error('Failed to load product:', err);
       } finally {
         setLoading(false);
@@ -80,7 +90,7 @@ export default function ProductPage({ params }: ProductPageProps) {
     };
 
     loadProduct();
-  }, [resolvedParams.id, nav.locale, getText, isAgentMall, agentId]);
+  }, [resolvedParams.id, nav.locale]);
 
   // Handle variant selection
   const handleVariantChange = (variantId: string) => {
@@ -88,8 +98,11 @@ export default function ProductPage({ params }: ProductPageProps) {
   };
 
   // Handle quantity change
+  // Support both inventory.available and direct stock field
   const handleQuantityChange = (newQuantity: number) => {
-    if (product && newQuantity >= 1 && newQuantity <= (product.inventory?.available || 0)) {
+    if (!product) return;
+    const maxStock = product.inventory?.available ?? (product as any).stock ?? 100;
+    if (newQuantity >= 1 && newQuantity <= maxStock) {
       setQuantity(newQuantity);
     }
   };
@@ -97,10 +110,16 @@ export default function ProductPage({ params }: ProductPageProps) {
   // Handle add to cart
   // 🆕 传递 selectedVariant 到购物车（用于变体级定价）
   const handleAddToCart = async () => {
-    if (!product) return;
+    console.log('[ProductPage] handleAddToCart called', { product, selectedVariant, quantity });
+
+    if (!product) {
+      console.log('[ProductPage] No product, returning');
+      return;
+    }
 
     // 🆕 如果有变体且没有选择，提示用户选择
     if (product.variants && product.variants.length > 0 && !selectedVariant) {
+      console.log('[ProductPage] Variants exist but none selected', { variants: product.variants, selectedVariant });
       toast({
         title: getText('shop.product.selectVariant', 'Please select an option'),
         description: getText('shop.product.selectVariantDescription', 'Please select a product option before adding to cart'),
@@ -110,13 +129,16 @@ export default function ProductPage({ params }: ProductPageProps) {
     }
 
     try {
+      console.log('[ProductPage] Calling addToCart', { productId: product.id, quantity, selectedVariant });
       // 🆕 传递 variantId 到购物车
       await addToCart(product.id, quantity, selectedVariant);
+      console.log('[ProductPage] addToCart success');
       toast({
         title: getText('shop.cart.addedToCart', 'Added to cart'),
         description: `${product.name} ${getText('shop.cart.addedToCart', 'added to cart')}`,
       });
     } catch (err) {
+      console.error('[ProductPage] addToCart error', err);
       toast({
         title: getText('shop.cart.addFailed', 'Failed to add'),
         description: err instanceof Error ? err.message : getText('common.errors.unknown', 'Unknown error'),

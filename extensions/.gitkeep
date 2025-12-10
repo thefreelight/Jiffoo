@@ -1,0 +1,11 @@
+# Extensions directory
+# This directory contains installed themes and plugins
+
+# Structure:
+# extensions/
+# ├── themes/
+# │   ├── shop/     # Shop frontend themes
+# │   └── admin/    # Admin dashboard themes
+# ├── plugins/      # Installed plugins
+# └── .tmp/         # Temporary extraction directory
+

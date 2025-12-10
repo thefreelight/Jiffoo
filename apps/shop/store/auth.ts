@@ -101,6 +101,16 @@ export const useAuthStore = create<AuthState & AuthActions>()(
                 tenantInfo: null,
               });
             }
+
+            // 🆕 登录成功后，合并访客购物车
+            if (typeof window !== 'undefined') {
+              setTimeout(() => {
+                import('@/store/cart').then(({ useCartStore }) => {
+                  const { mergeGuestCart } = useCartStore.getState();
+                  mergeGuestCart();
+                });
+              }, 0);
+            }
           } else {
             throw new Error(response.message || 'Login failed');
           }
@@ -366,6 +376,16 @@ export const useAuthStore = create<AuthState & AuthActions>()(
               error: null,
               tenantInfo,
             });
+
+            // 🆕 OAuth登录成功后，合并访客购物车
+            if (typeof window !== 'undefined') {
+              setTimeout(() => {
+                import('@/store/cart').then(({ useCartStore }) => {
+                  const { mergeGuestCart } = useCartStore.getState();
+                  mergeGuestCart();
+                });
+              }, 0);
+            }
           } else {
             throw new Error(response.message || 'Google authentication failed');
           }
@@ -490,6 +510,16 @@ export const useAuthStore = create<AuthState & AuthActions>()(
                 isLoading: false,
                 error: null,
               });
+
+              // 🆕 注册成功后，合并访客购物车
+              if (typeof window !== 'undefined') {
+                setTimeout(() => {
+                  import('@/store/cart').then(({ useCartStore }) => {
+                    const { mergeGuestCart } = useCartStore.getState();
+                    mergeGuestCart();
+                  });
+                }, 0);
+              }
             } else {
               throw new Error('No token received from server');
             }

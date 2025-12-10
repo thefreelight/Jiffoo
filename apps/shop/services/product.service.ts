@@ -40,10 +40,12 @@ export interface ProductListResponse {
 
 export class ProductService {
   private static async makeRequest<T>(endpoint: string, options?: { params?: Record<string, unknown> }): Promise<T> {
-    const response = await apiClient.get(`/products${endpoint}`, options);
+    // Construct URL - avoid trailing slash which causes 308 redirect
+    const url = endpoint === '/' || endpoint === '' ? '/products' : `/products${endpoint}`;
+    const response = await apiClient.get(url, options);
     if (response.success && response.data !== undefined) {
       // For product list, need to transform data format
-      if (endpoint === '/' && Array.isArray(response.data)) {
+      if ((endpoint === '/' || endpoint === '') && Array.isArray(response.data)) {
         return {
           products: response.data,
           pagination: (response as any).pagination || { page: 1, limit: 12, total: response.data.length, totalPages: 1 },

@@ -1,0 +1,141 @@
+# Jiffoo Mall - Open Source Exclusion List
+# Files and directories that should NOT be synced to the open source repository
+
+# Environment and Configuration Files
+.env*
+*.env
+.env.local
+.env.production
+.env.development
+docker-compose.*.yml
+docker-compose.yml
+
+# Authentication and Security
+apps/backend/src/core/auth/
+apps/backend/src/core/licensing/
+apps/backend/src/services/license-server.ts
+apps/backend/src/utils/jwt.ts
+apps/frontend/src/store/auth.ts
+packages/plugin-sdk/src/security/
+packages/plugin-sdk/src/core/PluginConfig.ts
+packages/shared/src/schemas/auth.ts
+packages/shared/src/types/auth.ts
+plugins/core/services/license.*
+
+# Payment Providers (contain API keys and sensitive logic)
+apps/backend/src/core/payment/providers/
+
+# 插件系统和其他备份文件
+backup/
+
+# Sync and Deployment Scripts
+*-sync.sh
+commit-and-sync.sh
+manual-sync.sh
+simple-commit.sh
+deploy*.sh
+blue-green-update.sh
+
+# Development and Build Files
+node_modules/
+.next/
+dist/
+build/
+.pnpm-store/
+logs/
+uploads/
+.claude/
+*.tsbuildinfo
+
+# Database and Cache
+*.db
+*.sqlite
+*.sql
+redis.conf
+
+# Certificates and Keys
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Backup Files
+*.backup
+*.bak
+*.old
+
+# Documentation (internal) - 已移动到backup/
+# DOCKER_SETUP.md
+# HEAT_UPDATE_SUMMARY.md
+# PROJECT_STRUCTURE.md
+# REQUIREMENTS.md
+# 产品需求文档.md
+# PRODUCT_REQUIREMENTS.md
+# DEPLOYMENT.md
+.env.prod
+docker-compose.prod.yml
+
+# Scripts (internal)
+abort-rebase.sh
+docker_launcher.py
+encode-readme.py
+fix-commits*.sh
+start-production-env.ps1
+status-jiffoo.sh
+stop-jiffoo.sh
+create-base64.py
+complete-readme-update.py
+
+# Update System
+Dockerfile.update-manager
+docker-compose.update.yml
+scripts/blue-green-update.sh
+
+# Commercial Features
+apps/backend/src/commercial/
+apps/frontend/src/commercial/
+plugins/commercial/
+
+# Security Tools and Source Files (exclude from open source)
+scripts/obfuscate-commercial-servers.js
+scripts/build-commercial-protection.sh
+apps/backend/src/core/commercial-servers-raw.js
+build-reports/
+backups/commercial-protection/
+
+# Note: The obfuscated commercial-servers.js WILL be included in open source
+
+# Plugin Management (sensitive)
+plugins/core/managers/installer.ts
+plugins/core/types/index.*
+
+# Note: unified-manager.ts is now included as open source stub version
+
+# Kubernetes Deployment (contains secrets)
+deploy/k8s/arc-values.yaml
+deploy/k8s/arc-runners/
+deploy/k8s/github-runner/
+deploy/k8s/gitlab-runner/
+deploy/k8s/gitlab/
+kubeconfig*
+*.kubeconfig
+
+# Internal Specs and Planning
+.kiro/
+
+# Super Admin (Platform Management - Private)
+apps/super-admin/
+e2e/super-admin/
+apps/api/src/core/super-admin/

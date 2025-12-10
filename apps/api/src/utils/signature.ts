@@ -39,7 +39,7 @@ import crypto from 'crypto'
  *
  * @example
  * // For /install call
- * const signature = generateSignature(secret, 'POST', '/install', '{"tenantId":1}', '2024-01-01T12:00:00.000Z');
+ * const signature = generateSignature(secret, 'POST', '/install', '{}', '2024-01-01T12:00:00.000Z');
  *
  * // For gateway API forwarding (/api/plugins/demo/api/orders -> /orders)
  * const signature = generateSignature(secret, 'GET', '/orders', '', '2024-01-01T12:00:00.000Z');

@@ -1,40 +1,50 @@
+/**
+ * API Routes (单商户版本)
+ */
+
 import { FastifyInstance } from 'fastify';
 
-// Import route modules from core
+// Core routes
 import { authRoutes } from '@/core/auth/routes';
 import { accountRoutes } from '@/core/account/routes';
 import { productRoutes } from '@/core/product/routes';
 import { cartRoutes } from '@/core/cart/routes';
 import { orderRoutes } from '@/core/order/routes';
+import { paymentRoutes } from '@/core/payment/routes';
 import { uploadRoutes } from '@/core/upload/routes';
 import { cacheRoutes } from '@/core/cache/routes';
-import { paymentGatewayRoutes } from '@/core/payment-gateway/routes';
-import { emailGatewayRoutes } from '@/core/email-gateway/routes';
-import { authGatewayRoutes } from '@/core/auth-gateway/routes';
 import { loggerRoutes } from '@/core/logger/routes';
-
-// Mall routes
-import { mallContextRoutes } from '@/core/mall/context/routes';
+import { installRoutes } from '@/core/install/routes';
+import { upgradeRoutes } from '@/core/upgrade/routes';
 
 // Admin routes
-import { adminUserManagementRoutes } from '@/core/admin/user-management/routes';
+import { adminUserRoutes } from '@/core/admin/user-management/routes';
 import { adminProductRoutes } from '@/core/admin/product-management/routes';
 import { adminOrderRoutes } from '@/core/admin/order-management/routes';
+import { adminThemeRoutes, publicThemeRoutes } from '@/core/admin/theme-management/routes';
 import { adminPluginRoutes } from '@/core/admin/plugin-management/routes';
-import { domainSettingsRoutes } from '@/core/admin/domain-settings/routes';
+import { registerLicenseRoutes } from '@/core/admin/license-management/routes';
+import backupRoutes from '@/core/admin/backup/routes';
 
-// Super admin routes
-import { superAdminUserRoutes } from '@/core/super-admin/user-management/routes';
-import { superAdminProductRoutes } from '@/core/super-admin/product-management/routes';
-import { superAdminOrderRoutes } from '@/core/super-admin/order-management/routes';
-import { superAdminTenantRoutes } from '@/core/super-admin/tenant-management/routes';
-import pluginManagementRoutes from '@/core/super-admin/plugin-management/routes';
+// Public plugin routes
+import { publicPluginRoutes } from '@/core/plugins/public-routes';
+
+// Extension installer routes
+import { extensionInstallerRoutes } from '@/services/extension-installer/routes';
+
+// Marketplace BFF routes
+import { marketplaceRoutes } from '@/services/marketplace/routes';
 
 /**
  * Register all API routes
- * This centralizes route registration and provides clear API structure
  */
 export async function registerRoutes(fastify: FastifyInstance) {
+  // Installation routes (no auth required)
+  await fastify.register(installRoutes, { prefix: '/api/install' });
+
+  // Upgrade routes (admin only)
+  await fastify.register(upgradeRoutes, { prefix: '/api/upgrade' });
+
   // Authentication routes
   await fastify.register(authRoutes, { prefix: '/api/auth' });
   
@@ -47,33 +57,33 @@ export async function registerRoutes(fastify: FastifyInstance) {
   // Cache management routes
   await fastify.register(cacheRoutes, { prefix: '/api/cache' });
 
-  // Mall context routes (public, no auth required)
-  await fastify.register(mallContextRoutes, { prefix: '/api/mall' });
-
   // Admin routes
-  await fastify.register(adminUserManagementRoutes, { prefix: '/api/admin/users' });
+  await fastify.register(adminUserRoutes, { prefix: '/api/admin/users' });
   await fastify.register(adminProductRoutes, { prefix: '/api/admin/products' });
   await fastify.register(adminOrderRoutes, { prefix: '/api/admin/orders' });
+  await fastify.register(adminThemeRoutes, { prefix: '/api/admin/themes' });
   await fastify.register(adminPluginRoutes, { prefix: '/api/admin/plugins' });
-  await fastify.register(domainSettingsRoutes, { prefix: '/api/admin/domain-settings' });
 
-  // Super admin routes
-  await fastify.register(superAdminUserRoutes, { prefix: '/api/super-admin/users' });
-  await fastify.register(superAdminProductRoutes, { prefix: '/api/super-admin/products' });
-  await fastify.register(superAdminOrderRoutes, { prefix: '/api/super-admin/orders' });
-  await fastify.register(superAdminTenantRoutes, { prefix: '/api/super-admin/tenants' });
-  await fastify.register(pluginManagementRoutes, { prefix: '/api/super-admin/plugins' });
+  // License management routes (at /api root since they handle /api/admin/licenses and /api/admin/plugins/:slug/license)
+  await registerLicenseRoutes(fastify);
+
+  // Backup management routes
+  await fastify.register(backupRoutes, { prefix: '/api/admin/backups' });
 
   // Public routes
   await fastify.register(productRoutes, { prefix: '/api/products' });
   await fastify.register(cartRoutes, { prefix: '/api/cart' });
   await fastify.register(orderRoutes, { prefix: '/api/orders' });
-
-  // Unified gateway routes
-  await fastify.register(paymentGatewayRoutes, { prefix: '/api/payments' });
-  await fastify.register(emailGatewayRoutes, { prefix: '/api/emails' });
-  await fastify.register(authGatewayRoutes, { prefix: '/api/auth-gateway' });
+  await fastify.register(paymentRoutes, { prefix: '/api/payments' });
+  await fastify.register(publicPluginRoutes, { prefix: '/api/plugins' });
+  await fastify.register(publicThemeRoutes, { prefix: '/api/themes' });
   
   // Logger routes
   await fastify.register(loggerRoutes, { prefix: '/api/logs' });
+
+  // Extension installer routes
+  await fastify.register(extensionInstallerRoutes, { prefix: '/api/extensions' });
+
+  // Marketplace BFF routes
+  await fastify.register(marketplaceRoutes, { prefix: '/api/marketplace' });
 }

@@ -29,21 +29,27 @@ function OrderSuccessContent() {
     return t ? t(key) : fallback;
   };
 
-  const verifyStripeSession = React.useCallback(async (sessionId: string) => {
+  const verifyPaymentSession = React.useCallback(async (sessionId: string) => {
     try {
-      const response = await fetch(`/api/plugins/stripe/api/verify-session?session_id=${sessionId}`);
+      // Try the standard payment API first
+      const response = await fetch(`/api/payments/verify/${sessionId}`);
 
       if (response.ok) {
         const data = await response.json();
-        setOrderNumber(data.orderId || `JF${Date.now().toString().slice(-6)}`);
-        await clearCart();
+        setOrderNumber(data.data?.orderId || `JF${Date.now().toString().slice(-6)}`);
       } else {
         setOrderNumber(`JF${Date.now().toString().slice(-6)}`);
       }
     } catch (error) {
-      console.error('Failed to verify Stripe session:', error);
+      console.error('Failed to verify payment session:', error);
       setOrderNumber(`JF${Date.now().toString().slice(-6)}`);
     } finally {
+      // Always clear cart after order success, regardless of verification result
+      try {
+        await clearCart();
+      } catch (e) {
+        console.error('Failed to clear cart:', e);
+      }
       setIsVerifying(false);
     }
   }, [clearCart]);
@@ -52,13 +58,21 @@ function OrderSuccessContent() {
     const sessionId = searchParams?.get('session_id');
 
     if (sessionId) {
-      verifyStripeSession(sessionId);
+      verifyPaymentSession(sessionId);
     } else {
+      // No session ID - still clear cart and show success
       setOrderNumber(`JF${Date.now().toString().slice(-6)}`);
       setIsVerifying(false);
-      clearCart();
+      // Use async IIFE to properly handle the async clearCart
+      (async () => {
+        try {
+          await clearCart();
+        } catch (e) {
+          console.error('Failed to clear cart:', e);
+        }
+      })();
     }
-  }, [searchParams, clearCart, verifyStripeSession]);
+  }, [searchParams, clearCart, verifyPaymentSession]);
 
   // Theme loading state
   if (themeLoading) {

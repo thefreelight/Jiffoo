@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  presets: [require('@jiffoo/ui/tailwind.preset')],
   darkMode: ['class'],
   content: [
     './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
@@ -12,6 +13,8 @@ module.exports = {
     './store/**/*.{js,ts,jsx,tsx,mdx}',
     // 扫描主题包
     '../../packages/shop-themes/*/src/**/*.{js,ts,jsx,tsx,mdx}',
+    // 扫描 UI 设计系统
+    '../../packages/ui/src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
     container: {

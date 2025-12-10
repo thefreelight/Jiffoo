@@ -6,6 +6,7 @@
 // shared 包的 package.json 已配置 exports 支持 ./logger 子路径
 import { createWinstonAdapter, ILogger, OperationType } from 'shared/logger';
 import { logger as winstonLogger } from './logger';
+import { logAggregator, LogEntry } from './log-aggregator';
 
 // 创建统一日志器实例
 export const unifiedLogger: ILogger = createWinstonAdapter(winstonLogger, {
@@ -138,6 +139,7 @@ export class UnifiedLoggerService {
       timestamp: new Date().toISOString()
     };
 
+    // 记录到 winston
     switch (level) {
       case 'debug':
         unifiedLogger.debug(message, enrichedMeta);
@@ -152,18 +154,28 @@ export class UnifiedLoggerService {
         unifiedLogger.error(message, enrichedMeta);
         break;
     }
+
+    // 同时添加到聚合器的内存缓存
+    this.addToAggregator(level, message, enrichedMeta);
   }
 
   // 获取日志统计
-  static async getLogStats(): Promise<any> {
-    // 这里可以实现真实的日志统计逻辑
-    // 比如读取日志文件，统计错误数量等
-    return {
-      totalLogs: 0,
-      errorLogs: 0,
-      warningLogs: 0,
-      infoLogs: 0
+  static async getLogStats(timeRange: string = '24h'): Promise<any> {
+    return logAggregator.getLogStats(timeRange);
+  }
+
+  // 添加日志到内存缓存（供实时查询）
+  static addToAggregator(level: string, message: string, meta?: any): void {
+    const entry: LogEntry = {
+      id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      appName: 'api',
+      environment: process.env.NODE_ENV || 'development',
+      meta: meta || {}
     };
+    logAggregator.addLog(entry);
   }
 
   // 新增：记录 API 请求日志

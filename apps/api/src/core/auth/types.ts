@@ -40,11 +40,5 @@ export interface AuthResponse {
     username: string;
     avatar?: string;
     role: string;
-    tenantId?: string;
-    tenantName?: string;
-    tenantSettings?: Record<string, any>;
-    tenantRole?: string;
   };
-  // 🔒 安全修复：移除token字段，token通过httpOnly cookie安全传递
-  // token和refreshToken已通过setCookie设置为httpOnly，不在响应体中暴露
 }

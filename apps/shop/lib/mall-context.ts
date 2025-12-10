@@ -207,50 +207,59 @@ export function clearMallContext(): void {
 }
 
 /**
+ * Default mall context for demo/development mode
+ * Used when no tenant is specified or backend is unavailable
+ */
+export const DEFAULT_MALL_CONTEXT: MallContext = {
+  tenantId: 'demo',
+  tenantName: 'Jiffoo Demo Store',
+  subdomain: null,
+  domain: null,
+  logo: null,
+  theme: { slug: 'default', config: undefined },
+  settings: {},
+  status: 'active',
+  defaultLocale: 'en',
+  supportedLocales: ['en', 'zh-Hant'],
+  isAgentMall: false,
+};
+
+/**
  * Initialize mall context
  * This should be called when the app starts
  *
- * Returns the mall context or redirects to store-not-found page
+ * Returns the mall context, falling back to demo mode if:
+ * - No tenant identifier found (主域名直接访问)
+ * - Backend unavailable (网络错误)
+ * - Store not found (租户不存在)
  *
- * 🆕 主域名访问规则：
- * - 主域名必须通过 ?tenant=<id> 访问
- * - 没有 tenant 参数时直接跳转到 store-not-found，不再 fallback 到 tenant=1
+ * 🔧 优雅降级 (Graceful Degradation):
+ * - 前后端分离架构下，前端应能独立运行
+ * - 后端不可用时使用演示数据，而非跳转错误页
  */
 export async function initializeMallContext(): Promise<MallContext | null> {
   // Detect tenant from URL
   const identifier = detectTenantIdentifier();
 
-  // 🆕 If no identifier found, redirect to store-not-found (不再 fallback 到 tenant=1)
-  // 主域名必须明确指定 tenant 参数
+  // 🔧 If no identifier found, use demo mode instead of redirecting
+  // This allows the frontend to work independently of backend
   if (!identifier.type || !identifier.value) {
-    if (typeof window !== 'undefined') {
-      // 记录当前域名信息用于调试
-      const hostname = window.location.hostname;
-      window.location.href = `/store-not-found?domain=${encodeURIComponent(hostname)}`;
-    }
-    return null;
+    console.info('🎭 No tenant specified, using demo mode');
+    return DEFAULT_MALL_CONTEXT;
   }
 
   // Fetch context from backend
   const result = await fetchMallContext(identifier);
 
-  // 🆕 移除 shouldRedirect 处理 - 后端不再返回 redirect 字段
-
-  // Handle "Store not found" or any error
+  // 🔧 Handle errors gracefully - use demo mode instead of redirecting
   if (result.error || !result.context) {
-    if (typeof window !== 'undefined') {
-      const redirectParams = new URLSearchParams();
-
-      if (identifier.type === 'query' && identifier.value) {
-        redirectParams.set('tenant', identifier.value);
-      }
-      if (identifier.type === 'domain' && identifier.value) {
-        redirectParams.set('domain', identifier.value);
-      }
-
-      window.location.href = `/store-not-found?${redirectParams.toString()}`;
-    }
-    return null;
+    console.warn(`⚠️ Failed to load mall context: ${result.error || 'Unknown error'}`);
+    console.info('🎭 Falling back to demo mode');
+    return {
+      ...DEFAULT_MALL_CONTEXT,
+      tenantId: identifier.value || 'demo',
+      tenantName: `Store ${identifier.value || 'Demo'}`,
+    };
   }
 
   if (result.context) {
@@ -264,6 +273,6 @@ export async function initializeMallContext(): Promise<MallContext | null> {
     return result.context;
   }
 
-  return null;
+  return DEFAULT_MALL_CONTEXT;
 }
 

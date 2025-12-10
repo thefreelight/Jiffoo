@@ -170,9 +170,14 @@ export function MallContextProvider({
         }
       } catch (err) {
         console.error('Failed to initialize mall context:', err);
-        const errorMsg = err instanceof Error ? err.message : 'Unknown error';
-        setError(errorMsg);
-        setMallError(errorMsg);
+        // 🔧 Graceful degradation: use demo mode instead of showing error
+        const { DEFAULT_MALL_CONTEXT } = await import('@/lib/mall-context');
+        console.info('🎭 Using demo mode due to error');
+        setContext(DEFAULT_MALL_CONTEXT);
+        setMallContext(DEFAULT_MALL_CONTEXT);
+        // Clear error state since we're gracefully degrading
+        setError(null);
+        setMallError(null);
       } finally {
         setIsLoading(false);
         setMallLoading(false);
@@ -196,16 +201,31 @@ export function MallContextProvider({
 
   // Show error state if context loading failed
   if (error) {
+    const handleRetry = () => {
+      setError(null);
+      setIsLoading(true);
+      // Trigger re-fetch by clearing context
+      setContext(null);
+    };
+
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600">Failed to Load Mall</h1>
-          <p className="mt-2 text-sm text-gray-600">{error}</p>
+      <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="text-center max-w-md px-4">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+            <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">加载商城失败</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{error}</p>
           <button
-            onClick={() => window.location.reload()}
-            className="mt-4 rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+            onClick={handleRetry}
+            className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 transition-colors"
           >
-            Retry
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            重试
           </button>
         </div>
       </div>

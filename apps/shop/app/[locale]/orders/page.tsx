@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useShopTheme } from '@/lib/themes/provider';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { ordersApi } from '@/lib/api';
@@ -28,15 +28,11 @@ export default function OrdersPage() {
   const [totalPages, setTotalPages] = useState(1);
 
   // Helper function for translations with fallback
-  const getText = (key: string, fallback: string): string => {
+  const getText = useCallback((key: string, fallback: string): string => {
     return t ? t(key) : fallback;
-  };
+  }, [t]);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [currentPage]);
-
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -61,7 +57,11 @@ export default function OrdersPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [getText]);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders, currentPage]);
 
   // Handle retry payment
   const handleRetryPayment = async (orderId: string) => {

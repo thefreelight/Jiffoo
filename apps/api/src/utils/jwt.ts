@@ -5,13 +5,19 @@ export interface JwtPayload {
   userId: string;
   email: string;
   role: string;
-  tenantId?: number;  // 修改为number类型
-  type?: 'access' | 'refresh'; // 支持不同类型的token
+  type?: 'access' | 'refresh';
 }
 
 export class JwtUtils {
   static sign(payload: JwtPayload | object, expiresIn: string | number = env.JWT_EXPIRES_IN || '7d'): string {
     return jwt.sign(payload, env.JWT_SECRET, {
+      expiresIn: expiresIn as any,
+      issuer: 'jiffoo-mall',
+    });
+  }
+
+  static signRefresh(payload: { userId: string }, expiresIn: string | number = '7d'): string {
+    return jwt.sign({ ...payload, type: 'refresh' }, env.JWT_SECRET, {
       expiresIn: expiresIn as any,
       issuer: 'jiffoo-mall',
     });

@@ -1,0 +1,182 @@
+{
+  "api": {
+    "appName": "api",
+    "environment": "production",
+    "level": "warn",
+    "file": {
+      "enabled": true,
+      "baseDir": "/var/log/jiffoo-mall",
+      "maxSize": "50m",
+      "maxFiles": "60d",
+      "datePattern": "YYYY-MM-DD",
+      "zippedArchive": true
+    },
+    "console": {
+      "enabled": false,
+      "colorize": false,
+      "timestamp": true
+    },
+    "monitoring": {
+      "enabled": true,
+      "checkInterval": 30000,
+      "alertRules": {
+        "errorRate": {
+          "enabled": true,
+          "threshold": 2,
+          "timeWindow": "10m",
+          "cooldown": 10
+        },
+        "errorCount": {
+          "enabled": true,
+          "threshold": 20,
+          "timeWindow": "5m",
+          "cooldown": 5
+        },
+        "logVolume": {
+          "enabled": true,
+          "threshold": 50000,
+          "timeWindow": "1h",
+          "cooldown": 30
+        }
+      }
+    },
+    "retention": {
+      "days": 60,
+      "cleanupInterval": "12h"
+    },
+    "performance": {
+      "enableBuffering": true,
+      "bufferSize": 2000,
+      "flushInterval": 3000
+    }
+  },
+  "shop": {
+    "appName": "shop",
+    "environment": "production",
+    "level": "warn",
+    "console": {
+      "enabled": false,
+      "colorize": false,
+      "timestamp": true
+    },
+    "remote": {
+      "enabled": true,
+      "batchSize": 50,
+      "flushInterval": 15000,
+      "maxRetries": 5,
+      "retryDelay": 2000,
+      "timeout": 15000
+    },
+    "localStorage": {
+      "enabled": true,
+      "maxLogs": 50,
+      "storageKey": "shop_logger_buffer"
+    },
+    "performance": {
+      "enabled": true,
+      "trackPageLoad": true,
+      "trackApiCalls": true,
+      "trackUserInteractions": false
+    },
+    "errorHandling": {
+      "captureGlobalErrors": true,
+      "captureUnhandledRejections": true,
+      "captureReactErrors": true
+    },
+    "privacy": {
+      "enableDataSanitization": true,
+      "excludeUrls": ["/api/auth", "/api/payment", "/api/admin"],
+      "excludeHeaders": ["authorization", "cookie", "x-api-key"]
+    }
+  },
+  "tenant": {
+    "appName": "tenant",
+    "environment": "production",
+    "level": "info",
+    "console": {
+      "enabled": false,
+      "colorize": false,
+      "timestamp": true
+    },
+    "remote": {
+      "enabled": true,
+      "batchSize": 30,
+      "flushInterval": 10000,
+      "maxRetries": 5,
+      "retryDelay": 2000,
+      "timeout": 20000
+    },
+    "localStorage": {
+      "enabled": true,
+      "maxLogs": 100,
+      "storageKey": "tenant_logger_buffer"
+    },
+    "audit": {
+      "enabled": true,
+      "trackAllActions": true,
+      "trackConfigChanges": true,
+      "trackUserManagement": true,
+      "trackSystemAccess": true
+    },
+    "performance": {
+      "enabled": true,
+      "trackPageLoad": true,
+      "trackApiCalls": true,
+      "trackUserInteractions": true,
+      "trackAdminOperations": true
+    },
+    "errorHandling": {
+      "captureGlobalErrors": true,
+      "captureUnhandledRejections": true,
+      "captureReactErrors": true,
+      "captureAdminErrors": true
+    },
+    "security": {
+      "trackFailedLogins": true,
+      "trackPermissionDenied": true,
+      "trackSuspiciousActivity": true,
+      "alertOnSecurityEvents": true
+    },
+    "privacy": {
+      "enableDataSanitization": true,
+      "excludeUrls": ["/api/auth", "/api/admin/sensitive"],
+      "excludeHeaders": ["authorization", "cookie", "x-api-key", "x-admin-token"]
+    }
+  },
+  "admin": {
+    "appName": "admin",
+    "environment": "production",
+    "level": "info",
+    "console": {
+      "enabled": false,
+      "colorize": false,
+      "timestamp": true
+    },
+    "remote": {
+      "enabled": true,
+      "batchSize": 20,
+      "flushInterval": 8000,
+      "maxRetries": 5,
+      "retryDelay": 2000,
+      "timeout": 20000
+    },
+    "localStorage": {
+      "enabled": true,
+      "maxLogs": 150,
+      "storageKey": "admin_logger_buffer"
+    },
+    "audit": {
+      "enabled": true,
+      "trackAllActions": true,
+      "trackSystemChanges": true,
+      "trackTenantManagement": true,
+      "trackLicenseManagement": true
+    },
+    "security": {
+      "trackAllAccess": true,
+      "trackSystemOperations": true,
+      "alertOnCriticalActions": true,
+      "requireSecurityLogging": true
+    }
+  }
+}

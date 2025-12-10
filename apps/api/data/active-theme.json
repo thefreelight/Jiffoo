@@ -1,0 +1,9 @@
+{
+  "slug": "default",
+  "version": "1.0.0",
+  "source": "builtin",
+  "config": {
+    "primaryColor": "#1890ff"
+  },
+  "activatedAt": "2025-12-08T16:04:11.401Z"
+}

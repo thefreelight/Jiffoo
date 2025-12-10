@@ -1,6 +1,7 @@
 /**
  * 404 页面组件
  * 当找不到页面或主题组件缺失时显示
+ * Uses @jiffoo/ui design system.
  */
 
 import React from 'react';
@@ -10,20 +11,18 @@ import { Button } from '../ui/Button';
 
 export function NotFound({ route, message, onGoHome }: NotFoundProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-neutral-50">
       <div className="text-center max-w-md px-4">
         {/* 404 icon */}
         <div className="mb-8">
-          <h1 className="text-9xl font-bold text-gray-200">404</h1>
+          <h1 className="text-9xl font-bold text-neutral-200">404</h1>
         </div>
 
         {/* Title */}
-        <h2 className="text-3xl font-bold text-gray-900 mb-4">
-          Page Not Found
-        </h2>
+        <h2 className="text-3xl font-bold text-neutral-900 mb-4">Page Not Found</h2>
 
         {/* Description */}
-        <p className="text-gray-600 mb-8">
+        <p className="text-neutral-500 mb-8">
           {message || `Sorry, we couldn't find the page${route ? ` "${route}"` : ''} you're looking for.`}
         </p>
 
@@ -34,9 +33,7 @@ export function NotFound({ route, message, onGoHome }: NotFoundProps) {
         </Button>
 
         {/* Help text */}
-        <p className="mt-8 text-sm text-gray-500">
-          If you believe this is an error, please contact our support team.
-        </p>
+        <p className="mt-8 text-sm text-neutral-400">If you believe this is an error, please contact our support team.</p>
       </div>
     </div>
   );

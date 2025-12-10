@@ -43,12 +43,17 @@ export class ThemeErrorBoundary extends React.Component<Props, State> {
     }
   }
 
-  handleReload = () => {
-    window.location.reload();
-  };
-
   handleReset = () => {
     this.setState({ hasError: false, error: null });
+  };
+
+  handleGoHome = () => {
+    // 使用 history API 导航，避免整页刷新
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', '/');
+      this.setState({ hasError: false, error: null });
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }
   };
 
   render() {
@@ -60,7 +65,7 @@ export class ThemeErrorBoundary extends React.Component<Props, State> {
 
       // 默认错误 UI
       return (
-        <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
           <div className="text-center max-w-md px-4">
             <div className="mb-4">
               <svg
@@ -77,37 +82,37 @@ export class ThemeErrorBoundary extends React.Component<Props, State> {
                 />
               </svg>
             </div>
-            
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">
-              Theme Rendering Error
+
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              主题渲染错误
             </h1>
-            
-            <p className="text-sm text-gray-600 mb-6">
-              {this.state.error?.message || 'An error occurred while rendering the theme component'}
+
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+              {this.state.error?.message || '渲染主题组件时出错'}
             </p>
 
             <div className="flex gap-3 justify-center">
               <button
                 onClick={this.handleReset}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-              >
-                Retry
-              </button>
-              
-              <button
-                onClick={this.handleReload}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
               >
-                Reload Page
+                重试
+              </button>
+
+              <button
+                onClick={this.handleGoHome}
+                className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+              >
+                返回首页
               </button>
             </div>
 
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <details className="mt-6 text-left">
-                <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
-                  View Error Details
+                <summary className="cursor-pointer text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
+                  查看错误详情
                 </summary>
-                <pre className="mt-2 p-4 bg-gray-100 rounded text-xs overflow-auto max-h-48">
+                <pre className="mt-2 p-4 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-auto max-h-48 text-red-600 dark:text-red-400">
                   {this.state.error.stack}
                 </pre>
               </details>

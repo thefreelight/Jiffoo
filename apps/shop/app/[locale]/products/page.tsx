@@ -11,6 +11,7 @@
 'use client';
 
 import * as React from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useShopTheme } from '@/lib/themes/provider';
 import { useCartStore } from '@/store/cart';
 import { useToast } from '@/hooks/use-toast';
@@ -18,13 +19,18 @@ import { ProductService, Product, ProductSearchFilters } from '@/services/produc
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useT } from 'shared/src/i18n';
 import { useAgentId, useIsAgentMall } from '@/store/mall';
+import { LoadingState, ErrorState, EmptyState } from '@/components/ui/state-components';
 
 export default function ProductsPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
   const nav = useLocalizedNavigation();
+  const searchParams = useSearchParams();
   const { addToCart } = useCartStore();
   const { toast } = useToast();
   const t = useT();
+
+  // Get category filter from URL
+  const categoryFromUrl = searchParams.get('category');
 
   // 🆕 Agent Mall context
   const agentId = useAgentId();
@@ -47,19 +53,33 @@ export default function ProductsPage() {
 
   // Load products with locale for translated data
   // 🆕 传递 agentId 以获取 Agent Mall 授权商品和价格
+  // 使用 ref 存储 agentId 和 isAgentMall 以避免无限循环
+  const agentIdRef = React.useRef(agentId);
+  const isAgentMallRef = React.useRef(isAgentMall);
+
+  React.useEffect(() => {
+    agentIdRef.current = agentId;
+    isAgentMallRef.current = isAgentMall;
+  }, [agentId, isAgentMall]);
+
   const loadProducts = React.useCallback(async (page = 1, filters: ProductSearchFilters = {}) => {
     try {
       setLoading(true);
       setError(null);
 
       const sortOrder = sortBy === 'price' ? (filters.sortOrder || 'asc') : 'desc';
+
+      // Include category from URL if present
+      const categoryFilter = categoryFromUrl ? { category: categoryFromUrl } : {};
+
       const response = await ProductService.getProducts(page, 12, {
         ...filters,
+        ...categoryFilter,
         sortBy: sortBy === 'rating' ? 'name' : sortBy as 'price' | 'name' | 'createdAt' | 'stock',
         sortOrder,
         locale: nav.locale, // Pass current locale for translated product data
         // 🆕 Agent Mall 场景：传递 agentId
-        agentId: isAgentMall ? agentId : undefined,
+        agentId: isAgentMallRef.current ? agentIdRef.current : undefined,
       });
 
       setProducts(response.products);
@@ -67,12 +87,12 @@ export default function ProductsPage() {
       setTotalPages(response.pagination.totalPages);
       setTotalProducts(response.pagination.total);
     } catch (err) {
-      setError(err instanceof Error ? err.message : getText('common.errors.unknown', 'Unknown error'));
+      setError(err instanceof Error ? err.message : 'Unknown error');
       console.error('Failed to load products:', err);
     } finally {
       setLoading(false);
     }
-  }, [sortBy, nav.locale, getText, isAgentMall, agentId]);
+  }, [sortBy, nav.locale, categoryFromUrl]);
 
   // Handle sort change
   const handleSortChange = (newSortBy: string) => {
@@ -86,7 +106,7 @@ export default function ProductsPage() {
     loadProducts(1, { sortOrder });
   };
 
-  // Initial load
+  // Reload when category changes
   React.useEffect(() => {
     loadProducts();
   }, [loadProducts]);
@@ -125,19 +145,18 @@ export default function ProductsPage() {
     loadProducts(page);
   };
 
-  // Theme loading state
+  // Theme loading state - use unified LoadingState component
   if (themeLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-          <p className="mt-4 text-sm text-gray-600">{getText('common.actions.loading', 'Loading...')}</p>
-        </div>
-      </div>
+      <LoadingState
+        type="spinner"
+        message={getText('common.actions.loading', 'Loading...')}
+        fullPage
+      />
     );
   }
 
-  // If theme component is unavailable, use NotFound fallback
+  // If theme component is unavailable, use ErrorState fallback
   if (!theme?.components?.ProductsPage) {
     const NotFoundComponent = theme?.components?.NotFound;
     if (NotFoundComponent) {
@@ -153,12 +172,12 @@ export default function ProductsPage() {
     }
 
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600">{getText('common.errors.themeUnavailable', 'Theme Component Unavailable')}</h1>
-          <p className="mt-2 text-sm text-gray-600">{getText('common.errors.productsUnavailable', 'Unable to load products component')}</p>
-        </div>
-      </div>
+      <ErrorState
+        title={getText('common.errors.themeUnavailable', 'Theme Component Unavailable')}
+        message={getText('common.errors.productsUnavailable', 'Unable to load products component')}
+        onGoHome={() => nav.push('/')}
+        fullPage
+      />
     );
   }
 

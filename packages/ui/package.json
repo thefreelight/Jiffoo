@@ -1,0 +1,72 @@
+{
+  "name": "@jiffoo/ui",
+  "version": "1.0.0",
+  "description": "Jiffoo Design System - Modern, minimalist UI components for e-commerce",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./tokens": {
+      "types": "./dist/tokens/index.d.ts",
+      "import": "./dist/tokens/index.js",
+      "require": "./dist/tokens/index.cjs"
+    },
+    "./tailwind.preset": {
+      "import": "./tailwind.preset.js",
+      "require": "./tailwind.preset.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "tailwind.preset.js",
+    "tailwind.preset.cjs"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "framer-motion": ">=10.0.0"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.5.5"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^14.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "fast-check": "^3.15.0",
+    "framer-motion": "^11.0.0",
+    "jsdom": "^24.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "tailwindcss": "^3.4.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.3.0",
+    "vitest": "^1.0.0"
+  },
+  "keywords": [
+    "jiffoo",
+    "design-system",
+    "ui",
+    "components",
+    "react",
+    "tailwindcss"
+  ],
+  "author": "Jiffoo Team",
+  "license": "MIT"
+}
+

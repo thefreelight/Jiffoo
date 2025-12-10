@@ -18,6 +18,7 @@ import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { ordersApi, paymentApi } from '@/lib/api';
 import { useT } from 'shared/src/i18n';
 import { useAgentId, useIsAgentMall } from '@/store/mall';
+import { toast } from '@/components/ui/toaster';
 import type { CheckoutFormData } from 'shared/src/types/theme';
 
 export default function CheckoutPage() {
@@ -93,8 +94,12 @@ export default function CheckoutPage() {
       }
 
       // 3. Redirect to payment page
-      if (paymentResponse.data.url) {
-        window.location.href = paymentResponse.data.url;
+      // Note: Response may be nested (paymentResponse.data.data.url) due to API wrapper
+      const sessionData = paymentResponse.data as any;
+      const paymentUrl = sessionData.url || sessionData.data?.url;
+
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
       } else {
         console.error('paymentResponse.data does not have url:', paymentResponse.data);
         throw new Error('Invalid payment session response');
@@ -102,7 +107,11 @@ export default function CheckoutPage() {
     } catch (error: any) {
       console.error('Order failed:', error);
       const errorMessage = error.response?.data?.message || error.message || getText('common.errors.general', 'Failed to process order. Please try again.');
-      alert(errorMessage);
+      toast({
+        title: getText('common.errors.orderFailed', 'Order Failed'),
+        description: errorMessage,
+        variant: 'destructive',
+      });
       setIsProcessing(false);
     }
   };

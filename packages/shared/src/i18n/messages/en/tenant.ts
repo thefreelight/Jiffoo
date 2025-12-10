@@ -634,6 +634,7 @@ export const tenant = {
   plugins: {
     title: 'Plugin Management',
     subtitle: 'Manage your installed plugins and discover new ones from the marketplace',
+    overview: 'Overview',
     installed: 'Installed',
     marketplace: 'Marketplace',
     install: 'Install',

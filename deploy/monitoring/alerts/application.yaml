@@ -1,0 +1,145 @@
+# Application Alerting Rules for Jiffoo Mall
+# Prometheus alerting rules for application monitoring
+
+groups:
+  - name: application
+    interval: 30s
+    rules:
+      # API error rate alert
+      - alert: APIErrorRateHigh
+        expr: |
+          sum(rate(http_requests_total{status=~"5..",job="jiffoo-api"}[5m])) 
+          / 
+          sum(rate(http_requests_total{job="jiffoo-api"}[5m])) * 100 > 5
+        for: 2m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "API error rate is above 5%"
+          description: "API error rate is {{ $value | printf \"%.2f\" }}% over the last 5 minutes"
+          runbook_url: "https://docs.jiffoo.com/runbooks/api-error-rate"
+
+      - alert: APIErrorRateCritical
+        expr: |
+          sum(rate(http_requests_total{status=~"5..",job="jiffoo-api"}[5m])) 
+          / 
+          sum(rate(http_requests_total{job="jiffoo-api"}[5m])) * 100 > 10
+        for: 1m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API error rate is critical (>10%)"
+          description: "API error rate is {{ $value | printf \"%.2f\" }}%. Immediate investigation required!"
+
+      # API latency alert (p99)
+      - alert: APILatencyP99High
+        expr: |
+          histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job="jiffoo-api"}[5m])) by (le)) > 2
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "API p99 latency is above 2 seconds"
+          description: "API p99 latency is {{ $value | printf \"%.2f\" }}s over the last 5 minutes"
+          runbook_url: "https://docs.jiffoo.com/runbooks/api-latency"
+
+      - alert: APILatencyP99Critical
+        expr: |
+          histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket{job="jiffoo-api"}[5m])) by (le)) > 5
+        for: 2m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API p99 latency is critical (>5s)"
+          description: "API p99 latency is {{ $value | printf \"%.2f\" }}s. Performance severely degraded!"
+
+      # API availability alert
+      - alert: APIDown
+        expr: |
+          up{job="jiffoo-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: api
+        annotations:
+          summary: "API service is down"
+          description: "API service on {{ $labels.instance }} is not responding"
+
+      # Slow endpoint detection
+      - alert: SlowEndpoint
+        expr: |
+          histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{job="jiffoo-api"}[5m])) by (le, path)) > 3
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "Slow endpoint detected"
+          description: "Endpoint {{ $labels.path }} p95 latency is {{ $value | printf \"%.2f\" }}s"
+
+      # Request rate anomaly
+      - alert: RequestRateAnomaly
+        expr: |
+          abs(sum(rate(http_requests_total{job="jiffoo-api"}[5m])) - sum(rate(http_requests_total{job="jiffoo-api"}[1h] offset 1d))) 
+          / 
+          sum(rate(http_requests_total{job="jiffoo-api"}[1h] offset 1d)) > 0.5
+        for: 10m
+        labels:
+          severity: info
+          component: api
+        annotations:
+          summary: "Request rate anomaly detected"
+          description: "Request rate has changed significantly compared to same time yesterday"
+
+      # Database query latency
+      - alert: DatabaseQuerySlow
+        expr: |
+          histogram_quantile(0.95, sum(rate(prisma_query_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database queries are slow"
+          description: "Database p95 query latency is {{ $value | printf \"%.2f\" }}s"
+
+      # Queue backlog alert
+      - alert: QueueBacklogHigh
+        expr: |
+          bullmq_queue_waiting{queue=~".*"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+          component: queue
+        annotations:
+          summary: "Queue backlog is high"
+          description: "Queue {{ $labels.queue }} has {{ $value }} waiting jobs"
+
+      # Auth failure rate
+      - alert: AuthFailureRateHigh
+        expr: |
+          sum(rate(auth_failures_total[5m])) / sum(rate(auth_attempts_total[5m])) * 100 > 20
+        for: 5m
+        labels:
+          severity: warning
+          component: auth
+        annotations:
+          summary: "Authentication failure rate is high"
+          description: "Auth failure rate is {{ $value | printf \"%.1f\" }}%. Possible brute force attack?"
+
+      # Webhook delivery failures
+      - alert: WebhookDeliveryFailing
+        expr: |
+          sum(rate(webhook_delivery_failures_total[5m])) / sum(rate(webhook_delivery_total[5m])) * 100 > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: webhook
+        annotations:
+          summary: "Webhook delivery failure rate is high"
+          description: "Webhook delivery failure rate is {{ $value | printf \"%.1f\" }}%"
+

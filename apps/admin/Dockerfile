@@ -1,4 +1,4 @@
-# Multi-stage build for Jiffoo Mall Admin
+# Multi-stage build for Jiffoo Mall Admin (商户管理后台)
 FROM node:20-alpine AS base
 
 # Build-time proxy configuration
@@ -6,29 +6,39 @@ ARG HTTP_PROXY=http://192.168.0.106:7890
 ARG HTTPS_PROXY=http://192.168.0.106:7890
 ARG NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,10.0.0.0/8
 
-# Set proxy environment variables for npm
+# Install system packages BEFORE setting proxy (Alpine repos don't need proxy)
+RUN apk add --no-cache libc6-compat
+
+# Set proxy environment variables for npm/pnpm (after apk)
 ENV HTTP_PROXY=${HTTP_PROXY}
 ENV HTTPS_PROXY=${HTTPS_PROXY}
 ENV NO_PROXY=${NO_PROXY}
+# pnpm specific proxy settings
+ENV npm_config_proxy=${HTTP_PROXY}
+ENV npm_config_https_proxy=${HTTPS_PROXY}
 
 # Install dependencies only when needed
 FROM base AS deps
-# Configure Alpine mirrors for faster package installation
-
-RUN apk add --no-cache libc6-compat
-
-# Install pnpm
-RUN npm install -g pnpm@9.0.0
-
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+# Install pnpm with proxy and npm mirror
+RUN npm config set proxy ${HTTP_PROXY} && \
+    npm config set https-proxy ${HTTPS_PROXY} && \
+    npm config set registry https://registry.npmmirror.com && \
+    npm install -g pnpm@9.0.0
+
+# Copy workspace files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/admin/package.json ./apps/admin/
 COPY packages/shared/package.json ./packages/shared/
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile
+# Install dependencies with npm mirror and retry settings
+# Override .npmrc registry which may point to internal mirror
+RUN sed -i 's|registry=http://npm.lafdru.local/|registry=https://registry.npmmirror.com/|g' .npmrc && \
+    pnpm config set fetch-retries 5 && \
+    pnpm config set fetch-retry-mintimeout 20000 && \
+    pnpm config set fetch-retry-maxtimeout 120000 && \
+    pnpm install --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -42,11 +52,15 @@ COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_module
 # Copy source code
 COPY . .
 
+# Ensure public directory exists (create empty one if it doesn't exist)
+RUN mkdir -p /app/apps/admin/public
+
 # Set environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 # Set backend URL for build-time rewrites configuration
-ENV BACKEND_SERVICE_URL=http://backend:3001
+# This URL is used by Next.js rewrites to proxy /api/* requests to the backend
+ENV API_SERVICE_URL=http://jiffoo-mall-core-backend:3002
 
 # Build shared package first (required for workspace dependency resolution)
 RUN cd packages/shared && npm run build
@@ -58,8 +72,13 @@ RUN cd apps/admin && npx next build
 FROM base AS runner
 WORKDIR /app
 
+# Cache buster - changes force rebuild of runner stage
+ARG BUILD_SHA=unknown
+ENV BUILD_SHA=${BUILD_SHA}
+
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
+ENV PORT 3003
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
@@ -71,10 +90,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/apps/admin/.next/static ./apps/ad
 
 USER nextjs
 
-EXPOSE 3000
+EXPOSE 3003
 
-ENV PORT 3000
 ENV HOSTNAME "0.0.0.0"
 
-# Start the Platform Admin Dashboard
-CMD ["node", "apps/admin/server.js"]
+# Start with explicit port (Next.js standalone reads PORT env var)
+CMD ["sh", "-c", "PORT=${PORT:-3003} node apps/admin/server.js"]

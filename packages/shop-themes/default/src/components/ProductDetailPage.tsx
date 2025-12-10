@@ -1,9 +1,11 @@
 /**
  * 商品详情页组件
+ * Uses @jiffoo/ui design system.
  */
 
 import React from 'react';
-import { ArrowLeft, Minus, Plus, ShoppingCart, Star, Loader2 } from 'lucide-react';
+import { ArrowLeft, Minus, Plus, ShoppingCart, Star, Loader2, Heart, Share2 } from 'lucide-react';
+import { cn } from '@jiffoo/ui';
 import type { ProductDetailPageProps } from '../../../../shared/src/types/theme';
 import { Button } from '../ui/Button';
 
@@ -21,10 +23,10 @@ export function ProductDetailPage({
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen bg-neutral-50">
         <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto mb-4" />
-          <p className="text-gray-600">Loading product details...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-brand-600 mx-auto mb-4" />
+          <p className="text-neutral-500">Loading product details...</p>
         </div>
       </div>
     );
@@ -33,9 +35,9 @@ export function ProductDetailPage({
   // Product not found
   if (!product) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen bg-neutral-50">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h2>
+          <h2 className="text-2xl font-bold text-neutral-900 mb-4">Product Not Found</h2>
           <Button onClick={onBack}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Go Back
@@ -45,18 +47,47 @@ export function ProductDetailPage({
     );
   }
 
-  const isOutOfStock = !product.inventory?.isInStock;
-  const maxQuantity = Math.min(product.inventory?.available || 0, 10);
+  // Handle both inventory object and direct stock field
+  // Debug: log product data to understand structure
+  console.log('[ProductDetailPage] Product data:', {
+    id: product.id,
+    name: product.name,
+    inventory: product.inventory,
+    stock: (product as any).stock,
+    rawProduct: product
+  });
 
-  const mainImage = product.images && product.images.length > 0
-    ? product.images.find(img => img.isMain)?.url || product.images[0].url
-    : '/placeholder-product.jpg';
+  const stockValue = product.inventory?.available ?? (product as any).stock ?? 0;
+  const isOutOfStock = product.inventory?.isInStock === false || stockValue <= 0;
+  const maxQuantity = Math.min(stockValue, 10);
+
+  console.log('[ProductDetailPage] Stock calculation:', { stockValue, isOutOfStock, maxQuantity });
+
+  // Handle both image object array and string array formats
+  const getMainImage = () => {
+    if (!product.images || product.images.length === 0) {
+      return '/placeholder-product.jpg';
+    }
+    const firstImage = product.images[0];
+    // If it's a string (URL), use it directly
+    if (typeof firstImage === 'string') {
+      return firstImage;
+    }
+    // If it's an object, find main image or use first
+    const mainImg = product.images.find((img: any) => img.isMain);
+    return mainImg?.url || (firstImage as any).url || '/placeholder-product.jpg';
+  };
+  const mainImage = getMainImage();
+
+  const discountPercent = product.originalPrice && product.originalPrice > product.price
+    ? Math.round((1 - product.price / product.originalPrice) * 100)
+    : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-neutral-50">
       {/* Back button */}
       <div className="container mx-auto px-4 py-6">
-        <Button variant="ghost" onClick={onBack}>
+        <Button variant="ghost" onClick={onBack} className="rounded-xl">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Products
         </Button>
@@ -66,52 +97,63 @@ export function ProductDetailPage({
       <div className="container mx-auto px-4 pb-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
           <div>
-            <div className="aspect-square rounded-lg overflow-hidden bg-gray-100 mb-4">
+            <div className="aspect-square rounded-2xl overflow-hidden bg-white shadow-sm mb-4 relative">
               <img
                 src={mainImage}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
+              {discountPercent > 0 && (
+                <div className="absolute top-4 left-4 bg-error-500 text-white text-sm font-semibold px-3 py-1 rounded-full">
+                  -{discountPercent}%
+                </div>
+              )}
             </div>
 
             {product.images && product.images.length > 1 && (
-              <div className="grid grid-cols-4 gap-4">
-                {product.images.slice(0, 4).map((image) => (
-                  <div
-                    key={image.id}
-                    className="aspect-square rounded-lg overflow-hidden bg-gray-100 cursor-pointer hover:opacity-75 transition-opacity"
-                  >
-                    <img
-                      src={image.url}
-                      alt={image.alt}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                ))}
+              <div className="grid grid-cols-4 gap-3">
+                {product.images.slice(0, 4).map((image, index) => {
+                  const imageUrl = typeof image === 'string' ? image : (image as any).url;
+                  const imageAlt = typeof image === 'string' ? product.name : ((image as any).alt || product.name);
+                  const imageKey = typeof image === 'string' ? `img-${index}` : ((image as any).id || `img-${index}`);
+                  return (
+                    <div
+                      key={imageKey}
+                      className="aspect-square rounded-xl overflow-hidden bg-white shadow-sm cursor-pointer hover:ring-2 hover:ring-brand-500 transition-all"
+                    >
+                      <img
+                        src={imageUrl}
+                        alt={imageAlt}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          <div>
-            <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
+          <div className="bg-white rounded-2xl p-8 shadow-sm border border-neutral-100 h-fit">
+            <h1 className="text-3xl font-bold text-neutral-900 mb-4">{product.name}</h1>
 
             {/* 评分 */}
-            {config?.features?.showRatings && (
+            {config?.features?.showRatings && product.rating !== undefined && (
               <div className="flex items-center gap-2 mb-4">
                 <div className="flex items-center">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <Star
                       key={i}
-                      className={`h-5 w-5 ${
-                        i < Math.floor(product.rating)
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-gray-300'
-                      }`}
+                      className={cn(
+                        'h-5 w-5',
+                        i < Math.floor(product.rating || 0)
+                          ? 'fill-warning-400 text-warning-400'
+                          : 'text-neutral-200'
+                      )}
                     />
                   ))}
                 </div>
-                <span className="text-sm text-gray-600">
-                  {product.rating.toFixed(1)} ({product.reviewCount} reviews)
+                <span className="text-sm text-neutral-500">
+                  {(product.rating || 0).toFixed(1)} ({product.reviewCount || 0} reviews)
                 </span>
               </div>
             )}
@@ -119,9 +161,9 @@ export function ProductDetailPage({
             {/* 价格 */}
             <div className="mb-6">
               <div className="flex items-baseline gap-3">
-                <span className="text-4xl font-bold">${product.price}</span>
+                <span className="text-4xl font-bold text-brand-600">${product.price}</span>
                 {product.originalPrice && product.originalPrice > product.price && (
-                  <span className="text-xl text-gray-500 line-through">
+                  <span className="text-xl text-neutral-400 line-through">
                     ${product.originalPrice}
                   </span>
                 )}
@@ -130,25 +172,26 @@ export function ProductDetailPage({
 
             {/* 描述 */}
             <div className="mb-6">
-              <p className="text-gray-700 leading-relaxed">{product.description}</p>
+              <p className="text-neutral-600 leading-relaxed">{product.description}</p>
             </div>
 
             {/* Variant selection */}
             {product.variants && product.variants.length > 0 && (
               <div className="mb-6">
-                <h3 className="font-semibold mb-3">Select Options</h3>
+                <h3 className="font-semibold text-neutral-900 mb-3">Select Options</h3>
                 <div className="flex flex-wrap gap-2">
                   {product.variants.map((variant) => (
                     <button
                       key={variant.id}
                       onClick={() => onVariantChange(variant.id)}
-                      className={`px-4 py-2 border rounded-lg transition-colors ${
+                      className={cn(
+                        'px-4 py-2 border rounded-xl transition-all',
                         selectedVariant === variant.id
-                          ? 'border-blue-600 bg-blue-50 text-blue-600'
-                          : 'border-gray-300 hover:border-gray-400'
-                      }`}
+                          ? 'border-brand-500 bg-brand-50 text-brand-600 ring-2 ring-brand-500/20'
+                          : 'border-neutral-200 hover:border-neutral-300 text-neutral-700'
+                      )}
                     >
-                      {variant.value}
+                      {variant.name || variant.value}
                     </button>
                   ))}
                 </div>
@@ -157,56 +200,79 @@ export function ProductDetailPage({
 
             {/* Quantity selection */}
             <div className="mb-6">
-              <h3 className="font-semibold mb-3">Quantity</h3>
+              <h3 className="font-semibold text-neutral-900 mb-3">Quantity</h3>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
                   disabled={quantity <= 1}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-3 border border-neutral-200 rounded-xl hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <Minus className="h-4 w-4" />
+                  <Minus className="h-4 w-4 text-neutral-600" />
                 </button>
-                <span className="text-xl font-semibold w-12 text-center">{quantity}</span>
+                <span className="text-xl font-semibold w-12 text-center text-neutral-900">{quantity}</span>
                 <button
                   onClick={() => onQuantityChange(Math.min(maxQuantity, quantity + 1))}
                   disabled={quantity >= maxQuantity}
-                  className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="p-3 border border-neutral-200 rounded-xl hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-4 w-4 text-neutral-600" />
                 </button>
-                <span className="text-sm text-gray-600">
-                  Stock: {product.inventory?.available || 0} available
+                <span className="text-sm text-neutral-500">
+                  {stockValue} available
                 </span>
               </div>
             </div>
 
             {/* Add to cart */}
-            <Button
-              onClick={onAddToCart}
-              disabled={isOutOfStock}
-              size="lg"
-              className="w-full"
-            >
-              <ShoppingCart className="h-5 w-5 mr-2" />
-              {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-            </Button>
+            <div className="flex gap-3 mb-6">
+              <Button
+                onClick={() => {
+                  console.log('[ProductDetailPage] Add to Cart clicked, onAddToCart:', typeof onAddToCart);
+                  if (onAddToCart) {
+                    onAddToCart();
+                  } else {
+                    console.error('[ProductDetailPage] onAddToCart is not defined!');
+                  }
+                }}
+                disabled={isOutOfStock}
+                size="lg"
+                className="flex-1 shadow-brand-md"
+              >
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+              </Button>
+              <Button variant="outline" size="lg" className="px-4">
+                <Heart className="h-5 w-5" />
+              </Button>
+              <Button variant="outline" size="lg" className="px-4">
+                <Share2 className="h-5 w-5" />
+              </Button>
+            </div>
 
             {/* Product information */}
-            <div className="mt-8 border-t pt-6">
-              <h3 className="font-semibold mb-4">Product Information</h3>
-              <dl className="space-y-2">
-                <div className="flex justify-between">
-                  <dt className="text-gray-600">SKU</dt>
-                  <dd className="font-medium">{product.sku}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-gray-600">Category</dt>
-                  <dd className="font-medium">{product.category.name}</dd>
-                </div>
+            <div className="mt-8 border-t border-neutral-100 pt-6">
+              <h3 className="font-semibold text-neutral-900 mb-4">Product Information</h3>
+              <dl className="space-y-3">
+                {product.sku && (
+                  <div className="flex justify-between">
+                    <dt className="text-neutral-500">SKU</dt>
+                    <dd className="font-medium text-neutral-900">{product.sku}</dd>
+                  </div>
+                )}
+                {(product.category || (product as any).category) && (
+                  <div className="flex justify-between">
+                    <dt className="text-neutral-500">Category</dt>
+                    <dd className="font-medium text-neutral-900">
+                      {typeof product.category === 'string'
+                        ? product.category
+                        : (product.category as any)?.name || (product as any).category}
+                    </dd>
+                  </div>
+                )}
                 {product.tags && product.tags.length > 0 && (
                   <div className="flex justify-between">
-                    <dt className="text-gray-600">Tags</dt>
-                    <dd className="font-medium">{product.tags.join(', ')}</dd>
+                    <dt className="text-neutral-500">Tags</dt>
+                    <dd className="font-medium text-neutral-900">{product.tags.join(', ')}</dd>
                   </div>
                 )}
               </dl>

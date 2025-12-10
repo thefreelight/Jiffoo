@@ -225,6 +225,27 @@ export class RedisCache {
     }
   }
 
+  public async flushAll(): Promise<boolean> {
+    return this.flushdb();
+  }
+
+  public async deleteByPattern(pattern: string): Promise<boolean> {
+    if (!this.isConnected) {
+      return false;
+    }
+
+    try {
+      const keys = await this.redis.keys(pattern);
+      if (keys.length > 0) {
+        await this.redis.del(...keys);
+      }
+      return true;
+    } catch (error) {
+      console.error('Redis deleteByPattern error:', error);
+      return false;
+    }
+  }
+
   public getConnectionStatus(): boolean {
     return this.isConnected;
   }

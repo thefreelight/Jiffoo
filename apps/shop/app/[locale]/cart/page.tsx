@@ -13,6 +13,7 @@ import { useCartStore } from '@/store/cart';
 import { useAuthStore } from '@/store/auth';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useT } from 'shared/src/i18n';
+import { LoadingState, ErrorState } from '@/components/ui/state-components';
 
 export default function CartPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
@@ -67,19 +68,18 @@ export default function CartPage() {
     nav.push('/products');
   };
 
-  // Theme loading state
+  // Theme loading state - use unified LoadingState component
   if (themeLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-          <p className="mt-4 text-sm text-gray-600">{getText('common.actions.loading', 'Loading...')}</p>
-        </div>
-      </div>
+      <LoadingState
+        type="spinner"
+        message={getText('common.actions.loading', 'Loading...')}
+        fullPage
+      />
     );
   }
 
-  // If theme component is unavailable, use NotFound fallback
+  // If theme component is unavailable, use ErrorState fallback
   if (!theme?.components?.CartPage) {
     const NotFoundComponent = theme?.components?.NotFound;
     if (NotFoundComponent) {
@@ -95,12 +95,12 @@ export default function CartPage() {
     }
 
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600">{getText('common.errors.themeUnavailable', 'Theme Component Unavailable')}</h1>
-          <p className="mt-2 text-sm text-gray-600">{getText('common.errors.cartUnavailable', 'Unable to load cart component')}</p>
-        </div>
-      </div>
+      <ErrorState
+        title={getText('common.errors.themeUnavailable', 'Theme Component Unavailable')}
+        message={getText('common.errors.cartUnavailable', 'Unable to load cart component')}
+        onGoHome={() => nav.push('/')}
+        fullPage
+      />
     );
   }
 

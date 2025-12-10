@@ -31,45 +31,13 @@ export default function CategoriesPage() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  // Helper function for translations with fallback
-  const getText = (key: string, fallback: string): string => {
+  // Helper function for translations with fallback - memoized to prevent infinite loops
+  const getText = React.useCallback((key: string, fallback: string): string => {
     return t ? t(key) : fallback;
-  };
+  }, [t]);
 
-  // Load categories data
-  React.useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const response = await productsApi.getCategories();
-        if (response.success && response.data) {
-          // Transform API data to match component structure
-          const transformedCategories = (response.data as unknown as { name: string; count: number }[]).map((cat: { name: string; count: number }, index: number) => ({
-            id: cat.name.toLowerCase().replace(/\s+/g, '-'),
-            name: cat.name,
-            description: `Discover ${cat.count} amazing products`,
-            image: getDefaultCategoryImage(cat.name),
-            productCount: cat.count,
-            featured: cat.count > 50, // Mark categories with more than 50 products as featured
-          }));
-          setCategories(transformedCategories);
-        } else {
-          setError(getText('common.errors.general', 'Failed to load categories'));
-        }
-      } catch (err) {
-        console.error('Error fetching categories:', err);
-        setError(getText('common.errors.general', 'Failed to load categories'));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCategories();
-  }, [getText]);
-
-  // Helper function to get default category images
-  const getDefaultCategoryImage = (categoryName: string) => {
+  // Helper function to get default category images - defined before useEffect
+  const getDefaultCategoryImage = React.useCallback((categoryName: string) => {
     const imageMap: Record<string, string> = {
       'Electronics': 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=600&h=400&fit=crop',
       'Fashion': 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&h=400&fit=crop',
@@ -81,7 +49,52 @@ export default function CategoriesPage() {
       'Toys': 'https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=600&h=400&fit=crop',
     };
     return imageMap[categoryName] || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=400&fit=crop';
-  };
+  }, []);
+
+  // Load categories data - only run once on mount
+  React.useEffect(() => {
+    let isMounted = true;
+
+    const fetchCategories = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await productsApi.getCategories();
+
+        if (!isMounted) return;
+
+        if (response.success && response.data) {
+          // Transform API data to match component structure
+          // Use original category name as ID for API filtering
+          const transformedCategories = (response.data as unknown as { name: string; count: number }[]).map((cat: { name: string; count: number }) => ({
+            id: cat.name, // Use original name for API filtering
+            name: cat.name,
+            description: `Discover ${cat.count} amazing products`,
+            image: getDefaultCategoryImage(cat.name),
+            productCount: cat.count,
+            featured: cat.count > 50, // Mark categories with more than 50 products as featured
+          }));
+          setCategories(transformedCategories);
+        } else {
+          setError(getText('common.errors.general', 'Failed to load categories'));
+        }
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('Error fetching categories:', err);
+        setError(getText('common.errors.general', 'Failed to load categories'));
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchCategories();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [getDefaultCategoryImage, getText]);
 
   // Helper function to get category colors
   const getCategoryColor = (index: number) => {
@@ -153,6 +166,7 @@ export default function CategoriesPage() {
       locale={nav.locale}
       t={t}
       onCategoryClick={handleCategoryClick}
+      onNavigateToHome={() => nav.push('/')}
     />
   );
 }

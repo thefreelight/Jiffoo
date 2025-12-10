@@ -1,0 +1,46 @@
+{
+  "slug": "distribution",
+  "name": "Distribution System",
+  "version": "1.0.0",
+  "description": "Multi-level distribution and commission system for e-commerce, supporting agent hierarchies, commission rules, and automatic settlements",
+  "category": "business",
+  "runtimeType": "internal-fastify",
+  "entryModule": "server/index.js",
+  "permissions": [
+    "agent:read",
+    "agent:write",
+    "commission:read",
+    "commission:write",
+    "settlement:read",
+    "settlement:write"
+  ],
+  "author": "Jiffoo Team",
+  "authorUrl": "https://jiffoo.com",
+  "icon": "users",
+  "minApiVersion": "1.0.0",
+  "tags": ["distribution", "commission", "agent", "mlm"],
+  "dependencies": {},
+  "config": {
+    "maxAgentLevel": {
+      "type": "number",
+      "default": 3,
+      "description": "Maximum agent hierarchy level"
+    },
+    "defaultCommissionRate": {
+      "type": "number",
+      "default": 0.1,
+      "description": "Default commission rate (0.1 = 10%)"
+    },
+    "autoSettlement": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable automatic commission settlement"
+    },
+    "settlementCycle": {
+      "type": "string",
+      "default": "monthly",
+      "enum": ["daily", "weekly", "monthly"],
+      "description": "Settlement cycle"
+    }
+  }
+}

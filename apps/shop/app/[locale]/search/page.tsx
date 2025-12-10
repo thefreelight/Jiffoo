@@ -48,7 +48,7 @@ function SearchPageContent() {
   });
 
   // Perform search with locale for translated product data
-  const performSearch = React.useCallback(async (query: string, filters: ProductSearchFilters = {}) => {
+  const performSearch = React.useCallback(async (query: string, searchFilters: ProductSearchFilters = {}) => {
     if (!query.trim()) {
       setProducts([]);
       setLoading(false);
@@ -59,22 +59,56 @@ function SearchPageContent() {
       setLoading(true);
       setError(null);
 
-      const sortOrder = sortBy === 'price-low' ? 'asc' : 'desc';
-      const response = await ProductService.searchProducts(query, 1, 12, {
-        ...filters,
-        sortBy: sortBy as 'price' | 'name' | 'createdAt' | 'stock',
+      // Map UI sort options to API sort parameters
+      // 'relevance' and 'newest' use createdAt, price options use price
+      let apiSortBy: 'price' | 'name' | 'createdAt' | 'stock' = 'createdAt';
+      let sortOrder: 'asc' | 'desc' = 'desc';
+
+      switch (sortBy) {
+        case 'price-low':
+          apiSortBy = 'price';
+          sortOrder = 'asc';
+          break;
+        case 'price-high':
+          apiSortBy = 'price';
+          sortOrder = 'desc';
+          break;
+        case 'newest':
+          apiSortBy = 'createdAt';
+          sortOrder = 'desc';
+          break;
+        case 'relevance':
+        default:
+          apiSortBy = 'createdAt';
+          sortOrder = 'desc';
+          break;
+      }
+
+      // Only include inStock filter if explicitly set to true
+      // When inStock is false or undefined, don't send it to avoid filtering out in-stock products
+      const apiFilters: ProductSearchFilters = {
+        ...searchFilters,
+        sortBy: apiSortBy,
         sortOrder,
         locale: nav.locale, // Pass current locale for translated product data
-      });
+      };
+
+      // Remove inStock if it's false (we want to show all products, not just out-of-stock)
+      if (apiFilters.inStock === false) {
+        delete apiFilters.inStock;
+      }
+
+      const response = await ProductService.searchProducts(query, 1, 12, apiFilters);
 
       setProducts(response.products);
     } catch (err) {
-      setError(err instanceof Error ? err.message : getText('common.errors.unknown', 'Unknown error'));
+      const errorMessage = 'Unknown error';
+      setError(err instanceof Error ? err.message : errorMessage);
       console.error('Failed to search products:', err);
     } finally {
       setLoading(false);
     }
-  }, [sortBy, nav.locale, getText]);
+  }, [sortBy, nav.locale]);
 
   // Initial search
   React.useEffect(() => {

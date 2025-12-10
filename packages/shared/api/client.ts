@@ -105,16 +105,28 @@ export class ApiClient {
   constructor(config: ApiClientConfig = {}, storage?: StorageAdapter) {
     this.loginPath = config.loginPath || '/login';
     this.storage = storage || StorageAdapterFactory.create();
-    
+
+    // 确保 defaultHeaders 总是被正确设置
+    const defaultHeaders = config.defaultHeaders || {};
+
     this.axiosInstance = axios.create({
       baseURL: config.baseURL || envConfig.getApiServiceBaseUrl(),
       timeout: config.timeout || 10000,
       withCredentials: config.withCredentials ?? true,
       headers: {
         'Content-Type': 'application/json',
-        ...config.defaultHeaders,
+        ...defaultHeaders,
       },
     });
+
+    // 调试日志（仅在开发环境）
+    if (typeof window !== 'undefined') {
+      console.log('[ApiClient] Created with headers:', {
+        baseURL: config.baseURL,
+        defaultHeaders,
+        axiosHeaders: this.axiosInstance.defaults.headers,
+      });
+    }
 
     this.setupInterceptors();
   }
@@ -131,6 +143,15 @@ export class ApiClient {
         const tenantId = this.getTenantId();
         if (tenantId) {
           config.headers['X-Tenant-ID'] = tenantId;
+        }
+
+        // 调试日志
+        if (typeof window !== 'undefined') {
+          console.log('[ApiClient] Request interceptor:', {
+            url: config.url,
+            tenantId,
+            headers: config.headers,
+          });
         }
 
         return config;

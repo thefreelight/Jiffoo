@@ -115,6 +115,7 @@ class EnvironmentConfig {
       return `${baseUrl}/api`;
     } else {
       // 客户端：使用Next.js代理路径
+      // Next.js rewrites 会转发 headers（包括 X-Tenant-ID）
       return this.getRequired('NEXT_PUBLIC_API_URL');
     }
   }

@@ -42,6 +42,10 @@ import { AuthCallbackPage } from './components/AuthCallbackPage';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 
+// UI 组件导出
+export { Toast, ToastContainer } from './ui/Toast';
+export type { ToastProps, ToastType } from './ui/Toast';
+
 /**
  * 默认主题包
  */

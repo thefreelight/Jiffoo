@@ -1,0 +1,97 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.grafana.enabled }}
+# Grafana Dashboard ConfigMap - Database & Redis
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "jiffoo-mall-core.fullname" . }}-dashboard-db-redis
+  labels:
+    {{- include "jiffoo-mall-core.labels" . | nindent 4 }}
+    {{ .Values.monitoring.grafana.label }}: {{ .Values.monitoring.grafana.labelValue | quote }}
+  annotations:
+    grafana_folder: {{ .Values.monitoring.grafana.folder | quote }}
+data:
+  jiffoo-db-redis.json: |
+    {
+      "annotations": { "list": [] },
+      "editable": true,
+      "panels": [
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "fieldConfig": { "defaults": { "unit": "s" } },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+          "id": 1,
+          "targets": [{
+            "expr": "histogram_quantile(0.50, sum(rate(db_query_duration_seconds_bucket{service=~\".*backend.*\"}[5m])) by (le, operation))",
+            "legendFormat": "P50 - {{operation}}"
+          }, {
+            "expr": "histogram_quantile(0.95, sum(rate(db_query_duration_seconds_bucket{service=~\".*backend.*\"}[5m])) by (le, operation))",
+            "legendFormat": "P95 - {{operation}}"
+          }],
+          "title": "Database Query Latency",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "fieldConfig": { "defaults": { "unit": "ops" } },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+          "id": 2,
+          "targets": [{
+            "expr": "sum(rate(db_query_duration_seconds_count{service=~\".*backend.*\"}[5m])) by (operation)",
+            "legendFormat": "{{operation}}"
+          }],
+          "title": "Database Operations Rate",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "fieldConfig": { "defaults": { "unit": "ops" } },
+          "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+          "id": 3,
+          "targets": [{
+            "expr": "sum(rate(redis_operations_total{service=~\".*backend.*\"}[5m])) by (operation)",
+            "legendFormat": "{{operation}}"
+          }],
+          "title": "Redis Operations Rate",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "fieldConfig": { "defaults": { "unit": "percentunit", "max": 1 } },
+          "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+          "id": 4,
+          "targets": [{
+            "expr": "sum(rate(cache_hits_total{service=~\".*backend.*\"}[5m])) / (sum(rate(cache_hits_total{service=~\".*backend.*\"}[5m])) + sum(rate(cache_misses_total{service=~\".*backend.*\"}[5m])))",
+            "legendFormat": "Cache Hit Rate"
+          }],
+          "title": "Redis Cache Hit Rate",
+          "type": "timeseries"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "${datasource}" },
+          "fieldConfig": { "defaults": { "mappings": [{"options": {"0": {"color": "red", "text": "DOWN"}, "1": {"color": "green", "text": "UP"}}, "type": "value"}] } },
+          "gridPos": { "h": 4, "w": 6, "x": 0, "y": 16 },
+          "id": 5,
+          "targets": [{ "expr": "redis_connection_status{service=~\".*backend.*\"}", "legendFormat": "Redis" }],
+          "title": "Redis Connection Status",
+          "type": "stat"
+        }
+      ],
+      "refresh": "30s",
+      "schemaVersion": 38,
+      "tags": ["jiffoo", "database", "redis"],
+      "templating": {
+        "list": [{
+          "current": { "selected": false, "text": "Prometheus", "value": "prometheus" },
+          "label": "Data Source",
+          "name": "datasource",
+          "query": "prometheus",
+          "type": "datasource"
+        }]
+      },
+      "time": { "from": "now-1h", "to": "now" },
+      "title": "Jiffoo Mall - Database & Redis",
+      "uid": "jiffoo-db-redis",
+      "version": 1
+    }
+{{- end }}
+

@@ -30,10 +30,10 @@ export const API_ENDPOINTS = {
   // Cart
   CART: {
     GET: '/cart',
-    ADD: '/cart/add',
-    UPDATE: '/cart/update',
-    REMOVE: '/cart/remove/:id',
-    CLEAR: '/cart/clear',
+    ADD: '/cart/items',
+    UPDATE: '/cart/items/:id',
+    REMOVE: '/cart/items/:id',
+    CLEAR: '/cart',
   },
 
   // Orders

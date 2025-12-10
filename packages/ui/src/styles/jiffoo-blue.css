@@ -1,0 +1,172 @@
+/**
+ * Jiffoo Blue Minimal Design System
+ * 
+ * A clean, modern design system with blue as the primary color.
+ * Based on the Jiffoo brand guidelines.
+ */
+
+/* ========================================
+   CSS Variables
+   ======================================== */
+:root {
+  /* Colors */
+  --jf-bg-main: #F8FAFC;
+  --jf-bg-card: #FFFFFF;
+  --jf-primary: #3B82F6;
+  --jf-primary-hover: #2563EB;
+  --jf-primary-light: #EFF6FF;
+  --jf-text-main: #0F172A;
+  --jf-text-muted: #64748B;
+  --jf-border: #E2E8F0;
+  
+  /* Layout */
+  --jf-container-width: 1024px;
+  --jf-header-height: 72px;
+  
+  /* Shadows */
+  --jf-shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --jf-shadow-button: 0 4px 14px -4px rgba(59, 130, 246, 0.5);
+  --jf-shadow-button-hover: 0 6px 20px -4px rgba(59, 130, 246, 0.6);
+  --jf-shadow-card: 0 25px 50px -12px rgba(59, 130, 246, 0.15);
+  
+  /* Border Radius */
+  --jf-radius-sm: 6px;
+  --jf-radius: 8px;
+  --jf-radius-lg: 12px;
+  --jf-radius-xl: 16px;
+  
+  /* Transitions */
+  --jf-transition: all 0.2s ease;
+}
+
+/* ========================================
+   Base Styles
+   ======================================== */
+.jf-base {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+  background-color: var(--jf-bg-main);
+  color: var(--jf-text-main);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ========================================
+   Typography
+   ======================================== */
+.jf-h1 {
+  font-size: 3.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+  color: var(--jf-text-main);
+}
+
+.jf-h2 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--jf-text-main);
+}
+
+.jf-h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--jf-text-main);
+}
+
+.jf-text-blue {
+  color: var(--jf-primary);
+}
+
+.jf-text-muted {
+  color: var(--jf-text-muted);
+}
+
+/* ========================================
+   Container
+   ======================================== */
+.jf-container {
+  max-width: var(--jf-container-width);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ========================================
+   Button Styles
+   ======================================== */
+.jf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 1.25rem;
+  border-radius: var(--jf-radius);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: var(--jf-transition);
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.jf-btn-primary {
+  background: var(--jf-primary);
+  color: white;
+  box-shadow: var(--jf-shadow-button);
+}
+
+.jf-btn-primary:hover {
+  background: var(--jf-primary-hover);
+  transform: translateY(-1px);
+  box-shadow: var(--jf-shadow-button-hover);
+}
+
+.jf-btn-secondary {
+  background: white;
+  color: var(--jf-text-muted);
+  border: 1px solid var(--jf-border);
+}
+
+.jf-btn-secondary:hover {
+  color: var(--jf-primary);
+  border-color: var(--jf-primary);
+}
+
+/* ========================================
+   Card Styles
+   ======================================== */
+.jf-card {
+  background: var(--jf-bg-card);
+  border-radius: var(--jf-radius-lg);
+  padding: 1.5rem;
+}
+
+.jf-card-feature {
+  text-align: center;
+  padding: 2rem;
+  border-radius: var(--jf-radius-lg);
+  transition: var(--jf-transition);
+}
+
+.jf-card-feature:hover {
+  background: var(--jf-bg-main);
+}
+
+.jf-card-product {
+  border-radius: var(--jf-radius-xl);
+  box-shadow: var(--jf-shadow-card);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+/* ========================================
+   Icon Container
+   ======================================== */
+.jf-icon-circle {
+  width: 56px;
+  height: 56px;
+  background: var(--jf-primary-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--jf-primary);
+}
+

@@ -70,31 +70,32 @@ export function createLogEntry(
 }
 
 /**
- * 数据脱敏 - 检测和脱敏敏感信息
+ * 数据脱敏 - 检测和脱敏敏感信息（基础版本）
+ * @deprecated 请使用 sanitizer.ts 中的 DataSanitizer 类
  */
-export function sanitizeData(data: any): any {
+export function sanitizeDataBasic(data: any): any {
   if (typeof data !== 'object' || data === null) {
     return sanitizeString(String(data));
   }
 
   if (Array.isArray(data)) {
-    return data.map(sanitizeData);
+    return data.map(sanitizeDataBasic);
   }
 
   const sanitized: any = {};
   for (const [key, value] of Object.entries(data)) {
     const lowerKey = key.toLowerCase();
-    
+
     // 检查敏感字段
     if (isSensitiveField(lowerKey)) {
       sanitized[key] = maskSensitiveValue(String(value));
     } else if (typeof value === 'object') {
-      sanitized[key] = sanitizeData(value);
+      sanitized[key] = sanitizeDataBasic(value);
     } else {
       sanitized[key] = sanitizeString(String(value));
     }
   }
-  
+
   return sanitized;
 }
 

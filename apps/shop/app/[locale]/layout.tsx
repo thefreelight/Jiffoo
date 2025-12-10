@@ -17,6 +17,7 @@ import {
 import { ConditionalLayout } from '@/components/conditional-layout';
 import { PageTracker } from '@/components/page-tracker';
 import { Toaster } from '@/components/ui/toaster';
+import { OfflineDetector } from '@/components/offline-detector';
 
 interface Props extends Omit<LocaleLayoutProps, 'params'> {
   params: Promise<{ locale: string }>;
@@ -36,6 +37,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   return (
     <I18nProvider locale={locale as Locale} messages={messages}>
       <Suspense fallback={<div>Loading...</div>}>
+        <OfflineDetector position="top" />
         <PageTracker />
         <ConditionalLayout>{children}</ConditionalLayout>
         <Toaster />

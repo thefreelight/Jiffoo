@@ -55,6 +55,12 @@ pids
 coverage/
 *.lcov
 
+# Playwright
+playwright-report/
+test-results/
+playwright/.cache/
+e2e/visual/baselines/*.png
+
 # nyc test coverage
 .nyc_output
 

@@ -1,0 +1,38 @@
+concurrent = 10
+check_interval = 3
+log_level = "info"
+connection_max_age = "15m0s"
+shutdown_timeout = 0
+
+[session_server]
+  session_timeout = 1800
+
+[[runners]]
+  name = "k8s-docker-runner"
+  request_concurrency = 10
+  url = "https://git.lafdru.local"
+  token = "glrt-Yj3sMeaEdTo8t7T2vSC1"
+  executor = "kubernetes"
+  run_untagged = true
+  environment = ["GIT_SSL_NO_VERIFY=false"]
+  tls_ca_file = "/etc/gitlab-runner/certs/ca.crt"
+
+  [runners.cache]
+    MaxUploadedArchiveSize = 0
+
+  [runners.kubernetes]
+    host = "https://kubernetes.default.svc"
+    bearer_token_overwrite_allowed = false
+    image = "ubuntu:22.04"
+    namespace = "gitlab-runner"
+    namespace_overwrite_allowed = ""
+    namespace_per_job = false
+    privileged = true
+    service_account = "gitlab-runner"
+    service_account_overwrite_allowed = ""
+    pull_policy = ["if-not-present"]
+    node_selector_overwrite_allowed = ""
+    node_tolerations_overwrite_allowed = ""
+    pod_labels_overwrite_allowed = ""
+    pod_annotations_overwrite_allowed = ""
+

@@ -1,6 +1,7 @@
 /**
  * 订单取消页面组件
  * 显示订单取消/支付取消信息
+ * Uses @jiffoo/ui design system.
  */
 
 import React from 'react';
@@ -16,7 +17,7 @@ export function OrderCancelledPage({
   onContactSupport,
 }: OrderCancelledPageProps) {
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-neutral-50">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-2xl mx-auto text-center">
           {/* Cancelled Icon */}
@@ -26,7 +27,9 @@ export function OrderCancelledPage({
             transition={{ duration: 0.6, type: "spring" }}
             className="mb-8"
           >
-            <XCircle className="h-24 w-24 text-orange-500 mx-auto" />
+            <div className="w-24 h-24 rounded-full bg-warning-100 flex items-center justify-center mx-auto">
+              <XCircle className="h-12 w-12 text-warning-600" />
+            </div>
           </motion.div>
 
           {/* Title */}
@@ -36,8 +39,8 @@ export function OrderCancelledPage({
             transition={{ duration: 0.6, delay: 0.2 }}
             className="mb-8"
           >
-            <h1 className="text-4xl font-bold text-orange-600 mb-4">Payment Cancelled</h1>
-            <p className="text-xl text-muted-foreground">
+            <h1 className="text-4xl font-bold text-warning-600 mb-4">Payment Cancelled</h1>
+            <p className="text-xl text-neutral-500">
               Your payment was cancelled. No charges were made to your account.
             </p>
           </motion.div>
@@ -47,24 +50,28 @@ export function OrderCancelledPage({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border p-6 mb-8"
+            className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 mb-8"
           >
             <div className="space-y-4 text-left">
               <div className="flex items-start gap-3">
-                <ShoppingCart className="h-5 w-5 text-blue-500 mt-0.5" />
+                <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center flex-shrink-0">
+                  <ShoppingCart className="h-4 w-4 text-brand-600" />
+                </div>
                 <div>
-                  <p className="font-medium mb-1">Your cart is still saved</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-medium text-neutral-900 mb-1">Your cart is still saved</p>
+                  <p className="text-sm text-neutral-500">
                     All items remain in your cart and you can complete your purchase anytime
                   </p>
                 </div>
               </div>
 
               <div className="flex items-start gap-3">
-                <HelpCircle className="h-5 w-5 text-purple-500 mt-0.5" />
+                <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
+                  <HelpCircle className="h-4 w-4 text-purple-600" />
+                </div>
                 <div>
-                  <p className="font-medium mb-1">Need help?</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-medium text-neutral-900 mb-1">Need help?</p>
+                  <p className="text-sm text-neutral-500">
                     If you encountered any issues during checkout, please contact our support team
                   </p>
                 </div>
@@ -77,13 +84,13 @@ export function OrderCancelledPage({
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
-            className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border p-6 mb-8"
+            className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 mb-8"
           >
-            <h2 className="text-xl font-semibold mb-4">What Happened?</h2>
-            <p className="text-muted-foreground text-left mb-4">
+            <h2 className="text-xl font-semibold text-neutral-900 mb-4">What Happened?</h2>
+            <p className="text-neutral-500 text-left mb-4">
               You cancelled the payment process before completing your order. This could happen if you:
             </p>
-            <ul className="text-left text-muted-foreground space-y-2 list-disc list-inside">
+            <ul className="text-left text-neutral-500 space-y-2 list-disc list-inside">
               <li>Clicked the back button during checkout</li>
               <li>Closed the payment window</li>
               <li>Decided to review your order again</li>
@@ -98,19 +105,12 @@ export function OrderCancelledPage({
             transition={{ duration: 0.6, delay: 0.8 }}
             className="flex flex-col sm:flex-row gap-4 justify-center"
           >
-            <Button
-              size="lg"
-              onClick={onReturnToCart}
-            >
+            <Button size="lg" onClick={onReturnToCart}>
               <ShoppingCart className="h-4 w-4 mr-2" />
               Return to Cart
             </Button>
 
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={onContinueShopping}
-            >
+            <Button variant="outline" size="lg" onClick={onContinueShopping} className="rounded-xl">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Continue Shopping
             </Button>
@@ -122,13 +122,13 @@ export function OrderCancelledPage({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.6, delay: 1.0 }}
-              className="mt-8 text-sm text-muted-foreground"
+              className="mt-8 text-sm text-neutral-500"
             >
               <p>
                 Need assistance?{' '}
                 <button
                   onClick={onContactSupport}
-                  className="text-primary hover:underline font-medium"
+                  className="text-brand-600 hover:underline font-medium"
                 >
                   Contact Support
                 </button>

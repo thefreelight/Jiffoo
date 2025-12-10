@@ -221,22 +221,14 @@ export async function loggerRoutes(fastify: FastifyInstance) {
         200: logStatsResponseSchema
       }
     }
-  }, async (request: FastifyRequest<{ 
-    Querystring: { timeRange?: string } 
+  }, async (request: FastifyRequest<{
+    Querystring: { timeRange?: string }
   }>, reply: FastifyReply) => {
     try {
       const timeRange = request.query.timeRange || '24h';
-      
-      // 这里可以实现真实的日志统计逻辑
-      // 目前返回模拟数据
-      const stats = {
-        totalLogs: 1250,
-        errorLogs: 15,
-        warningLogs: 45,
-        infoLogs: 890,
-        debugLogs: 300,
-        timeRange
-      };
+
+      // 使用 LogAggregator 获取真实统计数据
+      const stats = await logAggregator.getLogStats(timeRange);
 
       logger.info('Log stats requested', {
         type: 'log_stats_request',
@@ -625,6 +617,154 @@ export async function loggerRoutes(fastify: FastifyInstance) {
       return reply.code(500).send({
         error: 'DELETE_RULE_FAILED',
         message: 'Failed to delete alert rule'
+      });
+    }
+  });
+
+  /**
+   * GET /api/logs/monitor/dashboard - 获取监控仪表盘数据
+   */
+  fastify.get('/monitor/dashboard', {
+    schema: {
+      hide: true,
+      description: '获取监控仪表盘数据',
+      tags: ['Logger'],
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            activeAlerts: { type: 'array' },
+            recentAlerts: { type: 'array' },
+            stats: { type: 'object' },
+            rules: { type: 'object' }
+          }
+        }
+      }
+    }
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      const dashboardData = await logMonitor.getDashboardData();
+      return reply.send(dashboardData);
+    } catch (error) {
+      logger.error('Failed to get dashboard data', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+
+      return reply.code(500).send({
+        error: 'DASHBOARD_FAILED',
+        message: 'Failed to retrieve dashboard data'
+      });
+    }
+  });
+
+  /**
+   * POST /api/logs/monitor/start - 启动监控
+   */
+  fastify.post('/monitor/start', {
+    schema: {
+      hide: true,
+      description: '启动日志监控',
+      tags: ['Logger'],
+      body: {
+        type: 'object',
+        properties: {
+          intervalMs: { type: 'number', default: 60000 }
+        }
+      }
+    }
+  }, async (request: FastifyRequest<{ Body: { intervalMs?: number } }>, reply: FastifyReply) => {
+    try {
+      const intervalMs = request.body?.intervalMs || 60000;
+      logMonitor.start(intervalMs);
+
+      return reply.send({
+        success: true,
+        message: `Monitoring started with interval ${intervalMs}ms`
+      });
+    } catch (error) {
+      logger.error('Failed to start monitoring', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+
+      return reply.code(500).send({
+        error: 'START_FAILED',
+        message: 'Failed to start monitoring'
+      });
+    }
+  });
+
+  /**
+   * POST /api/logs/monitor/stop - 停止监控
+   */
+  fastify.post('/monitor/stop', {
+    schema: {
+      hide: true,
+      description: '停止日志监控',
+      tags: ['Logger']
+    }
+  }, async (request: FastifyRequest, reply: FastifyReply) => {
+    try {
+      logMonitor.stop();
+
+      return reply.send({
+        success: true,
+        message: 'Monitoring stopped'
+      });
+    } catch (error) {
+      logger.error('Failed to stop monitoring', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+
+      return reply.code(500).send({
+        error: 'STOP_FAILED',
+        message: 'Failed to stop monitoring'
+      });
+    }
+  });
+
+  /**
+   * POST /api/logs/alerts/test-feishu - 测试飞书告警
+   */
+  fastify.post('/alerts/test-feishu', {
+    schema: {
+      hide: true,
+      description: '测试飞书告警通知',
+      tags: ['Logger'],
+      body: {
+        type: 'object',
+        properties: {
+          webhookUrl: { type: 'string' }
+        }
+      }
+    }
+  }, async (request: FastifyRequest<{ Body: { webhookUrl?: string } }>, reply: FastifyReply) => {
+    try {
+      const testAlert = {
+        id: 'test_alert_' + Date.now(),
+        ruleId: 'test',
+        ruleName: 'Test Alert',
+        message: '这是一条测试告警消息',
+        severity: 'medium' as const,
+        timestamp: new Date(),
+        conditions: [],
+        data: {},
+        resolved: false
+      };
+
+      await logMonitor.sendFeishuAlert(testAlert, request.body?.webhookUrl);
+
+      return reply.send({
+        success: true,
+        message: 'Test alert sent to Feishu'
+      });
+    } catch (error) {
+      logger.error('Failed to send test Feishu alert', {
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+
+      return reply.code(500).send({
+        error: 'TEST_FAILED',
+        message: 'Failed to send test Feishu alert'
       });
     }
   });

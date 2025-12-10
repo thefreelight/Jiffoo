@@ -3,7 +3,8 @@
  */
 
 import { ILogger, LogLevel, LogMeta, OperationLog, LoggerConfig } from '../types';
-import { formatError, sanitizeData } from '../utils';
+import { formatError } from '../utils';
+import { sanitizeData } from '../sanitizer';
 
 export interface WinstonAdapterOptions {
   winston: any; // winston logger instance

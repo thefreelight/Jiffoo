@@ -393,6 +393,137 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
+   * 发送飞书通知
+   */
+  async sendFeishuAlert(alert: Alert, webhookUrl?: string): Promise<void> {
+    const url = webhookUrl || process.env.FEISHU_WEBHOOK_URL;
+    if (!url) {
+      logger.warn('Feishu webhook URL not configured', { alertId: alert.id });
+      return;
+    }
+
+    const severityEmoji = {
+      low: '💡',
+      medium: '⚠️',
+      high: '🔶',
+      critical: '🔴'
+    };
+
+    const message = {
+      msg_type: 'interactive',
+      card: {
+        header: {
+          title: {
+            tag: 'plain_text',
+            content: `${severityEmoji[alert.severity]} 日志告警 - ${alert.ruleName}`
+          },
+          template: alert.severity === 'critical' ? 'red' : alert.severity === 'high' ? 'orange' : 'yellow'
+        },
+        elements: [
+          {
+            tag: 'div',
+            text: {
+              tag: 'lark_md',
+              content: `**告警消息**: ${alert.message}`
+            }
+          },
+          {
+            tag: 'div',
+            fields: [
+              { is_short: true, text: { tag: 'lark_md', content: `**严重程度**: ${alert.severity}` } },
+              { is_short: true, text: { tag: 'lark_md', content: `**触发时间**: ${alert.timestamp.toISOString()}` } }
+            ]
+          },
+          {
+            tag: 'div',
+            text: {
+              tag: 'lark_md',
+              content: `**告警ID**: ${alert.id}`
+            }
+          }
+        ]
+      }
+    };
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(message)
+      });
+
+      if (!response.ok) {
+        throw new Error(`Feishu notification failed: ${response.status}`);
+      }
+
+      logger.info('Feishu alert sent', { alertId: alert.id, severity: alert.severity });
+    } catch (err) {
+      logger.error(new Error('Failed to send Feishu alert'), {
+        alertId: alert.id,
+        originalError: err instanceof Error ? err.message : 'Unknown error'
+      });
+    }
+  }
+
+  /**
+   * 获取监控仪表盘数据
+   */
+  async getDashboardData(): Promise<{
+    activeAlerts: Alert[];
+    recentAlerts: Alert[];
+    stats: {
+      totalAlerts: number;
+      unresolvedAlerts: number;
+      alertsBySeverity: Record<string, number>;
+      alertsByRule: Record<string, number>;
+    };
+    rules: {
+      total: number;
+      enabled: number;
+      disabled: number;
+    };
+  }> {
+    const allAlerts = this.getAllAlerts();
+    const activeAlerts = this.getActiveAlerts();
+
+    // 最近24小时的告警
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recentAlerts = allAlerts.filter(a => a.timestamp > oneDayAgo);
+
+    // 按严重程度统计
+    const alertsBySeverity: Record<string, number> = { low: 0, medium: 0, high: 0, critical: 0 };
+    for (const alert of allAlerts) {
+      alertsBySeverity[alert.severity]++;
+    }
+
+    // 按规则统计
+    const alertsByRule: Record<string, number> = {};
+    for (const alert of allAlerts) {
+      alertsByRule[alert.ruleName] = (alertsByRule[alert.ruleName] || 0) + 1;
+    }
+
+    // 规则统计
+    const rules = this.getRules();
+    const enabledRules = rules.filter(r => r.enabled).length;
+
+    return {
+      activeAlerts,
+      recentAlerts: recentAlerts.slice(0, 20), // 最近20条
+      stats: {
+        totalAlerts: allAlerts.length,
+        unresolvedAlerts: activeAlerts.length,
+        alertsBySeverity,
+        alertsByRule
+      },
+      rules: {
+        total: rules.length,
+        enabled: enabledRules,
+        disabled: rules.length - enabledRules
+      }
+    };
+  }
+
+  /**
    * 设置默认规则
    */
   private setupDefaultRules(): void {

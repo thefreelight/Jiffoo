@@ -2,21 +2,21 @@
  * 统一日志系统 - 基础日志器
  */
 
-import { 
-  ILogger, 
-  ITransport, 
-  LogLevel, 
-  LogMeta, 
-  LoggerConfig, 
-  OperationLog 
+import {
+  ILogger,
+  ITransport,
+  LogLevel,
+  LogMeta,
+  LoggerConfig,
+  OperationLog
 } from './types';
-import { 
-  createLogEntry, 
-  shouldLog, 
-  formatError, 
-  sanitizeData, 
-  validateLoggerConfig 
+import {
+  createLogEntry,
+  shouldLog,
+  formatError,
+  validateLoggerConfig
 } from './utils';
+import { sanitizeData } from './sanitizer';
 
 /**
  * 基础日志器实现

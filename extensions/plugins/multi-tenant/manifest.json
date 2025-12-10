@@ -1,0 +1,39 @@
+{
+  "slug": "multi-tenant",
+  "name": "Multi-Tenant System",
+  "version": "1.0.0",
+  "description": "Enables multi-tenant mode with tenant isolation, dedicated databases, and tenant management APIs",
+  "category": "infrastructure",
+  "runtimeType": "internal-fastify",
+  "entryModule": "server/index.js",
+  "permissions": [
+    "tenant:read",
+    "tenant:write",
+    "tenant:delete",
+    "system:config"
+  ],
+  "author": "Jiffoo Team",
+  "authorUrl": "https://jiffoo.com",
+  "icon": "building-2",
+  "minApiVersion": "1.0.0",
+  "tags": ["multi-tenant", "saas", "enterprise"],
+  "dependencies": {},
+  "config": {
+    "enableTenantIsolation": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable strict tenant data isolation"
+    },
+    "allowTenantRegistration": {
+      "type": "boolean",
+      "default": false,
+      "description": "Allow public tenant self-registration"
+    },
+    "maxTenantsPerInstance": {
+      "type": "number",
+      "default": 100,
+      "description": "Maximum number of tenants per instance"
+    }
+  }
+}
+

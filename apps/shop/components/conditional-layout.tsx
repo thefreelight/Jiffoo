@@ -19,10 +19,12 @@ interface ConditionalLayoutProps {
 export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const pathname = usePathname();
 
-  // Pages that should not have header/footer
-  const isErrorPage = pathname === '/store-not-found';
+  // Pages that should not have header/footer or mall context
+  // Check for store-not-found with or without locale prefix (e.g., /store-not-found, /en/store-not-found)
+  const isErrorPage = pathname?.includes('/store-not-found');
+  const isPreviewPage = pathname?.includes('/design-preview');
 
-  if (isErrorPage) {
+  if (isErrorPage || isPreviewPage) {
     // Render only children for error pages
     return (
       <main className="min-h-screen">

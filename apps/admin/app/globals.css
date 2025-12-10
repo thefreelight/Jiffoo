@@ -1,22 +1,230 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Jiffoo Blue Minimal Design System */
+    --jf-bg-main: #F8FAFC;
+    --jf-bg-card: #FFFFFF;
+    --jf-primary: #3B82F6;
+    --jf-primary-hover: #2563EB;
+    --jf-primary-light: #EFF6FF;
+    --jf-text-main: #0F172A;
+    --jf-text-muted: #64748B;
+    --jf-border: #E2E8F0;
+
+    /* Legacy compatibility */
+    --background: 248 250 252;
+    --foreground: 15 23 42;
+    --border: 226 232 240;
+    --input: 226 232 240;
+    --ring: 59 130 246;
+    --primary: 59 130 246;
+    --primary-foreground: 255 255 255;
+    --muted: 248 250 252;
+    --muted-foreground: 100 116 139;
+    --accent: 239 246 255;
+    --accent-foreground: 59 130 246;
+    --card: 255 255 255;
+    --card-foreground: 15 23 42;
+  }
+
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    background-color: var(--jf-bg-main);
+    color: var(--jf-text-main);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer components {
+  /* Jiffoo Blue Sidebar */
+  .sidebar-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    color: var(--jf-text-muted);
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+  }
+
+  .sidebar-nav-item:hover {
+    background: var(--jf-primary-light);
+    color: var(--jf-primary);
+  }
+
+  .sidebar-nav-item.active {
+    background: var(--jf-primary);
+    color: white;
+  }
+
+  .data-table-header {
+    background: var(--jf-bg-main);
+    font-weight: 600;
+    color: var(--jf-text-muted);
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.05em;
+  }
+
+  .stat-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--jf-border);
+    padding: 1.5rem;
+  }
+
+  .form-field {
+    @apply space-y-2;
+  }
+
+  .form-label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--jf-text-main);
+  }
+
+  .form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--jf-border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: var(--jf-text-main);
+    background: white;
+    transition: all 0.2s ease;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: var(--jf-primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    background: var(--jf-primary);
+    color: white;
+    box-shadow: 0 4px 14px -4px rgba(59, 130, 246, 0.5);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-primary:hover {
+    background: var(--jf-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px -4px rgba(59, 130, 246, 0.6);
+  }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    background: white;
+    color: var(--jf-text-muted);
+    border: 1px solid var(--jf-border);
+    transition: all 0.2s ease;
+    cursor: pointer;
+  }
+
+  .btn-secondary:hover {
+    color: var(--jf-primary);
+    border-color: var(--jf-primary);
+  }
+
+  /* Jiffoo Blue Cards */
+  .jf-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid var(--jf-border);
+    padding: 1.5rem;
+  }
+
+  /* Jiffoo Blue Badge */
+  .jf-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .jf-badge-success {
+    background: #DCFCE7;
+    color: #15803D;
+  }
+
+  .jf-badge-warning {
+    background: #FEF3C7;
+    color: #B45309;
+  }
+
+  .jf-badge-error {
+    background: #FEE2E2;
+    color: #B91C1C;
+  }
+
+  .jf-badge-info {
+    background: var(--jf-primary-light);
+    color: var(--jf-primary);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground));
+}
+
+/* Loading animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
 }

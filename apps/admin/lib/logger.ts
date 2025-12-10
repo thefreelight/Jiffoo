@@ -1,5 +1,5 @@
 /**
- * Super Admin 统一日志系统配置
+ * Admin 统一日志系统配置
  */
 
 import { createDefaultBrowserAdapter, type ILogger } from 'shared/src/logger/index.browser';
@@ -24,7 +24,7 @@ const getLogger = (): ILogger => {
     const remoteEndpoint = enableRemoteLogs ? `${getApiBaseUrl()}/logs/batch` : undefined;
     
     _logger = createDefaultBrowserAdapter(
-      'super-admin',
+      'admin',
       remoteEndpoint
     );
   }
@@ -48,10 +48,10 @@ export const log = {
   warn: (message: string, meta?: any) => logger.warn(message, meta),
   error: (message: string | Error, meta?: any) => logger.error(message, meta),
   
-  // 超级管理员操作日志
-  superAdminAction: (action: string, resource: string, details?: any) => {
-    logger.info('Super Admin Action', {
-      type: 'super_admin_action',
+  // 管理员操作日志
+  adminAction: (action: string, resource: string, details?: any) => {
+    logger.info('Admin Action', {
+      type: 'admin_action',
       action,
       resource,
       details,
@@ -59,68 +59,76 @@ export const log = {
     });
   },
   
-  // 租户管理日志
-  tenantManagement: (action: string, tenantId: string, details?: any) => {
-    logger.info('Tenant Management', {
-      type: 'tenant_management',
-      action,
-      tenantId,
+  // 审计日志
+  audit: (event: string, userId?: string, details?: any) => {
+    logger.info('Audit Event', {
+      type: 'audit',
+      event,
+      userId,
       details,
       timestamp: new Date().toISOString()
     });
   },
   
-  // 系统级配置变更日志
-  systemConfigChange: (setting: string, oldValue: any, newValue: any) => {
-    logger.info('System Configuration Change', {
-      type: 'system_config_change',
+  // 系统配置变更日志
+  configChange: (setting: string, oldValue: any, newValue: any, userId?: string) => {
+    logger.info('Configuration Change', {
+      type: 'config_change',
       setting,
       oldValue,
       newValue,
+      userId,
       timestamp: new Date().toISOString()
     });
   },
   
-  // 许可证管理日志
-  licenseManagement: (action: string, licenseId: string, details?: any) => {
-    logger.info('License Management', {
-      type: 'license_management',
+  // 用户管理日志
+  userManagement: (action: string, targetUserId: string, details?: any) => {
+    logger.info('User Management', {
+      type: 'user_management',
       action,
-      licenseId,
+      targetUserId,
+      details,
+      timestamp: new Date().toISOString()
+    });
+  },
+  
+  // 产品管理日志
+  productManagement: (action: string, productId: string, details?: any) => {
+    logger.info('Product Management', {
+      type: 'product_management',
+      action,
+      productId,
+      details,
+      timestamp: new Date().toISOString()
+    });
+  },
+  
+  // 订单管理日志
+  orderManagement: (action: string, orderId: string, details?: any) => {
+    logger.info('Order Management', {
+      type: 'order_management',
+      action,
+      orderId,
       details,
       timestamp: new Date().toISOString()
     });
   },
   
   // 插件管理日志
-  pluginManagement: (action: string, pluginId: string, tenantId?: string, details?: any) => {
+  pluginManagement: (action: string, pluginId: string, details?: any) => {
     logger.info('Plugin Management', {
       type: 'plugin_management',
       action,
       pluginId,
-      tenantId,
       details,
       timestamp: new Date().toISOString()
     });
   },
   
-  // 系统监控日志
-  systemMonitoring: (metric: string, value: any, details?: any) => {
-    logger.info('System Monitoring', {
-      type: 'system_monitoring',
-      metric,
-      value,
-      details,
-      timestamp: new Date().toISOString()
-    });
-  },
-  
-  // 安全审计日志
-  securityAudit: (event: string, details?: any) => {
-    logger.logSecurity(event, {
-      level: 'super_admin',
-      ...details
-    });
+  // 安全事件日志
+  security: (event: string, details?: any) => {
+    logger.logSecurity(event, details);
   },
   
   // 性能监控
@@ -134,8 +142,8 @@ export const log = {
 
 // 初始化日志器
 export const initializeLogger = () => {
-  // 记录超级管理员后台启动
-  logger.info('Super Admin application started', {
+  // 记录管理后台启动
+  logger.info('Admin application started', {
     type: 'app_lifecycle',
     event: 'startup',
     userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
@@ -148,7 +156,7 @@ export const initializeLogger = () => {
     setTimeout(() => {
       const navigation = (performance as any).getEntriesByType('navigation')[0];
       if (navigation) {
-        logger.logPerformance('super_admin_page_load', navigation.loadEventEnd - navigation.fetchStart, {
+        logger.logPerformance('admin_page_load', navigation.loadEventEnd - navigation.fetchStart, {
           type: 'page_performance',
           domContentLoaded: navigation.domContentLoadedEventEnd - navigation.fetchStart,
           url: window.location.href

@@ -1,10 +1,11 @@
 /**
  * Resend Email Provider
- * 
+ *
  * Resend API 的适配器实现
  */
 
 import { Resend } from 'resend';
+import crypto from 'crypto';
 import {
   BaseEmailProvider,
   EmailProviderConfig,
@@ -115,15 +116,86 @@ export class ResendProvider extends BaseEmailProvider {
   
   /**
    * 验证Webhook签名
+   *
+   * Resend使用HMAC-SHA256签名验证
+   * 参考: https://resend.com/docs/webhooks
+   *
+   * @param signature - 请求头中的 svix-signature
+   * @param payload - 原始请求体（字符串）
+   * @param svixId - 请求头中的 svix-id
+   * @param svixTimestamp - 请求头中的 svix-timestamp
    */
-  verifyWebhook(signature: string, payload: any): boolean {
-    // TODO: 实现Resend webhook签名验证
-    // Resend使用HMAC-SHA256签名
-    // 参考: https://resend.com/docs/webhooks
-    
-    // 暂时返回true，生产环境必须实现
-    console.warn('Resend webhook signature verification not implemented');
-    return true;
+  verifyWebhook(
+    signature: string,
+    payload: string | object,
+    svixId?: string,
+    svixTimestamp?: string
+  ): boolean {
+    const webhookSecret = process.env.RESEND_WEBHOOK_SECRET;
+
+    if (!webhookSecret) {
+      console.warn('RESEND_WEBHOOK_SECRET not configured, skipping signature verification');
+      return true; // 开发环境可以跳过验证
+    }
+
+    if (!signature || !svixId || !svixTimestamp) {
+      console.error('Missing required webhook headers');
+      return false;
+    }
+
+    try {
+      // 验证时间戳（防止重放攻击，5分钟内有效）
+      const timestamp = parseInt(svixTimestamp, 10);
+      const now = Math.floor(Date.now() / 1000);
+      const tolerance = 300; // 5 minutes
+
+      if (Math.abs(now - timestamp) > tolerance) {
+        console.error('Webhook timestamp too old or in the future');
+        return false;
+      }
+
+      // 构建签名基础字符串
+      const payloadString = typeof payload === 'string' ? payload : JSON.stringify(payload);
+      const signedContent = `${svixId}.${svixTimestamp}.${payloadString}`;
+
+      // 解析 webhook secret（格式: whsec_xxxxx）
+      const secretBytes = Buffer.from(
+        webhookSecret.startsWith('whsec_')
+          ? webhookSecret.slice(6)
+          : webhookSecret,
+        'base64'
+      );
+
+      // 计算期望的签名
+      const expectedSignature = crypto
+        .createHmac('sha256', secretBytes)
+        .update(signedContent)
+        .digest('base64');
+
+      // 解析签名头（格式: v1,signature1 v1,signature2）
+      const signatures = signature.split(' ').map(s => {
+        const [version, sig] = s.split(',');
+        return { version, sig };
+      });
+
+      // 验证是否有匹配的签名
+      const isValid = signatures.some(({ version, sig }) => {
+        if (version !== 'v1') return false;
+        return crypto.timingSafeEqual(
+          Buffer.from(sig),
+          Buffer.from(expectedSignature)
+        );
+      });
+
+      if (!isValid) {
+        console.error('Webhook signature verification failed');
+      }
+
+      return isValid;
+    } catch (error) {
+      console.error('Error verifying webhook signature:', error);
+      return false;
+    }
   }
   
   /**

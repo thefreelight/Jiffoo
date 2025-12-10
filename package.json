@@ -1,13 +1,13 @@
 {
-  "name": "jiffoo-mall",
+  "name": "jiffoo-mall-core",
   "version": "0.2.2",
-  "description": "Open Source E-commerce Platform with Plugin Architecture (GPLv2+)",
+  "description": "Jiffoo Mall Core - Private development repository with full features",
   "private": true,
   "workspaces": [
     "apps/api",
     "apps/shop",
-    "apps/tenant",
     "apps/admin",
+    "apps/super-admin",
     "apps/agent",
     "apps/white-label",
     "apps/distribution-plugin",
@@ -16,27 +16,47 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --filter=super-admin --concurrency=5",
+    "dev:core": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --filter=super-admin --concurrency=5",
+    "dev:cloud": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --filter=super-admin --filter=docs-public --concurrency=6",
     "dev:minimal": "turbo run dev --filter=api --filter=shop --concurrency=2",
     "dev:api-only": "dotenv -e .env -- pnpm --filter api dev",
     "dev:shop-only": "dotenv -e .env -- pnpm --filter shop dev",
     "dev:admin-only": "dotenv -e .env -- pnpm --filter admin dev",
+    "dev:super-admin-only": "dotenv -e .env -- pnpm --filter super-admin dev",
+    "dev:docs-only": "dotenv -e .env -- pnpm --filter docs-public dev",
     "dev:packages": "turbo run dev --filter='./packages/**' --concurrency=8",
     "build": "turbo run build",
+    "build:core": "turbo run build --filter=api --filter=shop --filter=admin --filter=super-admin",
     "start": "turbo run start",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean",
     "dev:api": "pnpm --filter api dev",
     "dev:shop": "pnpm --filter shop dev",
-    "dev:all": "echo '\u26a0\ufe0f  \u6269\u5c55\u5e94\u7528\u5df2\u88ab\u6ce8\u91ca\uff0c\u5982\u9700\u542f\u52a8\u8bf7\u5148\u53d6\u6d88\u6ce8\u91ca pnpm-workspace.yaml \u4e2d\u7684\u76f8\u5173\u5e94\u7528'",
-    "dev:all-with-extensions": "echo '\u9700\u8981\u5148\u5728 pnpm-workspace.yaml \u4e2d\u53d6\u6d88\u6ce8\u91ca\u6269\u5c55\u5e94\u7528\uff0c\u7136\u540e\u8fd0\u884c pnpm install'",
+    "dev:all": "echo '⚠️  扩展应用已被注释，如需启动请先取消注释 pnpm-workspace.yaml 中的相关应用'",
+    "dev:all-with-extensions": "echo '需要先在 pnpm-workspace.yaml 中取消注释扩展应用，然后运行 pnpm install'",
+    "dev:setup": "npx tsx scripts/dev-setup.ts",
     "db:generate": "pnpm --filter api db:generate",
     "db:migrate": "pnpm --filter api db:migrate",
     "db:studio": "pnpm --filter api db:studio",
     "db:reset": "pnpm --filter api db:reset",
     "db:seed": "pnpm --filter api db:seed",
     "test": "turbo run test",
+    "test:e2e": "playwright test",
+    "test:e2e:shop": "playwright test --project=shop",
+    "test:e2e:admin": "playwright test --project=admin",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:report": "playwright show-report",
+    "test:e2e:staging": "playwright test --config=playwright.staging.config.ts",
+    "test:e2e:staging:shop": "playwright test --config=playwright.staging.config.ts --project=shop",
+    "test:e2e:staging:admin": "playwright test --config=playwright.staging.config.ts --project=admin",
+    "test:e2e:staging:report": "playwright show-report playwright-report-staging",
     "docker:build": "turbo run docker:build",
+    "docker:up": "docker-compose up -d",
+    "docker:up:single": "docker-compose -f docker-compose.single-tenant.yml up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
     "deploy": "turbo run deploy",
     "prepare": "husky"
   },
@@ -47,8 +67,9 @@
     "ecommerce"
   ],
   "author": "Jiffoo Team",
-  "license": "GPL-2.0-or-later",
+  "license": "MIT",
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "@types/node": "^22.9.0",
     "dotenv-cli": "^10.0.0",
     "husky": "^9.1.7",
@@ -69,10 +90,5 @@
   "dependencies": {
     "fastify-plugin": "^5.0.1",
     "stripe": "^18.2.1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/thefreelight/Jiffoo.git"
-  },
-  "homepage": "https://github.com/thefreelight/Jiffoo"
+  }
 }

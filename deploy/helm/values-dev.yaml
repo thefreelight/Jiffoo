@@ -1,0 +1,126 @@
+# Development environment overrides
+global:
+  image:
+    tag: main-e709b11
+
+# Reduced resources for development
+# 服务名映射: backend→api, super-admin→admin, admin→tenant, frontend→shop
+services:
+  api:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 400m
+        memory: 512Mi
+
+  shop:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 400m
+        memory: 512Mi
+
+  tenant:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  admin:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+  # DEPRECATED: agent, white-label, distribution-plugin, docs-internal services removed
+
+  docs-public:
+    replicaCount: 1
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+
+# Development-specific configuration
+config:
+  enabled: true
+  data:
+    # Environment
+    NODE_ENV: "development"
+    LOG_LEVEL: "debug"
+
+    # Database configuration - use existing PostgreSQL in database namespace
+    DATABASE_URL: "postgresql://jiffoo_user:jeffoo_password@postgres-service.database.svc.cluster.local:5432/jiffoo_dev"
+    REDIS_URL: "redis://redis-service.database.svc.cluster.local:6379"
+
+    # API Configuration
+    API_PORT: "3002"
+    API_HOST: "0.0.0.0"
+    CORS_ORIGIN: "http://jiffoo.chfastpay.com:30001,http://jiffoo.chfastpay.com:30002,http://jiffoo.chfastpay.com:30003,http://jiffoo.chfastpay.com:30004,http://jiffoo.chfastpay.com:30005,http://jiffoo.chfastpay.com:30006,http://jiffoo.chfastpay.com:30007"
+    CORS_ENABLED: "true"
+    CORS_CREDENTIALS: "true"
+
+    # JWT configuration
+    JWT_SECRET: "dev-jwt-secret-key-change-in-production"
+    JWT_EXPIRES_IN: "7d"
+
+    # API Service URL (内部服务地址，用于 Next.js SSR 和代理)
+    API_SERVICE_URL: "http://jiffoo-mall-core-backend:3002"
+
+    # Frontend API URLs for development (using NodePort for mainland China access)
+    # Backend API is on port 30002
+    NEXT_PUBLIC_API_URL: "http://jiffoo.chfastpay.com:30002"
+    NEXT_PUBLIC_TENANT_API_URL: "http://jiffoo.chfastpay.com:30002"
+    NEXT_PUBLIC_ADMIN_API_URL: "http://jiffoo.chfastpay.com:30002"
+
+    # Frontend Application URLs
+    # 服务名映射: SUPER_ADMIN→ADMIN, ADMIN→TENANT, FRONTEND→SHOP
+    NEXT_PUBLIC_ADMIN_URL: "http://jiffoo.chfastpay.com:30004"
+    NEXT_PUBLIC_TENANT_URL: "http://jiffoo.chfastpay.com:30003"
+    NEXT_PUBLIC_SHOP_URL: "http://jiffoo.chfastpay.com:30001"
+
+    # Payment Configuration (Stripe - Test Keys)
+    STRIPE_SECRET_KEY: "sk_test_51R5gkPB6vJBDO7CtHVB8ji2GWhSKXHzvTRjdItySoWOg3Eu2sCebz5kU8mqlNvtyFg0Ia3ry0Zg6rU31otBxjZl80042T9JF22"
+    STRIPE_PUBLISHABLE_KEY: "pk_test_51R5gkPB6vJBDO7CtUURHcodqRpND2uVyDekor9ubS5hRZhMBSdATD0w4emWnGDCxuSSPqMBwlsQCdANyCHgzWdIx00ZaRNHHfr"
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: "pk_test_51R5gkPB6vJBDO7CtUURHcodqRpND2uVyDekor9ubS5hRZhMBSdATD0w4emWnGDCxuSSPqMBwlsQCdANyCHgzWdIx00ZaRNHHfr"
+    STRIPE_WEBHOOK_SECRET: "whsec_f290d967dce59f39d764808abb38c5b3e3b24818fa0508ece62ea19944190c86"
+
+    # Google OAuth Configuration
+    GOOGLE_CLIENT_ID: "33948437410-pv3jb3oonhf6bej47el64c5s5es1e6lt.apps.googleusercontent.com"
+    GOOGLE_CLIENT_SECRET: "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"
+    GOOGLE_REDIRECT_URI: "http://jiffoo.chfastpay.com:30001/api/plugins/google/api/callback"
+
+    # Email Configuration (Resend)
+    RESEND_API_KEY: "re_BUwrRU5z_4Ruy34vxALxiZxPx65xBj14g"
+    RESEND_WEBHOOK_SECRET: "whsec_W/p7G+aKrHVynf9X95JjbKMHUusRT+8p"
+    EMAIL_FROM: "noreply@chentsimo.top"
+    EMAIL_FROM_NAME: "Jiffoo Mall"
+    EMAIL_REPLY_TO: "support@chentsimo.top"
+
+# Development ingress configuration
+# Note: Ingress uses Traefik, but for mainland China access, NodePort is also enabled
+ingress:
+  enabled: false
+  className: "traefik"
+  annotations: {}
+  hosts: []
+  tls: []
+  # Traefik Ingress is available but disabled in dev for direct NodePort access
+  # This ensures reliable access from mainland China without DNS issues

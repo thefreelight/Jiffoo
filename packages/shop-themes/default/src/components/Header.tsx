@@ -1,15 +1,15 @@
 /**
- * Header Component
+ * Header Component - Jiffoo Blue Minimal Design
  *
  * Main navigation header with search, cart, and user menu.
  * Supports i18n through the t() translation function prop.
+ * Uses Jiffoo Blue Minimal design system.
  */
 
 import React from 'react';
-import Link from 'next/link';
-import { Search, ShoppingCart, User, Menu, Heart } from 'lucide-react';
+import { Search, ShoppingCart, User, Menu, Heart, X } from 'lucide-react';
+import { Button, cn } from '@jiffoo/ui';
 import type { HeaderProps } from '../../../../shared/src/types/theme';
-import { Button } from '../ui/Button';
 
 export function Header({
   cartItemCount = 0,
@@ -29,6 +29,14 @@ export function Header({
 }: HeaderProps) {
   const [searchQuery, setSearchQuery] = React.useState('');
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
+  const [isScrolled, setIsScrolled] = React.useState(false);
+
+  // Track scroll for header shadow
+  React.useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 0);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Helper function to get translated text with fallback
   const getText = (key: string, fallback: string): string => {
@@ -44,177 +52,249 @@ export function Header({
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white dark:bg-gray-900 backdrop-blur supports-[backdrop-filter]:bg-white/95 dark:bg-gray-900/95">
-      <div className="container mx-auto px-4">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
+    <header
+      className="jf-header"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+        background: isScrolled ? 'rgba(255, 255, 255, 0.98)' : 'rgba(248, 250, 252, 0.95)',
+        backdropFilter: 'blur(12px)',
+        borderBottom: isScrolled ? '1px solid #E2E8F0' : '1px solid transparent',
+        boxShadow: isScrolled ? '0 4px 6px -1px rgba(0, 0, 0, 0.05)' : 'none',
+        transition: 'all 0.2s ease'
+      }}
+    >
+      <div className="jf-container" style={{ maxWidth: '1024px', margin: '0 auto', padding: '0 24px' }}>
+        <div className="jf-header-inner" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '72px', gap: '1rem' }}>
+          {/* Logo - Jiffoo Blue */}
           <button
             onClick={onNavigateToHome}
-            className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'opacity 0.2s ease'
+            }}
           >
-            <div className="h-8 w-8 rounded-lg bg-blue-600 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">J</span>
-            </div>
-            <span className="font-bold text-xl text-gray-900 dark:text-white">Jiffoo</span>
+            <span style={{
+              fontSize: '1.25rem',
+              fontWeight: 800,
+              color: '#3B82F6',
+              letterSpacing: '-0.03em'
+            }}>Jiffoo</span>
           </button>
 
-          {/* Search Bar - Desktop */}
-          <div className="hidden md:flex flex-1 max-w-md mx-8">
-            <form onSubmit={handleSearch} className="relative w-full">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <input
-                type="search"
-                placeholder={getText('shop.nav.searchPlaceholder', 'Search products...')}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
-              />
-            </form>
-          </div>
-
-          {/* Navigation - Desktop */}
-          <nav className="hidden md:flex items-center space-x-6">
-            <button
-              onClick={onNavigateToProducts}
-              className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              {getText('shop.nav.products', 'Products')}
-            </button>
-            <button
-              onClick={onNavigateToCategories}
-              className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              {getText('shop.nav.categories', 'Categories')}
-            </button>
-            <button
-              onClick={onNavigateToDeals}
-              className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-            >
-              {getText('shop.nav.deals', 'Deals')}
-            </button>
+          {/* Navigation - Desktop - Jiffoo Blue */}
+          <nav className="jf-nav jf-desktop-nav hidden lg:flex" style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+            {[
+              { label: getText('shop.nav.products', 'Products'), onClick: onNavigateToProducts },
+              { label: getText('shop.nav.categories', 'Categories'), onClick: onNavigateToCategories },
+              { label: getText('shop.nav.deals', 'Deals'), onClick: onNavigateToDeals },
+            ].map((item) => (
+              <button
+                key={item.label}
+                onClick={item.onClick}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: '#64748B',
+                  fontSize: '0.95rem',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'color 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#3B82F6'}
+                onMouseLeave={(e) => e.currentTarget.style.color = '#64748B'}
+              >
+                {item.label}
+              </button>
+            ))}
           </nav>
 
-          {/* Actions */}
-          <div className="flex items-center space-x-2">
-            {/* Wishlist */}
-            <Button variant="ghost" size="icon" className="hidden sm:flex">
-              <Heart className="h-4 w-4" />
-            </Button>
-
+          {/* Actions - Jiffoo Blue */}
+          <div className="jf-header-actions" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {/* Cart */}
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={onNavigateToCart}
-              className="relative"
+              style={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: '40px',
+                height: '40px',
+                borderRadius: '8px',
+                background: 'none',
+                border: 'none',
+                color: '#64748B',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              aria-label="Cart"
             >
-              <ShoppingCart className="h-4 w-4" />
+              <ShoppingCart style={{ width: '20px', height: '20px' }} />
               {cartItemCount > 0 && (
-                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-blue-600 text-white text-xs flex items-center justify-center">
-                  {cartItemCount}
+                <span style={{
+                  position: 'absolute',
+                  top: '-2px',
+                  right: '-2px',
+                  minWidth: '18px',
+                  height: '18px',
+                  padding: '0 5px',
+                  borderRadius: '9999px',
+                  background: '#3B82F6',
+                  color: 'white',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {cartItemCount > 99 ? '99+' : cartItemCount}
                 </span>
               )}
-            </Button>
+            </button>
 
-            {/* User Menu */}
+            {/* User Menu - Jiffoo Blue */}
             {isAuthenticated ? (
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
                   onClick={onNavigateToProfile}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '8px',
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748B',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
                   title={getText('shop.header.profile', 'Profile')}
                 >
-                  <User className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                  <User style={{ width: '20px', height: '20px' }} />
+                </button>
+                <button
                   onClick={onLogout}
                   className="hidden sm:flex"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748B',
+                    fontSize: '0.95rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'color 0.2s ease'
+                  }}
                 >
                   {getText('shop.header.logout', 'Logout')}
-                </Button>
+                </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
+              <div className="hidden sm:flex" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <button
                   onClick={onNavigateToLogin}
-                  className="hidden sm:flex"
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#64748B',
+                    fontSize: '0.95rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'color 0.2s ease'
+                  }}
                 >
                   {getText('shop.header.login', 'Login')}
-                </Button>
-                <Button
-                  size="sm"
+                </button>
+                <button
                   onClick={onNavigateToRegister}
-                  className="hidden sm:flex"
+                  style={{
+                    background: '#3B82F6',
+                    color: 'white',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 14px -4px rgba(59, 130, 246, 0.5)',
+                    transition: 'all 0.2s ease'
+                  }}
                 >
                   {getText('shop.header.signUp', 'Sign Up')}
-                </Button>
+                </button>
               </div>
             )}
 
             {/* Mobile Menu Button */}
-            <Button
-              variant="ghost"
-              size="icon"
+            <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden"
+              className={cn(
+                'lg:hidden flex items-center justify-center w-10 h-10 rounded-xl',
+                'text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100',
+                'transition-colors duration-150'
+              )}
+              aria-label="Menu"
             >
-              <Menu className="h-4 w-4" />
-            </Button>
+              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
 
         {/* Mobile Search */}
         <div className="md:hidden pb-4">
           <form onSubmit={handleSearch} className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3.5 top-1/2 transform -translate-y-1/2 h-4 w-4 text-neutral-400" />
             <input
               type="search"
               placeholder={getText('shop.nav.searchPlaceholder', 'Search products...')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:text-white"
+              className={cn(
+                'w-full pl-10 pr-4 py-2.5 bg-neutral-100 border-0 rounded-xl',
+                'text-sm text-neutral-900 placeholder:text-neutral-400',
+                'focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:bg-white',
+                'transition-all duration-200'
+              )}
             />
           </form>
         </div>
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden border-t py-4">
-            <nav className="flex flex-col space-y-4">
-              <button
-                onClick={() => {
-                  onNavigateToProducts();
-                  setIsMenuOpen(false);
-                }}
-                className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-left"
-              >
-                {getText('shop.nav.products', 'Products')}
-              </button>
-              <button
-                onClick={() => {
-                  onNavigateToCategories();
-                  setIsMenuOpen(false);
-                }}
-                className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-left"
-              >
-                {getText('shop.nav.categories', 'Categories')}
-              </button>
-              <button
-                onClick={() => {
-                  onNavigateToDeals();
-                  setIsMenuOpen(false);
-                }}
-                className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors text-left"
-              >
-                {getText('shop.nav.deals', 'Deals')}
-              </button>
+          <div className="lg:hidden border-t border-neutral-200 py-4 animate-in slide-in-from-top-2 duration-200">
+            <nav className="flex flex-col space-y-1">
+              {[
+                { label: getText('shop.nav.products', 'Products'), onClick: onNavigateToProducts },
+                { label: getText('shop.nav.categories', 'Categories'), onClick: onNavigateToCategories },
+                { label: getText('shop.nav.deals', 'Deals'), onClick: onNavigateToDeals },
+              ].map((item) => (
+                <button
+                  key={item.label}
+                  onClick={() => {
+                    item.onClick();
+                    setIsMenuOpen(false);
+                  }}
+                  className={cn(
+                    'px-4 py-3 text-base font-medium text-neutral-700 rounded-xl text-left',
+                    'hover:bg-neutral-100 active:bg-neutral-200',
+                    'transition-colors duration-150'
+                  )}
+                >
+                  {item.label}
+                </button>
+              ))}
 
-              <div className="flex flex-col space-y-2 pt-4 border-t">
+              <div className="flex flex-col space-y-2 pt-4 mt-4 border-t border-neutral-200">
                 {isAuthenticated ? (
                   <>
                     <Button
@@ -223,8 +303,9 @@ export function Header({
                         onNavigateToProfile();
                         setIsMenuOpen(false);
                       }}
-                      className="justify-start"
+                      className="justify-start w-full"
                     >
+                      <User className="h-4 w-4 mr-2" />
                       {getText('shop.header.profile', 'Profile')}
                     </Button>
                     <Button
@@ -233,7 +314,7 @@ export function Header({
                         onLogout();
                         setIsMenuOpen(false);
                       }}
-                      className="justify-start"
+                      className="justify-start w-full text-error-600 hover:text-error-700 hover:bg-error-50"
                     >
                       {getText('shop.header.logout', 'Logout')}
                     </Button>
@@ -241,21 +322,22 @@ export function Header({
                 ) : (
                   <>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       onClick={() => {
                         onNavigateToLogin();
                         setIsMenuOpen(false);
                       }}
-                      className="justify-start"
+                      className="w-full"
                     >
                       {getText('shop.header.login', 'Login')}
                     </Button>
                     <Button
+                      variant="primary"
                       onClick={() => {
                         onNavigateToRegister();
                         setIsMenuOpen(false);
                       }}
-                      className="justify-start"
+                      className="w-full"
                     >
                       {getText('shop.header.signUp', 'Sign Up')}
                     </Button>

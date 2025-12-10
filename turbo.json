@@ -19,11 +19,8 @@
     "API_SERVICE_URL",
     "NEXT_PUBLIC_API_URL",
     "NEXT_PUBLIC_ADMIN_URL",
-    "NEXT_PUBLIC_TENANT_URL",
+    "NEXT_PUBLIC_SUPER_ADMIN_URL",
     "NEXT_PUBLIC_SHOP_URL",
-    "NEXT_PUBLIC_AGENT_URL",
-    "NEXT_PUBLIC_WHITE_LABEL_URL",
-    "NEXT_PUBLIC_DISTRIBUTION_PLUGIN_URL",
     "STRIPE_SECRET_KEY",
     "STRIPE_PUBLISHABLE_KEY",
     "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
@@ -33,10 +30,31 @@
     "RESEND_API_KEY",
     "RESEND_WEBHOOK_SECRET"
   ],
+  "ui": "tui",
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
       "outputs": ["dist/**", ".next/**", "!.next/cache/**", "build/**"]
+    },
+    "build#api": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"]
+    },
+    "build#shop": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "build#admin": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "build#super-admin": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
+    "build#docs-public": {
+      "dependsOn": ["^build"],
+      "outputs": ["build/**"]
     },
     "dev": {
       "cache": false,

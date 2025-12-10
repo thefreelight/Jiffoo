@@ -55,16 +55,59 @@ export interface LogStats {
 
 /**
  * 日志聚合器类
+ * 支持文件日志读取和内存缓存查询
  */
 export class LogAggregator {
   private logsDir: string;
+  private memoryLogs: LogEntry[] = [];
+  private maxMemoryLogs: number = 10000; // 最大内存缓存条目数
 
   constructor(logsDir: string = path.join(process.cwd(), 'logs')) {
     this.logsDir = logsDir;
+    this.ensureLogsDir();
   }
 
   /**
-   * 查询日志
+   * 确保日志目录存在
+   */
+  private ensureLogsDir(): void {
+    try {
+      if (!fs.existsSync(this.logsDir)) {
+        fs.mkdirSync(this.logsDir, { recursive: true });
+      }
+    } catch (error) {
+      console.error('Failed to create logs directory:', error);
+    }
+  }
+
+  /**
+   * 添加日志到内存缓存（供实时查询）
+   */
+  addLog(log: LogEntry): void {
+    this.memoryLogs.push(log);
+
+    // 保持内存日志在限制范围内
+    if (this.memoryLogs.length > this.maxMemoryLogs) {
+      this.memoryLogs = this.memoryLogs.slice(-this.maxMemoryLogs);
+    }
+  }
+
+  /**
+   * 获取内存缓存中的日志数量
+   */
+  getMemoryLogCount(): number {
+    return this.memoryLogs.length;
+  }
+
+  /**
+   * 清除内存缓存
+   */
+  clearMemoryLogs(): void {
+    this.memoryLogs = [];
+  }
+
+  /**
+   * 查询日志（同时从内存缓存和文件查询）
    */
   async queryLogs(query: LogQuery): Promise<LogQueryResult> {
     const {
@@ -81,23 +124,25 @@ export class LogAggregator {
     } = query;
 
     const logs: LogEntry[] = [];
-    const logFiles = await this.getLogFiles(startTime, endTime);
 
+    // 先从内存缓存查询（最近的日志）
+    for (const log of this.memoryLogs) {
+      if (this.matchesFilter(log, { appName, level, startTime, endTime, message, userId })) {
+        logs.push(log);
+      }
+    }
+
+    // 再从文件查询（历史日志）
+    const logFiles = await this.getLogFiles(startTime, endTime);
     for (const file of logFiles) {
       const fileLogs = await this.readLogFile(file);
-      
       for (const log of fileLogs) {
-        // 应用过滤条件
-        if (appName && log.appName !== appName) continue;
-        if (level && log.level !== level) continue;
-        if (message && !log.message.toLowerCase().includes(message.toLowerCase())) continue;
-        if (userId && log.meta?.userId !== userId) continue;
-        
-        // 时间范围过滤
-        if (startTime && log.timestamp < startTime) continue;
-        if (endTime && log.timestamp > endTime) continue;
-
-        logs.push(log);
+        if (this.matchesFilter(log, { appName, level, startTime, endTime, message, userId })) {
+          // 避免重复（内存中可能已有）
+          if (!logs.some(l => l.id === log.id)) {
+            logs.push(log);
+          }
+        }
       }
     }
 
@@ -105,7 +150,7 @@ export class LogAggregator {
     logs.sort((a, b) => {
       const aValue = sortBy === 'timestamp' ? a.timestamp : a.level;
       const bValue = sortBy === 'timestamp' ? b.timestamp : b.level;
-      
+
       if (sortOrder === 'asc') {
         return aValue.localeCompare(bValue);
       } else {
@@ -129,12 +174,30 @@ export class LogAggregator {
   }
 
   /**
-   * 获取日志统计
+   * 检查日志是否匹配过滤条件
+   */
+  private matchesFilter(
+    log: LogEntry,
+    filter: { appName?: string; level?: string; startTime?: string; endTime?: string; message?: string; userId?: string }
+  ): boolean {
+    const { appName, level, startTime, endTime, message, userId } = filter;
+
+    if (appName && log.appName !== appName) return false;
+    if (level && log.level !== level) return false;
+    if (message && !log.message.toLowerCase().includes(message.toLowerCase())) return false;
+    if (userId && log.meta?.userId !== userId) return false;
+    if (startTime && log.timestamp < startTime) return false;
+    if (endTime && log.timestamp > endTime) return false;
+
+    return true;
+  }
+
+  /**
+   * 获取日志统计（同时统计内存缓存和文件日志）
    */
   async getLogStats(timeRange: string = '24h'): Promise<LogStats> {
     const { startTime, endTime } = this.parseTimeRange(timeRange);
-    const logFiles = await this.getLogFiles(startTime, endTime);
-    
+
     const stats: LogStats = {
       totalLogs: 0,
       errorLogs: 0,
@@ -146,41 +209,63 @@ export class LogAggregator {
       hourlyBreakdown: {}
     };
 
+    const processedIds = new Set<string>();
+
+    // 统计内存缓存中的日志
+    for (const log of this.memoryLogs) {
+      if (log.timestamp >= startTime && log.timestamp <= endTime) {
+        this.updateStats(stats, log);
+        processedIds.add(log.id);
+      }
+    }
+
+    // 统计文件日志
+    const logFiles = await this.getLogFiles(startTime, endTime);
     for (const file of logFiles) {
       const logs = await this.readLogFile(file);
-      
       for (const log of logs) {
-        // 时间范围过滤
-        if (log.timestamp < startTime || log.timestamp > endTime) continue;
-
-        stats.totalLogs++;
-        
-        // 按级别统计
-        switch (log.level) {
-          case 'error':
-            stats.errorLogs++;
-            break;
-          case 'warn':
-            stats.warningLogs++;
-            break;
-          case 'info':
-            stats.infoLogs++;
-            break;
-          case 'debug':
-            stats.debugLogs++;
-            break;
+        if (log.timestamp >= startTime && log.timestamp <= endTime && !processedIds.has(log.id)) {
+          this.updateStats(stats, log);
         }
-
-        // 按应用统计
-        stats.appBreakdown[log.appName] = (stats.appBreakdown[log.appName] || 0) + 1;
-
-        // 按小时统计
-        const hour = new Date(log.timestamp).getHours().toString().padStart(2, '0');
-        stats.hourlyBreakdown[hour] = (stats.hourlyBreakdown[hour] || 0) + 1;
       }
     }
 
     return stats;
+  }
+
+  /**
+   * 更新统计数据
+   */
+  private updateStats(stats: LogStats, log: LogEntry): void {
+    stats.totalLogs++;
+
+    // 按级别统计
+    switch (log.level) {
+      case 'error':
+        stats.errorLogs++;
+        break;
+      case 'warn':
+        stats.warningLogs++;
+        break;
+      case 'info':
+        stats.infoLogs++;
+        break;
+      case 'debug':
+        stats.debugLogs++;
+        break;
+    }
+
+    // 按应用统计
+    const appName = log.appName || 'unknown';
+    stats.appBreakdown[appName] = (stats.appBreakdown[appName] || 0) + 1;
+
+    // 按小时统计
+    try {
+      const hour = new Date(log.timestamp).getHours().toString().padStart(2, '0');
+      stats.hourlyBreakdown[hour] = (stats.hourlyBreakdown[hour] || 0) + 1;
+    } catch {
+      // 忽略无效时间戳
+    }
   }
 
   /**

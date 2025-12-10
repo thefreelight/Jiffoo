@@ -1,10 +1,10 @@
-import { PrismaClient, Tenant, Plugin, PluginInstallation, Subscription } from '@prisma/client';
+import { PrismaClient, Plugin, PluginInstallation } from '@prisma/client';
 import Stripe from 'stripe';
 import { RedisCache } from '@/core/cache/redis';
 import { FastifyRequest, FastifyReply } from 'fastify';
 
 // ============================================
-// 认证用户类型定义
+// 认证用户类型定义 (单商户版本 - 无 tenantId)
 // ============================================
 interface AuthenticatedUser {
   id: string;
@@ -14,7 +14,6 @@ interface AuthenticatedUser {
   role: string;
   permissions?: string[];
   roles?: any[];
-  tenantId?: number;  // 修改为number类型
 }
 
 // ============================================
@@ -49,7 +48,7 @@ interface SubscriptionAccessResult {
   allowed: boolean;
   reason?: string;
   upgradeUrl?: string;
-  subscription?: Subscription & { plugin: Plugin; tenant: Tenant };
+  subscription?: any;
   mode?: 'SUBSCRIPTION';
 }
 
@@ -90,112 +89,38 @@ interface WebhookStats {
 }
 
 // ============================================
-// Fastify Logger 类型扩展
-// ============================================
-// 注意：Pino 日志器类型定义已移至 src/types/pino.d.ts 文件中
-// 避免重复定义导致的类型冲突
-
-// ============================================
-// Fastify 类型扩展
+// Fastify 类型扩展 (单商户版本)
 // ============================================
 declare module 'fastify' {
   interface FastifyInstance {
     // Prisma 客户端
     prisma: PrismaClient;
 
-    // 🆕 Redis 客户端
+    // Redis 客户端
     redis: RedisCache;
 
     // ============================================
-    // Commercial Support Plugin 装饰器
+    // Commercial Support Plugin 装饰器 (简化版)
     // ============================================
 
-    // 许可证验证
+    // 许可证验证 (系统级)
     checkPluginLicense(
-      tenantId: number,
       pluginSlug: string,
       feature?: string
     ): Promise<LicenseCheckResult>;
 
-    // 使用量记录
+    // 使用量记录 (系统级)
     recordPluginUsage(
-      tenantId: number,
       pluginSlug: string,
       metric: string,
       value?: number
     ): void;
 
-    // 使用量限制检查
+    // 使用量限制检查 (系统级)
     checkUsageLimit(
-      tenantId: number,
       pluginSlug: string,
       metric: string
     ): Promise<UsageLimitCheckResult>;
-
-    // 使用量重置（用于订阅周期变更）
-    resetPluginUsageForPeriod(
-      tenantId: number,
-      pluginSlug: string,
-      newPeriod: string,
-      metrics?: string[]
-    ): Promise<void>;
-
-    // 懒加载过期订阅续费检查
-    checkAndRenewExpiredSubscription(
-      tenantId: number,
-      pluginSlug: string
-    ): Promise<Subscription | null>;
-
-    // 懒加载使用量重置检查
-    checkAndResetUsageIfNeeded(
-      tenantId: number,
-      pluginSlug: string
-    ): Promise<void>;
-
-    // 订阅管理
-    createSubscription(
-      tenantId: number,
-      pluginSlug: string,
-      planId: string,
-      options?: CreateSubscriptionOptions
-    ): Promise<Subscription>;
-
-    getActiveSubscription(
-      tenantId: number,
-      pluginSlug: string
-    ): Promise<(Subscription & { plugin: Plugin; tenant: Tenant }) | null>;
-
-    updateSubscription(
-      subscriptionId: string,
-      updateData: UpdateSubscriptionData
-    ): Promise<Subscription>;
-
-    cancelSubscription(
-      subscriptionId: string,
-      cancelAtPeriodEnd?: boolean,
-      reason?: string
-    ): Promise<Subscription>;
-
-    pauseSubscription(
-      subscriptionId: string,
-      resumeAt?: Date
-    ): Promise<Subscription>;
-
-    resumeSubscription(
-      subscriptionId: string
-    ): Promise<Subscription>;
-
-    checkSubscriptionAccess(
-      tenantId: number,
-      pluginSlug: string,
-      feature?: string
-    ): Promise<SubscriptionAccessResult>;
-
-    handleSubscriptionEvent(
-      eventType: string,
-      eventData: any,
-      subscriptionId?: string
-    ): Promise<any>;
 
     // ============================================
     // Plugin Registry 装饰器
@@ -203,43 +128,28 @@ declare module 'fastify' {
 
     getAvailablePlugins(): Promise<any[]>;
 
-    getTenantPlugins(tenantId: number): Promise<any[]>;
+    getInstalledPlugins(): Promise<any[]>;
 
-    getPluginDetails(pluginSlug: string, tenantId?: number): Promise<any>;
+    getPluginDetails(pluginSlug: string): Promise<any>;
 
     getPluginCategories(): Promise<any[]>;
 
     searchPlugins(query: string, category?: string): Promise<any[]>;
 
     // ============================================
-    // Plugin Installer 装饰器
+    // Plugin Installer 装饰器 (系统级)
     // ============================================
 
     installPlugin(
-      tenantId: number,
       pluginSlug: string,
       options?: any
     ): Promise<any>;
 
-    handleFreePlugin(
-      tenantId: number,
-      plugin: Plugin,
-      options?: any
-    ): Promise<any>;
-
-    handleSubscriptionPlugin(
-      tenantId: number,
-      plugin: Plugin,
-      options?: any
-    ): Promise<any>;
-
     uninstallPlugin(
-      tenantId: number,
       pluginSlug: string
     ): Promise<any>;
 
     togglePlugin(
-      tenantId: number,
       pluginSlug: string,
       enabled: boolean
     ): Promise<any>;
@@ -257,15 +167,6 @@ declare module 'fastify' {
     getWebhookStats(days?: number): Promise<WebhookStats>;
 
     // ============================================
-    // Affiliate Plugin 装饰器
-    // ============================================
-
-    calculateAffiliateCommission(
-      orderId: string,
-      tenantId: number
-    ): Promise<void>;
-
-    // ============================================
     // Plugin Gateway 装饰器
     // ============================================
 
@@ -274,16 +175,9 @@ declare module 'fastify' {
     }>;
 
     // ============================================
-    // Plugin Tenant Isolation 装饰器
+    // 速率限制装饰器
     // ============================================
 
-    // 强制租户校验
-    requireTenant(
-      request: FastifyRequest,
-      reply: FastifyReply
-    ): Promise<void>;
-
-    // 速率限制检查
     checkRateLimit(
       request: FastifyRequest,
       reply: FastifyReply,
@@ -312,13 +206,10 @@ declare module 'fastify' {
     // Trace Context 装饰器
     // ============================================
 
-    // 获取请求的 trace_id
     getRequestTraceId(request: FastifyRequest): string | undefined;
 
-    // 获取请求的追踪上下文
     getRequestTraceContext(request: FastifyRequest): TraceContext | undefined;
 
-    // 带追踪信息的日志
     logWithTrace(
       request: FastifyRequest,
       level: 'debug' | 'info' | 'warn' | 'error',
@@ -330,29 +221,21 @@ declare module 'fastify' {
     // Prometheus Metrics 装饰器
     // ============================================
 
-    // 记录数据库查询延迟
     recordDbQuery(operation: string, durationMs: number): void;
 
-    // 记录 Redis 操作
     recordRedisOp(operation: string, hit?: boolean): void;
 
-    // 设置 Redis 连接状态
     setRedisStatus(connected: boolean): void;
 
-    // 设置插件指标
     setPluginMetrics(loaded: number, failed: number): void;
 
-    // 记录插件 API 请求
     recordPluginApiRequest(pluginId: string): void;
 
-    // 记录插件错误
     recordPluginError(pluginId: string): void;
 
-    // 记录插件执行延迟
     recordPluginExecution(pluginId: string, durationMs: number): void;
 
-    // 记录速率限制超出
-    recordRateLimitExceeded(tenantId: string): void;
+    recordRateLimitExceeded(identifier: string): void;
   }
 
   interface FastifySchema {
@@ -368,8 +251,6 @@ declare module 'fastify' {
 
   interface FastifyRequest {
     user?: AuthenticatedUser;
-    tenantId?: number;
-    tenant?: Tenant | null;
     traceId?: string;
     traceContext?: TraceContext;
   }

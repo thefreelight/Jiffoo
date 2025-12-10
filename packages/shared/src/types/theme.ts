@@ -8,6 +8,78 @@ import type { Cart, CartItem } from './cart';
 import type { Order } from './order';
 import type { Locale, TranslationFunction } from '../i18n/types';
 
+// ============================================================================
+// 主题元数据类型（用于注册表和动态加载）
+// ============================================================================
+
+/**
+ * 主题目标平台
+ */
+export type ThemeTarget = 'shop' | 'admin';
+
+/**
+ * 主题元数据（用于注册表）
+ */
+export interface ThemeMeta {
+  /** 主题唯一标识 */
+  slug: string;
+  /** 主题显示名称 */
+  name: string;
+  /** 主题版本 */
+  version: string;
+  /** 主题描述 */
+  description: string;
+  /** 主题分类 */
+  category?: string;
+  /** 主题作者 */
+  author?: string;
+  /** 作者网站 */
+  authorUrl?: string;
+  /** 预览图 */
+  thumbnail?: string;
+  /** 截图列表 */
+  screenshots?: string[];
+  /** 标签 */
+  tags?: string[];
+  /** 目标平台 */
+  target: ThemeTarget;
+}
+
+/**
+ * 主题注册表条目
+ */
+export interface ThemeRegistryEntry {
+  /** 主题元数据 */
+  meta: ThemeMeta;
+  /** 动态加载函数 */
+  load: () => Promise<ThemePackage>;
+}
+
+/**
+ * 主题注册表类型
+ */
+export type ThemeRegistry = Record<string, ThemeRegistryEntry>;
+
+/**
+ * 主题上下文值
+ */
+export interface ThemeContextValue {
+  /** 当前主题 slug */
+  currentTheme: string;
+  /** 当前主题包 */
+  themePackage: ThemePackage | null;
+  /** 主题配置 */
+  config: ThemeConfig;
+  /** 是否正在加载 */
+  isLoading: boolean;
+  /** 加载错误 */
+  error: Error | null;
+  /** 切换主题 */
+  setTheme: (slug: string) => Promise<void>;
+  /** 更新配置 */
+  updateConfig: (config: Partial<ThemeConfig>) => void;
+}
+
 /**
  * 主题 i18n Props
  * 所有主题组件都可以接收这些 i18n 相关的 props
@@ -241,6 +313,7 @@ export interface CategoriesPageProps extends ThemeI18nProps {
   error?: string | null;
   config?: ThemeConfig;
   onCategoryClick: (categoryId: string) => void;
+  onNavigateToHome?: () => void;
 }
 
 /**

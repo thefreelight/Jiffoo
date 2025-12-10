@@ -189,7 +189,7 @@ export const cartApi = {
     apiClient.post(API_ENDPOINTS.CART.ADD, { productId, quantity, variantId }),
 
   updateCartItem: (itemId: string, quantity: number): Promise<ApiResponse<CartItem>> =>
-    apiClient.put(API_ENDPOINTS.CART.UPDATE, { itemId, quantity }),
+    apiClient.put(API_ENDPOINTS.CART.UPDATE.replace(':id', itemId), { quantity }),
 
   removeFromCart: (itemId: string): Promise<ApiResponse<void>> =>
     apiClient.delete(API_ENDPOINTS.CART.REMOVE.replace(':id', itemId)),

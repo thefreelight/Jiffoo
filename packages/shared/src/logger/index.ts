@@ -23,6 +23,9 @@ export * from './transports';
 // 导出适配器
 export * from './adapters';
 
+// 导出数据脱敏模块
+export * from './sanitizer';
+
 // 导出常量
 export const LOG_LEVELS: Record<string, number> = {
   debug: 0,

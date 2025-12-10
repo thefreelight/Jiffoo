@@ -1,0 +1,55 @@
+{
+  "slug": "i18n",
+  "name": "Internationalization",
+  "version": "1.0.0",
+  "description": "Multi-language internationalization plugin for managing translations, language detection, and localized content",
+  "category": "localization",
+  "runtimeType": "internal-fastify",
+  "entryModule": "server/index.js",
+  "permissions": [
+    "i18n:language:read",
+    "i18n:language:write",
+    "i18n:translation:read",
+    "i18n:translation:write"
+  ],
+  "author": "Jiffoo Team",
+  "authorUrl": "https://jiffoo.com",
+  "icon": "globe",
+  "minApiVersion": "1.0.0",
+  "tags": ["i18n", "internationalization", "translation", "localization", "multilingual"],
+  "dependencies": {},
+  "config": {
+    "defaultLocale": {
+      "type": "string",
+      "default": "en",
+      "description": "Default locale code"
+    },
+    "fallbackLocale": {
+      "type": "string",
+      "default": "en",
+      "description": "Fallback locale when translation is missing"
+    },
+    "enableUrlPrefix": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable language prefix in URLs"
+    },
+    "detectFromBrowser": {
+      "type": "boolean",
+      "default": true,
+      "description": "Detect language from browser Accept-Language header"
+    },
+    "enableMachineTranslation": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable machine translation integration"
+    },
+    "machineTranslationProvider": {
+      "type": "string",
+      "default": "google",
+      "enum": ["google", "deepl", "azure"],
+      "description": "Machine translation provider"
+    }
+  }
+}
+

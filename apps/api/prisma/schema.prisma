@@ -1,5 +1,13 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
+//
+// ============================================
+// 🆕 单商户核心架构 - 完全无 tenantId
+// ============================================
+// 开源版本设计原则:
+// 1. 所有业务表完全不包含 tenantId 字段
+// 2. 多租户功能通过安装 @jiffoo/plugin-multi-tenant 插件启用
+// 3. 插件通过数据库迁移添加 tenantId 列
 
 generator client {
   provider = "prisma-client-js"
@@ -10,58 +18,40 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============================================
+// 核心业务表 - 无 tenantId
+// ============================================
+
 model User {
   id        String   @id @default(cuid())
-  email     String
+  email     String   @unique // 单商户模式下 email 全局唯一
   username  String
   password  String
   avatar    String?
-  role      String   @default("USER") // 'USER', 'TENANT_ADMIN', 'SUPER_ADMIN'
-  tenantId  Int      @default(1) // 0=SUPER_ADMIN, >0=租户用户
-  tenant    Tenant?  @relation(fields: [tenantId], references: [id])
+  role      String   @default("USER") // 'USER', 'ADMIN'
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  // 🆕 分销分润字段
-  referralCode         String? @unique // 邀请码（用户注册时自动生成）
-  invitedBy            String? // 邀请人userId（只记录直接邀请人）
-  customCommissionRate Float? // 个性化分润比例（%），null表示使用默认比例
-  totalEarnings        Float   @default(0) // 累计收益
-  availableBalance     Float   @default(0) // 可提现余额
-  pendingBalance       Float   @default(0) // 待结算余额（7天内）
-  totalReferrals       Int     @default(0) // 邀请人数
 
   // 电商相关关系
   orders Order[]
   carts  Cart[] // 用户购物车关系
 
-  // Removed multilingual relations
-
   // OAuth 2.0 和社交登录相关关系
   socialAccounts SocialAccount[]
   oauth2Tokens   OAuth2AccessToken[]
 
-  // 多租户OEM相关关系 - Sales功能已删除
-
   // 审计日志关系
   auditLogs AuditLog[] @relation("UserAuditLogs")
 
-  // 🆕 分销分润关系
-  inviter     User?        @relation("UserReferrals", fields: [invitedBy], references: [id], onDelete: SetNull)
-  referrals   User[]       @relation("UserReferrals")
-  commissions Commission[]
-  payouts     Payout[]
+  // 🆕 数字商品下载记录
+  downloadRecords DownloadRecord[]
 
-  // 🆕 代理系统关系
-  agents      Agent[]      // 用户作为代理管理员
+  // CMS 内容关系
+  cmsPosts CmsPost[]
 
-  @@unique([email, tenantId], name: "user_email_tenant_unique")
   @@index([email])
-  @@index([tenantId])
   @@index([role])
-  @@index([referralCode])
-  @@index([invitedBy])
   @@map("users")
 }
 
@@ -73,13 +63,20 @@ model Product {
   stock       Int      @default(0) // 基础库存（向后兼容）
   category    String?
   images      String?
-  tenantId    Int
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // 🆕 代理授权按钮（商品级）
-  agentCanDelegate Boolean @default(true) // 是否允许该商品进入代理体系
+  // 🆕 商品类型系统
+  productType String  @default("physical") // 'physical' | 'digital' | custom types
+  typeData    String? // JSON: type-specific data (dimensions, files, etc.)
+
+  // 🆕 实物商品字段
+  weight         Float?   // 重量 (克)
+  length         Float?   // 长度 (厘米)
+  width          Float?   // 宽度 (厘米)
+  height         Float?   // 高度 (厘米)
+  requiresShipping Boolean @default(true)
+  shippingClass  String?  // 'standard' | 'express' | 'fragile'
 
   // Relations
   orderItems            OrderItem[]
@@ -87,11 +84,10 @@ model Product {
   inventoryReservations InventoryReservation[] // 🆕 库存预留关系
   translations          ProductTranslation[] // 🆕 多语言翻译关系
   variants              ProductVariant[] // 🆕 商品变体关系
-  selfConfigs           AgentVariantSelfConfig[] // 🆕 Self路径配置
-  childrenConfigs       AgentVariantChildrenConfig[] // 🆕 Children路径配置
+  digitalFiles          ProductFile[] // 🆕 数字文件关系
 
-  @@index([tenantId])
   @@index([category])
+  @@index([productType])
   @@map("products")
 }
 
@@ -100,7 +96,6 @@ model Product {
 model ProductVariant {
   id          String   @id @default(cuid())
   productId   String
-  tenantId    Int
   name        String   // 变体名称（如"1天套餐"、"7天套餐"）
   attributes  String?  // JSON格式的属性（如 {"days": 1}）
   basePrice   Float    // 变体基础价格
@@ -111,20 +106,13 @@ model ProductVariant {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // 🆕 代理授权按钮（变体级）
-  agentCanDelegate Boolean @default(true) // 是否允许该变体进入代理体系下发给下级
-
   // Relations
   product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
   orderItems  OrderItem[] // 订单项关系
   cartItems   CartItem[] // 购物车项关系
-  selfConfigs AgentVariantSelfConfig[] // Self路径配置
-  childrenConfigs AgentVariantChildrenConfig[] // Children路径配置
   inventoryReservations InventoryReservation[] // 🆕 库存预留关系
 
   @@index([productId])
-  @@index([tenantId])
   @@index([skuCode])
   @@map("product_variants")
 }
@@ -149,6 +137,59 @@ model ProductTranslation {
   @@map("product_translations")
 }
 
+// 🆕 数字商品文件表
+model ProductFile {
+  id          String   @id @default(cuid())
+  productId   String
+  name        String   // 文件名
+  size        Int      // 文件大小 (bytes)
+  mimeType    String   // MIME 类型
+  storageKey  String   // 存储键（不暴露真实 URL）
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  product         Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  downloadRecords DownloadRecord[]
+
+  @@index([productId])
+  @@map("product_files")
+}
+
+// 🆕 下载记录表
+model DownloadRecord {
+  id           String   @id @default(cuid())
+  fileId       String
+  orderId      String
+  orderItemId  String
+  userId       String
+  ipAddress    String?
+  userAgent    String?
+  downloadedAt DateTime @default(now())
+
+  // Relations
+  file      ProductFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  order     Order       @relation(fields: [orderId], references: [id])
+  orderItem OrderItem   @relation(fields: [orderItemId], references: [id])
+  user      User        @relation(fields: [userId], references: [id])
+
+  @@index([fileId])
+  @@index([orderId])
+  @@index([userId])
+  @@map("download_records")
+}
+
+// 🆕 核心模块配置表
+model CoreModule {
+  id          String   @id // 'physical-products' | 'digital-products'
+  enabled     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("core_modules")
+}
+
 model Order {
   id     String @id @default(cuid())
   userId String
@@ -166,35 +207,20 @@ model Order {
   totalAmount     Float
   customerEmail   String?
   shippingAddress String?
-  tenantId        Int
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  // 🆕 分销分润字段
-  referrerId           String? // 推荐人userId（下单时记录，用于佣金计算）
-  commissionCalculated Boolean @default(false) // 是否已计算佣金
-
-  // 🆕 代理系统字段
-  agentId              String? // 来源代理ID（Agent Mall订单）
-  agentCommissionCalculated Boolean @default(false) // 是否已计算代理佣金
-
   // Relations
   user                  User                   @relation(fields: [userId], references: [id])
-  tenant                Tenant                 @relation(fields: [tenantId], references: [id])
   items                 OrderItem[]
   payments              Payment[]
   inventoryReservations InventoryReservation[] // 🆕 关联库存预留
-  commissions           Commission[] // 🆕 佣金记录关系
-  agent                 Agent?                 @relation("AgentOrders", fields: [agentId], references: [id])
-  agentCommissions      AgentCommission[] // 🆕 代理佣金记录关系
+  downloadRecords       DownloadRecord[] // 🆕 下载记录关系
 
   @@index([status])
   @@index([paymentStatus]) // 🆕 新增索引
   @@index([expiresAt]) // 🆕 新增索引（用于定时任务查询）
-  @@index([tenantId])
-  @@index([userId, tenantId])
-  @@index([referrerId]) // 🆕 新增索引
-  @@index([agentId]) // 🆕 新增索引
+  @@index([userId])
   @@map("orders")
 }
 
@@ -205,17 +231,20 @@ model OrderItem {
   variantId String? // 🆕 商品变体ID（新增字段）
   quantity  Int
   unitPrice Float
-  tenantId  Int
+
+  // 🆕 履约状态
+  fulfillmentStatus String  @default("pending") // 'pending', 'processing', 'shipped', 'delivered', 'ready_for_download', 'downloaded', 'failed'
+  fulfillmentData   String? // JSON: shipping tracking, download info, etc.
 
   // Relations
   order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
   variant ProductVariant? @relation(fields: [variantId], references: [id]) // 🆕 变体关系
-  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  downloadRecords DownloadRecord[] // 🆕 下载记录关系
 
-  @@index([tenantId])
-  @@index([orderId, tenantId])
+  @@index([orderId])
   @@index([variantId]) // 🆕 变体索引
+  @@index([fulfillmentStatus]) // 🆕 履约状态索引
   @@map("order_items")
 }
 
@@ -227,7 +256,6 @@ model InventoryReservation {
   productId String
   variantId String?  // 🆕 变体ID（可选，向后兼容）
   quantity  Int
-  tenantId  Int
   expiresAt DateTime // 预留过期时间（与订单过期时间一致）
   status    String   @default("ACTIVE") // ACTIVE, RELEASED, CONFIRMED
   createdAt DateTime @default(now())
@@ -237,34 +265,27 @@ model InventoryReservation {
   order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product        @relation(fields: [productId], references: [id])
   variant ProductVariant? @relation(fields: [variantId], references: [id])
-  tenant  Tenant         @relation(fields: [tenantId], references: [id])
 
   @@unique([orderId, productId, variantId]) // 🆕 每个订单的每个商品变体只能有一条预留记录
   @@index([expiresAt, status]) // 用于定时任务查询过期预留
   @@index([productId, status]) // 用于计算可用库存
   @@index([variantId, status]) // 🆕 用于计算变体可用库存
-  @@index([tenantId])
   @@map("inventory_reservations")
 }
 
 // 购物车系统 - 仅支持登录用户
 model Cart {
   id        String   @id @default(cuid())
-  userId    String // 必需字段，只支持登录用户
-  tenantId  Int // 多租户隔离
+  userId    String   @unique // 单商户模式下每用户只有一个购物车
   status    String   @default("ACTIVE") // 'ACTIVE', 'CONVERTED'
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
   user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tenant Tenant     @relation(fields: [tenantId], references: [id])
   items  CartItem[]
 
-  // 每个用户在每个租户只能有一个活跃购物车
-  @@unique([userId, tenantId])
   @@index([userId])
-  @@index([tenantId])
   @@index([status])
   @@map("carts")
 }
@@ -276,7 +297,6 @@ model CartItem {
   quantity  Int
   price     Float // 加入购物车时的价格快照
   variantId String? // 商品变体ID（可选）
-  tenantId  Int // 多租户隔离
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -284,189 +304,25 @@ model CartItem {
   cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
   variant ProductVariant? @relation(fields: [variantId], references: [id]) // 🆕 变体关系
-  tenant  Tenant  @relation(fields: [tenantId], references: [id])
 
   // 防重复约束：同一购物车中同一商品（含变体）只能有一条记录
   @@unique([cartId, productId, variantId])
   @@index([cartId])
   @@index([productId])
   @@index([variantId]) // 🆕 变体索引
-  @@index([tenantId])
   @@map("cart_items")
 }
 
-// 多租户OEM系统
-
-// 租户
-model Tenant {
-  id               Int     @id @default(autoincrement())
-  companyName      String
-  contactName      String
-  contactEmail     String  @unique
-  contactPhone     String?
-  domain           String? @unique // 自定义域名
-  subdomain        String? @unique // 子域名
-  logo             String? // Logo URL
-  theme            String? // JSON格式的主题配置
-  branding         String? // JSON格式的品牌配置
-  settings         String? // JSON格式的租户设置
-  status           String  @default("ACTIVE") // 'ACTIVE', 'SUSPENDED', 'TERMINATED'
-  subscriptionTier String  @default("BASIC") // 'BASIC', 'PREMIUM', 'ENTERPRISE'
-  maxUsers         Int     @default(10)
-  maxProducts      Int     @default(100)
-
-  // 🆕 订阅相关设置
-  billingEmail   String? // 账单邮箱
-  taxId          String? // 税务ID
-  billingAddress String? // JSON格式的账单地址
-
-  // 🆕 邮件系统配置
-  defaultEmailProvider String? // 默认邮件提供商 (e.g., 'resend-email')
-  emailSettings        String? // JSON格式的邮件配置
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  users         User[]
-  products      Product[]
-  productVariants ProductVariant[] // 🆕 商品变体关系
-  orders        Order[]
-  orderItems    OrderItem[]
-  carts         Cart[] // 租户购物车关系
-  cartItems     CartItem[] // 租户购物车商品关系
-  priceControls PriceControl[]
-  tenantPricing TenantPricing[]
-
-  dataSyncs TenantDataSync[]
-  auditLogs AuditLog[]
-
-  // Plugin system relations
-  pluginInstallations PluginInstallation[]
-  pluginUsage         PluginUsage[]
-  payments            Payment[]
-
-  // 商业化模式相关关系
-  customPricing    TenantCustomPricing[]
-  featureOverrides TenantFeatureOverride[]
-  usageOverrides   TenantUsageOverride[]
-
-  // 🆕 订阅系统关系
-  subscriptions Subscription[]
-
-  // 🆕 库存预留关系
-  inventoryReservations InventoryReservation[]
-
-  // 🆕 邮件系统关系
-  emailLogs      EmailLog[]
-  emailTemplates EmailTemplate[]
-  emailQueue     EmailQueue[]
-
-  // 🆕 分销分润关系
-  commissionConfigs TenantCommissionConfig[]
-  commissions       Commission[]
-  payouts           Payout[]
-
-  // 🆕 插件许可证关系（买断制）
-  pluginLicenses    PluginLicense[]
-
-  // 🆕 域名配置关系
-  domains           TenantDomain[]
-
-  // 🆕 三级代理系统关系
-  agents            Agent[]
-  agentMallConfigs  AgentMallConfig[]
-  agentDomains      AgentDomain[]
-  agentLevelConfigs AgentLevelConfig[]
-  agentCommissions  AgentCommission[]
-
-  // 🆕 代理变体授权配置关系
-  agentVariantSelfConfigs     AgentVariantSelfConfig[]
-  agentVariantChildrenConfigs AgentVariantChildrenConfig[]
-
-  @@map("tenants")
-}
-
-// 产品价格控制
-model PriceControl {
-  id             String   @id @default(cuid())
-  productType    String // 'plugin', 'saas-app', 'template'
-  productId      String
-  productName    String
-  basePrice      Float // Jiffoo设置的底价
-  suggestedPrice Float? // 建议售价
-  minPrice       Float? // 最低售价限制
-  maxPrice       Float? // 最高售价限制
-  marginPercent  Float? // 建议加价百分比
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations
-  tenant        Tenant          @relation(fields: [tenantId], references: [id])
-  tenantId      Int
-  tenantPricing TenantPricing[]
-
-  @@index([productType])
-  @@index([tenantId])
-  @@index([isActive])
-  @@map("price_controls")
-}
-
-// 租户定价
-model TenantPricing {
-  id             String   @id @default(cuid())
-  tenantId       Int
-  priceControlId String
-  sellingPrice   Float
-  marginAmount   Float // 加价金额
-  marginPercent  Float // 加价百分比
-  isActive       Boolean  @default(true)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  // Relations
-  tenant       Tenant       @relation(fields: [tenantId], references: [id])
-  priceControl PriceControl @relation(fields: [priceControlId], references: [id])
-
-  @@index([tenantId])
-  @@index([priceControlId])
-  @@map("tenant_pricing")
-}
-
-// 租户数据同步配置
-model TenantDataSync {
-  id              String    @id @default(cuid())
-  tenantId        Int
-  syncType        String // 'users', 'orders', 'products', 'analytics'
-  syncEndpoint    String // 租户数据接收接口
-  syncFrequency   String    @default("daily") // 'realtime', 'hourly', 'daily', 'weekly'
-  authMethod      String    @default("api_key") // 'api_key', 'oauth2', 'webhook'
-  authCredentials String // JSON格式的认证信息
-  isActive        Boolean   @default(true)
-  lastSyncAt      DateTime?
-  lastSyncStatus  String? // 'success', 'failed', 'partial'
-  errorMessage    String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-
-  // Relations
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-
-  @@index([tenantId])
-  @@index([syncType])
-  @@index([isActive])
-  @@index([lastSyncAt])
-  @@map("tenant_data_sync")
-}
+// ============================================
+// 系统管理表 - 无 tenantId
+// ============================================
 
 // 操作日志
 model AuditLog {
   id         String   @id @default(cuid())
   userId     String?
-  tenantId   Int      @default(0) // 0=平台级操作, >0=租户操作
   action     String // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT'
-  module     String // 'users', 'tenants', 'sales', 'plugins'
+  module     String // 'users', 'products', 'orders', 'plugins'
   resourceId String? // 被操作资源的ID
   oldValues  String? // JSON格式的旧值
   newValues  String? // JSON格式的新值
@@ -477,10 +333,8 @@ model AuditLog {
 
   // Relations
   user   User?   @relation("UserAuditLogs", fields: [userId], references: [id])
-  tenant Tenant? @relation(fields: [tenantId], references: [id])
 
   @@index([userId])
-  @@index([tenantId])
   @@index([action])
   @@index([module])
   @@index([createdAt])
@@ -557,7 +411,7 @@ model OAuth2AccessToken {
 // 插件系统相关表
 // ============================================
 
-// 插件表
+// 插件表 - 系统级（单商户模式无需按租户隔离）
 model Plugin {
   id              String  @id @default(cuid())
   slug            String  @unique // 'stripe-payment'
@@ -570,7 +424,6 @@ model Plugin {
   screenshots     String? // JSON数组格式的截图URLs
   version         String  @default("1.0.0")
   status          String  @default("ACTIVE") // 'ACTIVE', 'INACTIVE'
-  // 🔧 商业模式信息现在从subscription_plans表推断
 
   // 🆕 插件元数据
   developer    String? @default("Jiffoo") // 开发者名称
@@ -587,21 +440,55 @@ model Plugin {
   updatedAt DateTime @updatedAt
 
   installations     PluginInstallation[]
-  customPricing     TenantCustomPricing[]
-  subscriptions     Subscription[] // 🆕 订阅关系
   subscriptionPlans SubscriptionPlan[] // 🆕 订阅计划关系
   payments          Payment[] // 🆕 支付记录关系
-  emailLogs         EmailLog[] // 🆕 邮件日志关系
-  licenses          PluginLicense[] // 🆕 插件许可证关系（买断制）
+  licenses          PluginLicense[] // 🆕 许可证关系
 
   @@map("plugins")
 }
 
-// 插件安装表
+// 插件许可证表 - 管理商业插件的许可证
+model PluginLicense {
+  id             String    @id @default(cuid())
+  pluginId       String // 关联的插件 slug
+  status         String    @default("PENDING") // 'ACTIVE', 'EXPIRED', 'REVOKED', 'GRACE', 'PENDING'
+  purchaseDate   DateTime  @default(now()) // 购买日期
+  activatedAt    DateTime? // 激活时间
+  deactivatedAt  DateTime? // 停用时间
+  amount         Float     @default(0) // 购买金额
+  currency       String    @default("USD") // 货币
+
+  // 许可证密钥 (加密存储)
+  licenseKeyHash String? // 许可证密钥哈希
+
+  // 许可证类型和有效期
+  licenseType    String    @default("perpetual") // 'subscription', 'perpetual', 'trial'
+  expiresAt      DateTime? // 过期时间 (订阅类型)
+  gracePeriodDays Int      @default(7) // 宽限期天数
+
+  // 功能限制
+  features       String?   // JSON 数组: 允许的功能列表
+  maxTenants     Int?      // 最大租户数
+  maxUsers       Int?      // 最大用户数
+
+  // 客户信息
+  customerEmail  String?
+  customerName   String?
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  plugin         Plugin    @relation(fields: [pluginId], references: [slug])
+
+  @@index([pluginId])
+  @@index([status])
+  @@map("plugin_licenses")
+}
+
+// 插件安装表 - 单商户模式下系统级安装
 model PluginInstallation {
   id       String  @id @default(cuid())
-  tenantId Int
-  pluginId String
+  pluginId String  @unique // 单商户模式下每个插件只安装一次
   status   String  @default("ACTIVE") // 'ACTIVE', 'INACTIVE', 'TRIAL', 'EXPIRED'
   enabled  Boolean @default(true) // 是否启用
 
@@ -622,18 +509,15 @@ model PluginInstallation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
   plugin Plugin @relation(fields: [pluginId], references: [id])
 
-  @@unique([tenantId, pluginId])
   @@index([externalInstallationId])
   @@map("plugin_installations")
 }
 
-// 插件使用量表
+// 插件使用量表 - 单商户模式下系统级统计
 model PluginUsage {
   id         String   @id @default(cuid())
-  tenantId   Int
   pluginSlug String
   metricName String // 'transactions', 'api_calls', etc.
   value      Int      @default(0)
@@ -641,9 +525,7 @@ model PluginUsage {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-
-  @@unique([tenantId, pluginSlug, metricName, period], name: "tenantId_pluginSlug_metricName_period")
+  @@unique([pluginSlug, metricName, period])
   @@map("plugin_usage")
 }
 
@@ -651,7 +533,6 @@ model PluginUsage {
 model Payment {
   id       String @id @default(cuid())
   orderId  String
-  tenantId Int
 
   // 🆕 关联到插件 - 用于追踪哪个支付插件处理的支付
   pluginId String?
@@ -674,235 +555,15 @@ model Payment {
   updatedAt       DateTime @updatedAt
 
   order  Order  @relation(fields: [orderId], references: [id])
-  tenant Tenant @relation(fields: [tenantId], references: [id])
 
-  @@index([tenantId])
-  @@index([pluginId]) // 🆕 新增索引
+  @@index([pluginId])
   @@index([paymentIntentId])
   @@index([sessionId])
-  @@index([orderId, attemptNumber]) // 🆕 新增索引
+  @@index([orderId, attemptNumber])
   @@map("payments")
 }
 
-// 租户定制定价表 - 支持商业化模式
-model TenantCustomPricing {
-  id        String    @id @default(cuid())
-  tenantId  Int
-  pluginId  String
-  planId    String // 'custom_enterprise', 'vip_plan', etc.
-  pricing   String // JSON格式的定制定价信息
-  features  String // JSON格式的功能列表（覆盖标准功能）
-  limits    String // JSON格式的使用量限制（覆盖标准限制）
-  validFrom DateTime  @default(now())
-  validTo   DateTime?
-  createdBy String // 创建此定制方案的超级管理员ID
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-  plugin Plugin @relation(fields: [pluginId], references: [id])
-
-  @@unique([tenantId, pluginId])
-  @@index([tenantId])
-  @@index([pluginId])
-  @@map("tenant_custom_pricing")
-}
-
-// 租户功能覆盖表 - 精细化功能控制
-model TenantFeatureOverride {
-  id         String   @id @default(cuid())
-  tenantId   Int
-  pluginSlug String
-  feature    String // 功能名称，如 'advanced_analytics'
-  enabled    Boolean // true=强制启用, false=强制禁用
-  reason     String? // 覆盖原因，如 'VIP客户特权' 或 '安全限制'
-  createdBy  String // 操作的超级管理员ID
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-
-  @@unique([tenantId, pluginSlug, feature])
-  @@index([tenantId])
-  @@index([pluginSlug])
-  @@map("tenant_feature_overrides")
-}
-
-// 租户使用量覆盖表 - 灵活的限制控制
-model TenantUsageOverride {
-  id         String    @id @default(cuid())
-  tenantId   Int
-  pluginSlug String
-  metricName String // 'transactions', 'api_calls', etc.
-  limitValue Int // -1 表示无限制
-  reason     String? // 覆盖原因
-  createdBy  String // 操作的超级管理员ID
-  validFrom  DateTime  @default(now())
-  validTo    DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-
-  @@unique([tenantId, pluginSlug, metricName])
-  @@index([tenantId])
-  @@index([pluginSlug])
-  @@map("tenant_usage_overrides")
-}
-
-// ============================================
-// 订阅系统相关表
-// ============================================
-
-// 订阅表（核心表）
-model Subscription {
-  id                   String  @id @default(cuid())
-  tenantId             Int
-  pluginId             String
-  planId               String // 订阅计划ID
-  stripeSubscriptionId String?
-  stripeItemId         String? // Stripe Subscription Item ID (required for proration updates)
-  stripeCustomerId     String? // Stripe客户ID
-
-  // 订阅状态和周期
-  status             String // 'trialing', 'active', 'past_due', 'canceled', 'unpaid'
-  billingCycle       String // 'monthly', 'yearly', 'quarterly'
-  currentPeriodStart DateTime
-  currentPeriodEnd   DateTime
-  trialStart         DateTime?
-  trialEnd           DateTime?
-
-  // 定价和计费
-  amount          Float
-  currency        String @default("USD")
-  taxRate         Float? @default(0)
-  discountPercent Float? @default(0)
-
-  // 订阅控制
-  cancelAtPeriodEnd Boolean   @default(false)
-  canceledAt        DateTime?
-  pausedAt          DateTime?
-  resumeAt          DateTime?
-
-  // 自动化设置
-  autoRenew               Boolean @default(true)
-  renewalNotificationSent Boolean @default(false)
-
-  // 元数据
-  metadata  String? // JSON格式
-  notes     String? // 管理员备注
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // 关系
-  tenant   Tenant                @relation(fields: [tenantId], references: [id])
-  plugin   Plugin                @relation(fields: [pluginId], references: [id])
-  invoices SubscriptionInvoice[]
-  changes  SubscriptionChange[]
-  events   SubscriptionEvent[]
-
-  // Removed @@unique([tenantId, pluginId]) to allow multiple subscription records per tenant-plugin pair
-  // This enables keeping historical subscription records (canceled, expired, etc.)
-  // Application logic ensures only one active/trialing subscription exists at a time
-  @@index([status])
-  @@index([currentPeriodEnd])
-  @@index([stripeSubscriptionId])
-  @@index([tenantId, pluginId, status]) // Composite index for efficient queries
-  @@map("subscriptions")
-}
-
-// 订阅变更记录表
-model SubscriptionChange {
-  id              String   @id @default(cuid())
-  subscriptionId  String
-  changeType      String // 'created', 'upgraded', 'downgraded', 'canceled', 'reactivated', 'paused', 'resumed'
-  fromPlanId      String?
-  toPlanId        String?
-  fromAmount      Float?
-  toAmount        Float?
-  effectiveDate   DateTime
-  prorationAmount Float? // 按比例计费金额
-  reason          String? // 变更原因
-  initiatedBy     String // 'tenant', 'admin', 'system', 'stripe'
-  createdBy       String? // 操作人ID
-  metadata        String? // JSON格式的额外信息
-  createdAt       DateTime @default(now())
-
-  subscription Subscription @relation(fields: [subscriptionId], references: [id])
-
-  @@index([subscriptionId])
-  @@index([changeType])
-  @@index([effectiveDate])
-  @@map("subscription_changes")
-}
-
-// 订阅发票表
-model SubscriptionInvoice {
-  id              String  @id @default(cuid())
-  subscriptionId  String
-  stripeInvoiceId String? @unique
-  invoiceNumber   String  @unique // 自动生成的发票号
-
-  // 发票基本信息
-  amount         Float
-  taxAmount      Float  @default(0)
-  discountAmount Float  @default(0)
-  totalAmount    Float // amount + taxAmount - discountAmount
-  currency       String @default("USD")
-
-  // 发票状态和时间
-  status      String // 'draft', 'open', 'paid', 'void', 'uncollectible'
-  periodStart DateTime
-  periodEnd   DateTime
-  issueDate   DateTime  @default(now())
-  dueDate     DateTime?
-  paidAt      DateTime?
-  voidedAt    DateTime?
-
-  // 支付信息
-  paymentMethod    String? // 'stripe', 'manual', 'bank_transfer'
-  paymentReference String? // 支付参考号
-
-  // 发票内容
-  lineItems String // JSON格式的发票明细
-  metadata  String? // JSON格式
-  notes     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  subscription Subscription @relation(fields: [subscriptionId], references: [id])
-
-  @@index([subscriptionId])
-  @@index([status])
-  @@index([dueDate])
-  @@index([issueDate])
-  @@map("subscription_invoices")
-}
-
-// 订阅事件日志表
-model SubscriptionEvent {
-  id               String    @id @default(cuid())
-  subscriptionId   String
-  eventType        String // 'created', 'activated', 'payment_succeeded', 'payment_failed', 'canceled', etc.
-  eventSource      String // 'stripe', 'system', 'admin', 'tenant'
-  eventData        String // JSON格式的事件数据
-  processedAt      DateTime? // 事件处理时间
-  processingStatus String    @default("pending") // 'pending', 'processed', 'failed'
-  errorMessage     String? // 处理失败时的错误信息
-  retryCount       Int       @default(0)
-  createdAt        DateTime  @default(now())
-
-  subscription Subscription @relation(fields: [subscriptionId], references: [id])
-
-  @@index([subscriptionId])
-  @@index([eventType])
-  @@index([processingStatus])
-  @@index([createdAt])
-  @@map("subscription_events")
-}
-
-// 订阅计划模板表（预定义的订阅计划）
+// 订阅计划模板表（插件定价）
 model SubscriptionPlan {
   id          String  @id @default(cuid())
   pluginId    String
@@ -923,7 +584,7 @@ model SubscriptionPlan {
 
   // 计划控制
   isActive  Boolean @default(true)
-  isPublic  Boolean @default(true) // 是否对所有租户可见
+  isPublic  Boolean @default(true)
   sortOrder Int     @default(0)
 
   // 元数据
@@ -939,563 +600,245 @@ model SubscriptionPlan {
   @@map("subscription_plans")
 }
 
+
 // ============================================
-// 邮件系统表
+// 系统设置表 - 用于安装引导和全局配置
 // ============================================
+model SystemSettings {
+  id        String   @id @default("system")
 
-// 邮件发送日志表
-model EmailLog {
-  id       String  @id @default(cuid())
-  tenantId Int
-  pluginId String? // 关联到具体的邮件插件
-  provider String // 'resend', 'sendgrid', 'mailgun', 'aws-ses'
+  // 安装状态
+  isInstalled     Boolean  @default(false)
+  installedAt     DateTime?
+  installedBy     String?  // 安装人的用户ID
 
-  // 邮件标识
-  messageId  String? // 提供商返回的消息ID
-  externalId String? // 外部系统的关联ID (e.g., orderId, userId)
+  // 系统版本
+  version         String   @default("1.0.0")
+  lastUpdatedAt   DateTime?
 
-  // 邮件内容
-  to       String // JSON格式的收件人列表
-  from     String // 发件人地址
-  fromName String? // 发件人名称
-  replyTo  String? // 回复地址
-  cc       String? // JSON格式的抄送列表
-  bcc      String? // JSON格式的密送列表
-  subject  String
-  html     String? @db.Text
-  text     String? @db.Text
+  // 全局配置 (JSON)
+  siteName        String   @default("Jiffoo Mall")
+  siteDescription String?
+  logoUrl         String?
+  faviconUrl      String?
 
-  // 附件信息
-  attachments String? // JSON格式的附件列表
+  // 功能开关
+  maintenanceMode Boolean  @default(false)
+  allowRegistration Boolean @default(true)
+  requireEmailVerification Boolean @default(true)
 
-  // 状态追踪
-  status String // 'queued', 'sent', 'delivered', 'opened', 'clicked', 'bounced', 'failed', 'spam'
-
-  // 时间戳
-  queuedAt    DateTime? // 加入队列时间
-  sentAt      DateTime? // 发送时间
-  deliveredAt DateTime? // 送达时间
-  openedAt    DateTime? // 首次打开时间
-  clickedAt   DateTime? // 首次点击时间
-  bouncedAt   DateTime? // 退信时间
-
-  // 追踪数据
-  openCount  Int @default(0) // 打开次数
-  clickCount Int @default(0) // 点击次数
-
-  // 错误信息
-  errorCode    String? // 错误代码
-  errorMessage String? // 错误详情
-
-  // 元数据
-  metadata String? // JSON格式的额外数据
-  tags     String? // JSON格式的标签
-
-  // 重试信息
-  retryCount  Int       @default(0)
-  lastRetryAt DateTime?
+  // 其他设置 (JSON格式存储扩展配置)
+  settings        String?  // JSON格式的扩展设置
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant Tenant  @relation(fields: [tenantId], references: [id])
-  plugin Plugin? @relation(fields: [pluginId], references: [id])
-
-  @@index([tenantId])
-  @@index([pluginId])
-  @@index([provider])
-  @@index([status])
-  @@index([sentAt])
-  @@index([messageId])
-  @@index([externalId])
-  @@map("email_logs")
+  @@map("system_settings")
 }
 
-// 邮件模板表
-model EmailTemplate {
-  id       String @id @default(cuid())
-  tenantId Int
+// ============================================
+// 已安装主题表 - 扩展系统
+// ============================================
+model InstalledTheme {
+  id        String   @id @default(cuid())
 
-  // 模板标识
-  slug        String // 'order-confirmation', 'password-reset', 'welcome'
-  name        String // '订单确认邮件'
-  description String?
-  category    String // 'transactional', 'marketing', 'system'
+  // 主题标识
+  slug      String   @unique // 主题唯一标识符（单商户模式下全局唯一）
+  target    String   // 'shop' | 'admin' - 主题目标应用
 
-  // 模板内容
-  subject String // 支持变量: "Order #{{orderId}} Confirmed"
-  html    String  @db.Text // HTML模板
-  text    String? @db.Text // 纯文本模板
+  // 主题元数据
+  name      String   // 主题名称
+  version   String   // 主题版本
+  author    String?  // 主题作者
+  description String? // 主题描述
 
-  // 模板变量定义
-  variables String? // JSON格式: ["orderId", "customerName", "totalAmount"]
-
-  // 默认配置
-  fromName  String? // 覆盖租户默认发件人名称
-  fromEmail String? // 覆盖租户默认发件人地址
-  replyTo   String? // 覆盖租户默认回复地址
+  // 安装信息
+  source    String   @default("local-zip") // 'local-zip' | 'official-market'
+  installPath String // 安装路径（相对于 extensions/themes/）
 
   // 状态
-  isActive Boolean @default(true)
-  isSystem Boolean @default(false) // 系统模板不可删除
+  isActive  Boolean  @default(false) // 是否为当前激活的主题
 
-  // 版本控制
-  version Int @default(1)
+  // 主题配置（JSON格式）
+  config    String?  // 主题配置覆盖
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  installedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-
-  @@unique([tenantId, slug])
-  @@index([tenantId])
-  @@index([category])
-  @@map("email_templates")
-}
-
-// 邮件发送队列表
-model EmailQueue {
-  id       String @id @default(cuid())
-  tenantId Int
-  provider String // 指定使用的提供商
-
-  // 邮件数据
-  emailData String @db.Text // JSON格式的完整邮件数据
-
-  // 队列状态
-  status   String @default("pending") // 'pending', 'processing', 'sent', 'failed'
-  priority Int    @default(5) // 1-10, 数字越小优先级越高
-
-  // 调度信息
-  scheduledAt DateTime? // 定时发送时间
-  processedAt DateTime?
-
-  // 重试信息
-  retryCount  Int       @default(0)
-  maxRetries  Int       @default(3)
-  nextRetryAt DateTime?
-
-  // 错误信息
-  errorMessage String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-
-  @@index([tenantId])
-  @@index([status])
-  @@index([scheduledAt])
-  @@index([priority])
-  @@map("email_queue")
+  @@index([target])
+  @@index([isActive])
+  @@map("installed_themes")
 }
 
 // ============================================
-// 分销分润系统表
+// CMS 内容管理系统
 // ============================================
 
-// 佣金记录表
-model Commission {
-  id          String @id @default(cuid())
-  tenantId    Int
-  userId      String // 获得佣金的用户（推荐人）
-  orderId     String // 关联订单
-  buyerId     String // 购买用户
+model CmsPost {
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  content     String?   @db.Text
+  excerpt     String?
+  status      String    @default("DRAFT") // DRAFT, PUBLISHED, SCHEDULED, ARCHIVED
+  authorId    String
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  featuredImage String?
+  viewCount   Int       @default(0)
 
-  orderAmount Float // 订单金额
-  rate        Float // 使用的分润比例（%）
-  amount      Float // 佣金金额
+  // SEO
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
 
-  status String @default("PENDING") // PENDING(待结算), SETTLED(已结算可提现), PAID(已支付), REFUNDED(已退款)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  deletedAt DateTime?
 
-  // 时间信息
-  settleAt   DateTime  // 结算时间（支付成功后7天）
-  settledAt  DateTime? // 实际结算时间
-  paidAt     DateTime? // 支付时间
-  refundedAt DateTime? // 退款时间
+  // 关系
+  categories CmsCategory[]
+  tags       CmsTag[]
+  author     User          @relation(fields: [authorId], references: [id])
+  revisions  CmsRevision[]
+
+  @@index([slug])
+  @@index([status])
+  @@index([authorId])
+  @@index([publishedAt])
+  @@map("cms_posts")
+}
+
+model CmsPage {
+  id       String  @id @default(cuid())
+  title    String
+  slug     String  @unique
+  content  String? @db.Text
+  template String  @default("default")
+  parentId String?
+  order    Int     @default(0)
+  isHome   Boolean @default(false)
+
+  // SEO
+  metaTitle       String?
+  metaDescription String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
-  order  Order  @relation(fields: [orderId], references: [id])
+  // 自引用关系
+  parent   CmsPage?  @relation("PageHierarchy", fields: [parentId], references: [id])
+  children CmsPage[] @relation("PageHierarchy")
 
-  @@index([tenantId])
-  @@index([userId])
-  @@index([orderId])
-  @@index([status])
-  @@index([settleAt]) // 用于定时任务
-  @@map("commissions")
+  @@index([slug])
+  @@index([parentId])
+  @@map("cms_pages")
 }
 
-// 租户分润配置表
-model TenantCommissionConfig {
-  id      String @id @default(cuid())
-  tenantId Int   @unique
-
-  enabled Boolean @default(false) // 是否启用分销功能
-
-  defaultRate Float @default(30) // 默认分润比例（%）
-
-  settlementDays  Int   @default(7) // 结算周期（天）
-  minPayoutAmount Float @default(50) // 最低提现金额
+model CmsCategory {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique
+  description String?
+  parentId    String?
+  order       Int     @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
+  // 关系
+  parent   CmsCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children CmsCategory[] @relation("CategoryHierarchy")
+  posts    CmsPost[]
 
-  @@map("tenant_commission_configs")
+  @@index([slug])
+  @@index([parentId])
+  @@map("cms_categories")
 }
 
-// 提现记录表
-model Payout {
-  id       String @id @default(cuid())
-  tenantId Int
-  userId   String
-
-  amount   Float  // 提现金额
-  currency String @default("USD")
-  status   String @default("PENDING") // PENDING(待处理), PROCESSING(处理中), COMPLETED(已完成), FAILED(失败), CANCELLED(已取消)
-
-  // 支付方式和账户信息
-  method      String? // BANK_TRANSFER, PAYPAL, ALIPAY, WECHAT
-  accountInfo String? // JSON格式存储账户信息
-
-  // 处理信息
-  processedAt   DateTime?
-  processedBy   String? // 处理人userId
-  failureReason String?
-  note          String? // 备注
+model CmsTag {
+  id    String @id @default(cuid())
+  name  String
+  slug  String @unique
 
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 
-  tenant Tenant @relation(fields: [tenantId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
+  // 关系
+  posts CmsPost[]
 
-  @@index([tenantId])
-  @@index([userId])
-  @@index([status])
-  @@map("payouts")
+  @@index([slug])
+  @@map("cms_tags")
 }
 
-// 🆕 插件许可证表（买断制模型）
-model PluginLicense {
-  id              String   @id @default(cuid())
-  tenantId        Int
-  pluginId        String
-
-  // 许可证状态
-  status          String   @default("ACTIVE") // 'ACTIVE', 'INACTIVE', 'SUSPENDED'
-  purchaseDate    DateTime @default(now()) // 购买日期
-  activatedAt     DateTime? // 激活日期
-  deactivatedAt   DateTime? // 停用日期
-
-  // 购买信息
-  amount          Float    @default(29) // 购买金额（$29）
-  currency        String   @default("USD") // 货币
-
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-
-  // Relations
-  tenant          Tenant   @relation(fields: [tenantId], references: [id])
-  plugin          Plugin   @relation(fields: [pluginId], references: [id])
-
-  @@unique([tenantId, pluginId])
-  @@index([status])
-  @@index([tenantId])
-  @@map("plugin_licenses")
-}
-
-// 🆕 租户域名配置
-// 支持多域名绑定：前台、后台、API 分别对应不同的域名
-model TenantDomain {
+model CmsRevision {
   id        String   @id @default(cuid())
-  tenantId  Int
-  host      String   // 完整域名（如 bamboi.com、admin.bamboi.com）
-  appType   String   // 'frontend' | 'admin' | 'api' | 'tenant-admin' | 'agent-admin' | 'frontend-agent'
-  isCustom  Boolean  @default(true)  // 是否自定义域名（非平台分配）
-  isPrimary Boolean  @default(false) // 是否为该 appType 下的主域名
+  postId    String
+  title     String
+  content   String?  @db.Text
+  authorId  String
+  createdAt DateTime @default(now())
 
-  // SSL/验证状态（可选扩展）
-  sslConfigured Boolean  @default(false)
-  dnsVerified   Boolean  @default(false)
-  verifiedAt    DateTime?
+  // 关系
+  post CmsPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("cms_revisions")
+}
+
+model CmsMedia {
+  id          String  @id @default(cuid())
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int
+  url         String
+  alt         String?
+  caption     String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
-  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([host, appType])
-  @@index([tenantId])
-  @@index([host])
-  @@map("tenant_domains")
+  @@index([mimeType])
+  @@map("cms_media")
 }
 
 // ============================================
-// 🆕 三级代理系统模型
+// i18n 国际化系统
 // ============================================
 
-// 代理实体 - 归属某个租户
-model Agent {
-  id                String   @id @default(cuid())
-  tenantId          Int      // 归属的租户
-  userId            String   // 代理管理员账号（必须绑定一个用户）
-  code              String   // 代理码（用于邀请链接和Mall识别）
-  name              String   // 代理名称
-  level             Int      // 代理等级：1/2/3
-  parentAgentId     String?  // 上级代理ID（L2的上级是L1，L3的上级是L2）
-  status            String   @default("PENDING") // PENDING(待审核), ACTIVE(活跃), SUSPENDED(停用), REJECTED(拒绝)
+model I18nLanguage {
+  id         String  @id @default(cuid())
+  locale     String  @unique // e.g., 'en', 'zh-CN', 'ja'
+  name       String  // e.g., 'English', 'Chinese', 'Japanese'
+  nativeName String  // e.g., 'English', '中文', '日本語'
+  flag       String? // emoji or icon code
+  isEnabled  Boolean @default(true)
+  isDefault  Boolean @default(false)
+  isRTL      Boolean @default(false)
+  order      Int     @default(0)
 
-  // 邀请链路追踪
-  invitedByTenantId Int?     // 被哪个租户邀请（通常与tenantId相同）
-  invitedByAgentId  String?  // 被哪个代理邀请（用于下级代理）
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // 业绩统计（冗余字段，定时任务更新）
-  totalOrders       Int      @default(0)  // 总订单数
-  totalSales        Float    @default(0)  // 总销售额
-  totalCommission   Float    @default(0)  // 总佣金
-  availableBalance  Float    @default(0)  // 可提现余额
-  pendingBalance    Float    @default(0)  // 待结算余额
-
-  notes             String?  // 备注
-
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-
-  // Relations
-  tenant            Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user              User     @relation(fields: [userId], references: [id])
-  parentAgent       Agent?   @relation("AgentHierarchy", fields: [parentAgentId], references: [id])
-  childAgents       Agent[]  @relation("AgentHierarchy")
-
-  // 代理Mall配置
-  mallConfig        AgentMallConfig?
-  // 代理域名配置
-  domains           AgentDomain[]
-  // 代理佣金记录
-  agentCommissions  AgentCommission[]
-  // 关联订单
-  orders            Order[]  @relation("AgentOrders")
-  // 🆕 变体级授权配置 - 通过 ownerType='AGENT' + ownerId=agent.id 逻辑关联
-
-  @@unique([tenantId, code])  // 每个租户内代理码唯一
-  @@unique([tenantId, userId]) // 每个用户在每个租户只能是一个代理
-  @@index([tenantId])
-  @@index([userId])
-  @@index([parentAgentId])
-  @@index([level])
-  @@index([status])
-  @@map("agents")
+  @@index([isEnabled])
+  @@index([isDefault])
+  @@map("i18n_languages")
 }
 
-// 代理Mall配置
-model AgentMallConfig {
-  id                 String   @id @default(cuid())
-  agentId            String   @unique
-  tenantId           Int
+model I18nTranslation {
+  id         String  @id @default(cuid())
+  locale     String  // language code
+  entityType String  // 'product', 'category', 'cms_post', etc.
+  entityId   String  // ID of the entity
+  key        String  // field name, e.g., 'name', 'description'
+  value      String  @db.Text
+  isOutdated Boolean @default(false)
 
-  // 主题配置
-  themeSlug          String?  // 主题slug（引用Shop主题）
-  themeConfig        String?  // JSON格式的主题配置
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-  // 店铺设置
-  settings           String?  // JSON格式：{shopName, description, banner, contact, etc.}
-
-  // 域名类型偏好
-  defaultDomainType  String   @default("platform") // 'platform' | 'tenant' | 'own-domain'
-
-  // BYOK配置预留（未来支持代理自己的支付配置）
-  byokConfig         String?  // JSON格式：{stripeAccountId?, paymentMethods?, etc.}
-
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  // Relations
-  agent              Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  tenant             Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@index([tenantId])
-  @@map("agent_mall_configs")
-}
-
-// 代理域名配置
-model AgentDomain {
-  id            String   @id @default(cuid())
-  agentId       String
-  tenantId      Int
-  host          String   // 完整域名（如 agent-own-domain.com）
-  isPrimary     Boolean  @default(false)
-
-  // SSL/验证状态
-  sslConfigured Boolean  @default(false)
-  dnsVerified   Boolean  @default(false)
-  verifiedAt    DateTime?
-
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-
-  // Relations
-  agent         Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  tenant        Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([host])  // 域名全局唯一
-  @@index([agentId])
-  @@index([tenantId])
-  @@map("agent_domains")
-}
-
-// 代理等级配置（每个租户独立配置三级代理的费率）
-model AgentLevelConfig {
-  id                  String   @id @default(cuid())
-  tenantId            Int
-  level               Int      // 1, 2, 3
-
-  // 佣金费率
-  commissionRate      Float    // 该等级代理的佣金比例（%）
-
-  // 限制配置
-  maxAgentsPerParent  Int      @default(100)  // 每个上级代理最多发展的下级数量
-  maxProducts         Int?     // 该等级代理最多可销售的商品数（null=不限）
-
-  // 分润配置（三级分润时各级的比例）
-  l1ShareRate         Float?   // L1从该等级订单获得的分润比例（%）
-  l2ShareRate         Float?   // L2从该等级订单获得的分润比例（%）
-  l3ShareRate         Float?   // L3从该等级订单获得的分润比例（%）
-
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-
-  // Relations
-  tenant              Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-
-  @@unique([tenantId, level])
-  @@index([tenantId])
-  @@map("agent_level_configs")
-}
-
-// 代理佣金记录（三级分润）
-model AgentCommission {
-  id          String   @id @default(cuid())
-  tenantId    Int
-  agentId     String   // 获得佣金的代理
-  orderId     String   // 关联订单
-  buyerId     String   // 购买用户
-
-  // 代理链路信息
-  agentLevel  Int      // 该代理的等级（1/2/3）
-  sourceAgentId String? // 订单来源代理ID（可能是自己或下级）
-
-  orderAmount Float    // 订单金额
-  rate        Float    // 使用的分润比例（%）
-  amount      Float    // 佣金金额
-
-  status      String   @default("PENDING") // PENDING(待结算), SETTLED(已结算可提现), PAID(已支付), REFUNDED(已退款)
-
-  // 时间信息
-  settleAt    DateTime   // 结算时间（支付成功后N天）
-  settledAt   DateTime?  // 实际结算时间
-  paidAt      DateTime?  // 支付时间
-  refundedAt  DateTime?  // 退款时间
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  tenant      Tenant   @relation(fields: [tenantId], references: [id])
-  agent       Agent    @relation(fields: [agentId], references: [id])
-  order       Order    @relation(fields: [orderId], references: [id])
-
-  @@index([tenantId])
-  @@index([agentId])
-  @@index([orderId])
-  @@index([status])
-  @@index([settleAt])
-  @@map("agent_commissions")
-}
-
-// ============================================
-// 🆕 代理变体授权配置模型 (Self & Children 路径)
-// ============================================
-
-// Self路径配置 - 控制"自己商城"的变体可售性和价格
-// 适用于租户(ownerType='TENANT')和代理(ownerType='AGENT')
-//
-// 🔑 ownerId 语义说明：
-// - ownerType='TENANT' 时，ownerId 存储 tenantId 的字符串形式
-// - ownerType='AGENT' 时，ownerId 存储 agent.id
-// 注意：不使用外键关联 Agent 表，因为 ownerId 有两种语义
-model AgentVariantSelfConfig {
-  id          String   @id @default(cuid())
-  tenantId    Int
-  ownerType   String   // 'TENANT' | 'AGENT' - 配置所有者类型
-  ownerId     String   // 租户时为tenantId字符串，代理时为agent.id（逻辑字段，不做外键）
-  productId   String   // 商品ID（用于快速查询）
-  variantId   String   // 变体ID
-
-  // Self路径核心字段
-  canSellSelf Boolean  @default(true) // 是否在自己商城销售该变体
-  selfPrice   Float?   // 自定义销售价格（null表示继承上级价格）
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations - 只保留明确的外键关系，ownerId 作为逻辑字段不做外键
-  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  product     Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  // 移除：agent Agent? @relation(...) - ownerId 有两种语义，不适合做外键
-
-  @@unique([tenantId, ownerType, ownerId, variantId]) // 每个所有者对每个变体只有一条配置
-  @@index([tenantId])
-  @@index([ownerType, ownerId])
-  @@index([productId])
-  @@index([variantId])
-  @@map("agent_variant_self_configs")
-}
-
-// Children路径配置 - 控制"给下级代理"的变体授权和价格
-// 适用于租户(ownerType='TENANT')和代理(ownerType='AGENT')
-//
-// 🔑 ownerId 语义说明：
-// - ownerType='TENANT' 时，ownerId 存储 tenantId 的字符串形式
-// - ownerType='AGENT' 时，ownerId 存储 agent.id
-// 注意：不使用外键关联 Agent 表，因为 ownerId 有两种语义
-model AgentVariantChildrenConfig {
-  id          String   @id @default(cuid())
-  tenantId    Int
-  ownerType   String   // 'TENANT' | 'AGENT' - 配置所有者类型
-  ownerId     String   // 租户时为tenantId字符串，代理时为agent.id（逻辑字段，不做外键）
-  productId   String   // 商品ID（用于商品级控制）
-  variantId   String?  // 变体ID（为null时表示商品级配置）
-
-  // Children路径核心字段 - 商品级
-  canDelegateProduct Boolean @default(true) // 是否允许该商品授权给下级（商品级按钮）
-
-  // Children路径核心字段 - 变体级
-  canDelegateVariant Boolean @default(true) // 是否允许该变体授权给下级（变体级按钮）
-  priceForChildren   Float?  // 给下级的成本价/起始价
-  priceForChildrenMin Float? // 给下级的最低售价限制
-  priceForChildrenMax Float? // 给下级的最高售价限制
-
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations - 只保留明确的外键关系，ownerId 作为逻辑字段不做外键
-  tenant      Tenant         @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  product     Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
-  variant     ProductVariant? @relation(fields: [variantId], references: [id], onDelete: Cascade)
-  // 移除：agent Agent? @relation(...) - ownerId 有两种语义，不适合做外键
-
-  @@unique([tenantId, ownerType, ownerId, productId, variantId]) // 唯一约束
-  @@index([tenantId])
-  @@index([ownerType, ownerId])
-  @@index([productId])
-  @@index([variantId])
-  @@map("agent_variant_children_configs")
+  @@unique([locale, entityType, entityId, key])
+  @@index([locale])
+  @@index([entityType, entityId])
+  @@map("i18n_translations")
 }

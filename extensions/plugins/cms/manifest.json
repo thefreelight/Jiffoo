@@ -1,0 +1,55 @@
+{
+  "slug": "cms",
+  "name": "CMS Content Management",
+  "version": "1.0.0",
+  "description": "Content Management System plugin for managing blog posts, pages, categories, tags, and media",
+  "category": "content",
+  "runtimeType": "internal-fastify",
+  "entryModule": "server/index.js",
+  "permissions": [
+    "cms:post:read",
+    "cms:post:write",
+    "cms:page:read",
+    "cms:page:write",
+    "cms:category:read",
+    "cms:category:write",
+    "cms:tag:read",
+    "cms:tag:write",
+    "cms:media:read",
+    "cms:media:write"
+  ],
+  "author": "Jiffoo Team",
+  "authorUrl": "https://jiffoo.com",
+  "icon": "file-text",
+  "minApiVersion": "1.0.0",
+  "tags": ["cms", "blog", "content", "pages", "media"],
+  "dependencies": {},
+  "config": {
+    "postsPerPage": {
+      "type": "number",
+      "default": 10,
+      "description": "Number of posts per page"
+    },
+    "enableComments": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable comments on posts"
+    },
+    "enableRevisions": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable content revision history"
+    },
+    "maxRevisions": {
+      "type": "number",
+      "default": 10,
+      "description": "Maximum number of revisions to keep"
+    },
+    "autoSaveInterval": {
+      "type": "number",
+      "default": 60,
+      "description": "Auto-save interval in seconds"
+    }
+  }
+}
+

@@ -1,289 +1,143 @@
-// Platform Agent Types
-export interface PlatformAgent {
-  id: string;
-  userId: string;
-  agentCode: string;
-  level: AgentLevel;
-  territory: Territory;
-  commissionRate: number;
-  maxTenants: number;
-  canWhiteLabel: boolean;
-  canCustomPrice: boolean;
-  status: AgentStatus;
-  appliedAt: string;
-  approvedAt?: string;
-  activatedAt?: string;
-  suspendedAt?: string;
-  personalInfo: PersonalInfo;
-  businessInfo?: BusinessInfo;
-  initialFee: number;
-  feePaidAt?: string;
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
-  user?: User;
-  referrals?: PlatformReferral[];
-  commissions?: AgentCommission[];
-  payouts?: CommissionPayout[];
-  referredTenants?: Tenant[];
-}
-
-export interface Territory {
-  type: 'global' | 'regional' | 'local';
-  name: string;
-  code: string;
-  countries?: string[];
-  states?: string[];
-  cities?: string[];
-  coordinates?: {
-    lat: number;
-    lng: number;
-  };
-  exclusivity: boolean;
-}
-
-export interface PersonalInfo {
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  address: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    country: string;
-  };
-  idCard?: string;
-  bankAccount?: {
-    bankName: string;
-    accountNumber: string;
-    routingNumber: string;
-    accountHolder: string;
-  };
-}
-
-export interface BusinessInfo {
-  companyName: string;
-  businessLicense: string;
-  taxId: string;
-  website?: string;
-  socialMedia?: {
-    linkedin?: string;
-    twitter?: string;
-    facebook?: string;
-  };
-  employeeCount: number;
-  annualRevenue: number;
-}
-
+// User types
 export interface User {
-  id: string;
-  email: string;
-  username: string;
-  role: string;
-  createdAt: string;
-}
-
-export interface PlatformReferral {
-  id: string;
-  agentId: string;
-  tenantId: string;
-  referralType: ReferralType;
-  referralCode: string;
-  referralUrl?: string;
-  baseAmount: number;
-  commissionRate: number;
-  commissionAmount: number;
-  currency: string;
-  status: ReferralStatus;
-  confirmedAt?: string;
-  paidAt?: string;
-  cancelledAt?: string;
-  metadata?: any;
-  createdAt: string;
-  updatedAt: string;
-  agent?: PlatformAgent;
-  tenant?: Tenant;
-  commissions?: AgentCommission[];
-}
-
-export interface AgentCommission {
-  id: string;
-  agentId: string;
-  referralId: string;
-  commissionType: CommissionType;
-  amount: number;
-  currency: string;
-  periodStart?: string;
-  periodEnd?: string;
-  status: CommissionStatus;
-  confirmedAt?: string;
-  paidAt?: string;
-  payoutId?: string;
-  createdAt: string;
-  updatedAt: string;
-  agent?: PlatformAgent;
-  referral?: PlatformReferral;
-  payout?: CommissionPayout;
-}
-
-export interface CommissionPayout {
-  id: string;
-  agentId: string;
-  totalAmount: number;
-  currency: string;
-  commissionCount: number;
-  periodStart: string;
-  periodEnd: string;
-  payoutMethod: PayoutMethod;
-  payoutDetails: any;
-  status: PayoutStatus;
-  requestedAt: string;
-  processedAt?: string;
-  completedAt?: string;
-  failedAt?: string;
-  transactionId?: string;
-  transactionFee: number;
-  netAmount: number;
-  notes?: string;
-  failureReason?: string;
-  createdAt: string;
-  updatedAt: string;
-  agent?: PlatformAgent;
-  commissions?: AgentCommission[];
-}
-
-export interface Tenant {
-  id: string;
-  companyName: string;
-  contactEmail: string;
-  referredByAgentId?: string;
-  referralCode?: string;
-  referralDate?: string;
-  status: string;
-  createdAt: string;
-}
-
-// Enums
-export type AgentLevel = 'GLOBAL' | 'REGIONAL' | 'LOCAL';
-export type AgentStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'TERMINATED';
-export type ReferralType = 'TENANT_SIGNUP' | 'PLUGIN_PURCHASE' | 'SUBSCRIPTION_UPGRADE';
-export type ReferralStatus = 'PENDING' | 'CONFIRMED' | 'PAID' | 'CANCELLED';
-export type CommissionType = 'REFERRAL' | 'RECURRING' | 'BONUS';
-export type CommissionStatus = 'PENDING' | 'CONFIRMED' | 'PAID';
-export type PayoutMethod = 'BANK_TRANSFER' | 'PAYPAL' | 'STRIPE' | 'CRYPTO';
-export type PayoutStatus = 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
-
-// Dashboard Types
-export interface DashboardOverview {
-  totalAgents: number;
-  activeAgents: number;
-  pendingApplications: number;
-  totalCommissions: number;
-  paidCommissions: number;
-  pendingPayouts: number;
-  totalRevenue: number;
-  monthlyGrowth: number;
-}
-
-export interface PlatformStats {
-  period: string;
-  agentStats: {
-    total: number;
-    active: number;
-    new: number;
-    byLevel: Record<AgentLevel, number>;
-  };
-  revenueStats: {
-    total: number;
-    commissions: number;
-    growth: number;
-  };
-  referralStats: {
-    total: number;
-    confirmed: number;
-    conversionRate: number;
-  };
-}
-
-export interface AgentPerformance {
-  agentId: string;
-  agentCode: string;
-  level: AgentLevel;
-  totalReferrals: number;
-  confirmedReferrals: number;
-  totalCommissions: number;
-  paidCommissions: number;
-  conversionRate: number;
-  rank: number;
-}
-
-// Form Types
-export interface CreateAgentRequest {
-  level: AgentLevel;
-  territory: Territory;
-  personalInfo: PersonalInfo;
-  businessInfo?: BusinessInfo;
-}
-
-export interface UpdateAgentRequest {
-  territory?: Territory;
-  personalInfo?: Partial<PersonalInfo>;
-  businessInfo?: Partial<BusinessInfo>;
-  commissionRate?: number;
-  maxTenants?: number;
-  canWhiteLabel?: boolean;
-  canCustomPrice?: boolean;
-  notes?: string;
-}
-
-export interface AgentStatusUpdate {
-  status: AgentStatus;
-  reason?: string;
-  notes?: string;
-}
-
-// User Role Enum
-export enum UserRole {
-  USER = 'USER',
-  ADMIN = 'ADMIN',
-  SUPER_ADMIN = 'SUPER_ADMIN'
-}
-
-// Order type for dashboard
-export interface Order {
   id: string
-  orderNumber: string
-  status: string
-  totalAmount: number
+  email: string
+  name: string
+  username: string
+  avatar?: string
+  role: UserRole
+  isActive: boolean
   createdAt: string
-  customerId?: string
-  customerName?: string
+  updatedAt: string
+  lastLoginAt?: string
 }
 
-// Product type for dashboard
+export enum UserRole {
+  ADMIN = 'ADMIN',
+  MANAGER = 'MANAGER',
+  USER = 'USER'
+}
+
+// Product types
+export interface ProductVariant {
+  id: string
+  name: string
+  price?: number
+  basePrice?: number
+  stock?: number
+  baseStock?: number
+  sku?: string
+}
+
 export interface Product {
   id: string
   name: string
+  description: string
   price: number
+  originalPrice?: number
+  sku: string
   stock: number
-  soldCount?: number
-  imageUrl?: string
+  categoryId: string
+  category: string | Category
+  images: ProductImage[]
+  variants?: ProductVariant[]
+  status: string
+  isActive: boolean
+  isFeatured: boolean
+  createdAt: string
+  updatedAt: string
 }
 
-// Statistics types
+export interface Category {
+  id: string
+  name: string
+  description?: string
+  parentId?: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ProductImage {
+  id: string
+  url: string
+  alt?: string
+  isPrimary: boolean
+  order: number
+}
+
+// Order types
+export interface Order {
+  id: string
+  orderNumber: string
+  userId: string
+  user: User
+  customerEmail: string
+  status: OrderStatus
+  totalAmount: number
+  shippingAddress: Address
+  billingAddress: Address
+  items: OrderItem[]
+  createdAt: string
+  updatedAt: string
+}
+
+export enum OrderStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  PROCESSING = 'PROCESSING',
+  SHIPPED = 'SHIPPED',
+  DELIVERED = 'DELIVERED',
+  CANCELLED = 'CANCELLED',
+  REFUNDED = 'REFUNDED'
+}
+
+export interface OrderItem {
+  id: string
+  productId: string
+  product: Product
+  quantity: number
+  unitPrice: number
+  price: number
+  totalPrice: number
+}
+
+export interface Address {
+  id: string
+  street: string
+  city: string
+  state: string
+  zipCode: string
+  country: string
+}
+
+// Statistics types - Unified DashboardStats for tenant dashboard
 export interface DashboardStats {
+  // Core metrics
   totalUsers: number
   totalProducts: number
   totalOrders: number
   totalRevenue: number
-  todayOrders?: number
-  todayRevenue?: number
+  // Today's metrics
+  todayOrders: number
+  todayRevenue: number
+  // Growth percentages
   userGrowth: number
-  productGrowth?: number
+  productGrowth: number
   orderGrowth: number
   revenueGrowth: number
+  // Order status breakdown
+  ordersByStatus?: {
+    PENDING: number
+    PAID: number
+    SHIPPED: number
+    DELIVERED: number
+    CANCELLED: number
+  }
+  // Product stats
+  inStockProducts?: number
+  outOfStockProducts?: number
+  // Optional chart data
   recentOrders?: Order[]
   topProducts?: Product[]
   revenueChart?: ChartData[]
@@ -301,7 +155,7 @@ export interface ApiResponse<T> {
   message?: string
   success: boolean
   error?: string
-  errors?: Record<string, string[]>
+  code?: string
 }
 
 export interface PaginatedResponse<T> {
@@ -359,8 +213,8 @@ export interface CacheStats {
   missRate: number
 }
 
-// Plugin types (basic)
-export interface PluginBasic {
+// Plugin types
+export interface Plugin {
   name: string
   version: string
   description: string
@@ -378,7 +232,7 @@ export interface NavItem {
   children?: NavItem[]
 }
 
-// Plugin types (full)
+// Plugin types
 export interface Plugin {
   id: string
   slug: string

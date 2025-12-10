@@ -3,7 +3,7 @@ import { z } from 'zod';
 // 订单商品项
 export const OrderItemSchema = z.object({
   productId: z.string().min(1, 'Product ID is required'),
-  variantId: z.string().optional(), // 🆕 商品变体ID（可选）
+  variantId: z.string().optional(),
   quantity: z.number().int().positive('Quantity must be positive'),
 });
 
@@ -20,28 +20,27 @@ export const ShippingAddressSchema = z.object({
 // 创建订单请求
 export const CreateOrderSchema = z.object({
   items: z.array(OrderItemSchema).min(1, 'Order must have at least one item'),
-  shippingAddress: ShippingAddressSchema,
-  customerEmail: z.string().email('Valid email is required'),
-  agentId: z.string().optional(), // 代理ID（可选，用于三级代理分润）
+  shippingAddress: ShippingAddressSchema.optional(),
+  customerEmail: z.string().email('Valid email is required').optional(),
 });
 
 // 订单状态枚举
 export const OrderStatus = {
-  PENDING: 'PENDING',     // 待支付
-  PAID: 'PAID',          // 已支付
-  SHIPPED: 'SHIPPED',    // 已发货
-  DELIVERED: 'DELIVERED', // 已送达
-  CANCELLED: 'CANCELLED'  // 已取消
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  SHIPPED: 'SHIPPED',
+  DELIVERED: 'DELIVERED',
+  CANCELLED: 'CANCELLED'
 } as const;
 
 export type OrderStatusType = typeof OrderStatus[keyof typeof OrderStatus];
 
-// 🆕 支付状态枚举
+// 支付状态枚举
 export const PaymentStatus = {
-  UNPAID: 'UNPAID',       // 未支付
-  PAID: 'PAID',           // 已支付
-  FAILED: 'FAILED',       // 支付失败
-  REFUNDED: 'REFUNDED'    // 已退款
+  PENDING: 'PENDING',
+  PAID: 'PAID',
+  FAILED: 'FAILED',
+  REFUNDED: 'REFUNDED'
 } as const;
 
 export type PaymentStatusType = typeof PaymentStatus[keyof typeof PaymentStatus];
@@ -56,34 +55,28 @@ export interface OrderResponse {
   id: string;
   userId: string;
   status: OrderStatusType;
-  paymentStatus: PaymentStatusType;  // 🆕 新增字段
-  expiresAt: Date | null;            // 🆕 新增字段
-  paymentAttempts: number;           // 🆕 新增字段
-  lastPaymentAttemptAt: Date | null; // 🆕 新增字段
+  paymentStatus: string;
   totalAmount: number;
-  customerEmail: string;
-  shippingAddress: ShippingAddressRequest;
+  shippingAddress: any;
+  items: OrderItemResponse[];
   createdAt: Date;
   updatedAt: Date;
-  items: OrderItemResponse[];
 }
 
 // 订单商品项响应接口
 export interface OrderItemResponse {
   id: string;
   productId: string;
+  productName: string;
+  variantId?: string;
+  variantName?: string;
   quantity: number;
   unitPrice: number;
-  product: {
-    id: string;
-    name: string;
-    images: string | null;
-  };
+  totalPrice: number;
 }
 
 // 分页订单列表响应
 export interface OrderListResponse {
-  success: boolean;
   data: OrderResponse[];
   pagination: {
     page: number;
@@ -91,10 +84,4 @@ export interface OrderListResponse {
     total: number;
     totalPages: number;
   };
-}
-
-// 单个订单响应
-export interface SingleOrderResponse {
-  success: boolean;
-  data: OrderResponse;
 }

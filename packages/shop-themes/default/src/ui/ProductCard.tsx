@@ -1,13 +1,13 @@
 /**
  * Product Card Component
  * Card component for displaying product information
+ * Uses @jiffoo/ui design system
  */
 
 import React from 'react';
 import { Heart, ShoppingCart } from 'lucide-react';
-import { clsx } from 'clsx';
+import { Button, cn } from '@jiffoo/ui';
 import type { Product } from '../../../../shared/src/types/product';
-import { Button } from './Button';
 
 export interface ProductCardProps {
   product: Product;
@@ -24,27 +24,51 @@ export function ProductCard({
   onAddToCart,
   onClick,
 }: ProductCardProps) {
-  // Get first image
-  const imageUrl = product.images && product.images.length > 0
-    ? product.images[0].url
-    : '/placeholder-product.jpg';
+  // Get first image - handle both array of objects and array of strings
+  let imageUrl = '/placeholder-product.jpg';
+  if (product.images && product.images.length > 0) {
+    const firstImage = product.images[0];
+    if (typeof firstImage === 'string') {
+      imageUrl = firstImage;
+    } else if (firstImage && typeof firstImage === 'object' && 'url' in firstImage) {
+      imageUrl = firstImage.url;
+    }
+  }
 
-  const isOutOfStock = !product.inventory?.isInStock;
-  const isLowStock = product.inventory?.isLowStock && product.inventory?.isInStock;
+  // Handle stock from multiple sources:
+  // 1. inventory.isInStock (standard)
+  // 2. stock field (API returns this directly)
+  // 3. inventory.available
+  const stockValue = (product as any).stock ?? product.inventory?.available ?? product.inventory?.quantity ?? 0;
+  const isOutOfStock = product.inventory?.isInStock === false || stockValue <= 0;
+  const isLowStock = !isOutOfStock && (product.inventory?.isLowStock || (stockValue > 0 && stockValue <= 10));
+  const availableStock = product.inventory?.available ?? stockValue;
+
+  const hasDiscount = product.originalPrice && product.originalPrice > product.price;
+  const discountPercent = hasDiscount
+    ? Math.round((1 - product.price / product.originalPrice!) * 100)
+    : 0;
 
   if (viewMode === 'list') {
     return (
-      <div className="flex gap-4 p-4 bg-white rounded-lg border shadow-sm hover:shadow-md transition-shadow">
+      <div className="flex gap-6 p-6 bg-white rounded-2xl border border-neutral-200 shadow-sm hover:shadow-brand-md hover:border-brand-200 transition-all duration-300">
         {/* Image */}
-        <div className="relative w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden">
+        <div className="relative w-40 h-40 flex-shrink-0 rounded-xl overflow-hidden bg-neutral-100">
           <img
             src={imageUrl}
             alt={product.name}
             className="w-full h-full object-cover"
           />
           {isOutOfStock && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
               <span className="text-white text-sm font-medium">Out of Stock</span>
+            </div>
+          )}
+          {hasDiscount && !isOutOfStock && (
+            <div className="absolute top-2 left-2">
+              <span className="bg-error-500 text-white text-xs font-semibold px-2 py-1 rounded-lg">
+                -{discountPercent}%
+              </span>
             </div>
           )}
         </div>
@@ -53,29 +77,30 @@ export function ProductCard({
         <div className="flex-1 flex flex-col">
           <button
             onClick={onClick}
-            className="text-lg font-semibold hover:text-blue-600 transition-colors text-left"
+            className="text-lg font-semibold text-neutral-900 hover:text-brand-600 transition-colors text-left"
           >
             {product.name}
           </button>
-          
+
           {product.description && (
-            <p className="text-sm text-gray-600 mt-1 line-clamp-2">
+            <p className="text-sm text-neutral-500 mt-2 line-clamp-2">
               {product.description}
             </p>
           )}
 
           <div className="mt-auto flex items-center justify-between">
-            <div>
-              <span className="text-2xl font-bold">${product.price}</span>
-              {product.originalPrice && product.originalPrice > product.price && (
-                <span className="ml-2 text-sm text-gray-500 line-through">
+            <div className="flex items-baseline gap-2">
+              <span className="text-2xl font-bold text-neutral-900">${product.price}</span>
+              {hasDiscount && (
+                <span className="text-sm text-neutral-400 line-through">
                   ${product.originalPrice}
                 </span>
               )}
             </div>
 
             <Button
-              onClick={onAddToCart}
+              variant={isOutOfStock ? 'outline' : 'primary'}
+              onClick={(e: React.MouseEvent) => { e.stopPropagation(); onAddToCart(); }}
               disabled={isOutOfStock}
               size="md"
             >
@@ -89,75 +114,83 @@ export function ProductCard({
   }
 
   return (
-    <div className="group bg-white rounded-lg border shadow-sm hover:shadow-md transition-all overflow-hidden">
-      {/* Image */}
-      <div className="relative aspect-square overflow-hidden">
+    <div
+      className="group h-full flex flex-col bg-white rounded-2xl border border-neutral-200 shadow-sm hover:shadow-brand-md hover:border-brand-200 transition-all duration-300 overflow-hidden cursor-pointer"
+      onClick={onClick}
+    >
+      {/* Image - fixed height container */}
+      <div className="relative w-full h-56 flex-shrink-0 overflow-hidden bg-neutral-100">
         <img
           src={imageUrl}
           alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
         />
 
-        {/* Stock labels */}
-        {isLowStock && (
-          <div className="absolute top-3 left-3">
-            <span className="bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
-              Only {product.inventory?.available || 0} left
-            </span>
-          </div>
-        )}
+        {/* Brand overlay on hover */}
+        <div className="absolute inset-0 bg-brand-600/0 group-hover:bg-brand-600/5 transition-colors duration-300" />
 
-        {isOutOfStock && (
-          <div className="absolute top-3 left-3">
-            <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-2">
+          {hasDiscount && !isOutOfStock && (
+            <span className="bg-error-500 text-white text-xs font-semibold px-2.5 py-1 rounded-lg shadow-sm">
+              -{discountPercent}%
+            </span>
+          )}
+          {isLowStock && (
+            <span className="bg-warning-500 text-white text-xs font-semibold px-2.5 py-1 rounded-lg shadow-sm">
+              Only {availableStock} left
+            </span>
+          )}
+          {isOutOfStock && (
+            <span className="bg-neutral-800 text-white text-xs font-semibold px-2.5 py-1 rounded-lg shadow-sm">
               Out of Stock
             </span>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Wishlist button */}
         {showWishlist && (
           <button
-            className={clsx(
-              'absolute top-3 right-3 p-2 rounded-full bg-white/80 hover:bg-white',
-              'opacity-0 group-hover:opacity-100 transition-opacity'
+            onClick={(e: React.MouseEvent) => { e.stopPropagation(); }}
+            className={cn(
+              'absolute top-3 right-3 p-2.5 rounded-full bg-white/90 backdrop-blur-sm',
+              'shadow-sm hover:bg-white hover:shadow-md',
+              'opacity-0 group-hover:opacity-100 transition-all duration-200',
+              'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2'
             )}
+            aria-label="Add to wishlist"
           >
-            <Heart className="h-4 w-4" />
+            <Heart className="h-4 w-4 text-neutral-600 hover:text-error-500 transition-colors" />
           </button>
         )}
       </div>
 
-      {/* Product info */}
-      <div className="p-4">
-        <button
-          onClick={onClick}
-          className="font-semibold text-lg mb-2 hover:text-blue-600 transition-colors line-clamp-2 text-left w-full"
-        >
+      {/* Product info - flex-grow to fill remaining space */}
+      <div className="flex-1 flex flex-col p-5">
+        <h3 className="font-semibold text-base text-neutral-900 group-hover:text-brand-600 transition-colors line-clamp-1">
           {product.name}
-        </button>
+        </h3>
 
-        {product.description && (
-          <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-            {product.description}
-          </p>
-        )}
+        <p className="text-sm text-neutral-500 mt-1 line-clamp-1 leading-relaxed h-5">
+          {product.description || '\u00A0'}
+        </p>
 
-        {/* Price */}
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl font-bold">${product.price}</span>
-          {product.originalPrice && product.originalPrice > product.price && (
-            <span className="text-sm text-gray-500 line-through">
+        {/* Price - push to bottom with mt-auto */}
+        <div className="flex items-baseline gap-2 mt-3">
+          <span className="text-xl font-bold text-neutral-900">${product.price}</span>
+          {hasDiscount && (
+            <span className="text-sm text-neutral-400 line-through">
               ${product.originalPrice}
             </span>
           )}
         </div>
 
-        {/* Add to cart button */}
+        {/* Add to cart button - always at bottom */}
         <Button
-          onClick={onAddToCart}
+          variant={isOutOfStock ? 'outline' : 'primary'}
+          onClick={(e: React.MouseEvent) => { e.stopPropagation(); onAddToCart(); }}
           disabled={isOutOfStock}
-          className="w-full"
+          className="w-full mt-3"
           size="md"
         >
           <ShoppingCart className="h-4 w-4 mr-2" />

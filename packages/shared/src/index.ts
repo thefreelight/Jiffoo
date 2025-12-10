@@ -26,3 +26,7 @@ export * from './i18n';
 // Logger - 不在此处导出，请根据环境选择：
 // - 浏览器环境：import from 'shared/src/logger/index.browser'
 // - Node.js 环境：import from 'shared/src/logger'
+
+// Security - 安全模块
+// 仅在 Node.js 环境使用，包含 crypto 依赖
+// import { RateLimiter, CircuitBreaker, ... } from '@shared/security'
