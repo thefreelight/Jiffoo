@@ -41,6 +41,7 @@ export default function CheckoutPage() {
 
     try {
       // 1. Create order
+      // ✅ Align shippingAddress fields with backend OrderService.createOrder schema
       const orderResponse = await ordersApi.createOrder({
         items: cart.items.map(item => ({
           productId: item.productId,
@@ -50,10 +51,12 @@ export default function CheckoutPage() {
         shippingAddress: {
           firstName: data.firstName,
           lastName: data.lastName,
-          address: data.address,
+          phone: data.phone || '',  // ✅ Required by backend
+          addressLine1: data.addressLine1 || '',  // ✅ Backend uses addressLine1
           city: data.city,
-          postalCode: data.postalCode,
-          country: data.country
+          state: data.state || '',  // ✅ Required by backend
+          country: data.country,
+          postalCode: data.postalCode
         },
         customerEmail: data.email,
       });

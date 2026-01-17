@@ -297,13 +297,17 @@ export async function paymentRoutes(fastify: FastifyInstance) {
 
     // Check if this is a Stripe session ID (starts with cs_)
     const stripeInstance = await getStripeInstance();
+
+    // Find payment record first to get orderId consistently
+    const payment = await prisma.payment.findFirst({ where: { sessionId } });
+    const orderId = payment?.orderId;
+
     if (stripeInstance && sessionId.startsWith('cs_')) {
       try {
         const session = await stripeInstance.checkout.sessions.retrieve(sessionId);
 
         if (session.payment_status === 'paid') {
           // Update Payment Record
-          const payment = await prisma.payment.findFirst({ where: { sessionId } });
           if (payment) {
             await prisma.payment.update({
               where: { id: payment.id },
@@ -315,10 +319,11 @@ export async function paymentRoutes(fastify: FastifyInstance) {
             });
           }
 
-          // Update order status if we have orderId in metadata
-          if (session.metadata?.orderId) {
+          // Update order status if we have orderId
+          const effectiveOrderId = orderId || session.metadata?.orderId;
+          if (effectiveOrderId) {
             await prisma.order.update({
-              where: { id: session.metadata.orderId },
+              where: { id: effectiveOrderId },
               data: {
                 paymentStatus: 'PAID',
                 status: 'PROCESSING'
@@ -330,6 +335,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
             success: true,
             data: {
               sessionId,
+              orderId: effectiveOrderId, // ✅ Include orderId
               status: 'completed',
               paidAt: new Date().toISOString(),
               isStripe: true,
@@ -341,6 +347,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
             success: true,
             data: {
               sessionId,
+              orderId: orderId || session.metadata?.orderId, // ✅ Include orderId
               status: session.payment_status,
               isStripe: true,
             }
@@ -360,6 +367,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       success: true,
       data: {
         sessionId,
+        orderId: orderId, // ✅ Include orderId
         status: 'completed',
         paidAt: new Date().toISOString(),
         isStripe: false,

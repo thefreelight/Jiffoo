@@ -1,6 +1,6 @@
 /**
- * 主题错误日志
- * 捕获和报告主题相关错误
+ * Theme Error Logger
+ * Captures and reports theme-related errors
  */
 
 export interface ThemeErrorContext {
@@ -20,12 +20,12 @@ export interface ThemeError {
   severity: 'low' | 'medium' | 'high' | 'critical';
 }
 
-// 错误日志存储
+// Error log storage
 const errorStore: ThemeError[] = [];
 const MAX_ERRORS = 50;
 
 /**
- * 记录主题错误
+ * Log theme error
  */
 export function logThemeError(
   error: Error,
@@ -40,24 +40,24 @@ export function logThemeError(
     severity
   };
 
-  // 添加到本地存储
+  // Add to local storage
   errorStore.push(themeError);
   if (errorStore.length > MAX_ERRORS) {
     errorStore.shift();
   }
 
-  // 控制台输出
+  // Console output
   console.error('[Theme Error]', error.message, context);
 
-  // 发送到 Sentry（如果可用）
+  // Send to Sentry (if available)
   sendToSentry(error, context);
 
-  // 发送到后端日志服务
+  // Send to backend logging service
   sendToBackend(themeError);
 }
 
 /**
- * 发送到 Sentry
+ * Send to Sentry
  */
 function sendToSentry(error: Error, context: ThemeErrorContext): void {
   if (typeof window !== 'undefined' && (window as any).Sentry) {
@@ -73,7 +73,7 @@ function sendToSentry(error: Error, context: ThemeErrorContext): void {
 }
 
 /**
- * 发送到后端日志服务
+ * Send to backend logging service
  */
 async function sendToBackend(themeError: ThemeError): Promise<void> {
   const logEndpoint = process.env.NEXT_PUBLIC_API_URL
@@ -98,12 +98,12 @@ async function sendToBackend(themeError: ThemeError): Promise<void> {
       keepalive: true
     });
   } catch {
-    // 静默失败
+    // Silently fail
   }
 }
 
 /**
- * 获取错误统计
+ * Get error statistics
  */
 export function getThemeErrorStats(): {
   totalErrors: number;
@@ -129,14 +129,14 @@ export function getThemeErrorStats(): {
 }
 
 /**
- * 清除错误日志
+ * Clear error logs
  */
 export function clearThemeErrors(): void {
   errorStore.length = 0;
 }
 
 /**
- * 创建错误边界用的错误处理函数
+ * Create error handler function for error boundaries
  */
 export function createThemeErrorHandler(context: ThemeErrorContext) {
   return (error: Error, errorInfo?: { componentStack?: string }) => {
@@ -147,7 +147,7 @@ export function createThemeErrorHandler(context: ThemeErrorContext) {
   };
 }
 
-// 开发工具：暴露到全局
+// Dev tools: expose to global
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   (window as any).__THEME_ERRORS__ = {
     getStats: getThemeErrorStats,

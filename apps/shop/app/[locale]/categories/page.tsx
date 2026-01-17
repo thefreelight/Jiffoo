@@ -65,15 +65,24 @@ export default function CategoriesPage() {
 
         if (response.success && response.data) {
           // Transform API data to match component structure
-          // Use original category name as ID for API filtering
-          const transformedCategories = (response.data as unknown as { name: string; count: number }[]).map((cat: { name: string; count: number }) => ({
-            id: cat.name, // Use original name for API filtering
-            name: cat.name,
-            description: `Discover ${cat.count} amazing products`,
-            image: getDefaultCategoryImage(cat.name),
-            productCount: cat.count,
-            featured: cat.count > 50, // Mark categories with more than 50 products as featured
-          }));
+          // ✅ Backend returns: [{ id, name, slug, _count: { products } }]
+          const rawCategories = response.data as unknown as Array<{
+            id: string;
+            name: string;
+            _count?: { products: number };
+          }>;
+
+          const transformedCategories = rawCategories.map((cat) => {
+            const productCount = cat._count?.products || 0;
+            return {
+              id: cat.id,
+              name: cat.name,
+              description: `Discover ${productCount} amazing products`,
+              image: getDefaultCategoryImage(cat.name),
+              productCount: productCount,
+              featured: productCount > 50,
+            };
+          });
           setCategories(transformedCategories);
         } else {
           setError(getText('common.errors.general', 'Failed to load categories'));

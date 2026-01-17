@@ -1,5 +1,5 @@
 /**
- * Security Headers - 安全响应头配置
+ * Security Headers - Security Response Headers Configuration
  */
 
 export interface SecurityHeadersConfig {
@@ -48,7 +48,7 @@ const DEFAULT_CSP_DIRECTIVES: Record<string, string | string[]> = {
 };
 
 /**
- * 生成 CSP 头字符串
+ * Generate CSP Header String
  */
 function buildCspHeader(directives: Record<string, string | string[]>): string {
   return Object.entries(directives)
@@ -60,7 +60,7 @@ function buildCspHeader(directives: Record<string, string | string[]>): string {
 }
 
 /**
- * 生成安全响应头
+ * Generate Security Response Headers
  */
 export function generateSecurityHeaders(config: SecurityHeadersConfig = {}): SecurityHeaders {
   const headers: SecurityHeaders = {};
@@ -119,7 +119,7 @@ export function generateSecurityHeaders(config: SecurityHeadersConfig = {}): Sec
 }
 
 /**
- * 默认安全配置
+ * Default Security Configuration
  */
 export const DefaultSecurityConfig: SecurityHeadersConfig = {
   contentTypeOptions: true,
@@ -134,7 +134,7 @@ export const DefaultSecurityConfig: SecurityHeadersConfig = {
 };
 
 /**
- * 验证响应是否包含必需的安全头
+ * Verify if response contains required security headers
  */
 export function validateSecurityHeaders(
   headers: Record<string, string | undefined>,

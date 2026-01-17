@@ -108,7 +108,7 @@ export default function PluginsOverviewPage() {
         <div className="mb-4">
           <h1 className="text-2xl font-bold text-gray-900">{getText('merchant.plugins.title', 'Plugin Management')}</h1>
           <p className="text-gray-600 mt-1">
-            {getText('merchant.plugins.subtitle', 'Manage your installed plugins and discover new ones from the marketplace')}
+            {getText('merchant.plugins.subtitle', 'Manage your installed plugins and use offline installation')}
           </p>
         </div>
         {/* In-page Navigation */}

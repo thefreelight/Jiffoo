@@ -1,16 +1,16 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
-import { 
-  trackRender, 
-  trackApiStart, 
+import {
+  trackRender,
+  trackApiStart,
   trackApiEnd,
   getPerformanceSummary,
-  resetRenderTrackers 
+  resetRenderTrackers
 } from '@/lib/performance-monitor';
 
 /**
- * Hook: 追踪组件渲染性能
+ * Hook: Track component rendering performance
  * 
  * @example
  * ```tsx
@@ -23,7 +23,7 @@ import {
 export function useRenderTracker(componentName: string) {
   const renderCount = useRef(0);
   const lastRenderTime = useRef(performance.now());
-  
+
   useEffect(() => {
     const renderTime = performance.now() - lastRenderTime.current;
     renderCount.current++;
@@ -33,7 +33,7 @@ export function useRenderTracker(componentName: string) {
 }
 
 /**
- * Hook: 追踪 API 请求性能
+ * Hook: Track API request performance
  * 
  * @example
  * ```tsx
@@ -56,41 +56,41 @@ export function useRenderTracker(componentName: string) {
 export function useApiTracker() {
   const trackRequest = (url: string) => {
     const requestId = `${url}_${Date.now()}`;
-    
+
     return {
       start: () => trackApiStart(url, requestId),
-      end: (status?: number, metadata?: Record<string, unknown>) => 
+      end: (status?: number, metadata?: Record<string, unknown>) =>
         trackApiEnd(url, requestId, status, metadata),
     };
   };
-  
+
   return { trackRequest };
 }
 
 /**
- * Hook: 获取性能摘要
+ * Hook: Get performance summary
  */
 export function usePerformanceSummary() {
   return getPerformanceSummary();
 }
 
 /**
- * Hook: 在路由切换时重置渲染追踪器
+ * Hook: Reset render trackers on route change
  */
 export function useResetRenderTrackersOnNavigate() {
   useEffect(() => {
-    // 组件卸载时重置
+    // Reset when component unmounts
     return () => {
       resetRenderTrackers();
     };
   }, []);
 }
 
-export { 
-  trackRender, 
-  trackApiStart, 
+export {
+  trackRender,
+  trackApiStart,
   trackApiEnd,
   getPerformanceSummary,
-  resetRenderTrackers 
+  resetRenderTrackers
 };
 

@@ -1,0 +1,183 @@
+---
+title: Theme Development
+description: How to develop themes for Jiffoo Mall
+---
+
+# Theme Development Guide
+
+Jiffoo Mall's theme system is built on Next.js and Tailwind CSS, supporting:
+- Design token customization
+- Component variants
+- Responsive layouts
+- Dark mode
+
+## Quick Start
+
+### 1. Install SDK
+
+```bash
+npm install @jiffoo/theme-sdk
+```
+
+### 2. Create Theme Manifest
+
+```json
+{
+  "slug": "modern-fashion",
+  "name": "Modern Fashion",
+  "version": "1.0.0",
+  "description": "A modern theme for fashion stores",
+  "author": "Your Name",
+  "category": "fashion",
+  "thumbnail": "/themes/modern-fashion/thumbnail.png",
+  "features": [
+    "Responsive design",
+    "Dark mode support",
+    "Product quick view"
+  ],
+  "tokens": {
+    "colors": {
+      "primary": "#000000",
+      "primaryForeground": "#ffffff",
+      "background": "#ffffff",
+      "foreground": "#111827"
+    }
+  }
+}
+```
+
+### 3. Validate Theme
+
+```typescript
+import { validateThemeManifest } from '@jiffoo/theme-sdk';
+
+const result = validateThemeManifest(manifest);
+if (!result.valid) {
+  console.error('Errors:', result.errors);
+}
+```
+
+## Theme Manifest
+
+### Required Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `slug` | string | Unique identifier |
+| `name` | string | Display name |
+| `version` | string | Version (semver) |
+| `description` | string | Description |
+| `author` | string | Author |
+| `category` | string | Category |
+| `thumbnail` | string | Thumbnail URL |
+
+### Categories
+
+- `general` - General purpose
+- `fashion` - Fashion & apparel
+- `electronics` - Electronics
+- `food` - Food & beverage
+- `home` - Home & living
+- `beauty` - Beauty & cosmetics
+- `minimal` - Minimalist
+- `luxury` - Luxury brands
+
+## Design Tokens
+
+### Colors
+
+```json
+{
+  "colors": {
+    "primary": "#3B82F6",
+    "primaryForeground": "#ffffff",
+    "secondary": "#10B981",
+    "background": "#ffffff",
+    "foreground": "#111827",
+    "muted": "#F3F4F6",
+    "border": "#E5E7EB",
+    "destructive": "#EF4444",
+    "success": "#22C55E"
+  }
+}
+```
+
+### Typography
+
+```json
+{
+  "typography": {
+    "fontFamily": {
+      "sans": "Inter, sans-serif",
+      "serif": "Georgia, serif"
+    },
+    "fontSize": {
+      "xs": "0.75rem",
+      "sm": "0.875rem",
+      "base": "1rem",
+      "lg": "1.125rem",
+      "xl": "1.25rem"
+    }
+  }
+}
+```
+
+### Spacing
+
+```json
+{
+  "spacing": {
+    "xs": "0.25rem",
+    "sm": "0.5rem",
+    "md": "1rem",
+    "lg": "1.5rem",
+    "xl": "2rem"
+  }
+}
+```
+
+## Generate CSS Variables
+
+```typescript
+import { generateCSSVariables } from '@jiffoo/theme-sdk';
+
+const tokens = {
+  colors: {
+    primary: '#3B82F6',
+    background: '#ffffff'
+  }
+};
+
+const css = generateCSSVariables(tokens);
+// Output:
+// :root {
+//   --color-primary: #3B82F6;
+//   --color-background: #ffffff;
+// }
+```
+
+## Theme Directory Structure
+
+```
+themes/
+└── modern-fashion/
+    ├── theme.json          # Theme manifest
+    ├── thumbnail.png       # Thumbnail
+    ├── screenshots/        # Screenshots
+    ├── components/         # Custom components
+    │   ├── Header.tsx
+    │   ├── Footer.tsx
+    │   └── ProductCard.tsx
+    ├── styles/             # Styles
+    │   └── globals.css
+    └── README.md           # Documentation
+```
+
+## Best Practices
+
+1. **Responsive Design** - Ensure proper display on all devices
+2. **Accessibility** - Follow WCAG standards
+3. **Performance** - Optimize images and code
+4. **Dark Mode** - Provide dark theme support
+5. **i18n** - Support multiple languages
+

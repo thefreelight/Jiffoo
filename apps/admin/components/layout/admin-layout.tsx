@@ -44,8 +44,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       'marketing': { key: 'merchant.nav.marketing', fallback: 'Marketing' },
       'finance': { key: 'common.labels.finance', fallback: 'Finance' },
       'plugins': { key: 'merchant.plugins.title', fallback: 'Plugin Store' },
-      'settings': { key: 'merchant.settings.title', fallback: 'Settings' },
-      'licenses': { key: 'common.labels.licenses', fallback: 'Licenses' }
+      'settings': { key: 'merchant.settings.title', fallback: 'Settings' }
     }
 
     const pageInfo = pageMap[filteredSegments[0]]

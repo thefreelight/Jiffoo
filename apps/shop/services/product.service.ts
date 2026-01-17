@@ -4,8 +4,8 @@
  * Service layer for product-related operations.
  * Wraps the productsApi with additional business logic and type exports.
  *
- * 🆕 Agent Mall 支持：
- * - 使用 agentId 获取授权商品和有效价格
+ * 🆕 Agent Mall Support:
+ * - Use agentId to get authorized products and valid prices
  */
 
 import { productsApi } from '@/lib/api';

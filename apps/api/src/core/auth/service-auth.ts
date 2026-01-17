@@ -32,9 +32,9 @@ export async function serviceAuthMiddleware(
                 userId: payload.sub || 'service-account',
                 email: 'service@jiffoo.com',
                 username: 'Platform Service',
-                role: 'SUPER_ADMIN', // Service accounts are granted high privileges
+                role: 'ADMIN', // Service accounts are granted high privileges
                 permissions: ['*'],
-                roles: ['SUPER_ADMIN'],
+                roles: ['ADMIN'],
                 isServiceAccount: true
             };
 

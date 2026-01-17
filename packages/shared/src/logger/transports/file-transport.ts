@@ -1,5 +1,5 @@
 /**
- * 统一日志系统 - 文件传输器 (Node.js only)
+ * Unified Logging System - File Transport (Node.js only)
  */
 
 import { ITransport, LogEntry, LogLevel } from '../types';
@@ -18,8 +18,8 @@ export interface FileTransportOptions {
 }
 
 /**
- * 文件传输器 - 基于 winston-daily-rotate-file
- * 仅在 Node.js 环境中可用
+ * File Transport - Based on winston-daily-rotate-file
+ * Only available in Node.js environment
  */
 export class FileTransport implements ITransport {
   private level: LogLevel;
@@ -32,7 +32,7 @@ export class FileTransport implements ITransport {
     this.level = options.level || 'debug';
     this.options = options;
     this.isNode = typeof window === 'undefined' && typeof process !== 'undefined';
-    
+
     this.formatter = new FileFormatter({
       timestamp: true,
       colorize: false,
@@ -46,16 +46,16 @@ export class FileTransport implements ITransport {
   }
 
   /**
-   * 记录日志
+   * Log entry
    */
   log(entry: LogEntry): void {
-    // 检查是否在 Node.js 环境
+    // Check if in Node.js environment
     if (!this.isNode) {
       console.warn('FileTransport is only available in Node.js environment');
       return;
     }
 
-    // 检查日志级别
+    // Check log level
     if (!shouldLog(this.level, entry.level)) {
       return;
     }
@@ -69,14 +69,14 @@ export class FileTransport implements ITransport {
   }
 
   /**
-   * 设置日志级别
+   * Set log level
    */
   setLevel(level: LogLevel): void {
     this.level = level;
   }
 
   /**
-   * 关闭文件流
+   * Close file stream
    */
   async close(): Promise<void> {
     if (this.writeStream && typeof this.writeStream.close === 'function') {
@@ -89,13 +89,13 @@ export class FileTransport implements ITransport {
   }
 
   /**
-   * 初始化文件流
+   * Initialize file stream
    */
   private initializeFileStream(): void {
     try {
-      // 动态导入 winston-daily-rotate-file
+      // Dynamic import
       const DailyRotateFile = require('winston-daily-rotate-file');
-      
+
       this.writeStream = new DailyRotateFile({
         filename: this.options.filename,
         datePattern: this.options.datePattern || 'YYYY-MM-DD',
@@ -104,13 +104,13 @@ export class FileTransport implements ITransport {
         zippedArchive: this.options.zippedArchive ?? true,
         format: {
           transform: (info: any) => {
-            // 直接返回，因为我们已经在 log 方法中格式化了
+            // Return directly as we have already formatted in log method
             return info;
           }
         }
       });
 
-      // 监听错误事件
+      // Listen for error events
       this.writeStream.on('error', (error: Error) => {
         this.handleError(error);
       });
@@ -122,26 +122,26 @@ export class FileTransport implements ITransport {
   }
 
   /**
-   * 写入文件
+   * Write to file
    */
   private writeToFile(message: string): void {
     if (this.writeStream && typeof this.writeStream.write === 'function') {
       this.writeStream.write({
-        level: 'info', // winston 需要的格式
+        level: 'info', // Format required by winston
         message: message,
         timestamp: new Date().toISOString()
       });
     } else {
-      // 降级到简单的文件写入
+      // Fallback to simple file write
       this.fallbackFileWrite(message);
     }
   }
 
   /**
-   * 降级文件写入方法
+   * Fallback file write method
    */
   private fallbackFileWrite(message: string): void {
-    // 只在 Node.js 环境中执行
+    // Execute only in Node.js environment
     if (typeof window !== 'undefined') {
       console.warn('FileTransport fallback not available in browser environment');
       return;
@@ -150,14 +150,14 @@ export class FileTransport implements ITransport {
     try {
       const fs = require('fs');
       const path = require('path');
-      
-      // 确保目录存在
+
+      // Ensure directory exists
       const dir = path.dirname(this.options.filename);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
 
-      // 追加写入文件
+      // Append write to file
       fs.appendFileSync(this.options.filename, message + '\n', 'utf8');
     } catch (error) {
       this.handleError(error as Error);
@@ -165,10 +165,10 @@ export class FileTransport implements ITransport {
   }
 
   /**
-   * 处理错误
+   * Handle error
    */
   private handleError(error: Error): void {
-    // 在开发环境下输出错误信息
+    // Output error info in development environment
     if (process.env.NODE_ENV === 'development') {
       console.error('FileTransport error:', error);
     }
@@ -176,14 +176,14 @@ export class FileTransport implements ITransport {
 }
 
 /**
- * 创建文件传输器的工厂函数
+ * Factory function to create file transport
  */
 export function createFileTransport(options: FileTransportOptions): FileTransport {
   return new FileTransport(options);
 }
 
 /**
- * 创建错误日志文件传输器
+ * Create error log file transport
  */
 export function createErrorFileTransport(baseDir: string = './logs'): FileTransport {
   return new FileTransport({
@@ -198,7 +198,7 @@ export function createErrorFileTransport(baseDir: string = './logs'): FileTransp
 }
 
 /**
- * 创建组合日志文件传输器
+ * Create combined log file transport
  */
 export function createCombinedFileTransport(baseDir: string = './logs'): FileTransport {
   return new FileTransport({

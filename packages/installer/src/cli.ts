@@ -315,10 +315,7 @@ async function getSiteConfig(): Promise<SiteConfig> {
             message: 'Default language',
             choices: [
                 { name: 'en', message: 'English' },
-                { name: 'zh-Hans', message: '简体中文' },
-                { name: 'zh-Hant', message: '繁體中文' },
-                { name: 'ja', message: '日本語' },
-                { name: 'ko', message: '한국어' },
+                { name: 'zh-Hant', message: 'Traditional Chinese' },
             ],
             initial: 0,
         },

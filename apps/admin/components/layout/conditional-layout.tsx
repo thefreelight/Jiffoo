@@ -27,29 +27,29 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
     return t ? t(key) : fallback;
   };
 
-  // 登录页面路径
+  // Login page path
   const isLoginPage = pathname === '/';
 
-  // 初始化认证检查
+  // Initialize authentication check
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
 
-  // 路由保护：未认证用户访问受保护页面时重定向到登录页
+  // Route protection: redirect to login if unauthenticated and accessing protected page
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !isLoginPage) {
       router.push('/');
     }
   }, [isLoading, isAuthenticated, isLoginPage, router]);
 
-  // 如果已认证用户在登录页面，重定向到仪表板
+  // Redirect to dashboard if authenticated and on login page
   useEffect(() => {
     if (!isLoading && isAuthenticated && isLoginPage) {
       router.push('/dashboard');
     }
   }, [isLoading, isAuthenticated, isLoginPage, router]);
 
-  // 如果正在加载认证状态，显示加载界面
+  // Show loading screen if auth state is loading
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -61,17 +61,17 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
     );
   }
 
-  // 如果用户已认证且不在登录页面，显示管理后台布局
+  // Show admin layout if authenticated and not on login page
   if (isAuthenticated && !isLoginPage) {
     return <AdminLayout>{children}</AdminLayout>;
   }
 
-  // 如果用户未认证且在登录页面，只显示登录页面内容
+  // Only show page content if unauthenticated and on login page
   if (!isAuthenticated && isLoginPage) {
     return <>{children}</>;
   }
 
-  // 其他情况（未认证用户访问受保护页面）显示加载状态，等待重定向
+  // Other cases (unauthenticated accessing protected page) show loading/redirecting state
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="flex flex-col items-center space-y-4">

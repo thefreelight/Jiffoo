@@ -19,7 +19,6 @@ export function OrdersPage({
   config,
   onPageChange,
   onOrderClick,
-  onRetryPayment,
   onCancelOrder,
 }: OrdersPageProps) {
   const getStatusColor = (status: string) => {
@@ -161,9 +160,7 @@ export function OrdersPage({
 
                     {order.status.toLowerCase() === 'pending' && (
                       <div className="flex items-center gap-2">
-                        <Button size="sm" onClick={() => onRetryPayment(order.id)}>
-                          Complete Payment
-                        </Button>
+                        {/* Retry payment removed per Alpha Gate */}
                         <Button
                           variant="outline"
                           size="sm"

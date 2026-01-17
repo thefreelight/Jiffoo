@@ -1,6 +1,6 @@
 /**
- * 主题系统调试工具
- * 仅在开发模式启用
+ * Theme System Debug Tools
+ * Enabled only in development mode
  */
 
 import { getThemePerformanceStats, clearThemeMetrics } from './performance';
@@ -8,43 +8,43 @@ import { getThemeErrorStats, clearThemeErrors } from './error-logger';
 import { THEME_REGISTRY, isValidThemeSlug } from './registry';
 
 export interface ThemeDebugInfo {
-  // 主题信息
+  // Theme information
   currentTheme: string | null;
   availableThemes: string[];
-  
-  // 性能数据
+
+  // Performance data
   performance: ReturnType<typeof getThemePerformanceStats>;
-  
-  // 错误数据
+
+  // Error data
   errors: ReturnType<typeof getThemeErrorStats>;
-  
-  // 缓存状态
+
+  // Cache status
   cache: {
     size: number;
     themes: string[];
   };
 }
 
-// 调试状态
+// Debug state
 let debugEnabled = false;
 let currentThemeSlug: string | null = null;
 let themeCache: Map<string, unknown> | null = null;
 
 /**
- * 启用主题调试
+ * Enable theme debug
  */
 export function enableThemeDebug(): void {
   if (process.env.NODE_ENV !== 'development') {
     console.warn('Theme debug is only available in development mode');
     return;
   }
-  
+
   debugEnabled = true;
   console.log('🔧 Theme debug enabled. Access via window.__THEME_DEBUG__');
 }
 
 /**
- * 禁用主题调试
+ * Disable theme debug
  */
 export function disableThemeDebug(): void {
   debugEnabled = false;
@@ -52,7 +52,7 @@ export function disableThemeDebug(): void {
 }
 
 /**
- * 设置当前主题（由 ThemeProvider 调用）
+ * Set current theme (called by ThemeProvider)
  */
 export function setDebugCurrentTheme(slug: string, cache: Map<string, unknown>): void {
   currentThemeSlug = slug;
@@ -60,7 +60,7 @@ export function setDebugCurrentTheme(slug: string, cache: Map<string, unknown>):
 }
 
 /**
- * 获取调试信息
+ * Get debug info
  */
 export function getThemeDebugInfo(): ThemeDebugInfo {
   return {
@@ -76,7 +76,7 @@ export function getThemeDebugInfo(): ThemeDebugInfo {
 }
 
 /**
- * 清除所有调试数据
+ * Clear all debug data
  */
 export function clearDebugData(): void {
   clearThemeMetrics();
@@ -85,7 +85,7 @@ export function clearDebugData(): void {
 }
 
 /**
- * 验证主题包
+ * Validate theme package
  */
 export async function validateTheme(slug: string): Promise<{
   valid: boolean;
@@ -94,20 +94,20 @@ export async function validateTheme(slug: string): Promise<{
 }> {
   const errors: string[] = [];
   const warnings: string[] = [];
-  
-  // 检查 slug 是否有效
+
+  // Check if slug is valid
   if (!isValidThemeSlug(slug)) {
     errors.push(`Invalid theme slug: ${slug}`);
     return { valid: false, errors, warnings };
   }
-  
+
   try {
-    // 尝试加载主题
+    // Try to load theme
     const importer = THEME_REGISTRY[slug as keyof typeof THEME_REGISTRY];
     const module = await importer();
     const theme = module.default || (module as any).theme;
 
-    // 检查必需字段
+    // Check required fields
     if (!theme) {
       errors.push('Theme package not found');
     } else {
@@ -115,7 +115,7 @@ export async function validateTheme(slug: string): Promise<{
       if (!theme.defaultConfig) warnings.push('Missing defaultConfig');
       if (!theme.tokensCSS) warnings.push('Missing tokensCSS (optional)');
 
-      // 检查必需组件
+      // Check required components
       const requiredComponents = ['HomePage', 'ProductsPage', 'ProductDetailPage', 'CartPage'] as const;
       const components = theme.components as Record<string, unknown>;
       const missingComponents = requiredComponents.filter(
@@ -129,7 +129,7 @@ export async function validateTheme(slug: string): Promise<{
   } catch (err) {
     errors.push(`Failed to load theme: ${err instanceof Error ? err.message : 'Unknown error'}`);
   }
-  
+
   return {
     valid: errors.length === 0,
     errors,
@@ -137,7 +137,7 @@ export async function validateTheme(slug: string): Promise<{
   };
 }
 
-// 开发模式下暴露调试接口
+// Expose debug interface in development mode
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   (window as any).__THEME_DEBUG__ = {
     enable: enableThemeDebug,
@@ -145,13 +145,13 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
     getInfo: getThemeDebugInfo,
     clear: clearDebugData,
     validate: validateTheme,
-    
-    // 便捷方法
+
+    // Convenience methods
     get info() { return getThemeDebugInfo(); },
     get perf() { return getThemePerformanceStats(); },
     get errors() { return getThemeErrorStats(); },
-    
-    // 帮助信息
+
+    // Help info
     help() {
       console.log(`
 🔧 Theme Debug Commands:
@@ -163,8 +163,8 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       `);
     }
   };
-  
-  // 自动启用
+
+  // Auto toggle
   enableThemeDebug();
 }
 

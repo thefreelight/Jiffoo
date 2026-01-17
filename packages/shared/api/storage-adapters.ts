@@ -1,6 +1,6 @@
 /**
- * 存储适配器策略
- * 为不同前端环境提供统一的存储接口
+ * Storage Adapter Strategy
+ * Provides unified storage interface for different frontend environments
  */
 
 export interface StorageAdapter {
@@ -11,8 +11,8 @@ export interface StorageAdapter {
 }
 
 /**
- * 浏览器localStorage适配器
- * 适用于客户端渲染环境
+ * Browser localStorage adapter
+ * Suitable for client-side rendering environments
  */
 export class BrowserStorageAdapter implements StorageAdapter {
   getItem(key: string): string | null {
@@ -54,20 +54,20 @@ export class BrowserStorageAdapter implements StorageAdapter {
 }
 
 /**
- * Next.js Cookie适配器
- * 适用于Next.js 13+ App Router环境
+ * Next.js Cookie adapter
+ * Suitable for Next.js 13+ App Router environment
  */
 export class NextCookieAdapter implements StorageAdapter {
   private cookies: any;
 
   constructor(cookies?: any) {
-    // 在服务端使用传入的cookies，在客户端使用document.cookie
+    // Use passed cookies on server, use document.cookie on client
     this.cookies = cookies;
   }
 
   getItem(key: string): string | null {
     if (typeof window !== 'undefined') {
-      // 客户端：从document.cookie读取
+      // Client-side: read from document.cookie
       const name = key + '=';
       const decodedCookie = decodeURIComponent(document.cookie);
       const ca = decodedCookie.split(';');
@@ -82,16 +82,16 @@ export class NextCookieAdapter implements StorageAdapter {
       }
       return null;
     } else {
-      // 服务端：从传入的cookies读取
+      // Server-side: read from passed cookies
       return this.cookies?.get(key)?.value || null;
     }
   }
 
   setItem(key: string, value: string): void {
-    // 🔒 安全修复：NextCookieAdapter不应该写入脚本可读的cookie
-    // httpOnly cookie只能由服务端设置，这里改为只读模式
-    console.warn('NextCookieAdapter.setItem: 安全策略禁止客户端写入cookie，请使用服务端设置httpOnly cookie');
-    // 不执行任何写入操作，保持httpOnly安全策略
+    // 🔒 Security Fix: NextCookieAdapter should not write script-readable cookies
+    // httpOnly cookies can only be set by server, changed to read-only mode here
+    console.warn('NextCookieAdapter.setItem: Security policy prohibits client-side cookie writing, please use server-side httpOnly cookies');
+    // Do not execute any write operations, maintain httpOnly security policy
   }
 
   removeItem(key: string): void {
@@ -101,19 +101,19 @@ export class NextCookieAdapter implements StorageAdapter {
   }
 
   clear(): void {
-    // Cookie清理需要逐个删除，这里不实现
+    // Cookie cleanup needs individual deletion, not implemented here
     console.warn('Cookie clear not implemented');
   }
 }
 
 /**
- * OAuth2 SPA标准存储适配器
- * 符合OAuth2 SPA最佳实践：使用localStorage存储tokens
+ * OAuth2 SPA Standard Storage Adapter
+ * Follows OAuth2 SPA Best Practices: Store tokens in localStorage
  *
- * 安全说明：
- * - OAuth2 SPA标准推荐使用localStorage存储tokens
- * - 虽然存在XSS风险，但这是SPA架构的标准权衡
- * - 通过CSP、HTTPS、Token过期等机制降低风险
+ * Security Note:
+ * - OAuth2 SPA standard recommends using localStorage for tokens
+ * - While XSS risk exists, this is a standard trade-off for SPA architecture
+ * - Mitigation via CSP, HTTPS, Token Expiry, etc.
  */
 export class OAuth2SPAAdapter implements StorageAdapter {
   private browserAdapter: BrowserStorageAdapter;
@@ -123,35 +123,35 @@ export class OAuth2SPAAdapter implements StorageAdapter {
   }
 
   getItem(key: string): string | null {
-    // OAuth2 SPA标准：直接从localStorage读取
+    // OAuth2 SPA Standard: Read directly from localStorage
     return this.browserAdapter.getItem(key);
   }
 
   setItem(key: string, value: string): void {
-    // OAuth2 SPA标准：直接存储到localStorage
+    // OAuth2 SPA Standard: Store directly to localStorage
     this.browserAdapter.setItem(key, value);
   }
 
   removeItem(key: string): void {
-    // OAuth2 SPA标准：从localStorage删除
+    // OAuth2 SPA Standard: Remove from localStorage
     this.browserAdapter.removeItem(key);
   }
 
   clear(): void {
-    // OAuth2 SPA标准：清除localStorage
+    // OAuth2 SPA Standard: Clear localStorage
     this.browserAdapter.clear();
   }
 }
 
 /**
- * 混合存储适配器（已废弃，保留用于向后兼容）
- * @deprecated 使用 OAuth2SPAAdapter 代替
+ * Hybrid Storage Adapter (Deprecated, kept for backward compatibility)
+ * @deprecated Use OAuth2SPAAdapter instead
  */
 export class HybridAdapter implements StorageAdapter {
   private oauth2Adapter: OAuth2SPAAdapter;
 
   constructor(cookies?: any) {
-    // 忽略cookies参数，统一使用OAuth2 SPA标准
+    // Ignore cookies param, consolidate to OAuth2 SPA standard
     this.oauth2Adapter = new OAuth2SPAAdapter();
   }
 
@@ -173,8 +173,8 @@ export class HybridAdapter implements StorageAdapter {
 }
 
 /**
- * 内存存储适配器
- * 适用于测试环境或临时存储
+ * Memory Storage Adapter
+ * Suitable for test environments or temporary storage
  */
 export class MemoryStorageAdapter implements StorageAdapter {
   private storage = new Map<string, string>();
@@ -197,10 +197,10 @@ export class MemoryStorageAdapter implements StorageAdapter {
 }
 
 /**
- * 存储适配器工厂
- * 根据环境自动选择合适的存储策略
+ * Storage Adapter Factory
+ * Automatically selects appropriate storage strategy based on environment
  *
- * OAuth2 SPA标准：默认使用localStorage存储tokens
+ * OAuth2 SPA Standard: Defaults to localStorage for tokens
  */
 export class StorageAdapterFactory {
   static create(type?: 'browser' | 'cookie' | 'hybrid' | 'memory' | 'oauth2-spa', cookies?: any): StorageAdapter {
@@ -211,7 +211,7 @@ export class StorageAdapterFactory {
         case 'cookie':
           return new NextCookieAdapter(cookies);
         case 'hybrid':
-          // hybrid已废弃，重定向到oauth2-spa
+          // hybrid is deprecated, redirect to oauth2-spa
           return new OAuth2SPAAdapter();
         case 'oauth2-spa':
           return new OAuth2SPAAdapter();
@@ -220,12 +220,12 @@ export class StorageAdapterFactory {
       }
     }
 
-    // 自动检测环境
+    // Auto-detect environment
     if (typeof window === 'undefined') {
-      // 服务端环境，使用cookie适配器（仅用于SSR）
+      // Server-side environment, use cookie adapter (SSR only)
       return new NextCookieAdapter(cookies);
     } else {
-      // 客户端环境，使用OAuth2 SPA标准适配器
+      // Client-side environment, use OAuth2 SPA standard adapter
       return new OAuth2SPAAdapter();
     }
   }

@@ -1,0 +1,175 @@
+---
+title: Vercel Deployment
+description: Deploy Jiffoo Mall frontend on Vercel
+---
+
+# Vercel Deployment
+
+Vercel is ideal for deploying Next.js frontend applications.
+
+## Prerequisites
+
+- Vercel account
+- GitHub/GitLab repository
+- Backend API deployed separately
+
+## Quick Start
+
+### 1. Import Project
+
+1. Go to [vercel.com/new](https://vercel.com/new)
+2. Import your Git repository
+3. Select the frontend app directory
+
+### 2. Configure Build Settings
+
+| Setting | Value |
+|---------|-------|
+| Framework | Next.js |
+| Root Directory | `apps/shop` |
+| Build Command | `pnpm build` |
+| Output Directory | `.next` |
+
+### 3. Environment Variables
+
+```
+NEXT_PUBLIC_API_URL=https://api.yourdomain.com
+```
+
+### 4. Deploy
+
+Click **Deploy** and wait for the build to complete.
+
+## Multi-App Deployment
+
+Deploy each frontend app separately:
+
+### Shop (Customer Storefront)
+
+```
+Root Directory: apps/shop
+Domain: shop.yourdomain.com
+```
+
+### Admin (Tenant Dashboard)
+
+```
+Root Directory: apps/admin
+Domain: admin.yourdomain.com
+```
+
+### Super Admin (Platform Admin)
+
+```
+Root Directory: apps/super-admin
+Domain: super-admin.yourdomain.com
+```
+
+### Docs (Documentation)
+
+```
+Root Directory: apps/docs
+Domain: docs.yourdomain.com
+```
+
+## Monorepo Configuration
+
+Create `vercel.json` in root:
+
+```json
+{
+  "buildCommand": "pnpm build --filter=shop",
+  "installCommand": "pnpm install",
+  "framework": "nextjs"
+}
+```
+
+## Environment Variables
+
+### Required Variables
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_API_URL` | Backend API URL |
+
+### Optional Variables
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_STRIPE_KEY` | Stripe public key |
+| `NEXT_PUBLIC_GA_ID` | Google Analytics ID |
+
+## Custom Domains
+
+1. Go to Project Settings → Domains
+2. Add your custom domain
+3. Configure DNS records:
+
+```
+Type: CNAME
+Name: shop
+Value: cname.vercel-dns.com
+```
+
+## Preview Deployments
+
+Vercel automatically creates preview deployments for:
+- Pull requests
+- Branch pushes
+
+Preview URL format:
+```
+https://project-branch-name.vercel.app
+```
+
+## Performance Optimization
+
+### Edge Functions
+
+Enable Edge Runtime for API routes:
+
+```typescript
+export const runtime = 'edge';
+```
+
+### Image Optimization
+
+Vercel automatically optimizes images via `next/image`.
+
+### Caching
+
+Configure caching headers in `next.config.js`:
+
+```javascript
+module.exports = {
+  async headers() {
+    return [
+      {
+        source: '/:all*(svg|jpg|png)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
+  },
+};
+```
+
+## Troubleshooting
+
+### Build Failures
+
+Check build logs in Vercel dashboard.
+
+Common issues:
+- Missing environment variables
+- TypeScript errors
+- Dependency conflicts
+
+### API Connection Issues
+
+Ensure `NEXT_PUBLIC_API_URL` is correctly set and the API allows CORS from your Vercel domain.
+

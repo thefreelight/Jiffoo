@@ -103,12 +103,13 @@ export default function EditProductPage() {
 
     try {
       // Only submit fields that exist in database
+      // ✅ Backend schema expects images as string[], not JSON string
       const productData = {
         name: formData.name,
         description: formData.description,
         price: formData.price,
         stock: formData.quantity,
-        images: formData.images.length > 0 ? JSON.stringify(formData.images) : JSON.stringify([])
+        images: formData.images  // ✅ Pass array directly, not JSON.stringify
       }
 
       console.log('Submitting product data:', productData); // Debug log
@@ -155,7 +156,7 @@ export default function EditProductPage() {
     )
   }
 
-  // 如果没有商品数据，显示错误
+  // If no product data, show error
   if (!product) {
     return (
       <div className="flex items-center justify-center h-64">

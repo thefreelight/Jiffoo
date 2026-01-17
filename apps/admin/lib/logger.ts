@@ -1,28 +1,28 @@
 /**
- * Admin 统一日志系统配置
+ * Admin Unified Logger Configuration
  */
 
 import { createDefaultBrowserAdapter, type ILogger } from 'shared/src/logger/index.browser';
 
-// 获取后端 API 基础 URL（用于日志上传）
+// Get backend API base URL (for log uploading)
 const getApiBaseUrl = (): string => {
   if (typeof window !== 'undefined') {
-    // 浏览器环境：NEXT_PUBLIC_API_URL 已经包含 /api 前缀
+    // Browser environment: NEXT_PUBLIC_API_URL already includes /api prefix
     return process.env.NEXT_PUBLIC_API_URL || '/api';
   }
-  // 服务端渲染环境
+  // Server-side rendering environment
   return process.env.API_URL || 'http://localhost:3001/api';
 };
 
-// 延迟初始化 logger，避免模块加载时的重复警告
+// Lazy initialize logger to avoid duplicate warnings during module loading
 let _logger: ILogger | null = null;
 
 const getLogger = (): ILogger => {
   if (!_logger) {
-    // 根据环境变量决定是否启用远程日志上报
+    // Decide whether to enable remote log reporting based on environment variables
     const enableRemoteLogs = process.env.NEXT_PUBLIC_ENABLE_REMOTE_LOGS === 'true';
     const remoteEndpoint = enableRemoteLogs ? `${getApiBaseUrl()}/logs/batch` : undefined;
-    
+
     _logger = createDefaultBrowserAdapter(
       'admin',
       remoteEndpoint
@@ -31,24 +31,24 @@ const getLogger = (): ILogger => {
   return _logger;
 };
 
-// 导出 logger 的 getter
+// Export logger getter
 export const logger: ILogger = new Proxy({} as ILogger, {
   get: (target, prop) => {
     return getLogger()[prop as keyof ILogger];
   }
 });
 
-// 导出日志器类型
+// Export logger type
 export type { ILogger };
 
-// 便捷的日志方法
+// Convenient logging methods
 export const log = {
   debug: (message: string, meta?: any) => logger.debug(message, meta),
   info: (message: string, meta?: any) => logger.info(message, meta),
   warn: (message: string, meta?: any) => logger.warn(message, meta),
   error: (message: string | Error, meta?: any) => logger.error(message, meta),
-  
-  // 管理员操作日志
+
+  // Admin action logs
   adminAction: (action: string, resource: string, details?: any) => {
     logger.info('Admin Action', {
       type: 'admin_action',
@@ -58,8 +58,8 @@ export const log = {
       timestamp: new Date().toISOString()
     });
   },
-  
-  // 审计日志
+
+  // Audit logs
   audit: (event: string, userId?: string, details?: any) => {
     logger.info('Audit Event', {
       type: 'audit',
@@ -69,8 +69,8 @@ export const log = {
       timestamp: new Date().toISOString()
     });
   },
-  
-  // 系统配置变更日志
+
+  // System configuration change logs
   configChange: (setting: string, oldValue: any, newValue: any, userId?: string) => {
     logger.info('Configuration Change', {
       type: 'config_change',
@@ -81,8 +81,8 @@ export const log = {
       timestamp: new Date().toISOString()
     });
   },
-  
-  // 用户管理日志
+
+  // User management logs
   userManagement: (action: string, targetUserId: string, details?: any) => {
     logger.info('User Management', {
       type: 'user_management',
@@ -92,8 +92,8 @@ export const log = {
       timestamp: new Date().toISOString()
     });
   },
-  
-  // 产品管理日志
+
+  // Product management logs
   productManagement: (action: string, productId: string, details?: any) => {
     logger.info('Product Management', {
       type: 'product_management',
@@ -103,8 +103,8 @@ export const log = {
       timestamp: new Date().toISOString()
     });
   },
-  
-  // 订单管理日志
+
+  // Order management logs
   orderManagement: (action: string, orderId: string, details?: any) => {
     logger.info('Order Management', {
       type: 'order_management',
@@ -114,8 +114,8 @@ export const log = {
       timestamp: new Date().toISOString()
     });
   },
-  
-  // 插件管理日志
+
+  // Plugin management logs
   pluginManagement: (action: string, pluginId: string, details?: any) => {
     logger.info('Plugin Management', {
       type: 'plugin_management',
@@ -125,13 +125,13 @@ export const log = {
       timestamp: new Date().toISOString()
     });
   },
-  
-  // 安全事件日志
+
+  // Security event logs
   security: (event: string, details?: any) => {
     logger.logSecurity(event, details);
   },
-  
-  // 性能监控
+
+  // Performance monitoring
   performance: (metric: string, value: number, details?: any) => {
     logger.logPerformance(metric, value, {
       details,
@@ -140,9 +140,9 @@ export const log = {
   }
 };
 
-// 初始化日志器
+// Initialize logger
 export const initializeLogger = () => {
-  // 记录管理后台启动
+  // Log admin startup
   logger.info('Admin application started', {
     type: 'app_lifecycle',
     event: 'startup',
@@ -151,7 +151,7 @@ export const initializeLogger = () => {
     timestamp: new Date().toISOString()
   });
 
-  // 记录页面性能指标
+  // Log page performance metrics
   if (typeof window !== 'undefined' && 'performance' in window) {
     setTimeout(() => {
       const navigation = (performance as any).getEntriesByType('navigation')[0];

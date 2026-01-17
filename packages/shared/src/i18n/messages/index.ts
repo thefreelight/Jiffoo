@@ -9,7 +9,8 @@ import type { Locale } from '../config';
 import type { Messages, AppName } from '../types';
 
 import * as enMessages from './en';
-import * as zhHantMessages from './zh-Hant';
+// @ts-ignore - Importing from packages/i18n which is outside of shared/src but safe due to exclusion
+import * as zhHantMessages from '../../../../i18n/messages/zh-Hant';
 
 /**
  * All messages organized by locale
@@ -27,7 +28,7 @@ const allMessages: Record<Locale, Messages> = {
     agent: enMessages.agent,
     whiteLabel: enMessages.whiteLabel,
   },
-  'zh-Hans': {
+  'zh-Hant': {
     common: zhHantMessages.common,
     shop: zhHantMessages.shop,
     tenant: zhHantMessages.merchant,

@@ -161,7 +161,16 @@ export class ApiClient {
             // Refresh failed, clear auth and redirect to login
             this.clearAuth();
             if (typeof window !== 'undefined') {
-              window.location.href = this.loginPath;
+              // Auto-detect locale from current URL path
+              const pathSegments = window.location.pathname.split('/').filter(Boolean);
+              const possibleLocale = pathSegments[0];
+              // Support locale patterns: en, zh, zh-CN, zh-Hant, en-US, etc.
+              const isLocale = /^[a-z]{2}(-[A-Z][a-z]{3})?(-[A-Z]{2})?$/.test(possibleLocale);
+              const locale = isLocale ? possibleLocale : 'en';
+
+              // Construct login path with locale
+              const loginPathWithLocale = `/${locale}${this.loginPath}`;
+              window.location.href = loginPathWithLocale;
             }
           }
         }

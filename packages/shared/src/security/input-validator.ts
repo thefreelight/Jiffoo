@@ -1,5 +1,5 @@
 /**
- * Input Validator - 输入验证和净化
+ * Input Validator - Input Validation and Sanitization
  */
 
 export interface ValidationResult {
@@ -9,21 +9,21 @@ export interface ValidationResult {
 }
 
 export interface InputValidatorConfig {
-  /** 最大字符串长度 */
+  /** Max string length */
   maxLength?: number;
-  /** 是否检测 SQL 注入 */
+  /** Detect SQL injection */
   detectSqlInjection?: boolean;
-  /** 是否检测 XSS */
+  /** Detect XSS */
   detectXss?: boolean;
-  /** 是否检测路径遍历 */
+  /** Detect path traversal */
   detectPathTraversal?: boolean;
-  /** 是否净化 HTML */
+  /** Sanitize HTML */
   sanitizeHtml?: boolean;
-  /** 自定义危险模式 */
+  /** Custom dangerous patterns */
   customPatterns?: RegExp[];
 }
 
-// SQL 注入模式
+// SQL injection patterns
 const SQL_INJECTION_PATTERNS = [
   /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION|ALTER|CREATE|TRUNCATE)\b)/i,
   /(\b(OR|AND)\s+\d+\s*=\s*\d+)/i,
@@ -34,7 +34,7 @@ const SQL_INJECTION_PATTERNS = [
   /\bXP_\w+\b/i,
 ];
 
-// XSS 模式
+// XSS patterns
 const XSS_PATTERNS = [
   /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
   /javascript\s*:/gi,
@@ -49,11 +49,11 @@ const XSS_PATTERNS = [
   /vbscript\s*:/gi,
 ];
 
-// 路径遍历模式
+// Path traversal patterns
 const PATH_TRAVERSAL_PATTERNS = [/\.\.\//, /\.\.\\/, /%2e%2e%2f/i, /%2e%2e\//i, /\.\.%2f/i, /%2e%2e%5c/i];
 
 /**
- * Input Validator 类
+ * Input Validator class
  */
 export class InputValidator {
   private config: Required<InputValidatorConfig>;
@@ -70,17 +70,17 @@ export class InputValidator {
   }
 
   /**
-   * 验证并净化输入
+   * Validate and sanitize input
    */
   validate(input: string): ValidationResult {
     const threats: string[] = [];
 
-    // 检查长度
+    // Check length
     if (input.length > this.config.maxLength) {
       return { valid: false, threats: ['Input exceeds maximum length'] };
     }
 
-    // SQL 注入检测
+    // SQL injection detection
     if (this.config.detectSqlInjection) {
       for (const pattern of SQL_INJECTION_PATTERNS) {
         if (pattern.test(input)) {
@@ -90,7 +90,7 @@ export class InputValidator {
       }
     }
 
-    // XSS 检测
+    // XSS detection
     if (this.config.detectXss) {
       for (const pattern of XSS_PATTERNS) {
         if (pattern.test(input)) {
@@ -100,7 +100,7 @@ export class InputValidator {
       }
     }
 
-    // 路径遍历检测
+    // Path traversal detection
     if (this.config.detectPathTraversal) {
       for (const pattern of PATH_TRAVERSAL_PATTERNS) {
         if (pattern.test(input)) {
@@ -110,14 +110,14 @@ export class InputValidator {
       }
     }
 
-    // 自定义模式检测
+    // Custom pattern detection
     for (const pattern of this.config.customPatterns) {
       if (pattern.test(input)) {
         threats.push(`Custom pattern violation: ${pattern.source}`);
       }
     }
 
-    // 净化 HTML
+    // Sanitize HTML
     let sanitized = input;
     if (this.config.sanitizeHtml) {
       sanitized = this.sanitizeHtml(input);
@@ -127,7 +127,7 @@ export class InputValidator {
   }
 
   /**
-   * 净化 HTML
+   * Sanitize HTML
    */
   private sanitizeHtml(input: string): string {
     return input
@@ -139,7 +139,7 @@ export class InputValidator {
   }
 
   /**
-   * 验证邮箱格式
+   * Validate email format
    */
   static isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -147,7 +147,7 @@ export class InputValidator {
   }
 
   /**
-   * 验证 URL 格式
+   * Validate URL format
    */
   static isValidUrl(url: string): boolean {
     try {
@@ -159,14 +159,14 @@ export class InputValidator {
   }
 
   /**
-   * 验证 JSON 大小
+   * Validate JSON size
    */
   static validateJsonSize(json: string, maxSizeBytes: number): boolean {
     return Buffer.byteLength(json, 'utf8') <= maxSizeBytes;
   }
 }
 
-// 文件类型白名单
+// File type whitelist
 export const ALLOWED_FILE_TYPES = {
   images: ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
   documents: ['application/pdf', 'application/msword', 'text/plain'],
@@ -174,14 +174,14 @@ export const ALLOWED_FILE_TYPES = {
 } as const;
 
 /**
- * 验证文件类型
+ * Validate file type
  */
 export function validateFileType(mimeType: string, allowedTypes: readonly string[]): boolean {
   return allowedTypes.includes(mimeType);
 }
 
 /**
- * 验证文件大小
+ * Validate file size
  */
 export function validateFileSize(sizeBytes: number, maxSizeBytes: number): boolean {
   return sizeBytes > 0 && sizeBytes <= maxSizeBytes;

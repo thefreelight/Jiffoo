@@ -1,46 +1,46 @@
 /**
- * 统一日志系统 - 工厂函数
+ * Unified Logging System - Factory Functions
  */
 
 import { ILogger, LoggerConfig } from './types';
 import { BaseLogger } from './base-logger';
 
-// 全局日志器实例缓存
+// Global logger instance cache
 const loggerInstances = new Map<string, ILogger>();
 
 /**
- * 创建日志器实例
+ * Create logger instance
  */
 export function createLogger(config: LoggerConfig): ILogger {
   const logger = new BaseLogger(config);
-  
-  // 缓存实例
+
+  // Cache instance
   loggerInstances.set(config.appName, logger);
-  
+
   return logger;
 }
 
 /**
- * 获取已创建的日志器实例
+ * Get created logger instance
  */
 export function getLogger(appName: string): ILogger | undefined {
   return loggerInstances.get(appName);
 }
 
 /**
- * 获取或创建日志器实例
+ * Get or create logger instance
  */
 export function getOrCreateLogger(config: LoggerConfig): ILogger {
   const existing = getLogger(config.appName);
   if (existing) {
     return existing;
   }
-  
+
   return createLogger(config);
 }
 
 /**
- * 清理所有日志器实例
+ * Clean up all logger instances
  */
 export async function destroyAllLoggers(): Promise<void> {
   const destroyPromises = Array.from(loggerInstances.values())
@@ -56,7 +56,7 @@ export async function destroyAllLoggers(): Promise<void> {
 }
 
 /**
- * 创建默认配置的日志器
+ * Create default logger
  */
 export function createDefaultLogger(appName: string): ILogger {
   const config: LoggerConfig = {

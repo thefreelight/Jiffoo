@@ -157,6 +157,51 @@ export class AuthService {
     return { token };
   }
 
+  static async refreshSession(refreshToken: string): Promise<AuthResponse> {
+    try {
+      const payload = JwtUtils.verify(refreshToken);
+      if (!payload || !payload.userId || payload.type !== 'refresh') {
+        throw new Error('Invalid refresh token');
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId }
+      });
+
+      if (!user) {
+        throw new Error('User not found');
+      }
+
+      // Generate new tokens
+      const accessToken = JwtUtils.sign({
+        userId: user.id,
+        email: user.email,
+        role: user.role
+      });
+
+      // Optional: Rotate refresh token? (Return new one, same expiry or extended)
+      // For now, let's keep the same or issue a new one. OAuth2 usually issues a new one.
+      const newRefreshToken = JwtUtils.signRefresh({ userId: user.id });
+
+      return {
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          role: user.role,
+          avatar: user.avatar
+        },
+        access_token: accessToken,
+        token_type: 'Bearer',
+        expires_in: 604800,
+        refresh_token: newRefreshToken,
+        token: accessToken
+      };
+    } catch (error) {
+      throw new Error('Invalid refresh token');
+    }
+  }
+
   static verifyToken(token: string) {
     return JwtUtils.verify(token);
   }

@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * 主题系统 Hooks
- * 提供便捷的主题组件访问方式
+ * Theme System Hooks
+ * Provides convenient access to theme components and config
  */
 
 import { useMemo } from 'react';
@@ -10,7 +10,7 @@ import { useShopTheme } from './provider';
 import type { ThemePackage, ThemeConfig } from 'shared/src/types/theme';
 
 /**
- * 获取主题页面组件
+ * Get theme page components
  * 
  * @example
  * ```tsx
@@ -20,19 +20,19 @@ import type { ThemePackage, ThemeConfig } from 'shared/src/types/theme';
  */
 export function useThemeComponents() {
   const { theme } = useShopTheme();
-  
+
   if (!theme) {
     throw new Error('Theme not loaded yet');
   }
-  
+
   return theme.components;
 }
 
 /**
- * 获取特定的主题组件
+ * Get a specific theme component
  * 
- * @param componentName - 组件名称
- * @returns 主题组件
+ * @param componentName - Component name
+ * @returns Theme component
  * 
  * @example
  * ```tsx
@@ -44,18 +44,18 @@ export function useThemeComponent<K extends keyof ThemePackage['components']>(
   componentName: K
 ): ThemePackage['components'][K] {
   const { theme } = useShopTheme();
-  
+
   if (!theme) {
     throw new Error('Theme not loaded yet');
   }
-  
+
   return theme.components[componentName];
 }
 
 /**
- * 获取主题配置
+ * Get theme configuration
  * 
- * @returns 合并后的主题配置
+ * @returns Merged theme configuration
  */
 export function useThemeConfig(): ThemeConfig {
   const { config } = useShopTheme();
@@ -63,7 +63,7 @@ export function useThemeConfig(): ThemeConfig {
 }
 
 /**
- * 获取主题加载状态
+ * Get theme loading status
  * 
  * @returns { isLoading, error }
  */
@@ -73,46 +73,43 @@ export function useThemeStatus() {
 }
 
 /**
- * 获取主题品牌配置
+ * Get theme brand config
  * 
- * @returns 品牌配置
- */
+ * @returns Brand configuration */
 export function useThemeBrand() {
   const { config } = useShopTheme();
   return config.brand || {};
 }
 
 /**
- * 获取主题布局配置
+ * Get theme layout config
  * 
- * @returns 布局配置
- */
+ * @returns Layout configuration */
 export function useThemeLayout() {
   const { config } = useShopTheme();
   return config.layout || {};
 }
 
 /**
- * 获取主题功能配置
+ * Get theme features config
  * 
- * @returns 功能配置
- */
+ * @returns Features configuration */
 export function useThemeFeatures() {
   const { config } = useShopTheme();
   return config.features || {};
 }
 
 /**
- * 创建带有主题配置的组件 props
+ * Create component props with theme configuration
  * 
- * @param additionalProps - 额外的 props
- * @returns 合并了主题配置的 props
+ * @param additionalProps - Additional props
+ * @returns Props merged with theme configuration
  */
 export function useThemedProps<T extends Record<string, any>>(
   additionalProps: T
 ): T & { config: ThemeConfig } {
   const { config } = useShopTheme();
-  
+
   return useMemo(
     () => ({
       ...additionalProps,

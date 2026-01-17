@@ -1,0 +1,143 @@
+---
+title: API Reference
+description: Jiffoo Mall API documentation
+---
+
+# API Reference
+
+## Interactive Documentation
+
+The complete API documentation is available via Swagger UI:
+
+- **Development**: http://localhost:3001/docs
+- **Production**: https://api.yourdomain.com/docs
+
+## Base URL
+
+```
+https://api.yourdomain.com/api
+```
+
+## Authentication
+
+Most endpoints require JWT Bearer token:
+
+```
+Authorization: Bearer <jwt-token>
+```
+
+### Tenant Header
+
+All requests should include tenant ID:
+
+```
+x-tenant-id: <tenant_id>
+```
+
+## Quick Reference
+
+### Authentication
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/auth/register` | User registration |
+| POST | `/auth/login` | User login |
+| GET | `/auth/me` | Get current user |
+| POST | `/auth/refresh` | Refresh token |
+| POST | `/auth/logout` | Logout |
+
+### Products
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/products` | List products |
+| GET | `/products/:id` | Get product |
+| POST | `/admin/products` | Create product |
+| PUT | `/admin/products/:id` | Update product |
+| DELETE | `/admin/products/:id` | Delete product |
+
+### Cart
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/cart` | Get cart |
+| POST | `/cart/add` | Add to cart |
+| PUT | `/cart/update` | Update quantity |
+| DELETE | `/cart/remove/:itemId` | Remove item |
+| DELETE | `/cart/clear` | Clear cart |
+
+### Orders
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/orders` | Create order |
+| GET | `/orders` | List orders |
+| GET | `/orders/:id` | Get order |
+
+### Payments
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/payments/available-methods` | Get payment methods |
+| POST | `/payments/create-session` | Create payment session |
+
+## Response Format
+
+### Success Response
+
+```json
+{
+  "success": true,
+  "data": { ... }
+}
+```
+
+### Error Response
+
+```json
+{
+  "success": false,
+  "error": "Error message",
+  "code": "ERROR_CODE"
+}
+```
+
+### Pagination
+
+```json
+{
+  "success": true,
+  "data": [...],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 100,
+    "totalPages": 5
+  }
+}
+```
+
+## Error Codes
+
+| Status | Description |
+|--------|-------------|
+| 400 | Bad Request |
+| 401 | Unauthorized |
+| 403 | Forbidden |
+| 404 | Not Found |
+| 429 | Rate Limited |
+| 500 | Server Error |
+
+## Rate Limiting
+
+API requests are rate limited:
+- **Anonymous**: 100 requests/minute
+- **Authenticated**: 1000 requests/minute
+- **Admin**: 5000 requests/minute
+
+## OpenAPI Specification
+
+Download the OpenAPI spec:
+- JSON: `/openapi.json`
+- YAML: `/openapi.yaml`
+

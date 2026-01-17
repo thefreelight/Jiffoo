@@ -16,13 +16,16 @@ export interface LoginResponse {
     name: string;
     role: string;
   };
-  // 🔧 安全修复：移除token字段，纯粹依赖httpOnly cookie
-  // token和refreshToken通过httpOnly cookie传输，不在响应体中暴露
+  // 🔧 Security Fix: Remove token field, rely purely on httpOnly cookie
+  // token and refreshToken are transmitted via httpOnly cookie, not exposed in response body
 }
 
 export interface RefreshTokenResponse {
-  success: boolean;
-  message: string;
+  access_token: string;
+  token_type: string;
+  expires_in: number;
+  refresh_token?: string;
+  success: boolean; // Keep for compatibility if used, or optional
 }
 
 export interface AuthTokens {

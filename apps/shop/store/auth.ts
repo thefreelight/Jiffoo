@@ -18,10 +18,8 @@ interface AuthActions {
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   changePassword: (data: { currentPassword: string; newPassword: string }) => Promise<void>;
 
-  // Email verification
-  sendRegistrationCode: (email: string) => Promise<void>;
-  resendVerificationCode: (email: string) => Promise<void>;
-  verifyEmail: (email: string, code: string) => Promise<void>;
+  // Email verification removed per Alpha Gate
+
 
   // Google OAuth
   googleLogin: () => Promise<void>;
@@ -341,101 +339,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
-      sendRegistrationCode: async (email: string) => {
-        try {
-          set({ isLoading: true, error: null });
+      // Email verification logic removed for Alpha Gate (Direct Registration only)
 
-          const response = await authApi.sendRegistrationCode(email);
-
-          if (response.success) {
-            set({
-              isLoading: false,
-              error: null,
-            });
-          } else {
-            throw new Error(response.message || 'Failed to send registration code');
-          }
-        } catch (error: unknown) {
-          set({
-            isLoading: false,
-            error: (error as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message || (error as { message?: string }).message || 'Failed to send registration code',
-          });
-          throw error;
-        }
-      },
-
-      resendVerificationCode: async (email: string) => {
-        try {
-          set({ isLoading: true, error: null });
-
-          const response = await authApi.resendVerificationCode(email);
-
-          if (response.success) {
-            set({
-              isLoading: false,
-              error: null,
-            });
-          } else {
-            throw new Error(response.message || 'Failed to resend verification code');
-          }
-        } catch (error: unknown) {
-          set({
-            isLoading: false,
-            error: (error as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message || (error as { message?: string }).message || 'Failed to resend verification code',
-          });
-          throw error;
-        }
-      },
-
-      verifyEmail: async (email: string, code: string) => {
-        try {
-          set({ isLoading: true, error: null });
-
-          const response = await authApi.verifyEmail(email, code);
-
-          if (response.success && response.data) {
-            const { token, user } = response.data;
-
-            if (token) {
-              apiClient.setToken(token);
-
-              const userProfile: UserProfile = {
-                ...user,
-                isActive: true,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              };
-
-              set({
-                user: userProfile,
-                isAuthenticated: true,
-                isLoading: false,
-                error: null,
-              });
-
-              // Sync guest cart after registration
-              if (typeof window !== 'undefined') {
-                setTimeout(() => {
-                  import('@/store/cart').then(({ useCartStore }) => {
-                    const { mergeGuestCart } = useCartStore.getState();
-                    mergeGuestCart();
-                  });
-                }, 0);
-              }
-            } else {
-              throw new Error('No token received from server');
-            }
-          } else {
-            throw new Error(response.message || 'Failed to verify email');
-          }
-        } catch (error: unknown) {
-          set({
-            isLoading: false,
-            error: (error as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message || (error as { message?: string }).message || 'Failed to verify email',
-          });
-          throw error;
-        }
-      },
 
       setLoading: (loading: boolean) => {
         set({ isLoading: loading });

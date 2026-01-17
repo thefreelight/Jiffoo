@@ -1,17 +1,17 @@
 /**
- * Webhook Verifier - Webhook 签名验证
+ * Webhook Verifier - Webhook Signature Verification
  */
 
 import { createHmac, timingSafeEqual } from 'crypto';
 
 export interface WebhookVerifierConfig {
-  /** 签名算法 */
-  algorithm?: 'sha256' | 'sha512';
-  /** 时间戳容差（秒） */
+  /** Signature algorithm */
+  algorithm?: string;
+  /** Timestamp tolerance (seconds) */
   timestampTolerance?: number;
-  /** 签名头名称 */
+  /** Signature header name */
   signatureHeader?: string;
-  /** 时间戳头名称 */
+  /** Timestamp header name */
   timestampHeader?: string;
 }
 
@@ -22,7 +22,7 @@ export interface VerificationResult {
 }
 
 /**
- * 通用 HMAC 签名验证器
+ * Generic HMAC Signature Verifier
  */
 export class WebhookVerifier {
   private secret: string;
@@ -39,7 +39,7 @@ export class WebhookVerifier {
   }
 
   /**
-   * 生成签名
+   * Generate Signature
    */
   sign(payload: string | Buffer, timestamp?: number): string {
     const ts = timestamp ?? Math.floor(Date.now() / 1000);
@@ -50,11 +50,11 @@ export class WebhookVerifier {
   }
 
   /**
-   * 验证签名
+   * Verify Signature
    */
   verify(payload: string | Buffer, signature: string, timestamp?: number | string): VerificationResult {
     try {
-      // 解析签名
+      // Parse signature
       const parts = this.parseSignature(signature);
       if (!parts) {
         return { valid: false, error: 'Invalid signature format' };
@@ -62,7 +62,7 @@ export class WebhookVerifier {
 
       const { ts, sig } = parts;
 
-      // 验证时间戳
+      // Verify timestamp
       const tsNumber = typeof timestamp === 'string' ? parseInt(timestamp, 10) : (timestamp ?? ts);
       if (isNaN(tsNumber)) {
         return { valid: false, error: 'Invalid timestamp' };
@@ -73,13 +73,13 @@ export class WebhookVerifier {
         return { valid: false, error: 'Timestamp outside tolerance window', timestamp: tsNumber };
       }
 
-      // 生成预期签名
+      // Generate expected signature
       const data = `${tsNumber}.${typeof payload === 'string' ? payload : payload.toString('utf8')}`;
       const hmac = createHmac(this.config.algorithm, this.secret);
       hmac.update(data);
       const expectedSig = hmac.digest('hex');
 
-      // 时间安全比较
+      // Safe comparison
       const sigBuffer = Buffer.from(sig, 'hex');
       const expectedBuffer = Buffer.from(expectedSig, 'hex');
 
@@ -111,7 +111,7 @@ export class WebhookVerifier {
 }
 
 /**
- * Stripe Webhook 签名验证器
+ * Stripe Webhook Signature Verifier
  */
 export class StripeWebhookVerifier {
   private secret: string;
@@ -135,19 +135,19 @@ export class StripeWebhookVerifier {
       const timestamp = parseInt(tsElement.slice(2), 10);
       const expectedSig = sigElement.slice(3);
 
-      // 检查时间戳
+      // Check timestamp
       const now = Math.floor(Date.now() / 1000);
       if (Math.abs(now - timestamp) > this.toleranceSeconds) {
         return { valid: false, error: 'Timestamp too old', timestamp };
       }
 
-      // 计算签名
+      // Calculate signature
       const signedPayload = `${timestamp}.${typeof payload === 'string' ? payload : payload.toString('utf8')}`;
       const hmac = createHmac('sha256', this.secret);
       hmac.update(signedPayload);
       const computedSig = hmac.digest('hex');
 
-      // 安全比较
+      // Safe comparison
       const valid = timingSafeEqual(Buffer.from(computedSig), Buffer.from(expectedSig));
       return { valid, error: valid ? undefined : 'Signature mismatch', timestamp };
     } catch (error) {

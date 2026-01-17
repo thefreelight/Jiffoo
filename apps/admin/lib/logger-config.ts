@@ -1,5 +1,5 @@
 /**
- * Admin 日志配置
+ * Admin Logger Configuration
  */
 
 const getApiBaseUrl = (): string => {
@@ -10,40 +10,40 @@ const getApiBaseUrl = (): string => {
 };
 
 export const loggerConfig = {
-  // 基础配置
+  // Base configuration
   appName: 'admin',
   environment: (process.env.NODE_ENV as 'development' | 'production' | 'test') || 'development',
   version: process.env.NEXT_PUBLIC_APP_VERSION || '1.0.0',
-  
-  // 日志级别配置 - 管理后台需要更详细的日志
+
+  // Log level configuration - Admin needs more detailed logs
   level: process.env.NODE_ENV === 'production' ? 'info' : 'debug',
-  
-  // 控制台日志配置
+
+  // Console logging configuration
   console: {
     enabled: true,
     colorize: false,
     timestamp: true
   },
-  
-  // 远程日志配置 - 管理操作需要更频繁的上报
+
+  // Remote logging configuration - Admin operations need more frequent reporting
   remote: {
     enabled: true,
     endpoint: `${getApiBaseUrl()}/api/logs/batch`,
-    batchSize: 15, // 较小的批次，更及时的上报
-    flushInterval: 3000, // 更短的刷新间隔
-    maxRetries: 5, // 更多重试次数
+    batchSize: 15, // Smaller batch size, more timely reporting
+    flushInterval: 3000, // Shorter flush interval
+    maxRetries: 5, // More retries
     retryDelay: 1000,
-    timeout: 15000 // 更长的超时时间
+    timeout: 15000 // Longer timeout duration
   },
-  
-  // 本地存储配置
+
+  // Local storage configuration
   localStorage: {
     enabled: true,
-    maxLogs: 200, // 管理后台保存更多日志
+    maxLogs: 200, // Admin panel saves more logs
     storageKey: 'admin_logger_buffer'
   },
-  
-  // 审计日志配置
+
+  // Audit logging configuration
   audit: {
     enabled: true,
     trackAllActions: true,
@@ -51,8 +51,8 @@ export const loggerConfig = {
     trackUserManagement: true,
     trackSystemAccess: true
   },
-  
-  // 性能监控配置
+
+  // Performance monitoring configuration
   performance: {
     enabled: true,
     trackPageLoad: true,
@@ -60,24 +60,24 @@ export const loggerConfig = {
     trackUserInteractions: true,
     trackAdminOperations: true
   },
-  
-  // 错误处理配置
+
+  // Error handling configuration
   errorHandling: {
     captureGlobalErrors: true,
     captureUnhandledRejections: true,
     captureReactErrors: true,
     captureAdminErrors: true
   },
-  
-  // 安全配置
+
+  // Security configuration
   security: {
     trackFailedLogins: true,
     trackPermissionDenied: true,
     trackSuspiciousActivity: true,
     alertOnSecurityEvents: true
   },
-  
-  // 隐私配置
+
+  // Privacy configuration
   privacy: {
     enableDataSanitization: true,
     excludeUrls: ['/api/auth', '/api/admin/sensitive'],

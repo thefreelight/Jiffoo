@@ -10,11 +10,11 @@ const compat = new FlatCompat({
 });
 
 /**
- * 创建ESLint配置的基础函数
- * @param {Object} options - 配置选项
- * @param {Object} options.rules - 额外的规则
- * @param {string[]} options.extends - 额外的扩展配置
- * @returns {Array} ESLint配置数组
+ * Base function for creating ESLint configuration
+ * @param {Object} options - Configuration options
+ * @param {Object} options.rules - Additional rules
+ * @param {string[]} options.extends - Additional extends
+ * @returns {Array} ESLint configuration array
  */
 export function createESLintConfig(options = {}) {
   const {
@@ -30,14 +30,14 @@ export function createESLintConfig(options = {}) {
     ...compat.extends(...allExtends),
     {
       rules: {
-        // 基础规则
+        // Base rules
         "@typescript-eslint/no-explicit-any": "off",
         "@typescript-eslint/no-unused-vars": "warn",
         "@typescript-eslint/no-empty-object-type": "off",
         "react/no-unescaped-entities": "off",
         "react-hooks/exhaustive-deps": "warn",
-        
-        // 合并用户自定义规则
+
+        // Merge user custom rules
         ...rules
       },
       ...otherOptions
@@ -45,6 +45,6 @@ export function createESLintConfig(options = {}) {
   ];
 }
 
-// 默认配置导出
+// Default configuration export
 const eslintConfig = createESLintConfig();
 export default eslintConfig;

@@ -13,7 +13,7 @@
  * - en: English (default)
  * - zh-Hans: Simplified Chinese
  */
-export const LOCALES = ['en', 'zh-Hans'] as const;
+export const LOCALES = ['en', 'zh-Hant'] as const;
 
 /**
  * Locale type derived from LOCALES constant
@@ -34,9 +34,9 @@ export const LOCALE_CONFIG: Record<Locale, { name: string; nativeName: string; d
     nativeName: 'English',
     dir: 'ltr',
   },
-  'zh-Hans': {
-    name: 'Simplified Chinese',
-    nativeName: '简体中文',
+  'zh-Hant': {
+    name: 'Traditional Chinese',
+    nativeName: 'Traditional Chinese',
     dir: 'ltr',
   },
 };
@@ -65,15 +65,14 @@ const BROWSER_LANGUAGE_MAP: Record<string, Locale> = {
   'en-NZ': 'en',
   'en-IE': 'en',
   'en-ZA': 'en',
-  // Chinese variants - all map to Simplified Chinese
-  'zh': 'zh-Hans',
-  'zh-CN': 'zh-Hans',
-  'zh-SG': 'zh-Hans',
-  'zh-Hans': 'zh-Hans',
-  // Mapping Traditional to Simplified as fallback for now
-  'zh-TW': 'zh-Hans',
-  'zh-HK': 'zh-Hans',
-  'zh-Hant': 'zh-Hans',
+  // Chinese variants - all map to Traditional Chinese
+  'zh': 'zh-Hant',
+  'zh-CN': 'zh-Hant',
+  'zh-SG': 'zh-Hant',
+  'zh-Hans': 'zh-Hant',
+  'zh-TW': 'zh-Hant',
+  'zh-HK': 'zh-Hant',
+  'zh-Hant': 'zh-Hant',
 };
 
 /**

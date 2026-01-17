@@ -1,0 +1,12 @@
+{
+  "title": "Jiffoo Docs",
+  "pages": [
+    "index",
+    "---Getting Started---",
+    "getting-started",
+    "---Developer---",
+    "developer",
+    "---Deployment---",
+    "deployment"
+  ]
+}

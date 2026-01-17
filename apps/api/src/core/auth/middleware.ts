@@ -51,7 +51,7 @@ export async function authMiddleware(
     }
 
     // Simplified permission system: Role based permissions
-    const permissions = (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') ? ['*'] : [];
+    const permissions = user.role === 'ADMIN' ? ['*'] : [];
     const roles = [user.role];
 
     request.user = {
@@ -127,8 +127,8 @@ export async function requireAdmin(
     });
   }
 
-  // Allow both ADMIN and SUPER_ADMIN roles
-  if (request.user.role !== 'ADMIN' && request.user.role !== 'SUPER_ADMIN') {
+  // Allow only ADMIN role
+  if (request.user.role !== 'ADMIN') {
     return reply.status(403).send({
       success: false,
       error: 'Forbidden',

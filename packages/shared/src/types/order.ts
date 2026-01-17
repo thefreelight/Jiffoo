@@ -9,7 +9,7 @@ export enum OrderStatus {
 }
 
 export enum PaymentStatus {
-  UNPAID = 'UNPAID',     // 🆕 未支付
+  UNPAID = 'UNPAID',     // Unpaid
   PENDING = 'PENDING',
   PAID = 'PAID',
   FAILED = 'FAILED',
@@ -40,7 +40,7 @@ export interface Order {
   shipping: number;
   discount: number;
   total: number;
-  totalAmount: number;  // 🆕 兼容后端字段
+  totalAmount: number;  // Backend compatibility field
   currency: string;
   shippingAddress: OrderAddress;
   billingAddress?: OrderAddress;
@@ -50,12 +50,12 @@ export interface Order {
   updatedAt: string;
   estimatedDelivery?: string;
   trackingNumber?: string;
-  // 🆕 支付重试相关字段
-  expiresAt?: string;           // 订单过期时间
-  lastPaymentAttemptAt?: string; // 最后支付尝试时间
-  paymentAttempts?: number;      // 支付尝试次数
-  cancelReason?: string;         // 取消原因
-  cancelledAt?: string;          // 取消时间
+  // Payment retry fields
+  expiresAt?: string;           // Order expiration time
+  lastPaymentAttemptAt?: string; // Last payment attempt time
+  paymentAttempts?: number;      // Number of payment attempts
+  cancelReason?: string;         // Cancellation reason
+  cancelledAt?: string;          // Cancellation time
 }
 
 export interface OrderAddress {

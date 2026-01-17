@@ -31,7 +31,7 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // 记录错误到日志系统
+    // Log error to logging system
     logger.error('Admin React Error Boundary caught an error', {
       type: 'admin_react_error_boundary',
       error: {
@@ -47,7 +47,7 @@ export class ErrorBoundary extends Component<Props, State> {
       timestamp: new Date().toISOString()
     });
 
-    // 在开发环境下也输出到控制台
+    // Output to console in development environment as well
     if (process.env.NODE_ENV === 'development') {
       console.error('Admin ErrorBoundary caught an error:', error, errorInfo);
     }
@@ -55,7 +55,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      // 自定义错误 UI
+      // Custom error UI
       if (this.props.fallback) {
         return this.props.fallback;
       }

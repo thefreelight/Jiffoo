@@ -1,5 +1,5 @@
 /**
- * 日志提供者组件
+ * Logger Provider Component
  */
 
 'use client';
@@ -22,13 +22,13 @@ interface LoggerProviderProps {
 
 export function LoggerProvider({ children }: LoggerProviderProps) {
   useEffect(() => {
-    // 初始化日志器
+    // Initialize logger
     initializeLogger();
-    
-    // 设置 API 拦截器
+
+    // Set API interceptor
     createApiInterceptor();
 
-    // 设置全局错误处理
+    // Set global error handling
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
       logger.error('Unhandled Promise Rejection', {
         type: 'unhandled_promise_rejection',
@@ -55,7 +55,7 @@ export function LoggerProvider({ children }: LoggerProviderProps) {
       });
     };
 
-    // 监听页面可见性变化
+    // Listen for page visibility changes
     const handleVisibilityChange = () => {
       if (document.hidden) {
         log.info('Page became hidden', {
@@ -70,7 +70,7 @@ export function LoggerProvider({ children }: LoggerProviderProps) {
       }
     };
 
-    // 监听页面卸载
+    // Listen for page unload
     const handleBeforeUnload = () => {
       log.info('Page unloading', {
         type: 'page_lifecycle',
@@ -79,19 +79,19 @@ export function LoggerProvider({ children }: LoggerProviderProps) {
       });
     };
 
-    // 添加事件监听器
+    // Add event listeners
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
     window.addEventListener('error', handleError);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handleBeforeUnload);
 
-    // 记录页面加载完成
+    // Log page load completion
     log.info('Logger provider initialized', {
       type: 'logger_lifecycle',
       event: 'initialized'
     });
 
-    // 清理函数
+    // Cleanup function
     return () => {
       window.removeEventListener('unhandledrejection', handleUnhandledRejection);
       window.removeEventListener('error', handleError);

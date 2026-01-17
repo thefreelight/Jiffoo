@@ -1,0 +1,33 @@
+{
+  "name": "@jiffoo/docs",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3014",
+    "build": "next build",
+    "start": "next start -p 3014"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
+    "fumadocs-core": "^16.4.7",
+    "fumadocs-mdx": "^14.2.5",
+    "fumadocs-ui": "^16.4.7",
+    "lucide-react": "^0.468.0",
+    "next": "16.0.7",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/mdx": "^2.0.13",
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0"
+  }
+}

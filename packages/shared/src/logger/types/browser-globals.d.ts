@@ -1,9 +1,10 @@
 /**
- * 浏览器全局变量类型声明 - 用于在 Node.js 环境中编译
+ * Browser Global Variables Type Declaration - For compilation in Node.js environment
+
  */
 
 declare global {
-  // 如果在 Node.js 环境中，这些变量可能不存在
+  // These variables may not exist in Node.js environment
   var window: {
     addEventListener: (event: string, handler: Function) => void;
     location: { href: string };
@@ -42,4 +43,4 @@ declare global {
   }
 }
 
-export {};
+export { };

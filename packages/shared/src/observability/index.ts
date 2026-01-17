@@ -1,7 +1,7 @@
 /**
- * Observability Module - 可观测性模块
+ * Observability Module
  *
- * 统一导出所有可观测性组件
+ * Unified export of all observability components
  */
 
 // Log Redactor
@@ -76,7 +76,7 @@ export type HealthCheckServiceInstance = InstanceType<typeof HealthCheckServiceC
 export type LogRedactorInstance = InstanceType<typeof LogRedactorClass>;
 
 /**
- * 可观测性初始化配置
+ * Observability initialization config
  */
 export interface ObservabilityConfig {
   serviceName: string;
@@ -106,7 +106,7 @@ export interface ObservabilityConfig {
 }
 
 /**
- * 可观测性系统实例
+ * Observability system instance
  */
 export interface ObservabilitySystem {
   sentry?: SentryClientInstance;
@@ -117,21 +117,21 @@ export interface ObservabilitySystem {
 }
 
 /**
- * 初始化可观测性系统
+ * Initialize observability system
  */
 export function initializeObservability(
   config: ObservabilityConfig
 ): ObservabilitySystem {
-  // 初始化 Log Redactor
+  // Initialize Log Redactor
   const logRedactor = new LogRedactorClass(config.logRedactor);
 
-  // 初始化 Health Check Service
+  // Initialize Health Check Service
   const healthCheck = new HealthCheckServiceClass({
     version: config.serviceVersion,
     timeout: config.healthCheck?.timeout,
   });
 
-  // 可选：初始化 Sentry
+  // Optional: Initialize Sentry
   let sentry: SentryClientInstance | undefined;
   if (config.sentry?.dsn) {
     sentry = new SentryClientClass({
@@ -142,7 +142,7 @@ export function initializeObservability(
     });
   }
 
-  // 可选：初始化 OpenTelemetry
+  // Optional: Initialize OpenTelemetry
   let otel: OtelClientInstance | undefined;
   if (config.otel?.traceExporterUrl) {
     otel = new OtelClientClass({
@@ -155,7 +155,7 @@ export function initializeObservability(
     });
   }
 
-  // 可选：初始化 Log Forwarder
+  // Optional: Initialize Log Forwarder
   let logForwarder: LogForwarderInstance | undefined;
   if (config.loki?.url) {
     logForwarder = new LogForwarderClass({

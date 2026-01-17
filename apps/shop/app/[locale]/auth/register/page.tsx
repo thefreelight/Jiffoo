@@ -67,9 +67,9 @@ export default function RegisterPage() {
       });
       toast({
         title: getText('shop.auth.register.success', 'Registration successful'),
-        description: getText('shop.auth.register.welcomeMessage', 'Welcome! Please log in with your credentials.'),
+        description: getText('shop.auth.register.welcomeMessage', 'Welcome! You have been registered and logged in successfully.'),
       });
-      nav.push('/auth/login');
+      nav.push('/');
     } catch (error: any) {
       toast({
         title: getText('shop.auth.register.failed', 'Registration failed'),

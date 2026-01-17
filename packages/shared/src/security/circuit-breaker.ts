@@ -1,5 +1,5 @@
 /**
- * Circuit Breaker - 熔断器模式实现
+ * Circuit Breaker - Monitor Pattern Implementation
  */
 
 export enum CircuitState {
@@ -9,15 +9,15 @@ export enum CircuitState {
 }
 
 export interface CircuitBreakerConfig {
-  /** 失败阈值（触发熔断） */
+  /** Failure threshold (trigger circuit break) */
   failureThreshold: number;
-  /** 成功阈值（半开状态恢复） */
+  /** Success threshold (half-open recovery) */
   successThreshold: number;
-  /** 熔断超时时间（毫秒） */
+  /** Circuit break timeout (ms) */
   timeout: number;
-  /** 监控窗口（毫秒） */
+  /** Monitoring window (ms) */
   monitoringWindow?: number;
-  /** 错误过滤器 */
+  /** Error filter */
   errorFilter?: (error: Error) => boolean;
 }
 
@@ -32,7 +32,7 @@ export interface CircuitBreakerStats {
 type CircuitBreakerEventType = 'stateChange' | 'success' | 'failure' | 'rejected';
 
 /**
- * Circuit Breaker 类
+ * Circuit Breaker class
  */
 export class CircuitBreaker {
   private state: CircuitState = CircuitState.CLOSED;
@@ -54,7 +54,7 @@ export class CircuitBreaker {
   }
 
   /**
-   * 执行受保护的函数
+   * Execute protected function
    */
   async execute<T>(fn: () => Promise<T>): Promise<T> {
     if (!this.canExecute()) {
@@ -75,7 +75,7 @@ export class CircuitBreaker {
   }
 
   /**
-   * 检查是否可以执行
+   * Check if executable
    */
   canExecute(): boolean {
     if (this.state === CircuitState.CLOSED) return true;
@@ -86,7 +86,7 @@ export class CircuitBreaker {
       }
       return false;
     }
-    // HALF_OPEN - 允许一个请求通过
+    // HALF_OPEN - Allow one request through
     return true;
   }
 
@@ -98,7 +98,7 @@ export class CircuitBreaker {
         this.transitionTo(CircuitState.CLOSED);
       }
     } else if (this.state === CircuitState.CLOSED) {
-      // 成功时重置失败计数
+      // Reset failure count on success
       this.failures = 0;
     }
   }
@@ -136,14 +136,14 @@ export class CircuitBreaker {
   }
 
   /**
-   * 获取当前状态
+   * Get current state
    */
   getState(): CircuitState {
     return this.state;
   }
 
   /**
-   * 获取统计信息
+   * Get statistics
    */
   getStats(): CircuitBreakerStats {
     return {
@@ -156,21 +156,21 @@ export class CircuitBreaker {
   }
 
   /**
-   * 强制打开熔断器
+   * Force open circuit breaker
    */
   open(): void {
     this.transitionTo(CircuitState.OPEN);
   }
 
   /**
-   * 强制关闭熔断器
+   * Force close circuit breaker
    */
   close(): void {
     this.transitionTo(CircuitState.CLOSED);
   }
 
   /**
-   * 重置熔断器
+   * Reset circuit breaker
    */
   reset(): void {
     this.failures = 0;

@@ -83,7 +83,7 @@ export default function PaymentTestPage() {
         duration: 3000
       });
 
-      // 调用Stripe插件的支付接口
+      // Call Stripe plugin payment API
       const response = await fetch('http://localhost:8001/plugins/stripe/api/create-payment-intent', {
         method: 'POST',
         headers: {
@@ -167,7 +167,7 @@ export default function PaymentTestPage() {
         duration: 3000
       });
 
-      // 调用支付宝插件的支付接口
+      // Call Alipay plugin payment API
       const response = await fetch('http://localhost:8001/plugins/alipay-official/api/create-payment', {
         method: 'POST',
         headers: {
@@ -176,7 +176,7 @@ export default function PaymentTestPage() {
         },
         body: JSON.stringify({
           ...paymentData,
-          amount: paymentData.amount * 100, // 支付宝使用分为单位
+          amount: paymentData.amount * 100, // Alipay uses cents/fen as unit
         }),
       });
 
@@ -377,11 +377,10 @@ export default function PaymentTestPage() {
           <CardContent>
             {lastPaymentResult ? (
               <div className="space-y-4">
-                <div className={`flex items-center gap-2 p-4 rounded-lg ${
-                  lastPaymentResult.success
+                <div className={`flex items-center gap-2 p-4 rounded-lg ${lastPaymentResult.success
                     ? 'bg-green-50 text-green-800 border border-green-200'
                     : 'bg-red-50 text-red-800 border border-red-200'
-                }`}>
+                  }`}>
                   {lastPaymentResult.success ? (
                     <CheckCircle className="w-5 h-5" />
                   ) : (

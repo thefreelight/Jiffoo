@@ -1,0 +1,38 @@
+# Docs (Nextra) 子流水线
+include:
+  - project: 'ops/cicd-template'
+    ref: main
+    file:
+      - 'templates/precheck.yml'
+      - 'templates/build.yml'
+      - 'templates/gitops.yml'
+
+default: {}
+
+stages:
+  - precheck
+  - build
+  - gitops
+
+variables:
+  SERVICE_NAME: "docs"
+  SERVICE_PATH: "apps/docs"
+  GITOPS_DEPLOYMENT_PATH: "jiffoo-mall"
+
+precheck:
+  extends: .precheck
+
+build:
+  extends: .build
+  needs:
+    - job: precheck
+      artifacts: true
+
+gitops:
+  extends: .gitops
+  resource_group: deployment-repo
+  needs:
+    - job: precheck
+      artifacts: true
+    - job: build
+      artifacts: false

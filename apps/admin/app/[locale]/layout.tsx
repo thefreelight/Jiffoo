@@ -52,6 +52,6 @@ export default async function LocaleLayout({ children, params }: Props) {
  * Generate static params for all supported locales
  */
 export function generateStaticParams() {
-  return [{ locale: 'en' }, { locale: 'zh-Hans' }];
+  return [{ locale: 'en' }, { locale: 'zh-Hant' }];
 }
 

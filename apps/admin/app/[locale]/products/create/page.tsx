@@ -185,12 +185,13 @@ export default function CreateProductPage() {
 
     try {
       // Prepare API data format, matching the format expected by the backend API
+      // ✅ Backend schema expects images as string[], not JSON string
       const productData = {
         name: formData.name,
         description: formData.description,
         price: formData.price,
         stock: formData.quantity,
-        images: formData.images.length > 0 ? JSON.stringify(formData.images) : JSON.stringify([])
+        images: formData.images  // ✅ Pass array directly, not JSON.stringify
       }
 
       // Use React Query mutation

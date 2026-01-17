@@ -1,5 +1,5 @@
 /**
- * 统一日志系统 - 类型定义
+ * Unified Logging System - Type Definitions
  */
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error';
@@ -94,14 +94,14 @@ export interface ILogger {
   info(message: string, meta?: LogMeta): void;
   warn(message: string, meta?: LogMeta): void;
   error(message: string | Error, meta?: LogMeta): void;
-  
-  // 业务日志方法
+
+  // Business log methods
   logOperation(operation: OperationLog): void;
   logPerformance(operation: string, duration: number, meta?: LogMeta): void;
   logSecurity(event: string, details: any): void;
   logBusiness(event: string, details: any): void;
-  
-  // 配置方法
+
+  // Configuration methods
   setLevel(level: LogLevel): void;
   addTransport(transport: ITransport): void;
   removeTransport(transport: ITransport): void;

@@ -15,8 +15,8 @@ export interface UseLoggerOptions {
 export interface AdminLoggerHook {
   logger: ILogger;
   log: typeof log;
-  
-  // 管理员专用日志方法
+
+  // Admin specific logging methods
   logAdminAction: (action: string, resource: string, details?: any) => void;
   logAudit: (event: string, details?: any) => void;
   logConfigChange: (setting: string, oldValue: any, newValue: any) => void;
@@ -30,12 +30,12 @@ export interface AdminLoggerHook {
 }
 
 /**
- * useLogger Hook - 为 Admin React 组件提供日志功能
+ * useLogger Hook - Provides logging functionality for Admin React components
  */
 export function useLogger(options: UseLoggerOptions = {}): AdminLoggerHook {
   const { component, page, feature, adminSection } = options;
 
-  // 创建带有组件上下文的日志方法
+  // Create logging methods with component context
   const logWithContext = useCallback((level: 'debug' | 'info' | 'warn' | 'error', message: string, meta: any = {}) => {
     const contextMeta = {
       ...meta,
@@ -45,11 +45,11 @@ export function useLogger(options: UseLoggerOptions = {}): AdminLoggerHook {
       adminSection,
       timestamp: new Date().toISOString()
     };
-    
+
     logger[level](message, contextMeta);
   }, [component, page, feature, adminSection]);
 
-  // 管理员操作日志
+  // Admin action logs
   const logAdminAction = useCallback((action: string, resource: string, details?: any) => {
     log.adminAction(action, resource, {
       component,
@@ -60,7 +60,7 @@ export function useLogger(options: UseLoggerOptions = {}): AdminLoggerHook {
     });
   }, [component, page, feature, adminSection]);
 
-  // 审计日志
+  // Audit logs
   const logAudit = useCallback((event: string, details?: any) => {
     log.audit(event, undefined, {
       component,
@@ -71,12 +71,12 @@ export function useLogger(options: UseLoggerOptions = {}): AdminLoggerHook {
     });
   }, [component, page, feature, adminSection]);
 
-  // 配置变更日志
+  // Configuration change logs
   const logConfigChange = useCallback((setting: string, oldValue: any, newValue: any) => {
     log.configChange(setting, oldValue, newValue);
   }, []);
 
-  // 用户管理日志
+  // User management logs
   const logUserManagement = useCallback((action: string, targetUserId: string, details?: any) => {
     log.userManagement(action, targetUserId, {
       component,
@@ -86,7 +86,7 @@ export function useLogger(options: UseLoggerOptions = {}): AdminLoggerHook {
     });
   }, [component, page, feature]);
 
-  // 产品管理日志
+  // Product management logs
   const logProductManagement = useCallback((action: string, productId: string, details?: any) => {
     log.productManagement(action, productId, {
       component,
@@ -96,7 +96,7 @@ export function useLogger(options: UseLoggerOptions = {}): AdminLoggerHook {
     });
   }, [component, page, feature]);
 
-  // 订单管理日志
+  // Order management logs
   const logOrderManagement = useCallback((action: string, orderId: string, details?: any) => {
     log.orderManagement(action, orderId, {
       component,
@@ -106,7 +106,7 @@ export function useLogger(options: UseLoggerOptions = {}): AdminLoggerHook {
     });
   }, [component, page, feature]);
 
-  // 插件管理日志
+  // Plugin management logs
   const logPluginManagement = useCallback((action: string, pluginId: string, details?: any) => {
     log.pluginManagement(action, pluginId, {
       component,
@@ -116,7 +116,7 @@ export function useLogger(options: UseLoggerOptions = {}): AdminLoggerHook {
     });
   }, [component, page, feature]);
 
-  // 安全事件日志
+  // Security event logs
   const logSecurity = useCallback((event: string, details?: any) => {
     log.security(event, {
       component,
@@ -127,7 +127,7 @@ export function useLogger(options: UseLoggerOptions = {}): AdminLoggerHook {
     });
   }, [component, page, feature, adminSection]);
 
-  // 错误日志
+  // Error logs
   const logError = useCallback((error: Error | string, context?: any) => {
     logWithContext('error', typeof error === 'string' ? error : error.message, {
       type: 'admin_error',
@@ -140,10 +140,10 @@ export function useLogger(options: UseLoggerOptions = {}): AdminLoggerHook {
     });
   }, [logWithContext]);
 
-  // 页面浏览日志
+  // Page view logs
   const logPageView = useCallback((pageName?: string) => {
     const currentPage = pageName || page || (typeof window !== 'undefined' ? window.location.pathname : 'unknown');
-    
+
     logWithContext('info', 'Admin Page View', {
       type: 'admin_page_view',
       page: currentPage,

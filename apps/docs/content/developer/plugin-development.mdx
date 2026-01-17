@@ -1,0 +1,163 @@
+---
+title: Plugin Development
+description: How to develop plugins for Jiffoo Mall
+---
+
+# Plugin Development Guide
+
+Jiffoo Mall supports two types of plugins:
+- **Internal Plugins** - Developed within the platform codebase (TypeScript + Fastify)
+- **External Plugins** - Independent HTTP services (any language/framework)
+
+## Plugin Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Plugin Gateway                            │
+├─────────────────────────────────────────────────────────────┤
+│  /api/plugins/<plugin-slug>/api/*                           │
+├─────────────────────────────────────────────────────────────┤
+│  Internal Plugins (Fastify)  │  External Plugins (HTTP)     │
+│  - stripe                    │  - third-party services      │
+│  - resend                    │                              │
+│  - affiliate                 │                              │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Quick Start (External Plugin)
+
+### 1. Install SDK
+
+```bash
+npm install @jiffoo/plugin-sdk
+```
+
+### 2. Create Plugin Manifest
+
+```json
+{
+  "slug": "my-payment-plugin",
+  "name": "My Payment Plugin",
+  "version": "1.0.0",
+  "description": "A custom payment integration",
+  "author": "Your Name",
+  "category": "payment",
+  "capabilities": ["payment.process", "payment.refund"],
+  "configSchema": {
+    "apiKey": {
+      "type": "secret",
+      "label": "API Key",
+      "required": true
+    }
+  }
+}
+```
+
+### 3. Implement Plugin Service
+
+```typescript
+import express from 'express';
+import { createSignatureMiddleware } from '@jiffoo/plugin-sdk';
+
+const app = express();
+const SHARED_SECRET = process.env.PLUGIN_SECRET!;
+
+// Verify platform signature
+app.use('/api', createSignatureMiddleware(SHARED_SECRET));
+
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', version: '1.0.0' });
+});
+
+// Install callback
+app.post('/api/install', (req, res) => {
+  const { tenantId, installationId, config } = req.body;
+  // Save installation info
+  res.json({ success: true });
+});
+
+// Uninstall callback
+app.post('/api/uninstall', (req, res) => {
+  const { tenantId, installationId } = req.body;
+  // Cleanup data
+  res.json({ success: true });
+});
+
+// Business API
+app.post('/api/process-payment', (req, res) => {
+  // Process payment
+  res.json({ success: true, transactionId: 'xxx' });
+});
+
+app.listen(3000);
+```
+
+## Required Endpoints
+
+### GET /health
+Health check endpoint.
+
+```json
+{ "status": "ok", "version": "1.0.0" }
+```
+
+### GET /manifest
+Returns plugin capabilities and configuration schema.
+
+### POST /install
+Called when a tenant installs the plugin.
+
+Request:
+```json
+{
+  "tenantId": "123",
+  "installationId": "456",
+  "planId": "pro",
+  "config": { "apiKey": "..." }
+}
+```
+
+### POST /uninstall
+Called when a tenant uninstalls the plugin.
+
+## Platform Headers
+
+All requests from the platform include:
+
+| Header | Description |
+|--------|-------------|
+| `X-Tenant-ID` | Current tenant ID |
+| `X-Installation-ID` | Plugin installation ID |
+| `X-Platform-Signature` | HMAC signature |
+| `X-Platform-Timestamp` | Request timestamp |
+
+## Signature Verification
+
+```typescript
+import { verifySignature } from '@jiffoo/plugin-sdk';
+
+const isValid = verifySignature(
+  sharedSecret,
+  req.method,
+  req.path,
+  req.body,
+  req.headers['x-platform-timestamp'],
+  req.headers['x-platform-signature']
+);
+```
+
+## Plugin Categories
+
+- `payment` - Payment processing
+- `email` - Email services
+- `integration` - Third-party integrations
+- `analytics` - Analytics and reporting
+- `marketing` - Marketing tools
+- `shipping` - Shipping and logistics
+- `theme` - UI themes
+
+## API Reference
+
+See the auto-generated API documentation at `/api/docs` (Swagger UI).
+

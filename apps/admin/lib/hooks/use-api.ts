@@ -9,7 +9,7 @@ import { PaginationParams, productsApi, ordersApi, usersApi, statisticsApi, plug
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, User, OrderItem } from '../types';
 
-// 额外的类型定义
+// Extra type definitions
 export interface PaginatedApiResponse<T> {
   data: T[];
   pagination: {
@@ -18,23 +18,6 @@ export interface PaginatedApiResponse<T> {
     total: number;
     totalPages: number;
   };
-}
-
-export interface BatchOperationData {
-  operation: string;
-  productIds?: string[];
-  orderIds?: string[];
-  userIds?: string[];
-  status?: string;
-  stockQuantity?: number;
-  role?: string;
-}
-
-export interface UpdateUserData {
-  username?: string;
-  avatar?: string;
-  role?: string;
-  isActive?: boolean;
 }
 
 // Re-export types for convenience
@@ -59,14 +42,14 @@ export function useProducts(params: PaginationParams = {}) {
     queryKey: [...queryKeys.products, params],
     queryFn: async () => {
       const response = await productsApi.getProducts(params);
-      // 后端返回格式: { success: true, data: [...], pagination: {...} }
-      // 转换为前端期望的格式
+      // Backend returns: { success: true, data: { products: [...], pagination: {...} } }
+      const responseData = response.data as any;
       return {
-        data: response.data || [],
-        pagination: (response as unknown as PaginatedApiResponse<Product>).pagination || { page: 1, limit: 10, total: 0, totalPages: 0 }
+        data: responseData?.products || [],
+        pagination: responseData?.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 }
       };
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -75,7 +58,7 @@ export function useProduct(id: string) {
     queryKey: queryKeys.product(id),
     queryFn: async () => {
       const response = await productsApi.getProduct(id);
-      // 后端返回的格式是 { success: true, data: {...} }
+      // Backend return format is { success: true, data: {...} }
       return response.data;
     },
     enabled: !!id,
@@ -88,11 +71,11 @@ export function useCreateProduct() {
   return useMutation({
     mutationFn: async (productData: Partial<Product>) => {
       const response = await productsApi.createProduct(productData as unknown as ProductForm);
-      // 后端返回格式: { product: {...} }
+      // Backend return format: { product: {...} }
       return (response.data as { product?: Product })?.product || response.data;
     },
     onSuccess: () => {
-      // 清除所有商品相关的查询缓存
+      // Clear all product related query cache
       queryClient.invalidateQueries({
         queryKey: queryKeys.products,
         exact: false
@@ -115,7 +98,7 @@ export function useUpdateProduct() {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Product> }) => {
       const response = await productsApi.updateProduct(id, data as Record<string, unknown>);
-      // 后端返回格式: { product: {...} }
+      // Backend return format: { product: {...} }
       return (response.data as { product?: Product })?.product || response.data;
     },
     onSuccess: (_, { id }) => {
@@ -138,20 +121,20 @@ export function useDeleteProduct() {
   return useMutation({
     mutationFn: async (id: string) => {
       const response = await productsApi.deleteProduct(id);
-      // Axios 返回的是 response.data
+      // Axios returns response.data
       return response.data;
     },
     onSuccess: (_, deletedId) => {
-      // 清除所有商品相关的查询缓存
+      // Clear all product related query cache
       queryClient.invalidateQueries({
         queryKey: queryKeys.products,
-        exact: false // 这会匹配所有以 ['products'] 开头的查询键
+        exact: false // This will match all query keys starting with ['products']
       });
-      // 删除特定商品的缓存
+      // Remove specific product cache
       queryClient.removeQueries({
         queryKey: queryKeys.product(deletedId)
       });
-      // 强制重新获取商品列表
+      // Force refetch product list
       queryClient.refetchQueries({
         queryKey: queryKeys.products,
         exact: false
@@ -170,14 +153,14 @@ export function useOrders(params: PaginationParams = {}) {
     queryKey: [...queryKeys.orders, params],
     queryFn: async () => {
       const response = await ordersApi.getOrders(params);
-      // 后端返回格式: { success: true, data: [...], pagination: {...} }
-      // 转换为前端期望的格式
+      // Backend returns: { success: true, data: { orders: [...], pagination: {...} } }
+      const responseData = response.data as any;
       return {
-        data: response.data || [],
-        pagination: (response as unknown as PaginatedApiResponse<Order>).pagination || { page: 1, limit: 10, total: 0, totalPages: 0 }
+        data: responseData?.orders || [],
+        pagination: responseData?.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 }
       };
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
   });
 }
 
@@ -186,7 +169,7 @@ export function useOrder(id: string) {
     queryKey: queryKeys.order(id),
     queryFn: async () => {
       const response = await ordersApi.getOrder(id);
-      // 后端返回格式: { success: true, data: {...} }
+      // Backend return format: { success: true, data: {...} }
       return response.data;
     },
     enabled: !!id,
@@ -199,7 +182,7 @@ export function useUpdateOrderStatus() {
   return useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       const response = await ordersApi.updateOrderStatus(id, status);
-      // Axios 返回的是 response.data
+      // Axios returns response.data
       return response.data;
     },
     onSuccess: (_, { id }) => {
@@ -238,14 +221,14 @@ export function useUsers(params: PaginationParams = {}) {
     queryKey: [...queryKeys.users, params],
     queryFn: async () => {
       const response = await usersApi.getUsers(params);
-      // 后端返回格式: { success: true, data: [...], pagination: {...} }
-      // 转换为前端期望的格式
+      // Backend returns: { success: true, data: { users: [...], pagination: {...} } }
+      const responseData = response.data as any;
       return {
-        data: response.data || [],
-        pagination: (response as unknown as PaginatedApiResponse<User>).pagination || { page: 1, limit: 10, total: 0, totalPages: 0 }
+        data: responseData?.users || [],
+        pagination: responseData?.pagination || { page: 1, limit: 10, total: 0, totalPages: 0 }
       };
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -254,67 +237,10 @@ export function useUser(id: string) {
     queryKey: queryKeys.user(id),
     queryFn: async () => {
       const response = await usersApi.getUser(id);
-      // 后端返回格式: { success: true, data: {...} }
+      // Backend return format: { success: true, data: {...} }
       return response.data;
     },
     enabled: !!id,
-  });
-}
-
-export function useUpdateUser() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, data }: { id: string, data: UpdateUserData }) => {
-      const response = await usersApi.updateUser(id, data);
-      return response.data;
-    },
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.users });
-      queryClient.invalidateQueries({ queryKey: queryKeys.user(variables.id) });
-      toast.success('User updated successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
-}
-
-export function useUpdateUserRole() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, role }: { id: string, role: 'USER' | 'TENANT_ADMIN' }) => {
-      const response = await usersApi.updateRole(id, role);
-      return response.data;
-    },
-    onSuccess: (data, variables) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.users });
-      queryClient.invalidateQueries({ queryKey: queryKeys.user(variables.id) });
-      toast.success('User role updated successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
-}
-
-export function useDeleteUser() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const response = await usersApi.deleteUser(id);
-      // Axios 返回的是 response.data
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.users });
-      toast.success('User deleted successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
   });
 }
 
@@ -324,7 +250,7 @@ export function useDashboardStats() {
     queryKey: queryKeys.dashboardStats,
     queryFn: async () => {
       const response = await statisticsApi.getDashboardStats();
-      // Axios 返回的是 response.data，而不是包装的 ApiResponse
+      // Axios returns response.data, not wrapped ApiResponse
       return response.data;
     },
     staleTime: 1 * 60 * 1000, // 1 minute
@@ -337,7 +263,7 @@ export function useSalesStats(period: string = '30d') {
     queryKey: queryKeys.salesStats(period),
     queryFn: async () => {
       const response = await statisticsApi.getDashboardStats();
-      // Axios 返回的是 response.data
+      // Axios returns response.data
       return response.data;
     },
     staleTime: 2 * 60 * 1000, // 2 minutes
@@ -349,7 +275,7 @@ export function useProductStats() {
     queryKey: queryKeys.productStats,
     queryFn: async () => {
       const response = await productsApi.getProducts();
-      // Axios 返回的是 response.data
+      // Axios returns response.data
       return response.data;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -372,104 +298,7 @@ export function useUploadProductImage() {
   });
 }
 
-// Stock management hooks
-export function useAdjustStock() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, data }: { id: string, data: { operation: 'increase' | 'decrease', quantity: number, reason: string } }) => {
-      const response = await productsApi.adjustStock(id, data);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.products });
-      toast.success('Stock adjusted successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
-}
-
-export function useStockOverview(lowStockThreshold?: number) {
-  return useQuery({
-    queryKey: ['stockOverview', lowStockThreshold],
-    queryFn: async () => {
-      const response = await productsApi.getStockOverview(lowStockThreshold);
-      return response.data;
-    },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-}
-
-export function useLowStockProducts(params?: { threshold?: number, page?: number, limit?: number }) {
-  return useQuery({
-    queryKey: ['lowStockProducts', params],
-    queryFn: async () => {
-      const response = await productsApi.getLowStockProducts(params);
-      return {
-        data: response.data || [],
-        pagination: (response as unknown as PaginatedApiResponse<Product>).pagination || { page: 1, limit: 10, total: 0, totalPages: 0 }
-      };
-    },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-}
-
-// Batch operations hooks
-export function useProductBatchOperations() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: BatchOperationData) => {
-      const response = await productsApi.batchOperations(data as unknown as { [key: string]: unknown; operation: string; productIds: string[]; });
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.products });
-      toast.success('Batch operation completed successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
-}
-
-export function useOrderBatchOperations() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: BatchOperationData) => {
-      const response = await ordersApi.batchOperations(data as unknown as { [key: string]: unknown; operation: string; orderIds: string[]; });
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.orders });
-      toast.success('Batch operation completed successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
-}
-
-export function useUserBatchOperations() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (data: BatchOperationData) => {
-      const response = await usersApi.batchOperations(data as unknown as { [key: string]: unknown; operation: string; userIds: string[]; });
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.users });
-      toast.success('Batch operation completed successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
-  });
-}
+// Stock management hooks REMOVED per Alpha Gate
 
 // Order statistics hook
 export function useOrderStats() {
@@ -488,56 +317,11 @@ export function useOrderStats() {
 // Query keys for plugins
 const pluginQueryKeys = {
   all: ['plugins'] as const,
-  marketplace: (params?: any) => [...pluginQueryKeys.all, 'marketplace', params] as const,
   installed: (params?: any) => [...pluginQueryKeys.all, 'installed', params] as const,
-  details: (slug: string) => [...pluginQueryKeys.all, 'details', slug] as const,
   config: (slug: string) => [...pluginQueryKeys.all, 'config', slug] as const,
-  categories: () => [...pluginQueryKeys.all, 'categories'] as const,
 };
 
-// Get marketplace plugins
-export function useMarketplacePlugins(params?: {
-  category?: string;
-  businessModel?: 'free' | 'freemium' | 'subscription' | 'usage_based';
-  sortBy?: 'name' | 'rating' | 'installCount' | 'createdAt';
-  sortOrder?: 'asc' | 'desc';
-}) {
-  return useQuery({
-    queryKey: pluginQueryKeys.marketplace(params),
-    queryFn: async () => {
-      const response = await pluginsApi.getMarketplace(params);
-      return response.data;
-    },
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-}
 
-// Search plugins
-export function useSearchPlugins(query: string, category?: string) {
-  return useQuery({
-    queryKey: [...pluginQueryKeys.all, 'search', query, category],
-    queryFn: async () => {
-      const response = await pluginsApi.searchPlugins(query, category);
-      return response.data;
-    },
-    enabled: query.length > 0,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-}
-
-// Get plugin details
-export function usePluginDetails(slug: string) {
-  return useQuery({
-    queryKey: pluginQueryKeys.details(slug),
-    queryFn: async () => {
-      const response = await pluginsApi.getPluginDetails(slug);
-      // API returns { success: true, data: plugin }, extract the plugin data
-      return response.data?.data || response.data;
-    },
-    enabled: !!slug,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-}
 
 // Get installed plugins
 export function useInstalledPlugins(params?: {
@@ -566,43 +350,7 @@ export function usePluginConfig(slug: string) {
   });
 }
 
-// Get plugin categories
-export function usePluginCategories() {
-  return useQuery({
-    queryKey: pluginQueryKeys.categories(),
-    queryFn: async () => {
-      const response = await pluginsApi.getCategories();
-      return response.data;
-    },
-    staleTime: 10 * 60 * 1000, // 10 minutes
-  });
-}
 
-// Install plugin mutation
-export function useInstallPlugin() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ slug, data }: {
-      slug: string;
-      data: {
-        planId?: string;
-        startTrial?: boolean;
-        configData?: Record<string, any>;
-      };
-    }) => {
-      const response = await pluginsApi.installPlugin(slug, data);
-      return response.data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
-      toast.success('Plugin installed successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to install plugin');
-    },
-  });
-}
 
 // Update plugin configuration mutation
 export function useUpdatePluginConfig() {
@@ -636,7 +384,9 @@ export function useTogglePlugin() {
       slug: string;
       enabled: boolean;
     }) => {
-      const response = await pluginsApi.togglePlugin(slug, enabled);
+      const response = enabled
+        ? await pluginsApi.enable(slug)
+        : await pluginsApi.disable(slug);
       return response.data;
     },
     onSuccess: (_, variables) => {
@@ -655,7 +405,7 @@ export function useUninstallPlugin() {
 
   return useMutation({
     mutationFn: async (slug: string) => {
-      const response = await pluginsApi.uninstallPlugin(slug);
+      const response = await pluginsApi.uninstall(slug);
       return response.data;
     },
     onSuccess: () => {

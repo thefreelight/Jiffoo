@@ -57,41 +57,6 @@ export default function OrderDetailPage() {
     }
   }, [orderId, fetchOrder]);
 
-  // Handle retry payment
-  const handleRetryPayment = async (paymentMethod: string) => {
-    if (!order) {
-      toast({
-        title: getText('common.errors.error', 'Error'),
-        description: getText('shop.orders.notFound', 'Order not found'),
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await ordersApi.retryPayment(order.id, paymentMethod);
-
-      if (response.success && response.data?.url) {
-        window.location.href = response.data.url;
-      } else {
-        toast({
-          title: getText('shop.orders.paymentFailed', 'Payment failed'),
-          description: response.message || getText('shop.orders.paymentSessionFailed', 'Failed to create payment session'),
-          variant: 'destructive',
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: getText('common.errors.error', 'Error'),
-        description: error.message || getText('shop.orders.paymentRetryFailed', 'Failed to retry payment'),
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Handle cancel order
   const handleCancelOrder = async () => {
     if (!order) return;
@@ -209,7 +174,6 @@ export default function OrderDetailPage() {
       config={config}
       locale={nav.locale}
       t={t}
-      onRetryPayment={handleRetryPayment}
       onCancelOrder={handleCancelOrder}
       onBackToOrders={() => nav.push('/orders')}
     />

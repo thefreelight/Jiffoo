@@ -1,35 +1,35 @@
 /**
- * Sentry APM 集成
+ * Sentry APM Integration
  * 
- * 提供错误追踪和性能监控能力
+ * Provides error tracking and performance monitoring capabilities
  */
 
 /**
- * Sentry 配置
+ * Sentry Configuration
  */
 export interface SentryConfig {
   /** Sentry DSN */
   dsn: string;
-  /** 环境名称 */
+  /** Environment name */
   environment: string;
-  /** 发布版本 */
+  /** Release version */
   release?: string;
-  /** 追踪采样率 (0-1) */
+  /** Trace sample rate (0-1) */
   tracesSampleRate?: number;
-  /** 错误采样率 (0-1) */
+  /** Error sample rate (0-1) */
   sampleRate?: number;
-  /** 是否启用调试模式 */
+  /** Whether to enable debug mode */
   debug?: boolean;
-  /** 慢请求阈值（毫秒） */
+  /** Slow request threshold (ms) */
   slowTransactionThreshold?: number;
-  /** 忽略的错误类型 */
+  /** Ignored error types */
   ignoreErrors?: (string | RegExp)[];
-  /** 忽略的 URL */
+  /** Ignored URLs */
   denyUrls?: (string | RegExp)[];
 }
 
 /**
- * 用户上下文
+ * User Context
  */
 export interface UserContext {
   id?: string;
@@ -40,7 +40,7 @@ export interface UserContext {
 }
 
 /**
- * 错误上下文
+ * Error Context
  */
 export interface ErrorContext {
   storeId?: string;
@@ -56,7 +56,7 @@ export interface ErrorContext {
 }
 
 /**
- * 事务上下文
+ * Transaction Context
  */
 export interface TransactionContext {
   name: string;
@@ -66,7 +66,7 @@ export interface TransactionContext {
 }
 
 /**
- * 默认配置
+ * Default Configuration
  */
 const DEFAULT_CONFIG: Partial<SentryConfig> = {
   tracesSampleRate: 0.1,
@@ -85,10 +85,10 @@ const DEFAULT_CONFIG: Partial<SentryConfig> = {
 };
 
 /**
- * Sentry 客户端包装器
+ * Sentry Client Wrapper
  * 
- * 注意：实际使用时需要安装 @sentry/node 或 @sentry/nextjs
- * 这里提供类型安全的包装器
+ * Note: @sentry/node or @sentry/nextjs is required for actual usage
+ * This wrapper provides type safety
  */
 export class SentryClient {
   private config: SentryConfig;
@@ -99,7 +99,7 @@ export class SentryClient {
   }
 
   /**
-   * 获取初始化配置
+   * Get initialization config
    */
   getInitConfig(): Record<string, unknown> {
     return {
@@ -118,37 +118,37 @@ export class SentryClient {
   }
 
   /**
-   * 标记为已初始化
+   * Mark as initialized
    */
   markInitialized(): void {
     this.initialized = true;
   }
 
   /**
-   * 检查是否已初始化
+   * Check if initialized
    */
   isInitialized(): boolean {
     return this.initialized;
   }
 
   /**
-   * 发送前处理事件
+   * Process event before sending
    */
   private beforeSend(event: unknown): unknown {
-    // 可以在这里添加额外的处理逻辑
+    // Add custom logic here
     return event;
   }
 
   /**
-   * 发送前处理事务
+   * Process transaction before sending
    */
   private beforeSendTransaction(transaction: unknown): unknown {
-    // 可以在这里过滤慢事务
+    // Filter slow transactions here
     return transaction;
   }
 
   /**
-   * 创建错误上下文
+   * Create error context
    */
   createErrorContext(context: ErrorContext): Record<string, unknown> {
     return {
@@ -169,7 +169,7 @@ export class SentryClient {
   }
 
   /**
-   * 创建用户上下文
+   * Create user context
    */
   createUserContext(user: UserContext): Record<string, unknown> {
     return {
@@ -182,7 +182,7 @@ export class SentryClient {
   }
 
   /**
-   * 创建事务上下文
+   * Create transaction context
    */
   createTransactionContext(context: TransactionContext): Record<string, unknown> {
     return {
@@ -194,14 +194,14 @@ export class SentryClient {
   }
 
   /**
-   * 检查是否为慢事务
+   * Check if transaction is slow
    */
   isSlowTransaction(durationMs: number): boolean {
     return durationMs > (this.config.slowTransactionThreshold ?? 1000);
   }
 
   /**
-   * 获取慢事务阈值
+   * Get slow transaction threshold
    */
   getSlowTransactionThreshold(): number {
     return this.config.slowTransactionThreshold ?? 1000;
@@ -209,14 +209,14 @@ export class SentryClient {
 }
 
 /**
- * 创建 Sentry 客户端
+ * Create Sentry Client
  */
 export function createSentryClient(config: SentryConfig): SentryClient {
   return new SentryClient(config);
 }
 
 /**
- * 创建 Sentry 配置（从环境变量）
+ * Create Sentry Config (from environment variables)
  */
 export function createSentryConfigFromEnv(): SentryConfig | null {
   const dsn = process.env.SENTRY_DSN;

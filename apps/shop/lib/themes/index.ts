@@ -1,7 +1,7 @@
 /**
- * 主题系统模块入口
+ * Theme System Module Entry
  * 
- * 导出所有主题相关的组件、hooks 和工具函数
+ * Exports all theme-related components, hooks, and utility functions
  */
 
 // Provider

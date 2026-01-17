@@ -4,44 +4,44 @@ import useSWR, { SWRConfiguration, KeyedMutator } from 'swr';
 import { useCallback, useMemo } from 'react';
 
 /**
- * 通用数据获取 Hook
+ * Generic Data Fetching Hook
  *
- * 基于 SWR 封装，提供统一的数据获取、缓存和错误处理
+ * Based on SWR, provides unified data fetching, caching, and error handling
  *
  * Features:
- * - 自动缓存和重新验证
- * - 合理的重试策略（默认最多 3 次）
- * - 请求去重
- * - 焦点重新验证
- * - 类型安全
- * - 请求超时处理
+ * - Auto caching and revalidation
+ * - Reasonable retry strategy (default max 3 times)
+ * - Request deduping
+ * - Focus revalidation
+ * - Type safety
+ * - Request timeout handling
  */
 
-// 自定义错误类型
+// Custom error types
 export class TimeoutError extends Error {
-  constructor(message: string = '请求超时，请检查网络连接后重试') {
+  constructor(message: string = 'Request timed out, please check your network connection and try again') {
     super(message);
     this.name = 'TimeoutError';
   }
 }
 
 export class NetworkError extends Error {
-  constructor(message: string = '网络连接失败，请检查网络设置') {
+  constructor(message: string = 'Network connection failed, please check your network settings') {
     super(message);
     this.name = 'NetworkError';
   }
 }
 
 export interface UseDataOptions<T> extends Omit<SWRConfiguration<T>, 'fetcher'> {
-  /** 自定义 fetcher 函数 */
+  /** Custom fetcher function */
   fetcher?: (url: string) => Promise<T>;
-  /** 是否启用（条件获取） */
+  /** Whether enabled (conditional fetching) */
   enabled?: boolean;
-  /** 最大重试次数 */
+  /** Max retry count */
   maxRetries?: number;
-  /** 重试延迟（毫秒） */
+  /** Retry delay (ms) */
   retryDelay?: number;
-  /** 请求超时时间（毫秒），默认 30000 */
+  /** Request timeout duration (ms), default 30000 */
   timeout?: number;
 }
 
@@ -57,7 +57,7 @@ export interface UseDataReturn<T> {
   retry: () => Promise<T | undefined>;
 }
 
-// 带超时的 fetch
+// fetch with timeout
 const fetchWithTimeout = async <T>(
   url: string,
   timeout: number = 30000
@@ -82,12 +82,12 @@ const fetchWithTimeout = async <T>(
   } catch (error: any) {
     clearTimeout(timeoutId);
 
-    // 超时错误
+    // Timeout error
     if (error.name === 'AbortError') {
       throw new TimeoutError();
     }
 
-    // 网络错误
+    // Network error
     if (error.name === 'TypeError' && error.message === 'Failed to fetch') {
       throw new NetworkError();
     }
@@ -96,17 +96,17 @@ const fetchWithTimeout = async <T>(
   }
 };
 
-// 默认 fetcher：使用带超时的 fetch API
+// Default fetcher: Use fetch API with timeout
 const defaultFetcher = async <T>(url: string): Promise<T> => {
   return fetchWithTimeout<T>(url, 30000);
 };
 
 /**
- * 通用数据获取 Hook
+ * Generic Data Fetching Hook
  * 
- * @param key - SWR key（通常是 API URL）
- * @param options - 配置选项
- * @returns 数据、加载状态、错误等
+ * @param key - SWR key (usually API URL)
+ * @param options - Configuration options
+ * @returns Data, loading state, error, etc.
  * 
  * @example
  * ```tsx
@@ -132,36 +132,36 @@ export function useData<T>(
     ...swrOptions
   } = options;
 
-  // 创建带超时的 fetcher
+  // Create fetcher with timeout
   const wrappedFetcher = useMemo(() => {
     if (fetcher) return fetcher;
     return (url: string) => fetchWithTimeout<T>(url, timeout);
   }, [fetcher, timeout]);
 
-  // 构建 SWR 配置
+  // Build SWR configuration
   const swrConfig = useMemo<SWRConfiguration<T>>(() => ({
-    // 默认配置
+    // Default configuration
     revalidateOnFocus: true,
     revalidateOnReconnect: true,
     shouldRetryOnError: (error: Error) => {
-      // 超时错误不自动重试
+      // Do not auto-retry on timeout error
       if (error instanceof TimeoutError) return false;
-      // 4xx 错误不重试
+      // Do not retry on 4xx errors
       if ((error as any).status >= 400 && (error as any).status < 500) return false;
       return true;
     },
     errorRetryCount: maxRetries,
     errorRetryInterval: retryDelay,
-    dedupingInterval: 2000, // 2秒内相同请求去重
+    dedupingInterval: 2000, // Dedupe identical requests within 2 seconds
 
-    // 用户自定义配置覆盖
+    // Override with user custom configuration
     ...swrOptions,
 
-    // fetcher 包装
+    // fetcher wrapping
     fetcher: wrappedFetcher as any,
   }), [wrappedFetcher, maxRetries, retryDelay, swrOptions]);
 
-  // 条件获取：key 为 null 或 enabled 为 false 时不获取
+  // Conditional fetching: do not fetch if key is null or enabled is false
   const effectiveKey = enabled ? key : null;
 
   const { data, error, isLoading, isValidating, mutate } = useSWR<T>(
@@ -169,25 +169,24 @@ export function useData<T>(
     swrConfig
   );
 
-  // 判断是否为空数据
+  // Determine if data is empty
   const isEmpty = useMemo(() => {
-    if (data === undefined || data === null) return false; // 还未加载完成不算空
-    if (Array.isArray(data)) return data.length === 0;
+    if (data === undefined || data === null) return false; // Not considered empty if still loading    if (Array.isArray(data)) return data.length === 0;
     if (typeof data === 'object') return Object.keys(data).length === 0;
     return false;
   }, [data]);
 
-  // 判断是否为超时错误
+  // Determine if it is a timeout error
   const isTimeout = useMemo(() => {
     return error instanceof TimeoutError;
   }, [error]);
 
-  // 判断是否为网络错误
+  // Determine if it is a network error
   const isNetworkError = useMemo(() => {
     return error instanceof NetworkError;
   }, [error]);
 
-  // 手动重试函数
+  // Manual retry function
   const retry = useCallback(async () => {
     return mutate();
   }, [mutate]);
@@ -206,7 +205,7 @@ export function useData<T>(
 }
 
 /**
- * 带分页的数据获取 Hook
+ * Data fetching Hook with pagination
  */
 export interface UsePaginatedDataOptions<T> extends UseDataOptions<T> {
   page?: number;
@@ -226,11 +225,11 @@ export function usePaginatedData<T>(
   options: UsePaginatedDataOptions<PaginatedResponse<T>> = {}
 ) {
   const { page = 1, limit = 20, ...restOptions } = options;
-  
-  const url = baseUrl 
+
+  const url = baseUrl
     ? `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${page}&limit=${limit}`
     : null;
-  
+
   return useData<PaginatedResponse<T>>(url, restOptions);
 }
 

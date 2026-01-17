@@ -1,34 +1,34 @@
 /**
- * 主题性能监控
- * 记录主题加载时间和性能指标
+ * Theme Performance Monitoring
+ * Records theme load times and performance metrics
  */
 
 export interface ThemeLoadMetrics {
   slug: string;
-  loadTime: number;       // 毫秒
-  cacheHit: boolean;      // 是否命中缓存
-  timestamp: number;      // 加载时间戳
-  bundleSize?: number;    // 包大小（字节）
-  error?: string;         // 错误信息
+  loadTime: number;       // ms
+  cacheHit: boolean;      // Whether cache was hit
+  timestamp: number;      // Loading timestamp
+  bundleSize?: number;    // Bundle size (bytes)
+  error?: string;         // Error message
 }
 
-// 性能指标存储
+// Performance metrics storage
 const metricsStore: ThemeLoadMetrics[] = [];
-const MAX_METRICS = 100; // 最多保存100条记录
+const MAX_METRICS = 100; // Keep up to 100 records max
 
 /**
- * 记录主题加载性能
+ * Record theme load performance
  */
 export function recordThemeLoad(metrics: ThemeLoadMetrics): void {
-  // 添加到存储
+  // Add to storage
   metricsStore.push(metrics);
-  
-  // 限制存储大小
+
+  // Limit storage size
   if (metricsStore.length > MAX_METRICS) {
     metricsStore.shift();
   }
-  
-  // 开发模式下输出日志
+
+  // Output log in development mode
   if (process.env.NODE_ENV === 'development') {
     const emoji = metrics.error ? '❌' : metrics.cacheHit ? '⚡' : '✅';
     console.log(
@@ -36,13 +36,13 @@ export function recordThemeLoad(metrics: ThemeLoadMetrics): void {
       metrics.cacheHit ? '(cached)' : '(fresh)'
     );
   }
-  
-  // 发送到分析服务（可选）
+
+  // Send to analytics service (optional)
   sendToAnalytics(metrics);
 }
 
 /**
- * 测量主题加载时间
+ * Measure theme load time
  */
 export async function measureThemeLoad<T>(
   slug: string,
@@ -52,7 +52,7 @@ export async function measureThemeLoad<T>(
   const startTime = performance.now();
   let error: string | undefined;
   let result: T;
-  
+
   try {
     result = await loadFn();
   } catch (err) {
@@ -61,7 +61,7 @@ export async function measureThemeLoad<T>(
   } finally {
     const endTime = performance.now();
     const loadTime = endTime - startTime;
-    
+
     const metrics: ThemeLoadMetrics = {
       slug,
       loadTime,
@@ -69,10 +69,10 @@ export async function measureThemeLoad<T>(
       timestamp: Date.now(),
       error
     };
-    
+
     recordThemeLoad(metrics);
   }
-  
+
   return {
     result: result!,
     metrics: {
@@ -85,7 +85,7 @@ export async function measureThemeLoad<T>(
 }
 
 /**
- * 获取性能统计
+ * Get performance statistics
  */
 export function getThemePerformanceStats(): {
   totalLoads: number;
@@ -103,39 +103,39 @@ export function getThemePerformanceStats(): {
       recentMetrics: []
     };
   }
-  
+
   const totalLoads = metricsStore.length;
   const avgLoadTime = metricsStore.reduce((sum, m) => sum + m.loadTime, 0) / totalLoads;
   const cacheHits = metricsStore.filter(m => m.cacheHit).length;
   const errors = metricsStore.filter(m => m.error).length;
-  
+
   return {
     totalLoads,
     avgLoadTime,
     cacheHitRate: cacheHits / totalLoads,
     errorRate: errors / totalLoads,
-    recentMetrics: metricsStore.slice(-10) // 最近10条
+    recentMetrics: metricsStore.slice(-10) // Last 10 records
   };
 }
 
 /**
- * 清除性能指标
+ * Clear performance metrics
  */
 export function clearThemeMetrics(): void {
   metricsStore.length = 0;
 }
 
 /**
- * 发送到分析服务
+ * Send to analytics service
  */
 async function sendToAnalytics(metrics: ThemeLoadMetrics): Promise<void> {
-  // 检查是否配置了分析端点
+  // Check if analytics endpoint is configured
   const analyticsEndpoint = process.env.NEXT_PUBLIC_ANALYTICS_ENDPOINT;
-  
+
   if (!analyticsEndpoint) {
     return;
   }
-  
+
   try {
     await fetch(analyticsEndpoint, {
       method: 'POST',
@@ -144,14 +144,14 @@ async function sendToAnalytics(metrics: ThemeLoadMetrics): Promise<void> {
         type: 'theme_performance',
         data: metrics
       }),
-      keepalive: true // 允许页面卸载时发送
+      keepalive: true // Allow sending even if page unmounts
     });
   } catch {
-    // 静默失败，不影响主流程
+    // Silently fail, don't affect main flow
   }
 }
 
-// 开发工具：暴露到全局
+// Development tools: expose to global
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   (window as any).__THEME_PERFORMANCE__ = {
     getStats: getThemePerformanceStats,

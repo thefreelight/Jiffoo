@@ -157,10 +157,27 @@ export class AuthClient extends ApiClient {
 
   // Refresh token
   public async refreshAuthToken(): Promise<ApiResponse<RefreshTokenResponse>> {
-    const response = await this.post(API_ENDPOINTS.AUTH.REFRESH);
+    const refreshToken = this.getRefreshToken();
+    if (!refreshToken) {
+      return {
+        success: false,
+        error: 'No refresh token available'
+      };
+    }
 
-    // Security fix: do not access response.data.token directly
-    // token is handled via httpOnly cookie automatically
+    // Call API with refresh_token in body
+    const response = await this.post(API_ENDPOINTS.AUTH.REFRESH, {
+      refresh_token: refreshToken
+    });
+
+    if (response.success && response.data) {
+      if (response.data.access_token) {
+        this.setToken(response.data.access_token);
+      }
+      if (response.data.refresh_token) {
+        this.setRefreshToken(response.data.refresh_token);
+      }
+    }
 
     return response;
   }
@@ -249,6 +266,11 @@ export class AuthClient extends ApiClient {
     return this.storage.getItem(this.tokenKey);
   }
 
+  // Get refresh token
+  public getRefreshToken(): string | null {
+    return this.storage.getItem(this.refreshTokenKey);
+  }
+
   // Check if user has specific role
   public async hasRole(roleName: string): Promise<boolean> {
     const user = await this.getCurrentUser();
@@ -257,12 +279,7 @@ export class AuthClient extends ApiClient {
 
   // Check if user is an admin
   public async isAdmin(): Promise<boolean> {
-    return this.hasRole('ADMIN') || this.hasRole('SUPER_ADMIN');
-  }
-
-  // Check if user is a super admin
-  public async isSuperAdmin(): Promise<boolean> {
-    return this.hasRole('SUPER_ADMIN');
+    return this.hasRole('ADMIN');
   }
 }
 
@@ -276,7 +293,7 @@ export const getAuthClient = (): AuthClient => {
   return _authClient;
 };
 
-// 后向兼容 Proxy
+// Backward compatibility Proxy
 export const authClient = new Proxy({} as AuthClient, {
   get: (target, prop) => {
     return getAuthClient()[prop as keyof AuthClient];

@@ -50,7 +50,7 @@ export interface DateRangeParams {
   endDate?: string;
 }
 
-// API Endpoints - 移除/api前缀，由baseURL提供
+// API Endpoints - Remove /api prefix, provided by baseURL
 export interface ApiEndpoints {
   // Auth
   login: '/auth/login';
@@ -80,7 +80,7 @@ export interface ApiEndpoints {
   // Users
   users: '/users';
   userById: '/users/:id';
-  
+
   // Admin
   adminStats: '/api/admin/stats';
   adminUsers: '/api/admin/users';

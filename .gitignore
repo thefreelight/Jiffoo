@@ -16,6 +16,10 @@ build/
 .turbo/
 .docusaurus/
 
+# TypeScript build artifacts
+*.tsbuildinfo
+next-env.d.ts
+
 # Environment variables
 .env
 .env.local
@@ -27,6 +31,9 @@ apps/*/.env.local
 apps/*/.env.development.local
 apps/*/.env.test.local
 apps/*/.env.production.local
+
+# Generated i18n messages
+packages/i18n/messages/
 
 # Keep example files
 !.env.example

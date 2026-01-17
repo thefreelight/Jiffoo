@@ -4,8 +4,8 @@
  * Displays product listing with sorting, pagination, and view mode toggle.
  * Supports i18n through the translation function.
  *
- * 🆕 Agent Mall 支持：
- * - 使用 agentId 获取授权商品和有效价格
+ * 🆕 Agent Mall Support:
+ * - Use agentId to get authorized products and valid prices
  */
 
 'use client';

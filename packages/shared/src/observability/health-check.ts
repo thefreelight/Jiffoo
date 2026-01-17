@@ -1,11 +1,11 @@
 /**
- * Health Check Service - 健康检查服务
+ * Health Check Service
  * 
- * 提供全面的系统健康检查能力
+ * Provides comprehensive system health check capabilities
  */
 
 /**
- * 健康状态枚举
+ * Health Status Enum
  */
 export enum HealthStatus {
   HEALTHY = 'healthy',
@@ -14,7 +14,7 @@ export enum HealthStatus {
 }
 
 /**
- * 单个检查结果
+ * Single Check Result
  */
 export interface CheckResult {
   name: string;
@@ -25,7 +25,7 @@ export interface CheckResult {
 }
 
 /**
- * 整体健康检查结果
+ * Overall Health Check Result
  */
 export interface HealthCheckResult {
   status: HealthStatus;
@@ -36,24 +36,24 @@ export interface HealthCheckResult {
 }
 
 /**
- * 健康检查函数类型
+ * Health Check Function Type
  */
 export type HealthCheckFn = () => Promise<CheckResult>;
 
 /**
- * 健康检查配置
+ * Health Check Configuration
  */
 export interface HealthCheckConfig {
-  /** 检查超时时间（毫秒） */
+  /** Check timeout (ms) */
   timeout?: number;
-  /** 应用版本 */
+  /** Application version */
   version?: string;
-  /** 启动时间 */
+  /** Startup time */
   startTime?: Date;
 }
 
 /**
- * 默认配置
+ * Default Configuration
  */
 const DEFAULT_CONFIG: Required<HealthCheckConfig> = {
   timeout: 5000,
@@ -62,7 +62,7 @@ const DEFAULT_CONFIG: Required<HealthCheckConfig> = {
 };
 
 /**
- * Health Check Service 类
+ * Health Check Service Class
  */
 export class HealthCheckService {
   private config: Required<HealthCheckConfig>;
@@ -75,28 +75,28 @@ export class HealthCheckService {
   }
 
   /**
-   * 注册健康检查
+   * Register health check
    */
   registerCheck(name: string, check: HealthCheckFn): void {
     this.checks.set(name, check);
   }
 
   /**
-   * 注册存活检查
+   * Register liveness check
    */
   registerLivenessCheck(name: string, check: HealthCheckFn): void {
     this.livenessChecks.set(name, check);
   }
 
   /**
-   * 注册就绪检查
+   * Register readiness check
    */
   registerReadinessCheck(name: string, check: HealthCheckFn): void {
     this.readinessChecks.set(name, check);
   }
 
   /**
-   * 执行所有健康检查
+   * Execute all health checks
    */
   async checkAll(): Promise<HealthCheckResult> {
     const results = await this.runChecks(this.checks);
@@ -104,10 +104,10 @@ export class HealthCheckService {
   }
 
   /**
-   * 执行存活检查
+   * Execute liveness checks
    */
   async checkLiveness(): Promise<HealthCheckResult> {
-    // 存活检查应该快速返回，只检查进程是否运行
+    // Liveness checks should be quick, just checking if the process is running
     const results: CheckResult[] = [
       {
         name: 'process',
@@ -116,7 +116,7 @@ export class HealthCheckService {
       },
     ];
 
-    // 如果有自定义存活检查，也执行它们
+    // If there are custom liveness checks, run them too
     if (this.livenessChecks.size > 0) {
       const customResults = await this.runChecks(this.livenessChecks);
       results.push(...customResults);
@@ -126,7 +126,7 @@ export class HealthCheckService {
   }
 
   /**
-   * 执行就绪检查
+   * Execute readiness checks
    */
   async checkReadiness(): Promise<HealthCheckResult> {
     const results = await this.runChecks(this.readinessChecks);
@@ -134,7 +134,7 @@ export class HealthCheckService {
   }
 
   /**
-   * 运行检查集合
+   * Run a collection of checks
    */
   private async runChecks(
     checks: Map<string, HealthCheckFn>
@@ -164,7 +164,7 @@ export class HealthCheckService {
   }
 
   /**
-   * 创建超时 Promise
+   * Create timeout Promise
    */
   private createTimeoutPromise(name: string): Promise<CheckResult> {
     return new Promise((_, reject) => {
@@ -175,7 +175,7 @@ export class HealthCheckService {
   }
 
   /**
-   * 构建健康检查结果
+   * Build health check result
    */
   private buildResult(checks: CheckResult[]): HealthCheckResult {
     const hasUnhealthy = checks.some(c => c.status === HealthStatus.UNHEALTHY);
@@ -200,17 +200,17 @@ export class HealthCheckService {
   }
 
   /**
-   * 获取运行时间（秒）
+   * Get uptime (seconds)
    */
   getUptime(): number {
     return Math.floor((Date.now() - this.config.startTime.getTime()) / 1000);
   }
 }
 
-// 预定义的健康检查工厂函数
+// Predefined health check factory functions
 
 /**
- * 创建数据库健康检查
+ * Create Database Check
  */
 export function createDatabaseCheck(
   name: string,
@@ -235,7 +235,7 @@ export function createDatabaseCheck(
 }
 
 /**
- * 创建 Redis 健康检查
+ * Create Redis Check
  */
 export function createRedisCheck(
   name: string,
@@ -260,7 +260,7 @@ export function createRedisCheck(
 }
 
 /**
- * 创建 HTTP 端点健康检查
+ * Create HTTP Endpoint Check
  */
 export function createHttpCheck(
   name: string,
@@ -293,7 +293,7 @@ export function createHttpCheck(
 }
 
 /**
- * 创建内存使用检查
+ * Create Memory Usage Check
  */
 export function createMemoryCheck(
   name: string,
@@ -330,7 +330,7 @@ export function createMemoryCheck(
 }
 
 /**
- * 创建默认 Health Check Service 实例
+ * Create Default Health Check Service Instance
  */
 export function createHealthCheckService(
   config?: HealthCheckConfig

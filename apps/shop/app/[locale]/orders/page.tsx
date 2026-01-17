@@ -39,15 +39,18 @@ export default function OrdersPage() {
       const response = await ordersApi.getOrders({});
 
       if (response.success && response.data) {
-        // Handle paginated response
-        if ((response.data as unknown as { items?: Order[] }).items) {
-          setOrders((response.data as unknown as { items: Order[] }).items);
-          if ((response.data as unknown as { totalPages?: number }).totalPages) {
-            setTotalPages((response.data as unknown as { totalPages: number }).totalPages);
+        // Handle paginated response (Alpha Gate: data.orders + data.pagination)
+        const responseData = response.data as any;
+        if (responseData.orders) {
+          setOrders(responseData.orders);
+          if (responseData.pagination && responseData.pagination.totalPages) {
+            setTotalPages(responseData.pagination.totalPages);
           }
+        } else if (Array.isArray(responseData)) {
+          // Fallback for direct array
+          setOrders(responseData);
         } else {
-          // Handle direct array response
-          setOrders(response.data as unknown as Order[]);
+          setOrders([]);
         }
       } else {
         setError(response.message || getText('common.errors.general', 'Failed to fetch orders'));
@@ -63,32 +66,6 @@ export default function OrdersPage() {
     fetchOrders();
   }, [fetchOrders, currentPage]);
 
-  // Handle retry payment
-  const handleRetryPayment = async (orderId: string) => {
-    try {
-      setLoading(true);
-      const response = await ordersApi.retryPayment(orderId, 'stripe');
-
-      if (response.success && response.data?.url) {
-        window.location.href = response.data.url;
-      } else {
-        toast({
-          title: getText('shop.orders.paymentFailed', 'Payment failed'),
-          description: response.message || getText('common.errors.general', 'Failed to create payment session'),
-          variant: 'destructive',
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: getText('common.errors.error', 'Error'),
-        description: error.message || getText('common.errors.general', 'Failed to retry payment'),
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   // Handle cancel order
   const handleCancelOrder = async (orderId: string) => {
     if (!confirm(getText('shop.orders.confirmCancel', 'Are you sure you want to cancel this order?'))) {
@@ -97,6 +74,7 @@ export default function OrdersPage() {
 
     try {
       setLoading(true);
+      // Fixed: ordersApi.cancelOrder is the correct method
       const response = await ordersApi.cancelOrder(orderId, 'Cancelled by user');
 
       if (response.success) {
@@ -185,7 +163,6 @@ export default function OrdersPage() {
       t={t}
       onOrderClick={handleOrderClick}
       onPageChange={handlePageChange}
-      onRetryPayment={handleRetryPayment}
       onCancelOrder={handleCancelOrder}
     />
   );

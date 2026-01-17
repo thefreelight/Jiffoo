@@ -22,14 +22,14 @@ export interface TestUser {
   username: string;
   password: string; // Plain text password for login tests
   hashedPassword: string;
-  role: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+  role: 'USER' | 'ADMIN';
 }
 
 export interface CreateUserOptions {
   email?: string;
   username?: string;
   password?: string;
-  role?: 'USER' | 'ADMIN' | 'SUPER_ADMIN';
+  role?: 'USER' | 'ADMIN';
 }
 
 /**
@@ -39,7 +39,7 @@ export async function createTestUser(options: CreateUserOptions = {}): Promise<T
   const prisma = getTestPrisma();
   const id = uuidv4();
   const plainPassword = options.password || 'Test123456!';
-  
+
   const userData = {
     email: options.email || `test-${id}@example.com`,
     username: options.username || `testuser-${id.substring(0, 8)}`,
@@ -48,7 +48,7 @@ export async function createTestUser(options: CreateUserOptions = {}): Promise<T
   };
 
   const hashedPassword = await bcrypt.hash(plainPassword, 10);
-  
+
   const user = await prisma.user.create({
     data: {
       id,
@@ -76,12 +76,8 @@ export async function createAdminUser(options: Omit<CreateUserOptions, 'role'> =
   return createTestUser({ ...options, role: 'ADMIN' });
 }
 
-/**
- * Create a super admin user
- */
-export async function createSuperAdminUser(options: Omit<CreateUserOptions, 'role'> = {}): Promise<TestUser> {
-  return createTestUser({ ...options, role: 'SUPER_ADMIN' });
-}
+// createSuperAdminUser removed - All privileged operations now use ADMIN role
+
 
 /**
  * Sign a JWT token for a user

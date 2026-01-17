@@ -1,5 +1,5 @@
 /**
- * 页面浏览跟踪组件
+ * Page View Tracking Component
  */
 
 'use client';
@@ -13,14 +13,14 @@ export function PageTracker() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // 记录页面浏览
+    // Log page view
     const url = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`;
-    
+
     log.pageView(url, document.referrer);
-    
-    // 记录页面性能指标
+
+    // Log page performance metrics
     if ('performance' in window) {
-      // 等待页面完全加载后记录性能指标
+      // Log performance metrics after page is fully loaded
       setTimeout(() => {
         const navigation = (performance as any).getEntriesByType('navigation')[0];
         if (navigation) {
@@ -31,14 +31,14 @@ export function PageTracker() {
             firstContentfulPaint: getFirstContentfulPaint()
           });
         }
-        
-        // 记录资源加载性能
+
+        // Log resource loading performance
         const resources = performance.getEntriesByType('resource');
         if (resources.length > 0) {
           const totalResourceTime = resources.reduce((total: number, resource: any) => {
             return total + (resource.responseEnd - resource.startTime);
           }, 0);
-          
+
           log.performance('resource_load_time', totalResourceTime, {
             page: url,
             resourceCount: resources.length

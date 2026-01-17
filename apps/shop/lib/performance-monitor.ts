@@ -1,16 +1,16 @@
 /**
  * Frontend Performance Monitor
  * 
- * 前端性能监控工具，用于跟踪：
- * - 页面加载时间
- * - API 请求延迟
- * - 组件渲染时间
- * - 重渲染检测
+ * Frontend performance monitoring tool for tracking:
+ * - Page load time
+ * - API request latency
+ * - Component render time
+ * - Re-render detection
  * 
- * 数据仅在开发环境显示在控制台，生产环境可选发送到分析服务
+ * Logs only to console in development, optionally sends to analytics in production.
  */
 
-// 性能指标类型
+// Performance metric types
 export interface PerformanceMetric {
   name: string;
   value: number;
@@ -20,7 +20,7 @@ export interface PerformanceMetric {
   metadata?: Record<string, unknown>;
 }
 
-// 渲染追踪类型
+// Render tracker types
 export interface RenderTracker {
   component: string;
   renderCount: number;
@@ -29,12 +29,12 @@ export interface RenderTracker {
   averageRenderTime: number;
 }
 
-// 性能监控配置
+// Performance monitoring configuration
 export interface PerformanceConfig {
   enabled: boolean;
   logToConsole: boolean;
-  slowThreshold: number; // ms - 慢操作阈值
-  renderWarningThreshold: number; // 重渲染警告阈值
+  slowThreshold: number; // ms - Threshold for slow operations
+  renderWarningThreshold: number; // Threshold for re-render warnings
   sendToServer: boolean;
   serverEndpoint?: string;
 }
@@ -42,32 +42,32 @@ export interface PerformanceConfig {
 const defaultConfig: PerformanceConfig = {
   enabled: process.env.NODE_ENV === 'development',
   logToConsole: process.env.NODE_ENV === 'development',
-  slowThreshold: 100, // 100ms 以上视为慢操作
-  renderWarningThreshold: 5, // 5次以上重渲染警告
+  slowThreshold: 100, // Considered slow if over 100ms
+  renderWarningThreshold: 5, // Alert if re-rendered more than 5 times
   sendToServer: false,
 };
 
-// 全局状态
+// Global state
 let config: PerformanceConfig = { ...defaultConfig };
 const metrics: PerformanceMetric[] = [];
 const renderTrackers: Map<string, RenderTracker> = new Map();
 const apiTimings: Map<string, number> = new Map();
 
 /**
- * 初始化性能监控
+ * Initialize performance monitoring
  */
 export function initPerformanceMonitor(customConfig?: Partial<PerformanceConfig>) {
   config = { ...defaultConfig, ...customConfig };
-  
+
   if (!config.enabled) return;
-  
-  // 监听页面加载性能
+
+  // Monitor page load performance
   if (typeof window !== 'undefined') {
     window.addEventListener('load', () => {
       trackPageLoad();
     });
-    
-    // 暴露到 window 供调试
+
+    // Expose to window for debugging
     (window as any).__PERF_MONITOR__ = {
       getMetrics: () => [...metrics],
       getRenderTrackers: () => Object.fromEntries(renderTrackers),
@@ -78,18 +78,18 @@ export function initPerformanceMonitor(customConfig?: Partial<PerformanceConfig>
 }
 
 /**
- * 追踪页面加载性能
+ * Track page load performance
  */
 function trackPageLoad() {
   if (typeof window === 'undefined' || !window.performance) return;
-  
+
   const timing = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming;
-  
+
   if (timing) {
     const pageLoadTime = timing.loadEventEnd - timing.startTime;
     const domContentLoaded = timing.domContentLoadedEventEnd - timing.startTime;
     const ttfb = timing.responseStart - timing.requestStart;
-    
+
     recordMetric({
       name: 'page_load',
       value: pageLoadTime,
@@ -102,16 +102,16 @@ function trackPageLoad() {
         url: window.location.pathname,
       },
     });
-    
+
     if (config.logToConsole) {
       console.log(
-        `%c📊 页面加载性能`,
+        `%c📊 Page Load Performance`,
         'color: #10b981; font-weight: bold;',
         {
-          '总加载时间': `${pageLoadTime.toFixed(0)}ms`,
-          'DOM 加载': `${domContentLoaded.toFixed(0)}ms`,
+          'Total Load Time': `${pageLoadTime.toFixed(0)}ms`,
+          'DOM Content Loaded': `${domContentLoaded.toFixed(0)}ms`,
           'TTFB': `${ttfb.toFixed(0)}ms`,
-          '路径': window.location.pathname,
+          'Path': window.location.pathname,
         }
       );
     }
@@ -119,22 +119,22 @@ function trackPageLoad() {
 }
 
 /**
- * 记录性能指标
+ * Record performance metric
  */
 export function recordMetric(metric: PerformanceMetric) {
   if (!config.enabled) return;
-  
+
   metrics.push(metric);
-  
-  // 保持最近 1000 条记录
+
+  // Keep recent 1000 records
   if (metrics.length > 1000) {
     metrics.shift();
   }
-  
-  // 慢操作警告
+
+  // Slow operation warning
   if (metric.value > config.slowThreshold && config.logToConsole) {
     console.warn(
-      `%c⚠️ 慢操作检测: ${metric.name}`,
+      `%c⚠️ Slow Operation Detected: ${metric.name}`,
       'color: #f59e0b; font-weight: bold;',
       `${metric.value.toFixed(0)}ms > ${config.slowThreshold}ms`,
       metric.metadata
@@ -143,7 +143,7 @@ export function recordMetric(metric: PerformanceMetric) {
 }
 
 /**
- * 追踪 API 请求开始
+ * Track API request start
  */
 export function trackApiStart(url: string, requestId: string = url) {
   if (!config.enabled) return;
@@ -151,22 +151,22 @@ export function trackApiStart(url: string, requestId: string = url) {
 }
 
 /**
- * 追踪 API 请求结束
+ * Track API request end
  */
 export function trackApiEnd(
-  url: string, 
+  url: string,
   requestId: string = url,
   status?: number,
   metadata?: Record<string, unknown>
 ) {
   if (!config.enabled) return;
-  
+
   const startTime = apiTimings.get(requestId);
   if (!startTime) return;
-  
+
   const duration = performance.now() - startTime;
   apiTimings.delete(requestId);
-  
+
   recordMetric({
     name: `api_${url}`,
     value: duration,
@@ -179,7 +179,7 @@ export function trackApiEnd(
       ...metadata,
     },
   });
-  
+
   if (config.logToConsole) {
     const color = status && status >= 400 ? '#ef4444' : duration > config.slowThreshold ? '#f59e0b' : '#10b981';
     console.log(
@@ -192,11 +192,11 @@ export function trackApiEnd(
 }
 
 /**
- * 追踪组件渲染
+ * Track component render
  */
 export function trackRender(componentName: string, renderTime?: number) {
   if (!config.enabled) return;
-  
+
   const tracker = renderTrackers.get(componentName) || {
     component: componentName,
     renderCount: 0,
@@ -204,36 +204,36 @@ export function trackRender(componentName: string, renderTime?: number) {
     totalRenderTime: 0,
     averageRenderTime: 0,
   };
-  
+
   tracker.renderCount++;
   if (renderTime !== undefined) {
     tracker.lastRenderTime = renderTime;
     tracker.totalRenderTime += renderTime;
     tracker.averageRenderTime = tracker.totalRenderTime / tracker.renderCount;
   }
-  
+
   renderTrackers.set(componentName, tracker);
-  
-  // 重渲染警告
+
+  // Re-render warning
   if (tracker.renderCount > config.renderWarningThreshold && config.logToConsole) {
     console.warn(
-      `%c🔄 频繁重渲染: ${componentName}`,
+      `%c🔄 Frequent Re-renders: ${componentName}`,
       'color: #f59e0b; font-weight: bold;',
-      `已渲染 ${tracker.renderCount} 次`,
-      renderTime ? `最近一次: ${renderTime.toFixed(2)}ms` : ''
+      `Rendered ${tracker.renderCount} times`,
+      renderTime ? `Latest: ${renderTime.toFixed(2)}ms` : ''
     );
   }
 }
 
 /**
- * 重置组件渲染计数器（通常在路由切换时调用）
+ * Reset component render trackers (usually called on route change)
  */
 export function resetRenderTrackers() {
   renderTrackers.clear();
 }
 
 /**
- * 清除所有指标
+ * Clear all metrics
  */
 export function clearMetrics() {
   metrics.length = 0;
@@ -242,21 +242,21 @@ export function clearMetrics() {
 }
 
 /**
- * 获取性能摘要
+ * Get performance summary
  */
 export function getPerformanceSummary() {
   const apiMetrics = metrics.filter(m => m.category === 'api');
   const pageMetrics = metrics.filter(m => m.category === 'page');
-  
+
   const avgApiTime = apiMetrics.length > 0
     ? apiMetrics.reduce((sum, m) => sum + m.value, 0) / apiMetrics.length
     : 0;
-  
+
   const slowApis = apiMetrics.filter(m => m.value > config.slowThreshold);
-  
+
   const frequentRenders = Array.from(renderTrackers.values())
     .filter(t => t.renderCount > config.renderWarningThreshold);
-  
+
   return {
     totalMetrics: metrics.length,
     apiCalls: apiMetrics.length,
@@ -269,14 +269,14 @@ export function getPerformanceSummary() {
 }
 
 /**
- * React Hook: 追踪组件渲染
+ * React Hook: Track component render
  */
 export function useRenderTracker(componentName: string) {
   if (typeof window === 'undefined' || !config.enabled) return;
-  
+
   const startTime = performance.now();
-  
-  // 在 effect 后测量
+
+  // Measure after effect
   queueMicrotask(() => {
     const renderTime = performance.now() - startTime;
     trackRender(componentName, renderTime);
@@ -284,7 +284,7 @@ export function useRenderTracker(componentName: string) {
 }
 
 /**
- * 性能测量装饰器（用于函数）
+ * Performance measurement decorator (for functions)
  */
 export function measurePerformance<T extends (...args: any[]) => any>(
   fn: T,
@@ -292,12 +292,12 @@ export function measurePerformance<T extends (...args: any[]) => any>(
   category: PerformanceMetric['category'] = 'render'
 ): T {
   if (!config.enabled) return fn;
-  
+
   return ((...args: Parameters<T>) => {
     const startTime = performance.now();
     const result = fn(...args);
-    
-    // 处理 Promise
+
+    // Handle Promise
     if (result instanceof Promise) {
       return result.finally(() => {
         const duration = performance.now() - startTime;
@@ -310,7 +310,7 @@ export function measurePerformance<T extends (...args: any[]) => any>(
         });
       });
     }
-    
+
     const duration = performance.now() - startTime;
     recordMetric({
       name,
@@ -319,12 +319,12 @@ export function measurePerformance<T extends (...args: any[]) => any>(
       timestamp: Date.now(),
       category,
     });
-    
+
     return result;
   }) as T;
 }
 
-// 自动初始化
+// Auto initialize
 if (typeof window !== 'undefined') {
   initPerformanceMonitor();
 }

@@ -87,7 +87,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       const user = await AuthService.getCurrentUser(request.user!.id);
       return reply.send({
         success: true,
-        data: { user }
+        data: user // Directly return UserProfile, no nesting
       });
     } catch (error: any) {
       return reply.code(401).send({
@@ -99,15 +99,25 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   // Refresh token
   fastify.post('/refresh', {
-    onRequest: [authMiddleware],
+    // No authMiddleware needed, relying on refresh_token verification
     schema: {
       tags: ['auth'],
       summary: 'Refresh access token',
-      security: [{ bearerAuth: [] }]
+      body: {
+        type: 'object',
+        required: ['refresh_token'],
+        properties: {
+          refresh_token: { type: 'string' }
+        }
+      }
     }
   }, async (request, reply) => {
     try {
-      const result = await AuthService.refreshToken(request.user!.id);
+      const { refresh_token } = request.body as any;
+      if (!refresh_token) {
+        throw new Error('Refresh token is required');
+      }
+      const result = await AuthService.refreshSession(refresh_token);
       return reply.send({
         success: true,
         data: result

@@ -1,0 +1,59 @@
+---
+title: Installation
+description: How to install Jiffoo Mall
+---
+
+# Installation
+
+## Prerequisites
+
+- Node.js 18+
+- pnpm (recommended) or npm
+- Redis (optional, for caching)
+
+## Clone the Repository
+
+```bash
+git clone https://github.com/thefreelight/Jiffoo.git
+cd Jiffoo
+```
+
+## Install Dependencies
+
+```bash
+pnpm install
+```
+
+## Set Up Environment Variables
+
+```bash
+cp apps/api/.env.example apps/api/.env
+```
+
+Edit the `.env` file to configure your environment.
+
+## Initialize the Database
+
+```bash
+pnpm --filter api db:generate
+pnpm --filter api db:push
+pnpm --filter api db:seed
+```
+
+## Start Development Servers
+
+```bash
+# Start all core services
+pnpm dev
+```
+
+## Service Ports
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Shop | 3000 | Customer storefront |
+| API | 3001 | Backend API |
+| Super Admin | 3002 | Platform admin |
+| Admin | 3003 | Tenant admin |
+| Docs | 3006 | Documentation |
+

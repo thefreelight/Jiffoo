@@ -37,7 +37,7 @@ export function SafeImage({
   const [hasError, setHasError] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(true);
 
-  // 检查图片URL是否有效
+  // Check if image URL is valid
   const isValidImageUrl = (url?: string | null): boolean => {
     if (!url || url === '' || url === '[]' || url.startsWith('[')) {
       return false;
@@ -47,7 +47,7 @@ export function SafeImage({
       new URL(url);
       return true;
     } catch {
-      // 如果不是完整URL，检查是否是相对路径
+      // If not a full URL, check if it's a relative path
       return url.startsWith('/') || url.startsWith('./') || url.startsWith('../');
     }
   };
@@ -56,7 +56,7 @@ export function SafeImage({
     setHasError(true);
     setIsLoading(false);
 
-    // 记录图片加载失败（开发环境）
+    // Log image load failure (development environment)
     if (process.env.NODE_ENV === 'development') {
       console.warn(`[SafeImage] Failed to load image: ${src}`, { alt });
     }
@@ -69,7 +69,7 @@ export function SafeImage({
     onLoad?.();
   };
 
-  // 重置状态当src改变时
+  // Reset status when src changes
   React.useEffect(() => {
     setHasError(false);
     setIsLoading(true);
@@ -77,7 +77,7 @@ export function SafeImage({
 
   const shouldShowFallback = !isValidImageUrl(src) || hasError;
 
-  // 占位/回退状态
+  // Placeholder/fallback state
   if (shouldShowFallback) {
     return (
       <div
@@ -101,7 +101,7 @@ export function SafeImage({
 
   return (
     <div className={cn("relative", fill ? "w-full h-full" : "")} style={!fill ? { width, height } : undefined}>
-      {/* 加载状态骨架屏 */}
+      {/* Loading state skeleton */}
       {showLoadingState && isLoading && (
         <div
           className={cn(

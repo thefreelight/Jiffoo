@@ -1,5 +1,5 @@
 /**
- * 统一日志系统 - 控制台传输器
+ * Unified Logging System - Console Transport
  */
 
 import { ITransport, LogEntry, LogLevel } from '../types';
@@ -15,7 +15,7 @@ export interface ConsoleTransportOptions {
 }
 
 /**
- * 控制台传输器 - 支持浏览器和 Node.js 环境
+ * Console Transport - Supports Browser and Node.js environments
  */
 export class ConsoleTransport implements ITransport {
   private level: LogLevel;
@@ -25,7 +25,7 @@ export class ConsoleTransport implements ITransport {
   constructor(options: ConsoleTransportOptions = {}) {
     this.level = options.level || 'debug';
     this.isBrowser = typeof window !== 'undefined';
-    
+
     this.formatter = new ConsoleFormatter({
       timestamp: options.timestamp ?? true,
       colorize: options.colorize ?? !this.isBrowser,
@@ -35,10 +35,10 @@ export class ConsoleTransport implements ITransport {
   }
 
   /**
-   * 记录日志
+   * Log entry
    */
   log(entry: LogEntry): void {
-    // 检查日志级别
+    // Check log level
     if (!shouldLog(this.level, entry.level)) {
       return;
     }
@@ -50,24 +50,24 @@ export class ConsoleTransport implements ITransport {
         this.logToNode(entry);
       }
     } catch (error) {
-      // 静默失败，不影响主业务
+      // Fail silently, do not affect main business logic
       this.handleError(error as Error);
     }
   }
 
   /**
-   * 设置日志级别
+   * Set log level
    */
   setLevel(level: LogLevel): void {
     this.level = level;
   }
 
   /**
-   * 浏览器环境日志输出
+   * Browser environment log output
    */
   private logToBrowser(entry: LogEntry): void {
     const { message, args } = this.formatter.formatForConsole(entry);
-    
+
     switch (entry.level) {
       case 'debug':
         console.debug(message, ...args);
@@ -87,11 +87,11 @@ export class ConsoleTransport implements ITransport {
   }
 
   /**
-   * Node.js 环境日志输出
+   * Node.js environment log output
    */
   private logToNode(entry: LogEntry): void {
     const formattedMessage = this.formatter.format(entry);
-    
+
     switch (entry.level) {
       case 'debug':
       case 'info':
@@ -107,10 +107,10 @@ export class ConsoleTransport implements ITransport {
   }
 
   /**
-   * 处理内部错误
+   * Handle internal errors
    */
   private handleError(error: Error): void {
-    // 在开发环境下输出错误信息
+    // Output error info in development environment
     if (process.env.NODE_ENV === 'development') {
       console.error('ConsoleTransport error:', error);
     }
@@ -118,7 +118,7 @@ export class ConsoleTransport implements ITransport {
 }
 
 /**
- * 创建控制台传输器的工厂函数
+ * Factory function to create console transport
  */
 export function createConsoleTransport(options: ConsoleTransportOptions = {}): ConsoleTransport {
   return new ConsoleTransport(options);

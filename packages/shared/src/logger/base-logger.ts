@@ -1,5 +1,5 @@
 /**
- * 统一日志系统 - 基础日志器
+ * Unified Logging System - Base Logger
  */
 
 import {
@@ -19,7 +19,7 @@ import {
 import { sanitizeData } from './sanitizer';
 
 /**
- * 基础日志器实现
+ * Base logger implementation
  */
 export class BaseLogger implements ILogger {
   protected config: LoggerConfig;
@@ -27,7 +27,7 @@ export class BaseLogger implements ILogger {
   protected currentLevel: LogLevel;
 
   constructor(config: LoggerConfig) {
-    // 验证配置
+    // Validate configuration
     const errors = validateLoggerConfig(config);
     if (errors.length > 0) {
       throw new Error(`Invalid logger configuration: ${errors.join(', ')}`);
@@ -38,28 +38,28 @@ export class BaseLogger implements ILogger {
   }
 
   /**
-   * Debug 级别日志
+   * Debug level log
    */
   debug(message: string, meta: LogMeta = {}): void {
     this.log('debug', message, meta);
   }
 
   /**
-   * Info 级别日志
+   * Info level log
    */
   info(message: string, meta: LogMeta = {}): void {
     this.log('info', message, meta);
   }
 
   /**
-   * Warn 级别日志
+   * Warn level log
    */
   warn(message: string, meta: LogMeta = {}): void {
     this.log('warn', message, meta);
   }
 
   /**
-   * Error 级别日志
+   * Error level log
    */
   error(message: string | Error, meta: LogMeta = {}): void {
     let logMessage: string;
@@ -76,7 +76,7 @@ export class BaseLogger implements ILogger {
   }
 
   /**
-   * 记录操作日志
+   * Log operation
    */
   logOperation(operation: OperationLog): void {
     this.info('Operation performed', {
@@ -85,7 +85,7 @@ export class BaseLogger implements ILogger {
   }
 
   /**
-   * 记录性能日志
+   * Log performance
    */
   logPerformance(operation: string, duration: number, meta: LogMeta = {}): void {
     this.info('Performance metric', {
@@ -98,7 +98,7 @@ export class BaseLogger implements ILogger {
   }
 
   /**
-   * 记录安全日志
+   * Log security
    */
   logSecurity(event: string, details: any): void {
     this.warn('Security event', {
@@ -109,7 +109,7 @@ export class BaseLogger implements ILogger {
   }
 
   /**
-   * 记录业务日志
+   * Log business
    */
   logBusiness(event: string, details: any): void {
     this.info('Business event', {
@@ -120,26 +120,26 @@ export class BaseLogger implements ILogger {
   }
 
   /**
-   * 设置日志级别
+   * Set log level
    */
   setLevel(level: LogLevel): void {
     this.currentLevel = level;
-    
-    // 更新所有传输器的级别
+
+    // Update level for all transports
     this.transports.forEach(transport => {
       transport.setLevel(level);
     });
   }
 
   /**
-   * 添加传输器
+   * Add transport
    */
   addTransport(transport: ITransport): void {
     this.transports.push(transport);
   }
 
   /**
-   * 移除传输器
+   * Remove transport
    */
   removeTransport(transport: ITransport): void {
     const index = this.transports.indexOf(transport);
@@ -149,19 +149,19 @@ export class BaseLogger implements ILogger {
   }
 
   /**
-   * 核心日志方法
+   * Core log method
    */
   protected log(level: LogLevel, message: string, meta: LogMeta = {}): void {
-    // 检查日志级别
+    // Check log level
     if (!shouldLog(this.currentLevel, level)) {
       return;
     }
 
     try {
-      // 脱敏处理
+      // Data sanitization
       const sanitizedMeta = sanitizeData(meta);
 
-      // 创建日志条目
+      // Create log entry
       const entry = createLogEntry(
         level,
         message,
@@ -171,23 +171,23 @@ export class BaseLogger implements ILogger {
         this.config.version
       );
 
-      // 发送到所有传输器
+      // Send to all transports
       this.sendToTransports(entry);
     } catch (error) {
-      // 日志系统内部错误不应影响主业务
+      // Internal errors in logging system should not affect main business
       this.handleInternalError(error as Error);
     }
   }
 
   /**
-   * 发送日志到传输器
+   * Send log to transports
    */
   protected sendToTransports(entry: any): void {
     this.transports.forEach(transport => {
       try {
         const result = transport.log(entry);
-        
-        // 处理异步传输器
+
+        // Handle async transports
         if (result instanceof Promise) {
           result.catch(error => {
             this.handleTransportError(error, transport);
@@ -200,24 +200,24 @@ export class BaseLogger implements ILogger {
   }
 
   /**
-   * 处理传输器错误
+   * Handle transport error
    */
   protected handleTransportError(error: Error, transport: ITransport): void {
-    // 可以在这里实现错误恢复策略
-    // 例如：移除故障传输器、发送告警等
+    // Error recovery strategy can be implemented here
+    // E.g. remove failed transport, send alert, etc.
     console.error('Logger transport error:', error);
   }
 
   /**
-   * 处理内部错误
+   * Handle internal errors
    */
   protected handleInternalError(error: Error): void {
-    // 日志系统内部错误处理
+    // Logging system internal error handling
     console.error('Logger internal error:', error);
   }
 
   /**
-   * 清理资源
+   * Clean up resources
    */
   async destroy(): Promise<void> {
     const closePromises = this.transports

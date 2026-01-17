@@ -49,14 +49,14 @@ export function Header({ title = "Dashboard" }: HeaderProps) {
 
   const handleLogout = () => {
     logout()
-    // 清除可能保存的重定向路径
+    // Clear potentially saved redirect path
     sessionStorage.removeItem('redirectPath')
     router.push(`/${locale}/auth/login`)
   }
 
   const toggleTheme = () => {
     setIsDark(!isDark)
-    // 这里可以添加主题切换逻辑
+    // Add theme toggle logic here
   }
 
   return (

@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * 主题提供者
- * 负责加载、缓存和提供主题包
+ * Theme Provider
+ * Responsible for loading, caching, and providing theme packages
  */
 
 import React, { createContext, useContext, useEffect, useState, useRef, useMemo } from 'react';
@@ -13,7 +13,7 @@ import { logThemeError } from './error-logger';
 import { setDebugCurrentTheme } from './debug';
 
 /**
- * 主题上下文值
+ * Theme Context Value
  */
 interface ThemeContextValue {
   theme: ThemePackage | null;
@@ -23,7 +23,7 @@ interface ThemeContextValue {
 }
 
 /**
- * 主题上下文
+ * Theme Context
  */
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
@@ -37,11 +37,11 @@ interface ThemeProviderProps {
 }
 
 /**
- * 深度合并两个对象
+ * Deep merge two objects
  */
 function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
   const result = { ...target };
-  
+
   for (const key in source) {
     if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
       result[key] = deepMerge(
@@ -52,26 +52,25 @@ function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>)
       result[key] = source[key] as any;
     }
   }
-  
+
   return result;
 }
 
 /**
- * 主题提供者组件
- * 
- * @param slug - 主题标识符
- * @param config - 租户特定的主题配置
- * @param children - 子组件
+ * Theme provider component
+ * @param slug - Theme identifier
+ * @param config - Tenant specific theme configuration
+ * @param children - Child components
  */
 export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProps) {
-  // 主题包缓存（跨组件实例共享）
+  // Theme package cache (shared across component instances)
   const cacheRef = useRef(new Map<ThemeSlug, ThemePackage>());
-  
+
   const [theme, setTheme] = useState<ThemePackage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
-  // 加载主题
+  // Load theme
   useEffect(() => {
     let mounted = true;
 
@@ -82,20 +81,20 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
         setIsLoading(true);
         setError(null);
 
-        // 验证并回退到默认主题
+        // Validate and fall back to default theme
         const validSlug = isValidThemeSlug(slug) ? slug : 'default';
 
         if (validSlug !== slug) {
           console.warn(`Invalid theme slug "${slug}", falling back to "default"`);
         }
 
-        // 检查缓存
+        // Check cache
         if (cacheRef.current.has(validSlug)) {
           if (mounted) {
             setTheme(cacheRef.current.get(validSlug)!);
             setIsLoading(false);
 
-            // 记录缓存命中
+            // Log cache hit
             recordThemeLoad({
               slug: validSlug,
               loadTime: performance.now() - startTime,
@@ -103,24 +102,24 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
               timestamp: Date.now()
             });
 
-            // 更新调试信息
+            // Update debug info
             setDebugCurrentTheme(validSlug, cacheRef.current);
           }
           return;
         }
 
-        // 动态导入主题包
+        // Dynamically import theme package
         const importer = THEME_REGISTRY[validSlug];
         const result = await importer();
 
-        // registry.load() 已经返回 module.default || module.theme
-        // 所以 result 可能直接是 ThemePackage，或者是一个包含 default/theme 的模块
+        // registry.load() already returns module.default || module.theme
+        // So result may be ThemePackage directly, or a module containing default/theme
         let themePkg: ThemePackage;
         if (result && result.components) {
-          // result 已经是 ThemePackage
+          // result is already ThemePackage
           themePkg = result;
         } else if (result && (result.default || result.theme)) {
-          // result 是模块，需要解包
+          // result is module, needs unpacking
           themePkg = (result.default || result.theme) as ThemePackage;
         } else {
           throw new Error(`Invalid theme package: ${validSlug}`);
@@ -130,13 +129,13 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
           throw new Error(`Invalid theme package structure: ${validSlug}`);
         }
 
-        // 缓存主题包
+        // Cache theme package
         cacheRef.current.set(validSlug, themePkg);
 
         if (mounted) {
           setTheme(themePkg);
 
-          // 记录加载成功
+          // Log successful load
           recordThemeLoad({
             slug: validSlug,
             loadTime: performance.now() - startTime,
@@ -144,14 +143,14 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
             timestamp: Date.now()
           });
 
-          // 更新调试信息
+          // Update debug info
           setDebugCurrentTheme(validSlug, cacheRef.current);
         }
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Unknown error');
         console.error('Failed to load theme:', err);
 
-        // 记录错误
+        // Log error
         logThemeError(error, { slug, action: 'load' }, 'high');
         recordThemeLoad({
           slug,
@@ -164,7 +163,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
         if (mounted) {
           setError(error);
 
-          // 尝试加载默认主题作为回退
+          // Try loading default theme as fallback
           if (slug !== 'default') {
             try {
               const defaultResult = await THEME_REGISTRY.default();
@@ -178,7 +177,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
               }
               cacheRef.current.set('default', defaultTheme);
               setTheme(defaultTheme);
-              setError(null); // 清除错误，因为回退成功
+              setError(null); // Clear error because fallback succeeded
               setDebugCurrentTheme('default', cacheRef.current);
             } catch (fallbackErr) {
               console.error('Failed to load default theme:', fallbackErr);
@@ -204,7 +203,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
     };
   }, [slug]);
 
-  // 合并配置并注入 CSS 变量
+  // Merge configuration and inject CSS variables
   useEffect(() => {
     if (!theme) return;
 
@@ -213,9 +212,9 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
       config
     );
 
-    // 注入 CSS 变量
+    // Inject CSS variables
     const root = document.documentElement;
-    
+
     if (mergedConfig.brand?.primaryColor) {
       root.style.setProperty('--theme-primary', mergedConfig.brand.primaryColor);
     }
@@ -227,7 +226,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
     }
 
     return () => {
-      // 清理 CSS 变量
+      // Cleanup CSS variables
       root.style.removeProperty('--theme-primary');
       root.style.removeProperty('--theme-secondary');
       root.style.removeProperty('--theme-font');
@@ -244,13 +243,13 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
     [theme, config, isLoading, error]
   );
 
-  // 简化加载状态：不再全屏遮罩，只在内容区域显示 skeleton
-  // 如果主题已缓存，则不显示 loading
+  // Simplify loading state: no more full-screen mask, only show skeleton in content area
+  // Do not show loading if theme is already cached
   if (isLoading && !theme) {
     return (
       <ThemeContext.Provider value={value}>
         <div className="min-h-screen bg-gray-50">
-          {/* 简单的 skeleton，不是全屏遮罩 */}
+          {/* Simple skeleton, not a full-screen mask */}
           <div className="container mx-auto px-4 py-8">
             <div className="animate-pulse space-y-4">
               <div className="h-12 bg-gray-200 rounded w-1/4"></div>
@@ -263,12 +262,12 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
     );
   }
 
-  // 错误状态：简化显示，提供重试而不是刷新页面
+  // Error state: simplified display, provide retry instead of page refresh
   if (error && !theme) {
     const handleRetry = () => {
       setError(null);
       setIsLoading(true);
-      // 清除主题缓存触发重新加载
+      // Clear theme cache to trigger reload
       setTheme(null);
     };
 
@@ -281,7 +280,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">主题加载失败</h1>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-gray-100">Theme Load Failed</h1>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{error.message}</p>
             <button
               onClick={handleRetry}
@@ -290,7 +289,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              重试
+              Retry
             </button>
           </div>
         </div>
@@ -302,17 +301,16 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
 }
 
 /**
- * 使用主题的自定义钩子
- * 
- * @returns 主题上下文值
- * @throws 如果在 ThemeProvider 外使用
+ * Custom hook for using the shop theme
+ * @returns Theme context value
+ * @throws If used outside of ThemeProvider
  */
 export function useShopTheme() {
   const context = useContext(ThemeContext);
-  
+
   if (!context) {
     throw new Error('useShopTheme must be used within ThemeProvider');
   }
-  
+
   return context;
 }

@@ -54,9 +54,11 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
         return
       }
 
-      if (requireAdmin && user?.role && !['ADMIN', 'SUPER_ADMIN', 'TENANT_ADMIN'].includes(user.role)) {
-        console.warn('Access denied - user role:', user?.role, 'required: ADMIN or higher')
-        router.replace(`/${locale}/auth/login`)
+      if (requireAdmin && user?.role && user.role !== 'ADMIN') {
+        console.warn('Access denied - user role:', user?.role, 'required: ADMIN')
+        // Force logout if role is not ADMIN but Admin access is required (security hardening)
+        // router.replace(`/${locale}/auth/login`) 
+        // Just show access denied for now
         return
       }
     }
@@ -87,7 +89,8 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
   }
 
   // Permission check
-  if (requireAdmin && user?.role && !['ADMIN', 'SUPER_ADMIN', 'TENANT_ADMIN'].includes(user.role)) {
+  // Permission check
+  if (requireAdmin && user?.role && user.role !== 'ADMIN') {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">

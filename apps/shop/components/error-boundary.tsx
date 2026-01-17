@@ -1,8 +1,8 @@
 /**
- * 全局错误边界组件
+ * Global Error Boundary Component
  *
- * 捕获子组件的 React 错误，显示友好的错误页面
- * 提供重试和返回首页选项，而不是直接刷新页面
+ * Catches React errors in child components and displays a friendly error page.
+ * Provides options to retry or go home instead of simply refreshing the page.
  */
 
 'use client';
@@ -36,7 +36,7 @@ export class ErrorBoundary extends Component<Props, State> {
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({ errorInfo });
 
-    // 记录错误到日志系统
+    // Log error to logging system
     logger.error('React Error Boundary caught an error', {
       type: 'react_error_boundary',
       error: {
@@ -52,7 +52,7 @@ export class ErrorBoundary extends Component<Props, State> {
       timestamp: new Date().toISOString()
     });
 
-    // 在开发环境下也输出到控制台
+    // Output to console in development environment as well
     if (process.env.NODE_ENV === 'development') {
       console.error('ErrorBoundary caught an error:', error, errorInfo);
     }
@@ -64,11 +64,11 @@ export class ErrorBoundary extends Component<Props, State> {
   };
 
   handleGoHome = () => {
-    // 使用 Next.js router 导航到首页，避免整页刷新
+    // Use Next.js router to navigate home to avoid full page refresh
     if (typeof window !== 'undefined') {
       window.history.pushState({}, '', '/');
       this.setState({ hasError: false, error: undefined, errorInfo: undefined });
-      // 触发路由变化
+      // Trigger route change
       window.dispatchEvent(new PopStateEvent('popstate'));
     }
   };
@@ -83,7 +83,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      // 自定义错误 UI
+      // Custom error UI
       if (this.props.fallback) {
         return this.props.fallback;
       }
@@ -96,10 +96,10 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
             <div className="mt-4 text-center">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                出现了一些问题
+                Something went wrong
               </h3>
               <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                页面遇到了意外错误，我们已经记录了这个问题。
+                The page encountered an unexpected error. We have logged this issue.
               </p>
 
               <div className="mt-6 flex flex-wrap gap-3 justify-center">
@@ -108,28 +108,28 @@ export class ErrorBoundary extends Component<Props, State> {
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   <RefreshCw className="w-4 h-4" />
-                  重试
+                  Retry
                 </button>
                 <button
                   onClick={this.handleGoBack}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
                 >
                   <ArrowLeft className="w-4 h-4" />
-                  返回
+                  Back
                 </button>
                 <button
                   onClick={this.handleGoHome}
                   className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors"
                 >
                   <Home className="w-4 h-4" />
-                  首页
+                  Home
                 </button>
               </div>
 
               {process.env.NODE_ENV === 'development' && this.state.error && (
                 <details className="mt-6 text-left">
                   <summary className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:text-gray-800 dark:hover:text-gray-200">
-                    错误详情 (开发模式)
+                    Error Details (Development Mode)
                   </summary>
                   <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg overflow-auto max-h-60">
                     <p className="text-sm font-mono text-red-600 dark:text-red-400">

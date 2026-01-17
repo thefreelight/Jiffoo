@@ -48,7 +48,7 @@ function SearchPageContent() {
   });
 
   // Perform search with locale for translated product data
-  const performSearch = React.useCallback(async (query: string, searchFilters: ProductSearchFilters = {}) => {
+  const performSearch = React.useCallback(async (query: string, searchFilters: typeof filters = filters) => {
     if (!query.trim()) {
       setProducts([]);
       setLoading(false);
@@ -61,7 +61,7 @@ function SearchPageContent() {
 
       // Map UI sort options to API sort parameters
       // 'relevance' and 'newest' use createdAt, price options use price
-      let apiSortBy: 'price' | 'name' | 'createdAt' | 'stock' = 'createdAt';
+      let apiSortBy: 'price' | 'rating' | 'name' | 'createdAt' | 'stock' = 'createdAt';
       let sortOrder: 'asc' | 'desc' = 'desc';
 
       switch (sortBy) {
@@ -84,19 +84,15 @@ function SearchPageContent() {
           break;
       }
 
-      // Only include inStock filter if explicitly set to true
-      // When inStock is false or undefined, don't send it to avoid filtering out in-stock products
-      const apiFilters: ProductSearchFilters = {
-        ...searchFilters,
+      // Convert UI filters to API format
+      const apiFilters = {
+        category: searchFilters.category || undefined,
+        rating: searchFilters.rating ? Number(searchFilters.rating) : undefined,
+        inStock: searchFilters.inStock === true ? true : undefined,
         sortBy: apiSortBy,
         sortOrder,
-        locale: nav.locale, // Pass current locale for translated product data
+        locale: nav.locale, // Support for translated product data
       };
-
-      // Remove inStock if it's false (we want to show all products, not just out-of-stock)
-      if (apiFilters.inStock === false) {
-        delete apiFilters.inStock;
-      }
 
       const response = await ProductService.searchProducts(query, 1, 12, apiFilters);
 

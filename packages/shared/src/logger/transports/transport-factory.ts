@@ -1,19 +1,19 @@
 /**
- * 统一日志系统 - 传输器工厂
+ * Unified Logging System - Transport Factory
  */
 
 import { ITransport, TransportConfig } from '../types';
 import { ConsoleTransport, ConsoleTransportOptions } from './console-transport';
 import { RemoteTransport, RemoteTransportOptions } from './remote-transport';
 
-// 动态导入 FileTransport 以避免在浏览器环境中打包
+// Dynamically import FileTransport to avoid bundling in browser environment
 type FileTransportType = typeof import('./file-transport').FileTransport;
 type FileTransportOptionsType = import('./file-transport').FileTransportOptions;
 
 export type TransportType = 'console' | 'file' | 'remote';
 
 /**
- * 创建传输器的统一工厂函数
+ * Unified factory function for creating transports
  */
 export function createTransport(config: TransportConfig): ITransport {
   switch (config.type) {
@@ -27,7 +27,7 @@ export function createTransport(config: TransportConfig): ITransport {
       if (typeof window !== 'undefined') {
         throw new Error('FileTransport is not available in browser environment');
       }
-      // 动态导入 FileTransport
+      // Dynamically import FileTransport
       const { FileTransport } = require('./file-transport');
       return new FileTransport({
         level: config.level,
@@ -49,7 +49,7 @@ export function createTransport(config: TransportConfig): ITransport {
 }
 
 /**
- * 创建默认的控制台传输器
+ * Create default console transport
  */
 export function createDefaultConsoleTransport(): ConsoleTransport {
   return new ConsoleTransport({
@@ -60,18 +60,18 @@ export function createDefaultConsoleTransport(): ConsoleTransport {
 }
 
 /**
- * 创建默认的文件传输器组合 (Node.js only)
+ * Create default file transport combination (Node.js only)
  */
 export function createDefaultFileTransports(baseDir: string = './logs'): ITransport[] {
   if (typeof window !== 'undefined') {
     return [];
   }
 
-  // 动态导入 FileTransport
+  // Dynamically import FileTransport
   const { FileTransport } = require('./file-transport');
 
   return [
-    // 错误日志
+    // Error log
     new FileTransport({
       filename: `${baseDir}/error-%DATE%.log`,
       level: 'error',
@@ -81,7 +81,7 @@ export function createDefaultFileTransports(baseDir: string = './logs'): ITransp
       zippedArchive: true,
       json: true
     }),
-    // 组合日志
+    // Combined log
     new FileTransport({
       filename: `${baseDir}/combined-%DATE%.log`,
       level: 'debug',
@@ -95,7 +95,7 @@ export function createDefaultFileTransports(baseDir: string = './logs'): ITransp
 }
 
 /**
- * 创建默认的远程传输器 (Browser only)
+ * Create default remote transport (Browser only)
  */
 export function createDefaultRemoteTransport(endpoint: string): RemoteTransport | null {
   if (typeof window === 'undefined') {

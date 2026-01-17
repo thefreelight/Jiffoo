@@ -1,8 +1,8 @@
 'use client';
 
 /**
- * 主题错误边界
- * 捕获主题渲染过程中的错误，提供回退 UI
+ * Theme Error Boundary
+ * Catches errors during theme rendering and provides fallback UI
  */
 
 import React from 'react';
@@ -18,8 +18,8 @@ interface State {
 }
 
 /**
- * 主题错误边界组件
- * 使用 React Error Boundary 捕获主题组件渲染错误
+ * Theme Error Boundary Component
+ * Catches theme component rendering errors using React Error Boundary
  */
 export class ThemeErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
@@ -33,8 +33,8 @@ export class ThemeErrorBoundary extends React.Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error('Theme rendering error:', error, errorInfo);
-    
-    // 可选：发送到错误追踪服务
+
+    // Optional: send to error tracking service
     if (typeof window !== 'undefined' && (window as any).Sentry) {
       (window as any).Sentry.captureException(error, {
         tags: { component: 'theme' },
@@ -48,7 +48,7 @@ export class ThemeErrorBoundary extends React.Component<Props, State> {
   };
 
   handleGoHome = () => {
-    // 使用 history API 导航，避免整页刷新
+    // Use history API to navigate, avoid full page refresh
     if (typeof window !== 'undefined') {
       window.history.pushState({}, '', '/');
       this.setState({ hasError: false, error: null });
@@ -58,12 +58,12 @@ export class ThemeErrorBoundary extends React.Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      // 如果提供了自定义回退 UI，使用它
+      // Use custom fallback UI if provided
       if (this.props.fallback) {
         return this.props.fallback;
       }
 
-      // 默认错误 UI
+      // Default error UI
       return (
         <div className="flex min-h-screen items-center justify-center bg-gray-50 dark:bg-gray-900">
           <div className="text-center max-w-md px-4">
@@ -84,11 +84,11 @@ export class ThemeErrorBoundary extends React.Component<Props, State> {
             </div>
 
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-              主题渲染错误
+              Theme Rendering Error
             </h1>
 
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
-              {this.state.error?.message || '渲染主题组件时出错'}
+              {this.state.error?.message || 'Error occurred while rendering theme components'}
             </p>
 
             <div className="flex gap-3 justify-center">
@@ -96,21 +96,21 @@ export class ThemeErrorBoundary extends React.Component<Props, State> {
                 onClick={this.handleReset}
                 className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
               >
-                重试
+                Retry
               </button>
 
               <button
                 onClick={this.handleGoHome}
                 className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-md hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
               >
-                返回首页
+                Go Home
               </button>
             </div>
 
             {process.env.NODE_ENV === 'development' && this.state.error && (
               <details className="mt-6 text-left">
                 <summary className="cursor-pointer text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200">
-                  查看错误详情
+                  View Error Details
                 </summary>
                 <pre className="mt-2 p-4 bg-gray-100 dark:bg-gray-800 rounded text-xs overflow-auto max-h-48 text-red-600 dark:text-red-400">
                   {this.state.error.stack}

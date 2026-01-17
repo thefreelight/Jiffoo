@@ -1,5 +1,5 @@
 /**
- * 统一日志系统 - 远程传输器 (浏览器环境)
+ * Unified Logging System - Remote Transport (Browser Environment)
  */
 
 import { ITransport, LogEntry, LogLevel, BatchLogRequest } from '../types';
@@ -20,8 +20,8 @@ export interface RemoteTransportOptions {
 }
 
 /**
- * 远程传输器 - 批量发送日志到后端
- * 主要用于浏览器环境
+ * Remote Transport - Batch send logs to backend
+ * Primarily for browser environment
  */
 export class RemoteTransport implements ITransport {
   private level: LogLevel;
@@ -36,7 +36,7 @@ export class RemoteTransport implements ITransport {
     this.level = options.level || 'info';
     this.options = {
       batchSize: 10,
-      flushInterval: 5000, // 5秒
+      flushInterval: 5000, // 5 seconds
       maxRetries: 3,
       retryDelay: 1000,
       timeout: 10000,
@@ -44,7 +44,7 @@ export class RemoteTransport implements ITransport {
       storageKey: 'logger_buffer',
       ...options
     };
-    
+
     this.formatter = new RemoteFormatter({
       timestamp: true,
       colorize: false,
@@ -53,7 +53,7 @@ export class RemoteTransport implements ITransport {
     });
 
     this.isBrowser = typeof window !== 'undefined';
-    
+
     if (this.isBrowser) {
       this.initializeBrowserFeatures();
       this.startPeriodicFlush();
@@ -62,26 +62,26 @@ export class RemoteTransport implements ITransport {
   }
 
   /**
-   * 记录日志
+   * Log entry
    */
   log(entry: LogEntry): void {
-    // 检查日志级别
+    // Check log level
     if (!shouldLog(this.level, entry.level)) {
       return;
     }
 
     try {
-      // 添加到缓冲区
+      // Add to buffer
       this.buffer.push(entry);
 
-      // 检查是否需要立即刷新
+      // Check if should flush immediately
       if (this.shouldFlushImmediately(entry)) {
         this.flush();
       } else if (this.buffer.length >= this.options.batchSize!) {
         this.flush();
       }
 
-      // 保存到本地存储
+      // Save to local storage
       if (this.options.enableLocalStorage) {
         this.saveBufferToStorage();
       }
@@ -91,14 +91,14 @@ export class RemoteTransport implements ITransport {
   }
 
   /**
-   * 设置日志级别
+   * Set log level
    */
   setLevel(level: LogLevel): void {
     this.level = level;
   }
 
   /**
-   * 关闭传输器
+   * Close transport
    */
   async close(): Promise<void> {
     if (this.flushTimer) {
@@ -106,14 +106,14 @@ export class RemoteTransport implements ITransport {
       this.flushTimer = null;
     }
 
-    // 刷新剩余的日志
+    // Flush remaining logs
     if (this.buffer.length > 0) {
       await this.flush();
     }
   }
 
   /**
-   * 立即刷新缓冲区
+   * Flush buffer immediately
    */
   async flush(): Promise<void> {
     if (this.buffer.length === 0) {
@@ -125,29 +125,29 @@ export class RemoteTransport implements ITransport {
 
     try {
       await this.sendLogs(logsToSend);
-      
-      // 清除本地存储
+
+      // Clear local storage
       if (this.options.enableLocalStorage) {
         this.clearStorageBuffer();
       }
     } catch (error) {
-      // 发送失败，重新加入缓冲区
+      // Send failed, add back to buffer
       this.buffer.unshift(...logsToSend);
       this.handleError(error as Error);
     }
   }
 
   /**
-   * 初始化浏览器特性
+   * Initialize browser features
    */
   private initializeBrowserFeatures(): void {
-    // 监听网络状态
+    // Monitor network status
     if ('navigator' in window && 'onLine' in navigator) {
       this.isOnline = Boolean(navigator.onLine);
-      
+
       window.addEventListener('online', () => {
         this.isOnline = true;
-        // 网络恢复时尝试发送缓存的日志
+        // Try to send cached logs when network recovers
         if (this.buffer.length > 0) {
           this.flush();
         }
@@ -158,15 +158,15 @@ export class RemoteTransport implements ITransport {
       });
     }
 
-    // 页面卸载时发送剩余日志
+    // Send remaining logs when page unloads
     window.addEventListener('beforeunload', () => {
       if (this.buffer.length > 0) {
-        // 使用 sendBeacon 发送最后的日志
+        // Use sendBeacon to send final logs
         this.sendBeacon();
       }
     });
 
-    // 页面隐藏时发送日志
+    // Send logs when page hidden
     if ('visibilitychange' in document) {
       document.addEventListener('visibilitychange', () => {
         if (document.hidden && this.buffer.length > 0) {
@@ -177,7 +177,7 @@ export class RemoteTransport implements ITransport {
   }
 
   /**
-   * 开始定期刷新
+   * Start periodic flush
    */
   private startPeriodicFlush(): void {
     this.flushTimer = setInterval(() => {
@@ -188,15 +188,15 @@ export class RemoteTransport implements ITransport {
   }
 
   /**
-   * 检查是否需要立即刷新
+   * Check if should flush immediately
    */
   private shouldFlushImmediately(entry: LogEntry): boolean {
-    // 错误级别的日志立即发送
+    // Error level logs are sent immediately
     return entry.level === 'error';
   }
 
   /**
-   * 发送日志到后端
+   * Send logs to backend
    */
   private async sendLogs(logs: LogEntry[]): Promise<void> {
     if (!this.isOnline) {
@@ -227,7 +227,7 @@ export class RemoteTransport implements ITransport {
   }
 
   /**
-   * 带重试的 fetch 请求
+   * fetch request with retry
    */
   private async fetchWithRetry(url: string, options: RequestInit, retries: number = 0): Promise<Response> {
     try {
@@ -251,7 +251,7 @@ export class RemoteTransport implements ITransport {
   }
 
   /**
-   * 使用 sendBeacon 发送日志（页面卸载时）
+   * Use sendBeacon to send logs (on page unload)
    */
   private sendBeacon(): void {
     if (!('sendBeacon' in navigator) || this.buffer.length === 0) {
@@ -273,12 +273,12 @@ export class RemoteTransport implements ITransport {
       }
       this.buffer = [];
     } catch (error) {
-      // 静默失败
+      // Silent failure
     }
   }
 
   /**
-   * 保存缓冲区到本地存储
+   * Save buffer to local storage
    */
   private saveBufferToStorage(): void {
     if (!this.isBrowser || !this.options.enableLocalStorage) {
@@ -288,12 +288,12 @@ export class RemoteTransport implements ITransport {
     try {
       localStorage.setItem(this.options.storageKey!, JSON.stringify(this.buffer));
     } catch (error) {
-      // 本地存储可能已满，静默失败
+      // Local storage might be full, silent failure
     }
   }
 
   /**
-   * 从本地存储加载缓冲区
+   * Load buffer from local storage
    */
   private loadBufferFromStorage(): void {
     if (!this.isBrowser || !this.options.enableLocalStorage) {
@@ -309,36 +309,36 @@ export class RemoteTransport implements ITransport {
         }
       }
     } catch (error) {
-      // 解析失败，清除存储
+      // Parse failed, clear storage
       this.clearStorageBuffer();
     }
   }
 
   /**
-   * 清除本地存储缓冲区
+   * Clear local storage buffer
    */
   private clearStorageBuffer(): void {
     if (this.isBrowser && this.options.enableLocalStorage) {
       try {
         localStorage.removeItem(this.options.storageKey!);
       } catch (error) {
-        // 静默失败
+        // Silent failure
       }
     }
   }
 
   /**
-   * 延迟函数
+   * Delay function
    */
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
-   * 处理错误
+   * Handle error
    */
   private handleError(error: Error): void {
-    // 在开发环境下输出错误信息
+    // Output error in development environment
     if (process.env.NODE_ENV === 'development') {
       console.error('RemoteTransport error:', error);
     }
@@ -346,7 +346,7 @@ export class RemoteTransport implements ITransport {
 }
 
 /**
- * 创建远程传输器的工厂函数
+ * Factory function for creating remote transport
  */
 export function createRemoteTransport(options: RemoteTransportOptions): RemoteTransport {
   return new RemoteTransport(options);

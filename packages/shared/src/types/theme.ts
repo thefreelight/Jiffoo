@@ -1,6 +1,6 @@
 /**
- * 主题系统类型定义
- * 定义主题包、主题配置和页面组件 Props 接口
+ * Theme System Type Definitions
+ * Defines theme packages, theme configuration, and page component Props interfaces
  */
 
 import type { Product, ProductCategory } from './product';
@@ -9,80 +9,80 @@ import type { Order } from './order';
 import type { Locale, TranslationFunction } from '../i18n/types';
 
 // ============================================================================
-// 主题元数据类型（用于注册表和动态加载）
+// Theme Metadata Types (for registry and dynamic loading)
 // ============================================================================
 
 /**
- * 主题目标平台
+ * Theme Target Platform
  */
 export type ThemeTarget = 'shop' | 'admin';
 
 /**
- * 主题元数据（用于注册表）
+ * Theme Metadata (for registry)
  */
 export interface ThemeMeta {
-  /** 主题唯一标识 */
+  /** Theme unique identifier */
   slug: string;
-  /** 主题显示名称 */
+  /** Theme display name */
   name: string;
-  /** 主题版本 */
+  /** Theme version */
   version: string;
-  /** 主题描述 */
+  /** Theme description */
   description: string;
-  /** 主题分类 */
+  /** Theme category */
   category?: string;
-  /** 主题作者 */
+  /** Theme author */
   author?: string;
-  /** 作者网站 */
+  /** Author website */
   authorUrl?: string;
-  /** 预览图 */
+  /** Preview image */
   thumbnail?: string;
-  /** 截图列表 */
+  /** Screenshot list */
   screenshots?: string[];
-  /** 标签 */
+  /** Tags */
   tags?: string[];
-  /** 目标平台 */
+  /** Target platform */
   target: ThemeTarget;
 }
 
 /**
- * 主题注册表条目
+ * Theme Registry Entry
  */
 export interface ThemeRegistryEntry {
-  /** 主题元数据 */
+  /** Theme metadata */
   meta: ThemeMeta;
-  /** 动态加载函数 */
+  /** Dynamic load function */
   load: () => Promise<ThemePackage>;
 }
 
 /**
- * 主题注册表类型
+ * Theme Registry Type
  */
 export type ThemeRegistry = Record<string, ThemeRegistryEntry>;
 
 /**
- * 主题上下文值
+ * Theme Context Value
  */
 export interface ThemeContextValue {
-  /** 当前主题 slug */
+  /** Current theme slug */
   currentTheme: string;
-  /** 当前主题包 */
+  /** Current theme package */
   themePackage: ThemePackage | null;
-  /** 主题配置 */
+  /** Theme configuration */
   config: ThemeConfig;
-  /** 是否正在加载 */
+  /** Is loading */
   isLoading: boolean;
-  /** 加载错误 */
+  /** Load error */
   error: Error | null;
-  /** 切换主题 */
+  /** Switch theme */
   setTheme: (slug: string) => Promise<void>;
-  /** 更新配置 */
+  /** Update configuration */
   updateConfig: (config: Partial<ThemeConfig>) => void;
 }
 
 /**
- * 主题 i18n Props
- * 所有主题组件都可以接收这些 i18n 相关的 props
+ * Theme i18n Props
+ * All theme components can receive these i18n-related props
  */
 export interface ThemeI18nProps {
   /** Current locale */
@@ -92,59 +92,59 @@ export interface ThemeI18nProps {
 }
 
 /**
- * 主题包接口
- * 每个主题必须实现此接口
+ * Theme Package Interface
+ * Each theme must implement this interface
  */
 export interface ThemePackage {
-  // 页面和区块组件字典
+  // Page and block component dictionary
   components: {
-    // 必需的页面组件
+    // Required page components
     HomePage: React.ComponentType<HomePageProps>;
     ProductsPage: React.ComponentType<ProductsPageProps>;
     ProductDetailPage: React.ComponentType<ProductDetailPageProps>;
     CartPage: React.ComponentType<CartPageProps>;
     CheckoutPage: React.ComponentType<CheckoutPageProps>;
     NotFound: React.ComponentType<NotFoundProps>;
-    // 商品列表变体页面
+    // Product list variant pages
     BestsellersPage: React.ComponentType<BestsellersPageProps>;
     NewArrivalsPage: React.ComponentType<NewArrivalsPageProps>;
     CategoriesPage: React.ComponentType<CategoriesPageProps>;
     SearchPage: React.ComponentType<SearchPageProps>;
-    // 订单相关页面
+    // Order-related pages
     OrdersPage: React.ComponentType<OrdersPageProps>;
     OrderDetailPage: React.ComponentType<OrderDetailPageProps>;
     OrderSuccessPage: React.ComponentType<OrderSuccessPageProps>;
     OrderCancelledPage: React.ComponentType<OrderCancelledPageProps>;
-    // 用户中心页面
+    // User center pages
     ProfilePage: React.ComponentType<ProfilePageProps>;
     ProfileSettingsPage: React.ComponentType<ProfileSettingsPageProps>;
-    // 内容页面
+    // Content pages
     ContactPage: React.ComponentType<ContactPageProps>;
     HelpPage: React.ComponentType<HelpPageProps>;
     PrivacyPage: React.ComponentType<PrivacyPageProps>;
     TermsPage: React.ComponentType<TermsPageProps>;
-    // 特殊页面
+    // Special pages
     DealsPage: React.ComponentType<DealsPageProps>;
     AffiliateDashboardPage: React.ComponentType<AffiliateDashboardPageProps>;
-    // Auth 页面
+    // Auth pages
     LoginPage: React.ComponentType<LoginPageProps>;
     RegisterPage: React.ComponentType<RegisterPageProps>;
     AuthCallbackPage: React.ComponentType<AuthCallbackPageProps>;
-    // 布局组件
+    // Layout components
     Header: React.ComponentType<HeaderProps>;
     Footer: React.ComponentType<FooterProps>;
   };
 
-  // 可选：主题令牌（CSS 变量）
+  // Optional: Theme tokens (CSS variables)
   tokensCSS?: string | (() => Promise<string>);
 
-  // 可选：默认配置
+  // Optional: Default configuration
   defaultConfig?: ThemeConfig;
 }
 
 /**
- * 主题配置接口
- * 租户可以自定义这些配置来品牌化主题
+ * Theme Configuration Interface
+ * Tenants can customize these configurations to brand the theme
  */
 export interface ThemeConfig {
   brand?: {
@@ -172,7 +172,7 @@ export interface ThemeConfig {
 }
 
 /**
- * 首页组件 Props
+ * Home Page Component Props
  */
 export interface HomePageProps extends ThemeI18nProps {
   config?: ThemeConfig;
@@ -180,7 +180,7 @@ export interface HomePageProps extends ThemeI18nProps {
 }
 
 /**
- * 商品列表页组件 Props
+ * Products Page Component Props
  */
 export interface ProductsPageProps extends ThemeI18nProps {
   products: Product[];
@@ -199,7 +199,7 @@ export interface ProductsPageProps extends ThemeI18nProps {
 }
 
 /**
- * 商品详情页组件 Props
+ * Product Detail Page Component Props
  */
 export interface ProductDetailPageProps extends ThemeI18nProps {
   product: Product | null;
@@ -214,7 +214,7 @@ export interface ProductDetailPageProps extends ThemeI18nProps {
 }
 
 /**
- * 购物车页组件 Props
+ * Cart Page Component Props
  */
 export interface CartPageProps extends ThemeI18nProps {
   cart: Cart;
@@ -227,22 +227,24 @@ export interface CartPageProps extends ThemeI18nProps {
 }
 
 /**
- * 结账表单数据
+ * Checkout Form Data
+ * ✅ Aligned with backend OrderService.createOrder shippingAddress schema
  */
 export interface CheckoutFormData {
   email: string;
   firstName: string;
   lastName: string;
-  address: string;
+  phone: string;  // ✅ Required by backend
+  addressLine1: string;  // ✅ Backend uses addressLine1, not address
   city: string;
+  state: string;  // ✅ Required by backend
   postalCode: string;
   country: string;
-  phone: string;
   paymentMethod: string;
 }
 
 /**
- * 结账页组件 Props
+ * Checkout Page Component Props
  */
 export interface CheckoutPageProps extends ThemeI18nProps {
   cart: Cart;
@@ -254,7 +256,7 @@ export interface CheckoutPageProps extends ThemeI18nProps {
 }
 
 /**
- * 404 页面组件 Props
+ * 404 Page Component Props
  */
 export interface NotFoundProps extends ThemeI18nProps {
   route?: string;
@@ -264,7 +266,7 @@ export interface NotFoundProps extends ThemeI18nProps {
 }
 
 /**
- * 畅销品页面组件 Props
+ * Bestsellers Page Component Props
  */
 export interface BestsellersPageProps extends ThemeI18nProps {
   products: Product[];
@@ -281,7 +283,7 @@ export interface BestsellersPageProps extends ThemeI18nProps {
 }
 
 /**
- * 新品上市页面组件 Props
+ * New Arrivals Page Component Props
  */
 export interface NewArrivalsPageProps extends ThemeI18nProps {
   products: Product[];
@@ -298,7 +300,7 @@ export interface NewArrivalsPageProps extends ThemeI18nProps {
 }
 
 /**
- * 分类页面组件 Props
+ * Categories Page Component Props
  */
 export interface CategoriesPageProps extends ThemeI18nProps {
   categories: Array<{
@@ -317,7 +319,7 @@ export interface CategoriesPageProps extends ThemeI18nProps {
 }
 
 /**
- * 搜索结果页面组件 Props
+ * Search Page Component Props
  */
 export interface SearchPageProps extends ThemeI18nProps {
   products: Product[];
@@ -341,7 +343,7 @@ export interface SearchPageProps extends ThemeI18nProps {
 }
 
 /**
- * 订单列表页面组件 Props
+ * Orders Page Component Props
  */
 export interface OrdersPageProps extends ThemeI18nProps {
   orders: Order[];
@@ -352,12 +354,11 @@ export interface OrdersPageProps extends ThemeI18nProps {
   config?: ThemeConfig;
   onPageChange: (page: number) => void;
   onOrderClick: (orderId: string) => void;
-  onRetryPayment: (orderId: string) => Promise<void>;
   onCancelOrder: (orderId: string) => Promise<void>;
 }
 
 /**
- * 订单详情页面组件 Props
+ * Order Detail Page Component Props
  */
 export interface OrderDetailPageProps extends ThemeI18nProps {
   order: Order | null;
@@ -365,12 +366,11 @@ export interface OrderDetailPageProps extends ThemeI18nProps {
   config?: ThemeConfig;
   onBack?: () => void;
   onBackToOrders?: () => void;
-  onRetryPayment?: (paymentMethod: string) => Promise<void>;
   onCancelOrder?: () => Promise<void>;
 }
 
 /**
- * 订单成功页面组件 Props
+ * Order Success Page Component Props
  */
 export interface OrderSuccessPageProps extends ThemeI18nProps {
   orderNumber: string;
@@ -381,7 +381,7 @@ export interface OrderSuccessPageProps extends ThemeI18nProps {
 }
 
 /**
- * 订单取消页面组件 Props
+ * Order Cancelled Page Component Props
  */
 export interface OrderCancelledPageProps extends ThemeI18nProps {
   config?: ThemeConfig;
@@ -391,7 +391,7 @@ export interface OrderCancelledPageProps extends ThemeI18nProps {
 }
 
 /**
- * 用户个人资料页面组件 Props
+ * Profile Page Component Props
  */
 export interface ProfilePageProps extends ThemeI18nProps {
   user: {
@@ -410,7 +410,7 @@ export interface ProfilePageProps extends ThemeI18nProps {
 }
 
 /**
- * 用户设置页面组件 Props
+ * Profile Settings Page Component Props
  */
 export interface ProfileSettingsPageProps extends ThemeI18nProps {
   user: {
@@ -441,7 +441,7 @@ export interface ProfileSettingsPageProps extends ThemeI18nProps {
 }
 
 /**
- * 联系我们页面组件 Props
+ * Contact Page Component Props
  */
 export interface ContactPageProps extends ThemeI18nProps {
   config?: ThemeConfig;
@@ -454,7 +454,7 @@ export interface ContactPageProps extends ThemeI18nProps {
 }
 
 /**
- * 帮助中心页面组件 Props
+ * Help Page Component Props
  */
 export interface HelpPageProps extends ThemeI18nProps {
   config?: ThemeConfig;
@@ -463,21 +463,21 @@ export interface HelpPageProps extends ThemeI18nProps {
 }
 
 /**
- * 隐私政策页面组件 Props
+ * Privacy Page Component Props
  */
 export interface PrivacyPageProps extends ThemeI18nProps {
   config?: ThemeConfig;
 }
 
 /**
- * 服务条款页面组件 Props
+ * Terms Page Component Props
  */
 export interface TermsPageProps extends ThemeI18nProps {
   config?: ThemeConfig;
 }
 
 /**
- * 特价商品页面组件 Props
+ * Deals Page Component Props
  */
 export interface DealsPageProps extends ThemeI18nProps {
   products: Product[];
@@ -489,7 +489,7 @@ export interface DealsPageProps extends ThemeI18nProps {
 }
 
 /**
- * 联盟仪表板页面组件 Props
+ * Affiliate Dashboard Page Component Props
  */
 export interface AffiliateDashboardPageProps extends ThemeI18nProps {
   referralCode: string;
@@ -523,7 +523,7 @@ export interface AffiliateDashboardPageProps extends ThemeI18nProps {
 }
 
 /**
- * 登录页面组件 Props
+ * Login Page Component Props
  */
 export interface LoginPageProps extends ThemeI18nProps {
   isLoading: boolean;
@@ -536,7 +536,7 @@ export interface LoginPageProps extends ThemeI18nProps {
 }
 
 /**
- * 注册页面组件 Props
+ * Register Page Component Props
  */
 export interface RegisterPageProps extends ThemeI18nProps {
   isLoading: boolean;
@@ -554,7 +554,7 @@ export interface RegisterPageProps extends ThemeI18nProps {
 }
 
 /**
- * Auth 回调页面组件 Props
+ * Auth Callback Page Component Props
  */
 export interface AuthCallbackPageProps extends ThemeI18nProps {
   provider: string;
@@ -566,7 +566,7 @@ export interface AuthCallbackPageProps extends ThemeI18nProps {
 }
 
 /**
- * Header 布局组件 Props
+ * Header Layout Component Props
  */
 export interface HeaderProps extends ThemeI18nProps {
   isAuthenticated: boolean;
@@ -582,7 +582,7 @@ export interface HeaderProps extends ThemeI18nProps {
   onNavigate?: (path: string) => void;
   onLogout: () => void;
   onLogin?: () => void;
-  // 导航回调
+  // Navigation callbacks
   onNavigateToCart: () => void;
   onNavigateToProfile: () => void;
   onNavigateToLogin: () => void;
@@ -594,12 +594,12 @@ export interface HeaderProps extends ThemeI18nProps {
 }
 
 /**
- * Footer 布局组件 Props
+ * Footer Layout Component Props
  */
 export interface FooterProps extends ThemeI18nProps {
   config?: ThemeConfig;
   onNavigate?: (path: string) => void;
-  // 导航回调
+  // Navigation callbacks
   onNavigateToProducts: () => void;
   onNavigateToCategories: () => void;
   onNavigateToDeals: () => void;

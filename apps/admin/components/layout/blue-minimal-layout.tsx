@@ -48,8 +48,7 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
       'finance': { key: 'common.labels.finance', fallback: 'Finance' },
       'plugins': { key: 'merchant.plugins.title', fallback: 'Plugin Store' },
       'settings': { key: 'merchant.settings.title', fallback: 'Settings' },
-      'agents': { key: 'merchant.agent.title', fallback: 'Agents' },
-      'licenses': { key: 'common.labels.licenses', fallback: 'Licenses' }
+      'agents': { key: 'merchant.agent.title', fallback: 'Agents' }
     }
 
     const pageInfo = pageMap[filteredSegments[0]]

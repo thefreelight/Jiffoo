@@ -72,7 +72,6 @@ export const API_ENDPOINTS = {
 export const USER_ROLES = {
   USER: 'USER',
   ADMIN: 'ADMIN',
-  SUPER_ADMIN: 'SUPER_ADMIN',
 } as const;
 
 export const ORDER_STATUS = {
@@ -110,9 +109,9 @@ export const CURRENCIES = {
 
 export const LANGUAGES = {
   EN: { code: 'en-US', name: 'English', nativeName: 'English' },
-  ZH: { code: 'zh-CN', name: 'Chinese', nativeName: '简体中文' },
-  JA: { code: 'ja-JP', name: 'Japanese', nativeName: '日本語' },
-  KO: { code: 'ko-KR', name: 'Korean', nativeName: '한국어' },
+  ZH: { code: 'zh-CN', name: 'Chinese', nativeName: 'Simplified Chinese' },
+  JA: { code: 'ja-JP', name: 'Japanese', nativeName: 'Japanese' },
+  KO: { code: 'ko-KR', name: 'Korean', nativeName: 'Korean' },
   ES: { code: 'es-ES', name: 'Spanish', nativeName: 'Español' },
   FR: { code: 'fr-FR', name: 'French', nativeName: 'Français' },
 } as const;

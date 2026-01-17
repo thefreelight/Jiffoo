@@ -7,7 +7,7 @@
  */
 'use client'
 
-import { AlertTriangle, Box, CheckCircle, Plus, Settings, Trash2, TrendingUp } from 'lucide-react'
+import { AlertTriangle, Box, CheckCircle, Plus, Settings, Trash2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -19,7 +19,6 @@ import { PluginStatusBadge } from '@/components/plugins/PluginStatusBadge'
 import { PageNav } from '@/components/layout/page-nav'
 import { useInstalledPlugins, useTogglePlugin, useUninstallPlugin } from '@/lib/hooks/use-api'
 import { pluginsApi } from '@/lib/api'
-import { useQuery } from '@tanstack/react-query'
 import { useT } from 'shared/src/i18n/react'
 
 import {
@@ -31,61 +30,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
-// Component to display plugin usage info
-function PluginUsageInfo({ slug, getText }: { slug: string; getText: (key: string, fallback: string) => string }) {
-  const { data: usageData, isLoading } = useQuery({
-    queryKey: ['plugin-usage', slug],
-    queryFn: async () => {
-      try {
-        const response = await pluginsApi.getPluginUsage(slug)
-        return response.data || null
-      } catch {
-        return null
-      }
-    },
-    staleTime: 60000, // Cache for 1 minute
-  })
-
-  if (isLoading || !usageData) return null
-
-  const { used, limit, percentage } = usageData
-  if (typeof used !== 'number' || typeof limit !== 'number') return null
-
-  const usagePercent = percentage || Math.round((used / limit) * 100)
-  const isNearLimit = usagePercent >= 80
-  const isAtLimit = usagePercent >= 100
-
-  return (
-    <div className="mt-3 pt-3 border-t border-gray-100">
-      <div className="flex items-center gap-2 mb-1">
-        <TrendingUp className="w-4 h-4 text-gray-500" />
-        <span className="text-sm font-medium text-gray-700">
-          {getText('merchant.plugins.installedPage.usage', 'Usage')}
-        </span>
-      </div>
-      <div className="flex items-center gap-3">
-        <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all ${
-              isAtLimit ? 'bg-red-500' : isNearLimit ? 'bg-yellow-500' : 'bg-green-500'
-            }`}
-            style={{ width: `${Math.min(usagePercent, 100)}%` }}
-          />
-        </div>
-        <span className={`text-sm font-medium ${isAtLimit ? 'text-red-600' : isNearLimit ? 'text-yellow-600' : 'text-gray-600'}`}>
-          {used.toLocaleString()} / {limit.toLocaleString()}
-        </span>
-      </div>
-      {isNearLimit && (
-        <p className="text-xs text-yellow-600 mt-1">
-          {isAtLimit
-            ? getText('merchant.plugins.installedPage.limitReached', 'Usage limit reached. Consider upgrading your plan.')
-            : getText('merchant.plugins.installedPage.nearLimit', 'Approaching usage limit.')}
-        </p>
-      )}
-    </div>
-  )
-}
+// Plugin usage tracking removed for Alpha Gate (not needed in open-source version)
 
 export default function InstalledPluginsPage() {
   const t = useT()
@@ -97,26 +42,30 @@ export default function InstalledPluginsPage() {
     return translated === key ? fallback : translated
   }
 
-  // Page navigation items for Plugins module
   const navItems = [
     { label: getText('merchant.plugins.overview', 'Overview'), href: '/plugins', exact: true },
-    { label: getText('merchant.plugins.marketplace', 'Marketplace'), href: '/plugins/marketplace' },
     { label: getText('merchant.plugins.installed', 'Installed'), href: '/plugins/installed' },
   ]
   const [uninstallDialogOpen, setUninstallDialogOpen] = useState(false)
   const [selectedPlugin, setSelectedPlugin] = useState<any>(null)
   const [installSuccess, setInstallSuccess] = useState(false)
+
+  // Upload State
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false)
+  const [uploadFile, setUploadFile] = useState<File | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
+
   const searchParams = useSearchParams()
 
   const { data: installedData, isLoading, error } = useInstalledPlugins()
 
-  // 处理 OAuth 安装成功回调
+  // Handle OAuth installation success callback
   useEffect(() => {
     if (searchParams.get('install') === 'success') {
       setInstallSuccess(true)
-      // 3秒后自动隐藏成功提示
+      // Auto hide success toast after 3 seconds
       const timer = setTimeout(() => setInstallSuccess(false), 5000)
-      // 清理 URL 参数
+      // Clear URL parameters
       window.history.replaceState({}, '', '/plugins/installed')
       return () => clearTimeout(timer)
     }
@@ -134,6 +83,31 @@ export default function InstalledPluginsPage() {
       })
     } catch (error) {
       console.error('Failed to toggle plugin:', error)
+    }
+  }
+
+  const handleUpload = async () => {
+    if (!uploadFile) return
+
+    try {
+      setIsUploading(true)
+      const response = await pluginsApi.installFromZip(uploadFile)
+
+      if (response.success) {
+        setInstallSuccess(true)
+        setUploadDialogOpen(false)
+        setUploadFile(null)
+        // Auto hide success toast after 3 seconds
+        const timer = setTimeout(() => setInstallSuccess(false), 5000)
+        // Ideally reload data here
+        // window.location.reload()
+      } else {
+        console.error('Upload failed:', response.message)
+      }
+    } catch (error) {
+      console.error('Plugin upload failed:', error)
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -210,11 +184,9 @@ export default function InstalledPluginsPage() {
               {getText('merchant.plugins.installedPage.subtitle', 'Manage your installed plugins and their configurations')}
             </p>
           </div>
-          <Button className="bg-gray-900 hover:bg-gray-800" asChild>
-            <Link href="/plugins/marketplace">
-              <Plus className="w-4 h-4 mr-2" />
-              {getText('merchant.plugins.browseMarketplace', 'Browse Marketplace')}
-            </Link>
+          <Button onClick={() => setUploadDialogOpen(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            {getText('merchant.plugins.uploadZip', 'Upload ZIP')}
           </Button>
         </div>
         {/* In-page Navigation */}
@@ -266,11 +238,11 @@ export default function InstalledPluginsPage() {
               <Box className="w-12 h-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">{getText('merchant.plugins.installedPage.noPlugins', 'No Plugins Installed')}</h3>
               <p className="text-gray-600 mb-4">
-                {getText('merchant.plugins.installedPage.getStarted', 'Get started by installing plugins from the marketplace')}
+                {getText('merchant.plugins.installedPage.getStarted', 'Get started by using Offline ZIP Installation')}
               </p>
-              <Button asChild>
-                <Link href="/plugins/marketplace">{getText('merchant.plugins.browseMarketplace', 'Browse Marketplace')}</Link>
-              </Button>
+              <p className="text-sm text-gray-500">
+                {getText('merchant.plugins.installedPage.offlineInstallHint', 'Use offline ZIP upload to install plugins')}
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -298,15 +270,9 @@ export default function InstalledPluginsPage() {
                         <span>{getText('merchant.plugins.installedPage.version', 'Version')}: {installation.plugin.version}</span>
                         <span>•</span>
                         <span>{getText('merchant.plugins.installedPage.installedDate', 'Installed')}: {new Date(installation.installedAt).toLocaleDateString()}</span>
-                        {installation.subscription && (
-                          <>
-                            <span>•</span>
-                            <span>{getText('merchant.plugins.installedPage.plan', 'Plan')}: {installation.subscription.planId}</span>
-                          </>
-                        )}
+                        {/* Subscription Info - Removed for Alpha Gate */}
                       </div>
-                      {/* Plugin Usage Info */}
-                      <PluginUsageInfo slug={installation.plugin.slug} getText={getText} />
+                      {/* Plugin Usage Info - Removed for Alpha Gate */}
                     </div>
                   </div>
 
@@ -380,7 +346,41 @@ export default function InstalledPluginsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Upload ZIP Dialog */}
+      <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{getText('merchant.plugins.uploadZipTitle', 'Install Plugin from ZIP')}</DialogTitle>
+            <DialogDescription>
+              {getText('merchant.plugins.uploadZipDesc', 'Upload a plugin ZIP bundle to install it offline.')}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid w-full max-w-sm items-center gap-1.5">
+              <input
+                type="file"
+                accept=".zip"
+                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm text-gray-600 file:border-0 file:bg-gray-100 file:mr-4 file:py-2 file:px-4 file:rounded-md file:text-sm file:font-semibold hover:file:bg-gray-200"
+              />
+            </div>
+            {uploadFile && (
+              <p className="text-sm text-gray-500">
+                Selected: {uploadFile.name} ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUploadDialogOpen(false)}>
+              {getText('merchant.plugins.cancel', 'Cancel')}
+            </Button>
+            <Button onClick={handleUpload} disabled={!uploadFile || isUploading}>
+              {isUploading ? 'Uploading...' : getText('merchant.plugins.install', 'Install')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
-

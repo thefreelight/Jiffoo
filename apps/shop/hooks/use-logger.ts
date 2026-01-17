@@ -14,8 +14,8 @@ export interface UseLoggerOptions {
 export interface LoggerHook {
   logger: ILogger;
   log: typeof log;
-  
-  // 便捷方法
+
+  // Convenience methods
   logUserAction: (action: string, details?: any) => void;
   logError: (error: Error | string, context?: any) => void;
   logPageView: (page?: string) => void;
@@ -25,12 +25,12 @@ export interface LoggerHook {
 }
 
 /**
- * useLogger Hook - 为 React 组件提供日志功能
+ * useLogger Hook - Provides logging functionality for React components
  */
 export function useLogger(options: UseLoggerOptions = {}): LoggerHook {
   const { component, page, feature } = options;
 
-  // 创建带有组件上下文的日志方法
+  // Create logging methods with component context
   const logWithContext = useCallback((level: 'debug' | 'info' | 'warn' | 'error', message: string, meta: any = {}) => {
     const contextMeta = {
       ...meta,
@@ -39,11 +39,11 @@ export function useLogger(options: UseLoggerOptions = {}): LoggerHook {
       feature,
       timestamp: new Date().toISOString()
     };
-    
+
     logger[level](message, contextMeta);
   }, [component, page, feature]);
 
-  // 用户操作日志
+  // User action logs
   const logUserAction = useCallback((action: string, details?: any) => {
     logWithContext('info', 'User Action', {
       type: 'user_action',
@@ -52,7 +52,7 @@ export function useLogger(options: UseLoggerOptions = {}): LoggerHook {
     });
   }, [logWithContext]);
 
-  // 错误日志
+  // Error logs
   const logError = useCallback((error: Error | string, context?: any) => {
     logWithContext('error', typeof error === 'string' ? error : error.message, {
       type: 'component_error',
@@ -65,10 +65,10 @@ export function useLogger(options: UseLoggerOptions = {}): LoggerHook {
     });
   }, [logWithContext]);
 
-  // 页面浏览日志
+  // Page view logs
   const logPageView = useCallback((pageName?: string) => {
     const currentPage = pageName || page || (typeof window !== 'undefined' ? window.location.pathname : 'unknown');
-    
+
     logWithContext('info', 'Page View', {
       type: 'page_view',
       page: currentPage,
@@ -76,7 +76,7 @@ export function useLogger(options: UseLoggerOptions = {}): LoggerHook {
     });
   }, [logWithContext, page]);
 
-  // API 调用日志
+  // API call logs
   const logApiCall = useCallback((endpoint: string, method: string, status: number, duration: number) => {
     const level = status >= 400 ? 'warn' : 'info';
     logWithContext(level, 'API Call', {
@@ -88,7 +88,7 @@ export function useLogger(options: UseLoggerOptions = {}): LoggerHook {
     });
   }, [logWithContext]);
 
-  // 性能日志
+  // Performance logs
   const logPerformance = useCallback((metric: string, value: number, details?: any) => {
     logger.logPerformance(metric, value, {
       component,
@@ -99,7 +99,7 @@ export function useLogger(options: UseLoggerOptions = {}): LoggerHook {
     });
   }, [component, page, feature]);
 
-  // 电商事件日志
+  // Ecommerce event logs
   const logEcommerce = useCallback((event: string, details: any) => {
     logger.logBusiness(event, {
       category: 'ecommerce',

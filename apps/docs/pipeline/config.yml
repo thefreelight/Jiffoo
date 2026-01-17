@@ -1,0 +1,8 @@
+service_name: "docs"
+version: "v1.0"
+registry: "harbor.lafdru.local"
+project: "public/jiffoo-mall"
+image_name: "docs"
+dockerfile_path: "apps/docs/Dockerfile"
+build_context: "."
+gitops_deployment_path: "jiffoo-mall"

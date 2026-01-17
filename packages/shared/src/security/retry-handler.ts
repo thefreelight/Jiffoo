@@ -1,24 +1,24 @@
 /**
- * Retry Handler - 重试处理器（指数退避算法）
+ * Retry Handler - Retry Logic with Exponential Backoff
  */
 
 export interface RetryConfig {
-  /** 最大重试次数 */
-  maxRetries: number;
-  /** 初始延迟（毫秒） */
-  initialDelay: number;
-  /** 最大延迟（毫秒） */
-  maxDelay: number;
-  /** 退避倍数 */
+  /** Max retry attempts */
+  maxRetries?: number;
+  /** Initial delay (ms) */
+  initialDelay?: number;
+  /** Max delay (ms) */
+  maxDelay?: number;
+  /** Backoff multiplier */
   backoffMultiplier?: number;
-  /** 是否添加随机抖动 */
+  /** Whether to add random jitter */
   jitter?: boolean;
-  /** 可重试的错误类型 */
-  retryableErrors?: (new (...args: unknown[]) => Error)[];
-  /** 自定义重试判断函数 */
-  shouldRetry?: (error: Error, attempt: number) => boolean;
-  /** 重试前回调 */
-  onRetry?: (error: Error, attempt: number, delay: number) => void;
+  /** Retryable error types */
+  retryableErrors?: Array<string | RegExp>;
+  /** Custom retry predicate */
+  shouldRetry?: (error: any, attempt: number) => boolean;
+  /** Callback before retry */
+  onRetry?: (error: any, attempt: number, delay: number) => void;
 }
 
 export interface RetryResult<T> {
@@ -30,7 +30,7 @@ export interface RetryResult<T> {
 }
 
 /**
- * 计算指数退避延迟
+ * Calculate exponential backoff delay
  */
 function calculateDelay(
   attempt: number,
@@ -39,45 +39,45 @@ function calculateDelay(
   multiplier: number,
   jitter: boolean
 ): number {
-  // 指数退避: initialDelay * multiplier^attempt
+  // Exponential backoff: initialDelay * multiplier^attempt
   let delay = initialDelay * Math.pow(multiplier, attempt);
 
-  // 添加随机抖动 (±25%)
+  // Add jitter (±25%)
   if (jitter) {
     const jitterFactor = 0.75 + Math.random() * 0.5;
     delay *= jitterFactor;
   }
 
-  // 不超过最大延迟
+  // Do not exceed max delay
   return Math.min(delay, maxDelay);
 }
 
 /**
- * 默认可重试错误类型
+ * Default retryable error types
  */
-const DEFAULT_RETRYABLE_ERRORS: (new (...args: unknown[]) => Error)[] = [];
+const DEFAULT_RETRYABLE_ERRORS: Array<string | RegExp> = [];
 
 /**
- * Retry Handler 类
+ * Retry Handler class
  */
 export class RetryHandler {
   private config: Required<RetryConfig>;
 
   constructor(config: RetryConfig) {
     this.config = {
-      maxRetries: config.maxRetries,
-      initialDelay: config.initialDelay,
-      maxDelay: config.maxDelay,
+      maxRetries: config.maxRetries ?? 3,
+      initialDelay: config.initialDelay ?? 1000,
+      maxDelay: config.maxDelay ?? 10000,
       backoffMultiplier: config.backoffMultiplier ?? 2,
       jitter: config.jitter ?? true,
       retryableErrors: config.retryableErrors ?? DEFAULT_RETRYABLE_ERRORS,
       shouldRetry: config.shouldRetry ?? this.defaultShouldRetry.bind(this),
-      onRetry: config.onRetry ?? (() => {}),
+      onRetry: config.onRetry ?? (() => { }),
     };
   }
 
   /**
-   * 执行带重试的函数
+   * Execute function with retry
    */
   async execute<T>(fn: () => Promise<T>): Promise<RetryResult<T>> {
     let lastError: Error | undefined;
@@ -90,7 +90,7 @@ export class RetryHandler {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
-        // 检查是否应该重试
+        // Check if should retry
         if (attempt < this.config.maxRetries && this.config.shouldRetry(lastError, attempt)) {
           const delay = calculateDelay(
             attempt,
@@ -117,12 +117,18 @@ export class RetryHandler {
   }
 
   /**
-   * 默认重试判断
+   * Default retry judgment
    */
   private defaultShouldRetry(error: Error, _attempt: number): boolean {
-    // 检查是否是可重试的错误类型
-    return this.config.retryableErrors.some((ErrorClass) => error instanceof ErrorClass) ||
-      this.isNetworkError(error) || this.isTimeoutError(error);
+    // Check if it is a retryable error type
+    const matchesRetryable = this.config.retryableErrors.some((pattern) => {
+      if (typeof pattern === 'string') {
+        return error.message.includes(pattern);
+      }
+      return pattern.test(error.message);
+    });
+
+    return matchesRetryable || this.isNetworkError(error) || this.isTimeoutError(error);
   }
 
   private isNetworkError(error: Error): boolean {
@@ -139,7 +145,7 @@ export class RetryHandler {
   }
 
   /**
-   * 获取计算的延迟时间（用于测试）
+   * Get calculated delay (for testing)
    */
   getDelay(attempt: number): number {
     return calculateDelay(
@@ -147,20 +153,20 @@ export class RetryHandler {
       this.config.initialDelay,
       this.config.maxDelay,
       this.config.backoffMultiplier,
-      false // 不包含抖动
+      false // Without jitter
     );
   }
 }
 
-// 预定义配置
+// Predefined configuration
 export const RetryPresets = {
-  /** 快速重试: 3次, 100ms起始 */
+  /** Fast retry: 3 attempts, 100ms start */
   fast: { maxRetries: 3, initialDelay: 100, maxDelay: 1000 },
-  /** 标准重试: 3次, 1s起始 */
+  /** Standard retry: 3 attempts, 1s start */
   standard: { maxRetries: 3, initialDelay: 1000, maxDelay: 10000 },
-  /** 耐心重试: 5次, 2s起始 */
+  /** Patient retry: 5 attempts, 2s start */
   patient: { maxRetries: 5, initialDelay: 2000, maxDelay: 30000 },
-  /** 外部服务: 4次, 500ms起始 */
+  /** External service: 4 attempts, 500ms start */
   externalService: { maxRetries: 4, initialDelay: 500, maxDelay: 15000 },
 } as const;
 

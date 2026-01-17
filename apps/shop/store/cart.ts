@@ -6,12 +6,12 @@ import type { Cart, CartItem } from 'shared/src/types/cart';
 // Re-export types for convenience
 export type { Cart, CartItem };
 
-// 本地购物车商品接口（用于访客购物车）
+// Local cart item interface (used for guest cart)
 interface LocalCartItem {
   productId: string;
   quantity: number;
   variantId?: string;
-  // 缓存的商品信息，用于显示
+  // Cached product info for display
   productName?: string;
   productImage?: string;
   price?: number;
@@ -19,7 +19,7 @@ interface LocalCartItem {
 
 interface CartState {
   cart: Cart;
-  localCart: LocalCartItem[]; // 访客购物车（本地存储）
+  localCart: LocalCartItem[]; // Guest cart (local storage)
   isLoading: boolean;
   error: string | null;
   isOpen: boolean;
@@ -31,14 +31,14 @@ interface CartActions {
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
-  resetCart: () => void; // 本地重置购物车（不调用API）
+  resetCart: () => void; // Local reset of cart (no API call)
   toggleCart: () => void;
   openCart: () => void;
   closeCart: () => void;
   clearError: () => void;
-  // 访客购物车相关
-  mergeGuestCart: () => Promise<void>; // 登录后合并访客购物车
-  isLoggedIn: () => boolean; // 检查是否已登录
+  // Guest cart related
+  mergeGuestCart: () => Promise<void>; // Merge guest cart after login
+  isLoggedIn: () => boolean; // Check if logged in
 }
 
 const initialCart: Cart = {
@@ -53,10 +53,10 @@ const initialCart: Cart = {
   updatedAt: new Date().toISOString(),
 };
 
-// 将本地购物车转换为显示用的 Cart 格式
+// Convert local cart to display format Cart
 const localCartToDisplayCart = (localCart: LocalCartItem[]): Cart => {
   const items: CartItem[] = localCart.map((item, index) => ({
-    id: `local-${index}`, // 本地 ID
+    id: `local-${index}`, // Local ID
     productId: item.productId,
     productName: item.productName || 'Loading...',
     productImage: item.productImage || '',
@@ -65,7 +65,7 @@ const localCartToDisplayCart = (localCart: LocalCartItem[]): Cart => {
     variantId: item.variantId,
     maxQuantity: 99,
     subtotal: (item.price || 0) * item.quantity,
-    isAvailable: true, // 本地购物车默认可用
+    isAvailable: true, // Local cart items are available by default
   }));
 
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
@@ -88,12 +88,12 @@ export const useCartStore = create<CartState & CartActions>()(
     (set, get) => ({
       // State
       cart: initialCart,
-      localCart: [], // 访客购物车
+      localCart: [], // Guest cart
       isLoading: false,
       error: null,
       isOpen: false,
 
-      // 检查是否已登录
+      // Check if logged in
       isLoggedIn: () => {
         if (typeof window === 'undefined') return false;
         return !!localStorage.getItem('auth_token');
@@ -103,7 +103,7 @@ export const useCartStore = create<CartState & CartActions>()(
       fetchCart: async () => {
         const { isLoggedIn, localCart } = get();
 
-        // 未登录时，使用本地购物车
+        // Use local cart when not logged in
         if (!isLoggedIn()) {
           console.debug('No auth token, using local cart');
           set({
@@ -113,7 +113,7 @@ export const useCartStore = create<CartState & CartActions>()(
           return;
         }
 
-        // 已登录时，从服务器获取购物车
+        // Fetch cart from server when logged in
         try {
           set({ isLoading: true, error: null });
           const response = await cartApi.getCart();
@@ -138,33 +138,33 @@ export const useCartStore = create<CartState & CartActions>()(
       addToCart: async (productId: string, quantity: number, variantId?: string, productInfo?: { name: string; image: string; price: number }) => {
         const { isLoggedIn, localCart } = get();
 
-        // 未登录时，添加到本地购物车
+        // Add to local cart when not logged in
         if (!isLoggedIn()) {
           try {
             set({ isLoading: true, error: null });
 
-            // 检查是否已存在
+            // Check if already exists
             const existingIndex = localCart.findIndex(
               item => item.productId === productId && item.variantId === variantId
             );
 
             let newLocalCart: LocalCartItem[];
             if (existingIndex >= 0) {
-              // 更新数量
+              // Update quantity
               newLocalCart = [...localCart];
               newLocalCart[existingIndex] = {
                 ...newLocalCart[existingIndex],
                 quantity: newLocalCart[existingIndex].quantity + quantity,
               };
             } else {
-              // 获取商品信息（如果没有提供）
+              // Fetch product info if not provided
               let info = productInfo;
               if (!info) {
                 try {
                   const productResponse = await productsApi.getProduct(productId);
                   if (productResponse.success && productResponse.data) {
                     const product = productResponse.data;
-                    // 处理图片，可能是字符串或 ProductImage 对象
+                    // Handle image, could be string or ProductImage object
                     let imageUrl = '';
                     if (Array.isArray(product.images) && product.images.length > 0) {
                       const firstImage = product.images[0];
@@ -185,7 +185,7 @@ export const useCartStore = create<CartState & CartActions>()(
                 }
               }
 
-              // 添加新商品
+              // Add new product
               newLocalCart = [...localCart, {
                 productId,
                 quantity,
@@ -215,7 +215,7 @@ export const useCartStore = create<CartState & CartActions>()(
           return;
         }
 
-        // 已登录时，调用 API
+        // Call API when logged in
         try {
           set({ isLoading: true, error: null });
           const response = await cartApi.addToCart(productId, quantity, variantId);
@@ -242,14 +242,14 @@ export const useCartStore = create<CartState & CartActions>()(
       updateQuantity: async (itemId: string, quantity: number) => {
         const { isLoggedIn, localCart } = get();
 
-        // 未登录时，更新本地购物车
+        // Update local cart when not logged in
         if (!isLoggedIn()) {
           if (quantity <= 0) {
             await get().removeItem(itemId);
             return;
           }
 
-          // itemId 格式: local-{index}
+          // itemId format: local-{index}
           const index = parseInt(itemId.replace('local-', ''), 10);
           if (!isNaN(index) && index >= 0 && index < localCart.length) {
             const newLocalCart = [...localCart];
@@ -262,7 +262,7 @@ export const useCartStore = create<CartState & CartActions>()(
           return;
         }
 
-        // 已登录时，调用 API
+        // Call API when logged in
         try {
           set({ isLoading: true, error: null });
 
@@ -294,7 +294,7 @@ export const useCartStore = create<CartState & CartActions>()(
       removeItem: async (itemId: string) => {
         const { isLoggedIn, localCart } = get();
 
-        // 未登录时，从本地购物车删除
+        // Remove from local cart when not logged in
         if (!isLoggedIn()) {
           const index = parseInt(itemId.replace('local-', ''), 10);
           if (!isNaN(index) && index >= 0 && index < localCart.length) {
@@ -307,7 +307,7 @@ export const useCartStore = create<CartState & CartActions>()(
           return;
         }
 
-        // 已登录时，调用 API
+        // Call API when logged in
         try {
           set({ isLoading: true, error: null });
           const response = await cartApi.removeFromCart(itemId);
@@ -333,7 +333,7 @@ export const useCartStore = create<CartState & CartActions>()(
       clearCart: async () => {
         const { isLoggedIn } = get();
 
-        // 未登录时，清空本地购物车
+        // Clear local cart when not logged in
         if (!isLoggedIn()) {
           set({
             localCart: [],
@@ -342,7 +342,7 @@ export const useCartStore = create<CartState & CartActions>()(
           return;
         }
 
-        // 已登录时，调用 API
+        // Call API when logged in
         try {
           set({ isLoading: true, error: null });
           const response = await cartApi.clearCart();
@@ -365,13 +365,13 @@ export const useCartStore = create<CartState & CartActions>()(
         }
       },
 
-      // 登录后合并访客购物车到用户购物车
+      // Merge guest cart into user cart after login
       mergeGuestCart: async () => {
         const { localCart } = get();
 
         if (localCart.length === 0) {
           console.log('No local cart items to merge');
-          // 直接获取用户购物车
+          // Fetch user cart directly
           await get().fetchCart();
           return;
         }
@@ -381,7 +381,7 @@ export const useCartStore = create<CartState & CartActions>()(
         try {
           set({ isLoading: true, error: null });
 
-          // 逐个添加本地购物车商品到服务器
+          // Add guest cart items to server one by one
           for (const item of localCart) {
             try {
               await cartApi.addToCart(item.productId, item.quantity, item.variantId);
@@ -390,10 +390,10 @@ export const useCartStore = create<CartState & CartActions>()(
             }
           }
 
-          // 清空本地购物车
+          // Clear local cart
           set({ localCart: [] });
 
-          // 获取合并后的购物车
+          // Get merged cart
           await get().fetchCart();
 
           console.log('✅ Guest cart merged successfully');
@@ -405,7 +405,7 @@ export const useCartStore = create<CartState & CartActions>()(
         }
       },
 
-      // 本地重置购物车（用于租户切换，不调用API）
+      // Local reset of cart (for tenant switching, no API call)
       resetCart: () => {
         set({
           cart: initialCart,
@@ -436,7 +436,7 @@ export const useCartStore = create<CartState & CartActions>()(
       name: 'cart-storage',
       partialize: (state) => ({
         cart: state.cart,
-        localCart: state.localCart, // 持久化本地购物车
+        localCart: state.localCart, // Persist local cart
       }),
     }
   )

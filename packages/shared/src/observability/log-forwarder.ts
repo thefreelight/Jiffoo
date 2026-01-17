@@ -1,16 +1,16 @@
 /**
- * Log Forwarder - 日志转发器
+ * Log Forwarder
  * 
- * 将日志批量发送到集中日志系统（如 Loki）
+ * Batch send logs to centralized logging system (e.g. Loki)
  */
 
 /**
- * 日志级别
+ * Log level
  */
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal';
 
 /**
- * 日志条目
+ * Log entry
  */
 export interface LogEntry {
   timestamp: string;
@@ -21,7 +21,7 @@ export interface LogEntry {
 }
 
 /**
- * Loki 推送格式
+ * Loki push payload
  */
 export interface LokiPushPayload {
   streams: Array<{
@@ -31,27 +31,27 @@ export interface LokiPushPayload {
 }
 
 /**
- * 日志转发配置
+ * Log Forwarder configuration
  */
 export interface LogForwarderConfig {
-  /** Loki 推送 URL */
+  /** Loki push URL */
   lokiUrl: string;
-  /** 批量大小 */
+  /** Batch size */
   batchSize?: number;
-  /** 刷新间隔（毫秒） */
+  /** Flush interval (ms) */
   flushInterval?: number;
-  /** 重试次数 */
+  /** Retry attempts */
   maxRetries?: number;
-  /** 重试延迟（毫秒） */
+  /** Retry delay (ms) */
   retryDelay?: number;
-  /** 默认标签 */
+  /** Default labels */
   defaultLabels?: Record<string, string>;
-  /** 是否启用 */
+  /** Whether enabled */
   enabled?: boolean;
 }
 
 /**
- * 默认配置
+ * Default configuration
  */
 const DEFAULT_CONFIG: Partial<LogForwarderConfig> = {
   batchSize: 100,
@@ -63,7 +63,7 @@ const DEFAULT_CONFIG: Partial<LogForwarderConfig> = {
 };
 
 /**
- * Log Forwarder 类
+ * Log Forwarder class
  */
 export class LogForwarder {
   private config: Required<LogForwarderConfig>;
@@ -73,14 +73,14 @@ export class LogForwarder {
 
   constructor(config: LogForwarderConfig) {
     this.config = { ...DEFAULT_CONFIG, ...config } as Required<LogForwarderConfig>;
-    
+
     if (this.config.enabled) {
       this.startFlushTimer();
     }
   }
 
   /**
-   * 添加日志条目
+   * Add log entry
    */
   log(entry: LogEntry): void {
     if (!this.config.enabled) return;
@@ -96,7 +96,7 @@ export class LogForwarder {
   }
 
   /**
-   * 快捷方法
+   * Shortcut methods
    */
   debug(message: string, metadata?: Record<string, unknown>): void {
     this.log({ timestamp: new Date().toISOString(), level: 'debug', message, metadata });
@@ -115,7 +115,7 @@ export class LogForwarder {
   }
 
   /**
-   * 刷新缓冲区
+   * Flush buffer
    */
   async flush(): Promise<void> {
     if (this.isFlushing || this.buffer.length === 0) return;
@@ -127,7 +127,7 @@ export class LogForwarder {
     try {
       await this.sendToLoki(entries);
     } catch (error) {
-      // 发送失败，将日志放回缓冲区
+      // Send failed, put logs back to buffer
       this.buffer = [...entries, ...this.buffer];
       console.error('Failed to forward logs to Loki:', error);
     } finally {
@@ -136,7 +136,7 @@ export class LogForwarder {
   }
 
   /**
-   * 发送日志到 Loki
+   * Send logs to Loki
    */
   private async sendToLoki(entries: LogEntry[]): Promise<void> {
     const payload = this.buildLokiPayload(entries);
@@ -152,7 +152,7 @@ export class LogForwarder {
         if (response.ok) return;
 
         if (response.status >= 500) {
-          // 服务器错误，可以重试
+          // Server error, can retry
           await this.delay(this.config.retryDelay * Math.pow(2, attempt));
           continue;
         }
@@ -166,10 +166,10 @@ export class LogForwarder {
   }
 
   /**
-   * 构建 Loki 推送 payload
+   * Build Loki push payload
    */
   private buildLokiPayload(entries: LogEntry[]): LokiPushPayload {
-    // 按标签分组
+    // Group by labels
     const streamMap = new Map<string, Array<[string, string]>>();
 
     for (const entry of entries) {
@@ -185,7 +185,7 @@ export class LogForwarder {
         ...entry.metadata,
       });
 
-      // Loki 时间戳格式：纳秒字符串
+      // Loki timestamp format: nanosecond string
       const timestamp = (new Date(entry.timestamp).getTime() * 1000000).toString();
       streamMap.get(labelKey)!.push([timestamp, logLine]);
     }
@@ -202,7 +202,7 @@ export class LogForwarder {
   }
 
   /**
-   * 启动定时刷新
+   * Start flush timer
    */
   private startFlushTimer(): void {
     this.flushTimer = setInterval(() => {
@@ -211,7 +211,7 @@ export class LogForwarder {
   }
 
   /**
-   * 停止转发器
+   * Stop forwarder
    */
   async stop(): Promise<void> {
     if (this.flushTimer) {
@@ -222,14 +222,14 @@ export class LogForwarder {
   }
 
   /**
-   * 延迟
+   * Delay
    */
   private delay(ms: number): Promise<void> {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
-   * 获取缓冲区大小
+   * Get buffer size
    */
   getBufferSize(): number {
     return this.buffer.length;
@@ -237,14 +237,14 @@ export class LogForwarder {
 }
 
 /**
- * 创建 Log Forwarder
+ * Create Log Forwarder
  */
 export function createLogForwarder(config: LogForwarderConfig): LogForwarder {
   return new LogForwarder(config);
 }
 
 /**
- * 创建 Log Forwarder 配置（从环境变量）
+ * Create Log Forwarder configuration (from env)
  */
 export function createLogForwarderConfigFromEnv(): LogForwarderConfig | null {
   const lokiUrl = process.env.LOKI_URL;

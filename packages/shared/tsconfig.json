@@ -2,11 +2,14 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "commonjs",
-    "lib": ["ES2020", "DOM"],
+    "lib": [
+      "ES2020",
+      "DOM"
+    ],
     "jsx": "react-jsx",
     "declaration": true,
     "outDir": "./dist",
-    "rootDir": ".",
+    "rootDir": "..",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -19,7 +22,9 @@
     "composite": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     }
   },
   "include": [
@@ -28,7 +33,8 @@
     "api/**/*",
     "utils/**/*",
     "index.ts",
-    "src/logger/types/browser-globals.d.ts"
+    "src/logger/types/browser-globals.d.ts",
+    "../i18n/messages/**/*"
   ],
   "exclude": [
     "node_modules",

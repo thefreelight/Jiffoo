@@ -15,7 +15,6 @@ export function OrderDetailPage({
   isLoading,
   config,
   onBack,
-  onRetryPayment,
   onCancelOrder,
 }: OrderDetailPageProps) {
   const getStatusColor = (status: string) => {
@@ -217,11 +216,6 @@ export function OrderDetailPage({
           {/* Action Buttons */}
           {order.status.toLowerCase() === 'pending' && (
             <div className="flex gap-4">
-              {onRetryPayment && (
-                <Button onClick={() => onRetryPayment(order.id)} className="flex-1">
-                  Complete Payment
-                </Button>
-              )}
               {onCancelOrder && (
                 <Button
                   variant="outline"

@@ -7,11 +7,11 @@
  * Subscription Status
  */
 export enum SubscriptionStatus {
-    ACTIVE = 'ACTIVE',           // 正常
-    TRIALING = 'TRIALING',       // 试用中
-    PAST_DUE = 'PAST_DUE',       // 逾期（宽限期内）
-    CANCELLED = 'CANCELLED',     // 已取消
-    EXPIRED = 'EXPIRED',         // 已过期
+    ACTIVE = 'ACTIVE',           // Active
+    TRIALING = 'TRIALING',       // Trialing
+    PAST_DUE = 'PAST_DUE',       // Past due (within grace period)
+    CANCELLED = 'CANCELLED',     // Cancelled
+    EXPIRED = 'EXPIRED',         // Expired
 }
 
 /**

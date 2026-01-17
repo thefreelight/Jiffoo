@@ -12,7 +12,7 @@ import { AlertTriangle, CheckCircle, Clock, Eye, Filter, Search, Truck, XCircle 
 import { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { useOrders, useUpdateOrderStatus, useOrderBatchOperations } from '@/lib/hooks/use-api'
+import { useOrders, useUpdateOrderStatus, type Order } from '@/lib/hooks/use-api'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
@@ -52,11 +52,7 @@ export default function OrdersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('All')
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize] = useState(10)
-  const [selectedOrders, setSelectedOrders] = useState<string[]>([])
-  const [showBatchDialog, setShowBatchDialog] = useState(false)
-  const [batchAction, setBatchAction] = useState<'updateStatus' | 'delete'>('updateStatus')
-  const [batchStatus, setBatchStatus] = useState<string>('SHIPPED')
+  const [pageSize, setPageSize] = useState(10)
 
   // API hooks
   const {
@@ -72,9 +68,8 @@ export default function OrdersPage() {
   })
 
   const updateOrderStatusMutation = useUpdateOrderStatus()
-  const batchOperationsMutation = useOrderBatchOperations()
 
-  const orders = Array.isArray(ordersData?.data) ? ordersData.data : (ordersData?.data?.data || [])
+  const orders = ordersData?.data || []
   const pagination = ordersData?.pagination
 
   const handleStatusUpdate = async (orderId: string, newStatus: string) => {
@@ -86,71 +81,10 @@ export default function OrdersPage() {
     }
   }
 
-  const handleSelectAll = () => {
-    if (selectedOrders.length === orders.length) {
-      setSelectedOrders([])
-    } else {
-      setSelectedOrders(orders.map(o => o.id))
-    }
-  }
 
-  const handleSelectOrder = (orderId: string) => {
-    setSelectedOrders(prev =>
-      prev.includes(orderId)
-        ? prev.filter(id => id !== orderId)
-        : [...prev, orderId]
-    )
-  }
-
-  const handleBatchOperation = async () => {
-    if (selectedOrders.length === 0) return
-
-    try {
-      const data: {
-        operation: 'updateStatus' | 'delete'
-        orderIds: string[]
-        status?: string
-      } = {
-        operation: batchAction,
-        orderIds: selectedOrders
-      }
-
-      if (batchAction === 'updateStatus') {
-        data.status = batchStatus
-      }
-
-      await batchOperationsMutation.mutateAsync(data)
-
-      setShowBatchDialog(false)
-      setSelectedOrders([])
-      refetch()
-    } catch (error) {
-      console.error('Failed to perform batch operation:', error)
-    }
-  }
-
-  const handleBulkShip = async () => {
-    if (selectedOrders.length === 0) {
-      toast.error('Please select orders to ship');
-      return;
-    }
-
-    try {
-      await batchOperationsMutation.mutateAsync({
-        operation: 'updateStatus',
-        orderIds: selectedOrders,
-        status: 'SHIPPED'
-      });
-
-      setSelectedOrders([]);
-      refetch();
-    } catch (error) {
-      console.error('Failed to ship orders:', error);
-    }
-  }
 
   // Filter orders locally for immediate feedback
-  const filteredOrders = orders.filter((order) => {
+  const filteredOrders = orders.filter((order: Order) => {
     if (!order) return false
     const matchesSearch = searchTerm === '' ||
       order.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -212,9 +146,9 @@ export default function OrdersPage() {
   // Calculate stats from orders data
   const orderStats = {
     total: pagination?.total || 0,
-    pending: orders.filter((order) => order.status?.toUpperCase() === 'PENDING').length,
-    paid: orders.filter((order) => order.status?.toUpperCase() === 'PAID').length,
-    delivered: orders.filter((order) => order.status?.toUpperCase() === 'DELIVERED').length,
+    pending: orders.filter((order: Order) => order.status?.toUpperCase() === 'PENDING').length,
+    paid: orders.filter((order: Order) => order.status?.toUpperCase() === 'PAID').length,
+    delivered: orders.filter((order: Order) => order.status?.toUpperCase() === 'DELIVERED').length,
   }
 
   if (isLoading) {
@@ -253,15 +187,7 @@ export default function OrdersPage() {
             <h1 className="text-2xl font-bold text-gray-900">{getText('merchant.orders.title', 'Orders')}</h1>
             <p className="text-gray-600 mt-1">{getText('merchant.orders.subtitle', 'Manage customer orders and fulfillment')}</p>
           </div>
-          <div className="flex space-x-3">
-            <Button
-              className="bg-gray-900 hover:bg-gray-800"
-              onClick={handleBulkShip}
-            >
-              <Truck className="w-4 h-4 mr-2" />
-              {getText('merchant.orders.bulkShip', 'Bulk Ship')}
-            </Button>
-          </div>
+
         </div>
         {/* In-page Navigation */}
         <PageNav items={navItems} />
@@ -362,39 +288,7 @@ export default function OrdersPage() {
         </CardContent>
       </Card>
 
-      {/* Batch Operations */}
-      {selectedOrders.length > 0 && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-blue-900">
-              {selectedOrders.length} {getText('merchant.orders.ordersSelected', 'order(s) selected')}
-            </span>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setBatchAction('updateStatus')
-                  setShowBatchDialog(true)
-                }}
-              >
-                {getText('merchant.orders.updateStatus', 'Update Status')}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setBatchAction('delete')
-                  setShowBatchDialog(true)
-                }}
-                className="text-red-600 hover:text-red-700"
-              >
-                {getText('merchant.orders.deleteSelected', 'Delete Selected')}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Orders Table */}
       <Card>
@@ -403,14 +297,6 @@ export default function OrdersPage() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="text-left py-3 px-4 font-medium text-gray-900">
-                    <input
-                      type="checkbox"
-                      checked={selectedOrders.length === orders.length && orders.length > 0}
-                      onChange={handleSelectAll}
-                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                  </th>
                   <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.orders.orderId', 'Order ID')}</th>
                   <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.orders.customer', 'Customer')}</th>
                   <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.orders.date', 'Date')}</th>
@@ -431,16 +317,9 @@ export default function OrdersPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredOrders.map((order) => (
+                  filteredOrders.map((order: Order) => (
                     <tr key={order.id} className="hover:bg-gray-50">
-                      <td className="py-4 px-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedOrders.includes(order.id)}
-                          onChange={() => handleSelectOrder(order.id)}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                      </td>
+
                       <td className="py-4 px-6">
                         <div className="font-medium text-blue-600">{order.id}</div>
                       </td>
@@ -559,56 +438,7 @@ export default function OrdersPage() {
         </div>
       )}
 
-      {/* Batch Operations Dialog */}
-      <Dialog open={showBatchDialog} onOpenChange={setShowBatchDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{getText('merchant.orders.batchOperation', 'Batch Operation')}</DialogTitle>
-            <DialogDescription>
-              {batchAction === 'delete' && getText('merchant.orders.deleteConfirm', 'Delete {count} selected order(s)?').replace('{count}', String(selectedOrders.length))}
-              {batchAction === 'updateStatus' && getText('merchant.orders.updateStatusConfirm', 'Update status for {count} selected order(s)').replace('{count}', String(selectedOrders.length))}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            {batchAction === 'updateStatus' && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="batchStatus" className="text-right">
-                  {getText('merchant.orders.status', 'Status')}
-                </Label>
-                <Select value={batchStatus} onValueChange={setBatchStatus}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder={getText('merchant.orders.selectStatus', 'Select status')} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="PENDING">{getText('merchant.orders.pending', 'Pending')}</SelectItem>
-                    <SelectItem value="PAID">{getText('merchant.orders.paid', 'Paid')}</SelectItem>
-                    <SelectItem value="SHIPPED">{getText('merchant.orders.shipped', 'Shipped')}</SelectItem>
-                    <SelectItem value="DELIVERED">{getText('merchant.orders.delivered', 'Delivered')}</SelectItem>
-                    <SelectItem value="CANCELLED">{getText('merchant.orders.cancelled', 'Cancelled')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {batchAction === 'delete' && (
-              <div className="text-sm text-red-600">
-                {getText('merchant.orders.deleteWarning', 'Warning: This action cannot be undone. All selected orders will be permanently deleted.')}
-              </div>
-            )}
-          </div>
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={() => setShowBatchDialog(false)}>
-              {getText('merchant.orders.cancel', 'Cancel')}
-            </Button>
-            <Button
-              onClick={handleBatchOperation}
-              disabled={batchOperationsMutation.isPending}
-              className={batchAction === 'delete' ? 'bg-red-600 hover:bg-red-700' : ''}
-            >
-              {batchOperationsMutation.isPending ? getText('merchant.orders.processing', 'Processing...') : getText('merchant.orders.confirm', 'Confirm')}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+
     </div>
   )
 }

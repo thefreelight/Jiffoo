@@ -1,0 +1,108 @@
+---
+title: Configuration
+description: Configure Jiffoo Mall environment
+---
+
+# Configuration
+
+## Environment Variables
+
+### Backend (.env)
+
+```bash
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/jiffoo_mall"
+
+# JWT
+JWT_SECRET="your-super-secret-jwt-key"
+JWT_EXPIRES_IN="7d"
+
+# Redis
+REDIS_URL="redis://localhost:6379"
+
+# Email (optional)
+SMTP_HOST="smtp.ethereal.email"
+SMTP_PORT=587
+SMTP_USER="your-email@example.com"
+SMTP_PASS="your-password"
+
+# Server
+PORT=3001
+NODE_ENV="development"
+
+# Stripe (optional)
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+
+# Resend (optional)
+RESEND_API_KEY="re_..."
+```
+
+### Frontend (.env.local)
+
+```bash
+NEXT_PUBLIC_API_URL="http://localhost:3001"
+```
+
+## Service Ports
+
+| Service | Port | Description |
+|---------|------|-------------|
+| Shop | 3000 | Customer storefront |
+| API | 3001 | Backend API |
+| Super Admin | 3002 | Platform admin |
+| Admin | 3003 | Tenant admin |
+| Agent | 3004 | Agent portal |
+| Docs | 3006 | Documentation |
+
+## Database Setup
+
+### Development (SQLite)
+
+```bash
+DATABASE_URL="file:./dev.db"
+```
+
+### Production (PostgreSQL)
+
+```bash
+DATABASE_URL="postgresql://user:password@host:5432/database"
+```
+
+## Redis Configuration
+
+Redis is optional but recommended for:
+- Session caching
+- Cart data
+- Rate limiting
+
+```bash
+REDIS_URL="redis://localhost:6379"
+# or with password
+REDIS_URL="redis://:password@localhost:6379"
+```
+
+## Plugin Configuration
+
+Plugins are configured through the Admin dashboard or via environment variables:
+
+### Stripe Payment Plugin
+
+```bash
+STRIPE_SECRET_KEY="sk_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
+```
+
+### Resend Email Plugin
+
+```bash
+RESEND_API_KEY="re_..."
+```
+
+### Google OAuth Plugin
+
+```bash
+GOOGLE_CLIENT_ID="..."
+GOOGLE_CLIENT_SECRET="..."
+```
+

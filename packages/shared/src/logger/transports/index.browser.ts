@@ -1,19 +1,19 @@
 /**
- * 统一日志系统 - 传输器模块导出 (浏览器版本)
+ * Unified Logging System - Transport Module Export (Browser Version)
  */
 
 // Console Transport
-export { 
-  ConsoleTransport, 
+export {
+  ConsoleTransport,
   createConsoleTransport,
-  type ConsoleTransportOptions 
+  type ConsoleTransportOptions
 } from './console-transport';
 
 // Remote Transport (Browser)
-export { 
-  RemoteTransport, 
+export {
+  RemoteTransport,
   createRemoteTransport,
-  type RemoteTransportOptions 
+  type RemoteTransportOptions
 } from './remote-transport';
 
 // Transport Factory (Browser version)

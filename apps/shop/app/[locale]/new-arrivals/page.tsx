@@ -62,13 +62,13 @@ export default function NewArrivalsPage() {
     }
   }, [sortBy, nav.locale, getText]);
 
-  // 处理排序变化
+  // Handle sort change
   const handleSortChange = (newSortBy: string) => {
     setSortBy(newSortBy);
     loadProducts(1);
   };
 
-  // 初始加载
+  // Initial load
   React.useEffect(() => {
     loadProducts();
   }, [loadProducts]);

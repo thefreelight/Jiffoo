@@ -1,28 +1,28 @@
 /**
- * 统一日志系统 - 高级数据脱敏模块
- * 支持可配置的脱敏规则和 PII 数据处理合规
+ * Unified Logging System - Advanced Data Sanitizer
+ * Supports configurable sanitization rules and PII compliance
  */
 
 /**
- * 脱敏规则类型
+ * Sanitization Rule Type
  */
-export type SanitizeRuleType = 
-  | 'field'      // 字段名匹配
-  | 'pattern'    // 正则模式匹配
-  | 'custom';    // 自定义函数
+export type SanitizeRuleType =
+  | 'field'      // Field name match
+  | 'pattern'    // Regex pattern match
+  | 'custom';    // Custom function
 
 /**
- * 脱敏策略
+ * Masking Strategy
  */
-export type MaskStrategy = 
-  | 'full'       // 完全遮盖
-  | 'partial'    // 部分遮盖（保留首尾）
-  | 'hash'       // 哈希处理
-  | 'remove'     // 完全移除
-  | 'custom';    // 自定义处理
+export type MaskStrategy =
+  | 'full'       // Full masking
+  | 'partial'    // Partial masking (keep start/end)
+  | 'hash'       // Hashing
+  | 'remove'     // Complete removal
+  | 'custom';    // Custom handling
 
 /**
- * 脱敏规则配置
+ * Sanitization Rule Configuration
  */
 export interface SanitizeRule {
   id: string;
@@ -30,40 +30,40 @@ export interface SanitizeRule {
   type: SanitizeRuleType;
   enabled: boolean;
   priority: number;
-  
-  // 字段匹配规则
+
+  // Field matching rules
   fieldPatterns?: string[];
-  
-  // 正则模式匹配
+
+  // Regex pattern matching
   valuePattern?: RegExp;
-  
-  // 脱敏策略
+
+  // Masking strategy
   strategy: MaskStrategy;
-  
-  // 自定义处理函数
+
+  // Custom handler function
   customHandler?: (value: string, context?: any) => string;
-  
-  // 保留字符数（用于 partial 策略）
+
+  // Characters to preserve (for partial strategy)
   preserveStart?: number;
   preserveEnd?: number;
-  
-  // 描述
+
+  // Description
   description?: string;
 }
 
 /**
- * 脱敏配置
+ * Sanitizer Configuration
  */
 export interface SanitizerConfig {
   enabled: boolean;
   rules: SanitizeRule[];
   defaultStrategy: MaskStrategy;
-  logSanitizedFields: boolean;  // 是否记录被脱敏的字段
-  strictMode: boolean;          // 严格模式：未知敏感数据也脱敏
+  logSanitizedFields: boolean;  // Whether to log sanitized fields
+  strictMode: boolean;          // Strict mode: sanitize unknown sensitive data
 }
 
 /**
- * 脱敏结果
+ * Sanitization Result
  */
 export interface SanitizeResult {
   data: any;
@@ -72,10 +72,10 @@ export interface SanitizeResult {
 }
 
 /**
- * 默认脱敏规则
+ * Default Sanitization Rules
  */
 export const DEFAULT_SANITIZE_RULES: SanitizeRule[] = [
-  // 密码类字段
+  // Password fields
   {
     id: 'password',
     name: 'Password Fields',
@@ -84,9 +84,9 @@ export const DEFAULT_SANITIZE_RULES: SanitizeRule[] = [
     priority: 100,
     fieldPatterns: ['password', 'pwd', 'passwd', 'secret', 'credential'],
     strategy: 'full',
-    description: '密码和凭证字段完全遮盖'
+    description: 'Full masking for password and credential fields'
   },
-  // Token 和 API Key
+  // Token and API Keys
   {
     id: 'token',
     name: 'Token and API Keys',
@@ -97,9 +97,9 @@ export const DEFAULT_SANITIZE_RULES: SanitizeRule[] = [
     strategy: 'partial',
     preserveStart: 4,
     preserveEnd: 4,
-    description: 'Token 和 API Key 部分遮盖'
+    description: 'Partial masking for Token and API Key'
   },
-  // 邮箱
+  // Email
   {
     id: 'email',
     name: 'Email Addresses',
@@ -109,15 +109,15 @@ export const DEFAULT_SANITIZE_RULES: SanitizeRule[] = [
     valuePattern: /([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
     strategy: 'custom',
     customHandler: (value: string) => {
-      return value.replace(/([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g, 
+      return value.replace(/([a-zA-Z0-9._%+-]+)@([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
         (match, user, domain) => {
           const maskedUser = user.length > 2 ? `${user[0]}***${user[user.length - 1]}` : '***';
           return `${maskedUser}@${domain}`;
         });
     },
-    description: '邮箱地址脱敏'
+    description: 'Email address masking'
   },
-  // 中国手机号
+  // Chinese Phone Numbers
   {
     id: 'phone_cn',
     name: 'Chinese Phone Numbers',
@@ -129,9 +129,9 @@ export const DEFAULT_SANITIZE_RULES: SanitizeRule[] = [
     customHandler: (value: string) => {
       return value.replace(/1[3-9]\d{9}/g, (match) => `${match.substring(0, 3)}****${match.substring(7)}`);
     },
-    description: '中国手机号脱敏'
+    description: 'Chinese phone number masking'
   },
-  // 中国身份证号
+  // Chinese ID Card
   {
     id: 'id_card_cn',
     name: 'Chinese ID Card',
@@ -143,9 +143,9 @@ export const DEFAULT_SANITIZE_RULES: SanitizeRule[] = [
     customHandler: (value: string) => {
       return value.replace(/\d{17}[\dX]/g, (match) => `${match.substring(0, 6)}********${match.substring(14)}`);
     },
-    description: '中国身份证号脱敏'
+    description: 'Chinese ID card masking'
   },
-  // 银行卡号
+  // Bank Card Numbers
   {
     id: 'bank_card',
     name: 'Bank Card Numbers',
@@ -157,9 +157,9 @@ export const DEFAULT_SANITIZE_RULES: SanitizeRule[] = [
     customHandler: (value: string) => {
       return value.replace(/\d{16,19}/g, (match) => `${match.substring(0, 4)}****${match.substring(match.length - 4)}`);
     },
-    description: '银行卡号脱敏'
+    description: 'Bank card number masking'
   },
-  // 信用卡字段
+  // Credit Card Fields
   {
     id: 'credit_card',
     name: 'Credit Card Fields',
@@ -168,12 +168,12 @@ export const DEFAULT_SANITIZE_RULES: SanitizeRule[] = [
     priority: 90,
     fieldPatterns: ['creditcard', 'credit_card', 'cardnumber', 'card_number', 'cvv', 'cvc', 'expiry'],
     strategy: 'full',
-    description: '信用卡相关字段完全遮盖'
+    description: 'Full masking for credit card related fields'
   }
 ];
 
 /**
- * 高级数据脱敏器
+ * Advanced Data Sanitizer
  */
 export class DataSanitizer {
   private config: SanitizerConfig;
@@ -189,12 +189,12 @@ export class DataSanitizer {
       ...config
     };
 
-    // 初始化规则
+    // Initialize rules
     this.initRules();
   }
 
   /**
-   * 初始化规则
+   * Initialize rules
    */
   private initRules(): void {
     this.rules.clear();
@@ -207,7 +207,7 @@ export class DataSanitizer {
   }
 
   /**
-   * 添加自定义规则
+   * Add custom rule
    */
   addRule(rule: SanitizeRule): void {
     this.config.rules.push(rule);
@@ -217,7 +217,7 @@ export class DataSanitizer {
   }
 
   /**
-   * 移除规则
+   * Remove rule
    */
   removeRule(ruleId: string): boolean {
     this.rules.delete(ruleId);
@@ -230,7 +230,7 @@ export class DataSanitizer {
   }
 
   /**
-   * 启用/禁用规则
+   * Enable/Disable rule
    */
   setRuleEnabled(ruleId: string, enabled: boolean): boolean {
     const rule = this.config.rules.find(r => r.id === ruleId);
@@ -247,14 +247,14 @@ export class DataSanitizer {
   }
 
   /**
-   * 获取所有规则
+   * Get all rules
    */
   getRules(): SanitizeRule[] {
     return [...this.config.rules];
   }
 
   /**
-   * 脱敏数据
+   * Sanitize data
    */
   sanitize(data: any, context?: any): SanitizeResult {
     if (!this.config.enabled) {
@@ -274,12 +274,12 @@ export class DataSanitizer {
   }
 
   /**
-   * 递归脱敏值
+   * Recursively sanitize value
    */
   private sanitizeValue(
-    value: any, 
-    path: string, 
-    sanitizedFields: string[], 
+    value: any,
+    path: string,
+    sanitizedFields: string[],
     appliedRules: string[],
     context?: any
   ): any {
@@ -292,7 +292,7 @@ export class DataSanitizer {
     }
 
     if (Array.isArray(value)) {
-      return value.map((item, index) => 
+      return value.map((item, index) =>
         this.sanitizeValue(item, `${path}[${index}]`, sanitizedFields, appliedRules, context)
       );
     }
@@ -301,8 +301,8 @@ export class DataSanitizer {
       const sanitized: any = {};
       for (const [key, val] of Object.entries(value)) {
         const fieldPath = path ? `${path}.${key}` : key;
-        
-        // 检查字段名是否匹配敏感字段规则
+
+        // Check if field name matches sensitive field rules
         const fieldRule = this.findFieldRule(key);
         if (fieldRule) {
           sanitized[key] = this.applyMask(String(val), fieldRule);
@@ -319,12 +319,12 @@ export class DataSanitizer {
   }
 
   /**
-   * 脱敏字符串
+   * Sanitize string
    */
   private sanitizeString(
-    value: string, 
-    path: string, 
-    sanitizedFields: string[], 
+    value: string,
+    path: string,
+    sanitizedFields: string[],
     appliedRules: string[],
     context?: any
   ): string {
@@ -349,11 +349,11 @@ export class DataSanitizer {
   }
 
   /**
-   * 查找匹配的字段规则
+   * Find matching field rule
    */
   private findFieldRule(fieldName: string): SanitizeRule | null {
     const lowerFieldName = fieldName.toLowerCase();
-    
+
     for (const [, rule] of this.rules) {
       if (rule.type === 'field' && rule.fieldPatterns) {
         for (const pattern of rule.fieldPatterns) {
@@ -363,12 +363,12 @@ export class DataSanitizer {
         }
       }
     }
-    
+
     return null;
   }
 
   /**
-   * 应用脱敏策略
+   * Apply masking strategy
    */
   private applyMask(value: string, rule: SanitizeRule): string {
     if (rule.customHandler) {
@@ -378,7 +378,7 @@ export class DataSanitizer {
     switch (rule.strategy) {
       case 'full':
         return '***REDACTED***';
-      
+
       case 'partial':
         const start = rule.preserveStart || 2;
         const end = rule.preserveEnd || 2;
@@ -386,21 +386,21 @@ export class DataSanitizer {
           return '***';
         }
         return `${value.substring(0, start)}${'*'.repeat(Math.max(3, value.length - start - end))}${value.substring(value.length - end)}`;
-      
+
       case 'hash':
-        // 简单哈希（生产环境应使用真正的哈希算法）
+        // Simple hash (Production should use real hash algorithm)
         return `[HASH:${this.simpleHash(value)}]`;
-      
+
       case 'remove':
         return '[REMOVED]';
-      
+
       default:
         return '***';
     }
   }
 
   /**
-   * 简单哈希函数
+   * Simple hash function
    */
   private simpleHash(str: string): string {
     let hash = 0;
@@ -413,7 +413,7 @@ export class DataSanitizer {
   }
 
   /**
-   * 检查值是否包含敏感数据
+   * Check if contains sensitive data
    */
   hasSensitiveData(data: any): boolean {
     const result = this.sanitize(data);
@@ -421,14 +421,14 @@ export class DataSanitizer {
   }
 
   /**
-   * 获取配置
+   * Get config
    */
   getConfig(): SanitizerConfig {
     return { ...this.config };
   }
 
   /**
-   * 更新配置
+   * Update config
    */
   updateConfig(config: Partial<SanitizerConfig>): void {
     this.config = { ...this.config, ...config };
@@ -438,10 +438,10 @@ export class DataSanitizer {
   }
 }
 
-// 导出默认实例
+// Export default instance
 export const dataSanitizer = new DataSanitizer();
 
-// 便捷函数
+// Convenience functions
 export function sanitizeData(data: any): any {
   return dataSanitizer.sanitize(data).data;
 }

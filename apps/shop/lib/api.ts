@@ -75,37 +75,10 @@ export const authApi = {
   changePassword: (data: { currentPassword: string; newPassword: string }): Promise<ApiResponse<any>> =>
     apiClient.changePassword(data),
 
-  // Email verification APIs
-  sendRegistrationCode: (email: string): Promise<ApiResponse<any>> =>
-    apiClient.post('/auth/send-registration-code', { email }),
-
-  resendVerificationCode: (email: string): Promise<ApiResponse<any>> =>
-    apiClient.post('/auth/resend-verification-code', { email }),
-
-  verifyEmail: (email: string, code: string): Promise<ApiResponse<any>> =>
-    apiClient.post('/auth/verify-email', { email, code }),
+  // Email verification APIs removed for Alpha Gate (Direct Registration only)
 };
 
-// Auth Gateway API - Get available authentication methods
-export const authGatewayApi = {
-  /**
-   * Get available authentication methods
-   * Only returns methods that are installed and have sufficient quota
-   */
-  getAvailableMethods: (): Promise<ApiResponse<Array<{
-    pluginSlug: string;
-    name: string;
-    displayName: string;
-    icon: string;
-    type: 'oauth' | 'email' | 'sms' | 'passwordless';
-    capabilities: {
-      supportsRegistration: boolean;
-      supportsLogin: boolean;
-      supportsPasswordReset: boolean;
-      requiresVerification: boolean;
-    };
-  }>>> => apiClient.get('/auth-gateway/available-methods'),
-};
+// Auth Gateway API REMOVED - Legacy
 
 // Google OAuth API - Call plugin endpoints directly
 export const googleOAuthApi = {
@@ -156,13 +129,17 @@ export const productsApi = {
     apiClient.get(API_ENDPOINTS.PRODUCTS.LIST, { params }),
 
   /**
-   * Get single product by ID with optional locale
+   * Get single product by ID with optional locale and agent context
    * @param id - Product ID
    * @param locale - Optional language code for translated product data
+   * @param agentId - Optional agent ID for Agent Mall context
    */
-  getProduct: (id: string, locale?: string): Promise<ApiResponse<Product>> =>
+  getProduct: (id: string, locale?: string, agentId?: string): Promise<ApiResponse<Product>> =>
     apiClient.get(API_ENDPOINTS.PRODUCTS.DETAIL.replace(':id', id), {
-      params: { ...(locale ? { locale } : {}) }
+      params: {
+        ...(locale ? { locale } : {}),
+        ...(agentId ? { agentId } : {})
+      }
     }),
 
   /**
@@ -212,22 +189,18 @@ export const ordersApi = {
     shippingAddress: {
       firstName: string;
       lastName: string;
-      address: string;
+      phone: string;  // ✅ Required by backend
+      addressLine1: string;  // ✅ Backend uses addressLine1
       city: string;
-      postalCode: string;
+      state: string;  // ✅ Required by backend
       country: string;
+      postalCode: string;
     };
     customerEmail: string;
   }): Promise<ApiResponse<Order>> =>
     apiClient.post(API_ENDPOINTS.ORDERS.CREATE, data),
 
-  // Retry payment for an order
-  retryPayment: (orderId: string, paymentMethod: string): Promise<ApiResponse<{
-    sessionId: string;
-    url: string;
-    expiresAt: string;
-  }>> =>
-    apiClient.post(`/orders/${orderId}/retry-payment`, { paymentMethod }),
+  // Retry payment removed (Alpha)
 
   // Cancel order
   cancelOrder: (orderId: string, reason?: string): Promise<ApiResponse<void>> =>
@@ -259,14 +232,31 @@ export const paymentApi = {
   /**
    * Get available payment methods
    * Only returns methods that are installed and have sufficient quota
+   * Alpha Gate: Filter to only Stripe (and mock)
    */
-  getAvailableMethods: (): Promise<ApiResponse<Array<{
+  getAvailableMethods: async (): Promise<ApiResponse<Array<{
     pluginSlug: string;
     name: string;
     displayName: string;
     icon: string;
     supportedCurrencies: string[];
-  }>>> => apiClient.get('/payments/available-methods'),
+  }>>> => {
+    const response = await apiClient.get<Array<{
+      pluginSlug: string;
+      name: string;
+      displayName: string;
+      icon: string;
+      supportedCurrencies: string[];
+    }>>('/payments/available-methods');
+
+    if (response.success && Array.isArray(response.data)) {
+      // Filter frontend side to ensure Alpha compliance
+      response.data = response.data.filter(method =>
+        method.pluginSlug === 'stripe' || method.pluginSlug.includes('mock')
+      );
+    }
+    return response;
+  },
 
   /**
    * Create payment session

@@ -19,15 +19,15 @@ export function ExampleAdminLoggedComponent() {
   };
   const [selectedUser, setSelectedUser] = useState('user-123');
   const [selectedProduct, setSelectedProduct] = useState('product-456');
-  
-  const { 
-    logAdminAction, 
-    logAudit, 
-    logConfigChange, 
-    logUserManagement, 
+
+  const {
+    logAdminAction,
+    logAudit,
+    logConfigChange,
+    logUserManagement,
     logProductManagement,
     logSecurity,
-    logError 
+    logError
   } = useLogger({
     component: 'ExampleAdminLoggedComponent',
     page: 'admin-example',
@@ -36,25 +36,25 @@ export function ExampleAdminLoggedComponent() {
 
   const handleUserAction = (action: string) => {
     try {
-      // 模拟用户管理操作
+      // Simulate user management action
       logUserManagement(action, selectedUser, {
         previousStatus: 'active',
         newStatus: action === 'suspend' ? 'suspended' : 'active',
         reason: 'Admin action from dashboard'
       });
-      
-      // 记录管理员操作
+
+      // Log admin action
       logAdminAction(action, 'user', {
         targetUserId: selectedUser,
         source: 'admin_dashboard'
       });
-      
-      // 记录审计日志
+
+      // Log audit log
       logAudit(`user_${action}`, {
         targetUserId: selectedUser,
         adminAction: true
       });
-      
+
     } catch (error) {
       logError(error as Error, { action, targetUserId: selectedUser });
     }
@@ -62,18 +62,18 @@ export function ExampleAdminLoggedComponent() {
 
   const handleProductAction = (action: string) => {
     try {
-      // 模拟产品管理操作
+      // Simulate product management action
       logProductManagement(action, selectedProduct, {
         previousStatus: 'published',
         newStatus: action === 'unpublish' ? 'draft' : 'published',
         category: 'electronics'
       });
-      
+
       logAdminAction(action, 'product', {
         targetProductId: selectedProduct,
         source: 'admin_dashboard'
       });
-      
+
     } catch (error) {
       logError(error as Error, { action, targetProductId: selectedProduct });
     }
@@ -82,7 +82,7 @@ export function ExampleAdminLoggedComponent() {
   const handleConfigChange = () => {
     const oldValue = { maxUsers: 1000, allowRegistration: true };
     const newValue = { maxUsers: 2000, allowRegistration: false };
-    
+
     logConfigChange('system_limits', oldValue, newValue);
     logAudit('system_config_changed', {
       setting: 'system_limits',

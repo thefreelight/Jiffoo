@@ -1,5 +1,5 @@
 /**
- * 统一日志系统 - 传输器工厂 (浏览器版本)
+ * Unified Logging System - Transport Factory (Browser Version)
  */
 
 import { ITransport, TransportConfig } from '../types';
@@ -9,7 +9,7 @@ import { RemoteTransport, RemoteTransportOptions } from './remote-transport';
 export type TransportType = 'console' | 'remote';
 
 /**
- * 创建传输器的统一工厂函数 (浏览器环境)
+ * Unified factory function for creating transports (Browser environment)
  */
 export function createTransport(config: TransportConfig): ITransport {
   switch (config.type) {
@@ -34,7 +34,7 @@ export function createTransport(config: TransportConfig): ITransport {
 }
 
 /**
- * 创建默认的控制台传输器
+ * Create default console transport
  */
 export function createDefaultConsoleTransport(): ConsoleTransport {
   return new ConsoleTransport({
@@ -45,7 +45,7 @@ export function createDefaultConsoleTransport(): ConsoleTransport {
 }
 
 /**
- * 创建默认的远程传输器 (Browser only)
+ * Create default remote transport (Browser only)
  */
 export function createDefaultRemoteTransport(endpoint: string): RemoteTransport {
   return new RemoteTransport({

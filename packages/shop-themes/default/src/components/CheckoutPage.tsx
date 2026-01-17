@@ -23,8 +23,9 @@ export function CheckoutPage({
     email: '',
     firstName: '',
     lastName: '',
-    address: '',
+    addressLine1: '',  // ✅ Changed from 'address' to 'addressLine1'
     city: '',
+    state: '',  // ✅ Added state field
     postalCode: '',
     country: '',
     phone: '',
@@ -51,8 +52,9 @@ export function CheckoutPage({
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email format';
     if (!formData.firstName) newErrors.firstName = 'First name is required';
     if (!formData.lastName) newErrors.lastName = 'Last name is required';
-    if (!formData.address) newErrors.address = 'Address is required';
+    if (!formData.addressLine1) newErrors.addressLine1 = 'Address is required';  // ✅ Changed from 'address'
     if (!formData.city) newErrors.city = 'City is required';
+    if (!formData.state) newErrors.state = 'State is required';  // ✅ Added state validation
     if (!formData.postalCode) newErrors.postalCode = 'Postal code is required';
     if (!formData.country) newErrors.country = 'Country is required';
     if (!formData.phone) newErrors.phone = 'Phone number is required';
@@ -144,17 +146,17 @@ export function CheckoutPage({
                       </div>
 
                       <div>
-                        <label htmlFor="address" className="block text-sm font-medium text-neutral-700 mb-2">Address *</label>
+                        <label htmlFor="addressLine1" className="block text-sm font-medium text-neutral-700 mb-2">Address *</label>
                         <input
                           type="text"
-                          id="address"
-                          name="address"
-                          value={formData.address}
+                          id="addressLine1"
+                          name="addressLine1"
+                          value={formData.addressLine1}
                           onChange={handleChange}
-                          className={cn(inputStyles, errors.address && errorInputStyles)}
+                          className={cn(inputStyles, errors.addressLine1 && errorInputStyles)}
                           placeholder="Street address"
                         />
-                        {errors.address && <p className="text-error-600 text-sm mt-1">{errors.address}</p>}
+                        {errors.addressLine1 && <p className="text-error-600 text-sm mt-1">{errors.addressLine1}</p>}
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
@@ -171,6 +173,22 @@ export function CheckoutPage({
                           {errors.city && <p className="text-error-600 text-sm mt-1">{errors.city}</p>}
                         </div>
                         <div>
+                          <label htmlFor="state" className="block text-sm font-medium text-neutral-700 mb-2">State/Province *</label>
+                          <input
+                            type="text"
+                            id="state"
+                            name="state"
+                            value={formData.state}
+                            onChange={handleChange}
+                            className={cn(inputStyles, errors.state && errorInputStyles)}
+                            placeholder="e.g., CA, NY"
+                          />
+                          {errors.state && <p className="text-error-600 text-sm mt-1">{errors.state}</p>}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
                           <label htmlFor="postalCode" className="block text-sm font-medium text-neutral-700 mb-2">Postal Code *</label>
                           <input
                             type="text"
@@ -182,9 +200,6 @@ export function CheckoutPage({
                           />
                           {errors.postalCode && <p className="text-error-600 text-sm mt-1">{errors.postalCode}</p>}
                         </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label htmlFor="country" className="block text-sm font-medium text-neutral-700 mb-2">Country *</label>
                           <select
@@ -203,18 +218,19 @@ export function CheckoutPage({
                           </select>
                           {errors.country && <p className="text-error-600 text-sm mt-1">{errors.country}</p>}
                         </div>
-                        <div>
-                          <label htmlFor="phone" className="block text-sm font-medium text-neutral-700 mb-2">Phone Number *</label>
-                          <input
-                            type="tel"
-                            id="phone"
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            className={cn(inputStyles, errors.phone && errorInputStyles)}
-                          />
-                          {errors.phone && <p className="text-error-600 text-sm mt-1">{errors.phone}</p>}
-                        </div>
+                      </div>
+
+                      <div>
+                        <label htmlFor="phone" className="block text-sm font-medium text-neutral-700 mb-2">Phone Number *</label>
+                        <input
+                          type="tel"
+                          id="phone"
+                          name="phone"
+                          value={formData.phone}
+                          onChange={handleChange}
+                          className={cn(inputStyles, errors.phone && errorInputStyles)}
+                        />
+                        {errors.phone && <p className="text-error-600 text-sm mt-1">{errors.phone}</p>}
                       </div>
                     </div>
                   </div>

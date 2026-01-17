@@ -41,7 +41,7 @@ export function createApiClient(options: CreateClientOptions): AuthClient {
     admin: {
       baseURL: basePath || envConfig.getApiServiceBaseUrl(),
       withCredentials: true,
-      loginPath: '/login', // Admin login page
+      loginPath: '/auth/login',
       defaultHeaders: {
         'X-App-Type': 'admin',
         'X-Client-Version': '1.0.0'
@@ -127,7 +127,7 @@ class ApiClientManager {
 export { ApiClientManager };
 
 /**
- * 便捷的全局实例获取函数
+ * Helper function to get global instance
  */
 export const getShopClient = (options?: Omit<CreateClientOptions, 'appId'>) =>
   ApiClientManager.getInstance('shop', options);
@@ -138,16 +138,16 @@ export const getAdminClient = (options?: Omit<CreateClientOptions, 'appId'>) =>
   ApiClientManager.getInstance('admin', options);
 
 /**
- * React Hook for API Client (可选，如果需要在React中使用)
+ * React Hook for API Client (optional, for React usage)
  */
 export function useApiClient(appId: AppType, options: Omit<CreateClientOptions, 'appId'> = {}): AuthClient {
-  // 在React环境中，可以使用useMemo来优化
+  // Use useMemo optimization in React environment
   if (typeof window !== 'undefined' && 'React' in window) {
     // @ts-ignore
     const { useMemo } = window.React;
     return useMemo(() => ApiClientManager.getInstance(appId, options), [appId, JSON.stringify(options)]);
   }
 
-  // 非React环境直接返回实例
+  // Return instance directly in non-React environment
   return ApiClientManager.getInstance(appId, options);
 }

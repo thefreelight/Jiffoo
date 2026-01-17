@@ -15,6 +15,7 @@ import { useOrder } from '@/lib/hooks/use-api'
 import { useT } from 'shared/src/i18n/react'
 import { useState } from 'react'
 import { RefundDialog } from '@/components/orders/RefundDialog'
+import { ShipOrderDialog } from '@/components/orders/ShipOrderDialog'
 
 
 export default function OrderDetailPage() {
@@ -23,6 +24,7 @@ export default function OrderDetailPage() {
   const orderId = params.id as string
   const t = useT()
   const [showRefundDialog, setShowRefundDialog] = useState(false)
+  const [showShipDialog, setShowShipDialog] = useState(false)
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -206,6 +208,18 @@ export default function OrderDetailPage() {
                 <span className="text-sm font-medium text-gray-900">¥{order.totalAmount.toFixed(2)}</span>
               </div>
             </div>
+            {/* Ship Action */}
+            {order.status === 'PROCESSING' && (
+              <div className="mt-2 pt-2 border-t border-gray-100">
+                <Button
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  onClick={() => setShowShipDialog(true)}
+                >
+                  <Truck className="w-4 h-4 mr-2" />
+                  {getText('merchant.orders.detail.ship', 'Ship Order')}
+                </Button>
+              </div>
+            )}
             {/* Refund Action */}
             {order.paymentStatus === 'PAID' && (
               <div className="mt-4 pt-4 border-t border-gray-100">
@@ -267,6 +281,13 @@ export default function OrderDetailPage() {
         order={order}
         open={showRefundDialog}
         onOpenChange={setShowRefundDialog}
+      />
+
+      <ShipOrderDialog
+        order={order}
+        open={showShipDialog}
+        onOpenChange={setShowShipDialog}
+        onSuccess={() => refetch()}
       />
     </div>
   )

@@ -1,0 +1,115 @@
+---
+title: Quick Start
+description: Get started with Jiffoo Mall
+---
+
+# Quick Start
+
+## Overview
+
+Jiffoo Mall is a multi-tenant e-commerce platform supporting:
+- 🏪 Multi-merchant stores
+- 🎨 Theme customization
+- 🔌 Plugin extensions
+- 👥 Three-tier agent distribution
+
+## System Roles
+
+| Role | Description | Access URL |
+|------|-------------|------------|
+| Super Admin | Platform operator | `/super-admin` |
+| Admin | Tenant merchant | `/admin` |
+| Agent | Distribution agent | `/agent` |
+| Customer | Shopping user | `/shop` |
+
+## First-Time Setup
+
+### 1. Login to Super Admin
+
+Visit `https://super-admin.yourdomain.com/login`
+
+Use the admin account created during installation.
+
+### 2. Create First Tenant
+
+1. Go to **Tenant Management** → **Add Tenant**
+2. Fill in tenant information:
+   - Company name
+   - Contact email
+   - Subdomain (e.g., `store1`)
+3. Click **Create**
+
+### 3. Configure Tenant
+
+1. Enter tenant details
+2. Configure:
+   - Domain binding
+   - Payment methods
+   - Email notifications
+
+### 4. Tenant Login
+
+Tenant admin visits `https://admin.yourdomain.com/login`
+
+Login with assigned credentials to:
+- Add products
+- Set categories
+- Configure themes
+
+## Core Features
+
+### Product Management
+
+```
+Admin Dashboard → Products → Add Product
+```
+
+Supports:
+- Multi-variant SKU
+- Inventory management
+- Price settings
+- Product categories
+
+### Order Management
+
+```
+Admin Dashboard → Orders
+```
+
+Features:
+- Order list
+- Shipping processing
+- Refund management
+- Order export
+
+### Plugin System
+
+```
+Admin Dashboard → Plugin Marketplace
+```
+
+Available plugins:
+- Payment (Stripe)
+- Email (Resend)
+- OAuth (Google)
+- Affiliate
+
+### Theme Customization
+
+```
+Admin Dashboard → Theme Settings
+```
+
+Supports:
+- Theme switching
+- Color customization
+- Logo upload
+- Layout adjustment
+
+## Next Steps
+
+- [Configuration Guide](/getting-started/configuration) - Configure your environment
+- [Plugin Development](/developer/plugin-development) - Build custom plugins
+- [Theme Development](/developer/theme-development) - Create custom themes
+- [API Reference](/developer/api-reference) - API documentation
+

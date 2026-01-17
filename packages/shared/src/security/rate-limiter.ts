@@ -1,54 +1,54 @@
 /**
- * Rate Limiter - 滑动窗口算法实现
- * 支持内存存储和 Redis 存储（分布式限流）
+ * Rate Limiter - Sliding Window Algorithm Implementation
+ * Supports memory storage and Redis storage (distributed rate limiting)
  */
 
 export interface RateLimitConfig {
-  /** 窗口大小（毫秒） */
+  /** Window size (ms) */
   windowMs: number;
-  /** 窗口内允许的最大请求数 */
+  /** Max requests allowed in window */
   maxRequests: number;
-  /** 限流键前缀 */
+  /** Rate limit key prefix */
   keyPrefix?: string;
-  /** 是否跳过成功请求的计数 */
+  /** Skip counting successful requests */
   skipSuccessfulRequests?: boolean;
-  /** 是否跳过失败请求的计数 */
+  /** Skip counting failed requests */
   skipFailedRequests?: boolean;
-  /** 自定义键生成函数 */
+  /** Custom key generator */
   keyGenerator?: (identifier: string) => string;
 }
 
 export interface RateLimitResult {
-  /** 是否被限流 */
+  /** Is limited */
   limited: boolean;
-  /** 剩余请求数 */
+  /** Remaining requests */
   remaining: number;
-  /** 重置时间（毫秒时间戳） */
+  /** Reset time (ms timestamp) */
   resetTime: number;
-  /** 总限制数 */
+  /** Total limit */
   limit: number;
-  /** 重试等待时间（秒） */
+  /** Retry after (seconds) */
   retryAfter?: number;
 }
 
 export interface RateLimitStore {
-  /** 增加计数并获取当前状态 */
+  /** Increment count and get current status */
   increment(key: string, windowMs: number): Promise<{ count: number; resetTime: number }>;
-  /** 获取当前计数 */
+  /** Get current count */
   get(key: string): Promise<{ count: number; resetTime: number } | null>;
-  /** 重置计数 */
+  /** Reset count */
   reset(key: string): Promise<void>;
 }
 
 /**
- * 内存存储实现
+ * Memory storage implementation
  */
 export class MemoryRateLimitStore implements RateLimitStore {
   private store = new Map<string, { count: number; resetTime: number }>();
   private cleanupInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor(cleanupIntervalMs = 60000) {
-    // 定期清理过期记录
+    // Periodically clean up expired records
     this.cleanupInterval = setInterval(() => this.cleanup(), cleanupIntervalMs);
   }
 
@@ -97,7 +97,7 @@ export class MemoryRateLimitStore implements RateLimitStore {
 }
 
 /**
- * Redis 存储实现
+ * Redis storage implementation
  */
 export class RedisRateLimitStore implements RateLimitStore {
   private redis: {
@@ -136,7 +136,7 @@ export class RedisRateLimitStore implements RateLimitStore {
 }
 
 /**
- * Rate Limiter 核心类
+ * Rate Limiter core class
  */
 export class RateLimiter {
   private config: Required<RateLimitConfig>;
@@ -155,7 +155,7 @@ export class RateLimiter {
   }
 
   /**
-   * 检查是否被限流
+   * Check if limited
    */
   async check(identifier: string): Promise<RateLimitResult> {
     const key = this.config.keyGenerator(identifier);
@@ -174,7 +174,7 @@ export class RateLimiter {
   }
 
   /**
-   * 重置限流计数
+   * Reset rate limit count
    */
   async reset(identifier: string): Promise<void> {
     const key = this.config.keyGenerator(identifier);
@@ -182,7 +182,7 @@ export class RateLimiter {
   }
 
   /**
-   * 获取当前状态（不增加计数）
+   * Get current status (without incrementing)
    */
   async getStatus(identifier: string): Promise<RateLimitResult> {
     const key = this.config.keyGenerator(identifier);
@@ -210,17 +210,17 @@ export class RateLimiter {
   }
 }
 
-// 预定义的限流配置
+// Predefined rate limit presets
 export const RateLimitPresets = {
-  /** 默认 API 限流：100 req/min */
+  /** Default API rate limit: 100 req/min */
   default: { windowMs: 60_000, maxRequests: 100 },
-  /** 登录限流：5 req/5min */
+  /** Login rate limit: 5 req/5min */
   login: { windowMs: 300_000, maxRequests: 5, keyPrefix: 'rl:login:' },
-  /** 注册限流：3 req/hour */
+  /** Register rate limit: 3 req/hour */
   register: { windowMs: 3_600_000, maxRequests: 3, keyPrefix: 'rl:register:' },
-  /** API 写操作：30 req/min */
+  /** API write rate limit: 30 req/min */
   write: { windowMs: 60_000, maxRequests: 30, keyPrefix: 'rl:write:' },
-  /** 严格限流：10 req/min */
+  /** Strict rate limit: 10 req/min */
   strict: { windowMs: 60_000, maxRequests: 10, keyPrefix: 'rl:strict:' },
 } as const;
 

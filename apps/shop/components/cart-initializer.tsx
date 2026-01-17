@@ -10,11 +10,11 @@ export function CartInitializer() {
   const user = useAuthStore(state => state.user);
 
   React.useEffect(() => {
-    // 只在用户已登录且有用户信息时才加载购物车
-    // 这样可以避免在租户切换时（用户被清除）触发API调用
+    // Only load cart when user is logged in and has user info
+    // This avoids triggering API calls during tenant switches (when user is cleared)
     if (isAuthenticated && user) {
       fetchCart().catch((error) => {
-        // 如果是401错误，说明token过期，静默处理
+        // If it's 401 error, token expired, handle silently
         if (error?.response?.status === 401) {
           console.log('Cart fetch failed: User not authenticated');
         } else {

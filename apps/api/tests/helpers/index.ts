@@ -27,7 +27,7 @@ export {
 export {
   createTestUser,
   createAdminUser,
-  createSuperAdminUser,
+
   signJwt,
   signExpiredJwt,
   signRefreshToken,

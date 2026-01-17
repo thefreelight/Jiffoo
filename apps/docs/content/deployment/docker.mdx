@@ -1,0 +1,173 @@
+---
+title: Docker Deployment
+description: Deploy Jiffoo Mall with Docker
+---
+
+# Docker Deployment
+
+## Prerequisites
+
+- Docker 20.10+
+- Docker Compose 2.0+
+
+## Quick Start
+
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/thefreelight/Jiffoo.git
+cd Jiffoo
+```
+
+### 2. Configure Environment
+
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your settings.
+
+### 3. Start Services
+
+```bash
+docker-compose up -d
+```
+
+## Docker Compose Configuration
+
+```yaml
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/jiffoo
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - db
+      - redis
+
+  shop:
+    build:
+      context: .
+      dockerfile: apps/shop/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:3001
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    ports:
+      - "3003:3003"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://api:3001
+
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=jiffoo
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
+```
+
+## Building Images
+
+### Build All Services
+
+```bash
+docker-compose build
+```
+
+### Build Single Service
+
+```bash
+docker-compose build api
+```
+
+## Production Deployment
+
+### 1. Use Production Compose File
+
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+```
+
+### 2. Database Migrations
+
+```bash
+docker-compose exec api pnpm db:push
+```
+
+### 3. Seed Data (Optional)
+
+```bash
+docker-compose exec api pnpm db:seed
+```
+
+## Health Checks
+
+```bash
+# Check API health
+curl http://localhost:3001/health
+
+# Check all services
+docker-compose ps
+```
+
+## Logs
+
+```bash
+# All services
+docker-compose logs -f
+
+# Single service
+docker-compose logs -f api
+```
+
+## Scaling
+
+```bash
+# Scale API service
+docker-compose up -d --scale api=3
+```
+
+## Troubleshooting
+
+### Database Connection Issues
+
+```bash
+docker-compose exec db psql -U postgres -d jiffoo
+```
+
+### Redis Connection Issues
+
+```bash
+docker-compose exec redis redis-cli ping
+```
+
+### Container Restart
+
+```bash
+docker-compose restart api
+```
+

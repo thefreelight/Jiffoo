@@ -71,7 +71,7 @@ export function StatsCard({
     return t ? t(key) : fallback
   }
 
-  // 只在有真实数据时才渲染图表，否则显示"暂无数据"
+  // Only render chart when there is real data, otherwise show "No data"
   const hasData = data && data.length > 0
 
   return (

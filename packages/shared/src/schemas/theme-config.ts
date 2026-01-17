@@ -1,12 +1,12 @@
 /**
- * 主题配置验证 Schema
- * 使用 Zod 验证主题配置的安全性和有效性
+ * Theme Configuration Validation Schema
+ * Use Zod to validate theme configuration security and validity
  */
 
 import { z } from 'zod';
 
 /**
- * 品牌配置 Schema
+ * Brand Config Schema
  */
 const BrandConfigSchema = z.object({
   logoUrl: z.string().url().max(500).optional(),
@@ -16,7 +16,7 @@ const BrandConfigSchema = z.object({
 }).optional();
 
 /**
- * 布局配置 Schema
+ * Layout Config Schema
  */
 const LayoutConfigSchema = z.object({
   headerSticky: z.boolean().optional(),
@@ -25,7 +25,7 @@ const LayoutConfigSchema = z.object({
 }).optional();
 
 /**
- * 功能配置 Schema
+ * Features Config Schema
  */
 const FeaturesConfigSchema = z.object({
   showWishlist: z.boolean().optional(),
@@ -34,7 +34,7 @@ const FeaturesConfigSchema = z.object({
 }).optional();
 
 /**
- * 主题配置 Schema
+ * Theme Config Schema
  */
 export const ThemeConfigSchema = z.object({
   brand: BrandConfigSchema,
@@ -43,25 +43,25 @@ export const ThemeConfigSchema = z.object({
 });
 
 /**
- * 主题配置类型（从 Schema 推断）
+ * Theme Config Type (Inferred from Schema)
  */
 export type ThemeConfigSchemaType = z.infer<typeof ThemeConfigSchema>;
 
 /**
- * 验证主题配置
- * @param config - 要验证的配置对象
- * @returns 验证结果
+ * Validate theme config
+ * @param config - Config object to validate
+ * @returns Validation result
  */
 export function validateThemeConfig(config: unknown) {
   return ThemeConfigSchema.safeParse(config);
 }
 
 /**
- * 清理 CSS 值，防止注入攻击
- * @param value - CSS 值
- * @returns 清理后的值
+ * Sanitize CSS value to prevent injection attacks
+ * @param value - CSS value
+ * @returns Sanitized value
  */
 export function sanitizeCSSValue(value: string): string {
-  // 只允许安全的字符：字母、数字、#、-、,、.、空格、()
+  // Only allow safe characters: letters, numbers, #, -, ,, ., spaces, ()
   return value.replace(/[^a-zA-Z0-9#\-,.\s()]/g, '');
 }

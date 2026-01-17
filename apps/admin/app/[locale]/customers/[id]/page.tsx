@@ -6,10 +6,10 @@
  */
 'use client'
 
-import { AlertTriangle, ArrowLeft, Calendar, Mail, Pencil, ShieldCheck, Trash2, User } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, Calendar, Mail, ShieldCheck, User } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { useUser, useDeleteUser } from '@/lib/hooks/use-api'
+import { useUser } from '@/lib/hooks/use-api'
 import { useT } from 'shared/src/i18n/react'
 
 
@@ -24,18 +24,6 @@ export default function CustomerDetailPage() {
   }
 
   const { data: user, isLoading, error, refetch } = useUser(userId)
-  const deleteUserMutation = useDeleteUser()
-
-  const handleDelete = async () => {
-    if (window.confirm(getText('merchant.customers.detail.deleteConfirm', 'Are you sure you want to delete this user? This action cannot be undone.'))) {
-      try {
-        await deleteUserMutation.mutateAsync(userId)
-        router.push('/customers')
-      } catch (error) {
-        console.error('Failed to delete user:', error)
-      }
-    }
-  }
 
   if (isLoading) {
     return (
@@ -70,12 +58,7 @@ export default function CustomerDetailPage() {
   }
 
   const getRoleBadge = (role: string) => {
-    const roleColors: Record<string, string> = {
-      SUPER_ADMIN: 'bg-purple-100 text-purple-800',
-      TENANT_ADMIN: 'bg-blue-100 text-blue-800',
-      USER: 'bg-gray-100 text-gray-800',
-    }
-    return roleColors[role] || 'bg-gray-100 text-gray-800'
+    return role === 'ADMIN' ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-800'
   }
 
   return (
@@ -97,18 +80,7 @@ export default function CustomerDetailPage() {
           </div>
         </div>
         <div className="flex gap-3">
-          <Button variant="outline">
-            <Pencil className="w-4 h-4 mr-2" />
-            {getText('merchant.customers.detail.edit', 'Edit')}
-          </Button>
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={deleteUserMutation.isPending}
-          >
-            <Trash2 className="w-4 h-4 mr-2" />
-            {deleteUserMutation.isPending ? getText('merchant.customers.detail.deleting', 'Deleting...') : getText('merchant.customers.detail.delete', 'Delete')}
-          </Button>
+          {/* Read Only - No Actions */}
         </div>
       </div>
 
