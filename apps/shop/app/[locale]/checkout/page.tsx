@@ -3,10 +3,6 @@
  *
  * Handles the checkout process with payment integration.
  * Supports i18n through the translation function.
- *
- * 🆕 Agent Mall 支持：
- * - 传递 agentId 用于授权验证和佣金计算
- * - 传递 variantId 用于变体级定价
  */
 
 'use client';
@@ -16,8 +12,7 @@ import { useShopTheme } from '@/lib/themes/provider';
 import { useCartStore } from '@/store/cart';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { ordersApi, paymentApi } from '@/lib/api';
-import { useT } from 'shared/src/i18n';
-import { useAgentId, useIsAgentMall } from '@/store/mall';
+import { useT } from 'shared/src/i18n/react';
 import { toast } from '@/components/ui/toaster';
 import type { CheckoutFormData } from 'shared/src/types/theme';
 
@@ -27,10 +22,6 @@ export default function CheckoutPage() {
   const { cart } = useCartStore();
   const t = useT();
   const [isProcessing, setIsProcessing] = React.useState(false);
-
-  // 🆕 Agent Mall context
-  const agentId = useAgentId();
-  const isAgentMall = useIsAgentMall();
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -45,18 +36,15 @@ export default function CheckoutPage() {
   }, [cart.items.length, nav]);
 
   // Handle form submit
-  // 🆕 传递 agentId 和 variantId 创建订单
   const handleSubmit = async (data: CheckoutFormData) => {
     setIsProcessing(true);
 
     try {
       // 1. Create order
-      // 🆕 包含 variantId 用于变体级定价，agentId 用于代理授权
       const orderResponse = await ordersApi.createOrder({
         items: cart.items.map(item => ({
           productId: item.productId,
           quantity: item.quantity,
-          // 🆕 传递 variantId 支持变体级定价
           variantId: item.variantId,
         })),
         shippingAddress: {
@@ -68,8 +56,6 @@ export default function CheckoutPage() {
           country: data.country
         },
         customerEmail: data.email,
-        // 🆕 Agent Mall 场景：传递 agentId
-        agentId: isAgentMall ? agentId : undefined,
       });
 
       if (!orderResponse || !orderResponse.success || !orderResponse.data) {
@@ -94,7 +80,6 @@ export default function CheckoutPage() {
       }
 
       // 3. Redirect to payment page
-      // Note: Response may be nested (paymentResponse.data.data.url) due to API wrapper
       const sessionData = paymentResponse.data as any;
       const paymentUrl = sessionData.url || sessionData.data?.url;
 

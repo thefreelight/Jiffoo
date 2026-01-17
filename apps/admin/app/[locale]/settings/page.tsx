@@ -12,7 +12,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { useT, useLocale } from 'shared/src/i18n'
+import { useT, useLocale } from 'shared/src/i18n/react'
 import {
   Select,
   SelectContent,
@@ -39,61 +39,61 @@ export default function SettingsPage() {
   const settingsSections = [
     {
       id: 'general',
-      name: getText('tenant.settings.sections.general', 'General Settings'),
+      name: getText('merchant.settings.sections.general', 'General Settings'),
       icon: Settings,
-      description: getText('tenant.settings.sections.generalDesc', 'Basic store configuration and preferences'),
+      description: getText('merchant.settings.sections.generalDesc', 'Basic store configuration and preferences'),
     },
     {
       id: 'payments',
-      name: getText('tenant.settings.sections.payments', 'Payment Methods'),
+      name: getText('merchant.settings.sections.payments', 'Payment Methods'),
       icon: CreditCard,
-      description: getText('tenant.settings.sections.paymentsDesc', 'Configure payment gateways and options'),
+      description: getText('merchant.settings.sections.paymentsDesc', 'Configure payment gateways and options'),
     },
     {
       id: 'shipping',
-      name: getText('tenant.settings.sections.shipping', 'Shipping & Delivery'),
+      name: getText('merchant.settings.sections.shipping', 'Shipping & Delivery'),
       icon: Truck,
-      description: getText('tenant.settings.sections.shippingDesc', 'Shipping zones, rates, and delivery options'),
+      description: getText('merchant.settings.sections.shippingDesc', 'Shipping zones, rates, and delivery options'),
     },
     {
       id: 'taxes',
-      name: getText('tenant.settings.sections.taxes', 'Taxes'),
+      name: getText('merchant.settings.sections.taxes', 'Taxes'),
       icon: CalculatorIcon,
-      description: getText('tenant.settings.sections.taxesDesc', 'Tax rates and calculation settings'),
+      description: getText('merchant.settings.sections.taxesDesc', 'Tax rates and calculation settings'),
     },
     {
       id: 'localization',
-      name: getText('tenant.settings.sections.localization', 'Localization'),
+      name: getText('merchant.settings.sections.localization', 'Localization'),
       icon: Globe,
-      description: getText('tenant.settings.sections.localizationDesc', 'Language, currency, and regional settings'),
+      description: getText('merchant.settings.sections.localizationDesc', 'Language, currency, and regional settings'),
     },
     {
       id: 'security',
-      name: getText('tenant.settings.sections.security', 'Security'),
+      name: getText('merchant.settings.sections.security', 'Security'),
       icon: ShieldCheck,
-      description: getText('tenant.settings.sections.securityDesc', 'Security policies and access controls'),
+      description: getText('merchant.settings.sections.securityDesc', 'Security policies and access controls'),
     },
     {
       id: 'notifications',
-      name: getText('tenant.settings.sections.notifications', 'Notifications'),
+      name: getText('merchant.settings.sections.notifications', 'Notifications'),
       icon: Bell,
-      description: getText('tenant.settings.sections.notificationsDesc', 'Email and SMS notification settings'),
+      description: getText('merchant.settings.sections.notificationsDesc', 'Email and SMS notification settings'),
     },
     {
       id: 'users',
-      name: getText('tenant.settings.sections.users', 'User Management'),
+      name: getText('merchant.settings.sections.users', 'User Management'),
       icon: Users,
-      description: getText('tenant.settings.sections.usersDesc', 'Admin users and role permissions'),
+      description: getText('merchant.settings.sections.usersDesc', 'Admin users and role permissions'),
     },
   ]
 
   const renderGeneralSettings = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('tenant.settings.general.storeInfo', 'Store Information')}</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('merchant.settings.general.storeInfo', 'Store Information')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('tenant.settings.general.storeName', 'Store Name')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('merchant.settings.general.storeName', 'Store Name')}</label>
             <input
               type="text"
               defaultValue="Jiffoo Mall"
@@ -101,7 +101,7 @@ export default function SettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('tenant.settings.general.storeUrl', 'Store URL')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('merchant.settings.general.storeUrl', 'Store URL')}</label>
             <input
               type="text"
               defaultValue="https://jiffoo.com"
@@ -109,7 +109,7 @@ export default function SettingsPage() {
             />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('tenant.settings.general.storeDescription', 'Store Description')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('merchant.settings.general.storeDescription', 'Store Description')}</label>
             <textarea
               rows={3}
               defaultValue="Your one-stop destination for quality products and exceptional service."
@@ -120,10 +120,10 @@ export default function SettingsPage() {
       </div>
 
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('tenant.settings.general.contactInfo', 'Contact Information')}</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('merchant.settings.general.contactInfo', 'Contact Information')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('tenant.settings.general.email', 'Email')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('merchant.settings.general.email', 'Email')}</label>
             <input
               type="email"
               defaultValue="support@jiffoo.com"
@@ -131,7 +131,7 @@ export default function SettingsPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('tenant.settings.general.phone', 'Phone')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('merchant.settings.general.phone', 'Phone')}</label>
             <input
               type="tel"
               defaultValue="+86 400-123-4567"
@@ -139,7 +139,7 @@ export default function SettingsPage() {
             />
           </div>
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('tenant.settings.general.address', 'Address')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('merchant.settings.general.address', 'Address')}</label>
             <textarea
               rows={2}
               defaultValue="Building A, Tech Park, Zhongguancun, Beijing, China"
@@ -150,7 +150,7 @@ export default function SettingsPage() {
       </div>
 
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('tenant.settings.general.businessHours', 'Business Hours')}</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('merchant.settings.general.businessHours', 'Business Hours')}</h3>
         <div className="space-y-3">
           {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => (
             <div key={day} className="flex items-center space-x-4">
@@ -160,7 +160,7 @@ export default function SettingsPage() {
                 defaultValue="09:00"
                 className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              <span className="text-gray-500">{getText('tenant.settings.general.to', 'to')}</span>
+              <span className="text-gray-500">{getText('merchant.settings.general.to', 'to')}</span>
               <input
                 type="time"
                 defaultValue="18:00"
@@ -168,7 +168,7 @@ export default function SettingsPage() {
               />
               <label className="flex items-center">
                 <input type="checkbox" className="mr-2" />
-                <span className="text-sm text-gray-700">{getText('tenant.settings.general.closed', 'Closed')}</span>
+                <span className="text-sm text-gray-700">{getText('merchant.settings.general.closed', 'Closed')}</span>
               </label>
             </div>
           ))}
@@ -180,13 +180,13 @@ export default function SettingsPage() {
   const renderPaymentSettings = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('tenant.settings.payments.gateways', 'Payment Gateways')}</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('merchant.settings.payments.gateways', 'Payment Gateways')}</h3>
         <div className="space-y-4">
           {[
-            { name: 'Alipay', enabled: true, descKey: 'tenant.settings.payments.alipayDesc', descFallback: 'Accept payments via Alipay' },
-            { name: 'WeChat Pay', enabled: true, descKey: 'tenant.settings.payments.wechatDesc', descFallback: 'Accept payments via WeChat Pay' },
-            { name: 'UnionPay', enabled: false, descKey: 'tenant.settings.payments.unionpayDesc', descFallback: 'Accept payments via UnionPay cards' },
-            { name: 'PayPal', enabled: false, descKey: 'tenant.settings.payments.paypalDesc', descFallback: 'Accept international payments via PayPal' },
+            { name: 'Alipay', enabled: true, descKey: 'merchant.settings.payments.alipayDesc', descFallback: 'Accept payments via Alipay' },
+            { name: 'WeChat Pay', enabled: true, descKey: 'merchant.settings.payments.wechatDesc', descFallback: 'Accept payments via WeChat Pay' },
+            { name: 'UnionPay', enabled: false, descKey: 'merchant.settings.payments.unionpayDesc', descFallback: 'Accept payments via UnionPay cards' },
+            { name: 'PayPal', enabled: false, descKey: 'merchant.settings.payments.paypalDesc', descFallback: 'Accept international payments via PayPal' },
           ].map((gateway) => (
             <div key={gateway.name} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
               <div className="flex items-center">
@@ -204,7 +204,7 @@ export default function SettingsPage() {
                   defaultChecked={gateway.enabled}
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <span className="ml-2 text-sm text-gray-700">{getText('tenant.settings.payments.enabled', 'Enabled')}</span>
+                <span className="ml-2 text-sm text-gray-700">{getText('merchant.settings.payments.enabled', 'Enabled')}</span>
               </label>
             </div>
           ))}
@@ -212,22 +212,22 @@ export default function SettingsPage() {
       </div>
 
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('tenant.settings.payments.currencySettings', 'Currency Settings')}</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('merchant.settings.payments.currencySettings', 'Currency Settings')}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('tenant.settings.payments.defaultCurrency', 'Default Currency')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('merchant.settings.payments.defaultCurrency', 'Default Currency')}</label>
             <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              <option value="CNY">{getText('tenant.settings.payments.cny', 'Chinese Yuan (¥)')}</option>
-              <option value="USD">{getText('tenant.settings.payments.usd', 'US Dollar ($)')}</option>
-              <option value="EUR">{getText('tenant.settings.payments.eur', 'Euro (€)')}</option>
-              <option value="GBP">{getText('tenant.settings.payments.gbp', 'British Pound (£)')}</option>
+              <option value="CNY">{getText('merchant.settings.payments.cny', 'Chinese Yuan (¥)')}</option>
+              <option value="USD">{getText('merchant.settings.payments.usd', 'US Dollar ($)')}</option>
+              <option value="EUR">{getText('merchant.settings.payments.eur', 'Euro (€)')}</option>
+              <option value="GBP">{getText('merchant.settings.payments.gbp', 'British Pound (£)')}</option>
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('tenant.settings.payments.currencyPosition', 'Currency Position')}</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{getText('merchant.settings.payments.currencyPosition', 'Currency Position')}</label>
             <select className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-              <option value="before">{getText('tenant.settings.payments.beforeAmount', 'Before amount (¥100)')}</option>
-              <option value="after">{getText('tenant.settings.payments.afterAmount', 'After amount (100¥)')}</option>
+              <option value="before">{getText('merchant.settings.payments.beforeAmount', 'Before amount (¥100)')}</option>
+              <option value="after">{getText('merchant.settings.payments.afterAmount', 'After amount (100¥)')}</option>
             </select>
           </div>
         </div>
@@ -238,12 +238,12 @@ export default function SettingsPage() {
   const renderShippingSettings = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('tenant.settings.shipping.zones', 'Shipping Zones')}</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('merchant.settings.shipping.zones', 'Shipping Zones')}</h3>
         <div className="space-y-4">
           {[
-            { nameKey: 'tenant.settings.shipping.domestic', nameFallback: 'Domestic (China)', regions: 'All provinces in China', rate: 'Free shipping over ¥99' },
-            { nameKey: 'tenant.settings.shipping.hkMacau', nameFallback: 'Hong Kong & Macau', regions: 'Hong Kong, Macau', rate: '¥25 flat rate' },
-            { nameKey: 'tenant.settings.shipping.international', nameFallback: 'International', regions: 'Rest of world', rate: '¥150 flat rate' },
+            { nameKey: 'merchant.settings.shipping.domestic', nameFallback: 'Domestic (China)', regions: 'All provinces in China', rate: 'Free shipping over ¥99' },
+            { nameKey: 'merchant.settings.shipping.hkMacau', nameFallback: 'Hong Kong & Macau', regions: 'Hong Kong, Macau', rate: '¥25 flat rate' },
+            { nameKey: 'merchant.settings.shipping.international', nameFallback: 'International', regions: 'Rest of world', rate: '¥150 flat rate' },
           ].map((zone, index) => (
             <Card key={index}>
               <CardContent className="p-4">
@@ -262,16 +262,16 @@ export default function SettingsPage() {
             </Card>
           ))}
         </div>
-        <Button className="mt-4">{getText('tenant.settings.shipping.addZone', 'Add Shipping Zone')}</Button>
+        <Button className="mt-4">{getText('merchant.settings.shipping.addZone', 'Add Shipping Zone')}</Button>
       </div>
 
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('tenant.settings.shipping.deliveryOptions', 'Delivery Options')}</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('merchant.settings.shipping.deliveryOptions', 'Delivery Options')}</h3>
         <div className="space-y-4">
           {[
-            { nameKey: 'tenant.settings.shipping.standard', nameFallback: 'Standard Delivery', time: '3-5 business days', price: '¥15', enabled: true },
-            { nameKey: 'tenant.settings.shipping.express', nameFallback: 'Express Delivery', time: '1-2 business days', price: '¥35', enabled: true },
-            { nameKey: 'tenant.settings.shipping.sameDay', nameFallback: 'Same Day Delivery', time: 'Same day (selected areas)', price: '¥50', enabled: false },
+            { nameKey: 'merchant.settings.shipping.standard', nameFallback: 'Standard Delivery', time: '3-5 business days', price: '¥15', enabled: true },
+            { nameKey: 'merchant.settings.shipping.express', nameFallback: 'Express Delivery', time: '1-2 business days', price: '¥35', enabled: true },
+            { nameKey: 'merchant.settings.shipping.sameDay', nameFallback: 'Same Day Delivery', time: 'Same day (selected areas)', price: '¥50', enabled: false },
           ].map((option, index) => (
             <div key={index} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
               <div className="flex items-center">
@@ -289,7 +289,7 @@ export default function SettingsPage() {
                   defaultChecked={option.enabled}
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <span className="ml-2 text-sm text-gray-700">{getText('tenant.settings.payments.enabled', 'Enabled')}</span>
+                <span className="ml-2 text-sm text-gray-700">{getText('merchant.settings.payments.enabled', 'Enabled')}</span>
               </label>
             </div>
           ))}
@@ -301,12 +301,12 @@ export default function SettingsPage() {
   const renderLocalizationSettings = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('tenant.settings.localization.languageRegion', 'Language & Region')}</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('merchant.settings.localization.languageRegion', 'Language & Region')}</h3>
         <div className="space-y-4">
           <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
             <div>
-              <h4 className="font-medium text-gray-900">{getText('tenant.settings.localization.languageSettings', 'Language Settings')}</h4>
-              <p className="text-sm text-gray-600">{getText('tenant.settings.localization.languageSettingsDesc', 'Configure language preferences for the admin interface')}</p>
+              <h4 className="font-medium text-gray-900">{getText('merchant.settings.localization.languageSettings', 'Language Settings')}</h4>
+              <p className="text-sm text-gray-600">{getText('merchant.settings.localization.languageSettingsDesc', 'Configure language preferences for the admin interface')}</p>
             </div>
             <Button
               variant="outline"
@@ -319,16 +319,16 @@ export default function SettingsPage() {
 
           <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
             <div>
-              <h4 className="font-medium text-gray-900">{getText('tenant.settings.localization.currencySettings', 'Currency Settings')}</h4>
-              <p className="text-sm text-gray-600">{getText('tenant.settings.localization.currencySettingsDesc', 'Set default currency and formatting options')}</p>
+              <h4 className="font-medium text-gray-900">{getText('merchant.settings.localization.currencySettings', 'Currency Settings')}</h4>
+              <p className="text-sm text-gray-600">{getText('merchant.settings.localization.currencySettingsDesc', 'Set default currency and formatting options')}</p>
             </div>
             <Button variant="outline" size="sm">{getText('common.actions.configure', 'Configure')}</Button>
           </div>
 
           <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
             <div>
-              <h4 className="font-medium text-gray-900">{getText('tenant.settings.localization.timezone', 'Timezone')}</h4>
-              <p className="text-sm text-gray-600">{getText('tenant.settings.localization.timezoneDesc', 'Set the default timezone for your store')}</p>
+              <h4 className="font-medium text-gray-900">{getText('merchant.settings.localization.timezone', 'Timezone')}</h4>
+              <p className="text-sm text-gray-600">{getText('merchant.settings.localization.timezoneDesc', 'Set the default timezone for your store')}</p>
             </div>
             <Button variant="outline" size="sm">{getText('common.actions.configure', 'Configure')}</Button>
           </div>
@@ -340,17 +340,17 @@ export default function SettingsPage() {
   const renderSecuritySettings = () => (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('tenant.settings.security.authentication', 'Authentication')}</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('merchant.settings.security.authentication', 'Authentication')}</h3>
         <div className="space-y-4">
           <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
             <div>
-              <h4 className="font-medium text-gray-900">{getText('tenant.settings.security.twoFactor', 'Two-Factor Authentication')}</h4>
-              <p className="text-sm text-gray-600">{getText('tenant.settings.security.twoFactorDesc', 'Add an extra layer of security to admin accounts')}</p>
+              <h4 className="font-medium text-gray-900">{getText('merchant.settings.security.twoFactor', 'Two-Factor Authentication')}</h4>
+              <p className="text-sm text-gray-600">{getText('merchant.settings.security.twoFactorDesc', 'Add an extra layer of security to admin accounts')}</p>
             </div>
             <div className="flex items-center">
               <Badge className="bg-green-100 text-green-800 mr-3">
                 <CheckCircle className="w-3 h-3 mr-1" />
-                {getText('tenant.settings.payments.enabled', 'Enabled')}
+                {getText('merchant.settings.payments.enabled', 'Enabled')}
               </Badge>
               <Button variant="outline" size="sm">{getText('common.actions.configure', 'Configure')}</Button>
             </div>
@@ -358,26 +358,26 @@ export default function SettingsPage() {
 
           <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
             <div>
-              <h4 className="font-medium text-gray-900">{getText('tenant.settings.security.sessionTimeout', 'Session Timeout')}</h4>
-              <p className="text-sm text-gray-600">{getText('tenant.settings.security.sessionTimeoutDesc', 'Automatically log out inactive users')}</p>
+              <h4 className="font-medium text-gray-900">{getText('merchant.settings.security.sessionTimeout', 'Session Timeout')}</h4>
+              <p className="text-sm text-gray-600">{getText('merchant.settings.security.sessionTimeoutDesc', 'Automatically log out inactive users')}</p>
             </div>
             <Select defaultValue="30">
               <SelectTrigger className="w-32">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="15">{getText('tenant.settings.security.15minutes', '15 minutes')}</SelectItem>
-                <SelectItem value="30">{getText('tenant.settings.security.30minutes', '30 minutes')}</SelectItem>
-                <SelectItem value="60">{getText('tenant.settings.security.1hour', '1 hour')}</SelectItem>
-                <SelectItem value="120">{getText('tenant.settings.security.2hours', '2 hours')}</SelectItem>
+                <SelectItem value="15">{getText('merchant.settings.security.15minutes', '15 minutes')}</SelectItem>
+                <SelectItem value="30">{getText('merchant.settings.security.30minutes', '30 minutes')}</SelectItem>
+                <SelectItem value="60">{getText('merchant.settings.security.1hour', '1 hour')}</SelectItem>
+                <SelectItem value="120">{getText('merchant.settings.security.2hours', '2 hours')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
             <div>
-              <h4 className="font-medium text-gray-900">{getText('tenant.settings.security.loginAttempts', 'Login Attempts')}</h4>
-              <p className="text-sm text-gray-600">{getText('tenant.settings.security.loginAttemptsDesc', 'Maximum failed login attempts before account lockout')}</p>
+              <h4 className="font-medium text-gray-900">{getText('merchant.settings.security.loginAttempts', 'Login Attempts')}</h4>
+              <p className="text-sm text-gray-600">{getText('merchant.settings.security.loginAttemptsDesc', 'Maximum failed login attempts before account lockout')}</p>
             </div>
             <Select defaultValue="5">
               <SelectTrigger className="w-24">
@@ -394,34 +394,34 @@ export default function SettingsPage() {
       </div>
 
       <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('tenant.settings.security.dataProtection', 'Data Protection')}</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">{getText('merchant.settings.security.dataProtection', 'Data Protection')}</h3>
         <div className="space-y-4">
           <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
             <div>
-              <h4 className="font-medium text-gray-900">{getText('tenant.settings.security.sslCertificate', 'SSL Certificate')}</h4>
-              <p className="text-sm text-gray-600">{getText('tenant.settings.security.sslCertificateDesc', 'Secure data transmission with HTTPS')}</p>
+              <h4 className="font-medium text-gray-900">{getText('merchant.settings.security.sslCertificate', 'SSL Certificate')}</h4>
+              <p className="text-sm text-gray-600">{getText('merchant.settings.security.sslCertificateDesc', 'Secure data transmission with HTTPS')}</p>
             </div>
             <Badge className="bg-green-100 text-green-800">
               <CheckCircle className="w-3 h-3 mr-1" />
-              {getText('tenant.settings.security.active', 'Active')}
+              {getText('merchant.settings.security.active', 'Active')}
             </Badge>
           </div>
 
           <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
             <div>
-              <h4 className="font-medium text-gray-900">{getText('tenant.settings.security.dataBackup', 'Data Backup')}</h4>
-              <p className="text-sm text-gray-600">{getText('tenant.settings.security.dataBackupDesc', 'Automatic daily backups of store data')}</p>
+              <h4 className="font-medium text-gray-900">{getText('merchant.settings.security.dataBackup', 'Data Backup')}</h4>
+              <p className="text-sm text-gray-600">{getText('merchant.settings.security.dataBackupDesc', 'Automatic daily backups of store data')}</p>
             </div>
             <div className="flex items-center space-x-3">
-              <Badge className="bg-blue-100 text-blue-800">{getText('tenant.settings.security.dailyAt2am', 'Daily at 2:00 AM')}</Badge>
+              <Badge className="bg-blue-100 text-blue-800">{getText('merchant.settings.security.dailyAt2am', 'Daily at 2:00 AM')}</Badge>
               <Button variant="outline" size="sm">{getText('common.actions.configure', 'Configure')}</Button>
             </div>
           </div>
 
           <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
             <div>
-              <h4 className="font-medium text-gray-900">{getText('tenant.settings.security.activityLogging', 'Activity Logging')}</h4>
-              <p className="text-sm text-gray-600">{getText('tenant.settings.security.activityLoggingDesc', 'Track admin actions and system events')}</p>
+              <h4 className="font-medium text-gray-900">{getText('merchant.settings.security.activityLogging', 'Activity Logging')}</h4>
+              <p className="text-sm text-gray-600">{getText('merchant.settings.security.activityLoggingDesc', 'Track admin actions and system events')}</p>
             </div>
             <label className="flex items-center">
               <input
@@ -429,7 +429,7 @@ export default function SettingsPage() {
                 defaultChecked={true}
                 className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
               />
-              <span className="ml-2 text-sm text-gray-700">{getText('tenant.settings.payments.enabled', 'Enabled')}</span>
+              <span className="ml-2 text-sm text-gray-700">{getText('merchant.settings.payments.enabled', 'Enabled')}</span>
             </label>
           </div>
         </div>
@@ -453,8 +453,8 @@ export default function SettingsPage() {
         return (
           <div className="text-center py-12">
             <Settings className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">{getText('tenant.settings.sections.title', 'Settings Section')}</h3>
-            <p className="text-gray-500">{getText('tenant.settings.sections.underDevelopment', 'This section is under development.')}</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{getText('merchant.settings.sections.title', 'Settings Section')}</h3>
+            <p className="text-gray-500">{getText('merchant.settings.sections.underDevelopment', 'This section is under development.')}</p>
           </div>
         )
     }
@@ -464,8 +464,8 @@ export default function SettingsPage() {
     <div className="p-6">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">{getText('tenant.settings.title', 'Settings')}</h1>
-        <p className="text-gray-600 mt-1">{getText('tenant.settings.subtitle', 'Manage your store configuration and preferences')}</p>
+        <h1 className="text-2xl font-bold text-gray-900">{getText('merchant.settings.title', 'Settings')}</h1>
+        <p className="text-gray-600 mt-1">{getText('merchant.settings.subtitle', 'Manage your store configuration and preferences')}</p>
       </div>
 
       <div className="flex gap-6">

@@ -1,21 +1,21 @@
 /**
- * 主题注册表
- * 维护所有可用主题的映射关系，支持动态导入
+ * Theme Registry
+ * Maintains the mapping of all available themes and supports dynamic imports.
  *
- * 支持两种主题来源：
- * 1. 内置主题 - 通过 npm 包安装，使用静态导入
- * 2. 已安装主题 - 通过 Extension Installer 安装到 extensions/themes/shop/
+ * Supports two theme sources:
+ * 1. Built-in themes - Installed via npm packages, using static imports
+ * 2. Installed themes - Installed via Extension Installer to extensions/themes/shop/
  */
 
 import type { ThemePackage, ThemeMeta, ThemeRegistryEntry, ThemeRegistry } from 'shared/src/types/theme';
 
 // ============================================================================
-// 内置主题注册表（静态）
+// Built-in Theme Registry (Static)
 // ============================================================================
 
 /**
- * 内置主题注册表
- * 将主题 slug 映射到动态导入函数
+ * Built-in Theme Registry
+ * Maps theme slug to dynamic import functions
  */
 export const BUILTIN_THEMES: ThemeRegistry = {
   default: {
@@ -23,7 +23,7 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       slug: 'default',
       name: 'Default Theme',
       version: '1.0.0',
-      description: 'Jiffoo Mall 默认主题，简洁现代的电商风格',
+      description: 'The default Jiffoo Mall theme, modern and clean e-commerce style.',
       category: 'general',
       author: 'Jiffoo',
       target: 'shop',
@@ -34,24 +34,35 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       return module.default || module.theme;
     },
   },
-  // 未来可添加更多内置主题
-  // premium: {
-  //   meta: { ... },
-  //   load: () => import('@shop-themes/premium'),
-  // },
+  yevbi: {
+    meta: {
+      slug: 'yevbi',
+      name: 'Yevbi Travel Theme',
+      version: '1.0.0',
+      description: 'Travel-focused e-commerce theme with purple-indigo gradient design for eSIM and travel packages.',
+      category: 'travel',
+      author: 'Yevbi',
+      target: 'shop',
+      tags: ['travel', 'esim', 'purple', 'gradient', 'modern'],
+    },
+    load: async () => {
+      const module = await import('@shop-themes/yevbi/src/index');
+      return module.default || module;
+    },
+  },
 };
 
 // ============================================================================
-// 动态主题注册表（运行时）
+// Dynamic Theme Registry (Runtime)
 // ============================================================================
 
 /**
- * 已安装主题注册表（运行时动态添加）
+ * Installed themes registry (dynamically added at runtime)
  */
 const installedThemes: ThemeRegistry = {};
 
 /**
- * 合并后的完整主题注册表
+ * Get the complete combined theme registry
  */
 export function getThemeRegistry(): ThemeRegistry {
   return {
@@ -61,36 +72,36 @@ export function getThemeRegistry(): ThemeRegistry {
 }
 
 /**
- * 注册已安装的主题
- * @param slug - 主题标识符
- * @param entry - 主题注册表条目
+ * Register an installed theme
+ * @param slug - Theme identifier
+ * @param entry - Theme registry entry
  */
 export function registerInstalledTheme(slug: string, entry: ThemeRegistryEntry): void {
   installedThemes[slug] = entry;
 }
 
 /**
- * 注销已安装的主题
- * @param slug - 主题标识符
+ * Unregister an installed theme
+ * @param slug - Theme identifier
  */
 export function unregisterInstalledTheme(slug: string): void {
   delete installedThemes[slug];
 }
 
 /**
- * 清空已安装主题注册表
+ * Clear the installed themes registry
  */
 export function clearInstalledThemes(): void {
   Object.keys(installedThemes).forEach(key => delete installedThemes[key]);
 }
 
 // ============================================================================
-// 兼容性导出（保持向后兼容）
+// Compatibility Exports
 // ============================================================================
 
 /**
- * 主题注册表（兼容旧代码）
- * @deprecated 使用 getThemeRegistry() 代替
+ * Theme registry proxy for legacy support
+ * @deprecated Use getThemeRegistry() instead
  */
 export const THEME_REGISTRY = new Proxy({} as Record<string, () => Promise<any>>, {
   get(_, slug: string) {
@@ -113,23 +124,23 @@ export const THEME_REGISTRY = new Proxy({} as Record<string, () => Promise<any>>
 });
 
 /**
- * 主题 Slug 类型
+ * Theme Slug Type
  */
 export type ThemeSlug = string;
 
 /**
- * 验证主题 slug 是否有效
- * @param slug - 要验证的主题标识符
- * @returns 如果 slug 在注册表中则返回 true
+ * Validate theme slug
+ * @param slug - Theme identifier to validate
+ * @returns true if slug exists in the registry
  */
 export function isValidThemeSlug(slug: string): boolean {
   return slug in getThemeRegistry();
 }
 
 /**
- * 获取主题导入函数
- * @param slug - 主题标识符
- * @returns 主题包的动态导入函数
+ * Get theme importer function
+ * @param slug - Theme identifier
+ * @returns Dynamic import function for the theme package
  */
 export function getThemeImporter(slug: string): (() => Promise<any>) | undefined {
   const registry = getThemeRegistry();
@@ -138,9 +149,9 @@ export function getThemeImporter(slug: string): (() => Promise<any>) | undefined
 }
 
 /**
- * 获取主题元数据
- * @param slug - 主题标识符
- * @returns 主题元数据
+ * Get theme metadata
+ * @param slug - Theme identifier
+ * @returns Theme metadata
  */
 export function getThemeMeta(slug: string): ThemeMeta | undefined {
   const registry = getThemeRegistry();
@@ -148,16 +159,16 @@ export function getThemeMeta(slug: string): ThemeMeta | undefined {
 }
 
 /**
- * 获取所有可用的主题 slugs
- * @returns 主题标识符数组
+ * Get all available theme slugs
+ * @returns Array of theme identifiers
  */
 export function getAvailableThemes(): string[] {
   return Object.keys(getThemeRegistry());
 }
 
 /**
- * 获取所有主题元数据
- * @returns 主题元数据数组
+ * Get all theme metadata
+ * @returns Array of theme metadata
  */
 export function getAllThemeMetas(): ThemeMeta[] {
   const registry = getThemeRegistry();
@@ -165,16 +176,16 @@ export function getAllThemeMetas(): ThemeMeta[] {
 }
 
 /**
- * 检查是否为内置主题
- * @param slug - 主题标识符
+ * Check if a theme is built-in
+ * @param slug - Theme identifier
  */
 export function isBuiltinTheme(slug: string): boolean {
   return slug in BUILTIN_THEMES;
 }
 
 /**
- * 检查是否为已安装主题
- * @param slug - 主题标识符
+ * Check if a theme is installed via Extension Installer
+ * @param slug - Theme identifier
  */
 export function isInstalledTheme(slug: string): boolean {
   return slug in installedThemes;

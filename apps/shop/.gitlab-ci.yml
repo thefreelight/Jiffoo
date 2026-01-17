@@ -1,0 +1,48 @@
+# 子流水线不发通知，由父流水线统一发送
+include:
+  - project: 'ops/cicd-template'
+    ref: main
+    file:
+      - 'templates/precheck.yml'
+      - 'templates/test.yml'
+      - 'templates/build.yml'
+      - 'templates/gitops.yml'
+
+default: {}
+
+stages:
+  - precheck
+  - test
+  - build
+  - gitops
+
+variables:
+  SERVICE_NAME: "shop"
+  SERVICE_PATH: "apps/shop"
+  GITOPS_DEPLOYMENT_PATH: "jiffoo-mall"
+
+precheck:
+  extends: .precheck
+
+test:
+  extends: .test
+  needs:
+    - job: precheck
+      artifacts: true
+
+build:
+  extends: .build
+  needs:
+    - job: precheck
+      artifacts: true
+    - job: test
+      artifacts: false
+
+gitops:
+  extends: .gitops
+  resource_group: deployment-repo
+  needs:
+    - job: precheck
+      artifacts: true
+    - job: build
+      artifacts: false

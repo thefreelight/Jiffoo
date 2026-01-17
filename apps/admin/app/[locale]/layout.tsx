@@ -9,9 +9,9 @@ import { notFound } from 'next/navigation';
 import {
   isSupportedLocale,
   getMessages,
-  I18nProvider,
   type Locale,
 } from 'shared/src/i18n';
+import { I18nProvider } from 'shared/src/i18n/react';
 import { BlueMinimalLayout } from '@/components/layout/blue-minimal-layout';
 import { QueryProvider } from '@/lib/providers/query-provider';
 import { Toaster } from 'sonner';
@@ -52,6 +52,6 @@ export default async function LocaleLayout({ children, params }: Props) {
  * Generate static params for all supported locales
  */
 export function generateStaticParams() {
-  return [{ locale: 'en' }, { locale: 'zh-Hant' }];
+  return [{ locale: 'en' }, { locale: 'zh-Hans' }];
 }
 

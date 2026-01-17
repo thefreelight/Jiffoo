@@ -5,8 +5,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { ThemeProvider } from 'next-themes';
 import { CartInitializer } from '@/components/cart-initializer';
-import { TenantManager } from '@/lib/tenant';
+
 import { LoggerProvider } from '@/components/logger-provider';
+import { DevTools } from '@/components/dev-tools';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -26,30 +27,8 @@ const queryClient = new QueryClient({
 });
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  // 初始化租户上下文
-  React.useEffect(() => {
-    // 从URL查询参数获取租户ID
-    if (typeof window !== 'undefined') {
-      const searchParams = new URLSearchParams(window.location.search);
-      const tenantParam = searchParams.get('tenant');
+  // Tenant initialization removed
 
-      if (tenantParam) {
-        TenantManager.setCurrentTenantId(tenantParam);
-        // 同时设置到API客户端
-        const { apiClient } = require('@/lib/api');
-        apiClient.setTenantId(tenantParam);
-      } else {
-        // 如果没有租户参数，使用默认租户ID (租户1)
-        const currentTenantId = TenantManager.getCurrentTenantId();
-        if (!currentTenantId) {
-          TenantManager.setCurrentTenantId('1');
-          const { apiClient } = require('@/lib/api');
-          apiClient.setTenantId('1');
-        }
-      }
-    }
-    TenantManager.initializeTenantContext();
-  }, []);
 
   return (
     <LoggerProvider>
@@ -63,6 +42,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <CartInitializer />
           {children}
           <ReactQueryDevtools initialIsOpen={false} />
+          <DevTools />
         </ThemeProvider>
       </QueryClientProvider>
     </LoggerProvider>

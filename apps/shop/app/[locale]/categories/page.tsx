@@ -11,7 +11,7 @@ import * as React from 'react';
 import { useShopTheme } from '@/lib/themes/provider';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { productsApi } from '@/lib/api';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 interface Category {
   id: string;

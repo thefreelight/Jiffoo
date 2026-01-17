@@ -4,7 +4,10 @@
     "enabled": true,
     "signature": false
   },
-  "globalDependencies": [".env", "**/.env.*local"],
+  "globalDependencies": [
+    ".env",
+    "**/.env.*local"
+  ],
   "globalEnv": [
     "NODE_ENV",
     "LOG_LEVEL",
@@ -33,41 +36,79 @@
   "ui": "tui",
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "build/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        "!.next/cache/**",
+        "build/**"
+      ]
     },
     "build#api": {
-      "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "dist/**"
+      ]
     },
     "build#shop": {
-      "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**"
+      ]
     },
     "build#admin": {
-      "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**"
+      ]
     },
     "build#super-admin": {
-      "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        ".next/**",
+        "!.next/cache/**"
+      ]
     },
-    "build#docs-public": {
-      "dependsOn": ["^build"],
-      "outputs": ["build/**"]
+    "build#docs": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "build/**",
+        ".next/**",
+        "!.next/cache/**"
+      ]
     },
     "dev": {
       "cache": false,
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": [
+        "^lint"
+      ]
     },
     "type-check": {
-      "dependsOn": ["^type-check"]
+      "dependsOn": [
+        "^type-check"
+      ]
     },
     "test": {
-      "dependsOn": ["^test"]
+      "dependsOn": [
+        "^test"
+      ]
     },
     "clean": {
       "cache": false
@@ -89,7 +130,9 @@
       "cache": false
     },
     "docker:build": {
-      "dependsOn": ["build"],
+      "dependsOn": [
+        "build"
+      ],
       "inputs": [
         "$TURBO_DEFAULT$",
         "Dockerfile*",
@@ -104,7 +147,9 @@
       ]
     },
     "deploy": {
-      "dependsOn": ["docker:build"],
+      "dependsOn": [
+        "docker:build"
+      ],
       "cache": false,
       "env": [
         "KUBECONFIG",

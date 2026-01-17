@@ -10,7 +10,7 @@
 
 import React from 'react';
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 export default function StoreNotFoundPage() {
   const searchParams = useSearchParams();
@@ -18,7 +18,6 @@ export default function StoreNotFoundPage() {
   const params = useParams();
   const t = useT();
 
-  const requestedTenant = searchParams.get('tenant');
   const requestedDomain = searchParams.get('domain');
   const locale = params?.locale || 'en';
 
@@ -37,9 +36,6 @@ export default function StoreNotFoundPage() {
   const getErrorDetail = () => {
     if (requestedDomain) {
       return `Domain: ${requestedDomain}`;
-    }
-    if (requestedTenant) {
-      return `Tenant ID: ${requestedTenant}`;
     }
     return null;
   };

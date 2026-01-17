@@ -1,31 +1,43 @@
 /**
  * Theme Management Service
- * Manages theme activation and configuration
+ * Manages theme activation and configuration using SystemSettings
  */
 
-import { promises as fs } from 'fs';
 import path from 'path';
+import { promises as fs } from 'fs';
+import { systemSettingsService } from '@/core/admin/system-settings/service';
 import type { ActiveTheme, ThemeMeta, ThemeConfig, InstalledThemesResponse } from './types';
 
-// 存储路径
-const CONFIG_DIR = path.join(process.cwd(), 'data');
-const ACTIVE_THEME_FILE = path.join(CONFIG_DIR, 'active-theme.json');
+// Storage configuration
 const EXTENSIONS_DIR = path.join(process.cwd(), 'extensions', 'themes', 'shop');
 
-// 内置主题
+// Constants
+const THEME_ACTIVE_KEY = 'theme.active.shop';
+const THEME_PREVIOUS_KEY = 'theme.previous.shop';
+
+// Built-in themes
 const BUILTIN_THEMES: ThemeMeta[] = [
   {
     slug: 'default',
     name: 'Default Theme',
     version: '1.0.0',
-    description: 'Jiffoo Mall 默认主题，简洁现代的电商风格',
+    description: 'Jiffoo Mall default theme, clean and modern e-commerce style',
     author: 'Jiffoo',
     category: 'general',
     source: 'builtin',
   },
+  {
+    slug: 'yevbi',
+    name: 'Yevbi Travel Theme',
+    version: '1.0.0',
+    description: 'Travel-focused e-commerce theme with purple-indigo gradient design for eSIM and travel packages',
+    author: 'Yevbi',
+    category: 'travel',
+    source: 'builtin',
+  },
 ];
 
-// 默认激活主题
+// Default active theme
 const DEFAULT_ACTIVE_THEME: ActiveTheme = {
   slug: 'default',
   version: '1.0.0',
@@ -35,35 +47,32 @@ const DEFAULT_ACTIVE_THEME: ActiveTheme = {
 };
 
 /**
- * 确保配置目录存在
- */
-async function ensureConfigDir(): Promise<void> {
-  try {
-    await fs.mkdir(CONFIG_DIR, { recursive: true });
-  } catch {
-    // 目录已存在
-  }
-}
-
-/**
- * 获取当前激活的主题
+ * Get current active theme from SystemSettings
  */
 export async function getActiveTheme(): Promise<ActiveTheme> {
-  try {
-    await ensureConfigDir();
-    const data = await fs.readFile(ACTIVE_THEME_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    // 文件不存在，返回默认主题
-    return DEFAULT_ACTIVE_THEME;
+  const active = await systemSettingsService.getSetting(THEME_ACTIVE_KEY);
+  if (active && typeof active === 'object') {
+    return active as ActiveTheme;
   }
+  return DEFAULT_ACTIVE_THEME;
 }
 
 /**
- * 激活主题
+ * Get previous theme from SystemSettings
+ */
+export async function getPreviousTheme(): Promise<ActiveTheme | null> {
+  const previous = await systemSettingsService.getSetting(THEME_PREVIOUS_KEY);
+  if (previous && typeof previous === 'object') {
+    return previous as ActiveTheme;
+  }
+  return null;
+}
+
+/**
+ * Activate theme
  */
 export async function activateTheme(slug: string, config?: ThemeConfig): Promise<ActiveTheme> {
-  // 查找主题
+  // Find theme info
   const installedThemes = await getInstalledThemes();
   const allThemes = [...BUILTIN_THEMES, ...installedThemes.themes.filter(t => t.source === 'installed')];
   const theme = allThemes.find(t => t.slug === slug);
@@ -72,22 +81,52 @@ export async function activateTheme(slug: string, config?: ThemeConfig): Promise
     throw new Error(`Theme "${slug}" not found`);
   }
 
-  const activeTheme: ActiveTheme = {
+  // Get current theme to set as previous
+  const currentTheme = await getActiveTheme();
+
+  const newActiveTheme: ActiveTheme = {
     slug: theme.slug,
     version: theme.version,
     source: theme.source,
-    config: config || {},
+    config: config || currentTheme.slug === slug ? currentTheme.config : {}, // Keep config if same theme, else empty or new
     activatedAt: new Date().toISOString(),
   };
 
-  await ensureConfigDir();
-  await fs.writeFile(ACTIVE_THEME_FILE, JSON.stringify(activeTheme, null, 2));
+  // If we are actually changing themes (slug different), save current as previous
+  if (currentTheme.slug !== slug) {
+    await systemSettingsService.setSetting(THEME_PREVIOUS_KEY, currentTheme);
+  }
 
-  return activeTheme;
+  // Save new active theme
+  await systemSettingsService.setSetting(THEME_ACTIVE_KEY, newActiveTheme);
+
+  return newActiveTheme;
 }
 
 /**
- * 更新主题配置
+ * Rollback to previous theme
+ */
+export async function rollbackTheme(): Promise<ActiveTheme> {
+  const previousTheme = await getPreviousTheme();
+  if (!previousTheme) {
+    throw new Error('No previous theme available for rollback');
+  }
+
+  // Activate previous theme (this will swap current -> previous again logic effectively)
+  // To strictly follow "rollback", we might want to restore exact config.
+  // activateTheme method handles basic logic, but let's do it explicitly to ensure we restore exact state of previous.
+
+  // We swap: New Active = Old Previous. New Previous = Old Active.
+  const currentTheme = await getActiveTheme();
+
+  await systemSettingsService.setSetting(THEME_ACTIVE_KEY, previousTheme);
+  await systemSettingsService.setSetting(THEME_PREVIOUS_KEY, currentTheme);
+
+  return previousTheme;
+}
+
+/**
+ * Update theme config
  */
 export async function updateThemeConfig(config: ThemeConfig): Promise<ActiveTheme> {
   const current = await getActiveTheme();
@@ -96,19 +135,18 @@ export async function updateThemeConfig(config: ThemeConfig): Promise<ActiveThem
     config: { ...current.config, ...config },
   };
 
-  await ensureConfigDir();
-  await fs.writeFile(ACTIVE_THEME_FILE, JSON.stringify(updated, null, 2));
+  await systemSettingsService.setSetting(THEME_ACTIVE_KEY, updated);
 
   return updated;
 }
 
 /**
- * 获取已安装主题列表
+ * Get installed themes list
  */
 export async function getInstalledThemes(): Promise<InstalledThemesResponse> {
   const themes: ThemeMeta[] = [...BUILTIN_THEMES];
 
-  // 读取已安装的主题
+  // Read installed themes from disk
   try {
     const dirs = await fs.readdir(EXTENSIONS_DIR, { withFileTypes: true });
     for (const dir of dirs) {
@@ -128,12 +166,12 @@ export async function getInstalledThemes(): Promise<InstalledThemesResponse> {
             source: 'installed',
           });
         } catch {
-          // 忽略无效主题
+          // Ignore invalid themes
         }
       }
     }
   } catch {
-    // extensions 目录不存在
+    // extensions directory does not exist or empty
   }
 
   return { themes, total: themes.length };
@@ -141,8 +179,9 @@ export async function getInstalledThemes(): Promise<InstalledThemesResponse> {
 
 export const ThemeManagementService = {
   getActiveTheme,
+  getPreviousTheme,
   activateTheme,
+  rollbackTheme,
   updateThemeConfig,
   getInstalledThemes,
 };
-

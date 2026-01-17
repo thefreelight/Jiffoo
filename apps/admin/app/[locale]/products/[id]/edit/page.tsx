@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { useT } from 'shared/src/i18n'
+import { useT } from 'shared/src/i18n/react'
 
 import { useProduct, useUpdateProduct } from '@/lib/hooks/use-api'
 
@@ -129,7 +129,7 @@ export default function EditProductPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">{getText('tenant.products.edit.loading', 'Loading product information...')}</p>
+          <p className="mt-2 text-gray-600">{getText('merchant.products.edit.loading', 'Loading product information...')}</p>
         </div>
       </div>
     )
@@ -140,14 +140,14 @@ export default function EditProductPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-            <h2 className="text-lg font-semibold text-red-800 mb-2">{getText('tenant.products.edit.productNotFound', 'Product Not Found')}</h2>
+            <h2 className="text-lg font-semibold text-red-800 mb-2">{getText('merchant.products.edit.productNotFound', 'Product Not Found')}</h2>
             <p className="text-red-600 mb-4">
               {error.message.includes('404')
-                ? getText('tenant.products.edit.productNotFoundDesc', 'This product does not exist or has been deleted')
-                : `${getText('tenant.products.edit.loadFailed', 'Failed to load product information')}: ${error.message}`}
+                ? getText('merchant.products.edit.productNotFoundDesc', 'This product does not exist or has been deleted')
+                : `${getText('merchant.products.edit.loadFailed', 'Failed to load product information')}: ${error.message}`}
             </p>
             <Button onClick={() => router.push('/products')}>
-              {getText('tenant.products.edit.backToList', 'Back to Product List')}
+              {getText('merchant.products.edit.backToList', 'Back to Product List')}
             </Button>
           </div>
         </div>
@@ -161,10 +161,10 @@ export default function EditProductPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 max-w-md">
-            <h2 className="text-lg font-semibold text-yellow-800 mb-2">{getText('tenant.products.edit.productDataEmpty', 'Product Data Empty')}</h2>
-            <p className="text-yellow-600 mb-4">{getText('tenant.products.edit.unableToRetrieve', 'Unable to retrieve product information')}</p>
+            <h2 className="text-lg font-semibold text-yellow-800 mb-2">{getText('merchant.products.edit.productDataEmpty', 'Product Data Empty')}</h2>
+            <p className="text-yellow-600 mb-4">{getText('merchant.products.edit.unableToRetrieve', 'Unable to retrieve product information')}</p>
             <Button onClick={() => router.push('/products')}>
-              {getText('tenant.products.edit.backToList', 'Back to Product List')}
+              {getText('merchant.products.edit.backToList', 'Back to Product List')}
             </Button>
           </div>
         </div>
@@ -176,14 +176,14 @@ export default function EditProductPage() {
     <div className="p-6 max-w-4xl mx-auto">
       {/* Debug Panel - Temporary debug panel */}
       <div className="mb-4 p-4 bg-gray-100 rounded-lg">
-        <h3 className="text-sm font-semibold text-gray-700 mb-2">{getText('tenant.products.edit.debugInfo', 'Debug Information')}</h3>
+        <h3 className="text-sm font-semibold text-gray-700 mb-2">{getText('merchant.products.edit.debugInfo', 'Debug Information')}</h3>
         <div className="text-xs text-gray-600 space-y-1">
           <div>Product ID: {productId}</div>
-          <div>{getText('tenant.products.edit.loadingStatus', 'Loading Status')}: {isLoading ? getText('tenant.products.edit.loadingText', 'Loading') : getText('tenant.products.edit.completedText', 'Completed')}</div>
-          <div>Product Name: {formData.name || getText('tenant.products.edit.notSet', 'Not set')}</div>
-          <div>Product Price: {formData.price || getText('tenant.products.edit.notSet', 'Not set')}</div>
-          <div>Product Stock: {formData.quantity || getText('tenant.products.edit.notSet', 'Not set')}</div>
-          <div>Product Description: {formData.description ? getText('tenant.products.edit.set', 'Set') : getText('tenant.products.edit.notSet', 'Not set')}</div>
+          <div>{getText('merchant.products.edit.loadingStatus', 'Loading Status')}: {isLoading ? getText('merchant.products.edit.loadingText', 'Loading') : getText('merchant.products.edit.completedText', 'Completed')}</div>
+          <div>Product Name: {formData.name || getText('merchant.products.edit.notSet', 'Not set')}</div>
+          <div>Product Price: {formData.price || getText('merchant.products.edit.notSet', 'Not set')}</div>
+          <div>Product Stock: {formData.quantity || getText('merchant.products.edit.notSet', 'Not set')}</div>
+          <div>Product Description: {formData.description ? getText('merchant.products.edit.set', 'Set') : getText('merchant.products.edit.notSet', 'Not set')}</div>
         </div>
       </div>
 
@@ -196,23 +196,23 @@ export default function EditProductPage() {
             onClick={() => router.back()}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {getText('tenant.products.edit.back', 'Back')}
+            {getText('merchant.products.edit.back', 'Back')}
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{getText('tenant.products.edit.title', 'Edit Product')}</h1>
-            <p className="text-gray-600">{getText('tenant.products.edit.subtitle', 'Modify product information')} - {formData.name || getText('tenant.products.edit.unnamedProduct', 'Unnamed Product')}</p>
+            <h1 className="text-2xl font-bold text-gray-900">{getText('merchant.products.edit.title', 'Edit Product')}</h1>
+            <p className="text-gray-600">{getText('merchant.products.edit.subtitle', 'Modify product information')} - {formData.name || getText('merchant.products.edit.unnamedProduct', 'Unnamed Product')}</p>
           </div>
         </div>
         <div className="flex space-x-3">
           <Button variant="outline" onClick={() => router.push('/products')}>
-            {getText('tenant.products.edit.cancel', 'Cancel')}
+            {getText('merchant.products.edit.cancel', 'Cancel')}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={updateProductMutation.isPending}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            {updateProductMutation.isPending ? getText('tenant.products.edit.saving', 'Saving...') : getText('tenant.products.edit.saveChanges', 'Save Changes')}
+            {updateProductMutation.isPending ? getText('merchant.products.edit.saving', 'Saving...') : getText('merchant.products.edit.saveChanges', 'Save Changes')}
           </Button>
         </div>
       </div>
@@ -224,28 +224,28 @@ export default function EditProductPage() {
             {/* Basic Information */}
             <Card>
               <CardHeader>
-                <CardTitle>{getText('tenant.products.edit.basicInfo', 'Basic Information')}</CardTitle>
-                <CardDescription>{getText('tenant.products.edit.basicInfoDesc', 'Basic product details')}</CardDescription>
+                <CardTitle>{getText('merchant.products.edit.basicInfo', 'Basic Information')}</CardTitle>
+                <CardDescription>{getText('merchant.products.edit.basicInfoDesc', 'Basic product details')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="name">{getText('tenant.products.edit.productNameLabel', 'Product Name *')}</Label>
+                  <Label htmlFor="name">{getText('merchant.products.edit.productNameLabel', 'Product Name *')}</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder={getText('tenant.products.edit.productNamePlaceholder', 'Enter product name')}
+                    placeholder={getText('merchant.products.edit.productNamePlaceholder', 'Enter product name')}
                     required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="description">{getText('tenant.products.edit.productDescription', 'Product Description')}</Label>
+                  <Label htmlFor="description">{getText('merchant.products.edit.productDescription', 'Product Description')}</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder={getText('tenant.products.edit.productDescPlaceholder', 'Detailed product description')}
+                    placeholder={getText('merchant.products.edit.productDescPlaceholder', 'Detailed product description')}
                     rows={4}
                   />
                 </div>
@@ -255,13 +255,13 @@ export default function EditProductPage() {
             {/* Pricing and Inventory */}
             <Card>
               <CardHeader>
-                <CardTitle>{getText('tenant.products.edit.pricingInventory', 'Pricing and Inventory')}</CardTitle>
-                <CardDescription>{getText('tenant.products.edit.pricingInventoryDesc', 'Set product price and stock quantity')}</CardDescription>
+                <CardTitle>{getText('merchant.products.edit.pricingInventory', 'Pricing and Inventory')}</CardTitle>
+                <CardDescription>{getText('merchant.products.edit.pricingInventoryDesc', 'Set product price and stock quantity')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="price">{getText('tenant.products.edit.priceLabel', 'Price *')}</Label>
+                    <Label htmlFor="price">{getText('merchant.products.edit.priceLabel', 'Price *')}</Label>
                     <Input
                       id="price"
                       type="number"
@@ -274,7 +274,7 @@ export default function EditProductPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="quantity">{getText('tenant.products.edit.stockQuantity', 'Stock Quantity *')}</Label>
+                    <Label htmlFor="quantity">{getText('merchant.products.edit.stockQuantity', 'Stock Quantity *')}</Label>
                     <Input
                       id="quantity"
                       type="number"
@@ -295,12 +295,12 @@ export default function EditProductPage() {
             {/* Images */}
             <Card>
               <CardHeader>
-                <CardTitle>{getText('tenant.products.edit.productImages', 'Product Images')}</CardTitle>
-                <CardDescription>{getText('tenant.products.edit.productImagesDesc', 'Upload product images')}</CardDescription>
+                <CardTitle>{getText('merchant.products.edit.productImages', 'Product Images')}</CardTitle>
+                <CardDescription>{getText('merchant.products.edit.productImagesDesc', 'Upload product images')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label>{getText('tenant.products.edit.currentImages', 'Current Images')}</Label>
+                  <Label>{getText('merchant.products.edit.currentImages', 'Current Images')}</Label>
                   {formData.images.length > 0 ? (
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       {formData.images.map((image, index) => (
@@ -326,16 +326,16 @@ export default function EditProductPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-gray-500 text-sm">{getText('tenant.products.edit.noImages', 'No images')}</p>
+                    <p className="text-gray-500 text-sm">{getText('merchant.products.edit.noImages', 'No images')}</p>
                   )}
                 </div>
 
                 <div>
-                  <Label htmlFor="imageUrl">{getText('tenant.products.edit.addImageUrl', 'Add Image URL')}</Label>
+                  <Label htmlFor="imageUrl">{getText('merchant.products.edit.addImageUrl', 'Add Image URL')}</Label>
                   <div className="flex space-x-2">
                     <Input
                       id="imageUrl"
-                      placeholder={getText('tenant.products.edit.addImagePlaceholder', 'Enter image URL')}
+                      placeholder={getText('merchant.products.edit.addImagePlaceholder', 'Enter image URL')}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault()
@@ -358,7 +358,7 @@ export default function EditProductPage() {
                         }
                       }}
                     >
-                      {getText('tenant.products.edit.add', 'Add')}
+                      {getText('merchant.products.edit.add', 'Add')}
                     </Button>
                   </div>
                 </div>
@@ -368,7 +368,7 @@ export default function EditProductPage() {
             {/* Quick Actions */}
             <Card>
               <CardHeader>
-                <CardTitle>{getText('tenant.products.edit.quickActions', 'Quick Actions')}</CardTitle>
+                <CardTitle>{getText('merchant.products.edit.quickActions', 'Quick Actions')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <Button
@@ -376,7 +376,7 @@ export default function EditProductPage() {
                   disabled={updateProductMutation.isPending}
                   className="w-full bg-blue-600 hover:bg-blue-700"
                 >
-                  {updateProductMutation.isPending ? getText('tenant.products.edit.saving', 'Saving...') : getText('tenant.products.edit.saveChanges', 'Save Changes')}
+                  {updateProductMutation.isPending ? getText('merchant.products.edit.saving', 'Saving...') : getText('merchant.products.edit.saveChanges', 'Save Changes')}
                 </Button>
                 <Button
                   type="button"
@@ -384,7 +384,7 @@ export default function EditProductPage() {
                   onClick={() => router.push('/products')}
                   className="w-full"
                 >
-                  {getText('tenant.products.edit.cancelEdit', 'Cancel Edit')}
+                  {getText('merchant.products.edit.cancelEdit', 'Cancel Edit')}
                 </Button>
               </CardContent>
             </Card>

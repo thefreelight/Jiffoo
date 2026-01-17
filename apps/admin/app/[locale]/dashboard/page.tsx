@@ -17,7 +17,7 @@ import { useDashboardStats, useOrders, useInstalledPlugins } from '@/lib/hooks/u
 import { cacheApi } from '@/lib/api'
 import { Order } from '@/lib/types'
 import { useQuery } from '@tanstack/react-query'
-import { useT } from 'shared/src/i18n'
+import { useT } from 'shared/src/i18n/react'
 
 
 
@@ -76,7 +76,7 @@ export default function DashboardPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">{getText('tenant.dashboard.loading', 'Loading dashboard...')}</p>
+          <p className="mt-2 text-gray-600">{getText('merchant.dashboard.loading', 'Loading dashboard...')}</p>
         </div>
       </div>
     )
@@ -87,13 +87,13 @@ export default function DashboardPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">{getText('tenant.dashboard.loadFailed', 'Failed to load dashboard data')}</p>
+          <p className="text-gray-600">{getText('merchant.dashboard.loadFailed', 'Failed to load dashboard data')}</p>
           <Button
             variant="outline"
             className="mt-4"
             onClick={() => window.location.reload()}
           >
-            {getText('tenant.dashboard.retry', 'Retry')}
+            {getText('merchant.dashboard.retry', 'Retry')}
           </Button>
         </div>
       </div>
@@ -105,17 +105,17 @@ export default function DashboardPage() {
       {/* Welcome Section */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[#0F172A]">{getText('tenant.dashboard.welcome', 'Welcome back!')}</h1>
-          <p className="text-[#64748B]">{getText('tenant.dashboard.welcomeSubtitle', "Here's what's happening with your store today.")}</p>
+          <h1 className="text-2xl font-semibold text-[#0F172A]">{getText('merchant.dashboard.welcome', 'Welcome back!')}</h1>
+          <p className="text-[#64748B]">{getText('merchant.dashboard.welcomeSubtitle', "Here's what's happening with your store today.")}</p>
         </div>
         <div className="flex gap-3">
           <Button variant="outline" size="sm" className="border-[#E2E8F0] text-[#0F172A] hover:border-[#3B82F6] hover:text-[#3B82F6]">
             <Eye className="w-4 h-4 mr-2" />
-            {getText('tenant.dashboard.viewStore', 'View Store')}
+            {getText('merchant.dashboard.viewStore', 'View Store')}
           </Button>
           <Button size="sm" className="bg-[#3B82F6] hover:bg-[#2563EB] text-white">
             <Plus className="w-4 h-4 mr-2" />
-            {getText('tenant.dashboard.addProduct', 'Add Product')}
+            {getText('merchant.dashboard.addProduct', 'Add Product')}
           </Button>
         </div>
       </div>
@@ -123,7 +123,7 @@ export default function DashboardPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatsCard
-          title={getText('tenant.dashboard.totalRevenue', 'Total Revenue')}
+          title={getText('merchant.dashboard.totalRevenue', 'Total Revenue')}
           value={`¥${stats?.totalRevenue?.toLocaleString() || '0'}`}
           change={`${(stats?.revenueGrowth ?? 0) > 0 ? '+' : ''}${stats?.revenueGrowth ?? 0}%`}
           changeType={(stats?.revenueGrowth ?? 0) >= 0 ? "increase" : "decrease"}
@@ -131,7 +131,7 @@ export default function DashboardPage() {
           icon={<DollarSign className="w-5 h-5" />}
         />
         <StatsCard
-          title={getText('tenant.dashboard.totalOrders', 'Total Orders')}
+          title={getText('merchant.dashboard.totalOrders', 'Total Orders')}
           value={stats?.totalOrders?.toLocaleString() || '0'}
           change={`${(stats?.orderGrowth ?? 0) > 0 ? '+' : ''}${stats?.orderGrowth ?? 0}%`}
           changeType={(stats?.orderGrowth ?? 0) >= 0 ? "increase" : "decrease"}
@@ -139,7 +139,7 @@ export default function DashboardPage() {
           icon={<ShoppingBag className="w-5 h-5" />}
         />
         <StatsCard
-          title={getText('tenant.dashboard.totalProducts', 'Total Products')}
+          title={getText('merchant.dashboard.totalProducts', 'Total Products')}
           value={stats?.totalProducts?.toLocaleString() || '0'}
           change={`${(stats?.productGrowth ?? 0) > 0 ? '+' : ''}${stats?.productGrowth ?? 0}%`}
           changeType={(stats?.productGrowth ?? 0) >= 0 ? "increase" : "decrease"}
@@ -147,7 +147,7 @@ export default function DashboardPage() {
           icon={<Box className="w-5 h-5" />}
         />
         <StatsCard
-          title={getText('tenant.dashboard.totalUsers', 'Total Users')}
+          title={getText('merchant.dashboard.totalUsers', 'Total Users')}
           value={stats?.totalUsers?.toLocaleString() || '0'}
           change={`${(stats?.userGrowth ?? 0) > 0 ? '+' : ''}${stats?.userGrowth ?? 0}%`}
           changeType={(stats?.userGrowth ?? 0) >= 0 ? "increase" : "decrease"}

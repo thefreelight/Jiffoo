@@ -1,5 +1,5 @@
 /**
- * Product Routes (单商户版本)
+ * Product Routes (Single Merchant Version)
  */
 
 import { FastifyInstance } from 'fastify';
@@ -38,32 +38,6 @@ export async function productRoutes(fastify: FastifyInstance) {
         locale || DEFAULT_LOCALE
       );
       return reply.send({ success: true, data: result });
-    } catch (error: any) {
-      return reply.code(500).send({ success: false, error: error.message });
-    }
-  });
-
-  // Get product by ID
-  fastify.get('/:id', {
-    schema: {
-      tags: ['products'],
-      summary: 'Get product by ID',
-      querystring: {
-        type: 'object',
-        properties: {
-          locale: { type: 'string', default: 'en' }
-        }
-      }
-    }
-  }, async (request, reply) => {
-    try {
-      const { id } = request.params as any;
-      const { locale } = request.query as any;
-      const product = await ProductService.getProductById(id, locale || DEFAULT_LOCALE);
-      if (!product) {
-        return reply.code(404).send({ success: false, error: 'Product not found' });
-      }
-      return reply.send({ success: true, data: product });
     } catch (error: any) {
       return reply.code(500).send({ success: false, error: error.message });
     }
@@ -108,6 +82,32 @@ export async function productRoutes(fastify: FastifyInstance) {
         locale || DEFAULT_LOCALE
       );
       return reply.send({ success: true, data: products });
+    } catch (error: any) {
+      return reply.code(500).send({ success: false, error: error.message });
+    }
+  });
+
+  // Get product by ID (Must be last to avoid collision with static routes)
+  fastify.get('/:id', {
+    schema: {
+      tags: ['products'],
+      summary: 'Get product by ID',
+      querystring: {
+        type: 'object',
+        properties: {
+          locale: { type: 'string', default: 'en' }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params as any;
+      const { locale } = request.query as any;
+      const product = await ProductService.getProductById(id, locale || DEFAULT_LOCALE);
+      if (!product) {
+        return reply.code(404).send({ success: false, error: 'Product not found' });
+      }
+      return reply.send({ success: true, data: product });
     } catch (error: any) {
       return reply.code(500).send({ success: false, error: error.message });
     }

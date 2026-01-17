@@ -1,40 +1,30 @@
 /**
  * Jiffoo Theme SDK - Validators
+ *
+ * Lightweight runtime validation helpers used by the SDK and CLI.
+ * This intentionally avoids adding heavy schema dependencies so the SDK
+ * stays small and can run in Node scripts and build tools.
  */
 
-import type { ThemeManifest, ThemeTokens, ColorTokens } from './types';
+import type { ThemeCategory, ThemeManifest, ThemeTokens, ColorTokens } from './types';
 
-/**
- * Validation result
- */
+export interface ValidationError {
+  path: string;
+  message: string;
+}
+
+export interface ValidationWarning {
+  path: string;
+  message: string;
+}
+
 export interface ValidationResult {
   valid: boolean;
   errors: ValidationError[];
   warnings: ValidationWarning[];
 }
 
-/**
- * Validation error
- */
-export interface ValidationError {
-  path: string;
-  message: string;
-  code: string;
-}
-
-/**
- * Validation warning
- */
-export interface ValidationWarning {
-  path: string;
-  message: string;
-  code: string;
-}
-
-/**
- * Valid theme categories
- */
-export const VALID_CATEGORIES = [
+export const VALID_CATEGORIES: readonly ThemeCategory[] = [
   'general',
   'fashion',
   'electronics',
@@ -43,203 +33,209 @@ export const VALID_CATEGORIES = [
   'beauty',
   'sports',
   'minimal',
-  'luxury'
+  'luxury',
 ] as const;
 
-/**
- * Validate theme manifest
- */
+function ok(): ValidationResult {
+  return { valid: true, errors: [], warnings: [] };
+}
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string';
+}
+
+function addError(result: ValidationResult, path: string, message: string): void {
+  result.errors.push({ path, message });
+  result.valid = false;
+}
+
+function addWarning(result: ValidationResult, path: string, message: string): void {
+  result.warnings.push({ path, message });
+}
+
+function isHexColor(value: string): boolean {
+  return /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(value);
+}
+
 export function validateThemeManifest(manifest: unknown): ValidationResult {
-  const errors: ValidationError[] = [];
-  const warnings: ValidationWarning[] = [];
+  const result = ok();
 
-  if (!manifest || typeof manifest !== 'object') {
-    return {
-      valid: false,
-      errors: [{ path: '', message: 'Manifest must be an object', code: 'INVALID_TYPE' }],
-      warnings: []
-    };
+  if (!isObject(manifest)) {
+    addError(result, '', 'Manifest must be an object');
+    return result;
   }
 
-  const m = manifest as Record<string, unknown>;
+  const slug = manifest.slug;
+  const name = manifest.name;
+  const version = manifest.version;
+  const category = manifest.category;
 
-  // Required fields
-  if (!m.slug || typeof m.slug !== 'string') {
-    errors.push({ path: 'slug', message: 'slug is required and must be a string', code: 'REQUIRED' });
-  } else if (!/^[a-z0-9-]+$/.test(m.slug)) {
-    errors.push({ path: 'slug', message: 'slug must be lowercase alphanumeric with hyphens', code: 'INVALID_FORMAT' });
+  if (!isString(slug) || slug.trim().length === 0) {
+    addError(result, 'slug', 'Missing or invalid "slug"');
+  } else if (!/^[a-z0-9-]+$/.test(slug)) {
+    addError(result, 'slug', 'Slug must contain only lowercase letters, numbers, and hyphens');
   }
 
-  if (!m.name || typeof m.name !== 'string') {
-    errors.push({ path: 'name', message: 'name is required and must be a string', code: 'REQUIRED' });
+  if (!isString(name) || name.trim().length === 0) {
+    addError(result, 'name', 'Missing or invalid "name"');
   }
 
-  if (!m.version || typeof m.version !== 'string') {
-    errors.push({ path: 'version', message: 'version is required and must be a string', code: 'REQUIRED' });
-  } else if (!/^\d+\.\d+\.\d+/.test(m.version)) {
-    errors.push({ path: 'version', message: 'version must follow semver format (x.y.z)', code: 'INVALID_FORMAT' });
+  if (!isString(version) || version.trim().length === 0) {
+    addError(result, 'version', 'Missing or invalid "version"');
   }
 
-  if (!m.description || typeof m.description !== 'string') {
-    errors.push({ path: 'description', message: 'description is required and must be a string', code: 'REQUIRED' });
+  if (!isString(category) || !(VALID_CATEGORIES as readonly string[]).includes(category)) {
+    addError(result, 'category', `Invalid "category" (expected one of: ${VALID_CATEGORIES.join(', ')})`);
   }
 
-  if (!m.author || typeof m.author !== 'string') {
-    errors.push({ path: 'author', message: 'author is required and must be a string', code: 'REQUIRED' });
+  if ('description' in manifest && manifest.description !== undefined && !isString(manifest.description)) {
+    addError(result, 'description', '"description" must be a string');
+  }
+  if ('author' in manifest && manifest.author !== undefined && !isString(manifest.author)) {
+    addError(result, 'author', '"author" must be a string');
+  }
+  if ('thumbnail' in manifest && manifest.thumbnail !== undefined && !isString(manifest.thumbnail)) {
+    addError(result, 'thumbnail', '"thumbnail" must be a string');
+  }
+  if ('screenshots' in manifest && manifest.screenshots !== undefined && !Array.isArray(manifest.screenshots)) {
+    addError(result, 'screenshots', '"screenshots" must be an array of strings');
+  }
+  if ('tags' in manifest && manifest.tags !== undefined && !Array.isArray(manifest.tags)) {
+    addError(result, 'tags', '"tags" must be an array of strings');
   }
 
-  if (!m.category || typeof m.category !== 'string') {
-    errors.push({ path: 'category', message: 'category is required and must be a string', code: 'REQUIRED' });
-  } else if (!VALID_CATEGORIES.includes(m.category as any)) {
-    errors.push({ path: 'category', message: `category must be one of: ${VALID_CATEGORIES.join(', ')}`, code: 'INVALID_VALUE' });
-  }
-
-  if (!m.thumbnail || typeof m.thumbnail !== 'string') {
-    errors.push({ path: 'thumbnail', message: 'thumbnail is required and must be a string', code: 'REQUIRED' });
-  }
-
-  // Optional screenshots
-  if (m.screenshots !== undefined) {
-    if (!Array.isArray(m.screenshots)) {
-      errors.push({ path: 'screenshots', message: 'screenshots must be an array', code: 'INVALID_TYPE' });
-    } else if (m.screenshots.length === 0) {
-      warnings.push({ path: 'screenshots', message: 'screenshots array is empty', code: 'EMPTY_ARRAY' });
+  if ('tokens' in manifest && manifest.tokens !== undefined) {
+    const tokensResult = validateThemeTokens(manifest.tokens);
+    if (!tokensResult.valid) {
+      for (const error of tokensResult.errors) addError(result, `tokens.${error.path}`.replace(/\.$/, ''), error.message);
     }
-  } else {
-    warnings.push({ path: 'screenshots', message: 'screenshots is recommended for better presentation', code: 'RECOMMENDED' });
+    for (const warning of tokensResult.warnings) addWarning(result, `tokens.${warning.path}`.replace(/\.$/, ''), warning.message);
   }
 
-  // Optional tokens
-  if (m.tokens !== undefined) {
-    const tokensResult = validateThemeTokens(m.tokens);
-    errors.push(...tokensResult.errors.map(e => ({ ...e, path: `tokens.${e.path}` })));
-    warnings.push(...tokensResult.warnings.map(w => ({ ...w, path: `tokens.${w.path}` })));
-  }
-
-  return { valid: errors.length === 0, errors, warnings };
+  return result;
 }
 
-/**
- * Validate theme tokens
- */
 export function validateThemeTokens(tokens: unknown): ValidationResult {
-  const errors: ValidationError[] = [];
-  const warnings: ValidationWarning[] = [];
+  const result = ok();
 
-  if (!tokens || typeof tokens !== 'object') {
-    return {
-      valid: false,
-      errors: [{ path: '', message: 'Tokens must be an object', code: 'INVALID_TYPE' }],
-      warnings: []
-    };
+  if (tokens === undefined) return result;
+  if (!isObject(tokens)) {
+    addError(result, '', 'Tokens must be an object');
+    return result;
   }
 
-  const t = tokens as Record<string, unknown>;
-
-  // Validate colors
-  if (t.colors !== undefined) {
-    const colorsResult = validateColorTokens(t.colors);
-    errors.push(...colorsResult.errors.map(e => ({ ...e, path: `colors.${e.path}` })));
-    warnings.push(...colorsResult.warnings.map(w => ({ ...w, path: `colors.${w.path}` })));
+  if ('colors' in tokens && tokens.colors !== undefined) {
+    const colorsResult = validateColorTokens(tokens.colors);
+    if (!colorsResult.valid) {
+      for (const error of colorsResult.errors) addError(result, `colors.${error.path}`.replace(/\.$/, ''), error.message);
+    }
+    for (const warning of colorsResult.warnings) addWarning(result, `colors.${warning.path}`.replace(/\.$/, ''), warning.message);
   }
 
-  // Validate typography
-  if (t.typography !== undefined && typeof t.typography !== 'object') {
-    errors.push({ path: 'typography', message: 'typography must be an object', code: 'INVALID_TYPE' });
+  const objectSections: Array<keyof ThemeTokens> = [
+    'typography',
+    'spacing',
+    'borderRadius',
+    'shadows',
+    'animations',
+  ];
+
+  for (const section of objectSections) {
+    const value = (tokens as ThemeTokens)[section];
+    if (value === undefined) continue;
+    if (!isObject(value)) addError(result, String(section), `"${String(section)}" must be an object`);
   }
 
-  // Validate spacing
-  if (t.spacing !== undefined && typeof t.spacing !== 'object') {
-    errors.push({ path: 'spacing', message: 'spacing must be an object', code: 'INVALID_TYPE' });
-  }
-
-  return { valid: errors.length === 0, errors, warnings };
+  return result;
 }
 
-/**
- * Validate color tokens
- */
 export function validateColorTokens(colors: unknown): ValidationResult {
-  const errors: ValidationError[] = [];
-  const warnings: ValidationWarning[] = [];
+  const result = ok();
 
-  if (!colors || typeof colors !== 'object') {
-    return {
-      valid: false,
-      errors: [{ path: '', message: 'Colors must be an object', code: 'INVALID_TYPE' }],
-      warnings: []
-    };
+  if (colors === undefined) return result;
+  if (!isObject(colors)) {
+    addError(result, '', 'Colors must be an object');
+    return result;
   }
 
-  const c = colors as Record<string, unknown>;
-  const colorRegex = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$|^rgb|^hsl|^var\(/;
-
-  // Required colors
-  const requiredColors = ['primary', 'background', 'foreground'];
-  for (const key of requiredColors) {
-    if (!c[key]) {
-      warnings.push({ path: key, message: `${key} color is recommended`, code: 'RECOMMENDED' });
+  for (const [key, value] of Object.entries(colors)) {
+    if (value === undefined) continue;
+    if (!isString(value)) {
+      addError(result, key, 'Color value must be a string');
+      continue;
+    }
+    if (!isHexColor(value)) {
+      addWarning(result, key, 'Color is not a hex value (expected #RGB or #RRGGBB)');
     }
   }
 
-  // Validate color format
-  for (const [key, value] of Object.entries(c)) {
-    if (typeof value !== 'string') {
-      errors.push({ path: key, message: `${key} must be a string`, code: 'INVALID_TYPE' });
-    } else if (!colorRegex.test(value)) {
-      warnings.push({ path: key, message: `${key} may not be a valid color format`, code: 'INVALID_FORMAT' });
-    }
-  }
-
-  return { valid: errors.length === 0, errors, warnings };
+  return result;
 }
 
-/**
- * Generate CSS variables from tokens
- */
-export function generateCSSVariables(tokens: ThemeTokens): string {
-  const lines: string[] = [':root {'];
-
-  if (tokens.colors) {
-    for (const [key, value] of Object.entries(tokens.colors)) {
-      if (value) {
-        const cssKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
-        lines.push(`  --color-${cssKey}: ${value};`);
-      }
-    }
-  }
-
-  if (tokens.spacing) {
-    for (const [key, value] of Object.entries(tokens.spacing)) {
-      if (value) {
-        lines.push(`  --spacing-${key}: ${value};`);
-      }
-    }
-  }
-
-  if (tokens.borderRadius) {
-    for (const [key, value] of Object.entries(tokens.borderRadius)) {
-      if (value) {
-        lines.push(`  --radius-${key}: ${value};`);
-      }
-    }
-  }
-
-  lines.push('}');
-  return lines.join('\n');
+export function mergeTokens(base: ThemeTokens = {}, override: Partial<ThemeTokens> = {}): ThemeTokens {
+  return deepMerge(base, override);
 }
 
-/**
- * Merge theme tokens with defaults
- */
-export function mergeTokens(base: ThemeTokens, override: Partial<ThemeTokens>): ThemeTokens {
-  return {
-    colors: { ...base.colors, ...override.colors },
-    typography: { ...base.typography, ...override.typography },
-    spacing: { ...base.spacing, ...override.spacing },
-    borderRadius: { ...base.borderRadius, ...override.borderRadius },
-    shadows: { ...base.shadows, ...override.shadows },
-    animations: { ...base.animations, ...override.animations }
+export function generateCSSVariables(tokens: ThemeTokens = {}, options?: { selector?: string; prefix?: string }): string {
+  const selector = options?.selector ?? ':root';
+  const prefix = options?.prefix ?? '--jiffoo';
+
+  const lines: string[] = [];
+  const pushVar = (name: string, value: string) => {
+    lines.push(`  ${prefix}-${name}: ${value};`);
   };
+
+  const walk = (path: string[], value: unknown) => {
+    if (!isObject(value)) return;
+    for (const [key, child] of Object.entries(value)) {
+      const nextPath = [...path, toKebabCase(key)];
+      if (isString(child)) {
+        pushVar(nextPath.join('-'), child);
+      } else if (isObject(child)) {
+        walk(nextPath, child);
+      }
+    }
+  };
+
+  walk([], tokens as ThemeTokens);
+
+  return `${selector} {\n${lines.join('\n')}\n}\n`;
+}
+
+function deepMerge<T extends object>(target: T, source: Partial<T>): T {
+  const result: Record<string, unknown> = { ...(target as Record<string, unknown>) };
+
+  for (const [key, sourceValue] of Object.entries(source as Record<string, unknown>)) {
+    if (sourceValue === undefined) continue;
+    const targetValue = result[key];
+    if (isObject(sourceValue) && isObject(targetValue)) {
+      result[key] = deepMerge(targetValue, sourceValue);
+    } else {
+      result[key] = sourceValue;
+    }
+  }
+
+  return result as T;
+}
+
+function toKebabCase(value: string): string {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .replace(/_/g, '-')
+    .toLowerCase();
+}
+
+// Narrowing helper for callers that already have ThemeTokens types.
+export function isThemeTokens(value: unknown): value is ThemeTokens {
+  return validateThemeTokens(value).valid;
+}
+
+// Convenience helper for callers that already have ColorTokens types.
+export function isColorTokens(value: unknown): value is ColorTokens {
+  return validateColorTokens(value).valid;
 }
 

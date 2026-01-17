@@ -1,11 +1,11 @@
 /**
  * Base Email Provider Interface
  * 
- * 定义所有邮件提供商必须实现的接口
+ * Defines the interface that all email providers must implement
  */
 
 export interface EmailProviderConfig {
-  mode?: 'platform' | 'byok';  // Platform模式 or Bring Your Own Key
+  mode?: 'platform' | 'byok';  // Platform mode or Bring Your Own Key
   apiKey?: string;
   webhookSecret?: string;
   customSettings?: Record<string, any>;
@@ -63,59 +63,58 @@ export interface EmailStatus {
 /**
  * Base Email Provider Abstract Class
  * 
- * 所有邮件提供商必须继承此类并实现抽象方法
+ * All email providers must inherit from this class and implement abstract methods
  */
 export abstract class BaseEmailProvider {
   protected config: EmailProviderConfig;
   protected providerName: string;
-  
+
   constructor(config: EmailProviderConfig) {
     this.config = config;
     this.providerName = 'base';
   }
-  
+
   /**
-   * 发送单封邮件
+   * Send a single email
    */
   abstract send(request: SendEmailRequest): Promise<SendEmailResponse>;
-  
+
   /**
-   * 批量发送邮件
+   * Batch send emails
    */
   abstract sendBatch(requests: SendEmailRequest[]): Promise<SendEmailResponse[]>;
-  
+
   /**
-   * 获取邮件状态
+   * Get email status
    */
   abstract getStatus(messageId: string): Promise<EmailStatus>;
-  
+
   /**
-   * 验证Webhook签名
+   * Verify Webhook signature
    */
   abstract verifyWebhook(signature: string, payload: any): boolean;
-  
+
   /**
-   * 获取提供商能力
+   * Get provider capabilities
    */
   abstract getCapabilities(): EmailProviderCapabilities;
-  
+
   /**
-   * 健康检查
+   * Health check
    */
   abstract healthCheck(): Promise<boolean>;
-  
+
   /**
-   * 获取提供商名称
+   * Get provider name
    */
   getProviderName(): string {
     return this.providerName;
   }
-  
+
   /**
-   * 获取配置模式
+   * Get configuration mode
    */
   getMode(): 'platform' | 'byok' {
-    return this.config.mode;
+    return (this.config.mode as 'platform' | 'byok') || 'platform';
   }
 }
-

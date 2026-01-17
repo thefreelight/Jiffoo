@@ -191,3 +191,43 @@ export interface ThemeConfig {
   custom?: Record<string, unknown>;
 }
 
+/**
+ * Theme page configuration
+ */
+export interface ThemePageConfig {
+  path: string;
+  component: React.ComponentType<any>;
+  title?: string;
+  description?: string;
+  layout?: string;
+  meta?: Record<string, string>;
+}
+
+/**
+ * Theme component configuration
+ */
+export interface ThemeComponentConfig {
+  name: string;
+  component: React.ComponentType<any>;
+  description?: string;
+  props?: Record<string, { type: string; default?: unknown; description?: string }>;
+  slots?: string[];
+}
+
+/**
+ * Theme definition (returned by defineTheme)
+ */
+export interface ThemeDefinition {
+  manifest: ThemeManifest;
+  pages: Map<string, ThemePageConfig>;
+  components: Map<string, ThemeComponentConfig>;
+
+  registerPage(path: string, pageConfig: ThemePageConfig): ThemeDefinition;
+  registerComponent(name: string, componentConfig: ThemeComponentConfig): ThemeDefinition;
+  getManifest(): ThemeManifest;
+  getTokens(): ThemeTokens;
+  getPages(): Map<string, ThemePageConfig>;
+  getComponents(): Map<string, ThemeComponentConfig>;
+  mergeConfig(userConfig: Partial<ThemeManifest>): ThemeDefinition;
+}
+

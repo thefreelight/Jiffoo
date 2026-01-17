@@ -3,13 +3,13 @@ import { JwtUtils } from '@/utils/jwt';
 import { prisma } from '@/config/database';
 
 /**
- * 认证中间件 (单商户版本)
+ * Auth Middleware
  * 
- * 简化版本，移除了所有租户相关逻辑。
+ * Simplified version, removed all tenant related logic.
  */
 
 /**
- * 统一认证中间件 - 只支持Bearer Token
+ * Unified auth middleware - only supports Bearer Token
  */
 export async function authMiddleware(
   request: FastifyRequest,
@@ -36,7 +36,7 @@ export async function authMiddleware(
 
     const payload = JwtUtils.verify(token);
 
-    // 从数据库获取用户信息
+    // Get user info from database
     const user = await prisma.user.findUnique({
       where: { id: payload.userId },
       select: { id: true, email: true, username: true, role: true }
@@ -50,7 +50,7 @@ export async function authMiddleware(
       });
     }
 
-    // 简化的权限系统：基于角色的权限
+    // Simplified permission system: Role based permissions
     const permissions = (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') ? ['*'] : [];
     const roles = [user.role];
 
@@ -74,7 +74,7 @@ export async function authMiddleware(
 }
 
 /**
- * 可选认证中间件 - 不强制要求登录
+ * Optional auth middleware - login not required
  */
 export async function optionalAuthMiddleware(
   request: FastifyRequest,
@@ -83,7 +83,7 @@ export async function optionalAuthMiddleware(
   try {
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return; // 不强制要求登录
+      return; // Login not required
     }
 
     const token = authHeader.substring(7);
@@ -108,12 +108,12 @@ export async function optionalAuthMiddleware(
       };
     }
   } catch {
-    // 忽略错误，用户未登录
+    // Ignore error, user not logged in
   }
 }
 
 /**
- * 管理员权限检查中间件
+ * Admin permission check middleware
  */
 export async function requireAdmin(
   request: FastifyRequest,
@@ -138,7 +138,7 @@ export async function requireAdmin(
 }
 
 /**
- * 角色检查中间件工厂
+ * Role check middleware factory
  */
 export function requireRole(...allowedRoles: string[]) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
@@ -161,33 +161,10 @@ export function requireRole(...allowedRoles: string[]) {
 }
 
 // ============================================
-// 兼容性导出 (保持旧代码不报错)
+// Compatibility exports (keep old code working)
 // ============================================
 
-/** @deprecated 单商户模式不需要租户中间件 */
-export async function tenantMiddleware(
-  _request: FastifyRequest,
-  _reply: FastifyReply
-) {
-  // 单商户模式：直接通过
-}
 
-/** @deprecated 单商户模式不需要租户验证 */
-export async function requireTenantAccess(
-  _request: FastifyRequest,
-  _reply: FastifyReply
-) {
-  // 单商户模式：直接通过
-}
-
-/** @deprecated 单商户模式不需要超级管理员检查 */
-export async function requireSuperAdmin(
-  request: FastifyRequest,
-  reply: FastifyReply
-) {
-  // 在单商户模式下，ADMIN 就是最高权限
-  return requireAdmin(request, reply);
-}
 
 /**
  * Admin middleware - combines auth + admin check

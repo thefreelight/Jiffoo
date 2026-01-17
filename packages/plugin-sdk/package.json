@@ -1,37 +1,86 @@
 {
-  "name": "@jiffoo/plugin-sdk",
+  "name": "plugin-sdk",
   "version": "1.0.0",
   "description": "SDK for building external plugins for Jiffoo Mall platform",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/types/index.d.ts"
+    },
+    "./cli": {
+      "import": "./dist/esm/cli/index.js",
+      "require": "./dist/cjs/cli/index.js"
+    }
+  },
+  "bin": {
+    "jiffoo-plugin": "./dist/cjs/cli/bin.js"
+  },
   "files": [
-    "dist"
+    "dist",
+    "templates"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
-    "clean": "rimraf dist"
+    "build": "pnpm run build:esm && pnpm run build:cjs && pnpm run build:types",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "dev": "tsc -p tsconfig.esm.json --watch",
+    "clean": "rimraf dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "pnpm run clean && pnpm run build"
   },
   "keywords": [
     "jiffoo",
     "plugin",
     "sdk",
-    "external-plugin"
+    "external-plugin",
+    "ecommerce",
+    "marketplace"
   ],
   "author": "Jiffoo Team",
-  "license": "MIT",
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jiffoo/jiffoo-mall.git",
+    "directory": "packages/plugin-sdk"
+  },
+  "homepage": "https://docs.jiffoo.com/developer/plugin-development",
+  "bugs": {
+    "url": "https://github.com/jiffoo/jiffoo-mall/issues"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "fs-extra": "^11.2.0",
+    "inquirer": "^9.2.23",
+    "ora": "^8.0.1"
+  },
   "devDependencies": {
-    "typescript": "^5.0.0",
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.0.0",
     "rimraf": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "typescript": "^5.0.0",
+    "vitest": "^1.6.0"
   },
   "peerDependencies": {
-    "express": "^4.18.0"
+    "express": "^4.18.0",
+    "fastify": "^4.0.0"
   },
   "peerDependenciesMeta": {
     "express": {
       "optional": true
+    },
+    "fastify": {
+      "optional": true
     }
   }
 }
-

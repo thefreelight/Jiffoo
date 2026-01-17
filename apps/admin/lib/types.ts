@@ -74,6 +74,7 @@ export interface Order {
   user: User
   customerEmail: string
   status: OrderStatus
+  paymentStatus?: string // Added to match backend and enable refund check
   totalAmount: number
   shippingAddress: Address
   billingAddress: Address
@@ -111,7 +112,7 @@ export interface Address {
   country: string
 }
 
-// Statistics types - Unified DashboardStats for tenant dashboard
+// Statistics types - Unified DashboardStats for dashboard
 export interface DashboardStats {
   // Core metrics
   totalUsers: number

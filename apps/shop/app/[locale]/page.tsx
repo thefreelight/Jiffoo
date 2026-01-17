@@ -8,7 +8,7 @@
 
 import { useShopTheme } from '@/lib/themes/provider';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 export default function HomePage() {
   const { theme, config, isLoading } = useShopTheme();

@@ -1,5 +1,5 @@
 /**
- * 日志监控和告警服务
+ * Log monitoring and alert service
  */
 
 import { EventEmitter } from 'events';
@@ -49,7 +49,7 @@ export interface Alert {
 }
 
 /**
- * 日志监控器类
+ * LogMonitor class
  */
 export class LogMonitor extends EventEmitter {
   private rules: Map<string, AlertRule> = new Map();
@@ -63,7 +63,7 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 启动监控
+   * Start monitoring
    */
   start(intervalMs: number = 60000): void {
     if (this.isRunning) {
@@ -83,7 +83,7 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 停止监控
+   * Stop monitoring
    */
   stop(): void {
     if (this.monitoringInterval) {
@@ -99,11 +99,11 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 添加告警规则
+   * Add alert rule
    */
   addRule(rule: AlertRule): void {
     this.rules.set(rule.id, rule);
-    
+
     logger.info('Alert rule added', {
       type: 'alert_rule_management',
       action: 'added',
@@ -113,11 +113,11 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 移除告警规则
+   * Remove alert rule
    */
   removeRule(ruleId: string): void {
     this.rules.delete(ruleId);
-    
+
     logger.info('Alert rule removed', {
       type: 'alert_rule_management',
       action: 'removed',
@@ -126,35 +126,35 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 获取所有规则
+   * Get all rules
    */
   getRules(): AlertRule[] {
     return Array.from(this.rules.values());
   }
 
   /**
-   * 获取活跃告警
+   * Get active alerts
    */
   getActiveAlerts(): Alert[] {
     return Array.from(this.alerts.values()).filter(alert => !alert.resolved);
   }
 
   /**
-   * 获取所有告警
+   * Get all alerts
    */
   getAllAlerts(): Alert[] {
     return Array.from(this.alerts.values());
   }
 
   /**
-   * 解决告警
+   * Resolve alert
    */
   resolveAlert(alertId: string): void {
     const alert = this.alerts.get(alertId);
     if (alert && !alert.resolved) {
       alert.resolved = true;
       alert.resolvedAt = new Date();
-      
+
       logger.info('Alert resolved', {
         type: 'alert_management',
         action: 'resolved',
@@ -165,7 +165,7 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 检查所有规则
+   * Check all rules
    */
   private async checkAllRules(): Promise<void> {
     for (const rule of this.rules.values()) {
@@ -176,11 +176,11 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 检查单个规则
+   * Check single rule
    */
   private async checkRule(rule: AlertRule): Promise<void> {
     try {
-      // 检查冷却时间
+      // Check cooldown time
       if (rule.lastTriggered) {
         const cooldownMs = rule.cooldownMinutes * 60 * 1000;
         const timeSinceLastTrigger = Date.now() - rule.lastTriggered.getTime();
@@ -189,12 +189,12 @@ export class LogMonitor extends EventEmitter {
         }
       }
 
-      // 检查所有条件
+      // Check all conditions
       const conditionResults = await Promise.all(
         rule.conditions.map(condition => this.checkCondition(condition))
       );
 
-      // 如果所有条件都满足，触发告警
+      // If all conditions are met, trigger alert
       if (conditionResults.every(result => result.triggered)) {
         await this.triggerAlert(rule, conditionResults);
       }
@@ -208,7 +208,7 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 检查单个条件
+   * Check single condition
    */
   private async checkCondition(condition: AlertCondition): Promise<{ triggered: boolean; value: number; data: any }> {
     const timeRange = condition.timeWindow;
@@ -237,7 +237,7 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 评估条件
+   * Evaluate condition
    */
   private evaluateCondition(value: number, operator: string, threshold: number): boolean {
     switch (operator) {
@@ -257,7 +257,7 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 触发告警
+   * Trigger alert
    */
   private async triggerAlert(rule: AlertRule, conditionResults: any[]): Promise<void> {
     const alert: Alert = {
@@ -275,12 +275,12 @@ export class LogMonitor extends EventEmitter {
     this.alerts.set(alert.id, alert);
     rule.lastTriggered = new Date();
 
-    // 执行告警动作
+    // Execute alert actions
     for (const action of rule.actions) {
       await this.executeAction(action, alert);
     }
 
-    // 发出事件
+    // Emit event
     this.emit('alert', alert);
 
     logger.warn('Alert triggered', {
@@ -294,7 +294,7 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 生成告警消息
+   * Generate alert message
    */
   private generateAlertMessage(rule: AlertRule, conditionResults: any[]): string {
     const conditions = rule.conditions.map((condition, index) => {
@@ -306,10 +306,10 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 确定告警严重程度
+   * Determine alert severity
    */
   private determineSeverity(rule: AlertRule, conditionResults: any[]): 'low' | 'medium' | 'high' | 'critical' {
-    // 简单的严重程度判断逻辑
+    // Simple severity judgment logic
     const hasErrorCondition = rule.conditions.some(c => c.type === 'error_rate' || c.type === 'error_count');
     const maxValue = Math.max(...conditionResults.map(r => r.value));
 
@@ -325,7 +325,7 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 执行告警动作
+   * Execute alert action
    */
   private async executeAction(action: AlertAction, alert: Alert): Promise<void> {
     try {
@@ -349,7 +349,7 @@ export class LogMonitor extends EventEmitter {
           break;
 
         case 'email':
-          // 这里可以集成邮件发送服务
+          // Integrate email service here
           logger.info('Email alert would be sent', {
             type: 'alert_action',
             action: 'email',
@@ -369,7 +369,7 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 发送 Webhook
+   * Send Webhook
    */
   private async sendWebhook(url: string, alert: Alert): Promise<void> {
     try {
@@ -393,7 +393,7 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 发送飞书通知
+   * Send Feishu (Lark) notification
    */
   async sendFeishuAlert(alert: Alert, webhookUrl?: string): Promise<void> {
     const url = webhookUrl || process.env.FEISHU_WEBHOOK_URL;
@@ -415,7 +415,7 @@ export class LogMonitor extends EventEmitter {
         header: {
           title: {
             tag: 'plain_text',
-            content: `${severityEmoji[alert.severity]} 日志告警 - ${alert.ruleName}`
+            content: `${severityEmoji[alert.severity]} Log Alert - ${alert.ruleName}`
           },
           template: alert.severity === 'critical' ? 'red' : alert.severity === 'high' ? 'orange' : 'yellow'
         },
@@ -424,21 +424,21 @@ export class LogMonitor extends EventEmitter {
             tag: 'div',
             text: {
               tag: 'lark_md',
-              content: `**告警消息**: ${alert.message}`
+              content: `**Alert Message**: ${alert.message}`
             }
           },
           {
             tag: 'div',
             fields: [
-              { is_short: true, text: { tag: 'lark_md', content: `**严重程度**: ${alert.severity}` } },
-              { is_short: true, text: { tag: 'lark_md', content: `**触发时间**: ${alert.timestamp.toISOString()}` } }
+              { is_short: true, text: { tag: 'lark_md', content: `**Severity**: ${alert.severity}` } },
+              { is_short: true, text: { tag: 'lark_md', content: `**Trigger Time**: ${alert.timestamp.toISOString()}` } }
             ]
           },
           {
             tag: 'div',
             text: {
               tag: 'lark_md',
-              content: `**告警ID**: ${alert.id}`
+              content: `**Alert ID**: ${alert.id}`
             }
           }
         ]
@@ -466,7 +466,7 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 获取监控仪表盘数据
+   * Get monitor dashboard data
    */
   async getDashboardData(): Promise<{
     activeAlerts: Alert[];
@@ -486,29 +486,29 @@ export class LogMonitor extends EventEmitter {
     const allAlerts = this.getAllAlerts();
     const activeAlerts = this.getActiveAlerts();
 
-    // 最近24小时的告警
+    // Alerts in last 24 hours
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const recentAlerts = allAlerts.filter(a => a.timestamp > oneDayAgo);
 
-    // 按严重程度统计
+    // Stats by severity
     const alertsBySeverity: Record<string, number> = { low: 0, medium: 0, high: 0, critical: 0 };
     for (const alert of allAlerts) {
       alertsBySeverity[alert.severity]++;
     }
 
-    // 按规则统计
+    // Stats by rule
     const alertsByRule: Record<string, number> = {};
     for (const alert of allAlerts) {
       alertsByRule[alert.ruleName] = (alertsByRule[alert.ruleName] || 0) + 1;
     }
 
-    // 规则统计
+    // Rule stats
     const rules = this.getRules();
     const enabledRules = rules.filter(r => r.enabled).length;
 
     return {
       activeAlerts,
-      recentAlerts: recentAlerts.slice(0, 20), // 最近20条
+      recentAlerts: recentAlerts.slice(0, 20), // Recent 20 items
       stats: {
         totalAlerts: allAlerts.length,
         unresolvedAlerts: activeAlerts.length,
@@ -524,10 +524,10 @@ export class LogMonitor extends EventEmitter {
   }
 
   /**
-   * 设置默认规则
+   * Set default rules
    */
   private setupDefaultRules(): void {
-    // 高错误率告警
+    // High error rate alert
     this.addRule({
       id: 'high_error_rate',
       name: 'High Error Rate',
@@ -546,7 +546,7 @@ export class LogMonitor extends EventEmitter {
       }]
     });
 
-    // 大量错误告警
+    // High error count alert
     this.addRule({
       id: 'high_error_count',
       name: 'High Error Count',
@@ -565,7 +565,7 @@ export class LogMonitor extends EventEmitter {
       }]
     });
 
-    // 日志量异常告警
+    // Abnormal log volume alert
     this.addRule({
       id: 'abnormal_log_volume',
       name: 'Abnormal Log Volume',
@@ -586,5 +586,5 @@ export class LogMonitor extends EventEmitter {
   }
 }
 
-// 导出单例实例
+// Export singleton instance
 export const logMonitor = new LogMonitor();

@@ -1,0 +1,128 @@
+serviceName: "api"
+replicaCount: 1
+
+image:
+  repository: harbor.lafdru.local/public/jiffoo-mall/api
+  pullPolicy: IfNotPresent
+
+imagePullSecrets:
+  - name: harbor-secret
+
+service:
+  enabled: true
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3002
+
+ingress:
+  enabled: true
+  className: traefik
+  annotations:
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+  hosts:
+    - host: jiffoo-api.chfastpay.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+env:
+  # Basic Config
+  - name: NODE_ENV
+    value: "production"
+  - name: PORT
+    value: "3002"
+  - name: LOG_LEVEL
+    value: "info"
+  
+  # Database
+  - name: DATABASE_URL
+    value: "postgresql://jiffoo_user:jiffoo_password@postgres-service.database.svc.cluster.local:5432/jiffoo_dev"
+  - name: REDIS_URL
+    value: "redis://redis-service.database.svc.cluster.local:6379"
+  
+  # API Config
+  - name: API_PORT
+    value: "3002"
+  - name: API_HOST
+    value: "0.0.0.0"
+  - name: CORS_ORIGIN
+    value: "http://jiffoo-shop.chfastpay.com:8888,http://jiffoo-admin.chfastpay.com:8888,http://jiffoo-super-admin.chfastpay.com:8888"
+  - name: CORS_ENABLED
+    value: "true"
+  - name: CORS_CREDENTIALS
+    value: "true"
+  
+  # JWT Config
+  - name: JWT_SECRET
+    value: "dev-jwt-secret-key-change-in-production"
+  - name: JWT_EXPIRES_IN
+    value: "7d"
+  
+  # Service URLs
+  - name: API_SERVICE_URL
+    value: "http://jiffoo-mall-api-dev:80"
+  - name: NEXT_PUBLIC_API_URL
+    value: "http://jiffoo-api.chfastpay.com:8888"
+  - name: NEXT_PUBLIC_ADMIN_URL
+    value: "http://jiffoo-admin.chfastpay.com:8888"
+  - name: NEXT_PUBLIC_TENANT_URL
+    value: "http://jiffoo-admin.chfastpay.com:8888"
+  - name: NEXT_PUBLIC_SHOP_URL
+    value: "http://jiffoo-shop.chfastpay.com:8888"
+  - name: NEXT_PUBLIC_AGENT_URL
+    value: "http://jiffoo-agent.chfastpay.com:8888"
+  - name: NEXT_PUBLIC_WHITE_LABEL_URL
+    value: "http://jiffoo-white-label.chfastpay.com:8888"
+  - name: NEXT_PUBLIC_DISTRIBUTION_PLUGIN_URL
+    value: "http://jiffoo-distribution.chfastpay.com:8888"
+  
+  # Platform Domain Config
+  - name: PLATFORM_MAIN_DOMAIN
+    value: "jiffoo.com"
+  - name: PLATFORM_FRONTEND_DOMAIN
+    value: "shop.jiffoo.com"
+  - name: PLATFORM_ADMIN_DOMAIN
+    value: "admin.jiffoo.com"
+  - name: PLATFORM_API_DOMAIN
+    value: "api.jiffoo.com"
+  - name: PLATFORM_AUTH_DOMAIN
+    value: "auth.jiffoo.com"
+  
+  # Stripe Payment
+  - name: STRIPE_SECRET_KEY
+    value: "sk_test_51R5gkPB6vJBDO7CtHVB8ji2GWhSKXHzvTRjdItySoWOg3Eu2sCebz5kU8mqlNvtyFg0Ia3ry0Zg6rU31otBxjZl80042T9JF22"
+  - name: STRIPE_PUBLISHABLE_KEY
+    value: "pk_test_51R5gkPB6vJBDO7CtUURHcodqRpND2uVyDekor9ubS5hRZhMBSdATD0w4emWnGDCxuSSPqMBwlsQCdANyCHgzWdIx00ZaRNHHfr"
+  - name: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+    value: "pk_test_51R5gkPB6vJBDO7CtUURHcodqRpND2uVyDekor9ubS5hRZhMBSdATD0w4emWnGDCxuSSPqMBwlsQCdANyCHgzWdIx00ZaRNHHfr"
+  - name: STRIPE_WEBHOOK_SECRET
+    value: "whsec_f290d967dce59f39d764808abb38c5b3e3b24818fa0508ece62ea19944190c86"
+  
+  # Google OAuth
+  - name: GOOGLE_CLIENT_ID
+    value: "33948437410-pv3jb3oonhf6bej47el64c5s5es1e6lt.apps.googleusercontent.com"
+  - name: GOOGLE_CLIENT_SECRET
+    value: "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"
+  - name: GOOGLE_REDIRECT_URI
+    value: "http://jiffoo-shop.chfastpay.com:8888/api/plugins/google/api/callback"
+  
+  # Email (Resend)
+  - name: RESEND_API_KEY
+    value: "re_BUwrRU5z_4Ruy34vxALxiZxPx65xBj14g"
+  - name: RESEND_WEBHOOK_SECRET
+    value: "whsec_W/p7G+aKrHVynf9X95JjbKMHUusRT+8p"
+  - name: EMAIL_FROM
+    value: "noreply@chentsimo.top"
+  - name: EMAIL_FROM_NAME
+    value: "Jiffoo Mall"
+  - name: EMAIL_REPLY_TO
+    value: "support@chentsimo.top"
+
+resources: {}
+livenessProbe: {}
+readinessProbe: {}
+startupProbe: {}
+persistence: {}
+envFromConfigMap: {}

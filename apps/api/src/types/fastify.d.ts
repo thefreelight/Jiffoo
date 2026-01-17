@@ -4,23 +4,24 @@ import { RedisCache } from '@/core/cache/redis';
 import { FastifyRequest, FastifyReply } from 'fastify';
 
 // ============================================
-// 认证用户类型定义 (单商户版本 - 无 tenantId)
+// Authenticated user type definition (Open Source Core version)
 // ============================================
 interface AuthenticatedUser {
   id: string;
-  userId: string;  // 兼容现有代码
+  userId: string;  // Compatibility with existing code
   email: string;
   username: string;
   role: string;
   permissions?: string[];
   roles?: any[];
+  isServiceAccount?: boolean;
 }
 
 // ============================================
-// 插件系统类型定义
+// Plugin System Type Definitions
 // ============================================
 
-// 许可证检查结果
+// License check result
 interface LicenseCheckResult {
   valid: boolean;
   reason?: string;
@@ -32,7 +33,7 @@ interface LicenseCheckResult {
   customReason?: string;
 }
 
-// 使用量检查结果
+// Usage volume check result
 interface UsageLimitCheckResult {
   allowed: boolean;
   current?: number;
@@ -43,7 +44,7 @@ interface UsageLimitCheckResult {
   customReason?: string;
 }
 
-// 订阅访问检查结果
+// Subscription access check result
 interface SubscriptionAccessResult {
   allowed: boolean;
   reason?: string;
@@ -52,7 +53,7 @@ interface SubscriptionAccessResult {
   mode?: 'SUBSCRIPTION';
 }
 
-// 订阅创建选项
+// Subscription creation options
 interface CreateSubscriptionOptions {
   trialDays?: number;
   autoRenew?: boolean;
@@ -66,7 +67,7 @@ interface CreateSubscriptionOptions {
   configData?: Record<string, any>;
 }
 
-// 订阅更新数据
+// Subscription update data
 interface UpdateSubscriptionData {
   status?: string;
   planId?: string;
@@ -79,7 +80,7 @@ interface UpdateSubscriptionData {
   [key: string]: any;
 }
 
-// Webhook 统计信息
+// Webhook statistical information
 interface WebhookStats {
   totalEvents: number;
   processedEvents: number;
@@ -89,41 +90,41 @@ interface WebhookStats {
 }
 
 // ============================================
-// Fastify 类型扩展 (单商户版本)
+// Fastify type extensions (Single-tenant version)
 // ============================================
 declare module 'fastify' {
   interface FastifyInstance {
-    // Prisma 客户端
+    // Prisma Client
     prisma: PrismaClient;
 
-    // Redis 客户端
+    // Redis Client
     redis: RedisCache;
 
     // ============================================
-    // Commercial Support Plugin 装饰器 (简化版)
+    // Commercial Support Plugin Decorators (Simplified)
     // ============================================
 
-    // 许可证验证 (系统级)
+    // License verification (System-level)
     checkPluginLicense(
       pluginSlug: string,
       feature?: string
     ): Promise<LicenseCheckResult>;
 
-    // 使用量记录 (系统级)
+    // Usage recording (System-level)
     recordPluginUsage(
       pluginSlug: string,
       metric: string,
       value?: number
     ): void;
 
-    // 使用量限制检查 (系统级)
+    // Usage limit check (System-level)
     checkUsageLimit(
       pluginSlug: string,
       metric: string
     ): Promise<UsageLimitCheckResult>;
 
     // ============================================
-    // Plugin Registry 装饰器
+    // Plugin Registry Decorators
     // ============================================
 
     getAvailablePlugins(): Promise<any[]>;
@@ -137,7 +138,7 @@ declare module 'fastify' {
     searchPlugins(query: string, category?: string): Promise<any[]>;
 
     // ============================================
-    // Plugin Installer 装饰器 (系统级)
+    // Plugin Installer Decorators (System-level)
     // ============================================
 
     installPlugin(
@@ -155,7 +156,7 @@ declare module 'fastify' {
     ): Promise<any>;
 
     // ============================================
-    // Stripe Payment Plugin 装饰器
+    // Stripe Payment Plugin Decorators
     // ============================================
 
     retryFailedWebhookEvents(maxRetries?: number): Promise<{
@@ -167,7 +168,7 @@ declare module 'fastify' {
     getWebhookStats(days?: number): Promise<WebhookStats>;
 
     // ============================================
-    // Plugin Gateway 装饰器
+    // Plugin Gateway Decorators
     // ============================================
 
     registerExternalPluginRoutes(): Promise<{
@@ -175,7 +176,7 @@ declare module 'fastify' {
     }>;
 
     // ============================================
-    // 速率限制装饰器
+    // Rate Limiting Decorators
     // ============================================
 
     checkRateLimit(
@@ -184,14 +185,14 @@ declare module 'fastify' {
       limitType?: 'plugin-api' | 'external-plugin' | 'high-frequency'
     ): Promise<boolean>;
 
-    // 插件错误边界（带回退值）
+    // Plugin error boundary (with fallback value)
     withPluginErrorBoundary<T>(
       pluginSlug: string,
       operation: () => Promise<T>,
       fallbackValue?: T
     ): Promise<T | undefined>;
 
-    // 安全执行插件操作（带超时）
+    // Safe plugin execution (with timeout)
     safePluginExecute<T>(
       pluginSlug: string,
       operation: () => Promise<T>,
@@ -203,7 +204,7 @@ declare module 'fastify' {
     ): Promise<T | undefined>;
 
     // ============================================
-    // Trace Context 装饰器
+    // Trace Context Decorators
     // ============================================
 
     getRequestTraceId(request: FastifyRequest): string | undefined;
@@ -218,7 +219,7 @@ declare module 'fastify' {
     ): void;
 
     // ============================================
-    // Prometheus Metrics 装饰器
+    // Prometheus Metrics Decorators
     // ============================================
 
     recordDbQuery(operation: string, durationMs: number): void;
@@ -256,7 +257,7 @@ declare module 'fastify' {
   }
 }
 
-// 追踪上下文类型
+// Trace context type
 interface TraceContext {
   traceId: string;
   spanId: string;
@@ -266,5 +267,5 @@ interface TraceContext {
   attributes: Record<string, any>;
 }
 
-// 确保模块声明被导出
-export {};
+// Ensure module declaration is exported
+export { };

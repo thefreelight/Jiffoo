@@ -4,23 +4,25 @@ import { UpdateProfileSchema } from './types';
 import { authMiddleware } from '@/core/auth/middleware';
 
 /**
- * 用户个人账户路由 - 精简版
- * 路径前缀: /api/account
- * 权限要求: 认证用户
- * 功能：专注于个人资料管理
+ * User Account Routes
+ * Path prefix: /api/account
+ * Permission: Authenticated users
+ * Features: Focused on personal profile management
  */
 export async function accountRoutes(fastify: FastifyInstance) {
-  
+  // Apply auth middleware to all account routes (before schema validation)
+  fastify.addHook('onRequest', authMiddleware);
+
   /**
-   * 获取个人资料
+   * Get user profile
    * GET /api/account/profile
    */
   fastify.get('/profile', {
-    preHandler: [authMiddleware],
     schema: {
       tags: ['account'],
       summary: 'Get User Profile',
       description: 'Get current user profile information',
+      security: [{ bearerAuth: [] }],
       response: {
         200: {
           type: 'object',
@@ -50,6 +52,13 @@ export async function accountRoutes(fastify: FastifyInstance) {
             }
           }
         },
+        401: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', enum: [false] },
+            error: { type: 'string' }
+          }
+        },
         500: {
           type: 'object',
           properties: {
@@ -63,7 +72,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const profile = await AccountService.getProfile(request.user!.userId);
-      
+
       return reply.send({
         success: true,
         data: profile
@@ -78,20 +87,55 @@ export async function accountRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * 更新个人资料
+   * Update user profile
    * PUT /api/account/profile
    */
   fastify.put('/profile', {
-    preHandler: [authMiddleware],
     schema: {
       tags: ['account'],
       summary: 'Update User Profile',
       description: 'Update current user profile information',
+      security: [{ bearerAuth: [] }],
       body: {
         type: 'object',
         properties: {
           username: { type: 'string', minLength: 3, maxLength: 50 },
           avatar: { type: 'string' }
+        }
+      },
+      response: {
+        200: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean' },
+            data: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                email: { type: 'string' },
+                username: { type: 'string' },
+                avatar: { type: 'string' },
+                createdAt: { type: 'string' },
+                updatedAt: { type: 'string' }
+              }
+            },
+            message: { type: 'string' }
+          }
+        },
+        400: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', enum: [false] },
+            error: { type: 'string' },
+            message: { type: 'string' }
+          }
+        },
+        401: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', enum: [false] },
+            error: { type: 'string' }
+          }
         }
       }
     }
@@ -102,7 +146,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
         request.user!.userId,
         updateData
       );
-      
+
       return reply.send({
         success: true,
         data: updatedProfile,

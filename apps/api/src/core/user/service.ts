@@ -1,7 +1,7 @@
 /**
- * User Service (单商户版本)
+ * User Service (Single Merchant Version)
  * 
- * 简化版本，移除了多租户相关逻辑。
+ * Simplified version, removed multi-tenant related logic.
  */
 
 import { prisma } from '@/config/database';
@@ -20,7 +20,7 @@ export interface ChangePasswordRequest {
 
 export class UserService {
   /**
-   * 获取所有用户
+   * Get all users
    */
   static async getAllUsers(page = 1, limit = 10, search?: string) {
     const skip = (page - 1) * limit;
@@ -67,7 +67,7 @@ export class UserService {
   }
 
   /**
-   * 根据ID获取用户
+   * Get user by ID
    */
   static async getUserById(id: string) {
     return prisma.user.findUnique({
@@ -85,7 +85,7 @@ export class UserService {
   }
 
   /**
-   * 根据邮箱获取用户
+   * Get user by email
    */
   static async getUserByEmail(email: string) {
     return prisma.user.findUnique({
@@ -94,7 +94,7 @@ export class UserService {
   }
 
   /**
-   * 更新用户资料
+   * Update user profile
    */
   static async updateProfile(userId: string, data: UpdateProfileRequest) {
     return prisma.user.update({
@@ -116,7 +116,7 @@ export class UserService {
   }
 
   /**
-   * 修改密码
+   * Change password
    */
   static async changePassword(userId: string, data: ChangePasswordRequest) {
     const user = await prisma.user.findUnique({
@@ -142,7 +142,7 @@ export class UserService {
   }
 
   /**
-   * 更新用户角色 (管理员)
+   * Update user role (Admin)
    */
   static async updateUserRole(userId: string, data: UpdateUserRoleRequest) {
     return prisma.user.update({
@@ -161,7 +161,7 @@ export class UserService {
   }
 
   /**
-   * 删除用户 (管理员)
+   * Delete user (Admin)
    */
   static async deleteUser(userId: string) {
     await prisma.user.delete({
@@ -171,7 +171,7 @@ export class UserService {
   }
 
   /**
-   * 创建用户 (管理员)
+   * Create user (Admin)
    */
   static async createUser(data: {
     email: string;

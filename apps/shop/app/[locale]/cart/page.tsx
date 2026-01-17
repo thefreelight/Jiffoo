@@ -12,7 +12,7 @@ import { useShopTheme } from '@/lib/themes/provider';
 import { useCartStore } from '@/store/cart';
 import { useAuthStore } from '@/store/auth';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 import { LoadingState, ErrorState } from '@/components/ui/state-components';
 
 export default function CartPage() {

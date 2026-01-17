@@ -12,7 +12,6 @@ export interface PlatformHeaders {
   'x-platform-env': string;
   'x-platform-timestamp': string;
   'x-plugin-slug': string;
-  'x-tenant-id': string;
   'x-installation-id': string;
   'x-platform-signature': string;
   'x-user-id'?: string;
@@ -26,7 +25,6 @@ export interface PluginContext {
   environment: string;
   timestamp: string;
   pluginSlug: string;
-  tenantId: string;
   installationId: string;
   signature: string;
   userId?: string;
@@ -36,7 +34,6 @@ export interface PluginContext {
  * Install request body from platform
  */
 export interface InstallRequest {
-  tenantId: number;
   installationId: string;
   environment: string;
   planId: string;
@@ -55,7 +52,6 @@ export interface InstallRequest {
  * Uninstall request body from platform
  */
 export interface UninstallRequest {
-  tenantId: number;
   installationId: string;
   reason: string;
 }
@@ -69,7 +65,7 @@ export interface PluginManifest {
   version: string;
   description: string;
   author: string;
-  category: 'payment' | 'email' | 'integration' | 'theme' | 'analytics' | 'marketing';
+  category: 'payment' | 'email' | 'integration' | 'theme' | 'analytics' | 'marketing' | 'shipping' | 'seo' | 'social' | 'security' | 'other';
   capabilities: string[];
   requiredScopes?: string[];
   webhooks?: {
@@ -130,4 +126,108 @@ export interface PluginResponse {
  * Express-compatible next function
  */
 export type NextFunction = (error?: any) => void;
+
+/**
+ * Plugin configuration for definePlugin()
+ */
+export interface PluginConfig {
+  slug: string;
+  name: string;
+  version: string;
+  description?: string;
+  author?: string;
+  category: 'payment' | 'email' | 'integration' | 'theme' | 'analytics' | 'marketing' | 'shipping' | 'seo' | 'social' | 'security' | 'other';
+  capabilities: string[];
+  requiredScopes?: string[];
+  webhooks?: {
+    events: string[];
+    url: string;
+  };
+  configSchema?: Record<string, any>;
+
+  // Lifecycle hooks
+  onInstall?: (context: PluginContext) => Promise<void>;
+  onUninstall?: (context: PluginContext) => Promise<void>;
+}
+
+/**
+ * Plugin route definition
+ */
+export interface PluginRoute {
+  path: string;
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  handler: (req: PluginRequest, res: PluginResponse, context: PluginContext) => Promise<void> | void;
+  description?: string;
+  requiresAuth?: boolean;
+  rateLimit?: {
+    max: number;
+    windowMs: number;
+  };
+}
+
+/**
+ * Hook event types
+ */
+export type HookEvent =
+  // Order events
+  | 'order.created'
+  | 'order.updated'
+  | 'order.paid'
+  | 'order.shipped'
+  | 'order.delivered'
+  | 'order.cancelled'
+  | 'order.refunded'
+  // Product events
+  | 'product.created'
+  | 'product.updated'
+  | 'product.deleted'
+  | 'product.stock_low'
+  | 'product.out_of_stock'
+  // Customer events
+  | 'customer.created'
+  | 'customer.updated'
+  | 'customer.deleted'
+  | 'customer.login'
+  | 'customer.logout'
+  // Cart events
+  | 'cart.updated'
+  | 'cart.abandoned'
+  // Payment events
+  | 'payment.pending'
+  | 'payment.completed'
+  | 'payment.failed'
+  | 'payment.refunded'
+  // Shipping events
+  | 'shipping.label_created'
+  | 'shipping.tracking_updated'
+  // Store events
+  | 'store.settings_updated';
+
+/**
+ * Plugin hook definition
+ */
+export interface PluginHook {
+  event: HookEvent;
+  handler: (data: any, context: PluginContext) => Promise<void> | void;
+  description?: string;
+  priority?: number;
+  async?: boolean;
+}
+
+/**
+ * Plugin instance
+ */
+export interface Plugin {
+  manifest: PluginManifest;
+  routes: PluginRoute[];
+  hooks: PluginHook[];
+
+  addRoute(route: PluginRoute): Plugin;
+  addHook(hook: PluginHook): Plugin;
+  getManifest(): PluginManifest;
+  getRoutes(): PluginRoute[];
+  getHooks(): PluginHook[];
+  initialize(context: PluginContext): Promise<void>;
+  cleanup(context: PluginContext): Promise<void>;
+}
 

@@ -13,7 +13,7 @@ import { usePathname } from 'next/navigation'
 import { BlueMinimalSidebar } from './blue-minimal-sidebar'
 import { BlueMinimalHeader } from './blue-minimal-header'
 import ProtectedRoute from '../auth/ProtectedRoute'
-import { useT, useLocale } from 'shared/src/i18n'
+import { useT, useLocale } from 'shared/src/i18n/react'
 
 interface BlueMinimalLayoutProps {
   children: React.ReactNode
@@ -36,19 +36,19 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
     // Remove locale segment if present
     const filteredSegments = segments.filter(s => s !== locale)
 
-    if (filteredSegments.length === 0) return getText('tenant.nav.dashboard', 'Dashboard')
+    if (filteredSegments.length === 0) return getText('merchant.nav.dashboard', 'Dashboard')
 
     const pageMap: Record<string, { key: string; fallback: string }> = {
-      'dashboard': { key: 'tenant.nav.dashboard', fallback: 'Dashboard' },
-      'products': { key: 'tenant.products.title', fallback: 'Products' },
-      'orders': { key: 'tenant.orders.title', fallback: 'Orders' },
-      'customers': { key: 'tenant.customers.title', fallback: 'Customers' },
+      'dashboard': { key: 'merchant.nav.dashboard', fallback: 'Dashboard' },
+      'products': { key: 'merchant.products.title', fallback: 'Products' },
+      'orders': { key: 'merchant.orders.title', fallback: 'Orders' },
+      'customers': { key: 'merchant.customers.title', fallback: 'Customers' },
       'analytics': { key: 'common.labels.analytics', fallback: 'Analytics' },
-      'marketing': { key: 'tenant.nav.marketing', fallback: 'Marketing' },
+      'marketing': { key: 'merchant.nav.marketing', fallback: 'Marketing' },
       'finance': { key: 'common.labels.finance', fallback: 'Finance' },
-      'plugins': { key: 'tenant.plugins.title', fallback: 'Plugin Store' },
-      'settings': { key: 'tenant.settings.title', fallback: 'Settings' },
-      'agents': { key: 'tenant.agent.title', fallback: 'Agents' },
+      'plugins': { key: 'merchant.plugins.title', fallback: 'Plugin Store' },
+      'settings': { key: 'merchant.settings.title', fallback: 'Settings' },
+      'agents': { key: 'merchant.agent.title', fallback: 'Agents' },
       'licenses': { key: 'common.labels.licenses', fallback: 'Licenses' }
     }
 

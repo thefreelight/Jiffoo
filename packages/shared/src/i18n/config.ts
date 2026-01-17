@@ -4,16 +4,16 @@
  * Defines the core i18n configuration including supported locales,
  * default locale, and utility functions for locale validation and mapping.
  * 
- * Supported languages: en (English), zh-Hant (Traditional Chinese)
+ * Supported languages: en (English), zh-Hans (Simplified Chinese)
  * Default language: en
  */
 
 /**
  * Supported locale codes
  * - en: English (default)
- * - zh-Hant: Traditional Chinese
+ * - zh-Hans: Simplified Chinese
  */
-export const LOCALES = ['en', 'zh-Hant'] as const;
+export const LOCALES = ['en', 'zh-Hans'] as const;
 
 /**
  * Locale type derived from LOCALES constant
@@ -34,9 +34,9 @@ export const LOCALE_CONFIG: Record<Locale, { name: string; nativeName: string; d
     nativeName: 'English',
     dir: 'ltr',
   },
-  'zh-Hant': {
-    name: 'Traditional Chinese',
-    nativeName: '繁體中文',
+  'zh-Hans': {
+    name: 'Simplified Chinese',
+    nativeName: '简体中文',
     dir: 'ltr',
   },
 };
@@ -53,7 +53,7 @@ export function isSupportedLocale(locale: string): locale is Locale {
 /**
  * Browser language to locale mapping
  * Maps various browser language codes to our supported locales
- * All zh-* variants map to zh-Hant
+ * All zh-* variants map to zh-Hans
  */
 const BROWSER_LANGUAGE_MAP: Record<string, Locale> = {
   // English variants
@@ -65,14 +65,15 @@ const BROWSER_LANGUAGE_MAP: Record<string, Locale> = {
   'en-NZ': 'en',
   'en-IE': 'en',
   'en-ZA': 'en',
-  // Chinese variants - all map to Traditional Chinese
-  'zh': 'zh-Hant',
-  'zh-CN': 'zh-Hant',
-  'zh-TW': 'zh-Hant',
-  'zh-HK': 'zh-Hant',
-  'zh-SG': 'zh-Hant',
-  'zh-Hans': 'zh-Hant',
-  'zh-Hant': 'zh-Hant',
+  // Chinese variants - all map to Simplified Chinese
+  'zh': 'zh-Hans',
+  'zh-CN': 'zh-Hans',
+  'zh-SG': 'zh-Hans',
+  'zh-Hans': 'zh-Hans',
+  // Mapping Traditional to Simplified as fallback for now
+  'zh-TW': 'zh-Hans',
+  'zh-HK': 'zh-Hans',
+  'zh-Hant': 'zh-Hans',
 };
 
 /**
@@ -147,4 +148,3 @@ export function normalizeLocale(locale: string | undefined | null): Locale {
   // Try mapping from browser language
   return mapBrowserLanguageToLocale(locale);
 }
-

@@ -1,5 +1,5 @@
 /**
- * Order Routes (单商户版本)
+ * Order Routes (Single Merchant Version)
  */
 
 import { FastifyInstance } from 'fastify';
@@ -7,9 +7,11 @@ import { OrderService } from './service';
 import { authMiddleware } from '@/core/auth/middleware';
 
 export async function orderRoutes(fastify: FastifyInstance) {
+  // Apply auth middleware to all order routes (before schema validation)
+  fastify.addHook('onRequest', authMiddleware);
+
   // Create order
   fastify.post('/', {
-    preHandler: [authMiddleware],
     schema: {
       tags: ['orders'],
       summary: 'Create order',
@@ -48,7 +50,6 @@ export async function orderRoutes(fastify: FastifyInstance) {
 
   // Get user orders
   fastify.get('/', {
-    preHandler: [authMiddleware],
     schema: {
       tags: ['orders'],
       summary: 'Get user orders',
@@ -79,7 +80,6 @@ export async function orderRoutes(fastify: FastifyInstance) {
 
   // Get order by ID
   fastify.get('/:id', {
-    preHandler: [authMiddleware],
     schema: {
       tags: ['orders'],
       summary: 'Get order by ID',
@@ -100,7 +100,6 @@ export async function orderRoutes(fastify: FastifyInstance) {
 
   // Cancel order
   fastify.post('/:id/cancel', {
-    preHandler: [authMiddleware],
     schema: {
       tags: ['orders'],
       summary: 'Cancel order',

@@ -1,5 +1,5 @@
 /**
- * 日志聚合和查询服务
+ * Log aggregation and query service
  */
 
 import fs from 'fs';
@@ -54,13 +54,13 @@ export interface LogStats {
 }
 
 /**
- * 日志聚合器类
- * 支持文件日志读取和内存缓存查询
+ * LogAggregator class
+ * Supports file log reading and memory cache query
  */
 export class LogAggregator {
   private logsDir: string;
   private memoryLogs: LogEntry[] = [];
-  private maxMemoryLogs: number = 10000; // 最大内存缓存条目数
+  private maxMemoryLogs: number = 10000; // Maximum number of items in memory cache
 
   constructor(logsDir: string = path.join(process.cwd(), 'logs')) {
     this.logsDir = logsDir;
@@ -68,7 +68,7 @@ export class LogAggregator {
   }
 
   /**
-   * 确保日志目录存在
+   * Ensure directory exists
    */
   private ensureLogsDir(): void {
     try {
@@ -81,33 +81,33 @@ export class LogAggregator {
   }
 
   /**
-   * 添加日志到内存缓存（供实时查询）
+   * Add log to memory cache for real-time query
    */
   addLog(log: LogEntry): void {
     this.memoryLogs.push(log);
 
-    // 保持内存日志在限制范围内
+    // Keep memory logs within the limit
     if (this.memoryLogs.length > this.maxMemoryLogs) {
       this.memoryLogs = this.memoryLogs.slice(-this.maxMemoryLogs);
     }
   }
 
   /**
-   * 获取内存缓存中的日志数量
+   * Get log count in memory
    */
   getMemoryLogCount(): number {
     return this.memoryLogs.length;
   }
 
   /**
-   * 清除内存缓存
+   * Clear memory logs
    */
   clearMemoryLogs(): void {
     this.memoryLogs = [];
   }
 
   /**
-   * 查询日志（同时从内存缓存和文件查询）
+   * Query logs from memory and file system
    */
   async queryLogs(query: LogQuery): Promise<LogQueryResult> {
     const {
@@ -125,20 +125,20 @@ export class LogAggregator {
 
     const logs: LogEntry[] = [];
 
-    // 先从内存缓存查询（最近的日志）
+    // Query from memory (recent)
     for (const log of this.memoryLogs) {
       if (this.matchesFilter(log, { appName, level, startTime, endTime, message, userId })) {
         logs.push(log);
       }
     }
 
-    // 再从文件查询（历史日志）
+    // Query from file system (historical)
     const logFiles = await this.getLogFiles(startTime, endTime);
     for (const file of logFiles) {
       const fileLogs = await this.readLogFile(file);
       for (const log of fileLogs) {
         if (this.matchesFilter(log, { appName, level, startTime, endTime, message, userId })) {
-          // 避免重复（内存中可能已有）
+          // Prevent duplication (memory may already have it)
           if (!logs.some(l => l.id === log.id)) {
             logs.push(log);
           }
@@ -146,7 +146,7 @@ export class LogAggregator {
       }
     }
 
-    // 排序
+    // Sort
     logs.sort((a, b) => {
       const aValue = sortBy === 'timestamp' ? a.timestamp : a.level;
       const bValue = sortBy === 'timestamp' ? b.timestamp : b.level;
@@ -158,7 +158,7 @@ export class LogAggregator {
       }
     });
 
-    // 分页
+    // Pagination
     const total = logs.length;
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
@@ -174,7 +174,7 @@ export class LogAggregator {
   }
 
   /**
-   * 检查日志是否匹配过滤条件
+   * Match filters
    */
   private matchesFilter(
     log: LogEntry,
@@ -193,7 +193,7 @@ export class LogAggregator {
   }
 
   /**
-   * 获取日志统计（同时统计内存缓存和文件日志）
+   * Get log stats from both cache and file
    */
   async getLogStats(timeRange: string = '24h'): Promise<LogStats> {
     const { startTime, endTime } = this.parseTimeRange(timeRange);
@@ -211,7 +211,7 @@ export class LogAggregator {
 
     const processedIds = new Set<string>();
 
-    // 统计内存缓存中的日志
+    // Stats in cache
     for (const log of this.memoryLogs) {
       if (log.timestamp >= startTime && log.timestamp <= endTime) {
         this.updateStats(stats, log);
@@ -219,7 +219,7 @@ export class LogAggregator {
       }
     }
 
-    // 统计文件日志
+    // Stats in files
     const logFiles = await this.getLogFiles(startTime, endTime);
     for (const file of logFiles) {
       const logs = await this.readLogFile(file);
@@ -234,12 +234,12 @@ export class LogAggregator {
   }
 
   /**
-   * 更新统计数据
+   * Update stats
    */
   private updateStats(stats: LogStats, log: LogEntry): void {
     stats.totalLogs++;
 
-    // 按级别统计
+    // Stats by level
     switch (log.level) {
       case 'error':
         stats.errorLogs++;
@@ -255,25 +255,25 @@ export class LogAggregator {
         break;
     }
 
-    // 按应用统计
+    // Stats by app
     const appName = log.appName || 'unknown';
     stats.appBreakdown[appName] = (stats.appBreakdown[appName] || 0) + 1;
 
-    // 按小时统计
+    // Stats by hour
     try {
       const hour = new Date(log.timestamp).getHours().toString().padStart(2, '0');
       stats.hourlyBreakdown[hour] = (stats.hourlyBreakdown[hour] || 0) + 1;
     } catch {
-      // 忽略无效时间戳
+      // Ignore invalid timestamp
     }
   }
 
   /**
-   * 导出日志
+   * Export
    */
   async exportLogs(query: LogQuery, format: 'json' | 'csv' = 'json'): Promise<string> {
-    const result = await this.queryLogs({ ...query, limit: 10000 }); // 导出时不限制数量
-    
+    const result = await this.queryLogs({ ...query, limit: 10000 }); // Do not limit when exporting
+
     if (format === 'csv') {
       return this.convertToCSV(result.logs);
     } else {
@@ -282,7 +282,7 @@ export class LogAggregator {
   }
 
   /**
-   * 获取日志文件列表
+   * Get log files list
    */
   private async getLogFiles(startTime?: string, endTime?: string): Promise<string[]> {
     try {
@@ -293,14 +293,14 @@ export class LogAggregator {
         if (file.endsWith('.log')) {
           const filePath = path.join(this.logsDir, file);
           const stats = await stat(filePath);
-          
-          // 如果指定了时间范围，只包含相关的文件
+
+          // If time range is specified, only include relevant files
           if (startTime || endTime) {
             const fileDate = stats.mtime.toISOString();
             if (startTime && fileDate < startTime) continue;
             if (endTime && fileDate > endTime) continue;
           }
-          
+
           logFiles.push(filePath);
         }
       }
@@ -313,11 +313,11 @@ export class LogAggregator {
   }
 
   /**
-   * 读取日志文件
+   * Read log file
    */
   private async readLogFile(filePath: string): Promise<LogEntry[]> {
     const logs: LogEntry[] = [];
-    
+
     try {
       const fileStream = createReadStream(filePath);
       const rl = createInterface({
@@ -331,7 +331,7 @@ export class LogAggregator {
             const logEntry = JSON.parse(line);
             logs.push(logEntry);
           } catch (parseError) {
-            // 跳过无法解析的行
+            // Skip unparseable lines
             continue;
           }
         }
@@ -344,7 +344,7 @@ export class LogAggregator {
   }
 
   /**
-   * 解析时间范围
+   * Parse time range
    */
   private parseTimeRange(timeRange: string): { startTime: string; endTime: string } {
     const now = new Date();
@@ -372,7 +372,7 @@ export class LogAggregator {
   }
 
   /**
-   * 转换为 CSV 格式
+   * Convert to CSV format
    */
   private convertToCSV(logs: LogEntry[]): string {
     if (logs.length === 0) return '';
@@ -385,7 +385,7 @@ export class LogAggregator {
         log.timestamp,
         log.level,
         log.appName,
-        `"${log.message.replace(/"/g, '""')}"`, // 转义双引号
+        `"${log.message.replace(/"/g, '""')}"`, // Escape double quotes
         log.meta?.userId || '',
         log.meta?.component || '',
         log.meta?.url || ''
@@ -397,7 +397,7 @@ export class LogAggregator {
   }
 
   /**
-   * 清理旧日志文件
+   * Cleanup old log files
    */
   async cleanupOldLogs(retentionDays: number = 30): Promise<void> {
     try {
@@ -409,7 +409,7 @@ export class LogAggregator {
         if (file.endsWith('.log')) {
           const filePath = path.join(this.logsDir, file);
           const stats = await stat(filePath);
-          
+
           if (stats.mtime < cutoffDate) {
             fs.unlinkSync(filePath);
             console.log(`Deleted old log file: ${file}`);
@@ -422,5 +422,5 @@ export class LogAggregator {
   }
 }
 
-// 导出单例实例
+// Export singleton instance
 export const logAggregator = new LogAggregator();

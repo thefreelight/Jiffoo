@@ -15,7 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { ProductService, Product, ProductSearchFilters } from '@/services/product.service';
 import { useSearchParams } from 'next/navigation';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 function SearchPageContent() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();

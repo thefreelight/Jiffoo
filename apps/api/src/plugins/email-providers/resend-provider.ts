@@ -1,7 +1,7 @@
 /**
  * Resend Email Provider
  *
- * Resend API 的适配器实现
+ * Resend API adapter implementation
  */
 
 import { Resend } from 'resend';
@@ -17,12 +17,12 @@ import {
 
 export class ResendProvider extends BaseEmailProvider {
   private client: Resend;
-  
+
   constructor(config: EmailProviderConfig) {
     super(config);
     this.providerName = 'resend';
 
-    // 优先使用租户的API Key，否则使用平台的
+    // Prefer config API Key, then platform environment variable
     const apiKey = config.apiKey ? config.apiKey : (() => {
       const envApiKey = process.env.RESEND_API_KEY;
       if (!envApiKey) {
@@ -33,25 +33,25 @@ export class ResendProvider extends BaseEmailProvider {
 
     this.client = new Resend(apiKey);
   }
-  
+
   /**
-   * 发送单封邮件
+   * Send a single email
    */
   async send(request: SendEmailRequest): Promise<SendEmailResponse> {
     try {
-      // 构建发件人地址
+      // Build sender address
       const from = request.fromName
         ? `${request.fromName} <${request.from || 'noreply@chentsimo.top'}>`
         : request.from || 'noreply@chentsimo.top';
-      
-      // 发送邮件
+
+      // Send email
       const result = await this.client.emails.send({
         from,
         to: Array.isArray(request.to) ? request.to : [request.to],
         subject: request.subject || 'No Subject',
         html: request.html,
         text: request.text,
-        replyTo: request.replyTo,  // 修复：使用replyTo而不是reply_to
+        replyTo: request.replyTo,
         cc: request.cc,
         bcc: request.bcc,
         attachments: request.attachments?.map(att => ({
@@ -63,7 +63,7 @@ export class ResendProvider extends BaseEmailProvider {
 
       return {
         success: true,
-        messageId: result.data?.id || 'unknown',  // 修复：使用result.data.id
+        messageId: result.data?.id || 'unknown',
         provider: 'resend'
       };
     } catch (error: any) {
@@ -75,55 +75,55 @@ export class ResendProvider extends BaseEmailProvider {
       };
     }
   }
-  
+
   /**
-   * 批量发送邮件
+   * Batch send emails
    */
   async sendBatch(requests: SendEmailRequest[]): Promise<SendEmailResponse[]> {
-    // Resend支持批量发送，但我们使用Promise.allSettled来处理
+    // Resend supports batch sending, but we use Promise.allSettled for handling
     const results = await Promise.allSettled(
       requests.map(req => this.send(req))
     );
-    
-    return results.map(result => 
-      result.status === 'fulfilled' 
-        ? result.value 
-        : { 
-            success: false, 
-            provider: 'resend', 
-            error: 'Batch send failed',
-            details: result.reason
-          }
+
+    return results.map(result =>
+      result.status === 'fulfilled'
+        ? result.value
+        : {
+          success: false,
+          provider: 'resend',
+          error: 'Batch send failed',
+          details: result.reason
+        }
     );
   }
-  
+
   /**
-   * 获取邮件状态
+   * Get email status
    */
   async getStatus(messageId: string): Promise<EmailStatus> {
     try {
       const email = await this.client.emails.get(messageId);
 
       return {
-        messageId: email.data?.id || messageId,  // 修复：使用email.data.id
-        status: email.data?.last_event || 'sent',  // 修复：使用email.data.last_event
-        events: []  // Resend API暂不提供详细事件列表
+        messageId: email.data?.id || messageId,
+        status: email.data?.last_event || 'sent',
+        events: []  // Resend API does not provide detailed event list yet
       };
     } catch (error: any) {
       throw new Error(`Failed to get email status: ${error.message}`);
     }
   }
-  
+
   /**
-   * 验证Webhook签名
+   * Verify Webhook signature
    *
-   * Resend使用HMAC-SHA256签名验证
-   * 参考: https://resend.com/docs/webhooks
+   * Resend uses HMAC-SHA256 signature verification (via Svix)
+   * Ref: https://resend.com/docs/webhooks
    *
-   * @param signature - 请求头中的 svix-signature
-   * @param payload - 原始请求体（字符串）
-   * @param svixId - 请求头中的 svix-id
-   * @param svixTimestamp - 请求头中的 svix-timestamp
+   * @param signature - svix-signature from request headers
+   * @param payload - Original request body (string)
+   * @param svixId - svix-id from request headers
+   * @param svixTimestamp - svix-timestamp from request headers
    */
   verifyWebhook(
     signature: string,
@@ -135,7 +135,7 @@ export class ResendProvider extends BaseEmailProvider {
 
     if (!webhookSecret) {
       console.warn('RESEND_WEBHOOK_SECRET not configured, skipping signature verification');
-      return true; // 开发环境可以跳过验证
+      return true; // Skip verification in development
     }
 
     if (!signature || !svixId || !svixTimestamp) {
@@ -144,7 +144,7 @@ export class ResendProvider extends BaseEmailProvider {
     }
 
     try {
-      // 验证时间戳（防止重放攻击，5分钟内有效）
+      // Verify timestamp (prevent replay attacks, valid for 5 minutes)
       const timestamp = parseInt(svixTimestamp, 10);
       const now = Math.floor(Date.now() / 1000);
       const tolerance = 300; // 5 minutes
@@ -154,11 +154,11 @@ export class ResendProvider extends BaseEmailProvider {
         return false;
       }
 
-      // 构建签名基础字符串
+      // Build signature base string
       const payloadString = typeof payload === 'string' ? payload : JSON.stringify(payload);
       const signedContent = `${svixId}.${svixTimestamp}.${payloadString}`;
 
-      // 解析 webhook secret（格式: whsec_xxxxx）
+      // Parse webhook secret (format: whsec_xxxxx)
       const secretBytes = Buffer.from(
         webhookSecret.startsWith('whsec_')
           ? webhookSecret.slice(6)
@@ -166,25 +166,29 @@ export class ResendProvider extends BaseEmailProvider {
         'base64'
       );
 
-      // 计算期望的签名
+      // Calculate expected signature
       const expectedSignature = crypto
         .createHmac('sha256', secretBytes)
         .update(signedContent)
         .digest('base64');
 
-      // 解析签名头（格式: v1,signature1 v1,signature2）
+      // Parse signature header (format: v1,signature1 v1,signature2)
       const signatures = signature.split(' ').map(s => {
         const [version, sig] = s.split(',');
         return { version, sig };
       });
 
-      // 验证是否有匹配的签名
+      // Verify if there is a matching signature
       const isValid = signatures.some(({ version, sig }) => {
         if (version !== 'v1') return false;
-        return crypto.timingSafeEqual(
-          Buffer.from(sig),
-          Buffer.from(expectedSignature)
-        );
+        try {
+          return crypto.timingSafeEqual(
+            Buffer.from(sig, 'base64'),
+            Buffer.from(expectedSignature, 'base64')
+          );
+        } catch {
+          return false;
+        }
       });
 
       if (!isValid) {
@@ -197,29 +201,29 @@ export class ResendProvider extends BaseEmailProvider {
       return false;
     }
   }
-  
+
   /**
-   * 获取提供商能力
+   * Get provider capabilities
    */
   getCapabilities(): EmailProviderCapabilities {
     return {
       supportsAttachments: true,
       supportsBatch: true,
-      supportsScheduling: false,  // Resend暂不支持定时发送
-      supportsTracking: true,     // 支持打开/点击追踪
+      supportsScheduling: false,  // Resend does not support scheduled sending yet
+      supportsTracking: true,     // Supports open/click tracking
       supportsWebhooks: true,
       maxAttachmentSize: 40,      // 40MB
-      maxBatchSize: 100           // 每批最多100封
+      maxBatchSize: 100           // Max 100 per batch
     };
   }
-  
+
   /**
-   * 健康检查
+   * Health check
    */
   async healthCheck(): Promise<boolean> {
     try {
-      // 尝试获取API Key信息（不实际发送邮件）
-      // Resend没有专门的健康检查端点，我们通过尝试获取域名列表来验证
+      // Attempt to get API Key info (without actually sending email)
+      // Resend does not have a dedicated health check endpoint, we verify by trying to list domains
       await this.client.domains.list();
       return true;
     } catch (error) {
@@ -228,4 +232,3 @@ export class ResendProvider extends BaseEmailProvider {
     }
   }
 }
-

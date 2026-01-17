@@ -13,7 +13,7 @@ import { useCartStore } from '@/store/cart';
 import { useToast } from '@/hooks/use-toast';
 import { ProductService, Product, ProductSearchFilters } from '@/services/product.service';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 export default function NewArrivalsPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();

@@ -1,125 +1,96 @@
 /**
  * Jiffoo Plugin SDK - Signature Utilities
  *
- * HMAC signature generation and verification for secure communication
- * between the Jiffoo platform and external plugins.
+ * HMAC signature generation and verification for secure plugin communication.
  */
 
-import crypto from 'crypto';
-import { VerifyOptions } from './types';
+import * as crypto from 'crypto';
+import { PluginRequest, PluginResponse, NextFunction, VerifyOptions } from './types';
 
 /**
- * Generate HMAC-SHA256 signature
- *
- * @param sharedSecret - The shared secret between platform and plugin
- * @param method - HTTP method (GET, POST, etc.)
- * @param path - Request path (e.g., /api/demo)
- * @param body - Request body as string (empty string for GET requests)
- * @param timestamp - ISO timestamp string
- * @returns Hex-encoded HMAC signature
+ * Generate HMAC-SHA256 signature for request verification
  */
 export function generateSignature(
-  sharedSecret: string,
-  method: string,
-  path: string,
-  body: string,
-  timestamp: string
+    secret: string,
+    method: string,
+    path: string,
+    body: string | object,
+    timestamp: string
 ): string {
-  const stringToSign = `${timestamp}\n${method}\n${path}\n${body}`;
-  return crypto.createHmac('sha256', sharedSecret).update(stringToSign).digest('hex');
+    const bodyString = typeof body === 'string' ? body : JSON.stringify(body);
+    const payload = `${method.toUpperCase()}.${path}.${bodyString}.${timestamp}`;
+    return crypto.createHmac('sha256', secret).update(payload).digest('hex');
 }
 
 /**
- * Verify HMAC-SHA256 signature
- *
- * @param sharedSecret - The shared secret between platform and plugin
- * @param method - HTTP method
- * @param path - Request path
- * @param body - Request body as string
- * @param timestamp - ISO timestamp from X-Platform-Timestamp header
- * @param signature - Signature from X-Platform-Signature header
- * @param options - Verification options
- * @returns true if signature is valid
+ * Verify HMAC-SHA256 signature from platform request
  */
 export function verifySignature(
-  sharedSecret: string,
-  method: string,
-  path: string,
-  body: string,
-  timestamp: string,
-  signature: string,
-  options: VerifyOptions = {}
+    secret: string,
+    method: string,
+    path: string,
+    body: string | object,
+    timestamp: string,
+    signature: string,
+    options: VerifyOptions = {}
 ): boolean {
-  const { maxAgeSeconds = 300 } = options; // Default 5 minutes
+    const { maxAgeSeconds = 300 } = options;
 
-  // Check timestamp freshness
-  const requestTime = new Date(timestamp).getTime();
-  const now = Date.now();
-  const age = (now - requestTime) / 1000;
+    // Check timestamp freshness
+    const requestTime = parseInt(timestamp, 10);
+    const now = Math.floor(Date.now() / 1000);
+    if (Math.abs(now - requestTime) > maxAgeSeconds) {
+        return false;
+    }
 
-  if (age > maxAgeSeconds || age < -60) {
-    // Allow 60 seconds clock skew in the future
-    return false;
-  }
+    // Compute expected signature
+    const expectedSignature = generateSignature(secret, method, path, body, timestamp);
 
-  // Generate expected signature
-  const expectedSignature = generateSignature(sharedSecret, method, path, body, timestamp);
-
-  // Timing-safe comparison
-  try {
-    return crypto.timingSafeEqual(
-      Buffer.from(expectedSignature, 'hex'),
-      Buffer.from(signature, 'hex')
-    );
-  } catch {
-    return false;
-  }
+    // Constant-time comparison
+    try {
+        return crypto.timingSafeEqual(
+            Buffer.from(signature),
+            Buffer.from(expectedSignature)
+        );
+    } catch {
+        return false;
+    }
 }
 
 /**
- * Create signature verification middleware for Express
- *
- * @param sharedSecret - The shared secret
- * @param options - Verification options
- * @returns Express middleware function
+ * Express/Fastify middleware for signature verification
  */
-export function createSignatureMiddleware(
-  sharedSecret: string,
-  options: VerifyOptions = {}
-) {
-  return (req: any, res: any, next: any) => {
-    const timestamp = req.headers['x-platform-timestamp'] as string;
-    const signature = req.headers['x-platform-signature'] as string;
+export function createSignatureMiddleware(secret: string, options: VerifyOptions = {}) {
+    return (req: PluginRequest, res: PluginResponse, next: NextFunction) => {
+        const signature = req.headers['x-platform-signature'] as string;
+        const timestamp = req.headers['x-platform-timestamp'] as string;
 
-    if (!timestamp || !signature) {
-      return res.status(401).json({
-        success: false,
-        error: 'Missing signature headers'
-      });
-    }
+        if (!signature || !timestamp) {
+            res.status(401).json({
+                success: false,
+                error: 'Missing signature or timestamp headers'
+            });
+            return;
+        }
 
-    const body = req.body ? JSON.stringify(req.body) : '';
-    const path = req.path || req.url;
-    const method = req.method;
+        const isValid = verifySignature(
+            secret,
+            req.method,
+            req.path,
+            req.body || '',
+            timestamp,
+            signature,
+            options
+        );
 
-    const isValid = verifySignature(
-      sharedSecret,
-      method,
-      path,
-      body,
-      timestamp,
-      signature,
-      options
-    );
+        if (!isValid) {
+            res.status(401).json({
+                success: false,
+                error: 'Invalid signature'
+            });
+            return;
+        }
 
-    if (!isValid) {
-      return res.status(401).json({
-        success: false,
-        error: 'Invalid signature'
-      });
-    }
-
-    next();
-  };
+        next();
+    };
 }
-

@@ -35,7 +35,7 @@ export interface UserContext {
   id?: string;
   email?: string;
   username?: string;
-  tenantId?: string;
+  storeId?: string;
   role?: string;
 }
 
@@ -43,7 +43,7 @@ export interface UserContext {
  * 错误上下文
  */
 export interface ErrorContext {
-  tenantId?: string;
+  storeId?: string;
   userId?: string;
   traceId?: string;
   spanId?: string;
@@ -112,7 +112,7 @@ export class SentryClient {
       ignoreErrors: this.config.ignoreErrors,
       denyUrls: this.config.denyUrls,
       beforeSend: (event: unknown) => this.beforeSend(event),
-      beforeSendTransaction: (transaction: unknown) => 
+      beforeSendTransaction: (transaction: unknown) =>
         this.beforeSendTransaction(transaction),
     };
   }
@@ -153,12 +153,12 @@ export class SentryClient {
   createErrorContext(context: ErrorContext): Record<string, unknown> {
     return {
       tags: {
-        tenantId: context.tenantId,
+        storeId: context.storeId,
         userId: context.userId,
         traceId: context.traceId,
+        requestId: context.requestId,
       },
       extra: {
-        requestId: context.requestId,
         path: context.path,
         method: context.method,
         userAgent: context.userAgent,
@@ -176,7 +176,7 @@ export class SentryClient {
       id: user.id,
       email: user.email,
       username: user.username,
-      tenantId: user.tenantId,
+      storeId: user.storeId,
       role: user.role,
     };
   }

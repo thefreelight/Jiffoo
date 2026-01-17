@@ -1,5 +1,5 @@
 /**
- * Admin Order Routes (单商户版本)
+ * Admin Order Routes
  */
 
 import { FastifyInstance } from 'fastify';
@@ -7,9 +7,12 @@ import { AdminOrderService } from './service';
 import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 
 export async function adminOrderRoutes(fastify: FastifyInstance) {
+  // Apply auth middleware to all admin order routes (before schema validation)
+  fastify.addHook('onRequest', authMiddleware);
+  fastify.addHook('onRequest', requireAdmin);
+
   // Get orders list
   fastify.get('/', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-orders'],
       summary: 'Get orders list',
@@ -35,7 +38,6 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
 
   // Get order by ID
   fastify.get('/:id', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-orders'],
       summary: 'Get order by ID',
@@ -56,7 +58,6 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
 
   // Update order status
   fastify.put('/:id/status', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-orders'],
       summary: 'Update order status',
@@ -82,7 +83,6 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
 
   // Get order stats
   fastify.get('/stats', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-orders'],
       summary: 'Get order statistics',
@@ -94,6 +94,98 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
       return reply.send({ success: true, data: stats });
     } catch (error: any) {
       return reply.code(500).send({ success: false, error: error.message });
+    }
+  });
+
+  // Ship order
+  fastify.post('/:id/ship', {
+    schema: {
+      tags: ['admin-orders'],
+      summary: 'Ship order with tracking info',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['carrier', 'trackingNumber'],
+        properties: {
+          carrier: { type: 'string' },
+          trackingNumber: { type: 'string' },
+          items: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                orderItemId: { type: 'string' },
+                quantity: { type: 'integer' }
+              }
+            }
+          }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params as any;
+      const data = request.body as any;
+      const result = await AdminOrderService.shipOrder(id, data);
+      return reply.send({ success: true, data: result });
+    } catch (error: any) {
+      return reply.code(400).send({ success: false, error: error.message });
+    }
+  });
+
+  // Refund order
+  fastify.post('/:id/refund', {
+    schema: {
+      tags: ['admin-orders'],
+      summary: 'Refund order (full or partial)',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['idempotencyKey'],
+        properties: {
+          // amount: { type: 'number' }, // Alpha: Full refund only
+          reason: { type: 'string' },
+          idempotencyKey: { type: 'string' }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params as any;
+      const data = request.body as any;
+      // Explicitly pick only allowed fields, ensuring amount is not passed even if present in raw body
+      const refund = await AdminOrderService.refundOrder(id, {
+        reason: data.reason,
+        idempotencyKey: data.idempotencyKey
+      });
+      return reply.send({ success: true, data: refund });
+    } catch (error: any) {
+      return reply.code(400).send({ success: false, error: error.message });
+    }
+  });
+
+  // Cancel order
+  fastify.post('/:id/cancel', {
+    schema: {
+      tags: ['admin-orders'],
+      summary: 'Cancel order',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['cancelReason'],
+        properties: {
+          cancelReason: { type: 'string' }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params as any;
+      const data = request.body as any;
+      const order = await AdminOrderService.cancelOrder(id, data);
+      return reply.send({ success: true, data: order });
+    } catch (error: any) {
+      return reply.code(400).send({ success: false, error: error.message });
     }
   });
 }

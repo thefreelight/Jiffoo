@@ -10,7 +10,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuthStore } from '@/lib/store'
-import { useT, useLocale } from 'shared/src/i18n'
+import { useT, useLocale } from 'shared/src/i18n/react'
 import {
   Search,
   Bell,
@@ -91,7 +91,7 @@ export function BlueMinimalHeader({ title = "Dashboard", onMenuClick }: BlueMini
             type="text"
             value={searchValue}
             onChange={(e) => setSearchValue(e.target.value)}
-            placeholder={getText('tenant.header.searchPlaceholder', 'Search...')}
+            placeholder={getText('merchant.header.searchPlaceholder', 'Search...')}
             className="
               w-40 lg:w-60 pl-9 pr-3 py-2
               border border-[#E2E8F0] rounded-md
@@ -150,16 +150,16 @@ export function BlueMinimalHeader({ title = "Dashboard", onMenuClick }: BlueMini
             <DropdownMenuSeparator />
             <DropdownMenuItem>
               <User className="mr-2 h-4 w-4" />
-              <span>{getText('tenant.header.profile', 'Profile')}</span>
+              <span>{getText('merchant.header.profile', 'Profile')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem>
               <Settings className="mr-2 h-4 w-4" />
-              <span>{getText('tenant.header.settings', 'Settings')}</span>
+              <span>{getText('merchant.header.settings', 'Settings')}</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
-              <span>{getText('tenant.header.logout', 'Log out')}</span>
+              <span>{getText('merchant.header.logout', 'Log out')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -169,7 +169,7 @@ export function BlueMinimalHeader({ title = "Dashboard", onMenuClick }: BlueMini
           className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#3B82F6] text-white rounded-md font-semibold text-sm hover:bg-[#2563EB] transition-colors duration-150"
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden lg:inline">{getText('tenant.header.addView', 'Add View')}</span>
+          <span className="hidden lg:inline">{getText('merchant.header.addView', 'Add View')}</span>
         </button>
       </div>
     </header>

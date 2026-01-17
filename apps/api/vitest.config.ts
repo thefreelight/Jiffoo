@@ -14,6 +14,9 @@ export default defineConfig({
     include: [
       'tests/**/*.test.ts',
       'tests/**/*.spec.ts',
+      'tests/routes/**/*.test.ts',
+      'tests/contract/**/*.test.ts',
+      'src/modules/**/__tests__/*.test.ts',
     ],
     exclude: [
       'node_modules/**',
@@ -31,14 +34,17 @@ export default defineConfig({
       reporter: ['text', 'json', 'html', 'lcov'],
       reportsDirectory: './coverage',
       
-      // Coverage thresholds (temporarily disabled to allow incremental testing)
-      // TODO: Enable thresholds when coverage reaches target
-      // thresholds: {
-      //   lines: 60,
-      //   branches: 60,
-      //   functions: 60,
-      //   statements: 60,
-      // },
+      // Coverage thresholds are enforced in CI (or when explicitly enabled).
+      ...(process.env.CI === 'true' || process.env.VITEST_ENFORCE_COVERAGE === '1'
+        ? {
+            thresholds: {
+              lines: 60,
+              branches: 50,
+              functions: 60,
+              statements: 60,
+            },
+          }
+        : {}),
       
       // Files to include/exclude
       include: ['src/**/*.ts'],
@@ -55,13 +61,16 @@ export default defineConfig({
     // Reporter configuration
     reporters: ['default', 'verbose'],
     
-    // Pool configuration
-    pool: 'threads',
+    // Pool configuration - use forks with single fork for DB isolation
+    pool: 'forks',
     poolOptions: {
-      threads: {
-        singleThread: true,  // Run tests sequentially for DB isolation
+      forks: {
+        singleFork: true,  // Run tests sequentially for DB isolation
       },
     },
+    
+    // Run test files sequentially
+    fileParallelism: false,
     
     // Retry failed tests
     retry: 1,
@@ -85,4 +94,3 @@ export default defineConfig({
     },
   },
 });
-

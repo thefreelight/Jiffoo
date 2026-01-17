@@ -1,13 +1,13 @@
 import { z } from 'zod';
 
-// 订单商品项
+// Order Item
 export const OrderItemSchema = z.object({
   productId: z.string().min(1, 'Product ID is required'),
-  variantId: z.string().optional(),
+  variantId: z.string().min(1, 'Variant ID is required'),
   quantity: z.number().int().positive('Quantity must be positive'),
 });
 
-// 收货地址
+// Shipping Address
 export const ShippingAddressSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
@@ -17,25 +17,27 @@ export const ShippingAddressSchema = z.object({
   country: z.string().min(1, 'Country is required'),
 });
 
-// 创建订单请求
+// Create Order Request
 export const CreateOrderSchema = z.object({
   items: z.array(OrderItemSchema).min(1, 'Order must have at least one item'),
   shippingAddress: ShippingAddressSchema.optional(),
   customerEmail: z.string().email('Valid email is required').optional(),
 });
 
-// 订单状态枚举
+// Order Status Enum
 export const OrderStatus = {
   PENDING: 'PENDING',
   PAID: 'PAID',
+  COMPLETED: 'COMPLETED',  // Order completed
   SHIPPED: 'SHIPPED',
   DELIVERED: 'DELIVERED',
-  CANCELLED: 'CANCELLED'
+  CANCELLED: 'CANCELLED',
+  REFUNDED: 'REFUNDED'     // Refunded
 } as const;
 
 export type OrderStatusType = typeof OrderStatus[keyof typeof OrderStatus];
 
-// 支付状态枚举
+// Payment Status Enum
 export const PaymentStatus = {
   PENDING: 'PENDING',
   PAID: 'PAID',
@@ -45,12 +47,13 @@ export const PaymentStatus = {
 
 export type PaymentStatusType = typeof PaymentStatus[keyof typeof PaymentStatus];
 
-// TypeScript 类型推断
+// TypeScript Type Inferenece
 export type OrderItemRequest = z.infer<typeof OrderItemSchema>;
 export type ShippingAddressRequest = z.infer<typeof ShippingAddressSchema>;
 export type CreateOrderRequest = z.infer<typeof CreateOrderSchema>;
 
-// 订单响应接口
+
+// Order Response Interface
 export interface OrderResponse {
   id: string;
   userId: string;
@@ -59,23 +62,24 @@ export interface OrderResponse {
   totalAmount: number;
   shippingAddress: any;
   items: OrderItemResponse[];
+  shipments?: any[];
   createdAt: Date;
   updatedAt: Date;
 }
 
-// 订单商品项响应接口
+// Order Item Response Interface
 export interface OrderItemResponse {
   id: string;
   productId: string;
   productName: string;
-  variantId?: string;
+  variantId: string;
   variantName?: string;
   quantity: number;
   unitPrice: number;
   totalPrice: number;
 }
 
-// 分页订单列表响应
+// Paginated Order List Response
 export interface OrderListResponse {
   data: OrderResponse[];
   pagination: {

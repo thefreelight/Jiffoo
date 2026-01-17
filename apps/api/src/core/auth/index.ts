@@ -1,5 +1,5 @@
 /**
- * Auth Module (单商户版本)
+ * Auth Module
  */
 
 export { AuthService } from './service';

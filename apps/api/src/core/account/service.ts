@@ -2,13 +2,13 @@ import { prisma } from '@/config/database';
 import { UpdateProfileRequest } from './types';
 
 /**
- * 用户个人账户服务 - 精简版
- * 专注于个人资料管理
+ * User Account Service
+ * Focused on personal profile management
  */
 export class AccountService {
-  
+
   /**
-   * 获取用户个人资料
+   * Get user profile
    */
   static async getProfile(userId: string) {
     const profile = await prisma.user.findUnique({
@@ -31,7 +31,7 @@ export class AccountService {
   }
 
   /**
-   * 更新用户个人资料
+   * Update user profile
    */
   static async updateProfile(userId: string, updateData: UpdateProfileRequest) {
     const updatedProfile = await prisma.user.update({

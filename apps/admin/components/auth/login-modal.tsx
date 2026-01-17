@@ -14,7 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuthStore } from '@/lib/store';
 import { useToast } from '@/components/ui/toast';
 import { Eye, EyeOff, Lock, Mail, Loader2 } from 'lucide-react';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -42,7 +42,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     setError('');
 
     if (!email || !password) {
-      setError(getText('tenant.auth.enterBothFields', 'Please enter both email and password'));
+      setError(getText('merchant.auth.enterBothFields', 'Please enter both email and password'));
       return;
     }
 
@@ -51,17 +51,17 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
 
       addToast({
         type: 'success',
-        title: getText('tenant.auth.loginSuccess', 'Login Successful'),
-        description: getText('tenant.auth.welcomeBack', 'Welcome back to Jiffoo Mall Admin!')
+        title: getText('merchant.auth.loginSuccess', 'Login Successful'),
+        description: getText('merchant.auth.welcomeBack', 'Welcome back to Jiffoo Mall Admin!')
       });
       onClose();
       onSuccess?.();
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : getText('tenant.auth.invalidCredentials', 'Invalid email or password. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : getText('merchant.auth.invalidCredentials', 'Invalid email or password. Please try again.');
       setError(errorMessage);
       addToast({
         type: 'error',
-        title: getText('tenant.auth.loginFailed', 'Login Failed'),
+        title: getText('merchant.auth.loginFailed', 'Login Failed'),
         description: errorMessage
       });
     }
@@ -84,9 +84,9 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
             <Lock className="w-8 h-8 text-white" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">{getText('tenant.auth.welcomeBackTitle', 'Welcome Back')}</CardTitle>
+            <CardTitle className="text-2xl font-bold">{getText('merchant.auth.welcomeBackTitle', 'Welcome Back')}</CardTitle>
             <CardDescription className="text-gray-600">
-              {getText('tenant.auth.signInDescription', 'Sign in to access the Jiffoo Mall Admin Panel')}
+              {getText('merchant.auth.signInDescription', 'Sign in to access the Jiffoo Mall Admin Panel')}
             </CardDescription>
           </div>
         </CardHeader>
@@ -95,10 +95,10 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Demo Credentials Info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-blue-800 mb-2">{getText('tenant.auth.demoCredentials', 'Demo Credentials')}</h4>
+              <h4 className="text-sm font-semibold text-blue-800 mb-2">{getText('merchant.auth.demoCredentials', 'Demo Credentials')}</h4>
               <div className="text-xs text-blue-700 space-y-1">
-                <div><strong>{getText('tenant.auth.email', 'Email')}:</strong> admin@jiffoo.com</div>
-                <div><strong>{getText('tenant.auth.password', 'Password')}:</strong> admin123</div>
+                <div><strong>{getText('merchant.auth.email', 'Email')}:</strong> admin@jiffoo.com</div>
+                <div><strong>{getText('merchant.auth.password', 'Password')}:</strong> admin123</div>
               </div>
             </div>
 
@@ -111,7 +111,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
 
             {/* Email Field */}
             <div className="space-y-2">
-              <Label htmlFor="email">{getText('tenant.auth.emailAddress', 'Email Address')}</Label>
+              <Label htmlFor="email">{getText('merchant.auth.emailAddress', 'Email Address')}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
@@ -119,7 +119,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder={getText('tenant.auth.enterEmail', 'Enter your email')}
+                  placeholder={getText('merchant.auth.enterEmail', 'Enter your email')}
                   className="pl-10"
                   disabled={isLoading}
                 />
@@ -128,7 +128,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
 
             {/* Password Field */}
             <div className="space-y-2">
-              <Label htmlFor="password">{getText('tenant.auth.password', 'Password')}</Label>
+              <Label htmlFor="password">{getText('merchant.auth.password', 'Password')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
@@ -136,7 +136,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={getText('tenant.auth.enterPassword', 'Enter your password')}
+                  placeholder={getText('merchant.auth.enterPassword', 'Enter your password')}
                   className="pl-10 pr-10"
                   disabled={isLoading}
                 />
@@ -160,10 +160,10 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {getText('tenant.auth.signingIn', 'Signing In...')}
+                  {getText('merchant.auth.signingIn', 'Signing In...')}
                 </>
               ) : (
-                getText('tenant.auth.signIn', 'Sign In')
+                getText('merchant.auth.signIn', 'Sign In')
               )}
             </Button>
 

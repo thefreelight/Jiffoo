@@ -1,5 +1,5 @@
 /**
- * Admin User Routes (单商户版本)
+ * Admin User Routes
  */
 
 import { FastifyInstance } from 'fastify';
@@ -7,9 +7,12 @@ import { AdminUserService } from './service';
 import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 
 export async function adminUserRoutes(fastify: FastifyInstance) {
+  // Apply auth middleware to all admin user routes (before schema validation)
+  fastify.addHook('onRequest', authMiddleware);
+  fastify.addHook('onRequest', requireAdmin);
+
   // Get users list
   fastify.get('/', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-users'],
       summary: 'Get users list',
@@ -35,7 +38,6 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
 
   // Get user by ID
   fastify.get('/:id', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-users'],
       summary: 'Get user by ID',
@@ -56,7 +58,6 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
 
   // Create user
   fastify.post('/', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-users'],
       summary: 'Create user',
@@ -83,7 +84,6 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
 
   // Update user
   fastify.put('/:id', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-users'],
       summary: 'Update user',
@@ -101,7 +101,6 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
 
   // Delete user
   fastify.delete('/:id', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-users'],
       summary: 'Delete user',
@@ -113,13 +112,15 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
       await AdminUserService.deleteUser(id);
       return reply.send({ success: true, message: 'User deleted' });
     } catch (error: any) {
+      if (error.code === 'P2025' || error.message === 'User not found') {
+        return reply.code(404).send({ success: false, error: 'User not found' });
+      }
       return reply.code(500).send({ success: false, error: error.message });
     }
   });
 
   // Reset password
   fastify.post('/:id/reset-password', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-users'],
       summary: 'Reset user password',

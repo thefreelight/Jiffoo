@@ -7,7 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PaginationParams, productsApi, ordersApi, usersApi, statisticsApi, pluginsApi, uploadApi } from '../api';
 import { toast } from 'sonner';
-import { ProductForm, DashboardStats } from '../types';
+import { ProductForm, DashboardStats, Product, Order, User, OrderItem } from '../types';
 
 // 额外的类型定义
 export interface PaginatedApiResponse<T> {
@@ -37,55 +37,8 @@ export interface UpdateUserData {
   isActive?: boolean;
 }
 
-// 类型定义
-export interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  stock: number;
-  category?: string;
-  images?: string[];
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface Order {
-  id: string;
-  userId: string;
-  status: string;
-  totalAmount: number;
-  items: OrderItem[];
-  user?: User;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface OrderItem {
-  id: string;
-  productId: string;
-  quantity: number;
-  unitPrice: number;
-  product: {
-    id: string;
-    name: string;
-    images: string | null;
-  };
-}
-
-export interface User {
-  id: string;
-  email: string;
-  username: string;
-  role: string;
-  avatar?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Re-export DashboardStats from types.ts for convenience
-export type { DashboardStats } from '../types';
+// Re-export types for convenience
+export type { DashboardStats, Product, Order, User, OrderItem } from '../types';
 
 // Query keys
 export const queryKeys = {
@@ -140,13 +93,13 @@ export function useCreateProduct() {
     },
     onSuccess: () => {
       // 清除所有商品相关的查询缓存
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: queryKeys.products,
-        exact: false 
+        exact: false
       });
-      queryClient.refetchQueries({ 
+      queryClient.refetchQueries({
         queryKey: queryKeys.products,
-        exact: false 
+        exact: false
       });
       toast.success('Product created successfully');
     },
@@ -166,9 +119,9 @@ export function useUpdateProduct() {
       return (response.data as { product?: Product })?.product || response.data;
     },
     onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: queryKeys.products,
-        exact: false 
+        exact: false
       });
       queryClient.invalidateQueries({ queryKey: queryKeys.product(id) });
       toast.success('Product updated successfully');
@@ -190,18 +143,18 @@ export function useDeleteProduct() {
     },
     onSuccess: (_, deletedId) => {
       // 清除所有商品相关的查询缓存
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: queryKeys.products,
         exact: false // 这会匹配所有以 ['products'] 开头的查询键
       });
       // 删除特定商品的缓存
-      queryClient.removeQueries({ 
-        queryKey: queryKeys.product(deletedId) 
+      queryClient.removeQueries({
+        queryKey: queryKeys.product(deletedId)
       });
       // 强制重新获取商品列表
-      queryClient.refetchQueries({ 
+      queryClient.refetchQueries({
         queryKey: queryKeys.products,
-        exact: false 
+        exact: false
       });
       toast.success('Product deleted successfully');
     },
@@ -256,6 +209,25 @@ export function useUpdateOrderStatus() {
     },
     onError: (error: Error) => {
       toast.error(error.message);
+    },
+  });
+}
+
+export function useRefundOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: { reason?: string; idempotencyKey: string } }) => {
+      const response = await ordersApi.refundOrder(id, data);
+      return response.data;
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders });
+      queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
+      toast.success('Order refunded successfully');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to refund order');
     },
   });
 }
@@ -559,7 +531,8 @@ export function usePluginDetails(slug: string) {
     queryKey: pluginQueryKeys.details(slug),
     queryFn: async () => {
       const response = await pluginsApi.getPluginDetails(slug);
-      return response.data;
+      // API returns { success: true, data: plugin }, extract the plugin data
+      return response.data?.data || response.data;
     },
     enabled: !!slug,
     staleTime: 5 * 60 * 1000, // 5 minutes

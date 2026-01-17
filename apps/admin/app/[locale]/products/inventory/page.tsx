@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useT, useLocale } from 'shared/src/i18n'
+import { useT, useLocale } from 'shared/src/i18n/react'
 
 export default function InventoryPage() {
   const t = useT()
@@ -44,9 +44,9 @@ export default function InventoryPage() {
 
   // Page navigation items
   const navItems = [
-    { label: getText('tenant.products.allProducts', 'All Products'), href: '/products', exact: true },
-    { label: getText('tenant.products.addProduct', 'Add Product'), href: '/products/create' },
-    { label: getText('tenant.products.inventory', 'Inventory'), href: '/products/inventory' },
+    { label: getText('merchant.products.allProducts', 'All Products'), href: '/products', exact: true },
+    { label: getText('merchant.products.addProduct', 'Add Product'), href: '/products/create' },
+    { label: getText('merchant.products.inventory', 'Inventory'), href: '/products/inventory' },
   ]
 
   const [lowStockThreshold, setLowStockThreshold] = useState(10)
@@ -104,7 +104,7 @@ export default function InventoryPage() {
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-            <p className="mt-2 text-gray-600">{getText('tenant.products.inventory.loading', 'Loading inventory...')}</p>
+            <p className="mt-2 text-gray-600">{getText('merchant.products.inventory.loading', 'Loading inventory...')}</p>
           </div>
         </div>
       </div>
@@ -117,12 +117,12 @@ export default function InventoryPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{getText('tenant.products.inventory.title', 'Inventory')}</h1>
-            <p className="text-gray-600 mt-1">{getText('tenant.products.inventory.subtitle', 'Monitor stock levels and manage inventory')}</p>
+            <h1 className="text-2xl font-bold text-gray-900">{getText('merchant.products.inventory.title', 'Inventory')}</h1>
+            <p className="text-gray-600 mt-1">{getText('merchant.products.inventory.subtitle', 'Monitor stock levels and manage inventory')}</p>
           </div>
           <Button variant="outline" onClick={handleRefresh}>
             <RefreshCw className="w-4 h-4 mr-2" />
-            {getText('tenant.products.inventory.refresh', 'Refresh')}
+            {getText('merchant.products.inventory.refresh', 'Refresh')}
           </Button>
         </div>
         <PageNav items={navItems} />
@@ -132,7 +132,7 @@ export default function InventoryPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{getText('tenant.products.inventory.totalProducts', 'Total Products')}</CardTitle>
+            <CardTitle className="text-sm font-medium">{getText('merchant.products.inventory.totalProducts', 'Total Products')}</CardTitle>
             <Package className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
@@ -142,18 +142,18 @@ export default function InventoryPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{getText('tenant.products.inventory.lowStock', 'Low Stock')}</CardTitle>
+            <CardTitle className="text-sm font-medium">{getText('merchant.products.inventory.lowStock', 'Low Stock')}</CardTitle>
             <TrendingDown className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-yellow-600">{lowStockCount}</div>
-            <p className="text-xs text-gray-500">≤ {lowStockThreshold} {getText('tenant.products.inventory.units', 'units')}</p>
+            <p className="text-xs text-gray-500">≤ {lowStockThreshold} {getText('merchant.products.inventory.units', 'units')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{getText('tenant.products.inventory.outOfStock', 'Out of Stock')}</CardTitle>
+            <CardTitle className="text-sm font-medium">{getText('merchant.products.inventory.outOfStock', 'Out of Stock')}</CardTitle>
             <AlertTriangle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent>
@@ -165,24 +165,24 @@ export default function InventoryPage() {
       {/* Low Stock Products Table */}
       <Card>
         <CardHeader>
-          <CardTitle>{getText('tenant.products.inventory.lowStockProducts', 'Low Stock Products')}</CardTitle>
+          <CardTitle>{getText('merchant.products.inventory.lowStockProducts', 'Low Stock Products')}</CardTitle>
         </CardHeader>
         <CardContent>
           {lowStockProducts.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
-              {getText('tenant.products.inventory.noLowStock', 'No low stock products found')}
+              {getText('merchant.products.inventory.noLowStock', 'No low stock products found')}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">{getText('tenant.products.name', 'Name')}</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">{getText('tenant.products.sku', 'SKU')}</th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">{getText('tenant.products.inventory.currentStock', 'Stock')}</th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">{getText('tenant.products.inventory.threshold', 'Threshold')}</th>
-                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-600">{getText('tenant.products.status', 'Status')}</th>
-                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">{getText('tenant.products.actions', 'Actions')}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">{getText('merchant.products.name', 'Name')}</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">{getText('merchant.products.sku', 'SKU')}</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">{getText('merchant.products.inventory.currentStock', 'Stock')}</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">{getText('merchant.products.inventory.threshold', 'Threshold')}</th>
+                    <th className="text-center py-3 px-4 text-sm font-medium text-gray-600">{getText('merchant.products.status', 'Status')}</th>
+                    <th className="text-right py-3 px-4 text-sm font-medium text-gray-600">{getText('merchant.products.actions', 'Actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -198,14 +198,14 @@ export default function InventoryPage() {
                       <td className="py-3 px-4 text-right text-gray-500">{product.lowStockThreshold || lowStockThreshold}</td>
                       <td className="py-3 px-4 text-center">
                         {product.stock === 0 ? (
-                          <Badge variant="destructive">{getText('tenant.products.inventory.outOfStock', 'Out of Stock')}</Badge>
+                          <Badge variant="destructive">{getText('merchant.products.inventory.outOfStock', 'Out of Stock')}</Badge>
                         ) : (
-                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">{getText('tenant.products.inventory.lowStock', 'Low Stock')}</Badge>
+                          <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">{getText('merchant.products.inventory.lowStock', 'Low Stock')}</Badge>
                         )}
                       </td>
                       <td className="py-3 px-4 text-right">
                         <Button size="sm" variant="outline" onClick={() => handleAdjustStock(product)}>
-                          {getText('tenant.products.inventory.adjustStock', 'Adjust')}
+                          {getText('merchant.products.inventory.adjustStock', 'Adjust')}
                         </Button>
                       </td>
                     </tr>
@@ -221,33 +221,33 @@ export default function InventoryPage() {
       <Dialog open={adjustDialogOpen} onOpenChange={setAdjustDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{getText('tenant.products.inventory.adjustStockTitle', 'Adjust Stock')}</DialogTitle>
+            <DialogTitle>{getText('merchant.products.inventory.adjustStockTitle', 'Adjust Stock')}</DialogTitle>
             <DialogDescription>
-              {getText('tenant.products.inventory.adjustStockDesc', 'Adjust stock quantity for')} {selectedProduct?.name}
+              {getText('merchant.products.inventory.adjustStockDesc', 'Adjust stock quantity for')} {selectedProduct?.name}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>{getText('tenant.products.inventory.operation', 'Operation')}</Label>
+                <Label>{getText('merchant.products.inventory.operation', 'Operation')}</Label>
                 <Select value={adjustOperation} onValueChange={(v: 'increase' | 'decrease') => setAdjustOperation(v)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="increase">{getText('tenant.products.inventory.increase', 'Increase')}</SelectItem>
-                    <SelectItem value="decrease">{getText('tenant.products.inventory.decrease', 'Decrease')}</SelectItem>
+                    <SelectItem value="increase">{getText('merchant.products.inventory.increase', 'Increase')}</SelectItem>
+                    <SelectItem value="decrease">{getText('merchant.products.inventory.decrease', 'Decrease')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>{getText('tenant.products.inventory.quantity', 'Quantity')}</Label>
+                <Label>{getText('merchant.products.inventory.quantity', 'Quantity')}</Label>
                 <Input type="number" min="1" value={adjustQuantity} onChange={(e) => setAdjustQuantity(e.target.value)} placeholder="0" />
               </div>
             </div>
             <div className="space-y-2">
-              <Label>{getText('tenant.products.inventory.reason', 'Reason')}</Label>
-              <Input value={adjustReason} onChange={(e) => setAdjustReason(e.target.value)} placeholder={getText('tenant.products.inventory.reasonPlaceholder', 'e.g., Restock, Damage, Sale')} />
+              <Label>{getText('merchant.products.inventory.reason', 'Reason')}</Label>
+              <Input value={adjustReason} onChange={(e) => setAdjustReason(e.target.value)} placeholder={getText('merchant.products.inventory.reasonPlaceholder', 'e.g., Restock, Damage, Sale')} />
             </div>
           </div>
           <DialogFooter>

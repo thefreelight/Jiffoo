@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/select'
 
 import { useCreateProduct, useUploadProductImage } from '@/lib/hooks/use-api'
-import { useT } from 'shared/src/i18n'
+import { useT } from 'shared/src/i18n/react'
 
 
 interface ProductFormData {
@@ -79,7 +79,7 @@ export default function CreateProductPage() {
     return t ? t(key) : fallback
   }
 
-  // 使用React Query hooks
+  // Use React Query hooks
   const createProductMutation = useCreateProduct()
   const uploadImageMutation = useUploadProductImage()
   const [isUploading, setIsUploading] = useState(false)
@@ -184,7 +184,7 @@ export default function CreateProductPage() {
     e.preventDefault()
 
     try {
-      // 准备API数据格式，匹配后端API期望的格式
+      // Prepare API data format, matching the format expected by the backend API
       const productData = {
         name: formData.name,
         description: formData.description,
@@ -193,14 +193,14 @@ export default function CreateProductPage() {
         images: formData.images.length > 0 ? JSON.stringify(formData.images) : JSON.stringify([])
       }
 
-      // 使用React Query mutation
+      // Use React Query mutation
       await createProductMutation.mutateAsync(productData as Record<string, unknown>)
-      
-      // 成功后重定向到商品列表
+
+      // Redirect to product list after success
       router.push('/products')
     } catch (error) {
       console.error('Failed to create product:', error)
-      // toast已经在hook中处理了，这里不需要额外处理
+      // toast is already handled in the hook, no extra handling needed here
     }
   }
 
@@ -215,23 +215,23 @@ export default function CreateProductPage() {
             onClick={() => router.back()}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {getText('tenant.products.create.back', 'Back')}
+            {getText('merchant.products.create.back', 'Back')}
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{getText('tenant.products.create.title', 'Add New Product')}</h1>
-            <p className="text-gray-600">{getText('tenant.products.create.subtitle', 'Create a new product for your store')}</p>
+            <h1 className="text-2xl font-bold text-gray-900">{getText('merchant.products.create.title', 'Add New Product')}</h1>
+            <p className="text-gray-600">{getText('merchant.products.create.subtitle', 'Create a new product for your store')}</p>
           </div>
         </div>
         <div className="flex space-x-3">
           <Button variant="outline" onClick={() => router.push('/products')}>
-            {getText('tenant.products.create.cancel', 'Cancel')}
+            {getText('merchant.products.create.cancel', 'Cancel')}
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={createProductMutation.isPending}
             className="bg-blue-600 hover:bg-blue-700"
           >
-            {createProductMutation.isPending ? getText('tenant.products.create.creating', 'Creating...') : getText('tenant.products.create.createProduct', 'Create Product')}
+            {createProductMutation.isPending ? getText('merchant.products.create.creating', 'Creating...') : getText('merchant.products.create.createProduct', 'Create Product')}
           </Button>
         </div>
       </div>
@@ -243,39 +243,39 @@ export default function CreateProductPage() {
             {/* Basic Information */}
             <Card>
               <CardHeader>
-                <CardTitle>{getText('tenant.products.create.basicInfo', 'Basic Information')}</CardTitle>
-                <CardDescription>{getText('tenant.products.create.basicInfoDesc', 'Essential product details')}</CardDescription>
+                <CardTitle>{getText('merchant.products.create.basicInfo', 'Basic Information')}</CardTitle>
+                <CardDescription>{getText('merchant.products.create.basicInfoDesc', 'Essential product details')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="name">{getText('tenant.products.create.productNameLabel', 'Product Name *')}</Label>
+                  <Label htmlFor="name">{getText('merchant.products.create.productNameLabel', 'Product Name *')}</Label>
                   <Input
                     id="name"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    placeholder={getText('tenant.products.create.productNamePlaceholder', 'Enter product name')}
+                    placeholder={getText('merchant.products.create.productNamePlaceholder', 'Enter product name')}
                     required
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="shortDescription">{getText('tenant.products.create.shortDescription', 'Short Description')}</Label>
+                  <Label htmlFor="shortDescription">{getText('merchant.products.create.shortDescription', 'Short Description')}</Label>
                   <Textarea
                     id="shortDescription"
                     value={formData.shortDescription}
                     onChange={(e) => handleInputChange('shortDescription', e.target.value)}
-                    placeholder={getText('tenant.products.create.shortDescriptionPlaceholder', 'Brief product description')}
+                    placeholder={getText('merchant.products.create.shortDescriptionPlaceholder', 'Brief product description')}
                     rows={2}
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="description">{getText('tenant.products.create.fullDescription', 'Full Description')}</Label>
+                  <Label htmlFor="description">{getText('merchant.products.create.fullDescription', 'Full Description')}</Label>
                   <Textarea
                     id="description"
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
-                    placeholder={getText('tenant.products.create.fullDescriptionPlaceholder', 'Detailed product description')}
+                    placeholder={getText('merchant.products.create.fullDescriptionPlaceholder', 'Detailed product description')}
                     rows={4}
                   />
                 </div>
@@ -285,13 +285,13 @@ export default function CreateProductPage() {
             {/* Pricing */}
             <Card>
               <CardHeader>
-                <CardTitle>{getText('tenant.products.create.pricing', 'Pricing')}</CardTitle>
-                <CardDescription>{getText('tenant.products.create.pricingDesc', 'Set your product pricing')}</CardDescription>
+                <CardTitle>{getText('merchant.products.create.pricing', 'Pricing')}</CardTitle>
+                <CardDescription>{getText('merchant.products.create.pricingDesc', 'Set your product pricing')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="price">{getText('tenant.products.create.priceLabel', 'Price *')}</Label>
+                    <Label htmlFor="price">{getText('merchant.products.create.priceLabel', 'Price *')}</Label>
                     <Input
                       id="price"
                       type="number"
@@ -304,7 +304,7 @@ export default function CreateProductPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="comparePrice">{getText('tenant.products.create.comparePrice', 'Compare Price')}</Label>
+                    <Label htmlFor="comparePrice">{getText('merchant.products.create.comparePrice', 'Compare Price')}</Label>
                     <Input
                       id="comparePrice"
                       type="number"
@@ -316,7 +316,7 @@ export default function CreateProductPage() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="cost">{getText('tenant.products.create.costPerItem', 'Cost per item')}</Label>
+                    <Label htmlFor="cost">{getText('merchant.products.create.costPerItem', 'Cost per item')}</Label>
                     <Input
                       id="cost"
                       type="number"
@@ -334,8 +334,8 @@ export default function CreateProductPage() {
             {/* Inventory */}
             <Card>
               <CardHeader>
-                <CardTitle>{getText('tenant.products.create.inventory', 'Inventory')}</CardTitle>
-                <CardDescription>{getText('tenant.products.create.inventoryDesc', 'Track product inventory')}</CardDescription>
+                <CardTitle>{getText('merchant.products.create.inventory', 'Inventory')}</CardTitle>
+                <CardDescription>{getText('merchant.products.create.inventoryDesc', 'Track product inventory')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex items-center space-x-2">
@@ -344,13 +344,13 @@ export default function CreateProductPage() {
                     checked={formData.trackQuantity}
                     onCheckedChange={(checked) => handleInputChange('trackQuantity', checked)}
                   />
-                  <Label htmlFor="trackQuantity">{getText('tenant.products.create.trackQuantity', 'Track quantity')}</Label>
+                  <Label htmlFor="trackQuantity">{getText('merchant.products.create.trackQuantity', 'Track quantity')}</Label>
                 </div>
 
                 {formData.trackQuantity && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="quantity">{getText('tenant.products.create.quantityLabel', 'Quantity *')}</Label>
+                      <Label htmlFor="quantity">{getText('merchant.products.create.quantityLabel', 'Quantity *')}</Label>
                       <Input
                         id="quantity"
                         type="number"
@@ -362,7 +362,7 @@ export default function CreateProductPage() {
                       />
                     </div>
                     <div>
-                      <Label htmlFor="lowStockThreshold">{getText('tenant.products.create.lowStockThreshold', 'Low stock threshold')}</Label>
+                      <Label htmlFor="lowStockThreshold">{getText('merchant.products.create.lowStockThreshold', 'Low stock threshold')}</Label>
                       <Input
                         id="lowStockThreshold"
                         type="number"
@@ -377,21 +377,21 @@ export default function CreateProductPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="sku">{getText('tenant.products.create.skuLabel', 'SKU')}</Label>
+                    <Label htmlFor="sku">{getText('merchant.products.create.skuLabel', 'SKU')}</Label>
                     <Input
                       id="sku"
                       value={formData.sku}
                       onChange={(e) => handleInputChange('sku', e.target.value)}
-                      placeholder={getText('tenant.products.create.skuPlaceholder', 'Product SKU')}
+                      placeholder={getText('merchant.products.create.skuPlaceholder', 'Product SKU')}
                     />
                   </div>
                   <div>
-                    <Label htmlFor="barcode">{getText('tenant.products.create.barcodeLabel', 'Barcode')}</Label>
+                    <Label htmlFor="barcode">{getText('merchant.products.create.barcodeLabel', 'Barcode')}</Label>
                     <Input
                       id="barcode"
                       value={formData.barcode}
                       onChange={(e) => handleInputChange('barcode', e.target.value)}
-                      placeholder={getText('tenant.products.create.barcodePlaceholder', 'Product barcode')}
+                      placeholder={getText('merchant.products.create.barcodePlaceholder', 'Product barcode')}
                     />
                   </div>
                 </div>
@@ -401,12 +401,12 @@ export default function CreateProductPage() {
             {/* Shipping */}
             <Card>
               <CardHeader>
-                <CardTitle>{getText('tenant.products.create.shipping', 'Shipping')}</CardTitle>
-                <CardDescription>{getText('tenant.products.create.shippingDesc', 'Physical product information')}</CardDescription>
+                <CardTitle>{getText('merchant.products.create.shipping', 'Shipping')}</CardTitle>
+                <CardDescription>{getText('merchant.products.create.shippingDesc', 'Physical product information')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="weight">{getText('tenant.products.create.weight', 'Weight (kg)')}</Label>
+                  <Label htmlFor="weight">{getText('merchant.products.create.weight', 'Weight (kg)')}</Label>
                   <Input
                     id="weight"
                     type="number"
@@ -418,7 +418,7 @@ export default function CreateProductPage() {
                   />
                 </div>
                 <div>
-                  <Label>{getText('tenant.products.create.dimensions', 'Dimensions (cm)')}</Label>
+                  <Label>{getText('merchant.products.create.dimensions', 'Dimensions (cm)')}</Label>
                   <div className="grid grid-cols-3 gap-4">
                     <Input
                       type="number"
@@ -426,7 +426,7 @@ export default function CreateProductPage() {
                       min="0"
                       value={formData.dimensions.length || ''}
                       onChange={(e) => handleInputChange('dimensions.length', parseFloat(e.target.value) || 0)}
-                      placeholder={getText('tenant.products.create.lengthPlaceholder', 'Length')}
+                      placeholder={getText('merchant.products.create.lengthPlaceholder', 'Length')}
                     />
                     <Input
                       type="number"
@@ -434,7 +434,7 @@ export default function CreateProductPage() {
                       min="0"
                       value={formData.dimensions.width || ''}
                       onChange={(e) => handleInputChange('dimensions.width', parseFloat(e.target.value) || 0)}
-                      placeholder={getText('tenant.products.create.widthPlaceholder', 'Width')}
+                      placeholder={getText('merchant.products.create.widthPlaceholder', 'Width')}
                     />
                     <Input
                       type="number"
@@ -442,7 +442,7 @@ export default function CreateProductPage() {
                       min="0"
                       value={formData.dimensions.height || ''}
                       onChange={(e) => handleInputChange('dimensions.height', parseFloat(e.target.value) || 0)}
-                      placeholder={getText('tenant.products.create.heightPlaceholder', 'Height')}
+                      placeholder={getText('merchant.products.create.heightPlaceholder', 'Height')}
                     />
                   </div>
                 </div>
@@ -452,26 +452,26 @@ export default function CreateProductPage() {
             {/* SEO */}
             <Card>
               <CardHeader>
-                <CardTitle>{getText('tenant.products.create.seo', 'Search Engine Optimization')}</CardTitle>
-                <CardDescription>{getText('tenant.products.create.seoDesc', "Improve your product's search visibility")}</CardDescription>
+                <CardTitle>{getText('merchant.products.create.seo', 'Search Engine Optimization')}</CardTitle>
+                <CardDescription>{getText('merchant.products.create.seoDesc', "Improve your product's search visibility")}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="seoTitle">{getText('tenant.products.create.seoTitle', 'SEO Title')}</Label>
+                  <Label htmlFor="seoTitle">{getText('merchant.products.create.seoTitle', 'SEO Title')}</Label>
                   <Input
                     id="seoTitle"
                     value={formData.seoTitle}
                     onChange={(e) => handleInputChange('seoTitle', e.target.value)}
-                    placeholder={getText('tenant.products.create.seoTitlePlaceholder', 'SEO optimized title')}
+                    placeholder={getText('merchant.products.create.seoTitlePlaceholder', 'SEO optimized title')}
                   />
                 </div>
                 <div>
-                  <Label htmlFor="seoDescription">{getText('tenant.products.create.seoDescription', 'SEO Description')}</Label>
+                  <Label htmlFor="seoDescription">{getText('merchant.products.create.seoDescription', 'SEO Description')}</Label>
                   <Textarea
                     id="seoDescription"
                     value={formData.seoDescription}
                     onChange={(e) => handleInputChange('seoDescription', e.target.value)}
-                    placeholder={getText('tenant.products.create.seoDescriptionPlaceholder', 'SEO meta description')}
+                    placeholder={getText('merchant.products.create.seoDescriptionPlaceholder', 'SEO meta description')}
                     rows={3}
                   />
                 </div>
@@ -484,11 +484,11 @@ export default function CreateProductPage() {
             {/* Status */}
             <Card>
               <CardHeader>
-                <CardTitle>{getText('tenant.products.create.productStatus', 'Product Status')}</CardTitle>
+                <CardTitle>{getText('merchant.products.create.productStatus', 'Product Status')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="status">{getText('tenant.products.create.statusLabel', 'Status')}</Label>
+                  <Label htmlFor="status">{getText('merchant.products.create.statusLabel', 'Status')}</Label>
                   <Select
                     value={formData.status}
                     onValueChange={(value: 'active' | 'draft' | 'archived') => handleInputChange('status', value)}
@@ -497,9 +497,9 @@ export default function CreateProductPage() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="draft">{getText('tenant.products.create.statusDraft', 'Draft')}</SelectItem>
-                      <SelectItem value="active">{getText('tenant.products.create.statusActive', 'Active')}</SelectItem>
-                      <SelectItem value="archived">{getText('tenant.products.create.statusArchived', 'Archived')}</SelectItem>
+                      <SelectItem value="draft">{getText('merchant.products.create.statusDraft', 'Draft')}</SelectItem>
+                      <SelectItem value="active">{getText('merchant.products.create.statusActive', 'Active')}</SelectItem>
+                      <SelectItem value="archived">{getText('merchant.products.create.statusArchived', 'Archived')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -509,7 +509,7 @@ export default function CreateProductPage() {
                     checked={formData.featured}
                     onCheckedChange={(checked) => handleInputChange('featured', checked)}
                   />
-                  <Label htmlFor="featured">{getText('tenant.products.create.featuredProduct', 'Featured product')}</Label>
+                  <Label htmlFor="featured">{getText('merchant.products.create.featuredProduct', 'Featured product')}</Label>
                 </div>
               </CardContent>
             </Card>
@@ -517,17 +517,17 @@ export default function CreateProductPage() {
             {/* Category */}
             <Card>
               <CardHeader>
-                <CardTitle>{getText('tenant.products.create.organization', 'Organization')}</CardTitle>
+                <CardTitle>{getText('merchant.products.create.organization', 'Organization')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <Label htmlFor="category">{getText('tenant.products.create.categoryLabel', 'Category')}</Label>
+                  <Label htmlFor="category">{getText('merchant.products.create.categoryLabel', 'Category')}</Label>
                   <Select
                     value={formData.category}
                     onValueChange={(value) => handleInputChange('category', value)}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder={getText('tenant.products.create.selectCategory', 'Select category')} />
+                      <SelectValue placeholder={getText('merchant.products.create.selectCategory', 'Select category')} />
                     </SelectTrigger>
                     <SelectContent>
                       {categories.map((category) => (
@@ -539,13 +539,13 @@ export default function CreateProductPage() {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="tags">{getText('tenant.products.create.tagsLabel', 'Tags')}</Label>
+                  <Label htmlFor="tags">{getText('merchant.products.create.tagsLabel', 'Tags')}</Label>
                   <div className="flex space-x-2">
                     <Input
                       id="tags"
                       value={currentTag}
                       onChange={(e) => setCurrentTag(e.target.value)}
-                      placeholder={getText('tenant.products.create.addTag', 'Add tag')}
+                      placeholder={getText('merchant.products.create.addTag', 'Add tag')}
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault()
@@ -588,8 +588,8 @@ export default function CreateProductPage() {
             {/* Images */}
             <Card>
               <CardHeader>
-                <CardTitle>{getText('tenant.products.create.productImages', 'Product Images')}</CardTitle>
-                <CardDescription>{getText('tenant.products.create.productImagesDesc', 'Add product photos')}</CardDescription>
+                <CardTitle>{getText('merchant.products.create.productImages', 'Product Images')}</CardTitle>
+                <CardDescription>{getText('merchant.products.create.productImagesDesc', 'Add product photos')}</CardDescription>
               </CardHeader>
               <CardContent>
                 <label className="block cursor-pointer">
@@ -597,15 +597,15 @@ export default function CreateProductPage() {
                     {isUploading ? (
                       <>
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-                        <p className="text-gray-600">{getText('tenant.products.create.uploading', 'Uploading...')}</p>
+                        <p className="text-gray-600">{getText('merchant.products.create.uploading', 'Uploading...')}</p>
                       </>
                     ) : (
                       <>
                         <ImageIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                        <p className="text-gray-600 mb-2">{getText('tenant.products.create.dragDropImages', 'Drag and drop images here')}</p>
-                        <p className="text-sm text-gray-500 mb-4">{getText('tenant.products.create.orClickBrowse', 'or click to browse')}</p>
+                        <p className="text-gray-600 mb-2">{getText('merchant.products.create.dragDropImages', 'Drag and drop images here')}</p>
+                        <p className="text-sm text-gray-500 mb-4">{getText('merchant.products.create.orClickBrowse', 'or click to browse')}</p>
                         <span className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
-                          {getText('tenant.products.create.chooseFiles', 'Choose Files')}
+                          {getText('merchant.products.create.chooseFiles', 'Choose Files')}
                         </span>
                       </>
                     )}
@@ -619,7 +619,7 @@ export default function CreateProductPage() {
                     disabled={isUploading}
                   />
                 </label>
-                <p className="text-xs text-gray-500 mt-2">{getText('tenant.products.create.imageHint', 'Supports JPG, PNG, GIF. Max 5MB per file.')}</p>
+                <p className="text-xs text-gray-500 mt-2">{getText('merchant.products.create.imageHint', 'Supports JPG, PNG, GIF. Max 5MB per file.')}</p>
                 {formData.images.length > 0 && (
                   <div className="grid grid-cols-2 gap-4 mt-4">
                     {formData.images.map((image, index) => (

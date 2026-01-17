@@ -1,5 +1,5 @@
 /**
- * Rate Limit Middleware (单商户版本)
+ * Rate Limit Middleware
  */
 
 import { FastifyRequest, FastifyReply } from 'fastify';

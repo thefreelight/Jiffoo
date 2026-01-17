@@ -4,7 +4,7 @@ import { redisCache } from './redis';
 import { adminMiddleware, authMiddleware } from '@/core/auth/middleware';
 
 export async function cacheRoutes(fastify: FastifyInstance) {
-  // 获取缓存统计信息 (管理员)
+  // Get cache statistics (Admin)
   fastify.get('/stats', {
     preHandler: [authMiddleware, adminMiddleware],
     schema: {
@@ -12,6 +12,7 @@ export async function cacheRoutes(fastify: FastifyInstance) {
       tags: ['cache'],
       summary: 'Get Cache Statistics',
       description: 'Get Redis cache statistics',
+      security: [{ bearerAuth: [] }],
       response: {
         200: {
           type: 'object',
@@ -44,13 +45,14 @@ export async function cacheRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // 缓存健康检查 (管理员)
+  // Cache health check (Admin)
   fastify.get('/health', {
     preHandler: [authMiddleware, adminMiddleware],
     schema: {
       tags: ['cache'],
       summary: 'Cache Health Check',
       description: 'Check Redis connection status',
+      security: [{ bearerAuth: [] }],
       response: {
         200: {
           type: 'object',
@@ -75,7 +77,7 @@ export async function cacheRoutes(fastify: FastifyInstance) {
     try {
       const connected = redisCache.getConnectionStatus();
       const ping = await CacheService.healthCheck();
-      
+
       return reply.send({
         status: connected && ping ? 'healthy' : 'unhealthy',
         connected,
@@ -91,7 +93,7 @@ export async function cacheRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // 清除商品缓存 (管理员)
+  // Clear product cache (Admin)
   fastify.delete('/products', {
     preHandler: [authMiddleware, adminMiddleware],
     schema: {
@@ -99,6 +101,7 @@ export async function cacheRoutes(fastify: FastifyInstance) {
       tags: ['cache'],
       summary: 'Clear Product Cache',
       description: 'Clear all product-related cache',
+      security: [{ bearerAuth: [] }],
       response: {
         200: {
           type: 'object',
@@ -120,7 +123,7 @@ export async function cacheRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const deletedKeys = await CacheService.clearProductCache();
-      
+
       return reply.send({
         success: true,
         deletedKeys,
@@ -135,7 +138,7 @@ export async function cacheRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // 清除搜索缓存 (管理员)
+  // Clear search cache (Admin)
   fastify.delete('/search', {
     preHandler: [authMiddleware, adminMiddleware],
     schema: {
@@ -143,6 +146,7 @@ export async function cacheRoutes(fastify: FastifyInstance) {
       tags: ['cache'],
       summary: 'Clear Search Cache',
       description: 'Clear all search-related cache',
+      security: [{ bearerAuth: [] }],
       response: {
         200: {
           type: 'object',
@@ -164,7 +168,7 @@ export async function cacheRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const deletedKeys = await CacheService.clearSearchCache();
-      
+
       return reply.send({
         success: true,
         deletedKeys,
@@ -179,7 +183,7 @@ export async function cacheRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // 清除特定缓存 (管理员)
+  // Delete specific cache (Admin)
   fastify.delete('/key/:key', {
     preHandler: [authMiddleware, adminMiddleware],
     schema: {
@@ -187,6 +191,7 @@ export async function cacheRoutes(fastify: FastifyInstance) {
       tags: ['cache'],
       summary: 'Delete Specific Cache Key',
       description: 'Delete specified cache key',
+      security: [{ bearerAuth: [] }],
       params: {
         type: 'object',
         properties: {
@@ -215,7 +220,7 @@ export async function cacheRoutes(fastify: FastifyInstance) {
     try {
       const { key } = request.params as { key: string };
       const deleted = await CacheService.delete(key);
-      
+
       return reply.send({
         success: deleted,
         message: deleted ? `Cache key '${key}' deleted` : `Cache key '${key}' not found`
@@ -228,7 +233,7 @@ export async function cacheRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // 获取缓存值 (管理员)
+  // Get cache value (Admin)
   fastify.get('/key/:key', {
     preHandler: [authMiddleware, adminMiddleware],
     schema: {
@@ -236,6 +241,7 @@ export async function cacheRoutes(fastify: FastifyInstance) {
       tags: ['cache'],
       summary: 'Get Cache Value',
       description: 'Get value of specified cache key',
+      security: [{ bearerAuth: [] }],
       params: {
         type: 'object',
         properties: {
@@ -265,7 +271,7 @@ export async function cacheRoutes(fastify: FastifyInstance) {
     try {
       const { key } = request.params as { key: string };
       const value = await CacheService.get(key);
-      
+
       return reply.send({
         key,
         value,

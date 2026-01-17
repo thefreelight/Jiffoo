@@ -25,7 +25,9 @@
     "db:studio": "dotenv -e ../../.env -- prisma studio",
     "db:reset": "dotenv -e ../../.env -- prisma migrate reset",
     "db:seed": "tsx prisma/seed.ts",
-    "docker:build": "docker build -t api:latest ."
+    "db:mode:test": "dotenv -e tests/.env.test -- prisma migrate deploy",
+    "docker:build": "docker build -t api:latest .",
+    "export:openapi": "tsx scripts/export-openapi.ts"
   },
   "keywords": [
     "fastify",
@@ -38,6 +40,7 @@
   "license": "MIT",
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@types/archiver": "^7.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.5",
     "@types/node": "^22.9.0",
@@ -54,6 +57,7 @@
     "vitest": "4.0.15"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.966.0",
     "@fastify/cookie": "^10.0.1",
     "@fastify/cors": "^10.1.0",
     "@fastify/jwt": "^8.0.1",
@@ -66,11 +70,13 @@
     "@types/uuid": "^9.0.7",
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1",
+    "archiver": "^7.0.1",
     "axios": "^1.11.0",
     "bcryptjs": "^2.4.3",
     "bull": "^4.16.5",
     "date-fns": "^4.1.0",
     "dotenv": "^16.5.0",
+    "extract-zip": "^2.0.1",
     "fastify": "^5.6.1",
     "fastify-raw-body": "^5.0.0",
     "google-auth-library": "^10.4.0",

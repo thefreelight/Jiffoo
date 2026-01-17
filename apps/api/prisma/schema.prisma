@@ -1,193 +1,138 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
-//
-// ============================================
-// 🆕 单商户核心架构 - 完全无 tenantId
-// ============================================
-// 开源版本设计原则:
-// 1. 所有业务表完全不包含 tenantId 字段
-// 2. 多租户功能通过安装 @jiffoo/plugin-multi-tenant 插件启用
-// 3. 插件通过数据库迁移添加 tenantId 列
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["core"]
 }
-
-// ============================================
-// 核心业务表 - 无 tenantId
-// ============================================
 
 model User {
   id        String   @id @default(cuid())
-  email     String   @unique // 单商户模式下 email 全局唯一
+  email     String   @unique
   username  String
   password  String
   avatar    String?
-  role      String   @default("USER") // 'USER', 'ADMIN'
+  role      String   @default("USER")
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // 电商相关关系
+  // E-commerce relations
   orders Order[]
-  carts  Cart[] // 用户购物车关系
-
-  // OAuth 2.0 和社交登录相关关系
-  socialAccounts SocialAccount[]
-  oauth2Tokens   OAuth2AccessToken[]
-
-  // 审计日志关系
-  auditLogs AuditLog[] @relation("UserAuditLogs")
-
-  // 🆕 数字商品下载记录
-  downloadRecords DownloadRecord[]
-
-  // CMS 内容关系
-  cmsPosts CmsPost[]
+  carts  Cart[] // User cart relation
 
   @@index([email])
   @@index([role])
+  @@schema("core")
   @@map("users")
 }
 
 model Product {
   id          String   @id @default(cuid())
   name        String
+  slug        String   @unique
   description String?
-  price       Float    // 基础价格（向后兼容）
-  stock       Int      @default(0) // 基础库存（向后兼容）
-  category    String?
-  images      String?
+  // Price and stock moved to ProductVariant
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // 🆕 商品类型系统
+  // Product type system
   productType String  @default("physical") // 'physical' | 'digital' | custom types
   typeData    String? // JSON: type-specific data (dimensions, files, etc.)
 
-  // 🆕 实物商品字段
-  weight         Float?   // 重量 (克)
-  length         Float?   // 长度 (厘米)
-  width          Float?   // 宽度 (厘米)
-  height         Float?   // 高度 (厘米)
+  // Physical product fields
+  weight           Float? // Weight (grams)
+  length           Float? // Length (cm)
+  width            Float? // Width (cm)
+  height           Float? // Height (cm)
   requiresShipping Boolean @default(true)
-  shippingClass  String?  // 'standard' | 'express' | 'fragile'
+  shippingClass    String? // 'standard' | 'express' | 'fragile'
 
   // Relations
+  categoryId            String?
+  category              Category?              @relation(fields: [categoryId], references: [id])
   orderItems            OrderItem[]
-  cartItems             CartItem[] // 购物车商品关系
-  inventoryReservations InventoryReservation[] // 🆕 库存预留关系
-  translations          ProductTranslation[] // 🆕 多语言翻译关系
-  variants              ProductVariant[] // 🆕 商品变体关系
-  digitalFiles          ProductFile[] // 🆕 数字文件关系
+  cartItems             CartItem[] // Cart product relation
+  inventoryReservations InventoryReservation[] // Inventory reservation relation
+  translations          ProductTranslation[] // Multi-language translation relation
+  variants              ProductVariant[] // Product variant relation
 
-  @@index([category])
+  @@index([categoryId])
   @@index([productType])
+  @@schema("core")
   @@map("products")
 }
 
-// 🆕 商品变体表 (SKU)
-// 每个Product可以有多个变体，如不同天数的套餐
-model ProductVariant {
+model Category {
   id          String   @id @default(cuid())
-  productId   String
-  name        String   // 变体名称（如"1天套餐"、"7天套餐"）
-  attributes  String?  // JSON格式的属性（如 {"days": 1}）
-  basePrice   Float    // 变体基础价格
-  baseStock   Int      @default(0) // 变体基础库存
-  skuCode     String?  // SKU编码（可选）
-  sortOrder   Int      @default(0) // 排序
-  isActive    Boolean  @default(true) // 是否启用
+  name        String
+  slug        String   @unique
+  description String?
+  parentId    String?
+  level       Int      @default(1)
+  sortOrder   Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orderItems  OrderItem[] // 订单项关系
-  cartItems   CartItem[] // 购物车项关系
-  inventoryReservations InventoryReservation[] // 🆕 库存预留关系
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryHierarchy")
+  products Product[]
+
+  @@index([parentId])
+  @@schema("core")
+  @@map("categories")
+}
+
+model ProductVariant {
+  id         String   @id @default(cuid())
+  productId  String
+  name       String // Variant name (e.g. "1-day plan", "7-day plan")
+  attributes String? // JSON attributes (e.g. {"days": 1})
+  basePrice  Float // Variant base price
+  baseStock  Int      @default(0) // Variant base stock
+  skuCode    String? // SKU code (optional)
+  sortOrder  Int      @default(0) // Sorting order
+  isActive   Boolean  @default(true) // Whether enabled
+  isDefault  Boolean  @default(false) // Whether is default variant
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  product               Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems            OrderItem[] // Order item relation
+  cartItems             CartItem[] // Cart item relation
+  inventoryReservations InventoryReservation[] // Inventory reservation relation
 
   @@index([productId])
   @@index([skuCode])
+  @@schema("core")
   @@map("product_variants")
 }
 
-// 🆕 商品多语言翻译表
-// 存储商品的多语言字段，支持 en 和 zh-Hant
 model ProductTranslation {
   id          String   @id @default(cuid())
   productId   String
-  locale      String   // 'en' | 'zh-Hant'
-  name        String   // 翻译后的商品名称
-  description String?  // 翻译后的商品描述
+  locale      String // 'en' | 'zh-Hans'
+  name        String // Translated product name
+  description String? // Translated product description
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([productId, locale]) // 每个商品每种语言只能有一条翻译
+  @@unique([productId, locale]) // Each product can have only one translation per locale
   @@index([productId])
   @@index([locale])
+  @@schema("core")
   @@map("product_translations")
-}
-
-// 🆕 数字商品文件表
-model ProductFile {
-  id          String   @id @default(cuid())
-  productId   String
-  name        String   // 文件名
-  size        Int      // 文件大小 (bytes)
-  mimeType    String   // MIME 类型
-  storageKey  String   // 存储键（不暴露真实 URL）
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  product         Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
-  downloadRecords DownloadRecord[]
-
-  @@index([productId])
-  @@map("product_files")
-}
-
-// 🆕 下载记录表
-model DownloadRecord {
-  id           String   @id @default(cuid())
-  fileId       String
-  orderId      String
-  orderItemId  String
-  userId       String
-  ipAddress    String?
-  userAgent    String?
-  downloadedAt DateTime @default(now())
-
-  // Relations
-  file      ProductFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
-  order     Order       @relation(fields: [orderId], references: [id])
-  orderItem OrderItem   @relation(fields: [orderItemId], references: [id])
-  user      User        @relation(fields: [userId], references: [id])
-
-  @@index([fileId])
-  @@index([orderId])
-  @@index([userId])
-  @@map("download_records")
-}
-
-// 🆕 核心模块配置表
-model CoreModule {
-  id          String   @id // 'physical-products' | 'digital-products'
-  enabled     Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@map("core_modules")
 }
 
 model Order {
@@ -195,68 +140,130 @@ model Order {
   userId String
   status String @default("PENDING")
 
-  // 🆕 支付状态字段
+  // Payment status fields
   paymentStatus        String    @default("UNPAID") // UNPAID, PAID, FAILED, REFUNDED
-  expiresAt            DateTime? // 订单过期时间（创建后30分钟）
-  lastPaymentAttemptAt DateTime? // 最后一次支付尝试时间
-  paymentAttempts      Int       @default(0) // 支付尝试次数
-  lastPaymentMethod    String? // 最后一次使用的支付方式（用于判断是否需要扣API次数）
-  cancelReason         String? // 取消原因
-  cancelledAt          DateTime? // 取消时间
+  expiresAt            DateTime? // Order expiration time (30 mins after creation)
+  lastPaymentAttemptAt DateTime? // Last payment attempt time
+  paymentAttempts      Int       @default(0) // Number of payment attempts
+  lastPaymentMethod    String? // Last payment method used
+  cancelReason         String? // Cancellation reason
+  cancelledAt          DateTime? // Cancellation time
 
-  totalAmount     Float
-  customerEmail   String?
-  shippingAddress String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  totalAmount       Float
+  customerEmail     String?
+  shippingAddressId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
   user                  User                   @relation(fields: [userId], references: [id])
+  shippingAddress       OrderAddress?          @relation(fields: [shippingAddressId], references: [id])
   items                 OrderItem[]
   payments              Payment[]
-  inventoryReservations InventoryReservation[] // 🆕 关联库存预留
-  downloadRecords       DownloadRecord[] // 🆕 下载记录关系
+  shipments             Shipment[]
+  refunds               Refund[]
+  inventoryReservations InventoryReservation[] // Connected inventory reservations
 
   @@index([status])
-  @@index([paymentStatus]) // 🆕 新增索引
-  @@index([expiresAt]) // 🆕 新增索引（用于定时任务查询）
+  @@index([paymentStatus]) // New index
+  @@index([expiresAt]) // New index (for scheduled cleanup)
   @@index([userId])
+  @@schema("core")
   @@map("orders")
+}
+
+// Order Address Snapshot
+model OrderAddress {
+  id           String   @id @default(cuid())
+  firstName    String
+  lastName     String
+  phone        String
+  email        String?
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String
+  country      String
+  postalCode   String
+  createdAt    DateTime @default(now())
+
+  orders Order[]
+
+  @@schema("core")
+  @@map("order_addresses")
 }
 
 model OrderItem {
   id        String @id @default(cuid())
   orderId   String
   productId String
-  variantId String? // 🆕 商品变体ID（新增字段）
+  variantId String // Product variant ID (Mandatory)
   quantity  Int
   unitPrice Float
 
-  // 🆕 履约状态
-  fulfillmentStatus String  @default("pending") // 'pending', 'processing', 'shipped', 'delivered', 'ready_for_download', 'downloaded', 'failed'
-  fulfillmentData   String? // JSON: shipping tracking, download info, etc.
+  // Fulfillment status
+  fulfillmentStatus String  @default("pending") // 'pending', 'processing', 'shipped', 'delivered', 'failed'
+  fulfillmentData   String? // JSON: shipping tracking, etc.
 
   // Relations
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
-  variant ProductVariant? @relation(fields: [variantId], references: [id]) // 🆕 变体关系
-  downloadRecords DownloadRecord[] // 🆕 下载记录关系
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product        @relation(fields: [productId], references: [id])
+  variant       ProductVariant @relation(fields: [variantId], references: [id]) // Variant relation
+  shipmentItems ShipmentItem[] // Shipment item relation
 
   @@index([orderId])
-  @@index([variantId]) // 🆕 变体索引
-  @@index([fulfillmentStatus]) // 🆕 履约状态索引
+  @@index([variantId]) // Variant index
+  @@index([fulfillmentStatus]) // Fulfillment status index
+  @@schema("core")
   @@map("order_items")
 }
 
-// 🆕 库存预留表 - 用于临时锁定库存
-// 🆕 支持变体级库存预留
+model Shipment {
+  id             String    @id @default(cuid())
+  orderId        String
+  carrier        String? // Logistic company
+  trackingNumber String?
+  status         String    @default("PENDING") // PENDING, SHIPPED, DELIVERED, RETURNED
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  metadata       String? // JSON
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  order Order          @relation(fields: [orderId], references: [id])
+  items ShipmentItem[]
+
+  @@index([orderId])
+  @@index([trackingNumber])
+  @@schema("core")
+  @@map("shipments")
+}
+
+model ShipmentItem {
+  id          String   @id @default(cuid())
+  shipmentId  String
+  orderItemId String
+  quantity    Int
+  createdAt   DateTime @default(now())
+
+  shipment  Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+
+  @@index([shipmentId])
+  @@index([orderItemId])
+  @@schema("core")
+  @@map("shipment_items")
+}
+
+// Inventory Reservation Table - temporary lock for stock
+// Supports variant-level stock reservation
 model InventoryReservation {
   id        String   @id @default(cuid())
   orderId   String
   productId String
-  variantId String?  // 🆕 变体ID（可选，向后兼容）
+  variantId String // Variant ID (Mandatory)
   quantity  Int
-  expiresAt DateTime // 预留过期时间（与订单过期时间一致）
+  expiresAt DateTime // Expiration time (syncs with order expiration)
   status    String   @default("ACTIVE") // ACTIVE, RELEASED, CONFIRMED
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -264,29 +271,31 @@ model InventoryReservation {
   // Relations
   order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product        @relation(fields: [productId], references: [id])
-  variant ProductVariant? @relation(fields: [variantId], references: [id])
+  variant ProductVariant @relation(fields: [variantId], references: [id])
 
-  @@unique([orderId, productId, variantId]) // 🆕 每个订单的每个商品变体只能有一条预留记录
-  @@index([expiresAt, status]) // 用于定时任务查询过期预留
-  @@index([productId, status]) // 用于计算可用库存
-  @@index([variantId, status]) // 🆕 用于计算变体可用库存
+  @@unique([orderId, productId, variantId]) // Each variant in an order can have only one reservation
+  @@index([expiresAt, status]) // For scheduled cleanup of expired reservations
+  @@index([productId, status]) // For calculating available stock
+  @@index([variantId, status]) // For calculating variant available stock
+  @@schema("core")
   @@map("inventory_reservations")
 }
 
-// 购物车系统 - 仅支持登录用户
+// Cart System - Only supports logged-in users
 model Cart {
   id        String   @id @default(cuid())
-  userId    String   @unique // 单商户模式下每用户只有一个购物车
-  status    String   @default("ACTIVE") // 'ACTIVE', 'CONVERTED'
+  userId    String   @unique
+  status    String   @default("ACTIVE")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items  CartItem[]
+  user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items CartItem[]
 
   @@index([userId])
   @@index([status])
+  @@schema("core")
   @@map("carts")
 }
 
@@ -295,550 +304,200 @@ model CartItem {
   cartId    String
   productId String
   quantity  Int
-  price     Float // 加入购物车时的价格快照
-  variantId String? // 商品变体ID（可选）
+  price     Float // Price snapshot when added to cart
+  variantId String // Product variant ID (Mandatory)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   // Relations
-  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
-  variant ProductVariant? @relation(fields: [variantId], references: [id]) // 🆕 变体关系
+  cart    Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product        @relation(fields: [productId], references: [id])
+  variant ProductVariant @relation(fields: [variantId], references: [id]) // Variant relation
 
-  // 防重复约束：同一购物车中同一商品（含变体）只能有一条记录
+  // Uniqueness constraint: same product/variant in the same cart
   @@unique([cartId, productId, variantId])
   @@index([cartId])
   @@index([productId])
-  @@index([variantId]) // 🆕 变体索引
+  @@index([variantId]) // Variant index
+  @@schema("core")
   @@map("cart_items")
 }
 
-// ============================================
-// 系统管理表 - 无 tenantId
-// ============================================
-
-// 操作日志
-model AuditLog {
-  id         String   @id @default(cuid())
-  userId     String?
-  action     String // 'CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT'
-  module     String // 'users', 'products', 'orders', 'plugins'
-  resourceId String? // 被操作资源的ID
-  oldValues  String? // JSON格式的旧值
-  newValues  String? // JSON格式的新值
-  ipAddress  String?
-  userAgent  String?
-  metadata   String? // JSON格式的额外元数据
-  createdAt  DateTime @default(now())
-
-  // Relations
-  user   User?   @relation("UserAuditLogs", fields: [userId], references: [id])
-
-  @@index([userId])
-  @@index([action])
-  @@index([module])
-  @@index([createdAt])
-  @@map("audit_logs")
-}
-
-// Removed multilingual support tables
-
-// OAuth 2.0 和社交登录相关表
-
-// 社交账户表
-model SocialAccount {
-  id           String    @id @default(cuid())
-  userId       String
-  provider     String // 'wechat', 'google', 'github', 'alipay'
-  providerId   String // 第三方平台的用户ID
-  accessToken  String? // 访问令牌
-  refreshToken String? // 刷新令牌
-  expiresAt    DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerId])
-  @@index([userId])
-  @@index([provider])
-  @@map("social_accounts")
-}
-
-// OAuth 2.0 授权码表
-model OAuth2AuthorizationCode {
-  id          String   @id @default(cuid())
-  code        String   @unique
-  state       String
-  userId      String
-  clientId    String
-  redirectUri String
-  expiresAt   DateTime
-  createdAt   DateTime @default(now())
-
-  @@index([code])
-  @@index([expiresAt])
-  @@map("oauth2_authorization_codes")
-}
-
-// OAuth 2.0 访问令牌表
-model OAuth2AccessToken {
-  id               String    @id @default(cuid())
-  accessToken      String    @unique
-  refreshToken     String?   @unique
-  userId           String
-  clientId         String
-  scope            String?
-  expiresAt        DateTime
-  refreshExpiresAt DateTime?
-  revoked          Boolean   @default(false)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([accessToken])
-  @@index([refreshToken])
-  @@index([userId])
-  @@index([expiresAt])
-  @@index([revoked])
-  @@map("oauth2_access_tokens")
-}
-
-// ============================================
-// 插件系统相关表
-// ============================================
-
-// 插件表 - 系统级（单商户模式无需按租户隔离）
-model Plugin {
-  id              String  @id @default(cuid())
-  slug            String  @unique // 'stripe-payment'
-  name            String // 'Stripe支付'
-  description     String?
-  longDescription String? // 详细描述
-  category        String? // 'payment', 'marketing', 'analytics'
-  tags            String? // JSON数组格式的标签
-  iconUrl         String? // 插件图标URL
-  screenshots     String? // JSON数组格式的截图URLs
-  version         String  @default("1.0.0")
-  status          String  @default("ACTIVE") // 'ACTIVE', 'INACTIVE'
-
-  // 🆕 插件元数据
-  developer    String? @default("Jiffoo") // 开发者名称
-  rating       Float?  @default(0) // 评分 (0-5)
-  installCount Int     @default(0) // 安装次数
-
-  // 🆕 外部插件支持
-  runtimeType        String? @default("internal-fastify") // 'internal-fastify' | 'external-http'
-  externalBaseUrl    String? // 外部插件的基础URL
-  oauthConfig        String? // JSON格式的OAuth配置：{installUrl, tokenUrl, redirectUri, scopes}
-  integrationSecrets String? // JSON格式的集成密钥：{sharedSecret}
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  installations     PluginInstallation[]
-  subscriptionPlans SubscriptionPlan[] // 🆕 订阅计划关系
-  payments          Payment[] // 🆕 支付记录关系
-  licenses          PluginLicense[] // 🆕 许可证关系
-
-  @@map("plugins")
-}
-
-// 插件许可证表 - 管理商业插件的许可证
-model PluginLicense {
-  id             String    @id @default(cuid())
-  pluginId       String // 关联的插件 slug
-  status         String    @default("PENDING") // 'ACTIVE', 'EXPIRED', 'REVOKED', 'GRACE', 'PENDING'
-  purchaseDate   DateTime  @default(now()) // 购买日期
-  activatedAt    DateTime? // 激活时间
-  deactivatedAt  DateTime? // 停用时间
-  amount         Float     @default(0) // 购买金额
-  currency       String    @default("USD") // 货币
-
-  // 许可证密钥 (加密存储)
-  licenseKeyHash String? // 许可证密钥哈希
-
-  // 许可证类型和有效期
-  licenseType    String    @default("perpetual") // 'subscription', 'perpetual', 'trial'
-  expiresAt      DateTime? // 过期时间 (订阅类型)
-  gracePeriodDays Int      @default(7) // 宽限期天数
-
-  // 功能限制
-  features       String?   // JSON 数组: 允许的功能列表
-  maxTenants     Int?      // 最大租户数
-  maxUsers       Int?      // 最大用户数
-
-  // 客户信息
-  customerEmail  String?
-  customerName   String?
-
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-
-  plugin         Plugin    @relation(fields: [pluginId], references: [slug])
-
-  @@index([pluginId])
-  @@index([status])
-  @@map("plugin_licenses")
-}
-
-// 插件安装表 - 单商户模式下系统级安装
-model PluginInstallation {
-  id       String  @id @default(cuid())
-  pluginId String  @unique // 单商户模式下每个插件只安装一次
-  status   String  @default("ACTIVE") // 'ACTIVE', 'INACTIVE', 'TRIAL', 'EXPIRED'
-  enabled  Boolean @default(true) // 是否启用
-
-  // 🆕 安装和试用信息
-  installedAt    DateTime  @default(now()) // 安装时间
-  trialStartDate DateTime? // 试用开始时间
-  trialEndDate   DateTime? // 试用结束时间
-
-  // 🆕 配置数据
-  configData String? // JSON格式的插件配置数据
-
-  // 🆕 外部插件安装信息
-  externalInstallationId String? // 外部插件的安装ID（如OAuth流程中获得）
-  accessToken            String? // 外部插件的访问令牌
-  refreshToken           String? // 外部插件的刷新令牌
-  tokenExpiresAt         DateTime? // 访问令牌过期时间
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  plugin Plugin @relation(fields: [pluginId], references: [id])
-
-  @@index([externalInstallationId])
-  @@map("plugin_installations")
-}
-
-// 插件使用量表 - 单商户模式下系统级统计
-model PluginUsage {
-  id         String   @id @default(cuid())
-  pluginSlug String
-  metricName String // 'transactions', 'api_calls', etc.
-  value      Int      @default(0)
-  period     String // '2024-01' (年-月)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@unique([pluginSlug, metricName, period])
-  @@map("plugin_usage")
-}
-
-// 支付记录表
+// Payment Record Table
 model Payment {
-  id       String @id @default(cuid())
-  orderId  String
-
-  // 🆕 关联到插件 - 用于追踪哪个支付插件处理的支付
-  pluginId String?
-  plugin   Plugin? @relation(fields: [pluginId], references: [id])
-
-  // 🆕 支付重试相关字段
-  attemptNumber Int       @default(1) // 第几次支付尝试
-  expiresAt     DateTime? // 支付会话过期时间（Stripe Session 24小时）
-  failureReason String? // 失败原因
-
-  paymentMethod   String // 'stripe', 'paypal', etc. - 用于显示
+  id              String    @id @default(cuid())
+  orderId         String
+  attemptNumber   Int       @default(1) // Attempt number
+  expiresAt       DateTime? // Session expiration time
+  failureReason   String? // Reason for failure
+  paymentMethod   String // 'stripe', 'paypal', etc.
   paymentIntentId String? // Stripe Payment Intent ID
   sessionId       String? // Stripe Checkout Session ID
-  sessionUrl      String? // 🆕 Stripe Checkout Session URL - 用于Session复用
+  sessionUrl      String? // Stripe Checkout Session URL - For session reuse
   amount          Float
-  currency        String   @default("USD")
-  status          String   @default("PENDING") // 'PENDING', 'SUCCEEDED', 'FAILED'
-  metadata        String? // JSON格式的额外数据
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  currency        String    @default("USD")
+  status          String    @default("PENDING") // 'PENDING', 'SUCCEEDED', 'FAILED'
+  metadata        String? // Metadata (JSON)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  order  Order  @relation(fields: [orderId], references: [id])
+  order   Order    @relation(fields: [orderId], references: [id])
+  refunds Refund[]
 
-  @@index([pluginId])
   @@index([paymentIntentId])
   @@index([sessionId])
   @@index([orderId, attemptNumber])
+  @@schema("core")
   @@map("payments")
 }
 
-// 订阅计划模板表（插件定价）
-model SubscriptionPlan {
-  id          String  @id @default(cuid())
-  pluginId    String
-  planId      String // 'basic_monthly', 'pro_yearly', etc.
-  name        String // '基础月付计划'
-  description String?
+// Refund Record Table
+model Refund {
+  id               String   @id @default(cuid())
+  paymentId        String
+  orderId          String
+  amount           Float
+  currency         String   @default("USD")
+  status           String   @default("PENDING") // PENDING, SUCCEEDED, FAILED, CANCELLED
+  reason           String?
+  provider         String? // e.g., 'stripe'
+  providerRefundId String?  @unique // ID returned by payment provider after success
+  idempotencyKey   String   @unique // Mandatory business identity for idempotency
+  metadata         String? // JSON
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  // 定价信息
-  amount        Float
-  currency      String  @default("USD")
-  billingCycle  String // 'monthly', 'yearly', 'quarterly'
-  trialDays     Int?    @default(0)
-  stripePriceId String? // Stripe Price ID for checkout (e.g., 'price_xxx')
+  payment Payment @relation(fields: [paymentId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id])
 
-  // 功能和限制
-  features String // JSON格式的功能列表
-  limits   String // JSON格式的使用量限制
-
-  // 计划控制
-  isActive  Boolean @default(true)
-  isPublic  Boolean @default(true)
-  sortOrder Int     @default(0)
-
-  // 元数据
-  metadata  String? // JSON格式
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  plugin Plugin @relation(fields: [pluginId], references: [id])
-
-  @@unique([pluginId, planId])
-  @@index([pluginId])
-  @@index([isActive])
-  @@map("subscription_plans")
+  @@index([paymentId])
+  @@index([orderId])
+  @@schema("core")
+  @@map("refunds")
 }
 
-
-// ============================================
-// 系统设置表 - 用于安装引导和全局配置
-// ============================================
 model SystemSettings {
-  id        String   @id @default("system")
+  id String @id @default("system")
 
-  // 安装状态
-  isInstalled     Boolean  @default(false)
-  installedAt     DateTime?
-  installedBy     String?  // 安装人的用户ID
+  // Installation status
+  isInstalled Boolean   @default(false)
+  installedAt DateTime?
+  installedBy String? // Installing User ID
 
-  // 系统版本
-  version         String   @default("1.0.0")
-  lastUpdatedAt   DateTime?
+  // System version
+  version       String    @default("1.0.0")
+  lastUpdatedAt DateTime?
 
-  // 全局配置 (JSON)
-  siteName        String   @default("Jiffoo Mall")
+  // Global config (JSON)
+  siteName        String  @default("Jiffoo Mall")
   siteDescription String?
   logoUrl         String?
   faviconUrl      String?
 
-  // 功能开关
-  maintenanceMode Boolean  @default(false)
-  allowRegistration Boolean @default(true)
+  // Feature toggles
+  maintenanceMode          Boolean @default(false)
+  allowRegistration        Boolean @default(true)
   requireEmailVerification Boolean @default(true)
 
-  // 其他设置 (JSON格式存储扩展配置)
-  settings        String?  // JSON格式的扩展设置
+  // Other settings (including theme rollback state)
+  // theme.active.shop.slug / theme.previous.shop.slug
+  settings String? // External settings (JSON)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@schema("core")
   @@map("system_settings")
 }
 
-// ============================================
-// 已安装主题表 - 扩展系统
-// ============================================
+model PluginInstall {
+  id String @id @default(cuid())
+
+  // Plugin identifier
+  slug String @unique // Plugin unique identifier
+
+  // Plugin metadata
+  name        String // Plugin name
+  version     String // Plugin version
+  author      String? // Plugin author
+  description String? // Plugin description
+  category    String? // Plugin category (e.g., 'payment', 'shipping')
+
+  // Installation info
+  source      String @default("local-zip") // 'builtin' | 'local-zip' | 'official-market'
+  installPath String? // Relative path to extensions/plugins/ (null for builtin)
+
+  // Status
+  isEnabled Boolean @default(false) // Whether currently enabled
+
+  // Plugin config (JSON)
+  config String? // Config override
+
+  installedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+  @@index([isEnabled])
+  @@schema("core")
+  @@map("plugin_installs")
+}
+
 model InstalledTheme {
-  id        String   @id @default(cuid())
+  id String @id @default(cuid())
 
-  // 主题标识
-  slug      String   @unique // 主题唯一标识符（单商户模式下全局唯一）
-  target    String   // 'shop' | 'admin' - 主题目标应用
+  // Theme identifier
+  slug   String @unique // Theme unique identifier
+  target String // 'shop' | 'admin'
 
-  // 主题元数据
-  name      String   // 主题名称
-  version   String   // 主题版本
-  author    String?  // 主题作者
-  description String? // 主题描述
+  // Theme metadata
+  name        String // Theme name
+  version     String // Theme version
+  author      String? // Theme author
+  description String? // Theme description
 
-  // 安装信息
-  source    String   @default("local-zip") // 'local-zip' | 'official-market'
-  installPath String // 安装路径（相对于 extensions/themes/）
+  // Installation info
+  source      String @default("local-zip") // 'local-zip' | 'official-market'
+  installPath String // Relative path to extensions/themes/
 
-  // 状态
-  isActive  Boolean  @default(false) // 是否为当前激活的主题
+  // Status
+  isActive Boolean @default(false) // Whether currently active (Can match SystemSettings)
 
-  // 主题配置（JSON格式）
-  config    String?  // 主题配置覆盖
+  // Theme config (JSON)
+  config String? // Config override
 
   installedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([target])
   @@index([isActive])
+  @@schema("core")
   @@map("installed_themes")
 }
 
-// ============================================
-// CMS 内容管理系统
-// ============================================
-
-model CmsPost {
-  id          String    @id @default(cuid())
-  title       String
-  slug        String    @unique
-  content     String?   @db.Text
-  excerpt     String?
-  status      String    @default("DRAFT") // DRAFT, PUBLISHED, SCHEDULED, ARCHIVED
-  authorId    String
+// Outbox Event Table for Reliable Event Publishing
+model OutboxEvent {
+  id          String   @id @default(uuid())
+  type        String   // e.g. "order.created"
+  aggregateId String   // e.g. order-123
+  payload     Json     // Full event data
+  
+  // Metadata
+  version     String   @default("v1")
+  occurredAt  DateTime @default(now())
+  
+  // Publishing Status
+  published   Boolean  @default(false)
   publishedAt DateTime?
-  scheduledAt DateTime?
-  featuredImage String?
-  viewCount   Int       @default(0)
-
-  // SEO
-  metaTitle       String?
-  metaDescription String?
-  metaKeywords    String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  deletedAt DateTime?
-
-  // 关系
-  categories CmsCategory[]
-  tags       CmsTag[]
-  author     User          @relation(fields: [authorId], references: [id])
-  revisions  CmsRevision[]
-
-  @@index([slug])
-  @@index([status])
-  @@index([authorId])
-  @@index([publishedAt])
-  @@map("cms_posts")
+  retryCount  Int      @default(0)
+  lastError   String?
+  
+  // Metadata for tracing
+  traceId     String?
+  actorId     String?
+  
+  @@index([published, occurredAt]) // For polling worker
+  @@index([aggregateId])           // For debugging/ordering checks
+  @@schema("core")
+  @@map("outbox_events")
 }
 
-model CmsPage {
-  id       String  @id @default(cuid())
-  title    String
-  slug     String  @unique
-  content  String? @db.Text
-  template String  @default("default")
-  parentId String?
-  order    Int     @default(0)
-  isHome   Boolean @default(false)
-
-  // SEO
-  metaTitle       String?
-  metaDescription String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // 自引用关系
-  parent   CmsPage?  @relation("PageHierarchy", fields: [parentId], references: [id])
-  children CmsPage[] @relation("PageHierarchy")
-
-  @@index([slug])
-  @@index([parentId])
-  @@map("cms_pages")
-}
-
-model CmsCategory {
-  id          String  @id @default(cuid())
-  name        String
-  slug        String  @unique
-  description String?
-  parentId    String?
-  order       Int     @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // 关系
-  parent   CmsCategory?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children CmsCategory[] @relation("CategoryHierarchy")
-  posts    CmsPost[]
-
-  @@index([slug])
-  @@index([parentId])
-  @@map("cms_categories")
-}
-
-model CmsTag {
-  id    String @id @default(cuid())
-  name  String
-  slug  String @unique
-
-  createdAt DateTime @default(now())
-
-  // 关系
-  posts CmsPost[]
-
-  @@index([slug])
-  @@map("cms_tags")
-}
-
-model CmsRevision {
-  id        String   @id @default(cuid())
-  postId    String
-  title     String
-  content   String?  @db.Text
-  authorId  String
-  createdAt DateTime @default(now())
-
-  // 关系
-  post CmsPost @relation(fields: [postId], references: [id], onDelete: Cascade)
-
-  @@index([postId])
-  @@map("cms_revisions")
-}
-
-model CmsMedia {
-  id          String  @id @default(cuid())
-  filename    String
-  originalName String
-  mimeType    String
-  size        Int
-  url         String
-  alt         String?
-  caption     String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([mimeType])
-  @@map("cms_media")
-}
-
-// ============================================
-// i18n 国际化系统
-// ============================================
-
-model I18nLanguage {
-  id         String  @id @default(cuid())
-  locale     String  @unique // e.g., 'en', 'zh-CN', 'ja'
-  name       String  // e.g., 'English', 'Chinese', 'Japanese'
-  nativeName String  // e.g., 'English', '中文', '日本語'
-  flag       String? // emoji or icon code
-  isEnabled  Boolean @default(true)
-  isDefault  Boolean @default(false)
-  isRTL      Boolean @default(false)
-  order      Int     @default(0)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([isEnabled])
-  @@index([isDefault])
-  @@map("i18n_languages")
-}
-
-model I18nTranslation {
-  id         String  @id @default(cuid())
-  locale     String  // language code
-  entityType String  // 'product', 'category', 'cms_post', etc.
-  entityId   String  // ID of the entity
-  key        String  // field name, e.g., 'name', 'description'
-  value      String  @db.Text
-  isOutdated Boolean @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([locale, entityType, entityId, key])
-  @@index([locale])
-  @@index([entityType, entityId])
-  @@map("i18n_translations")
-}

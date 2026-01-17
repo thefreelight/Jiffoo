@@ -4,29 +4,41 @@
  * SDK for building themes for the Jiffoo Mall platform.
  *
  * Features:
- * - Theme manifest validation
+ * - Theme definition and configuration
  * - Design token validation
  * - CSS variable generation
- * - Token merging utilities
+ * - React hooks for theme data
+ * - CLI tools for development
  *
  * @example
  * ```typescript
  * import {
+ *   defineTheme,
  *   validateThemeManifest,
- *   validateThemeTokens,
  *   generateCSSVariables
  * } from '@jiffoo/theme-sdk';
  *
- * // Validate manifest
- * const result = validateThemeManifest(manifest);
- * if (!result.valid) {
- *   console.error(result.errors);
- * }
+ * // Define your theme
+ * const theme = defineTheme({
+ *   slug: 'my-theme',
+ *   name: 'My Theme',
+ *   version: '1.0.0',
+ *   category: 'general',
+ *   tokens: {
+ *     colors: {
+ *       primary: '#3b82f6',
+ *       secondary: '#64748b',
+ *     },
+ *   },
+ * });
  *
  * // Generate CSS variables
- * const css = generateCSSVariables(tokens);
+ * const css = generateCSSVariables(theme.tokens);
  * ```
  */
+
+// Theme definition
+export { defineTheme, registerComponent, registerPage } from './theme';
 
 // Validators
 export {
@@ -37,6 +49,9 @@ export {
   mergeTokens,
   VALID_CATEGORIES
 } from './validators';
+
+// Utilities
+export { createThemeLogger, formatThemeError } from './utils';
 
 // Type definitions
 export type {
@@ -51,7 +66,10 @@ export type {
   AnimationTokens,
   ThemeComponents,
   ComponentConfig,
-  ThemeConfig
+  ThemeConfig,
+  ThemeDefinition,
+  ThemePageConfig,
+  ThemeComponentConfig
 } from './types';
 
 export type {
@@ -59,4 +77,8 @@ export type {
   ValidationError,
   ValidationWarning
 } from './validators';
+
+// SDK Version
+export const SDK_VERSION = '1.0.0';
+export const PLATFORM_COMPATIBILITY = '>=0.2.0';
 

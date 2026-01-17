@@ -32,7 +32,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
-import { useT, useLocale } from 'shared/src/i18n'
+import { useT, useLocale } from 'shared/src/i18n/react'
 
 
 export default function OrdersPage() {
@@ -47,7 +47,7 @@ export default function OrdersPage() {
   // Page navigation items for Orders module
   // Status-based navigation moved from sidebar to in-page tabs
   const navItems = [
-    { label: getText('tenant.orders.allOrders', 'All Orders'), href: '/orders', exact: true },
+    { label: getText('merchant.orders.allOrders', 'All Orders'), href: '/orders', exact: true },
   ]
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('All')
@@ -234,9 +234,9 @@ export default function OrdersPage() {
           <CardContent className="p-6">
             <div className="text-center">
               <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">{getText('tenant.orders.loadFailed', 'Failed to load orders')}</h3>
-              <p className="text-gray-600 mb-4">{getText('tenant.orders.loadError', 'There was an error loading the orders data.')}</p>
-              <Button onClick={() => refetch()}>{getText('tenant.orders.tryAgain', 'Try Again')}</Button>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{getText('merchant.orders.loadFailed', 'Failed to load orders')}</h3>
+              <p className="text-gray-600 mb-4">{getText('merchant.orders.loadError', 'There was an error loading the orders data.')}</p>
+              <Button onClick={() => refetch()}>{getText('merchant.orders.tryAgain', 'Try Again')}</Button>
             </div>
           </CardContent>
         </Card>
@@ -250,8 +250,8 @@ export default function OrdersPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{getText('tenant.orders.title', 'Orders')}</h1>
-            <p className="text-gray-600 mt-1">{getText('tenant.orders.subtitle', 'Manage customer orders and fulfillment')}</p>
+            <h1 className="text-2xl font-bold text-gray-900">{getText('merchant.orders.title', 'Orders')}</h1>
+            <p className="text-gray-600 mt-1">{getText('merchant.orders.subtitle', 'Manage customer orders and fulfillment')}</p>
           </div>
           <div className="flex space-x-3">
             <Button
@@ -259,7 +259,7 @@ export default function OrdersPage() {
               onClick={handleBulkShip}
             >
               <Truck className="w-4 h-4 mr-2" />
-              {getText('tenant.orders.bulkShip', 'Bulk Ship')}
+              {getText('merchant.orders.bulkShip', 'Bulk Ship')}
             </Button>
           </div>
         </div>
@@ -273,7 +273,7 @@ export default function OrdersPage() {
           <CardContent className="p-6">
             <div className="flex items-center">
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600">{getText('tenant.orders.totalOrders', 'Total Orders')}</p>
+                <p className="text-sm font-medium text-gray-600">{getText('merchant.orders.totalOrders', 'Total Orders')}</p>
                 <p className="text-2xl font-bold text-gray-900">{orderStats.total.toLocaleString()}</p>
               </div>
               <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -286,7 +286,7 @@ export default function OrdersPage() {
           <CardContent className="p-6">
             <div className="flex items-center">
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600">{getText('tenant.orders.pending', 'Pending')}</p>
+                <p className="text-sm font-medium text-gray-600">{getText('merchant.orders.pending', 'Pending')}</p>
                 <p className="text-2xl font-bold text-orange-600">{orderStats.pending}</p>
               </div>
               <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
@@ -299,7 +299,7 @@ export default function OrdersPage() {
           <CardContent className="p-6">
             <div className="flex items-center">
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600">{getText('tenant.orders.paid', 'Paid')}</p>
+                <p className="text-sm font-medium text-gray-600">{getText('merchant.orders.paid', 'Paid')}</p>
                 <p className="text-2xl font-bold text-yellow-600">{orderStats.paid}</p>
               </div>
               <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -312,7 +312,7 @@ export default function OrdersPage() {
           <CardContent className="p-6">
             <div className="flex items-center">
               <div className="flex-1">
-                <p className="text-sm font-medium text-gray-600">{getText('tenant.orders.delivered', 'Delivered')}</p>
+                <p className="text-sm font-medium text-gray-600">{getText('merchant.orders.delivered', 'Delivered')}</p>
                 <p className="text-2xl font-bold text-green-600">{orderStats.delivered}</p>
               </div>
               <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -332,7 +332,7 @@ export default function OrdersPage() {
                 <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
-                  placeholder={getText('tenant.orders.searchPlaceholder', 'Search orders by ID, customer name, or email...')}
+                  placeholder={getText('merchant.orders.searchPlaceholder', 'Search orders by ID, customer name, or email...')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -342,20 +342,20 @@ export default function OrdersPage() {
             <div className="flex gap-3">
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
                 <SelectTrigger className="w-40">
-                  <SelectValue placeholder={getText('tenant.orders.allStatus', 'All Status')} />
+                  <SelectValue placeholder={getText('merchant.orders.allStatus', 'All Status')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="All">{getText('tenant.orders.allStatus', 'All Status')}</SelectItem>
-                  <SelectItem value="PENDING">{getText('tenant.orders.pending', 'Pending')}</SelectItem>
-                  <SelectItem value="PAID">{getText('tenant.orders.paid', 'Paid')}</SelectItem>
-                  <SelectItem value="SHIPPED">{getText('tenant.orders.shipped', 'Shipped')}</SelectItem>
-                  <SelectItem value="DELIVERED">{getText('tenant.orders.delivered', 'Delivered')}</SelectItem>
-                  <SelectItem value="CANCELLED">{getText('tenant.orders.cancelled', 'Cancelled')}</SelectItem>
+                  <SelectItem value="All">{getText('merchant.orders.allStatus', 'All Status')}</SelectItem>
+                  <SelectItem value="PENDING">{getText('merchant.orders.pending', 'Pending')}</SelectItem>
+                  <SelectItem value="PAID">{getText('merchant.orders.paid', 'Paid')}</SelectItem>
+                  <SelectItem value="SHIPPED">{getText('merchant.orders.shipped', 'Shipped')}</SelectItem>
+                  <SelectItem value="DELIVERED">{getText('merchant.orders.delivered', 'Delivered')}</SelectItem>
+                  <SelectItem value="CANCELLED">{getText('merchant.orders.cancelled', 'Cancelled')}</SelectItem>
                 </SelectContent>
               </Select>
               <Button variant="outline">
                 <Filter className="w-4 h-4 mr-2" />
-                {getText('tenant.orders.moreFilters', 'More Filters')}
+                {getText('merchant.orders.moreFilters', 'More Filters')}
               </Button>
             </div>
           </div>
@@ -367,7 +367,7 @@ export default function OrdersPage() {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-blue-900">
-              {selectedOrders.length} {getText('tenant.orders.ordersSelected', 'order(s) selected')}
+              {selectedOrders.length} {getText('merchant.orders.ordersSelected', 'order(s) selected')}
             </span>
             <div className="flex gap-2">
               <Button
@@ -378,7 +378,7 @@ export default function OrdersPage() {
                   setShowBatchDialog(true)
                 }}
               >
-                {getText('tenant.orders.updateStatus', 'Update Status')}
+                {getText('merchant.orders.updateStatus', 'Update Status')}
               </Button>
               <Button
                 variant="outline"
@@ -389,7 +389,7 @@ export default function OrdersPage() {
                 }}
                 className="text-red-600 hover:text-red-700"
               >
-                {getText('tenant.orders.deleteSelected', 'Delete Selected')}
+                {getText('merchant.orders.deleteSelected', 'Delete Selected')}
               </Button>
             </div>
           </div>
@@ -411,14 +411,14 @@ export default function OrdersPage() {
                       className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
                   </th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.orders.orderId', 'Order ID')}</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.orders.customer', 'Customer')}</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.orders.date', 'Date')}</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.orders.status', 'Status')}</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.orders.payment', 'Payment')}</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.orders.total', 'Total')}</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.orders.items', 'Items')}</th>
-                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.orders.actions', 'Actions')}</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.orders.orderId', 'Order ID')}</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.orders.customer', 'Customer')}</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.orders.date', 'Date')}</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.orders.status', 'Status')}</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.orders.payment', 'Payment')}</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.orders.total', 'Total')}</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.orders.items', 'Items')}</th>
+                  <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.orders.actions', 'Actions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
@@ -426,7 +426,7 @@ export default function OrdersPage() {
                   <tr>
                     <td colSpan={8} className="py-12 text-center">
                       <div className="text-gray-500">
-                        {searchTerm ? getText('tenant.orders.noOrdersMatching', 'No orders found matching your search.') : getText('tenant.orders.noOrdersFound', 'No orders found.')}
+                        {searchTerm ? getText('merchant.orders.noOrdersMatching', 'No orders found matching your search.') : getText('merchant.orders.noOrdersFound', 'No orders found.')}
                       </div>
                     </td>
                   </tr>
@@ -452,8 +452,8 @@ export default function OrdersPage() {
                             </span>
                           </div>
                           <div>
-                            <div className="font-medium text-gray-900">{order.user?.name || getText('tenant.orders.unknown', 'Unknown')}</div>
-                            <div className="text-sm text-gray-500">{order.user?.email || getText('tenant.orders.noEmail', 'No email')}</div>
+                            <div className="font-medium text-gray-900">{order.user?.name || getText('merchant.orders.unknown', 'Unknown')}</div>
+                            <div className="text-sm text-gray-500">{order.user?.email || getText('merchant.orders.noEmail', 'No email')}</div>
                           </div>
                         </div>
                       </td>
@@ -474,18 +474,18 @@ export default function OrdersPage() {
                               </div>
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="PENDING">{getText('tenant.orders.pending', 'Pending')}</SelectItem>
-                              <SelectItem value="PAID">{getText('tenant.orders.paid', 'Paid')}</SelectItem>
-                              <SelectItem value="SHIPPED">{getText('tenant.orders.shipped', 'Shipped')}</SelectItem>
-                              <SelectItem value="DELIVERED">{getText('tenant.orders.delivered', 'Delivered')}</SelectItem>
-                              <SelectItem value="CANCELLED">{getText('tenant.orders.cancelled', 'Cancelled')}</SelectItem>
+                              <SelectItem value="PENDING">{getText('merchant.orders.pending', 'Pending')}</SelectItem>
+                              <SelectItem value="PAID">{getText('merchant.orders.paid', 'Paid')}</SelectItem>
+                              <SelectItem value="SHIPPED">{getText('merchant.orders.shipped', 'Shipped')}</SelectItem>
+                              <SelectItem value="DELIVERED">{getText('merchant.orders.delivered', 'Delivered')}</SelectItem>
+                              <SelectItem value="CANCELLED">{getText('merchant.orders.cancelled', 'Cancelled')}</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
                       </td>
                       <td className="py-4 px-6">
                         <Badge className={getPaymentColor('paid')}>
-                          {getText('tenant.orders.paid', 'Paid')}
+                          {getText('merchant.orders.paid', 'Paid')}
                         </Badge>
                       </td>
                       <td className="py-4 px-6 font-medium text-gray-900">
@@ -520,7 +520,7 @@ export default function OrdersPage() {
       {pagination && (
         <div className="mt-6 flex items-center justify-between">
           <div className="text-sm text-gray-700">
-            {getText('tenant.orders.showingResults', 'Showing {from} to {to} of {total} results')
+            {getText('merchant.orders.showingResults', 'Showing {from} to {to} of {total} results')
               .replace('{from}', String((currentPage - 1) * pageSize + 1))
               .replace('{to}', String(Math.min(currentPage * pageSize, pagination.total)))
               .replace('{total}', String(pagination.total))}
@@ -532,7 +532,7 @@ export default function OrdersPage() {
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
             >
-              {getText('tenant.orders.previous', 'Previous')}
+              {getText('merchant.orders.previous', 'Previous')}
             </Button>
             {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
               const page = i + 1
@@ -553,7 +553,7 @@ export default function OrdersPage() {
               onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
               disabled={currentPage === pagination.totalPages}
             >
-              {getText('tenant.orders.next', 'Next')}
+              {getText('merchant.orders.next', 'Next')}
             </Button>
           </div>
         </div>
@@ -563,48 +563,48 @@ export default function OrdersPage() {
       <Dialog open={showBatchDialog} onOpenChange={setShowBatchDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{getText('tenant.orders.batchOperation', 'Batch Operation')}</DialogTitle>
+            <DialogTitle>{getText('merchant.orders.batchOperation', 'Batch Operation')}</DialogTitle>
             <DialogDescription>
-              {batchAction === 'delete' && getText('tenant.orders.deleteConfirm', 'Delete {count} selected order(s)?').replace('{count}', String(selectedOrders.length))}
-              {batchAction === 'updateStatus' && getText('tenant.orders.updateStatusConfirm', 'Update status for {count} selected order(s)').replace('{count}', String(selectedOrders.length))}
+              {batchAction === 'delete' && getText('merchant.orders.deleteConfirm', 'Delete {count} selected order(s)?').replace('{count}', String(selectedOrders.length))}
+              {batchAction === 'updateStatus' && getText('merchant.orders.updateStatusConfirm', 'Update status for {count} selected order(s)').replace('{count}', String(selectedOrders.length))}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             {batchAction === 'updateStatus' && (
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="batchStatus" className="text-right">
-                  {getText('tenant.orders.status', 'Status')}
+                  {getText('merchant.orders.status', 'Status')}
                 </Label>
                 <Select value={batchStatus} onValueChange={setBatchStatus}>
                   <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder={getText('tenant.orders.selectStatus', 'Select status')} />
+                    <SelectValue placeholder={getText('merchant.orders.selectStatus', 'Select status')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="PENDING">{getText('tenant.orders.pending', 'Pending')}</SelectItem>
-                    <SelectItem value="PAID">{getText('tenant.orders.paid', 'Paid')}</SelectItem>
-                    <SelectItem value="SHIPPED">{getText('tenant.orders.shipped', 'Shipped')}</SelectItem>
-                    <SelectItem value="DELIVERED">{getText('tenant.orders.delivered', 'Delivered')}</SelectItem>
-                    <SelectItem value="CANCELLED">{getText('tenant.orders.cancelled', 'Cancelled')}</SelectItem>
+                    <SelectItem value="PENDING">{getText('merchant.orders.pending', 'Pending')}</SelectItem>
+                    <SelectItem value="PAID">{getText('merchant.orders.paid', 'Paid')}</SelectItem>
+                    <SelectItem value="SHIPPED">{getText('merchant.orders.shipped', 'Shipped')}</SelectItem>
+                    <SelectItem value="DELIVERED">{getText('merchant.orders.delivered', 'Delivered')}</SelectItem>
+                    <SelectItem value="CANCELLED">{getText('merchant.orders.cancelled', 'Cancelled')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             )}
             {batchAction === 'delete' && (
               <div className="text-sm text-red-600">
-                {getText('tenant.orders.deleteWarning', 'Warning: This action cannot be undone. All selected orders will be permanently deleted.')}
+                {getText('merchant.orders.deleteWarning', 'Warning: This action cannot be undone. All selected orders will be permanently deleted.')}
               </div>
             )}
           </div>
           <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={() => setShowBatchDialog(false)}>
-              {getText('tenant.orders.cancel', 'Cancel')}
+              {getText('merchant.orders.cancel', 'Cancel')}
             </Button>
             <Button
               onClick={handleBatchOperation}
               disabled={batchOperationsMutation.isPending}
               className={batchAction === 'delete' ? 'bg-red-600 hover:bg-red-700' : ''}
             >
-              {batchOperationsMutation.isPending ? getText('tenant.orders.processing', 'Processing...') : getText('tenant.orders.confirm', 'Confirm')}
+              {batchOperationsMutation.isPending ? getText('merchant.orders.processing', 'Processing...') : getText('merchant.orders.confirm', 'Confirm')}
             </Button>
           </div>
         </DialogContent>

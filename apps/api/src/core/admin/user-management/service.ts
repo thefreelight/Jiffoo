@@ -1,5 +1,5 @@
 /**
- * Admin User Service (单商户版本)
+ * Admin User Service
  */
 
 import { prisma } from '@/config/database';

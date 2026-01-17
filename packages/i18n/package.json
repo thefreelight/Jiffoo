@@ -1,0 +1,25 @@
+{
+    "name": "i18n",
+    "version": "0.1.0",
+    "private": true,
+    "description": "i18n - 国际化能力",
+    "main": "index.ts",
+    "types": "index.ts",
+    "scripts": {
+        "build": "tsc",
+        "lint": "eslint ."
+    },
+    "dependencies": {
+        "i18next": "^23.0.0",
+        "react-i18next": "^14.0.0"
+    },
+    "peerDependencies": {
+        "react": ">=18.0.0"
+    },
+    "files": [
+        "locales",
+        "index.ts",
+        "provider.tsx",
+        "hooks.ts"
+    ]
+}

@@ -1,19 +1,19 @@
 /**
- * API Service 日志配置
+ * API Service Logger Configuration
  */
 
 import { env } from './env';
 
 export const loggerConfig = {
-  // 基础配置
+  // Basic configuration
   appName: 'api',
   environment: env.NODE_ENV || 'development',
   version: process.env.APP_VERSION || '1.0.0',
-  
-  // 日志级别配置
+
+  // Log level configuration
   level: env.NODE_ENV === 'production' ? 'info' : 'debug',
-  
-  // 文件日志配置
+
+  // File logging configuration
   file: {
     enabled: true,
     baseDir: './logs',
@@ -22,30 +22,30 @@ export const loggerConfig = {
     datePattern: 'YYYY-MM-DD',
     zippedArchive: true
   },
-  
-  // 控制台日志配置
+
+  // Console logging configuration
   console: {
     enabled: env.NODE_ENV === 'development',
     colorize: true,
     timestamp: true
   },
-  
-  // 远程日志配置（用于日志聚合）
+
+  // Remote logging configuration (for log aggregation)
   remote: {
-    enabled: false, // Backend 不需要远程传输
+    enabled: false, // Backend doesn't need remote transmission
     endpoint: null
   },
-  
-  // 监控配置
+
+  // Monitoring configuration
   monitoring: {
     enabled: true,
-    checkInterval: 60000, // 1分钟
+    checkInterval: 60000, // 1 minute
     alertRules: {
       errorRate: {
         enabled: true,
         threshold: 5, // 5%
         timeWindow: '15m',
-        cooldown: 15 // 15分钟
+        cooldown: 15 // 15 minutes
       },
       errorCount: {
         enabled: true,
@@ -61,14 +61,14 @@ export const loggerConfig = {
       }
     }
   },
-  
-  // 日志保留策略
+
+  // Log retention policy
   retention: {
     days: env.NODE_ENV === 'production' ? 30 : 7,
     cleanupInterval: '24h'
   },
-  
-  // 性能配置
+
+  // Performance configuration
   performance: {
     enableBuffering: true,
     bufferSize: 1000,

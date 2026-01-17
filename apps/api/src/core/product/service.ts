@@ -1,7 +1,7 @@
 /**
- * Product Service (单商户版本)
+ * Product Service (Single Merchant Version)
  *
- * 简化版本，移除了多租户和代理商相关逻辑。
+ * Simplified version, removed multi-tenant related logic.
  */
 
 import { prisma } from '@/config/database';
@@ -21,7 +21,7 @@ interface ProductSearchFilters {
  * Apply translation to a product
  */
 function applyTranslation(
-  product: { id: string; name: string; description: string | null; [key: string]: any },
+  product: { id: string; name: string; description: string | null;[key: string]: any },
   translations: Array<{ productId: string; locale: string; name: string; description: string | null }>,
   locale: Locale
 ): typeof product {
@@ -46,7 +46,7 @@ function applyTranslation(
 
 export class ProductService {
   /**
-   * 获取公开商品列表
+   * Get public product list
    */
   static async getPublicProducts(
     page = 1,
@@ -67,24 +67,38 @@ export class ProductService {
     }
 
     if (filters.category) {
-      where.category = filters.category;
+      where.categoryId = filters.category;
     }
 
-    if (filters.minPrice !== undefined) {
-      where.price = { ...where.price, gte: filters.minPrice };
-    }
-
-    if (filters.maxPrice !== undefined) {
-      where.price = { ...where.price, lte: filters.maxPrice };
+    // Price filters need to check variants in the new schema
+    if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
+      where.variants = {
+        some: {
+          basePrice: {
+            ...(filters.minPrice !== undefined ? { gte: filters.minPrice } : {}),
+            ...(filters.maxPrice !== undefined ? { lte: filters.maxPrice } : {})
+          },
+          isActive: true
+        }
+      };
     }
 
     if (filters.inStock) {
-      where.stock = { gt: 0 };
+      where.variants = {
+        ...where.variants,
+        some: {
+          ...(where.variants?.some || {}),
+          baseStock: { gt: 0 },
+          isActive: true
+        }
+      };
     }
 
     // Build orderBy
+    // Note: sorting by price or stock is more complex now as they are in variants
+    // For now, we keep sorting by basic product fields
     const orderBy: any = {};
-    if (filters.sortBy) {
+    if (filters.sortBy && ['name', 'createdAt', 'updatedAt'].includes(filters.sortBy)) {
       orderBy[filters.sortBy] = filters.sortOrder || 'asc';
     } else {
       orderBy.createdAt = 'desc';
@@ -101,13 +115,11 @@ export class ProductService {
           id: true,
           name: true,
           description: true,
-          price: true,
-          stock: true,
-          images: true,
-          category: true,
+          typeData: true,
           createdAt: true,
           updatedAt: true,
           variants: {
+            where: { isActive: true },
             select: {
               id: true,
               name: true,
@@ -115,7 +127,8 @@ export class ProductService {
               basePrice: true,
               baseStock: true,
               isActive: true,
-              attributes: true
+              attributes: true,
+              isDefault: true
             }
           }
         }
@@ -136,11 +149,21 @@ export class ProductService {
 
     // Apply translations and format response
     const formattedProducts = products.map(product => {
-      const translated = applyTranslation(product, translations, locale);
+      const translated = applyTranslation(product as any, translations, locale);
+
+      // Get price from default variant or first variant
+      const mainVariant = product.variants.find(v => v.isDefault) || product.variants[0];
+      const displayPrice = mainVariant ? Number(mainVariant.basePrice) : 0;
+      const totalStock = product.variants.reduce((sum, v) => sum + (v.baseStock || 0), 0);
+
       return {
         ...translated,
-        images: product.images ? JSON.parse(product.images as string) : [],
-        price: Number(product.price)
+        // In the new schema images are likely in metadata or typeData, 
+        // using typeData as fallback if we had images before
+        images: product.typeData ? JSON.parse(product.typeData).images || [] : [],
+        price: displayPrice,
+        stock: totalStock,
+        variants: product.variants
       };
     });
 
@@ -156,7 +179,7 @@ export class ProductService {
   }
 
   /**
-   * 获取单个商品详情
+   * Get single product details
    */
   static async getProductById(
     productId: string,
@@ -185,32 +208,39 @@ export class ProductService {
       });
     }
 
+    const mainVariant = product.variants.find(v => v.isDefault) || product.variants[0];
+    const displayPrice = mainVariant ? Number(mainVariant.basePrice) : 0;
+    const totalStock = product.variants.reduce((sum, v) => sum + (v.baseStock || 0), 0);
+
     return {
       ...product,
       name: translation?.name || product.name,
       description: translation?.description || product.description,
-      images: product.images ? JSON.parse(product.images as string) : [],
-      price: Number(product.price)
+      images: product.typeData ? JSON.parse(product.typeData).images || [] : [],
+      price: displayPrice,
+      stock: totalStock
     };
   }
 
   /**
-   * 获取商品分类列表
+   * Get product category list
    */
   static async getCategories() {
-    const categories = await prisma.product.groupBy({
-      by: ['category'],
-      _count: { category: true }
+    return prisma.category.findMany({
+      orderBy: { sortOrder: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        _count: {
+          select: { products: true }
+        }
+      }
     });
-
-    return categories.map(c => ({
-      name: c.category,
-      count: c._count.category
-    }));
   }
 
   /**
-   * 搜索商品
+   * Search products
    */
   static async searchProducts(
     query: string,
@@ -225,13 +255,10 @@ export class ProductService {
         ]
       },
       take: limit,
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        price: true,
-        images: true,
-        category: true
+      include: {
+        variants: {
+          where: { isActive: true }
+        }
       }
     });
 
@@ -247,11 +274,15 @@ export class ProductService {
     }
 
     return products.map(product => {
-      const translated = applyTranslation(product, translations, locale);
+      const translated = applyTranslation(product as any, translations, locale);
+
+      const mainVariant = product.variants.find(v => v.isDefault) || product.variants[0];
+      const displayPrice = mainVariant ? Number(mainVariant.basePrice) : 0;
+
       return {
         ...translated,
-        images: product.images ? JSON.parse(product.images as string) : [],
-        price: Number(product.price)
+        images: product.typeData ? JSON.parse(product.typeData).images || [] : [],
+        price: displayPrice
       };
     });
   }

@@ -15,5 +15,28 @@
     "source": "builtin",
     "installedAt": "2025-12-09T03:11:38.116Z",
     "enabledAt": "2025-12-09T03:11:38.116Z"
+  },
+  "paypal-payment": {
+    "slug": "paypal-payment",
+    "enabled": true,
+    "installed": true,
+    "config": {},
+    "name": "PayPal Payment",
+    "version": "1.0.0",
+    "description": "Accept PayPal payments including PayPal Credit and Pay Later options.",
+    "author": "Jiffoo Team",
+    "category": "payment",
+    "icon": "https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/paypal.svg",
+    "source": "builtin",
+    "installedAt": "2025-12-11T00:45:53.981Z",
+    "enabledAt": "2025-12-11T00:45:53.981Z"
+  },
+  "test-plugin": {
+    "slug": "test-plugin",
+    "enabled": false,
+    "config": {
+      "apiKey": "test-key"
+    },
+    "disabledAt": "2026-01-14T06:46:53.703Z"
   }
 }

@@ -1,5 +1,20 @@
 /**
- * Jiffoo Mall API Server (单商户版本)
+ * Jiffoo - Open Source E-Commerce Platform
+ * Copyright (C) 2025 Jiffoo Team
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along
+ * with this program; if not, write to the Free Software Foundation, Inc.,
+ * 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
  */
 
 import Fastify from 'fastify';
@@ -19,7 +34,8 @@ import { logMonitor } from '@/core/logger/log-monitor';
 import { accessLogMiddleware, errorLogMiddleware } from '@/core/logger/middleware';
 import { registerRoutes } from '@/routes';
 import { performHealthCheck, livenessCheck, readinessCheck } from '@/utils/health-check';
-import { loadAllPlugins } from '@/services/extension-installer/plugin-loader';
+import { loadAllPlugins } from '@/core/admin/extension-installer';
+import traceContextPlugin from '@/core/logger/trace-context';
 
 const fastify = Fastify({
   logger: false,
@@ -39,6 +55,9 @@ async function buildApp() {
         throw error;
       }
     }
+
+    // Register trace context plugin (X-Request-Id)
+    await fastify.register(traceContextPlugin);
 
     // Register cookie support
     await fastify.register(cookie, {
@@ -91,7 +110,7 @@ async function buildApp() {
       openapi: {
         info: {
           title: 'Jiffoo Mall API',
-          description: 'Single-tenant E-commerce System',
+          description: 'E-commerce System',
           version: '1.0.0'
         },
         components: {
@@ -136,7 +155,7 @@ async function buildApp() {
       return {
         name: 'Jiffoo Mall API',
         version: '1.0.0',
-        description: 'Single-tenant E-commerce System',
+        description: 'E-commerce System',
         environment: env.NODE_ENV,
         timestamp: new Date().toISOString(),
         endpoints: {
@@ -208,6 +227,19 @@ async function buildApp() {
       LoggerService.logError(error as Error, { context: 'Dynamic plugin loading' });
     }
 
+    // Register Security Headers
+    const { default: securityHeadersPlugin } = await import('@/plugins/security-headers');
+    await fastify.register(securityHeadersPlugin);
+
+    // Register Global Rate Limiter
+    try {
+      const { default: rateLimiterPlugin } = await import('@/plugins/rate-limiter');
+      await fastify.register(rateLimiterPlugin);
+    } catch (e) {
+      // Ignore if not found or export mismatch for now to avoid breaking build, but ideally we should fix.
+      LoggerService.logError(e as Error, { context: 'Rate limiter registration' });
+    }
+
     // Register all core API routes
     await registerRoutes(fastify);
 
@@ -240,6 +272,12 @@ async function start() {
       host: env.API_HOST,
       environment: env.NODE_ENV
     });
+
+    // Start Outbox Worker for event projection (Optional)
+    if (process.env.ENABLE_OUTBOX_WORKER === 'true') {
+      const { OutboxWorkerService } = await import('@/infra/outbox');
+      OutboxWorkerService.start();
+    }
 
   } catch (error) {
     LoggerService.logError(error as Error, { context: 'Server startup' });

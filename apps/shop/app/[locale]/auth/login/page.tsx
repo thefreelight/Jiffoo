@@ -13,7 +13,7 @@ import { useAuthStore } from '@/store/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useShopTheme } from '@/lib/themes/provider';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 export default function LoginPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
@@ -60,8 +60,8 @@ export default function LoginPage() {
       });
       const redirectPath = sessionStorage.getItem('redirectAfterLogin');
       if (redirectPath) {
-        // redirectPath already contains /{locale} and ?tenant=... from nav.getHref()
-        // Do not append tenant again to avoid duplicate parameters
+        // redirectPath already contains /{locale} from nav.getHref()
+        // Use for redirect after login
         sessionStorage.removeItem('redirectAfterLogin');
         router.push(redirectPath);
       } else {

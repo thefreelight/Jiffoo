@@ -13,7 +13,7 @@ import { useShopTheme } from '@/lib/themes/provider';
 import { useSearchParams } from 'next/navigation';
 import { useCartStore } from '@/store/cart';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 function OrderSuccessContent() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();

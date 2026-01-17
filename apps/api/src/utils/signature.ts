@@ -21,7 +21,6 @@
  * - X-Platform-Timestamp: ISO timestamp
  * - X-Platform-Signature: HMAC signature
  * - X-Plugin-Slug: Plugin slug
- * - X-Tenant-ID: Tenant ID
  * - X-Installation-ID: Installation ID
  * - X-User-ID: User ID (optional, if authenticated)
  */

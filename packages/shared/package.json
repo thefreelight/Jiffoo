@@ -33,6 +33,10 @@
       "types": "./dist/src/i18n/index.d.ts",
       "default": "./dist/src/i18n/index.js"
     },
+    "./src/i18n/react": {
+      "types": "./dist/src/i18n/react/index.d.ts",
+      "default": "./dist/src/i18n/react/index.js"
+    },
     "./src/i18n/*": {
       "types": "./dist/src/i18n/*.d.ts",
       "default": "./dist/src/i18n/*.js"
@@ -60,6 +64,9 @@
     "@typescript-eslint/parser": "^8.15.0",
     "eslint": "^9.36.0",
     "typescript": "^5.8.3"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0 || ^19.0.0"
   },
   "dependencies": {
     "axios": "^1.11.0",

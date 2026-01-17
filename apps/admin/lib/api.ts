@@ -1,6 +1,6 @@
 /**
- * Admin API客户端
- * 使用统一的AuthClient，移除独立的js-cookie token管理逻辑
+ * Admin API Client
+ * Uses unified AuthClient. Independent cookie token management logic removed.
  */
 
 import {
@@ -18,7 +18,7 @@ import type {
   Order
 } from './types';
 
-// 类型定义（保留Admin特有的类型）
+// Type definitions (Admin specific)
 export interface PaginationParams {
   page?: number;
   limit?: number;
@@ -27,15 +27,15 @@ export interface PaginationParams {
   role?: string;
 }
 
-// 延迟初始化 API 客户端，避免模块加载时的环境变量问题
+// Lazy initialize API client to avoid environment variable issues during module loading
 let _apiClient: ReturnType<typeof createAdminClient> | null = null;
 
 const getApiClient = () => {
   if (!_apiClient) {
     _apiClient = createAdminClient({
-      // 🔧 修复API路径重复：不传递basePath，使用默认的后端URL配置
-      // Next.js代理会自动将/api/*转发到后端，无需重复/api前缀
-      storageType: 'hybrid', // 使用混合存储策略
+      // 🔧 Fix API path duplication: do not pass basePath, use default backend URL config
+      // Next.js proxy will automatically forward /api/* to the backend
+      storageType: 'hybrid', // Use hybrid storage strategy
       customConfig: {
         timeout: 10000,
       }
@@ -44,17 +44,17 @@ const getApiClient = () => {
   return _apiClient;
 };
 
-// 导出 Proxy 以保持向后兼容
+// Export Proxy for backward compatibility
 export const apiClient = new Proxy({} as ReturnType<typeof createAdminClient>, {
   get: (target, prop) => {
     return getApiClient()[prop as keyof ReturnType<typeof createAdminClient>];
   }
 });
 
-// 导出工厂函数供其他模块使用
+// Export factory for other modules
 export { getAdminClient };
 
-// Auth API - 使用统一的AuthClient方法
+// Auth API - Using unified AuthClient methods
 export const authApi = {
   login: (email: string, password: string) =>
     apiClient.login({ email, password }),
@@ -70,28 +70,28 @@ export const authApi = {
 
 
 
-// Products API - 使用统一的apiClient，调用admin专用端点
+// Products API - Using unified apiClient targeting admin endpoints
 export const productsApi = {
   getAll: (page = 1, limit = 10, search?: string): Promise<ApiResponse<PaginatedResponse<Product>>> =>
     apiClient.get('/admin/products', { params: { page, limit, search } }),
 
-  // 兼容现有代码的别名方法
+  // Alias methods for backward compatibility
   getProducts: (params: PaginationParams = {}): Promise<ApiResponse<PaginatedResponse<Product>>> => {
     const { page = 1, limit = 10, search } = params;
     return apiClient.get('/admin/products', { params: { page, limit, search } });
   },
 
   getById: (id: string): Promise<ApiResponse<Product>> => apiClient.get(`/admin/products/${id}`),
-  getProduct: (id: string): Promise<ApiResponse<Product>> => apiClient.get(`/admin/products/${id}`), // 别名
+  getProduct: (id: string): Promise<ApiResponse<Product>> => apiClient.get(`/admin/products/${id}`), // Alias
 
   create: (data: ProductForm): Promise<ApiResponse<Product>> => apiClient.post('/admin/products', data),
-  createProduct: (data: ProductForm): Promise<ApiResponse<Product>> => apiClient.post('/admin/products', data), // 别名
+  createProduct: (data: ProductForm): Promise<ApiResponse<Product>> => apiClient.post('/admin/products', data), // Alias
 
   update: (id: string, data: Partial<ProductForm>): Promise<ApiResponse<Product>> => apiClient.put(`/admin/products/${id}`, data),
-  updateProduct: (id: string, data: Partial<ProductForm>): Promise<ApiResponse<Product>> => apiClient.put(`/admin/products/${id}`, data), // 别名
+  updateProduct: (id: string, data: Partial<ProductForm>): Promise<ApiResponse<Product>> => apiClient.put(`/admin/products/${id}`, data), // Alias
 
   delete: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/admin/products/${id}`),
-  deleteProduct: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/admin/products/${id}`), // 别名
+  deleteProduct: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/admin/products/${id}`), // Alias
 
   // 库存管理API
   adjustStock: (id: string, data: { operation: 'increase' | 'decrease', quantity: number, reason: string }): Promise<ApiResponse<{ newStock: number }>> =>
@@ -108,25 +108,25 @@ export const productsApi = {
     apiClient.post('/admin/products/batch', data),
 };
 
-// Orders API - 使用统一的apiClient，调用admin专用端点
+// Orders API - Using unified apiClient targeting admin endpoints
 export const ordersApi = {
   getAll: (page = 1, limit = 10): Promise<ApiResponse<PaginatedResponse<Order>>> =>
     apiClient.get('/admin/orders', { params: { page, limit } }),
 
-  // 兼容现有代码的别名方法
+  // Alias methods for backward compatibility
   getOrders: (params: PaginationParams = {}): Promise<ApiResponse<PaginatedResponse<Order>>> => {
     const { page = 1, limit = 10 } = params;
     return apiClient.get('/admin/orders', { params: { page, limit } });
   },
 
   getById: (id: string): Promise<ApiResponse<Order>> => apiClient.get(`/admin/orders/${id}`),
-  getOrder: (id: string): Promise<ApiResponse<Order>> => apiClient.get(`/admin/orders/${id}`), // 别名
+  getOrder: (id: string): Promise<ApiResponse<Order>> => apiClient.get(`/admin/orders/${id}`), // Alias
 
   updateStatus: (id: string, status: string): Promise<ApiResponse<Order>> =>
     apiClient.patch(`/admin/orders/${id}/status`, { status }),
 
   updateOrderStatus: (id: string, status: string): Promise<ApiResponse<Order>> =>
-    apiClient.patch(`/admin/orders/${id}/status`, { status }), // 别名
+    apiClient.patch(`/admin/orders/${id}/status`, { status }), // Alias
 
   // 添加admin专用的统计API
   getStats: (): Promise<ApiResponse<DashboardStats>> => apiClient.get('/admin/orders/stats'),
@@ -134,6 +134,10 @@ export const ordersApi = {
   // 批量操作API
   batchOperations: (data: { operation: string, orderIds: string[], [key: string]: unknown }): Promise<ApiResponse<{ processed: number; failed: number }>> =>
     apiClient.post('/admin/orders/batch', data),
+
+  // Refund order
+  refundOrder: (id: string, data: { reason?: string; idempotencyKey: string }): Promise<ApiResponse<any>> =>
+    apiClient.post(`/admin/orders/${id}/refund`, data),
 };
 
 // Users API - 使用统一的apiClient，调用admin专用端点
@@ -157,10 +161,10 @@ export const usersApi = {
   updateUser: (id: string, data: Partial<UserProfile>): Promise<ApiResponse<UserProfile>> => apiClient.put(`/admin/users/${id}`, data), // 别名
 
   delete: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/admin/users/${id}`),
-  deleteUser: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/admin/users/${id}`), // 别名
+  deleteUser: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/admin/users/${id}`), // Alias
 
-  // 角色管理API
-  updateRole: (id: string, role: 'USER' | 'TENANT_ADMIN'): Promise<ApiResponse<UserProfile>> =>
+  // Role management API
+  updateRole: (id: string, role: 'USER' | 'ADMIN'): Promise<ApiResponse<UserProfile>> =>
     apiClient.patch(`/admin/users/${id}/role`, { role }),
 
   // 批量操作API

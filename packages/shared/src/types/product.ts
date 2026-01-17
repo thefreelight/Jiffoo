@@ -83,13 +83,16 @@ export interface ProductReview {
 }
 
 export interface ProductSearchFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
   category?: string;
   minPrice?: number;
   maxPrice?: number;
   rating?: number;
   inStock?: boolean;
   tags?: string[];
-  sortBy?: 'price' | 'rating' | 'name' | 'createdAt';
+  sortBy?: 'price' | 'rating' | 'name' | 'createdAt' | 'stock';
   sortOrder?: 'asc' | 'desc';
 }
 

@@ -8,7 +8,7 @@ export interface ThemeErrorContext {
   component?: string;
   action?: string;
   userId?: string;
-  tenantId?: string;
+
   [key: string]: unknown;
 }
 
@@ -39,19 +39,19 @@ export function logThemeError(
     timestamp: Date.now(),
     severity
   };
-  
+
   // 添加到本地存储
   errorStore.push(themeError);
   if (errorStore.length > MAX_ERRORS) {
     errorStore.shift();
   }
-  
+
   // 控制台输出
   console.error('[Theme Error]', error.message, context);
-  
+
   // 发送到 Sentry（如果可用）
   sendToSentry(error, context);
-  
+
   // 发送到后端日志服务
   sendToBackend(themeError);
 }
@@ -76,12 +76,12 @@ function sendToSentry(error: Error, context: ThemeErrorContext): void {
  * 发送到后端日志服务
  */
 async function sendToBackend(themeError: ThemeError): Promise<void> {
-  const logEndpoint = process.env.NEXT_PUBLIC_API_URL 
-    ? `${process.env.NEXT_PUBLIC_API_URL}/logs/batch` 
+  const logEndpoint = process.env.NEXT_PUBLIC_API_URL
+    ? `${process.env.NEXT_PUBLIC_API_URL}/logs/batch`
     : null;
-  
+
   if (!logEndpoint) return;
-  
+
   try {
     await fetch(logEndpoint, {
       method: 'POST',
@@ -116,11 +116,11 @@ export function getThemeErrorStats(): {
     high: 0,
     critical: 0
   };
-  
+
   errorStore.forEach(e => {
     bySeverity[e.severity]++;
   });
-  
+
   return {
     totalErrors: errorStore.length,
     bySeverity,

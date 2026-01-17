@@ -29,7 +29,7 @@ export interface CorsResult {
 }
 
 const DEFAULT_METHODS = ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE'];
-const DEFAULT_HEADERS = ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Tenant-ID'];
+const DEFAULT_HEADERS = ['Content-Type', 'Authorization', 'X-Requested-With'];
 
 /**
  * CORS Manager 类

@@ -1,7 +1,7 @@
 /**
  * Domain Settings Page
- * 域名配置页面 - 支持自定义域名和子域名配置
- * 🆕 增强版：展示 Frontend/Admin/API 三种域名的访问 URL 和 DNS 配置
+ * Domain Settings Page - Supports custom domain and subdomain configuration
+ * 🆕 Enhanced: Displays access URLs and DNS configuration for Frontend/Admin/API
  */
 'use client';
 
@@ -15,17 +15,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { apiClient } from '@/lib/api';
 import { toast } from 'sonner';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
-// 🆕 增强的域名配置接口 - 支持 Frontend/Admin/API 三种域名
+// 🆕 Enhanced domain configuration interface - Supports Frontend/Admin/API domains
 interface DomainSettings {
-  tenantId: string;
   companyName: string;
   domain: string | null;
   subdomain: string | null;
   domainStatus: 'not_configured' | 'pending_dns' | 'active';
   accessUrls: {
-    // 🆕 新结构：按应用类型分组
+    // 🆕 New structure: grouped by application type
     frontend?: {
       custom?: string;
       subdomain?: string;
@@ -40,17 +39,17 @@ interface DomainSettings {
       custom?: string;
       platform?: string;
     };
-    // 兼容旧结构
+    // Legacy compatibility
     customDomain?: string;
     subdomain?: string;
     fallback?: string;
   };
   dnsInstructions?: {
-    // 🆕 新结构：按应用类型分组
+    // 🆕 New structure: grouped by application type
     frontend?: DnsRecord;
     admin?: DnsRecord;
     api?: DnsRecord;
-    // 兼容旧结构
+    // Legacy compatibility
     type?: 'A' | 'CNAME';
     host?: string;
     value?: string;
@@ -89,7 +88,7 @@ export default function DomainSettingsPage() {
     subdomain: { available: true, message: '' },
   });
 
-  // 加载当前配置
+  // Load current configuration
   useEffect(() => {
     loadSettings();
   }, []);
@@ -98,7 +97,7 @@ export default function DomainSettingsPage() {
     try {
       setLoading(true);
       const response = await apiClient.get('/admin/domain-settings');
-      
+
       if (response.success && response.data) {
         setSettings(response.data);
         setFormData({
@@ -114,7 +113,7 @@ export default function DomainSettingsPage() {
     }
   };
 
-  // 验证域名
+  // Validate domain
   const validateDomain = async (domain: string) => {
     if (!domain) {
       setValidation(prev => ({ ...prev, domain: { available: true, message: '' } }));
@@ -141,7 +140,7 @@ export default function DomainSettingsPage() {
     }
   };
 
-  // 验证子域名
+  // Validate subdomain
   const validateSubdomain = async (subdomain: string) => {
     if (!subdomain) {
       setValidation(prev => ({ ...prev, subdomain: { available: true, message: '' } }));
@@ -168,7 +167,7 @@ export default function DomainSettingsPage() {
     }
   };
 
-  // 保存配置
+  // Save configuration
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -197,26 +196,26 @@ export default function DomainSettingsPage() {
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
             <CheckCircle className="w-4 h-4 mr-1" />
-            {getText('tenant.settings.domainSettings.statusActive', 'Active')}
+            {getText('merchant.settings.domainSettings.statusActive', 'Active')}
           </span>
         );
       case 'pending_dns':
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">
             <Clock className="w-4 h-4 mr-1" />
-            {getText('tenant.settings.domainSettings.statusPendingDns', 'Pending DNS')}
+            {getText('merchant.settings.domainSettings.statusPendingDns', 'Pending DNS')}
           </span>
         );
       default:
         return (
           <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
-            {getText('tenant.settings.domainSettings.statusNotConfigured', 'Not Configured')}
+            {getText('merchant.settings.domainSettings.statusNotConfigured', 'Not Configured')}
           </span>
         );
     }
   };
 
-  // 🆕 DNS 记录展示组件
+  // 🆕 DNS record display component
   const DnsRecordItem = ({ label, record, icon }: { label: string; record: DnsRecord; icon: React.ReactNode }) => (
     <div className="mb-4 p-3 bg-gray-50 rounded-lg">
       <div className="flex items-center mb-2">
@@ -232,7 +231,7 @@ export default function DomainSettingsPage() {
     </div>
   );
 
-  // 🆕 URL 展示组件
+  // 🆕 URL display component
   const UrlItem = ({ label, url, color }: { label: string; url: string; color: string }) => {
     const colorClasses: Record<string, { bg: string; text: string; icon: string }> = {
       blue: { bg: 'bg-blue-50', text: 'text-blue-600', icon: 'text-blue-600' },
@@ -273,22 +272,22 @@ export default function DomainSettingsPage() {
     <div className="space-y-6 max-w-4xl mx-auto p-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">{getText('tenant.settings.domainSettings.title', 'Domain Settings')}</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{getText('merchant.settings.domainSettings.title', 'Domain Settings')}</h1>
         <p className="text-gray-600 mt-2">
-          {getText('tenant.settings.domainSettings.subtitle', 'Configure your custom domain and subdomain for your online store')}
+          {getText('merchant.settings.domainSettings.subtitle', 'Configure your custom domain and subdomain for your online store')}
         </p>
       </div>
 
-      {/* Current Status - 🆕 增强版：展示 Frontend/Admin/API 三种域名 */}
+      {/* Current Status - 🆕 Enhanced: Displays Frontend/Admin/API domains */}
       {settings && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>{getText('tenant.settings.domainSettings.currentConfig', 'Current Configuration')}</span>
+              <span>{getText('merchant.settings.domainSettings.currentConfig', 'Current Configuration')}</span>
               {getStatusBadge(settings.domainStatus)}
             </CardTitle>
             <CardDescription>
-              {getText('tenant.settings.domainSettings.accessUrlsDesc', 'Your store can be accessed through the following URLs')}
+              {getText('merchant.settings.domainSettings.accessUrlsDesc', 'Your store can be accessed through the following URLs')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -296,48 +295,48 @@ export default function DomainSettingsPage() {
             <div>
               <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
                 <Globe className="w-4 h-4 mr-2 text-blue-600" />
-                {getText('tenant.settings.domainSettings.frontendStore', 'Frontend (Store)')}
+                {getText('merchant.settings.domainSettings.frontendStore', 'Frontend (Store)')}
               </h4>
               <div className="space-y-2">
                 {settings.accessUrls.frontend?.custom && (
                   <UrlItem
-                    label={getText('tenant.settings.domainSettings.customDomain', 'Custom Domain')}
+                    label={getText('merchant.settings.domainSettings.customDomain', 'Custom Domain')}
                     url={settings.accessUrls.frontend.custom}
                     color="blue"
                   />
                 )}
                 {settings.accessUrls.frontend?.subdomain && (
                   <UrlItem
-                    label={getText('tenant.settings.domainSettings.subdomain', 'Subdomain')}
+                    label={getText('merchant.settings.domainSettings.subdomain', 'Subdomain')}
                     url={settings.accessUrls.frontend.subdomain}
                     color="green"
                   />
                 )}
                 {settings.accessUrls.frontend?.fallback && (
                   <UrlItem
-                    label={getText('tenant.settings.domainSettings.platformUrl', 'Platform URL')}
+                    label={getText('merchant.settings.domainSettings.platformUrl', 'Platform URL')}
                     url={settings.accessUrls.frontend.fallback}
                     color="gray"
                   />
                 )}
-                {/* 兼容旧结构 */}
+                {/* Legacy compatibility */}
                 {!settings.accessUrls.frontend && settings.accessUrls.customDomain && (
                   <UrlItem
-                    label={getText('tenant.settings.domainSettings.customDomain', 'Custom Domain')}
+                    label={getText('merchant.settings.domainSettings.customDomain', 'Custom Domain')}
                     url={settings.accessUrls.customDomain}
                     color="blue"
                   />
                 )}
                 {!settings.accessUrls.frontend && settings.accessUrls.subdomain && (
                   <UrlItem
-                    label={getText('tenant.settings.domainSettings.subdomain', 'Subdomain')}
+                    label={getText('merchant.settings.domainSettings.subdomain', 'Subdomain')}
                     url={settings.accessUrls.subdomain}
                     color="green"
                   />
                 )}
                 {!settings.accessUrls.frontend && settings.accessUrls.fallback && (
                   <UrlItem
-                    label={getText('tenant.settings.domainSettings.platformUrl', 'Platform URL')}
+                    label={getText('merchant.settings.domainSettings.platformUrl', 'Platform URL')}
                     url={settings.accessUrls.fallback}
                     color="gray"
                   />
@@ -350,19 +349,19 @@ export default function DomainSettingsPage() {
               <div>
                 <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
                   <Shield className="w-4 h-4 mr-2 text-purple-600" />
-                  {getText('tenant.settings.domainSettings.adminDashboard', 'Admin Dashboard')}
+                  {getText('merchant.settings.domainSettings.adminDashboard', 'Admin Dashboard')}
                 </h4>
                 <div className="space-y-2">
                   {settings.accessUrls.admin?.custom && (
                     <UrlItem
-                      label={getText('tenant.settings.domainSettings.customAdminDomain', 'Custom Admin Domain')}
+                      label={getText('merchant.settings.domainSettings.customAdminDomain', 'Custom Admin Domain')}
                       url={settings.accessUrls.admin.custom}
                       color="purple"
                     />
                   )}
                   {settings.accessUrls.admin?.platform && (
                     <UrlItem
-                      label={getText('tenant.settings.domainSettings.platformAdminUrl', 'Platform Admin URL')}
+                      label={getText('merchant.settings.domainSettings.platformAdminUrl', 'Platform Admin URL')}
                       url={settings.accessUrls.admin.platform}
                       color="gray"
                     />
@@ -376,19 +375,19 @@ export default function DomainSettingsPage() {
               <div>
                 <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
                   <Server className="w-4 h-4 mr-2 text-orange-600" />
-                  {getText('tenant.settings.domainSettings.apiEndpoint', 'API Endpoint')}
+                  {getText('merchant.settings.domainSettings.apiEndpoint', 'API Endpoint')}
                 </h4>
                 <div className="space-y-2">
                   {settings.accessUrls.api?.custom && (
                     <UrlItem
-                      label={getText('tenant.settings.domainSettings.customApiDomain', 'Custom API Domain')}
+                      label={getText('merchant.settings.domainSettings.customApiDomain', 'Custom API Domain')}
                       url={settings.accessUrls.api.custom}
                       color="orange"
                     />
                   )}
                   {settings.accessUrls.api?.platform && (
                     <UrlItem
-                      label={getText('tenant.settings.domainSettings.platformApiUrl', 'Platform API URL')}
+                      label={getText('merchant.settings.domainSettings.platformApiUrl', 'Platform API URL')}
                       url={settings.accessUrls.api.platform}
                       color="gray"
                     />
@@ -403,14 +402,14 @@ export default function DomainSettingsPage() {
       {/* Domain Configuration */}
       <Card>
         <CardHeader>
-          <CardTitle>{getText('tenant.settings.domainSettings.customDomainTitle', 'Custom Domain')}</CardTitle>
+          <CardTitle>{getText('merchant.settings.domainSettings.customDomainTitle', 'Custom Domain')}</CardTitle>
           <CardDescription>
-            {getText('tenant.settings.domainSettings.customDomainDesc', 'Use your own domain name (e.g., shop.yourcompany.com or yourcompany.com)')}
+            {getText('merchant.settings.domainSettings.customDomainDesc', 'Use your own domain name (e.g., shop.yourcompany.com or yourcompany.com)')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="domain">{getText('tenant.settings.domainSettings.domainName', 'Domain Name')}</Label>
+            <Label htmlFor="domain">{getText('merchant.settings.domainSettings.domainName', 'Domain Name')}</Label>
             <Input
               id="domain"
               type="text"
@@ -423,7 +422,7 @@ export default function DomainSettingsPage() {
               className="mt-1"
             />
             {validating.domain && (
-              <p className="text-sm text-gray-500 mt-1">{getText('tenant.settings.domainSettings.checkingAvailability', 'Checking availability...')}</p>
+              <p className="text-sm text-gray-500 mt-1">{getText('merchant.settings.domainSettings.checkingAvailability', 'Checking availability...')}</p>
             )}
             {!validating.domain && validation.domain.message && (
               <p className={`text-sm mt-1 ${validation.domain.available ? 'text-green-600' : 'text-red-600'}`}>
@@ -432,37 +431,37 @@ export default function DomainSettingsPage() {
             )}
           </div>
 
-          {/* 🆕 增强版 DNS 配置说明 - 展示 Frontend/Admin/API 三种域名 */}
+          {/* 🆕 Enhanced DNS configuration instructions - Displays Frontend/Admin/API domains */}
           {settings?.dnsInstructions && formData.domain && (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
-                <p className="font-medium mb-3">{getText('tenant.settings.domainSettings.dnsConfigRequired', 'DNS Configuration Required')}:</p>
+                <p className="font-medium mb-3">{getText('merchant.settings.domainSettings.dnsConfigRequired', 'DNS Configuration Required')}:</p>
 
-                {/* 新结构：按应用类型分组 */}
+                {/* New structure: grouped by application type */}
                 {settings.dnsInstructions.frontend && (
                   <DnsRecordItem
-                    label={getText('tenant.settings.domainSettings.frontendStore', 'Frontend (Store)')}
+                    label={getText('merchant.settings.domainSettings.frontendStore', 'Frontend (Store)')}
                     record={settings.dnsInstructions.frontend}
                     icon={<Globe className="w-4 h-4 text-blue-600" />}
                   />
                 )}
                 {settings.dnsInstructions.admin && (
                   <DnsRecordItem
-                    label={getText('tenant.settings.domainSettings.adminDashboard', 'Admin Dashboard')}
+                    label={getText('merchant.settings.domainSettings.adminDashboard', 'Admin Dashboard')}
                     record={settings.dnsInstructions.admin}
                     icon={<Shield className="w-4 h-4 text-purple-600" />}
                   />
                 )}
                 {settings.dnsInstructions.api && (
                   <DnsRecordItem
-                    label={getText('tenant.settings.domainSettings.apiEndpoint', 'API Endpoint')}
+                    label={getText('merchant.settings.domainSettings.apiEndpoint', 'API Endpoint')}
                     record={settings.dnsInstructions.api}
                     icon={<Server className="w-4 h-4 text-orange-600" />}
                   />
                 )}
 
-                {/* 兼容旧结构 */}
+                {/* Legacy compatibility */}
                 {!settings.dnsInstructions.frontend && settings.dnsInstructions.type && (
                   <div className="space-y-1 text-sm mb-3">
                     <p>Type: <code className="bg-gray-100 px-2 py-1 rounded">{settings.dnsInstructions.type}</code></p>
@@ -473,7 +472,7 @@ export default function DomainSettingsPage() {
                 )}
 
                 <p className="mt-3 text-gray-600 text-sm">
-                  {getText('tenant.settings.domainSettings.dnsNote', 'Please contact your IT team or submit a support ticket to configure DNS records. DNS propagation may take up to 48 hours.')}
+                  {getText('merchant.settings.domainSettings.dnsNote', 'Please contact your IT team or submit a support ticket to configure DNS records. DNS propagation may take up to 48 hours.')}
                 </p>
               </AlertDescription>
             </Alert>
@@ -484,14 +483,14 @@ export default function DomainSettingsPage() {
       {/* Subdomain Configuration */}
       <Card>
         <CardHeader>
-          <CardTitle>{getText('tenant.settings.domainSettings.subdomainTitle', 'Subdomain')}</CardTitle>
+          <CardTitle>{getText('merchant.settings.domainSettings.subdomainTitle', 'Subdomain')}</CardTitle>
           <CardDescription>
-            {getText('tenant.settings.domainSettings.subdomainDesc', 'Choose a subdomain on our platform (e.g., yourstore.jiffoo.com)')}
+            {getText('merchant.settings.domainSettings.subdomainDesc', 'Choose a subdomain on our platform (e.g., yourstore.jiffoo.com)')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="subdomain">{getText('tenant.settings.domainSettings.subdomain', 'Subdomain')}</Label>
+            <Label htmlFor="subdomain">{getText('merchant.settings.domainSettings.subdomain', 'Subdomain')}</Label>
             <div className="flex items-center mt-1">
               <Input
                 id="subdomain"
@@ -510,7 +509,7 @@ export default function DomainSettingsPage() {
               </span>
             </div>
             {validating.subdomain && (
-              <p className="text-sm text-gray-500 mt-1">{getText('tenant.settings.domainSettings.checkingAvailability', 'Checking availability...')}</p>
+              <p className="text-sm text-gray-500 mt-1">{getText('merchant.settings.domainSettings.checkingAvailability', 'Checking availability...')}</p>
             )}
             {!validating.subdomain && validation.subdomain.message && (
               <p className={`text-sm mt-1 ${validation.subdomain.available ? 'text-green-600' : 'text-red-600'}`}>
@@ -524,14 +523,14 @@ export default function DomainSettingsPage() {
       {/* Actions */}
       <div className="flex justify-end space-x-3">
         <Button variant="outline" onClick={() => router.push('/settings')}>
-          {getText('tenant.settings.domainSettings.cancel', 'Cancel')}
+          {getText('merchant.settings.domainSettings.cancel', 'Cancel')}
         </Button>
         <Button
           onClick={handleSave}
           disabled={saving || !validation.domain.available || !validation.subdomain.available}
           className="bg-blue-600 hover:bg-blue-700"
         >
-          {saving ? getText('tenant.settings.domainSettings.saving', 'Saving...') : getText('tenant.settings.domainSettings.saveChanges', 'Save Changes')}
+          {saving ? getText('merchant.settings.domainSettings.saving', 'Saving...') : getText('merchant.settings.domainSettings.saveChanges', 'Save Changes')}
         </Button>
       </div>
     </div>

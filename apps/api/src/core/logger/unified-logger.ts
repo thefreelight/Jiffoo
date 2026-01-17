@@ -1,30 +1,30 @@
 /**
- * 统一日志系统 - API 服务集成
+ * Unified Logging System - API Service Integration
  */
 
-// 使用 workspace 包的子路径导入
-// shared 包的 package.json 已配置 exports 支持 ./logger 子路径
+// Import using workspace package subpath
+// shared package's package.json is configured with exports supporting the ./logger subpath
 import { createWinstonAdapter, ILogger, OperationType } from 'shared/logger';
 import { logger as winstonLogger } from './logger';
 import { logAggregator, LogEntry } from './log-aggregator';
 
-// 创建统一日志器实例
+// Create unified logger instance
 export const unifiedLogger: ILogger = createWinstonAdapter(winstonLogger, {
   appName: 'api',
   environment: process.env.NODE_ENV || 'development',
   version: process.env.APP_VERSION || '1.0.0'
 });
 
-// 兼容性：导出原有的 winston logger
+// Compatibility: Export the original winston logger
 export { logger as winstonLogger } from './logger';
 
-// 导出统一日志器作为默认
+// Export unified logger as default
 export const logger = unifiedLogger;
 
-// 重新导出操作类型以保持兼容性
+// Re-export operation types for compatibility
 export { OperationType } from 'shared/logger';
 
-// 操作日志接口 - 保持向后兼容
+// Operation log interface - maintain backward compatibility
 export interface OperationLog {
   userId?: string;
   username?: string;
@@ -40,10 +40,10 @@ export interface OperationLog {
 }
 
 /**
- * 统一日志服务类 - 迁移现有的 LoggerService
+ * Unified Logger Service Class - Migrated existing LoggerService
  */
 export class UnifiedLoggerService {
-  // 记录操作日志
+  // Record operation log
   static logOperation(log: OperationLog): void {
     unifiedLogger.logOperation({
       type: 'operation',
@@ -58,7 +58,7 @@ export class UnifiedLoggerService {
     });
   }
 
-  // 记录访问日志
+  // Record access log
   static logAccess(req: any, res: any, responseTime: number): void {
     unifiedLogger.info('Access Log', {
       type: 'access',
@@ -73,7 +73,7 @@ export class UnifiedLoggerService {
     });
   }
 
-  // 记录错误日志
+  // Record error log
   static logError(error: Error, context?: any): void {
     unifiedLogger.error(error, {
       type: 'error',
@@ -82,12 +82,12 @@ export class UnifiedLoggerService {
     });
   }
 
-  // 记录安全事件
+  // Record security event
   static logSecurity(event: string, details: any): void {
     unifiedLogger.logSecurity(event, details);
   }
 
-  // 记录性能日志
+  // Record performance log
   static logPerformance(operation: string, duration: number, details?: any): void {
     unifiedLogger.logPerformance(operation, duration, {
       details,
@@ -95,7 +95,7 @@ export class UnifiedLoggerService {
     });
   }
 
-  // 记录数据库操作
+  // Record database operation
   static logDatabase(operation: string, table: string, details?: any): void {
     unifiedLogger.debug('Database Log', {
       type: 'database',
@@ -106,7 +106,7 @@ export class UnifiedLoggerService {
     });
   }
 
-  // 记录缓存操作
+  // Record cache operation
   static logCache(operation: string, key: string, hit: boolean = false): void {
     unifiedLogger.debug('Cache Log', {
       type: 'cache',
@@ -117,12 +117,12 @@ export class UnifiedLoggerService {
     });
   }
 
-  // 记录业务日志
+  // Record business log
   static logBusiness(event: string, details: any): void {
     unifiedLogger.logBusiness(event, details);
   }
 
-  // 记录系统日志
+  // Record system log
   static logSystem(event: string, details?: any): void {
     unifiedLogger.info('System Log', {
       type: 'system',
@@ -132,14 +132,14 @@ export class UnifiedLoggerService {
     });
   }
 
-  // 通用日志方法
+  // General logging method
   static log(level: 'debug' | 'info' | 'warn' | 'error', message: string, meta?: any): void {
     const enrichedMeta = {
       ...meta,
       timestamp: new Date().toISOString()
     };
 
-    // 记录到 winston
+    // Log to winston
     switch (level) {
       case 'debug':
         unifiedLogger.debug(message, enrichedMeta);
@@ -155,16 +155,16 @@ export class UnifiedLoggerService {
         break;
     }
 
-    // 同时添加到聚合器的内存缓存
+    // Also add to the aggregator's memory cache
     this.addToAggregator(level, message, enrichedMeta);
   }
 
-  // 获取日志统计
+  // Get log statistics
   static async getLogStats(timeRange: string = '24h'): Promise<any> {
     return logAggregator.getLogStats(timeRange);
   }
 
-  // 添加日志到内存缓存（供实时查询）
+  // Add log to memory cache (for real-time query)
   static addToAggregator(level: string, message: string, meta?: any): void {
     const entry: LogEntry = {
       id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -178,10 +178,10 @@ export class UnifiedLoggerService {
     logAggregator.addLog(entry);
   }
 
-  // 新增：记录 API 请求日志
+  // New: Record API request log
   static logApiRequest(req: any, res: any, responseTime: number): void {
     const level = res.statusCode >= 400 ? 'warn' : 'info';
-    
+
     unifiedLogger[level]('API Request', {
       type: 'api_request',
       method: req.method,
@@ -196,7 +196,7 @@ export class UnifiedLoggerService {
     });
   }
 
-  // 新增：记录认证事件
+  // New: Record authentication event
   static logAuth(event: string, userId?: string, details?: any): void {
     unifiedLogger.info('Authentication Event', {
       type: 'authentication',
@@ -207,7 +207,7 @@ export class UnifiedLoggerService {
     });
   }
 
-  // 新增：记录支付事件
+  // New: Record payment event
   static logPayment(event: string, orderId?: string, amount?: number, details?: any): void {
     unifiedLogger.info('Payment Event', {
       type: 'payment',
@@ -219,7 +219,7 @@ export class UnifiedLoggerService {
     });
   }
 
-  // 新增：记录库存变化
+  // New: Record inventory change
   static logInventory(event: string, productId: string, quantity: number, details?: any): void {
     unifiedLogger.info('Inventory Change', {
       type: 'inventory',
@@ -232,8 +232,8 @@ export class UnifiedLoggerService {
   }
 }
 
-// 为了向后兼容，导出原有的 LoggerService
+// Export existing LoggerService for backward compatibility
 export const LoggerService = UnifiedLoggerService;
 
-// 导出默认日志器
+// Export default logger
 export default unifiedLogger;

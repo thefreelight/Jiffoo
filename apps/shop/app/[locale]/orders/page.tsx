@@ -12,7 +12,7 @@ import { useShopTheme } from '@/lib/themes/provider';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { ordersApi } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 import type { Order } from 'shared/src/types/order';
 
 export default function OrdersPage() {

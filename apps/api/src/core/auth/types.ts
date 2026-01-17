@@ -15,15 +15,15 @@ export const RegisterSchema = z.object({
 export type LoginRequest = z.infer<typeof LoginSchema>;
 export type RegisterRequest = z.infer<typeof RegisterSchema>;
 
-// 标准OAuth2响应格式
+// Standard OAuth2 response format
 export interface StandardAuthResponse {
   access_token: string;
   token_type: 'Bearer';
-  expires_in: number; // 秒数
+  expires_in: number; // Seconds
   refresh_token?: string;
 }
 
-// 用户信息响应（通过/me端点获取）
+// User profile response (via /me endpoint)
 export interface UserProfileResponse {
   id: string;
   email: string;
@@ -32,7 +32,7 @@ export interface UserProfileResponse {
   role: string;
 }
 
-// 保留旧的AuthResponse类型以便逐步迁移
+// Keep old AuthResponse type for gradual migration
 export interface AuthResponse {
   user: {
     id: string;

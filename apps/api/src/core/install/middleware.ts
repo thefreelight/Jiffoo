@@ -1,27 +1,27 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { InstallService } from './service';
 
-// 缓存安装状态，避免每次请求都查询数据库
+// Cache installation status to avoid checking database on every request
 let cachedInstallStatus: { isInstalled: boolean; checkedAt: number } | null = null;
 const CACHE_TTL = 60000; // 60 seconds
 
 /**
- * 安装状态检查中间件
- * - 未安装时，只允许访问 /api/install 相关端点
- * - 已安装时，阻止访问 /api/install/complete
+ * Installation status check middleware
+ * - When not installed, only allow access to /api/install endpoints
+ * - When installed, prevent access to /api/install/complete
  */
 export async function installationCheckMiddleware(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
   const path = request.url;
-  
-  // 跳过健康检查和安装状态检查
+
+  // Skip health check and installation status check
   if (path === '/health' || path === '/api/install/status' || path === '/api/install/check-database') {
     return;
   }
 
-  // 检查缓存
+  // Check cache
   const now = Date.now();
   if (!cachedInstallStatus || now - cachedInstallStatus.checkedAt > CACHE_TTL) {
     const status = await InstallService.checkInstallationStatus();
@@ -34,13 +34,13 @@ export async function installationCheckMiddleware(
   const isInstalled = cachedInstallStatus.isInstalled;
   const isInstallPath = path.startsWith('/api/install');
 
-  // 未安装时的处理
+  // Handle when not installed
   if (!isInstalled) {
-    // 允许安装相关的请求
+    // Allow installation related requests
     if (isInstallPath) {
       return;
     }
-    // 其他 API 请求返回 503
+    // Other API requests return 503
     return reply.status(503).send({
       success: false,
       error: 'System not installed',
@@ -49,7 +49,7 @@ export async function installationCheckMiddleware(
     });
   }
 
-  // 已安装时，阻止访问 /api/install/complete
+  // When installed, prevent access to /api/install/complete
   if (isInstalled && path === '/api/install/complete') {
     return reply.status(400).send({
       success: false,
@@ -60,8 +60,8 @@ export async function installationCheckMiddleware(
 }
 
 /**
- * 重置安装状态缓存
- * 在完成安装后调用
+ * Reset installation status cache
+ * Called after installation is complete
  */
 export function resetInstallationCache() {
   cachedInstallStatus = null;

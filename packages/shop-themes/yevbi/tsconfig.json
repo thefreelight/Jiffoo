@@ -1,0 +1,62 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "lib": [
+            "DOM",
+            "DOM.Iterable",
+            "ESNext"
+        ],
+        "jsx": "react-jsx",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "noEmit": true,
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "allowSyntheticDefaultImports": true,
+        "baseUrl": "./src",
+        "paths": {
+            "@/*": [
+                "./*"
+            ],
+            "@/components/*": [
+                "./components/*"
+            ],
+            "@/hooks/*": [
+                "./hooks/*"
+            ],
+            "@/lib/*": [
+                "./lib/*"
+            ],
+            "@/store/*": [
+                "./store/*"
+            ],
+            "shared/*": [
+                "../../../shared/*"
+            ],
+            "@jiffoo/ui": [
+                "../../../ui/src"
+            ],
+            "@jiffoo/ui/*": [
+                "../../../ui/src/*"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*.ts",
+        "src/**/*.tsx"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ],
+    "references": [
+        {
+            "path": "../../shared"
+        }
+    ]
+}

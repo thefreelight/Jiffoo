@@ -3,10 +3,6 @@
  *
  * Displays detailed product information with add to cart functionality.
  * Supports i18n through the translation function.
- *
- * 🆕 Agent Mall 支持：
- * - 使用 agentId 获取授权商品和有效价格
- * - 变体选择时传递 variantId 到购物车
  */
 
 'use client';
@@ -17,8 +13,7 @@ import { useCartStore } from '@/store/cart';
 import { useToast } from '@/hooks/use-toast';
 import { ProductService, Product } from '@/services/product.service';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { useT } from 'shared/src/i18n';
-import { useAgentId, useIsAgentMall } from '@/store/mall';
+import { useT } from 'shared/src/i18n/react';
 
 interface ProductPageProps {
   params: Promise<{
@@ -46,38 +41,24 @@ export default function ProductPage({ params }: ProductPageProps) {
     return t ? t(key) : fallback;
   };
 
-  // 🆕 Agent Mall context
-  const agentId = useAgentId();
-  const isAgentMall = useIsAgentMall();
-
-  // 使用 ref 存储 agentId 和 isAgentMall 以避免无限循环
-  const agentIdRef = React.useRef(agentId);
-  const isAgentMallRef = React.useRef(isAgentMall);
-
-  React.useEffect(() => {
-    agentIdRef.current = agentId;
-    isAgentMallRef.current = isAgentMall;
-  }, [agentId, isAgentMall]);
-
   // Load product data with locale for translated content
-  // 🆕 传递 agentId 以获取 Agent Mall 授权商品和价格
   React.useEffect(() => {
     const loadProduct = async () => {
       try {
         setLoading(true);
         setError(null);
-        // 🆕 传递 agentId 获取授权商品和有效价格
-        const response = await ProductService.getProductById(
+
+        const productData = await ProductService.getProduct(
           resolvedParams.id,
-          nav.locale,
-          isAgentMallRef.current ? agentIdRef.current : undefined
+          nav.locale
         );
-        setProduct(response.product);
-        // 🆕 自动选择第一个可用变体
-        if (response.product.variants && response.product.variants.length > 0) {
-          const authorizedVariants = response.product.variants.filter((v: any) => v.isAuthorized !== false);
-          if (authorizedVariants.length > 0) {
-            setSelectedVariant(authorizedVariants[0].id);
+        setProduct(productData);
+
+        // Auto-select first available variant
+        if (productData.variants && productData.variants.length > 0) {
+          const availableVariants = productData.variants.filter((v: any) => v.isActive !== false);
+          if (availableVariants.length > 0) {
+            setSelectedVariant(availableVariants[0].id);
           }
         }
       } catch (err) {
@@ -98,7 +79,6 @@ export default function ProductPage({ params }: ProductPageProps) {
   };
 
   // Handle quantity change
-  // Support both inventory.available and direct stock field
   const handleQuantityChange = (newQuantity: number) => {
     if (!product) return;
     const maxStock = product.inventory?.available ?? (product as any).stock ?? 100;
@@ -108,18 +88,14 @@ export default function ProductPage({ params }: ProductPageProps) {
   };
 
   // Handle add to cart
-  // 🆕 传递 selectedVariant 到购物车（用于变体级定价）
   const handleAddToCart = async () => {
     console.log('[ProductPage] handleAddToCart called', { product, selectedVariant, quantity });
 
     if (!product) {
-      console.log('[ProductPage] No product, returning');
       return;
     }
 
-    // 🆕 如果有变体且没有选择，提示用户选择
     if (product.variants && product.variants.length > 0 && !selectedVariant) {
-      console.log('[ProductPage] Variants exist but none selected', { variants: product.variants, selectedVariant });
       toast({
         title: getText('shop.product.selectVariant', 'Please select an option'),
         description: getText('shop.product.selectVariantDescription', 'Please select a product option before adding to cart'),
@@ -129,10 +105,7 @@ export default function ProductPage({ params }: ProductPageProps) {
     }
 
     try {
-      console.log('[ProductPage] Calling addToCart', { productId: product.id, quantity, selectedVariant });
-      // 🆕 传递 variantId 到购物车
       await addToCart(product.id, quantity, selectedVariant);
-      console.log('[ProductPage] addToCart success');
       toast({
         title: getText('shop.cart.addedToCart', 'Added to cart'),
         description: `${product.name} ${getText('shop.cart.addedToCart', 'added to cart')}`,

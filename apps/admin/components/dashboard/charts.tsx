@@ -19,7 +19,7 @@ import {
   AreaChart
 } from 'recharts'
 import { useOrderStats } from '@/lib/hooks/use-api'
-import { useT } from 'shared/src/i18n'
+import { useT } from 'shared/src/i18n/react'
 
 // Transform order stats into chart data
 function transformOrderStatsToChartData(stats: any) {
@@ -62,29 +62,29 @@ export function SalesChannelChart() {
   const totalOrders = orderStats?.totalOrders || 0
 
   return (
-    <ChartCard title={getText('tenant.dashboard.charts.monthlyRevenue', 'Monthly Revenue Overview')}>
+    <ChartCard title={getText('merchant.dashboard.charts.monthlyRevenue', 'Monthly Revenue Overview')}>
       <div className="mb-4">
         <div className="flex items-center space-x-6">
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <span className="text-sm text-gray-600">{getText('tenant.dashboard.totalRevenue', 'Total Revenue')}</span>
+            <span className="text-sm text-gray-600">{getText('merchant.dashboard.totalRevenue', 'Total Revenue')}</span>
             <span className="text-lg font-semibold text-gray-900">¥{(totalRevenue / 1000).toFixed(1)}K</span>
           </div>
           <div className="flex items-center space-x-2">
             <div className="w-3 h-3 bg-blue-300 rounded-full"></div>
-            <span className="text-sm text-gray-600">{getText('tenant.dashboard.totalOrders', 'Total Orders')}</span>
+            <span className="text-sm text-gray-600">{getText('merchant.dashboard.totalOrders', 'Total Orders')}</span>
             <span className="text-lg font-semibold text-gray-900">{totalOrders}</span>
           </div>
         </div>
         <div className="mt-2 text-sm text-gray-500">
-          <span className="text-gray-600">{getText('tenant.dashboard.charts.realtimeData', 'Real-time data from backend')}</span>
+          <span className="text-gray-600">{getText('merchant.dashboard.charts.realtimeData', 'Real-time data from backend')}</span>
         </div>
       </div>
 
       <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
         <div className="text-center">
-          <p className="text-gray-600 mb-2">{getText('tenant.dashboard.charts.revenueBreakdown', 'Detailed revenue breakdown by channel')}</p>
-          <p className="text-sm text-gray-500">{getText('tenant.dashboard.charts.comingSoon', 'Coming soon - requires backend API enhancement')}</p>
+          <p className="text-gray-600 mb-2">{getText('merchant.dashboard.charts.revenueBreakdown', 'Detailed revenue breakdown by channel')}</p>
+          <p className="text-sm text-gray-500">{getText('merchant.dashboard.charts.comingSoon', 'Coming soon - requires backend API enhancement')}</p>
         </div>
       </div>
     </ChartCard>
@@ -104,19 +104,19 @@ export function RealTimeOrdersChart() {
 
   return (
     <ChartCard
-      title={getText('tenant.dashboard.charts.todaysOrders', "Today's Orders")}
+      title={getText('merchant.dashboard.charts.todaysOrders', "Today's Orders")}
     >
       <div className="mb-4">
         <div className="text-2xl font-bold text-gray-900">{todayOrders}</div>
         <div className="flex items-center space-x-2 mt-1">
-          <span className="text-gray-600 text-sm">{getText('tenant.dashboard.charts.ordersPlacedToday', 'Orders placed today')}</span>
+          <span className="text-gray-600 text-sm">{getText('merchant.dashboard.charts.ordersPlacedToday', 'Orders placed today')}</span>
         </div>
       </div>
 
       <div className="h-48 flex items-center justify-center bg-gray-50 rounded-lg">
         <div className="text-center">
-          <p className="text-gray-600 mb-2">{getText('tenant.dashboard.charts.realtimeTracking', 'Real-time order tracking')}</p>
-          <p className="text-sm text-gray-500">{getText('tenant.dashboard.charts.minuteLevelData', 'Minute-level data coming soon')}</p>
+          <p className="text-gray-600 mb-2">{getText('merchant.dashboard.charts.realtimeTracking', 'Real-time order tracking')}</p>
+          <p className="text-sm text-gray-500">{getText('merchant.dashboard.charts.minuteLevelData', 'Minute-level data coming soon')}</p>
         </div>
       </div>
     </ChartCard>

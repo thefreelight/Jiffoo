@@ -12,7 +12,9 @@ import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { useOrder } from '@/lib/hooks/use-api'
-import { useT } from 'shared/src/i18n'
+import { useT } from 'shared/src/i18n/react'
+import { useState } from 'react'
+import { RefundDialog } from '@/components/orders/RefundDialog'
 
 
 export default function OrderDetailPage() {
@@ -20,6 +22,7 @@ export default function OrderDetailPage() {
   const router = useRouter()
   const orderId = params.id as string
   const t = useT()
+  const [showRefundDialog, setShowRefundDialog] = useState(false)
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -33,7 +36,7 @@ export default function OrderDetailPage() {
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">{getText('tenant.orders.detail.loading', 'Loading order details...')}</p>
+          <p className="mt-4 text-gray-600">{getText('merchant.orders.detail.loading', 'Loading order details...')}</p>
         </div>
       </div>
     )
@@ -44,15 +47,15 @@ export default function OrderDetailPage() {
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <AlertTriangle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">{getText('tenant.orders.detail.orderNotFound', 'Order Not Found')}</h2>
-          <p className="text-gray-600 mb-6">{getText('tenant.orders.detail.orderNotFoundDesc', "The order you're looking for doesn't exist or has been deleted.")}</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">{getText('merchant.orders.detail.orderNotFound', 'Order Not Found')}</h2>
+          <p className="text-gray-600 mb-6">{getText('merchant.orders.detail.orderNotFoundDesc', "The order you're looking for doesn't exist or has been deleted.")}</p>
           <div className="flex gap-4 justify-center">
             <Button variant="outline" onClick={() => router.back()}>
               <ArrowLeft className="w-4 h-4 mr-2" />
-              {getText('tenant.orders.detail.goBack', 'Go Back')}
+              {getText('merchant.orders.detail.goBack', 'Go Back')}
             </Button>
             <Button onClick={() => refetch()}>
-              {getText('tenant.orders.detail.retry', 'Retry')}
+              {getText('merchant.orders.detail.retry', 'Retry')}
             </Button>
           </div>
         </div>
@@ -82,12 +85,12 @@ export default function OrderDetailPage() {
             onClick={() => router.back()}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            {getText('tenant.orders.detail.back', 'Back')}
+            {getText('merchant.orders.detail.back', 'Back')}
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">{getText('tenant.orders.orderNumber', 'Order #')}{order.id}</h1>
+            <h1 className="text-3xl font-bold text-gray-900">{getText('merchant.orders.orderNumber', 'Order #')}{order.id}</h1>
             <p className="text-sm text-gray-500 mt-1">
-              {getText('tenant.orders.detail.placedOn', 'Placed on')} {new Date(order.createdAt).toLocaleString()}
+              {getText('merchant.orders.detail.placedOn', 'Placed on')} {new Date(order.createdAt).toLocaleString()}
             </p>
           </div>
         </div>
@@ -105,7 +108,7 @@ export default function OrderDetailPage() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <ShoppingBag className="w-5 h-5" />
-              {getText('tenant.orders.detail.orderItems', 'Order Items')}
+              {getText('merchant.orders.detail.orderItems', 'Order Items')}
             </h2>
             <div className="space-y-4">
               {order.items && order.items.length > 0 ? (
@@ -126,11 +129,11 @@ export default function OrderDetailPage() {
                       )}
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-medium text-gray-900">{item.product?.name || getText('tenant.orders.unknown', 'Unknown Product')}</h3>
-                      <p className="text-sm text-gray-500 mt-1">{getText('tenant.products.detail.productId', 'Product ID')}: {item.productId}</p>
+                      <h3 className="font-medium text-gray-900">{item.product?.name || getText('merchant.orders.unknown', 'Unknown Product')}</h3>
+                      <p className="text-sm text-gray-500 mt-1">{getText('merchant.products.detail.productId', 'Product ID')}: {item.productId}</p>
                       <div className="flex items-center gap-4 mt-2">
-                        <span className="text-sm text-gray-600">{getText('tenant.orders.detail.qty', 'Qty:')} {item.quantity}</span>
-                        <span className="text-sm text-gray-600">{getText('tenant.orders.detail.unitPrice', 'Unit Price:')} ¥{(item.unitPrice || item.price || 0).toFixed(2)}</span>
+                        <span className="text-sm text-gray-600">{getText('merchant.orders.detail.qty', 'Qty:')} {item.quantity}</span>
+                        <span className="text-sm text-gray-600">{getText('merchant.orders.detail.unitPrice', 'Unit Price:')} ¥{(item.unitPrice || item.price || 0).toFixed(2)}</span>
                       </div>
                     </div>
                     <div className="text-right">
@@ -141,14 +144,14 @@ export default function OrderDetailPage() {
                   </div>
                 ))
               ) : (
-                <p className="text-gray-500 text-center py-8">{getText('tenant.orders.detail.noItems', 'No items in this order')}</p>
+                <p className="text-gray-500 text-center py-8">{getText('merchant.orders.detail.noItems', 'No items in this order')}</p>
               )}
             </div>
 
             {/* Order Total */}
             <div className="mt-6 pt-6 border-t border-gray-200">
               <div className="flex justify-between items-center">
-                <span className="text-lg font-semibold text-gray-900">{getText('tenant.orders.detail.totalAmount', 'Total Amount')}</span>
+                <span className="text-lg font-semibold text-gray-900">{getText('merchant.orders.detail.totalAmount', 'Total Amount')}</span>
                 <span className="text-2xl font-bold text-gray-900">¥{order.totalAmount.toFixed(2)}</span>
               </div>
             </div>
@@ -161,23 +164,23 @@ export default function OrderDetailPage() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <User className="w-5 h-5" />
-              {getText('tenant.orders.detail.customer', 'Customer')}
+              {getText('merchant.orders.detail.customer', 'Customer')}
             </h2>
             <div className="space-y-3">
               <div>
-                <p className="text-sm text-gray-500">{getText('tenant.orders.detail.name', 'Name')}</p>
+                <p className="text-sm text-gray-500">{getText('merchant.orders.detail.name', 'Name')}</p>
                 <p className="text-sm font-medium text-gray-900 mt-1">
-                  {order.user?.username || order.user?.name || getText('tenant.orders.unknown', 'Unknown')}
+                  {order.user?.username || order.user?.name || getText('merchant.orders.unknown', 'Unknown')}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">{getText('tenant.orders.detail.email', 'Email')}</p>
+                <p className="text-sm text-gray-500">{getText('merchant.orders.detail.email', 'Email')}</p>
                 <p className="text-sm font-medium text-gray-900 mt-1">
                   {order.user?.email || order.customerEmail || getText('common.na', 'N/A')}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-500">{getText('tenant.orders.detail.userId', 'User ID')}</p>
+                <p className="text-sm text-gray-500">{getText('merchant.orders.detail.userId', 'User ID')}</p>
                 <p className="text-sm font-medium text-gray-900 mt-1 break-all">
                   {order.userId}
                 </p>
@@ -189,27 +192,39 @@ export default function OrderDetailPage() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
-              {getText('tenant.orders.detail.payment', 'Payment')}
+              {getText('merchant.orders.detail.payment', 'Payment')}
             </h2>
             <div className="space-y-3">
               <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-sm text-gray-500">{getText('tenant.orders.detail.status', 'Status')}</span>
+                <span className="text-sm text-gray-500">{getText('merchant.orders.detail.status', 'Status')}</span>
                 <span className={`text-sm font-medium px-2 py-1 rounded ${getStatusColor(order.status)}`}>
                   {order.status}
                 </span>
               </div>
               <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-sm text-gray-500">{getText('tenant.orders.detail.total', 'Total')}</span>
+                <span className="text-sm text-gray-500">{getText('merchant.orders.detail.total', 'Total')}</span>
                 <span className="text-sm font-medium text-gray-900">¥{order.totalAmount.toFixed(2)}</span>
               </div>
             </div>
+            {/* Refund Action */}
+            {order.paymentStatus === 'PAID' && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <Button
+                  variant="outline"
+                  className="w-full text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+                  onClick={() => setShowRefundDialog(true)}
+                >
+                  {getText('merchant.orders.detail.refund', 'Refund Order')}
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Shipping Info */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Truck className="w-5 h-5" />
-              {getText('tenant.orders.detail.shipping', 'Shipping')}
+              {getText('merchant.orders.detail.shipping', 'Shipping')}
             </h2>
             <div className="space-y-2">
               {order.shippingAddress ? (
@@ -219,7 +234,7 @@ export default function OrderDetailPage() {
                   <p>{order.shippingAddress.country}</p>
                 </div>
               ) : (
-                <p className="text-sm text-gray-500">{getText('tenant.orders.detail.noShippingAddress', 'No shipping address provided')}</p>
+                <p className="text-sm text-gray-500">{getText('merchant.orders.detail.noShippingAddress', 'No shipping address provided')}</p>
               )}
             </div>
           </div>
@@ -228,17 +243,17 @@ export default function OrderDetailPage() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Calendar className="w-5 h-5" />
-              {getText('tenant.orders.detail.timeline', 'Timeline')}
+              {getText('merchant.orders.detail.timeline', 'Timeline')}
             </h2>
             <div className="space-y-3">
               <div className="flex justify-between py-2 border-b border-gray-100">
-                <span className="text-sm text-gray-500">{getText('tenant.orders.detail.created', 'Created')}</span>
+                <span className="text-sm text-gray-500">{getText('merchant.orders.detail.created', 'Created')}</span>
                 <span className="text-sm font-medium text-gray-900">
                   {new Date(order.createdAt).toLocaleString()}
                 </span>
               </div>
               <div className="flex justify-between py-2">
-                <span className="text-sm text-gray-500">{getText('tenant.orders.detail.lastUpdated', 'Last Updated')}</span>
+                <span className="text-sm text-gray-500">{getText('merchant.orders.detail.lastUpdated', 'Last Updated')}</span>
                 <span className="text-sm font-medium text-gray-900">
                   {new Date(order.updatedAt).toLocaleString()}
                 </span>
@@ -247,6 +262,12 @@ export default function OrderDetailPage() {
           </div>
         </div>
       </div>
+
+      <RefundDialog
+        order={order}
+        open={showRefundDialog}
+        onOpenChange={setShowRefundDialog}
+      />
     </div>
   )
 }

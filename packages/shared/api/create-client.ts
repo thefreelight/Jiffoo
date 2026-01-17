@@ -1,7 +1,7 @@
 /**
- * 统一API客户端工厂
- * 为不同前端应用创建配置好的API客户端实例
- * 应用类型: shop (商城前台), tenant (租户后台), admin (平台管理后台)
+ * Unified API Client Factory
+ * Creates configured API client instances for different frontend applications
+ * App types: shop (frontend), admin (admin dashboard)
  */
 
 import { AuthClient } from './auth-client';
@@ -9,8 +9,8 @@ import { ApiClient, ApiClientConfig } from './client';
 import { StorageAdapterFactory } from './storage-adapters';
 import { envConfig } from '../config/env';
 
-// 应用类型
-export type AppType = 'shop' | 'tenant' | 'admin';
+// Application type
+export type AppType = 'shop' | 'admin';
 
 export interface CreateClientOptions {
   appId: AppType;
@@ -21,45 +21,35 @@ export interface CreateClientOptions {
 }
 
 /**
- * 为不同应用创建统一的API客户端
+ * Create unified API client for different applications
  */
 export function createApiClient(options: CreateClientOptions): AuthClient {
   const { appId, basePath, storageType, cookies, customConfig = {} } = options;
 
-  // 根据应用类型确定基础配置
+  // Determine base config based on app type
   const appConfigs: Record<AppType, Partial<ApiClientConfig>> = {
     shop: {
       baseURL: basePath || envConfig.getApiServiceBaseUrl(),
       withCredentials: true,
-      loginPath: '/auth/login', // 商城前端登录页面
+      loginPath: '/auth/login', // Shop login page
       defaultHeaders: {
         'X-App-Type': 'shop',
-        'X-Client-Version': '1.0.0',
-        'X-Tenant-ID': '1' // 商城前端使用租户ID 1
-      }
-    },
-    tenant: {
-      baseURL: basePath || envConfig.getApiServiceBaseUrl(),
-      withCredentials: true,
-      loginPath: '/auth/login', // 租户管理后台登录页面
-      defaultHeaders: {
-        'X-App-Type': 'tenant',
         'X-Client-Version': '1.0.0'
       }
     },
+
     admin: {
       baseURL: basePath || envConfig.getApiServiceBaseUrl(),
       withCredentials: true,
-      loginPath: '/login', // 平台管理员登录页面
+      loginPath: '/login', // Admin login page
       defaultHeaders: {
         'X-App-Type': 'admin',
-        'X-Client-Version': '1.0.0',
-        'x-tenant-id': '0' // 平台管理员使用租户ID 0
+        'X-Client-Version': '1.0.0'
       }
     }
   };
 
-  // 合并配置
+  // Merge config
   const config: ApiClientConfig = {
     ...appConfigs[appId],
     ...customConfig,
@@ -69,54 +59,43 @@ export function createApiClient(options: CreateClientOptions): AuthClient {
     }
   };
 
-  // 创建存储适配器
+  // Create storage adapter
   const storage = StorageAdapterFactory.create(storageType, cookies);
 
-  // 创建并返回AuthClient实例
+  // Create and return AuthClient instance
   return new AuthClient(config, storage);
 }
 
 /**
- * 为Shop应用创建API客户端（商城前端）
+ * Create API client for Shop application (frontend)
  */
 export function createShopClient(options: Omit<CreateClientOptions, 'appId'> = {}): AuthClient {
   return createApiClient({
     ...options,
     appId: 'shop',
-    storageType: options.storageType || 'hybrid' // 前端优先使用混合存储
+    storageType: options.storageType || 'hybrid' // Frontend prioritizes hybrid storage
   });
 }
 
 /**
- * 为Tenant应用创建API客户端（租户管理后台）
- */
-export function createTenantClient(options: Omit<CreateClientOptions, 'appId'> = {}): AuthClient {
-  return createApiClient({
-    ...options,
-    appId: 'tenant',
-    storageType: options.storageType || 'hybrid' // 管理端优先使用混合存储
-  });
-}
-
-/**
- * 为Admin应用创建API客户端（平台管理员后台）
+ * Create API client for Admin application (admin dashboard)
  */
 export function createAdminClient(options: Omit<CreateClientOptions, 'appId'> = {}): AuthClient {
   return createApiClient({
     ...options,
     appId: 'admin',
-    storageType: options.storageType || 'browser' // 平台管理员使用浏览器存储
+    storageType: options.storageType || 'browser' // Admin uses browser storage
   });
 }
 
 /**
- * 全局API客户端实例管理器
+ * Global API Client Instance Manager
  */
 class ApiClientManager {
   private static instances = new Map<string, AuthClient>();
 
   /**
-   * 获取或创建API客户端实例
+   * Get or create API client instance
    */
   static getInstance(appId: AppType, options: Omit<CreateClientOptions, 'appId'> = {}): AuthClient {
     const key = `${appId}-${JSON.stringify(options)}`;
@@ -130,14 +109,14 @@ class ApiClientManager {
   }
 
   /**
-   * 清除所有实例（用于测试或重置）
+   * Clears all instances (for testing or reset purposes)
    */
   static clearInstances(): void {
     this.instances.clear();
   }
 
   /**
-   * 清除特定应用的实例
+   * Clears instances for a specific application type
    */
   static clearInstance(appId: AppType): void {
     const keysToDelete = Array.from(this.instances.keys()).filter(key => key.startsWith(appId));
@@ -153,8 +132,7 @@ export { ApiClientManager };
 export const getShopClient = (options?: Omit<CreateClientOptions, 'appId'>) =>
   ApiClientManager.getInstance('shop', options);
 
-export const getTenantClient = (options?: Omit<CreateClientOptions, 'appId'>) =>
-  ApiClientManager.getInstance('tenant', options);
+
 
 export const getAdminClient = (options?: Omit<CreateClientOptions, 'appId'>) =>
   ApiClientManager.getInstance('admin', options);

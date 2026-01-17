@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/components/ui/toast';
 import { CreditCard, DollarSign, ShoppingCart, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 interface PaymentRequest {
   amount: number;
@@ -241,9 +241,9 @@ export default function PaymentTestPage() {
   return (
     <div className="p-6 max-w-4xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">{getText('tenant.paymentTest.title', 'Payment Plugin Test')}</h1>
+        <h1 className="text-3xl font-bold text-gray-900">{getText('merchant.paymentTest.title', 'Payment Plugin Test')}</h1>
         <p className="text-gray-600 mt-2">
-          {getText('tenant.paymentTest.subtitle', 'Test payment functionality to verify plugin hot-swap capabilities')}
+          {getText('merchant.paymentTest.subtitle', 'Test payment functionality to verify plugin hot-swap capabilities')}
         </p>
       </div>
 
@@ -253,16 +253,16 @@ export default function PaymentTestPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="w-5 h-5" />
-              {getText('tenant.paymentTest.stripeTest', 'Stripe Payment Test')}
+              {getText('merchant.paymentTest.stripeTest', 'Stripe Payment Test')}
             </CardTitle>
             <CardDescription>
-              {getText('tenant.paymentTest.stripeTestDesc', 'Create a test payment to verify Stripe plugin functionality')}
+              {getText('merchant.paymentTest.stripeTestDesc', 'Create a test payment to verify Stripe plugin functionality')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="amount">{getText('tenant.paymentTest.amount', 'Amount')}</Label>
+                <Label htmlFor="amount">{getText('merchant.paymentTest.amount', 'Amount')}</Label>
                 <Input
                   id="amount"
                   type="number"
@@ -273,7 +273,7 @@ export default function PaymentTestPage() {
                 />
               </div>
               <div>
-                <Label htmlFor="currency">{getText('tenant.paymentTest.currency', 'Currency')}</Label>
+                <Label htmlFor="currency">{getText('merchant.paymentTest.currency', 'Currency')}</Label>
                 <Select value={paymentData.currency} onValueChange={(value) => handleInputChange('currency', value)}>
                   <SelectTrigger>
                     <SelectValue />
@@ -290,7 +290,7 @@ export default function PaymentTestPage() {
             </div>
 
             <div>
-              <Label htmlFor="orderId">{getText('tenant.paymentTest.orderId', 'Order ID')}</Label>
+              <Label htmlFor="orderId">{getText('merchant.paymentTest.orderId', 'Order ID')}</Label>
               <div className="flex gap-2">
                 <Input
                   id="orderId"
@@ -298,13 +298,13 @@ export default function PaymentTestPage() {
                   onChange={(e) => handleInputChange('orderId', e.target.value)}
                 />
                 <Button variant="outline" onClick={generateNewOrderId}>
-                  {getText('tenant.paymentTest.new', 'New')}
+                  {getText('merchant.paymentTest.new', 'New')}
                 </Button>
               </div>
             </div>
 
             <div>
-              <Label htmlFor="description">{getText('tenant.paymentTest.description', 'Description')}</Label>
+              <Label htmlFor="description">{getText('merchant.paymentTest.description', 'Description')}</Label>
               <Input
                 id="description"
                 value={paymentData.description}
@@ -313,7 +313,7 @@ export default function PaymentTestPage() {
             </div>
 
             <div>
-              <Label htmlFor="customerId">{getText('tenant.paymentTest.customerId', 'Customer ID')}</Label>
+              <Label htmlFor="customerId">{getText('merchant.paymentTest.customerId', 'Customer ID')}</Label>
               <Input
                 id="customerId"
                 value={paymentData.customerId}
@@ -331,12 +331,12 @@ export default function PaymentTestPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {getText('tenant.paymentTest.creatingPayment', 'Creating Payment...')}
+                    {getText('merchant.paymentTest.creatingPayment', 'Creating Payment...')}
                   </>
                 ) : (
                   <>
                     <DollarSign className="w-4 h-4 mr-2" />
-                    {getText('tenant.paymentTest.testStripe', 'Test Stripe Payment')}
+                    {getText('merchant.paymentTest.testStripe', 'Test Stripe Payment')}
                   </>
                 )}
               </Button>
@@ -350,12 +350,12 @@ export default function PaymentTestPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {getText('tenant.paymentTest.creatingPayment', 'Creating Payment...')}
+                    {getText('merchant.paymentTest.creatingPayment', 'Creating Payment...')}
                   </>
                 ) : (
                   <>
                     <DollarSign className="w-4 h-4 mr-2" />
-                    {getText('tenant.paymentTest.testAlipay', 'Test Alipay Payment')}
+                    {getText('merchant.paymentTest.testAlipay', 'Test Alipay Payment')}
                   </>
                 )}
               </Button>
@@ -368,10 +368,10 @@ export default function PaymentTestPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ShoppingCart className="w-5 h-5" />
-              {getText('tenant.paymentTest.paymentResult', 'Payment Result')}
+              {getText('merchant.paymentTest.paymentResult', 'Payment Result')}
             </CardTitle>
             <CardDescription>
-              {getText('tenant.paymentTest.paymentResultDesc', 'View the result of your payment test')}
+              {getText('merchant.paymentTest.paymentResultDesc', 'View the result of your payment test')}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -388,21 +388,21 @@ export default function PaymentTestPage() {
                     <XCircle className="w-5 h-5" />
                   )}
                   <span className="font-medium">
-                    {lastPaymentResult.success ? getText('tenant.paymentTest.paymentSuccess', 'Payment Created Successfully') : getText('tenant.paymentTest.paymentFailed', 'Payment Failed')}
+                    {lastPaymentResult.success ? getText('merchant.paymentTest.paymentSuccess', 'Payment Created Successfully') : getText('merchant.paymentTest.paymentFailed', 'Payment Failed')}
                   </span>
                 </div>
 
                 {lastPaymentResult.success && lastPaymentResult.paymentId && (
                   <div className="space-y-2">
                     <div>
-                      <Label>{getText('tenant.paymentTest.paymentId', 'Payment ID')}</Label>
+                      <Label>{getText('merchant.paymentTest.paymentId', 'Payment ID')}</Label>
                       <div className="p-2 bg-gray-100 rounded font-mono text-sm">
                         {lastPaymentResult.paymentId}
                       </div>
                     </div>
                     {lastPaymentResult.clientSecret && (
                       <div>
-                        <Label>{getText('tenant.paymentTest.clientSecret', 'Client Secret')}</Label>
+                        <Label>{getText('merchant.paymentTest.clientSecret', 'Client Secret')}</Label>
                         <div className="p-2 bg-gray-100 rounded font-mono text-sm break-all">
                           {lastPaymentResult.clientSecret}
                         </div>
@@ -413,7 +413,7 @@ export default function PaymentTestPage() {
 
                 {!lastPaymentResult.success && lastPaymentResult.error && (
                   <div>
-                    <Label>{getText('tenant.paymentTest.errorDetails', 'Error Details')}</Label>
+                    <Label>{getText('merchant.paymentTest.errorDetails', 'Error Details')}</Label>
                     <div className="p-2 bg-red-50 border border-red-200 rounded text-red-800 text-sm">
                       {lastPaymentResult.error}
                     </div>
@@ -422,7 +422,7 @@ export default function PaymentTestPage() {
 
                 {lastPaymentResult.message && (
                   <div>
-                    <Label>{getText('tenant.paymentTest.message', 'Message')}</Label>
+                    <Label>{getText('merchant.paymentTest.message', 'Message')}</Label>
                     <div className="p-2 bg-gray-100 rounded text-sm">
                       {lastPaymentResult.message}
                     </div>
@@ -432,8 +432,8 @@ export default function PaymentTestPage() {
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>{getText('tenant.paymentTest.noResults', 'No payment test results yet')}</p>
-                <p className="text-sm">{getText('tenant.paymentTest.clickToBegin', 'Click "Test Stripe Payment" to begin')}</p>
+                <p>{getText('merchant.paymentTest.noResults', 'No payment test results yet')}</p>
+                <p className="text-sm">{getText('merchant.paymentTest.clickToBegin', 'Click "Test Stripe Payment" to begin')}</p>
               </div>
             )}
           </CardContent>
@@ -443,26 +443,26 @@ export default function PaymentTestPage() {
       {/* Instructions */}
       <Card className="mt-8">
         <CardHeader>
-          <CardTitle>{getText('tenant.paymentTest.instructions', 'Hot-Swap Testing Instructions')}</CardTitle>
+          <CardTitle>{getText('merchant.paymentTest.instructions', 'Hot-Swap Testing Instructions')}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="p-4 border rounded-lg">
-              <h4 className="font-semibold text-green-600 mb-2">{getText('tenant.paymentTest.step1Title', '1. Test Active Plugin')}</h4>
+              <h4 className="font-semibold text-green-600 mb-2">{getText('merchant.paymentTest.step1Title', '1. Test Active Plugin')}</h4>
               <p className="text-sm text-gray-600">
-                {getText('tenant.paymentTest.step1Desc', 'Create a payment while Stripe plugin is active. Should succeed.')}
+                {getText('merchant.paymentTest.step1Desc', 'Create a payment while Stripe plugin is active. Should succeed.')}
               </p>
             </div>
             <div className="p-4 border rounded-lg">
-              <h4 className="font-semibold text-orange-600 mb-2">{getText('tenant.paymentTest.step2Title', '2. Test Deactivated Plugin')}</h4>
+              <h4 className="font-semibold text-orange-600 mb-2">{getText('merchant.paymentTest.step2Title', '2. Test Deactivated Plugin')}</h4>
               <p className="text-sm text-gray-600">
-                {getText('tenant.paymentTest.step2Desc', 'Deactivate Stripe plugin, then test payment. Should fail gracefully.')}
+                {getText('merchant.paymentTest.step2Desc', 'Deactivate Stripe plugin, then test payment. Should fail gracefully.')}
               </p>
             </div>
             <div className="p-4 border rounded-lg">
-              <h4 className="font-semibold text-red-600 mb-2">{getText('tenant.paymentTest.step3Title', '3. Test Uninstalled Plugin')}</h4>
+              <h4 className="font-semibold text-red-600 mb-2">{getText('merchant.paymentTest.step3Title', '3. Test Uninstalled Plugin')}</h4>
               <p className="text-sm text-gray-600">
-                {getText('tenant.paymentTest.step3Desc', 'Uninstall Stripe plugin, then test payment. Should fail with plugin not found.')}
+                {getText('merchant.paymentTest.step3Desc', 'Uninstall Stripe plugin, then test payment. Should fail with plugin not found.')}
               </p>
             </div>
           </div>

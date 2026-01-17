@@ -1,81 +1,44 @@
 /**
- * Higher-Order Component for Server-Side Mall Context
- * 
- * This HOC allows individual pages to opt-in to SSR optimization
- * by fetching mall context on the server.
- * 
- * Usage Example:
- * 
- * ```tsx
- * // app/products/page.tsx
- * import { withServerContext } from '@/lib/with-server-context';
- * 
- * async function ProductsPage({ 
- *   searchParams 
- * }: { 
- *   searchParams: Record<string, string | string[] | undefined> 
- * }) {
- *   return <div>Products Page</div>;
- * }
- * 
- * export default withServerContext(ProductsPage);
- * ```
+ * Higher-Order Component for Server-Side Store Context (Single Store)
  */
 
-import { getServerMallContext, type ServerMallContext } from './server-mall-context';
-import { MallContextProvider } from '@/components/mall-context-provider';
-import type { MallContext } from './mall-context';
+import { getServerStoreContext } from './server-store-context';
+import { StoreContextProvider } from '@/components/store-context-provider';
+import type { StoreContext } from './store-context';
 
 interface PageProps {
-  searchParams?: Record<string, string | string[] | undefined>;
   [key: string]: any;
 }
 
 /**
- * Wrap a page component with server-side mall context fetching
- * 
- * @param PageComponent - The page component to wrap
- * @returns A new component that fetches context on the server
+ * Wrap a page component with server-side store context fetching
  */
 export function withServerContext<P extends PageProps>(
-  PageComponent: React.ComponentType<P & { initialContext?: MallContext | null }>
+  PageComponent: React.ComponentType<P & { initialContext?: StoreContext | null }>
 ) {
   return async function ServerContextPage(props: P) {
-    // Fetch mall context on the server
-    const serverContext = await getServerMallContext(props.searchParams);
+    // Fetch store context on the server
+    const serverContext = await getServerStoreContext();
 
-    // Convert ServerMallContext to MallContext
-    const initialContext: MallContext | null = serverContext
+    // Convert ServerStoreContext to StoreContext
+    const initialContext: StoreContext | null = serverContext
       ? {
-          tenantId: serverContext.tenantId,
-          tenantName: serverContext.tenantName,
-          subdomain: serverContext.subdomain,
-          domain: serverContext.domain,
-          logo: serverContext.logo,
-          theme: serverContext.theme,
-          settings: serverContext.settings,
-          status: serverContext.status,
-          defaultLocale: serverContext.defaultLocale ?? 'en',
-          supportedLocales: serverContext.supportedLocales ?? ['en', 'zh-Hant'],
-        }
+        storeId: serverContext.storeId,
+        storeName: serverContext.storeName,
+        logo: serverContext.logo,
+        theme: serverContext.theme as any,
+        settings: serverContext.settings,
+        status: serverContext.status,
+        defaultLocale: serverContext.defaultLocale ?? 'en',
+        supportedLocales: serverContext.supportedLocales ?? ['en', 'zh-Hant'],
+      }
       : null;
 
-    // Render the page with initial context
+    // Render the page with store context provider
     return (
-      <MallContextProvider initialContext={initialContext}>
+      <StoreContextProvider initialContext={initialContext}>
         <PageComponent {...props} initialContext={initialContext} />
-      </MallContextProvider>
+      </StoreContextProvider>
     );
   };
-}
-
-/**
- * Hook to access server-fetched context in page components
- * 
- * Note: This only works in pages wrapped with withServerContext
- */
-export function useInitialContext() {
-  // This is a placeholder - actual implementation would use React Context
-  // For now, pages can access initialContext from props
-  return null;
 }

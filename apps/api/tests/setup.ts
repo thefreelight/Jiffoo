@@ -1,98 +1,53 @@
 /**
- * Global Test Setup
+ * Vitest Global Setup
  * 
  * This file is loaded before all tests run.
- * It sets up environment variables, global mocks, and test lifecycle hooks.
+ * Configure global test environment, mocks, and cleanup hooks.
  */
 
-import { beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
+import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
+import dotenv from 'dotenv';
+import path from 'path';
 
-// ============================================
-// Environment Variables
-// ============================================
+// Load tests/.env.test before importing db helpers
+dotenv.config({ path: path.resolve(__dirname, './.env.test') });
 
-// Set test environment
+// Fallback to root .env is DANGEROUS, so we enforce explicit test env
+if (!process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL is not set. Please ensure .env.test is configured correctly.');
+}
+
+import { cleanupDatabase, setupTestDatabase, disconnectDatabase } from './helpers/db';
+
+// Set test environment variables
 process.env.NODE_ENV = 'test';
+process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
 
-// Database - Use test database
-process.env.DATABASE_URL = process.env.TEST_DATABASE_URL || process.env.DATABASE_URL;
-
-// JWT secrets for testing
-process.env.JWT_SECRET = process.env.JWT_SECRET || 'test-jwt-secret-key-for-testing-only';
-process.env.JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'test-refresh-secret-key';
-
-// Redis - Use test instance or disable
-process.env.REDIS_URL = process.env.TEST_REDIS_URL || 'redis://localhost:6379/1';
-
-// Disable rate limiting in tests
-process.env.DISABLE_RATE_LIMITING = 'true';
-
-// ============================================
-// Global Mocks
-// ============================================
-
-// Mock console methods to reduce noise (optional)
-// Uncomment if you want quieter test output
-// vi.spyOn(console, 'log').mockImplementation(() => {});
-// vi.spyOn(console, 'info').mockImplementation(() => {});
-
-// Mock external services by default
-vi.mock('resend', () => ({
-  Resend: vi.fn().mockImplementation(() => ({
-    emails: {
-      send: vi.fn().mockResolvedValue({ data: { id: 'mock-email-id' } }),
-    },
-  })),
-}));
-
-// ============================================
-// Test Lifecycle Hooks
-// ============================================
-
+// Global setup - runs once before all tests
 beforeAll(async () => {
-  // Global setup before all tests
-  console.log('🧪 Test suite starting...');
+  console.log('\n🧪 Setting up test environment...\n');
+  await setupTestDatabase();
 });
 
+// Global teardown - runs once after all tests
 afterAll(async () => {
-  // Global cleanup after all tests
-  console.log('🧪 Test suite completed.');
+  console.log('\n🧹 Cleaning up test environment...\n');
+  await cleanupDatabase();
+  await disconnectDatabase();
 });
 
+// Per-test hooks (optional, can be overridden in individual test files)
 beforeEach(async () => {
-  // Reset mocks before each test
-  vi.clearAllMocks();
+  // Reset any test state if needed
 });
 
 afterEach(async () => {
-  // Cleanup after each test
+  // Clean up after each test if needed
 });
 
-// ============================================
-// Global Test Utilities
-// ============================================
-
-/**
- * Wait for a specified time
- */
-export const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-/**
- * Generate a random test ID
- */
-export const generateTestId = () => `test-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-
-/**
- * Expect a promise to reject
- */
-export const expectToReject = async (promise: Promise<unknown>, errorMessage?: string) => {
-  try {
-    await promise;
-    throw new Error('Expected promise to reject');
-  } catch (error: unknown) {
-    if (errorMessage && error instanceof Error) {
-      expect(error.message).toContain(errorMessage);
-    }
-  }
-};
-
+// Extend Vitest matchers if needed
+// expect.extend({
+//   toBeValidResponse(received) {
+//     // Custom matcher logic
+//   },
+// });

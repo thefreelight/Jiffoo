@@ -3,30 +3,12 @@
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { Readable } from 'stream';
-import * as fs from 'fs';
 import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 import { PluginManagementService } from './service';
 import type { PluginConfig } from './types';
-import {
-  checkMarketplaceStatus,
-  fetchPlugins,
-  fetchPluginDetails,
-  downloadPlugin,
-} from '@/services/marketplace/client';
-import { ExtensionInstaller } from '@/services/extension-installer';
-
-/**
- * Convert Buffer to Readable stream
- */
-function bufferToStream(buffer: Buffer): Readable {
-  const readable = new Readable();
-  readable.push(buffer);
-  readable.push(null);
-  return readable;
-}
 
 // Built-in plugins that are always available
+// Alpha: Only Stripe is included as built-in payment method
 const BUILTIN_PLUGINS = [
   {
     id: 'stripe-payment',
@@ -54,86 +36,11 @@ const BUILTIN_PLUGINS = [
     isOfficial: true, // Jiffoo Team official plugin
     verified: true,
   },
-  {
-    id: 'paypal-payment',
-    slug: 'paypal-payment',
-    name: 'PayPal Payment',
-    description: 'Accept PayPal payments including PayPal Credit and Pay Later options.',
-    version: '1.0.0',
-    author: 'Jiffoo Team',
-    category: 'payment',
-    icon: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/paypal.svg',
-    iconBgColor: '#003087',
-    rating: 4.7,
-    installCount: 8000,
-    businessModel: 'free',
-    price: 0,
-    features: [
-      'PayPal checkout',
-      'PayPal Credit',
-      'Pay Later options',
-      'Refund support'
-    ],
-    screenshots: [],
-    isBuiltin: true,
-    isOfficial: true,
-    verified: true,
-  },
-  {
-    id: 'wechat-payment',
-    slug: 'wechat-payment',
-    name: 'WeChat Pay',
-    description: 'Accept WeChat Pay for Chinese customers. QR code and in-app payments.',
-    version: '1.0.0',
-    author: 'Jiffoo Team',
-    category: 'payment',
-    icon: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/wechat.svg',
-    iconBgColor: '#07C160',
-    rating: 4.8,
-    installCount: 5000,
-    businessModel: 'free',
-    price: 0,
-    features: [
-      'QR code payments',
-      'In-app payments',
-      'Mini program support',
-      'Refund management'
-    ],
-    screenshots: [],
-    isBuiltin: true,
-    isOfficial: true,
-    verified: true,
-  },
-  {
-    id: 'alipay-payment',
-    slug: 'alipay-payment',
-    name: 'Alipay',
-    description: 'Accept Alipay payments for Chinese customers.',
-    version: '1.0.0',
-    author: 'Jiffoo Team',
-    category: 'payment',
-    icon: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/alipay.svg',
-    iconBgColor: '#1677FF',
-    rating: 4.8,
-    installCount: 4500,
-    businessModel: 'free',
-    price: 0,
-    features: [
-      'QR code payments',
-      'Mobile payments',
-      'Cross-border support',
-      'Refund management'
-    ],
-    screenshots: [],
-    isBuiltin: true,
-    isOfficial: true,
-    verified: true,
-  },
 ];
 
 // Plugin categories
 const PLUGIN_CATEGORIES = [
-  { id: 'payment', name: 'Payment', count: 4 },
+  { id: 'payment', name: 'Payment', count: 1 }, // Alpha: Only Stripe
   { id: 'shipping', name: 'Shipping', count: 0 },
   { id: 'marketing', name: 'Marketing', count: 0 },
   { id: 'analytics', name: 'Analytics', count: 0 },
@@ -143,6 +50,26 @@ const PLUGIN_CATEGORIES = [
 
 export async function adminPluginRoutes(fastify: FastifyInstance) {
   // ============================================================================
+  // Auth middleware: Must run before schema validation
+  // ============================================================================
+  fastify.addHook('onRequest', authMiddleware);
+  fastify.addHook('onRequest', requireAdmin);
+
+  // ============================================================================
+  // Alpha Gate: Disable marketplace routes unless explicitly enabled
+  // ============================================================================
+  fastify.addHook('onRequest', async (request, reply) => {
+    const isMarketplaceRoute = request.url.includes('/marketplace');
+    if (isMarketplaceRoute && process.env.ENABLE_MARKETPLACE !== 'true') {
+      return reply.code(501).send({
+        success: false,
+        error: 'NOT_IMPLEMENTED',
+        message: 'Online marketplace is not available in this version. Please use offline ZIP installation via /api/extensions/*',
+      });
+    }
+  });
+
+  // ============================================================================
   // Marketplace Routes (must be defined before /:slug to avoid conflicts)
   // ============================================================================
 
@@ -151,7 +78,6 @@ export async function adminPluginRoutes(fastify: FastifyInstance) {
    * Get plugins from marketplace (built-in + remote)
    */
   fastify.get('/marketplace', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-plugins'],
       summary: 'Get marketplace plugins',
@@ -161,28 +87,9 @@ export async function adminPluginRoutes(fastify: FastifyInstance) {
     try {
       const query = request.query as any;
 
-      // Start with built-in plugins
+      // Alpha: Only built-in plugins are available
+      // Remote marketplace is not supported in open-source version
       let plugins: any[] = [...BUILTIN_PLUGINS];
-
-      // Try to fetch from remote marketplace
-      try {
-        const status = await checkMarketplaceStatus();
-        if (status.online) {
-          const remotePlugins = await fetchPlugins({
-            category: query.category,
-            search: query.search,
-            priceType: query.priceType,
-            sortBy: query.sortBy || 'popular',
-            page: parseInt(query.page || '1', 10),
-            limit: parseInt(query.limit || '20', 10),
-          });
-          if (remotePlugins.items) {
-            plugins = [...plugins, ...remotePlugins.items];
-          }
-        }
-      } catch {
-        // Remote marketplace unavailable, use built-in only
-      }
 
       // Filter by category if specified
       if (query.category && query.category !== 'all') {
@@ -218,7 +125,6 @@ export async function adminPluginRoutes(fastify: FastifyInstance) {
    * Search plugins in marketplace
    */
   fastify.get('/marketplace/search', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-plugins'],
       summary: 'Search marketplace plugins',
@@ -256,7 +162,6 @@ export async function adminPluginRoutes(fastify: FastifyInstance) {
    * Get plugin details from marketplace
    */
   fastify.get('/marketplace/:slug', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-plugins'],
       summary: 'Get marketplace plugin details',
@@ -266,22 +171,13 @@ export async function adminPluginRoutes(fastify: FastifyInstance) {
     try {
       const { slug } = request.params;
 
-      // Check built-in plugins first
+      // Alpha: Only built-in plugins are available
       const builtinPlugin = BUILTIN_PLUGINS.find(p => p.slug === slug);
       if (builtinPlugin) {
         return reply.send({ success: true, data: builtinPlugin });
       }
 
-      // Try remote marketplace
-      try {
-        const plugin = await fetchPluginDetails(slug);
-        if (plugin) {
-          return reply.send({ success: true, data: plugin });
-        }
-      } catch {
-        // Remote unavailable
-      }
-
+      // Remote marketplace is not supported in open-source version
       return reply.code(404).send({ success: false, error: 'Plugin not found' });
     } catch (error: any) {
       return reply.code(500).send({ success: false, error: error.message });
@@ -293,7 +189,6 @@ export async function adminPluginRoutes(fastify: FastifyInstance) {
    * Get plugin categories
    */
   fastify.get('/categories', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-plugins'],
       summary: 'Get plugin categories',
@@ -317,7 +212,6 @@ export async function adminPluginRoutes(fastify: FastifyInstance) {
    * Get installed plugins list
    */
   fastify.get('/installed', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-plugins'],
       summary: 'Get installed plugins list',
@@ -351,10 +245,9 @@ export async function adminPluginRoutes(fastify: FastifyInstance) {
 
   /**
    * GET /api/admin/plugins
-   * 获取已安装插件列表
+   * Get installed plugins list
    */
   fastify.get('/', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-plugins'],
       summary: 'Get installed plugins list',
@@ -374,7 +267,6 @@ export async function adminPluginRoutes(fastify: FastifyInstance) {
    * Install a plugin
    */
   fastify.post<{ Params: { slug: string } }>('/:slug/install', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-plugins'],
       summary: 'Install a plugin',
@@ -396,31 +288,12 @@ export async function adminPluginRoutes(fastify: FastifyInstance) {
         });
       }
 
-      // Try to download from marketplace
-      const downloadResult = await downloadPlugin(slug);
-      if (!downloadResult.success || !downloadResult.zipPath) {
-        return reply.code(400).send({
-          success: false,
-          error: downloadResult.error || 'Download failed',
-        });
-      }
-
-      // Install using ExtensionInstaller
-      const zipBuffer = fs.readFileSync(downloadResult.zipPath);
-      const zipStream = bufferToStream(zipBuffer);
-      const installer = new ExtensionInstaller();
-      const installResult = await installer.installFromZip('plugin', zipStream);
-
-      // Clean up temp file
-      fs.unlinkSync(downloadResult.zipPath);
-
-      return reply.send({
-        success: true,
-        data: {
-          slug: installResult.slug,
-          version: installResult.version,
-        },
-        message: `Plugin "${slug}" installed successfully`,
+      // Alpha: Remote marketplace download is not supported
+      // Use offline ZIP installation via /api/extensions/plugin/install instead
+      return reply.code(400).send({
+        success: false,
+        error: 'NOT_SUPPORTED',
+        message: 'Remote plugin download is not available. Please use offline ZIP installation via /api/extensions/plugin/install',
       });
     } catch (error: any) {
       fastify.log.error({ err: error }, 'Failed to install plugin');
@@ -430,10 +303,9 @@ export async function adminPluginRoutes(fastify: FastifyInstance) {
 
   /**
    * GET /api/admin/plugins/:slug
-   * 获取插件状态
+   * Get plugin state
    */
   fastify.get<{ Params: { slug: string } }>('/:slug', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-plugins'],
       summary: 'Get plugin state',
@@ -461,10 +333,9 @@ export async function adminPluginRoutes(fastify: FastifyInstance) {
 
   /**
    * POST /api/admin/plugins/:slug/enable
-   * 启用插件
+   * Enable a plugin
    */
   fastify.post<{ Params: { slug: string } }>('/:slug/enable', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-plugins'],
       summary: 'Enable a plugin',
@@ -489,10 +360,9 @@ export async function adminPluginRoutes(fastify: FastifyInstance) {
 
   /**
    * POST /api/admin/plugins/:slug/disable
-   * 禁用插件
+   * Disable a plugin
    */
   fastify.post<{ Params: { slug: string } }>('/:slug/disable', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-plugins'],
       summary: 'Disable a plugin',
@@ -517,10 +387,9 @@ export async function adminPluginRoutes(fastify: FastifyInstance) {
 
   /**
    * PUT /api/admin/plugins/:slug/config
-   * 更新插件配置
+   * Update plugin config
    */
   fastify.put<{ Params: { slug: string }; Body: PluginConfig }>('/:slug/config', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-plugins'],
       summary: 'Update plugin config',

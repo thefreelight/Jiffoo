@@ -10,7 +10,7 @@ import { useEffect, ReactNode, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 import { Loader2 } from 'lucide-react'
-import { useT } from 'shared/src/i18n'
+import { useT, useLocale } from 'shared/src/i18n/react'
 
 interface ProtectedRouteProps {
   children: ReactNode
@@ -23,6 +23,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
   const { isAuthenticated, isLoading, isChecking, user, checkAuth } = useAuthStore()
   const [hasInitialized, setHasInitialized] = useState(false)
   const t = useT()
+  const locale = useLocale()
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -46,16 +47,16 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
     if (hasInitialized && !isLoading && !isChecking) {
       if (!isAuthenticated) {
         // Save current path for redirect after login
-        if (pathname !== '/auth/login' && pathname !== '/') {
+        if (pathname !== `/${locale}/auth/login` && pathname !== '/' && pathname !== `/${locale}`) {
           sessionStorage.setItem('redirectPath', pathname)
         }
-        router.replace('/auth/login')
+        router.replace(`/${locale}/auth/login`)
         return
       }
 
       if (requireAdmin && user?.role && !['ADMIN', 'SUPER_ADMIN', 'TENANT_ADMIN'].includes(user.role)) {
         console.warn('Access denied - user role:', user?.role, 'required: ADMIN or higher')
-        router.replace('/auth/login')
+        router.replace(`/${locale}/auth/login`)
         return
       }
     }
@@ -67,7 +68,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">{getText('tenant.auth.verifyingIdentity', 'Verifying identity...')}</p>
+          <p className="text-gray-600">{getText('merchant.auth.verifyingIdentity', 'Verifying identity...')}</p>
         </div>
       </div>
     )
@@ -79,7 +80,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">{getText('tenant.auth.redirectingToLogin', 'Redirecting to login page...')}</p>
+          <p className="text-gray-600">{getText('merchant.auth.redirectingToLogin', 'Redirecting to login page...')}</p>
         </div>
       </div>
     )
@@ -91,9 +92,9 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-            <h2 className="text-lg font-semibold text-red-800 mb-2">{getText('tenant.auth.accessDenied', 'Access Denied')}</h2>
-            <p className="text-red-600">{getText('tenant.auth.noPermission', 'You do not have permission to access this page. Admin privileges required.')}</p>
-            <p className="text-sm text-gray-500 mt-2">{getText('tenant.auth.currentRole', 'Current role')}: {user?.role || getText('common.unknown', 'Unknown')}</p>
+            <h2 className="text-lg font-semibold text-red-800 mb-2">{getText('merchant.auth.accessDenied', 'Access Denied')}</h2>
+            <p className="text-red-600">{getText('merchant.auth.noPermission', 'You do not have permission to access this page. Admin privileges required.')}</p>
+            <p className="text-sm text-gray-500 mt-2">{getText('merchant.auth.currentRole', 'Current role')}: {user?.role || getText('common.unknown', 'Unknown')}</p>
           </div>
         </div>
       </div>

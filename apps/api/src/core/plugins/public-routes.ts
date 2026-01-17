@@ -1,22 +1,20 @@
 /**
  * Public Plugin API Routes
  * 
- * 公开的插件 API，不需要认证
- * 用于 Shop 前端获取可用插件列表
+ * Public plugin API for listing locally installed plugins.
+ * No authentication required.
  * 
  * Base path: /api/plugins
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { PluginManagementService } from '@/core/admin/plugin-management/service';
 
 interface PluginListQuery {
   category?: string;
-  type?: 'theme' | 'plugin';
-  target?: 'shop' | 'admin';
+  enabled?: boolean;
   page?: number;
   limit?: number;
-  sortBy?: 'name' | 'rating' | 'installCount' | 'createdAt';
-  sortOrder?: 'asc' | 'desc';
 }
 
 interface PluginDetailParams {
@@ -24,102 +22,64 @@ interface PluginDetailParams {
 }
 
 /**
- * 公开插件路由
+ * Public plugin routes - lists locally installed plugins only
  */
 export async function publicPluginRoutes(fastify: FastifyInstance) {
   /**
    * GET /api/plugins
-   * 获取公开的插件列表（不需要认证）
+   * Get list of locally installed plugins (no authentication required)
    */
   fastify.get('/', {
     schema: {
       tags: ['Plugins - Public'],
-      summary: 'Get Public Plugin List',
-      description: 'Get list of available plugins and themes (no authentication required)',
+      summary: 'Get Installed Plugin List',
+      description: 'Get list of locally installed plugins (no authentication required)',
       querystring: {
         type: 'object',
         properties: {
           category: { type: 'string', description: 'Filter by category' },
-          type: { type: 'string', enum: ['theme', 'plugin'], description: 'Filter by type' },
-          target: { type: 'string', enum: ['shop', 'admin'], description: 'Filter by target (for themes)' },
+          enabled: { type: 'boolean', description: 'Filter by enabled status' },
           page: { type: 'integer', default: 1, minimum: 1 },
           limit: { type: 'integer', default: 20, minimum: 1, maximum: 100 },
-          sortBy: { type: 'string', enum: ['name', 'rating', 'installCount', 'createdAt'], default: 'name' },
-          sortOrder: { type: 'string', enum: ['asc', 'desc'], default: 'asc' },
         },
       },
     },
   }, async (request: FastifyRequest<{ Querystring: PluginListQuery }>, reply: FastifyReply) => {
     try {
-      const { category, type, target, page = 1, limit = 20, sortBy = 'name', sortOrder = 'asc' } = request.query;
+      const { category, enabled, page = 1, limit = 20 } = request.query;
 
-      // 构建查询条件
-      const where: any = {
-        status: 'ACTIVE',
-      };
+      // Get installed plugins from local state
+      const result = await PluginManagementService.getInstalledPlugins();
+      let plugins = result.plugins;
 
+      // Apply filters
       if (category) {
-        where.category = category;
+        plugins = plugins.filter(p => p.category === category);
       }
 
-      if (type === 'theme') {
-        where.category = 'theme';
-        if (target) {
-          // 通过 tags 过滤 target
-          where.tags = { contains: `"target":"${target}"` };
-        }
-      } else if (type === 'plugin') {
-        where.category = { not: 'theme' };
+      if (enabled !== undefined) {
+        plugins = plugins.filter(p => p.enabled === enabled);
       }
 
-      // 查询数据库
-      const [plugins, total] = await Promise.all([
-        fastify.prisma.plugin.findMany({
-          where,
-          orderBy: { [sortBy]: sortOrder },
-          skip: (page - 1) * limit,
-          take: limit,
-          include: {
-            subscriptionPlans: {
-              select: {
-                amount: true,
-              },
-              take: 1,
-            },
-          },
-        }),
-        fastify.prisma.plugin.count({ where }),
-      ]);
-
-      // 转换数据
-      const items = plugins.map((plugin) => {
-        const tags = plugin.tags ? JSON.parse(plugin.tags) : {};
-        // 从订阅计划推断商业模式
-        const hasPlans = plugin.subscriptionPlans && plugin.subscriptionPlans.length > 0;
-        const isFree = !hasPlans || plugin.subscriptionPlans.every((p) => p.amount === 0);
-        return {
-          id: plugin.id,
-          slug: plugin.slug,
-          name: plugin.name,
-          description: plugin.description,
-          category: plugin.category,
-          version: plugin.version,
-          icon: plugin.iconUrl,
-          rating: plugin.rating,
-          installCount: plugin.installCount,
-          developer: plugin.developer,
-          isFree,
-          target: tags.target,
-          style: tags.style,
-          industries: tags.industries,
-          featured: tags.featured === true,
-        };
-      });
+      // Pagination
+      const total = plugins.length;
+      const start = (page - 1) * limit;
+      const end = start + limit;
+      const items = plugins.slice(start, end);
 
       return reply.send({
         success: true,
         data: {
-          items,
+          items: items.map(p => ({
+            slug: p.slug,
+            name: p.name,
+            description: p.description,
+            version: p.version,
+            author: p.author,
+            category: p.category,
+            icon: p.icon,
+            enabled: p.enabled,
+          })),
           pagination: {
             page,
             limit,
@@ -129,7 +89,7 @@ export async function publicPluginRoutes(fastify: FastifyInstance) {
         },
       });
     } catch (error: any) {
-      fastify.log.error({ err: error }, 'Failed to get public plugin list');
+      fastify.log.error({ err: error }, 'Failed to get installed plugin list');
       return reply.status(500).send({
         success: false,
         error: error.message || 'Failed to retrieve plugins',
@@ -139,13 +99,13 @@ export async function publicPluginRoutes(fastify: FastifyInstance) {
 
   /**
    * GET /api/plugins/:slug
-   * 获取插件详情（不需要认证）
+   * Get plugin details (no authentication required)
    */
   fastify.get('/:slug', {
     schema: {
       tags: ['Plugins - Public'],
       summary: 'Get Plugin Details',
-      description: 'Get detailed information about a specific plugin (no authentication required)',
+      description: 'Get detailed information about a locally installed plugin (no authentication required)',
       params: {
         type: 'object',
         properties: {
@@ -158,71 +118,27 @@ export async function publicPluginRoutes(fastify: FastifyInstance) {
     try {
       const { slug } = request.params;
 
-      const plugin = await fastify.prisma.plugin.findFirst({
-        where: { slug, status: 'ACTIVE' },
-        include: {
-          subscriptionPlans: {
-            select: {
-              id: true,
-              planId: true,
-              name: true,
-              amount: true,
-              currency: true,
-              billingCycle: true,
-              features: true,
-            },
-          },
-        },
-      });
+      const state = await PluginManagementService.getPluginState(slug);
 
-      if (!plugin) {
+      if (!state) {
         return reply.status(404).send({
           success: false,
           error: 'Plugin not found',
         });
       }
 
-      const tags = plugin.tags ? JSON.parse(plugin.tags) : {};
-      const screenshots = plugin.screenshots ? JSON.parse(plugin.screenshots) : [];
-
-      // 从订阅计划推断商业模式
-      const hasPlans = plugin.subscriptionPlans && plugin.subscriptionPlans.length > 0;
-      const isFree = !hasPlans || plugin.subscriptionPlans.every((p) => p.amount === 0);
-
       return reply.send({
         success: true,
         data: {
-          id: plugin.id,
-          slug: plugin.slug,
-          name: plugin.name,
-          description: plugin.description,
-          longDescription: plugin.longDescription,
-          category: plugin.category,
-          version: plugin.version,
-          icon: plugin.iconUrl,
-          screenshots,
-          rating: plugin.rating,
-          installCount: plugin.installCount,
-          developer: plugin.developer,
-          isFree,
-          plans: plugin.subscriptionPlans.map((p) => ({
-            id: p.id,
-            planId: p.planId,
-            name: p.name,
-            price: p.amount,
-            currency: p.currency,
-            interval: p.billingCycle,
-            features: p.features ? JSON.parse(p.features) : [],
-          })),
-          target: tags.target,
-          style: tags.style,
-          industries: tags.industries,
-          features: tags.features,
-          demoUrl: tags.demoUrl,
-          documentationUrl: tags.documentationUrl,
-          supportUrl: tags.supportUrl,
-          createdAt: plugin.createdAt,
-          updatedAt: plugin.updatedAt,
+          slug: state.slug,
+          name: state.name,
+          description: state.description,
+          version: state.version,
+          author: state.author,
+          category: state.category,
+          icon: state.icon,
+          enabled: state.enabled,
+          config: state.config,
         },
       });
     } catch (error: any) {
@@ -234,4 +150,3 @@ export async function publicPluginRoutes(fastify: FastifyInstance) {
     }
   });
 }
-

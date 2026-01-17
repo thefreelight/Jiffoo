@@ -10,10 +10,10 @@ import { Suspense } from 'react';
 import {
   isSupportedLocale,
   getMessages,
-  I18nProvider,
   type Locale,
   type LocaleLayoutProps,
 } from 'shared/src/i18n';
+import { I18nProvider } from 'shared/src/i18n/react';
 import { ConditionalLayout } from '@/components/conditional-layout';
 import { PageTracker } from '@/components/page-tracker';
 import { Toaster } from '@/components/ui/toaster';

@@ -11,15 +11,15 @@
 import { useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useT, useLocale } from 'shared/src/i18n'
-import { useInstalledPlugins } from '@/lib/hooks/use-api'
+import { useT, useLocale } from 'shared/src/i18n/react'
+
 import {
   LayoutDashboard,
   Users,
   Package,
   FileText,
   Sliders,
-  UserCog,
+  Palette,
   X
 } from 'lucide-react'
 
@@ -35,49 +35,49 @@ interface NavigationItem {
 const baseNavigationConfig: NavigationItem[] = [
   {
     id: 'dashboard',
-    nameKey: 'tenant.nav.dashboard',
+    nameKey: 'merchant.nav.dashboard',
     fallback: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
   },
   {
     id: 'products',
-    nameKey: 'tenant.products.title',
+    nameKey: 'merchant.products.title',
     fallback: 'Products',
     href: '/products',
     icon: Package,
   },
   {
     id: 'orders',
-    nameKey: 'tenant.orders.title',
+    nameKey: 'merchant.orders.title',
     fallback: 'Orders',
     href: '/orders',
     icon: FileText,
   },
   {
     id: 'customers',
-    nameKey: 'tenant.customers.title',
+    nameKey: 'merchant.customers.title',
     fallback: 'Customers',
     href: '/customers',
     icon: Users,
   },
   {
     id: 'plugins',
-    nameKey: 'tenant.plugins.title',
+    nameKey: 'merchant.plugins.title',
     fallback: 'Plugins',
     href: '/plugins',
     icon: Sliders,
   },
+  {
+    id: 'themes',
+    nameKey: 'merchant.themes.title',
+    fallback: 'Themes',
+    href: '/themes',
+    icon: Palette,
+  },
 ];
 
-// Agent menu item - shown only when agent plugin is installed
-const agentMenuItem: NavigationItem = {
-  id: 'agents',
-  nameKey: 'tenant.agent.title',
-  fallback: 'Agents',
-  href: '/agents',
-  icon: UserCog,
-};
+
 
 interface BlueMinimalSidebarProps {
   isOpen?: boolean;
@@ -89,29 +89,17 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   const locale = useLocale()
   const t = useT()
 
-  // Check if agent plugin is installed
-  const { data: installedData } = useInstalledPlugins()
-  const isAgentPluginInstalled = useMemo(() => {
-    const plugins = installedData?.plugins || []
-    return plugins.some((p: { plugin: { slug: string }; enabled: boolean }) =>
-      p.plugin.slug === 'affiliate-commission' && p.enabled
-    )
-  }, [installedData])
+
 
   // Build navigation config dynamically
-  const navigationConfig = useMemo(() => {
-    if (isAgentPluginInstalled) {
-      const pluginsIndex = baseNavigationConfig.findIndex(item => item.href === '/plugins')
-      const config = [...baseNavigationConfig]
-      config.splice(pluginsIndex, 0, agentMenuItem)
-      return config
-    }
-    return baseNavigationConfig
-  }, [isAgentPluginInstalled])
+  const navigationConfig = baseNavigationConfig
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback
+    if (!t) return fallback
+    const translated = t(key)
+    // If translation returns the key itself, use fallback
+    return translated === key ? fallback : translated
   }
 
   // Build localized href

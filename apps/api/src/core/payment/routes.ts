@@ -1,8 +1,8 @@
 /**
- * Payment Routes (单商户版本)
+ * Payment Routes (Single Merchant Version)
  *
- * 支持真实支付（如Stripe）和模拟支付流程
- * 根据已安装的支付插件动态选择支付方式
+ * Supports real payment (like Stripe) and mock payment flow
+ * Dynamically choose payment methods based on installed payment plugins
  */
 
 import { FastifyInstance } from 'fastify';
@@ -161,6 +161,8 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         });
       }
 
+      const attemptNumber = (order.paymentAttempts || 0) + 1;
+
       // Check if Stripe is enabled and payment method is stripe
       const stripeInstance = await getStripeInstance();
       const isStripePayment = paymentMethod === 'stripe' || paymentMethod === 'stripe-payment';
@@ -192,7 +194,32 @@ export async function paymentRoutes(fastify: FastifyInstance) {
           cancel_url: cancelUrl || `${baseUrl}/en/checkout?canceled=true&order_id=${orderId}`,
           metadata: {
             orderId: orderId,
+            attemptNumber: attemptNumber.toString()
           },
+        });
+
+        // Create Payment Record
+        await prisma.payment.create({
+          data: {
+            orderId: order.id,
+            paymentMethod: 'stripe',
+            amount: Number(order.totalAmount),
+            currency: 'USD',
+            status: 'PENDING',
+            sessionId: session.id,
+            sessionUrl: session.url,
+            attemptNumber: attemptNumber
+          }
+        });
+
+        // Update Order attempts
+        await prisma.order.update({
+          where: { id: order.id },
+          data: {
+            paymentAttempts: attemptNumber,
+            lastPaymentAttemptAt: new Date(),
+            lastPaymentMethod: 'stripe'
+          }
         });
 
         console.log('✅ Stripe Checkout Session created:', session.id);
@@ -214,20 +241,37 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       // Generate mock session ID
       const sessionId = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      // For demo purposes, directly mark order as paid and redirect to success
-      await prisma.order.update({
-        where: { id: orderId },
-        data: {
-          paymentStatus: 'PAID',
-          status: 'PROCESSING'
-        }
-      });
-
       // Return success URL with session ID
       const baseUrl = process.env.SHOP_URL || 'http://localhost:3004';
       const redirectUrl = successUrl
         ? successUrl.replace('{CHECKOUT_SESSION_ID}', sessionId)
         : `${baseUrl}/en/order-success?session_id=${sessionId}&order_id=${orderId}`;
+
+      // Create Payment Record (Immediate Success)
+      await prisma.payment.create({
+        data: {
+          orderId: order.id,
+          paymentMethod: 'mock',
+          amount: Number(order.totalAmount),
+          currency: 'USD',
+          status: 'SUCCEEDED',
+          sessionId: sessionId,
+          sessionUrl: redirectUrl,
+          attemptNumber: attemptNumber
+        }
+      });
+
+      // Update Order directly
+      await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          paymentStatus: 'PAID',
+          status: 'PROCESSING',
+          paymentAttempts: attemptNumber,
+          lastPaymentAttemptAt: new Date(),
+          lastPaymentMethod: 'mock'
+        }
+      });
 
       return reply.send({
         success: true,
@@ -258,6 +302,19 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         const session = await stripeInstance.checkout.sessions.retrieve(sessionId);
 
         if (session.payment_status === 'paid') {
+          // Update Payment Record
+          const payment = await prisma.payment.findFirst({ where: { sessionId } });
+          if (payment) {
+            await prisma.payment.update({
+              where: { id: payment.id },
+              data: {
+                status: 'SUCCEEDED',
+                paymentIntentId: session.payment_intent as string,
+                metadata: JSON.stringify(session)
+              }
+            });
+          }
+
           // Update order status if we have orderId in metadata
           if (session.metadata?.orderId) {
             await prisma.order.update({
@@ -348,16 +405,60 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         const session = event.data.object;
         console.log('✅ Stripe payment completed:', session.id);
 
-        // Update order status
-        if (session.metadata?.orderId) {
+        // Find payment record
+        const payment = await prisma.payment.findFirst({
+          where: { sessionId: session.id }
+        });
+
+        if (payment) {
+          // Update Payment Record
+          await prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+              status: 'SUCCEEDED',
+              paymentIntentId: session.payment_intent as string,
+              metadata: JSON.stringify(session)
+            }
+          });
+
+          // Update order status if we have orderId in metadata
+          // Using payment.orderId is safer as it was linked at creation
           await prisma.order.update({
-            where: { id: session.metadata.orderId },
+            where: { id: payment.orderId },
             data: {
               paymentStatus: 'PAID',
               status: 'PROCESSING'
             }
           });
-          console.log('✅ Order updated:', session.metadata.orderId);
+          console.log('✅ Order updated via Payment link:', payment.orderId);
+        } else if (session.metadata?.orderId) {
+          // Fallback if payment record not found (should not happen with new flow)
+          console.warn('⚠️ Payment record not found for session, falling back to metadata');
+
+          // Create missing payment record
+          const order = await prisma.order.findUnique({ where: { id: session.metadata.orderId } });
+          if (order) {
+            await prisma.payment.create({
+              data: {
+                orderId: order.id,
+                paymentMethod: 'stripe',
+                amount: Number(session.amount_total) / 100,
+                currency: session.currency || 'USD',
+                status: 'SUCCEEDED',
+                sessionId: session.id,
+                paymentIntentId: session.payment_intent as string,
+                attemptNumber: 1
+              }
+            });
+
+            await prisma.order.update({
+              where: { id: session.metadata.orderId },
+              data: {
+                paymentStatus: 'PAID',
+                status: 'PROCESSING'
+              }
+            });
+          }
         }
         break;
       }

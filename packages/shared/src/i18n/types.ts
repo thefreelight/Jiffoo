@@ -19,11 +19,12 @@ export type AppName = 'tenant' | 'agent' | 'shop' | 'whiteLabel';
  * Message namespace identifiers
  * - common: Cross-app common messages (buttons, system prompts, error states)
  * - tenant: Tenant-specific messages
+ * - merchant: Alias for tenant (backward compatibility with merchant.* keys)
  * - agent: Agent portal messages
  * - shop: Shop frontend messages
  * - whiteLabel: White-label studio messages
  */
-export type MessageNamespace = 'common' | AppName;
+export type MessageNamespace = 'common' | 'merchant' | AppName;
 
 /**
  * Nested message object structure

@@ -11,9 +11,9 @@ module.exports = {
     './lib/**/*.{js,ts,jsx,tsx,mdx}',
     './hooks/**/*.{js,ts,jsx,tsx,mdx}',
     './store/**/*.{js,ts,jsx,tsx,mdx}',
-    // 扫描主题包
+    // Scanning theme packages
     '../../packages/shop-themes/*/src/**/*.{js,ts,jsx,tsx,mdx}',
-    // 扫描 UI 设计系统
+    // Scanning UI design system
     '../../packages/ui/src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {
@@ -39,7 +39,7 @@ module.exports = {
           DEFAULT: 'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
         },
-        // 主题系统颜色变量
+        // Theme system color variables
         'theme-primary': 'var(--theme-primary)',
         'theme-secondary': 'var(--theme-secondary)',
         destructive: {
@@ -71,7 +71,7 @@ module.exports = {
       fontFamily: {
         sans: ['Inter', 'SF Pro Display', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         mono: ['SF Mono', 'Monaco', 'Consolas', 'monospace'],
-        // 主题系统字体变量
+        // Theme system font variables
         theme: ['var(--theme-font)', 'system-ui', '-apple-system', 'sans-serif'],
       },
       animation: {

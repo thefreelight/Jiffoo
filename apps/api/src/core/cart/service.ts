@@ -29,30 +29,30 @@ export interface Cart {
 }
 
 /**
- * 购物车服务 (单商户版本)
+ * Cart Service
  * 
- * 简化版本，移除了租户隔离逻辑。
+ * Simplified version, removed multi-tenant logic.
  */
 export class CartService {
   private static CART_CACHE_PREFIX = 'user_cart:';
-  private static CART_CACHE_TTL = 86400 * 7; // 7天
+  private static CART_CACHE_TTL = 86400 * 7; // 7 days
 
   /**
-   * 获取用户购物车
+   * Get user cart
    */
   static async getCart(userId: string): Promise<Cart> {
     try {
       const cacheKey = this.buildCacheKey(userId);
-      
-      // 1. 先尝试从Redis缓存获取
+
+      // 1. Try to get from Redis cache first
       const cachedCart = await CacheService.get<string>(cacheKey);
       if (cachedCart) {
         return JSON.parse(cachedCart);
       }
 
-      // 2. 从数据库获取
+      // 2. Get from database
       const dbCart = await this.getCartFromDatabase(userId);
-      
+
       if (dbCart) {
         await CacheService.set(cacheKey, JSON.stringify(dbCart), { ttl: this.CART_CACHE_TTL });
         return dbCart;
@@ -66,7 +66,7 @@ export class CartService {
   }
 
   /**
-   * 添加商品到购物车
+   * Add item to cart
    */
   static async addToCart(
     userId: string,
@@ -75,7 +75,7 @@ export class CartService {
     variantId?: string
   ): Promise<Cart> {
     try {
-      // 获取或创建购物车
+      // Get or create cart
       let cart = await prisma.cart.findUnique({
         where: { userId },
         include: { items: true }
@@ -88,40 +88,50 @@ export class CartService {
         });
       }
 
-      // 获取商品信息
-      const product = await prisma.product.findUnique({
-        where: { id: productId }
-      });
-
-      if (!product) {
-        throw new Error('Product not found');
+      // Get variant info for price
+      let variant;
+      if (variantId) {
+        variant = await prisma.productVariant.findUnique({
+          where: { id: variantId }
+        });
+      } else {
+        // Find default variant if no variantId provided
+        variant = await prisma.productVariant.findFirst({
+          where: { productId, isDefault: true }
+        }) || await prisma.productVariant.findFirst({
+          where: { productId }
+        });
       }
 
-      // 检查是否已存在该商品
+      if (!variant) {
+        throw new Error('Product or variant not found');
+      }
+
+      // Check if item already exists
       const existingItem = cart.items.find(
-        item => item.productId === productId && item.variantId === variantId
+        item => item.productId === productId && item.variantId === variant.id
       );
 
       if (existingItem) {
-        // 更新数量
+        // Update quantity
         await prisma.cartItem.update({
           where: { id: existingItem.id },
           data: { quantity: existingItem.quantity + quantity }
         });
       } else {
-        // 添加新商品
+        // Add new item
         await prisma.cartItem.create({
           data: {
             cartId: cart.id,
             productId,
-            variantId,
+            variantId: variant.id,
             quantity,
-            price: product.price
+            price: variant.basePrice
           }
         });
       }
 
-      // 清除缓存并返回更新后的购物车
+      // Invalidate cache and return updated cart
       await this.invalidateCache(userId);
       return this.getCart(userId);
     } catch (error) {
@@ -131,7 +141,7 @@ export class CartService {
   }
 
   /**
-   * 更新购物车商品数量
+   * Update cart item quantity
    */
   static async updateCartItem(
     userId: string,
@@ -171,7 +181,7 @@ export class CartService {
   }
 
   /**
-   * 从购物车移除商品
+   * Remove item from cart
    */
   static async removeFromCart(userId: string, itemId: string): Promise<Cart> {
     try {
@@ -185,7 +195,7 @@ export class CartService {
   }
 
   /**
-   * 清空购物车
+   * Clear cart
    */
   static async clearCart(userId: string): Promise<Cart> {
     try {
@@ -202,7 +212,7 @@ export class CartService {
   }
 
   // ============================================
-  // 私有方法
+  // Private Methods
   // ============================================
 
   private static buildCacheKey(userId: string): string {
@@ -229,18 +239,21 @@ export class CartService {
 
     if (!cart) return null;
 
-    const items: CartItem[] = cart.items.map(item => ({
-      id: item.id,
-      productId: item.productId,
-      productName: item.product?.name || 'Unknown Product',
-      productImage: item.product?.images ? JSON.parse(item.product.images as string)[0] : '',
-      price: Number(item.price),
-      quantity: item.quantity,
-      variantId: item.variantId || undefined,
-      variantName: item.variant?.name || undefined,
-      maxQuantity: item.product?.stock || 0,
-      subtotal: Number(item.price) * item.quantity
-    }));
+    const items: CartItem[] = cart.items.map(item => {
+      const images = item.product?.typeData ? JSON.parse(item.product.typeData).images || [] : [];
+      return {
+        id: item.id,
+        productId: item.productId,
+        productName: item.product?.name || 'Unknown Product',
+        productImage: images[0] || '',
+        price: Number(item.price),
+        quantity: item.quantity,
+        variantId: item.variantId || undefined,
+        variantName: item.variant?.name || undefined,
+        maxQuantity: item.variant?.baseStock || 0,
+        subtotal: Number(item.price) * item.quantity
+      };
+    });
 
     const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
 

@@ -1,0 +1,8 @@
+service_name: "admin"
+version: "v1.0"
+registry: "harbor.lafdru.local"
+project: "public/jiffoo-mall"
+image_name: "admin"
+dockerfile_path: "apps/admin/Dockerfile"
+build_context: "."
+gitops_deployment_path: "jiffoo-mall"

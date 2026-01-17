@@ -10,7 +10,7 @@ import { useAuthStore } from '@/lib/store';
 import { AdminLayout } from './admin-layout';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 interface ConditionalLayoutProps {
   children: React.ReactNode;

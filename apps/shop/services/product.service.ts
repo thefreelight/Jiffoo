@@ -1,114 +1,179 @@
 /**
- * Product Service
+ * Product Service - Shop Application
  *
- * Provides API methods for product-related operations.
- * Supports locale parameter for multilingual product data.
+ * Service layer for product-related operations.
+ * Wraps the productsApi with additional business logic and type exports.
  *
  * 🆕 Agent Mall 支持：
- * - agentId 参数用于获取代理授权的商品和有效价格
- * - 变体信息包含 isAuthorized 标记
+ * - 使用 agentId 获取授权商品和有效价格
  */
 
-import { apiClient } from '../lib/api';
-import type { Product } from 'shared/src/types/product';
+import { productsApi } from '@/lib/api';
 
-// Re-export Product type for convenience
-export type { Product };
+// Re-export types from shared
+export type { Product, ProductCategory, ProductSearchFilters } from 'shared/src';
 
-export interface ProductSearchFilters {
-  search?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  inStock?: boolean;
-  sortBy?: 'name' | 'price' | 'createdAt' | 'stock';
-  sortOrder?: 'asc' | 'desc';
-  locale?: string; // Language code for translated product data
-  /** 🆕 Agent ID for Agent Mall context */
-  agentId?: string;
-}
+// Import the Product type for internal use
+import type { Product, ProductSearchFilters } from 'shared/src';
 
 export interface ProductListResponse {
-  products: Product[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  filters: ProductSearchFilters;
-}
-
-export class ProductService {
-  private static async makeRequest<T>(endpoint: string, options?: { params?: Record<string, unknown> }): Promise<T> {
-    // Construct URL - avoid trailing slash which causes 308 redirect
-    const url = endpoint === '/' || endpoint === '' ? '/products' : `/products${endpoint}`;
-    const response = await apiClient.get(url, options);
-    if (response.success && response.data !== undefined) {
-      // For product list, need to transform data format
-      if ((endpoint === '/' || endpoint === '') && Array.isArray(response.data)) {
-        return {
-          products: response.data,
-          pagination: (response as any).pagination || { page: 1, limit: 12, total: response.data.length, totalPages: 1 },
-          filters: options?.params || {}
-        } as T;
-      }
-      return response.data as T;
-    }
-    throw new Error(response.message || 'API request failed');
-  }
-
-  /**
-   * Get products with optional locale for translated data
-   * @param page - Page number
-   * @param limit - Items per page
-   * @param filters - Search filters including locale
-   */
-  static async getProducts(page = 1, limit = 12, filters: ProductSearchFilters = {}): Promise<ProductListResponse> {
-    const params = { page: page.toString(), limit: limit.toString(), ...filters };
-    return this.makeRequest<ProductListResponse>('/', { params });
-  }
-
-  /**
-   * Get single product by ID with optional locale
-   * @param id - Product ID
-   * @param locale - Language code for translated data
-   * @param agentId - 🆕 Optional agent ID for Agent Mall context
-   */
-  static async getProductById(id: string, locale?: string, agentId?: string): Promise<{ product: Product }> {
-    const params: Record<string, string> = {};
-    if (locale) {
-      params.locale = locale;
-    }
-    if (agentId) {
-      params.agentId = agentId;
-    }
-    const response = await apiClient.get(`/products/${id}`, { params });
-    if (response.success && response.data !== undefined) {
-      // Backend returns product object directly, wrap in { product: Product } format
-      return { product: response.data as Product };
-    }
-    throw new Error(response.message || 'Failed to load product');
-  }
-
-  /**
-   * Search products with optional locale
-   */
-  static async searchProducts(query: string, page = 1, limit = 12, filters: ProductSearchFilters = {}): Promise<ProductListResponse> {
-    const params = {
-      search: query,
-      page: page.toString(),
-      limit: limit.toString(),
-      ...filters
+    products: Product[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
     };
-    return this.makeRequest<ProductListResponse>('/', { params });
-  }
-
-
-
-  static async getPriceRanges(): Promise<{ minPrice: number; maxPrice: number; ranges: Array<{ label: string; min: number; max: number; count: number }> }> {
-    // TODO: Backend API /api/products/price-ranges not yet implemented
-    // This feature is under development and will be available in a future release
-    throw new Error('Price ranges API is not yet available. This feature is under development.');
-  }
 }
 
+/**
+ * ProductService - High-level service for product operations
+ */
+export const ProductService = {
+    /**
+     * Get paginated list of products
+     * @param page - Page number (1-indexed)
+     * @param limit - Items per page
+     * @param filters - Optional search filters including locale and agentId
+     */
+    async getProducts(
+        page = 1,
+        limit = 12,
+        filters: ProductSearchFilters & { locale?: string; agentId?: string } = {}
+    ): Promise<ProductListResponse> {
+        const response = await productsApi.getProducts({
+            page,
+            limit,
+            ...filters,
+        });
+
+        if (!response.success || !response.data) {
+            throw new Error(response.error || 'Failed to fetch products');
+        }
+
+        // Handle both response formats:
+        // 1. { products: [...], pagination: {...} } - from backend
+        // 2. { data: [...], page, limit, total, totalPages } - legacy PaginatedResponse
+        const data = response.data as any;
+        const products = data.products || data.data || [];
+        const pagination = data.pagination || {
+            page: data.page || page,
+            limit: data.limit || limit,
+            total: data.total || 0,
+            totalPages: data.totalPages || 1,
+        };
+
+        return {
+            products,
+            pagination,
+        };
+    },
+
+    /**
+     * Get single product by ID
+     * @param id - Product ID
+     * @param locale - Optional locale for translated content
+     * @param agentId - Optional agent ID for Agent Mall context
+     */
+    async getProduct(
+        id: string,
+        locale?: string,
+        agentId?: string
+    ): Promise<Product> {
+        const response = await productsApi.getProduct(id, locale, agentId);
+
+        if (!response.success || !response.data) {
+            throw new Error(response.error || 'Product not found');
+        }
+
+        return response.data;
+    },
+
+    /**
+     * Get product categories
+     * @param locale - Optional locale for translated category names
+     */
+    async getCategories(locale?: string) {
+        const response = await productsApi.getCategories(locale);
+
+        if (!response.success || !response.data) {
+            throw new Error(response.error || 'Failed to fetch categories');
+        }
+
+        return response.data;
+    },
+
+    /**
+     * Search products with text query
+     * @param query - Search text
+     * @param page - Page number
+     * @param limit - Items per page
+     * @param filters - Additional filters
+     */
+    async searchProducts(
+        query: string,
+        page = 1,
+        limit = 12,
+        filters: Partial<ProductSearchFilters> & { locale?: string; agentId?: string } = {}
+    ): Promise<ProductListResponse> {
+        return this.getProducts(page, limit, {
+            ...filters,
+            search: query,
+        });
+    },
+
+    /**
+     * Get products by category
+     * @param category - Category slug or ID
+     * @param page - Page number
+     * @param limit - Items per page
+     * @param filters - Additional filters
+     */
+    async getProductsByCategory(
+        category: string,
+        page = 1,
+        limit = 12,
+        filters: Partial<ProductSearchFilters> & { locale?: string; agentId?: string } = {}
+    ): Promise<ProductListResponse> {
+        return this.getProducts(page, limit, {
+            ...filters,
+            category,
+        });
+    },
+
+    /**
+     * Get featured/new arrival products
+     * @param limit - Number of products to fetch
+     * @param filters - Additional filters
+     */
+    async getNewArrivals(
+        limit = 8,
+        filters: Partial<ProductSearchFilters> & { locale?: string; agentId?: string } = {}
+    ): Promise<Product[]> {
+        const response = await this.getProducts(1, limit, {
+            ...filters,
+            sortBy: 'createdAt',
+            sortOrder: 'desc',
+        });
+        return response.products;
+    },
+
+    /**
+     * Get bestseller products (placeholder - sorted by stock descending as proxy)
+     * @param limit - Number of products to fetch
+     * @param filters - Additional filters
+     */
+    async getBestsellers(
+        limit = 8,
+        filters: Partial<ProductSearchFilters> & { locale?: string; agentId?: string } = {}
+    ): Promise<Product[]> {
+        const response = await this.getProducts(1, limit, {
+            ...filters,
+            sortBy: 'stock',
+            sortOrder: 'desc',
+        });
+        return response.products;
+    },
+};
+
+export default ProductService;

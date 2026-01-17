@@ -25,7 +25,7 @@ import { X, Search, Users, Shield, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UpgradeConfirmationDialog } from '@/components/plugins/upgrade-confirmation-dialog'
 import { DowngradeConfirmationDialog } from '@/components/plugins/downgrade-confirmation-dialog'
-import { useT, useLocale } from 'shared/src/i18n'
+import { useT, useLocale } from 'shared/src/i18n/react'
 
 const PLUGIN_SLUG = 'google-oauth'
 
@@ -452,9 +452,9 @@ export default function GoogleOAuthPluginPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">{getText('tenant.plugins.googleOAuthNotFound', 'Google OAuth plugin not found or not installed')}</p>
+          <p className="text-gray-600">{getText('merchant.plugins.googleOAuthNotFound', 'Google OAuth plugin not found or not installed')}</p>
           <Button variant="outline" className="mt-4" onClick={() => router.push(`/${locale}/plugins/installed`)}>
-            {getText('tenant.plugins.backToInstalledPlugins', 'Back to Installed Plugins')}
+            {getText('merchant.plugins.backToInstalledPlugins', 'Back to Installed Plugins')}
           </Button>
         </div>
       </div>
@@ -465,7 +465,7 @@ export default function GoogleOAuthPluginPage() {
     <div className="space-y-6">
       <Button variant="outline" onClick={() => router.push(`/${locale}/plugins/installed`)}>
         <ArrowLeft className="w-4 h-4 mr-2" />
-        {getText('tenant.plugins.backToInstalledPlugins', 'Back to Installed Plugins')}
+        {getText('merchant.plugins.backToInstalledPlugins', 'Back to Installed Plugins')}
       </Button>
 
       {/* Success Alert */}
@@ -478,9 +478,9 @@ export default function GoogleOAuthPluginPage() {
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-green-800">{getText('tenant.plugins.paymentSuccessful', 'Payment Successful!')}</h3>
+              <h3 className="text-sm font-medium text-green-800">{getText('merchant.plugins.paymentSuccessful', 'Payment Successful!')}</h3>
               <p className="mt-1 text-sm text-green-700">
-                {getText('tenant.plugins.subscriptionUpgradedSuccess', 'Your subscription has been upgraded successfully. Your new plan is now active.')}
+                {getText('merchant.plugins.subscriptionUpgradedSuccess', 'Your subscription has been upgraded successfully. Your new plan is now active.')}
               </p>
             </div>
             <button
@@ -503,9 +503,9 @@ export default function GoogleOAuthPluginPage() {
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">{getText('tenant.plugins.paymentCancelled', 'Payment Cancelled')}</h3>
+              <h3 className="text-sm font-medium text-red-800">{getText('merchant.plugins.paymentCancelled', 'Payment Cancelled')}</h3>
               <p className="mt-1 text-sm text-red-700">
-                {getText('tenant.plugins.subscriptionUpgradeCancelled', 'Your subscription upgrade was cancelled. No changes have been made to your account.')}
+                {getText('merchant.plugins.subscriptionUpgradeCancelled', 'Your subscription upgrade was cancelled. No changes have been made to your account.')}
               </p>
             </div>
             <button
@@ -536,7 +536,7 @@ export default function GoogleOAuthPluginPage() {
                     enabled={installation.enabled}
                   />
                   <span className="text-sm text-gray-600">
-                    {getText('tenant.plugins.version', 'Version')}: {installation.plugin.version}
+                    {getText('merchant.plugins.version', 'Version')}: {installation.plugin.version}
                   </span>
                 </div>
               </div>
@@ -549,11 +549,11 @@ export default function GoogleOAuthPluginPage() {
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="config">
             <Cog6ToothIcon className="w-4 h-4 mr-2" />
-            {getText('tenant.plugins.configuration', 'Configuration')}
+            {getText('merchant.plugins.configuration', 'Configuration')}
           </TabsTrigger>
           <TabsTrigger value="subscription">
             <CreditCard className="w-4 h-4 mr-2" />
-            {getText('tenant.plugins.subscriptionManagement', 'Subscription Management')}
+            {getText('merchant.plugins.subscriptionManagement', 'Subscription Management')}
           </TabsTrigger>
         </TabsList>
 
@@ -561,14 +561,14 @@ export default function GoogleOAuthPluginPage() {
           {/* OAuth Configuration Section */}
           <Card>
             <CardHeader>
-              <CardTitle>{getText('tenant.plugins.apiConfiguration', 'API Configuration')}</CardTitle>
+              <CardTitle>{getText('merchant.plugins.apiConfiguration', 'API Configuration')}</CardTitle>
               <CardDescription>
-                {getText('tenant.plugins.googleOAuthApiDesc', 'Configure your Google OAuth API settings (BYOK - Bring Your Own Key)')}
+                {getText('merchant.plugins.googleOAuthApiDesc', 'Configure your Google OAuth API settings (BYOK - Bring Your Own Key)')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="oauth-mode">{getText('tenant.plugins.configurationMode', 'Configuration Mode')}</Label>
+                <Label htmlFor="oauth-mode">{getText('merchant.plugins.configurationMode', 'Configuration Mode')}</Label>
                 <div className="mt-2 space-y-2">
                   <div className="flex items-center">
                     <input
@@ -581,7 +581,7 @@ export default function GoogleOAuthPluginPage() {
                       className="mr-2"
                     />
                     <label htmlFor="mode-platform" className="text-sm">
-                      {getText('tenant.plugins.platformModeGoogle', "Platform Mode (Recommended) - Use Jiffoo's Google OAuth configuration")}
+                      {getText('merchant.plugins.platformModeGoogle', "Platform Mode (Recommended) - Use Jiffoo's Google OAuth configuration")}
                     </label>
                   </div>
                   <div className="flex items-center">
@@ -595,7 +595,7 @@ export default function GoogleOAuthPluginPage() {
                       className="mr-2"
                     />
                     <label htmlFor="mode-byok" className="text-sm">
-                      {getText('tenant.plugins.byokModeGoogle', 'BYOK Mode - Use your own Google OAuth credentials')}
+                      {getText('merchant.plugins.byokModeGoogle', 'BYOK Mode - Use your own Google OAuth credentials')}
                     </label>
                   </div>
                 </div>
@@ -604,26 +604,26 @@ export default function GoogleOAuthPluginPage() {
               {oauthMode === 'byok' && (
                 <>
                   <div>
-                    <Label htmlFor="oauth-client-id">{getText('tenant.plugins.googleClientId', 'Google OAuth Client ID')}</Label>
+                    <Label htmlFor="oauth-client-id">{getText('merchant.plugins.googleClientId', 'Google OAuth Client ID')}</Label>
                     <Input
                       id="oauth-client-id"
                       type="text"
                       value={oauthClientId}
                       onChange={(e) => setOauthClientId(e.target.value)}
-                      placeholder={getText('tenant.plugins.enterGoogleClientId', 'Enter your Google OAuth Client ID')}
+                      placeholder={getText('merchant.plugins.enterGoogleClientId', 'Enter your Google OAuth Client ID')}
                       className="mt-1"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="oauth-client-secret">{getText('tenant.plugins.googleClientSecret', 'Google OAuth Client Secret')}</Label>
+                    <Label htmlFor="oauth-client-secret">{getText('merchant.plugins.googleClientSecret', 'Google OAuth Client Secret')}</Label>
                     <div className="relative mt-1">
                       <Input
                         id="oauth-client-secret"
                         type={oauthClientSecretVisible ? 'text' : 'password'}
                         value={oauthClientSecret}
                         onChange={(e) => setOauthClientSecret(e.target.value)}
-                        placeholder={getText('tenant.plugins.enterGoogleClientSecret', 'Enter your Google OAuth Client Secret')}
+                        placeholder={getText('merchant.plugins.enterGoogleClientSecret', 'Enter your Google OAuth Client Secret')}
                         className="pr-10"
                       />
                       <button
@@ -646,7 +646,7 @@ export default function GoogleOAuthPluginPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="oauth-redirect-uri">{getText('tenant.plugins.redirectUri', 'Redirect URI')}</Label>
+                    <Label htmlFor="oauth-redirect-uri">{getText('merchant.plugins.redirectUri', 'Redirect URI')}</Label>
                     <Input
                       id="oauth-redirect-uri"
                       type="text"
@@ -656,7 +656,7 @@ export default function GoogleOAuthPluginPage() {
                       className="mt-1"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      {getText('tenant.plugins.redirectUriHint', 'This should match the redirect URI configured in your Google OAuth app')}
+                      {getText('merchant.plugins.redirectUriHint', 'This should match the redirect URI configured in your Google OAuth app')}
                     </p>
                   </div>
                 </>
@@ -664,7 +664,7 @@ export default function GoogleOAuthPluginPage() {
 
               {oauthSaved && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                  <p className="text-sm text-green-800">✓ {getText('tenant.plugins.configSavedSuccess', 'Configuration saved successfully!')}</p>
+                  <p className="text-sm text-green-800">✓ {getText('merchant.plugins.configSavedSuccess', 'Configuration saved successfully!')}</p>
                 </div>
               )}
 
@@ -673,7 +673,7 @@ export default function GoogleOAuthPluginPage() {
                 disabled={oauthMutation.isPending}
                 className="w-full"
               >
-                {oauthMutation.isPending ? getText('common.saving', 'Saving...') : getText('tenant.plugins.saveConfiguration', 'Save Configuration')}
+                {oauthMutation.isPending ? getText('common.saving', 'Saving...') : getText('merchant.plugins.saveConfiguration', 'Save Configuration')}
               </Button>
             </CardContent>
           </Card>
@@ -683,10 +683,10 @@ export default function GoogleOAuthPluginPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <User className="h-5 w-5 mr-2" />
-                {getText('tenant.plugins.oauthUsersManagement', 'OAuth Users Management')}
+                {getText('merchant.plugins.oauthUsersManagement', 'OAuth Users Management')}
               </CardTitle>
               <CardDescription>
-                {getText('tenant.plugins.oauthUsersManagementDesc', 'Manage users who have connected their Google accounts')}
+                {getText('merchant.plugins.oauthUsersManagementDesc', 'Manage users who have connected their Google accounts')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -700,7 +700,7 @@ export default function GoogleOAuthPluginPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <User className="h-5 w-5 mr-2" />
-                {getText('tenant.plugins.googleOAuthPlugin', 'Google OAuth Plugin')}
+                {getText('merchant.plugins.googleOAuthPlugin', 'Google OAuth Plugin')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -712,7 +712,7 @@ export default function GoogleOAuthPluginPage() {
               ) : subscriptionData && subscriptionData.hasSubscription ? (
                 <div className="space-y-6">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">{getText('tenant.plugins.currentPlan', 'Current Plan')}</label>
+                    <label className="text-sm font-medium text-gray-600">{getText('merchant.plugins.currentPlan', 'Current Plan')}</label>
                     <div className="mt-2">
                       <Badge
                         variant={
@@ -729,11 +729,11 @@ export default function GoogleOAuthPluginPage() {
 
                   <div className="border-t pt-4">
                     <label className="text-sm font-medium text-gray-600 mb-3 block">
-                      {getText('tenant.plugins.currentSubscription', 'Current Subscription')}
+                      {getText('merchant.plugins.currentSubscription', 'Current Subscription')}
                     </label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <p className="text-sm text-gray-500">{getText('tenant.plugins.amount', 'Amount')}</p>
+                        <p className="text-sm text-gray-500">{getText('merchant.plugins.amount', 'Amount')}</p>
                         <p className="text-lg font-semibold text-gray-900">
                           ${subscriptionData.subscription.amount.toFixed(2)}/{subscriptionData.subscription.currency}
                         </p>
@@ -745,7 +745,7 @@ export default function GoogleOAuthPluginPage() {
                         </Badge>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">{getText('tenant.plugins.renews', 'Renews')}</p>
+                        <p className="text-sm text-gray-500">{getText('merchant.plugins.renews', 'Renews')}</p>
                         <p className="text-sm font-medium text-gray-900">
                           {new Date(subscriptionData.subscription.currentPeriodEnd).toLocaleDateString()}
                         </p>
@@ -756,10 +756,10 @@ export default function GoogleOAuthPluginPage() {
                         <div className="flex items-start justify-between">
                           <div>
                             <p className="text-sm text-yellow-800">
-                              <strong>{getText('tenant.plugins.canceledOn', 'Canceled on')}:</strong> {new Date(subscriptionData.pendingChange.effectiveDate).toLocaleDateString()}
+                              <strong>{getText('merchant.plugins.canceledOn', 'Canceled on')}:</strong> {new Date(subscriptionData.pendingChange.effectiveDate).toLocaleDateString()}
                             </p>
                             <p className="text-xs text-yellow-700 mt-1">
-                              {getText('tenant.plugins.subscriptionCancelAtPeriodEnd', 'Your subscription will be canceled at the end of the current billing period.')}
+                              {getText('merchant.plugins.subscriptionCancelAtPeriodEnd', 'Your subscription will be canceled at the end of the current billing period.')}
                             </p>
                           </div>
                           <Button
@@ -768,7 +768,7 @@ export default function GoogleOAuthPluginPage() {
                             onClick={() => setCancelDowngradeDialogOpen(true)}
                             disabled={cancelDowngradeMutation.isPending}
                           >
-                            {cancelDowngradeMutation.isPending ? getText('common.canceling', 'Cancelling...') : getText('tenant.plugins.cancelDowngrade', 'Cancel Downgrade')}
+                            {cancelDowngradeMutation.isPending ? getText('common.canceling', 'Cancelling...') : getText('merchant.plugins.cancelDowngrade', 'Cancel Downgrade')}
                           </Button>
                         </div>
                       </div>
@@ -776,7 +776,7 @@ export default function GoogleOAuthPluginPage() {
                   </div>
 
                   <div className="border-t pt-4">
-                    <label className="text-sm font-medium text-gray-600 mb-3 block">{getText('tenant.plugins.usageThisMonth', 'Usage This Month')}</label>
+                    <label className="text-sm font-medium text-gray-600 mb-3 block">{getText('merchant.plugins.usageThisMonth', 'Usage This Month')}</label>
                     {subscriptionData.usage && (
                       <div className="space-y-4">
                         {Object.entries(subscriptionData.usage).map(([metric, data]: [string, any]) => (
@@ -812,7 +812,7 @@ export default function GoogleOAuthPluginPage() {
                         onClick={() => setShowSubscriptionHistory(!showSubscriptionHistory)}
                         className="flex items-center justify-between w-full text-sm font-medium text-gray-600 mb-3 hover:text-gray-900 transition-colors"
                       >
-                        <span>{getText('tenant.plugins.subscriptionHistory', 'Subscription History')} ({subscriptionData.subscriptionHistory.length})</span>
+                        <span>{getText('merchant.plugins.subscriptionHistory', 'Subscription History')} ({subscriptionData.subscriptionHistory.length})</span>
                         <svg
                           className={`w-5 h-5 transition-transform ${showSubscriptionHistory ? 'rotate-180' : ''}`}
                           fill="none"
@@ -829,19 +829,19 @@ export default function GoogleOAuthPluginPage() {
                             <div key={sub.id} className="p-3 bg-gray-50 border border-gray-200 rounded-md">
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                 <div>
-                                  <p className="text-xs text-gray-500">{getText('tenant.plugins.plan', 'Plan')}</p>
+                                  <p className="text-xs text-gray-500">{getText('merchant.plugins.plan', 'Plan')}</p>
                                   <p className="text-sm font-medium text-gray-900">
                                     {sub.plan?.name || sub.planId}
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-xs text-gray-500">{getText('tenant.plugins.amount', 'Amount')}</p>
+                                  <p className="text-xs text-gray-500">{getText('merchant.plugins.amount', 'Amount')}</p>
                                   <p className="text-sm font-medium text-gray-900">
                                     ${sub.amount.toFixed(2)}/{sub.currency}
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-xs text-gray-500">{getText('tenant.plugins.period', 'Period')}</p>
+                                  <p className="text-xs text-gray-500">{getText('merchant.plugins.period', 'Period')}</p>
                                   <p className="text-sm font-medium text-gray-900">
                                     {new Date(sub.startDate).toLocaleDateString()} - {new Date(sub.endDate).toLocaleDateString()}
                                   </p>
@@ -860,16 +860,16 @@ export default function GoogleOAuthPluginPage() {
                               )}
                               {sub.usage && (
                                 <div className="mt-3 pt-3 border-t border-gray-200">
-                                  <p className="text-xs text-gray-500 mb-2">{getText('tenant.plugins.usageDuringSubscription', 'Usage During Subscription')}</p>
+                                  <p className="text-xs text-gray-500 mb-2">{getText('merchant.plugins.usageDuringSubscription', 'Usage During Subscription')}</p>
                                   <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                      <p className="text-xs text-gray-500">{getText('tenant.plugins.loginAttempts', 'Login Attempts')}</p>
+                                      <p className="text-xs text-gray-500">{getText('merchant.plugins.loginAttempts', 'Login Attempts')}</p>
                                       <p className="text-sm font-medium text-gray-900">
                                         {sub.usage.login_attempts.current.toLocaleString()} / {sub.usage.login_attempts.limit === -1 ? getText('common.unlimited', 'Unlimited') : sub.usage.login_attempts.limit.toLocaleString()}
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-xs text-gray-500">{getText('tenant.plugins.apiCalls', 'API Calls')}</p>
+                                      <p className="text-xs text-gray-500">{getText('merchant.plugins.apiCalls', 'API Calls')}</p>
                                       <p className="text-sm font-medium text-gray-900">
                                         {sub.usage.api_calls.current.toLocaleString()} / {sub.usage.api_calls.limit === -1 ? getText('common.unlimited', 'Unlimited') : sub.usage.api_calls.limit.toLocaleString()}
                                       </p>
@@ -885,7 +885,7 @@ export default function GoogleOAuthPluginPage() {
                   )}
 
                   <div className="border-t pt-4">
-                    <label className="text-sm font-medium text-gray-600 mb-3 block">{getText('tenant.plugins.availablePlans', 'Available Plans')}</label>
+                    <label className="text-sm font-medium text-gray-600 mb-3 block">{getText('merchant.plugins.availablePlans', 'Available Plans')}</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {subscriptionData.availablePlans?.map((plan: any) => (
                         <div
@@ -901,8 +901,8 @@ export default function GoogleOAuthPluginPage() {
                               </p>
                             </div>
                             <div className="text-sm text-gray-600">
-                              <p>• {getText('tenant.plugins.loginAttempts', 'Login Attempts')}: {plan.limits?.login_attempts === -1 ? getText('common.unlimited', 'Unlimited') : plan.limits?.login_attempts?.toLocaleString()}</p>
-                              <p>• {getText('tenant.plugins.apiCalls', 'API Calls')}: {plan.limits?.api_calls === -1 ? getText('common.unlimited', 'Unlimited') : plan.limits?.api_calls?.toLocaleString()}</p>
+                              <p>• {getText('merchant.plugins.loginAttempts', 'Login Attempts')}: {plan.limits?.login_attempts === -1 ? getText('common.unlimited', 'Unlimited') : plan.limits?.login_attempts?.toLocaleString()}</p>
+                              <p>• {getText('merchant.plugins.apiCalls', 'API Calls')}: {plan.limits?.api_calls === -1 ? getText('common.unlimited', 'Unlimited') : plan.limits?.api_calls?.toLocaleString()}</p>
                             </div>
                             {!plan.isCurrent && (
                               <Button
@@ -920,7 +920,7 @@ export default function GoogleOAuthPluginPage() {
                                 disabled={upgradeMutation.isPending || downgradeMutation.isPending}
                               >
                                 {(upgradeMutation.isPending || downgradeMutation.isPending) ? getText('common.processing', 'Processing...') :
-                                 plan.amount > (subscriptionData.subscription?.amount || 0) ? getText('tenant.plugins.upgrade', 'Upgrade') : getText('tenant.plugins.downgrade', 'Downgrade')}
+                                 plan.amount > (subscriptionData.subscription?.amount || 0) ? getText('merchant.plugins.upgrade', 'Upgrade') : getText('merchant.plugins.downgrade', 'Downgrade')}
                               </Button>
                             )}
                           </div>
@@ -931,7 +931,7 @@ export default function GoogleOAuthPluginPage() {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-600">{getText('tenant.plugins.noSubscriptionData', 'No subscription data available')}</p>
+                  <p className="text-gray-600">{getText('merchant.plugins.noSubscriptionData', 'No subscription data available')}</p>
                 </div>
               )}
             </CardContent>
@@ -942,16 +942,16 @@ export default function GoogleOAuthPluginPage() {
         <TabsContent value="config">
           <Card>
             <CardHeader>
-              <CardTitle>{getText('tenant.plugins.pluginConfiguration', 'Plugin Configuration')}</CardTitle>
+              <CardTitle>{getText('merchant.plugins.pluginConfiguration', 'Plugin Configuration')}</CardTitle>
               <CardDescription>
-                {getText('tenant.plugins.pluginConfigurationDesc', 'Configure the Google OAuth plugin settings below. Changes will be saved immediately.')}
+                {getText('merchant.plugins.pluginConfigurationDesc', 'Configure the Google OAuth plugin settings below. Changes will be saved immediately.')}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
                 {Object.keys(configData).length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-gray-600">{getText('tenant.plugins.noConfigOptions', 'No configuration options available for this plugin.')}</p>
+                    <p className="text-gray-600">{getText('merchant.plugins.noConfigOptions', 'No configuration options available for this plugin.')}</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1036,13 +1036,13 @@ export default function GoogleOAuthPluginPage() {
           open={upgradeDialogOpen}
           onOpenChange={setUpgradeDialogOpen}
           currentPlan={{
-            name: upgradePreviewData.currentPlan?.name || subscriptionData?.subscription?.plan?.name || subscriptionData?.subscription?.planId || getText('tenant.plugins.currentPlan', 'Current Plan'),
+            name: upgradePreviewData.currentPlan?.name || subscriptionData?.subscription?.plan?.name || subscriptionData?.subscription?.planId || getText('merchant.plugins.currentPlan', 'Current Plan'),
             amount: upgradePreviewData.currentPlan?.amount || subscriptionData?.subscription?.amount || 0,
             currency: upgradePreviewData.currentPlan?.currency || subscriptionData?.subscription?.currency || 'USD',
             billingCycle: upgradePreviewData.currentPlan?.billingCycle || 'month'
           }}
           targetPlan={{
-            name: upgradePreviewData.targetPlan?.name || selectedUpgradePlan || getText('tenant.plugins.targetPlan', 'Target Plan'),
+            name: upgradePreviewData.targetPlan?.name || selectedUpgradePlan || getText('merchant.plugins.targetPlan', 'Target Plan'),
             amount: upgradePreviewData.targetPlan?.amount || 0,
             currency: upgradePreviewData.targetPlan?.currency || 'USD',
             billingCycle: upgradePreviewData.targetPlan?.billingCycle || 'month',
@@ -1061,8 +1061,8 @@ export default function GoogleOAuthPluginPage() {
         <DowngradeConfirmationDialog
           open={downgradeDialogOpen}
           onOpenChange={setDowngradeDialogOpen}
-          currentPlan={downgradePreviewData.currentPlan?.name || getText('tenant.plugins.currentPlan', 'Current Plan')}
-          targetPlan={downgradePreviewData.targetPlan?.name || getText('tenant.plugins.targetPlan', 'Target Plan')}
+          currentPlan={downgradePreviewData.currentPlan?.name || getText('merchant.plugins.currentPlan', 'Current Plan')}
+          targetPlan={downgradePreviewData.targetPlan?.name || getText('merchant.plugins.targetPlan', 'Target Plan')}
           currentAmount={downgradePreviewData.currentPlan?.amount || 0}
           targetAmount={downgradePreviewData.targetPlan?.amount || 0}
           isImmediate={true}
@@ -1078,10 +1078,10 @@ export default function GoogleOAuthPluginPage() {
         <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg">
           <div className="flex flex-col space-y-1.5 text-center sm:text-left">
             <DialogPrimitive.Title className="text-lg font-semibold leading-none tracking-tight">
-              {getText('tenant.plugins.cancelDowngradeQuestion', 'Cancel Downgrade?')}
+              {getText('merchant.plugins.cancelDowngradeQuestion', 'Cancel Downgrade?')}
             </DialogPrimitive.Title>
             <DialogPrimitive.Description className="text-sm text-muted-foreground">
-              {getText('tenant.plugins.cancelDowngradeDesc', 'Are you sure you want to cancel the scheduled downgrade? Your subscription will continue at the current plan.')}
+              {getText('merchant.plugins.cancelDowngradeDesc', 'Are you sure you want to cancel the scheduled downgrade? Your subscription will continue at the current plan.')}
             </DialogPrimitive.Description>
           </div>
           <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
@@ -1090,13 +1090,13 @@ export default function GoogleOAuthPluginPage() {
               onClick={() => setCancelDowngradeDialogOpen(false)}
               disabled={cancelDowngradeMutation.isPending}
             >
-              {getText('tenant.plugins.keepDowngrade', 'Keep Downgrade')}
+              {getText('merchant.plugins.keepDowngrade', 'Keep Downgrade')}
             </Button>
             <Button
               onClick={() => cancelDowngradeMutation.mutate()}
               disabled={cancelDowngradeMutation.isPending}
             >
-              {cancelDowngradeMutation.isPending ? getText('common.canceling', 'Cancelling...') : getText('tenant.plugins.cancelDowngrade', 'Cancel Downgrade')}
+              {cancelDowngradeMutation.isPending ? getText('common.canceling', 'Cancelling...') : getText('merchant.plugins.cancelDowngrade', 'Cancel Downgrade')}
             </Button>
           </div>
         </DialogPrimitive.Content>
@@ -1159,10 +1159,10 @@ function OAuthUsersSection({ pluginSlug }: { pluginSlug: string }) {
       const failedCount = data.summary?.failed || 0
 
       if (successCount > 0) {
-        alert(getText('tenant.plugins.oauthRevokeSuccess', `Successfully revoked OAuth access for ${successCount} user(s)`))
+        alert(getText('merchant.plugins.oauthRevokeSuccess', `Successfully revoked OAuth access for ${successCount} user(s)`))
       }
       if (failedCount > 0) {
-        alert(getText('tenant.plugins.oauthRevokeFailed', `Failed to revoke OAuth access for ${failedCount} user(s)`))
+        alert(getText('merchant.plugins.oauthRevokeFailed', `Failed to revoke OAuth access for ${failedCount} user(s)`))
       }
 
       setSelectedUsers([])
@@ -1170,7 +1170,7 @@ function OAuthUsersSection({ pluginSlug }: { pluginSlug: string }) {
       refetchUsers()
     },
     onError: (error: any) => {
-      alert(getText('tenant.plugins.oauthRevokeError', `Failed to revoke OAuth access: ${error.message}`))
+      alert(getText('merchant.plugins.oauthRevokeError', `Failed to revoke OAuth access: ${error.message}`))
     },
   })
 
@@ -1208,7 +1208,7 @@ function OAuthUsersSection({ pluginSlug }: { pluginSlug: string }) {
           <div className="flex items-center">
             <Users className="h-8 w-8 text-blue-600" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-blue-600">{getText('tenant.plugins.oauthUsers', 'OAuth Users')}</p>
+              <p className="text-sm font-medium text-blue-600">{getText('merchant.plugins.oauthUsers', 'OAuth Users')}</p>
               <p className="text-2xl font-bold text-blue-900">
                 {oauthUsersData?.pagination?.total || 0}
               </p>
@@ -1220,7 +1220,7 @@ function OAuthUsersSection({ pluginSlug }: { pluginSlug: string }) {
           <div className="flex items-center">
             <Shield className="h-8 w-8 text-green-600" />
             <div className="ml-3">
-              <p className="text-sm font-medium text-green-600">{getText('tenant.plugins.activeSessions', 'Active Sessions')}</p>
+              <p className="text-sm font-medium text-green-600">{getText('merchant.plugins.activeSessions', 'Active Sessions')}</p>
               <p className="text-2xl font-bold text-green-900">
                 {sessionsData?.total || 0}
               </p>
@@ -1247,7 +1247,7 @@ function OAuthUsersSection({ pluginSlug }: { pluginSlug: string }) {
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             type="text"
-            placeholder={getText('tenant.plugins.searchUsersPlaceholder', 'Search users by email or username...')}
+            placeholder={getText('merchant.plugins.searchUsersPlaceholder', 'Search users by email or username...')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -1271,7 +1271,7 @@ function OAuthUsersSection({ pluginSlug }: { pluginSlug: string }) {
             disabled={selectedUsers.length === 0 || revokeMutation.isPending}
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            {getText('tenant.plugins.revokeSelected', 'Revoke Selected')} ({selectedUsers.length})
+            {getText('merchant.plugins.revokeSelected', 'Revoke Selected')} ({selectedUsers.length})
           </Button>
         </div>
       </div>
@@ -1281,7 +1281,7 @@ function OAuthUsersSection({ pluginSlug }: { pluginSlug: string }) {
         {usersLoading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-2 text-gray-600">{getText('tenant.plugins.loadingOAuthUsers', 'Loading OAuth users...')}</p>
+            <p className="mt-2 text-gray-600">{getText('merchant.plugins.loadingOAuthUsers', 'Loading OAuth users...')}</p>
           </div>
         ) : oauthUsersData?.data?.length > 0 ? (
           <div className="divide-y">
@@ -1325,15 +1325,15 @@ function OAuthUsersSection({ pluginSlug }: { pluginSlug: string }) {
                           variant={account.hasValidToken ? "default" : "secondary"}
                           className="text-xs"
                         >
-                          {account.hasValidToken ? getText('tenant.plugins.activeToken', 'Active Token') : getText('tenant.plugins.expiredToken', 'Expired Token')}
+                          {account.hasValidToken ? getText('merchant.plugins.activeToken', 'Active Token') : getText('merchant.plugins.expiredToken', 'Expired Token')}
                         </Badge>
                       </div>
                     </div>
                   </div>
 
                   <div className="text-right text-sm text-gray-500">
-                    <p>{getText('tenant.plugins.linked', 'Linked')}: {new Date(account.linkedAt).toLocaleDateString()}</p>
-                    <p>{getText('tenant.plugins.googleId', 'Google ID')}: {account.providerId}</p>
+                    <p>{getText('merchant.plugins.linked', 'Linked')}: {new Date(account.linkedAt).toLocaleDateString()}</p>
+                    <p>{getText('merchant.plugins.googleId', 'Google ID')}: {account.providerId}</p>
                   </div>
                 </div>
               </div>
@@ -1342,8 +1342,8 @@ function OAuthUsersSection({ pluginSlug }: { pluginSlug: string }) {
         ) : (
           <div className="p-8 text-center text-gray-500">
             <User className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p>{getText('tenant.plugins.noOAuthUsersFound', 'No OAuth users found')}</p>
-            <p className="text-sm mt-1">{getText('tenant.plugins.noOAuthUsersDesc', 'Users will appear here after they connect their Google accounts')}</p>
+            <p>{getText('merchant.plugins.noOAuthUsersFound', 'No OAuth users found')}</p>
+            <p className="text-sm mt-1">{getText('merchant.plugins.noOAuthUsersDesc', 'Users will appear here after they connect their Google accounts')}</p>
           </div>
         )}
       </div>
@@ -1355,10 +1355,10 @@ function OAuthUsersSection({ pluginSlug }: { pluginSlug: string }) {
           <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-md translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg">
             <div className="flex flex-col space-y-1.5 text-center sm:text-left">
               <DialogPrimitive.Title className="text-lg font-semibold leading-none tracking-tight">
-                {getText('tenant.plugins.revokeOAuthAccess', 'Revoke OAuth Access')}
+                {getText('merchant.plugins.revokeOAuthAccess', 'Revoke OAuth Access')}
               </DialogPrimitive.Title>
               <DialogPrimitive.Description className="text-sm text-muted-foreground">
-                {getText('tenant.plugins.revokeOAuthAccessDesc', `Are you sure you want to revoke OAuth access for ${selectedUsers.length} user(s)? This will disconnect their Google accounts and they will need to re-authorize to use Google login.`)}
+                {getText('merchant.plugins.revokeOAuthAccessDesc', `Are you sure you want to revoke OAuth access for ${selectedUsers.length} user(s)? This will disconnect their Google accounts and they will need to re-authorize to use Google login.`)}
               </DialogPrimitive.Description>
             </div>
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
@@ -1374,7 +1374,7 @@ function OAuthUsersSection({ pluginSlug }: { pluginSlug: string }) {
                 onClick={confirmRevoke}
                 disabled={revokeMutation.isPending}
               >
-                {revokeMutation.isPending ? getText('tenant.plugins.revoking', 'Revoking...') : getText('tenant.plugins.revokeAccess', 'Revoke Access')}
+                {revokeMutation.isPending ? getText('merchant.plugins.revoking', 'Revoking...') : getText('merchant.plugins.revokeAccess', 'Revoke Access')}
               </Button>
             </div>
             <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">

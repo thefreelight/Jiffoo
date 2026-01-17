@@ -14,7 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { useCartStore } from '@/store/cart';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 interface Product {
   id: string;

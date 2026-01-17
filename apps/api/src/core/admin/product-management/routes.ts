@@ -1,5 +1,5 @@
 /**
- * Admin Product Routes (单商户版本)
+ * Admin Product Routes
  */
 
 import { FastifyInstance } from 'fastify';
@@ -7,9 +7,12 @@ import { AdminProductService } from './service';
 import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 
 export async function adminProductRoutes(fastify: FastifyInstance) {
+  // Apply auth middleware to all admin product routes (before schema validation)
+  fastify.addHook('onRequest', authMiddleware);
+  fastify.addHook('onRequest', requireAdmin);
+
   // Get products list
   fastify.get('/', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-products'],
       summary: 'Get products list',
@@ -41,7 +44,6 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
 
   // Get single product
   fastify.get('/:id', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-products'],
       summary: 'Get product by ID',
@@ -62,7 +64,6 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
 
   // Create product
   fastify.post('/', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-products'],
       summary: 'Create product',
@@ -91,7 +92,6 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
 
   // Update product
   fastify.put('/:id', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-products'],
       summary: 'Update product',
@@ -103,13 +103,15 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
       const product = await AdminProductService.updateProduct(id, request.body as any);
       return reply.send({ success: true, data: product });
     } catch (error: any) {
+      if (error.code === 'P2025' || error.message === 'Product not found') {
+        return reply.code(404).send({ success: false, error: 'Product not found' });
+      }
       return reply.code(500).send({ success: false, error: error.message });
     }
   });
 
   // Delete product
   fastify.delete('/:id', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-products'],
       summary: 'Delete product',
@@ -121,13 +123,15 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
       await AdminProductService.deleteProduct(id);
       return reply.send({ success: true, message: 'Product deleted' });
     } catch (error: any) {
+      if (error.code === 'P2025' || error.message === 'Product not found') {
+        return reply.code(404).send({ success: false, error: 'Product not found' });
+      }
       return reply.code(500).send({ success: false, error: error.message });
     }
   });
 
   // Get categories
   fastify.get('/categories', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-products'],
       summary: 'Get product categories',

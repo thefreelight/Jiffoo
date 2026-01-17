@@ -2,7 +2,10 @@
   "compilerOptions": {
     "target": "ES2022",
     "module": "commonjs",
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": false,
@@ -27,21 +30,50 @@
     "emitDecoratorMetadata": true,
     "baseUrl": "./",
     "paths": {
-      "@/*": ["./src/*"],
-      "@/core/*": ["./src/core/*"],
-      "@/config/*": ["./src/config/*"],
-      "@/utils/*": ["./src/utils/*"],
-      "shared/logger": ["../../packages/shared/dist/src/logger/index"],
-      "shared/logger/*": ["../../packages/shared/dist/src/logger/*"],
-      "@shared/security": ["../../packages/shared/dist/src/security/index"],
-      "@shared/security/*": ["../../packages/shared/dist/src/security/*"],
-      "@shared/observability": ["../../packages/shared/dist/src/observability/index"],
-      "@shared/observability/*": ["../../packages/shared/dist/src/observability/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@/core/*": [
+        "./src/core/*"
+      ],
+      "@/config/*": [
+        "./src/config/*"
+      ],
+      "@/utils/*": [
+        "./src/utils/*"
+      ],
+      "shared/logger": [
+        "../../packages/shared/dist/src/logger/index"
+      ],
+      "shared/logger/*": [
+        "../../packages/shared/dist/src/logger/*"
+      ],
+      "@shared/security": [
+        "../../packages/shared/dist/src/security/index"
+      ],
+      "@shared/security/*": [
+        "../../packages/shared/dist/src/security/*"
+      ],
+      "@shared/observability": [
+        "../../packages/shared/dist/src/observability/index"
+      ],
+      "@shared/observability/*": [
+        "../../packages/shared/dist/src/observability/*"
+      ],
+      "@jiffoo/shared": [
+        "../../packages/shared/dist/index"
+      ]
     },
     "moduleResolution": "node",
-    "typeRoots": ["./node_modules/@types", "../../node_modules/@types"]
+    "typeRoots": [
+      "./node_modules/@types",
+      "../../node_modules/@types"
+    ]
   },
-  "include": ["src/**/*", "src/types/**/*"],
+  "include": [
+    "src/**/*",
+    "src/types/**/*"
+  ],
   "exclude": [
     "node_modules",
     "dist",

@@ -1,78 +1,113 @@
 /**
- * Admin Product Service (单商户版本)
+ * Admin Product Service
  * 
- * 简化版本，移除了多租户相关逻辑。
+ * Simplified version, removed multi-tenant logic.
  */
 
 import { prisma } from '@/config/database';
 
 export interface AdminProductSearchFilters {
   search?: string;
-  category?: string;
+  categoryId?: string;
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
   lowStock?: boolean;
   lowStockThreshold?: number;
-  sortBy?: 'name' | 'price' | 'createdAt' | 'stock';
+  sortBy?: 'name' | 'createdAt';
   sortOrder?: 'asc' | 'desc';
 }
 
 export interface CreateProductData {
   name: string;
+  slug: string;
   description?: string;
   price: number;
   stock: number;
-  category?: string;
+  categoryId?: string;
   images?: string[];
+  productType?: string;
 }
 
 export interface UpdateProductData {
   name?: string;
+  slug?: string;
   description?: string;
   price?: number;
   stock?: number;
-  category?: string;
+  categoryId?: string;
   images?: string[];
+  productType?: string;
 }
 
 export class AdminProductService {
   /**
-   * 获取商品列表
+   * Get product list
    */
   static async getProducts(page = 1, limit = 10, filters: AdminProductSearchFilters = {}) {
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    
+
     if (filters.search) {
       where.OR = [
         { name: { contains: filters.search, mode: 'insensitive' } },
         { description: { contains: filters.search, mode: 'insensitive' } },
       ];
     }
-    
-    if (filters.category) {
-      where.category = filters.category;
+
+    if (filters.categoryId) {
+      where.categoryId = filters.categoryId;
     }
-    
+
+    // Price filters need to check variants
     if (filters.minPrice !== undefined || filters.maxPrice !== undefined) {
-      where.price = {};
-      if (filters.minPrice !== undefined) where.price.gte = filters.minPrice;
-      if (filters.maxPrice !== undefined) where.price.lte = filters.maxPrice;
+      where.variants = {
+        some: {
+          basePrice: {
+            ...(filters.minPrice !== undefined ? { gte: filters.minPrice } : {}),
+            ...(filters.maxPrice !== undefined ? { lte: filters.maxPrice } : {})
+          },
+          isActive: true
+        }
+      };
     }
-    
+
     if (filters.inStock !== undefined) {
-      where.stock = filters.inStock ? { gt: 0 } : { lte: 0 };
+      if (filters.inStock) {
+        where.variants = {
+          ...where.variants,
+          some: {
+            ...(where.variants?.some || {}),
+            baseStock: { gt: 0 },
+            isActive: true
+          }
+        };
+      } else {
+        where.variants = {
+          every: {
+            baseStock: { lte: 0 }
+          }
+        };
+      }
     }
 
     if (filters.lowStock !== undefined && filters.lowStock) {
       const threshold = filters.lowStockThreshold || 10;
-      where.stock = { lte: threshold, gt: 0 };
+      where.variants = {
+        some: {
+          baseStock: { lte: threshold, gt: 0 },
+          isActive: true
+        }
+      };
     }
 
     const orderBy: any = {};
-    orderBy[filters.sortBy || 'createdAt'] = filters.sortOrder || 'desc';
+    if (filters.sortBy && ['name', 'createdAt', 'updatedAt'].includes(filters.sortBy)) {
+      orderBy[filters.sortBy] = filters.sortOrder || 'desc';
+    } else {
+      orderBy.createdAt = 'desc';
+    }
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
@@ -81,18 +116,26 @@ export class AdminProductService {
         take: limit,
         orderBy,
         include: {
-          variants: true
+          variants: true,
+          category: true
         }
       }),
       prisma.product.count({ where })
     ]);
 
     return {
-      products: products.map(p => ({
-        ...p,
-        images: p.images ? JSON.parse(p.images as string) : [],
-        price: Number(p.price)
-      })),
+      products: products.map(p => {
+        const mainVariant = p.variants.find(v => v.isDefault) || p.variants[0];
+        const displayPrice = mainVariant ? Number(mainVariant.basePrice) : 0;
+        const totalStock = p.variants.reduce((sum, v) => sum + (v.baseStock || 0), 0);
+
+        return {
+          ...p,
+          images: p.typeData ? JSON.parse(p.typeData).images || [] : [],
+          price: displayPrice,
+          stock: totalStock
+        };
+      }),
       pagination: {
         page,
         limit,
@@ -103,14 +146,15 @@ export class AdminProductService {
   }
 
   /**
-   * 获取单个商品
+   * Get single product
    */
   static async getProductById(productId: string) {
     const product = await prisma.product.findUnique({
       where: { id: productId },
       include: {
         variants: true,
-        translations: true
+        translations: true,
+        category: true
       }
     });
 
@@ -118,62 +162,95 @@ export class AdminProductService {
       return null;
     }
 
+    const mainVariant = product.variants.find(v => v.isDefault) || product.variants[0];
+    const displayPrice = mainVariant ? Number(mainVariant.basePrice) : 0;
+    const totalStock = product.variants.reduce((sum, v) => sum + (v.baseStock || 0), 0);
+
     return {
       ...product,
-      images: product.images ? JSON.parse(product.images as string) : [],
-      price: Number(product.price)
+      images: product.typeData ? JSON.parse(product.typeData).images || [] : [],
+      price: displayPrice,
+      stock: totalStock
     };
   }
 
   /**
-   * 创建商品
+   * Create product
    */
   static async createProduct(data: CreateProductData) {
     const product = await prisma.product.create({
       data: {
         name: data.name,
+        slug: data.slug || data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now(),
         description: data.description,
-        price: data.price,
-        stock: data.stock,
-        category: data.category || 'Uncategorized',
-        images: data.images ? JSON.stringify(data.images) : null
+        categoryId: data.categoryId,
+        productType: data.productType || 'physical',
+        typeData: data.images ? JSON.stringify({ images: data.images }) : JSON.stringify({ images: [] }),
+        variants: {
+          create: {
+            name: 'Default',
+            basePrice: data.price,
+            baseStock: data.stock,
+            isDefault: true,
+            isActive: true
+          }
+        }
+      },
+      include: {
+        variants: true
       }
     });
 
     return {
       ...product,
-      images: product.images ? JSON.parse(product.images as string) : [],
-      price: Number(product.price)
+      images: data.images || [],
+      price: data.price,
+      stock: data.stock
     };
   }
 
   /**
-   * 更新商品
+   * Update product
    */
   static async updateProduct(productId: string, data: UpdateProductData) {
     const updateData: any = {};
-    
-    if (data.name !== undefined) updateData.name = data.name;
-    if (data.description !== undefined) updateData.description = data.description;
-    if (data.price !== undefined) updateData.price = data.price;
-    if (data.stock !== undefined) updateData.stock = data.stock;
-    if (data.category !== undefined) updateData.category = data.category;
-    if (data.images !== undefined) updateData.images = JSON.stringify(data.images);
 
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.slug !== undefined) updateData.slug = data.slug;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.categoryId !== undefined) updateData.categoryId = data.categoryId;
+    if (data.productType !== undefined) updateData.productType = data.productType;
+    if (data.images !== undefined) updateData.typeData = JSON.stringify({ images: data.images });
+
+    // Update product
     const product = await prisma.product.update({
       where: { id: productId },
-      data: updateData
+      data: updateData,
+      include: {
+        variants: true
+      }
     });
 
-    return {
-      ...product,
-      images: product.images ? JSON.parse(product.images as string) : [],
-      price: Number(product.price)
-    };
+    // Update default variant if price or stock provided
+    if (data.price !== undefined || data.stock !== undefined) {
+      const defaultVariant = product.variants.find(v => v.isDefault) || product.variants[0];
+      if (defaultVariant) {
+        await prisma.productVariant.update({
+          where: { id: defaultVariant.id },
+          data: {
+            basePrice: data.price !== undefined ? data.price : defaultVariant.basePrice,
+            baseStock: data.stock !== undefined ? data.stock : defaultVariant.baseStock
+          }
+        });
+      }
+    }
+
+    const updatedProduct = await this.getProductById(productId);
+    return updatedProduct;
   }
 
   /**
-   * 删除商品
+   * Delete product
    */
   static async deleteProduct(productId: string) {
     await prisma.product.delete({
@@ -183,7 +260,7 @@ export class AdminProductService {
   }
 
   /**
-   * 批量删除商品
+   * Bulk delete products
    */
   static async deleteProducts(productIds: string[]) {
     await prisma.product.deleteMany({
@@ -193,33 +270,41 @@ export class AdminProductService {
   }
 
   /**
-   * 更新库存
+   * Update stock (updates default variant)
    */
   static async updateStock(productId: string, stock: number) {
-    const product = await prisma.product.update({
+    const product = await prisma.product.findUnique({
       where: { id: productId },
-      data: { stock }
+      include: { variants: true }
     });
 
-    return {
-      ...product,
-      images: product.images ? JSON.parse(product.images as string) : [],
-      price: Number(product.price)
-    };
+    if (!product) throw new Error('Product not found');
+
+    const defaultVariant = product.variants.find(v => v.isDefault) || product.variants[0];
+    if (defaultVariant) {
+      await prisma.productVariant.update({
+        where: { id: defaultVariant.id },
+        data: { baseStock: stock }
+      });
+    }
+
+    return this.getProductById(productId);
   }
 
   /**
-   * 获取分类列表
+   * Get categories list
    */
   static async getCategories() {
-    const categories = await prisma.product.groupBy({
-      by: ['category'],
-      _count: { category: true }
+    return prisma.category.findMany({
+      orderBy: { sortOrder: 'asc' },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        _count: {
+          select: { products: true }
+        }
+      }
     });
-
-    return categories.map(c => ({
-      name: c.category,
-      count: c._count.category
-    }));
   }
 }

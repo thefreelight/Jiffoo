@@ -1,7 +1,7 @@
 /**
- * Auth Routes (单商户版本)
+ * Auth Routes
  * 
- * 简化版本，移除了多租户相关逻辑。
+ * Simplified version, removed multi-tenant related logic.
  */
 
 import { FastifyInstance } from 'fastify';
@@ -76,7 +76,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   // Get current user
   fastify.get('/me', {
-    preHandler: [authMiddleware],
+    onRequest: [authMiddleware],
     schema: {
       tags: ['auth'],
       summary: 'Get current user info',
@@ -99,7 +99,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   // Refresh token
   fastify.post('/refresh', {
-    preHandler: [authMiddleware],
+    onRequest: [authMiddleware],
     schema: {
       tags: ['auth'],
       summary: 'Refresh access token',
@@ -135,7 +135,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
   // Change password
   fastify.post('/change-password', {
-    preHandler: [authMiddleware],
+    onRequest: [authMiddleware],
     schema: {
       tags: ['auth'],
       summary: 'Change password',

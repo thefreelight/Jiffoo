@@ -1,14 +1,14 @@
 /**
- * 统一的认证API客户端
- * 提供所有认证相关的API调用方法
+ * Unified Auth API Client
+ * Provides methods for all authentication-related API calls
  */
 
-import { ApiClient, ApiResponse, LoginCredentials, RegisterData, UserProfile, TenantInfo } from './client';
+import { ApiClient, ApiResponse, LoginCredentials, RegisterData, UserProfile } from './client';
 import { RefreshTokenResponse } from '../src/types/auth';
 import { API_ENDPOINTS } from '../src/utils/constants';
 
 export class AuthClient extends ApiClient {
-  // 登录 - OAuth2 SPA标准
+  // Login - OAuth2 SPA standard
   public async login(credentials: LoginCredentials): Promise<ApiResponse<{
     access_token: string;
     token_type: string;
@@ -20,7 +20,7 @@ export class AuthClient extends ApiClient {
     });
 
     if (response.success && response.data) {
-      // OAuth2 SPA标准：存储tokens到localStorage
+      // OAuth2 SPA standard: store tokens in localStorage
       if (response.data.access_token) {
         this.setToken(response.data.access_token);
       }
@@ -29,14 +29,14 @@ export class AuthClient extends ApiClient {
         this.setRefreshToken(response.data.refresh_token);
       }
 
-      // 直接返回OAuth2响应
+      // Return OAuth2 response directly
       return response;
     }
 
     return response;
   }
 
-  // 注册 - OAuth2 SPA标准
+  // Register - OAuth2 SPA standard
   public async register(data: RegisterData): Promise<ApiResponse<{
     access_token: string;
     token_type: string;
@@ -48,7 +48,7 @@ export class AuthClient extends ApiClient {
     });
 
     if (response.success && response.data) {
-      // OAuth2 SPA标准：存储tokens到localStorage
+      // OAuth2 SPA standard: store tokens in localStorage
       if (response.data.access_token) {
         this.setToken(response.data.access_token);
       }
@@ -57,14 +57,14 @@ export class AuthClient extends ApiClient {
         this.setRefreshToken(response.data.refresh_token);
       }
 
-      // 直接返回OAuth2响应
+      // Return OAuth2 response directly
       return response;
     }
 
     return response;
   }
 
-  // 登出 - OAuth2 SPA标准
+  // Logout - OAuth2 SPA standard
   public async logout(): Promise<ApiResponse<void>> {
     try {
       const response = await this.post(API_ENDPOINTS.AUTH.LOGOUT, {}, {
@@ -72,41 +72,35 @@ export class AuthClient extends ApiClient {
       });
       return response;
     } finally {
-      // OAuth2 SPA标准：无论API调用是否成功，都清除本地tokens
+      // OAuth2 SPA standard: clear local tokens regardless of API success
       this.clearAuth();
     }
   }
 
-  // 获取用户资料
+  // Get user profile
   public async getProfile(): Promise<ApiResponse<UserProfile>> {
     return this.get(API_ENDPOINTS.AUTH.PROFILE);
   }
 
-  // 获取当前用户信息（OAuth2标准化后的便捷方法）
-  // 🔧 前端适配后端：从JWT token获取role信息，API只提供基础信息
+  // Get current user (convenience method after OAuth2 standardization)
+  // Adapt backend: Role info is extracted from JWT token as API only provides basic info
   public async getCurrentUser(): Promise<UserProfile | null> {
     if (!this.isAuthenticated()) {
       return null;
     }
 
     try {
-      // 获取基础用户信息
+      // Get basic user info
       const response = await this.getProfile();
       if (response.success && response.data) {
-        // 从JWT token中解析role和tenantId信息
+        // Parse role info from JWT token
         const tokenPayload = this.getTokenPayload();
 
-        // 合并API响应和token信息
+        // Merge API response and token info
         const userProfile = {
           ...response.data,
-          role: tokenPayload?.role || 'USER',
-          tenantId: tokenPayload?.tenantId || null
+          role: tokenPayload?.role || 'USER'
         };
-
-        // 设置租户信息（如果存在）
-        if (userProfile.tenantId) {
-          this.setTenantId(userProfile.tenantId.toString());
-        }
 
         return userProfile;
       }
@@ -117,13 +111,13 @@ export class AuthClient extends ApiClient {
     return null;
   }
 
-  // 解析JWT token获取payload信息
+  // Parse JWT token to get payload
   private getTokenPayload(): any {
     try {
       const token = this.getToken();
       if (!token) return null;
 
-      // 解析JWT token (简单的base64解码，生产环境应该验证签名)
+      // Parse JWT token (simple base64 decode)
       const parts = token.split('.');
       if (parts.length !== 3) return null;
 
@@ -135,12 +129,12 @@ export class AuthClient extends ApiClient {
     }
   }
 
-  // 更新用户资料
+  // Update user profile
   public async updateProfile(data: Partial<UserProfile>): Promise<ApiResponse<UserProfile>> {
     return this.put(API_ENDPOINTS.AUTH.UPDATE_PROFILE, data);
   }
 
-  // 修改密码
+  // Change password
   public async changePassword(data: {
     currentPassword: string;
     newPassword: string;
@@ -148,12 +142,12 @@ export class AuthClient extends ApiClient {
     return this.post(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, data);
   }
 
-  // 忘记密码
+  // Forgot password
   public async forgotPassword(email: string): Promise<ApiResponse<void>> {
     return this.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
   }
 
-  // 重置密码
+  // Reset password
   public async resetPassword(data: {
     token: string;
     password: string;
@@ -161,17 +155,17 @@ export class AuthClient extends ApiClient {
     return this.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, data);
   }
 
-  // 刷新token
+  // Refresh token
   public async refreshAuthToken(): Promise<ApiResponse<RefreshTokenResponse>> {
     const response = await this.post(API_ENDPOINTS.AUTH.REFRESH);
 
-    // 🔧 安全修复：不再访问response.data.token
-    // token通过httpOnly cookie自动设置，无需手动处理
+    // Security fix: do not access response.data.token directly
+    // token is handled via httpOnly cookie automatically
 
     return response;
   }
 
-  // 验证当前认证状态
+  // Validate current auth status
   public async validateAuth(): Promise<ApiResponse<{
     valid: boolean;
     user?: UserProfile;
@@ -195,7 +189,7 @@ export class AuthClient extends ApiClient {
           }
         };
       } else {
-        // 认证失效，清除本地状态
+        // Auth invalid, clear local status
         this.clearAuth();
         return {
           success: true,
@@ -203,7 +197,7 @@ export class AuthClient extends ApiClient {
         };
       }
     } catch (error) {
-      // 认证失效，清除本地状态
+      // Auth invalid, clear local status
       this.clearAuth();
       return {
         success: true,
@@ -212,7 +206,7 @@ export class AuthClient extends ApiClient {
     }
   }
 
-  // 更新语言偏好
+  // Update language preferences
   public async updateLanguagePreferences(data: {
     language: string;
     timezone?: string;
@@ -222,19 +216,18 @@ export class AuthClient extends ApiClient {
     return this.patch('/user/preferences/language', data);
   }
 
-  // 获取用户权限
+  // Get user permissions
   public async getUserPermissions(): Promise<ApiResponse<{
     permissions: string[];
     roles: Array<{
       id: string;
       name: string;
-      tenantId?: string;
     }>;
   }>> {
     return this.get('/user/permissions');
   }
 
-  // 检查特定权限
+  // Check specific permission
   public async checkPermission(permission: string, resourceId?: string): Promise<ApiResponse<{
     hasPermission: boolean;
     reason?: string;
@@ -246,63 +239,34 @@ export class AuthClient extends ApiClient {
     });
   }
 
-  // 切换租户
-  public async switchTenant(tenantId: string): Promise<ApiResponse<{
-    user: UserProfile;
-    tenant: TenantInfo;
-  }>> {
-    const response = await this.post('/user/switch-tenant', { tenantId });
-
-    if (response.success && response.data) {
-      // 更新本地租户信息
-      this.setTenantId(tenantId);
-    }
-
-    return response;
-  }
-
-  // 获取用户可访问的租户列表
-  public async getUserTenants(): Promise<ApiResponse<TenantInfo[]>> {
-    return this.get('/user/tenants');
-  }
-
-  // 私有方法：设置token（重写父类方法以提供公共访问）
+  // Set token (override parent method to provide public access)
   public setToken(token: string): void {
     this.storage.setItem(this.tokenKey, token);
   }
 
-  // 获取当前token
+  // Get current token
   public getToken(): string | null {
     return this.storage.getItem(this.tokenKey);
   }
 
-  // 获取当前租户ID
-  public getCurrentTenantId(): string | null {
-    return this.getTenantId();
-  }
-
-
-
-  // 检查用户是否有特定角色
+  // Check if user has specific role
   public async hasRole(roleName: string): Promise<boolean> {
     const user = await this.getCurrentUser();
     return user?.role === roleName || false;
   }
 
-  // 检查用户是否为管理员
+  // Check if user is an admin
   public async isAdmin(): Promise<boolean> {
     return this.hasRole('ADMIN') || this.hasRole('SUPER_ADMIN');
   }
 
-  // 检查用户是否为超级管理员
+  // Check if user is a super admin
   public async isSuperAdmin(): Promise<boolean> {
     return this.hasRole('SUPER_ADMIN');
   }
-
-
 }
 
-// 延迟初始化默认实例，避免模块加载时的环境变量问题
+// Lazy initialize default instance to avoid environment issues during loading
 let _authClient: AuthClient | null = null;
 
 export const getAuthClient = (): AuthClient => {
@@ -312,12 +276,12 @@ export const getAuthClient = (): AuthClient => {
   return _authClient;
 };
 
-// 为了向后兼容，导出一个 Proxy
+// 后向兼容 Proxy
 export const authClient = new Proxy({} as AuthClient, {
   get: (target, prop) => {
     return getAuthClient()[prop as keyof AuthClient];
   }
 });
 
-// 导出类型
-export type { LoginCredentials, RegisterData, UserProfile, TenantInfo };
+// Export types
+export type { LoginCredentials, RegisterData, UserProfile };

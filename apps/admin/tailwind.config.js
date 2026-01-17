@@ -5,7 +5,7 @@ module.exports = {
     './app/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './lib/**/*.{js,ts,jsx,tsx,mdx}',
-    // 扫描 UI 设计系统
+    // Scanning UI design system
     '../../packages/ui/src/**/*.{js,ts,jsx,tsx}',
   ],
   theme: {

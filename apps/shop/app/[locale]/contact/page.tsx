@@ -11,7 +11,7 @@ import React from 'react';
 import { useShopTheme } from '@/lib/themes/provider';
 import { useToast } from '@/hooks/use-toast';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 export default function ContactPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();

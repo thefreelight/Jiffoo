@@ -7,6 +7,7 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
+import { DevTools } from '@/components/dev-tools';
 
 export const metadata: Metadata = {
   title: 'Jiffoo Admin - Management Dashboard',
@@ -20,7 +21,10 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="font-sans antialiased">{children}</body>
+      <body className="font-sans antialiased">
+        {children}
+        <DevTools />
+      </body>
     </html>
   );
 }

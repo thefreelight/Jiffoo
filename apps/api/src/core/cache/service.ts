@@ -6,9 +6,9 @@ export interface CacheOptions {
 }
 
 /**
- * 缓存服务 (单商户版本)
+ * Cache Service
  * 
- * 简化版本，移除了租户隔离逻辑。
+ * Simplified version, removed tenant isolation logic.
  */
 export class CacheService {
   private static readonly DEFAULT_TTL = 3600; // 1 hour
@@ -22,7 +22,7 @@ export class CacheService {
     RATE_LIMIT: 'rate_limit:',
   };
 
-  // 通用缓存方法
+  // General cache methods
   static async get<T>(key: string): Promise<T | null> {
     return await redisCache.get(key);
   }
@@ -36,7 +36,7 @@ export class CacheService {
     return await redisCache.del(key);
   }
 
-  // 商品缓存
+  // Product cache
   static async getProduct(productId: string): Promise<any | null> {
     const key = `${this.PREFIXES.PRODUCT}${productId}`;
     return await redisCache.get(key);
@@ -52,7 +52,7 @@ export class CacheService {
     return await redisCache.del(key);
   }
 
-  // 商品列表缓存
+  // Product list cache
   static async getProductList(page: number, limit: number, filters?: any): Promise<any | null> {
     const filterKey = filters ? JSON.stringify(filters) : 'all';
     const listKey = `${this.PREFIXES.PRODUCT}list:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
@@ -65,7 +65,7 @@ export class CacheService {
     return await redisCache.set(listKey, data, ttl);
   }
 
-  // 搜索结果缓存
+  // Search results cache
   static async getSearchResults(query: string, filters: any, page: number, limit: number): Promise<any | null> {
     const searchKey = JSON.stringify({ query, filters, page, limit });
     const key = `${this.PREFIXES.SEARCH}${Buffer.from(searchKey).toString('base64')}`;
@@ -78,7 +78,7 @@ export class CacheService {
     return await redisCache.set(key, results, ttl);
   }
 
-  // 用户缓存
+  // User cache
   static async getUser(userId: string): Promise<any | null> {
     const key = `${this.PREFIXES.USER}${userId}`;
     return await redisCache.get(key);
@@ -94,7 +94,7 @@ export class CacheService {
     return await redisCache.del(key);
   }
 
-  // 订单缓存
+  // Order cache
   static async getOrder(orderId: string): Promise<any | null> {
     const key = `${this.PREFIXES.ORDER}${orderId}`;
     return await redisCache.get(key);
@@ -110,7 +110,7 @@ export class CacheService {
     return await redisCache.del(key);
   }
 
-  // 速率限制
+  // Rate limiting
   static async getRateLimit(identifier: string): Promise<number | null> {
     const key = `${this.PREFIXES.RATE_LIMIT}${identifier}`;
     return await redisCache.get(key);
@@ -130,17 +130,17 @@ export class CacheService {
     return result || 0;
   }
 
-  // 清除所有缓存
+  // Clear all cache
   static async clearAll(): Promise<void> {
     await redisCache.flushAll();
   }
 
-  // 清除特定前缀的缓存
+  // Clear cache by prefix
   static async clearByPrefix(prefix: string): Promise<void> {
     await redisCache.deleteByPattern(`${prefix}*`);
   }
 
-  // 获取缓存统计
+  // Get cache stats
   static async getCacheStats(): Promise<{
     connected: boolean;
     productCacheCount: number;
@@ -156,7 +156,7 @@ export class CacheService {
     };
   }
 
-  // 健康检查
+  // Health check
   static async healthCheck(): Promise<{ status: string; connected: boolean }> {
     const connected = await redisCache.ping();
     return {
@@ -165,12 +165,12 @@ export class CacheService {
     };
   }
 
-  // 清除商品缓存
+  // Clear product cache
   static async clearProductCache(): Promise<void> {
     await this.clearByPrefix(this.PREFIXES.PRODUCT);
   }
 
-  // 清除搜索缓存
+  // Clear search cache
   static async clearSearchCache(): Promise<void> {
     await this.clearByPrefix(this.PREFIXES.SEARCH);
   }

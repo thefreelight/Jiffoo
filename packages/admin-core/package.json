@@ -1,0 +1,19 @@
+{
+    "name": "admin-core",
+    "version": "0.1.0",
+    "private": true,
+    "description": "Admin Core - Admin/Super-Admin 共享核心",
+    "main": "src/index.ts",
+    "scripts": {
+        "dev": "tsc --watch",
+        "build": "tsc"
+    },
+    "keywords": [
+        "admin",
+        "ui",
+        "react",
+        "typescript"
+    ],
+    "author": "Jiffoo Team",
+    "license": "MIT"
+}

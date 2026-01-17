@@ -9,7 +9,7 @@
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { ReactNode } from 'react'
 import { cn } from '../../lib/utils'
-import { useT } from 'shared/src/i18n'
+import { useT } from 'shared/src/i18n/react'
 
 import { LineChart, Line, ResponsiveContainer } from 'recharts'
 
@@ -117,7 +117,7 @@ export function StatsCard({
             )}
             <span>{change}</span>
           </div>
-          <span className="text-sm text-[#64748B]">{getText('tenant.dashboard.fromLastMonth', 'from last month')}</span>
+          <span className="text-sm text-[#64748B]">{getText('merchant.dashboard.fromLastMonth', 'from last month')}</span>
         </div>
       </div>
 

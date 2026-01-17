@@ -11,7 +11,7 @@ import React from 'react';
 import { useShopTheme } from '@/lib/themes/provider';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useAuthStore } from '@/store/auth';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 export default function ProfilePage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();

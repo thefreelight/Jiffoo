@@ -17,8 +17,7 @@ import { useCartStore } from '@/store/cart';
 import { useToast } from '@/hooks/use-toast';
 import { ProductService, Product, ProductSearchFilters } from '@/services/product.service';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { useT } from 'shared/src/i18n';
-import { useAgentId, useIsAgentMall } from '@/store/mall';
+import { useT } from 'shared/src/i18n/react';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/state-components';
 
 export default function ProductsPage() {
@@ -31,10 +30,6 @@ export default function ProductsPage() {
 
   // Get category filter from URL
   const categoryFromUrl = searchParams.get('category');
-
-  // 🆕 Agent Mall context
-  const agentId = useAgentId();
-  const isAgentMall = useIsAgentMall();
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -52,16 +47,6 @@ export default function ProductsPage() {
   const [totalProducts, setTotalProducts] = React.useState(0);
 
   // Load products with locale for translated data
-  // 🆕 传递 agentId 以获取 Agent Mall 授权商品和价格
-  // 使用 ref 存储 agentId 和 isAgentMall 以避免无限循环
-  const agentIdRef = React.useRef(agentId);
-  const isAgentMallRef = React.useRef(isAgentMall);
-
-  React.useEffect(() => {
-    agentIdRef.current = agentId;
-    isAgentMallRef.current = isAgentMall;
-  }, [agentId, isAgentMall]);
-
   const loadProducts = React.useCallback(async (page = 1, filters: ProductSearchFilters = {}) => {
     try {
       setLoading(true);
@@ -78,8 +63,6 @@ export default function ProductsPage() {
         sortBy: sortBy === 'rating' ? 'name' : sortBy as 'price' | 'name' | 'createdAt' | 'stock',
         sortOrder,
         locale: nav.locale, // Pass current locale for translated product data
-        // 🆕 Agent Mall 场景：传递 agentId
-        agentId: isAgentMallRef.current ? agentIdRef.current : undefined,
       });
 
       setProducts(response.products);

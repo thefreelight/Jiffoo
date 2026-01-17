@@ -16,6 +16,10 @@ ENV NO_PROXY=${NO_PROXY}
 # pnpm specific proxy settings
 ENV npm_config_proxy=${HTTP_PROXY}
 ENV npm_config_https_proxy=${HTTPS_PROXY}
+# Skip binary downloads that require external network access
+ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -34,10 +38,9 @@ COPY packages/shared/package.json ./packages/shared/
 COPY packages/shop-themes/default/package.json ./packages/shop-themes/default/
 COPY packages/ui/package.json ./packages/ui/
 
-# Install dependencies with npm mirror and retry settings
-# Override .npmrc registry which may point to internal mirror
-RUN sed -i 's|registry=http://npm.lafdru.local/|registry=https://registry.npmmirror.com/|g' .npmrc && \
-    pnpm config set fetch-retries 5 && \
+# Install dependencies using local Verdaccio registry (npm.lafdru.local)
+# DNS resolution is handled by CI/CD pipeline (adds npm.lafdru.local to /etc/hosts)
+RUN pnpm config set fetch-retries 5 && \
     pnpm config set fetch-retry-mintimeout 20000 && \
     pnpm config set fetch-retry-maxtimeout 120000 && \
     pnpm install --frozen-lockfile
@@ -62,15 +65,16 @@ ENV NODE_ENV=production
 
 # Build-time argument for API service URL
 # This URL is used by Next.js rewrites to proxy /api/* requests to the backend
-ARG API_SERVICE_URL=http://jiffoo.chfastpay.com:30002
+# Using K8s internal service name (must match deployment service name in the same namespace)
+ARG API_SERVICE_URL=http://jiffoo-mall-api-dev:80
 ENV API_SERVICE_URL=${API_SERVICE_URL}
 
 # Build workspace packages first (required for workspace dependency resolution)
 RUN cd packages/shared && npm run build
 RUN cd packages/ui && npm run build
 
-# Build the Next.js application
-RUN cd apps/shop && npx next build
+# Build the Next.js application (use root node_modules since pnpm hoists deps)
+RUN cd apps/shop && /app/node_modules/.bin/next build
 
 # Production image, copy all the files and run next
 FROM base AS runner

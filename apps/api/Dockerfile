@@ -23,6 +23,10 @@ RUN apk add --no-cache \
 ENV HTTP_PROXY=${HTTP_PROXY}
 ENV HTTPS_PROXY=${HTTPS_PROXY}
 ENV NO_PROXY=${NO_PROXY}
+# Skip binary downloads that require external network access
+ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # Install pnpm with proxy and npm mirror
 RUN npm config set proxy ${HTTP_PROXY} && \
@@ -40,10 +44,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
 
-# Install dependencies with npm mirror and retry settings
-# Override .npmrc registry which may point to internal mirror
-RUN sed -i 's|registry=http://npm.lafdru.local/|registry=https://registry.npmmirror.com/|g' .npmrc && \
-    pnpm config set fetch-retries 5 && \
+# Install dependencies using local Verdaccio registry (npm.lafdru.local)
+# DNS resolution is handled by CI/CD pipeline (adds npm.lafdru.local to /etc/hosts)
+RUN pnpm config set fetch-retries 5 && \
     pnpm config set fetch-retry-mintimeout 20000 && \
     pnpm config set fetch-retry-maxtimeout 120000 && \
     pnpm install --frozen-lockfile

@@ -1,23 +1,23 @@
 import { z } from 'zod';
 import { OrderStatusType } from '@/core/order/types';
 
-// 更新订单状态请求
+// Update order status request
 export const UpdateOrderStatusSchema = z.object({
   status: z.enum(['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED']),
 });
 
-// 批量操作请求
+// Batch operation request
 export const BatchOrderOperationSchema = z.object({
   action: z.enum(['updateStatus', 'delete']),
   orderIds: z.array(z.string()).min(1, 'At least one order ID is required'),
   status: z.enum(['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED']).optional(),
 });
 
-// TypeScript 类型推断
+// TypeScript Type Inferenece
 export type UpdateOrderStatusRequest = z.infer<typeof UpdateOrderStatusSchema>;
 export type BatchOrderOperationRequest = z.infer<typeof BatchOrderOperationSchema>;
 
-// 管理员订单响应接口（包含更多详细信息）
+// Admin order response interface (includes more details)
 export interface AdminOrderResponse {
   id: string;
   userId: string;
@@ -42,7 +42,7 @@ export interface AdminOrderResponse {
   };
 }
 
-// 管理员订单商品项响应接口
+// Admin order item response interface
 export interface AdminOrderItemResponse {
   id: string;
   productId: string;
@@ -56,7 +56,7 @@ export interface AdminOrderItemResponse {
   };
 }
 
-// 订单统计信息
+// Order statistics
 export interface OrderStatsResponse {
   success: boolean;
   data: {
@@ -75,7 +75,7 @@ export interface OrderStatsResponse {
   };
 }
 
-// 分页管理员订单列表响应
+// Paginated admin order list response
 export interface AdminOrderListResponse {
   success: boolean;
   data: AdminOrderResponse[];
@@ -87,13 +87,13 @@ export interface AdminOrderListResponse {
   };
 }
 
-// 单个管理员订单响应
+// Single admin order response
 export interface SingleAdminOrderResponse {
   success: boolean;
   data: AdminOrderResponse;
 }
 
-// 批量操作响应
+// Batch operation response
 export interface BatchOperationResponse {
   success: boolean;
   data: {

@@ -20,7 +20,7 @@ import { PageNav } from '@/components/layout/page-nav'
 import { useInstalledPlugins, useTogglePlugin, useUninstallPlugin } from '@/lib/hooks/use-api'
 import { pluginsApi } from '@/lib/api'
 import { useQuery } from '@tanstack/react-query'
-import { useT } from 'shared/src/i18n'
+import { useT } from 'shared/src/i18n/react'
 
 import {
   Dialog,
@@ -60,7 +60,7 @@ function PluginUsageInfo({ slug, getText }: { slug: string; getText: (key: strin
       <div className="flex items-center gap-2 mb-1">
         <TrendingUp className="w-4 h-4 text-gray-500" />
         <span className="text-sm font-medium text-gray-700">
-          {getText('tenant.plugins.installedPage.usage', 'Usage')}
+          {getText('merchant.plugins.installedPage.usage', 'Usage')}
         </span>
       </div>
       <div className="flex items-center gap-3">
@@ -79,8 +79,8 @@ function PluginUsageInfo({ slug, getText }: { slug: string; getText: (key: strin
       {isNearLimit && (
         <p className="text-xs text-yellow-600 mt-1">
           {isAtLimit
-            ? getText('tenant.plugins.installedPage.limitReached', 'Usage limit reached. Consider upgrading your plan.')
-            : getText('tenant.plugins.installedPage.nearLimit', 'Approaching usage limit.')}
+            ? getText('merchant.plugins.installedPage.limitReached', 'Usage limit reached. Consider upgrading your plan.')
+            : getText('merchant.plugins.installedPage.nearLimit', 'Approaching usage limit.')}
         </p>
       )}
     </div>
@@ -99,9 +99,9 @@ export default function InstalledPluginsPage() {
 
   // Page navigation items for Plugins module
   const navItems = [
-    { label: getText('tenant.plugins.overview', 'Overview'), href: '/plugins', exact: true },
-    { label: getText('tenant.plugins.marketplace', 'Marketplace'), href: '/plugins/marketplace' },
-    { label: getText('tenant.plugins.installed', 'Installed'), href: '/plugins/installed' },
+    { label: getText('merchant.plugins.overview', 'Overview'), href: '/plugins', exact: true },
+    { label: getText('merchant.plugins.marketplace', 'Marketplace'), href: '/plugins/marketplace' },
+    { label: getText('merchant.plugins.installed', 'Installed'), href: '/plugins/installed' },
   ]
   const [uninstallDialogOpen, setUninstallDialogOpen] = useState(false)
   const [selectedPlugin, setSelectedPlugin] = useState<any>(null)
@@ -159,7 +159,7 @@ export default function InstalledPluginsPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">{getText('tenant.plugins.installedPage.loading', 'Loading installed plugins...')}</p>
+          <p className="mt-2 text-gray-600">{getText('merchant.plugins.installedPage.loading', 'Loading installed plugins...')}</p>
         </div>
       </div>
     )
@@ -170,13 +170,13 @@ export default function InstalledPluginsPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">{getText('tenant.plugins.installedPage.loadFailed', 'Failed to load installed plugins')}</p>
+          <p className="text-gray-600">{getText('merchant.plugins.installedPage.loadFailed', 'Failed to load installed plugins')}</p>
           <Button
             variant="outline"
             className="mt-4"
             onClick={() => window.location.reload()}
           >
-            {getText('tenant.plugins.installedPage.retry', 'Retry')}
+            {getText('merchant.plugins.installedPage.retry', 'Retry')}
           </Button>
         </div>
       </div>
@@ -191,12 +191,12 @@ export default function InstalledPluginsPage() {
           <div className="flex items-center gap-3">
             <CheckCircle className="w-5 h-5 text-green-600" />
             <div>
-              <p className="font-medium text-green-800">{getText('tenant.plugins.installedPage.installSuccess', 'Plugin installed successfully!')}</p>
-              <p className="text-sm text-green-600">{getText('tenant.plugins.installedPage.installSuccessDesc', 'The plugin has been installed and is ready to use.')}</p>
+              <p className="font-medium text-green-800">{getText('merchant.plugins.installedPage.installSuccess', 'Plugin installed successfully!')}</p>
+              <p className="text-sm text-green-600">{getText('merchant.plugins.installedPage.installSuccessDesc', 'The plugin has been installed and is ready to use.')}</p>
             </div>
           </div>
           <Button variant="ghost" size="sm" onClick={() => setInstallSuccess(false)}>
-            {getText('tenant.plugins.installedPage.dismiss', 'Dismiss')}
+            {getText('merchant.plugins.installedPage.dismiss', 'Dismiss')}
           </Button>
         </div>
       )}
@@ -205,15 +205,15 @@ export default function InstalledPluginsPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{getText('tenant.plugins.installedPage.title', 'Installed Plugins')}</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{getText('merchant.plugins.installedPage.title', 'Installed Plugins')}</h1>
             <p className="text-gray-600 mt-1">
-              {getText('tenant.plugins.installedPage.subtitle', 'Manage your installed plugins and their configurations')}
+              {getText('merchant.plugins.installedPage.subtitle', 'Manage your installed plugins and their configurations')}
             </p>
           </div>
           <Button className="bg-gray-900 hover:bg-gray-800" asChild>
             <Link href="/plugins/marketplace">
               <Plus className="w-4 h-4 mr-2" />
-              {getText('tenant.plugins.browseMarketplace', 'Browse Marketplace')}
+              {getText('merchant.plugins.browseMarketplace', 'Browse Marketplace')}
             </Link>
           </Button>
         </div>
@@ -225,7 +225,7 @@ export default function InstalledPluginsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{getText('tenant.plugins.installedPage.totalInstalled', 'Total Installed')}</CardTitle>
+            <CardTitle className="text-sm font-medium">{getText('merchant.plugins.installedPage.totalInstalled', 'Total Installed')}</CardTitle>
             <Box className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
@@ -235,7 +235,7 @@ export default function InstalledPluginsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{getText('tenant.plugins.installedPage.activePlugins', 'Active Plugins')}</CardTitle>
+            <CardTitle className="text-sm font-medium">{getText('merchant.plugins.installedPage.activePlugins', 'Active Plugins')}</CardTitle>
             <Box className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
@@ -247,7 +247,7 @@ export default function InstalledPluginsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">{getText('tenant.plugins.installedPage.disabledPlugins', 'Disabled Plugins')}</CardTitle>
+            <CardTitle className="text-sm font-medium">{getText('merchant.plugins.installedPage.disabledPlugins', 'Disabled Plugins')}</CardTitle>
             <Box className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
@@ -264,12 +264,12 @@ export default function InstalledPluginsPage() {
           <CardContent className="py-12">
             <div className="text-center">
               <Box className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">{getText('tenant.plugins.installedPage.noPlugins', 'No Plugins Installed')}</h3>
+              <h3 className="text-lg font-semibold mb-2">{getText('merchant.plugins.installedPage.noPlugins', 'No Plugins Installed')}</h3>
               <p className="text-gray-600 mb-4">
-                {getText('tenant.plugins.installedPage.getStarted', 'Get started by installing plugins from the marketplace')}
+                {getText('merchant.plugins.installedPage.getStarted', 'Get started by installing plugins from the marketplace')}
               </p>
               <Button asChild>
-                <Link href="/plugins/marketplace">{getText('tenant.plugins.browseMarketplace', 'Browse Marketplace')}</Link>
+                <Link href="/plugins/marketplace">{getText('merchant.plugins.browseMarketplace', 'Browse Marketplace')}</Link>
               </Button>
             </div>
           </CardContent>
@@ -295,13 +295,13 @@ export default function InstalledPluginsPage() {
                       </div>
                       <p className="text-gray-600 mb-3">{installation.plugin.description}</p>
                       <div className="flex items-center gap-4 text-sm text-gray-600">
-                        <span>{getText('tenant.plugins.installedPage.version', 'Version')}: {installation.plugin.version}</span>
+                        <span>{getText('merchant.plugins.installedPage.version', 'Version')}: {installation.plugin.version}</span>
                         <span>•</span>
-                        <span>{getText('tenant.plugins.installedPage.installedDate', 'Installed')}: {new Date(installation.installedAt).toLocaleDateString()}</span>
+                        <span>{getText('merchant.plugins.installedPage.installedDate', 'Installed')}: {new Date(installation.installedAt).toLocaleDateString()}</span>
                         {installation.subscription && (
                           <>
                             <span>•</span>
-                            <span>{getText('tenant.plugins.installedPage.plan', 'Plan')}: {installation.subscription.planId}</span>
+                            <span>{getText('merchant.plugins.installedPage.plan', 'Plan')}: {installation.subscription.planId}</span>
                           </>
                         )}
                       </div>
@@ -314,7 +314,7 @@ export default function InstalledPluginsPage() {
                     {/* Enable/Disable Toggle */}
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-gray-600">
-                        {installation.enabled ? getText('tenant.plugins.installedPage.enabled', 'Enabled') : getText('tenant.plugins.disabled', 'Disabled')}
+                        {installation.enabled ? getText('merchant.plugins.installedPage.enabled', 'Enabled') : getText('merchant.plugins.disabled', 'Disabled')}
                       </span>
                       <Switch
                         checked={installation.enabled}
@@ -329,7 +329,7 @@ export default function InstalledPluginsPage() {
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/plugins/installed/${installation.plugin.slug}`}>
                         <Settings className="w-4 h-4 mr-2" />
-                        {getText('tenant.plugins.configure', 'Configure')}
+                        {getText('merchant.plugins.configure', 'Configure')}
                       </Link>
                     </Button>
 
@@ -341,7 +341,7 @@ export default function InstalledPluginsPage() {
                       disabled={uninstallMutation.isPending}
                     >
                       <Trash2 className="w-4 h-4 mr-2" />
-                      {getText('tenant.plugins.uninstall', 'Uninstall')}
+                      {getText('merchant.plugins.uninstall', 'Uninstall')}
                     </Button>
                   </div>
                 </div>
@@ -355,11 +355,11 @@ export default function InstalledPluginsPage() {
       <Dialog open={uninstallDialogOpen} onOpenChange={setUninstallDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{getText('tenant.plugins.installedPage.uninstallTitle', 'Uninstall Plugin')}</DialogTitle>
+            <DialogTitle>{getText('merchant.plugins.installedPage.uninstallTitle', 'Uninstall Plugin')}</DialogTitle>
             <DialogDescription>
-              {getText('tenant.plugins.installedPage.uninstallConfirm', 'Are you sure you want to uninstall')}{' '}
+              {getText('merchant.plugins.installedPage.uninstallConfirm', 'Are you sure you want to uninstall')}{' '}
               <span className="font-semibold">{selectedPlugin?.plugin.name}</span>?
-              {getText('tenant.plugins.installedPage.uninstallWarning', 'This action cannot be undone and all plugin data will be removed.')}
+              {getText('merchant.plugins.installedPage.uninstallWarning', 'This action cannot be undone and all plugin data will be removed.')}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -368,14 +368,14 @@ export default function InstalledPluginsPage() {
               onClick={() => setUninstallDialogOpen(false)}
               disabled={uninstallMutation.isPending}
             >
-              {getText('tenant.plugins.installedPage.cancel', 'Cancel')}
+              {getText('merchant.plugins.installedPage.cancel', 'Cancel')}
             </Button>
             <Button
               variant="destructive"
               onClick={handleUninstallConfirm}
               disabled={uninstallMutation.isPending}
             >
-              {uninstallMutation.isPending ? getText('tenant.plugins.installedPage.uninstalling', 'Uninstalling...') : getText('tenant.plugins.uninstall', 'Uninstall')}
+              {uninstallMutation.isPending ? getText('merchant.plugins.installedPage.uninstalling', 'Uninstalling...') : getText('merchant.plugins.uninstall', 'Uninstall')}
             </Button>
           </DialogFooter>
         </DialogContent>

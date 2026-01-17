@@ -1,22 +1,22 @@
 export const API_ENDPOINTS = {
-  // Auth - 统一的认证端点（移除/api前缀，由baseURL提供）
+  // Auth - Unified auth endpoints (no /api prefix, provided by baseURL)
   AUTH: {
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
-    PROFILE: '/auth/me', // 获取用户资料
-    UPDATE_PROFILE: '/user/profile', // 更新用户资料
+    PROFILE: '/auth/me', // Get user profile
+    UPDATE_PROFILE: '/user/profile', // Update user profile
     FORGOT_PASSWORD: '/auth/forgot-password',
     RESET_PASSWORD: '/auth/reset-password',
-    CHANGE_PASSWORD: '/auth/change-password', // 认证模块中的修改密码端点
+    CHANGE_PASSWORD: '/auth/change-password', // Update password endpoint
   },
 
-  // Account - 用户账户管理端点
+  // Account - User account management endpoints
   ACCOUNT: {
-    PROFILE: '/account/profile', // 获取和更新个人资料
+    PROFILE: '/account/profile', // Get/Update profile
   },
-  
+
   // Products
   PRODUCTS: {
     LIST: '/products',
@@ -62,7 +62,7 @@ export const API_ENDPOINTS = {
     ORDERS: '/admin/orders',
     PRODUCTS: '/admin/products',
   },
-  
+
   // Upload
   UPLOAD: '/upload',
 

@@ -6,7 +6,7 @@
 
 export { common } from './common';
 export { shop } from './shop';
-export { tenant } from './tenant';
+export { merchant } from './merchant';
 export { agent } from './agent';
 export { whiteLabel } from './whiteLabel';
 

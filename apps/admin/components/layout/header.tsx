@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { useAuthStore } from '@/lib/store'
 import { Button } from '../ui/button'
-import { useT, useLocale } from 'shared/src/i18n'
+import { useT, useLocale } from 'shared/src/i18n/react'
 import {
   Search,
   Bell,
@@ -86,7 +86,7 @@ export function Header({ title = "Dashboard" }: HeaderProps) {
             </div>
             <input
               type="text"
-              placeholder={getText('tenant.header.searchPlaceholder', 'Search...')}
+              placeholder={getText('merchant.header.searchPlaceholder', 'Search...')}
               className="block w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
             />
           </div>
@@ -146,27 +146,27 @@ export function Header({ title = "Dashboard" }: HeaderProps) {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>{getText('tenant.header.myAccount', 'My Account')}</DropdownMenuLabel>
+              <DropdownMenuLabel>{getText('merchant.header.myAccount', 'My Account')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem>
                 <User className="mr-2 h-4 w-4" />
-                <span>{getText('tenant.header.profile', 'Profile')}</span>
+                <span>{getText('merchant.header.profile', 'Profile')}</span>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Settings className="mr-2 h-4 w-4" />
-                <span>{getText('tenant.header.settings', 'Settings')}</span>
+                <span>{getText('merchant.header.settings', 'Settings')}</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>{getText('tenant.header.logout', 'Log out')}</span>
+                <span>{getText('merchant.header.logout', 'Log out')}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
 
           {/* Add View Button */}
           <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-            {getText('tenant.header.addView', 'Add View')}
+            {getText('merchant.header.addView', 'Add View')}
           </Button>
         </div>
       </div>

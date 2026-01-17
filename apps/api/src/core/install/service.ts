@@ -1,5 +1,5 @@
 /**
- * Install Service (单商户版本)
+ * Install Service (Single Store Version)
  */
 
 import { prisma } from '@/config/database';
@@ -58,7 +58,7 @@ export class InstallService {
         return { success: false, error: 'System is already installed' };
       }
 
-      // 创建管理员账号
+      // Create admin user account
       const hashedPassword = await bcrypt.hash(data.adminPassword, 10);
       const existingAdmin = await prisma.user.findFirst({
         where: { email: data.adminEmail }
@@ -79,7 +79,7 @@ export class InstallService {
         adminUser = existingAdmin;
       }
 
-      // 更新系统设置
+      // Update system settings
       await prisma.systemSettings.upsert({
         where: { id: 'system' },
         create: {

@@ -7,27 +7,39 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import type { PluginMeta, PluginState, PluginConfig, InstalledPluginsResponse } from './types';
 
-// 存储路径
+// Storage paths
 const CONFIG_DIR = path.join(process.cwd(), 'data');
 const PLUGIN_STATES_FILE = path.join(CONFIG_DIR, 'plugin-states.json');
 const EXTENSIONS_DIR = path.join(process.cwd(), 'extensions', 'plugins');
 
-// 内置插件 (这些始终可用)
-const BUILTIN_PLUGINS: PluginMeta[] = [];
+// Built-in plugins (always available)
+// Alpha: Only Stripe is included as built-in payment method
+const BUILTIN_PLUGINS: PluginMeta[] = [
+  {
+    slug: 'stripe-payment',
+    name: 'Stripe Payment',
+    version: '1.0.0',
+    description: 'Accept credit card payments with Stripe. Supports one-time payments, subscriptions, and more.',
+    author: 'Jiffoo Team',
+    category: 'payment',
+    source: 'builtin',
+    icon: 'https://cdn.jsdelivr.net/gh/simple-icons/simple-icons/icons/stripe.svg',
+  },
+];
 
 /**
- * 确保配置目录存在
+ * Ensure config directory exists
  */
 async function ensureConfigDir(): Promise<void> {
   try {
     await fs.mkdir(CONFIG_DIR, { recursive: true });
   } catch {
-    // 目录已存在
+    // Directory already exists
   }
 }
 
 /**
- * 读取插件状态
+ * Read plugin states
  */
 async function readPluginStates(): Promise<Record<string, PluginState>> {
   try {
@@ -40,7 +52,7 @@ async function readPluginStates(): Promise<Record<string, PluginState>> {
 }
 
 /**
- * 保存插件状态
+ * Save plugin states
  */
 async function savePluginStates(states: Record<string, PluginState>): Promise<void> {
   await ensureConfigDir();
@@ -48,7 +60,7 @@ async function savePluginStates(states: Record<string, PluginState>): Promise<vo
 }
 
 /**
- * 获取插件状态
+ * Get plugin state
  */
 export async function getPluginState(slug: string): Promise<PluginState | null> {
   const states = await readPluginStates();
@@ -56,10 +68,10 @@ export async function getPluginState(slug: string): Promise<PluginState | null> 
 }
 
 /**
- * 启用插件
+ * Enable plugin
  */
 export async function enablePlugin(slug: string): Promise<PluginState> {
-  // 验证插件存在
+  // Verify plugin exists
   const plugins = await getInstalledPlugins();
   const plugin = plugins.plugins.find(p => p.slug === slug);
   if (!plugin) {
@@ -80,7 +92,7 @@ export async function enablePlugin(slug: string): Promise<PluginState> {
 }
 
 /**
- * 禁用插件
+ * Disable plugin
  */
 export async function disablePlugin(slug: string): Promise<PluginState> {
   const states = await readPluginStates();
@@ -97,7 +109,7 @@ export async function disablePlugin(slug: string): Promise<PluginState> {
 }
 
 /**
- * 更新插件配置
+ * Update plugin config
  */
 export async function updatePluginConfig(slug: string, config: PluginConfig): Promise<PluginState> {
   const states = await readPluginStates();
@@ -113,23 +125,23 @@ export async function updatePluginConfig(slug: string, config: PluginConfig): Pr
 }
 
 /**
- * 获取已安装插件列表
+ * Get installed plugins list
  */
 export async function getInstalledPlugins(): Promise<InstalledPluginsResponse> {
   const states = await readPluginStates();
   const plugins: Array<PluginMeta & { enabled: boolean }> = [];
 
-  // 添加内置插件
+  // Add built-in plugins
   for (const p of BUILTIN_PLUGINS) {
     plugins.push({ ...p, enabled: states[p.slug]?.enabled ?? true });
   }
 
-  // 读取已安装的插件（从状态文件中）
+  // Read installed plugins (from state file)
   for (const [slug, state] of Object.entries(states)) {
-    // 跳过已经在 BUILTIN_PLUGINS 中的
+    // Skip if already in BUILTIN_PLUGINS
     if (BUILTIN_PLUGINS.some(p => p.slug === slug)) continue;
 
-    // 检查是否是已安装的插件
+    // Check if it is an installed plugin
     if (state.installed) {
       plugins.push({
         slug,
@@ -145,7 +157,7 @@ export async function getInstalledPlugins(): Promise<InstalledPluginsResponse> {
     }
   }
 
-  // 读取已安装的插件（从文件系统）
+  // Read installed plugins (from file system)
   try {
     const dirs = await fs.readdir(EXTENSIONS_DIR, { withFileTypes: true });
     for (const dir of dirs) {
@@ -156,7 +168,7 @@ export async function getInstalledPlugins(): Promise<InstalledPluginsResponse> {
           const manifest = JSON.parse(data);
           const slug = manifest.slug || dir.name;
 
-          // 跳过已经添加的
+          // Skip if already added
           if (plugins.some(p => p.slug === slug)) continue;
 
           plugins.push({
@@ -170,19 +182,19 @@ export async function getInstalledPlugins(): Promise<InstalledPluginsResponse> {
             enabled: states[slug]?.enabled ?? false,
           });
         } catch {
-          // 忽略无效插件
+          // Ignore invalid plugins
         }
       }
     }
   } catch {
-    // extensions 目录不存在
+    // extensions directory does not exist
   }
 
   return { plugins, total: plugins.length };
 }
 
 /**
- * 安装内置插件
+ * Install built-in plugin
  */
 export async function installBuiltinPlugin(slug: string, pluginInfo: any): Promise<PluginState> {
   const states = await readPluginStates();
@@ -210,7 +222,7 @@ export async function installBuiltinPlugin(slug: string, pluginInfo: any): Promi
 }
 
 /**
- * 检查插件是否已安装并启用
+ * Check if plugin is installed and enabled
  */
 export async function isPluginEnabled(slug: string): Promise<boolean> {
   const state = await getPluginState(slug);
@@ -218,7 +230,7 @@ export async function isPluginEnabled(slug: string): Promise<boolean> {
 }
 
 /**
- * 获取插件配置
+ * Get plugin configuration
  */
 export async function getPluginConfig(slug: string): Promise<PluginConfig | null> {
   const state = await getPluginState(slug);

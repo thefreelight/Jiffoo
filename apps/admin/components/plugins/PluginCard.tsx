@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui
 import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import Link from 'next/link'
-import { useT } from 'shared/src/i18n'
+import { useT } from 'shared/src/i18n/react'
 
 import { Plugin } from '../../lib/types'
 
@@ -42,13 +42,13 @@ export function PluginCard({ plugin, isInstalled = false, onInstall, onViewDetai
   const getBusinessModelBadge = (model: string) => {
     switch (model) {
       case 'free':
-        return <Badge className="bg-green-100 text-green-800">{getText('tenant.plugins.model.free', 'Free')}</Badge>
+        return <Badge className="bg-green-100 text-green-800">{getText('merchant.plugins.model.free', 'Free')}</Badge>
       case 'freemium':
-        return <Badge className="bg-blue-100 text-blue-800">{getText('tenant.plugins.model.freemium', 'Freemium')}</Badge>
+        return <Badge className="bg-blue-100 text-blue-800">{getText('merchant.plugins.model.freemium', 'Freemium')}</Badge>
       case 'subscription':
-        return <Badge className="bg-purple-100 text-purple-800">{getText('tenant.plugins.model.subscription', 'Subscription')}</Badge>
+        return <Badge className="bg-purple-100 text-purple-800">{getText('merchant.plugins.model.subscription', 'Subscription')}</Badge>
       case 'usage_based':
-        return <Badge className="bg-orange-100 text-orange-800">{getText('tenant.plugins.model.usageBased', 'Usage Based')}</Badge>
+        return <Badge className="bg-orange-100 text-orange-800">{getText('merchant.plugins.model.usageBased', 'Usage Based')}</Badge>
       default:
         return <Badge>{model}</Badge>
     }
@@ -175,7 +175,7 @@ export function PluginCard({ plugin, isInstalled = false, onInstall, onViewDetai
             <CardDescription className="line-clamp-2">{plugin.description}</CardDescription>
           </div>
           {isInstalled && (
-            <Badge className="bg-green-100 text-green-800">{getText('tenant.plugins.installed', 'Installed')}</Badge>
+            <Badge className="bg-green-100 text-green-800">{getText('merchant.plugins.installed', 'Installed')}</Badge>
           )}
         </div>
       </CardHeader>
@@ -186,7 +186,7 @@ export function PluginCard({ plugin, isInstalled = false, onInstall, onViewDetai
             {renderStars(plugin.rating)}
             <div className="flex items-center gap-1 text-sm text-gray-600">
               <Users className="w-4 h-4" />
-              <span>{plugin.installCount.toLocaleString()} {getText('tenant.plugins.installs', 'installs')}</span>
+              <span>{plugin.installCount.toLocaleString()} {getText('merchant.plugins.installs', 'installs')}</span>
             </div>
           </div>
 
@@ -199,7 +199,7 @@ export function PluginCard({ plugin, isInstalled = false, onInstall, onViewDetai
           {/* Pricing */}
           {plugin.subscriptionPlans && plugin.subscriptionPlans.length > 0 && (
             <div className="text-sm">
-              <span className="font-semibold">{getText('tenant.plugins.startingAt', 'Starting at')}: </span>
+              <span className="font-semibold">{getText('merchant.plugins.startingAt', 'Starting at')}: </span>
               <span className="text-lg font-bold text-blue-600">
                 {plugin.subscriptionPlans[0].currency} {plugin.subscriptionPlans[0].amount}
               </span>
@@ -209,7 +209,7 @@ export function PluginCard({ plugin, isInstalled = false, onInstall, onViewDetai
 
           {/* Developer */}
           <div className="text-sm text-gray-600">
-            <span className="font-semibold">{getText('tenant.plugins.developer', 'Developer')}:</span> {plugin.developer || plugin.author}
+            <span className="font-semibold">{getText('merchant.plugins.developer', 'Developer')}:</span> {plugin.developer || plugin.author}
           </div>
 
           {/* Actions */}
@@ -221,7 +221,7 @@ export function PluginCard({ plugin, isInstalled = false, onInstall, onViewDetai
               asChild
             >
               <Link href={`/plugins/marketplace/${plugin.slug}`}>
-                {getText('tenant.plugins.viewDetails', 'View Details')}
+                {getText('merchant.plugins.viewDetails', 'View Details')}
               </Link>
             </Button>
             {!isInstalled && onInstall && (
@@ -229,7 +229,7 @@ export function PluginCard({ plugin, isInstalled = false, onInstall, onViewDetai
                 className="flex-1"
                 onClick={onInstall}
               >
-                {getText('tenant.plugins.install', 'Install')}
+                {getText('merchant.plugins.install', 'Install')}
               </Button>
             )}
           </div>

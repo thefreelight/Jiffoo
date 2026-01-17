@@ -24,12 +24,12 @@ export class UploadService {
   };
 
   static async uploadProductImage(file: MultipartFile): Promise<UploadResult> {
-    // 验证文件类型
+    // Validate file type
     if (!this.ALLOWED_TYPES.includes(file.mimetype)) {
       throw new Error(`Invalid file type. Allowed types: ${this.ALLOWED_TYPES.join(', ')}`);
     }
 
-    // 验证文件大小
+    // Validate file size
     const buffer = await file.toBuffer();
     if (buffer.length > this.MAX_FILE_SIZE) {
       throw new Error(`File too large. Maximum size: ${this.MAX_FILE_SIZE / 1024 / 1024}MB`);
@@ -38,16 +38,16 @@ export class UploadService {
     const fileId = randomUUID();
     const ext = path.extname(file.filename || '.jpg');
     const baseFilename = `${fileId}${ext}`;
-    
+
     const productDir = path.join(this.UPLOAD_DIR, 'products');
     await this.ensureDirectoryExists(productDir);
 
-    // 生成不同尺寸的图片
+    // Generate different sizes of images
     await Promise.all([
       this.processImage(buffer, path.join(productDir, `thumb_${baseFilename}`), this.IMAGE_SIZES.thumbnail),
       this.processImage(buffer, path.join(productDir, `medium_${baseFilename}`), this.IMAGE_SIZES.medium),
       this.processImage(buffer, path.join(productDir, `large_${baseFilename}`), this.IMAGE_SIZES.large),
-      this.processImage(buffer, path.join(productDir, baseFilename)) // 原图
+      this.processImage(buffer, path.join(productDir, baseFilename)) // Original image
     ]);
 
     return {
@@ -60,7 +60,7 @@ export class UploadService {
   }
 
   static async uploadAvatar(file: MultipartFile): Promise<UploadResult> {
-    // 验证文件类型
+    // Validate file type
     if (!this.ALLOWED_TYPES.includes(file.mimetype)) {
       throw new Error(`Invalid file type. Allowed types: ${this.ALLOWED_TYPES.join(', ')}`);
     }
@@ -73,11 +73,11 @@ export class UploadService {
     const fileId = randomUUID();
     const ext = path.extname(file.filename || '.jpg');
     const filename = `${fileId}${ext}`;
-    
+
     const avatarDir = path.join(this.UPLOAD_DIR, 'avatars');
     await this.ensureDirectoryExists(avatarDir);
 
-    // 头像只需要一个尺寸
+    // Avatars only need one size
     await this.processImage(buffer, path.join(avatarDir, filename), { width: 200, height: 200 });
 
     return {
@@ -90,8 +90,8 @@ export class UploadService {
   }
 
   private static async processImage(
-    buffer: Buffer, 
-    outputPath: string, 
+    buffer: Buffer,
+    outputPath: string,
     size?: { width: number; height: number }
   ): Promise<void> {
     let sharpInstance = sharp(buffer);
@@ -119,9 +119,17 @@ export class UploadService {
   static async deleteFile(filePath: string): Promise<void> {
     try {
       const fullPath = path.join(this.UPLOAD_DIR, filePath);
+
+      // Check if file exists
+      try {
+        await fs.access(fullPath);
+      } catch {
+        throw new Error('File not found');
+      }
+
       await fs.unlink(fullPath);
-      
-      // 删除相关的缩略图
+
+      // Delete related thumbnails
       const dir = path.dirname(fullPath);
       const filename = path.basename(fullPath);
       const relatedFiles = [
@@ -134,7 +142,11 @@ export class UploadService {
         relatedFiles.map(file => fs.unlink(file))
       );
     } catch (error) {
+      if (error instanceof Error && error.message === 'File not found') {
+        throw error;
+      }
       console.error('Error deleting file:', error);
+      throw new Error('Delete failed');
     }
   }
 
@@ -142,9 +154,9 @@ export class UploadService {
     if (size === 'original') {
       return `/uploads/products/${filename}`;
     }
-    
+
     const prefix = size === 'thumbnail' ? 'thumb_' : `${size}_`;
-    
+
     return `/uploads/products/${prefix}${filename}`;
   }
 }

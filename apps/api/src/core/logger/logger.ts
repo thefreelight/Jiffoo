@@ -2,9 +2,22 @@ import winston from 'winston';
 import DailyRotateFile from 'winston-daily-rotate-file';
 import path from 'path';
 import { env } from '@/config/env';
+import { getTraceContext } from './trace-context';
 
-// 自定义日志格式
+// Custom format to inject request ID from context
+const injectRequestId = winston.format((info) => {
+  const context = getTraceContext();
+  if (context?.requestId && !info.requestId) {
+    info.requestId = context.requestId;
+    // Map to trace_id for legacy compatibility if needed, but per plan we use requestId
+    if (!info.trace_id) info.trace_id = context.requestId;
+  }
+  return info;
+});
+
+// Custom log format
 const logFormat = winston.format.combine(
+  injectRequestId(),
   winston.format.timestamp({
     format: 'YYYY-MM-DD HH:mm:ss'
   }),
@@ -13,14 +26,19 @@ const logFormat = winston.format.combine(
   winston.format.prettyPrint()
 );
 
-// 控制台格式
+// Console format
 const consoleFormat = winston.format.combine(
+  injectRequestId(),
   winston.format.colorize(),
   winston.format.timestamp({
     format: 'HH:mm:ss'
   }),
-  winston.format.printf(({ timestamp, level, message, ...meta }) => {
-    let log = `${timestamp} [${level}]: ${message}`;
+  winston.format.printf(({ timestamp, level, message, requestId, ...meta }) => {
+    let log = `${timestamp} [${level}]`;
+    if (requestId) {
+      log += ` [${requestId}]`;
+    }
+    log += `: ${message}`;
     if (Object.keys(meta).length > 0) {
       log += ` ${JSON.stringify(meta)}`;
     }
@@ -28,13 +46,13 @@ const consoleFormat = winston.format.combine(
   })
 );
 
-// 创建日志目录
+// Create logs directory
 const logsDir = path.join(process.cwd(), 'logs');
 
-// 日志传输配置
+// Log transport configuration
 const transports: winston.transport[] = [];
 
-// 控制台输出
+// Console output
 if (env.NODE_ENV === 'development') {
   transports.push(
     new winston.transports.Console({
@@ -44,7 +62,7 @@ if (env.NODE_ENV === 'development') {
   );
 }
 
-// 错误日志文件
+// Error log file
 transports.push(
   new DailyRotateFile({
     filename: path.join(logsDir, 'error-%DATE%.log'),
@@ -57,7 +75,7 @@ transports.push(
   })
 );
 
-// 组合日志文件
+// Combined log file
 transports.push(
   new DailyRotateFile({
     filename: path.join(logsDir, 'combined-%DATE%.log'),
@@ -69,7 +87,7 @@ transports.push(
   })
 );
 
-// 访问日志文件
+// Access log file
 transports.push(
   new DailyRotateFile({
     filename: path.join(logsDir, 'access-%DATE%.log'),
@@ -82,7 +100,7 @@ transports.push(
   })
 );
 
-// 创建 Winston logger
+// Create Winston logger
 export const logger = winston.createLogger({
   level: env.NODE_ENV === 'production' ? 'info' : 'debug',
   format: logFormat,
@@ -93,7 +111,7 @@ export const logger = winston.createLogger({
 // Export Logger type for compatibility
 export type Logger = winston.Logger;
 
-// 操作日志类型
+// Operation log types
 export enum OperationType {
   CREATE = 'CREATE',
   UPDATE = 'UPDATE',
@@ -108,7 +126,7 @@ export enum OperationType {
   PAYMENT = 'PAYMENT'
 }
 
-// 操作日志接口
+// Operation log interface
 export interface OperationLog {
   userId?: string;
   username?: string;
@@ -123,9 +141,9 @@ export interface OperationLog {
   errorMessage?: string;
 }
 
-// 日志服务类
+// Logger service class
 export class LoggerService {
-  // 记录操作日志
+  // Log operation events
   static logOperation(log: OperationLog): void {
     logger.info('Operation Log', {
       type: 'operation',
@@ -133,7 +151,7 @@ export class LoggerService {
     });
   }
 
-  // 记录访问日志
+  // Log access events
   static logAccess(req: any, res: any, responseTime: number): void {
     logger.info('Access Log', {
       type: 'access',
@@ -148,7 +166,7 @@ export class LoggerService {
     });
   }
 
-  // 记录错误日志
+  // Log error events
   static logError(error: Error, context?: any): void {
     logger.error('Error Log', {
       type: 'error',
@@ -159,7 +177,7 @@ export class LoggerService {
     });
   }
 
-  // 记录安全事件
+  // Log security events
   static logSecurity(event: string, details: any): void {
     logger.warn('Security Log', {
       type: 'security',
@@ -169,7 +187,7 @@ export class LoggerService {
     });
   }
 
-  // 记录性能日志
+  // Log performance metrics
   static logPerformance(operation: string, duration: number, details?: any): void {
     logger.info('Performance Log', {
       type: 'performance',
@@ -180,7 +198,7 @@ export class LoggerService {
     });
   }
 
-  // 记录数据库操作
+  // Log database operations
   static logDatabase(operation: string, table: string, details?: any): void {
     logger.debug('Database Log', {
       type: 'database',
@@ -191,7 +209,7 @@ export class LoggerService {
     });
   }
 
-  // 记录缓存操作
+  // Log cache operations
   static logCache(operation: string, key: string, hit: boolean = false): void {
     logger.debug('Cache Log', {
       type: 'cache',
@@ -202,7 +220,7 @@ export class LoggerService {
     });
   }
 
-  // 记录业务日志
+  // Log business events
   static logBusiness(event: string, details: any): void {
     logger.info('Business Log', {
       type: 'business',
@@ -212,7 +230,7 @@ export class LoggerService {
     });
   }
 
-  // 记录系统日志
+  // Log system events
   static logSystem(event: string, details?: any): void {
     logger.info('System Log', {
       type: 'system',
@@ -222,7 +240,7 @@ export class LoggerService {
     });
   }
 
-  // 通用日志方法
+  // General log method
   static log(level: 'debug' | 'info' | 'warn' | 'error', message: string, meta?: any): void {
     logger.log(level, message, {
       ...meta,
@@ -230,10 +248,10 @@ export class LoggerService {
     });
   }
 
-  // 获取日志统计
+  // Get log statistics
   static async getLogStats(): Promise<any> {
-    // 这里可以实现日志统计逻辑
-    // 比如读取日志文件，统计错误数量等
+    // Implementation for log statistics goes here
+    // e.g., read log files and count errors
     return {
       totalLogs: 0,
       errorLogs: 0,
@@ -243,5 +261,5 @@ export class LoggerService {
   }
 }
 
-// 导出默认 logger
+// Export default logger
 export default logger;

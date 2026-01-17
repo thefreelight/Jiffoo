@@ -7,8 +7,6 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Test directories and reports
-.opensource-test/
-opensource-test-report.md
 unified-release-report-*.md
 
 # Build outputs
@@ -54,6 +52,13 @@ pids
 # Coverage directory used by tools like istanbul
 coverage/
 *.lcov
+
+# Extensions (runtime installation directory)
+# 运行时安装的插件和主题不进 git,仅保留 .gitkeep
+extensions/plugins/*
+extensions/themes/*
+!extensions/plugins/.gitkeep
+!extensions/themes/.gitkeep
 
 # Playwright
 playwright-report/

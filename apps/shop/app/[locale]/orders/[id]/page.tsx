@@ -14,7 +14,7 @@ import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useToast } from '@/hooks/use-toast';
 import { ordersApi } from '@/lib/api';
 import { type Order, PaymentStatus } from 'shared/src';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 export default function OrderDetailPage() {
   const params = useParams();

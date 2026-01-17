@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 // Removed SubscriptionPlanCard - no longer needed
 import { usePluginDetails, useInstallPlugin, useInstalledPlugins } from '@/lib/hooks/use-api'
 import Link from 'next/link'
-import { useT, useLocale } from 'shared/src/i18n'
+import { useT, useLocale } from 'shared/src/i18n/react'
 
 export default function PluginDetailsPage() {
   const params = useParams()
@@ -20,7 +20,10 @@ export default function PluginDetailsPage() {
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback
+    if (!t) return fallback
+    const translated = t(key)
+    // If translation returns the key itself, use fallback
+    return translated === key ? fallback : translated
   }
 
   // Removed plan selection state - always use free plan
@@ -89,7 +92,7 @@ export default function PluginDetailsPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">{getText('tenant.plugins.loadingPluginDetails', 'Loading plugin details...')}</p>
+          <p className="mt-2 text-gray-600">{getText('merchant.plugins.loadingPluginDetails', 'Loading plugin details...')}</p>
         </div>
       </div>
     )
@@ -100,7 +103,7 @@ export default function PluginDetailsPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">{getText('tenant.plugins.failedToLoadDetails', 'Failed to load plugin details')}</p>
+          <p className="text-gray-600">{getText('merchant.plugins.failedToLoadDetails', 'Failed to load plugin details')}</p>
           <Button variant="outline" className="mt-4" onClick={() => router.back()}>
             {getText('common.goBack', 'Go Back')}
           </Button>
@@ -114,7 +117,7 @@ export default function PluginDetailsPage() {
       {/* Back Button */}
       <Button variant="outline" onClick={() => router.back()}>
         <ArrowLeft className="w-4 h-4 mr-2" />
-        {getText('tenant.plugins.backToMarketplace', 'Back to Marketplace')}
+        {getText('merchant.plugins.backToMarketplace', 'Back to Marketplace')}
       </Button>
 
       {/* Plugin Header */}
@@ -160,7 +163,7 @@ export default function PluginDetailsPage() {
                   {renderStars(plugin.rating)}
                   <div className="flex items-center gap-1 text-gray-600">
                     <Users className="w-4 h-4" />
-                    <span>{plugin.installCount.toLocaleString()} {getText('tenant.plugins.installs', 'installs')}</span>
+                    <span>{plugin.installCount.toLocaleString()} {getText('merchant.plugins.installs', 'installs')}</span>
                   </div>
                 </div>
               </div>
@@ -168,7 +171,7 @@ export default function PluginDetailsPage() {
             {isInstalled && (
               <Badge className="bg-green-100 text-green-800">
                 <CheckCircle className="w-4 h-4 mr-1" />
-                {getText('tenant.plugins.installed', 'Installed')}
+                {getText('merchant.plugins.installed', 'Installed')}
               </Badge>
             )}
           </div>
@@ -176,19 +179,19 @@ export default function PluginDetailsPage() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-sm text-gray-600">{getText('tenant.plugins.version', 'Version')}</p>
+              <p className="text-sm text-gray-600">{getText('merchant.plugins.version', 'Version')}</p>
               <p className="font-semibold">{plugin.version}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">{getText('tenant.plugins.developer', 'Developer')}</p>
+              <p className="text-sm text-gray-600">{getText('merchant.plugins.developer', 'Developer')}</p>
               <p className="font-semibold">{plugin.developer || plugin.author}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">{getText('tenant.plugins.category', 'Category')}</p>
+              <p className="text-sm text-gray-600">{getText('merchant.plugins.category', 'Category')}</p>
               <Badge variant="outline">{plugin.category}</Badge>
             </div>
             <div>
-              <p className="text-sm text-gray-600">{getText('tenant.plugins.businessModel', 'Business Model')}</p>
+              <p className="text-sm text-gray-600">{getText('merchant.plugins.businessModel', 'Business Model')}</p>
               <Badge>{plugin.businessModel}</Badge>
             </div>
           </div>
@@ -199,8 +202,8 @@ export default function PluginDetailsPage() {
       {plans.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>{getText('tenant.plugins.availableFeatures', 'Available Features')}</CardTitle>
-            <CardDescription>{getText('tenant.plugins.availableFeaturesDesc', 'Features available across different plans')}</CardDescription>
+            <CardTitle>{getText('merchant.plugins.availableFeatures', 'Available Features')}</CardTitle>
+            <CardDescription>{getText('merchant.plugins.availableFeaturesDesc', 'Features available across different plans')}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -233,9 +236,9 @@ export default function PluginDetailsPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-lg">{getText('tenant.plugins.readyToInstall', 'Ready to install?')}</h3>
+                <h3 className="font-semibold text-lg">{getText('merchant.plugins.readyToInstall', 'Ready to install?')}</h3>
                 <p className="text-gray-600">
-                  {getText('tenant.plugins.readyToInstallDesc', 'Install this plugin to get started. You can upgrade to paid plans later from the plugin management page.')}
+                  {getText('merchant.plugins.readyToInstallDesc', 'Install this plugin to get started. You can upgrade to paid plans later from the plugin management page.')}
                 </p>
               </div>
               <Button
@@ -243,7 +246,7 @@ export default function PluginDetailsPage() {
                 onClick={handleInstall}
                 disabled={installMutation.isPending}
               >
-                {installMutation.isPending ? getText('tenant.plugins.installing', 'Installing...') : getText('tenant.plugins.installPlugin', 'Install Plugin')}
+                {installMutation.isPending ? getText('merchant.plugins.installing', 'Installing...') : getText('merchant.plugins.installPlugin', 'Install Plugin')}
               </Button>
             </div>
           </CardContent>
@@ -258,12 +261,12 @@ export default function PluginDetailsPage() {
               <div className="flex items-center gap-3">
                 <CheckCircle className="w-8 h-8 text-green-600" />
                 <div>
-                  <h3 className="font-semibold text-lg">{getText('tenant.plugins.pluginInstalled', 'Plugin Installed')}</h3>
-                  <p className="text-gray-600">{getText('tenant.plugins.pluginInstalledDesc', 'This plugin is already installed in your store.')}</p>
+                  <h3 className="font-semibold text-lg">{getText('merchant.plugins.pluginInstalled', 'Plugin Installed')}</h3>
+                  <p className="text-gray-600">{getText('merchant.plugins.pluginInstalledDesc', 'This plugin is already installed in your store.')}</p>
                 </div>
               </div>
               <Button asChild>
-                <Link href={`/${locale}/plugins/installed`}>{getText('tenant.plugins.managePlugin', 'Manage Plugin')}</Link>
+                <Link href={`/${locale}/plugins/installed`}>{getText('merchant.plugins.managePlugin', 'Manage Plugin')}</Link>
               </Button>
             </div>
           </CardContent>

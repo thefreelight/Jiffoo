@@ -117,7 +117,8 @@ export function detectTenantIdentifier(): TenantIdentifier {
   const agentParam = searchParams.get('agent');
 
   // Priority 1: Custom domain (not our main domain)
-  if (mainDomain && !hostname.includes(mainDomain) && hostname !== 'localhost') {
+  // Note: Added safe check for mainDomain to prevent undefined.includes() error
+  if (mainDomain && hostname && !hostname.includes(mainDomain) && hostname !== 'localhost') {
     return { type: 'domain', value: hostname, agentId: agentParam };
   }
 

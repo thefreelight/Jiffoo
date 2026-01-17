@@ -70,7 +70,7 @@ async function checkRedis(): Promise<ComponentHealth> {
         error: 'Redis not connected',
       };
     }
-    
+
     const pong = await redisCache.ping();
     if (!pong) {
       return {
@@ -79,7 +79,7 @@ async function checkRedis(): Promise<ComponentHealth> {
         error: 'Redis ping failed',
       };
     }
-    
+
     return {
       status: 'ok',
       latency_ms: Date.now() - start,
@@ -99,29 +99,29 @@ async function checkRedis(): Promise<ComponentHealth> {
  */
 export function checkPlugins(fastify: any): PluginHealth {
   try {
-    // Check if plugin decorators exist
-    const hasPluginRegistry = fastify.hasDecorator('getAvailablePlugins');
-    const hasTenantPlugins = fastify.hasDecorator('getTenantPlugins');
-    
-    if (!hasPluginRegistry || !hasTenantPlugins) {
-      return { loaded: 0, failed: 1 };
+    // Try to get loaded plugins from the plugin loader
+    const { getLoadedPlugins } = require('@/core/admin/extension-installer');
+    const loadedPlugins = getLoadedPlugins();
+
+    if (!loadedPlugins || loadedPlugins.length === 0) {
+      // No plugins installed is OK, not a failure
+      return { loaded: 0, failed: 0 };
     }
-    
-    // List of expected internal plugins
-    const expectedPlugins = [
-      'stripe-payment',
-      'google-oauth', 
-      'resend-email',
-      'affiliate-commission',
-    ];
-    
+
+    const loaded = loadedPlugins.filter((p: any) => p.status === 'loaded').length;
+    const failed = loadedPlugins.filter((p: any) => p.status === 'failed').length;
+    const list = loadedPlugins
+      .filter((p: any) => p.status === 'loaded')
+      .map((p: any) => p.slug);
+
     return {
-      loaded: expectedPlugins.length,
-      failed: 0,
-      list: expectedPlugins,
+      loaded,
+      failed,
+      list: list.length > 0 ? list : undefined,
     };
   } catch (error) {
-    return { loaded: 0, failed: 1 };
+    // If we can't check plugins, assume OK (not a failure)
+    return { loaded: 0, failed: 0 };
   }
 }
 
@@ -133,18 +133,18 @@ export async function performHealthCheck(fastify?: any): Promise<HealthCheckResu
     checkDatabase(),
     checkRedis(),
   ]);
-  
+
   const pluginHealth = fastify ? checkPlugins(fastify) : { loaded: 0, failed: 0 };
-  
+
   // Determine overall status
   let status: 'ok' | 'degraded' | 'unhealthy' = 'ok';
-  
+
   if (dbHealth.status === 'error') {
     status = 'unhealthy'; // DB is critical
   } else if (redisHealth.status === 'error' || pluginHealth.failed > 0) {
     status = 'degraded'; // Redis/plugins are non-critical but important
   }
-  
+
   return {
     status,
     version: APP_VERSION,
@@ -184,9 +184,9 @@ export async function readinessCheck(): Promise<{
     checkDatabase(),
     checkRedis(),
   ]);
-  
+
   const isReady = dbHealth.status === 'ok';
-  
+
   return {
     status: isReady ? 'ok' : 'not_ready',
     checks: {

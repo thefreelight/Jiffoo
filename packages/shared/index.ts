@@ -24,7 +24,7 @@ export {
   type LoginCredentials,
   type RegisterData,
   type UserProfile,
-  type TenantInfo,
+
   type ApiClientConfig,
 } from './api/client';
 
@@ -38,11 +38,11 @@ export {
 export {
   createApiClient,
   createShopClient,
-  createTenantClient,
+
   createAdminClient,
   createAdminClient as createSuperAdminClient, // 别名，兼容admin应用
   getShopClient,
-  getTenantClient,
+
   getAdminClient,
   getAdminClient as getSuperAdminClient, // 别名，兼容admin应用
   useApiClient,
@@ -57,14 +57,7 @@ export {
   type StorageAdapter,
 } from './api/storage-adapters';
 
-// 租户管理
-export {
-  UnifiedTenantManager,
-  tenantManager,
-  cookieTenantManager,
-  type TenantChangeEvent,
-  type TenantChangeListener,
-} from './utils/tenant-manager';
+
 
 // 常量
 export {
@@ -97,6 +90,31 @@ export {
   type ChangePasswordFormData,
   type UpdateProfileFormData,
 } from './src/schemas/auth';
+
+// Core Events
+export type {
+  CoreEvent,
+  JiffooEvent,
+  EventTypes,
+  // User Payloads
+  UserCreatedPayload,
+  UserUpdatedPayload,
+  UserDisabledPayload,
+  // Product Payloads
+  ProductCreatedPayload,
+  ProductUpdatedPayload,
+  ProductStockChangedPayload,
+  // Order Payloads
+  OrderCreatedPayload,
+  OrderPaidPayload,
+  OrderCancelledPayload,
+  OrderShippedPayload,
+  OrderRefundedPayload,
+  OrderStatusChangedPayload,
+  // Payment Payloads
+  PaymentSessionCreatedPayload,
+  PaymentWebhookProcessedPayload,
+} from './src/events/core-events';
 
 // 现有的工具函数（如果存在）
 // export {

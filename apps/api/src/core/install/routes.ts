@@ -4,7 +4,7 @@ import { InstallService } from './service';
 export async function installRoutes(fastify: FastifyInstance) {
   /**
    * GET /api/install/status
-   * 检查安装状态
+   * Check installation status
    */
   fastify.get('/status', {
     schema: {
@@ -28,7 +28,7 @@ export async function installRoutes(fastify: FastifyInstance) {
 
   /**
    * GET /api/install/check-database
-   * 检查数据库连接
+   * Check database connection
    */
   fastify.get('/check-database', {
     schema: {
@@ -51,7 +51,7 @@ export async function installRoutes(fastify: FastifyInstance) {
 
   /**
    * POST /api/install/complete
-   * 完成安装
+   * Complete installation
    */
   fastify.post('/complete', {
     schema: {
@@ -88,7 +88,7 @@ export async function installRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const body = request.body as any;
 
-    // 检查是否已安装
+    // Check if already installed
     const status = await InstallService.checkInstallationStatus();
     if (status.isInstalled) {
       return reply.code(400).send({

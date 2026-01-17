@@ -16,6 +16,7 @@ import {
   Star,
   Eye
 } from 'lucide-react';
+import { apiClient } from '@/lib/api';
 
 interface ThemeMeta {
   slug: string;
@@ -54,7 +55,8 @@ export default function ThemesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  // Use /api prefix for Next.js proxy (rewrites to backend)
+  const API_BASE = '/api';
 
   const loadThemes = useCallback(async () => {
     try {
@@ -62,21 +64,21 @@ export default function ThemesPage() {
       setError(null);
 
       // Load active theme
-      const activeRes = await fetch(`${API_BASE}/api/themes/active`);
+      const activeRes = await fetch(`${API_BASE}/themes/active`);
       const activeData = await activeRes.json();
       if (activeData.success) {
         setActiveTheme(activeData.data);
       }
 
       // Load installed themes
-      const installedRes = await fetch(`${API_BASE}/api/themes/installed`);
+      const installedRes = await fetch(`${API_BASE}/themes/installed`);
       const installedData = await installedRes.json();
       if (installedData.success) {
         setInstalledThemes(installedData.data.themes || []);
       }
 
       // Load marketplace themes
-      const marketRes = await fetch(`${API_BASE}/api/marketplace/themes`);
+      const marketRes = await fetch(`${API_BASE}/marketplace/themes`);
       const marketData = await marketRes.json();
       if (marketData.success) {
         setMarketplaceThemes(marketData.data.items || []);
@@ -86,7 +88,7 @@ export default function ThemesPage() {
     } finally {
       setLoading(false);
     }
-  }, [API_BASE]);
+  }, []);
 
   useEffect(() => {
     loadThemes();
@@ -94,15 +96,11 @@ export default function ThemesPage() {
 
   const handleActivate = async (slug: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/admin/themes/${slug}/activate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      const data = await res.json();
-      if (data.success) {
+      const response = await apiClient.post(`/admin/themes/${slug}/activate`, {});
+      if (response.success) {
         loadThemes();
       } else {
-        setError(data.error || 'Activation failed');
+        setError(response.message || 'Activation failed');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Activation failed');
@@ -111,15 +109,11 @@ export default function ThemesPage() {
 
   const handleMarketplaceInstall = async (slug: string) => {
     try {
-      const res = await fetch(`${API_BASE}/api/marketplace/themes/${slug}/install`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      const data = await res.json();
-      if (data.success) {
+      const response = await apiClient.post(`/marketplace/themes/${slug}/install`, {});
+      if (response.success) {
         loadThemes();
       } else {
-        setError(data.error || 'Install failed');
+        setError(response.message || 'Install failed');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Install failed');

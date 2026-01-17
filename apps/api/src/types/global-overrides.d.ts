@@ -1,9 +1,9 @@
 /**
- * 全局类型覆盖
- * 用于解决第三方库的类型冲突问题
+ * Global Type Overrides
+ * Used to resolve type conflicts with third-party libraries
  */
 
-// 完全覆盖 Pino 的类型定义，使其接受任意参数
+// Completely override Pino's type definitions to accept arbitrary arguments
 declare module 'pino' {
   interface Logger {
     error: (...args: any[]) => void;
@@ -24,7 +24,7 @@ declare module 'pino' {
   }
 }
 
-// 覆盖 Fastify 的日志器类型
+// Override Fastify's logger type
 declare module 'fastify' {
   interface FastifyBaseLogger {
     error: (...args: any[]) => void;
@@ -36,5 +36,5 @@ declare module 'fastify' {
   }
 }
 
-// 确保这个文件被当作模块处理
-export {};
+// Ensure this file is treated as a module
+export { };

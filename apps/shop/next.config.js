@@ -5,7 +5,7 @@ const path = require('path');
 const nextConfig = createNextConfig({
   appName: 'Frontend',
   port: 3004,
-  transpilePackages: ['shared', '@shop-themes/default'],
+  transpilePackages: ['shared', '@shop-themes/default', '@shop-themes/yevbi'],
   images: {
     remotePatterns: [
       {

@@ -1,0 +1,26 @@
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist",
+        "rootDir": ".",
+        "declaration": true,
+        "declarationMap": true,
+        "noEmit": false,
+        "composite": true,
+        "lib": [
+            "ES2020",
+            "DOM"
+        ],
+        "jsx": "react-jsx"
+    },
+    "include": [
+        "**/*.ts",
+        "**/*.tsx",
+        "**/*.json"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        ".turbo"
+    ]
+}

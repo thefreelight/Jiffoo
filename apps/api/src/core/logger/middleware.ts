@@ -1,25 +1,25 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { LoggerService, OperationType } from './unified-logger';
 
-// 访问日志中间件
+// Access log middleware
 export async function accessLogMiddleware(request: FastifyRequest, reply: FastifyReply) {
   const startTime = Date.now();
-  
-  // 在响应完成后记录日志
+
+  // Log after response is finished
   reply.raw.on('finish', () => {
     const responseTime = Date.now() - startTime;
     LoggerService.logAccess(request, reply, responseTime);
   });
 }
 
-// 操作日志中间件工厂
+// Operation log middleware factory
 export function operationLogMiddleware(operation: OperationType, resource: string) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     const user = (request as any).user;
     const startTime = Date.now();
-    
+
     try {
-      // 记录操作开始
+      // Log operation start
       LoggerService.logOperation({
         userId: user?.id,
         username: user?.username,
@@ -37,8 +37,8 @@ export function operationLogMiddleware(operation: OperationType, resource: strin
         timestamp: new Date(),
         success: true
       });
-      
-      // 记录性能
+
+      // Log performance
       reply.raw.on('finish', () => {
         const duration = Date.now() - startTime;
         LoggerService.logPerformance(`${operation}_${resource}`, duration, {
@@ -46,7 +46,7 @@ export function operationLogMiddleware(operation: OperationType, resource: strin
           userId: user?.id
         });
       });
-      
+
     } catch (error) {
       LoggerService.logError(error as Error, {
         operation,
@@ -58,7 +58,7 @@ export function operationLogMiddleware(operation: OperationType, resource: strin
   };
 }
 
-// 错误日志中间件
+// Error log middleware
 export async function errorLogMiddleware(request: FastifyRequest, reply: FastifyReply, error: Error) {
   LoggerService.logError(error, {
     method: request.method,
@@ -71,7 +71,7 @@ export async function errorLogMiddleware(request: FastifyRequest, reply: Fastify
     ip: request.ip
   });
 
-  // 记录安全相关错误
+  // Log security-related errors
   if (error.message.includes('Unauthorized') || error.message.includes('Forbidden')) {
     LoggerService.logSecurity('ACCESS_DENIED', {
       url: request.url,
@@ -83,7 +83,7 @@ export async function errorLogMiddleware(request: FastifyRequest, reply: Fastify
   }
 }
 
-// 限流日志中间件
+// Rate limit log middleware
 export function rateLimitLogMiddleware(identifier: string, limit: number) {
   return async (request: FastifyRequest, _reply: FastifyReply) => { // eslint-disable-line @typescript-eslint/no-unused-vars
     LoggerService.logSecurity('RATE_LIMIT_CHECK', {
@@ -96,10 +96,10 @@ export function rateLimitLogMiddleware(identifier: string, limit: number) {
   };
 }
 
-// 认证日志中间件
+// Auth log middleware
 export async function authLogMiddleware(request: FastifyRequest, _reply: FastifyReply) { // eslint-disable-line @typescript-eslint/no-unused-vars
   const user = (request as any).user;
-  
+
   if (user) {
     LoggerService.logOperation({
       userId: user.id,
@@ -125,14 +125,14 @@ export async function authLogMiddleware(request: FastifyRequest, _reply: Fastify
   }
 }
 
-// 文件上传日志中间件
+// File upload log middleware
 export async function uploadLogMiddleware(request: FastifyRequest, reply: FastifyReply) {
   const user = (request as any).user;
   const startTime = Date.now();
-  
+
   reply.raw.on('finish', () => {
     const duration = Date.now() - startTime;
-    
+
     LoggerService.logOperation({
       userId: user?.id,
       username: user?.username,
@@ -151,11 +151,11 @@ export async function uploadLogMiddleware(request: FastifyRequest, reply: Fastif
   });
 }
 
-// 搜索日志中间件
+// Search log middleware
 export async function searchLogMiddleware(request: FastifyRequest, _reply: FastifyReply) { // eslint-disable-line @typescript-eslint/no-unused-vars
   const query = (request.query as any);
   const user = (request as any).user;
-  
+
   LoggerService.logOperation({
     userId: user?.id,
     username: user?.username,
@@ -181,18 +181,18 @@ export async function searchLogMiddleware(request: FastifyRequest, _reply: Fasti
   });
 }
 
-// 业务操作日志装饰器
+// Business operation log decorator
 export function logBusinessOperation(operation: string, resource: string) {
   return function (target: any, propertyName: string, descriptor: PropertyDescriptor) {
     const method = descriptor.value;
-    
+
     descriptor.value = async function (...args: any[]) {
       const startTime = Date.now();
-      
+
       try {
         const result = await method.apply(this, args);
         const duration = Date.now() - startTime;
-        
+
         LoggerService.logBusiness(operation, {
           resource,
           duration: `${duration}ms`,
@@ -201,11 +201,11 @@ export function logBusinessOperation(operation: string, resource: string) {
             args: args.length > 0 ? args[0] : undefined
           }
         });
-        
+
         return result;
       } catch (error) {
         const duration = Date.now() - startTime;
-        
+
         LoggerService.logBusiness(operation, {
           resource,
           duration: `${duration}ms`,
@@ -215,11 +215,11 @@ export function logBusinessOperation(operation: string, resource: string) {
             args: args.length > 0 ? args[0] : undefined
           }
         });
-        
+
         throw error;
       }
     };
-    
+
     return descriptor;
   };
 }

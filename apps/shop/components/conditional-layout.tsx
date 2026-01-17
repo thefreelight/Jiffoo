@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { MallContextProvider } from '@/components/mall-context-provider';
+import { StoreContextProvider } from '@/components/store-context-provider';
 
 interface ConditionalLayoutProps {
   children: React.ReactNode;
@@ -10,22 +10,20 @@ interface ConditionalLayoutProps {
 /**
  * Conditional Layout Component
  *
- * This component conditionally renders the mall context provider
+ * This component conditionally renders the store context provider
  * based on the current pathname. For error pages like store-not-found, it renders
  * only the children without the standard layout components.
  *
- * The actual theme-based layout is now handled by ThemedLayout component inside MallContextProvider.
+ * The actual theme-based layout is handled by ThemedLayout component inside StoreContextProvider.
  */
 export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const pathname = usePathname();
 
-  // Pages that should not have header/footer or mall context
-  // Check for store-not-found with or without locale prefix (e.g., /store-not-found, /en/store-not-found)
+  // Pages that do not require store context or standard layout
   const isErrorPage = pathname?.includes('/store-not-found');
   const isPreviewPage = pathname?.includes('/design-preview');
 
   if (isErrorPage || isPreviewPage) {
-    // Render only children for error pages
     return (
       <main className="min-h-screen">
         {children}
@@ -33,10 +31,10 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
     );
   }
 
-  // Render with mall context provider which will handle theme loading and layout
+  // Render with store context provider
   return (
-    <MallContextProvider>
+    <StoreContextProvider>
       {children}
-    </MallContextProvider>
+    </StoreContextProvider>
   );
 }

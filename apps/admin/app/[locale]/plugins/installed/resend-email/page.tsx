@@ -17,7 +17,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 import { UpgradeConfirmationDialog } from '@/components/plugins/upgrade-confirmation-dialog'
 import { DowngradeConfirmationDialog } from '@/components/plugins/downgrade-confirmation-dialog'
-import { useT } from 'shared/src/i18n'
+import { useT } from 'shared/src/i18n/react'
 
 const PLUGIN_SLUG = 'resend-email'
 
@@ -336,10 +336,10 @@ export default function ResendEmailPluginPage() {
       <div className="p-6">
         <Button variant="outline" onClick={() => router.push('/plugins/installed')}>
           <ArrowLeft className="w-4 h-4 mr-2" />
-          {getText('tenant.plugins.backToInstalled', 'Back to Installed Plugins')}
+          {getText('merchant.plugins.backToInstalled', 'Back to Installed Plugins')}
         </Button>
         <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-yellow-800">{getText('tenant.plugins.resendNotInstalled', 'Resend Email plugin is not installed.')}</p>
+          <p className="text-yellow-800">{getText('merchant.plugins.resendNotInstalled', 'Resend Email plugin is not installed.')}</p>
         </div>
       </div>
     )
@@ -353,9 +353,9 @@ export default function ResendEmailPluginPage() {
           <div className="flex items-start">
             <CheckCircle className="w-5 h-5 text-green-400 mr-3" />
             <div>
-              <h3 className="text-sm font-medium text-green-800">{getText('tenant.plugins.paymentSuccessful', 'Payment Successful!')}</h3>
+              <h3 className="text-sm font-medium text-green-800">{getText('merchant.plugins.paymentSuccessful', 'Payment Successful!')}</h3>
               <p className="mt-1 text-sm text-green-700">
-                {getText('tenant.plugins.subscriptionUpgradedSuccess', 'Your subscription has been upgraded successfully.')}
+                {getText('merchant.plugins.subscriptionUpgradedSuccess', 'Your subscription has been upgraded successfully.')}
               </p>
             </div>
           </div>
@@ -365,7 +365,7 @@ export default function ResendEmailPluginPage() {
       {/* Back Button */}
       <Button variant="outline" onClick={() => router.push('/plugins/installed')}>
         <ArrowLeft className="w-4 h-4 mr-2" />
-        {getText('tenant.plugins.backToInstalled', 'Back to Installed Plugins')}
+        {getText('merchant.plugins.backToInstalled', 'Back to Installed Plugins')}
       </Button>
 
       {/* Plugin Header */}
@@ -387,7 +387,7 @@ export default function ResendEmailPluginPage() {
                     enabled={installation.enabled}
                   />
                   <span className="text-sm text-gray-600">
-                    {getText('tenant.plugins.version', 'Version')}: {installation.plugin.version}
+                    {getText('merchant.plugins.version', 'Version')}: {installation.plugin.version}
                   </span>
                 </div>
               </div>
@@ -401,11 +401,11 @@ export default function ResendEmailPluginPage() {
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="configuration">
             <Cog6ToothIcon className="w-4 h-4 mr-2" />
-            {getText('tenant.plugins.configuration', 'Configuration')}
+            {getText('merchant.plugins.configuration', 'Configuration')}
           </TabsTrigger>
           <TabsTrigger value="subscription">
             <CreditCard className="w-4 h-4 mr-2" />
-            {getText('tenant.plugins.subscriptionManagement', 'Subscription Management')}
+            {getText('merchant.plugins.subscriptionManagement', 'Subscription Management')}
           </TabsTrigger>
         </TabsList>
 
@@ -414,14 +414,14 @@ export default function ResendEmailPluginPage() {
           {/* BYOK Configuration Section */}
           <Card>
             <CardHeader>
-              <CardTitle>{getText('tenant.plugins.apiConfiguration', 'API Configuration')}</CardTitle>
+              <CardTitle>{getText('merchant.plugins.apiConfiguration', 'API Configuration')}</CardTitle>
               <CardDescription>
-                {getText('tenant.plugins.resendApiConfigDesc', 'Configure your Resend API settings (BYOK - Bring Your Own Key)')}
+                {getText('merchant.plugins.resendApiConfigDesc', 'Configure your Resend API settings (BYOK - Bring Your Own Key)')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="byok-mode">{getText('tenant.plugins.configurationMode', 'Configuration Mode')}</Label>
+                <Label htmlFor="byok-mode">{getText('merchant.plugins.configurationMode', 'Configuration Mode')}</Label>
                 <div className="mt-2 space-y-2">
                   <div className="flex items-center">
                     <input
@@ -434,7 +434,7 @@ export default function ResendEmailPluginPage() {
                       className="mr-2"
                     />
                     <label htmlFor="mode-platform" className="text-sm cursor-pointer">
-                      <strong>{getText('tenant.plugins.platformMode', 'Platform Mode')}</strong> - {getText('tenant.plugins.resendPlatformModeDesc', 'Use shared Resend API key')}
+                      <strong>{getText('merchant.plugins.platformMode', 'Platform Mode')}</strong> - {getText('merchant.plugins.resendPlatformModeDesc', 'Use shared Resend API key')}
                     </label>
                   </div>
                   <div className="flex items-center">
@@ -448,7 +448,7 @@ export default function ResendEmailPluginPage() {
                       className="mr-2"
                     />
                     <label htmlFor="mode-byok" className="text-sm cursor-pointer">
-                      <strong>{getText('tenant.plugins.byokMode', 'BYOK Mode')}</strong> - {getText('tenant.plugins.resendByokModeDesc', 'Use your own Resend API key')}
+                      <strong>{getText('merchant.plugins.byokMode', 'BYOK Mode')}</strong> - {getText('merchant.plugins.resendByokModeDesc', 'Use your own Resend API key')}
                     </label>
                   </div>
                 </div>
@@ -456,7 +456,7 @@ export default function ResendEmailPluginPage() {
 
               {byokMode === 'byok' && (
                 <div>
-                  <Label htmlFor="byok-api-key">{getText('tenant.plugins.resendApiKey', 'Resend API Key')}</Label>
+                  <Label htmlFor="byok-api-key">{getText('merchant.plugins.resendApiKey', 'Resend API Key')}</Label>
                   <div className="mt-1 flex gap-2">
                     <Input
                       id="byok-api-key"
@@ -474,14 +474,14 @@ export default function ResendEmailPluginPage() {
                     </Button>
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    {getText('tenant.plugins.getApiKeyFrom', 'Get your API key from')} <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Resend Dashboard</a>
+                    {getText('merchant.plugins.getApiKeyFrom', 'Get your API key from')} <a href="https://resend.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Resend Dashboard</a>
                   </p>
                 </div>
               )}
 
               {byokSaved && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                  <p className="text-sm text-green-800">✓ {getText('tenant.plugins.configSavedSuccess', 'Configuration saved successfully!')}</p>
+                  <p className="text-sm text-green-800">✓ {getText('merchant.plugins.configSavedSuccess', 'Configuration saved successfully!')}</p>
                 </div>
               )}
 
@@ -490,7 +490,7 @@ export default function ResendEmailPluginPage() {
                 disabled={byokMutation.isPending}
                 className="w-full"
               >
-                {byokMutation.isPending ? getText('common.saving', 'Saving...') : getText('tenant.plugins.saveConfiguration', 'Save Configuration')}
+                {byokMutation.isPending ? getText('common.saving', 'Saving...') : getText('merchant.plugins.saveConfiguration', 'Save Configuration')}
               </Button>
             </CardContent>
           </Card>
@@ -498,14 +498,14 @@ export default function ResendEmailPluginPage() {
           {/* Test Email Section */}
           <Card>
             <CardHeader>
-              <CardTitle>{getText('tenant.plugins.sendTestEmail', 'Send Test Email')}</CardTitle>
+              <CardTitle>{getText('merchant.plugins.sendTestEmail', 'Send Test Email')}</CardTitle>
               <CardDescription>
-                {getText('tenant.plugins.sendTestEmailDesc', 'Send a test email to verify your Resend configuration')}
+                {getText('merchant.plugins.sendTestEmailDesc', 'Send a test email to verify your Resend configuration')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="test-email-to">{getText('tenant.plugins.recipientEmail', 'Recipient Email')}</Label>
+                <Label htmlFor="test-email-to">{getText('merchant.plugins.recipientEmail', 'Recipient Email')}</Label>
                 <Input
                   id="test-email-to"
                   type="email"
@@ -517,7 +517,7 @@ export default function ResendEmailPluginPage() {
               </div>
 
               <div>
-                <Label htmlFor="test-email-subject">{getText('tenant.plugins.subject', 'Subject')}</Label>
+                <Label htmlFor="test-email-subject">{getText('merchant.plugins.subject', 'Subject')}</Label>
                 <Input
                   id="test-email-subject"
                   value={testEmailSubject}
@@ -527,7 +527,7 @@ export default function ResendEmailPluginPage() {
               </div>
 
               <div>
-                <Label htmlFor="test-email-html">{getText('tenant.plugins.emailContentHtml', 'Email Content (HTML)')}</Label>
+                <Label htmlFor="test-email-html">{getText('merchant.plugins.emailContentHtml', 'Email Content (HTML)')}</Label>
                 <Textarea
                   id="test-email-html"
                   value={testEmailHtml}
@@ -540,7 +540,7 @@ export default function ResendEmailPluginPage() {
               {testEmailMessageId && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded-md">
                   <p className="text-sm text-green-800">
-                    <strong>{getText('tenant.plugins.messageId', 'Message ID')}:</strong> {testEmailMessageId}
+                    <strong>{getText('merchant.plugins.messageId', 'Message ID')}:</strong> {testEmailMessageId}
                   </p>
                 </div>
               )}
@@ -550,7 +550,7 @@ export default function ResendEmailPluginPage() {
                 disabled={testEmailMutation.isPending}
                 className="w-full"
               >
-                {testEmailMutation.isPending ? getText('tenant.plugins.sending', 'Sending...') : getText('tenant.plugins.sendTestEmail', 'Send Test Email')}
+                {testEmailMutation.isPending ? getText('merchant.plugins.sending', 'Sending...') : getText('merchant.plugins.sendTestEmail', 'Send Test Email')}
               </Button>
             </CardContent>
           </Card>
@@ -558,9 +558,9 @@ export default function ResendEmailPluginPage() {
           {/* Email Logs Section */}
           <Card>
             <CardHeader>
-              <CardTitle>{getText('tenant.plugins.emailLogs', 'Email Logs')}</CardTitle>
+              <CardTitle>{getText('merchant.plugins.emailLogs', 'Email Logs')}</CardTitle>
               <CardDescription>
-                {getText('tenant.plugins.emailLogsDesc', 'View your recent email sending history')}
+                {getText('merchant.plugins.emailLogsDesc', 'View your recent email sending history')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -577,12 +577,12 @@ export default function ResendEmailPluginPage() {
                     }}
                     className="w-full mt-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
                   >
-                    <option value="">{getText('tenant.plugins.allStatus', 'All Status')}</option>
-                    <option value="delivered">{getText('tenant.plugins.delivered', 'Delivered')}</option>
-                    <option value="bounced">{getText('tenant.plugins.bounced', 'Bounced')}</option>
-                    <option value="opened">{getText('tenant.plugins.opened', 'Opened')}</option>
-                    <option value="clicked">{getText('tenant.plugins.clicked', 'Clicked')}</option>
-                    <option value="failed">{getText('tenant.plugins.failed', 'Failed')}</option>
+                    <option value="">{getText('merchant.plugins.allStatus', 'All Status')}</option>
+                    <option value="delivered">{getText('merchant.plugins.delivered', 'Delivered')}</option>
+                    <option value="bounced">{getText('merchant.plugins.bounced', 'Bounced')}</option>
+                    <option value="opened">{getText('merchant.plugins.opened', 'Opened')}</option>
+                    <option value="clicked">{getText('merchant.plugins.clicked', 'Clicked')}</option>
+                    <option value="failed">{getText('merchant.plugins.failed', 'Failed')}</option>
                   </select>
                 </div>
               </div>
@@ -600,10 +600,10 @@ export default function ResendEmailPluginPage() {
                     <table className="w-full text-sm">
                       <thead className="border-b">
                         <tr>
-                          <th className="text-left py-2 px-2">{getText('tenant.plugins.to', 'To')}</th>
-                          <th className="text-left py-2 px-2">{getText('tenant.plugins.subject', 'Subject')}</th>
+                          <th className="text-left py-2 px-2">{getText('merchant.plugins.to', 'To')}</th>
+                          <th className="text-left py-2 px-2">{getText('merchant.plugins.subject', 'Subject')}</th>
                           <th className="text-left py-2 px-2">{getText('common.status', 'Status')}</th>
-                          <th className="text-left py-2 px-2">{getText('tenant.plugins.sentAt', 'Sent At')}</th>
+                          <th className="text-left py-2 px-2">{getText('merchant.plugins.sentAt', 'Sent At')}</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -636,7 +636,7 @@ export default function ResendEmailPluginPage() {
                   {emailLogsData && emailLogsData.length > 0 && (
                     <div className="flex items-center justify-between mt-4">
                       <p className="text-xs text-gray-600">
-                        {getText('tenant.plugins.showingEmailLogs', 'Showing')} {emailLogsData.length} {getText('tenant.plugins.emailLogs', 'email logs')}
+                        {getText('merchant.plugins.showingEmailLogs', 'Showing')} {emailLogsData.length} {getText('merchant.plugins.emailLogs', 'email logs')}
                       </p>
                       <div className="flex gap-2">
                         <Button
@@ -661,7 +661,7 @@ export default function ResendEmailPluginPage() {
                 </>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-600">{getText('tenant.plugins.noEmailLogsFound', 'No email logs found')}</p>
+                  <p className="text-gray-600">{getText('merchant.plugins.noEmailLogsFound', 'No email logs found')}</p>
                 </div>
               )}
             </CardContent>
@@ -674,7 +674,7 @@ export default function ResendEmailPluginPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <CreditCard className="h-5 w-5 mr-2" />
-                {getText('tenant.plugins.resendEmailPlugin', 'Resend Email Plugin')}
+                {getText('merchant.plugins.resendEmailPlugin', 'Resend Email Plugin')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -687,7 +687,7 @@ export default function ResendEmailPluginPage() {
                 <div className="space-y-6">
                   {/* Current Plan */}
                   <div>
-                    <label className="text-sm font-medium text-gray-600">{getText('tenant.plugins.currentPlan', 'Current Plan')}</label>
+                    <label className="text-sm font-medium text-gray-600">{getText('merchant.plugins.currentPlan', 'Current Plan')}</label>
                     <div className="mt-2">
                       <Badge
                         variant={
@@ -705,11 +705,11 @@ export default function ResendEmailPluginPage() {
                   {/* Current Subscription Details */}
                   <div className="border-t pt-4">
                     <label className="text-sm font-medium text-gray-600 mb-3 block">
-                      {getText('tenant.plugins.currentSubscription', 'Current Subscription')}
+                      {getText('merchant.plugins.currentSubscription', 'Current Subscription')}
                     </label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <p className="text-sm text-gray-500">{getText('tenant.plugins.amount', 'Amount')}</p>
+                        <p className="text-sm text-gray-500">{getText('merchant.plugins.amount', 'Amount')}</p>
                         <p className="text-lg font-semibold text-gray-900">
                           ${subscriptionData.subscription.amount.toFixed(2)}/{subscriptionData.subscription.currency}
                         </p>
@@ -721,7 +721,7 @@ export default function ResendEmailPluginPage() {
                         </Badge>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">{getText('tenant.plugins.renews', 'Renews')}</p>
+                        <p className="text-sm text-gray-500">{getText('merchant.plugins.renews', 'Renews')}</p>
                         <p className="text-sm font-medium text-gray-900">
                           {new Date(subscriptionData.subscription.currentPeriodEnd).toLocaleDateString()}
                         </p>
@@ -731,14 +731,14 @@ export default function ResendEmailPluginPage() {
                       <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
                         <div className="flex justify-between items-center">
                           <p className="text-sm text-yellow-800">
-                            <strong>{getText('tenant.plugins.canceledOn', 'Canceled on')}:</strong> {new Date(subscriptionData.pendingChange.effectiveDate).toLocaleDateString()}
+                            <strong>{getText('merchant.plugins.canceledOn', 'Canceled on')}:</strong> {new Date(subscriptionData.pendingChange.effectiveDate).toLocaleDateString()}
                           </p>
                           <button
                             onClick={() => cancelDowngradeMutation.mutate()}
                             disabled={cancelDowngradeMutation.isPending}
                             className="text-sm px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                           >
-                            {cancelDowngradeMutation.isPending ? getText('common.canceling', 'Cancelling...') : getText('tenant.plugins.cancelDowngrade', 'Cancel Downgrade')}
+                            {cancelDowngradeMutation.isPending ? getText('common.canceling', 'Cancelling...') : getText('merchant.plugins.cancelDowngrade', 'Cancel Downgrade')}
                           </button>
                         </div>
                       </div>
@@ -747,7 +747,7 @@ export default function ResendEmailPluginPage() {
 
                   {/* Usage Statistics */}
                   <div className="border-t pt-4">
-                    <label className="text-sm font-medium text-gray-600 mb-3 block">{getText('tenant.plugins.usageThisMonth', 'Usage This Month')}</label>
+                    <label className="text-sm font-medium text-gray-600 mb-3 block">{getText('merchant.plugins.usageThisMonth', 'Usage This Month')}</label>
                     {subscriptionData.usage && (
                       <div className="space-y-4">
                         {Object.entries(subscriptionData.usage).map(([metric, data]: [string, any]) => (
@@ -785,7 +785,7 @@ export default function ResendEmailPluginPage() {
                         onClick={() => setShowSubscriptionHistory(!showSubscriptionHistory)}
                         className="flex items-center justify-between w-full text-sm font-medium text-gray-600 mb-3 hover:text-gray-900 transition-colors"
                       >
-                        <span>{getText('tenant.plugins.subscriptionHistory', 'Subscription History')} ({subscriptionData.subscriptionHistory.length})</span>
+                        <span>{getText('merchant.plugins.subscriptionHistory', 'Subscription History')} ({subscriptionData.subscriptionHistory.length})</span>
                         <svg
                           className={`w-5 h-5 transition-transform ${showSubscriptionHistory ? 'rotate-180' : ''}`}
                           fill="none"
@@ -802,13 +802,13 @@ export default function ResendEmailPluginPage() {
                             <div key={sub.id} className="p-3 bg-gray-50 border border-gray-200 rounded-md">
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                 <div>
-                                  <p className="text-xs text-gray-500">{getText('tenant.plugins.plan', 'Plan')}</p>
+                                  <p className="text-xs text-gray-500">{getText('merchant.plugins.plan', 'Plan')}</p>
                                   <p className="text-sm font-medium text-gray-900">
                                     {sub.planId.charAt(0).toUpperCase() + sub.planId.slice(1)}
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-xs text-gray-500">{getText('tenant.plugins.amount', 'Amount')}</p>
+                                  <p className="text-xs text-gray-500">{getText('merchant.plugins.amount', 'Amount')}</p>
                                   <p className="text-sm font-medium text-gray-900">
                                     ${sub.amount.toFixed(2)}/{sub.currency}
                                   </p>
@@ -840,7 +840,7 @@ export default function ResendEmailPluginPage() {
 
                   {/* Available Plans */}
                   <div className="border-t pt-4">
-                    <label className="text-sm font-medium text-gray-600 mb-3 block">{getText('tenant.plugins.availablePlans', 'Available Plans')}</label>
+                    <label className="text-sm font-medium text-gray-600 mb-3 block">{getText('merchant.plugins.availablePlans', 'Available Plans')}</label>
                     {subscriptionData.availablePlans && (
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {subscriptionData.availablePlans.map((plan: any) => (
@@ -854,7 +854,7 @@ export default function ResendEmailPluginPage() {
                             <p className="text-gray-600 text-sm mb-4">{plan.description}</p>
                             <p className="text-2xl font-bold mb-4">
                               ${plan.amount.toFixed(2)}
-                              <span className="text-sm text-gray-600 font-normal">/{getText('tenant.plugins.monthly', 'monthly')}</span>
+                              <span className="text-sm text-gray-600 font-normal">/{getText('merchant.plugins.monthly', 'monthly')}</span>
                             </p>
                             <ul className="space-y-2 mb-4 text-sm text-gray-600">
                               {plan.features?.map((feature: string, idx: number) => (
@@ -862,14 +862,14 @@ export default function ResendEmailPluginPage() {
                               ))}
                             </ul>
                             {plan.planId === subscriptionData.subscription.planId ? (
-                              <Button disabled className="w-full">{getText('tenant.plugins.currentPlan', 'Current Plan')}</Button>
+                              <Button disabled className="w-full">{getText('merchant.plugins.currentPlan', 'Current Plan')}</Button>
                             ) : plan.amount > subscriptionData.subscription.amount ? (
                               <Button onClick={() => handleUpgradeClick(plan.planId)} className="w-full">
-                                {getText('tenant.plugins.upgrade', 'Upgrade')}
+                                {getText('merchant.plugins.upgrade', 'Upgrade')}
                               </Button>
                             ) : (
                               <Button variant="outline" onClick={() => handleDowngradeClick(plan.planId)} className="w-full">
-                                {getText('tenant.plugins.downgrade', 'Downgrade')}
+                                {getText('merchant.plugins.downgrade', 'Downgrade')}
                               </Button>
                             )}
                           </div>
@@ -879,7 +879,7 @@ export default function ResendEmailPluginPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-gray-600">{getText('tenant.plugins.noSubscriptionData', 'No subscription data available.')}</p>
+                <p className="text-gray-600">{getText('merchant.plugins.noSubscriptionData', 'No subscription data available.')}</p>
               )}
             </CardContent>
           </Card>

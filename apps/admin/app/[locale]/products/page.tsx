@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useT, useLocale } from 'shared/src/i18n'
+import { useT, useLocale } from 'shared/src/i18n/react'
 
 export default function ProductsPage() {
   const t = useT()
@@ -45,9 +45,9 @@ export default function ProductsPage() {
 
   // Page navigation items for Products module
   const navItems = [
-    { label: getText('tenant.products.allProducts', 'All Products'), href: '/products', exact: true },
-    { label: getText('tenant.products.addProduct', 'Add Product'), href: '/products/create' },
-    { label: getText('tenant.products.inventory', 'Inventory'), href: '/products/inventory' },
+    { label: getText('merchant.products.allProducts', 'All Products'), href: '/products', exact: true },
+    { label: getText('merchant.products.addProduct', 'Add Product'), href: '/products/create' },
+    { label: getText('merchant.products.inventory', 'Inventory'), href: '/products/inventory' },
   ]
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
@@ -181,11 +181,11 @@ export default function ProductsPage() {
 
   const getStatusText = (stock: number) => {
     if (stock === 0) {
-      return getText('tenant.products.outOfStock', 'Out of Stock')
+      return getText('merchant.products.outOfStock', 'Out of Stock')
     } else if (stock < 10) {
-      return getText('tenant.products.lowStock', 'Low Stock')
+      return getText('merchant.products.lowStock', 'Low Stock')
     } else {
-      return getText('tenant.products.inStock', 'In Stock')
+      return getText('merchant.products.inStock', 'In Stock')
     }
   }
 
@@ -194,7 +194,7 @@ export default function ProductsPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">{getText('tenant.products.loading', 'Loading products...')}</p>
+          <p className="mt-2 text-gray-600">{getText('merchant.products.loading', 'Loading products...')}</p>
         </div>
       </div>
     )
@@ -205,13 +205,13 @@ export default function ProductsPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">{getText('tenant.products.loadFailed', 'Failed to load products')}</p>
+          <p className="text-gray-600">{getText('merchant.products.loadFailed', 'Failed to load products')}</p>
           <Button
             variant="outline"
             className="mt-4"
             onClick={() => refetch()}
           >
-            {getText('tenant.products.retry', 'Retry')}
+            {getText('merchant.products.retry', 'Retry')}
           </Button>
         </div>
       </div>
@@ -224,13 +224,13 @@ export default function ProductsPage() {
       <div className="mb-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{getText('tenant.products.title', 'Products')}</h1>
-            <p className="text-gray-600 mt-1">{getText('tenant.products.subtitle', 'Manage your product inventory')}</p>
+            <h1 className="text-2xl font-bold text-gray-900">{getText('merchant.products.title', 'Products')}</h1>
+            <p className="text-gray-600 mt-1">{getText('merchant.products.subtitle', 'Manage your product inventory')}</p>
           </div>
           <Link href={`/${locale}/products/create`}>
             <Button className="bg-gray-900 hover:bg-gray-800">
               <Plus className="w-4 h-4 mr-2" />
-              {getText('tenant.products.addProduct', 'Add Product')}
+              {getText('merchant.products.addProduct', 'Add Product')}
             </Button>
           </Link>
         </div>
@@ -246,7 +246,7 @@ export default function ProductsPage() {
               <Search className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder={getText('tenant.products.searchPlaceholder', 'Search products...')}
+                placeholder={getText('merchant.products.searchPlaceholder', 'Search products...')}
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value)
@@ -262,7 +262,7 @@ export default function ProductsPage() {
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              <option value="All">{getText('tenant.products.allCategories', 'All Categories')}</option>
+              <option value="All">{getText('merchant.products.allCategories', 'All Categories')}</option>
               <option value="Electronics">Electronics</option>
               <option value="Fashion">Fashion</option>
               <option value="Home">Home</option>
@@ -270,7 +270,7 @@ export default function ProductsPage() {
             </select>
             <Button variant="outline">
               <Filter className="w-4 h-4 mr-2" />
-              {getText('tenant.products.filters', 'Filters')}
+              {getText('merchant.products.filters', 'Filters')}
             </Button>
           </div>
         </div>
@@ -281,7 +281,7 @@ export default function ProductsPage() {
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium text-blue-900">
-              {selectedProducts.length} {getText('tenant.products.productsSelected', 'product(s) selected')}
+              {selectedProducts.length} {getText('merchant.products.productsSelected', 'product(s) selected')}
             </span>
             <div className="flex gap-2">
               <Button
@@ -292,7 +292,7 @@ export default function ProductsPage() {
                   setShowBatchDialog(true)
                 }}
               >
-                {getText('tenant.products.increaseStock', 'Increase Stock')}
+                {getText('merchant.products.increaseStock', 'Increase Stock')}
               </Button>
               <Button
                 variant="outline"
@@ -302,7 +302,7 @@ export default function ProductsPage() {
                   setShowBatchDialog(true)
                 }}
               >
-                {getText('tenant.products.decreaseStock', 'Decrease Stock')}
+                {getText('merchant.products.decreaseStock', 'Decrease Stock')}
               </Button>
               <Button
                 variant="outline"
@@ -313,7 +313,7 @@ export default function ProductsPage() {
                 }}
                 className="text-red-600 hover:text-red-700"
               >
-                {getText('tenant.products.deleteSelected', 'Delete Selected')}
+                {getText('merchant.products.deleteSelected', 'Delete Selected')}
               </Button>
             </div>
           </div>
@@ -334,14 +334,14 @@ export default function ProductsPage() {
                     className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
                 </th>
-                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.products.product', 'Product')}</th>
-                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.products.sku', 'SKU')}</th>
-                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.products.category', 'Category')}</th>
-                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.products.price', 'Price')}</th>
-                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.products.stock', 'Stock')}</th>
-                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.products.sales', 'Sales')}</th>
-                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.products.status', 'Status')}</th>
-                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('tenant.products.actions', 'Actions')}</th>
+                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.products.product', 'Product')}</th>
+                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.products.sku', 'SKU')}</th>
+                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.products.category', 'Category')}</th>
+                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.products.price', 'Price')}</th>
+                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.products.stock', 'Stock')}</th>
+                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.products.sales', 'Sales')}</th>
+                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.products.status', 'Status')}</th>
+                <th className="text-left py-3 px-6 font-medium text-gray-900">{getText('merchant.products.actions', 'Actions')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -372,8 +372,8 @@ export default function ProductsPage() {
                       </div>
                     </div>
                   </td>
-                  <td className="py-4 px-6 text-gray-600">{product.sku || getText('tenant.products.na', 'N/A')}</td>
-                  <td className="py-4 px-6 text-gray-600">{typeof product.category === 'string' ? product.category : product.category?.name || getText('tenant.products.uncategorized', 'Uncategorized')}</td>
+                  <td className="py-4 px-6 text-gray-600">{product.sku || getText('merchant.products.na', 'N/A')}</td>
+                  <td className="py-4 px-6 text-gray-600">{typeof product.category === 'string' ? product.category : product.category?.name || getText('merchant.products.uncategorized', 'Uncategorized')}</td>
                   <td className="py-4 px-6 font-medium text-gray-900">¥{product.price?.toLocaleString() || '0'}</td>
                   <td className="py-4 px-6">
                     <span className={`${product.stock === 0 ? 'text-red-600' : product.stock < 10 ? 'text-yellow-600' : 'text-gray-900'}`}>
@@ -389,12 +389,12 @@ export default function ProductsPage() {
                   <td className="py-4 px-6">
                     <div className="flex items-center space-x-2">
                       <Link href={`/${locale}/products/${product.id}`}>
-                        <button className="p-1 text-gray-400 hover:text-blue-600" title={getText('tenant.products.view', 'View')}>
+                        <button className="p-1 text-gray-400 hover:text-blue-600" title={getText('merchant.products.view', 'View')}>
                           <Eye className="w-4 h-4" />
                         </button>
                       </Link>
                       <Link href={`/${locale}/products/${product.id}/edit`}>
-                        <button className="p-1 text-gray-400 hover:text-blue-600" title={getText('tenant.products.editAction', 'Edit')}>
+                        <button className="p-1 text-gray-400 hover:text-blue-600" title={getText('merchant.products.editAction', 'Edit')}>
                           <Pencil className="w-4 h-4" />
                         </button>
                       </Link>
@@ -406,7 +406,7 @@ export default function ProductsPage() {
                           setQuantity('')
                           setReason('')
                         }}
-                        title={getText('tenant.products.adjustStock', 'Adjust Stock')}
+                        title={getText('merchant.products.adjustStock', 'Adjust Stock')}
                       >
                         <TrendingUp className="w-4 h-4" />
                       </button>
@@ -414,7 +414,7 @@ export default function ProductsPage() {
                         className="p-1 text-gray-400 hover:text-red-600"
                         onClick={() => handleDeleteProduct(product.id)}
                         disabled={deleteProductMutation.isPending}
-                        title={getText('tenant.products.delete', 'Delete')}
+                        title={getText('merchant.products.delete', 'Delete')}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -431,7 +431,7 @@ export default function ProductsPage() {
       {pagination && (
         <div className="mt-6 flex items-center justify-between">
           <div className="text-sm text-gray-700">
-            {getText('tenant.products.showingResults', 'Showing {from} to {to} of {total} results')
+            {getText('merchant.products.showingResults', 'Showing {from} to {to} of {total} results')
               .replace('{from}', String((pagination.page - 1) * pagination.limit + 1))
               .replace('{to}', String(Math.min(pagination.page * pagination.limit, pagination.total)))
               .replace('{total}', String(pagination.total))}
@@ -443,7 +443,7 @@ export default function ProductsPage() {
               onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
               disabled={currentPage === 1}
             >
-              {getText('tenant.products.previous', 'Previous')}
+              {getText('merchant.products.previous', 'Previous')}
             </Button>
 
             {/* Page numbers */}
@@ -470,7 +470,7 @@ export default function ProductsPage() {
               onClick={() => setCurrentPage(Math.min(pagination.totalPages, currentPage + 1))}
               disabled={currentPage === pagination.totalPages}
             >
-              {getText('tenant.products.next', 'Next')}
+              {getText('merchant.products.next', 'Next')}
             </Button>
           </div>
         </div>
@@ -480,29 +480,29 @@ export default function ProductsPage() {
       <Dialog open={!!adjustingProduct} onOpenChange={(open) => !open && setAdjustingProduct(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{getText('tenant.products.adjustStock', 'Adjust Stock')}</DialogTitle>
+            <DialogTitle>{getText('merchant.products.adjustStock', 'Adjust Stock')}</DialogTitle>
             <DialogDescription>
-              {getText('tenant.products.adjustStockFor', 'Adjust stock level for')} {adjustingProduct?.name}
+              {getText('merchant.products.adjustStockFor', 'Adjust stock level for')} {adjustingProduct?.name}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="operation" className="text-right">
-                {getText('tenant.products.operation', 'Operation')}
+                {getText('merchant.products.operation', 'Operation')}
               </Label>
               <Select value={operation} onValueChange={(value) => setOperation(value as 'increase' | 'decrease')}>
                 <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder={getText('tenant.products.selectOperation', 'Select operation')} />
+                  <SelectValue placeholder={getText('merchant.products.selectOperation', 'Select operation')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="increase">{getText('tenant.products.increaseStock', 'Increase Stock')}</SelectItem>
-                  <SelectItem value="decrease">{getText('tenant.products.decreaseStock', 'Decrease Stock')}</SelectItem>
+                  <SelectItem value="increase">{getText('merchant.products.increaseStock', 'Increase Stock')}</SelectItem>
+                  <SelectItem value="decrease">{getText('merchant.products.decreaseStock', 'Decrease Stock')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="quantity" className="text-right">
-                {getText('tenant.products.quantity', 'Quantity')}
+                {getText('merchant.products.quantity', 'Quantity')}
               </Label>
               <Input
                 id="quantity"
@@ -511,23 +511,23 @@ export default function ProductsPage() {
                 value={quantity}
                 onChange={(e) => setQuantity(e.target.value)}
                 className="col-span-3"
-                placeholder={getText('tenant.products.enterQuantity', 'Enter quantity')}
+                placeholder={getText('merchant.products.enterQuantity', 'Enter quantity')}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="reason" className="text-right">
-                {getText('tenant.products.reason', 'Reason')}
+                {getText('merchant.products.reason', 'Reason')}
               </Label>
               <Input
                 id="reason"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 className="col-span-3"
-                placeholder={getText('tenant.products.enterReason', 'Enter reason for adjustment')}
+                placeholder={getText('merchant.products.enterReason', 'Enter reason for adjustment')}
               />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">{getText('tenant.products.currentStock', 'Current Stock')}</Label>
+              <Label className="text-right">{getText('merchant.products.currentStock', 'Current Stock')}</Label>
               <div className="col-span-3 font-semibold text-lg">
                 {adjustingProduct?.stock || 0}
               </div>
@@ -535,13 +535,13 @@ export default function ProductsPage() {
           </div>
           <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={() => setAdjustingProduct(null)}>
-              {getText('tenant.products.cancel', 'Cancel')}
+              {getText('merchant.products.cancel', 'Cancel')}
             </Button>
             <Button
               onClick={handleAdjustStock}
               disabled={!quantity || !reason || adjustStockMutation.isPending}
             >
-              {adjustStockMutation.isPending ? getText('tenant.products.adjusting', 'Adjusting...') : getText('tenant.products.adjustStock', 'Adjust Stock')}
+              {adjustStockMutation.isPending ? getText('merchant.products.adjusting', 'Adjusting...') : getText('merchant.products.adjustStock', 'Adjust Stock')}
             </Button>
           </div>
         </DialogContent>
@@ -551,18 +551,18 @@ export default function ProductsPage() {
       <Dialog open={showBatchDialog} onOpenChange={setShowBatchDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{getText('tenant.products.batchOperation', 'Batch Operation')}</DialogTitle>
+            <DialogTitle>{getText('merchant.products.batchOperation', 'Batch Operation')}</DialogTitle>
             <DialogDescription>
-              {batchAction === 'delete' && getText('tenant.products.deleteConfirm', 'Are you sure you want to delete this product?')}
-              {batchAction === 'increaseStock' && `${getText('tenant.products.increaseStock', 'Increase Stock')} - ${selectedProducts.length} ${getText('tenant.products.productsSelected', 'product(s) selected')}`}
-              {batchAction === 'decreaseStock' && `${getText('tenant.products.decreaseStock', 'Decrease Stock')} - ${selectedProducts.length} ${getText('tenant.products.productsSelected', 'product(s) selected')}`}
+              {batchAction === 'delete' && getText('merchant.products.deleteConfirm', 'Are you sure you want to delete this product?')}
+              {batchAction === 'increaseStock' && `${getText('merchant.products.increaseStock', 'Increase Stock')} - ${selectedProducts.length} ${getText('merchant.products.productsSelected', 'product(s) selected')}`}
+              {batchAction === 'decreaseStock' && `${getText('merchant.products.decreaseStock', 'Decrease Stock')} - ${selectedProducts.length} ${getText('merchant.products.productsSelected', 'product(s) selected')}`}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             {(batchAction === 'increaseStock' || batchAction === 'decreaseStock') && (
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="batchStockQuantity" className="text-right">
-                  {getText('tenant.products.quantity', 'Quantity')}
+                  {getText('merchant.products.quantity', 'Quantity')}
                 </Label>
                 <Input
                   id="batchStockQuantity"
@@ -571,26 +571,26 @@ export default function ProductsPage() {
                   value={batchStockQuantity}
                   onChange={(e) => setBatchStockQuantity(e.target.value)}
                   className="col-span-3"
-                  placeholder={getText('tenant.products.enterStockQuantity', 'Please enter stock quantity')}
+                  placeholder={getText('merchant.products.enterStockQuantity', 'Please enter stock quantity')}
                 />
               </div>
             )}
             {batchAction === 'delete' && (
               <div className="text-sm text-red-600">
-                {getText('tenant.products.deleteWarning', 'Warning: This action cannot be undone. All selected products will be permanently deleted.')}
+                {getText('merchant.products.deleteWarning', 'Warning: This action cannot be undone. All selected products will be permanently deleted.')}
               </div>
             )}
           </div>
           <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={() => setShowBatchDialog(false)}>
-              {getText('tenant.products.cancel', 'Cancel')}
+              {getText('merchant.products.cancel', 'Cancel')}
             </Button>
             <Button
               onClick={handleBatchOperation}
               disabled={batchOperationsMutation.isPending}
               className={batchAction === 'delete' ? 'bg-red-600 hover:bg-red-700' : ''}
             >
-              {batchOperationsMutation.isPending ? getText('tenant.products.processing', 'Processing...') : getText('tenant.products.confirm', 'Confirm')}
+              {batchOperationsMutation.isPending ? getText('merchant.products.processing', 'Processing...') : getText('merchant.products.confirm', 'Confirm')}
             </Button>
           </div>
         </DialogContent>

@@ -1,33 +1,33 @@
 /**
- * OpenTelemetry 分布式追踪集成
+ * OpenTelemetry Distributed Tracing Integration
  * 
- * 提供统一的追踪、指标和日志 API
+ * Provides unified API for tracing, metrics, and logs.
  */
 
 /**
- * OpenTelemetry 配置
+ * OpenTelemetry Configuration
  */
 export interface OtelConfig {
-  /** 服务名称 */
+  /** Service Name */
   serviceName: string;
-  /** 服务版本 */
+  /** Service Version */
   serviceVersion?: string;
-  /** 环境名称 */
+  /** Environment Name */
   environment?: string;
-  /** 追踪导出端点 */
+  /** Trace Exporter Endpoint */
   traceExporterUrl?: string;
-  /** 指标导出端点 */
+  /** Metrics Exporter Endpoint */
   metricsExporterUrl?: string;
-  /** 采样率 (0-1) */
+  /** Sampling Ratio (0-1) */
   samplingRatio?: number;
-  /** 是否启用自动 instrumentation */
+  /** Enable auto instrumentation */
   enableAutoInstrumentation?: boolean;
-  /** 启用的 instrumentations */
+  /** Enabled instrumentations */
   instrumentations?: string[];
 }
 
 /**
- * Span 上下文
+ * Span Context
  */
 export interface SpanContext {
   traceId: string;
@@ -37,14 +37,14 @@ export interface SpanContext {
 }
 
 /**
- * Span 属性
+ * Span Attributes
  */
 export interface SpanAttributes {
   [key: string]: string | number | boolean | undefined;
 }
 
 /**
- * Span 事件
+ * Span Event
  */
 export interface SpanEvent {
   name: string;
@@ -53,16 +53,17 @@ export interface SpanEvent {
 }
 
 /**
- * 追踪上下文 HTTP 头
+ * Trace Context HTTP Headers
  */
 export const TRACE_CONTEXT_HEADERS = {
   TRACEPARENT: 'traceparent',
   TRACESTATE: 'tracestate',
   BAGGAGE: 'baggage',
+  REQUEST_ID: 'x-request-id',
 } as const;
 
 /**
- * 默认配置
+ * Default Configuration
  */
 const DEFAULT_CONFIG: Partial<OtelConfig> = {
   serviceVersion: '1.0.0',
@@ -73,10 +74,10 @@ const DEFAULT_CONFIG: Partial<OtelConfig> = {
 };
 
 /**
- * OpenTelemetry 客户端包装器
+ * OpenTelemetry Client Wrapper
  * 
- * 注意：实际使用时需要安装 @opentelemetry/sdk-node 和相关包
- * 这里提供类型安全的包装器
+ * Note: Requires @opentelemetry/sdk-node and related packages for actual implementation.
+ * Provides a type-safe wrapper for tracing operations.
  */
 export class OtelClient {
   private config: OtelConfig;
@@ -87,7 +88,7 @@ export class OtelClient {
   }
 
   /**
-   * 获取初始化配置
+   * Get initialization configuration
    */
   getInitConfig(): Record<string, unknown> {
     return {
@@ -101,21 +102,21 @@ export class OtelClient {
   }
 
   /**
-   * 标记为已初始化
+   * Mark as initialized
    */
   markInitialized(): void {
     this.initialized = true;
   }
 
   /**
-   * 检查是否已初始化
+   * Check if initialized
    */
   isInitialized(): boolean {
     return this.initialized;
   }
 
   /**
-   * 生成 TraceId
+   * Generate TraceId
    */
   generateTraceId(): string {
     // 32 character hex string
@@ -125,7 +126,7 @@ export class OtelClient {
   }
 
   /**
-   * 生成 SpanId
+   * Generate SpanId
    */
   generateSpanId(): string {
     // 16 character hex string
@@ -135,7 +136,7 @@ export class OtelClient {
   }
 
   /**
-   * 解析 traceparent 头
+   * Parse traceparent header
    */
   parseTraceparent(header: string): SpanContext | null {
     // Format: version-traceId-spanId-traceFlags
@@ -159,7 +160,7 @@ export class OtelClient {
   }
 
   /**
-   * 创建 traceparent 头
+   * Create traceparent header
    */
   createTraceparent(context: SpanContext): string {
     const flags = context.traceFlags.toString(16).padStart(2, '0');
@@ -167,7 +168,7 @@ export class OtelClient {
   }
 
   /**
-   * 创建新的 Span 上下文
+   * Create new Span context
    */
   createSpanContext(parentContext?: SpanContext): SpanContext {
     return {
@@ -179,7 +180,7 @@ export class OtelClient {
   }
 
   /**
-   * 从 HTTP 头提取追踪上下文
+   * Extract tracing context from HTTP headers
    */
   extractFromHeaders(
     headers: Record<string, string | undefined>
@@ -192,7 +193,7 @@ export class OtelClient {
   }
 
   /**
-   * 注入追踪上下文到 HTTP 头
+   * Inject tracing context into HTTP headers
    */
   injectToHeaders(
     context: SpanContext,
@@ -205,14 +206,14 @@ export class OtelClient {
   }
 
   /**
-   * 获取服务名称
+   * Get service name
    */
   getServiceName(): string {
     return this.config.serviceName;
   }
 
   /**
-   * 获取采样率
+   * Get sampling ratio
    */
   getSamplingRatio(): number {
     return this.config.samplingRatio ?? 0.1;
@@ -220,14 +221,14 @@ export class OtelClient {
 }
 
 /**
- * 创建 OpenTelemetry 客户端
+ * Create OpenTelemetry Client
  */
 export function createOtelClient(config: OtelConfig): OtelClient {
   return new OtelClient(config);
 }
 
 /**
- * 创建 OpenTelemetry 配置（从环境变量）
+ * Create OpenTelemetry Configuration from environment variables
  */
 export function createOtelConfigFromEnv(serviceName: string): OtelConfig {
   return {
@@ -240,4 +241,3 @@ export function createOtelConfigFromEnv(serviceName: string): OtelConfig {
     enableAutoInstrumentation: process.env.OTEL_AUTO_INSTRUMENTATION !== 'false',
   };
 }
-

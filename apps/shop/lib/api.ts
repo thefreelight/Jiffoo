@@ -1,5 +1,5 @@
 /**
- * Shop API Client - 商城前台 API 客户端
+ * Shop API Client - Shop Frontend API Client
  * Uses unified AuthClient from shared package for consistent API handling
  */
 
@@ -25,7 +25,7 @@ import type {
 } from 'shared/src';
 
 /**
- * 延迟初始化 API 客户端，避免模块加载时的环境变量问题
+ * Lazy initialize API client to avoid environment variable issues during module loading
  * Uses OAuth2 SPA standard storage (localStorage)
  */
 let _apiClient: ReturnType<typeof createShopClient> | null = null;
@@ -33,17 +33,17 @@ let _apiClient: ReturnType<typeof createShopClient> | null = null;
 const getApiClient = () => {
   if (!_apiClient) {
     _apiClient = createShopClient({
-      storageType: 'browser', // OAuth2 SPA标准：使用localStorage存储tokens
+      storageType: 'browser', // OAuth2 SPA standard: using localStorage for tokens
       customConfig: {
         timeout: 10000,
-        loginPath: '/auth/login', // 商城前端登录页面路径
+        loginPath: '/auth/login', // Shop frontend login path
       }
     });
   }
   return _apiClient;
 };
 
-// 导出 Proxy 以延迟初始化
+// Export Proxy for lazy initialization
 export const apiClient = new Proxy({} as ReturnType<typeof createShopClient>, {
   get: (target, prop) => {
     return getApiClient()[prop as keyof ReturnType<typeof createShopClient>];
@@ -75,22 +75,22 @@ export const authApi = {
   changePassword: (data: { currentPassword: string; newPassword: string }): Promise<ApiResponse<any>> =>
     apiClient.changePassword(data),
 
-  // 🆕 邮箱验证码相关API
+  // Email verification APIs
   sendRegistrationCode: (email: string): Promise<ApiResponse<any>> =>
     apiClient.post('/auth/send-registration-code', { email }),
 
   resendVerificationCode: (email: string): Promise<ApiResponse<any>> =>
     apiClient.post('/auth/resend-verification-code', { email }),
 
-  verifyEmail: (email: string, code: string, referralCode?: string): Promise<ApiResponse<any>> =>
-    apiClient.post('/auth/verify-email', { email, code, referralCode }),
+  verifyEmail: (email: string, code: string): Promise<ApiResponse<any>> =>
+    apiClient.post('/auth/verify-email', { email, code }),
 };
 
-// 🆕 Auth Gateway API - 获取可用认证方式
+// Auth Gateway API - Get available authentication methods
 export const authGatewayApi = {
   /**
-   * 获取可用的认证方式
-   * 只返回租户已安装且额度充足的认证方式
+   * Get available authentication methods
+   * Only returns methods that are installed and have sufficient quota
    */
   getAvailableMethods: (): Promise<ApiResponse<Array<{
     pluginSlug: string;
@@ -107,22 +107,22 @@ export const authGatewayApi = {
   }>>> => apiClient.get('/auth-gateway/available-methods'),
 };
 
-// 🆕 Google OAuth API - 直接调用插件端点
+// Google OAuth API - Call plugin endpoints directly
 export const googleOAuthApi = {
   /**
-   * 生成 Google OAuth 授权 URL
-   * @param state - 可选的自定义 state 数据
-   * @param scope - 可选的 OAuth scope 列表
-   * @param returnUrl - 🆕 OAuth 完成后返回的 URL（支持多域名场景）
+   * Generate Google OAuth authorization URL
+   * @param state - Optional custom state data
+   * @param scope - Optional OAuth scope list
+   * @param returnUrl - URL to return to after OAuth completion
    */
   generateAuthUrl: (state?: string, scope?: string[], returnUrl?: string): Promise<ApiResponse<{ authUrl: string }>> =>
     apiClient.post('/plugins/google/api/auth/url', { state, scope, returnUrl }),
 
   /**
-   * Mall 前端 OAuth 登录
-   * @param code - Google 返回的授权码
-   * @param state - OAuth state 参数
-   * @param redirectUrl - 🆕 必须与生成 auth URL 时使用的 redirect_uri 一致
+   * Shop frontend OAuth login
+   * @param code - Authorization code returned by Google
+   * @param state - OAuth state parameter
+   * @param redirectUrl - Must match redirect_uri used when generating auth URL
    */
   oauthLogin: (code: string, state?: string, redirectUrl?: string): Promise<ApiResponse<{
     success: boolean;
@@ -147,32 +147,26 @@ export const accountApi = {
 };
 
 // Products API - Use unified apiClient
-// Note: locale parameter should be explicitly passed when calling these methods
-// to ensure correct translated product data is returned
-// 🆕 Agent Mall 场景：传递 agentId 参数以获取授权商品和有效价格
 export const productsApi = {
   /**
    * Get products list with optional locale for translated data
    * @param params - Search filters including optional locale for i18n
-   * @param agentId - 🆕 Optional agent ID for Agent Mall context
    */
-  getProducts: (params?: ProductSearchFilters & { agentId?: string }): Promise<ApiResponse<PaginatedResponse<Product>>> =>
+  getProducts: (params?: ProductSearchFilters): Promise<ApiResponse<PaginatedResponse<Product>>> =>
     apiClient.get(API_ENDPOINTS.PRODUCTS.LIST, { params }),
 
   /**
    * Get single product by ID with optional locale
    * @param id - Product ID
    * @param locale - Optional language code for translated product data
-   * @param agentId - 🆕 Optional agent ID for Agent Mall context
    */
-  getProduct: (id: string, locale?: string, agentId?: string): Promise<ApiResponse<Product>> =>
+  getProduct: (id: string, locale?: string): Promise<ApiResponse<Product>> =>
     apiClient.get(API_ENDPOINTS.PRODUCTS.DETAIL.replace(':id', id), {
-      params: { ...(locale ? { locale } : {}), ...(agentId ? { agentId } : {}) }
+      params: { ...(locale ? { locale } : {}) }
     }),
 
   /**
    * Get product categories
-   * Note: Categories may support locale in future versions
    */
   getCategories: (locale?: string): Promise<ApiResponse<ProductCategory[]>> =>
     apiClient.get(API_ENDPOINTS.PRODUCTS.CATEGORIES, {
@@ -199,7 +193,6 @@ export const cartApi = {
 };
 
 // Orders API - Use unified apiClient
-// 🆕 Agent Mall 场景：支持 agentId 和 variantId
 export const ordersApi = {
   getOrders: (params?: OrderFilters): Promise<ApiResponse<PaginatedResponse<Order>>> =>
     apiClient.get(API_ENDPOINTS.ORDERS.LIST, { params }),
@@ -208,16 +201,12 @@ export const ordersApi = {
     apiClient.get(API_ENDPOINTS.ORDERS.DETAIL.replace(':id', id)),
 
   /**
-   * 创建订单
-   * 🆕 支持 Agent Mall 场景：
-   * - agentId: Agent Mall 的代理 ID，用于授权验证和佣金计算
-   * - variantId: 商品变体 ID，支持变体级定价
+   * Create order
    */
   createOrder: (data: {
     items: Array<{
       productId: string;
       quantity: number;
-      /** 🆕 商品变体 ID */
       variantId?: string;
     }>;
     shippingAddress: {
@@ -229,12 +218,10 @@ export const ordersApi = {
       country: string;
     };
     customerEmail: string;
-    /** 🆕 Agent ID，用于 Agent Mall 场景 */
-    agentId?: string;
   }): Promise<ApiResponse<Order>> =>
     apiClient.post(API_ENDPOINTS.ORDERS.CREATE, data),
 
-  // 🆕 重新支付订单
+  // Retry payment for an order
   retryPayment: (orderId: string, paymentMethod: string): Promise<ApiResponse<{
     sessionId: string;
     url: string;
@@ -242,52 +229,36 @@ export const ordersApi = {
   }>> =>
     apiClient.post(`/orders/${orderId}/retry-payment`, { paymentMethod }),
 
-  // 🆕 取消订单
+  // Cancel order
   cancelOrder: (orderId: string, reason?: string): Promise<ApiResponse<void>> =>
     apiClient.post(`/orders/${orderId}/cancel`, { reason }),
 };
 
-// Mall Context API - For tenant identification
+// Mall Context API - For store identification
 export const mallContextApi = {
   getContext: (params: {
     domain?: string;
-    subdomain?: string;
-    tenant?: string;
     slug?: string;
-    /** 🆕 Agent code 用于 Agent Mall 场景 */
-    agent?: string;
   }): Promise<ApiResponse<{
-    tenantId: string;
-    tenantName: string;
-    subdomain: string | null;
+    storeId: string;
+    storeName: string;
     domain: string | null;
     logo: string | null;
     theme: Record<string, unknown> | null;
     settings: Record<string, unknown> | null;
     status: string;
-    /** Default locale for the tenant. Default: 'en' */
+    /** Default locale for the store. Default: 'en' */
     defaultLocale: string;
-    /** Supported locales for this tenant. Default: ['en', 'zh-Hant'] */
+    /** Supported locales for this store. Default: ['en', 'zh-Hant'] */
     supportedLocales: string[];
-    /** 🆕 是否为 Agent Mall */
-    isAgentMall?: boolean;
-    /** 🆕 Agent 信息（仅当 isAgentMall=true 时有值） */
-    agent?: {
-      agentId: string;
-      agentCode: string;
-      agentName: string;
-      agentLevel: number;
-      theme: Record<string, unknown> | null;
-      settings: Record<string, unknown> | null;
-    };
   }>> => apiClient.get('/mall/context', { params }),
 };
 
 // Payment Gateway API - Unified payment interface
 export const paymentApi = {
   /**
-   * 获取可用的支付方式
-   * 只返回租户已安装且额度充足的支付方式
+   * Get available payment methods
+   * Only returns methods that are installed and have sufficient quota
    */
   getAvailableMethods: (): Promise<ApiResponse<Array<{
     pluginSlug: string;
@@ -298,8 +269,8 @@ export const paymentApi = {
   }>>> => apiClient.get('/payments/available-methods'),
 
   /**
-   * 创建支付会话
-   * 使用统一支付网关,路由到对应的支付插件
+   * Create payment session
+   * Uses unified payment gateway, routes to the corresponding payment plugin
    */
   createSession: (data: {
     paymentMethod: string;

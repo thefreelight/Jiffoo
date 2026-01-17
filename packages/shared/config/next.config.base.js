@@ -74,13 +74,21 @@ function createNextConfig(options = {}) {
       // 从根目录.env文件读取API服务地址
       // 在构建时使用占位符，运行时会被实际值替换
       const apiServiceUrl = process.env.API_SERVICE_URL || 'http://localhost:3001';
+      const platformApiUrl = process.env.PLATFORM_API_URL || 'http://localhost:3002';
 
       // 仅在开发模式下打印代理目标
       if (process.env.NODE_ENV === 'development') {
         console.log(`${appName} API proxy target:`, apiServiceUrl);
+        console.log(`${appName} Platform API proxy target:`, platformApiUrl);
       }
 
       return [
+        // Marketplace API 代理到 Platform API (必须在核心 API 代理之前)
+        {
+          source: '/api/marketplace/:path*',
+          destination: `${platformApiUrl}/api/marketplace/:path*`,
+        },
+        // 核心 API 代理
         {
           source: '/api/:path*',
           destination: `${apiServiceUrl}/api/:path*`,

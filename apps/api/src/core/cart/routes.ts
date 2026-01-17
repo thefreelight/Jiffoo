@@ -1,5 +1,5 @@
 /**
- * Cart Routes (单商户版本)
+ * Cart Routes
  */
 
 import { FastifyInstance } from 'fastify';
@@ -7,9 +7,11 @@ import { CartService } from './service';
 import { authMiddleware } from '@/core/auth/middleware';
 
 export async function cartRoutes(fastify: FastifyInstance) {
+  // Apply auth middleware to all cart routes (before schema validation)
+  fastify.addHook('onRequest', authMiddleware);
+
   // Get cart
   fastify.get('/', {
-    preHandler: [authMiddleware],
     schema: {
       tags: ['cart'],
       summary: 'Get user cart',
@@ -26,7 +28,6 @@ export async function cartRoutes(fastify: FastifyInstance) {
 
   // Add to cart
   fastify.post('/items', {
-    preHandler: [authMiddleware],
     schema: {
       tags: ['cart'],
       summary: 'Add item to cart',
@@ -52,13 +53,16 @@ export async function cartRoutes(fastify: FastifyInstance) {
       );
       return reply.send({ success: true, data: cart });
     } catch (error: any) {
-      return reply.code(500).send({ success: false, error: error.message });
+      const message = error.message;
+      if (message === 'Product or variant not found') {
+        return reply.code(404).send({ success: false, error: message });
+      }
+      return reply.code(500).send({ success: false, error: message });
     }
   });
 
   // Update cart item
   fastify.put('/items/:itemId', {
-    preHandler: [authMiddleware],
     schema: {
       tags: ['cart'],
       summary: 'Update cart item quantity',
@@ -82,13 +86,16 @@ export async function cartRoutes(fastify: FastifyInstance) {
       );
       return reply.send({ success: true, data: cart });
     } catch (error: any) {
-      return reply.code(500).send({ success: false, error: error.message });
+      const message = error.message;
+      if (message === 'Cart not found' || message === 'Cart item not found') {
+        return reply.code(404).send({ success: false, error: message });
+      }
+      return reply.code(500).send({ success: false, error: message });
     }
   });
 
   // Remove from cart
   fastify.delete('/items/:itemId', {
-    preHandler: [authMiddleware],
     schema: {
       tags: ['cart'],
       summary: 'Remove item from cart',
@@ -100,13 +107,15 @@ export async function cartRoutes(fastify: FastifyInstance) {
       const cart = await CartService.removeFromCart(request.user!.id, itemId);
       return reply.send({ success: true, data: cart });
     } catch (error: any) {
+      if (error.code === 'P2025' || error.message === 'Cart item not found') {
+        return reply.code(404).send({ success: false, error: 'Cart item not found' });
+      }
       return reply.code(500).send({ success: false, error: error.message });
     }
   });
 
   // Clear cart
   fastify.delete('/', {
-    preHandler: [authMiddleware],
     schema: {
       tags: ['cart'],
       summary: 'Clear cart',

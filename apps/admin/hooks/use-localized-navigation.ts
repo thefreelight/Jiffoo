@@ -12,7 +12,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback } from 'react';
-import { useLocale } from 'shared/src/i18n';
+import { useLocale } from 'shared/src/i18n/react';
 
 export function useLocalizedNavigation() {
   const router = useRouter();

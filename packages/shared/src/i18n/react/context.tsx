@@ -117,15 +117,27 @@ export function I18nProvider({ locale, messages, children }: I18nProviderProps) 
 }
 
 /**
+ * Default translation function that returns the key as-is
+ * Used when context is not available
+ */
+const defaultTranslation: TranslationFunction = (key: string) => key;
+
+/**
  * useI18n Hook
  * 
  * Access the i18n context from any component.
- * Must be used within an I18nProvider.
+ * Returns a safe default if used outside an I18nProvider (e.g., during SSR prerendering).
  */
 export function useI18n(): I18nContextValue {
   const context = useContext(I18nContext);
   if (!context) {
-    throw new Error('useI18n must be used within an I18nProvider');
+    // Return safe defaults instead of throwing
+    // This allows components to render during SSR without provider
+    return {
+      locale: 'en' as Locale,
+      messages: {} as Messages,
+      t: defaultTranslation,
+    };
   }
   return context;
 }
@@ -134,6 +146,7 @@ export function useI18n(): I18nContextValue {
  * useLocale Hook
  * 
  * Get only the current locale.
+ * Returns 'en' as default if context is not available.
  */
 export function useLocale(): Locale {
   const { locale } = useI18n();
@@ -144,7 +157,7 @@ export function useLocale(): Locale {
  * useTranslation Hook
  * 
  * Get the translation function.
- * Alias for useI18n().t for convenience.
+ * Returns a passthrough function if context is not available.
  */
 export function useTranslation(): TranslationFunction {
   const { t } = useI18n();

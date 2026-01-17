@@ -19,7 +19,7 @@ import { Button } from '../ui/button'
 import { Badge } from '../ui/badge'
 import { Separator } from '../ui/separator'
 import { CheckCircle, ArrowRight, CreditCard, Clock, Zap } from 'lucide-react'
-import { useT } from 'shared/src/i18n'
+import { useT } from 'shared/src/i18n/react'
 
 interface UpgradeConfirmationDialogProps {
   open: boolean
@@ -92,27 +92,27 @@ export function UpgradeConfirmationDialog({
 
   const getFeatureDisplayName = (feature: string) => {
     const featureMap: Record<string, string> = {
-      'basic_payments': getText('tenant.plugins.feature.basicPayments', 'Basic Payments'),
-      'payment_verification': getText('tenant.plugins.feature.paymentVerification', 'Payment Verification'),
-      'webhooks': getText('tenant.plugins.feature.webhooks', 'Webhook Support'),
-      'subscriptions': getText('tenant.plugins.feature.subscriptions', 'Subscription Management'),
-      'refunds': getText('tenant.plugins.feature.refunds', 'Refund Processing'),
-      'installments': getText('tenant.plugins.feature.installments', 'Installment Payments'),
-      'advanced_analytics': getText('tenant.plugins.feature.advancedAnalytics', 'Advanced Analytics')
+      'basic_payments': getText('merchant.plugins.feature.basicPayments', 'Basic Payments'),
+      'payment_verification': getText('merchant.plugins.feature.paymentVerification', 'Payment Verification'),
+      'webhooks': getText('merchant.plugins.feature.webhooks', 'Webhook Support'),
+      'subscriptions': getText('merchant.plugins.feature.subscriptions', 'Subscription Management'),
+      'refunds': getText('merchant.plugins.feature.refunds', 'Refund Processing'),
+      'installments': getText('merchant.plugins.feature.installments', 'Installment Payments'),
+      'advanced_analytics': getText('merchant.plugins.feature.advancedAnalytics', 'Advanced Analytics')
     }
     return featureMap[feature] || feature.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
   }
 
   const getLimitDisplayName = (limit: string) => {
     const limitMap: Record<string, string> = {
-      'api_calls': getText('tenant.plugins.limit.apiCalls', 'API Calls'),
-      'transactions': getText('tenant.plugins.limit.transactions', 'Transactions')
+      'api_calls': getText('merchant.plugins.limit.apiCalls', 'API Calls'),
+      'transactions': getText('merchant.plugins.limit.transactions', 'Transactions')
     }
     return limitMap[limit] || limit.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
   }
 
   const formatLimit = (value: number) => {
-    return value === -1 ? getText('tenant.plugins.plan.unlimited', 'Unlimited') : value.toLocaleString()
+    return value === -1 ? getText('merchant.plugins.plan.unlimited', 'Unlimited') : value.toLocaleString()
   }
 
   return (
@@ -121,21 +121,21 @@ export function UpgradeConfirmationDialog({
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Zap className="h-5 w-5 text-blue-600" />
-            {getText('tenant.plugins.upgrade.title', 'Confirm Plan Upgrade')}
+            {getText('merchant.plugins.upgrade.title', 'Confirm Plan Upgrade')}
           </DialogTitle>
           <DialogDescription>
-            {getText('tenant.plugins.upgrade.description', 'Review the details of your plan upgrade before proceeding.')}
+            {getText('merchant.plugins.upgrade.description', 'Review the details of your plan upgrade before proceeding.')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6 overflow-y-auto flex-1 pr-2">
           {/* Plan Comparison */}
           <div className="space-y-4">
-            <h4 className="font-medium text-gray-900">{getText('tenant.plugins.planChange', 'Plan Change')}</h4>
+            <h4 className="font-medium text-gray-900">{getText('merchant.plugins.planChange', 'Plan Change')}</h4>
             <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-4">
                 <div className="text-center">
-                  <Badge variant="outline" className="mb-2">{getText('tenant.plugins.current', 'Current')}</Badge>
+                  <Badge variant="outline" className="mb-2">{getText('merchant.plugins.current', 'Current')}</Badge>
                   <div className="font-semibold">{currentPlan.name}</div>
                   <div className="text-sm text-gray-600">
                     {formatCurrency(currentPlan.amount)}/{currentPlan.billingCycle}
@@ -145,7 +145,7 @@ export function UpgradeConfirmationDialog({
                 <ArrowRight className="h-5 w-5 text-gray-400" />
 
                 <div className="text-center">
-                  <Badge variant="default" className="mb-2">{getText('tenant.plugins.newPlan', 'New Plan')}</Badge>
+                  <Badge variant="default" className="mb-2">{getText('merchant.plugins.newPlan', 'New Plan')}</Badge>
                   <div className="font-semibold">{targetPlan.name}</div>
                   <div className="text-sm text-gray-600">
                     {formatCurrency(targetPlan.amount)}/{targetPlan.billingCycle}
@@ -157,34 +157,34 @@ export function UpgradeConfirmationDialog({
 
           {/* Billing Information */}
           <div className="space-y-4">
-            <h4 className="font-medium text-gray-900">{getText('tenant.plugins.billingDetails', 'Billing Details')}</h4>
+            <h4 className="font-medium text-gray-900">{getText('merchant.plugins.billingDetails', 'Billing Details')}</h4>
             <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
               <div className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-blue-600" />
                 <span className="font-medium text-blue-900">
                   {upgradePreview.upgradeType === 'proration'
-                    ? getText('tenant.plugins.upgrade.proratedUpgrade', 'Prorated Upgrade')
-                    : getText('tenant.plugins.upgrade.newSubscription', 'New Subscription')}
+                    ? getText('merchant.plugins.upgrade.proratedUpgrade', 'Prorated Upgrade')
+                    : getText('merchant.plugins.upgrade.newSubscription', 'New Subscription')}
                 </span>
               </div>
 
               {upgradePreview.upgradeType === 'proration' && (
                 <>
                   <div className="flex justify-between text-sm">
-                    <span className="text-blue-700">{getText('tenant.plugins.upgrade.proratedCharge', 'Prorated charge today')}:</span>
+                    <span className="text-blue-700">{getText('merchant.plugins.upgrade.proratedCharge', 'Prorated charge today')}:</span>
                     <span className="font-medium text-blue-900">
                       {formatCurrency(upgradePreview.prorationAmount)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-blue-700">
                     <Clock className="h-3 w-3" />
-                    <span>{getText('tenant.plugins.upgrade.newBillingCycle', 'New billing cycle starts immediately')}</span>
+                    <span>{getText('merchant.plugins.upgrade.newBillingCycle', 'New billing cycle starts immediately')}</span>
                   </div>
                 </>
               )}
 
               <div className="flex justify-between text-sm">
-                <span className="text-blue-700">{getText('tenant.plugins.upgrade.nextBillingDate', 'Next billing date')}:</span>
+                <span className="text-blue-700">{getText('merchant.plugins.upgrade.nextBillingDate', 'Next billing date')}:</span>
                 <span className="font-medium text-blue-900">
                   {formatDate(upgradePreview.nextBillingDate)}
                 </span>
@@ -194,11 +194,11 @@ export function UpgradeConfirmationDialog({
 
           {/* New Features & Limits */}
           <div className="space-y-4">
-            <h4 className="font-medium text-gray-900">{getText('tenant.plugins.upgrade.whatYouGet', 'What You\'ll Get')}</h4>
+            <h4 className="font-medium text-gray-900">{getText('merchant.plugins.upgrade.whatYouGet', 'What You\'ll Get')}</h4>
 
             {/* Features */}
             <div>
-              <h5 className="text-sm font-medium text-gray-700 mb-2">{getText('tenant.plugins.plan.features', 'Features')}</h5>
+              <h5 className="text-sm font-medium text-gray-700 mb-2">{getText('merchant.plugins.plan.features', 'Features')}</h5>
               <div className="grid grid-cols-1 gap-2">
                 {targetPlan.features.map((feature) => (
                   <div key={feature} className="flex items-center gap-2 text-sm">
@@ -213,7 +213,7 @@ export function UpgradeConfirmationDialog({
 
             {/* Limits */}
             <div>
-              <h5 className="text-sm font-medium text-gray-700 mb-2">{getText('tenant.plugins.upgrade.usageLimits', 'Usage Limits')}</h5>
+              <h5 className="text-sm font-medium text-gray-700 mb-2">{getText('merchant.plugins.upgrade.usageLimits', 'Usage Limits')}</h5>
               <div className="grid grid-cols-2 gap-4">
                 {Object.entries(targetPlan.limits).map(([key, value]) => (
                   <div key={key} className="flex justify-between text-sm">
@@ -231,11 +231,11 @@ export function UpgradeConfirmationDialog({
               <div className="flex items-start gap-2">
                 <div className="text-blue-600 mt-0.5">ℹ️</div>
                 <div className="text-sm text-blue-800">
-                  <strong>{getText('tenant.plugins.upgrade.instantUpgrade', 'Instant Upgrade')}:</strong> {getText('tenant.plugins.upgrade.instantUpgradeDesc', 'Your plan will be upgraded immediately after confirmation. The page will refresh automatically to show your new plan status and updated usage limits.')}
+                  <strong>{getText('merchant.plugins.upgrade.instantUpgrade', 'Instant Upgrade')}:</strong> {getText('merchant.plugins.upgrade.instantUpgradeDesc', 'Your plan will be upgraded immediately after confirmation. The page will refresh automatically to show your new plan status and updated usage limits.')}
                   <div className="mt-2 text-xs text-blue-700">
-                    • {getText('tenant.plugins.upgrade.notice1', 'Prorated billing applies instantly')}
-                    • {getText('tenant.plugins.upgrade.notice2', 'New features become available immediately')}
-                    • {getText('tenant.plugins.upgrade.notice3', 'Usage limits update automatically')}
+                    • {getText('merchant.plugins.upgrade.notice1', 'Prorated billing applies instantly')}
+                    • {getText('merchant.plugins.upgrade.notice2', 'New features become available immediately')}
+                    • {getText('merchant.plugins.upgrade.notice3', 'Usage limits update automatically')}
                   </div>
                 </div>
               </div>
@@ -256,7 +256,7 @@ export function UpgradeConfirmationDialog({
             disabled={isLoading}
             className="min-w-[120px]"
           >
-            {isLoading ? getText('common.processing', 'Processing...') : `${getText('tenant.plugins.upgrade.upgradeTo', 'Upgrade to')} ${targetPlan.name}`}
+            {isLoading ? getText('common.processing', 'Processing...') : `${getText('merchant.plugins.upgrade.upgradeTo', 'Upgrade to')} ${targetPlan.name}`}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -10,8 +10,8 @@
 import { useShopTheme } from '@/lib/themes/provider';
 import { useAuthStore } from '@/store/auth';
 import { useCartStore } from '@/store/cart';
-import { useTenantNavigation } from '@/hooks/use-tenant-navigation';
-import { useT, useLocale } from 'shared/src/i18n';
+import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
+import { useT, useLocale } from 'shared/src/i18n/react';
 
 interface ThemedLayoutProps {
   children: React.ReactNode;
@@ -22,13 +22,13 @@ interface ThemedLayoutProps {
  *
  * This component renders the header, footer, and main content area
  * using components from the current theme package.
- * It handles all the theme-related layout logic that was previously in ConditionalLayout.
+ * It handles all the theme-related layout logic.
  */
 export function ThemedLayout({ children }: ThemedLayoutProps) {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
   const { isAuthenticated, user, logout } = useAuthStore();
   const { cart } = useCartStore();
-  const tenantNav = useTenantNavigation();
+  const { push } = useLocalizedNavigation();
   const t = useT();
   const locale = useLocale();
 
@@ -70,41 +70,41 @@ export function ThemedLayout({ children }: ThemedLayoutProps) {
     locale,
     t,
     onSearch: (query: string) => {
-      tenantNav.push(`/search?q=${encodeURIComponent(query)}`);
+      push(`/search?q=${encodeURIComponent(query)}`);
     },
     onNavigate: (path: string) => {
-      tenantNav.push(path);
+      push(path);
     },
     onLogout: () => {
       logout();
-      tenantNav.push('/');
+      push('/');
     },
     onLogin: () => {
-      tenantNav.push('/auth/login');
+      push('/auth/login');
     },
     onNavigateToCart: () => {
-      tenantNav.push('/cart');
+      push('/cart');
     },
     onNavigateToProfile: () => {
-      tenantNav.push('/profile');
+      push('/profile');
     },
     onNavigateToLogin: () => {
-      tenantNav.push('/auth/login');
+      push('/auth/login');
     },
     onNavigateToRegister: () => {
-      tenantNav.push('/auth/register');
+      push('/auth/register');
     },
     onNavigateToHome: () => {
-      tenantNav.push('/');
+      push('/');
     },
     onNavigateToProducts: () => {
-      tenantNav.push('/products');
+      push('/products');
     },
     onNavigateToCategories: () => {
-      tenantNav.push('/categories');
+      push('/categories');
     },
     onNavigateToDeals: () => {
-      tenantNav.push('/deals');
+      push('/deals');
     },
   };
 
@@ -114,34 +114,34 @@ export function ThemedLayout({ children }: ThemedLayoutProps) {
     locale,
     t,
     onNavigate: (path: string) => {
-      tenantNav.push(path);
+      push(path);
     },
     onNavigateToProducts: () => {
-      tenantNav.push('/products');
+      push('/products');
     },
     onNavigateToCategories: () => {
-      tenantNav.push('/categories');
+      push('/categories');
     },
     onNavigateToDeals: () => {
-      tenantNav.push('/deals');
+      push('/deals');
     },
     onNavigateToNewArrivals: () => {
-      tenantNav.push('/new-arrivals');
+      push('/new-arrivals');
     },
     onNavigateToBestsellers: () => {
-      tenantNav.push('/bestsellers');
+      push('/bestsellers');
     },
     onNavigateToHelp: () => {
-      tenantNav.push('/help');
+      push('/help');
     },
     onNavigateToContact: () => {
-      tenantNav.push('/contact');
+      push('/contact');
     },
     onNavigateToPrivacy: () => {
-      tenantNav.push('/privacy');
+      push('/privacy');
     },
     onNavigateToTerms: () => {
-      tenantNav.push('/terms');
+      push('/terms');
     },
   };
 

@@ -8,12 +8,15 @@ import { ThemeManagementService } from './service';
 import type { ActivateThemeInput, ThemeConfig } from './types';
 
 export async function adminThemeRoutes(fastify: FastifyInstance) {
+  // Apply auth middleware to all admin theme routes (before schema validation)
+  fastify.addHook('onRequest', authMiddleware);
+  fastify.addHook('onRequest', requireAdmin);
+
   /**
    * GET /api/admin/themes
-   * 获取已安装主题列表
+   * Get installed themes list
    */
   fastify.get('/', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-themes'],
       summary: 'Get installed themes list',
@@ -30,7 +33,7 @@ export async function adminThemeRoutes(fastify: FastifyInstance) {
 
   /**
    * GET /api/admin/themes/active
-   * 获取当前激活主题
+   * Get active theme
    */
   fastify.get('/active', {
     schema: {
@@ -48,10 +51,9 @@ export async function adminThemeRoutes(fastify: FastifyInstance) {
 
   /**
    * POST /api/admin/themes/:slug/activate
-   * 激活指定主题
+   * Activate theme
    */
   fastify.post<{ Params: { slug: string }; Body?: { config?: ThemeConfig } }>('/:slug/activate', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-themes'],
       summary: 'Activate a theme',
@@ -76,11 +78,29 @@ export async function adminThemeRoutes(fastify: FastifyInstance) {
   });
 
   /**
+   * POST /api/admin/themes/rollback
+   * Rollback to previous theme
+   */
+  fastify.post('/rollback', {
+    schema: {
+      tags: ['admin-themes'],
+      summary: 'Rollback to previous theme',
+      security: [{ bearerAuth: [] }],
+    },
+  }, async (_request, reply) => {
+    try {
+      const result = await ThemeManagementService.rollbackTheme();
+      return reply.send({ success: true, data: result });
+    } catch (error: any) {
+      return reply.code(400).send({ success: false, error: error.message });
+    }
+  });
+
+  /**
    * PUT /api/admin/themes/config
-   * 更新主题配置
+   * Update theme config
    */
   fastify.put<{ Body: ThemeConfig }>('/config', {
-    preHandler: [authMiddleware, requireAdmin],
     schema: {
       tags: ['admin-themes'],
       summary: 'Update theme config',
@@ -106,7 +126,7 @@ export async function adminThemeRoutes(fastify: FastifyInstance) {
 export async function publicThemeRoutes(fastify: FastifyInstance) {
   /**
    * GET /api/themes/active
-   * 获取当前激活主题 (公开 API)
+   * Get active theme (Public API)
    */
   fastify.get('/active', {
     schema: {
@@ -124,7 +144,7 @@ export async function publicThemeRoutes(fastify: FastifyInstance) {
 
   /**
    * GET /api/themes/installed
-   * 获取已安装主题列表 (公开 API)
+   * Get installed themes list (Public API)
    */
   fastify.get('/installed', {
     schema: {
@@ -140,4 +160,3 @@ export async function publicThemeRoutes(fastify: FastifyInstance) {
     }
   });
 }
-

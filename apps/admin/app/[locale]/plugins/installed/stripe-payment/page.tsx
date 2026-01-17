@@ -20,7 +20,7 @@ import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { UpgradeConfirmationDialog } from '@/components/plugins/upgrade-confirmation-dialog'
 import { DowngradeConfirmationDialog } from '@/components/plugins/downgrade-confirmation-dialog'
-import { useT } from 'shared/src/i18n'
+import { useT } from 'shared/src/i18n/react'
 
 const PLUGIN_SLUG = 'stripe-payment'
 
@@ -407,7 +407,7 @@ export default function StripePaymentPluginPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">{getText('tenant.plugins.loadingConfiguration', 'Loading configuration...')}</p>
+          <p className="mt-2 text-gray-600">{getText('merchant.plugins.loadingConfiguration', 'Loading configuration...')}</p>
         </div>
       </div>
     )
@@ -418,9 +418,9 @@ export default function StripePaymentPluginPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">{getText('tenant.plugins.stripeNotFound', 'Stripe Payment plugin not found or not installed')}</p>
+          <p className="text-gray-600">{getText('merchant.plugins.stripeNotFound', 'Stripe Payment plugin not found or not installed')}</p>
           <Button variant="outline" className="mt-4" onClick={() => router.push('/plugins/installed')}>
-            {getText('tenant.plugins.backToInstalled', 'Back to Installed Plugins')}
+            {getText('merchant.plugins.backToInstalled', 'Back to Installed Plugins')}
           </Button>
         </div>
       </div>
@@ -438,9 +438,9 @@ export default function StripePaymentPluginPage() {
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-green-800">{getText('tenant.plugins.paymentSuccessful', 'Payment Successful!')}</h3>
+              <h3 className="text-sm font-medium text-green-800">{getText('merchant.plugins.paymentSuccessful', 'Payment Successful!')}</h3>
               <p className="mt-1 text-sm text-green-700">
-                {getText('tenant.plugins.subscriptionUpgraded', 'Your subscription has been upgraded successfully. Your new plan is now active.')}
+                {getText('merchant.plugins.subscriptionUpgraded', 'Your subscription has been upgraded successfully. Your new plan is now active.')}
               </p>
             </div>
             <button
@@ -465,9 +465,9 @@ export default function StripePaymentPluginPage() {
               </svg>
             </div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">{getText('tenant.plugins.paymentCancelled', 'Payment Cancelled')}</h3>
+              <h3 className="text-sm font-medium text-yellow-800">{getText('merchant.plugins.paymentCancelled', 'Payment Cancelled')}</h3>
               <p className="mt-1 text-sm text-yellow-700">
-                {getText('tenant.plugins.paymentCancelledDesc', 'Your payment was cancelled. You can try again anytime by clicking the upgrade button below.')}
+                {getText('merchant.plugins.paymentCancelledDesc', 'Your payment was cancelled. You can try again anytime by clicking the upgrade button below.')}
               </p>
             </div>
             <button
@@ -485,7 +485,7 @@ export default function StripePaymentPluginPage() {
 
       <Button variant="outline" onClick={() => router.push('/plugins/installed')}>
         <ArrowLeft className="w-4 h-4 mr-2" />
-        {getText('tenant.plugins.backToInstalled', 'Back to Installed Plugins')}
+        {getText('merchant.plugins.backToInstalled', 'Back to Installed Plugins')}
       </Button>
 
       <Card>
@@ -506,7 +506,7 @@ export default function StripePaymentPluginPage() {
                     enabled={installation.enabled}
                   />
                   <span className="text-sm text-gray-600">
-                    {getText('tenant.plugins.version', 'Version')}: {installation.plugin.version}
+                    {getText('merchant.plugins.version', 'Version')}: {installation.plugin.version}
                   </span>
                 </div>
               </div>
@@ -519,11 +519,11 @@ export default function StripePaymentPluginPage() {
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="config">
             <Cog6ToothIcon className="w-4 h-4 mr-2" />
-            {getText('tenant.plugins.configuration', 'Configuration')}
+            {getText('merchant.plugins.configuration', 'Configuration')}
           </TabsTrigger>
           <TabsTrigger value="subscription">
             <CreditCard className="w-4 h-4 mr-2" />
-            {getText('tenant.plugins.subscriptionManagement', 'Subscription Management')}
+            {getText('merchant.plugins.subscriptionManagement', 'Subscription Management')}
           </TabsTrigger>
         </TabsList>
 
@@ -531,14 +531,14 @@ export default function StripePaymentPluginPage() {
           {/* BYOK Configuration Section */}
           <Card>
             <CardHeader>
-              <CardTitle>{getText('tenant.plugins.apiConfiguration', 'API Configuration')}</CardTitle>
+              <CardTitle>{getText('merchant.plugins.apiConfiguration', 'API Configuration')}</CardTitle>
               <CardDescription>
-                {getText('tenant.plugins.stripeApiConfigDesc', 'Configure your Stripe API settings (BYOK - Bring Your Own Key)')}
+                {getText('merchant.plugins.stripeApiConfigDesc', 'Configure your Stripe API settings (BYOK - Bring Your Own Key)')}
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="byok-mode">{getText('tenant.plugins.configurationMode', 'Configuration Mode')}</Label>
+                <Label htmlFor="byok-mode">{getText('merchant.plugins.configurationMode', 'Configuration Mode')}</Label>
                 <div className="mt-2 space-y-2">
                   <div className="flex items-center">
                     <input
@@ -551,7 +551,7 @@ export default function StripePaymentPluginPage() {
                       className="mr-2"
                     />
                     <label htmlFor="mode-platform" className="text-sm cursor-pointer">
-                      <strong>{getText('tenant.plugins.platformMode', 'Platform Mode')}</strong> - {getText('tenant.plugins.platformModeDesc', 'Use shared Stripe API keys')}
+                      <strong>{getText('merchant.plugins.platformMode', 'Platform Mode')}</strong> - {getText('merchant.plugins.platformModeDesc', 'Use shared Stripe API keys')}
                     </label>
                   </div>
                   <div className="flex items-center">
@@ -565,7 +565,7 @@ export default function StripePaymentPluginPage() {
                       className="mr-2"
                     />
                     <label htmlFor="mode-byok" className="text-sm cursor-pointer">
-                      <strong>{getText('tenant.plugins.byokMode', 'BYOK Mode')}</strong> - {getText('tenant.plugins.byokModeDesc', 'Use your own Stripe API keys')}
+                      <strong>{getText('merchant.plugins.byokMode', 'BYOK Mode')}</strong> - {getText('merchant.plugins.byokModeDesc', 'Use your own Stripe API keys')}
                     </label>
                   </div>
                 </div>
@@ -574,7 +574,7 @@ export default function StripePaymentPluginPage() {
               {byokMode === 'byok' && (
                 <>
                   <div>
-                    <Label htmlFor="byok-secret-key">{getText('tenant.plugins.stripeSecretKey', 'Stripe Secret Key')}</Label>
+                    <Label htmlFor="byok-secret-key">{getText('merchant.plugins.stripeSecretKey', 'Stripe Secret Key')}</Label>
                     <div className="mt-1 flex gap-2">
                       <Input
                         id="byok-secret-key"
@@ -592,12 +592,12 @@ export default function StripePaymentPluginPage() {
                       </Button>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      {getText('tenant.plugins.getSecretKeyFrom', 'Get your Secret Key from')} <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Stripe Dashboard</a>
+                      {getText('merchant.plugins.getSecretKeyFrom', 'Get your Secret Key from')} <a href="https://dashboard.stripe.com/apikeys" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Stripe Dashboard</a>
                     </p>
                   </div>
 
                   <div>
-                    <Label htmlFor="byok-publishable-key">{getText('tenant.plugins.stripePublishableKey', 'Stripe Publishable Key')}</Label>
+                    <Label htmlFor="byok-publishable-key">{getText('merchant.plugins.stripePublishableKey', 'Stripe Publishable Key')}</Label>
                     <div className="mt-1 flex gap-2">
                       <Input
                         id="byok-publishable-key"
@@ -617,7 +617,7 @@ export default function StripePaymentPluginPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="byok-webhook-secret">{getText('tenant.plugins.stripeWebhookSecret', 'Stripe Webhook Secret (Optional)')}</Label>
+                    <Label htmlFor="byok-webhook-secret">{getText('merchant.plugins.stripeWebhookSecret', 'Stripe Webhook Secret (Optional)')}</Label>
                     <div className="mt-1 flex gap-2">
                       <Input
                         id="byok-webhook-secret"
@@ -635,7 +635,7 @@ export default function StripePaymentPluginPage() {
                       </Button>
                     </div>
                     <p className="text-xs text-gray-500 mt-1">
-                      {getText('tenant.plugins.webhookSecretDesc', 'Optional: Configure webhook signing secret for enhanced security')}
+                      {getText('merchant.plugins.webhookSecretDesc', 'Optional: Configure webhook signing secret for enhanced security')}
                     </p>
                   </div>
                 </>
@@ -643,7 +643,7 @@ export default function StripePaymentPluginPage() {
 
               {byokSaved && (
                 <div className="p-3 bg-green-50 border border-green-200 rounded-md">
-                  <p className="text-sm text-green-800">✓ {getText('tenant.plugins.configSavedSuccess', 'Configuration saved successfully!')}</p>
+                  <p className="text-sm text-green-800">✓ {getText('merchant.plugins.configSavedSuccess', 'Configuration saved successfully!')}</p>
                 </div>
               )}
 
@@ -652,7 +652,7 @@ export default function StripePaymentPluginPage() {
                 disabled={byokMutation.isPending}
                 className="w-full"
               >
-                {byokMutation.isPending ? getText('common.saving', 'Saving...') : getText('tenant.plugins.saveConfiguration', 'Save Configuration')}
+                {byokMutation.isPending ? getText('common.saving', 'Saving...') : getText('merchant.plugins.saveConfiguration', 'Save Configuration')}
               </Button>
             </CardContent>
           </Card>
@@ -663,7 +663,7 @@ export default function StripePaymentPluginPage() {
             <CardHeader>
               <CardTitle className="flex items-center">
                 <CreditCard className="h-5 w-5 mr-2" />
-                {getText('tenant.plugins.stripePaymentPlugin', 'Stripe Payment Plugin')}
+                {getText('merchant.plugins.stripePaymentPlugin', 'Stripe Payment Plugin')}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -675,7 +675,7 @@ export default function StripePaymentPluginPage() {
               ) : subscriptionData && subscriptionData.hasSubscription ? (
                 <div className="space-y-6">
                   <div>
-                    <label className="text-sm font-medium text-gray-600">{getText('tenant.plugins.currentPlan', 'Current Plan')}</label>
+                    <label className="text-sm font-medium text-gray-600">{getText('merchant.plugins.currentPlan', 'Current Plan')}</label>
                     <div className="mt-2">
                       <Badge
                         variant={
@@ -692,11 +692,11 @@ export default function StripePaymentPluginPage() {
 
                   <div className="border-t pt-4">
                     <label className="text-sm font-medium text-gray-600 mb-3 block">
-                      {getText('tenant.plugins.currentSubscription', 'Current Subscription')}
+                      {getText('merchant.plugins.currentSubscription', 'Current Subscription')}
                     </label>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div>
-                        <p className="text-sm text-gray-500">{getText('tenant.plugins.amount', 'Amount')}</p>
+                        <p className="text-sm text-gray-500">{getText('merchant.plugins.amount', 'Amount')}</p>
                         <p className="text-lg font-semibold text-gray-900">
                           ${subscriptionData.subscription.amount.toFixed(2)}/{subscriptionData.subscription.currency}
                         </p>
@@ -708,7 +708,7 @@ export default function StripePaymentPluginPage() {
                         </Badge>
                       </div>
                       <div>
-                        <p className="text-sm text-gray-500">{getText('tenant.plugins.renews', 'Renews')}</p>
+                        <p className="text-sm text-gray-500">{getText('merchant.plugins.renews', 'Renews')}</p>
                         <p className="text-sm font-medium text-gray-900">
                           {new Date(subscriptionData.subscription.currentPeriodEnd).toLocaleDateString()}
                         </p>
@@ -719,10 +719,10 @@ export default function StripePaymentPluginPage() {
                         <div className="flex items-start justify-between">
                           <div>
                             <p className="text-sm text-yellow-800">
-                              <strong>{getText('tenant.plugins.canceledOn', 'Canceled on')}:</strong> {new Date(subscriptionData.pendingChange.effectiveDate).toLocaleDateString()}
+                              <strong>{getText('merchant.plugins.canceledOn', 'Canceled on')}:</strong> {new Date(subscriptionData.pendingChange.effectiveDate).toLocaleDateString()}
                             </p>
                             <p className="text-xs text-yellow-700 mt-1">
-                              {getText('tenant.plugins.subscriptionCancelNotice', 'Your subscription will be canceled at the end of the current billing period.')}
+                              {getText('merchant.plugins.subscriptionCancelNotice', 'Your subscription will be canceled at the end of the current billing period.')}
                             </p>
                           </div>
                           <Button
@@ -740,7 +740,7 @@ export default function StripePaymentPluginPage() {
                   </div>
 
                   <div className="border-t pt-4">
-                    <label className="text-sm font-medium text-gray-600 mb-3 block">{getText('tenant.plugins.usageThisMonth', 'Usage This Month')}</label>
+                    <label className="text-sm font-medium text-gray-600 mb-3 block">{getText('merchant.plugins.usageThisMonth', 'Usage This Month')}</label>
                     {subscriptionData.usage && (
                       <div className="space-y-4">
                         {Object.entries(subscriptionData.usage).map(([metric, data]: [string, any]) => (
@@ -777,7 +777,7 @@ export default function StripePaymentPluginPage() {
                         onClick={() => setShowSubscriptionHistory(!showSubscriptionHistory)}
                         className="flex items-center justify-between w-full text-sm font-medium text-gray-600 mb-3 hover:text-gray-900 transition-colors"
                       >
-                        <span>{getText('tenant.plugins.subscriptionHistory', 'Subscription History')} ({subscriptionData.subscriptionHistory.length})</span>
+                        <span>{getText('merchant.plugins.subscriptionHistory', 'Subscription History')} ({subscriptionData.subscriptionHistory.length})</span>
                         <svg
                           className={`w-5 h-5 transition-transform ${showSubscriptionHistory ? 'rotate-180' : ''}`}
                           fill="none"
@@ -794,13 +794,13 @@ export default function StripePaymentPluginPage() {
                             <div key={sub.id} className="p-3 bg-gray-50 border border-gray-200 rounded-md">
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                                 <div>
-                                  <p className="text-xs text-gray-500">{getText('tenant.plugins.plan', 'Plan')}</p>
+                                  <p className="text-xs text-gray-500">{getText('merchant.plugins.plan', 'Plan')}</p>
                                   <p className="text-sm font-medium text-gray-900">
                                     {sub.planId.charAt(0).toUpperCase() + sub.planId.slice(1)}
                                   </p>
                                 </div>
                                 <div>
-                                  <p className="text-xs text-gray-500">{getText('tenant.plugins.amount', 'Amount')}</p>
+                                  <p className="text-xs text-gray-500">{getText('merchant.plugins.amount', 'Amount')}</p>
                                   <p className="text-sm font-medium text-gray-900">
                                     ${sub.amount.toFixed(2)}/{sub.currency}
                                   </p>
@@ -825,16 +825,16 @@ export default function StripePaymentPluginPage() {
                               )}
                               {sub.usage && (
                                 <div className="mt-3 pt-3 border-t border-gray-200">
-                                  <p className="text-xs text-gray-500 mb-2">{getText('tenant.plugins.usageDuringSubscription', 'Usage During Subscription')}</p>
+                                  <p className="text-xs text-gray-500 mb-2">{getText('merchant.plugins.usageDuringSubscription', 'Usage During Subscription')}</p>
                                   <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                      <p className="text-xs text-gray-500">{getText('tenant.plugins.apiCalls', 'API Calls')}</p>
+                                      <p className="text-xs text-gray-500">{getText('merchant.plugins.apiCalls', 'API Calls')}</p>
                                       <p className="text-sm font-medium text-gray-900">
                                         {sub.usage.api_calls.current.toLocaleString()} / {sub.usage.api_calls.limit === -1 ? getText('common.unlimited', 'Unlimited') : sub.usage.api_calls.limit.toLocaleString()}
                                       </p>
                                     </div>
                                     <div>
-                                      <p className="text-xs text-gray-500">{getText('tenant.plugins.transactions', 'Transactions')}</p>
+                                      <p className="text-xs text-gray-500">{getText('merchant.plugins.transactions', 'Transactions')}</p>
                                       <p className="text-sm font-medium text-gray-900">
                                         {sub.usage.transactions.current.toLocaleString()} / {sub.usage.transactions.limit === -1 ? getText('common.unlimited', 'Unlimited') : sub.usage.transactions.limit.toLocaleString()}
                                       </p>
@@ -850,7 +850,7 @@ export default function StripePaymentPluginPage() {
                   )}
 
                   <div className="border-t pt-4">
-                    <label className="text-sm font-medium text-gray-600 mb-3 block">{getText('tenant.plugins.availablePlans', 'Available Plans')}</label>
+                    <label className="text-sm font-medium text-gray-600 mb-3 block">{getText('merchant.plugins.availablePlans', 'Available Plans')}</label>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {subscriptionData.availablePlans?.map((plan: any) => (
                         <div
@@ -889,7 +889,7 @@ export default function StripePaymentPluginPage() {
                                 disabled={upgradeMutation.isPending || downgradeMutation.isPending}
                               >
                                 {(upgradeMutation.isPending || downgradeMutation.isPending) ? getText('common.processing', 'Processing...') :
-                                 plan.amount > (subscriptionData.subscription?.amount || 0) ? getText('tenant.plugins.upgrade', 'Upgrade') : getText('tenant.plugins.downgrade', 'Downgrade')}
+                                 plan.amount > (subscriptionData.subscription?.amount || 0) ? getText('merchant.plugins.upgrade', 'Upgrade') : getText('merchant.plugins.downgrade', 'Downgrade')}
                               </Button>
                             )}
                           </div>
@@ -900,7 +900,7 @@ export default function StripePaymentPluginPage() {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-600">{getText('tenant.plugins.noSubscriptionData', 'No subscription data available')}</p>
+                  <p className="text-gray-600">{getText('merchant.plugins.noSubscriptionData', 'No subscription data available')}</p>
                 </div>
               )}
             </CardContent>
@@ -944,10 +944,10 @@ export default function StripePaymentPluginPage() {
           <DialogPrimitive.Content className="fixed left-[50%] top-[50%] z-50 grid w-full max-w-md translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-lg">
             <div className="flex flex-col space-y-1.5 text-center sm:text-left">
               <DialogPrimitive.Title className="text-lg font-semibold leading-none tracking-tight">
-                {getText('tenant.plugins.cancelDowngradeQuestion', 'Cancel Downgrade?')}
+                {getText('merchant.plugins.cancelDowngradeQuestion', 'Cancel Downgrade?')}
               </DialogPrimitive.Title>
               <DialogPrimitive.Description className="text-sm text-muted-foreground">
-                {getText('tenant.plugins.cancelDowngradeDesc', 'Are you sure you want to cancel the scheduled downgrade? Your subscription will continue at the current plan.')}
+                {getText('merchant.plugins.cancelDowngradeDesc', 'Are you sure you want to cancel the scheduled downgrade? Your subscription will continue at the current plan.')}
               </DialogPrimitive.Description>
             </div>
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
@@ -956,13 +956,13 @@ export default function StripePaymentPluginPage() {
                 onClick={handleCancelDowngradeCancel}
                 disabled={cancelDowngradeMutation.isPending}
               >
-                {getText('tenant.plugins.keepDowngrade', 'Keep Downgrade')}
+                {getText('merchant.plugins.keepDowngrade', 'Keep Downgrade')}
               </Button>
               <Button
                 onClick={handleCancelDowngradeConfirm}
                 disabled={cancelDowngradeMutation.isPending}
               >
-                {cancelDowngradeMutation.isPending ? getText('common.canceling', 'Canceling...') : getText('tenant.plugins.cancelDowngrade', 'Cancel Downgrade')}
+                {cancelDowngradeMutation.isPending ? getText('common.canceling', 'Canceling...') : getText('merchant.plugins.cancelDowngrade', 'Cancel Downgrade')}
               </Button>
             </div>
             <DialogPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">

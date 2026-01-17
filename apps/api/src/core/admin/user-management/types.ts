@@ -1,5 +1,5 @@
 /**
- * Admin User Types (单商户版本)
+ * Admin User Types
  */
 
 export interface UserCreateInput {

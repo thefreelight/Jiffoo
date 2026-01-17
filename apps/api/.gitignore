@@ -1,0 +1,22 @@
+# Local env files (tests require local DB config)
+tests/.env.test
+tests/.env.test.local
+
+# Vitest artifacts (local runs)
+vitest-output.json
+vitest-report.json
+.vitest-last.json
+
+# Build/runtime artifacts
+dist/
+logs/
+uploads/
+
+# Runtime-installed extensions
+extensions/plugins/*
+extensions/themes/*
+!extensions/plugins/.gitkeep
+!extensions/themes/.gitkeep
+
+# Coverage output (already ignored globally, kept here for clarity)
+coverage/

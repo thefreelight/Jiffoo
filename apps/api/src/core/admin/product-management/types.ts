@@ -1,5 +1,5 @@
 /**
- * Admin Product Types (单商户版本)
+ * Admin Product Types
  */
 
 export interface ProductCreateInput {

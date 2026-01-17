@@ -1,3 +1,5 @@
+'use client';
+
 /**
  * React i18n Module
  * 

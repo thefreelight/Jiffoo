@@ -1,0 +1,64 @@
+{
+    "buttons": {
+        "submit": "Enviar",
+        "cancel": "Cancelar",
+        "save": "Guardar",
+        "delete": "Eliminar",
+        "edit": "Editar",
+        "add": "Agregar",
+        "search": "Buscar",
+        "filter": "Filtrar",
+        "clear": "Limpiar",
+        "confirm": "Confirmar",
+        "close": "Cerrar",
+        "back": "Volver",
+        "next": "Siguiente",
+        "previous": "Anterior",
+        "loading": "Cargando...",
+        "refresh": "Actualizar",
+        "export": "Exportar",
+        "import": "Importar"
+    },
+    "status": {
+        "active": "Activo",
+        "inactive": "Inactivo",
+        "pending": "Pendiente",
+        "completed": "Completado",
+        "cancelled": "Cancelado",
+        "processing": "Procesando",
+        "success": "Éxito",
+        "failed": "Fallido",
+        "enabled": "Habilitado",
+        "disabled": "Deshabilitado"
+    },
+    "errors": {
+        "required": "Este campo es obligatorio",
+        "invalid_email": "Por favor ingrese un correo electrónico válido",
+        "min_length": "Debe tener al menos {{count}} caracteres",
+        "max_length": "No debe exceder {{count}} caracteres",
+        "network_error": "Error de red. Por favor intente de nuevo.",
+        "server_error": "Error del servidor. Por favor intente más tarde.",
+        "not_found": "No encontrado",
+        "unauthorized": "Por favor inicie sesión para continuar",
+        "forbidden": "No tiene permiso para acceder a esto"
+    },
+    "messages": {
+        "save_success": "Guardado exitosamente",
+        "delete_success": "Eliminado exitosamente",
+        "update_success": "Actualizado exitosamente",
+        "create_success": "Creado exitosamente",
+        "confirm_delete": "¿Está seguro de que desea eliminar esto?",
+        "no_data": "No hay datos disponibles",
+        "loading": "Cargando...",
+        "search_placeholder": "Buscar..."
+    },
+    "pagination": {
+        "page": "Página",
+        "of": "de",
+        "items": "elementos",
+        "per_page": "por página",
+        "showing": "Mostrando",
+        "to": "a",
+        "total": "total"
+    }
+}

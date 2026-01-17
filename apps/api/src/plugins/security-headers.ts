@@ -7,9 +7,9 @@ import fp from 'fastify-plugin';
 import { generateSecurityHeaders, SecurityHeadersConfig, DefaultSecurityConfig } from '@shared/security';
 
 export interface SecurityHeadersPluginOptions extends SecurityHeadersConfig {
-  /** 是否启用 */
+  /** Whether enabled */
   enabled?: boolean;
-  /** 跳过的路径 */
+  /** Skipped paths */
   skipPaths?: string[];
 }
 
@@ -22,10 +22,10 @@ const securityHeadersPlugin: FastifyPluginAsync<SecurityHeadersPluginOptions> = 
   const headers = generateSecurityHeaders(config);
 
   fastify.addHook('onSend', async (request: FastifyRequest, reply: FastifyReply) => {
-    // 跳过指定路径
+    // Skip specified paths
     if (skipPaths.some((p) => request.url.startsWith(p))) return;
 
-    // 设置安全头
+    // Set security headers
     for (const [name, value] of Object.entries(headers)) {
       reply.header(name, value);
     }
@@ -37,7 +37,7 @@ export default fp(securityHeadersPlugin, {
   fastify: '5.x',
 });
 
-// API 专用配置（放宽 CSP）
+// API-specific configuration (Relaxed CSP)
 export const ApiSecurityConfig: SecurityHeadersConfig = {
   ...DefaultSecurityConfig,
   csp: {
@@ -51,4 +51,3 @@ export const ApiSecurityConfig: SecurityHeadersConfig = {
     },
   },
 };
-

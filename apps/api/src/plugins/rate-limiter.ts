@@ -7,17 +7,17 @@ import fp from 'fastify-plugin';
 import { RateLimiter, RateLimitConfig, RateLimitPresets, MemoryRateLimitStore, RateLimitStore } from '@shared/security';
 
 export interface RateLimiterPluginOptions {
-  /** 全局配置 */
+  /** Global configuration */
   global?: Partial<RateLimitConfig>;
-  /** 路由特定配置 */
+  /** Route-specific configuration */
   routes?: Record<string, Partial<RateLimitConfig>>;
-  /** 存储实例 */
+  /** Storage instance */
   store?: RateLimitStore;
-  /** 是否启用 */
+  /** Whether enabled */
   enabled?: boolean;
-  /** 跳过的路径 */
+  /** Skipped paths */
   skipPaths?: string[];
-  /** 键生成器 */
+  /** Key generator */
   keyGenerator?: (request: FastifyRequest) => string;
 }
 
@@ -35,10 +35,10 @@ declare module 'fastify' {
 }
 
 const defaultKeyGenerator = (request: FastifyRequest): string => {
-  // 优先使用用户 ID，然后是 IP
+  // Prefer User ID, then IP
   const userId = (request as unknown as { user?: { id: string } }).user?.id;
   if (userId) return `user:${userId}`;
-  
+
   const ip = request.ip || request.headers['x-forwarded-for'] || 'unknown';
   return `ip:${Array.isArray(ip) ? ip[0] : ip}`;
 };
@@ -53,7 +53,7 @@ const rateLimiterPlugin: FastifyPluginAsync<RateLimiterPluginOptions> = async (f
     keyGenerator = defaultKeyGenerator,
   } = options;
 
-  // 创建限流器实例缓存
+  // Create rate limiter instance cache
   const limiters = new Map<string, RateLimiter>();
 
   const getLimiter = (config: RateLimitConfig): RateLimiter => {
@@ -66,7 +66,7 @@ const rateLimiterPlugin: FastifyPluginAsync<RateLimiterPluginOptions> = async (f
     return limiter;
   };
 
-  // 装饰 fastify 实例
+  // Decorate fastify instance
   fastify.decorate('rateLimiter', {
     check: async (key: string, config?: Partial<RateLimitConfig>) => {
       const finalConfig = { ...global, ...config } as RateLimitConfig;
@@ -81,29 +81,29 @@ const rateLimiterPlugin: FastifyPluginAsync<RateLimiterPluginOptions> = async (f
 
   if (!enabled) return;
 
-  // 添加全局钩子
+  // Add global hook
   fastify.addHook('onRequest', async (request: FastifyRequest, reply: FastifyReply) => {
-    // 跳过指定路径
+    // Skip specified paths
     if (skipPaths.some((p) => request.url.startsWith(p))) return;
 
-    // 获取路由特定配置
+    // Get route-specific configuration
     const routeConfig = routes[request.routeOptions?.url ?? ''] ?? {};
     const config = { ...global, ...routeConfig } as RateLimitConfig;
     const limiter = getLimiter(config);
 
-    // 生成限流键
+    // Generate rate limit key
     const identifier = keyGenerator(request);
     const result = await limiter.check(identifier);
 
-    // 存储结果到请求对象
+    // Store results in request object
     request.rateLimit = result;
 
-    // 设置响应头
+    // Set response headers
     reply.header('X-RateLimit-Limit', result.limit);
     reply.header('X-RateLimit-Remaining', result.remaining);
     reply.header('X-RateLimit-Reset', result.resetTime);
 
-    // 如果被限流
+    // If rate limited
     if (result.limited) {
       reply.header('Retry-After', result.retryAfter);
       reply.code(429).send({
@@ -120,15 +120,14 @@ export default fp(rateLimiterPlugin, {
   fastify: '5.x',
 });
 
-// 登录限流配置
+// Login rate limit configuration
 export const LoginRateLimitConfig: RateLimitConfig = {
   ...RateLimitPresets.login,
   keyGenerator: (id) => `rl:login:${id}`,
 };
 
-// 注册限流配置
+// Register rate limit configuration
 export const RegisterRateLimitConfig: RateLimitConfig = {
   ...RateLimitPresets.register,
   keyGenerator: (id) => `rl:register:${id}`,
 };
-

@@ -8,6 +8,7 @@
 import type { Metadata } from 'next';
 import '@/styles/globals.css';
 import { Providers } from './providers';
+import { DevTools } from '@/components/dev-tools';
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SHOP_URL || 'http://localhost:3004'),
@@ -69,6 +70,7 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="font-sans antialiased">
         <Providers>{children}</Providers>
+        <DevTools />
       </body>
     </html>
   );

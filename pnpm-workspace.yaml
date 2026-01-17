@@ -1,24 +1,5 @@
 packages:
-  # 核心应用 - 服务名与目录名一致
-  - 'apps/api'          # API 服务 (Fastify 后端)
-  - 'apps/shop'         # 商城前台 (Next.js)
-  - 'apps/admin'        # 商家管理后台 (Next.js) - 原 tenant
-  - 'apps/super-admin'  # 平台超级管理后台 (Next.js) - 原 admin
-
-  # 扩展应用 - 已启用
-  - 'apps/agent'
-  - 'apps/white-label'
-  - 'apps/distribution-plugin'
-
-  # 文档站点
-  - 'apps/docs-internal'
-  - 'apps/docs-public'
-
-  # 共享包
-  - 'packages/shared'
-  - 'packages/shop-themes/default'
-  - 'packages/plugin-sdk'
-  - 'packages/ui'
-
-  # 示例项目
-  - 'examples/external-plugin-demo'
+  - 'apps/api'
+  - 'apps/admin'
+  - 'apps/shop'
+  - 'packages/*'

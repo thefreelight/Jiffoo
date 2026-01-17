@@ -1,10 +1,10 @@
 /**
- * Fastify 5.x Schema 辅助工具
+ * Fastify 5.x Schema Helpers
  * 
- * 用于创建标准化的响应schema，解决Fastify 5.x中严格的类型检查问题
+ * Used to create standardized response schemas, resolving strict type checking issues in Fastify 5.x
  */
 
-// 标准错误响应schema
+// Standard error response schema
 export const errorResponseSchema = {
   type: 'object',
   properties: {
@@ -15,7 +15,7 @@ export const errorResponseSchema = {
   required: ['success', 'error']
 }
 
-// 标准成功响应schema
+// Standard success response schema
 export const successResponseSchema = {
   type: 'object',
   properties: {
@@ -25,9 +25,9 @@ export const successResponseSchema = {
   required: ['success']
 }
 
-// 常用的响应状态码schema组合
+// Common response status code schema combinations
 export const commonResponseSchemas = {
-  // 基础CRUD操作响应
+  // Basic CRUD operation response
   crud: {
     200: successResponseSchema,
     400: errorResponseSchema,
@@ -36,18 +36,18 @@ export const commonResponseSchemas = {
     404: errorResponseSchema,
     500: errorResponseSchema
   },
-  
-  // 创建操作响应
+
+  // Create operation response
   create: {
     201: successResponseSchema,
     400: errorResponseSchema,
     401: errorResponseSchema,
     403: errorResponseSchema,
-    409: errorResponseSchema, // 冲突
+    409: errorResponseSchema, // Conflict
     500: errorResponseSchema
   },
-  
-  // 只读操作响应
+
+  // Read-only operation response
   read: {
     200: successResponseSchema,
     401: errorResponseSchema,
@@ -55,8 +55,8 @@ export const commonResponseSchemas = {
     404: errorResponseSchema,
     500: errorResponseSchema
   },
-  
-  // 更新操作响应
+
+  // Update operation response
   update: {
     200: successResponseSchema,
     400: errorResponseSchema,
@@ -65,8 +65,8 @@ export const commonResponseSchemas = {
     404: errorResponseSchema,
     500: errorResponseSchema
   },
-  
-  // 删除操作响应
+
+  // Delete operation response
   delete: {
     200: successResponseSchema,
     401: errorResponseSchema,
@@ -77,10 +77,10 @@ export const commonResponseSchemas = {
 }
 
 /**
- * 创建带有完整响应状态码的schema
- * @param baseSchema 基础schema
- * @param responseType 响应类型 ('crud' | 'create' | 'read' | 'update' | 'delete')
- * @param customResponses 自定义响应schema
+ * Create schema with complete response status codes
+ * @param baseSchema Base schema
+ * @param responseType Response type ('crud' | 'create' | 'read' | 'update' | 'delete')
+ * @param customResponses Custom response schema
  */
 export function createCompleteSchema(
   baseSchema: any,
@@ -92,15 +92,15 @@ export function createCompleteSchema(
     response: {
       ...commonResponseSchemas[responseType],
       ...customResponses,
-      ...baseSchema.response // 保留原有的response定义，但允许覆盖
+      ...baseSchema.response // Retain existing response definition, but allowed to be overridden
     }
   }
 }
 
 /**
- * 为现有schema添加错误响应
- * @param schema 现有schema
- * @param additionalErrors 额外的错误状态码
+ * Add error responses to existing schema
+ * @param schema Existing schema
+ * @param additionalErrors Additional error status codes
  */
 export function addErrorResponses(
   schema: any,
@@ -109,19 +109,19 @@ export function addErrorResponses(
   if (!schema.response) {
     schema.response = {}
   }
-  
+
   additionalErrors.forEach(statusCode => {
     if (!schema.response[statusCode]) {
       schema.response[statusCode] = errorResponseSchema
     }
   })
-  
+
   return schema
 }
 
 /**
- * 创建自定义成功响应schema
- * @param dataSchema 数据部分的schema
+ * Create custom success response schema
+ * @param dataSchema Data section schema
  */
 export function createSuccessResponse(dataSchema: any) {
   return {

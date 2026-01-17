@@ -1,5 +1,5 @@
 /**
- * 统一日志系统 - API 路由
+ * Unified Logging System - API Routes
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
@@ -7,14 +7,15 @@ import { BatchLogRequest } from 'shared/src/logger/types';
 import { logger } from './logger';
 import { logAggregator, LogQuery } from './log-aggregator';
 import { logMonitor, AlertRule } from './log-monitor';
+import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 
-// 请求限流配置
+// Rate limit configuration
 const RATE_LIMIT_CONFIG = {
-  max: 100, // 每分钟最多100个请求
+  max: 100, // Maximum 100 requests per minute
   timeWindow: '1 minute'
 };
 
-// 批量日志请求 Schema
+// Batch log request Schema
 const batchLogRequestSchema = {
   type: 'object',
   required: ['logs', 'clientInfo'],
@@ -48,7 +49,7 @@ const batchLogRequestSchema = {
   }
 };
 
-// 日志统计响应 Schema
+// Log statistics response Schema
 const logStatsResponseSchema = {
   type: 'object',
   properties: {
@@ -62,10 +63,10 @@ const logStatsResponseSchema = {
 };
 
 /**
- * 日志 API 路由
+ * Log API Routes
  */
 export async function loggerRoutes(fastify: FastifyInstance) {
-  // 注册请求限流 (如果可用)
+  // Register rate limit (if available)
   try {
     await fastify.register(require('@fastify/rate-limit'), RATE_LIMIT_CONFIG);
   } catch (error) {
@@ -74,13 +75,13 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   }
 
   /**
-   * POST /api/logs/batch - 批量接收前端日志
+   * POST /api/logs/batch - Batch receive frontend logs
    */
   fastify.post<{
     Body: BatchLogRequest;
   }>('/batch', {
     schema: {
-      description: '批量接收前端日志',
+      description: 'Batch receive frontend logs',
       tags: ['Logger'],
       body: batchLogRequestSchema,
       response: {
@@ -105,7 +106,7 @@ export async function loggerRoutes(fastify: FastifyInstance) {
     try {
       const { logs, clientInfo } = request.body;
 
-      // 验证日志数量
+      // Validate log count
       if (!logs || logs.length === 0) {
         return reply.code(400).send({
           error: 'INVALID_REQUEST',
@@ -120,16 +121,16 @@ export async function loggerRoutes(fastify: FastifyInstance) {
         });
       }
 
-      // 获取客户端信息
+      // Get client information
       const clientIP = request.ip;
       const forwardedFor = request.headers['x-forwarded-for'];
       const realIP = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor || clientIP;
 
-      // 处理每个日志条目
+      // Process each log entry
       let processedCount = 0;
       for (const logEntry of logs) {
         try {
-          // 添加服务器端元数据
+          // Enrich with server-side metadata
           const enrichedMeta = {
             ...logEntry.meta,
             clientIP: realIP,
@@ -141,7 +142,7 @@ export async function loggerRoutes(fastify: FastifyInstance) {
             }
           };
 
-          // 根据日志级别调用相应的方法
+          // Call corresponding method based on log level
           switch (logEntry.level) {
             case 'debug':
               logger.debug(`[${logEntry.appName}] ${logEntry.message}`, enrichedMeta);
@@ -161,7 +162,7 @@ export async function loggerRoutes(fastify: FastifyInstance) {
 
           processedCount++;
         } catch (error) {
-          // 记录处理单个日志条目的错误，但不中断整个批次
+          // Log error processing single entry without interrupting the batch
           logger.error('Failed to process log entry', {
             error: error instanceof Error ? error.message : 'Unknown error',
             logEntry: logEntry.id,
@@ -170,7 +171,7 @@ export async function loggerRoutes(fastify: FastifyInstance) {
         }
       }
 
-      // 记录批量日志接收事件
+      // Log batch log reception event
       logger.info('Batch logs received', {
         type: 'batch_logs_received',
         totalLogs: logs.length,
@@ -200,18 +201,20 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * GET /api/logs/stats - 获取日志统计信息
+   * GET /api/logs/stats - Get log statistics
    */
   fastify.get('/stats', {
+    preHandler: [authMiddleware, requireAdmin],
     schema: {
       hide: true,
-      description: '获取日志统计信息',
+      description: 'Get log statistics',
       tags: ['Logger'],
+      security: [{ bearerAuth: [] }],
       querystring: {
         type: 'object',
         properties: {
-          timeRange: { 
-            type: 'string', 
+          timeRange: {
+            type: 'string',
             enum: ['1h', '24h', '7d', '30d'],
             default: '24h'
           }
@@ -227,7 +230,7 @@ export async function loggerRoutes(fastify: FastifyInstance) {
     try {
       const timeRange = request.query.timeRange || '24h';
 
-      // 使用 LogAggregator 获取真实统计数据
+      // Use LogAggregator to get real statistics
       const stats = await logAggregator.getLogStats(timeRange);
 
       logger.info('Log stats requested', {
@@ -250,13 +253,15 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * GET /api/logs/query - 查询日志
+   * GET /api/logs/query - Query logs
    */
   fastify.get('/query', {
+    preHandler: [authMiddleware, requireAdmin],
     schema: {
       hide: true,
-      description: '查询日志',
+      description: 'Query logs',
       tags: ['Logger'],
+      security: [{ bearerAuth: [] }],
       querystring: {
         type: 'object',
         properties: {
@@ -285,12 +290,12 @@ export async function loggerRoutes(fastify: FastifyInstance) {
         }
       }
     }
-  }, async (request: FastifyRequest<{ 
-    Querystring: LogQuery 
+  }, async (request: FastifyRequest<{
+    Querystring: LogQuery
   }>, reply: FastifyReply) => {
     try {
       const result = await logAggregator.queryLogs(request.query);
-      
+
       logger.info('Log query performed', {
         type: 'log_query',
         query: request.query,
@@ -313,13 +318,15 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * GET /api/logs/export - 导出日志
+   * GET /api/logs/export - Export logs
    */
   fastify.get('/export', {
+    preHandler: [authMiddleware, requireAdmin],
     schema: {
       hide: true,
-      description: '导出日志',
+      description: 'Export logs',
       tags: ['Logger'],
+      security: [{ bearerAuth: [] }],
       querystring: {
         type: 'object',
         properties: {
@@ -333,13 +340,13 @@ export async function loggerRoutes(fastify: FastifyInstance) {
         }
       }
     }
-  }, async (request: FastifyRequest<{ 
+  }, async (request: FastifyRequest<{
     Querystring: LogQuery & { format?: 'json' | 'csv' }
   }>, reply: FastifyReply) => {
     try {
       const { format = 'json', ...query } = request.query;
       const exportData = await logAggregator.exportLogs(query, format);
-      
+
       logger.info('Log export performed', {
         type: 'log_export',
         query,
@@ -349,10 +356,10 @@ export async function loggerRoutes(fastify: FastifyInstance) {
 
       const filename = `logs_${new Date().toISOString().split('T')[0]}.${format}`;
       const contentType = format === 'csv' ? 'text/csv' : 'application/json';
-      
+
       reply.header('Content-Disposition', `attachment; filename="${filename}"`);
       reply.type(contentType);
-      
+
       return reply.send(exportData);
     } catch (error) {
       logger.error('Failed to export logs', {
@@ -368,11 +375,12 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * GET /api/logs/health - 日志系统健康检查
+   * GET /api/logs/health - Log system health check
    */
   fastify.get('/health', {
+    preHandler: [authMiddleware, requireAdmin],
     schema: {
-      description: '日志系统健康检查',
+      description: 'Log system health check',
       tags: ['Logger'],
       response: {
         200: {
@@ -387,7 +395,7 @@ export async function loggerRoutes(fastify: FastifyInstance) {
     }
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      // 测试日志写入
+      // Test log writing
       logger.info('Health check performed', {
         type: 'health_check',
         clientIP: request.ip,
@@ -409,13 +417,15 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * GET /api/logs/alerts - 获取告警列表
+   * GET /api/logs/alerts - Get alert list
    */
   fastify.get('/alerts', {
+    preHandler: [authMiddleware, requireAdmin],
     schema: {
       hide: true,
-      description: '获取告警列表',
+      description: 'Get alert list',
       tags: ['Logger'],
+      security: [{ bearerAuth: [] }],
       querystring: {
         type: 'object',
         properties: {
@@ -432,13 +442,13 @@ export async function loggerRoutes(fastify: FastifyInstance) {
         }
       }
     }
-  }, async (request: FastifyRequest<{ 
+  }, async (request: FastifyRequest<{
     Querystring: { active?: boolean }
   }>, reply: FastifyReply) => {
     try {
       const { active = false } = request.query;
       const alerts = active ? logMonitor.getActiveAlerts() : logMonitor.getAllAlerts();
-      
+
       return reply.send({
         alerts,
         total: alerts.length
@@ -456,12 +466,14 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * POST /api/logs/alerts/:id/resolve - 解决告警
+   * POST /api/logs/alerts/:id/resolve - Resolve alert
    */
   fastify.post('/alerts/:id/resolve', {
+    preHandler: [authMiddleware, requireAdmin],
     schema: {
-      description: '解决告警',
+      description: 'Resolve alert',
       tags: ['Logger'],
+      security: [{ bearerAuth: [] }],
       params: {
         type: 'object',
         properties: {
@@ -470,12 +482,12 @@ export async function loggerRoutes(fastify: FastifyInstance) {
         required: ['id']
       }
     }
-  }, async (request: FastifyRequest<{ 
+  }, async (request: FastifyRequest<{
     Params: { id: string }
   }>, reply: FastifyReply) => {
     try {
       logMonitor.resolveAlert(request.params.id);
-      
+
       return reply.send({
         success: true,
         message: 'Alert resolved'
@@ -494,13 +506,15 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * GET /api/logs/rules - 获取告警规则
+   * GET /api/logs/rules - Get alert rules
    */
   fastify.get('/rules', {
+    preHandler: [authMiddleware, requireAdmin],
     schema: {
       hide: true,
-      description: '获取告警规则',
+      description: 'Get alert rules',
       tags: ['Logger'],
+      security: [{ bearerAuth: [] }],
       response: {
         200: {
           type: 'object',
@@ -514,7 +528,7 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
       const rules = logMonitor.getRules();
-      
+
       return reply.send({
         rules,
         total: rules.length
@@ -532,13 +546,15 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * POST /api/logs/rules - 创建告警规则
+   * POST /api/logs/rules - Create alert rule
    */
   fastify.post('/rules', {
+    preHandler: [authMiddleware, requireAdmin],
     schema: {
       hide: true,
-      description: '创建告警规则',
+      description: 'Create alert rule',
       tags: ['Logger'],
+      security: [{ bearerAuth: [] }],
       body: {
         type: 'object',
         required: ['name', 'conditions', 'actions'],
@@ -552,7 +568,7 @@ export async function loggerRoutes(fastify: FastifyInstance) {
         }
       }
     }
-  }, async (request: FastifyRequest<{ 
+  }, async (request: FastifyRequest<{
     Body: Partial<AlertRule>
   }>, reply: FastifyReply) => {
     try {
@@ -564,7 +580,7 @@ export async function loggerRoutes(fastify: FastifyInstance) {
       } as AlertRule;
 
       logMonitor.addRule(rule);
-      
+
       return reply.send({
         success: true,
         rule
@@ -583,13 +599,15 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * DELETE /api/logs/rules/:id - 删除告警规则
+   * DELETE /api/logs/rules/:id - Delete alert rule
    */
   fastify.delete('/rules/:id', {
+    preHandler: [authMiddleware, requireAdmin],
     schema: {
       hide: true,
-      description: '删除告警规则',
+      description: 'Delete alert rule',
       tags: ['Logger'],
+      security: [{ bearerAuth: [] }],
       params: {
         type: 'object',
         properties: {
@@ -598,12 +616,12 @@ export async function loggerRoutes(fastify: FastifyInstance) {
         required: ['id']
       }
     }
-  }, async (request: FastifyRequest<{ 
+  }, async (request: FastifyRequest<{
     Params: { id: string }
   }>, reply: FastifyReply) => {
     try {
       logMonitor.removeRule(request.params.id);
-      
+
       return reply.send({
         success: true,
         message: 'Alert rule deleted'
@@ -622,13 +640,15 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * GET /api/logs/monitor/dashboard - 获取监控仪表盘数据
+   * GET /api/logs/monitor/dashboard - Get monitoring dashboard data
    */
   fastify.get('/monitor/dashboard', {
+    preHandler: [authMiddleware, requireAdmin],
     schema: {
       hide: true,
-      description: '获取监控仪表盘数据',
+      description: 'Get monitoring dashboard data',
       tags: ['Logger'],
+      security: [{ bearerAuth: [] }],
       response: {
         200: {
           type: 'object',
@@ -658,13 +678,15 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * POST /api/logs/monitor/start - 启动监控
+   * POST /api/logs/monitor/start - Start monitoring
    */
   fastify.post('/monitor/start', {
+    preHandler: [authMiddleware, requireAdmin],
     schema: {
       hide: true,
-      description: '启动日志监控',
+      description: 'Start log monitoring',
       tags: ['Logger'],
+      security: [{ bearerAuth: [] }],
       body: {
         type: 'object',
         properties: {
@@ -694,13 +716,15 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * POST /api/logs/monitor/stop - 停止监控
+   * POST /api/logs/monitor/stop - Stop monitoring
    */
   fastify.post('/monitor/stop', {
+    preHandler: [authMiddleware, requireAdmin],
     schema: {
       hide: true,
-      description: '停止日志监控',
-      tags: ['Logger']
+      description: 'Stop log monitoring',
+      tags: ['Logger'],
+      security: [{ bearerAuth: [] }]
     }
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
@@ -723,13 +747,15 @@ export async function loggerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * POST /api/logs/alerts/test-feishu - 测试飞书告警
+   * POST /api/logs/alerts/test-feishu - Test Feishu alert
    */
   fastify.post('/alerts/test-feishu', {
+    preHandler: [authMiddleware, requireAdmin],
     schema: {
       hide: true,
-      description: '测试飞书告警通知',
+      description: 'Test Feishu alert notification',
       tags: ['Logger'],
+      security: [{ bearerAuth: [] }],
       body: {
         type: 'object',
         properties: {
@@ -743,7 +769,7 @@ export async function loggerRoutes(fastify: FastifyInstance) {
         id: 'test_alert_' + Date.now(),
         ruleId: 'test',
         ruleName: 'Test Alert',
-        message: '这是一条测试告警消息',
+        message: 'This is a test alert message',
         severity: 'medium' as const,
         timestamp: new Date(),
         conditions: [],

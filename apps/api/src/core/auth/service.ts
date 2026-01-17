@@ -1,5 +1,5 @@
 /**
- * Auth Service (单商户版本)
+ * Auth Service
  */
 
 import { prisma } from '@/config/database';
@@ -15,12 +15,12 @@ export interface AuthResponse {
     role: string;
     avatar?: string | null;
   };
-  // OAuth2 标准字段
+  // OAuth2 standard fields
   access_token: string;
   token_type: string;
   expires_in: number;
   refresh_token?: string;
-  // 兼容旧字段
+  // Compatible with old fields
   token: string;
 }
 
@@ -67,12 +67,12 @@ export class AuthService {
         role: user.role,
         avatar: user.avatar
       },
-      // OAuth2 标准字段
+      // OAuth2 standard fields
       access_token: token,
       token_type: 'Bearer',
       expires_in: 604800, // 7 days
       refresh_token: refreshToken,
-      // 兼容旧字段
+      // Compatible with old fields
       token
     };
   }
@@ -109,12 +109,12 @@ export class AuthService {
         role: user.role,
         avatar: user.avatar
       },
-      // OAuth2 标准字段
+      // OAuth2 standard fields
       access_token: token,
       token_type: 'Bearer',
       expires_in: 604800, // 7 days
       refresh_token: refreshToken,
-      // 兼容旧字段
+      // Compatible with old fields
       token
     };
   }

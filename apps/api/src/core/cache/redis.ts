@@ -7,7 +7,7 @@ export class RedisCache {
   private isConnected: boolean = false;
 
   private constructor() {
-    // 使用 REDIS_URL 环境变量
+    // Use REDIS_URL environment variable
     this.redis = new Redis(env.REDIS_URL, {
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => {
@@ -71,7 +71,7 @@ export class RedisCache {
 
         if (retryCount >= maxRetries) {
           console.error('❌ Max Redis connection retries reached');
-          // 在开发环境中，如果 Redis 不可用，我们继续运行但不使用缓存
+          // In development environment, if Redis is unavailable, run without cache
           if (env.NODE_ENV === 'development') {
             console.warn('⚠️ Running without Redis cache in development mode');
             return;
@@ -264,7 +264,7 @@ export class RedisCache {
     }
   }
 
-  // 🆕 添加setex方法（用于验证码存储）
+  // 🆕 Add setex method (for verification code storage)
   public async setex(key: string, seconds: number, value: string): Promise<boolean> {
     if (!this.isConnected) {
       return false;
@@ -279,7 +279,7 @@ export class RedisCache {
     }
   }
 
-  // 🆕 添加get方法（字符串版本，用于验证码获取）
+  // 🆕 Add get method (string version, for verification code retrieval)
   public async getString(key: string): Promise<string | null> {
     if (!this.isConnected) {
       return null;
@@ -293,10 +293,10 @@ export class RedisCache {
     }
   }
 
-  // 🆕 添加ttl方法（获取key的剩余过期时间）
+  // 🆕 Add ttl method (get remaining expiration time)
   public async ttl(key: string): Promise<number> {
     if (!this.isConnected) {
-      return -2; // -2表示key不存在
+      return -2; // -2 means key does not exist
     }
 
     try {
@@ -308,5 +308,5 @@ export class RedisCache {
   }
 }
 
-// 导出单例实例
+// Export singleton instance
 export const redisCache = RedisCache.getInstance();

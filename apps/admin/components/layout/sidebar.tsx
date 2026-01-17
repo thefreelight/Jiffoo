@@ -13,8 +13,8 @@ import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '../../lib/utils'
-import { useT, useLocale } from 'shared/src/i18n'
-import { useInstalledPlugins } from '@/lib/hooks/use-api'
+import { useT, useLocale } from 'shared/src/i18n/react'
+
 import {
   LayoutDashboard,
   Users,
@@ -23,7 +23,7 @@ import {
   Menu,
   X,
   Sliders,
-  UserCog,
+
   Palette
 } from 'lucide-react'
 
@@ -40,53 +40,44 @@ interface NavigationItem {
 
 // Base navigation configuration - Shopify style flat menu
 // 5 main items: Dashboard / Products / Orders / Customers / Plugins
-// Agent menu is dynamically added if agent plugin is installed
 const baseNavigationConfig: NavigationItem[] = [
   {
-    nameKey: 'tenant.nav.dashboard',
+    nameKey: 'merchant.nav.dashboard',
     fallback: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
   },
   {
-    nameKey: 'tenant.products.title',
+    nameKey: 'merchant.products.title',
     fallback: 'Products',
     href: '/products',
     icon: Package,
   },
   {
-    nameKey: 'tenant.orders.title',
+    nameKey: 'merchant.orders.title',
     fallback: 'Orders',
     href: '/orders',
     icon: FileText,
   },
   {
-    nameKey: 'tenant.customers.title',
+    nameKey: 'merchant.customers.title',
     fallback: 'Customers',
     href: '/customers',
     icon: Users,
   },
   {
-    nameKey: 'tenant.plugins.title',
+    nameKey: 'merchant.plugins.title',
     fallback: 'Plugins',
     href: '/plugins',
     icon: Sliders,
   },
   {
-    nameKey: 'tenant.themes.title',
+    nameKey: 'merchant.themes.title',
     fallback: 'Themes',
     href: '/themes',
     icon: Palette,
   },
 ];
-
-// Agent menu item - shown only when agent plugin is installed
-const agentMenuItem: NavigationItem = {
-  nameKey: 'tenant.agent.title',
-  fallback: 'Agents',
-  href: '/agents',
-  icon: UserCog,
-};
 
 export function Sidebar({ className }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -94,26 +85,7 @@ export function Sidebar({ className }: SidebarProps) {
   const locale = useLocale()
   const t = useT()
 
-  // Check if agent plugin is installed
-  const { data: installedData } = useInstalledPlugins()
-  const isAgentPluginInstalled = useMemo(() => {
-    const plugins = installedData?.plugins || []
-    return plugins.some((p: { plugin: { slug: string }; enabled: boolean }) =>
-      p.plugin.slug === 'affiliate-commission' && p.enabled
-    )
-  }, [installedData])
-
-  // Build navigation config dynamically
-  const navigationConfig = useMemo(() => {
-    if (isAgentPluginInstalled) {
-      // Insert Agent menu before Plugins
-      const pluginsIndex = baseNavigationConfig.findIndex(item => item.href === '/plugins')
-      const config = [...baseNavigationConfig]
-      config.splice(pluginsIndex, 0, agentMenuItem)
-      return config
-    }
-    return baseNavigationConfig
-  }, [isAgentPluginInstalled])
+  const navigationConfig = baseNavigationConfig;
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {

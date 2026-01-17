@@ -18,7 +18,7 @@ import {
   History,
   Info
 } from 'lucide-react'
-import { useT } from 'shared/src/i18n'
+import { useT } from 'shared/src/i18n/react'
 
 interface VersionInfo {
   current: string
@@ -91,7 +91,7 @@ export default function UpdatesPage() {
     }
   }
 
-  // 简化的toast函数
+  // Simple toast function
   const showToast = (title: string, description: string, type: 'success' | 'error' = 'success') => {
     setMessage(`${title}: ${description}`)
     setTimeout(() => setMessage(''), 5000)
@@ -129,12 +129,12 @@ export default function UpdatesPage() {
       setUpdating(true)
       showToast("Update Started", "System update is beginning...")
 
-      // 实际调用更新API
+      // Actually call update API
       const response = await fetch('http://localhost:3004/api/update', { method: 'POST' })
       const data = await response.json()
 
       if (data.success) {
-        // 模拟更新进度
+        // Mock update progress
         setUpdateProgress({
           status: 'updating',
           completedSteps: 0,
@@ -142,7 +142,7 @@ export default function UpdatesPage() {
           overallProgress: 0
         })
 
-        // 模拟进度更新
+        // Mock progress update
         for (let i = 1; i <= 3; i++) {
           await new Promise(resolve => setTimeout(resolve, 2000))
           setUpdateProgress({
@@ -156,7 +156,7 @@ export default function UpdatesPage() {
         setUpdating(false)
         showToast("Update Completed", "System has been updated successfully!")
 
-        // 重新加载数据
+        // Reload data
         setTimeout(loadData, 1000)
       } else {
         throw new Error(data.message || 'Update failed')
@@ -190,8 +190,8 @@ export default function UpdatesPage() {
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">🔄 {getText('tenant.systemUpdates.title', 'System Updates')}</h1>
-          <p className="text-gray-600">{getText('tenant.systemUpdates.subtitle', 'Manage system updates and version control')}</p>
+          <h1 className="text-3xl font-bold">🔄 {getText('merchant.systemUpdates.title', 'System Updates')}</h1>
+          <p className="text-gray-600">{getText('merchant.systemUpdates.subtitle', 'Manage system updates and version control')}</p>
         </div>
 
         <div className="flex gap-2">
@@ -201,26 +201,26 @@ export default function UpdatesPage() {
             disabled={checking || updating}
           >
             <RefreshCw className={`w-4 h-4 mr-2 ${checking ? 'animate-spin' : ''}`} />
-            {getText('tenant.systemUpdates.checkForUpdates', 'Check for Updates')}
+            {getText('merchant.systemUpdates.checkForUpdates', 'Check for Updates')}
           </Button>
 
           {versionInfo?.latest?.hasUpdate && !updating && (
             <Button onClick={startUpdate}>
               <Download className="w-4 h-4 mr-2" />
-              {getText('tenant.systemUpdates.updateNow', 'Update Now')}
+              {getText('merchant.systemUpdates.updateNow', 'Update Now')}
             </Button>
           )}
 
           {updating && (
             <Button variant="destructive" onClick={cancelUpdate}>
               <AlertTriangle className="w-4 h-4 mr-2" />
-              {getText('tenant.systemUpdates.cancelUpdate', 'Cancel Update')}
+              {getText('merchant.systemUpdates.cancelUpdate', 'Cancel Update')}
             </Button>
           )}
         </div>
       </div>
 
-      {/* 消息显示 */}
+      {/* Message display */}
       {message && (
         <div className={`p-4 rounded-lg ${message.includes('Error') || message.includes('Failed') ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`}>
           {message}
@@ -232,23 +232,23 @@ export default function UpdatesPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Info className="w-5 h-5" />
-            {getText('tenant.systemUpdates.versionInfo', 'Version Information')}
+            {getText('merchant.systemUpdates.versionInfo', 'Version Information')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <div className="text-sm font-medium text-gray-600">{getText('tenant.systemUpdates.currentVersion', 'Current Version')}</div>
-              <p className="text-2xl font-bold">{versionInfo?.current || getText('tenant.systemUpdates.loading', 'Loading...')}</p>
+              <div className="text-sm font-medium text-gray-600">{getText('merchant.systemUpdates.currentVersion', 'Current Version')}</div>
+              <p className="text-2xl font-bold">{versionInfo?.current || getText('merchant.systemUpdates.loading', 'Loading...')}</p>
             </div>
 
             {versionInfo?.latest && (
               <div>
-                <div className="text-sm font-medium text-gray-600">{getText('tenant.systemUpdates.latestVersion', 'Latest Version')}</div>
+                <div className="text-sm font-medium text-gray-600">{getText('merchant.systemUpdates.latestVersion', 'Latest Version')}</div>
                 <div className="flex items-center gap-2">
                   <p className="text-2xl font-bold">{versionInfo.latest.latest}</p>
                   {versionInfo.latest.hasUpdate && (
-                    <Badge className="bg-blue-100 text-blue-800">{getText('tenant.systemUpdates.updateAvailable', 'Update Available')}</Badge>
+                    <Badge className="bg-blue-100 text-blue-800">{getText('merchant.systemUpdates.updateAvailable', 'Update Available')}</Badge>
                   )}
                 </div>
               </div>
@@ -257,7 +257,7 @@ export default function UpdatesPage() {
 
           {versionInfo?.lastCheck && (
             <p className="text-sm text-gray-600">
-              {getText('tenant.systemUpdates.lastChecked', 'Last checked')}: {new Date(versionInfo.lastCheck).toLocaleString()}
+              {getText('merchant.systemUpdates.lastChecked', 'Last checked')}: {new Date(versionInfo.lastCheck).toLocaleString()}
             </p>
           )}
         </CardContent>
@@ -269,13 +269,13 @@ export default function UpdatesPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               {updateProgress.status === 'completed' ? <CheckCircle className="w-5 h-5 text-green-600" /> : <RefreshCw className="w-5 h-5 animate-spin" />}
-              {getText('tenant.systemUpdates.updateProgress', 'Update Progress')}
+              {getText('merchant.systemUpdates.updateProgress', 'Update Progress')}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>{getText('tenant.systemUpdates.overallProgress', 'Overall Progress')}</span>
+                <span>{getText('merchant.systemUpdates.overallProgress', 'Overall Progress')}</span>
                 <span>{updateProgress.overallProgress}%</span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
@@ -287,7 +287,7 @@ export default function UpdatesPage() {
             </div>
 
             <div className="text-sm text-gray-600">
-              {getText('tenant.systemUpdates.step', 'Step')} {updateProgress.completedSteps} {getText('tenant.systemUpdates.of', 'of')} {updateProgress.totalSteps}
+              {getText('merchant.systemUpdates.step', 'Step')} {updateProgress.completedSteps} {getText('merchant.systemUpdates.of', 'of')} {updateProgress.totalSteps}
             </div>
 
             {updateProgress.error && (
@@ -306,59 +306,59 @@ export default function UpdatesPage() {
       {versionInfo?.latest?.hasUpdate && (
         <Card>
           <CardHeader>
-            <CardTitle>📋 {getText('tenant.systemUpdates.releaseNotes', 'Release Notes')}</CardTitle>
+            <CardTitle>📋 {getText('merchant.systemUpdates.releaseNotes', 'Release Notes')}</CardTitle>
             <CardDescription>
-              {getText('tenant.systemUpdates.whatsNew', "What's new in version")} {versionInfo.latest.latest}
+              {getText('merchant.systemUpdates.whatsNew', "What's new in version")} {versionInfo.latest.latest}
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="max-w-none">
               <pre className="whitespace-pre-wrap text-sm bg-gray-50 p-4 rounded-lg overflow-auto max-h-96">
-                {versionInfo.latest.releaseNotes || getText('tenant.systemUpdates.noReleaseNotes', 'No release notes available.')}
+                {versionInfo.latest.releaseNotes || getText('merchant.systemUpdates.noReleaseNotes', 'No release notes available.')}
               </pre>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* 简化的设置区域 */}
+      {/* Simplified settings area */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="w-5 h-5" />
-            ⚙️ {getText('tenant.systemUpdates.updateSettings', 'Update Settings')}
+            ⚙️ {getText('merchant.systemUpdates.updateSettings', 'Update Settings')}
           </CardTitle>
           <CardDescription>
-            {getText('tenant.systemUpdates.basicConfig', 'Basic update configuration')}
+            {getText('merchant.systemUpdates.basicConfig', 'Basic update configuration')}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="p-4 bg-gray-50 rounded-lg">
-              <div className="font-medium">{getText('tenant.systemUpdates.autoCheck', 'Auto Check')}</div>
-              <div className="text-sm text-gray-600">{getText('tenant.systemUpdates.enabled24h', 'Enabled (24h interval)')}</div>
+              <div className="font-medium">{getText('merchant.systemUpdates.autoCheck', 'Auto Check')}</div>
+              <div className="text-sm text-gray-600">{getText('merchant.systemUpdates.enabled24h', 'Enabled (24h interval)')}</div>
             </div>
             <div className="p-4 bg-gray-50 rounded-lg">
-              <div className="font-medium">{getText('tenant.systemUpdates.updateStrategy', 'Update Strategy')}</div>
-              <div className="text-sm text-gray-600">{getText('tenant.systemUpdates.rollingUpdate', 'Rolling Update')}</div>
+              <div className="font-medium">{getText('merchant.systemUpdates.updateStrategy', 'Update Strategy')}</div>
+              <div className="text-sm text-gray-600">{getText('merchant.systemUpdates.rollingUpdate', 'Rolling Update')}</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* 更新历史 */}
+      {/* Update history */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <History className="w-5 h-5" />
-            📈 {getText('tenant.systemUpdates.updateHistory', 'Update History')}
+            📈 {getText('merchant.systemUpdates.updateHistory', 'Update History')}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8 text-gray-500">
             <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-            <p>{getText('tenant.systemUpdates.noHistory', 'No update history available')}</p>
-            <p className="text-sm">{getText('tenant.systemUpdates.historyNote', 'Updates will appear here after completion')}</p>
+            <p>{getText('merchant.systemUpdates.noHistory', 'No update history available')}</p>
+            <p className="text-sm">{getText('merchant.systemUpdates.historyNote', 'Updates will appear here after completion')}</p>
           </div>
         </CardContent>
       </Card>

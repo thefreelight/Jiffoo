@@ -16,6 +16,10 @@ ENV NO_PROXY=${NO_PROXY}
 # pnpm specific proxy settings
 ENV npm_config_proxy=${HTTP_PROXY}
 ENV npm_config_https_proxy=${HTTPS_PROXY}
+# Skip binary downloads that require external network access
+ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -31,11 +35,11 @@ RUN npm config set proxy ${HTTP_PROXY} && \
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/admin/package.json ./apps/admin/
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/ui/package.json ./packages/ui/
 
-# Install dependencies with npm mirror and retry settings
-# Override .npmrc registry which may point to internal mirror
-RUN sed -i 's|registry=http://npm.lafdru.local/|registry=https://registry.npmmirror.com/|g' .npmrc && \
-    pnpm config set fetch-retries 5 && \
+# Install dependencies using local Verdaccio registry (npm.lafdru.local)
+# DNS resolution is handled by CI/CD pipeline (adds npm.lafdru.local to /etc/hosts)
+RUN pnpm config set fetch-retries 5 && \
     pnpm config set fetch-retry-mintimeout 20000 && \
     pnpm config set fetch-retry-maxtimeout 120000 && \
     pnpm install --frozen-lockfile
@@ -48,6 +52,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/admin/node_modules ./apps/admin/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
 
 # Copy source code
 COPY . .
@@ -60,13 +65,15 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 # Set backend URL for build-time rewrites configuration
 # This URL is used by Next.js rewrites to proxy /api/* requests to the backend
-ENV API_SERVICE_URL=http://jiffoo-mall-core-backend:3002
+# Using K8s internal service name (must match deployment service name)
+ENV API_SERVICE_URL=http://jiffoo-mall-api-dev:80
 
-# Build shared package first (required for workspace dependency resolution)
+# Build workspace packages first (required for workspace dependency resolution)
 RUN cd packages/shared && npm run build
+RUN cd packages/ui && npm run build
 
-# Build the Next.js application
-RUN cd apps/admin && npx next build
+# Build the Next.js application (use app's own Next.js version)
+RUN cd apps/admin && /app/node_modules/.bin/next build
 
 # Production image, copy all the files and run next
 FROM base AS runner

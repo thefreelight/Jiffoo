@@ -1,5 +1,5 @@
 /**
- * API Routes (单商户版本)
+ * API Routes (Single Merchant Version)
  */
 
 import { FastifyInstance } from 'fastify';
@@ -23,17 +23,15 @@ import { adminProductRoutes } from '@/core/admin/product-management/routes';
 import { adminOrderRoutes } from '@/core/admin/order-management/routes';
 import { adminThemeRoutes, publicThemeRoutes } from '@/core/admin/theme-management/routes';
 import { adminPluginRoutes } from '@/core/admin/plugin-management/routes';
-import { registerLicenseRoutes } from '@/core/admin/license-management/routes';
-import backupRoutes from '@/core/admin/backup/routes';
+import systemSettingsRoutes from '@/core/admin/system-settings/routes';
 
 // Public plugin routes
 import { publicPluginRoutes } from '@/core/plugins/public-routes';
 
 // Extension installer routes
-import { extensionInstallerRoutes } from '@/services/extension-installer/routes';
-
-// Marketplace BFF routes
-import { marketplaceRoutes } from '@/services/marketplace/routes';
+import { extensionInstallerRoutes } from '@/core/admin/extension-installer/routes';
+// Mall routes
+import { mallRoutes } from '@/core/mall/routes';
 
 /**
  * Register all API routes
@@ -47,13 +45,13 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // Authentication routes
   await fastify.register(authRoutes, { prefix: '/api/auth' });
-  
+
   // User account routes
   await fastify.register(accountRoutes, { prefix: '/api/account' });
-  
+
   // File upload routes
   await fastify.register(uploadRoutes, { prefix: '/api/upload' });
-  
+
   // Cache management routes
   await fastify.register(cacheRoutes, { prefix: '/api/cache' });
 
@@ -63,12 +61,10 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(adminOrderRoutes, { prefix: '/api/admin/orders' });
   await fastify.register(adminThemeRoutes, { prefix: '/api/admin/themes' });
   await fastify.register(adminPluginRoutes, { prefix: '/api/admin/plugins' });
+  await fastify.register(systemSettingsRoutes, { prefix: '/api/admin' });
 
-  // License management routes (at /api root since they handle /api/admin/licenses and /api/admin/plugins/:slug/license)
-  await registerLicenseRoutes(fastify);
-
-  // Backup management routes
-  await fastify.register(backupRoutes, { prefix: '/api/admin/backups' });
+  // Mall context routes
+  await fastify.register(mallRoutes, { prefix: '/api/mall' });
 
   // Public routes
   await fastify.register(productRoutes, { prefix: '/api/products' });
@@ -77,13 +73,10 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(paymentRoutes, { prefix: '/api/payments' });
   await fastify.register(publicPluginRoutes, { prefix: '/api/plugins' });
   await fastify.register(publicThemeRoutes, { prefix: '/api/themes' });
-  
+
   // Logger routes
   await fastify.register(loggerRoutes, { prefix: '/api/logs' });
 
   // Extension installer routes
   await fastify.register(extensionInstallerRoutes, { prefix: '/api/extensions' });
-
-  // Marketplace BFF routes
-  await fastify.register(marketplaceRoutes, { prefix: '/api/marketplace' });
 }

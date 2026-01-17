@@ -13,7 +13,7 @@ import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useAuthStore } from '@/store/auth';
 import { useToast } from '@/hooks/use-toast';
 import { accountApi, authApi } from '@/lib/api';
-import { useT } from 'shared/src/i18n';
+import { useT } from 'shared/src/i18n/react';
 
 export default function ProfileSettingsPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();

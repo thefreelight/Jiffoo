@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea'
 
 import { PluginStatusBadge } from '@/components/plugins/PluginStatusBadge'
 import { usePluginConfig, useUpdatePluginConfig, useInstalledPlugins } from '@/lib/hooks/use-api'
-import { useT } from 'shared/src/i18n'
+import { useT } from 'shared/src/i18n/react'
 
 export default function PluginConfigPage() {
   const params = useParams()
@@ -109,7 +109,7 @@ export default function PluginConfigPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">{getText('tenant.plugins.loadingConfiguration', 'Loading configuration...')}</p>
+          <p className="mt-2 text-gray-600">{getText('merchant.plugins.loadingConfiguration', 'Loading configuration...')}</p>
         </div>
       </div>
     )
@@ -120,9 +120,9 @@ export default function PluginConfigPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">{getText('tenant.plugins.pluginNotFound', 'Plugin not found or not installed')}</p>
+          <p className="text-gray-600">{getText('merchant.plugins.pluginNotFound', 'Plugin not found or not installed')}</p>
           <Button variant="outline" className="mt-4" onClick={() => router.push('/plugins/installed')}>
-            {getText('tenant.plugins.backToInstalled', 'Back to Installed Plugins')}
+            {getText('merchant.plugins.backToInstalled', 'Back to Installed Plugins')}
           </Button>
         </div>
       </div>
@@ -137,9 +137,9 @@ export default function PluginConfigPage() {
           <div className="flex items-start">
             <CheckCircle className="w-5 h-5 text-green-400 mr-3 flex-shrink-0" />
             <div>
-              <h3 className="text-sm font-medium text-green-800">{getText('tenant.plugins.installationSuccessful', 'Installation Successful!')}</h3>
+              <h3 className="text-sm font-medium text-green-800">{getText('merchant.plugins.installationSuccessful', 'Installation Successful!')}</h3>
               <p className="mt-1 text-sm text-green-700">
-                {getText('tenant.plugins.installationSuccessfulDesc', 'The plugin has been installed and configured successfully. You can now configure additional settings below.')}
+                {getText('merchant.plugins.installationSuccessfulDesc', 'The plugin has been installed and configured successfully. You can now configure additional settings below.')}
               </p>
             </div>
           </div>
@@ -152,9 +152,9 @@ export default function PluginConfigPage() {
           <div className="flex items-start">
             <XCircle className="w-5 h-5 text-red-400 mr-3 flex-shrink-0" />
             <div>
-              <h3 className="text-sm font-medium text-red-800">{getText('tenant.plugins.installationIssue', 'Installation Issue')}</h3>
+              <h3 className="text-sm font-medium text-red-800">{getText('merchant.plugins.installationIssue', 'Installation Issue')}</h3>
               <p className="mt-1 text-sm text-red-700">
-                {getText('tenant.plugins.installationIssueDesc', 'There was an issue during the installation process. Please try again or contact support.')}
+                {getText('merchant.plugins.installationIssueDesc', 'There was an issue during the installation process. Please try again or contact support.')}
               </p>
             </div>
           </div>
@@ -164,7 +164,7 @@ export default function PluginConfigPage() {
       {/* Back Button */}
       <Button variant="outline" onClick={() => router.push('/plugins/installed')}>
         <ArrowLeft className="w-4 h-4 mr-2" />
-        {getText('tenant.plugins.backToInstalled', 'Back to Installed Plugins')}
+        {getText('merchant.plugins.backToInstalled', 'Back to Installed Plugins')}
       </Button>
 
       {/* Plugin Header */}
@@ -186,7 +186,7 @@ export default function PluginConfigPage() {
                     enabled={installation.enabled}
                   />
                   <span className="text-sm text-gray-600">
-                    {getText('tenant.plugins.version', 'Version')}: {installation.plugin.version}
+                    {getText('merchant.plugins.version', 'Version')}: {installation.plugin.version}
                   </span>
                 </div>
               </div>
@@ -198,9 +198,9 @@ export default function PluginConfigPage() {
       {/* Configuration */}
           <Card>
             <CardHeader>
-              <CardTitle>{getText('tenant.plugins.pluginConfiguration', 'Plugin Configuration')}</CardTitle>
+              <CardTitle>{getText('merchant.plugins.pluginConfiguration', 'Plugin Configuration')}</CardTitle>
               <CardDescription>
-                {getText('tenant.plugins.pluginConfigurationDesc', 'Configure the plugin settings below. Changes will be saved immediately.')}
+                {getText('merchant.plugins.pluginConfigurationDesc', 'Configure the plugin settings below. Changes will be saved immediately.')}
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -208,7 +208,7 @@ export default function PluginConfigPage() {
             {/* Dynamic Configuration Fields */}
             {Object.keys(configData).length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-gray-600">{getText('tenant.plugins.noConfigOptions', 'No configuration options available for this plugin.')}</p>
+                <p className="text-gray-600">{getText('merchant.plugins.noConfigOptions', 'No configuration options available for this plugin.')}</p>
               </div>
             ) : (
               <div className="space-y-4">
