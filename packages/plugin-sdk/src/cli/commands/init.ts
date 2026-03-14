@@ -14,9 +14,11 @@ interface InitOptions {
   typescript: boolean;
 }
 
-const TEMPLATES = {
-  basic: 'Basic plugin with minimal setup',
-  payment: 'Payment gateway integration',
+type TemplateName = 'basic' | 'payment' | 'email' | 'integration' | 'analytics' | 'shipping';
+
+const TEMPLATES: Record<TemplateName, string> = {
+  basic: 'Basic external-http plugin scaffold',
+  payment: 'Payment plugin scaffold (provider-neutral flow)',
   email: 'Email service integration',
   integration: 'Third-party API integration',
   analytics: 'Analytics and tracking',
@@ -24,19 +26,18 @@ const TEMPLATES = {
 };
 
 export async function initCommand(name: string | undefined, options: InitOptions) {
-  console.log(chalk.blue('\n🚀 Jiffoo Plugin SDK - Create New Plugin\n'));
+  console.log(chalk.blue('\nJiffoo Plugin SDK - Create New Plugin\n'));
 
-  // Interactive prompts if name not provided
   const answers = await inquirer.prompt([
     {
       type: 'input',
       name: 'name',
-      message: 'Plugin name:',
+      message: 'Plugin slug:',
       default: name || 'my-jiffoo-plugin',
       when: !name,
       validate: (input: string) => {
-        if (!/^[a-z0-9-]+$/.test(input)) {
-          return 'Plugin name must be lowercase alphanumeric with hyphens';
+        if (!/^[a-z][a-z0-9-]{0,30}[a-z0-9]$/.test(input)) {
+          return 'Slug must match ^[a-z][a-z0-9-]{0,30}[a-z0-9]$';
         }
         return true;
       },
@@ -54,19 +55,45 @@ export async function initCommand(name: string | undefined, options: InitOptions
       type: 'input',
       name: 'description',
       message: 'Description:',
-      default: 'A Jiffoo Mall plugin',
+      default: 'A Jiffoo plugin',
     },
     {
       type: 'input',
       name: 'author',
       message: 'Author:',
+      default: 'Jiffoo Developer',
     },
     {
       type: 'list',
       name: 'template',
       message: 'Template:',
-      choices: Object.entries(TEMPLATES).map(([value, name]) => ({ name, value })),
-      when: !options.template || options.template === 'basic',
+      choices: Object.entries(TEMPLATES).map(([value, label]) => ({ name: label, value })),
+      default: options.template || 'basic',
+    },
+    {
+      type: 'list',
+      name: 'runtimeType',
+      message: 'Runtime type:',
+      choices: [
+        {
+          name: 'external-http (recommended, independent service)',
+          value: 'external-http',
+        },
+        {
+          name: 'internal-fastify (in-process, advanced use only)',
+          value: 'internal-fastify',
+        },
+      ],
+      default: 'external-http',
+    },
+    {
+      type: 'input',
+      name: 'devPort',
+      message: 'Local development port:',
+      default: 4100,
+      filter: (v: string) => Number(v),
+      validate: (v: number) => Number.isInteger(v) && v > 0 && v < 65536,
+      when: (ans: any) => ans.runtimeType === 'external-http',
     },
     {
       type: 'list',
@@ -82,14 +109,15 @@ export async function initCommand(name: string | undefined, options: InitOptions
         { name: 'SEO', value: 'seo' },
         { name: 'Other', value: 'other' },
       ],
+      default: (ans: any) => getDefaultCategoryForTemplate(ans.template || options.template || 'basic'),
     },
   ]);
 
   const pluginName = answers.name || name || 'my-jiffoo-plugin';
-  const template = answers.template || options.template;
+  const template: TemplateName = answers.template as TemplateName;
+  const runtimeType = answers.runtimeType as 'external-http' | 'internal-fastify';
   const targetDir = options.directory || path.join(process.cwd(), pluginName);
 
-  // Check if directory exists
   if (await fs.pathExists(targetDir)) {
     const { overwrite } = await inquirer.prompt([
       {
@@ -109,30 +137,33 @@ export async function initCommand(name: string | undefined, options: InitOptions
   const spinner = ora('Creating plugin project...').start();
 
   try {
-    // Create directory structure
     await fs.ensureDir(targetDir);
     await fs.ensureDir(path.join(targetDir, 'src'));
     await fs.ensureDir(path.join(targetDir, 'src', 'routes'));
-    await fs.ensureDir(path.join(targetDir, 'src', 'services'));
     await fs.ensureDir(path.join(targetDir, 'tests'));
 
-    // Create manifest.json
-    const manifest = {
+    const manifest: Record<string, unknown> = {
+      schemaVersion: 1,
       slug: pluginName,
       name: answers.displayName,
       version: '1.0.0',
       description: answers.description,
       author: answers.author,
       category: answers.category,
+      runtimeType,
+      permissions: getPermissionsForCategory(answers.category),
       capabilities: getCapabilitiesForCategory(answers.category),
-      license: 'GPL-3.0',
-      homepage: '',
-      repository: '',
-      configSchema: {},
+      configSchema: getConfigSchema(template),
     };
+
+    if (runtimeType === 'external-http') {
+      manifest.externalBaseUrl = `http://127.0.0.1:${answers.devPort || 4100}`;
+    } else {
+      manifest.entryModule = options.typescript ? 'dist/index.js' : 'src/index.js';
+    }
+
     await fs.writeJson(path.join(targetDir, 'manifest.json'), manifest, { spaces: 2 });
 
-    // Create package.json
     const packageJson = {
       name: pluginName,
       version: '1.0.0',
@@ -146,20 +177,24 @@ export async function initCommand(name: string | undefined, options: InitOptions
         test: 'vitest run',
       },
       dependencies: {
-        '@jiffoo/plugin-sdk': '^1.0.0',
+        express: '^4.21.2',
+        '@jiffoo/plugin-sdk': '^1.1.0',
       },
-      devDependencies: options.typescript ? {
-        typescript: '^5.0.0',
-        '@types/node': '^20.0.0',
-        vitest: '^1.6.0',
-      } : {
-        vitest: '^1.6.0',
-      },
+      devDependencies: options.typescript
+        ? {
+          typescript: '^5.0.0',
+          tsx: '^4.20.3',
+          '@types/node': '^20.0.0',
+          '@types/express': '^4.17.21',
+          vitest: '^1.6.0',
+        }
+        : {
+          vitest: '^1.6.0',
+        },
       license: 'GPL-3.0',
     };
     await fs.writeJson(path.join(targetDir, 'package.json'), packageJson, { spaces: 2 });
 
-    // Create TypeScript config if needed
     if (options.typescript) {
       const tsconfig = {
         compilerOptions: {
@@ -180,67 +215,38 @@ export async function initCommand(name: string | undefined, options: InitOptions
       await fs.writeJson(path.join(targetDir, 'tsconfig.json'), tsconfig, { spaces: 2 });
     }
 
-    // Create main entry file
     const ext = options.typescript ? 'ts' : 'js';
-    const mainContent = generateMainFile(pluginName, answers.category, options.typescript);
-    await fs.writeFile(path.join(targetDir, 'src', `index.${ext}`), mainContent);
+    await fs.writeFile(
+      path.join(targetDir, 'src', `index.${ext}`),
+      generateMainFile(pluginName, template, options.typescript)
+    );
+    await fs.writeFile(
+      path.join(targetDir, 'src', 'routes', `api.${ext}`),
+      generateRouteFile(template, options.typescript)
+    );
+    await fs.writeFile(
+      path.join(targetDir, 'README.md'),
+      generateReadme(pluginName, answers.displayName, answers.description, runtimeType)
+    );
+    await fs.writeFile(path.join(targetDir, 'LICENSE'), generateLicense());
+    await fs.writeFile(
+      path.join(targetDir, '.gitignore'),
+      'node_modules/\ndist/\n.env\n.env.local\n*.log\n.DS_Store\n'
+    );
 
-    // Create example route
-    const routeContent = generateRouteFile(answers.category, options.typescript);
-    await fs.writeFile(path.join(targetDir, 'src', 'routes', `api.${ext}`), routeContent);
-
-    // Create README
-    const readme = generateReadme(pluginName, answers.displayName, answers.description);
-    await fs.writeFile(path.join(targetDir, 'README.md'), readme);
-
-    // Create .gitignore
-    const gitignore = `node_modules/
-dist/
-.env
-.env.local
-*.log
-.DS_Store
-`;
-    await fs.writeFile(path.join(targetDir, '.gitignore'), gitignore);
-
-    // Create LICENSE (GPL-3.0)
-    const license = `GNU GENERAL PUBLIC LICENSE
-Version 3, 29 June 2007
-
-Copyright (C) ${new Date().getFullYear()} ${answers.author}
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-`;
-    await fs.writeFile(path.join(targetDir, 'LICENSE'), license);
-
-    spinner.succeed(chalk.green('Plugin project created successfully!'));
+    spinner.succeed(chalk.green('Plugin project created successfully.'));
 
     console.log(`
 ${chalk.cyan('Next steps:')}
-
   ${chalk.yellow('cd')} ${pluginName}
   ${chalk.yellow('npm install')}
+  ${chalk.yellow('npm run validate')}
   ${chalk.yellow('npm run dev')}
 
-${chalk.cyan('Useful commands:')}
-
-  ${chalk.yellow('npm run dev')}       Start development server
-  ${chalk.yellow('npm run build')}     Build for production
-  ${chalk.yellow('npm run validate')}  Validate manifest
-  ${chalk.yellow('npm run pack')}      Package for submission
-
-${chalk.cyan('Documentation:')} https://docs.jiffoo.com/developer/plugin-development
+${chalk.cyan('Important:')}
+  1. Edit ${chalk.yellow('manifest.json')} and set ${chalk.yellow('externalBaseUrl')} to your real plugin service URL before installing ZIP.
+  2. Install via platform API: ${chalk.yellow('POST /api/extensions/plugin/install')}.
+  3. Call through gateway: ${chalk.yellow('/api/extensions/plugin/<slug>/api/*')}.
 `);
   } catch (error) {
     spinner.fail(chalk.red('Failed to create plugin project'));
@@ -263,33 +269,71 @@ function getCapabilitiesForCategory(category: string): string[] {
   return capabilities[category] || ['webhook.receive'];
 }
 
-function generateMainFile(name: string, category: string, typescript: boolean): string {
-  const types = typescript ? `: PluginContext` : '';
-  const importTypes = typescript ? `import type { PluginContext } from '@jiffoo/plugin-sdk';\n` : '';
+function getPermissionsForCategory(category: string): string[] {
+  const permissions: Record<string, string[]> = {
+    payment: ['payments:write', 'orders:read'],
+    email: ['customers:read'],
+    integration: [],
+    analytics: ['orders:read'],
+    marketing: ['customers:read', 'orders:read'],
+    shipping: ['orders:read'],
+    seo: [],
+    other: [],
+  };
+  return permissions[category] || [];
+}
+
+function getConfigSchema(template: TemplateName): Record<string, unknown> {
+  if (template === 'payment') {
+    return {
+      publishableKey: { type: 'string', label: 'Publishable Key', required: true },
+      secretKey: { type: 'secret', label: 'Secret Key', required: true },
+      webhookSecret: { type: 'secret', label: 'Webhook Secret', required: true },
+    };
+  }
+  return {};
+}
+
+function getDefaultCategoryForTemplate(template: string): string {
+  const mapping: Record<string, string> = {
+    payment: 'payment',
+    email: 'email',
+    integration: 'integration',
+    analytics: 'analytics',
+    shipping: 'shipping',
+  };
+  return mapping[template] || 'other';
+}
+
+function generateMainFile(name: string, template: TemplateName, typescript: boolean): string {
+  const importTypes = typescript ? "import type { PluginContext } from '@jiffoo/plugin-sdk';\n" : '';
+  const reqType = typescript ? ': express.Request & { pluginContext?: PluginContext }' : '';
+  const resType = typescript ? ': express.Response' : '';
+  const helperComment =
+    template === 'payment'
+      ? '// Payment template: implement provider calls in routes/api and keep /api path contract stable.'
+      : '// Basic template: add business endpoints under /api and keep manifest permissions aligned.';
 
   return `/**
  * ${name} - Jiffoo Plugin
  */
 
-import {
-  verifySignature,
-  getContext,
-  createSignatureMiddleware,
-  createContextMiddleware,
-} from '@jiffoo/plugin-sdk';
-${importTypes}
 import express from 'express';
-import { apiRoutes } from './routes/api';
+import { createContextMiddleware } from '@jiffoo/plugin-sdk';
+${importTypes}import { apiRoutes } from './routes/api';
 
 const app = express();
-const PORT = process.env.PORT || 3001;
-const SHARED_SECRET = process.env.JIFFOO_SHARED_SECRET || 'dev-secret';
+const PORT = process.env.PORT || 4100;
+const SHARED_SECRET = process.env.JIFFOO_SHARED_SECRET;
 
-// Middleware
+// Validate required environment variables
+if (!SHARED_SECRET) {
+  throw new Error('JIFFOO_SHARED_SECRET environment variable is required');
+}
+
 app.use(express.json());
 
-// Health check (no auth required)
-app.get('/health', (req, res) => {
+app.get('/health', (req${reqType}, res${resType}) => {
   res.json({
     status: 'healthy',
     version: '1.0.0',
@@ -297,135 +341,149 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Plugin manifest (no auth required)
-app.get('/manifest', (req, res) => {
+app.get('/manifest', (req${reqType}, res${resType}) => {
   res.json(require('../manifest.json'));
 });
 
-// Protected routes - require signature verification
-app.use('/api', createSignatureMiddleware(SHARED_SECRET));
+// Gateway-injected context headers are validated here.
 app.use('/api', createContextMiddleware());
+${helperComment}
 app.use('/api', apiRoutes);
 
-// Install hook
-app.post('/install', createSignatureMiddleware(SHARED_SECRET), async (req, res) => {
-  const { installationId, config } = req.body;
-  console.log(\`Plugin installed for installation \${installationId}\`);
-  
-  // TODO: Initialize plugin for this installation
-  // - Store configuration
-  // - Set up webhooks
-  // - Initialize resources
-  
-  res.json({ success: true, message: 'Plugin installed successfully' });
-});
-
-// Uninstall hook
-app.post('/uninstall', createSignatureMiddleware(SHARED_SECRET), async (req, res) => {
-  const { installationId, reason } = req.body;
-  console.log(\`Plugin uninstalled for installation \${installationId}: \${reason}\`);
-  
-  // TODO: Clean up plugin resources
-  // - Remove stored data
-  // - Cancel webhooks
-  // - Release resources
-  
-  res.json({ success: true, message: 'Plugin uninstalled successfully' });
-});
-
-// Start server
 app.listen(PORT, () => {
-  console.log(\`🚀 ${name} plugin running on port \${PORT}\`);
-  console.log(\`   Health: http://localhost:\${PORT}/health\`);
-  console.log(\`   Manifest: http://localhost:\${PORT}/manifest\`);
+  console.log('[plugin] ${name} running on port ' + PORT);
 });
 
 export default app;
 `;
 }
 
-function generateRouteFile(category: string, typescript: boolean): string {
-  const types = typescript ? `: express.Request & { pluginContext?: PluginContext }` : '';
-  const resType = typescript ? `: express.Response` : '';
-  const importTypes = typescript ? `import type { PluginContext } from '@jiffoo/plugin-sdk';\n` : '';
+function generateRouteFile(template: TemplateName, typescript: boolean): string {
+  const importTypes = typescript ? "import type { PluginContext } from 'jiffoo-plugin-sdk';\n" : '';
+  const reqType = typescript ? ': express.Request & { pluginContext?: PluginContext }' : '';
+  const resType = typescript ? ': express.Response' : '';
 
-  return `/**
- * API Routes
+  if (template === 'payment') {
+    return `/**
+ * Payment API Routes
  */
 
 import express from 'express';
-${importTypes}
-const router = express.Router();
+${importTypes}const router = express.Router();
 
-// Example endpoint
-router.get('/status', (req${types}, res${resType}) => {
-  const context = req.pluginContext;
-  
+router.post('/payments/create-session', async (req${reqType}, res${resType}) => {
+  const ctx = req.pluginContext;
+  const { orderId, amount, currency, successUrl, cancelUrl } = req.body || {};
+
+  // TODO: Call your payment provider SDK here (PayPal/Stripe/Adyen/etc).
   res.json({
     success: true,
     data: {
-      installationId: context?.installationId,
-      environment: context?.environment,
+      provider: 'custom-payment-provider',
+      installationId: ctx?.installationId,
+      orderId,
+      amount,
+      currency: currency || 'USD',
+      url: successUrl || cancelUrl || '',
+      sessionId: 'mock_session_' + Date.now(),
+    },
+  });
+});
+
+router.post('/payments/refund', async (req${reqType}, res${resType}) => {
+  const { paymentId, amount } = req.body || {};
+  res.json({
+    success: true,
+    data: { paymentId, amount, status: 'pending' },
+  });
+});
+
+router.post('/webhooks/payment', async (req${reqType}, res${resType}) => {
+  // TODO: Verify provider webhook signature.
+  // TODO: Map provider event to platform payment state and call platform API.
+  res.json({ received: true });
+});
+
+export const apiRoutes = router;
+`;
+  }
+
+  return `/**
+ * Generic API Routes
+ */
+
+import express from 'express';
+${importTypes}const router = express.Router();
+
+router.get('/status', (req${reqType}, res${resType}) => {
+  const ctx = req.pluginContext;
+  res.json({
+    success: true,
+    data: {
+      installationId: ctx?.installationId,
+      pluginSlug: ctx?.pluginSlug,
       status: 'active',
     },
   });
 });
 
-// Example POST endpoint
-router.post('/action', async (req${types}, res${resType}) => {
-  const context = req.pluginContext;
-  const { action, data } = req.body;
-  
-  try {
-    // TODO: Implement your plugin logic here
-    console.log(\`Action: \${action} for installation \${context?.installationId}\`);
-    
-    res.json({
-      success: true,
-      data: {
-        action,
-        result: 'completed',
-      },
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: 'Action failed',
-    });
-  }
+router.post('/action', async (req${reqType}, res${resType}) => {
+  const { action } = req.body || {};
+  res.json({
+    success: true,
+    data: { action, result: 'ok' },
+  });
 });
 
 export const apiRoutes = router;
 `;
 }
 
-function generateReadme(name: string, displayName: string, description: string): string {
+function generateReadme(
+  name: string,
+  displayName: string,
+  description: string,
+  runtimeType: 'external-http' | 'internal-fastify'
+): string {
   return `# ${displayName}
 
 ${description}
 
-## Installation
+## Runtime
 
-\`\`\`bash
-npm install
-\`\`\`
+- \`runtimeType\`: \`${runtimeType}\`
+- Gateway path: \`/api/extensions/plugin/${name}/api/*\`
 
 ## Development
 
 \`\`\`bash
+npm install
+npm run validate
 npm run dev
 \`\`\`
 
-This starts the development server on port 3001.
+## Notes
 
-## Configuration
+1. Keep \`manifest.json\` aligned with platform installer rules:
+   - \`schemaVersion: 1\`
+   - \`runtimeType\`
+   - \`permissions\` (required, can be \`[]\`)
+2. For \`external-http\`, set a reachable \`externalBaseUrl\` before installing ZIP.
+3. Platform injects context headers such as:
+   - \`x-platform-id\`
+   - \`x-plugin-slug\`
+   - \`x-installation-id\`
+   - \`x-user-id\`, \`x-user-role\`, \`x-request-id\`, \`x-caller\`
 
-Create a \`.env\` file:
+**REQUIRED:** Create a \`.env\` file with your shared secret:
 
 \`\`\`env
-PORT=3001
-JIFFOO_SHARED_SECRET=your-shared-secret
+PORT=4100
+JIFFOO_SHARED_SECRET=your-secure-random-secret-here
 \`\`\`
+
+**Security Note:** Never commit your .env file or use predictable secrets.
+Generate a secure random secret with: \`openssl rand -hex 32\`
 
 ## API Endpoints
 
@@ -438,20 +496,19 @@ JIFFOO_SHARED_SECRET=your-shared-secret
 | /api/status | GET | Plugin status |
 | /api/action | POST | Execute action |
 
-## Building
+## Packaging & Building
 
 \`\`\`bash
 npm run build
-\`\`\`
-
-## Packaging for Submission
-
-\`\`\`bash
 npm run pack
 \`\`\`
+`;
+}
 
-## License
+function generateLicense(): string {
+  return `GNU GENERAL PUBLIC LICENSE
+Version 3, 29 June 2007
 
-GPL-3.0
+This project is licensed under GPL-3.0.
 `;
 }

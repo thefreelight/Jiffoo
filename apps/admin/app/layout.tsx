@@ -8,10 +8,11 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { DevTools } from '@/components/dev-tools';
+import { AdminThemePackWrapper } from '@/components/admin-theme-pack-wrapper';
 
 export const metadata: Metadata = {
   title: 'Jiffoo Admin - Management Dashboard',
-  description: 'Modern admin dashboard for Jiffoo e-commerce platform',
+  description: 'Modern admin dashboard for Jiffoo e-commerce system',
 };
 
 export default function RootLayout({
@@ -22,8 +23,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-sans antialiased">
-        {children}
-        <DevTools />
+        <AdminThemePackWrapper>
+          {children}
+        </AdminThemePackWrapper>
+        {/* <DevTools /> */}
       </body>
     </html>
   );

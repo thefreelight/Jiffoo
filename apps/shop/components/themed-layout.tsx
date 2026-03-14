@@ -149,7 +149,7 @@ export function ThemedLayout({ children }: ThemedLayoutProps) {
   return (
     <div className="relative flex min-h-screen flex-col">
       <HeaderComponent {...headerProps} />
-      <main className="flex-1">{children}</main>
+      <main id="main" className="flex-1" tabIndex={-1}>{children}</main>
       <FooterComponent {...footerProps} />
     </div>
   );

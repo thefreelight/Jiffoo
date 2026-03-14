@@ -1,12 +1,11 @@
 {
-  "$schema": "https://turbo.build/schema.json",
-  "remoteCache": {
-    "enabled": true,
-    "signature": false
-  },
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "tui",
+  "concurrency": "12",
   "globalDependencies": [
     ".env",
-    "**/.env.*local"
+    ".env.production",
+    ".env.example"
   ],
   "globalEnv": [
     "NODE_ENV",
@@ -33,63 +32,26 @@
     "RESEND_API_KEY",
     "RESEND_WEBHOOK_SECRET"
   ],
-  "ui": "tui",
   "tasks": {
     "build": {
       "dependsOn": [
         "^build"
       ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*",
+        "!**/*.tsbuildinfo"
+      ],
       "outputs": [
-        "dist/**",
         ".next/**",
         "!.next/cache/**",
-        "build/**"
-      ]
-    },
-    "build#api": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
+        "!.next/standalone/**",
+        "!.next/trace",
+        "!.next/**/*.map",
         "dist/**"
-      ]
-    },
-    "build#shop": {
-      "dependsOn": [
-        "^build"
       ],
-      "outputs": [
-        ".next/**",
-        "!.next/cache/**"
-      ]
-    },
-    "build#admin": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        ".next/**",
-        "!.next/cache/**"
-      ]
-    },
-    "build#super-admin": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        ".next/**",
-        "!.next/cache/**"
-      ]
-    },
-    "build#docs": {
-      "dependsOn": [
-        "^build"
-      ],
-      "outputs": [
-        "build/**",
-        ".next/**",
-        "!.next/cache/**"
-      ]
+      "outputLogs": "new-only",
+      "persistent": false
     },
     "dev": {
       "cache": false,
@@ -107,7 +69,12 @@
     },
     "test": {
       "dependsOn": [
-        "^test"
+        "^build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        ".env*",
+        "!**/*.tsbuildinfo"
       ]
     },
     "clean": {
@@ -128,33 +95,6 @@
     },
     "db:seed": {
       "cache": false
-    },
-    "docker:build": {
-      "dependsOn": [
-        "build"
-      ],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "Dockerfile*",
-        "docker-compose*.yml",
-        "../../package.json",
-        "../../pnpm-lock.yaml",
-        "../../pnpm-workspace.yaml"
-      ],
-      "env": [
-        "DOCKER_REGISTRY",
-        "IMAGE_TAG"
-      ]
-    },
-    "deploy": {
-      "dependsOn": [
-        "docker:build"
-      ],
-      "cache": false,
-      "env": [
-        "KUBECONFIG",
-        "KUBE_NAMESPACE"
-      ]
     }
   }
 }

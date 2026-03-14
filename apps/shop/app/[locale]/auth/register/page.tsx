@@ -18,7 +18,7 @@ export default function RegisterPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
   const nav = useLocalizedNavigation();
   const { toast } = useToast();
-  const { register, isLoading, error, clearError, googleLogin } = useAuthStore();
+  const { register, isLoading, error, clearError } = useAuthStore();
   const t = useT();
 
   // Helper function for translations with fallback
@@ -79,18 +79,8 @@ export default function RegisterPage() {
     }
   };
 
-  const handleOAuthClick = async (provider: 'google') => {
-    try {
-      if (provider === 'google') {
-        await googleLogin();
-      }
-    } catch (error: any) {
-      toast({
-        title: getText('shop.auth.register.oauthFailed', 'OAuth registration failed'),
-        description: error.message || getText('common.errors.tryAgain', 'Please try again'),
-        variant: 'destructive',
-      });
-    }
+  const handleOAuthClick = async (provider: string) => {
+    console.log('OAuth not implemented:', provider);
   };
 
   const handleNavigateToLogin = () => {
@@ -107,8 +97,8 @@ export default function RegisterPage() {
       locale={nav.locale}
       t={t}
       onSubmit={handleSubmit}
-      onOAuthClick={handleOAuthClick}
       onNavigateToLogin={handleNavigateToLogin}
+      onOAuthClick={handleOAuthClick}
     />
   );
 }

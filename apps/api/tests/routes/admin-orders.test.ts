@@ -5,7 +5,6 @@
  * - GET /api/admin/orders/
  * - GET /api/admin/orders/:id
  * - PUT /api/admin/orders/:id/status
- * - GET /api/admin/orders/stats
  * - POST /api/admin/orders/:id/ship
  * - POST /api/admin/orders/:id/refund
  * - POST /api/admin/orders/:id/cancel
@@ -59,7 +58,7 @@ describe('Admin Orders Endpoints', () => {
     });
 
     if (orderResponse.statusCode === 200 || orderResponse.statusCode === 201) {
-      testOrderId = orderResponse.json().id;
+      testOrderId = orderResponse.json().data.id;
     }
   });
 
@@ -113,7 +112,7 @@ describe('Admin Orders Endpoints', () => {
 
       const body = response.json();
       expect(body).toHaveProperty('data');
-      expect(Array.isArray(body.data.orders)).toBe(true);
+      expect(Array.isArray(body.data.items)).toBe(true);
     });
 
     it('should support pagination', async () => {
@@ -248,7 +247,6 @@ describe('Admin Orders Endpoints', () => {
         method: 'GET',
         url: '/api/admin/orders/stats',
       });
-
       expect(response.statusCode).toBe(401);
     });
 
@@ -258,11 +256,10 @@ describe('Admin Orders Endpoints', () => {
         url: '/api/admin/orders/stats',
         headers: { authorization: `Bearer ${userToken}` },
       });
-
       expect(response.statusCode).toBe(403);
     });
 
-    it('should return statistics for admin', async () => {
+    it('should return global order stats for admin', async () => {
       const response = await app.inject({
         method: 'GET',
         url: '/api/admin/orders/stats',
@@ -270,6 +267,17 @@ describe('Admin Orders Endpoints', () => {
       });
 
       expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body).toHaveProperty('success', true);
+      expect(body.data).toHaveProperty('metrics');
+      expect(body.data.metrics).toHaveProperty('totalOrders');
+      expect(body.data.metrics).toHaveProperty('paidOrders');
+      expect(body.data.metrics).toHaveProperty('shippedOrders');
+      expect(body.data.metrics).toHaveProperty('refundedOrders');
+      expect(body.data.metrics).toHaveProperty('totalRevenue');
+      expect(body.data.metrics).toHaveProperty('currency');
+      expect(body.data.metrics).toHaveProperty('totalOrdersTrend');
+      expect(body.data.metrics).toHaveProperty('totalRevenueTrend');
     });
   });
 

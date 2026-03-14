@@ -212,15 +212,15 @@ export class RateLimiter {
 
 // Predefined rate limit presets
 export const RateLimitPresets = {
-  /** Default API rate limit: 100 req/min */
-  default: { windowMs: 60_000, maxRequests: 100 },
-  /** Login rate limit: 5 req/5min */
-  login: { windowMs: 300_000, maxRequests: 5, keyPrefix: 'rl:login:' },
-  /** Register rate limit: 3 req/hour */
-  register: { windowMs: 3_600_000, maxRequests: 3, keyPrefix: 'rl:register:' },
-  /** API write rate limit: 30 req/min */
-  write: { windowMs: 60_000, maxRequests: 30, keyPrefix: 'rl:write:' },
-  /** Strict rate limit: 10 req/min */
-  strict: { windowMs: 60_000, maxRequests: 10, keyPrefix: 'rl:strict:' },
+  /** Default API rate limit: 1000 req/min */
+  default: { windowMs: 60_000, maxRequests: 1000 },
+  /** Login rate limit: 20 req/5min */
+  login: { windowMs: 300_000, maxRequests: 20, keyPrefix: 'rl:login:' },
+  /** Register rate limit: 20 req/hour */
+  register: { windowMs: 3_600_000, maxRequests: 20, keyPrefix: 'rl:register:' },
+  /** API write rate limit: 100 req/min */
+  write: { windowMs: 60_000, maxRequests: 100, keyPrefix: 'rl:write:' },
+  /** Strict rate limit: 50 req/min */
+  strict: { windowMs: 60_000, maxRequests: 50, keyPrefix: 'rl:strict:' },
 } as const;
 

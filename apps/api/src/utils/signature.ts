@@ -12,8 +12,8 @@
  *
  * Path Rules:
  * - For /install and /uninstall calls: Use fixed paths "/install" or "/uninstall"
- * - For gateway API forwarding: Use the path after removing /api/plugins/<slug>/api prefix
- *   e.g., /api/plugins/demo/api/orders -> /orders
+ * - For gateway API forwarding: Use the path after removing /api/extensions/plugin/<slug>/api prefix
+ *   e.g., /api/extensions/plugin/demo/api/orders -> /orders
  *
  * Headers sent with signed requests:
  * - X-Platform-Id: "jiffoo"
@@ -40,7 +40,7 @@ import crypto from 'crypto'
  * // For /install call
  * const signature = generateSignature(secret, 'POST', '/install', '{}', '2024-01-01T12:00:00.000Z');
  *
- * // For gateway API forwarding (/api/plugins/demo/api/orders -> /orders)
+ * // For gateway API forwarding (/api/extensions/plugin/demo/api/orders -> /orders)
  * const signature = generateSignature(secret, 'GET', '/orders', '', '2024-01-01T12:00:00.000Z');
  */
 export function generateSignature(

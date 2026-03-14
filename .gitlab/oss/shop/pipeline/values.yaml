@@ -1,0 +1,37 @@
+serviceName: "shop"
+replicaCount: 1
+image:
+  repository: harbor.lafdru.local/public/jiffoo-oss/shop
+  pullPolicy: IfNotPresent
+  tag: latest
+imagePullSecrets:
+  - name: harbor-secret
+service:
+  enabled: true
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
+env:
+  - name: NODE_ENV
+    value: "development"
+  - name: PORT
+    value: "3000"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: API_SERVICE_URL
+    value: "http://api:80"
+resources: {}
+livenessProbe: {}
+readinessProbe: {}
+startupProbe: {}
+persistence: {}
+envFromConfigMap: {}
+projectName: jiffoo-oss

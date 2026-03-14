@@ -13,14 +13,13 @@ export type { Locale };
 /**
  * Application names for namespace organization
  */
-export type AppName = 'tenant' | 'agent' | 'shop' | 'whiteLabel';
+export type AppName = 'tenant' | 'shop' | 'whiteLabel';
 
 /**
  * Message namespace identifiers
  * - common: Cross-app common messages (buttons, system prompts, error states)
  * - tenant: Tenant-specific messages
  * - merchant: Alias for tenant (backward compatibility with merchant.* keys)
- * - agent: Agent portal messages
  * - shop: Shop frontend messages
  * - whiteLabel: White-label studio messages
  */

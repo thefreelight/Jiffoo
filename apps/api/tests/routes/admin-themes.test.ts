@@ -1,12 +1,12 @@
 /**
  * Admin Themes Endpoints Tests
- * 
+ *
  * Coverage:
- * - GET /api/admin/themes/
- * - GET /api/admin/themes/active
- * - POST /api/admin/themes/:slug/activate
- * - POST /api/admin/themes/rollback
- * - PUT /api/admin/themes/config
+ * - GET /api/admin/themes/shop/installed
+ * - GET /api/admin/themes/shop/active
+ * - POST /api/admin/themes/shop/:slug/activate
+ * - POST /api/admin/themes/shop/rollback
+ * - PUT /api/admin/themes/shop/config
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -38,11 +38,11 @@ describe('Admin Themes Endpoints', () => {
     await app.close();
   });
 
-  describe('GET /api/admin/themes/', () => {
+  describe('GET /api/admin/themes/shop/installed', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/themes/',
+        url: '/api/admin/themes/shop/installed',
       });
 
       expect(response.statusCode).toBe(401);
@@ -51,7 +51,7 @@ describe('Admin Themes Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/themes/',
+        url: '/api/admin/themes/shop/installed',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -61,7 +61,7 @@ describe('Admin Themes Endpoints', () => {
     it('should return themes list for admin', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/themes/',
+        url: '/api/admin/themes/shop/installed',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -69,11 +69,11 @@ describe('Admin Themes Endpoints', () => {
     });
   });
 
-  describe('GET /api/admin/themes/active', () => {
+  describe('GET /api/admin/themes/shop/active', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/themes/active',
+        url: '/api/admin/themes/shop/active',
       });
       expect(response.statusCode).toBe(401);
     });
@@ -81,7 +81,7 @@ describe('Admin Themes Endpoints', () => {
     it('should return active theme for admin', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/themes/active',
+        url: '/api/admin/themes/shop/active',
         headers: { authorization: `Bearer ${adminToken}` },
       });
       expect(response.statusCode).toBe(200);
@@ -98,11 +98,11 @@ describe('Admin Themes Endpoints', () => {
     });
   });
 
-  describe('POST /api/admin/themes/:slug/activate', () => {
+  describe('POST /api/admin/themes/shop/:slug/activate', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/themes/default/activate',
+        url: '/api/admin/themes/shop/default/activate',
       });
 
       expect(response.statusCode).toBe(401);
@@ -111,7 +111,7 @@ describe('Admin Themes Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/themes/default/activate',
+        url: '/api/admin/themes/shop/default/activate',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -121,7 +121,7 @@ describe('Admin Themes Endpoints', () => {
     it('should handle theme activation for admin', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/themes/default/activate',
+        url: '/api/admin/themes/shop/default/activate',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -130,11 +130,11 @@ describe('Admin Themes Endpoints', () => {
     });
   });
 
-  describe('POST /api/admin/themes/rollback', () => {
+  describe('POST /api/admin/themes/shop/rollback', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/themes/rollback',
+        url: '/api/admin/themes/shop/rollback',
       });
 
       expect(response.statusCode).toBe(401);
@@ -143,7 +143,7 @@ describe('Admin Themes Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/themes/rollback',
+        url: '/api/admin/themes/shop/rollback',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -153,7 +153,7 @@ describe('Admin Themes Endpoints', () => {
     it('should handle rollback for admin', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/themes/rollback',
+        url: '/api/admin/themes/shop/rollback',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -162,11 +162,11 @@ describe('Admin Themes Endpoints', () => {
     });
   });
 
-  describe('PUT /api/admin/themes/config', () => {
+  describe('PUT /api/admin/themes/shop/config', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: '/api/admin/themes/config',
+        url: '/api/admin/themes/shop/config',
         payload: { primaryColor: '#FF0000' },
       });
 
@@ -176,7 +176,7 @@ describe('Admin Themes Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: '/api/admin/themes/config',
+        url: '/api/admin/themes/shop/config',
         headers: { authorization: `Bearer ${userToken}` },
         payload: { primaryColor: '#FF0000' },
       });
@@ -187,7 +187,7 @@ describe('Admin Themes Endpoints', () => {
     it('should update theme config for admin', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: '/api/admin/themes/config',
+        url: '/api/admin/themes/shop/config',
         headers: { authorization: `Bearer ${adminToken}` },
         payload: { primaryColor: '#0066CC' },
       });
@@ -198,7 +198,7 @@ describe('Admin Themes Endpoints', () => {
     it('should accept empty config object', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: '/api/admin/themes/config',
+        url: '/api/admin/themes/shop/config',
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {},
       });

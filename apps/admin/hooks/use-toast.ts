@@ -1,2 +1,2 @@
-// Re-export the existing toast functionality to maintain compatibility
+// Toast functionality wrapper
 export { useToast } from '@/components/ui/toast'

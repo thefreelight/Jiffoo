@@ -2,25 +2,31 @@
   "name": "jiffoo-mall-core",
   "version": "0.2.3",
   "description": "Jiffoo Mall Core - Private development repository with full features",
+  "_moduleAliases": {
+    "@shared/security": "packages/shared/dist/shared/src/security",
+    "@shared/observability": "packages/shared/dist/shared/src/observability",
+    "shared/logger": "packages/shared/dist/shared/src/logger",
+    "@jiffoo/shared": "packages/shared/dist/shared/src"
+  },
   "workspaces": [
     "apps/api",
     "apps/admin",
     "apps/shop",
-    "packages/*"
+    "packages/*",
+    "packages/shop-themes/*"
   ],
   "scripts": {
-    "dev": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --filter=super-admin --concurrency=5",
-    "dev:core": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --filter=super-admin --concurrency=5",
-    "dev:cloud": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --filter=super-admin --filter=docs --concurrency=6",
+    "dev": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --concurrency=5",
+    "dev:core": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --concurrency=5",
+    "dev:cloud": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --filter=docs --concurrency=6",
     "dev:minimal": "turbo run dev --filter=api --filter=shop --concurrency=2",
     "dev:api-only": "dotenv -e .env -- pnpm --filter api dev",
     "dev:shop-only": "dotenv -e .env -- pnpm --filter shop dev",
     "dev:admin-only": "dotenv -e .env -- pnpm --filter admin dev",
-    "dev:super-admin-only": "dotenv -e .env -- pnpm --filter super-admin dev",
     "dev:docs-only": "dotenv -e .env -- pnpm --filter docs dev",
     "dev:packages": "turbo run dev --filter='./packages/**' --concurrency=8",
     "build": "turbo run build",
-    "build:core": "turbo run build --filter=api --filter=shop --filter=admin --filter=super-admin",
+    "build:core": "turbo run build --filter=api --filter=shop --filter=admin",
     "start": "turbo run start",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
@@ -33,23 +39,38 @@
     "db:studio": "pnpm --filter api db:studio",
     "db:reset": "pnpm --filter api db:reset",
     "db:seed": "pnpm --filter api db:seed",
+    "build:official-artifacts": "pnpm --filter api build:official-artifacts",
     "test": "turbo run test",
-    "test:e2e": "playwright test --config=tests/e2e/playwright.config.ts",
-    "test:e2e:private": "playwright test --config=tests/e2e/playwright.private.config.ts",
-    "test:e2e:all": "playwright test --config=tests/e2e/playwright.private.config.ts",
-    "test:e2e:shop": "playwright test --config=tests/e2e/playwright.config.ts --project=shop",
-    "test:e2e:admin": "playwright test --config=tests/e2e/playwright.config.ts --project=admin",
-    "test:e2e:api": "playwright test --config=tests/e2e/playwright.config.ts --project=api",
-    "test:e2e:super-admin": "playwright test --config=tests/e2e/playwright.private.config.ts --project=super-admin",
-    "test:e2e:developer-portal": "playwright test --config=tests/e2e/playwright.private.config.ts --project=developer-portal",
-    "test:e2e:ui": "playwright test --config=tests/e2e/playwright.config.ts --ui",
-    "test:e2e:report:private": "playwright show-report playwright-report/private",
+    "test:api:quality": "pnpm --filter api test:quality",
+    "test:e2e": "pnpm test:e2e:shop && pnpm test:e2e:admin",
+    "test:e2e:shop": "playwright test -c apps/api/tests/e2e/playwright.shop.config.ts",
+    "test:e2e:admin": "playwright test -c apps/api/tests/e2e/playwright.admin.config.ts",
+    "test:e2e:all": "pnpm test:e2e",
+    "test:e2e:api": "echo \"API E2E tests not yet implemented\"",
+    "test:e2e:developer-portal": "echo \"Developer portal E2E tests not yet implemented\"",
+    "test:e2e:ui": "playwright test -c apps/api/tests/e2e/playwright.shop.config.ts --ui",
+    "test:e2e:report": "playwright show-report apps/api/tests/e2e/playwright-report",
     "docker:build": "turbo run docker:build",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:logs": "docker-compose logs -f",
+    "smoke:local-docker": "bash scripts/smoke-local-docker.sh",
     "deploy": "turbo run deploy",
-    "prepare": "husky"
+    "prepare": "husky",
+    "changeset": "changeset",
+    "version:bump": "changeset version",
+    "release": "pnpm version:bump && pnpm build"
+  },
+  "lint-staged": {
+    "apps/api/src/**/*.ts": [
+      "pnpm --filter api exec eslint --fix"
+    ],
+    "apps/shop/**/*.{ts,tsx}": [
+      "pnpm --filter shop exec eslint --fix"
+    ],
+    "apps/admin/**/*.{ts,tsx}": [
+      "pnpm --filter admin exec eslint --fix"
+    ]
   },
   "keywords": [
     "fastify",
@@ -60,11 +81,13 @@
   "author": "Jiffoo Team",
   "license": "GPL-2.0-or-later",
   "devDependencies": {
+    "@changesets/cli": "^2.29.8",
     "@playwright/test": "^1.57.0",
     "@types/node": "^22.9.0",
     "dotenv-cli": "^10.0.0",
     "husky": "^9.1.7",
     "javascript-obfuscator": "^4.1.1",
+    "lint-staged": "^16.2.7",
     "turbo": "^2.5.5",
     "typescript": "^5.8.3"
   },
@@ -75,9 +98,7 @@
   },
   "pnpm": {
     "overrides": {
-      "stripe": "18.4.0",
-      "react": "19.2.1",
-      "react-dom": "19.2.1"
+      "stripe": "18.4.0"
     }
   },
   "dependencies": {

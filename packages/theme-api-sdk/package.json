@@ -1,0 +1,51 @@
+{
+  "name": "@jiffoo/theme-api-sdk",
+  "version": "0.2.0",
+  "description": "Theme-facing SDK for Jiffoo Mall Core API",
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/types/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "prebuild": "pnpm --filter @jiffoo/core-api-sdk build",
+    "build": "pnpm run build:esm && pnpm run build:cjs && pnpm run build:types",
+    "pretype-check": "pnpm --filter @jiffoo/core-api-sdk build",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json",
+    "build:types": "tsc -p tsconfig.types.json",
+    "dev": "tsc -p tsconfig.esm.json --watch",
+    "clean": "rimraf dist",
+    "type-check": "tsc -p tsconfig.esm.json --noEmit"
+  },
+  "keywords": [
+    "jiffoo",
+    "theme",
+    "sdk",
+    "core-api"
+  ],
+  "author": "Jiffoo Team",
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@jiffoo/core-api-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3"
+  }
+}

@@ -2,44 +2,76 @@
   "name": "shared",
   "version": "1.0.0",
   "description": "Shared types and utilities for Jiffoo Mall",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/shared/index.js",
+  "types": "dist/shared/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "types": "./dist/shared/index.d.ts",
+      "default": "./dist/shared/index.js"
     },
     "./logger": {
-      "types": "./dist/src/logger/index.d.ts",
-      "default": "./dist/src/logger/index.js"
+      "types": "./dist/shared/src/logger/index.d.ts",
+      "default": "./dist/shared/src/logger/index.js"
     },
     "./logger/*": {
-      "types": "./dist/src/logger/*.d.ts",
-      "default": "./dist/src/logger/*.js"
+      "types": "./dist/shared/src/logger/*.d.ts",
+      "default": "./dist/shared/src/logger/*.js"
     },
     "./src/logger/index.browser": {
-      "types": "./dist/src/logger/index.browser.d.ts",
-      "default": "./dist/src/logger/index.browser.js"
+      "types": "./dist/shared/src/logger/index.browser.d.ts",
+      "default": "./dist/shared/src/logger/index.browser.js"
     },
     "./config/env": {
-      "types": "./dist/config/env.d.ts",
-      "default": "./dist/config/env.js"
+      "types": "./dist/shared/config/env.d.ts",
+      "default": "./dist/shared/config/env.js"
     },
     "./config/*": {
-      "types": "./dist/config/*.d.ts",
-      "default": "./dist/config/*.js"
+      "types": "./dist/shared/config/*.d.ts",
+      "default": "./dist/shared/config/*.js"
     },
     "./src/i18n": {
-      "types": "./dist/src/i18n/index.d.ts",
-      "default": "./dist/src/i18n/index.js"
+      "types": "./dist/shared/src/i18n/index.d.ts",
+      "default": "./dist/shared/src/i18n/index.js"
     },
     "./src/i18n/react": {
-      "types": "./dist/src/i18n/react/index.d.ts",
-      "default": "./dist/src/i18n/react/index.js"
+      "types": "./dist/shared/src/i18n/react/index.d.ts",
+      "default": "./dist/shared/src/i18n/react/index.js"
     },
     "./src/i18n/*": {
-      "types": "./dist/src/i18n/*.d.ts",
-      "default": "./dist/src/i18n/*.js"
+      "types": "./dist/shared/src/i18n/*.d.ts",
+      "default": "./dist/shared/src/i18n/*.js"
+    },
+    "./security": {
+      "types": "./dist/shared/src/security/index.d.ts",
+      "default": "./dist/shared/src/security/index.js"
+    },
+    "./security/*": {
+      "types": "./dist/shared/src/security/*.d.ts",
+      "default": "./dist/shared/src/security/*.js"
+    },
+    "./observability": {
+      "types": "./dist/shared/src/observability/index.d.ts",
+      "default": "./dist/shared/src/observability/index.js"
+    },
+    "./observability/*": {
+      "types": "./dist/shared/src/observability/*.d.ts",
+      "default": "./dist/shared/src/observability/*.js"
+    },
+    "./src/proxy": {
+      "types": "./dist/shared/src/proxy/index.d.ts",
+      "default": "./dist/shared/src/proxy/index.js"
+    },
+    "./src/proxy/*": {
+      "types": "./dist/shared/src/proxy/*.d.ts",
+      "default": "./dist/shared/src/proxy/*.js"
+    },
+    "./versioning": {
+      "types": "./dist/shared/src/versioning/index.d.ts",
+      "default": "./dist/shared/src/versioning/index.js"
+    },
+    "./versioning/*": {
+      "types": "./dist/shared/src/versioning/*.d.ts",
+      "default": "./dist/shared/src/versioning/*.js"
     }
   },
   "scripts": {
@@ -59,14 +91,15 @@
   "devDependencies": {
     "@eslint/js": "^9.36.0",
     "@types/node": "^22.9.0",
-    "@types/react": "^18.2.0",
+    "@types/react": "^19.0.0",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
     "eslint": "^9.36.0",
     "typescript": "^5.8.3"
   },
   "peerDependencies": {
-    "react": "^18.2.0 || ^19.0.0"
+    "react": "^18.2.0 || ^19.0.0",
+    "next": "^15.0.0 || ^16.0.0"
   },
   "dependencies": {
     "axios": "^1.11.0",

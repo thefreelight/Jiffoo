@@ -1,7 +1,7 @@
 {
-  "name": "shop-themes-default",
+  "name": "@shop-themes/default",
   "version": "1.0.0",
-  "description": "Jiffoo Mall 默认主题",
+  "description": "Jiffoo Mall Default Theme",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
@@ -9,14 +9,20 @@
     "./src/tokens.css"
   ],
   "peerDependencies": {
+    "next": ">=14",
     "react": ">=18",
     "react-dom": ">=18"
   },
   "dependencies": {
     "@jiffoo/ui": "workspace:*",
+    "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^11.15.0",
     "lucide-react": "^0.460.0",
+    "next": "^16.0.7",
+    "next-themes": "^0.4.6",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
     "shared": "workspace:*"
   },
   "devDependencies": {

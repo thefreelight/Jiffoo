@@ -1,5 +1,6 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: 'class',
   presets: [require('@jiffoo/ui/tailwind.preset')],
   content: [
     './app/**/*.{js,ts,jsx,tsx,mdx}',

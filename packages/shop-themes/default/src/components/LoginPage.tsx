@@ -1,6 +1,6 @@
 /**
- * 登录页面组件
- * 支持邮箱密码登录和 OAuth 登录
+ * Login Page Component
+ * Supports email/password login and OAuth login
  * Uses @jiffoo/ui design system.
  */
 
@@ -22,60 +22,86 @@ export function LoginPage({
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
+  const emailRef = React.useRef<HTMLInputElement>(null);
+  const passwordRef = React.useRef<HTMLInputElement>(null);
+
+  // Detect browser autofill via CSS animation trick
+  const handleAutofill = (setter: (v: string) => void) => (e: React.AnimationEvent<HTMLInputElement>) => {
+    if (e.animationName === 'onAutoFillStart') {
+      setter(e.currentTarget.value);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    // Read from DOM refs to handle browser autofill (autofill doesn't trigger onChange)
+    const emailVal = emailRef.current?.value || email;
+    const passwordVal = passwordRef.current?.value || password;
+    if (!emailVal || !passwordVal) {
       return;
     }
     try {
-      await onSubmit(email, password);
+      await onSubmit(emailVal, passwordVal);
     } catch (error) {
       console.error('Login failed:', error);
     }
   };
 
+  // Button is always clickable unless loading; handleSubmit validates from DOM refs
+
   const inputStyles = cn(
-    'w-full pl-11 pr-4 py-3 rounded-xl border border-neutral-200',
-    'bg-white text-neutral-900 placeholder:text-neutral-400',
-    'focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500',
+    'w-full pl-11 pr-4 py-3 rounded-xl border border-gray-100 dark:border-slate-700',
+    'bg-gray-50/50 dark:bg-slate-900/50 text-sm font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500',
+    'focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 focus:border-blue-500 dark:focus:border-blue-400',
     'transition-all duration-150',
-    'disabled:bg-neutral-50 disabled:cursor-not-allowed'
+    'disabled:bg-gray-50 dark:disabled:bg-slate-900 disabled:cursor-not-allowed'
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-brand-50 via-white to-neutral-50 flex items-center justify-center px-4 py-12">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center px-4 py-8 sm:py-12">
       <div className="w-full max-w-md">
         {/* Logo/Brand */}
-        <div className="text-center mb-10">
-          <div className="w-14 h-14 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center shadow-brand-md">
-            <span className="text-white font-bold text-2xl">J</span>
+        <div className="text-center mb-5 sm:mb-6">
+          <div className="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-2xl bg-blue-600 dark:bg-blue-500 flex items-center justify-center shadow-sm">
+            <span className="text-white font-bold text-xl sm:text-2xl">J</span>
           </div>
-          <h1 className="text-3xl font-bold text-neutral-900 mb-2">Welcome Back</h1>
-          <p className="text-neutral-500">Sign in to your account</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight mb-2">Welcome Back</h1>
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">AUTHENTICATION INTERFACE</p>
         </div>
 
         {/* Login Form Card */}
-        <form onSubmit={handleSubmit} className="bg-white rounded-3xl shadow-xl border border-neutral-100 p-8 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-2xl sm:rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 space-y-5 sm:space-y-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-1 bg-blue-600 dark:bg-blue-400 rounded-full" />
+              <h2 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">SYSTEM ACCESS</h2>
+            </div>
+            <p className="text-[10px] font-medium text-gray-300 dark:text-gray-600 uppercase tracking-wider pl-3">
+              ENTER CREDENTIALS TO PROCEED
+            </p>
+          </div>
+
           {/* Error Message */}
           {error && (
-            <div className="bg-error-50 border border-error-200 rounded-xl p-4">
-              <p className="text-sm text-error-600">{error}</p>
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl p-4">
+              <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
             </div>
           )}
 
           {/* Email Input */}
-          <div>
-            <label htmlFor="login-email" className="block text-sm font-medium text-neutral-700 mb-2">
-              Email Address
+          <div className="space-y-3">
+            <label htmlFor="login-email" className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block">
+              EMAIL INTERFACE
             </label>
             <div className="relative">
-              <Mail className="absolute left-4 top-3.5 h-5 w-5 text-neutral-400" />
+              <Mail className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 dark:text-gray-500" />
               <input
                 id="login-email"
+                ref={emailRef}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onAnimationStart={handleAutofill(setEmail)}
                 placeholder="you@example.com"
                 className={inputStyles}
                 disabled={isLoading}
@@ -85,17 +111,19 @@ export function LoginPage({
           </div>
 
           {/* Password Input */}
-          <div>
-            <label htmlFor="login-password" className="block text-sm font-medium text-neutral-700 mb-2">
-              Password
+          <div className="space-y-3">
+            <label htmlFor="login-password" className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block">
+              SECURITY KEY
             </label>
             <div className="relative">
-              <Lock className="absolute left-4 top-3.5 h-5 w-5 text-neutral-400" />
+              <Lock className="absolute left-4 top-3.5 h-5 w-5 text-gray-400 dark:text-gray-500" />
               <input
                 id="login-password"
+                ref={passwordRef}
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onAnimationStart={handleAutofill(setPassword)}
                 placeholder="••••••••"
                 className={cn(inputStyles, 'pr-11')}
                 disabled={isLoading}
@@ -104,7 +132,7 @@ export function LoginPage({
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-3.5 text-neutral-400 hover:text-neutral-600 transition-colors"
+                className="absolute right-4 top-3.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
                 disabled={isLoading}
                 aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
@@ -117,91 +145,35 @@ export function LoginPage({
             </div>
           </div>
 
-          {/* Forgot Password Link */}
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={onNavigateToForgotPassword}
-              className="text-sm text-brand-600 hover:text-brand-700 font-medium transition-colors"
-              disabled={isLoading}
-            >
-              Forgot password?
-            </button>
-          </div>
-
           {/* Submit Button */}
-          <Button
+          <button
             type="submit"
-            disabled={isLoading || !email || !password}
-            className="w-full shadow-brand-sm"
-            size="lg"
+            disabled={isLoading}
+            className="w-full h-10 sm:h-11 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 dark:shadow-blue-900/30 transition-all bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed mt-5 sm:mt-6 flex items-center justify-center gap-2"
           >
             {isLoading ? (
               <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Signing in...
+                <Loader2 className="h-4 w-4 animate-spin" />
+                AUTHENTICATING...
               </>
             ) : (
-              <>
-                Sign In
-                <ArrowRight className="h-4 w-4 ml-2" />
-              </>
+              'AUTHENTICATE'
             )}
-          </Button>
-
-          {/* Divider */}
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-neutral-200"></div>
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-neutral-500">Or continue with</span>
-            </div>
-          </div>
-
-          {/* OAuth Button */}
-          <Button
-            type="button"
-            onClick={() => onOAuthClick('google')}
-            variant="outline"
-            disabled={isLoading}
-            className="w-full"
-            size="lg"
-          >
-            <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
-              <path
-                fill="#4285F4"
-                d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-              />
-              <path
-                fill="#34A853"
-                d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-              />
-              <path
-                fill="#FBBC05"
-                d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-              />
-              <path
-                fill="#EA4335"
-                d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-              />
-            </svg>
-            Continue with Google
-          </Button>
+          </button>
 
           {/* Sign Up Link */}
-          <div className="text-center pt-2">
-            <p className="text-sm text-neutral-500">
-              Don't have an account?{' '}
-              <button
-                type="button"
-                onClick={onNavigateToRegister}
-                className="text-brand-600 hover:text-brand-700 font-semibold transition-colors"
-                disabled={isLoading}
-              >
-                Sign up
-              </button>
+          <div className="text-center pt-5 sm:pt-6 border-t border-gray-50 dark:border-slate-700 mt-5 sm:mt-6">
+            <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">
+              DON'T HAVE AN ACCOUNT?
             </p>
+            <button
+              type="button"
+              onClick={onNavigateToRegister}
+              className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold text-sm transition-colors"
+              disabled={isLoading}
+            >
+              CREATE NEW ACCOUNT
+            </button>
           </div>
         </form>
       </div>

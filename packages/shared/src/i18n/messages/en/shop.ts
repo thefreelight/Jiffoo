@@ -14,6 +14,8 @@ export const shop = {
     deals: 'Deals',
     newArrivals: 'New Arrivals',
     bestsellers: 'Bestsellers',
+    contact: 'Contact',
+    help: 'Help',
     cart: 'Cart',
     account: 'Account',
     orders: 'Orders',
@@ -25,9 +27,11 @@ export const shop = {
   // Home page
   home: {
     hero: {
-      title: 'Welcome to Our Store',
-      subtitle: 'Discover quality products and enjoy shopping',
-      shopNow: 'Shop Now',
+      badge: 'WELCOME TO JIFFOO',
+      title: 'Quality Products,',
+      titleLine2: 'Delivered Fast',
+      subtitle: 'DISCOVER OUR CAREFULLY CURATED SELECTION',
+      shopNow: 'SHOP NOW',
       startShopping: 'Start Shopping',
     },
     featured: {
@@ -35,27 +39,56 @@ export const shop = {
       viewAll: 'View All',
     },
     categories: {
-      title: 'Shop by Category',
+      badge: 'SHOP BY CATEGORY',
+      title: 'Browse Collections',
     },
     whyChooseUs: {
-      title: 'Why Choose Us',
+      badge: 'WHY SHOP WITH US',
+      title: 'Built for Your Convenience',
+      subtitle: 'PREMIUM SHOPPING EXPERIENCE',
       qualityProducts: {
-        title: 'Quality Products',
-        description: 'Carefully selected products with guaranteed quality',
+        badge: 'QUALITY ASSURED',
+        title: 'Premium Quality',
+        description: 'Every product is carefully selected and verified for authenticity and quality.',
       },
       fastDelivery: {
+        badge: 'RAPID SHIPPING',
         title: 'Fast Delivery',
-        description: 'Quick and reliable shipping service',
+        description: 'Free shipping on orders over $50. Most orders arrive within 2-3 business days.',
       },
       securePayment: {
+        badge: 'PROTECTED TRANSACTIONS',
         title: 'Secure Payment',
-        description: 'Multiple payment options, safe and secure',
+        description: 'Your payment information is encrypted and secure. Shop with confidence.',
+      },
+    },
+    features: {
+      badge: 'WHY SHOP WITH US',
+      title: 'Built for Your Convenience',
+      subtitle: 'PREMIUM SHOPPING EXPERIENCE',
+      shipping: {
+        badge: 'RAPID SHIPPING',
+        title: 'Fast Delivery',
+        description: 'Free shipping on orders over $50. Most orders arrive within 2-3 business days.',
+      },
+      secure: {
+        badge: 'PROTECTED TRANSACTIONS',
+        title: 'Secure Payment',
+        description: 'Your payment information is encrypted and secure. Shop with confidence.',
+      },
+      quality: {
+        badge: 'QUALITY ASSURED',
+        title: 'Premium Quality',
+        description: 'Every product is carefully selected and verified for authenticity and quality.',
       },
     },
     cta: {
+      badge: 'START YOUR JOURNEY',
       title: 'Ready to Start Shopping?',
+      subtitle: 'EXPLORE OUR COMPLETE CATALOG',
       description: 'Browse our product catalog and find what you love',
-      viewAllProducts: 'View All Products',
+      viewAllProducts: 'VIEW ALL PRODUCTS',
+      viewProducts: 'VIEW ALL PRODUCTS',
     },
   },
 
@@ -132,6 +165,9 @@ export const shop = {
     items: 'items',
     variant: 'Variant',
     orderSummary: 'Order Summary',
+    selectAll: 'Select all',
+    deselectAll: 'Deselect all',
+    selected: 'selected',
     toast: {
       added: 'Added to cart',
       addedDescription: 'has been added to your cart',
@@ -160,6 +196,10 @@ export const shop = {
     },
     placeOrder: 'Place Order',
     processing: 'Processing...',
+    termsNotice: 'By clicking "Place Order", you agree to our Terms of Service and Privacy Policy',
+    noPaymentMethods: 'No Payment Methods Available',
+    installPaymentPlugin: 'Please install a payment plugin to enable checkout functionality.',
+    contactAdmin: 'Contact your administrator to configure payment methods.',
   },
 
   // Orders
@@ -259,15 +299,18 @@ export const shop = {
     underDevelopmentDescription: 'The contact form feature is currently under development. Please try again later.',
   },
 
-  // Affiliate
-  affiliate: {
-    authRequired: 'Authentication required',
-    authRequiredDescription: 'Please login to access affiliate dashboard',
-    loadFailed: 'Failed to load data',
-    payoutSuccess: 'Payout request submitted successfully',
-    payoutFailed: 'Failed to request payout',
-    loadCommissionsFailed: 'Failed to load commissions',
-    loadPayoutsFailed: 'Failed to load payouts',
+  // Recommendations
+  recommendations: {
+    errorTitle: 'Unable to load recommendations',
+    loading: 'Loading recommendations...',
+    personalizedForYou: 'Recommended For You',
+    popularProducts: 'Popular Products',
+    personalizedDescription: 'Based on your interests and shopping history',
+    popularDescription: 'Trending products you might like',
+    frequentlyBoughtTogether: 'Frequently Bought Together',
+    frequentlyBoughtTogetherDescription: 'Complete your order with these popular combinations',
+    customersAlsoBought: 'Customers Also Bought',
+    customersAlsoBoughtDescription: 'Based on what other customers purchased',
   },
 
   // Footer
@@ -284,11 +327,12 @@ export const shop = {
     returnsExchanges: 'Returns & Exchanges',
     faq: 'FAQ',
     contactInfo: 'Contact Info',
+    legal: 'Legal',
     privacyPolicy: 'Privacy Policy',
     termsOfService: 'Terms of Service',
     cookiePolicy: 'Cookie Policy',
     copyright: '© {year} {brand}. All rights reserved.',
-    companyDescription: 'Your trusted online marketplace for quality products and exceptional service.',
+    companyDescription: 'Your trusted e-commerce store for quality products and exceptional service.',
     newsletter: {
       title: 'Subscribe to Newsletter',
       placeholder: 'Enter your email',
@@ -348,13 +392,6 @@ export const shop = {
       title: 'Order Cancelled',
       description: 'Your order has been cancelled.',
       backToOrders: 'Back to Orders',
-    },
-    affiliate: {
-      title: 'Affiliate Dashboard',
-      earnings: 'Earnings',
-      referrals: 'Referrals',
-      commission: 'Commission',
-      payouts: 'Payouts',
     },
   },
 };

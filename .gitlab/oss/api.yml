@@ -1,0 +1,48 @@
+include:
+  - project: 'ops/cicd-template'
+    ref: main
+    file:
+      - 'templates/precheck.yml'
+      - 'templates/test.yml'
+      - 'templates/build.yml'
+      - 'templates/gitops.yml'
+
+default: {}
+
+stages:
+  - precheck
+  - test
+  - build
+  - gitops
+
+variables:
+  SERVICE_NAME: "api"
+  SERVICE_PATH: ".gitlab/oss/api"
+  GITOPS_DEPLOYMENT_PATH: "jiffoo-oss"
+
+precheck:
+  extends: .precheck
+
+test:
+  extends: .test
+  needs:
+    - job: precheck
+      artifacts: true
+
+build:
+  extends: .build
+  timeout: 2h
+  needs:
+    - job: precheck
+      artifacts: true
+    - job: test
+      artifacts: false
+
+gitops:
+  extends: .gitops
+  resource_group: deployment-repo
+  needs:
+    - job: precheck
+      artifacts: true
+    - job: build
+      artifacts: false

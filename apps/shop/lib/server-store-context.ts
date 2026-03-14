@@ -16,6 +16,9 @@ export interface ServerStoreContext {
   status: string;
   defaultLocale?: string;
   supportedLocales?: string[];
+  checkout?: {
+    countriesRequireStatePostal?: string[];
+  };
 }
 
 /**
@@ -25,8 +28,7 @@ export interface ServerStoreContext {
 export async function getServerStoreContext(): Promise<ServerStoreContext | null> {
   try {
     const apiServiceUrl = process.env.API_SERVICE_URL || 'http://localhost:3001';
-    // Using /mall/context for compatibility until API is updated to /store/context
-    const url = `${apiServiceUrl}/api/mall/context`;
+    const url = `${apiServiceUrl}/api/store/context`;
 
     const response = await fetch(url, {
       cache: 'force-cache',
@@ -48,8 +50,15 @@ export async function getServerStoreContext(): Promise<ServerStoreContext | null
     }
 
     return null;
-  } catch (error) {
-    console.error('Error fetching server store context:', error);
+  } catch (error: any) {
+    const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';
+    const isConnRefused = error.code === 'ECONNREFUSED' || error.message?.includes('fetch failed');
+
+    // During build phase, if the API is unreachable, behave silently.
+    // This is expected because the backend usually isn't running in the builder.
+    if (!isBuildPhase && !isConnRefused) {
+      console.error('Error fetching server store context:', error.message || error);
+    }
     return null;
   }
 }

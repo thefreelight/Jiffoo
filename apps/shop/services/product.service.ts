@@ -10,20 +10,19 @@
 
 import { productsApi } from '@/lib/api';
 
-// Re-export types from shared
-export type { Product, ProductCategory, ProductSearchFilters } from 'shared/src';
+// Re-export DTO types from shared
+export type { ShopProductListItemDTO, ShopProductDetailDTO, ProductCategory, ProductSearchFilters } from 'shared';
 
-// Import the Product type for internal use
-import type { Product, ProductSearchFilters } from 'shared/src';
+// Import the DTO types for internal use
+import type { ShopProductListItemDTO, ShopProductDetailDTO, ProductSearchFilters, PageResult } from 'shared';
+import type { ProductCategoryDTO } from 'shared';
 
 export interface ProductListResponse {
-    products: Product[];
-    pagination: {
-        page: number;
-        limit: number;
-        total: number;
-        totalPages: number;
-    };
+    items: ShopProductListItemDTO[];
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
 }
 
 /**
@@ -48,24 +47,22 @@ export const ProductService = {
         });
 
         if (!response.success || !response.data) {
-            throw new Error(response.error || 'Failed to fetch products');
+            throw new Error(response.error?.message || 'Failed to fetch products');
         }
 
         // Handle both response formats:
-        // 1. { products: [...], pagination: {...} } - from backend
-        // 2. { data: [...], page, limit, total, totalPages } - legacy PaginatedResponse
+        // - New format: { products: [], pagination: { page, limit, total, totalPages } }
+        // - Legacy format: { items: [], page, limit, total, totalPages }
         const data = response.data as any;
-        const products = data.products || data.data || [];
-        const pagination = data.pagination || {
-            page: data.page || page,
-            limit: data.limit || limit,
-            total: data.total || 0,
-            totalPages: data.totalPages || 1,
-        };
+        const items = data.items || data.products || [];
+        const pagination = data.pagination || data;
 
         return {
-            products,
-            pagination,
+            items,
+            page: pagination.page || 1,
+            limit: pagination.limit || 12,
+            total: pagination.total || items.length,
+            totalPages: pagination.totalPages || 1,
         };
     },
 
@@ -79,11 +76,11 @@ export const ProductService = {
         id: string,
         locale?: string,
         agentId?: string
-    ): Promise<Product> {
+    ): Promise<ShopProductDetailDTO> {
         const response = await productsApi.getProduct(id, locale, agentId);
 
         if (!response.success || !response.data) {
-            throw new Error(response.error || 'Product not found');
+            throw new Error(response.error?.message || 'Product not found');
         }
 
         return response.data;
@@ -91,13 +88,14 @@ export const ProductService = {
 
     /**
      * Get product categories
-     * @param locale - Optional locale for translated category names
+     * @param page - Page number
+     * @param limit - Items per page
      */
-    async getCategories(locale?: string) {
-        const response = await productsApi.getCategories(locale);
+    async getCategories(page = 1, limit = 20): Promise<PageResult<ProductCategoryDTO>> {
+        const response = await productsApi.getCategories({ page, limit });
 
         if (!response.success || !response.data) {
-            throw new Error(response.error || 'Failed to fetch categories');
+            throw new Error(response.error?.message || 'Failed to fetch categories');
         }
 
         return response.data;
@@ -116,6 +114,42 @@ export const ProductService = {
         limit = 12,
         filters: Partial<ProductSearchFilters> & { locale?: string; agentId?: string } = {}
     ): Promise<ProductListResponse> {
+        const { locale, ...rest } = filters;
+        const hasAdvancedFilters = Boolean(
+            rest.category ||
+            rest.minPrice !== undefined ||
+            rest.maxPrice !== undefined ||
+            rest.rating !== undefined ||
+            rest.inStock !== undefined ||
+            (rest.tags && rest.tags.length > 0) ||
+            rest.sortBy ||
+            rest.sortOrder ||
+            rest.agentId
+        );
+
+        // Use dedicated search endpoint by default.
+        // Fallback to list endpoint when advanced filters are present.
+        if (!hasAdvancedFilters) {
+            const response = await productsApi.searchProducts({
+                q: query,
+                page,
+                limit,
+                locale,
+            });
+
+            if (!response.success || !response.data) {
+                throw new Error(response.error?.message || 'Failed to search products');
+            }
+
+            return {
+                items: response.data.items || [],
+                page: response.data.page || page,
+                limit: response.data.limit || limit,
+                total: response.data.total || 0,
+                totalPages: response.data.totalPages || 1,
+            };
+        }
+
         return this.getProducts(page, limit, {
             ...filters,
             search: query,
@@ -149,13 +183,13 @@ export const ProductService = {
     async getNewArrivals(
         limit = 8,
         filters: Partial<ProductSearchFilters> & { locale?: string; agentId?: string } = {}
-    ): Promise<Product[]> {
+    ): Promise<ShopProductListItemDTO[]> {
         const response = await this.getProducts(1, limit, {
             ...filters,
             sortBy: 'createdAt',
             sortOrder: 'desc',
         });
-        return response.products;
+        return response.items;
     },
 
     /**
@@ -166,13 +200,13 @@ export const ProductService = {
     async getBestsellers(
         limit = 8,
         filters: Partial<ProductSearchFilters> & { locale?: string; agentId?: string } = {}
-    ): Promise<Product[]> {
+    ): Promise<ShopProductListItemDTO[]> {
         const response = await this.getProducts(1, limit, {
             ...filters,
             sortBy: 'stock',
             sortOrder: 'desc',
         });
-        return response.products;
+        return response.items;
     },
 };
 

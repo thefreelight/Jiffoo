@@ -26,8 +26,11 @@ export function useLocalizedNavigation() {
     // Ensure path starts with /
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
 
+    // Guard against undefined locale (can happen before hydration)
+    const safeLocale = locale || 'en';
+
     // Add locale prefix
-    const localizedPath = `/${locale}${normalizedPath}`;
+    const localizedPath = `/${safeLocale}${normalizedPath}`;
 
     return localizedPath;
   }, [locale]);
@@ -39,7 +42,12 @@ export function useLocalizedNavigation() {
    */
   const push = useCallback((path: string, options?: { scroll?: boolean }) => {
     const fullPath = buildLocalizedPath(path);
-    router.push(fullPath, options);
+    try {
+      router.push(fullPath, options);
+    } catch (e) {
+      // Fallback: direct browser navigation (avoids Next.js router undefined crash)
+      window.location.href = fullPath;
+    }
   }, [router, buildLocalizedPath]);
 
   /**

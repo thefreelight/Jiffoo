@@ -21,6 +21,7 @@ export default defineConfig({
     exclude: [
       'node_modules/**',
       'dist/**',
+      'tests/e2e/**',
     ],
     
     // Timeouts
@@ -89,6 +90,7 @@ export default defineConfig({
       '@plugins': path.resolve(__dirname, './src/plugins'),
       '@config': path.resolve(__dirname, './src/config'),
       'shared': path.resolve(__dirname, '../../packages/shared/src'),
+      '@jiffoo/shared': path.resolve(__dirname, '../../packages/shared/src'),
       '@shared/security': path.resolve(__dirname, '../../packages/shared/src/security'),
       '@shared/observability': path.resolve(__dirname, '../../packages/shared/src/observability'),
     },

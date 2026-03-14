@@ -1,23 +1,15 @@
 /**
- * Theme System Module Entry
- * 
- * Exports all theme-related components, hooks, and utility functions
+ * Theme Renderer System Module Entry
+ *
+ * This module provides the theme renderer loading system, which loads
+ * React components from @shop-themes/default for rendering pages.
+ *
+ * Note: This is separate from Theme Pack Runtime (lib/theme-pack) which
+ * handles CSS tokens and JSON templates for installed themes.
  */
 
 // Provider
 export { ThemeProvider, useShopTheme } from './provider';
-
-// Hooks
-export {
-  useThemeComponents,
-  useThemeComponent,
-  useThemeConfig,
-  useThemeStatus,
-  useThemeBrand,
-  useThemeLayout,
-  useThemeFeatures,
-  useThemedProps,
-} from './hooks';
 
 // Registry
 export {
@@ -36,11 +28,14 @@ export {
   isInstalledTheme,
   type ThemeSlug,
 } from './registry';
-
-// Debug & Performance
-export { setDebugCurrentTheme, getThemeDebugInfo, enableThemeDebug, disableThemeDebug, clearDebugData, validateTheme } from './debug';
-export { recordThemeLoad, getThemePerformanceStats, measureThemeLoad, clearThemeMetrics, type ThemeLoadMetrics } from './performance';
-export { logThemeError, getThemeErrorStats, clearThemeErrors } from './error-logger';
+export {
+  MINIMUM_REQUIRED_THEME_COMPONENTS,
+  OFFICIAL_EMBEDDED_THEME_SLUGS,
+  OFFICIAL_FULL_THEME_COMPONENTS,
+  getMissingThemeComponents,
+  assertThemeComponents,
+  isOfficialEmbeddedThemeSlug,
+} from './contract';
 
 // Re-export types from shared
 export type {
@@ -73,11 +68,9 @@ export type {
   PrivacyPageProps,
   TermsPageProps,
   DealsPageProps,
-  AffiliateDashboardPageProps,
   LoginPageProps,
   RegisterPageProps,
   AuthCallbackPageProps,
   HeaderProps,
   FooterProps,
 } from 'shared/src/types/theme';
-

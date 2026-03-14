@@ -1,14 +1,10 @@
 /**
- * 订单成功页面组件
- * 显示订单成功确认信息
- * Uses @jiffoo/ui design system.
+ * Order Success Page Component - Admin Style Design
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { CheckCircle, Package, Mail, ArrowRight } from 'lucide-react';
 import type { OrderSuccessPageProps } from '../../../../shared/src/types/theme';
-import { Button } from '../ui/Button';
 
 export function OrderSuccessPage({
   orderNumber,
@@ -17,136 +13,132 @@ export function OrderSuccessPage({
   onViewOrders,
 }: OrderSuccessPageProps) {
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto text-center">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+      <div className="container mx-auto px-4 py-12 sm:py-16">
+        <div className="max-w-3xl mx-auto text-center">
           {/* Success Icon */}
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.6, type: "spring" }}
-            className="mb-8"
-          >
-            <div className="w-24 h-24 rounded-full bg-success-100 flex items-center justify-center mx-auto">
-              <CheckCircle className="h-12 w-12 text-success-600" />
+          <div className="mb-8">
+            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 flex items-center justify-center mx-auto shadow-sm">
+              <CheckCircle className="h-12 w-12 sm:h-14 sm:w-14 text-green-600 dark:text-green-400" />
             </div>
-          </motion.div>
+          </div>
 
           {/* Title */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="mb-8"
-          >
-            <h1 className="text-4xl font-bold text-success-600 mb-4">Order Successful!</h1>
-            <p className="text-xl text-neutral-500">Thank you for your purchase. Your order has been confirmed.</p>
-          </motion.div>
+          <div className="mb-8 sm:mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 rounded-full mb-4">
+              <div className="w-2 h-2 bg-green-600 dark:bg-green-400 rounded-full animate-pulse" />
+              <span className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-widest">ORDER CONFIRMED</span>
+            </div>
+            <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">Order Successful!</h1>
+            <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">THANK YOU FOR YOUR PURCHASE</p>
+          </div>
 
           {/* Order Details */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 mb-8"
-          >
-            <div className="text-center mb-6">
-              <p className="text-sm text-neutral-500 mb-2">Order Number</p>
-              <p className="text-2xl font-bold font-mono text-neutral-900">{orderNumber}</p>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 mb-6 sm:mb-8">
+            <div className="text-center mb-6 sm:mb-8">
+              <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3">ORDER NUMBER</p>
+              <p className="text-2xl sm:text-3xl font-bold font-mono text-gray-900 dark:text-white">{orderNumber}</p>
             </div>
 
             <div className="space-y-4 text-left">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-success-50 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="h-4 w-4 text-success-600" />
+              <div className="flex items-start gap-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-2xl border border-green-100 dark:border-green-800">
+                <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0">
+                  <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
-                <p className="text-neutral-700 pt-1">Your payment has been processed successfully</p>
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1">PAYMENT PROCESSED</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Your payment has been successfully processed</p>
+                </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center flex-shrink-0">
-                  <Mail className="h-4 w-4 text-brand-600" />
+              <div className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800">
+                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                  <Mail className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
-                <p className="text-neutral-700 pt-1">Order confirmation email sent to your inbox</p>
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1">CONFIRMATION SENT</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Order confirmation email sent to your inbox</p>
+                </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-warning-50 flex items-center justify-center flex-shrink-0">
-                  <Package className="h-4 w-4 text-warning-600" />
+              <div className="flex items-start gap-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl border border-yellow-100 dark:border-yellow-800">
+                <div className="w-10 h-10 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0">
+                  <Package className="h-5 w-5 text-yellow-600 dark:text-yellow-400" />
                 </div>
-                <p className="text-neutral-700 pt-1">Tracking information will be sent to your email</p>
+                <div className="flex-1">
+                  <p className="font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1">TRACKING INFO</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">Tracking information will be sent to your email</p>
+                </div>
               </div>
             </div>
 
-            <div className="mt-6 p-4 bg-neutral-50 rounded-xl">
+            <div className="mt-6 sm:mt-8 p-4 sm:p-6 bg-gray-50 dark:bg-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600">
               <div className="flex justify-between items-center">
-                <span className="font-medium text-neutral-700">Estimated Delivery</span>
-                <span className="text-brand-600 font-semibold">3-5 business days</span>
+                <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">ESTIMATED DELIVERY</span>
+                <span className="text-blue-600 dark:text-blue-400 font-bold text-sm">3-5 BUSINESS DAYS</span>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* What's Next */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 mb-8"
-          >
-            <h2 className="text-xl font-semibold text-neutral-900 mb-6">What's Next?</h2>
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 mb-6 sm:mb-8">
+            <div className="flex items-center gap-2 mb-6 sm:mb-8 justify-center">
+              <div className="h-4 w-1 bg-blue-600 rounded-full" />
+              <h2 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">WHAT'S NEXT</h2>
+            </div>
 
             <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="w-8 h-8 bg-brand-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-brand-600 font-semibold text-sm">1</span>
+              <div className="flex items-start gap-4 text-left">
+                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-bold text-sm">1</span>
                 </div>
-                <div className="text-left">
-                  <h3 className="font-medium text-neutral-900 mb-1">Order Confirmation</h3>
-                  <p className="text-sm text-neutral-500">You'll receive an email confirmation shortly</p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-8 h-8 bg-warning-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-warning-600 font-semibold text-sm">2</span>
-                </div>
-                <div className="text-left">
-                  <h3 className="font-medium text-neutral-900 mb-1">Processing</h3>
-                  <p className="text-sm text-neutral-500">We'll prepare your order for shipment</p>
+                <div>
+                  <h3 className="font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1">ORDER CONFIRMATION</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">You'll receive an email confirmation shortly</p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-4">
-                <div className="w-8 h-8 bg-success-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <span className="text-success-600 font-semibold text-sm">3</span>
+              <div className="flex items-start gap-4 text-left">
+                <div className="w-10 h-10 bg-yellow-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-bold text-sm">2</span>
                 </div>
-                <div className="text-left">
-                  <h3 className="font-medium text-neutral-900 mb-1">Shipping</h3>
-                  <p className="text-sm text-neutral-500">Your order will be shipped and you'll get tracking info</p>
+                <div>
+                  <h3 className="font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1">PROCESSING</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">We'll prepare your order for shipment</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-4 text-left">
+                <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-bold text-sm">3</span>
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1">SHIPPING</h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Your order will be shipped and you'll get tracking info</p>
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Action Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-          >
-            <Button size="lg" onClick={onContinueShopping}>
-              Continue Shopping
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button
+              onClick={onContinueShopping}
+              className="h-12 px-8 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 dark:shadow-none bg-blue-600 hover:bg-blue-700 text-white transition-all flex items-center justify-center gap-2"
+            >
+              CONTINUE SHOPPING
+              <ArrowRight className="h-4 w-4" />
+            </button>
 
-            <Button variant="outline" size="lg" onClick={onViewOrders} className="rounded-xl">
-              View Orders
-            </Button>
-          </motion.div>
+            <button
+              onClick={onViewOrders}
+              className="h-12 px-8 rounded-xl border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 font-semibold text-sm text-gray-700 dark:text-gray-300 transition-all uppercase tracking-wider"
+            >
+              VIEW ORDERS
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
-

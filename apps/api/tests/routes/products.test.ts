@@ -12,20 +12,42 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createTestProduct, deleteAllTestProducts } from '../helpers/fixtures';
+import { getTestPrisma } from '../helpers/db';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('Products Endpoints', () => {
   let app: FastifyInstance;
   let testProduct: Awaited<ReturnType<typeof createTestProduct>>;
+  let hiddenOdooProduct: Awaited<ReturnType<typeof createTestProduct>>;
 
   beforeAll(async () => {
     app = await createTestApp();
+    const prisma = getTestPrisma();
     testProduct = await createTestProduct({
       name: 'Test Product for API',
       description: 'A product for testing',
       price: 99.99,
       stock: 50,
       category: 'electronics',
+    });
+    hiddenOdooProduct = await createTestProduct({
+      name: 'Hidden Odoo Product',
+      description: 'Should not be publicly visible',
+      price: 59.99,
+      stock: 5,
+      category: 'electronics',
+    });
+    await prisma.externalProductLink.create({
+      data: {
+        provider: 'odoo',
+        installationId: 'ins_hidden',
+        storeId: 'store_1',
+        externalProductCode: `ext_${hiddenOdooProduct.id}`,
+        coreProductId: hiddenOdooProduct.id,
+        coreProductSlug: hiddenOdooProduct.slug,
+        sourceIsActive: false,
+        syncStatus: 'DISABLED',
+      },
     });
   });
 
@@ -45,7 +67,11 @@ describe('Products Endpoints', () => {
 
       const body = response.json();
       expect(body).toHaveProperty('data');
-      expect(Array.isArray(body.data.products)).toBe(true);
+      expect(Array.isArray(body.data.items)).toBe(true);
+      expect(body.data.items.some((item: any) => item.id === hiddenOdooProduct.id)).toBe(false);
+      expect(body.data.items[0]).toHaveProperty('typeData');
+      expect(typeof body.data.items[0].typeData).toBe('object');
+      expect(body.data.items[0]).not.toHaveProperty('variants');
     });
 
     it('should support pagination', async () => {
@@ -58,7 +84,7 @@ describe('Products Endpoints', () => {
 
       const body = response.json();
       expect(body).toHaveProperty('data');
-      expect(body.data.products.length).toBeLessThanOrEqual(5);
+      expect(body.data.items.length).toBeLessThanOrEqual(5);
     });
 
     it('should support search query', async () => {
@@ -155,6 +181,18 @@ describe('Products Endpoints', () => {
       expect(body.data.id).toBe(testProduct.id);
       expect(body.data).toHaveProperty('name');
       expect(body.data).toHaveProperty('price');
+      expect(body.data).toHaveProperty('typeData');
+      expect(typeof body.data.typeData).toBe('object');
+      expect(Array.isArray(body.data.variants)).toBe(true);
+    });
+
+    it('should return 404 for source-inactive odoo product', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/products/${hiddenOdooProduct.id}`,
+      });
+
+      expect(response.statusCode).toBe(404);
     });
 
     it('should return 404 for non-existent product', async () => {
@@ -197,7 +235,9 @@ describe('Products Endpoints', () => {
       expect(response.statusCode).toBe(200);
 
       const body = response.json();
-      expect(body).toBeDefined();
+      expect(body).toHaveProperty('success', true);
+      expect(body).toHaveProperty('data');
+      expect(Array.isArray(body.data.items)).toBe(true);
     });
 
     it('should be accessible without authentication', async () => {

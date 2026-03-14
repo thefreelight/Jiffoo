@@ -4,9 +4,8 @@
  * Feature: developer-ecosystem, Property 1: SDK Independence
  * Validates: Requirements 1.3, 2.1, 2.2
  * 
- * For any plugin or theme project, building with only @jiffoo/plugin-sdk
- * or @jiffoo/theme-sdk (without core repository access) SHALL produce
- * a valid, installable package.
+ * For any plugin project, building with only @jiffoo/plugin-sdk
+ * (without core repository access) SHALL produce a valid, installable package.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -22,7 +21,7 @@ import {
 import type { PluginConfig, PluginManifest } from '../types';
 
 // Arbitrary generators for plugin configuration
-const pluginSlugArb = fc.stringMatching(/^[a-z][a-z0-9-]{2,29}$/);
+const pluginSlugArb = fc.stringMatching(/^[a-z][a-z0-9-]{0,30}[a-z0-9]$/);
 const pluginNameArb = fc.string({ minLength: 1, maxLength: 100 });
 const pluginVersionArb = fc.stringMatching(/^\d+\.\d+\.\d+$/);
 const pluginCategoryArb = fc.constantFrom(
@@ -39,32 +38,40 @@ const pluginCategoryArb = fc.constantFrom(
   'other'
 );
 const pluginCapabilityArb = fc.constantFrom(
+  'webhook.receive',
+  'webhook.send',
+  'api.read',
+  'api.write',
+  'admin.panel',
+  'storefront.widget',
+  'checkout.modify',
+  'order.process',
   'payment.process',
   'payment.refund',
   'email.send',
   'email.template',
-  'auth.oauth',
-  'auth.sso',
-  'webhook.receive',
-  'webhook.send',
-  'storage.upload',
-  'storage.download',
   'analytics.track',
   'analytics.report',
   'shipping.calculate',
   'shipping.track',
   'seo.sitemap',
   'seo.meta',
-  'social.share',
-  'social.login'
+  'sms.send',
+  'customer.sync',
+  'inventory.sync',
+  'product.sync'
 );
 
 const pluginConfigArb: fc.Arbitrary<PluginConfig> = fc.record({
+  schemaVersion: fc.constant(1),
   slug: pluginSlugArb,
   name: pluginNameArb,
   version: pluginVersionArb,
   description: fc.string({ minLength: 1, maxLength: 500 }),
   author: fc.string({ minLength: 1, maxLength: 100 }),
+  runtimeType: fc.constant('external-http'),
+  externalBaseUrl: fc.webUrl(),
+  permissions: fc.array(fc.string({ minLength: 1, maxLength: 40 }), { maxLength: 5 }),
   category: pluginCategoryArb,
   capabilities: fc.array(pluginCapabilityArb, { minLength: 1, maxLength: 5 }),
 });
@@ -157,18 +164,20 @@ describe('SDK Independence Property Tests', () => {
    */
   it('manifest validation is deterministic', () => {
     const manifestArb: fc.Arbitrary<PluginManifest> = fc.record({
+      schemaVersion: fc.constant(1),
       slug: pluginSlugArb,
       name: pluginNameArb,
       version: pluginVersionArb,
       description: fc.string({ maxLength: 500 }),
+      author: fc.string({ minLength: 1, maxLength: 100 }),
+      runtimeType: fc.constant('external-http'),
+      externalBaseUrl: fc.webUrl(),
+      permissions: fc.array(fc.string({ minLength: 1, maxLength: 40 }), { maxLength: 5 }),
       category: pluginCategoryArb,
       capabilities: fc.array(pluginCapabilityArb, { minLength: 1, maxLength: 5 }),
-      author: fc.string({ minLength: 1, maxLength: 100 }),
       license: fc.constant('GPL-3.0'),
       homepage: fc.option(fc.webUrl(), { nil: undefined }),
       repository: fc.option(fc.webUrl(), { nil: undefined }),
-      sdkVersion: fc.constant(SDK_VERSION),
-      platformCompatibility: fc.constant(PLATFORM_COMPATIBILITY),
     });
     
     fc.assert(

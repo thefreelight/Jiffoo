@@ -15,7 +15,9 @@ export function ExampleAdminLoggedComponent() {
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback;
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
   };
   const [selectedUser, setSelectedUser] = useState('user-123');
   const [selectedProduct, setSelectedProduct] = useState('product-456');

@@ -3,7 +3,7 @@
 import { cn } from '../../utils/cn';
 
 export interface ProductGridProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   columns?: {
     sm?: number;
     md?: number;

@@ -1,6 +1,7 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { JwtUtils } from '@/utils/jwt';
-import { prisma } from '@/config/database';
+import { sendError } from '@/utils/response';
+import { findAuthIdentityById } from './user-compat';
 
 /**
  * Auth Middleware
@@ -18,36 +19,24 @@ export async function authMiddleware(
   try {
     const authHeader = request.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return reply.status(401).send({
-        success: false,
-        error: 'Unauthorized',
-        message: 'Missing or invalid authorization header'
-      });
+      return sendError(reply, 401, 'UNAUTHORIZED', 'Missing or invalid authorization header');
     }
 
     const token = authHeader.substring(7);
     if (!token) {
-      return reply.status(401).send({
-        success: false,
-        error: 'Unauthorized',
-        message: 'Missing authentication token'
-      });
+      return sendError(reply, 401, 'UNAUTHORIZED', 'Missing authentication token');
     }
 
     const payload = JwtUtils.verify(token);
 
     // Get user info from database
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: { id: true, email: true, username: true, role: true }
-    });
+    const user = await findAuthIdentityById(payload.userId);
 
     if (!user) {
-      return reply.status(401).send({
-        success: false,
-        error: 'Unauthorized',
-        message: 'User not found'
-      });
+      return sendError(reply, 401, 'UNAUTHORIZED', 'User not found');
+    }
+    if (!user.isActive) {
+      return sendError(reply, 403, 'FORBIDDEN', 'Account is inactive');
     }
 
     // Simplified permission system: Role based permissions
@@ -60,16 +49,13 @@ export async function authMiddleware(
       email: user.email,
       username: user.username || user.email.split('@')[0],
       role: user.role,
+      emailVerified: user.emailVerified,
       permissions,
       roles,
     };
 
   } catch {
-    return reply.status(401).send({
-      success: false,
-      error: 'Unauthorized',
-      message: 'Invalid or expired token'
-    });
+    return sendError(reply, 401, 'UNAUTHORIZED', 'Invalid or expired token');
   }
 }
 
@@ -91,18 +77,16 @@ export async function optionalAuthMiddleware(
 
     const payload = JwtUtils.verify(token);
 
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: { id: true, email: true, username: true, role: true }
-    });
+    const user = await findAuthIdentityById(payload.userId);
 
-    if (user) {
+    if (user && user.isActive) {
       request.user = {
         id: user.id,
         userId: user.id,
         email: user.email,
         username: user.username || user.email.split('@')[0],
         role: user.role,
+        emailVerified: user.emailVerified,
         permissions: user.role === 'ADMIN' ? ['*'] : [],
         roles: [user.role],
       };
@@ -120,6 +104,23 @@ export async function requireAdmin(
   reply: FastifyReply
 ) {
   if (!request.user) {
+    return sendError(reply, 401, 'UNAUTHORIZED', 'Authentication required');
+  }
+
+  // Allow only ADMIN role
+  if (request.user.role !== 'ADMIN') {
+    return sendError(reply, 403, 'FORBIDDEN', 'Admin access required');
+  }
+}
+
+/**
+ * Email verification check middleware
+ */
+export async function requireEmailVerified(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  if (!request.user) {
     return reply.status(401).send({
       success: false,
       error: 'Unauthorized',
@@ -127,12 +128,12 @@ export async function requireAdmin(
     });
   }
 
-  // Allow only ADMIN role
-  if (request.user.role !== 'ADMIN') {
+  // Check if email is verified
+  if (!request.user.emailVerified) {
     return reply.status(403).send({
       success: false,
       error: 'Forbidden',
-      message: 'Admin access required'
+      message: 'Email verification required'
     });
   }
 }
@@ -143,19 +144,11 @@ export async function requireAdmin(
 export function requireRole(...allowedRoles: string[]) {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     if (!request.user) {
-      return reply.status(401).send({
-        success: false,
-        error: 'Unauthorized',
-        message: 'Authentication required'
-      });
+      return sendError(reply, 401, 'UNAUTHORIZED', 'Authentication required');
     }
 
     if (!allowedRoles.includes(request.user.role)) {
-      return reply.status(403).send({
-        success: false,
-        error: 'Forbidden',
-        message: `Required role: ${allowedRoles.join(' or ')}`
-      });
+      return sendError(reply, 403, 'FORBIDDEN', `Required role: ${allowedRoles.join(' or ')}`);
     }
   };
 }

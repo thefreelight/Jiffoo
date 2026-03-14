@@ -16,8 +16,15 @@ import { useT } from 'shared/src/i18n/react';
 export default function ProfilePage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
   const nav = useLocalizedNavigation();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, isLoading, getProfile } = useAuthStore();
   const t = useT();
+
+  // Fetch user profile on mount
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      getProfile();
+    }
+  }, [isAuthenticated, getProfile]);
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -67,7 +74,7 @@ export default function ProfilePage() {
         avatar: user.avatar,
         createdAt: user.createdAt,
       } : null}
-      isLoading={false}
+      isLoading={isLoading}
       isAuthenticated={isAuthenticated}
       config={config}
       locale={nav.locale}

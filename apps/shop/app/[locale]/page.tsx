@@ -2,6 +2,7 @@
  * Home Page for Shop Application
  *
  * Renders the theme-provided HomePage component with i18n support.
+ * If a Theme Pack provides a home template, it will be rendered via TemplateRenderer.
  */
 
 'use client';
@@ -9,11 +10,17 @@
 import { useShopTheme } from '@/lib/themes/provider';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useT } from 'shared/src/i18n/react';
+import { TemplateRenderer } from '@/lib/theme-pack';
+import { PersonalizedRecommendations } from '@/components/recommendations/PersonalizedRecommendations';
+import { useThemePackOptional } from '@/lib/theme-pack/runtime';
+import { getEmbeddedRendererSlug } from '@/lib/theme-pack/rendering-mode';
 
 export default function HomePage() {
   const { theme, config, isLoading } = useShopTheme();
   const nav = useLocalizedNavigation();
   const t = useT();
+  const themePack = useThemePackOptional();
+  const embeddedRendererSlug = getEmbeddedRendererSlug(themePack?.manifest);
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -70,7 +77,17 @@ export default function HomePage() {
 
   // Render with theme component
   const HomePageComponent = theme.components.HomePage;
+  const defaultHomePage = (
+    <>
+      <HomePageComponent config={config} onNavigate={handleNavigate} locale={nav.locale} t={t} />
+      {!embeddedRendererSlug ? (
+        <div className="container mx-auto px-4">
+          <PersonalizedRecommendations limit={8} />
+        </div>
+      ) : null}
+    </>
+  );
 
-  return <HomePageComponent config={config} onNavigate={handleNavigate} locale={nav.locale} t={t} />;
+  // Use TemplateRenderer: if Theme Pack provides home.json template, render it; otherwise fallback to default
+  return <TemplateRenderer page="home" fallback={defaultHomePage} />;
 }
-

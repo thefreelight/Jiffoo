@@ -10,15 +10,22 @@ export interface ThemeMeta {
   author?: string;
   category?: string;
   previewImage?: string;
-  source: 'builtin' | 'installed';
+  source: 'builtin' | 'installed' | 'local-zip' | 'official-market';
+  type?: 'pack' | 'app';
+  target?: 'shop' | 'admin';
 }
 
 export interface ActiveTheme {
   slug: string;
   version: string;
-  source: 'builtin' | 'installed';
+  source: 'builtin' | 'installed' | 'local-zip' | 'official-market';
+  type: 'pack' | 'app'; // Required: 'pack' for Theme Pack, 'app' for Theme App
   config: Record<string, unknown>;
   activatedAt: string;
+  previousSlug?: string;
+  // Only present when type='app'
+  baseUrl?: string;
+  port?: number;
 }
 
 export interface ThemeConfig {
@@ -36,7 +43,6 @@ export interface ActivateThemeInput {
 }
 
 export interface InstalledThemesResponse {
-  themes: ThemeMeta[];
+  items: ThemeMeta[];
   total: number;
 }
-

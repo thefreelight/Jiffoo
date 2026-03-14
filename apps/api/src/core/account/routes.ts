@@ -1,7 +1,48 @@
 import { FastifyInstance } from 'fastify';
 import { AccountService } from './service';
-import { UpdateProfileSchema } from './types';
+import { UpdateEmailSchema, UpdateProfileSchema } from './types';
 import { authMiddleware } from '@/core/auth/middleware';
+import { sendSuccess, sendError } from '@/utils/response';
+import { UploadService } from '@/core/upload/service';
+import { mapAccountRouteError } from '@/utils/route-error-mapper';
+import {
+  uploadResultSchema,
+  createTypedCrudResponses,
+  createTypedReadResponses,
+  createTypedUpdateResponses,
+} from '@/types/common-dto';
+
+const userProfileSchema = {
+  type: 'object',
+  properties: {
+    id: { type: 'string' },
+    email: { type: 'string' },
+    username: { type: 'string' },
+    avatar: { type: ['string', 'null'] },
+    role: { type: 'string' },
+    isActive: { type: 'boolean' },
+    orderCount: { type: 'number' },
+    totalOrders: { type: 'number' },
+    totalSpent: { type: 'number' },
+    createdAt: { type: 'string', format: 'date-time' },
+    updatedAt: { type: 'string', format: 'date-time' },
+    languagePreferences: {
+      type: ['object', 'null'],
+      properties: {
+        preferredLanguage: { type: 'string' },
+        timezone: { type: 'string' },
+        dateFormat: { type: 'string' },
+        timeFormat: { type: 'string' },
+        numberFormat: { type: 'string' },
+        currencyFormat: { type: 'string' },
+      },
+      required: ['preferredLanguage', 'timezone', 'dateFormat', 'timeFormat', 'numberFormat', 'currencyFormat'],
+      additionalProperties: false,
+    },
+  },
+  required: ['id', 'email', 'username', 'avatar', 'role', 'isActive', 'orderCount', 'totalOrders', 'totalSpent', 'createdAt', 'updatedAt'],
+  additionalProperties: false,
+} as const;
 
 /**
  * User Account Routes
@@ -23,66 +64,19 @@ export async function accountRoutes(fastify: FastifyInstance) {
       summary: 'Get User Profile',
       description: 'Get current user profile information',
       security: [{ bearerAuth: [] }],
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                email: { type: 'string' },
-                username: { type: 'string' },
-                avatar: { type: 'string' },
-                createdAt: { type: 'string' },
-                updatedAt: { type: 'string' },
-                languagePreferences: {
-                  type: 'object',
-                  properties: {
-                    preferredLanguage: { type: 'string' },
-                    timezone: { type: 'string' },
-                    dateFormat: { type: 'string' },
-                    timeFormat: { type: 'string' },
-                    numberFormat: { type: 'string' },
-                    currencyFormat: { type: 'string' }
-                  }
-                }
-              }
-            }
-          }
-        },
-        401: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            error: { type: 'string' },
-            message: { type: 'string' }
-          }
-        }
-      }
+      response: createTypedReadResponses(userProfileSchema),
     }
   }, async (request, reply) => {
     try {
-      const profile = await AccountService.getProfile(request.user!.userId);
-
-      return reply.send({
-        success: true,
-        data: profile
+      const profile = await AccountService.getProfile(request.user!.id);
+      return sendSuccess(reply, profile);
+    } catch (error: unknown) {
+      const mapped = mapAccountRouteError(error, {
+        defaultStatus: 500,
+        defaultCode: 'INTERNAL_SERVER_ERROR',
+        defaultMessage: 'Failed to get profile',
       });
-    } catch (error) {
-      return reply.status(500).send({
-        success: false,
-        error: 'Failed to get profile',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
     }
   });
 
@@ -103,61 +97,92 @@ export async function accountRoutes(fastify: FastifyInstance) {
           avatar: { type: 'string' }
         }
       },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: {
-              type: 'object',
-              properties: {
-                id: { type: 'string' },
-                email: { type: 'string' },
-                username: { type: 'string' },
-                avatar: { type: 'string' },
-                createdAt: { type: 'string' },
-                updatedAt: { type: 'string' }
-              }
-            },
-            message: { type: 'string' }
-          }
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' },
-            message: { type: 'string' }
-          }
-        },
-        401: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        }
-      }
+      response: createTypedUpdateResponses(userProfileSchema),
     }
   }, async (request, reply) => {
     try {
       const updateData = UpdateProfileSchema.parse(request.body);
       const updatedProfile = await AccountService.updateProfile(
-        request.user!.userId,
+        request.user!.id,
         updateData
       );
+      return sendSuccess(reply, updatedProfile, 'Profile updated successfully');
+    } catch (error: unknown) {
+      const mapped = mapAccountRouteError(error, {
+        defaultStatus: 500,
+        defaultCode: 'INTERNAL_SERVER_ERROR',
+        defaultMessage: 'Failed to update profile',
+      });
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
+    }
+  });
 
-      return reply.send({
-        success: true,
-        data: updatedProfile,
-        message: 'Profile updated successfully'
+  /**
+   * Update account email
+   * PUT /api/account/email
+   */
+  fastify.put('/email', {
+    schema: {
+      tags: ['account'],
+      summary: 'Update account email',
+      description: 'Update current user email, requires current password confirmation',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['newEmail', 'currentPassword'],
+        properties: {
+          newEmail: { type: 'string', format: 'email' },
+          currentPassword: { type: 'string', minLength: 1 },
+        },
+      },
+      response: createTypedUpdateResponses(userProfileSchema),
+    }
+  }, async (request, reply) => {
+    try {
+      const updateData = UpdateEmailSchema.parse(request.body);
+      const updatedProfile = await AccountService.updateEmail(request.user!.id, updateData);
+      return sendSuccess(reply, updatedProfile, 'Email updated successfully');
+    } catch (error: unknown) {
+      const mapped = mapAccountRouteError(error, {
+        defaultStatus: 500,
+        defaultCode: 'INTERNAL_SERVER_ERROR',
+        defaultMessage: 'Failed to update email',
       });
-    } catch (error) {
-      return reply.status(400).send({
-        success: false,
-        error: 'Failed to update profile',
-        message: error instanceof Error ? error.message : 'Unknown error'
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
+    }
+  });
+
+  /**
+   * Upload avatar
+   * POST /api/account/avatar
+   */
+  fastify.post('/avatar', {
+    preHandler: [authMiddleware],
+    schema: {
+      tags: ['account'],
+      summary: 'Upload Avatar',
+      description: 'Upload user avatar image, supports JPEG, PNG, WebP formats, max 5MB',
+      security: [{ bearerAuth: [] }],
+      consumes: ['multipart/form-data'],
+      response: createTypedCrudResponses(uploadResultSchema),
+    }
+  }, async (request, reply) => {
+    try {
+      const data = await request.file();
+
+      if (!data) {
+        return sendError(reply, 400, 'BAD_REQUEST', 'No file uploaded');
+      }
+
+      const result = await UploadService.uploadProductImage(data);
+      return sendSuccess(reply, result);
+    } catch (error: unknown) {
+      const mapped = mapAccountRouteError(error, {
+        defaultStatus: 500,
+        defaultCode: 'INTERNAL_SERVER_ERROR',
+        defaultMessage: 'Upload failed',
       });
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
     }
   });
 

@@ -1,49 +1,12 @@
-export interface CartItem {
-  id: string;
-  productId: string;
-  productName: string;
-  productImage: string;
-  price: number;
-  originalPrice?: number;
-  quantity: number;
-  variantId?: string;
-  variantName?: string;
-  maxQuantity: number;
-  subtotal: number;
-  isAvailable: boolean;
-}
+/**
+ * Cart-related types
+ *
+ * NOTE: The canonical response types live in `./dto/cart-dto.ts`.
+ * This file re-exports them as `Cart` / `CartItem` for convenience,
+ * so that existing consumers (`theme.ts`, `shop/store/cart.ts`, etc.)
+ * can keep using the shorter names without breaking imports.
+ */
 
-export interface Cart {
-  id?: string;
-  userId?: string;
-  items: CartItem[];
-  itemCount: number;
-  subtotal: number;
-  tax: number;
-  shipping: number;
-  discount: number;
-  total: number;
-  currency: string;
-  updatedAt: string;
-}
-
-export interface AddToCartRequest {
-  productId: string;
-  quantity: number;
-  variantId?: string;
-}
-
-export interface UpdateCartItemRequest {
-  itemId: string;
-  quantity: number;
-}
-
-export interface CartSummary {
-  itemCount: number;
-  subtotal: number;
-  tax: number;
-  shipping: number;
-  discount: number;
-  total: number;
-  currency: string;
-}
+export type { CartDTO as Cart, CartItemDTO as CartItem } from './dto/cart-dto';
+export type { AddToCartRequestDTO as AddToCartRequest } from './dto/cart-dto';
+export type { UpdateCartItemRequestDTO as UpdateCartItemRequest } from './dto/cart-dto';

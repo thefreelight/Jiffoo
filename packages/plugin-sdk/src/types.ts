@@ -4,17 +4,33 @@
  * Core type definitions for external plugin development.
  */
 
+import type {
+  PluginApiVersionRange,
+  LifecycleHookName as SharedLifecycleHookName,
+  PluginCategory,
+  PluginLifecycleDeclaration,
+  PluginManifest as SharedPluginManifest,
+  PluginRuntimeType as SharedPluginRuntimeType,
+  PluginThemeExtensions,
+} from 'shared';
+
 /**
  * Platform request headers sent with every request
+ * Updated to match actual gateway implementation (EXTENSIONS_IMPLEMENTATION.md)
  */
 export interface PlatformHeaders {
   'x-platform-id': string;
-  'x-platform-env': string;
-  'x-platform-timestamp': string;
   'x-plugin-slug': string;
   'x-installation-id': string;
-  'x-platform-signature': string;
+  'x-installation-key': string;
   'x-user-id'?: string;
+  'x-user-role'?: string;
+  'x-request-id'?: string;
+  'x-locale'?: string;
+  'x-caller'?: string;
+  'x-platform-version'?: string;
+  'x-platform-api-base-url'?: string;
+  'x-platform-integration-token'?: string;
 }
 
 /**
@@ -22,12 +38,21 @@ export interface PlatformHeaders {
  */
 export interface PluginContext {
   platformId: string;
-  environment: string;
-  timestamp: string;
   pluginSlug: string;
   installationId: string;
-  signature: string;
+  installationKey: string;
   userId?: string;
+  userRole?: string;
+  requestId?: string;
+  locale?: string;
+  caller?: string;
+  platformVersion?: string;
+  platformApiBaseUrl?: string;
+  platformIntegrationToken?: string;
+  /** Platform signature for request verification */
+  signature: string;
+  /** Request timestamp for replay attack prevention */
+  timestamp: string;
 }
 
 /**
@@ -57,23 +82,14 @@ export interface UninstallRequest {
 }
 
 /**
- * Plugin manifest structure
+ * Plugin runtime types
  */
-export interface PluginManifest {
-  slug: string;
-  name: string;
-  version: string;
-  description: string;
-  author: string;
-  category: 'payment' | 'email' | 'integration' | 'theme' | 'analytics' | 'marketing' | 'shipping' | 'seo' | 'social' | 'security' | 'other';
-  capabilities: string[];
-  requiredScopes?: string[];
-  webhooks?: {
-    events: string[];
-    url: string;
-  };
-  configSchema?: Record<string, any>;
-}
+export type PluginRuntimeType = SharedPluginRuntimeType;
+
+/**
+ * Plugin manifest structure (aligned with EXTENSIONS_BLUEPRINT.md v1)
+ */
+export type PluginManifest = SharedPluginManifest;
 
 /**
  * Health check response
@@ -130,21 +146,8 @@ export type NextFunction = (error?: any) => void;
 /**
  * Plugin configuration for definePlugin()
  */
-export interface PluginConfig {
-  slug: string;
-  name: string;
-  version: string;
+export interface PluginConfig extends Omit<PluginManifest, 'description'> {
   description?: string;
-  author?: string;
-  category: 'payment' | 'email' | 'integration' | 'theme' | 'analytics' | 'marketing' | 'shipping' | 'seo' | 'social' | 'security' | 'other';
-  capabilities: string[];
-  requiredScopes?: string[];
-  webhooks?: {
-    events: string[];
-    url: string;
-  };
-  configSchema?: Record<string, any>;
-
   // Lifecycle hooks
   onInstall?: (context: PluginContext) => Promise<void>;
   onUninstall?: (context: PluginContext) => Promise<void>;
@@ -231,3 +234,84 @@ export interface Plugin {
   cleanup(context: PluginContext): Promise<void>;
 }
 
+/**
+ * Version requirement specification for compatibility checking
+ */
+export type VersionRequirement = PluginApiVersionRange;
+
+/**
+ * Version compatibility check result
+ */
+export interface VersionCompatibilityResult {
+  /** Whether the plugin is compatible */
+  compatible: boolean;
+  /** Plugin version being checked */
+  pluginVersion: string;
+  /** Platform version being checked against */
+  platformVersion: string;
+  /** SDK version used for checking */
+  sdkVersion: string;
+  /** Warning messages (non-blocking issues) */
+  warnings: string[];
+  /** Error messages (blocking issues) */
+  errors: string[];
+  /** Human-readable message describing the result */
+  message: string;
+}
+
+// ============================================================================
+// Service Token Types (§4.6)
+// ============================================================================
+
+/** Plugin service token payload (decoded from JWT) */
+export interface PluginServiceTokenPayload {
+  sub: string; // installationId
+  pluginSlug: string;
+  grantedPermissions: string[];
+  iss: string; // 'jiffoo-platform'
+  type: 'plugin-service';
+  exp: number;
+  iat: number;
+}
+
+// ============================================================================
+// Webhook Types (§4.7)
+// ============================================================================
+
+/** Webhook event envelope */
+export interface WebhookEventEnvelope {
+  id: string;
+  type: string; // e.g., 'order.created'
+  timestamp: string;
+  payload: unknown;
+}
+
+// ============================================================================
+// Lifecycle Hook Types (§4.5)
+// ============================================================================
+
+/** Lifecycle hook names */
+export type LifecycleHookName = SharedLifecycleHookName;
+
+/** Lifecycle hook context from the platform */
+export interface LifecycleContext {
+  installationId: string;
+  pluginSlug: string;
+  instanceKey: string;
+  config: Record<string, unknown>;
+  previousVersion?: string;
+}
+
+// ============================================================================
+// Manifest Extensions (§4.5-4.9)
+// ============================================================================
+
+/** Extended manifest with lifecycle, webhooks, and theme extensions */
+export type ExtendedPluginManifest = PluginManifest;
+
+export type {
+  PluginApiVersionRange,
+  PluginCategory,
+  PluginLifecycleDeclaration,
+  PluginThemeExtensions,
+};

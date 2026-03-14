@@ -5,62 +5,29 @@
  */
 
 import { PluginManifest, PluginConfig } from './types';
+import { ValidationError, ValidationResult } from 'shared';
+import {
+    PLUGIN_CAPABILITIES,
+    PLUGIN_CATEGORIES,
+    getPluginManifestIssues,
+} from 'shared';
+
+// Re-export validation types for backwards compatibility
+export type { ValidationError, ValidationResult };
 
 /**
  * Valid plugin categories
  */
 export const VALID_CATEGORIES = [
-    'payment',
-    'email',
-    'integration',
-    'theme',
-    'analytics',
-    'marketing',
-    'shipping',
-    'seo',
-    'social',
-    'security',
-    'other'
+    ...PLUGIN_CATEGORIES
 ] as const;
 
 /**
  * Valid plugin capabilities
  */
 export const VALID_CAPABILITIES = [
-    'webhook.receive',
-    'webhook.send',
-    'api.read',
-    'api.write',
-    'admin.panel',
-    'storefront.widget',
-    'checkout.modify',
-    'order.process',
-    'payment.process',
-    'shipping.calculate',
-    'email.send',
-    'sms.send',
-    'analytics.track',
-    'customer.sync',
-    'inventory.sync',
-    'product.sync'
+    ...PLUGIN_CAPABILITIES
 ] as const;
-
-/**
- * Validation error
- */
-export interface ValidationError {
-    path: string;
-    message: string;
-    code: string;
-}
-
-/**
- * Validation result
- */
-export interface ValidationResult {
-    valid: boolean;
-    errors: ValidationError[];
-}
 
 /**
  * Settings field types
@@ -102,55 +69,23 @@ export interface SettingsSchema {
 }
 
 /**
- * Validate a plugin manifest
+ * Validate a plugin manifest (aligned with EXTENSIONS_BLUEPRINT.md v1)
  */
 export function validateManifest(manifest: Partial<PluginManifest | PluginConfig>): ValidationResult {
-    const errors: ValidationError[] = [];
-
-    // Required fields
-    if (!manifest.slug) {
-        errors.push({ path: 'slug', message: 'Plugin slug is required', code: 'REQUIRED' });
-    } else if (!/^[a-z0-9-]+$/.test(manifest.slug)) {
-        errors.push({ path: 'slug', message: 'Slug must be lowercase alphanumeric with hyphens', code: 'FORMAT' });
-    }
-
-    if (!manifest.name) {
-        errors.push({ path: 'name', message: 'Plugin name is required', code: 'REQUIRED' });
-    }
-
-    if (!manifest.version) {
-        errors.push({ path: 'version', message: 'Plugin version is required', code: 'REQUIRED' });
-    } else if (!/^\d+\.\d+\.\d+/.test(manifest.version)) {
-        errors.push({ path: 'version', message: 'Version must follow semver format', code: 'FORMAT' });
-    }
-
-    if (!manifest.category) {
-        errors.push({ path: 'category', message: 'Plugin category is required', code: 'REQUIRED' });
-    } else if (!VALID_CATEGORIES.includes(manifest.category as any)) {
-        errors.push({
-            path: 'category',
-            message: `Invalid category. Must be one of: ${VALID_CATEGORIES.join(', ')}`,
-            code: 'INVALID'
-        });
-    }
-
-    if (!manifest.capabilities || !Array.isArray(manifest.capabilities)) {
-        errors.push({ path: 'capabilities', message: 'Plugin capabilities array is required', code: 'REQUIRED' });
-    } else {
-        manifest.capabilities.forEach((cap, index) => {
-            if (!VALID_CAPABILITIES.includes(cap as any)) {
-                errors.push({
-                    path: `capabilities[${index}]`,
-                    message: `Invalid capability: ${cap}`,
-                    code: 'INVALID'
-                });
-            }
-        });
-    }
+    const normalizedManifest = {
+        ...manifest,
+        description: manifest.description ?? '',
+    };
+    const errors: ValidationError[] = getPluginManifestIssues(normalizedManifest).map((issue) => ({
+        path: issue.path,
+        message: issue.message,
+        code: issue.code,
+    }));
 
     return {
         valid: errors.length === 0,
-        errors
+        errors,
+        warnings: []
     };
 }
 
@@ -162,7 +97,7 @@ export function validateSettingsSchema(schema: SettingsSchema): ValidationResult
 
     if (!schema.fields || !Array.isArray(schema.fields)) {
         errors.push({ path: 'fields', message: 'Settings schema must have fields array', code: 'REQUIRED' });
-        return { valid: false, errors };
+        return { valid: false, errors, warnings: [] };
     }
 
     schema.fields.forEach((field, index) => {
@@ -184,7 +119,8 @@ export function validateSettingsSchema(schema: SettingsSchema): ValidationResult
 
     return {
         valid: errors.length === 0,
-        errors
+        errors,
+        warnings: []
     };
 }
 
@@ -267,6 +203,7 @@ export function validateSettings(
 
     return {
         valid: errors.length === 0,
-        errors
+        errors,
+        warnings: []
     };
 }

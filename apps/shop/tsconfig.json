@@ -5,9 +5,7 @@
       "dom.iterable",
       "es6"
     ],
-    "types": [
-      "@testing-library/jest-dom"
-    ],
+    "types": ["vitest/globals"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -50,6 +48,18 @@
       "@shop-themes/*": [
         "../../packages/shop-themes/*"
       ],
+      "@jiffoo/theme-api-sdk": [
+        "../../packages/theme-api-sdk/src/index.ts"
+      ],
+      "@jiffoo/core-api-sdk": [
+        "../../packages/core-api-sdk/src/index.ts"
+      ],
+      "@jiffoo/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@jiffoo/ui/*": [
+        "../../packages/ui/src/*"
+      ],
       "shared": [
         "../../packages/shared"
       ],
@@ -63,10 +73,11 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
+    "../../packages/shop-themes/default/src/**/*.ts",
+    "../../packages/shop-themes/default/src/**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "../../packages/shop-themes/*/src/**/*.ts",
-    "../../packages/shop-themes/*/src/**/*.tsx"
+    ".next/dev/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

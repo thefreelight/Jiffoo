@@ -7,58 +7,46 @@
 
 'use client'
 
-import { AlertTriangle, Box, CheckCircle, Clock, DollarSign, Eye, Plus, ShoppingBag, Users } from 'lucide-react'
+import { AlertTriangle, Box, DollarSign, ShoppingBag, Users, Eye, Plus } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { StatsCard } from '@/components/dashboard/stats-card'
 import { SalesChannelChart, RealTimeOrdersChart } from '@/components/dashboard/charts'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { ErrorStatsWidget } from '@/components/error-stats'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { useDashboardStats, useOrders, useInstalledPlugins } from '@/lib/hooks/use-api'
-import { cacheApi } from '@/lib/api'
-import { Order } from '@/lib/types'
-import { useQuery } from '@tanstack/react-query'
-import { useT } from 'shared/src/i18n/react'
-
-
-
+import { formatCurrency, cn } from '@/lib/utils'
+import { useAdminDashboard } from '@/lib/hooks/use-api'
+import { useT, useLocale } from 'shared/src/i18n/react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import { format } from "date-fns"
+import { LoadingState, ErrorState } from '@/components/ui/state-components'
 
 export default function DashboardPage() {
   const t = useT()
+  const router = useRouter()
+  const locale = useLocale()
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback
+    if (!t) return fallback
+    const translated = t(key)
+    return translated === key ? fallback : translated
   }
 
-  // Use API hooks for real data
-  const { data: stats, isLoading: statsLoading, error: statsError } = useDashboardStats()
-  const { data: ordersData, isLoading: ordersLoading } = useOrders({ limit: 5 })
-  const { data: pluginsData, isLoading: pluginsLoading } = useInstalledPlugins()
-  const { data: cacheStats, isLoading: cacheLoading } = useQuery({
-    queryKey: ['cacheStats'],
-    queryFn: async () => {
-      try {
-        const response = await cacheApi.getStats()
-        return response.data ?? { totalKeys: 0, memoryUsage: 0, hitRate: 0 }
-      } catch {
-        return { totalKeys: 0, memoryUsage: 0, hitRate: 0 }
-      }
-    },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  })
+  // Use API hooks for real data - Single Aggregated Call
+  const { data, isLoading, error } = useAdminDashboard()
+  const stats = data // Alias for easier access
+  const metricStats = stats?.metrics
 
-  // Calculate system status from real data
-  const systemStatus = {
-    plugins: {
-      active: Array.isArray(pluginsData) ? pluginsData.filter((p: any) => p.enabled).length : 0,
-      total: Array.isArray(pluginsData) ? pluginsData.length : 0
-    },
-    cacheKeys: cacheStats?.totalKeys || 0,
-    cacheHitRate: cacheStats?.hitRate ? `${(cacheStats.hitRate * 100).toFixed(1)}%` : 'N/A'
+  const loading = isLoading
+
+  const toTrendDisplay = (value: number | undefined) => {
+    const trendValue = value ?? 0
+    return {
+      change: `${Math.abs(trendValue).toFixed(2)}%`,
+      changeType: trendValue >= 0 ? 'increase' as const : 'decrease' as const,
+    }
   }
-
-  const loading = statsLoading || ordersLoading || pluginsLoading || cacheLoading
-  const recentOrders = Array.isArray(ordersData?.data) ? ordersData.data : (ordersData?.data?.data || [])
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -73,93 +61,149 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">{getText('merchant.dashboard.loading', 'Loading dashboard...')}</p>
-        </div>
-      </div>
+      <LoadingState
+        type="spinner"
+        message={getText('merchant.dashboard.loading', 'Loading dashboard...')}
+        fullPage
+      />
     )
   }
 
-  if (statsError) {
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">{getText('merchant.dashboard.loadFailed', 'Failed to load dashboard data')}</p>
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => window.location.reload()}
-          >
-            {getText('merchant.dashboard.retry', 'Retry')}
-          </Button>
-        </div>
-      </div>
+      <ErrorState
+        title={getText('merchant.dashboard.loadFailed', 'Failed to load dashboard data')}
+        error={error}
+        onRetry={() => window.location.reload()}
+        fullPage
+      />
     )
   }
 
   return (
-    <div className="space-y-6">
-      {/* Welcome Section */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-[#0F172A]">{getText('merchant.dashboard.welcome', 'Welcome back!')}</h1>
-          <p className="text-[#64748B]">{getText('merchant.dashboard.welcomeSubtitle', "Here's what's happening with your store today.")}</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="outline" size="sm" className="border-[#E2E8F0] text-[#0F172A] hover:border-[#3B82F6] hover:text-[#3B82F6]">
-            <Eye className="w-4 h-4 mr-2" />
-            {getText('merchant.dashboard.viewStore', 'View Store')}
-          </Button>
-          <Button size="sm" className="bg-[#3B82F6] hover:bg-[#2563EB] text-white">
-            <Plus className="w-4 h-4 mr-2" />
-            {getText('merchant.dashboard.addProduct', 'Add Product')}
-          </Button>
+    <div className="w-full bg-[#fcfdfe] min-h-screen">
+      {/* Header Bar */}
+      <div className="border-b border-gray-100 pl-20 pr-8 lg:px-8 py-4 sticky top-0 bg-white/80 backdrop-blur-md z-50 flex items-center justify-between">
+        <div className="flex flex-col">
+          <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
+            {getText('merchant.dashboard.title', 'Control Center')}
+          </h1>
+          <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest mt-1">Operational Analytics</span>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
-          title={getText('merchant.dashboard.totalRevenue', 'Total Revenue')}
-          value={`¥${stats?.totalRevenue?.toLocaleString() || '0'}`}
-          change={`${(stats?.revenueGrowth ?? 0) > 0 ? '+' : ''}${stats?.revenueGrowth ?? 0}%`}
-          changeType={(stats?.revenueGrowth ?? 0) >= 0 ? "increase" : "decrease"}
-          color="blue"
-          icon={<DollarSign className="w-5 h-5" />}
-        />
-        <StatsCard
-          title={getText('merchant.dashboard.totalOrders', 'Total Orders')}
-          value={stats?.totalOrders?.toLocaleString() || '0'}
-          change={`${(stats?.orderGrowth ?? 0) > 0 ? '+' : ''}${stats?.orderGrowth ?? 0}%`}
-          changeType={(stats?.orderGrowth ?? 0) >= 0 ? "increase" : "decrease"}
-          color="green"
-          icon={<ShoppingBag className="w-5 h-5" />}
-        />
-        <StatsCard
-          title={getText('merchant.dashboard.totalProducts', 'Total Products')}
-          value={stats?.totalProducts?.toLocaleString() || '0'}
-          change={`${(stats?.productGrowth ?? 0) > 0 ? '+' : ''}${stats?.productGrowth ?? 0}%`}
-          changeType={(stats?.productGrowth ?? 0) >= 0 ? "increase" : "decrease"}
-          color="purple"
-          icon={<Box className="w-5 h-5" />}
-        />
-        <StatsCard
-          title={getText('merchant.dashboard.totalUsers', 'Total Users')}
-          value={stats?.totalUsers?.toLocaleString() || '0'}
-          change={`${(stats?.userGrowth ?? 0) > 0 ? '+' : ''}${stats?.userGrowth ?? 0}%`}
-          changeType={(stats?.userGrowth ?? 0) >= 0 ? "increase" : "decrease"}
-          color="orange"
-          icon={<Users className="w-5 h-5" />}
-        />
-      </div>
+      <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-4 sm:py-6 space-y-6">
+        {/* Stats Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <StatsCard
+            title={getText('merchant.dashboard.totalRevenue', 'Gross Valuation')}
+            value={formatCurrency(metricStats?.totalRevenue || 0, metricStats?.currency)}
+            change={toTrendDisplay(metricStats?.totalRevenueTrend).change}
+            changeType={toTrendDisplay(metricStats?.totalRevenueTrend).changeType}
+            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
+            color="blue"
+            icon={<DollarSign className="w-6 h-6" />}
+            className="p-6"
+          />
+          <StatsCard
+            title={getText('merchant.dashboard.totalOrders', 'Transaction Flow')}
+            value={metricStats?.totalOrders?.toLocaleString() || '0'}
+            change={toTrendDisplay(metricStats?.totalOrdersTrend).change}
+            changeType={toTrendDisplay(metricStats?.totalOrdersTrend).changeType}
+            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
+            color="green"
+            icon={<ShoppingBag className="w-6 h-6" />}
+            className="p-6"
+          />
+          <StatsCard
+            title={getText('merchant.dashboard.totalProducts', 'Active Assets')}
+            value={metricStats?.totalProducts?.toLocaleString() || '0'}
+            change={toTrendDisplay(metricStats?.totalProductsTrend).change}
+            changeType={toTrendDisplay(metricStats?.totalProductsTrend).changeType}
+            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
+            color="purple"
+            icon={<Box className="w-6 h-6" />}
+            className="p-6"
+          />
+          <StatsCard
+            title={getText('merchant.dashboard.totalUsers', 'Identity Nodes')}
+            value={metricStats?.totalUsers?.toLocaleString() || '0'}
+            change={toTrendDisplay(metricStats?.totalUsersTrend).change}
+            changeType={toTrendDisplay(metricStats?.totalUsersTrend).changeType}
+            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
+            color="orange"
+            icon={<Users className="w-6 h-6" />}
+            className="p-6"
+          />
+        </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <SalesChannelChart />
-        <RealTimeOrdersChart />
+        {/* Analytics Section - Equal Width & Height Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+          <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
+            <div className="px-8 py-4 border-b border-gray-50 flex items-center justify-between shrink-0">
+              <h3 className="text-lg font-bold text-gray-900">Recent Transactions</h3>
+              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Master Ledger</span>
+            </div>
+            <div className="flex-grow overflow-auto">
+              <table className="w-full border-collapse text-left">
+                <thead className="sticky top-0 bg-white z-10">
+                  <tr className="bg-gray-50/30">
+                    <th className="py-2.5 px-8 text-[10px] font-bold text-gray-400 uppercase tracking-widest">ID</th>
+                    <th className="py-2.5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Health</th>
+                    <th className="py-2.5 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-widest">Valuation</th>
+                    <th className="py-2.5 px-8 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">Time</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {stats?.recentOrders?.slice(0, 6).map((order) => (
+                    <tr key={order.id} className="group hover:bg-blue-50/30 transition-colors">
+                      <td className="py-3 px-8">
+                        <span className="font-mono text-[10px] font-bold text-gray-400">
+                          #{order.id.substring(0, 8).toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="py-3 px-6">
+                        <div className={cn(
+                          "inline-flex px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border",
+                          getStatusColor(order.status)
+                        )}>
+                          {order.status}
+                        </div>
+                      </td>
+                      <td className="py-3 px-6 font-bold text-gray-900 text-sm">
+                        {formatCurrency(order.totalAmount, order.currency)}
+                      </td>
+                      <td className="py-3 px-8 text-right text-[10px] font-bold text-gray-400">
+                        {order.createdAt ? format(new Date(order.createdAt), 'HH:mm') : '--:--'}
+                      </td>
+                    </tr>
+                  ))}
+                  {(!stats?.recentOrders || stats.recentOrders.length === 0) && (
+                    <tr>
+                      <td colSpan={4} className="py-12 text-center text-gray-300">
+                        <Box className="w-8 h-8 mx-auto mb-2 opacity-20" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">No Signal</span>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {stats?.recentOrders && stats.recentOrders.length > 6 && (
+              <div className="p-3 border-t border-gray-50 text-center shrink-0">
+                <Button variant="ghost" className="h-8 text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-blue-600" onClick={() => router.push(`/${locale}/orders`)}>
+                  View Full Ledger
+                </Button>
+              </div>
+            )}
+          </div>
+
+          <div className="bg-white rounded-[2rem] border border-gray-100 p-8 shadow-sm flex flex-col min-h-[400px]">
+            <div className="flex-grow">
+              <SalesChannelChart metrics={stats?.metrics} />
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

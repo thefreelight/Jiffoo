@@ -1,38 +1,40 @@
 # Multi-stage build for Jiffoo Mall API Service
-FROM node:18-alpine AS base
+FROM node:20-bookworm-slim AS base
 
 # Build-time proxy configuration
-ARG HTTP_PROXY=http://192.168.0.106:7890
-ARG HTTPS_PROXY=http://192.168.0.106:7890
-ARG NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,10.0.0.0/8
+ARG HTTP_PROXY=""
+ARG HTTPS_PROXY=""
+ARG NO_PROXY="localhost,127.0.0.1,192.168.0.0/16,10.0.0.0/8"
+ARG NPM_REGISTRY=https://registry.npmmirror.com
 
 # Build information for /health endpoint
 ARG BUILD_SHA=development
 ARG BUILD_TIME=unknown
 ARG APP_VERSION=1.0.0
 
-# Install system packages BEFORE setting proxy (Alpine repos don't need proxy)
-RUN apk add --no-cache \
-    libc6-compat \
-    openssl \
-    openssl-dev \
-    netcat-openbsd \
-    curl
-
-# Set proxy environment variables for npm (after apk)
+# Set proxy environment variables before installing system packages and npm deps
 ENV HTTP_PROXY=${HTTP_PROXY}
 ENV HTTPS_PROXY=${HTTPS_PROXY}
 ENV NO_PROXY=${NO_PROXY}
+ENV npm_config_proxy=${HTTP_PROXY}
+ENV npm_config_https_proxy=${HTTPS_PROXY}
+ENV npm_config_registry=${NPM_REGISTRY}
+ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
 # Skip binary downloads that require external network access
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
-# Install pnpm with proxy and npm mirror
-RUN npm config set proxy ${HTTP_PROXY} && \
-    npm config set https-proxy ${HTTPS_PROXY} && \
-    npm config set registry https://registry.npmmirror.com && \
-    npm install -g pnpm@9.0.0
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    netcat-openbsd \
+    openssl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install pnpm from a vendored tarball so CI does not depend on external npm mirrors.
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Set working directory
 WORKDIR /app
@@ -44,19 +46,22 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
 
-# Install dependencies using local Verdaccio registry (npm.lafdru.local)
-# DNS resolution is handled by CI/CD pipeline (adds npm.lafdru.local to /etc/hosts)
+# Install dependencies using a public npm mirror by default.
+# CI can still override NPM_REGISTRY when an internal cache is healthy.
 RUN pnpm config set fetch-retries 5 && \
     pnpm config set fetch-retry-mintimeout 20000 && \
     pnpm config set fetch-retry-maxtimeout 120000 && \
+    pnpm config set registry ${NPM_REGISTRY} && \
+    pnpm config set network-concurrency 8 && \
+    pnpm config set child-concurrency 4 && \
     pnpm install --frozen-lockfile
 
 # Builder stage
 FROM base AS builder
 WORKDIR /app
 
-# Install pnpm in builder stage
-RUN npm install -g pnpm@9.0.0
+# Install pnpm in builder stage (needed for build commands) from the vendored tarball.
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
@@ -100,6 +105,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 api
 
 # Copy built application
+COPY --from=builder --chown=api:nodejs /app/package.json ./
 COPY --from=builder --chown=api:nodejs /app/apps/api/dist ./apps/api/dist
 COPY --from=builder --chown=api:nodejs /app/apps/api/package.json ./apps/api/
 COPY --from=builder --chown=api:nodejs /app/packages/shared/dist ./packages/shared/dist
@@ -115,8 +121,8 @@ COPY --from=builder --chown=api:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=api:nodejs /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder --chown=api:nodejs /app/packages/shared/node_modules ./packages/shared/node_modules
 
-# Create logs and uploads directories with proper permissions
-RUN mkdir -p /app/logs /app/uploads && chown -R api:nodejs /app/logs /app/uploads
+# Create logs, uploads, and extensions directories with proper permissions
+RUN mkdir -p /app/logs /app/uploads /app/extensions && chown -R api:nodejs /app/logs /app/uploads /app/extensions
 
 USER api
 

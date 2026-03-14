@@ -43,7 +43,7 @@ export function LoadingState({
 
   const containerClass = cn(
     'flex flex-col items-center justify-center gap-3',
-    fullPage && 'min-h-[50vh]',
+    fullPage && 'min-h-screen w-full',
     className
   );
 

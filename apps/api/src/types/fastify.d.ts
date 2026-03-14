@@ -1,5 +1,5 @@
 import { PrismaClient, Plugin, PluginInstallation } from '@prisma/client';
-import Stripe from 'stripe';
+
 import { RedisCache } from '@/core/cache/redis';
 import { FastifyRequest, FastifyReply } from 'fastify';
 
@@ -12,6 +12,7 @@ interface AuthenticatedUser {
   email: string;
   username: string;
   role: string;
+  emailVerified?: boolean;
   permissions?: string[];
   roles?: any[];
   isServiceAccount?: boolean;
@@ -20,65 +21,6 @@ interface AuthenticatedUser {
 // ============================================
 // Plugin System Type Definitions
 // ============================================
-
-// License check result
-interface LicenseCheckResult {
-  valid: boolean;
-  reason?: string;
-  upgradeUrl?: string;
-  currentPlan?: string;
-  requiredFeature?: string;
-  mode?: 'STANDARD' | 'COMMERCIAL';
-  installation?: PluginInstallation & { plugin: Plugin };
-  customReason?: string;
-}
-
-// Usage volume check result
-interface UsageLimitCheckResult {
-  allowed: boolean;
-  current?: number;
-  limit?: number;
-  percentage?: number;
-  unlimited?: boolean;
-  mode?: 'FREE' | 'STANDARD' | 'COMMERCIAL';
-  customReason?: string;
-}
-
-// Subscription access check result
-interface SubscriptionAccessResult {
-  allowed: boolean;
-  reason?: string;
-  upgradeUrl?: string;
-  subscription?: any;
-  mode?: 'SUBSCRIPTION';
-}
-
-// Subscription creation options
-interface CreateSubscriptionOptions {
-  trialDays?: number;
-  autoRenew?: boolean;
-  stripeSubscriptionId?: string;
-  stripeCustomerId?: string;
-  metadata?: Record<string, any>;
-  reason?: string;
-  initiatedBy?: string;
-  createdBy?: string | null;
-  eventSource?: string;
-  configData?: Record<string, any>;
-}
-
-// Subscription update data
-interface UpdateSubscriptionData {
-  status?: string;
-  planId?: string;
-  amount?: number;
-  renewalNotificationSent?: boolean;
-  reason?: string;
-  initiatedBy?: string;
-  createdBy?: string | null;
-  eventSource?: string;
-  [key: string]: any;
-}
 
 // Webhook statistical information
 interface WebhookStats {
@@ -99,29 +41,6 @@ declare module 'fastify' {
 
     // Redis Client
     redis: RedisCache;
-
-    // ============================================
-    // Commercial Support Plugin Decorators (Simplified)
-    // ============================================
-
-    // License verification (System-level)
-    checkPluginLicense(
-      pluginSlug: string,
-      feature?: string
-    ): Promise<LicenseCheckResult>;
-
-    // Usage recording (System-level)
-    recordPluginUsage(
-      pluginSlug: string,
-      metric: string,
-      value?: number
-    ): void;
-
-    // Usage limit check (System-level)
-    checkUsageLimit(
-      pluginSlug: string,
-      metric: string
-    ): Promise<UsageLimitCheckResult>;
 
     // ============================================
     // Plugin Registry Decorators
@@ -156,7 +75,7 @@ declare module 'fastify' {
     ): Promise<any>;
 
     // ============================================
-    // Stripe Payment Plugin Decorators
+    // Payment Plugin Webhook Decorators
     // ============================================
 
     retryFailedWebhookEvents(maxRetries?: number): Promise<{
@@ -245,6 +164,10 @@ declare module 'fastify' {
     description?: string;
     operationId?: string;
     deprecated?: boolean;
+    deprecatedSince?: string;      // Version when deprecated (e.g., "v1.2.0")
+    deprecationMessage?: string;   // Custom deprecation message
+    sunsetDate?: string;           // ISO date when endpoint will be removed
+    alternativeEndpoint?: string;  // Suggested replacement endpoint
     security?: Array<Record<string, string[]>>;
     produces?: string[];
     consumes?: string[];
@@ -254,7 +177,25 @@ declare module 'fastify' {
     user?: AuthenticatedUser;
     traceId?: string;
     traceContext?: TraceContext;
+    apiVersion?: string;
+    versionMetadata?: any;
+    storeContext?: StoreContext;
   }
+}
+
+// Store context type
+interface StoreContext {
+  id: string;
+  name: string;
+  slug: string;
+  domain: string;
+  status: string;
+  currency: string;
+  defaultLocale: string;
+  supportedLocales: string[];
+  settings?: any;
+  logo?: string | null;
+  themeConfig?: any;
 }
 
 // Trace context type

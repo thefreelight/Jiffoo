@@ -15,13 +15,13 @@ const program = new Command();
 program
   .name('jiffoo-plugin')
   .description('CLI tools for Jiffoo plugin development')
-  .version('1.0.0');
+  .version('1.2.0');
 
 // Init command - create new plugin project
 program
   .command('init [name]')
   .description('Create a new plugin project')
-  .option('-t, --template <template>', 'Template to use (basic, payment, email, integration)', 'basic')
+  .option('-t, --template <template>', 'Template to use (basic, payment, email, integration, analytics, shipping)', 'basic')
   .option('-d, --directory <dir>', 'Directory to create project in')
   .option('--typescript', 'Use TypeScript (default)', true)
   .option('--no-typescript', 'Use JavaScript')
@@ -59,6 +59,10 @@ program
   .description('Package plugin for submission to marketplace')
   .option('-o, --output <file>', 'Output file name')
   .option('--include-source', 'Include source files')
+  .option('--build', 'Run build before packaging', true)
+  .option('--no-build', 'Skip build before packaging')
+  .option('--validate', 'Run validation before packaging', true)
+  .option('--no-validate', 'Skip validation before packaging')
   .action(packCommand);
 
 program.parse();

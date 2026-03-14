@@ -1,6 +1,6 @@
 /**
- * 统一日志系统 - 传输器模块导出 (Node.js 版本)
- * 注意：浏览器环境请使用 index.browser.ts
+ * Unified Logging System - Transport Module Exports (Node.js version)
+ * Note: For browser environment, use index.browser.ts
  */
 
 // Console Transport

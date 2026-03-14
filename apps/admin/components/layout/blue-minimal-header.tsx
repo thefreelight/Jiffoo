@@ -8,8 +8,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { useAuthStore } from '@/lib/store'
+import { UserAvatar } from '../ui/user-avatar'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import {
   Search,
@@ -44,7 +44,9 @@ export function BlueMinimalHeader({ title = "Dashboard", onMenuClick }: BlueMini
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback
+    if (!t) return fallback
+    const translated = t(key)
+    return translated === key ? fallback : translated
   }
 
   const handleLogout = () => {
@@ -62,14 +64,14 @@ export function BlueMinimalHeader({ title = "Dashboard", onMenuClick }: BlueMini
   })
 
   return (
-    <header className="h-[70px] bg-white border-b border-[#E2E8F0] flex items-center justify-between px-4 lg:px-8 flex-shrink-0">
+    <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-8 flex-shrink-0">
       {/* Left: Menu Button (mobile) + Title Section */}
       <div className="flex items-center gap-4">
         {/* Mobile menu button */}
         {onMenuClick && (
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 rounded-md text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]"
+            className="lg:hidden p-2 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-gray-900 transition-all"
             aria-label="Open menu"
           >
             <Menu className="w-5 h-5" />
@@ -77,102 +79,68 @@ export function BlueMinimalHeader({ title = "Dashboard", onMenuClick }: BlueMini
         )}
 
         <div className="flex flex-col">
-          <h1 className="text-xl font-semibold text-[#0F172A] m-0">{title}</h1>
-          <p className="text-sm text-[#64748B] m-0 hidden sm:block">{currentDate}</p>
+          <h1 className="text-lg font-bold text-gray-900 m-0 tracking-tight">{title}</h1>
+          <p className="text-[10px] font-bold text-gray-400 m-0 hidden sm:block uppercase tracking-widest">{currentDate}</p>
         </div>
       </div>
 
       {/* Right: Actions */}
-      <div className="flex items-center gap-2 lg:gap-4">
-        {/* Search Bar - hidden on mobile */}
-        <div className="relative hidden md:block">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
-          <input
-            type="text"
-            value={searchValue}
-            onChange={(e) => setSearchValue(e.target.value)}
-            placeholder={getText('merchant.header.searchPlaceholder', 'Search...')}
-            className="
-              w-40 lg:w-60 pl-9 pr-3 py-2
-              border border-[#E2E8F0] rounded-md
-              bg-[#F8FAFC] text-sm text-[#0F172A]
-              placeholder:text-[#64748B]
-              focus:outline-none focus:border-[#3B82F6]
-              transition-colors duration-150
-            "
-          />
-        </div>
-
-        {/* Action Buttons */}
-        <button
-          className="relative p-2 rounded-md bg-transparent text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-colors duration-150"
-          aria-label="Notifications"
-        >
-          <Bell className="w-5 h-5" />
-          <span className="absolute top-1 right-1 min-w-[8px] h-[8px] rounded-full bg-red-500" />
-        </button>
-
-        <button
-          className="hidden sm:block p-2 rounded-md bg-transparent text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A] transition-colors duration-150"
-          aria-label="Help"
-        >
-          <HelpCircle className="w-5 h-5" />
-        </button>
-
+      <div className="flex items-center gap-4">
         {/* Profile Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-2 p-1 rounded-md hover:bg-[#F1F5F9] transition-colors">
-              <div className="w-9 h-9 rounded-full bg-[#F1F5F9] flex items-center justify-center overflow-hidden">
-                {user?.avatar ? (
-                  <Image
-                    src={user.avatar}
-                    alt={user.username || 'User'}
-                    width={36}
-                    height={36}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <span className="font-medium text-[#64748B]">
-                    {(user?.firstName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
-                  </span>
-                )}
+            <button className="flex items-center gap-3 p-1.5 pr-3 rounded-2xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100 group">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center overflow-hidden border border-blue-100 group-hover:scale-105 transition-transform">
+                <UserAvatar
+                  src={user?.avatar}
+                  name={user?.firstName}
+                  username={user?.username}
+                  className="h-full w-full"
+                  imageClassName="h-full w-full object-cover"
+                  fallbackClassName="h-full w-full bg-blue-50 text-blue-600"
+                  textClassName="text-xs"
+                />
+              </div>
+              <div className="flex flex-col items-start">
+                <span className="text-xs font-bold text-gray-900 leading-none">
+                  {user?.firstName || user?.username || 'User'}
+                </span>
+                <span className="text-[10px] text-gray-400 font-medium mt-1 uppercase tracking-tighter">
+                  Store Owner
+                </span>
               </div>
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
-              <div>
-                <p className="font-medium">{user?.firstName || user?.username || 'User'}</p>
-                <p className="text-xs text-[#64748B]">{user?.email}</p>
+          <DropdownMenuContent align="end" className="w-56 rounded-2xl border-gray-100 shadow-2xl p-2 mt-2">
+            <DropdownMenuLabel className="px-3 py-4">
+              <div className="space-y-1">
+                <p className="text-sm font-bold text-gray-900">{user?.firstName || user?.username || 'User'}</p>
+                <p className="text-xs text-gray-500 font-medium truncate">{user?.email}</p>
               </div>
             </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <User className="mr-2 h-4 w-4" />
-              <span>{getText('merchant.header.profile', 'Profile')}</span>
+            <DropdownMenuSeparator className="bg-gray-50" />
+            <DropdownMenuItem
+              className="rounded-xl py-2.5 cursor-pointer focus:bg-gray-50"
+              onClick={() => router.push(`/${locale}/profile`)}
+            >
+              <User className="mr-3 h-4 w-4 text-gray-400" />
+              <span className="text-sm font-semibold">{getText('merchant.header.profile', 'Profile')}</span>
             </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Settings className="mr-2 h-4 w-4" />
-              <span>{getText('merchant.header.settings', 'Settings')}</span>
+            <DropdownMenuItem
+              className="rounded-xl py-2.5 cursor-pointer focus:bg-gray-50"
+              onClick={() => router.push(`/${locale}/settings`)}
+            >
+              <Settings className="mr-3 h-4 w-4 text-gray-400" />
+              <span className="text-sm font-semibold">{getText('merchant.header.settings', 'Settings')}</span>
             </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              <span>{getText('merchant.header.logout', 'Log out')}</span>
+            <DropdownMenuSeparator className="bg-gray-50" />
+            <DropdownMenuItem onClick={handleLogout} className="rounded-xl py-2.5 cursor-pointer focus:bg-red-50 focus:text-red-600 text-red-500">
+              <LogOut className="mr-3 h-4 w-4" />
+              <span className="text-sm font-semibold">{getText('merchant.header.logout', 'Log out')}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-
-        {/* Primary Action - hidden on small screens */}
-        <button
-          className="hidden sm:flex items-center gap-2 px-4 py-2 bg-[#3B82F6] text-white rounded-md font-semibold text-sm hover:bg-[#2563EB] transition-colors duration-150"
-        >
-          <Plus className="w-4 h-4" />
-          <span className="hidden lg:inline">{getText('merchant.header.addView', 'Add View')}</span>
-        </button>
       </div>
     </header>
   )
 }
-

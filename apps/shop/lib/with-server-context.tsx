@@ -31,6 +31,7 @@ export function withServerContext<P extends PageProps>(
         status: serverContext.status,
         defaultLocale: serverContext.defaultLocale ?? 'en',
         supportedLocales: serverContext.supportedLocales ?? ['en', 'zh-Hant'],
+        checkout: serverContext.checkout,
       }
       : null;
 

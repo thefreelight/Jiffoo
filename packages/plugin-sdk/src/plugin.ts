@@ -36,16 +36,35 @@ import { validateManifest } from './validators';
 export function definePlugin(config: PluginConfig): Plugin {
   // Validate configuration
   const manifest: PluginManifest = {
+    schemaVersion: config.schemaVersion,
     slug: config.slug,
     name: config.name,
     version: config.version,
     description: config.description || '',
     author: config.author || '',
+    authorUrl: config.authorUrl,
+    license: config.license,
+    homepage: config.homepage,
+    repository: config.repository,
+    runtimeType: config.runtimeType,
+    entryModule: config.entryModule,
+    externalBaseUrl: config.externalBaseUrl,
+    permissions: config.permissions,
     category: config.category,
+    icon: config.icon,
+    screenshots: config.screenshots,
+    minApiVersion: config.minApiVersion,
+    sdkVersion: config.sdkVersion,
+    requiredApiVersion: config.requiredApiVersion,
+    dependencies: config.dependencies,
+    tags: config.tags,
     capabilities: config.capabilities,
     requiredScopes: config.requiredScopes,
     webhooks: config.webhooks,
     configSchema: config.configSchema,
+    adminUi: config.adminUi,
+    lifecycle: config.lifecycle,
+    themeExtensions: config.themeExtensions,
   };
 
   const validation = validateManifest(manifest);

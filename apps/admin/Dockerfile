@@ -1,35 +1,36 @@
-# Multi-stage build for Jiffoo Mall Admin (商户管理后台)
-FROM node:20-alpine AS base
+# Multi-stage build for Jiffoo Mall Admin (Merchant Admin Panel)
+ARG NODE_BASE_IMAGE=harbor.lafdru.local/library/node:20-alpine
+FROM ${NODE_BASE_IMAGE} AS base
 
 # Build-time proxy configuration
 ARG HTTP_PROXY=http://192.168.0.106:7890
 ARG HTTPS_PROXY=http://192.168.0.106:7890
 ARG NO_PROXY=localhost,127.0.0.1,192.168.0.0/16,10.0.0.0/8
+ARG NPM_REGISTRY=https://registry.npmmirror.com
 
-# Install system packages BEFORE setting proxy (Alpine repos don't need proxy)
-RUN apk add --no-cache libc6-compat
-
-# Set proxy environment variables for npm/pnpm (after apk)
+# Set proxy environment variables before installing Alpine packages and npm/pnpm deps
 ENV HTTP_PROXY=${HTTP_PROXY}
 ENV HTTPS_PROXY=${HTTPS_PROXY}
 ENV NO_PROXY=${NO_PROXY}
 # pnpm specific proxy settings
 ENV npm_config_proxy=${HTTP_PROXY}
 ENV npm_config_https_proxy=${HTTPS_PROXY}
+ENV npm_config_registry=${NPM_REGISTRY}
+ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
 # Skip binary downloads that require external network access
 ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
+# The Admin image only needs Node.js and the standalone Next.js output.
+# Avoid apk network fetches here so CI is not coupled to external Alpine mirrors.
+
 # Install dependencies only when needed
 FROM base AS deps
 WORKDIR /app
 
-# Install pnpm with proxy and npm mirror
-RUN npm config set proxy ${HTTP_PROXY} && \
-    npm config set https-proxy ${HTTPS_PROXY} && \
-    npm config set registry https://registry.npmmirror.com && \
-    npm install -g pnpm@9.0.0
+# Install pnpm from a vendored tarball so CI does not depend on external npm mirrors.
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Copy workspace files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
@@ -37,16 +38,22 @@ COPY apps/admin/package.json ./apps/admin/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/ui/package.json ./packages/ui/
 
-# Install dependencies using local Verdaccio registry (npm.lafdru.local)
-# DNS resolution is handled by CI/CD pipeline (adds npm.lafdru.local to /etc/hosts)
+# Install dependencies using a public npm mirror by default.
+# CI can still override NPM_REGISTRY when an internal cache is healthy.
 RUN pnpm config set fetch-retries 5 && \
     pnpm config set fetch-retry-mintimeout 20000 && \
     pnpm config set fetch-retry-maxtimeout 120000 && \
-    pnpm install --frozen-lockfile
+    pnpm config set registry ${NPM_REGISTRY} && \
+    pnpm config set network-concurrency 8 && \
+    pnpm config set child-concurrency 4 && \
+    pnpm install --filter=admin... --frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
 WORKDIR /app
+
+# Install pnpm (needed for build commands) from the vendored tarball.
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
@@ -65,15 +72,17 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 # Set backend URL for build-time rewrites configuration
 # This URL is used by Next.js rewrites to proxy /api/* requests to the backend
-# Using K8s internal service name (must match deployment service name)
-ENV API_SERVICE_URL=http://jiffoo-mall-api-dev:80
+# For production: uses K8s internal service name 'api' in jiffoo-mall namespace
+# Build ARG allows override during docker build if needed
+ARG API_SERVICE_URL=http://api:80
+ENV API_SERVICE_URL=${API_SERVICE_URL}
 
 # Build workspace packages first (required for workspace dependency resolution)
 RUN cd packages/shared && npm run build
 RUN cd packages/ui && npm run build
 
-# Build the Next.js application (use app's own Next.js version)
-RUN cd apps/admin && /app/node_modules/.bin/next build
+# Build the Next.js application (use pnpm to ensure correct binary resolution)
+RUN cd apps/admin && pnpm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner

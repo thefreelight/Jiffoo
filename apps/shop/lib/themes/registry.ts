@@ -10,17 +10,35 @@
 import type { ThemePackage, ThemeMeta, ThemeRegistryEntry, ThemeRegistry } from 'shared/src/types/theme';
 
 // ============================================================================
+// Built-in Theme Constants
+// ============================================================================
+
+/**
+ * Canonical builtin theme slug (as per PRD_FINAL_BLUEPRINT.md)
+ */
+const BUILTIN_DEFAULT_SLUG = 'builtin-default';
+
+/**
+ * Legacy slug for backwards compatibility
+ */
+const LEGACY_DEFAULT_SLUG = 'default';
+
+// ============================================================================
 // Built-in Theme Registry (Static)
 // ============================================================================
 
 /**
  * Built-in Theme Registry
  * Maps theme slug to dynamic import functions
+ *
+ * Note: Both 'builtin-default' (canonical) and 'default' (legacy) are supported.
+ * The canonical slug is 'builtin-default' as per PRD_FINAL_BLUEPRINT.md.
  */
 export const BUILTIN_THEMES: ThemeRegistry = {
-  default: {
+  // Canonical builtin-default entry
+  [BUILTIN_DEFAULT_SLUG]: {
     meta: {
-      slug: 'default',
+      slug: BUILTIN_DEFAULT_SLUG,
       name: 'Default Theme',
       version: '1.0.0',
       description: 'The default Jiffoo Mall theme, modern and clean e-commerce style.',
@@ -34,22 +52,25 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       return module.default || module.theme;
     },
   },
-  yevbi: {
+  // Legacy 'default' alias for backwards compatibility
+  [LEGACY_DEFAULT_SLUG]: {
     meta: {
-      slug: 'yevbi',
-      name: 'Yevbi Travel Theme',
+      slug: LEGACY_DEFAULT_SLUG,
+      name: 'Default Theme',
       version: '1.0.0',
-      description: 'Travel-focused e-commerce theme with purple-indigo gradient design for eSIM and travel packages.',
-      category: 'travel',
-      author: 'Yevbi',
+      description: 'The default Jiffoo Mall theme, modern and clean e-commerce style.',
+      category: 'general',
+      author: 'Jiffoo',
       target: 'shop',
-      tags: ['travel', 'esim', 'purple', 'gradient', 'modern'],
+      tags: ['modern', 'clean', 'responsive'],
     },
     load: async () => {
-      const module = await import('@shop-themes/yevbi/src/index');
-      return module.default || module;
+      const module = await import('@shop-themes/default');
+      return module.default || module.theme;
     },
   },
+  // NOTE: The open-source core only embeds the default theme.
+  // Official marketplace themes are downloaded after deployment as Theme Packs.
 };
 
 // ============================================================================

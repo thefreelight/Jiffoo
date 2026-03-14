@@ -1,6 +1,6 @@
 {
-  "name": "plugin-sdk",
-  "version": "1.0.0",
+  "name": "@jiffoo/plugin-sdk",
+  "version": "1.2.0",
   "description": "SDK for building external plugins for Jiffoo Mall platform",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
@@ -57,16 +57,20 @@
     "node": ">=18.0.0"
   },
   "dependencies": {
+    "archiver": "^7.0.1",
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "fs-extra": "^11.2.0",
     "inquirer": "^9.2.23",
-    "ora": "^8.0.1"
+    "ora": "^8.0.1",
+    "shared": "workspace:*"
   },
   "devDependencies": {
+    "@types/archiver": "^7.0.0",
     "@types/fs-extra": "^11.0.4",
     "@types/inquirer": "^9.0.7",
     "@types/node": "^20.0.0",
+    "fast-check": "^3.23.2",
     "rimraf": "^5.0.0",
     "typescript": "^5.0.0",
     "vitest": "^1.6.0"

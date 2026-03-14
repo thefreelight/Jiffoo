@@ -120,7 +120,7 @@ export function createPluginDatabase(
     endpoint: string,
     body?: unknown
   ): Promise<unknown> => {
-    const url = `${apiBaseUrl}/api/plugins/storage${endpoint}`;
+    const url = `${apiBaseUrl}/api/extensions/plugin/storage${endpoint}`;
     const response = await fetch(url, {
       method,
       headers: {
@@ -228,7 +228,7 @@ export function createPluginStorage(
     body?: unknown,
     isFormData = false
   ): Promise<unknown> => {
-    const url = `${apiBaseUrl}/api/plugins/files${endpoint}`;
+    const url = `${apiBaseUrl}/api/extensions/plugin/files${endpoint}`;
     const headers: Record<string, string> = {
       'X-Plugin-Slug': context.pluginSlug,
       'X-Installation-Id': context.installationId,

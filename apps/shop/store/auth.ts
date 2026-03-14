@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { type UserProfile } from 'shared';
-import { authApi, accountApi, apiClient, googleOAuthApi } from '@/lib/api';
+import { authApi, accountApi, apiClient } from '@/lib/api';
 
 interface AuthState {
   user: UserProfile | null;
@@ -21,9 +21,7 @@ interface AuthActions {
   // Email verification removed per Alpha Gate
 
 
-  // Google OAuth
-  googleLogin: () => Promise<void>;
-  handleGoogleCallback: (code: string, state: string) => Promise<void>;
+
 
   // Manual auth state setting (for OAuth callbacks)
   setUser: (user: UserProfile) => void;
@@ -52,7 +50,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           if (response.success && response.data) {
             // AuthClient handles token storage, we just need the profile
             try {
-              const profileResponse = await authApi.getProfile();
+              const profileResponse = await accountApi.getProfile();
               if (profileResponse.success && profileResponse.data) {
                 const user = profileResponse.data;
 
@@ -89,7 +87,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
               }, 0);
             }
           } else {
-            throw new Error(response.message || 'Login failed');
+            throw new Error(response.error?.message || 'Login failed');
           }
         } catch (error: unknown) {
           set({
@@ -119,7 +117,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
 
           if (response.success && response.data) {
             try {
-              const profileResponse = await authApi.getProfile();
+              const profileResponse = await accountApi.getProfile();
               if (profileResponse.success && profileResponse.data) {
                 const user = profileResponse.data;
 
@@ -146,7 +144,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
               });
             }
           } else {
-            throw new Error(response.message || 'Registration failed');
+            throw new Error(response.error?.message || 'Registration failed');
           }
         } catch (error: unknown) {
           set({
@@ -200,7 +198,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
               error: null,
             });
           } else {
-            throw new Error(response.message || 'Failed to get profile');
+            throw new Error(response.error?.message || 'Failed to get profile');
           }
         } catch (error: unknown) {
           set({
@@ -227,7 +225,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
               error: null,
             });
           } else {
-            throw new Error(response.message || 'Failed to update profile');
+            throw new Error(response.error?.message || 'Failed to update profile');
           }
         } catch (error: unknown) {
           set({
@@ -238,71 +236,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
-      googleLogin: async () => {
-        try {
-          set({ isLoading: true, error: null });
 
-          const state = JSON.stringify({});
-
-          let returnUrl: string | undefined;
-          if (typeof window !== 'undefined') {
-            const currentUrl = new URL(window.location.href);
-            const callbackUrl = new URL('/auth/google-callback', currentUrl.origin);
-            returnUrl = callbackUrl.toString();
-          }
-
-          const response = await googleOAuthApi.generateAuthUrl(state, undefined, returnUrl);
-
-          if (response.success && response.data?.authUrl) {
-            window.location.href = response.data.authUrl;
-          } else {
-            throw new Error(response.message || 'Failed to generate Google OAuth URL');
-          }
-        } catch (error: unknown) {
-          set({
-            isLoading: false,
-            error: (error as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message || (error as { message?: string }).message || 'Failed to start Google login',
-          });
-          throw error;
-        }
-      },
-
-      handleGoogleCallback: async (code: string, state: string) => {
-        try {
-          set({ isLoading: true, error: null });
-
-          const response = await googleOAuthApi.oauthLogin(code, state);
-
-          if (response.success && response.data) {
-            const user = response.data;
-
-            set({
-              user: user as unknown as UserProfile,
-              isAuthenticated: true,
-              isLoading: false,
-              error: null,
-            });
-
-            // Sync guest cart after OAuth login
-            if (typeof window !== 'undefined') {
-              setTimeout(() => {
-                import('@/store/cart').then(({ useCartStore }) => {
-                  const { mergeGuestCart } = useCartStore.getState();
-                  mergeGuestCart();
-                });
-              }, 0);
-            }
-          } else {
-            throw new Error(response.message || 'Google authentication failed');
-          }
-        } catch (error: unknown) {
-          set({
-            isLoading: false,
-            error: (error as { response?: { data?: { message?: string } }; message?: string }).response?.data?.message || (error as { message?: string }).message || 'Google authentication failed',
-          });
-          throw error;
-        }
-      },
 
       setUser: (user: UserProfile) => {
         set({ user });
@@ -328,7 +262,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
               error: null,
             });
           } else {
-            throw new Error(response.message || 'Failed to change password');
+            throw new Error(response.error?.message || 'Failed to change password');
           }
         } catch (error: unknown) {
           set({

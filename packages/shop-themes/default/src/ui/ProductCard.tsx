@@ -17,7 +17,7 @@ export interface ProductCardProps {
   onClick: () => void;
 }
 
-export function ProductCard({
+export const ProductCard = React.memo(function ProductCard({
   product,
   viewMode = 'grid',
   showWishlist = true,
@@ -25,7 +25,7 @@ export function ProductCard({
   onClick,
 }: ProductCardProps) {
   // Get first image - handle both array of objects and array of strings
-  let imageUrl = '/placeholder-product.jpg';
+  let imageUrl = '/placeholder-product.svg';
   if (product.images && product.images.length > 0) {
     const firstImage = product.images[0];
     if (typeof firstImage === 'string') {
@@ -51,9 +51,9 @@ export function ProductCard({
 
   if (viewMode === 'list') {
     return (
-      <div className="flex gap-6 p-6 bg-white rounded-2xl border border-neutral-200 shadow-sm hover:shadow-brand-md hover:border-brand-200 transition-all duration-300">
+      <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md dark:hover:shadow-slate-900/50 hover:border-blue-200 dark:hover:border-blue-700 transition-all duration-300">
         {/* Image */}
-        <div className="relative w-40 h-40 flex-shrink-0 rounded-xl overflow-hidden bg-neutral-100">
+        <div className="relative w-full sm:w-40 h-48 sm:h-40 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-700">
           <img
             src={imageUrl}
             alt={product.name}
@@ -66,7 +66,7 @@ export function ProductCard({
           )}
           {hasDiscount && !isOutOfStock && (
             <div className="absolute top-2 left-2">
-              <span className="bg-error-500 text-white text-xs font-semibold px-2 py-1 rounded-lg">
+              <span className="bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded-lg">
                 -{discountPercent}%
               </span>
             </div>
@@ -77,36 +77,26 @@ export function ProductCard({
         <div className="flex-1 flex flex-col">
           <button
             onClick={onClick}
-            className="text-lg font-semibold text-neutral-900 hover:text-brand-600 transition-colors text-left"
+            className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-left"
           >
             {product.name}
           </button>
 
           {product.description && (
-            <p className="text-sm text-neutral-500 mt-2 line-clamp-2">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mt-2 line-clamp-2">
               {product.description}
             </p>
           )}
 
-          <div className="mt-auto flex items-center justify-between">
+          <div className="mt-auto">
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-neutral-900">${product.price}</span>
+              <span className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">${product.price}</span>
               {hasDiscount && (
-                <span className="text-sm text-neutral-400 line-through">
+                <span className="text-sm text-gray-400 dark:text-gray-500 line-through">
                   ${product.originalPrice}
                 </span>
               )}
             </div>
-
-            <Button
-              variant={isOutOfStock ? 'outline' : 'primary'}
-              onClick={(e: React.MouseEvent) => { e.stopPropagation(); onAddToCart(); }}
-              disabled={isOutOfStock}
-              size="md"
-            >
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-            </Button>
           </div>
         </div>
       </div>
@@ -115,11 +105,11 @@ export function ProductCard({
 
   return (
     <div
-      className="group h-full flex flex-col bg-white rounded-2xl border border-neutral-200 shadow-sm hover:shadow-brand-md hover:border-brand-200 transition-all duration-300 overflow-hidden cursor-pointer"
+      className="group h-full flex flex-col bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md dark:hover:shadow-slate-900/50 hover:border-blue-200 dark:hover:border-blue-700 transition-all duration-300 overflow-hidden cursor-pointer"
       onClick={onClick}
     >
       {/* Image - fixed height container */}
-      <div className="relative w-full h-56 flex-shrink-0 overflow-hidden bg-neutral-100">
+      <div className="relative w-full h-48 sm:h-56 flex-shrink-0 overflow-hidden bg-gray-100 dark:bg-slate-700">
         <img
           src={imageUrl}
           alt={product.name}
@@ -127,22 +117,22 @@ export function ProductCard({
         />
 
         {/* Brand overlay on hover */}
-        <div className="absolute inset-0 bg-brand-600/0 group-hover:bg-brand-600/5 transition-colors duration-300" />
+        <div className="absolute inset-0 bg-blue-600/0 group-hover:bg-blue-600/5 dark:group-hover:bg-blue-400/10 transition-colors duration-300" />
 
         {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-2">
+        <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1.5 sm:gap-2">
           {hasDiscount && !isOutOfStock && (
-            <span className="bg-error-500 text-white text-xs font-semibold px-2.5 py-1 rounded-lg shadow-sm">
+            <span className="bg-red-500 text-white text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg shadow-sm">
               -{discountPercent}%
             </span>
           )}
           {isLowStock && (
-            <span className="bg-warning-500 text-white text-xs font-semibold px-2.5 py-1 rounded-lg shadow-sm">
+            <span className="bg-yellow-500 text-white text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg shadow-sm">
               Only {availableStock} left
             </span>
           )}
           {isOutOfStock && (
-            <span className="bg-neutral-800 text-white text-xs font-semibold px-2.5 py-1 rounded-lg shadow-sm">
+            <span className="bg-gray-800 dark:bg-slate-900 text-white text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg shadow-sm">
               Out of Stock
             </span>
           )}
@@ -153,50 +143,39 @@ export function ProductCard({
           <button
             onClick={(e: React.MouseEvent) => { e.stopPropagation(); }}
             className={cn(
-              'absolute top-3 right-3 p-2.5 rounded-full bg-white/90 backdrop-blur-sm',
-              'shadow-sm hover:bg-white hover:shadow-md',
+              'absolute top-2 sm:top-3 right-2 sm:right-3 p-2 sm:p-2.5 rounded-full',
+              'bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm',
+              'shadow-sm hover:bg-white dark:hover:bg-slate-800 hover:shadow-md',
               'opacity-0 group-hover:opacity-100 transition-all duration-200',
-              'focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2'
+              'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
             )}
             aria-label="Add to wishlist"
           >
-            <Heart className="h-4 w-4 text-neutral-600 hover:text-error-500 transition-colors" />
+            <Heart className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-600 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 transition-colors" />
           </button>
         )}
       </div>
 
       {/* Product info - flex-grow to fill remaining space */}
-      <div className="flex-1 flex flex-col p-5">
-        <h3 className="font-semibold text-base text-neutral-900 group-hover:text-brand-600 transition-colors line-clamp-1">
+      <div className="flex-1 flex flex-col p-4 sm:p-5">
+        <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
           {product.name}
         </h3>
 
-        <p className="text-sm text-neutral-500 mt-1 line-clamp-1 leading-relaxed h-5">
+        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-1 leading-relaxed h-4 sm:h-5">
           {product.description || '\u00A0'}
         </p>
 
         {/* Price - push to bottom with mt-auto */}
-        <div className="flex items-baseline gap-2 mt-3">
-          <span className="text-xl font-bold text-neutral-900">${product.price}</span>
+        <div className="flex items-baseline gap-2 mt-auto pt-2 sm:pt-3">
+          <span className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">${product.price}</span>
           {hasDiscount && (
-            <span className="text-sm text-neutral-400 line-through">
+            <span className="text-xs sm:text-sm text-gray-400 dark:text-gray-500 line-through">
               ${product.originalPrice}
             </span>
           )}
         </div>
-
-        {/* Add to cart button - always at bottom */}
-        <Button
-          variant={isOutOfStock ? 'outline' : 'primary'}
-          onClick={(e: React.MouseEvent) => { e.stopPropagation(); onAddToCart(); }}
-          disabled={isOutOfStock}
-          className="w-full mt-3"
-          size="md"
-        >
-          <ShoppingCart className="h-4 w-4 mr-2" />
-          {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
-        </Button>
       </div>
     </div>
   );
-}
+});

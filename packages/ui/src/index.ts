@@ -92,6 +92,9 @@ export {
   useAnimation,
   useResponsive,
   breakpoints,
+  useDebounce,
+  useLocalStorage,
+  useMediaQuery,
 } from './hooks';
 
 export type {

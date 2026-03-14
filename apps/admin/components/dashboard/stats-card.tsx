@@ -16,8 +16,9 @@ import { LineChart, Line, ResponsiveContainer } from 'recharts'
 interface StatsCardProps {
   title: string
   value: string
-  change: string
-  changeType: 'increase' | 'decrease'
+  change?: string
+  changeType?: 'increase' | 'decrease'
+  comparisonLabel?: string
   data?: Array<{ value: number }>
   className?: string
   icon?: ReactNode
@@ -58,6 +59,7 @@ export function StatsCard({
   value,
   change,
   changeType,
+  comparisonLabel,
   data,
   className,
   icon,
@@ -68,7 +70,9 @@ export function StatsCard({
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback
+    if (!t) return fallback
+    const translated = t(key)
+    return translated === key ? fallback : translated
   }
 
   // Only render chart when there is real data, otherwise show "No data"
@@ -76,15 +80,21 @@ export function StatsCard({
 
   return (
     <div className={cn(
-      "bg-white rounded-xl border border-[#E2E8F0] p-6 hover:shadow-md transition-shadow",
+      "bg-white rounded-3xl border border-gray-100 p-8 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all group relative overflow-hidden",
       className
     )}>
+      {/* Decorative background element */}
+      <div className={cn(
+        "absolute -right-4 -top-4 w-24 h-24 rounded-full opacity-[0.03] group-hover:scale-150 transition-transform duration-700",
+        colors.bg
+      )} />
+
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center space-x-3">
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center space-x-4">
           {icon && (
             <div className={cn(
-              "p-2 rounded-lg",
+              "w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110",
               colors.bg
             )}>
               <div className={colors.text}>
@@ -93,7 +103,7 @@ export function StatsCard({
             </div>
           )}
           <div>
-            <p className="text-sm font-medium text-[#64748B]">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
               {title}
             </p>
           </div>
@@ -101,28 +111,30 @@ export function StatsCard({
       </div>
 
       {/* Value */}
-      <div className="mb-4">
-        <div className="text-3xl font-semibold text-[#0F172A] mb-1">
+      <div className="mb-6">
+        <div className="text-3xl font-black text-gray-900 tracking-tight mb-2">
           {value}
         </div>
-        <div className="flex items-center space-x-2">
-          <div className={cn(
-            "flex items-center space-x-1 text-sm font-medium",
-            changeType === 'increase' ? 'text-[#166534]' : 'text-[#991B1B]'
-          )}>
-            {changeType === 'increase' ? (
-              <TrendingUp className="w-4 h-4" />
-            ) : (
-              <TrendingDown className="w-4 h-4" />
-            )}
-            <span>{change}</span>
+        {change && (
+          <div className="flex items-center space-x-2">
+            <div className={cn(
+              "flex items-center space-x-1 text-xs font-bold px-2 py-0.5 rounded-lg",
+              changeType === 'increase' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
+            )}>
+              {changeType === 'increase' ? (
+                <TrendingUp className="w-3 h-3" />
+              ) : (
+                <TrendingDown className="w-3 h-3" />
+              )}
+              <span>{change}</span>
+            </div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{comparisonLabel || getText('merchant.dashboard.fromLastMonth', 'vs last month')}</span>
           </div>
-          <span className="text-sm text-[#64748B]">{getText('merchant.dashboard.fromLastMonth', 'from last month')}</span>
-        </div>
+        )}
       </div>
 
-      {/* Chart */}
-      <div className="h-16">
+      {/* Chart preview */}
+      <div className="h-12 -mx-4">
         {hasData ? (
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data}>
@@ -130,15 +142,14 @@ export function StatsCard({
                 type="monotone"
                 dataKey="value"
                 stroke={colors.chart}
-                strokeWidth={2}
+                strokeWidth={3}
                 dot={false}
-                activeDot={{ r: 4, fill: colors.chart }}
               />
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-full flex items-center justify-center bg-[#F8FAFC] rounded-lg">
-            <p className="text-sm text-[#64748B]">{getText('common.noData', 'No data')}</p>
+          <div className="h-full border-t border-dashed border-gray-100 mt-4 pt-4 flex items-center justify-center opacity-40">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic">{getText('common.noData', 'Stable Node')}</p>
           </div>
         )}
       </div>

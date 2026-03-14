@@ -1,1 +1,0 @@
-export const placeholder = 'Admin Core - Coming Soon';

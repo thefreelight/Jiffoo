@@ -1,16 +1,23 @@
 'use client';
 
 /**
- * Theme Provider
- * Responsible for loading, caching, and providing theme packages
+ * Theme Renderer Provider
+ *
+ * Loads and provides theme renderer packages (React components).
+ * This is the renderer-loading layer that loads UI components from @shop-themes/default.
+ *
+ * Note: This is separate from Theme Pack Runtime which handles tokens/templates.
+ * - Theme Renderer (this): Loads React components for rendering pages
+ * - Theme Pack Runtime: Loads CSS tokens and JSON templates for styling
  */
 
 import React, { createContext, useContext, useEffect, useState, useRef, useMemo } from 'react';
 import type { ThemePackage, ThemeConfig } from 'shared/src/types/theme';
 import { THEME_REGISTRY, type ThemeSlug, isValidThemeSlug } from './registry';
-import { recordThemeLoad } from './performance';
-import { logThemeError } from './error-logger';
-import { setDebugCurrentTheme } from './debug';
+import { assertThemeComponents } from './contract';
+
+// Module-level theme cache shared across all ThemeProvider instances
+const themeCache = new Map<ThemeSlug, ThemePackage>();
 
 /**
  * Theme Context Value
@@ -63,11 +70,16 @@ function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>)
  * @param children - Child components
  */
 export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProps) {
-  // Theme package cache (shared across component instances)
-  const cacheRef = useRef(new Map<ThemeSlug, ThemePackage>());
+  // Theme package cache (shared across component instances via module-level ref)
+  const cacheRef = useRef(themeCache);
 
-  const [theme, setTheme] = useState<ThemePackage | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Synchronously check cache to avoid loading flash on re-mounts
+  const normalizedSlugInit = slug === 'default' ? 'builtin-default' : slug;
+  const validSlugInit = isValidThemeSlug(normalizedSlugInit) ? normalizedSlugInit : 'builtin-default';
+  const cachedTheme = cacheRef.current.get(validSlugInit) ?? null;
+
+  const [theme, setTheme] = useState<ThemePackage | null>(cachedTheme);
+  const [isLoading, setIsLoading] = useState(!cachedTheme);
   const [error, setError] = useState<Error | null>(null);
 
   // Load theme
@@ -81,11 +93,13 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
         setIsLoading(true);
         setError(null);
 
-        // Validate and fall back to default theme
-        const validSlug = isValidThemeSlug(slug) ? slug : 'default';
+        // Normalize slug: both 'default' and 'builtin-default' are valid
+        // 'builtin-default' is the canonical slug as per PRD_FINAL_BLUEPRINT.md
+        const normalizedSlug = slug === 'default' ? 'builtin-default' : slug;
+        const validSlug = isValidThemeSlug(normalizedSlug) ? normalizedSlug : 'builtin-default';
 
-        if (validSlug !== slug) {
-          console.warn(`Invalid theme slug "${slug}", falling back to "default"`);
+        if (validSlug !== normalizedSlug) {
+          console.warn(`Invalid theme slug "${slug}", falling back to "builtin-default"`);
         }
 
         // Check cache
@@ -94,16 +108,9 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
             setTheme(cacheRef.current.get(validSlug)!);
             setIsLoading(false);
 
-            // Log cache hit
-            recordThemeLoad({
-              slug: validSlug,
-              loadTime: performance.now() - startTime,
-              cacheHit: true,
-              timestamp: Date.now()
-            });
-
-            // Update debug info
-            setDebugCurrentTheme(validSlug, cacheRef.current);
+            if (process.env.NODE_ENV === 'development') {
+              console.log(`⚡ Theme "${validSlug}" loaded in ${(performance.now() - startTime).toFixed(2)}ms (cached)`);
+            }
           }
           return;
         }
@@ -129,63 +136,44 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
           throw new Error(`Invalid theme package structure: ${validSlug}`);
         }
 
+        assertThemeComponents(themePkg, validSlug);
+
         // Cache theme package
         cacheRef.current.set(validSlug, themePkg);
 
         if (mounted) {
           setTheme(themePkg);
 
-          // Log successful load
-          recordThemeLoad({
-            slug: validSlug,
-            loadTime: performance.now() - startTime,
-            cacheHit: false,
-            timestamp: Date.now()
-          });
-
-          // Update debug info
-          setDebugCurrentTheme(validSlug, cacheRef.current);
+          if (process.env.NODE_ENV === 'development') {
+            console.log(`✅ Theme "${validSlug}" loaded in ${(performance.now() - startTime).toFixed(2)}ms (fresh)`);
+          }
         }
       } catch (err) {
         const error = err instanceof Error ? err : new Error('Unknown error');
         console.error('Failed to load theme:', err);
 
-        // Log error
-        logThemeError(error, { slug, action: 'load' }, 'high');
-        recordThemeLoad({
-          slug,
-          loadTime: performance.now() - startTime,
-          cacheHit: false,
-          timestamp: Date.now(),
-          error: error.message
-        });
-
         if (mounted) {
           setError(error);
 
-          // Try loading default theme as fallback
-          if (slug !== 'default') {
+          // Try loading builtin-default theme as fallback
+          const isAlreadyDefault = slug === 'default' || slug === 'builtin-default';
+          if (!isAlreadyDefault) {
             try {
-              const defaultResult = await THEME_REGISTRY.default();
+              const defaultResult = await THEME_REGISTRY['builtin-default']();
               let defaultTheme: ThemePackage;
               if (defaultResult && defaultResult.components) {
                 defaultTheme = defaultResult;
               } else if (defaultResult && (defaultResult.default || defaultResult.theme)) {
                 defaultTheme = (defaultResult.default || defaultResult.theme) as ThemePackage;
               } else {
-                throw new Error('Invalid default theme package');
+                throw new Error('Invalid builtin-default theme package');
               }
-              cacheRef.current.set('default', defaultTheme);
+              assertThemeComponents(defaultTheme, 'builtin-default');
+              cacheRef.current.set('builtin-default', defaultTheme);
               setTheme(defaultTheme);
               setError(null); // Clear error because fallback succeeded
-              setDebugCurrentTheme('default', cacheRef.current);
             } catch (fallbackErr) {
-              console.error('Failed to load default theme:', fallbackErr);
-              logThemeError(
-                fallbackErr instanceof Error ? fallbackErr : new Error('Default theme fallback failed'),
-                { slug: 'default', action: 'fallback' },
-                'critical'
-              );
+              console.error('Failed to load builtin-default theme:', fallbackErr);
             }
           }
         }
@@ -248,16 +236,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
   if (isLoading && !theme) {
     return (
       <ThemeContext.Provider value={value}>
-        <div className="min-h-screen bg-gray-50">
-          {/* Simple skeleton, not a full-screen mask */}
-          <div className="container mx-auto px-4 py-8">
-            <div className="animate-pulse space-y-4">
-              <div className="h-12 bg-gray-200 rounded w-1/4"></div>
-              <div className="h-64 bg-gray-200 rounded"></div>
-              <div className="h-32 bg-gray-200 rounded"></div>
-            </div>
-          </div>
-        </div>
+        <div className="min-h-screen" />
       </ThemeContext.Provider>
     );
   }

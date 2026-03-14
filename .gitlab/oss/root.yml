@@ -1,0 +1,134 @@
+# Jiffoo OSS - dedicated GitLab pipeline for the public core.
+# This pipeline only builds/deploys the OSS-supported services:
+#   - api
+#   - admin
+#   - shop
+#
+# Deployment target:
+#   - dev branch -> jiffoo-oss-dev namespace (OSS test env)
+
+stages:
+  - trigger
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /\[skip\]/i'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      when: always
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: always
+    - when: never
+
+default: {}
+
+trigger:api:
+  stage: trigger
+  trigger:
+    include: .gitlab/oss/api.yml
+    strategy: depend
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /\[skip\]/i'
+      when: never
+    - if: '$CI_COMMIT_MESSAGE =~ /\[deploy\]/i && $CI_COMMIT_BRANCH == "dev"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      changes:
+        - apps/api/**/*
+        - packages/shared/**/*
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - turbo.json
+        - apps/api/Dockerfile
+        - .gitlab-ci.yml
+        - .gitlab/oss/**/*
+        - scripts/**/*
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - apps/api/**/*
+        - packages/shared/**/*
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - turbo.json
+        - apps/api/Dockerfile
+        - .gitlab-ci.yml
+        - .gitlab/oss/**/*
+        - scripts/**/*
+
+trigger:admin:
+  stage: trigger
+  trigger:
+    include: .gitlab/oss/admin.yml
+    strategy: depend
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /\[skip\]/i'
+      when: never
+    - if: '$CI_COMMIT_MESSAGE =~ /\[deploy\]/i && $CI_COMMIT_BRANCH == "dev"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      changes:
+        - apps/admin/**/*
+        - packages/shared/**/*
+        - packages/ui/**/*
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - turbo.json
+        - apps/admin/Dockerfile
+        - .gitlab-ci.yml
+        - .gitlab/oss/**/*
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - apps/admin/**/*
+        - packages/shared/**/*
+        - packages/ui/**/*
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - turbo.json
+        - apps/admin/Dockerfile
+        - .gitlab-ci.yml
+        - .gitlab/oss/**/*
+
+trigger:shop:
+  stage: trigger
+  trigger:
+    include: .gitlab/oss/shop.yml
+    strategy: depend
+  rules:
+    - if: '$CI_COMMIT_MESSAGE =~ /\[skip\]/i'
+      when: never
+    - if: '$CI_COMMIT_MESSAGE =~ /\[deploy\]/i && $CI_COMMIT_BRANCH == "dev"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH == "dev"'
+      changes:
+        - apps/shop/**/*
+        - packages/shared/**/*
+        - packages/ui/**/*
+        - packages/theme-api-sdk/**/*
+        - packages/core-api-sdk/**/*
+        - packages/shop-themes/default/**/*
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - turbo.json
+        - apps/shop/Dockerfile
+        - .gitlab-ci.yml
+        - .gitlab/oss/**/*
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes:
+        - apps/shop/**/*
+        - packages/shared/**/*
+        - packages/ui/**/*
+        - packages/theme-api-sdk/**/*
+        - packages/core-api-sdk/**/*
+        - packages/shop-themes/default/**/*
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - turbo.json
+        - apps/shop/Dockerfile
+        - .gitlab-ci.yml
+        - .gitlab/oss/**/*

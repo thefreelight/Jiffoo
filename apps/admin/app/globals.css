@@ -16,7 +16,7 @@
     --jf-text-muted: #64748B;
     --jf-border: #E2E8F0;
 
-    /* Legacy compatibility */
+    /* UI system tokens */
     --background: 248 250 252;
     --foreground: 15 23 42;
     --border: 226 232 240;

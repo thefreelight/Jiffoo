@@ -54,27 +54,46 @@ export class CacheService {
 
   // Product list cache
   static async getProductList(page: number, limit: number, filters?: any): Promise<any | null> {
+    const version = await this.getProductVersion();
     const filterKey = filters ? JSON.stringify(filters) : 'all';
-    const listKey = `${this.PREFIXES.PRODUCT}list:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
+    const listKey = `${this.PREFIXES.PRODUCT}list:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
     return await redisCache.get(listKey);
   }
 
   static async setProductList(page: number, limit: number, data: any, filters?: any, ttl: number = 600): Promise<boolean> {
+    const version = await this.getProductVersion();
     const filterKey = filters ? JSON.stringify(filters) : 'all';
-    const listKey = `${this.PREFIXES.PRODUCT}list:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
+    const listKey = `${this.PREFIXES.PRODUCT}list:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
+    return await redisCache.set(listKey, data, ttl);
+  }
+
+  // Order list cache
+  static async getOrderList(page: number, limit: number, filters?: any): Promise<any | null> {
+    const version = await this.getOrderVersion();
+    const filterKey = filters ? JSON.stringify(filters) : 'all';
+    const listKey = `${this.PREFIXES.ORDER}list:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
+    return await redisCache.get(listKey);
+  }
+
+  static async setOrderList(page: number, limit: number, data: any, filters?: any, ttl: number = 600): Promise<boolean> {
+    const version = await this.getOrderVersion();
+    const filterKey = filters ? JSON.stringify(filters) : 'all';
+    const listKey = `${this.PREFIXES.ORDER}list:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
     return await redisCache.set(listKey, data, ttl);
   }
 
   // Search results cache
   static async getSearchResults(query: string, filters: any, page: number, limit: number): Promise<any | null> {
+    const version = await this.getProductVersion();
     const searchKey = JSON.stringify({ query, filters, page, limit });
-    const key = `${this.PREFIXES.SEARCH}${Buffer.from(searchKey).toString('base64')}`;
+    const key = `${this.PREFIXES.SEARCH}v${version}:${Buffer.from(searchKey).toString('base64')}`;
     return await redisCache.get(key);
   }
 
   static async setSearchResults(query: string, filters: any, page: number, limit: number, results: any, ttl: number = 300): Promise<boolean> {
+    const version = await this.getProductVersion();
     const searchKey = JSON.stringify({ query, filters, page, limit });
-    const key = `${this.PREFIXES.SEARCH}${Buffer.from(searchKey).toString('base64')}`;
+    const key = `${this.PREFIXES.SEARCH}v${version}:${Buffer.from(searchKey).toString('base64')}`;
     return await redisCache.set(key, results, ttl);
   }
 
@@ -131,13 +150,13 @@ export class CacheService {
   }
 
   // Clear all cache
-  static async clearAll(): Promise<void> {
-    await redisCache.flushAll();
+  static async clearAll(): Promise<boolean> {
+    return await redisCache.flushAll();
   }
 
   // Clear cache by prefix
-  static async clearByPrefix(prefix: string): Promise<void> {
-    await redisCache.deleteByPattern(`${prefix}*`);
+  static async clearByPrefix(prefix: string): Promise<number> {
+    return await redisCache.deleteByPattern(`${prefix}*`);
   }
 
   // Get cache stats
@@ -148,11 +167,38 @@ export class CacheService {
     userCacheCount: number;
   }> {
     const connected = redisCache.getConnectionStatus();
+    if (!connected) {
+      return {
+        connected,
+        productCacheCount: 0,
+        searchCacheCount: 0,
+        userCacheCount: 0
+      };
+    }
+
+    const [
+      productCoreCount,
+      productPublicListCount,
+      productPublicDetailCount,
+      productPublicCategoryCount,
+      searchCoreCount,
+      searchPublicCount,
+      userCount
+    ] = await Promise.all([
+      redisCache.countByPattern(`${this.PREFIXES.PRODUCT}*`),
+      redisCache.countByPattern('pub:products:list:*'),
+      redisCache.countByPattern('pub:products:detail:*'),
+      redisCache.countByPattern('pub:products:categories:*'),
+      redisCache.countByPattern(`${this.PREFIXES.SEARCH}*`),
+      redisCache.countByPattern('pub:products:search:*'),
+      redisCache.countByPattern(`${this.PREFIXES.USER}*`)
+    ]);
+
     return {
       connected,
-      productCacheCount: 0,
-      searchCacheCount: 0,
-      userCacheCount: 0
+      productCacheCount: productCoreCount + productPublicListCount + productPublicDetailCount + productPublicCategoryCount,
+      searchCacheCount: searchCoreCount + searchPublicCount,
+      userCacheCount: userCount
     };
   }
 
@@ -166,12 +212,95 @@ export class CacheService {
   }
 
   // Clear product cache
-  static async clearProductCache(): Promise<void> {
-    await this.clearByPrefix(this.PREFIXES.PRODUCT);
+  static async clearProductCache(): Promise<number> {
+    return await this.clearByPrefix(this.PREFIXES.PRODUCT);
   }
 
   // Clear search cache
-  static async clearSearchCache(): Promise<void> {
-    await this.clearByPrefix(this.PREFIXES.SEARCH);
+  static async clearSearchCache(): Promise<number> {
+    return await this.clearByPrefix(this.PREFIXES.SEARCH);
+  }
+
+  // Product Versioning for Cache Invalidation
+  static async getProductVersion(): Promise<number> {
+    const key = `${this.PREFIXES.PRODUCT}version`;
+    const version = await redisCache.get<number | string>(key);
+    return version ? Number(version) : 0;
+  }
+
+  static async incrementProductVersion(): Promise<number> {
+    const key = `${this.PREFIXES.PRODUCT}version`;
+    return await redisCache.incr(key);
+  }
+
+  // Order Versioning for Cache Invalidation
+  static async getOrderVersion(): Promise<number> {
+    const key = `${this.PREFIXES.ORDER}version`;
+    const version = await redisCache.get<number | string>(key);
+    return version ? Number(version) : 0;
+  }
+
+  static async incrementOrderVersion(): Promise<number> {
+    const key = `${this.PREFIXES.ORDER}version`;
+    return await redisCache.incr(key);
+  }
+
+  // User list cache (similar to order list)
+  static async getUserList(page: number, limit: number, filters?: any): Promise<any | null> {
+    const version = await this.getUserVersion();
+    const filterKey = filters ? JSON.stringify(filters) : 'all';
+    const listKey = `${this.PREFIXES.USER}list:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
+    return await redisCache.get(listKey);
+  }
+
+  static async setUserList(page: number, limit: number, data: any, filters?: any, ttl: number = 30): Promise<boolean> {
+    const version = await this.getUserVersion();
+    const filterKey = filters ? JSON.stringify(filters) : 'all';
+    const listKey = `${this.PREFIXES.USER}list:v${version}:${page}:${limit}:${Buffer.from(filterKey).toString('base64')}`;
+    return await redisCache.set(listKey, data, ttl);
+  }
+
+  // User Versioning for Cache Invalidation
+  static async getUserVersion(): Promise<number> {
+    const key = `${this.PREFIXES.USER}version`;
+    const version = await redisCache.get<number | string>(key);
+    return version ? Number(version) : 0;
+  }
+
+  static async incrementUserVersion(): Promise<number> {
+    const key = `${this.PREFIXES.USER}version`;
+    return await redisCache.incr(key);
+  }
+
+  // Plugin Versioning for Cache Invalidation (payment methods, etc.)
+  static async getPluginVersion(): Promise<number> {
+    const key = 'plugin:version';
+    const version = await redisCache.get<number | string>(key);
+    return version ? Number(version) : 0;
+  }
+
+  static async incrementPluginVersion(): Promise<number> {
+    const key = 'plugin:version';
+    return await redisCache.incr(key);
+  }
+
+  // Store Context Versioning for Cache Invalidation
+  static async getStoreContextVersion(): Promise<number> {
+    const key = 'store:context:version';
+    const version = await redisCache.get<number | string>(key);
+    return version ? Number(version) : 0;
+  }
+
+  static async incrementStoreContextVersion(): Promise<number> {
+    const key = 'store:context:version';
+    return await redisCache.incr(key);
+  }
+
+  /**
+   * Get the underlying Redis client for advanced operations
+   * Use with caution - primarily for health monitoring and diagnostics
+   */
+  static getRedisClient() {
+    return redisCache.getClient();
   }
 }

@@ -10,8 +10,8 @@
 
 import { useState } from 'react'
 import { usePathname } from 'next/navigation'
+import { Menu } from 'lucide-react'
 import { BlueMinimalSidebar } from './blue-minimal-sidebar'
-import { BlueMinimalHeader } from './blue-minimal-header'
 import ProtectedRoute from '../auth/ProtectedRoute'
 import { useT, useLocale } from 'shared/src/i18n/react'
 
@@ -27,35 +27,9 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback
-  }
-
-  // Get page title based on current route with i18n support
-  const getPageTitle = (path: string) => {
-    const segments = path.split('/').filter(Boolean)
-    // Remove locale segment if present
-    const filteredSegments = segments.filter(s => s !== locale)
-
-    if (filteredSegments.length === 0) return getText('merchant.nav.dashboard', 'Dashboard')
-
-    const pageMap: Record<string, { key: string; fallback: string }> = {
-      'dashboard': { key: 'merchant.nav.dashboard', fallback: 'Dashboard' },
-      'products': { key: 'merchant.products.title', fallback: 'Products' },
-      'orders': { key: 'merchant.orders.title', fallback: 'Orders' },
-      'customers': { key: 'merchant.customers.title', fallback: 'Customers' },
-      'analytics': { key: 'common.labels.analytics', fallback: 'Analytics' },
-      'marketing': { key: 'merchant.nav.marketing', fallback: 'Marketing' },
-      'finance': { key: 'common.labels.finance', fallback: 'Finance' },
-      'plugins': { key: 'merchant.plugins.title', fallback: 'Plugin Store' },
-      'settings': { key: 'merchant.settings.title', fallback: 'Settings' },
-      'agents': { key: 'merchant.agent.title', fallback: 'Agents' }
-    }
-
-    const pageInfo = pageMap[filteredSegments[0]]
-    if (pageInfo) {
-      return getText(pageInfo.key, pageInfo.fallback)
-    }
-    return filteredSegments[0].charAt(0).toUpperCase() + filteredSegments[0].slice(1)
+    if (!t) return fallback
+    const translated = t(key)
+    return translated === key ? fallback : translated
   }
 
   // Public routes that don't need authentication
@@ -70,7 +44,7 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
   const handleCloseSidebar = () => setIsSidebarOpen(false)
 
   return (
-    <ProtectedRoute requireAdmin={false}>
+    <ProtectedRoute requireAdmin={true}>
       <div className="flex h-screen overflow-hidden bg-[#F1F5F9] font-sans">
         {/* Sidebar */}
         <BlueMinimalSidebar
@@ -78,16 +52,20 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
           onClose={handleCloseSidebar}
         />
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Header */}
-          <BlueMinimalHeader
-            title={getPageTitle(pathname)}
-            onMenuClick={handleOpenSidebar}
-          />
+        <div className="flex-1 flex flex-col overflow-hidden bg-white">
+          {/* Mobile Menu Button - Fixed at top left, hidden when sidebar is open */}
+          {!isSidebarOpen && (
+            <button
+              onClick={handleOpenSidebar}
+              className="lg:hidden fixed top-4 left-4 z-[60] p-3 bg-blue-600 text-white rounded-xl shadow-2xl hover:bg-blue-700 transition-all duration-200 hover:shadow-blue-500/50 hover:scale-105 active:scale-95"
+              aria-label="Open menu"
+            >
+              <Menu className="w-6 h-6" />
+            </button>
+          )}
 
-          {/* Page Content */}
-          <main className="flex-1 overflow-y-auto p-4 lg:p-8 bg-[#F1F5F9]">
+          {/* Page Content - with skip-to-content target from GitLab */}
+          <main id="main" tabIndex={-1} className="flex-1 overflow-y-auto">
             {children}
           </main>
         </div>
@@ -95,4 +73,3 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
     </ProtectedRoute>
   )
 }
-

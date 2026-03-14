@@ -6,6 +6,8 @@
 import { FastifyInstance } from 'fastify';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { ThemeManagementService } from '@/core/admin/theme-management/service';
+import { sendSuccess, sendError } from '@/utils/response';
+import { errorResponseSchema } from '@/utils/schema-helpers';
 
 export async function mallRoutes(fastify: FastifyInstance) {
     fastify.get('/context', {
@@ -30,41 +32,46 @@ export async function mallRoutes(fastify: FastifyInstance) {
                                     type: 'array',
                                     items: { type: 'string' }
                                 },
-                                currency: { type: 'string' }
+                                currency: { type: 'string' },
+                                checkout: {
+                                    type: 'object',
+                                    properties: {
+                                        countriesRequireStatePostal: {
+                                            type: 'array',
+                                            items: { type: 'string' }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
                 },
-                500: {
-                    type: 'object',
-                    properties: {
-                        success: { type: 'boolean' },
-                        error: { type: 'string' }
-                    }
-                }
+                500: errorResponseSchema,
             }
         }
     }, async (_request, reply) => {
         try {
             // Parallel fetch settings and theme
-            const [platformName, activeTheme, currency] = await Promise.all([
+            const [platformName, activeTheme, currency, defaultLocale, countriesRequireStatePostal] = await Promise.all([
                 systemSettingsService.getString('branding.platform_name', 'Jiffoo Mall'),
                 ThemeManagementService.getActiveTheme(),
-                systemSettingsService.getString('general.currency', 'USD'),
+                systemSettingsService.getShopCurrency(),
+                systemSettingsService.getShopLocale(),
+                systemSettingsService.getCheckoutCountriesRequireStatePostal(),
             ]);
 
-            return reply.send({
-                success: true,
-                data: {
-                    storeName: platformName as string,
-                    theme: activeTheme, // Includes slug & config
-                    defaultLocale: 'zh-Hant', // Alpha Gate: Must be zh-Hant default
-                    supportedLocales: ['en', 'zh-Hant'], // Alpha Gate: Only En + SC
-                    currency: currency as string,
-                }
+            return sendSuccess(reply, {
+                storeName: platformName as string,
+                theme: activeTheme, // Includes slug & config
+                defaultLocale,
+                supportedLocales: ['en', 'zh-Hant'], // Alpha Gate: Only En + SC
+                currency,
+                checkout: {
+                    countriesRequireStatePostal,
+                },
             });
         } catch (error: any) {
-            return reply.status(500).send({ success: false, error: error.message });
+            return sendError(reply, 500, 'CONTEXT_FETCH_FAILED', error.message);
         }
     });
 }

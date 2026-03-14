@@ -1,53 +1,44 @@
 /**
- * 默认主题包入口
- * 导出 ThemePackage 接口实现
+ * Default theme package entry point
+ * Export ThemePackage interface implementation
  */
 
 import './tokens.css';
 import type { ThemePackage } from 'shared/src/types/theme';
 
-// 导入页面组件
+// Import page components
 import { HomePage } from './components/HomePage';
 import { ProductsPage } from './components/ProductsPage';
 import { ProductDetailPage } from './components/ProductDetailPage';
 import { CartPage } from './components/CartPage';
 import { CheckoutPage } from './components/CheckoutPage';
 import { NotFound } from './components/NotFound';
-// 商品列表变体页面
-import { BestsellersPage } from './components/BestsellersPage';
-import { NewArrivalsPage } from './components/NewArrivalsPage';
-import { CategoriesPage } from './components/CategoriesPage';
-import { SearchPage } from './components/SearchPage';
-// 订单相关页面
+// Order related pages
 import { OrdersPage } from './components/OrdersPage';
 import { OrderDetailPage } from './components/OrderDetailPage';
 import { OrderSuccessPage } from './components/OrderSuccessPage';
 import { OrderCancelledPage } from './components/OrderCancelledPage';
-// 用户中心页面
+// User center pages
 import { ProfilePage } from './components/ProfilePage';
-import { ProfileSettingsPage } from './components/ProfileSettingsPage';
-// 内容页面
+// Content pages
 import { ContactPage } from './components/ContactPage';
 import { HelpPage } from './components/HelpPage';
 import { PrivacyPage } from './components/PrivacyPage';
 import { TermsPage } from './components/TermsPage';
-// 特殊页面
-import { DealsPage } from './components/DealsPage';
-import { AffiliateDashboardPage } from './components/AffiliateDashboardPage';
-// Auth 页面
+// Auth pages
 import { LoginPage } from './components/LoginPage';
 import { RegisterPage } from './components/RegisterPage';
 import { AuthCallbackPage } from './components/AuthCallbackPage';
-// 布局组件
+// Layout components
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 
-// UI 组件导出
+// UI component exports
 export { Toast, ToastContainer } from './ui/Toast';
 export type { ToastProps, ToastType } from './ui/Toast';
 
 /**
- * 默认主题包
+ * Default theme package
  */
 export const theme: ThemePackage = {
   components: {
@@ -57,22 +48,15 @@ export const theme: ThemePackage = {
     CartPage,
     CheckoutPage,
     NotFound,
-    BestsellersPage,
-    NewArrivalsPage,
-    CategoriesPage,
-    SearchPage,
     OrdersPage,
     OrderDetailPage,
     OrderSuccessPage,
     OrderCancelledPage,
     ProfilePage,
-    ProfileSettingsPage,
     ContactPage,
     HelpPage,
     PrivacyPage,
     TermsPage,
-    DealsPage,
-    AffiliateDashboardPage,
     LoginPage,
     RegisterPage,
     AuthCallbackPage,

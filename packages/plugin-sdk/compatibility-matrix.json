@@ -1,0 +1,151 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "lastUpdated": "2024-01-15",
+  "description": "Jiffoo Plugin SDK compatibility matrix - Defines which SDK versions work with which Platform API versions",
+
+  "sdkCompatibility": [
+    {
+      "sdkVersion": "1.0.0",
+      "minPlatformVersion": "0.2.0",
+      "maxPlatformVersion": null,
+      "releaseDate": "2024-01-15",
+      "status": "stable",
+      "features": [
+        "Initial stable release",
+        "Full API versioning support",
+        "Compatibility checking utilities",
+        "TypeScript type definitions",
+        "CLI tooling for plugin development",
+        "Express and Fastify integration"
+      ],
+      "warnings": [
+        "Initial stable release",
+        "Supports platform versioning and compatibility checking"
+      ],
+      "migrationNotes": null,
+      "deprecatedDate": null,
+      "sunsetDate": null
+    },
+    {
+      "sdkVersion": "0.9.0",
+      "minPlatformVersion": "0.1.0",
+      "maxPlatformVersion": "0.2.0",
+      "releaseDate": "2023-12-01",
+      "status": "deprecated",
+      "features": [
+        "Beta release",
+        "Basic plugin API support",
+        "Limited versioning support"
+      ],
+      "warnings": [
+        "Deprecated: Use SDK 1.0.0 or later",
+        "Limited support for new platform features"
+      ],
+      "migrationNotes": "Upgrade to SDK 1.0.0 for latest features and platform compatibility. See migration guide at docs/migration-guides/sdk-0.9-to-1.0.md",
+      "deprecatedDate": "2024-01-15",
+      "sunsetDate": "2024-07-15"
+    }
+  ],
+
+  "platformCompatibility": [
+    {
+      "platformVersion": "0.2.0",
+      "releaseDate": "2024-01-15",
+      "status": "active",
+      "compatibleSdkVersions": ["1.0.0"],
+      "recommendedSdkVersion": "1.0.0",
+      "features": [
+        "API versioning support (/api/v1/, /api/v2/)",
+        "Deprecation warning system",
+        "Enhanced plugin lifecycle management",
+        "Improved compatibility checking"
+      ],
+      "notes": "First release with full API versioning support. All plugins should use SDK 1.0.0 or later."
+    },
+    {
+      "platformVersion": "0.1.0",
+      "releaseDate": "2023-12-01",
+      "status": "deprecated",
+      "compatibleSdkVersions": ["0.9.0", "1.0.0"],
+      "recommendedSdkVersion": "1.0.0",
+      "features": [
+        "Basic plugin support",
+        "Core API endpoints",
+        "Authentication system"
+      ],
+      "notes": "Legacy platform version. Upgrade to 0.2.0 or later for full API versioning support.",
+      "deprecatedDate": "2024-01-15",
+      "sunsetDate": "2024-07-15"
+    }
+  ],
+
+  "nodeVersions": {
+    "minimum": "18.0.0",
+    "recommended": "20.0.0",
+    "tested": ["18.0.0", "18.18.0", "20.0.0", "20.10.0", "21.0.0"]
+  },
+
+  "frameworkCompatibility": {
+    "express": {
+      "minimum": "4.18.0",
+      "recommended": "4.18.2",
+      "tested": ["4.18.0", "4.18.2", "4.19.0"]
+    },
+    "fastify": {
+      "minimum": "4.0.0",
+      "recommended": "4.25.0",
+      "tested": ["4.0.0", "4.25.0", "4.26.0"]
+    }
+  },
+
+  "breakingChanges": [
+    {
+      "fromVersion": "0.9.0",
+      "toVersion": "1.0.0",
+      "changes": [
+        {
+          "type": "api-change",
+          "description": "Plugin manifest schema updated to include version requirements",
+          "migration": "Add 'platformVersion' field to plugin manifest with value '^0.2.0'"
+        },
+        {
+          "type": "api-change",
+          "description": "Authentication API changed from /auth to /api/v1/auth",
+          "migration": "Update all API endpoint calls to use versioned paths (/api/v1/...)"
+        },
+        {
+          "type": "deprecation",
+          "description": "Legacy plugin loader deprecated in favor of versioned loader",
+          "migration": "Implement version checking in plugin initialization"
+        }
+      ],
+      "migrationGuide": "docs/migration-guides/sdk-0.9-to-1.0.md"
+    }
+  ],
+
+  "compatibilityChecking": {
+    "description": "The SDK includes runtime compatibility checking to validate version compatibility",
+    "methods": [
+      "checkPluginCompatibility(manifest, platformVersion)",
+      "checkRequestCompatibility(request)",
+      "satisfiesVersion(version, requirement)"
+    ],
+    "automaticChecking": true,
+    "strictMode": false,
+    "warningMode": true
+  },
+
+  "deprecationPolicy": {
+    "minimumSupportWindow": "6 months",
+    "notificationPeriods": [
+      "T-180 days: Initial deprecation announcement",
+      "T-90 days: Second notice",
+      "T-30 days: Final warning",
+      "T-7 days: Last chance notice",
+      "T-0 days: Sunset (410 Gone responses)"
+    ],
+    "migrationSupport": true,
+    "autoUpgradeTooling": true
+  }
+}

@@ -1,111 +1,107 @@
-/**
- * Deals Page for Shop Application
- *
- * Displays special deals and discounted products.
- * Supports i18n through the translation function.
- */
-
 'use client';
 
-import React from 'react';
+import * as React from 'react';
 import { useShopTheme } from '@/lib/themes/provider';
-import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { useToast } from '@/hooks/use-toast';
-import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
 import { useCartStore } from '@/store/cart';
+import { useToast } from '@/hooks/use-toast';
+import { ProductService, ShopProductListItemDTO } from '@/services/product.service';
+import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useT } from 'shared/src/i18n/react';
-
-interface Product {
-  id: string;
-  name: string;
-  description?: string;
-  price: number;
-  stock: number;
-  images?: string;
-  category?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { LoadingState, ErrorState } from '@/components/ui/state-components';
+import { TemplateRenderer } from '@/lib/theme-pack';
 
 export default function DealsPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
   const nav = useLocalizedNavigation();
-  const { toast } = useToast();
   const { addToCart } = useCartStore();
+  const { toast } = useToast();
   const t = useT();
 
-  // Helper function for translations with fallback
-  const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback;
-  };
+  const [products, setProducts] = React.useState<ShopProductListItemDTO[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
 
-  const { data: productsData, isLoading, error } = useQuery({
-    queryKey: ['products', nav.locale],
-    queryFn: async () => {
-      const response = await api.get('/products', { params: { locale: nav.locale } });
-      return response.data;
-    },
-  });
+  const getText = (key: string, fallback: string): string => (t ? t(key) : fallback);
 
-  const products = (productsData as unknown as { products?: Product[] })?.products || [];
+  React.useEffect(() => {
+    let cancelled = false;
 
-  // Theme loading state
-  if (themeLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-pulse space-y-4">
-          <div className="h-12 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      </div>
-    );
-  }
+    async function loadDeals() {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await ProductService.getProducts(1, 12, {
+          sortBy: 'price',
+          sortOrder: 'asc',
+          tags: ['deal'],
+          locale: nav.locale,
+        });
 
-  // Check theme component availability
-  if (!theme?.components?.DealsPage) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-md p-6">
-          <h1 className="text-xl font-bold text-red-600">{getText('common.errors.componentUnavailable', 'Deals Page Not Found')}</h1>
-          <p className="mt-2 text-sm text-gray-600">{getText('common.errors.componentUnavailable', 'The deals page component is not available in the current theme.')}</p>
-        </div>
-      </div>
-    );
-  }
+        if (!cancelled) {
+          setProducts(response.items);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : getText('common.errors.general', 'Failed to fetch deals'));
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadDeals();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getText, nav.locale]);
 
   const handleAddToCart = async (productId: string) => {
-    try {
-      await addToCart(productId, 1);
+    const product = products.find((item) => item.id === productId);
+    const variantId = product?.variants?.[0]?.id;
+
+    if (!variantId) {
       toast({
-        title: getText('shop.cart.toast.added', 'Success'),
-        description: getText('shop.cart.toast.addedDescription', 'Product added to cart'),
-      });
-    } catch (error) {
-      toast({
-        title: getText('common.errors.error', 'Error'),
-        description: getText('shop.cart.toast.addFailed', 'Failed to add product to cart'),
+        title: getText('shop.cart.addFailed', 'Failed to add item'),
+        description: getText('shop.cart.addFailed', 'No available SKU for this product'),
         variant: 'destructive',
       });
+      return;
     }
+
+    await addToCart(productId, 1, variantId);
   };
 
-  const handleProductClick = (productId: string) => {
-    nav.push(`/products/${productId}`);
-  };
+  if (themeLoading) {
+    return <LoadingState type="spinner" message={getText('common.actions.loading', 'Loading...')} fullPage />;
+  }
+
+  if (!theme?.components?.DealsPage) {
+    return (
+      <ErrorState
+        title={getText('common.errors.themeUnavailable', 'Theme Component Unavailable')}
+        message={getText('common.errors.componentUnavailable', 'Unable to load deals page component')}
+        onGoHome={() => nav.push('/')}
+        fullPage
+      />
+    );
+  }
 
   const DealsPageComponent = theme.components.DealsPage;
-
-  return (
+  const defaultDealsPage = (
     <DealsPageComponent
       products={products as any}
-      isLoading={isLoading}
-      error={error ? (error as any).message : null}
+      isLoading={loading}
+      error={error}
       config={config}
       locale={nav.locale}
       t={t}
       onAddToCart={handleAddToCart}
-      onProductClick={handleProductClick}
+      onProductClick={(productId) => nav.push(`/products/${productId}`)}
     />
   );
+
+  return <TemplateRenderer page="deals" fallback={defaultDealsPage} />;
 }

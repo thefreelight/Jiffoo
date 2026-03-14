@@ -1,6 +1,6 @@
 /**
- * OAuth 回调页面组件
- * 处理 Google OAuth 等第三方认证的回调
+ * OAuth Callback Page Component
+ * Handle callbacks from third-party authentication like Google OAuth
  * Uses @jiffoo/ui design system.
  */
 

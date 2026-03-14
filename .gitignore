@@ -19,6 +19,10 @@ build/
 # TypeScript build artifacts
 *.tsbuildinfo
 next-env.d.ts
+**/next-env.d.ts
+
+# fumadocs auto-generated source directory
+apps/docs/.source/
 
 # Environment variables
 .env
@@ -55,22 +59,42 @@ pids
 *.pid
 *.seed
 *.pid.lock
+.local/
 
 # Coverage directory used by tools like istanbul
 coverage/
 *.lcov
 
 # Extensions (runtime installation directory)
-# 运行时安装的插件和主题不进 git,仅保留 .gitkeep
+# 运行时安装的插件和主题默认不进 git；官方 package-managed 插件源码除外
 extensions/plugins/*
 extensions/themes/*
 !extensions/plugins/.gitkeep
 !extensions/themes/.gitkeep
+!extensions/plugins/stripe/
+!extensions/plugins/stripe/**
+!extensions/plugins/i18n/
+!extensions/plugins/i18n/**
+!extensions/plugins/odoo/
+!extensions/plugins/odoo/**
+extensions/plugins/*/.installed.json
+extensions/plugins/*/checksums.json
+extensions/plugins/*/node_modules/
+extensions/plugins/*/dist/
+
+# Theme/Plugin zip artifacts (build products, should not be committed)
+*.zip
+packages/shop-themes/*.zip
+
+# API extensions runtime directory (should use EXTENSIONS_PATH env var)
+apps/api/extensions/
 
 # Playwright
 playwright-report/
 test-results/
 playwright/.cache/
+apps/api/tests/e2e/.auth/
+apps/api/tests/e2e/playwright-report/
 e2e/visual/baselines/*.png
 
 # nyc test coverage
@@ -82,6 +106,10 @@ e2e/visual/baselines/*.png
 *.swp
 *.swo
 
+# Claude Code local settings (may contain sensitive paths or personal preferences)
+.claude/settings.json
+.claude/settings.local.json
+
 # OS
 .DS_Store
 Thumbs.db
@@ -89,3 +117,14 @@ Thumbs.db
 # Prisma
 prisma/migrations/
 imagerAI/
+
+# Auto Claude data directory
+.auto-claude/
+
+# Auto Claude generated files
+.auto-claude-security.json
+.auto-claude-status
+.claude_settings.json
+.worktrees/
+.security-key
+logs/security/

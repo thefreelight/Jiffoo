@@ -22,6 +22,7 @@ export {
   createHealthCheckService,
   createDatabaseCheck,
   createRedisCheck,
+  createRedisCacheStatsCheck,
   createHttpCheck,
   createMemoryCheck,
   HealthStatus,
@@ -29,6 +30,8 @@ export {
   type HealthCheckResult,
   type HealthCheckFn,
   type HealthCheckConfig,
+  type CheckMetrics,
+  type RedisCacheStats,
 } from './health-check';
 
 // Sentry APM
@@ -68,12 +71,26 @@ export {
   type LokiPushPayload,
 } from './log-forwarder';
 
+// Metrics Collector
+import { MetricsCollector as MetricsCollectorClass } from './metrics-collector';
+export {
+  MetricsCollector,
+  createMetricsCollector,
+  collectSystemMetrics,
+  type MetricsCollectorConfig,
+  type CpuMetrics,
+  type MemoryMetrics,
+  type DiskMetrics,
+  type SystemMetrics,
+} from './metrics-collector';
+
 // Type aliases for interface usage
 export type SentryClientInstance = InstanceType<typeof SentryClientClass>;
 export type OtelClientInstance = InstanceType<typeof OtelClientClass>;
 export type LogForwarderInstance = InstanceType<typeof LogForwarderClass>;
 export type HealthCheckServiceInstance = InstanceType<typeof HealthCheckServiceClass>;
 export type LogRedactorInstance = InstanceType<typeof LogRedactorClass>;
+export type MetricsCollectorInstance = InstanceType<typeof MetricsCollectorClass>;
 
 /**
  * Observability initialization config

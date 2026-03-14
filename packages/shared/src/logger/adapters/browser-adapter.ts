@@ -1,5 +1,5 @@
 /**
- * 统一日志系统 - 浏览器适配器
+ * Unified Logging System - Browser Adapter
  */
 
 import { ILogger, ITransport, LogLevel, LogMeta, OperationLog, LoggerConfig } from '../types';
@@ -17,7 +17,7 @@ export interface BrowserAdapterOptions {
 }
 
 /**
- * 浏览器适配器 - 专为浏览器环境优化的日志器
+ * Browser Adapter - Logger optimized for browser environment
  */
 export class BrowserAdapter extends BaseLogger {
   private localStorageKey: string;
@@ -31,30 +31,30 @@ export class BrowserAdapter extends BaseLogger {
     this.localStorageKey = options.storageKey || `logger_${this.config.appName}`;
     this.maxLocalLogs = options.maxLocalLogs || 100;
 
-    // 初始化默认传输器
+    // Initialize default transports
     this.initializeDefaultTransports(options.remoteEndpoint);
     
-    // 设置浏览器特定的功能
+    // Setup browser-specific features
     this.setupBrowserFeatures();
   }
 
   /**
-   * 初始化默认传输器
+   * Initialize default transports
    */
   private initializeDefaultTransports(remoteEndpoint?: string): void {
-    // 添加控制台传输器
+    // Add console transport
     const consoleTransport = new ConsoleTransport({
       level: this.currentLevel,
-      colorize: false, // 浏览器使用 CSS 样式
+      colorize: false, // Browser uses CSS styles
       timestamp: true
     });
     this.addTransport(consoleTransport);
 
-    // 如果提供了远程端点，添加远程传输器
+    // If remote endpoint provided, add remote transport
     if (remoteEndpoint) {
       const remoteTransport = new RemoteTransport({
         endpoint: remoteEndpoint,
-        level: 'info', // 只发送 info 及以上级别到服务器
+        level: 'info', // Only send info and above levels to server
         batchSize: 10,
         flushInterval: 5000,
         enableLocalStorage: this.enableLocalStorage,
@@ -63,7 +63,7 @@ export class BrowserAdapter extends BaseLogger {
       this.addTransport(remoteTransport);
     }
 
-    // 根据配置添加其他传输器
+    // Add other transports based on configuration
     this.config.transports.forEach(transportConfig => {
       try {
         const transport = createTransport(transportConfig);
@@ -75,24 +75,24 @@ export class BrowserAdapter extends BaseLogger {
   }
 
   /**
-   * 设置浏览器特定功能
+   * Setup browser-specific features
    */
   private setupBrowserFeatures(): void {
-    // 全局错误处理
+    // Global error handling
     this.setupGlobalErrorHandling();
     
-    // 未处理的 Promise 拒绝
+    // Unhandled Promise rejection
     this.setupUnhandledRejectionHandling();
     
-    // 页面可见性变化处理
+    // Page visibility change handling
     this.setupVisibilityChangeHandling();
     
-    // 从本地存储恢复日志
+    // Restore logs from local storage
     this.loadLogsFromStorage();
   }
 
   /**
-   * 设置全局错误处理
+   * Setup global error handling
    */
   private setupGlobalErrorHandling(): void {
     if (typeof window !== 'undefined') {
@@ -112,7 +112,7 @@ export class BrowserAdapter extends BaseLogger {
   }
 
   /**
-   * 设置未处理的 Promise 拒绝处理
+   * Setup unhandled Promise rejection handling
    */
   private setupUnhandledRejectionHandling(): void {
     if (typeof window !== 'undefined') {
@@ -129,7 +129,7 @@ export class BrowserAdapter extends BaseLogger {
   }
 
   /**
-   * 设置页面可见性变化处理
+   * Setup page visibility change handling
    */
   private setupVisibilityChangeHandling(): void {
     if (typeof document !== 'undefined' && 'visibilityState' in document) {
@@ -150,10 +150,10 @@ export class BrowserAdapter extends BaseLogger {
   }
 
   /**
-   * 重写日志方法以添加浏览器特定的元数据
+   * Override log method to add browser-specific metadata
    */
   protected log(level: LogLevel, message: string, meta: LogMeta = {}): void {
-    // 添加浏览器特定的元数据
+    // Add browser-specific metadata
     const browserMeta = {
       ...meta,
       url: typeof window !== 'undefined' ? window.location.href : undefined,
@@ -161,17 +161,17 @@ export class BrowserAdapter extends BaseLogger {
       timestamp: new Date().toISOString()
     };
 
-    // 调用父类方法
+    // Call parent method
     super.log(level, message, browserMeta);
 
-    // 保存到本地存储
+    // Save to local storage
     if (this.enableLocalStorage) {
       this.saveLogToStorage(level, message, browserMeta);
     }
   }
 
   /**
-   * 记录用户交互事件
+   * Log user interaction events
    */
   logUserInteraction(action: string, element?: string, details?: any): void {
     this.info('User interaction', {
@@ -185,7 +185,7 @@ export class BrowserAdapter extends BaseLogger {
   }
 
   /**
-   * 记录页面性能指标
+   * Log page performance metrics
    */
   logPagePerformance(): void {
     if (typeof window !== 'undefined' && 'performance' in window) {
@@ -204,7 +204,7 @@ export class BrowserAdapter extends BaseLogger {
   }
 
   /**
-   * 记录网络请求
+   * Log network requests
    */
   logNetworkRequest(url: string, method: string, status: number, duration: number, details?: any): void {
     this.info('Network request', {
@@ -219,7 +219,7 @@ export class BrowserAdapter extends BaseLogger {
   }
 
   /**
-   * 获取 First Paint 时间
+   * Get First Paint time
    */
   private getFirstPaint(): number | undefined {
     if (typeof window !== 'undefined' && 'performance' in window) {
@@ -231,7 +231,7 @@ export class BrowserAdapter extends BaseLogger {
   }
 
   /**
-   * 获取 First Contentful Paint 时间
+   * Get First Contentful Paint time
    */
   private getFirstContentfulPaint(): number | undefined {
     if (typeof window !== 'undefined' && 'performance' in window) {
@@ -243,7 +243,7 @@ export class BrowserAdapter extends BaseLogger {
   }
 
   /**
-   * 保存日志到本地存储
+   * Save log to local storage
    */
   private saveLogToStorage(level: LogLevel, message: string, meta: LogMeta): void {
     if (typeof localStorage === 'undefined') {
@@ -261,19 +261,19 @@ export class BrowserAdapter extends BaseLogger {
 
       logs.push(logEntry);
 
-      // 限制本地存储的日志数量
+      // Limit number of logs in local storage
       if (logs.length > this.maxLocalLogs) {
         logs.splice(0, logs.length - this.maxLocalLogs);
       }
 
       localStorage.setItem(this.localStorageKey, JSON.stringify(logs));
     } catch (error) {
-      // 本地存储可能已满，静默失败
+      // Local storage may be full, fail silently
     }
   }
 
   /**
-   * 从本地存储获取日志
+   * Get logs from local storage
    */
   private getLogsFromStorage(): any[] {
     if (typeof localStorage === 'undefined') {
@@ -289,7 +289,7 @@ export class BrowserAdapter extends BaseLogger {
   }
 
   /**
-   * 从本地存储加载日志
+   * Load logs from local storage
    */
   private loadLogsFromStorage(): void {
     const logs = this.getLogsFromStorage();
@@ -302,7 +302,7 @@ export class BrowserAdapter extends BaseLogger {
   }
 
   /**
-   * 清除本地存储的日志
+   * Clear logs in local storage
    */
   clearLocalLogs(): void {
     if (typeof localStorage !== 'undefined') {
@@ -316,14 +316,14 @@ export class BrowserAdapter extends BaseLogger {
   }
 
   /**
-   * 获取本地存储的日志
+   * Get logs in local storage
    */
   getLocalLogs(): any[] {
     return this.getLogsFromStorage();
   }
 
   /**
-   * 导出本地日志
+   * Export local logs
    */
   exportLocalLogs(): string {
     const logs = this.getLogsFromStorage();
@@ -332,14 +332,14 @@ export class BrowserAdapter extends BaseLogger {
 }
 
 /**
- * 创建浏览器适配器的工厂函数
+ * Factory function to create browser adapter
  */
 export function createBrowserAdapter(options: BrowserAdapterOptions): BrowserAdapter {
   return new BrowserAdapter(options);
 }
 
 /**
- * 创建默认的浏览器适配器
+ * Create default browser adapter
  */
 export function createDefaultBrowserAdapter(appName: string, remoteEndpoint?: string): BrowserAdapter {
   const config: LoggerConfig = {

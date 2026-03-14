@@ -1,14 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useEffect, useState, useMemo } from 'react';
+import * as React from 'react';
 import { initializeStoreContext, type StoreContext } from '@/lib/store-context';
 import { useAuthStore } from '@/store/auth';
 import { useCartStore } from '@/store/cart';
 import { useStoreStore } from '@/store/store';
 import { ThemeProvider } from '@/lib/themes/provider';
 import { ThemedLayout } from '@/components/themed-layout';
+import { useThemePackOptional } from '@/lib/theme-pack';
 import type { ThemeConfig } from 'shared/src/types/theme';
+import { resolveThemeRendererSlug } from '@/lib/theme-pack/rendering-mode';
 
 /**
  * Store Context Provider
@@ -23,45 +25,77 @@ export function StoreContextProvider({
   children: React.ReactNode;
   initialContext?: StoreContext | null;
 }) {
-  const [isLoading, setIsLoading] = useState(!initialContext);
-  const [context, setContext] = useState<StoreContext | null>(initialContext || null);
+  // Hydrate from sessionStorage immediately to avoid flash and re-mounts
+  const [isLoading, setIsLoading] = useState(() => {
+    if (initialContext) return false;
+    if (typeof window === 'undefined') return true;
+    try {
+      const cached = sessionStorage.getItem('store-context');
+      return !cached;
+    } catch {
+      return true;
+    }
+  });
+
+  const [context, setContext] = useState<StoreContext | null>(() => {
+    if (initialContext) return initialContext;
+    if (typeof window === 'undefined') return null;
+    try {
+      const cached = sessionStorage.getItem('store-context');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
   const [error, setError] = useState<string | null>(null);
 
-  // Read theme override from URL query param - must be at top with other hooks
-  const searchParams = useSearchParams();
-  const themeOverride = searchParams.get('theme');
+  // Get theme config from ThemePackProvider (authoritative source: GET /api/themes/active)
+  // ThemePackProvider is already wrapping this component in conditional-layout.tsx
+  const themePack = useThemePackOptional();
+
+  const themeConfigFromThemePack: ThemeConfig | undefined = React.useMemo(() => {
+    const merged = themePack?.mergedConfig;
+    if (!merged || typeof merged !== 'object') return undefined;
+
+    // Theme Pack config shape: { colors, typography, layout, ... }
+    // Default theme renderer expects ThemeConfig: { brand, layout, features }
+    const colors = (merged as any).colors as Record<string, unknown> | undefined;
+    const typography = (merged as any).typography as Record<string, unknown> | undefined;
+    const layout = (merged as any).layout as Record<string, unknown> | undefined;
+
+    const config: ThemeConfig = {};
+
+    const primary = colors?.primary as string | undefined;
+    const secondary = colors?.secondary as string | undefined;
+    const fontFamily = typography?.fontFamily as string | undefined;
+
+    if (primary || secondary || fontFamily) {
+      config.brand = {
+        primaryColor: primary,
+        secondaryColor: secondary,
+        fontFamily,
+      };
+    }
+
+    const maxWidth = layout?.containerWidth as string | undefined;
+    if (maxWidth) {
+      config.layout = {
+        maxWidth,
+      };
+    }
+
+    return Object.keys(config).length > 0 ? config : undefined;
+  }, [themePack?.mergedConfig]);
 
   // Store state for global access
   const setStoreContext = useStoreStore((state) => state.setContext);
   const setStoreLoading = useStoreStore((state) => state.setLoading);
   const setStoreError = useStoreStore((state) => state.setError);
 
-  useEffect(() => {
-    if (initialContext) return;
-    if (typeof window === 'undefined') return;
+  // Removed unused authLogout and resetCart hooks that caused infinite rerenders
 
-    const hostname = window.location.hostname;
-    const cacheKey = `store-context:domain:${hostname}`;
-
-    try {
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        const age = Date.now() - (parsed.timestamp || 0);
-
-        if (age < 60000) {
-          setContext(parsed.data);
-          setIsLoading(false);
-          return;
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load store context from cache:', err);
-    }
-  }, [initialContext]);
-
-  const authLogout = useAuthStore(state => state.logout);
-  const resetCart = useCartStore(state => state.resetCart);
+  // No-op useEffect as we now handle immediate hydration in the state initializer
+  useEffect(() => { }, []);
 
   useEffect(() => {
     async function loadContext() {
@@ -79,16 +113,9 @@ export function StoreContextProvider({
           setStoreContext(storeContext);
 
           if (storeContext) {
-            const hostname = window.location.hostname;
-            const cacheKey = `store-context:domain:${hostname}`;
             try {
-              localStorage.setItem(cacheKey, JSON.stringify({
-                data: storeContext,
-                timestamp: Date.now()
-              }));
-            } catch (err) {
-              console.error('Failed to cache store context:', err);
-            }
+              sessionStorage.setItem('store-context', JSON.stringify(storeContext));
+            } catch { }
           }
         } else {
           setStoreContext(initialContext);
@@ -107,17 +134,28 @@ export function StoreContextProvider({
     }
 
     loadContext();
-  }, [authLogout, resetCart, initialContext, setStoreContext, setStoreLoading, setStoreError]);
+  }, [initialContext, setStoreContext, setStoreLoading, setStoreError]);
+
+  // Resolve the storefront renderer from the active Theme Pack contract.
+  // Downloaded Theme Packs may declare an embedded renderer slug in theme.json,
+  // which lets package-managed themes drive the full storefront renderer.
+  const themeSlug = React.useMemo(
+    () =>
+      resolveThemeRendererSlug({
+        manifest: themePack?.manifest,
+        activeThemeSlug: themePack?.activeTheme?.slug,
+        serverThemeSlug: context?.theme?.slug,
+      }),
+    [themePack?.activeTheme?.slug, themePack?.manifest, context?.theme?.slug],
+  );
+
+  const themeConfig = React.useMemo(() =>
+    themeConfigFromThemePack ?? (context?.theme?.config as ThemeConfig | undefined),
+    [themeConfigFromThemePack, context?.theme?.config]
+  );
 
   if (isLoading && !context) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent align-[-0.125em]" />
-          <p className="mt-4 text-sm text-gray-600">Loading store...</p>
-        </div>
-      </div>
-    );
+    return <div className="min-h-screen" />;
   }
 
   if (error) {
@@ -148,14 +186,9 @@ export function StoreContextProvider({
     );
   }
 
-  // URL param takes priority over context theme
-  const themeSlug = themeOverride || context?.theme?.slug || 'default';
-  const themeConfig = context?.theme?.config as ThemeConfig | undefined;
-
   return (
     <ThemeProvider slug={themeSlug} config={themeConfig}>
       <ThemedLayout>{children}</ThemedLayout>
     </ThemeProvider>
   );
 }
-

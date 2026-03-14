@@ -13,8 +13,8 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { ordersApi } from '@/lib/api'
 import { useT } from 'shared/src/i18n/react'
+import { useShipOrder } from '@/lib/hooks/use-api'
 import { toast } from 'sonner'
 
 interface ShipOrderDialogProps {
@@ -26,12 +26,14 @@ interface ShipOrderDialogProps {
 
 export function ShipOrderDialog({ order, open, onOpenChange, onSuccess }: ShipOrderDialogProps) {
     const t = useT()
-    const [loading, setLoading] = useState(false)
+    const shipOrderMutation = useShipOrder()
     const [carrier, setCarrier] = useState('')
     const [trackingNumber, setTrackingNumber] = useState('')
 
     const getText = (key: string, fallback: string): string => {
-        return t ? t(key) : fallback
+        if (!t) return fallback
+        const translated = t(key)
+        return translated === key ? fallback : translated
     }
 
     const handleShip = async () => {
@@ -40,29 +42,23 @@ export function ShipOrderDialog({ order, open, onOpenChange, onSuccess }: ShipOr
             return
         }
 
-        setLoading(true)
         try {
-            const response = await ordersApi.shipOrder(order.id, {
-                carrier,
-                trackingNumber,
-                items: order.items?.map((item: any) => ({
-                    orderItemId: item.id,
-                    quantity: item.quantity
-                }))
+            await shipOrderMutation.mutateAsync({
+                id: order.id,
+                data: {
+                    carrier,
+                    trackingNumber,
+                    items: order.items?.map((item: any) => ({
+                        orderItemId: item.id,
+                        quantity: item.quantity
+                    }))
+                }
             })
 
-            if (response.success) {
-                toast.success(getText('merchant.orders.ship.success', 'Order shipped successfully'))
-                onOpenChange(false)
-                if (onSuccess) onSuccess()
-            } else {
-                toast.error(response.error || getText('merchant.orders.ship.failed', 'Failed to ship order'))
-            }
+            onOpenChange(false)
+            if (onSuccess) onSuccess()
         } catch (error: any) {
             console.error('Ship order error:', error)
-            toast.error(error.message || getText('merchant.orders.ship.failed', 'Failed to ship order'))
-        } finally {
-            setLoading(false)
         }
     }
 
@@ -99,11 +95,11 @@ export function ShipOrderDialog({ order, open, onOpenChange, onSuccess }: ShipOr
                     </div>
                 </div>
                 <DialogFooter>
-                    <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
+                    <Button variant="outline" onClick={() => onOpenChange(false)} disabled={shipOrderMutation.isPending}>
                         {getText('common.actions.cancel', 'Cancel')}
                     </Button>
-                    <Button onClick={handleShip} disabled={loading} className="bg-blue-600 hover:bg-blue-700">
-                        {loading ? getText('common.actions.processing', 'Processing...') : getText('merchant.orders.ship.confirm', 'Confirm Shipment')}
+                    <Button onClick={handleShip} disabled={shipOrderMutation.isPending} className="bg-blue-600 hover:bg-blue-700">
+                        {shipOrderMutation.isPending ? getText('common.actions.processing', 'Processing...') : getText('merchant.orders.ship.confirm', 'Confirm Shipment')}
                     </Button>
                 </DialogFooter>
             </DialogContent>

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
+@import '@fortawesome/fontawesome-free/css/all.min.css';
 
 @tailwind base;
 @tailwind components;
@@ -71,20 +71,28 @@
     margin: 0;
     padding: 0;
   }
+
   body {
-    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
     background-color: var(--jf-bg-main);
     color: var(--jf-text-main);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+
   a {
     text-decoration: none;
     color: inherit;
     transition: color 0.2s ease;
   }
-  h1, h2, h3, h4, h5, h6 {
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     font-weight: 700;
     letter-spacing: -0.01em;
     color: var(--jf-text-main);
@@ -92,6 +100,7 @@
 }
 
 @layer components {
+
   /* Custom scrollbar */
   .scrollbar-thin {
     scrollbar-width: thin;
@@ -480,6 +489,7 @@
 }
 
 @layer utilities {
+
   /* Hide scrollbar but keep functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;
@@ -502,4 +512,37 @@
   .scroll-smooth {
     scroll-behavior: smooth;
   }
+}
+
+/* Browser autofill detection keyframes */
+/* Used by LoginPage components to detect when browser autofills form fields */
+/* Without this, React's onChange won't fire for autofilled values, keeping the submit button disabled */
+@keyframes onAutoFillStart {
+  from {
+    /* empty */
+  }
+
+  to {
+    /* empty */
+  }
+}
+
+@keyframes onAutoFillCancel {
+  from {
+    /* empty */
+  }
+
+  to {
+    /* empty */
+  }
+}
+
+input:-webkit-autofill {
+  animation-name: onAutoFillStart;
+  animation-duration: 0.001s;
+}
+
+input:not(:-webkit-autofill) {
+  animation-name: onAutoFillCancel;
+  animation-duration: 0.001s;
 }

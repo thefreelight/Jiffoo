@@ -82,7 +82,6 @@ export class AuthClient extends ApiClient {
     return this.get(API_ENDPOINTS.AUTH.PROFILE);
   }
 
-  // Get current user (convenience method after OAuth2 standardization)
   // Adapt backend: Role info is extracted from JWT token as API only provides basic info
   public async getCurrentUser(): Promise<UserProfile | null> {
     if (!this.isAuthenticated()) {
@@ -142,17 +141,29 @@ export class AuthClient extends ApiClient {
     return this.post(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, data);
   }
 
-  // Forgot password
+  // Forgot password - Not implemented, return error
   public async forgotPassword(email: string): Promise<ApiResponse<void>> {
-    return this.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+    return {
+      success: false,
+      error: {
+        code: 'NOT_IMPLEMENTED',
+        message: 'Forgot password feature is not implemented yet'
+      }
+    };
   }
 
-  // Reset password
+  // Reset password - Not implemented, return error
   public async resetPassword(data: {
     token: string;
     password: string;
   }): Promise<ApiResponse<void>> {
-    return this.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, data);
+    return {
+      success: false,
+      error: {
+        code: 'NOT_IMPLEMENTED',
+        message: 'Reset password feature is not implemented yet'
+      }
+    };
   }
 
   // Refresh token
@@ -161,7 +172,10 @@ export class AuthClient extends ApiClient {
     if (!refreshToken) {
       return {
         success: false,
-        error: 'No refresh token available'
+        error: {
+          code: 'NO_REFRESH_TOKEN',
+          message: 'No refresh token available'
+        }
       };
     }
 

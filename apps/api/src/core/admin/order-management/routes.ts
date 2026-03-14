@@ -5,34 +5,62 @@
 import { FastifyInstance } from 'fastify';
 import { AdminOrderService } from './service';
 import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
+import { storeContextMiddleware } from '@/middleware/store-context';
+import { sendSuccess, sendError } from '@/utils/response';
+import { adminOrderSchemas } from './schemas';
+import { mapAdminOrderRouteError } from '@/utils/route-error-mapper';
 
 export async function adminOrderRoutes(fastify: FastifyInstance) {
   // Apply auth middleware to all admin order routes (before schema validation)
   fastify.addHook('onRequest', authMiddleware);
   fastify.addHook('onRequest', requireAdmin);
+  fastify.addHook('onRequest', storeContextMiddleware);
 
   // Get orders list
   fastify.get('/', {
     schema: {
       tags: ['admin-orders'],
       summary: 'Get orders list',
+      description: 'Get paginated list of all orders (admin only)',
       security: [{ bearerAuth: [] }],
-      querystring: {
-        type: 'object',
-        properties: {
-          page: { type: 'integer', default: 1 },
-          limit: { type: 'integer', default: 10 },
-          status: { type: 'string' }
-        }
-      }
+      ...adminOrderSchemas.listOrders,
     }
   }, async (request, reply) => {
     try {
-      const { page, limit, status } = request.query as any;
-      const result = await AdminOrderService.getOrders(page, limit, status);
-      return reply.send({ success: true, data: result });
-    } catch (error: any) {
-      return reply.code(500).send({ success: false, error: error.message });
+      const { page, limit, status, search } = request.query as any;
+      const storeId = request.storeContext?.id;
+      const result = await AdminOrderService.getOrders(page, limit, status, search, storeId);
+      return sendSuccess(reply, result);
+    } catch (error: unknown) {
+      const mapped = mapAdminOrderRouteError(error, {
+        defaultStatus: 500,
+        defaultCode: 'INTERNAL_SERVER_ERROR',
+        defaultMessage: 'Failed to fetch orders',
+      });
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
+    }
+  });
+
+  // Get global order stats
+  fastify.get('/stats', {
+    schema: {
+      tags: ['admin-orders'],
+      summary: 'Get order stats',
+      description: 'Get global order statistics for admin orders page',
+      security: [{ bearerAuth: [] }],
+      ...adminOrderSchemas.getOrderStats,
+    }
+  }, async (_request, reply) => {
+    try {
+      const result = await AdminOrderService.getOrderStats();
+      return sendSuccess(reply, result);
+    } catch (error: unknown) {
+      const mapped = mapAdminOrderRouteError(error, {
+        defaultStatus: 500,
+        defaultCode: 'INTERNAL_SERVER_ERROR',
+        defaultMessage: 'Failed to fetch order stats',
+      });
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
     }
   });
 
@@ -41,18 +69,25 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-orders'],
       summary: 'Get order by ID',
-      security: [{ bearerAuth: [] }]
+      description: 'Get detailed order information (admin only)',
+      security: [{ bearerAuth: [] }],
+      ...adminOrderSchemas.getOrder,
     }
   }, async (request, reply) => {
     try {
       const { id } = request.params as any;
       const order = await AdminOrderService.getOrderById(id);
       if (!order) {
-        return reply.code(404).send({ success: false, error: 'Order not found' });
+        return sendError(reply, 404, 'NOT_FOUND', 'Order not found');
       }
-      return reply.send({ success: true, data: order });
-    } catch (error: any) {
-      return reply.code(500).send({ success: false, error: error.message });
+      return sendSuccess(reply, order);
+    } catch (error: unknown) {
+      const mapped = mapAdminOrderRouteError(error, {
+        defaultStatus: 500,
+        defaultCode: 'INTERNAL_SERVER_ERROR',
+        defaultMessage: 'Failed to get order',
+      });
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
     }
   });
 
@@ -61,39 +96,23 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-orders'],
       summary: 'Update order status',
+      description: 'Update the status of an order (admin only)',
       security: [{ bearerAuth: [] }],
-      body: {
-        type: 'object',
-        required: ['status'],
-        properties: {
-          status: { type: 'string' }
-        }
-      }
+      ...adminOrderSchemas.updateStatus,
     }
   }, async (request, reply) => {
     try {
       const { id } = request.params as any;
       const { status } = request.body as any;
       const order = await AdminOrderService.updateOrderStatus(id, status);
-      return reply.send({ success: true, data: order });
-    } catch (error: any) {
-      return reply.code(500).send({ success: false, error: error.message });
-    }
-  });
-
-  // Get order stats
-  fastify.get('/stats', {
-    schema: {
-      tags: ['admin-orders'],
-      summary: 'Get order statistics',
-      security: [{ bearerAuth: [] }]
-    }
-  }, async (_request, reply) => {
-    try {
-      const stats = await AdminOrderService.getOrderStats();
-      return reply.send({ success: true, data: stats });
-    } catch (error: any) {
-      return reply.code(500).send({ success: false, error: error.message });
+      return sendSuccess(reply, order);
+    } catch (error: unknown) {
+      const mapped = mapAdminOrderRouteError(error, {
+        defaultStatus: 500,
+        defaultCode: 'INTERNAL_SERVER_ERROR',
+        defaultMessage: 'Failed to update order status',
+      });
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
     }
   });
 
@@ -102,34 +121,23 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-orders'],
       summary: 'Ship order with tracking info',
+      description: 'Mark order as shipped and add tracking information (admin only)',
       security: [{ bearerAuth: [] }],
-      body: {
-        type: 'object',
-        required: ['carrier', 'trackingNumber'],
-        properties: {
-          carrier: { type: 'string' },
-          trackingNumber: { type: 'string' },
-          items: {
-            type: 'array',
-            items: {
-              type: 'object',
-              properties: {
-                orderItemId: { type: 'string' },
-                quantity: { type: 'integer' }
-              }
-            }
-          }
-        }
-      }
+      ...adminOrderSchemas.shipOrder,
     }
   }, async (request, reply) => {
     try {
       const { id } = request.params as any;
       const data = request.body as any;
       const result = await AdminOrderService.shipOrder(id, data);
-      return reply.send({ success: true, data: result });
-    } catch (error: any) {
-      return reply.code(400).send({ success: false, error: error.message });
+      return sendSuccess(reply, result);
+    } catch (error: unknown) {
+      const mapped = mapAdminOrderRouteError(error, {
+        defaultStatus: 500,
+        defaultCode: 'INTERNAL_SERVER_ERROR',
+        defaultMessage: 'Failed to ship order',
+      });
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
     }
   });
 
@@ -138,16 +146,9 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-orders'],
       summary: 'Refund order (full or partial)',
+      description: 'Process refund for an order (admin only)',
       security: [{ bearerAuth: [] }],
-      body: {
-        type: 'object',
-        required: ['idempotencyKey'],
-        properties: {
-          // amount: { type: 'number' }, // Alpha: Full refund only
-          reason: { type: 'string' },
-          idempotencyKey: { type: 'string' }
-        }
-      }
+      ...adminOrderSchemas.refundOrder,
     }
   }, async (request, reply) => {
     try {
@@ -158,9 +159,14 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
         reason: data.reason,
         idempotencyKey: data.idempotencyKey
       });
-      return reply.send({ success: true, data: refund });
-    } catch (error: any) {
-      return reply.code(400).send({ success: false, error: error.message });
+      return sendSuccess(reply, refund);
+    } catch (error: unknown) {
+      const mapped = mapAdminOrderRouteError(error, {
+        defaultStatus: 500,
+        defaultCode: 'INTERNAL_SERVER_ERROR',
+        defaultMessage: 'Failed to refund order',
+      });
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
     }
   });
 
@@ -169,23 +175,23 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-orders'],
       summary: 'Cancel order',
+      description: 'Cancel an order with reason (admin only)',
       security: [{ bearerAuth: [] }],
-      body: {
-        type: 'object',
-        required: ['cancelReason'],
-        properties: {
-          cancelReason: { type: 'string' }
-        }
-      }
+      ...adminOrderSchemas.cancelOrder,
     }
   }, async (request, reply) => {
     try {
       const { id } = request.params as any;
       const data = request.body as any;
       const order = await AdminOrderService.cancelOrder(id, data);
-      return reply.send({ success: true, data: order });
-    } catch (error: any) {
-      return reply.code(400).send({ success: false, error: error.message });
+      return sendSuccess(reply, order);
+    } catch (error: unknown) {
+      const mapped = mapAdminOrderRouteError(error, {
+        defaultStatus: 500,
+        defaultCode: 'INTERNAL_SERVER_ERROR',
+        defaultMessage: 'Failed to cancel order',
+      });
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
     }
   });
 }

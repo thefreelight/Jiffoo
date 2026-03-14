@@ -21,6 +21,9 @@ export interface StoreContext {
   status: string;
   defaultLocale: string;
   supportedLocales: string[];
+  checkout?: {
+    countriesRequireStatePostal?: string[];
+  };
 }
 
 /**
@@ -35,6 +38,9 @@ export const DEFAULT_STORE_CONTEXT: StoreContext = {
   status: 'active',
   defaultLocale: 'en',
   supportedLocales: ['en', 'zh-Hant'],
+  checkout: {
+    countriesRequireStatePostal: ['US', 'CA', 'AU', 'CN', 'GB'],
+  },
 };
 
 /**
@@ -42,8 +48,8 @@ export const DEFAULT_STORE_CONTEXT: StoreContext = {
  */
 export async function fetchStoreContext(): Promise<{ context: StoreContext | null; error?: string }> {
   try {
-    const { mallContextApi } = await import('./api');
-    const response = await mallContextApi.getContext({});
+    const { storeContextApi } = await import('./api');
+    const response = await storeContextApi.getContext();
 
     if (response.success && response.data) {
       const data = response.data as any;
@@ -58,7 +64,7 @@ export async function fetchStoreContext(): Promise<{ context: StoreContext | nul
 
     return {
       context: null,
-      error: response.error || response.message || 'Store not found'
+      error: response.error?.message || 'Store not found'
     };
   } catch (error) {
     console.error('Failed to fetch store context:', error);

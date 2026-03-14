@@ -1,172 +1,87 @@
-/**
- * Categories Page for Shop Application
- *
- * Displays product categories with navigation to filtered products.
- * Supports i18n through the translation function.
- */
-
 'use client';
 
 import * as React from 'react';
 import { useShopTheme } from '@/lib/themes/provider';
+import { ProductService } from '@/services/product.service';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { productsApi } from '@/lib/api';
 import { useT } from 'shared/src/i18n/react';
-
-interface Category {
-  id: string;
-  name: string;
-  description: string;
-  image: string;
-  productCount: number;
-  featured?: boolean;
-}
+import { LoadingState, ErrorState } from '@/components/ui/state-components';
+import { TemplateRenderer } from '@/lib/theme-pack';
 
 export default function CategoriesPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
   const nav = useLocalizedNavigation();
   const t = useT();
 
-  const [categories, setCategories] = React.useState<Category[]>([]);
+  const [categories, setCategories] = React.useState<Array<{
+    id: string;
+    name: string;
+    description: string;
+    image: string;
+    productCount: number;
+    featured?: boolean;
+  }>>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
-  // Helper function for translations with fallback - memoized to prevent infinite loops
-  const getText = React.useCallback((key: string, fallback: string): string => {
-    return t ? t(key) : fallback;
-  }, [t]);
+  const getText = (key: string, fallback: string): string => (t ? t(key) : fallback);
 
-  // Helper function to get default category images - defined before useEffect
-  const getDefaultCategoryImage = React.useCallback((categoryName: string) => {
-    const imageMap: Record<string, string> = {
-      'Electronics': 'https://images.unsplash.com/photo-1498049794561-7780e7231661?w=600&h=400&fit=crop',
-      'Fashion': 'https://images.unsplash.com/photo-1445205170230-053b83016050?w=600&h=400&fit=crop',
-      'Home & Garden': 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=600&h=400&fit=crop',
-      'Sports': 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=600&h=400&fit=crop',
-      'Books': 'https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=600&h=400&fit=crop',
-      'Beauty': 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?w=600&h=400&fit=crop',
-      'Automotive': 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?w=600&h=400&fit=crop',
-      'Toys': 'https://images.unsplash.com/photo-1558060370-d644479cb6f7?w=600&h=400&fit=crop',
-    };
-    return imageMap[categoryName] || 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=400&fit=crop';
-  }, []);
-
-  // Load categories data - only run once on mount
   React.useEffect(() => {
-    let isMounted = true;
+    let cancelled = false;
 
-    const fetchCategories = async () => {
+    async function loadCategories() {
       try {
         setLoading(true);
         setError(null);
-        const response = await productsApi.getCategories();
+        const response = await ProductService.getCategories();
 
-        if (!isMounted) return;
+        if (cancelled) return;
 
-        if (response.success && response.data) {
-          // Transform API data to match component structure
-          // ✅ Backend returns: [{ id, name, slug, _count: { products } }]
-          const rawCategories = response.data as unknown as Array<{
-            id: string;
-            name: string;
-            _count?: { products: number };
-          }>;
-
-          const transformedCategories = rawCategories.map((cat) => {
-            const productCount = cat._count?.products || 0;
-            return {
-              id: cat.id,
-              name: cat.name,
-              description: `Discover ${productCount} amazing products`,
-              image: getDefaultCategoryImage(cat.name),
-              productCount: productCount,
-              featured: productCount > 50,
-            };
-          });
-          setCategories(transformedCategories);
-        } else {
-          setError(getText('common.errors.general', 'Failed to load categories'));
-        }
+        setCategories(
+          response.items.map((category) => ({
+            id: category.slug || category.id,
+            name: category.name,
+            description: category.description || '',
+            image: '',
+            productCount: category.productCount || 0,
+            featured: false,
+          }))
+        );
       } catch (err) {
-        if (!isMounted) return;
-        console.error('Error fetching categories:', err);
-        setError(getText('common.errors.general', 'Failed to load categories'));
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : getText('common.errors.general', 'Failed to fetch categories'));
+        }
       } finally {
-        if (isMounted) {
+        if (!cancelled) {
           setLoading(false);
         }
       }
-    };
-
-    fetchCategories();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [getDefaultCategoryImage, getText]);
-
-  // Helper function to get category colors
-  const getCategoryColor = (index: number) => {
-    const colors = [
-      'from-blue-500 to-purple-600',
-      'from-pink-500 to-rose-600',
-      'from-green-500 to-emerald-600',
-      'from-orange-500 to-red-600',
-      'from-indigo-500 to-blue-600',
-      'from-purple-500 to-pink-600',
-      'from-gray-500 to-slate-600',
-      'from-yellow-500 to-orange-600',
-    ];
-    return colors[index % colors.length];
-  };
-
-  // Handle category click
-  const handleCategoryClick = (categoryId: string) => {
-    nav.push(`/products?category=${categoryId}`);
-  };
-
-  // Theme loading state
-  if (themeLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-          <p className="mt-4 text-sm text-gray-600">{getText('common.actions.loading', 'Loading...')}</p>
-        </div>
-      </div>
-    );
-  }
-
-  // If theme component is not available, use NotFound fallback
-  if (!theme?.components?.CategoriesPage) {
-    const NotFoundComponent = theme?.components?.NotFound;
-    if (NotFoundComponent) {
-      return (
-        <NotFoundComponent
-          route="/categories"
-          message={getText('common.errors.componentUnavailable', 'Categories page component is not available')}
-          config={config}
-          locale={nav.locale}
-          t={t}
-          onGoHome={() => nav.push('/')}
-        />
-      );
     }
 
+    loadCategories();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [getText]);
+
+  if (themeLoading) {
+    return <LoadingState type="spinner" message={getText('common.actions.loading', 'Loading...')} fullPage />;
+  }
+
+  if (!theme?.components?.CategoriesPage) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600">{getText('common.errors.themeUnavailable', 'Theme Component Unavailable')}</h1>
-          <p className="mt-2 text-sm text-gray-600">{getText('common.errors.componentUnavailable', 'Unable to load categories page component')}</p>
-        </div>
-      </div>
+      <ErrorState
+        title={getText('common.errors.themeUnavailable', 'Theme Component Unavailable')}
+        message={getText('common.errors.componentUnavailable', 'Unable to load categories page component')}
+        onGoHome={() => nav.push('/')}
+        fullPage
+      />
     );
   }
 
-  // Render with theme component
   const CategoriesPageComponent = theme.components.CategoriesPage;
-
-  return (
+  const defaultCategoriesPage = (
     <CategoriesPageComponent
       categories={categories}
       isLoading={loading}
@@ -174,8 +89,10 @@ export default function CategoriesPage() {
       config={config}
       locale={nav.locale}
       t={t}
-      onCategoryClick={handleCategoryClick}
+      onCategoryClick={(categoryId) => nav.push(`/products?category=${encodeURIComponent(categoryId)}`)}
       onNavigateToHome={() => nav.push('/')}
     />
   );
+
+  return <TemplateRenderer page="categories" fallback={defaultCategoriesPage} />;
 }

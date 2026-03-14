@@ -5,6 +5,8 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { UpgradeService } from './service';
 import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
+import { sendSuccess, sendError } from '@/utils/response';
+import { upgradeSchemas } from './schemas';
 
 export async function upgradeRoutes(fastify: FastifyInstance) {
   // Require Admin for all upgrade routes
@@ -20,56 +22,14 @@ export async function upgradeRoutes(fastify: FastifyInstance) {
       summary: 'Get Version Info',
       description: 'Get current system version information (Admin only)',
       security: [{ bearerAuth: [] }],
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: {
-              type: 'object',
-              properties: {
-                currentVersion: { type: 'string' },
-                latestVersion: { type: 'string' },
-                hasUpdate: { type: 'boolean' }
-              }
-            }
-          }
-        },
-        401: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        403: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        }
-      }
+      ...upgradeSchemas.getVersion,
     }
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
+  }, async (_request, reply: FastifyReply) => {
     try {
       const versionInfo = await UpgradeService.getVersionInfo();
-      return reply.send({
-        success: true,
-        data: versionInfo
-      });
-    } catch (error) {
-      return reply.status(500).send({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to get version info'
-      });
+      return sendSuccess(reply, versionInfo);
+    } catch (error: any) {
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to get version info');
     }
   });
 
@@ -82,82 +42,21 @@ export async function upgradeRoutes(fastify: FastifyInstance) {
       summary: 'Check Upgrade Compatibility',
       description: 'Check if system can be upgraded to target version (Admin only)',
       security: [{ bearerAuth: [] }],
-      body: {
-        type: 'object',
-        properties: {
-          targetVersion: { type: 'string' }
-        },
-        required: ['targetVersion']
-      },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: {
-              type: 'object',
-              properties: {
-                compatible: { type: 'boolean' },
-                requirements: { type: 'array', items: { type: 'string' } },
-                warnings: { type: 'array', items: { type: 'string' } }
-              }
-            }
-          }
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        401: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        403: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        }
-      }
+      ...upgradeSchemas.checkCompatibility,
     }
   }, async (
     request: FastifyRequest<{ Body: { targetVersion: string } }>,
     reply: FastifyReply
   ) => {
     try {
-      const { targetVersion } = request.body;
-
+      const { targetVersion } = request.body as any;
       if (!targetVersion) {
-        return reply.status(400).send({
-          success: false,
-          error: 'Target version is required'
-        });
+        return sendError(reply, 400, 'BAD_REQUEST', 'targetVersion is required');
       }
-
       const compatibility = await UpgradeService.checkCompatibility(targetVersion);
-      return reply.send({
-        success: true,
-        data: compatibility
-      });
-    } catch (error) {
-      return reply.status(500).send({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to check compatibility'
-      });
+      return sendSuccess(reply, compatibility);
+    } catch (error: any) {
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to check compatibility');
     }
   });
 
@@ -170,56 +69,14 @@ export async function upgradeRoutes(fastify: FastifyInstance) {
       summary: 'Get Upgrade Status',
       description: 'Get current upgrade process status (Admin only)',
       security: [{ bearerAuth: [] }],
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: {
-              type: 'object',
-              properties: {
-                status: { type: 'string', enum: ['idle', 'checking', 'downloading', 'installing', 'completed', 'failed'] },
-                progress: { type: 'number' },
-                message: { type: 'string' }
-              }
-            }
-          }
-        },
-        401: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        403: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        }
-      }
+      ...upgradeSchemas.getStatus,
     }
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
+  }, async (_request, reply: FastifyReply) => {
     try {
       const status = UpgradeService.getUpgradeStatus();
-      return reply.send({
-        success: true,
-        data: status
-      });
-    } catch (error) {
-      return reply.status(500).send({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to get upgrade status'
-      });
+      return sendSuccess(reply, status);
+    } catch (error: any) {
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to get upgrade status');
     }
   });
 
@@ -232,56 +89,14 @@ export async function upgradeRoutes(fastify: FastifyInstance) {
       summary: 'Create Backup',
       description: 'Create a backup before upgrade (Admin only)',
       security: [{ bearerAuth: [] }],
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: {
-              type: 'object',
-              properties: {
-                backupId: { type: 'string' },
-                createdAt: { type: 'string' },
-                size: { type: 'number' }
-              }
-            }
-          }
-        },
-        401: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        403: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        }
-      }
+      ...upgradeSchemas.createBackup,
     }
-  }, async (request: FastifyRequest, reply: FastifyReply) => {
+  }, async (_request, reply: FastifyReply) => {
     try {
       const backup = await UpgradeService.createBackup();
-      return reply.send({
-        success: true,
-        data: backup
-      });
-    } catch (error) {
-      return reply.status(500).send({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to create backup'
-      });
+      return sendSuccess(reply, backup);
+    } catch (error: any) {
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to create backup');
     }
   });
 
@@ -294,173 +109,31 @@ export async function upgradeRoutes(fastify: FastifyInstance) {
       summary: 'Perform Upgrade',
       description: 'Execute system upgrade to target version (Admin only)',
       security: [{ bearerAuth: [] }],
-      body: {
-        type: 'object',
-        properties: {
-          targetVersion: { type: 'string' }
-        },
-        required: ['targetVersion']
-      },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' }
-          }
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        401: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        403: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        }
-      }
+      ...upgradeSchemas.performUpgrade,
     }
   }, async (
     request: FastifyRequest<{ Body: { targetVersion: string } }>,
     reply: FastifyReply
   ) => {
     try {
-      const { targetVersion } = request.body;
-
+      const { targetVersion } = request.body as any;
       if (!targetVersion) {
-        return reply.status(400).send({
-          success: false,
-          error: 'Target version is required'
-        });
+        return sendError(reply, 400, 'BAD_REQUEST', 'targetVersion is required');
       }
-
       const result = await UpgradeService.performUpgrade(targetVersion);
 
       if (!result.success) {
-        return reply.status(400).send({
-          success: false,
-          error: result.error
-        });
+        return sendError(reply, 400, 'BAD_REQUEST', result.error || 'Upgrade failed');
       }
 
-      return reply.send({
-        success: true,
-        message: 'Upgrade completed successfully'
-      });
-    } catch (error) {
-      return reply.status(500).send({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to perform upgrade'
-      });
+      return sendSuccess(reply, {
+        targetVersion,
+        upgraded: true,
+        completedAt: new Date().toISOString(),
+      }, 'Upgrade completed successfully');
+    } catch (error: any) {
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to perform upgrade');
     }
   });
 
-  /**
-   * Rollback to backup
-   */
-  fastify.post('/rollback', {
-    schema: {
-      tags: ['upgrade'],
-      summary: 'Rollback Upgrade',
-      description: 'Rollback to a previous backup (Admin only)',
-      security: [{ bearerAuth: [] }],
-      body: {
-        type: 'object',
-        properties: {
-          backupId: { type: 'string' }
-        },
-        required: ['backupId']
-      },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            message: { type: 'string' }
-          }
-        },
-        400: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        401: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        403: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        },
-        500: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', enum: [false] },
-            error: { type: 'string' }
-          }
-        }
-      }
-    }
-  }, async (
-    request: FastifyRequest<{ Body: { backupId: string } }>,
-    reply: FastifyReply
-  ) => {
-    try {
-      const { backupId } = request.body;
-
-      if (!backupId) {
-        return reply.status(400).send({
-          success: false,
-          error: 'Backup ID is required'
-        });
-      }
-
-      const result = await UpgradeService.rollback(backupId);
-
-      if (!result.success) {
-        return reply.status(400).send({
-          success: false,
-          error: result.error
-        });
-      }
-
-      return reply.send({
-        success: true,
-        message: 'Rollback completed successfully'
-      });
-    } catch (error) {
-      return reply.status(500).send({
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to rollback'
-      });
-    }
-  });
 }
-

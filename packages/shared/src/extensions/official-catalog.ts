@@ -1,0 +1,344 @@
+export type OfficialExtensionKind = 'theme' | 'plugin';
+
+export type MarketplaceListingDomain =
+  | 'app_marketplace'
+  | 'goods_marketplace'
+  | 'merchant_store';
+
+export type MarketplaceProviderType =
+  | 'platform'
+  | 'developer'
+  | 'vendor'
+  | 'merchant';
+
+export type MarketplacePaymentMode =
+  | 'platform_collect'
+  | 'merchant_collect';
+
+export type MarketplaceSettlementTargetType =
+  | 'platform'
+  | 'developer'
+  | 'vendor'
+  | 'merchant'
+  | 'none';
+
+export type OfficialExtensionDeliveryMode =
+  | 'package-managed'
+  | 'service-managed';
+
+export type OfficialArtifactKind =
+  | 'theme-package'
+  | 'plugin-package'
+  | 'service-descriptor';
+
+export type OfficialPricingModel = 'free' | 'one_time' | 'subscription';
+
+export type OfficialPublishState = 'draft' | 'published' | 'unpublished' | 'blocked';
+
+export type OfficialCatalogInstallState =
+  | 'not_installed'
+  | 'installed'
+  | 'enabled'
+  | 'active';
+
+export interface OfficialCatalogEntry {
+  slug: string;
+  name: string;
+  kind: OfficialExtensionKind;
+  listingDomain: MarketplaceListingDomain;
+  listingKind: OfficialExtensionKind;
+  providerType: MarketplaceProviderType;
+  version: string;
+  author: string;
+  description: string;
+  deliveryMode: OfficialExtensionDeliveryMode;
+  paymentMode: MarketplacePaymentMode;
+  settlementTargetType: MarketplaceSettlementTargetType;
+  settlementTargetId?: string | null;
+  artifactKind: OfficialArtifactKind;
+  launchWave: 'official-extensions-go-live-v1';
+  packageUrl: string;
+  minCoreVersion: string;
+  defaultPricingModel: OfficialPricingModel;
+  defaultCurrency: string;
+  pricingConfigured: boolean;
+}
+
+export interface OfficialExtensionVersionSummary {
+  version: string;
+  packageUrl: string;
+  changelog?: string | null;
+  minCoreVersion?: string | null;
+  isCurrent: boolean;
+  isSellable: boolean;
+  createdAt: string;
+}
+
+export interface OfficialExtensionCatalogItem {
+  id: string;
+  submissionId: string;
+  slug: string;
+  name: string;
+  kind: OfficialExtensionKind;
+  listingDomain: MarketplaceListingDomain;
+  listingKind: OfficialExtensionKind;
+  providerType: MarketplaceProviderType;
+  description: string;
+  author: string;
+  deliveryMode: OfficialExtensionDeliveryMode;
+  paymentMode: MarketplacePaymentMode;
+  settlementTargetType: MarketplaceSettlementTargetType;
+  settlementTargetId?: string | null;
+  launchWave: string;
+  publishState: OfficialPublishState;
+  installable: boolean;
+  featured: boolean;
+  recommended: boolean;
+  pricingModel: OfficialPricingModel;
+  price: number | null;
+  currency: string;
+  currentVersion: string;
+  sellableVersion: string;
+  installState: OfficialCatalogInstallState;
+  installCount: number;
+  entitlementCount: number;
+  activeEntitlementCount: number;
+  versions: OfficialExtensionVersionSummary[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OfficialExtensionCatalogSummary {
+  total: number;
+  published: number;
+  installable: number;
+  blocked: number;
+  themes: number;
+  plugins: number;
+  free: number;
+  paid: number;
+  subscription: number;
+  totalInstalls: number;
+  totalEntitlements: number;
+  activeEntitlements: number;
+}
+
+export interface OfficialExtensionCatalogResponse {
+  items: OfficialExtensionCatalogItem[];
+  summary: OfficialExtensionCatalogSummary;
+}
+
+export interface OfficialInstallAuthorizationRequest {
+  userId: string;
+  version?: string;
+  instanceId?: string;
+  instanceToken?: string;
+  platformAccountId?: string;
+  tenantBindingId?: string;
+  localStoreId?: string;
+}
+
+export interface OfficialInstallEntitlement {
+  required: boolean;
+  status: 'not_required' | 'granted' | 'denied';
+  pricingModel: OfficialPricingModel;
+  licenseId?: string | null;
+  licenseType?: 'PERPETUAL' | 'SUBSCRIPTION' | 'TRIAL' | null;
+  expiresAt?: string | null;
+  reason?: string | null;
+}
+
+export interface OfficialInstallAuthorizationResponse {
+  allowed: boolean;
+  slug: string;
+  kind: OfficialExtensionKind;
+  listingDomain?: MarketplaceListingDomain;
+  listingKind?: OfficialExtensionKind;
+  providerType?: MarketplaceProviderType;
+  deliveryMode: OfficialExtensionDeliveryMode;
+  paymentMode?: MarketplacePaymentMode;
+  settlementTargetType?: MarketplaceSettlementTargetType;
+  settlementTargetId?: string | null;
+  artifactKind: OfficialArtifactKind;
+  version: string;
+  packageUrl: string;
+  checksumUrl?: string | null;
+  signatureUrl?: string | null;
+  minCoreVersion?: string | null;
+  pricingModel: OfficialPricingModel;
+  price: number | null;
+  currency: string;
+  entitlement: OfficialInstallEntitlement;
+  reason?: string;
+}
+
+export interface OfficialInstallRecordRequest {
+  userId: string;
+  version: string;
+  instanceId?: string;
+  instanceToken?: string;
+  tenantBindingId?: string;
+  localStoreId?: string;
+}
+
+export interface OfficialExtensionLicenseSummary {
+  id: string;
+  submissionId: string;
+  extensionSlug: string;
+  extensionName: string;
+  userId: string;
+  licenseKey: string;
+  type: 'PERPETUAL' | 'SUBSCRIPTION' | 'TRIAL';
+  status: 'ACTIVE' | 'EXPIRED' | 'REVOKED' | 'SUSPENDED';
+  maxSites: number;
+  activeSites: number;
+  orderId?: string | null;
+  expiresAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OfficialExtensionLicenseResponse {
+  items: OfficialExtensionLicenseSummary[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  summary: {
+    total: number;
+    active: number;
+    expired: number;
+    revoked: number;
+    suspended: number;
+  };
+}
+
+export interface UpdateOfficialExtensionInput {
+  publishState?: OfficialPublishState;
+  installable?: boolean;
+  featured?: boolean;
+  recommended?: boolean;
+  pricingModel?: OfficialPricingModel;
+  price?: number | null;
+  currency?: string;
+  sellableVersion?: string;
+}
+
+export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
+  {
+    slug: 'esim-mall',
+    name: 'eSIM Mall',
+    kind: 'theme',
+    listingDomain: 'app_marketplace',
+    listingKind: 'theme',
+    providerType: 'platform',
+    version: '1.0.0',
+    author: 'Jiffoo',
+    description: 'Official downloadable storefront theme package for digital eSIM sales.',
+    deliveryMode: 'package-managed',
+    paymentMode: 'platform_collect',
+    settlementTargetType: 'platform',
+    settlementTargetId: 'platform:jiffoo',
+    artifactKind: 'theme-package',
+    launchWave: 'official-extensions-go-live-v1',
+    packageUrl: 'https://market.jiffoo.com/artifacts/themes/esim-mall/1.0.0.jtheme',
+    minCoreVersion: '0.2.0',
+    defaultPricingModel: 'free',
+    defaultCurrency: 'USD',
+    pricingConfigured: false,
+  },
+  {
+    slug: 'yevbi',
+    name: 'Yevbi',
+    kind: 'theme',
+    listingDomain: 'app_marketplace',
+    listingKind: 'theme',
+    providerType: 'platform',
+    version: '1.0.0',
+    author: 'Jiffoo',
+    description: 'Official downloadable storefront theme package with a travel-focused design language.',
+    deliveryMode: 'package-managed',
+    paymentMode: 'platform_collect',
+    settlementTargetType: 'platform',
+    settlementTargetId: 'platform:jiffoo',
+    artifactKind: 'theme-package',
+    launchWave: 'official-extensions-go-live-v1',
+    packageUrl: 'https://market.jiffoo.com/artifacts/themes/yevbi/1.0.0.jtheme',
+    minCoreVersion: '0.2.0',
+    defaultPricingModel: 'free',
+    defaultCurrency: 'USD',
+    pricingConfigured: false,
+  },
+  {
+    slug: 'stripe',
+    name: 'Stripe',
+    kind: 'plugin',
+    listingDomain: 'app_marketplace',
+    listingKind: 'plugin',
+    providerType: 'platform',
+    version: '1.0.0',
+    author: 'Jiffoo',
+    description: 'Official downloadable payment plugin package backed by the core Stripe payment flow.',
+    deliveryMode: 'package-managed',
+    paymentMode: 'platform_collect',
+    settlementTargetType: 'platform',
+    settlementTargetId: 'platform:jiffoo',
+    artifactKind: 'plugin-package',
+    launchWave: 'official-extensions-go-live-v1',
+    packageUrl: 'https://market.jiffoo.com/artifacts/plugins/stripe/1.0.0.jplugin',
+    minCoreVersion: '0.2.0',
+    defaultPricingModel: 'free',
+    defaultCurrency: 'USD',
+    pricingConfigured: false,
+  },
+  {
+    slug: 'i18n',
+    name: 'i18n',
+    kind: 'plugin',
+    listingDomain: 'app_marketplace',
+    listingKind: 'plugin',
+    providerType: 'platform',
+    version: '1.0.0',
+    author: 'Jiffoo',
+    description: 'Official downloadable localization plugin package for merchant language configuration and storefront locale support.',
+    deliveryMode: 'package-managed',
+    paymentMode: 'platform_collect',
+    settlementTargetType: 'platform',
+    settlementTargetId: 'platform:jiffoo',
+    artifactKind: 'plugin-package',
+    launchWave: 'official-extensions-go-live-v1',
+    packageUrl: 'https://market.jiffoo.com/artifacts/plugins/i18n/1.0.0.jplugin',
+    minCoreVersion: '0.2.0',
+    defaultPricingModel: 'free',
+    defaultCurrency: 'USD',
+    pricingConfigured: false,
+  },
+  {
+    slug: 'odoo',
+    name: 'Odoo',
+    kind: 'plugin',
+    listingDomain: 'app_marketplace',
+    listingKind: 'plugin',
+    providerType: 'platform',
+    version: '1.0.0',
+    author: 'Jiffoo',
+    description: 'Official downloadable ERP integration plugin package that installs as an internal-fastify extension.',
+    deliveryMode: 'package-managed',
+    paymentMode: 'platform_collect',
+    settlementTargetType: 'platform',
+    settlementTargetId: 'platform:jiffoo',
+    artifactKind: 'plugin-package',
+    launchWave: 'official-extensions-go-live-v1',
+    packageUrl: 'https://market.jiffoo.com/artifacts/plugins/odoo/1.0.0.jplugin',
+    minCoreVersion: '0.2.0',
+    defaultPricingModel: 'free',
+    defaultCurrency: 'USD',
+    pricingConfigured: false,
+  },
+];
+
+export function getOfficialLaunchExtensions(): OfficialCatalogEntry[] {
+  return [...OFFICIAL_LAUNCH_EXTENSIONS];
+}

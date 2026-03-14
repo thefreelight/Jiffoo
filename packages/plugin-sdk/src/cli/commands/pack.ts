@@ -6,25 +6,36 @@ import fs from 'fs-extra';
 import path from 'path';
 import chalk from 'chalk';
 import ora from 'ora';
-import { execSync } from 'child_process';
 import crypto from 'crypto';
+import archiver from 'archiver';
+import { buildCommand } from './build';
+import { validateCommand } from './validate';
 
 interface PackOptions {
   output?: string;
-  includeSource: boolean;
+  includeSource?: boolean;
+  build?: boolean;
+  validate?: boolean;
 }
 
 export async function packCommand(options: PackOptions) {
-  console.log(chalk.blue('\n📦 Jiffoo Plugin SDK - Package\n'));
+  console.log(chalk.blue('\nJiffoo Plugin SDK - Package\n'));
 
   const cwd = process.cwd();
   const manifestPath = path.join(cwd, 'manifest.json');
   const distDir = path.join(cwd, 'dist');
 
-  // Check if manifest exists
   if (!await fs.pathExists(manifestPath)) {
     console.log(chalk.red('Error: manifest.json not found. Are you in a plugin directory?'));
     process.exit(1);
+  }
+
+  // One-click flow by default: validate + build + package
+  if (options.validate !== false) {
+    await validateCommand({ manifest: 'manifest.json', strict: false });
+  }
+  if (options.build !== false) {
+    await buildCommand({ output: 'dist', minify: true });
   }
 
   const manifest = await fs.readJson(manifestPath);
@@ -38,41 +49,44 @@ export async function packCommand(options: PackOptions) {
   const spinner = ora('Packaging plugin...').start();
 
   try {
-    // Create temp directory for packaging
+    const hasDist = await fs.pathExists(distDir);
+    const runtimeType = manifest.runtimeType as string | undefined;
+    let codePathLabel = 'dist/';
+
     const tempDir = path.join(cwd, '.pack-temp');
     await fs.remove(tempDir);
     await fs.ensureDir(tempDir);
 
-    // Copy required files
     spinner.text = 'Copying files...';
 
-    // Copy manifest
     await fs.copy(manifestPath, path.join(tempDir, 'manifest.json'));
 
-    // Copy dist or src
-    if (await fs.pathExists(distDir)) {
+    if (hasDist) {
       await fs.copy(distDir, path.join(tempDir, 'dist'));
+      codePathLabel = 'dist/';
     } else if (options.includeSource) {
       await fs.copy(path.join(cwd, 'src'), path.join(tempDir, 'src'));
+      codePathLabel = 'src/';
+    } else if (runtimeType === 'external-http') {
+      // external-http plugins can be metadata-only for installation
+      codePathLabel = '(none, external-http metadata-only)';
     } else {
       spinner.fail(chalk.red('No dist directory found. Run "npm run build" first.'));
       await fs.remove(tempDir);
       process.exit(1);
     }
 
-    // Copy package.json (production version)
     const packageJson = await fs.readJson(path.join(cwd, 'package.json'));
     const prodPackageJson = {
       name: packageJson.name,
       version: packageJson.version,
       description: packageJson.description,
-      main: packageJson.main,
+      ...(hasDist || options.includeSource ? { main: packageJson.main } : {}),
       dependencies: packageJson.dependencies,
       license: packageJson.license,
     };
     await fs.writeJson(path.join(tempDir, 'package.json'), prodPackageJson, { spaces: 2 });
 
-    // Copy LICENSE
     const licensePath = path.join(cwd, 'LICENSE');
     if (await fs.pathExists(licensePath)) {
       await fs.copy(licensePath, path.join(tempDir, 'LICENSE'));
@@ -82,48 +96,25 @@ export async function packCommand(options: PackOptions) {
       process.exit(1);
     }
 
-    // Copy README
     const readmePath = path.join(cwd, 'README.md');
     if (await fs.pathExists(readmePath)) {
       await fs.copy(readmePath, path.join(tempDir, 'README.md'));
     }
 
-    // Generate checksum file
     spinner.text = 'Generating checksums...';
     const checksums = await generateChecksums(tempDir);
     await fs.writeJson(path.join(tempDir, 'checksums.json'), checksums, { spaces: 2 });
 
-    // Create zip archive
-    spinner.text = 'Creating archive...';
-    
-    // Remove existing output file
+    spinner.text = 'Creating zip archive...';
     if (await fs.pathExists(outputPath)) {
       await fs.remove(outputPath);
     }
+    await createZipArchive(tempDir, outputPath);
 
-    // Use system zip command
-    try {
-      execSync(`cd "${tempDir}" && zip -r "${outputPath}" .`, { stdio: 'pipe' });
-    } catch {
-      // Fallback: try using tar if zip is not available
-      try {
-        execSync(`cd "${tempDir}" && tar -czf "${outputPath.replace('.zip', '.tar.gz')}" .`, { stdio: 'pipe' });
-        console.log(chalk.yellow('\nNote: Created .tar.gz instead of .zip (zip not available)'));
-      } catch {
-        spinner.fail(chalk.red('Failed to create archive. Please install zip or tar.'));
-        await fs.remove(tempDir);
-        process.exit(1);
-      }
-    }
-
-    // Clean up temp directory
     await fs.remove(tempDir);
 
-    // Get package size
     const stat = await fs.stat(outputPath);
     const sizeStr = formatBytes(stat.size);
-
-    // Calculate package hash
     const packageHash = await calculateFileHash(outputPath);
 
     spinner.succeed(chalk.green(`Package created successfully (${sizeStr})`));
@@ -135,23 +126,18 @@ ${chalk.cyan('Package details:')}
   ${chalk.yellow('SHA256:')}   ${packageHash}
 
 ${chalk.cyan('Package contents:')}
-  • manifest.json
-  • package.json
-  • LICENSE
-  • README.md
-  • ${await fs.pathExists(distDir) ? 'dist/' : 'src/'}
-  • checksums.json
+  - manifest.json
+  - package.json
+  - LICENSE
+  - README.md
+  - ${codePathLabel}
+  - checksums.json
 
 ${chalk.cyan('Next steps:')}
-  1. Go to ${chalk.blue('https://developer.jiffoo.com')}
-  2. Navigate to "Submit Plugin"
-  3. Upload ${chalk.yellow(outputFileName)}
-  4. Fill in submission details
-  5. Submit for review
-
-${chalk.gray('The review process typically takes 1-3 business days.')}
+  1. Open your Admin extensions page
+  2. Upload ${chalk.yellow(outputFileName)} via plugin ZIP install
+  3. Enable plugin and configure instance values
 `);
-
   } catch (error) {
     spinner.fail(chalk.red('Packaging failed'));
     console.error(error);
@@ -161,14 +147,14 @@ ${chalk.gray('The review process typically takes 1-3 business days.')}
 
 async function generateChecksums(dir: string): Promise<Record<string, string>> {
   const checksums: Record<string, string> = {};
-  
+
   async function processDir(currentDir: string, prefix = '') {
     const entries = await fs.readdir(currentDir, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       const fullPath = path.join(currentDir, entry.name);
       const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
-      
+
       if (entry.isDirectory()) {
         await processDir(fullPath, relativePath);
       } else {
@@ -176,7 +162,7 @@ async function generateChecksums(dir: string): Promise<Record<string, string>> {
       }
     }
   }
-  
+
   await processDir(dir);
   return checksums;
 }
@@ -192,4 +178,20 @@ function formatBytes(bytes: number): string {
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+async function createZipArchive(sourceDir: string, outputFilePath: string): Promise<void> {
+  await fs.ensureDir(path.dirname(outputFilePath));
+  await new Promise<void>((resolve, reject) => {
+    const output = fs.createWriteStream(outputFilePath);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    output.on('close', () => resolve());
+    output.on('error', reject);
+    archive.on('error', reject);
+
+    archive.pipe(output);
+    archive.directory(sourceDir, false);
+    archive.finalize();
+  });
 }

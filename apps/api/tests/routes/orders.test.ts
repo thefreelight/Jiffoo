@@ -18,6 +18,7 @@ import {
   deleteAllTestOrders,
   deleteAllTestCarts,
 } from '../helpers/fixtures';
+import { getTestPrisma } from '../helpers/db';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('Orders Endpoints', () => {
@@ -25,6 +26,23 @@ describe('Orders Endpoints', () => {
   let userToken: string;
   let userId: string;
   let testProduct: Awaited<ReturnType<typeof createTestProduct>>;
+  let testVariantId: string;
+  let sourceInactiveProduct: Awaited<ReturnType<typeof createTestProduct>>;
+  let sourceInactiveVariantId: string;
+  let supplierDataProduct: Awaited<ReturnType<typeof createTestProduct>>;
+  let supplierDataVariantId: string;
+  let supplierCardProduct: Awaited<ReturnType<typeof createTestProduct>>;
+  let supplierCardVariantId: string;
+  const validShippingAddress = {
+    firstName: 'Test',
+    lastName: 'User',
+    phone: '+1-555-0101',
+    addressLine1: '123 Test St',
+    city: 'Test City',
+    state: 'CA',
+    postalCode: '94016',
+    country: 'US',
+  };
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -36,6 +54,126 @@ describe('Orders Endpoints', () => {
       name: 'Order Test Product',
       price: 79.99,
       stock: 100,
+    });
+    testVariantId = testProduct.variants[0].id;
+
+    sourceInactiveProduct = await createTestProduct({
+      name: 'Source Inactive Order Product',
+      price: 69.99,
+      stock: 10,
+    });
+    sourceInactiveVariantId = sourceInactiveProduct.variants[0].id;
+
+    const prisma = getTestPrisma();
+    await prisma.externalProductLink.create({
+      data: {
+        provider: 'odoo',
+        installationId: 'ins_order_source_inactive',
+        storeId: 'store_1',
+        externalProductCode: `ext_${sourceInactiveProduct.id}`,
+        coreProductId: sourceInactiveProduct.id,
+        coreProductSlug: sourceInactiveProduct.slug,
+        sourceIsActive: false,
+      },
+    });
+    await prisma.externalVariantLink.create({
+      data: {
+        provider: 'odoo',
+        installationId: 'ins_order_source_inactive',
+        storeId: 'store_1',
+        externalProductCode: `ext_${sourceInactiveProduct.id}`,
+        externalVariantCode: `ext_${sourceInactiveVariantId}`,
+        coreProductId: sourceInactiveProduct.id,
+        coreVariantId: sourceInactiveVariantId,
+        coreSkuCode: sourceInactiveProduct.variants[0].skuCode,
+        sourceIsActive: false,
+      },
+    });
+
+    supplierDataProduct = await createTestProduct({
+      name: 'Supplier Data Order Product',
+      price: 29.99,
+      stock: 10,
+      productType: 'digital',
+      requiresShipping: false,
+      skuCode: 'odoo-data-order-sku',
+      typeData: {
+        provider: 'odoo',
+        installationId: 'ins_order_supplier',
+        sourceProductType: 'data',
+        requiredUid: true,
+        externalProductCode: `ODOO-DATA-ORDER-${uuidv4()}`,
+      },
+    });
+    supplierDataVariantId = supplierDataProduct.variants[0].id;
+    supplierCardProduct = await createTestProduct({
+      name: 'Supplier Card Order Product',
+      price: 19.99,
+      stock: 10,
+      productType: 'digital',
+      requiresShipping: true,
+      skuCode: 'odoo-card-order-sku',
+      typeData: {
+        provider: 'odoo',
+        installationId: 'ins_order_supplier',
+        sourceProductType: 'card',
+        requiredUid: false,
+        externalProductCode: `ODOO-CARD-ORDER-${uuidv4()}`,
+      },
+    });
+    supplierCardVariantId = supplierCardProduct.variants[0].id;
+    const supplierDataExternalCode = `ODOO-DATA-ORDER-${supplierDataProduct.id}`;
+    const supplierDataVariantCode = `odoo-data-order-sku-${supplierDataVariantId}`;
+    const supplierCardExternalCode = `ODOO-CARD-ORDER-${supplierCardProduct.id}`;
+    const supplierCardVariantCode = `odoo-card-order-sku-${supplierCardVariantId}`;
+
+    await prisma.externalProductLink.createMany({
+      data: [
+        {
+          provider: 'odoo',
+          installationId: 'ins_order_supplier',
+          storeId: 'store_1',
+          externalProductCode: supplierDataExternalCode,
+          coreProductId: supplierDataProduct.id,
+          coreProductSlug: supplierDataProduct.slug,
+          sourceIsActive: true,
+        },
+        {
+          provider: 'odoo',
+          installationId: 'ins_order_supplier',
+          storeId: 'store_1',
+          externalProductCode: supplierCardExternalCode,
+          coreProductId: supplierCardProduct.id,
+          coreProductSlug: supplierCardProduct.slug,
+          sourceIsActive: true,
+        },
+      ],
+    });
+    await prisma.externalVariantLink.createMany({
+      data: [
+        {
+          provider: 'odoo',
+          installationId: 'ins_order_supplier',
+          storeId: 'store_1',
+          externalProductCode: supplierDataExternalCode,
+          externalVariantCode: supplierDataVariantCode,
+          coreProductId: supplierDataProduct.id,
+          coreVariantId: supplierDataVariantId,
+          coreSkuCode: supplierDataVariantCode,
+          sourceIsActive: true,
+        },
+        {
+          provider: 'odoo',
+          installationId: 'ins_order_supplier',
+          storeId: 'store_1',
+          externalProductCode: supplierCardExternalCode,
+          externalVariantCode: supplierCardVariantCode,
+          coreProductId: supplierCardProduct.id,
+          coreVariantId: supplierCardVariantId,
+          coreSkuCode: supplierCardVariantCode,
+          sourceIsActive: true,
+        },
+      ],
     });
   });
 
@@ -54,7 +192,7 @@ describe('Orders Endpoints', () => {
         url: '/api/orders/',
         payload: {
           items: [
-            { productId: testProduct.id, quantity: 1 },
+            { productId: testProduct.id, variantId: testVariantId, quantity: 1 },
           ],
         },
       });
@@ -94,8 +232,9 @@ describe('Orders Endpoints', () => {
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
-            { productId: testProduct.id, quantity: 2 },
+            { productId: testProduct.id, variantId: testVariantId, quantity: 2 },
           ],
+          shippingAddress: validShippingAddress,
         },
       });
 
@@ -116,7 +255,7 @@ describe('Orders Endpoints', () => {
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
-            { productId: fakeProductId, quantity: 1 },
+            { productId: fakeProductId, variantId: uuidv4(), quantity: 1 },
           ],
         },
       });
@@ -131,18 +270,96 @@ describe('Orders Endpoints', () => {
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
-            { productId: testProduct.id, quantity: 1 },
+            { productId: testProduct.id, variantId: testVariantId, quantity: 1 },
           ],
-          shippingAddress: {
-            street: '123 Test St',
-            city: 'Test City',
-            country: 'US',
-            zipCode: '12345',
-          },
+          shippingAddress: validShippingAddress,
         },
       });
 
       expect([200, 201]).toContain(response.statusCode);
+    });
+
+    it('should reject source-inactive odoo products', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/orders/',
+        headers: { authorization: `Bearer ${userToken}` },
+        payload: {
+          items: [
+            { productId: sourceInactiveProduct.id, variantId: sourceInactiveVariantId, quantity: 1 },
+          ],
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should split supplier quantity into atomic order items', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/orders/',
+        headers: { authorization: `Bearer ${userToken}` },
+        payload: {
+          items: [
+            {
+              productId: supplierDataProduct.id,
+              variantId: supplierDataVariantId,
+              quantity: 2,
+              fulfillmentData: {
+                cardUid: '10001',
+              },
+            },
+          ],
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+      const body = response.json();
+      expect(body.data.items).toHaveLength(2);
+      expect(body.data.items.every((item: any) => item.quantity === 1)).toBe(true);
+      expect(body.data.items.every((item: any) => item.fulfillmentData?.cardUid === '10001')).toBe(true);
+    });
+
+    it('should allow supplier card items to use item-level shipping address', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/orders/',
+        headers: { authorization: `Bearer ${userToken}` },
+        payload: {
+          items: [
+            {
+              productId: supplierCardProduct.id,
+              variantId: supplierCardVariantId,
+              quantity: 1,
+              fulfillmentData: {
+                shippingAddress: validShippingAddress,
+              },
+            },
+          ],
+        },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(response.json().data.items[0].fulfillmentData.shippingAddress.city).toBe(validShippingAddress.city);
+    });
+
+    it('should reject supplier data items without cardUid', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/orders/',
+        headers: { authorization: `Bearer ${userToken}` },
+        payload: {
+          items: [
+            {
+              productId: supplierDataProduct.id,
+              variantId: supplierDataVariantId,
+              quantity: 1,
+            },
+          ],
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
     });
   });
 
@@ -155,8 +372,9 @@ describe('Orders Endpoints', () => {
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
-            { productId: testProduct.id, quantity: 1 },
+            { productId: testProduct.id, variantId: testVariantId, quantity: 1 },
           ],
+          shippingAddress: validShippingAddress,
         },
       });
     });
@@ -180,11 +398,10 @@ describe('Orders Endpoints', () => {
       expect(response.statusCode).toBe(200);
 
       const body = response.json();
+      expect(body).toHaveProperty('success', true);
       expect(body).toHaveProperty('data');
-      // If the API returns { orders, pagination }, check body.data.orders
-      // If it returns just array in data, check body.data
-      // Based on user feedback: "most likely orders"
-      expect(Array.isArray(body.data.data)).toBe(true);
+      // API returns { items: [...], page, limit, total, totalPages }
+      expect(Array.isArray(body.data.items)).toBe(true);
     });
 
     it('should support pagination', async () => {
@@ -197,7 +414,7 @@ describe('Orders Endpoints', () => {
       expect(response.statusCode).toBe(200);
 
       const body = response.json();
-      expect(body.data.data.length).toBeLessThanOrEqual(5);
+      expect(body.data.items.length).toBeLessThanOrEqual(5);
     });
 
     it('should support status filter', async () => {
@@ -224,7 +441,7 @@ describe('Orders Endpoints', () => {
 
       const body = response.json();
       // Should not contain orders from first user
-      expect(body.data.data.every((order: any) => order.userId !== userId)).toBe(true);
+      expect(body.data.items.every((order: any) => order.userId !== userId)).toBe(true);
     });
   });
 
@@ -238,8 +455,9 @@ describe('Orders Endpoints', () => {
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
-            { productId: testProduct.id, quantity: 1 },
+            { productId: testProduct.id, variantId: testVariantId, quantity: 1 },
           ],
+          shippingAddress: validShippingAddress,
         },
       });
 
@@ -311,14 +529,15 @@ describe('Orders Endpoints', () => {
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
-            { productId: testProduct.id, quantity: 1 },
+            { productId: testProduct.id, variantId: testVariantId, quantity: 1 },
           ],
+          shippingAddress: validShippingAddress,
         },
       });
 
       if (createResponse.statusCode === 200 || createResponse.statusCode === 201) {
         const body = createResponse.json();
-        orderId = body.id;
+        orderId = body.data.id;
       }
     });
 
@@ -338,9 +557,10 @@ describe('Orders Endpoints', () => {
         method: 'POST',
         url: `/api/orders/${orderId}/cancel`,
         headers: { authorization: `Bearer ${userToken}` },
+        payload: { cancelReason: 'Test cancel' },
       });
 
-      expect([200, 400]).toContain(response.statusCode);
+      expect(response.statusCode).toBe(200);
     });
 
     it('should return 404 for non-existent order', async () => {
@@ -350,9 +570,10 @@ describe('Orders Endpoints', () => {
         method: 'POST',
         url: `/api/orders/${fakeOrderId}/cancel`,
         headers: { authorization: `Bearer ${userToken}` },
+        payload: { cancelReason: 'Test cancel' },
       });
 
-      expect([404, 400]).toContain(response.statusCode);
+      expect(response.statusCode).toBe(404);
     });
 
     it('should return 403/404 for other user order', async () => {
@@ -364,6 +585,7 @@ describe('Orders Endpoints', () => {
         method: 'POST',
         url: `/api/orders/${orderId}/cancel`,
         headers: { authorization: `Bearer ${otherToken}` },
+        payload: { cancelReason: 'Test cancel' },
       });
 
       expect([403, 404]).toContain(response.statusCode);

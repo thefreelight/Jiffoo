@@ -4,7 +4,6 @@
  * Provides the main navigation sidebar with i18n support.
  * Shopify-style flat navigation with only 5 main menu items.
  * Sub-navigation is handled within page content areas.
- * Dynamically shows Agent menu if agent plugin is installed.
  */
 
 'use client'
@@ -23,12 +22,17 @@ import {
   Menu,
   X,
   Sliders,
-
-  Palette
+  Activity,
+  Building2,
+  FileCheck,
+  DollarSign,
+  ShoppingCart,
+  Palette,
 } from 'lucide-react'
 
 interface SidebarProps {
   className?: string
+  onCloseMobile?: () => void
 }
 
 interface NavigationItem {
@@ -39,7 +43,7 @@ interface NavigationItem {
 }
 
 // Base navigation configuration - Shopify style flat menu
-// 5 main items: Dashboard / Products / Orders / Customers / Plugins
+// Main items: Dashboard / Products / Orders / Customers / B2B Features / Plugins / Themes
 const baseNavigationConfig: NavigationItem[] = [
   {
     nameKey: 'merchant.nav.dashboard',
@@ -66,20 +70,50 @@ const baseNavigationConfig: NavigationItem[] = [
     icon: Users,
   },
   {
-    nameKey: 'merchant.plugins.title',
+    nameKey: 'merchant.b2b.companies.title',
+    fallback: 'Companies',
+    href: '/b2b/companies',
+    icon: Building2,
+  },
+  {
+    nameKey: 'merchant.b2b.quotes.title',
+    fallback: 'Quotes',
+    href: '/b2b/quotes',
+    icon: FileCheck,
+  },
+  {
+    nameKey: 'merchant.b2b.pricing.title',
+    fallback: 'Pricing',
+    href: '/b2b/pricing',
+    icon: DollarSign,
+  },
+  {
+    nameKey: 'merchant.b2b.purchase_orders.title',
+    fallback: 'Purchase Orders',
+    href: '/b2b/purchase-orders',
+    icon: ShoppingCart,
+  },
+  {
+    nameKey: 'merchant.nav.plugins',
     fallback: 'Plugins',
     href: '/plugins',
     icon: Sliders,
   },
   {
-    nameKey: 'merchant.themes.title',
+    nameKey: 'merchant.nav.themes',
     fallback: 'Themes',
     href: '/themes',
     icon: Palette,
   },
+  {
+    nameKey: 'merchant.nav.systemHealth',
+    fallback: 'System Health',
+    href: '/system/health',
+    icon: Activity,
+  },
 ];
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, onCloseMobile }: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const pathname = usePathname()
   const locale = useLocale()
@@ -89,7 +123,9 @@ export function Sidebar({ className }: SidebarProps) {
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback
+    if (!t) return fallback
+    const translated = t(key)
+    return translated === key ? fallback : translated
   }
 
   // Build localized href
@@ -99,30 +135,37 @@ export function Sidebar({ className }: SidebarProps) {
 
   return (
     <div className={cn(
-      "flex flex-col h-screen bg-gray-50 border-r border-gray-200 transition-all duration-300",
-      isCollapsed ? "w-16" : "w-56",
+      "flex flex-col h-screen bg-white dark:bg-gray-950 border-r border-gray-200 dark:border-gray-800 transition-all duration-300 shadow-xl lg:shadow-none",
+      isCollapsed ? "w-16" : "w-64 lg:w-56",
       className
     )}>
       {/* Header - Shopify style clean header */}
       <div className="flex items-center justify-between h-14 px-3 border-b border-gray-200">
         {!isCollapsed && (
           <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 bg-gray-900 rounded-md flex items-center justify-center">
+            <div className="w-8 h-8 bg-gray-900 dark:bg-blue-600 rounded-md flex items-center justify-center">
               <span className="text-white font-semibold text-sm">J</span>
             </div>
-            <span className="font-semibold text-gray-900 text-sm tracking-tight">Jiffoo Mall</span>
+            <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm tracking-tight">Jiffoo Mall</span>
           </div>
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 rounded-md hover:bg-gray-200/60 transition-colors"
+          className="p-1.5 rounded-md hover:bg-gray-200/60 dark:hover:bg-gray-800/60 transition-colors lg:block hidden"
           aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
         >
           {isCollapsed ? (
-            <Menu className="w-4 h-4 text-gray-600" />
+            <Menu className="w-4 h-4 text-gray-600 dark:text-gray-400" />
           ) : (
-            <X className="w-4 h-4 text-gray-600" />
+            <X className="w-4 h-4 text-gray-600 dark:text-gray-400" />
           )}
+        </button>
+        <button
+          onClick={onCloseMobile}
+          className="p-1.5 rounded-md hover:bg-gray-200/60 dark:hover:bg-gray-800/60 transition-colors lg:hidden"
+          aria-label="Close menu"
+        >
+          <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
         </button>
       </div>
 
@@ -141,14 +184,19 @@ export function Sidebar({ className }: SidebarProps) {
               className={cn(
                 "group flex items-center px-2.5 py-2 text-sm font-medium rounded-md transition-colors",
                 isActive
-                  ? "bg-gray-200/70 text-gray-900"
-                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
               )}
+              onClick={() => {
+                if (window.innerWidth < 1024) {
+                  onCloseMobile?.();
+                }
+              }}
             >
               <item.icon
                 className={cn(
                   "flex-shrink-0 w-5 h-5",
-                  isActive ? "text-gray-700" : "text-gray-400 group-hover:text-gray-500",
+                  isActive ? "text-gray-700 dark:text-gray-200" : "text-gray-400 group-hover:text-gray-500",
                   isCollapsed ? "mx-auto" : "mr-2.5"
                 )}
               />

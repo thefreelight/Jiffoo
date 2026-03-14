@@ -95,34 +95,12 @@ async function checkRedis(): Promise<ComponentHealth> {
 
 /**
  * Check plugin loading status
- * This is called from server.ts where we have access to fastify instance
+ * Note: Plugin loader removed, health check now uses database
  */
 export function checkPlugins(fastify: any): PluginHealth {
-  try {
-    // Try to get loaded plugins from the plugin loader
-    const { getLoadedPlugins } = require('@/core/admin/extension-installer');
-    const loadedPlugins = getLoadedPlugins();
-
-    if (!loadedPlugins || loadedPlugins.length === 0) {
-      // No plugins installed is OK, not a failure
-      return { loaded: 0, failed: 0 };
-    }
-
-    const loaded = loadedPlugins.filter((p: any) => p.status === 'loaded').length;
-    const failed = loadedPlugins.filter((p: any) => p.status === 'failed').length;
-    const list = loadedPlugins
-      .filter((p: any) => p.status === 'loaded')
-      .map((p: any) => p.slug);
-
-    return {
-      loaded,
-      failed,
-      list: list.length > 0 ? list : undefined,
-    };
-  } catch (error) {
-    // If we can't check plugins, assume OK (not a failure)
-    return { loaded: 0, failed: 0 };
-  }
+  // Plugin loader removed - plugins are managed via database
+  // Health check is handled by plugin-runtime gateway
+  return { loaded: 0, failed: 0 };
 }
 
 /**

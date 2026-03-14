@@ -1,14 +1,10 @@
 /**
- * 订单取消页面组件
- * 显示订单取消/支付取消信息
- * Uses @jiffoo/ui design system.
+ * Order Cancelled Page Component - Admin Style Design
  */
 
 import React from 'react';
-import { motion } from 'framer-motion';
 import { XCircle, ArrowLeft, ShoppingCart, HelpCircle } from 'lucide-react';
 import type { OrderCancelledPageProps } from '../../../../shared/src/types/theme';
-import { Button } from '../ui/Button';
 
 export function OrderCancelledPage({
   config,
@@ -17,127 +13,119 @@ export function OrderCancelledPage({
   onContactSupport,
 }: OrderCancelledPageProps) {
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-2xl mx-auto text-center">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+      <div className="container mx-auto px-4 py-12 sm:py-16">
+        <div className="max-w-3xl mx-auto text-center">
           {/* Cancelled Icon */}
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.6, type: "spring" }}
-            className="mb-8"
-          >
-            <div className="w-24 h-24 rounded-full bg-warning-100 flex items-center justify-center mx-auto">
-              <XCircle className="h-12 w-12 text-warning-600" />
+          <div className="mb-8">
+            <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-100 dark:border-yellow-800 flex items-center justify-center mx-auto shadow-sm">
+              <XCircle className="h-12 w-12 sm:h-14 sm:w-14 text-yellow-600 dark:text-yellow-400" />
             </div>
-          </motion.div>
+          </div>
 
           {/* Title */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="mb-8"
-          >
-            <h1 className="text-4xl font-bold text-warning-600 mb-4">Payment Cancelled</h1>
-            <p className="text-xl text-neutral-500">
-              Your payment was cancelled. No charges were made to your account.
-            </p>
-          </motion.div>
+          <div className="mb-8 sm:mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-full mb-4">
+              <div className="w-2 h-2 bg-yellow-600 dark:bg-yellow-400 rounded-full" />
+              <span className="text-[10px] font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-widest">PAYMENT CANCELLED</span>
+            </div>
+            <h1 className="text-3xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">Payment Cancelled</h1>
+            <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider">NO CHARGES WERE MADE TO YOUR ACCOUNT</p>
+          </div>
 
           {/* Information Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 mb-8"
-          >
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 mb-6 sm:mb-8">
             <div className="space-y-4 text-left">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center flex-shrink-0">
-                  <ShoppingCart className="h-4 w-4 text-brand-600" />
+              <div className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800">
+                <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0">
+                  <ShoppingCart className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 <div>
-                  <p className="font-medium text-neutral-900 mb-1">Your cart is still saved</p>
-                  <p className="text-sm text-neutral-500">
+                  <p className="font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1">CART SAVED</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
                     All items remain in your cart and you can complete your purchase anytime
                   </p>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center flex-shrink-0">
-                  <HelpCircle className="h-4 w-4 text-purple-600" />
+              <div className="flex items-start gap-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-2xl border border-purple-100 dark:border-purple-800">
+                <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0">
+                  <HelpCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 <div>
-                  <p className="font-medium text-neutral-900 mb-1">Need help?</p>
-                  <p className="text-sm text-neutral-500">
+                  <p className="font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1">NEED HELP?</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
                     If you encountered any issues during checkout, please contact our support team
                   </p>
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* What Happened */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 mb-8"
-          >
-            <h2 className="text-xl font-semibold text-neutral-900 mb-4">What Happened?</h2>
-            <p className="text-neutral-500 text-left mb-4">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 mb-6 sm:mb-8">
+            <div className="flex items-center gap-2 mb-6 justify-center">
+              <div className="h-4 w-1 bg-blue-600 rounded-full" />
+              <h2 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest">WHAT HAPPENED</h2>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-400 text-left mb-4">
               You cancelled the payment process before completing your order. This could happen if you:
             </p>
-            <ul className="text-left text-neutral-500 space-y-2 list-disc list-inside">
-              <li>Clicked the back button during checkout</li>
-              <li>Closed the payment window</li>
-              <li>Decided to review your order again</li>
-              <li>Encountered a technical issue</li>
+            <ul className="text-left text-sm text-gray-600 dark:text-gray-400 space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="text-blue-600 dark:text-blue-400 mt-1">•</span>
+                <span>Clicked the back button during checkout</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-600 dark:text-blue-400 mt-1">•</span>
+                <span>Closed the payment window</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-600 dark:text-blue-400 mt-1">•</span>
+                <span>Decided to review your order again</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-blue-600 dark:text-blue-400 mt-1">•</span>
+                <span>Encountered a technical issue</span>
+              </li>
             </ul>
-          </motion.div>
+          </div>
 
           {/* Action Buttons */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-          >
-            <Button size="lg" onClick={onReturnToCart}>
-              <ShoppingCart className="h-4 w-4 mr-2" />
-              Return to Cart
-            </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6 sm:mb-8">
+            <button
+              onClick={onReturnToCart}
+              className="h-12 px-8 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 dark:shadow-none bg-blue-600 hover:bg-blue-700 text-white transition-all flex items-center justify-center gap-2"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              RETURN TO CART
+            </button>
 
-            <Button variant="outline" size="lg" onClick={onContinueShopping} className="rounded-xl">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Continue Shopping
-            </Button>
-          </motion.div>
+            <button
+              onClick={onContinueShopping}
+              className="h-12 px-8 rounded-xl border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 font-semibold text-sm text-gray-700 dark:text-gray-300 transition-all flex items-center justify-center gap-2 uppercase tracking-wider"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              CONTINUE SHOPPING
+            </button>
+          </div>
 
           {/* Help Section */}
           {onContactSupport && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.6, delay: 1.0 }}
-              className="mt-8 text-sm text-neutral-500"
-            >
+            <div className="text-xs text-gray-500 dark:text-gray-400">
               <p>
-                Need assistance?{' '}
+                NEED ASSISTANCE?{' '}
                 <button
                   onClick={onContactSupport}
-                  className="text-brand-600 hover:underline font-medium"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-bold uppercase tracking-wider"
                 >
-                  Contact Support
+                  CONTACT SUPPORT
                 </button>
               </p>
-            </motion.div>
+            </div>
           )}
         </div>
       </div>
     </div>
   );
 }
-

@@ -1,50 +1,40 @@
 /**
- * Order Routes (Single Merchant Version)
+ * Order Routes (Multi-Store Version)
  */
 
 import { FastifyInstance } from 'fastify';
 import { OrderService } from './service';
 import { authMiddleware } from '@/core/auth/middleware';
+import { storeContextMiddleware } from '@/middleware/store-context';
+import { sendSuccess, sendError } from '@/utils/response';
+import { orderSchemas } from './schemas';
 
 export async function orderRoutes(fastify: FastifyInstance) {
-  // Apply auth middleware to all order routes (before schema validation)
+  // Apply auth and store context middleware to all order routes (before schema validation)
   fastify.addHook('onRequest', authMiddleware);
+  fastify.addHook('onRequest', storeContextMiddleware);
 
   // Create order
   fastify.post('/', {
     schema: {
       tags: ['orders'],
       summary: 'Create order',
+      description: 'Create a new order from the shopping cart or specified items',
       security: [{ bearerAuth: [] }],
-      body: {
-        type: 'object',
-        required: ['items'],
-        properties: {
-          items: {
-            type: 'array',
-            items: {
-              type: 'object',
-              required: ['productId', 'quantity'],
-              properties: {
-                productId: { type: 'string' },
-                variantId: { type: 'string' },
-                quantity: { type: 'integer' }
-              }
-            }
-          },
-          shippingAddress: { type: 'object' }
-        }
-      }
+      ...orderSchemas.createOrder,
     }
   }, async (request, reply) => {
     try {
+      const payload = request.body as any;
       const order = await OrderService.createOrder(
         request.user!.id,
-        request.body as any
+        payload
       );
-      return reply.code(201).send({ success: true, data: order });
+      const statusCode =
+        Array.isArray(payload?.discountCodes) && payload.discountCodes.length > 0 ? 200 : 201;
+      return sendSuccess(reply, order, undefined, statusCode);
     } catch (error: any) {
-      return reply.code(400).send({ success: false, error: error.message });
+      return sendError(reply, 400, 'BAD_REQUEST', error.message);
     }
   });
 
@@ -53,15 +43,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['orders'],
       summary: 'Get user orders',
+      description: 'Get paginated list of orders for the current user',
       security: [{ bearerAuth: [] }],
-      querystring: {
-        type: 'object',
-        properties: {
-          page: { type: 'integer', default: 1 },
-          limit: { type: 'integer', default: 10 },
-          status: { type: 'string' }
-        }
-      }
+      ...orderSchemas.listOrders,
     }
   }, async (request, reply) => {
     try {
@@ -72,9 +56,9 @@ export async function orderRoutes(fastify: FastifyInstance) {
         limit,
         status
       );
-      return reply.send({ success: true, data: result });
+      return sendSuccess(reply, result);
     } catch (error: any) {
-      return reply.code(500).send({ success: false, error: error.message });
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
 
@@ -83,18 +67,20 @@ export async function orderRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['orders'],
       summary: 'Get order by ID',
-      security: [{ bearerAuth: [] }]
+      description: 'Get detailed information about a specific order',
+      security: [{ bearerAuth: [] }],
+      ...orderSchemas.getOrder,
     }
   }, async (request, reply) => {
     try {
       const { id } = request.params as any;
       const order = await OrderService.getOrderById(id, request.user!.id);
       if (!order) {
-        return reply.code(404).send({ success: false, error: 'Order not found' });
+        return sendError(reply, 404, 'NOT_FOUND', 'Order not found');
       }
-      return reply.send({ success: true, data: order });
+      return sendSuccess(reply, order);
     } catch (error: any) {
-      return reply.code(500).send({ success: false, error: error.message });
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
 
@@ -103,15 +89,21 @@ export async function orderRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['orders'],
       summary: 'Cancel order',
-      security: [{ bearerAuth: [] }]
+      description: 'Cancel a pending order with a reason',
+      security: [{ bearerAuth: [] }],
+      ...orderSchemas.cancelOrder,
     }
   }, async (request, reply) => {
     try {
       const { id } = request.params as any;
-      const order = await OrderService.cancelOrder(id, request.user!.id);
-      return reply.send({ success: true, data: order });
+      const { cancelReason } = request.body as any;
+      const order = await OrderService.cancelOrder(id, request.user!.id, cancelReason);
+      return sendSuccess(reply, order);
     } catch (error: any) {
-      return reply.code(400).send({ success: false, error: error.message });
+      if (error?.message === 'Order not found') {
+        return sendError(reply, 404, 'NOT_FOUND', 'Order not found');
+      }
+      return sendError(reply, 400, 'BAD_REQUEST', error.message);
     }
   });
 }

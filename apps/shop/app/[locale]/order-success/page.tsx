@@ -13,13 +13,18 @@ import { useShopTheme } from '@/lib/themes/provider';
 import { useSearchParams } from 'next/navigation';
 import { useCartStore } from '@/store/cart';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
+import { paymentApi } from '@/lib/api';
 import { useT } from 'shared/src/i18n/react';
+import {
+  clearSelectedCartItemIds,
+  readSelectedCartItemIds,
+} from '@/lib/checkout-selection';
 
 function OrderSuccessContent() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
   const searchParams = useSearchParams();
   const nav = useLocalizedNavigation();
-  const { clearCart } = useCartStore();
+  const { clearCart, removeItem } = useCartStore();
   const t = useT();
   const [orderNumber, setOrderNumber] = React.useState<string>('');
   const [isVerifying, setIsVerifying] = React.useState(true);
@@ -29,14 +34,31 @@ function OrderSuccessContent() {
     return t ? t(key) : fallback;
   };
 
+  const clearPurchasedItems = React.useCallback(async () => {
+    const selectedItemIds = readSelectedCartItemIds();
+
+    try {
+      if (selectedItemIds && selectedItemIds.length > 0) {
+        for (const itemId of selectedItemIds) {
+          try {
+            await removeItem(itemId);
+          } catch (error) {
+            console.warn('Failed to remove purchased cart item:', itemId, error);
+          }
+        }
+      } else {
+        await clearCart();
+      }
+    } finally {
+      clearSelectedCartItemIds();
+    }
+  }, [clearCart, removeItem]);
+
   const verifyPaymentSession = React.useCallback(async (sessionId: string) => {
     try {
-      // Try the standard payment API first
-      const response = await fetch(`/api/payments/verify/${sessionId}`);
-
-      if (response.ok) {
-        const data = await response.json();
-        setOrderNumber(data.data?.orderId || `JF${Date.now().toString().slice(-6)}`);
+      const response = await paymentApi.verifySession(sessionId);
+      if (response.success) {
+        setOrderNumber(response.data?.orderId || `JF${Date.now().toString().slice(-6)}`);
       } else {
         setOrderNumber(`JF${Date.now().toString().slice(-6)}`);
       }
@@ -44,15 +66,15 @@ function OrderSuccessContent() {
       console.error('Failed to verify payment session:', error);
       setOrderNumber(`JF${Date.now().toString().slice(-6)}`);
     } finally {
-      // Always clear cart after order success, regardless of verification result
+      // Always clear purchased cart items after order success.
       try {
-        await clearCart();
+        await clearPurchasedItems();
       } catch (e) {
         console.error('Failed to clear cart:', e);
       }
       setIsVerifying(false);
     }
-  }, [clearCart]);
+  }, [clearPurchasedItems]);
 
   React.useEffect(() => {
     const sessionId = searchParams?.get('session_id');
@@ -66,13 +88,13 @@ function OrderSuccessContent() {
       // Use async IIFE to properly handle the async clearCart
       (async () => {
         try {
-          await clearCart();
+          await clearPurchasedItems();
         } catch (e) {
           console.error('Failed to clear cart:', e);
         }
       })();
     }
-  }, [searchParams, clearCart, verifyPaymentSession]);
+  }, [searchParams, clearPurchasedItems, verifyPaymentSession]);
 
   // Theme loading state
   if (themeLoading) {

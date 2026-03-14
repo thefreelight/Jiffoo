@@ -7,7 +7,6 @@
  * - GET /api/upgrade/status
  * - POST /api/upgrade/backup
  * - POST /api/upgrade/perform
- * - POST /api/upgrade/rollback
  * 
  * All upgrade endpoints require admin authentication.
  */
@@ -42,7 +41,6 @@ describe('Upgrade Endpoints', () => {
       { method: 'GET', url: '/api/upgrade/status' },
       { method: 'POST', url: '/api/upgrade/backup' },
       { method: 'POST', url: '/api/upgrade/perform', body: { targetVersion: '1.0.0' } },
-      { method: 'POST', url: '/api/upgrade/rollback', body: { backupId: 'test' } },
     ];
 
     it.each(endpoints)('$method $url should return 401 without token', async ({ method, url, body }) => {
@@ -63,7 +61,6 @@ describe('Upgrade Endpoints', () => {
       { method: 'GET', url: '/api/upgrade/status' },
       { method: 'POST', url: '/api/upgrade/backup' },
       { method: 'POST', url: '/api/upgrade/perform', body: { targetVersion: '1.0.0' } },
-      { method: 'POST', url: '/api/upgrade/rollback', body: { backupId: 'test' } },
     ];
 
     it.each(endpoints)('$method $url should return 403 for regular user', async ({ method, url, body }) => {
@@ -90,6 +87,9 @@ describe('Upgrade Endpoints', () => {
       const body = response.json();
       expect(body).toHaveProperty('success', true);
       expect(body).toHaveProperty('data');
+      expect(body.data).toHaveProperty('deploymentMode');
+      expect(body.data).toHaveProperty('oneClickUpgradeSupported');
+      expect(body.data).toHaveProperty('recoveryMode', 'automatic-recovery');
     });
   });
 
@@ -166,32 +166,7 @@ describe('Upgrade Endpoints', () => {
       });
 
       // May return 200, 400 (no upgrade available), or 500
-      expect([200, 400, 500]).toContain(response.statusCode);
-    });
-  });
-
-  describe('POST /api/upgrade/rollback', () => {
-    it('should return 400 without backupId', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/upgrade/rollback',
-        headers: { authorization: `Bearer ${adminToken}` },
-        payload: {},
-      });
-
-      expect(response.statusCode).toBe(400);
-    });
-
-    it('should handle rollback request with backupId', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/upgrade/rollback',
-        headers: { authorization: `Bearer ${adminToken}` },
-        payload: { backupId: 'test-backup-id' },
-      });
-
-      // May return 200, 400 (backup not found), or 500
-      expect([200, 400, 500]).toContain(response.statusCode);
+      expect([400, 500]).toContain(response.statusCode);
     });
   });
 });

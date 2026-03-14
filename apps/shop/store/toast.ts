@@ -77,5 +77,18 @@ export const toast = {
   error: (message: string, title?: string) => useToastStore.getState().error(message, title),
   info: (message: string, title?: string) => useToastStore.getState().info(message, title),
   warning: (message: string, title?: string) => useToastStore.getState().warning(message, title),
+  // Background sync notifications
+  syncSuccess: (itemCount?: number) => {
+    const message = itemCount
+      ? `Successfully synced ${itemCount} item${itemCount !== 1 ? 's' : ''}`
+      : 'Background sync completed successfully';
+    return useToastStore.getState().success(message, 'Sync Complete');
+  },
+  syncError: (error?: string) => {
+    const message = error
+      ? `Sync failed: ${error}`
+      : 'Background sync failed. Your changes will be synced when you\'re back online.';
+    return useToastStore.getState().error(message, 'Sync Failed');
+  },
 };
 

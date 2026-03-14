@@ -9,20 +9,30 @@ export const errorResponseSchema = {
   type: 'object',
   properties: {
     success: { type: 'boolean' },
-    error: { type: 'string' },
-    message: { type: 'string' }
+    error: {
+      type: 'object',
+      properties: {
+        code: { type: 'string' },
+        message: { type: 'string' },
+        // details can be any JSON value
+        details: {}
+      },
+      required: ['code', 'message']
+    }
   },
   required: ['success', 'error']
 }
 
-// Standard success response schema
+// Standard success response schema - Unified format: {success:true, data:T, message?:string}
 export const successResponseSchema = {
   type: 'object',
   properties: {
     success: { type: 'boolean' },
-    data: { type: 'object' }
+    // data can be any JSON value (object/array/string/number/boolean/null)
+    data: {},
+    message: { type: 'string' }
   },
-  required: ['success']
+  required: ['success', 'data']
 }
 
 // Common response status code schema combinations
