@@ -30,24 +30,14 @@ FROM base AS deps
 WORKDIR /app
 
 # Install pnpm from a vendored tarball so CI doesn't depend on external npm availability.
-COPY .tools/pnpm/pnpm-9.0.0.tgz /tmp/pnpm-9.0.0.tgz
-RUN npm config set proxy ${HTTP_PROXY} && \
-    npm config set https-proxy ${HTTPS_PROXY} && \
-    npm config set registry ${NPM_REGISTRY} && \
-    npm install -g /tmp/pnpm-9.0.0.tgz
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Copy workspace files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/shop/package.json ./apps/shop/
-COPY .tools/npm/fortawesome-fontawesome-free-7.2.0.tgz ./.tools/npm/fortawesome-fontawesome-free-7.2.0.tgz
-COPY .tools/npm/hookform-resolvers-3.10.0.tgz ./.tools/npm/hookform-resolvers-3.10.0.tgz
-COPY .tools/npm/react-19.2.1.tgz ./.tools/npm/react-19.2.1.tgz
-COPY .tools/npm/react-dom-19.2.1.tgz ./.tools/npm/react-dom-19.2.1.tgz
-COPY .tools/npm/react-hook-form-7.68.0.tgz ./.tools/npm/react-hook-form-7.68.0.tgz
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/shop-themes/default/package.json ./packages/shop-themes/default/
-COPY packages/shop-themes/esim-mall/package.json ./packages/shop-themes/esim-mall/
-COPY packages/shop-themes/yevbi/package.json ./packages/shop-themes/yevbi/
+
 COPY packages/ui/package.json ./packages/ui/
 COPY packages/theme-api-sdk/package.json ./packages/theme-api-sdk/
 COPY packages/core-api-sdk/package.json ./packages/core-api-sdk/
@@ -58,8 +48,8 @@ RUN pnpm config set fetch-retries 5 && \
     pnpm config set fetch-retry-mintimeout 20000 && \
     pnpm config set fetch-retry-maxtimeout 120000 && \
     pnpm config set registry ${NPM_REGISTRY} && \
-    pnpm config set network-concurrency 1 && \
-    pnpm config set child-concurrency 1 && \
+    pnpm config set network-concurrency 8 && \
+    pnpm config set child-concurrency 4 && \
     pnpm install --frozen-lockfile
 
 # Rebuild the source code only when needed
@@ -67,19 +57,14 @@ FROM base AS builder
 WORKDIR /app
 
 # Install pnpm (needed for build commands) from the same vendored tarball.
-COPY .tools/pnpm/pnpm-9.0.0.tgz /tmp/pnpm-9.0.0.tgz
-RUN npm config set proxy ${HTTP_PROXY} && \
-    npm config set https-proxy ${HTTPS_PROXY} && \
-    npm config set registry ${NPM_REGISTRY} && \
-    npm install -g /tmp/pnpm-9.0.0.tgz
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/shop/node_modules ./apps/shop/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 COPY --from=deps /app/packages/shop-themes/default/node_modules ./packages/shop-themes/default/node_modules
-COPY --from=deps /app/packages/shop-themes/esim-mall/node_modules ./packages/shop-themes/esim-mall/node_modules
-COPY --from=deps /app/packages/shop-themes/yevbi/node_modules ./packages/shop-themes/yevbi/node_modules
+
 COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
 COPY --from=deps /app/packages/theme-api-sdk/node_modules ./packages/theme-api-sdk/node_modules
 COPY --from=deps /app/packages/core-api-sdk/node_modules ./packages/core-api-sdk/node_modules

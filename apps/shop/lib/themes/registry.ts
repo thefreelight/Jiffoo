@@ -69,53 +69,8 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       return module.default || module.theme;
     },
   },
-  // eSIM Mall theme - official embedded full theme
-  'esim-mall': {
-    meta: {
-      slug: 'esim-mall',
-      name: 'eSIM Mall Theme',
-      version: '1.0.0',
-      description: 'eSIM marketplace theme with modern travel-focused design for eSIM businesses.',
-      category: 'esim',
-      author: 'Jiffoo',
-      target: 'shop',
-      tags: ['esim', 'travel', 'connectivity', 'modern'],
-    },
-    load: async () => {
-      try {
-        const module = await import('@shop-themes/esim-mall');
-        return module.default || module.theme;
-      } catch {
-        // Keep a stub fallback so local worktrees without this package still boot.
-        return { components: {}, defaultConfig: {} } as any;
-      }
-    },
-  },
-  // Yevbi theme - official embedded full theme
-  'yevbi': {
-    meta: {
-      slug: 'yevbi',
-      name: 'Yevbi Theme',
-      version: '1.0.0',
-      description: 'Travel-focused e-commerce theme with modern design.',
-      category: 'travel',
-      author: 'Jiffoo',
-      target: 'shop',
-      tags: ['travel', 'modern', 'responsive'],
-    },
-    load: async () => {
-      try {
-        const module = await import('@shop-themes/yevbi');
-        return module.default || module.theme;
-      } catch {
-        return { components: {}, defaultConfig: {} } as any;
-      }
-    },
-  },
-  // NOTE: Only 'builtin-default' is the canonical built-in theme.
-  // 'default' is kept for backwards compatibility but maps to the same package.
-  // Third-party themes should be installed as Theme Packs
-  // via Extension Installer to extensions/themes/shop/
+  // NOTE: The open-source core only embeds the default theme.
+  // Official marketplace themes are downloaded after deployment as Theme Packs.
 };
 
 // ============================================================================

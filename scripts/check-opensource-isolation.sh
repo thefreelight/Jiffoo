@@ -16,9 +16,20 @@ OPEN_SOURCE_CODE_SCOPES=(
   "apps/shop/lib"
   "packages/shared/src"
   "packages/plugin-sdk/src"
+  "packages/shop-themes/default/src"
   "packages/ui/src"
   "scripts"
   ".github/workflows"
+)
+
+ALLOWED_PACKAGE_DIRS=(
+  "core-api-sdk"
+  "create-jiffoo-app"
+  "plugin-sdk"
+  "shared"
+  "shop-themes"
+  "theme-api-sdk"
+  "ui"
 )
 
 contains_non_gitkeep_files() {
@@ -161,12 +172,55 @@ else
   echo "  ✅ PASSED"
 fi
 
-# Check 6: No official marketplace source trees in opensource repo
+# Check 6: Only the built-in default theme is allowed in opensource repo
 echo ""
 echo "[6/10] Checking for official theme source trees..."
-if [ -d "${OPENSOURCE_DIR}/packages/shop-themes" ]; then
-  echo "  ❌ FAILED: packages/shop-themes found"
-  ERRORS=$((ERRORS + 1))
+THEME_ROOT="${OPENSOURCE_DIR}/packages/shop-themes"
+if [ -d "${THEME_ROOT}" ]; then
+  THEME_ERRORS=0
+  while IFS= read -r theme_dir; do
+    theme_name="$(basename "${theme_dir}")"
+    if [ "${theme_name}" != "default" ]; then
+      echo "  ❌ FAILED: official theme source present: packages/shop-themes/${theme_name}"
+      THEME_ERRORS=$((THEME_ERRORS + 1))
+    fi
+  done < <(find "${THEME_ROOT}" -mindepth 1 -maxdepth 1 -type d | sort)
+
+  if [ $THEME_ERRORS -gt 0 ]; then
+    ERRORS=$((ERRORS + THEME_ERRORS))
+  else
+    echo "  ✅ PASSED"
+  fi
+else
+  echo "  ✅ PASSED"
+fi
+
+# Check 6.5: No stale package directories outside the approved OSS set
+echo ""
+echo "[6.5/10] Checking for stale package directories..."
+PACKAGE_ROOT="${OPENSOURCE_DIR}/packages"
+if [ -d "${PACKAGE_ROOT}" ]; then
+  PACKAGE_ERRORS=0
+  while IFS= read -r package_dir; do
+    package_name="$(basename "${package_dir}")"
+    keep="false"
+    for allowed in "${ALLOWED_PACKAGE_DIRS[@]}"; do
+      if [ "${package_name}" = "${allowed}" ]; then
+        keep="true"
+        break
+      fi
+    done
+    if [ "${keep}" != "true" ]; then
+      echo "  ❌ FAILED: stale package directory present: packages/${package_name}"
+      PACKAGE_ERRORS=$((PACKAGE_ERRORS + 1))
+    fi
+  done < <(find "${PACKAGE_ROOT}" -mindepth 1 -maxdepth 1 -type d | sort)
+
+  if [ $PACKAGE_ERRORS -gt 0 ]; then
+    ERRORS=$((ERRORS + PACKAGE_ERRORS))
+  else
+    echo "  ✅ PASSED"
+  fi
 else
   echo "  ✅ PASSED"
 fi

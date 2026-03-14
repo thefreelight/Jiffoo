@@ -30,19 +30,11 @@ FROM base AS deps
 WORKDIR /app
 
 # Install pnpm from a vendored tarball so CI does not depend on external npm mirrors.
-COPY .tools/pnpm/pnpm-9.0.0.tgz /tmp/pnpm-9.0.0.tgz
-RUN npm config set proxy ${HTTP_PROXY} && \
-    npm config set https-proxy ${HTTPS_PROXY} && \
-    npm config set registry ${NPM_REGISTRY} && \
-    npm install -g /tmp/pnpm-9.0.0.tgz
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Copy workspace files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/admin/package.json ./apps/admin/
-COPY .tools/npm/hookform-resolvers-3.10.0.tgz ./.tools/npm/hookform-resolvers-3.10.0.tgz
-COPY .tools/npm/react-19.2.1.tgz ./.tools/npm/react-19.2.1.tgz
-COPY .tools/npm/react-dom-19.2.1.tgz ./.tools/npm/react-dom-19.2.1.tgz
-COPY .tools/npm/react-hook-form-7.68.0.tgz ./.tools/npm/react-hook-form-7.68.0.tgz
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/ui/package.json ./packages/ui/
 
@@ -61,11 +53,7 @@ FROM base AS builder
 WORKDIR /app
 
 # Install pnpm (needed for build commands) from the vendored tarball.
-COPY .tools/pnpm/pnpm-9.0.0.tgz /tmp/pnpm-9.0.0.tgz
-RUN npm config set proxy ${HTTP_PROXY} && \
-    npm config set https-proxy ${HTTPS_PROXY} && \
-    npm config set registry ${NPM_REGISTRY} && \
-    npm install -g /tmp/pnpm-9.0.0.tgz
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules

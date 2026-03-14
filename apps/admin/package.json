@@ -12,7 +12,7 @@
     "docker:build": "docker build -t admin:latest ."
   },
   "dependencies": {
-    "@hookform/resolvers": "file:../../.tools/npm/hookform-resolvers-3.10.0.tgz",
+    "@hookform/resolvers": "3.10.0",
     "@jiffoo/ui": "workspace:*",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.1",
@@ -42,10 +42,10 @@
     "next": "16.0.7",
     "next-themes": "^0.4.6",
     "postcss": "^8.4.49",
-    "react": "file:../../.tools/npm/react-19.2.1.tgz",
+    "react": "19.2.1",
     "react-chartjs-2": "^5.3.0",
-    "react-dom": "file:../../.tools/npm/react-dom-19.2.1.tgz",
-    "react-hook-form": "file:../../.tools/npm/react-hook-form-7.68.0.tgz",
+    "react-dom": "19.2.1",
+    "react-hook-form": "7.68.0",
     "recharts": "^2.15.3",
     "shared": "workspace:*",
     "sonner": "^2.0.5",

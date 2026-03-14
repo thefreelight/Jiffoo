@@ -3,3 +3,4 @@ packages:
   - 'apps/admin'
   - 'apps/shop'
   - 'packages/*'
+  - 'packages/shop-themes/*'

@@ -1,0 +1,73 @@
+serviceName: "api"
+replicaCount: 1
+image:
+  repository: harbor.lafdru.local/public/jiffoo-oss/api
+  pullPolicy: IfNotPresent
+  tag: latest
+imagePullSecrets:
+  - name: harbor-secret
+service:
+  enabled: true
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3002
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
+env:
+  - name: NODE_ENV
+    value: "development"
+  - name: PORT
+    value: "3002"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: DATABASE_URL
+    value: "postgresql://jiffoo_user:jiffoo_password@postgres-service.database.svc.cluster.local:5432/jiffoo_dev"
+  - name: REDIS_URL
+    value: "redis://redis-service.database.svc.cluster.local:6379"
+  - name: API_PORT
+    value: "3002"
+  - name: API_HOST
+    value: "0.0.0.0"
+  - name: CORS_ORIGIN
+    value: "http://jiffoo-oss-shop.chfastpay.com:8888,http://jiffoo-oss-admin.chfastpay.com:8888"
+  - name: CORS_ENABLED
+    value: "true"
+  - name: CORS_CREDENTIALS
+    value: "true"
+  - name: JWT_SECRET
+    value: "dev-jwt-secret-key-change-in-production"
+  - name: JWT_EXPIRES_IN
+    value: "7d"
+  - name: API_SERVICE_URL
+    value: "http://api:80"
+  - name: NEXT_PUBLIC_API_URL
+    value: "http://jiffoo-oss-api.chfastpay.com:8888"
+  - name: NEXT_PUBLIC_ADMIN_URL
+    value: "http://jiffoo-oss-admin.chfastpay.com:8888"
+  - name: NEXT_PUBLIC_TENANT_URL
+    value: "http://jiffoo-oss-admin.chfastpay.com:8888"
+  - name: NEXT_PUBLIC_SHOP_URL
+    value: "http://jiffoo-oss-shop.chfastpay.com:8888"
+  - name: MARKET_API_URL
+    value: "http://jiffoo-platform-api.chfastpay.com:8888/api"
+  - name: PLATFORM_MAIN_DOMAIN
+    value: "jiffoo.com"
+  - name: PLATFORM_FRONTEND_DOMAIN
+    value: "shop.jiffoo.com"
+  - name: PLATFORM_ADMIN_DOMAIN
+    value: "admin.jiffoo.com"
+  - name: PLATFORM_API_DOMAIN
+    value: "platform-api.jiffoo.com"
+resources: {}
+livenessProbe: {}
+readinessProbe: {}
+startupProbe: {}
+persistence: {}
+envFromConfigMap: {}
+projectName: jiffoo-oss

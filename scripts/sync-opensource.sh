@@ -32,6 +32,7 @@ SYNC_DIRS=(
   "packages/create-jiffoo-app"
   "packages/plugin-sdk"
   "packages/shared"
+  "packages/shop-themes/default"
   "packages/theme-api-sdk"
   "packages/ui"
   "docs"
@@ -45,7 +46,25 @@ BLOCKED_DIRS=(
   "apps/platform-api"
   "apps/super-admin"
   "apps/developer-portal"
-  "packages/shop-themes"
+)
+
+ALLOWED_PACKAGE_DIRS=(
+  "core-api-sdk"
+  "create-jiffoo-app"
+  "plugin-sdk"
+  "shared"
+  "shop-themes"
+  "theme-api-sdk"
+  "ui"
+)
+
+BLOCKED_FILES=(
+  "apps/api/.gitlab-ci.yml"
+  "apps/admin/.gitlab-ci.yml"
+  "apps/shop/.gitlab-ci.yml"
+  "apps/api/pipeline"
+  "apps/admin/pipeline"
+  "apps/shop/pipeline"
 )
 
 # Define files to sync
@@ -84,6 +103,8 @@ RSYNC_OPTS=(
   --exclude=dist
   --exclude=.turbo
   --exclude=/extensions
+  --exclude=pipeline
+  --exclude=.gitlab-ci.yml
   --exclude=coverage
   --exclude=logs
   --exclude=data
@@ -127,6 +148,61 @@ for dir in "${BLOCKED_DIRS[@]}"; do
     echo "  ✓ ${dir} (already absent)"
   fi
 done
+
+echo ""
+echo "Pruning blocked files..."
+for path in "${BLOCKED_FILES[@]}"; do
+  TARGET_PATH="${OPENSOURCE_REPO_DIR}/${path}"
+  if [ -e "${TARGET_PATH}" ]; then
+    echo "  ✗ ${path}"
+    if [ "${DRY_RUN}" != "true" ]; then
+      rm -rf "${TARGET_PATH}"
+    fi
+  else
+    echo "  ✓ ${path} (already absent)"
+  fi
+done
+
+echo ""
+echo "Pruning official marketplace themes..."
+THEME_ROOT="${OPENSOURCE_REPO_DIR}/packages/shop-themes"
+if [ -d "${THEME_ROOT}" ]; then
+  while IFS= read -r theme_dir; do
+    theme_name="$(basename "${theme_dir}")"
+    if [ "${theme_name}" != "default" ]; then
+      echo "  ✗ packages/shop-themes/${theme_name}"
+      if [ "${DRY_RUN}" != "true" ]; then
+        rm -rf "${theme_dir}"
+      fi
+    fi
+  done < <(find "${THEME_ROOT}" -mindepth 1 -maxdepth 1 -type d | sort)
+else
+  echo "  ✓ packages/shop-themes (not present)"
+fi
+
+echo ""
+echo "Pruning stale package directories..."
+PACKAGE_ROOT="${OPENSOURCE_REPO_DIR}/packages"
+if [ -d "${PACKAGE_ROOT}" ]; then
+  while IFS= read -r package_dir; do
+    package_name="$(basename "${package_dir}")"
+    keep="false"
+    for allowed in "${ALLOWED_PACKAGE_DIRS[@]}"; do
+      if [ "${package_name}" = "${allowed}" ]; then
+        keep="true"
+        break
+      fi
+    done
+    if [ "${keep}" != "true" ]; then
+      echo "  ✗ packages/${package_name}"
+      if [ "${DRY_RUN}" != "true" ]; then
+        rm -rf "${package_dir}"
+      fi
+    fi
+  done < <(find "${PACKAGE_ROOT}" -mindepth 1 -maxdepth 1 -type d | sort)
+else
+  echo "  ✓ packages (not present)"
+fi
 
 # Sync files
 echo ""
@@ -187,7 +263,8 @@ if [ "${DRY_RUN}" != "true" ]; then
       'apps/api',
       'apps/admin',
       'apps/shop',
-      'packages/*'
+      'packages/*',
+      'packages/shop-themes/*'
     ];
     
     // Update license
@@ -213,7 +290,131 @@ packages:
   - 'apps/admin'
   - 'apps/shop'
   - 'packages/*'
+  - 'packages/shop-themes/*'
 EOF
+fi
+
+echo ""
+echo "Normalizing opensource package metadata..."
+if [ "${DRY_RUN}" != "true" ]; then
+  OPENSOURCE_REPO_DIR="${OPENSOURCE_REPO_DIR}" node <<'EOF'
+const fs = require('fs');
+const path = require('path');
+
+const root = process.env.OPENSOURCE_REPO_DIR;
+const dependencyReplacements = {
+  react: '19.2.1',
+  'react-dom': '19.2.1',
+  'react-hook-form': '7.68.0',
+  '@hookform/resolvers': '3.10.0',
+  '@fortawesome/fontawesome-free': '7.2.0',
+};
+
+const packageFiles = [
+  'apps/admin/package.json',
+  'apps/shop/package.json',
+  'packages/ui/package.json',
+  'packages/shop-themes/default/package.json',
+];
+
+for (const relativePath of packageFiles) {
+  const absolutePath = path.join(root, relativePath);
+  if (!fs.existsSync(absolutePath)) continue;
+
+  const pkg = JSON.parse(fs.readFileSync(absolutePath, 'utf8'));
+  for (const section of ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']) {
+    const deps = pkg[section];
+    if (!deps) continue;
+    for (const [name, replacement] of Object.entries(dependencyReplacements)) {
+      if (typeof deps[name] === 'string' && deps[name].includes('.tools/npm/')) {
+        deps[name] = replacement;
+      }
+    }
+  }
+
+  fs.writeFileSync(absolutePath, `${JSON.stringify(pkg, null, 2)}\n`);
+}
+
+const npmrcPath = path.join(root, '.npmrc');
+fs.writeFileSync(
+  npmrcPath,
+  [
+    '# pnpm configuration for monorepo compatibility',
+    'node-linker=hoisted',
+    'shamefully-hoist=true',
+    'auto-install-peers=true',
+    'strict-peer-dependencies=false',
+    'symlink=true',
+    'link-workspace-packages=true',
+    'registry=https://registry.npmmirror.com/',
+    '',
+  ].join('\n'),
+);
+
+const dockerfilePaths = [
+  'apps/api/Dockerfile',
+  'apps/admin/Dockerfile',
+  'apps/shop/Dockerfile',
+];
+
+for (const relativePath of dockerfilePaths) {
+  const absolutePath = path.join(root, relativePath);
+  if (!fs.existsSync(absolutePath)) continue;
+
+  let contents = fs.readFileSync(absolutePath, 'utf8');
+
+  contents = contents.replace(/^COPY \.tools\/npm\/.*\n/gm, '');
+  contents = contents.replace(
+    /COPY \.tools\/pnpm\/pnpm-9\.0\.0\.tgz \/tmp\/pnpm-9\.0\.0\.tgz\nRUN npm config set proxy \$\{HTTP_PROXY\} && \\\n    npm config set https-proxy \$\{HTTPS_PROXY\} && \\\n    npm config set registry \$\{NPM_REGISTRY\} && \\\n    npm install -g \/tmp\/pnpm-9\.0\.0\.tgz/g,
+    'RUN corepack enable && corepack prepare pnpm@9.0.0 --activate',
+  );
+  contents = contents.replace(/^COPY packages\/shop-themes\/(?!default\/).*$/gm, '');
+  contents = contents.replace(/^COPY --from=deps \/app\/packages\/shop-themes\/(?!default\/).*$/gm, '');
+  contents = contents.replace('pnpm config set network-concurrency 1 && \\\n    pnpm config set child-concurrency 1 && \\\n', 'pnpm config set network-concurrency 8 && \\\n    pnpm config set child-concurrency 4 && \\\n');
+  contents = contents.replace(/\n{3,}/g, '\n\n');
+
+  fs.writeFileSync(absolutePath, contents);
+}
+
+const shopRegistryPath = path.join(root, 'apps/shop/lib/themes/registry.ts');
+if (fs.existsSync(shopRegistryPath)) {
+  let contents = fs.readFileSync(shopRegistryPath, 'utf8');
+  contents = contents.replace(
+    /  \/\/ eSIM Mall theme - official embedded full theme[\s\S]*?  \/\/ NOTE: Only 'builtin-default' is the canonical built-in theme\.\n  \/\/ 'default' is kept for backwards compatibility but maps to the same package\.\n  \/\/ Third-party themes should be installed as Theme Packs\n  \/\/ via Extension Installer to extensions\/themes\/shop\//,
+    "  // NOTE: The open-source core only embeds the default theme.\n  // Official marketplace themes are downloaded after deployment as Theme Packs."
+  );
+  fs.writeFileSync(shopRegistryPath, contents);
+}
+
+const shopNextConfigPath = path.join(root, 'apps/shop/next.config.js');
+if (fs.existsSync(shopNextConfigPath)) {
+  let contents = fs.readFileSync(shopNextConfigPath, 'utf8');
+  contents = contents.replace(
+    /  \/\/ NOTE: `default`, `esim-mall`, and `yevbi` are currently shipped as embedded full themes\.\n  \/\/ Third-party themes should still use the Theme Pack installation path\.\n  transpilePackages: \['shared', '@shop-themes\/default', '@shop-themes\/esim-mall', '@shop-themes\/yevbi', '@jiffoo\/core-api-sdk', '@jiffoo\/theme-api-sdk'\],/,
+    "  // The open-source core only ships the default embedded theme.\n  // Official marketplace themes are installed later as Theme Packs.\n  transpilePackages: ['shared', '@shop-themes/default', '@jiffoo/core-api-sdk', '@jiffoo/theme-api-sdk'],"
+  );
+  fs.writeFileSync(shopNextConfigPath, contents);
+}
+
+const shopTsconfigPath = path.join(root, 'apps/shop/tsconfig.json');
+if (fs.existsSync(shopTsconfigPath)) {
+  let contents = fs.readFileSync(shopTsconfigPath, 'utf8');
+  contents = contents.replace(
+    /\n    "\.\.\/\.\.\/packages\/shop-themes\/esim-mall\/src\/\*\*\/\*\.ts",\n    "\.\.\/\.\.\/packages\/shop-themes\/esim-mall\/src\/\*\*\/\*\.tsx",\n    "\.\.\/\.\.\/packages\/shop-themes\/yevbi\/src\/\*\*\/\*\.ts",\n    "\.\.\/\.\.\/packages\/shop-themes\/yevbi\/src\/\*\*\/\*\.tsx",/g,
+    ''
+  );
+  fs.writeFileSync(shopTsconfigPath, contents);
+}
+EOF
+fi
+
+if [ "${DRY_RUN}" != "true" ]; then
+  echo ""
+  echo "Refreshing pnpm lockfile..."
+  (
+    cd "${OPENSOURCE_REPO_DIR}"
+    pnpm install --lockfile-only --ignore-scripts
+  )
 fi
 
 if [ "${DRY_RUN}" = "true" ]; then

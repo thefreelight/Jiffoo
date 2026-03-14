@@ -12,7 +12,8 @@
     "apps/api",
     "apps/admin",
     "apps/shop",
-    "packages/*"
+    "packages/*",
+    "packages/shop-themes/*"
   ],
   "scripts": {
     "dev": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --concurrency=5",
