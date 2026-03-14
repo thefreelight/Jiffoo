@@ -17,33 +17,32 @@ export function getContext(headers: Record<string, string | string[] | undefined
 
     return {
         platformId: getHeader('x-platform-id'),
-        environment: getHeader('x-platform-env'),
-        timestamp: getHeader('x-platform-timestamp'),
         pluginSlug: getHeader('x-plugin-slug'),
         installationId: getHeader('x-installation-id'),
-        signature: getHeader('x-platform-signature'),
+        installationKey: getHeader('x-installation-key'),
         userId: getHeader('x-user-id') || undefined,
+        userRole: getHeader('x-user-role') || undefined,
+        requestId: getHeader('x-request-id') || undefined,
+        locale: getHeader('x-locale') || undefined,
+        caller: getHeader('x-caller') || undefined,
+        platformVersion: getHeader('x-platform-version') || undefined,
+        platformApiBaseUrl: getHeader('x-platform-api-base-url') || undefined,
+        platformIntegrationToken: getHeader('x-platform-integration-token') || undefined,
+        signature: getHeader('x-platform-signature'),
+        timestamp: getHeader('x-platform-timestamp'),
     };
 }
 
 /**
  * Check if request is from Jiffoo platform
+ * Updated: no longer requires 'jiffoo-' prefix, just checks for x-platform-id presence
  */
 export function isFromJiffooPlatform(headers: Record<string, string | string[] | undefined>): boolean {
     const platformId = headers['x-platform-id'] || headers['X-Platform-Id'];
-    return !!platformId && (Array.isArray(platformId) ? platformId[0] : platformId).startsWith('jiffoo-');
+    return !!platformId && (Array.isArray(platformId) ? platformId[0] : platformId).length > 0;
 }
 
 
-
-/**
- * Check if running in production environment
- */
-export function isProduction(headers: Record<string, string | string[] | undefined>): boolean {
-    const env = headers['x-platform-env'] || headers['X-Platform-Env'];
-    const envValue = Array.isArray(env) ? env[0] : env;
-    return envValue === 'production';
-}
 
 /**
  * Express/Fastify middleware to extract and attach plugin context

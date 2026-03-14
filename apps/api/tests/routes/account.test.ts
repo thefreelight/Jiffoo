@@ -18,6 +18,7 @@ describe('Account Endpoints', () => {
   let app: FastifyInstance;
   let userToken: string;
   let userId: string;
+  let userPassword: string;
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -26,6 +27,7 @@ describe('Account Endpoints', () => {
     });
     userToken = token;
     userId = user.id;
+    userPassword = user.password;
   });
 
   afterAll(async () => {
@@ -48,6 +50,19 @@ describe('Account Endpoints', () => {
         method: 'PUT',
         url: '/api/account/profile',
         payload: { username: 'newname' },
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('PUT /api/account/email should return 401 without token', async () => {
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/api/account/email',
+        payload: {
+          newEmail: `updated-${Date.now()}@example.com`,
+          currentPassword: 'dummy',
+        },
       });
 
       expect(response.statusCode).toBe(401);
@@ -174,6 +189,61 @@ describe('Account Endpoints', () => {
       });
 
       expect(response.statusCode).toBe(200);
+    });
+  });
+
+  describe('PUT /api/account/email', () => {
+    it('should return 400 when currentPassword is missing', async () => {
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/api/account/email',
+        headers: { authorization: `Bearer ${userToken}` },
+        payload: {
+          newEmail: `missing-password-${Date.now()}@example.com`,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = response.json();
+      expect(body.success).toBe(false);
+      expect(body.error?.code).toBe('VALIDATION_ERROR');
+    });
+
+    it('should return 400 when currentPassword is incorrect', async () => {
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/api/account/email',
+        headers: { authorization: `Bearer ${userToken}` },
+        payload: {
+          newEmail: `wrong-password-${Date.now()}@example.com`,
+          currentPassword: 'wrong-password',
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      const body = response.json();
+      expect(body.success).toBe(false);
+      expect(body.error?.code).toBe('INVALID_PASSWORD');
+    });
+
+    it('should update email when currentPassword is valid', async () => {
+      const newEmail = `updated-${Date.now()}@example.com`;
+
+      const response = await app.inject({
+        method: 'PUT',
+        url: '/api/account/email',
+        headers: { authorization: `Bearer ${userToken}` },
+        payload: {
+          newEmail,
+          currentPassword: userPassword,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.success).toBe(true);
+      expect(body.data.email).toBe(newEmail);
+      expect(body.data.id).toBe(userId);
     });
   });
 });

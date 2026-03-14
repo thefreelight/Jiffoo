@@ -8,11 +8,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
 import { useAuthStore } from '@/lib/store'
 import { Button } from '../ui/button'
+import { UserAvatar } from '../ui/user-avatar'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import {
+  Menu,
   Search,
   Bell,
   HelpCircle,
@@ -30,12 +31,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
-
 interface HeaderProps {
   title?: string
+  onMenuClick?: () => void
 }
 
-export function Header({ title = "Dashboard" }: HeaderProps) {
+export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
   const router = useRouter()
   const { user, logout } = useAuthStore()
   const t = useT()
@@ -44,7 +45,9 @@ export function Header({ title = "Dashboard" }: HeaderProps) {
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback
+    if (!t) return fallback
+    const translated = t(key)
+    return translated === key ? fallback : translated
   }
 
   const handleLogout = () => {
@@ -60,13 +63,21 @@ export function Header({ title = "Dashboard" }: HeaderProps) {
   }
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className="bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 px-4 md:px-6 py-4">
       <div className="flex items-center justify-between">
-        {/* Left side - Title and Date */}
-        <div className="flex items-center space-x-4">
+        {/* Left side - Menu Trigger (Mobile) and Title */}
+        <div className="flex items-center space-x-3 md:space-x-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMenuClick}
+            className="p-1 px-2 lg:hidden -ml-2"
+          >
+            <Menu className="h-6 w-6 text-gray-500" />
+          </Button>
           <div>
-            <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white truncate max-w-[150px] md:max-w-none">{title}</h1>
+            <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
               {new Date().toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
@@ -87,20 +98,18 @@ export function Header({ title = "Dashboard" }: HeaderProps) {
             <input
               type="text"
               placeholder={getText('merchant.header.searchPlaceholder', 'Search...')}
-              className="block w-64 pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              className="block w-40 md:w-64 pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-700 rounded-md leading-5 bg-white dark:bg-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 text-sm dark:text-white"
             />
           </div>
 
           {/* Action Buttons */}
           <div className="flex items-center space-x-2">
-            {/* Removed language switcher */}
-
             {/* Theme Toggle */}
             <Button
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
-              className="p-2"
+              className="p-2 dark:text-gray-400"
             >
               {isDark ? (
                 <Sun className="h-4 w-4" />
@@ -123,7 +132,12 @@ export function Header({ title = "Dashboard" }: HeaderProps) {
             </Button>
 
             {/* Settings */}
-            <Button variant="ghost" size="sm" className="p-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="p-2"
+              onClick={() => router.push(`/${locale}/settings`)}
+            >
               <Settings className="h-4 w-4" />
             </Button>
           </div>
@@ -131,28 +145,34 @@ export function Header({ title = "Dashboard" }: HeaderProps) {
           {/* Profile Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="flex items-center space-x-2 p-2">
-                <Image
-                  className="h-8 w-8 rounded-full"
-                  src={user?.avatar || 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face'}
-                  alt={user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username || 'User' : 'User'}
-                  width={32}
-                  height={32}
-                />
-                <div className="hidden md:block text-left">
-                  <p className="text-sm font-medium text-gray-900">{user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username : ''}</p>
-                  <p className="text-xs text-gray-500">{user?.email}</p>
+              <Button variant="ghost" className="flex items-center space-x-2 p-2 focus:ring-0">
+                <div className="h-8 w-8 rounded-full overflow-hidden border border-gray-200 dark:border-gray-800">
+                  <UserAvatar
+                    src={user?.avatar}
+                    name={user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : undefined}
+                    username={user?.username}
+                    className="h-full w-full"
+                    imageClassName="h-full w-full object-cover"
+                    fallbackClassName="h-full w-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-100"
+                    textClassName="text-xs"
+                  />
+                </div>
+                <div className="hidden lg:block text-left">
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">
+                    {user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username : 'User'}
+                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email || ''}</p>
                 </div>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>{getText('merchant.header.myAccount', 'My Account')}</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push(`/${locale}/profile`)}>
                 <User className="mr-2 h-4 w-4" />
                 <span>{getText('merchant.header.profile', 'Profile')}</span>
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push(`/${locale}/settings`)}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>{getText('merchant.header.settings', 'Settings')}</span>
               </DropdownMenuItem>
@@ -164,8 +184,8 @@ export function Header({ title = "Dashboard" }: HeaderProps) {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Add View Button */}
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+          {/* Add View Button - Hide on mobile */}
+          <Button className="bg-blue-600 hover:bg-blue-700 text-white hidden sm:flex">
             {getText('merchant.header.addView', 'Add View')}
           </Button>
         </div>

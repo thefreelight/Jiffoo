@@ -1,5 +1,5 @@
 /**
- * 统一日志系统 - 适配器模块导出
+ * Unified Logging System - Adapter Module Exports
  */
 
 // Winston Adapter (Node.js)

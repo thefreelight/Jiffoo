@@ -33,11 +33,12 @@
     "api/**/*",
     "utils/**/*",
     "index.ts",
-    "src/logger/types/browser-globals.d.ts",
-    "../i18n/messages/**/*"
+    "src/logger/types/browser-globals.d.ts"
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "**/*.test.ts",
+    "**/__tests__/**"
   ]
 }

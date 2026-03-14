@@ -25,12 +25,12 @@ export const loggerConfig = {
     timestamp: true
   },
 
-  // Remote logging configuration
+  // Remote logging configuration - Disabled (logs endpoint removed)
   remote: {
-    enabled: true,
+    enabled: false,
     endpoint: `${getApiBaseUrl()}/api/logs/batch`,
     batchSize: process.env.NODE_ENV === 'production' ? 20 : 10,
-    flushInterval: process.env.NODE_ENV === 'production' ? 10000 : 5000, // Longer interval in production
+    flushInterval: process.env.NODE_ENV === 'production' ? 10000 : 5000,
     maxRetries: 3,
     retryDelay: 1000,
     timeout: 10000

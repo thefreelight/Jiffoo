@@ -1,0 +1,77 @@
+{
+    "nav": {
+        "dashboard": "儀表板",
+        "products": "商品管理",
+        "orders": "訂單管理",
+        "customers": "顧客管理",
+        "analytics": "資料分析",
+        "settings": "系統設定",
+        "plugins": "外掛管理",
+        "themes": "佈景主題管理"
+    },
+    "dashboard": {
+        "title": "儀表板",
+        "total_revenue": "總營收",
+        "total_orders": "總訂單",
+        "total_products": "總商品",
+        "total_customers": "總顧客",
+        "recent_orders": "最近訂單",
+        "top_products": "熱銷商品",
+        "sales_chart": "銷售圖表"
+    },
+    "products": {
+        "title": "商品管理",
+        "add_product": "新增商品",
+        "edit_product": "編輯商品",
+        "product_name": "商品名稱",
+        "price": "價格",
+        "stock": "庫存",
+        "category": "分類",
+        "status": "狀態",
+        "created_at": "建立時間",
+        "actions": "操作",
+        "delete_confirm": "確定要刪除此商品嗎？"
+    },
+    "orders": {
+        "title": "訂單管理",
+        "order_id": "訂單編號",
+        "customer": "顧客",
+        "total": "金額",
+        "status": "狀態",
+        "date": "日期",
+        "view": "檢視",
+        "update_status": "更新狀態",
+        "fulfill": "出貨",
+        "refund": "退款",
+        "print_invoice": "列印發票"
+    },
+    "customers": {
+        "title": "顧客管理",
+        "name": "姓名",
+        "email": "電子郵件",
+        "orders": "訂單數",
+        "total_spent": "消費總額",
+        "joined": "註冊時間",
+        "view_profile": "檢視詳情"
+    },
+    "settings": {
+        "title": "系統設定",
+        "general": "基本設定",
+        "store_name": "店舖名稱",
+        "store_email": "店舖電子郵件",
+        "currency": "貨幣",
+        "timezone": "時區",
+        "language": "語言",
+        "save_changes": "儲存變更"
+    },
+    "plugins": {
+        "title": "外掛管理",
+        "installed": "已安裝",
+        "available": "可用外掛",
+        "install": "安裝",
+        "uninstall": "解除安裝",
+        "enable": "啟用",
+        "disable": "停用",
+        "configure": "設定"
+    }
+}

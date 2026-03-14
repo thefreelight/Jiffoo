@@ -17,6 +17,7 @@ import { QueryProvider } from '@/lib/providers/query-provider';
 import { Toaster } from 'sonner';
 import { ToastProvider } from '@/components/ui/toast';
 import { LoggerProvider } from '@/components/logger-provider';
+import { SkipToMain } from '@/components/skip-to-main';
 
 interface Props {
   children: React.ReactNode;
@@ -39,6 +40,7 @@ export default async function LocaleLayout({ children, params }: Props) {
       <LoggerProvider>
         <ToastProvider>
           <QueryProvider>
+            <SkipToMain />
             <BlueMinimalLayout>{children}</BlueMinimalLayout>
             <Toaster position="top-right" richColors />
           </QueryProvider>

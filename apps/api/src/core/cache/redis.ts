@@ -5,6 +5,7 @@ export class RedisCache {
   private static instance: RedisCache;
   private redis: Redis;
   private isConnected: boolean = false;
+  private static readonly SCAN_COUNT = 200;
 
   private constructor() {
     // Use REDIS_URL environment variable
@@ -204,7 +205,7 @@ export class RedisCache {
     }
 
     try {
-      return await this.redis.keys(pattern);
+      return await this.scanKeys(pattern);
     } catch (error) {
       console.error('Redis keys error:', error);
       return [];
@@ -229,25 +230,63 @@ export class RedisCache {
     return this.flushdb();
   }
 
-  public async deleteByPattern(pattern: string): Promise<boolean> {
+  public async deleteByPattern(pattern: string): Promise<number> {
     if (!this.isConnected) {
-      return false;
+      return 0;
     }
 
     try {
-      const keys = await this.redis.keys(pattern);
-      if (keys.length > 0) {
-        await this.redis.del(...keys);
+      const keys = await this.scanKeys(pattern);
+      if (keys.length === 0) {
+        return 0;
       }
-      return true;
+
+      let deletedCount = 0;
+      const chunkSize = 200;
+      for (let i = 0; i < keys.length; i += chunkSize) {
+        const chunk = keys.slice(i, i + chunkSize);
+        deletedCount += await this.redis.del(...chunk);
+      }
+      return deletedCount;
     } catch (error) {
       console.error('Redis deleteByPattern error:', error);
-      return false;
+      return 0;
+    }
+  }
+
+  public async countByPattern(pattern: string): Promise<number> {
+    if (!this.isConnected) {
+      return 0;
+    }
+
+    try {
+      let cursor = '0';
+      let count = 0;
+      do {
+        const [nextCursor, keys] = await this.redis.scan(
+          cursor,
+          'MATCH',
+          pattern,
+          'COUNT',
+          RedisCache.SCAN_COUNT
+        );
+        cursor = nextCursor;
+        count += keys.length;
+      } while (cursor !== '0');
+
+      return count;
+    } catch (error) {
+      console.error('Redis countByPattern error:', error);
+      return 0;
     }
   }
 
   public getConnectionStatus(): boolean {
     return this.isConnected;
+  }
+
+  public getRawClient(): Redis {
+    return this.redis;
   }
 
   public async ping(): Promise<boolean> {
@@ -305,6 +344,35 @@ export class RedisCache {
       console.error('Redis ttl error:', error);
       return -2;
     }
+  }
+
+  private async scanKeys(pattern: string): Promise<string[]> {
+    let cursor = '0';
+    const keys: string[] = [];
+
+    do {
+      const [nextCursor, batch] = await this.redis.scan(
+        cursor,
+        'MATCH',
+        pattern,
+        'COUNT',
+        RedisCache.SCAN_COUNT
+      );
+      cursor = nextCursor;
+      if (batch.length > 0) {
+        keys.push(...batch);
+      }
+    } while (cursor !== '0');
+
+    return keys;
+  }
+
+  /**
+   * Get the underlying Redis client for advanced operations
+   * Use with caution - primarily for health monitoring and diagnostics
+   */
+  public getClient(): Redis {
+    return this.redis;
   }
 }
 

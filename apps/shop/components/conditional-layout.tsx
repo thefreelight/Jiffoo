@@ -1,7 +1,8 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { StoreContextProvider } from '@/components/store-context-provider';
+import { ThemePackProvider } from '@/lib/theme-pack';
 
 interface ConditionalLayoutProps {
   children: React.ReactNode;
@@ -18,6 +19,10 @@ interface ConditionalLayoutProps {
  */
 export function ConditionalLayout({ children }: ConditionalLayoutProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Read ?theme= param for Theme Pack preview
+  const previewSlug = searchParams.get('theme') ?? undefined;
 
   // Pages that do not require store context or standard layout
   const isErrorPage = pathname?.includes('/store-not-found');
@@ -31,10 +36,14 @@ export function ConditionalLayout({ children }: ConditionalLayoutProps) {
     );
   }
 
-  // Render with store context provider
+  // Render with ThemePackProvider wrapping StoreContextProvider
+  // ThemePackProvider handles tokens CSS injection and template loading
+  // StoreContextProvider handles store context and the default theme renderer
   return (
-    <StoreContextProvider>
-      {children}
-    </StoreContextProvider>
+    <ThemePackProvider previewSlug={previewSlug}>
+      <StoreContextProvider>
+        {children}
+      </StoreContextProvider>
+    </ThemePackProvider>
   );
 }

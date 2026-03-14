@@ -9,9 +9,147 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["core"]
+  schemas  = ["public"]
 }
 
+// ============================================================
+// ENUMS: CORE STATUS TYPES
+// ============================================================
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+
+  @@schema("public")
+}
+
+enum OrderPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+
+  @@schema("public")
+}
+
+enum OrderItemFulfillmentStatus {
+  pending
+  processing
+  shipped
+  delivered
+  failed
+
+  @@schema("public")
+}
+
+enum ShipmentStatus {
+  PENDING
+  SHIPPED
+  DELIVERED
+  FAILED
+  CANCELLED
+
+  @@schema("public")
+}
+
+enum InventoryReservationStatus {
+  ACTIVE
+  RELEASED
+  CONSUMED
+  EXPIRED
+  CANCELLED
+
+  @@schema("public")
+}
+
+enum PaymentAttemptStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  EXPIRED
+
+  @@schema("public")
+}
+
+enum RefundStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+
+  @@schema("public")
+}
+
+enum PaymentLedgerEventType {
+  CREATED
+  SUCCEEDED
+  FAILED
+  REFUNDED
+
+  @@schema("public")
+}
+
+enum RefundLedgerEventType {
+  CREATED
+  SUCCEEDED
+  FAILED
+
+  @@schema("public")
+}
+
+enum StockAlertType {
+  LOW_STOCK
+  OUT_OF_STOCK
+  RESTOCK_NEEDED
+
+  @@schema("public")
+}
+
+enum StockAlertStatus {
+  ACTIVE
+  RESOLVED
+  DISMISSED
+
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: STORE
+// ============================================================
+model Store {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  domain          String?  @unique
+  status          String   @default("active")
+  currency        String   @default("USD")
+  defaultLocale   String   @default("en")
+  supportedLocales Json?
+  settings        Json?
+  logo            String?
+  themeConfig     Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  users      User[]
+  products   Product[]
+  orders     Order[]
+  errorLogs  ErrorLog[]
+
+  @@index([status])
+  @@map("stores")
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: USER
+// ============================================================
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
@@ -20,55 +158,32 @@ model User {
   avatar    String?
   role      String   @default("USER")
   isActive  Boolean  @default(true)
+  storeId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Email verification fields
+  emailVerified           Boolean   @default(false)
+  verificationToken       String?
+  verificationTokenExpiry DateTime?
+
   // E-commerce relations
-  orders Order[]
-  carts  Cart[] // User cart relation
+  orders            Order[]
+  carts             Cart[]
+  pushSubscriptions PushSubscription[]
+  discountUsages    DiscountUsage[]
+  store             Store?   @relation(fields: [storeId], references: [id])
 
   @@index([email])
   @@index([role])
-  @@schema("core")
+  @@index([storeId])
   @@map("users")
+  @@schema("public")
 }
 
-model Product {
-  id          String   @id @default(cuid())
-  name        String
-  slug        String   @unique
-  description String?
-  // Price and stock moved to ProductVariant
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Product type system
-  productType String  @default("physical") // 'physical' | 'digital' | custom types
-  typeData    String? // JSON: type-specific data (dimensions, files, etc.)
-
-  // Physical product fields
-  weight           Float? // Weight (grams)
-  length           Float? // Length (cm)
-  width            Float? // Width (cm)
-  height           Float? // Height (cm)
-  requiresShipping Boolean @default(true)
-  shippingClass    String? // 'standard' | 'express' | 'fragile'
-
-  // Relations
-  categoryId            String?
-  category              Category?              @relation(fields: [categoryId], references: [id])
-  orderItems            OrderItem[]
-  cartItems             CartItem[] // Cart product relation
-  inventoryReservations InventoryReservation[] // Inventory reservation relation
-  translations          ProductTranslation[] // Multi-language translation relation
-  variants              ProductVariant[] // Product variant relation
-
-  @@index([categoryId])
-  @@index([productType])
-  @@schema("core")
-  @@map("products")
-}
-
+// ============================================================
+// CORE: CATEGORY
+// ============================================================
 model Category {
   id          String   @id @default(cuid())
   name        String
@@ -80,163 +195,393 @@ model Category {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // SEO fields
+  metaTitle       String?
+  metaDescription String?
+  canonicalUrl    String?
+  structuredData  Json?
+
   // Relations
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children Category[] @relation("CategoryHierarchy")
   products Product[]
 
   @@index([parentId])
-  @@schema("core")
   @@map("categories")
+  @@schema("public")
 }
 
+// ============================================================
+// CORE: PRODUCT
+// ============================================================
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  storeId     String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Product type system
+  productType String  @default("physical")
+  typeData    Json?
+
+  // Physical product fields
+  weight           Float?
+  length           Float?
+  width            Float?
+  height           Float?
+  requiresShipping Boolean @default(true)
+  shippingClass    String?
+
+  // SEO fields
+  metaTitle       String?
+  metaDescription String?
+  canonicalUrl    String?
+  structuredData  Json?
+
+  // Relations
+  store                 Store                 @relation(fields: [storeId], references: [id])
+  categoryId            String?
+  category              Category?              @relation(fields: [categoryId], references: [id])
+  orderItems            OrderItem[]
+  cartItems             CartItem[]
+  inventoryReservations InventoryReservation[]
+  translations          ProductTranslation[]
+  variants              ProductVariant[]
+  discountProducts      DiscountProduct[]
+  affinitiesAsA         ProductAffinity[] @relation("ProductAffinityA")
+  affinitiesAsB         ProductAffinity[] @relation("ProductAffinityB")
+
+  @@index([categoryId])
+  @@index([productType])
+  @@index([storeId])
+  @@map("products")
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: PRODUCT VARIANT
+// ============================================================
 model ProductVariant {
   id         String   @id @default(cuid())
   productId  String
-  name       String // Variant name (e.g. "1-day plan", "7-day plan")
-  attributes String? // JSON attributes (e.g. {"days": 1})
-  basePrice  Float // Variant base price
-  baseStock  Int      @default(0) // Variant base stock
-  skuCode    String? // SKU code (optional)
-  sortOrder  Int      @default(0) // Sorting order
-  isActive   Boolean  @default(true) // Whether enabled
-  isDefault  Boolean  @default(false) // Whether is default variant
+  name       String
+  attributes Json?
+  salePrice  Decimal  @default(0) @db.Decimal(18, 2)
+  costPrice  Decimal? @db.Decimal(18, 2)
+  // Legacy compatibility field. Authoritative stock is warehouse_inventories.available.
+  baseStock  Int      @default(0)
+  skuCode    String?
+  sortOrder  Int      @default(0)
+  isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   // Relations
   product               Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orderItems            OrderItem[] // Order item relation
-  cartItems             CartItem[] // Cart item relation
-  inventoryReservations InventoryReservation[] // Inventory reservation relation
+  orderItems            OrderItem[]
+  cartItems             CartItem[]
+  inventoryReservations InventoryReservation[]
+  warehouseInventories  WarehouseInventory[]
+  inventoryAdjustments  InventoryAdjustment[]
+  inventoryTransfers    InventoryTransfer[]
+  stockAlerts           StockAlert[]
 
   @@index([productId])
   @@index([skuCode])
-  @@schema("core")
   @@map("product_variants")
+  @@schema("public")
 }
 
+// ============================================================
+// CORE: PRODUCT TRANSLATION
+// ============================================================
 model ProductTranslation {
   id          String   @id @default(cuid())
   productId   String
-  locale      String // 'en' | 'zh-Hans'
-  name        String // Translated product name
-  description String? // Translated product description
+  locale      String
+  name        String
+  description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // Relations
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  @@unique([productId, locale]) // Each product can have only one translation per locale
+  @@unique([productId, locale])
   @@index([productId])
   @@index([locale])
-  @@schema("core")
   @@map("product_translations")
+  @@schema("public")
 }
 
+// ============================================================
+// CORE: SEO REDIRECT
+// ============================================================
+model SeoRedirect {
+  id         String   @id @default(cuid())
+  fromPath   String   @unique
+  toPath     String
+  statusCode Int      @default(301)
+  isActive   Boolean  @default(true)
+  hitCount   Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("seo_redirects")
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: DISCOUNTS
+// ============================================================
+model Discount {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  type        String
+  value       Decimal   @db.Decimal(10, 2)
+  minAmount   Decimal?  @db.Decimal(18, 2)
+  maxUses     Int?
+  usedCount   Int       @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  isActive    Boolean   @default(true)
+  stackable   Boolean   @default(false)
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products       DiscountProduct[]
+  customerGroups DiscountCustomerGroup[]
+  usages         DiscountUsage[]
+
+  @@index([isActive])
+  @@index([code])
+  @@map("discounts")
+  @@schema("public")
+}
+
+model DiscountProduct {
+  id         String   @id @default(cuid())
+  discountId String
+  productId  String
+  createdAt  DateTime @default(now())
+
+  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([discountId, productId])
+  @@index([productId])
+  @@map("discount_products")
+  @@schema("public")
+}
+
+model DiscountCustomerGroup {
+  id            String   @id @default(cuid())
+  discountId    String
+  customerGroup String
+  createdAt     DateTime @default(now())
+
+  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+
+  @@unique([discountId, customerGroup])
+  @@map("discount_customer_groups")
+  @@schema("public")
+}
+
+model DiscountUsage {
+  id             String   @id @default(cuid())
+  discountId     String
+  userId         String
+  orderId        String
+  discountAmount Decimal  @db.Decimal(18, 2)
+  createdAt      DateTime @default(now())
+
+  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([discountId, orderId])
+  @@index([userId])
+  @@index([orderId])
+  @@map("discount_usages")
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: ORDER
+// ============================================================
 model Order {
   id     String @id @default(cuid())
   userId String
-  status String @default("PENDING")
+  storeId String
+  status OrderStatus @default(PENDING)
 
   // Payment status fields
-  paymentStatus        String    @default("UNPAID") // UNPAID, PAID, FAILED, REFUNDED
-  expiresAt            DateTime? // Order expiration time (30 mins after creation)
-  lastPaymentAttemptAt DateTime? // Last payment attempt time
-  paymentAttempts      Int       @default(0) // Number of payment attempts
-  lastPaymentMethod    String? // Last payment method used
-  cancelReason         String? // Cancellation reason
-  cancelledAt          DateTime? // Cancellation time
+  paymentStatus        OrderPaymentStatus @default(PENDING)
+  expiresAt            DateTime?
+  lastPaymentAttemptAt DateTime?
+  paymentAttempts      Int       @default(0)
+  lastPaymentMethod    String?
+  cancelReason         String?
+  cancelledAt          DateTime?
 
-  totalAmount       Float
-  customerEmail     String?
-  shippingAddressId String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  // Pricing fields
+  subtotalAmount Decimal  @db.Decimal(18, 2)
+  discountAmount Decimal  @default(0) @db.Decimal(18, 2)
+  taxAmount      Decimal  @default(0) @db.Decimal(18, 2)
+  totalAmount    Decimal  @db.Decimal(18, 2)
+  currency       String  @default("USD")
+
+  customerEmail String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relations
   user                  User                   @relation(fields: [userId], references: [id])
-  shippingAddress       OrderAddress?          @relation(fields: [shippingAddressId], references: [id])
+  store                 Store                  @relation(fields: [storeId], references: [id])
+  shippingAddress       OrderShippingAddress?
   items                 OrderItem[]
   payments              Payment[]
-  shipments             Shipment[]
   refunds               Refund[]
-  inventoryReservations InventoryReservation[] // Connected inventory reservations
+  paymentLedgers        PaymentLedger[]
+  refundLedgers         RefundLedger[]
+  discountUsages        DiscountUsage[]
+  externalOrderLinks    ExternalOrderLink[]
+  inventoryReservations InventoryReservation[]
+  shipments             Shipment[]
+  statusHistory         OrderStatusHistory[]
 
   @@index([status])
-  @@index([paymentStatus]) // New index
-  @@index([expiresAt]) // New index (for scheduled cleanup)
+  @@index([paymentStatus])
+  @@index([expiresAt])
   @@index([userId])
-  @@schema("core")
+  @@index([storeId])
   @@map("orders")
+  @@schema("public")
 }
 
-// Order Address Snapshot
-model OrderAddress {
+// ============================================================
+// CORE: ORDER SHIPPING ADDRESS
+// ============================================================
+model OrderShippingAddress {
   id           String   @id @default(cuid())
+  orderId      String   @unique
   firstName    String
   lastName     String
-  phone        String
+  phone        String?
   email        String?
   addressLine1 String
   addressLine2 String?
   city         String
-  state        String
+  state        String?
   country      String
-  postalCode   String
+  postalCode   String?
   createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  orders Order[]
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
-  @@schema("core")
-  @@map("order_addresses")
+  @@index([orderId])
+  @@map("order_shipping_addresses")
+  @@schema("public")
 }
 
+// ============================================================
+// CORE: ORDER STATUS HISTORY (audit)
+// ============================================================
+model OrderStatusHistory {
+  id                 String               @id @default(cuid())
+  orderId            String
+  fromStatus         OrderStatus?
+  toStatus           OrderStatus
+  fromPaymentStatus  OrderPaymentStatus?
+  toPaymentStatus    OrderPaymentStatus?
+  reason             String?
+  actorType          String?
+  actorId            String?
+  metadata           Json?
+  createdAt          DateTime             @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("order_status_history")
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: ORDER ITEM
+// ============================================================
 model OrderItem {
   id        String @id @default(cuid())
   orderId   String
   productId String
-  variantId String // Product variant ID (Mandatory)
+  variantId String
   quantity  Int
-  unitPrice Float
+  unitPrice Decimal @db.Decimal(18, 2)
+  currency  String @default("USD")
 
-  // Fulfillment status
-  fulfillmentStatus String  @default("pending") // 'pending', 'processing', 'shipped', 'delivered', 'failed'
-  fulfillmentData   String? // JSON: shipping tracking, etc.
+  // Shipping address (per item)
+  shippingFirstName    String?
+  shippingLastName     String?
+  shippingPhone        String?
+  shippingEmail        String?
+  shippingAddressLine1 String?
+  shippingAddressLine2 String?
+  shippingCity         String?
+  shippingState        String?
+  shippingCountry      String?
+  shippingPostalCode   String?
+
+  // Fulfillment
+  fulfillmentStatus OrderItemFulfillmentStatus @default(pending)
+  fulfillmentData   Json?
 
   // Relations
-  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product       Product        @relation(fields: [productId], references: [id])
-  variant       ProductVariant @relation(fields: [variantId], references: [id]) // Variant relation
-  shipmentItems ShipmentItem[] // Shipment item relation
+  order              Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product            Product             @relation(fields: [productId], references: [id])
+  variant            ProductVariant      @relation(fields: [variantId], references: [id])
+  externalOrderLinks ExternalOrderLink[]
+  shipments          ShipmentItem[]
 
   @@index([orderId])
-  @@index([variantId]) // Variant index
-  @@index([fulfillmentStatus]) // Fulfillment status index
-  @@schema("core")
+  @@index([variantId])
+  @@index([fulfillmentStatus])
+  @@index([shippingCountry])
   @@map("order_items")
+  @@schema("public")
 }
 
+// ============================================================
+// CORE: SHIPMENT ITEM
+// One shipment record per order item; multiple records = history (e.g. re-ship)
+// ============================================================
 model Shipment {
-  id             String    @id @default(cuid())
+  id             String         @id @default(cuid())
   orderId        String
-  carrier        String? // Logistic company
+  carrier        String?
   trackingNumber String?
-  status         String    @default("PENDING") // PENDING, SHIPPED, DELIVERED, RETURNED
+  status         ShipmentStatus @default(PENDING)
   shippedAt      DateTime?
   deliveredAt    DateTime?
-  metadata       String? // JSON
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
-  order Order          @relation(fields: [orderId], references: [id])
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
   items ShipmentItem[]
 
   @@index([orderId])
   @@index([trackingNumber])
-  @@schema("core")
+  @@index([status])
   @@map("shipments")
+  @@schema("public")
 }
 
 model ShipmentItem {
@@ -245,43 +590,317 @@ model ShipmentItem {
   orderItemId String
   quantity    Int
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
 
-  shipment  Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
-  orderItem OrderItem @relation(fields: [orderItemId], references: [id])
+  shipment Shipment @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
 
   @@index([shipmentId])
   @@index([orderItemId])
-  @@schema("core")
   @@map("shipment_items")
+  @@schema("public")
 }
 
-// Inventory Reservation Table - temporary lock for stock
-// Supports variant-level stock reservation
+// ============================================================
+// CORE: INVENTORY RESERVATION
+// ============================================================
 model InventoryReservation {
   id        String   @id @default(cuid())
   orderId   String
   productId String
-  variantId String // Variant ID (Mandatory)
+  variantId String
   quantity  Int
-  expiresAt DateTime // Expiration time (syncs with order expiration)
-  status    String   @default("ACTIVE") // ACTIVE, RELEASED, CONFIRMED
+  expiresAt DateTime
+  status    InventoryReservationStatus @default(ACTIVE)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
   order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product        @relation(fields: [productId], references: [id])
   variant ProductVariant @relation(fields: [variantId], references: [id])
 
-  @@unique([orderId, productId, variantId]) // Each variant in an order can have only one reservation
-  @@index([expiresAt, status]) // For scheduled cleanup of expired reservations
-  @@index([productId, status]) // For calculating available stock
-  @@index([variantId, status]) // For calculating variant available stock
-  @@schema("core")
+  @@unique([orderId, productId, variantId])
+  @@index([expiresAt, status])
+  @@index([productId, status])
+  @@index([variantId, status])
   @@map("inventory_reservations")
+  @@schema("public")
 }
 
-// Cart System - Only supports logged-in users
+// ============================================================
+// CORE: WAREHOUSE
+// ============================================================
+model Warehouse {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  address   String?
+  isActive  Boolean  @default(true)
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  warehouseInventories   WarehouseInventory[]
+  inventoryAdjustments   InventoryAdjustment[]
+  inventoryTransfersFrom InventoryTransfer[]   @relation("TransfersFrom")
+  inventoryTransfersTo   InventoryTransfer[]   @relation("TransfersTo")
+  stockAlerts            StockAlert[]
+
+  @@index([code])
+  @@index([isActive])
+  @@index([isDefault])
+  @@map("warehouses")
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: WAREHOUSE INVENTORY
+// ============================================================
+model WarehouseInventory {
+  id          String   @id @default(cuid())
+  warehouseId String
+  variantId   String
+  quantity    Int      @default(0)
+  reserved    Int      @default(0)
+  available   Int      @default(0)
+  lowStock    Int      @default(10)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  warehouse Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([warehouseId, variantId])
+  @@index([warehouseId])
+  @@index([variantId])
+  @@index([quantity])
+  @@index([available])
+  @@map("warehouse_inventories")
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: STOCK ALERT
+// ============================================================
+model StockAlert {
+  id          String           @id @default(cuid())
+  warehouseId String
+  variantId   String
+  alertType   StockAlertType @default(LOW_STOCK)
+  threshold   Int
+  quantity    Int
+  status      StockAlertStatus @default(ACTIVE)
+  resolvedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  warehouse Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([warehouseId])
+  @@index([variantId])
+  @@index([alertType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("stock_alerts")
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: INVENTORY FORECASTING
+// ============================================================
+model InventoryForecast {
+  id              String   @id @default(cuid())
+  productId       String
+  variantId       String
+  forecastDate    DateTime
+  predictedDemand Float
+  confidence      Float
+  seasonalFactors String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  accuracyRecords ForecastAccuracy[]
+
+  @@index([productId])
+  @@index([variantId])
+  @@index([forecastDate])
+  @@map("inventory_forecasts")
+  @@schema("public")
+}
+
+model ForecastAccuracy {
+  id              String   @id @default(cuid())
+  forecastId      String
+  actualDemand    Float
+  predictedDemand Float
+  mae             Float?
+  mape            Float?
+  rmse            Float?
+  evaluationDate  DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  forecast InventoryForecast @relation(fields: [forecastId], references: [id], onDelete: Cascade)
+
+  @@index([forecastId])
+  @@index([evaluationDate])
+  @@map("forecast_accuracy")
+  @@schema("public")
+}
+
+model ReorderAlert {
+  id               String   @id @default(cuid())
+  productId        String
+  variantId        String
+  alertType        String
+  severity         String
+  message          String
+  threshold        Float?
+  currentStock     Int
+  recommendedOrder Int?
+  status           String   @default("ACTIVE")
+  resolvedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([productId])
+  @@index([variantId])
+  @@index([alertType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("reorder_alerts")
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: INVENTORY ADJUSTMENT
+// ============================================================
+model InventoryAdjustment {
+  id          String   @id @default(cuid())
+  warehouseId String
+  variantId   String
+  type        String
+  quantity    Int
+  reason      String?
+  notes       String?
+  userId      String?
+  referenceId String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  warehouse Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([warehouseId])
+  @@index([variantId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([userId])
+  @@map("inventory_adjustments")
+  @@schema("public")
+}
+
+// ============================================
+// Recommendation System
+// ============================================
+
+model RecommendationInteraction {
+  id                 String   @id @default(cuid())
+  userId             String?
+  productId          String
+  sessionId          String
+  recommendationType String
+  sourceProductId    String?
+  sourceContext      String?
+  action             String
+  algorithmVariant   String?
+  testGroupId        String?
+  metadata           Json?
+  createdAt          DateTime @default(now())
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([productId])
+  @@map("recommendation_interactions")
+  @@schema("public")
+}
+
+model RecommendationConfig {
+  id                 String   @id @default(cuid())
+  name               String
+  recommendationType String
+  algorithm          String
+  isActive           Boolean  @default(true)
+  trafficPercentage  Float    @default(100.0)
+  priority           Int      @default(0)
+  parameters         Json?
+  metricsJson        Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("recommendation_configs")
+  @@schema("public")
+}
+
+model ProductAffinity {
+  id              String   @id @default(cuid())
+  productAId      String
+  productBId      String
+  affinityScore   Float
+  coOccurrences   Int      @default(0)
+  confidenceScore Float?
+  affinityType    String
+  lastCalculated  DateTime
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  productA Product @relation("ProductAffinityA", fields: [productAId], references: [id])
+  productB Product @relation("ProductAffinityB", fields: [productBId], references: [id])
+
+  @@unique([productAId, productBId, affinityType])
+  @@map("product_affinities")
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: INVENTORY TRANSFER
+// ============================================================
+model InventoryTransfer {
+  id              String    @id @default(cuid())
+  fromWarehouseId String
+  toWarehouseId   String
+  variantId       String
+  quantity        Int
+  status          String    @default("PENDING")
+  reason          String?
+  notes           String?
+  userId          String?
+  referenceId     String?
+  metadata        Json?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  fromWarehouse Warehouse      @relation("TransfersFrom", fields: [fromWarehouseId], references: [id], onDelete: Cascade)
+  toWarehouse   Warehouse      @relation("TransfersTo", fields: [toWarehouseId], references: [id], onDelete: Cascade)
+  variant       ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([fromWarehouseId])
+  @@index([toWarehouseId])
+  @@index([variantId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId])
+  @@map("inventory_transfers")
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: CART
+// ============================================================
 model Cart {
   id        String   @id @default(cuid())
   userId    String   @unique
@@ -289,215 +908,672 @@ model Cart {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relations
   user  User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   items CartItem[]
 
   @@index([userId])
   @@index([status])
-  @@schema("core")
   @@map("carts")
+  @@schema("public")
 }
 
+// ============================================================
+// CORE: CART ITEM
+// ============================================================
 model CartItem {
-  id        String   @id @default(cuid())
+  id        String @id @default(cuid())
   cartId    String
   productId String
   quantity  Int
-  price     Float // Price snapshot when added to cart
-  variantId String // Product variant ID (Mandatory)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  price     Decimal @db.Decimal(18, 2)
+  variantId String
 
-  // Relations
+  // Shipping address draft (per item, nullable until user fills in)
+  shippingFirstName    String?
+  shippingLastName     String?
+  shippingPhone        String?
+  shippingEmail        String?
+  shippingAddressLine1 String?
+  shippingAddressLine2 String?
+  shippingCity         String?
+  shippingState        String?
+  shippingCountry      String?
+  shippingPostalCode   String?
+
+  fulfillmentData Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
   cart    Cart           @relation(fields: [cartId], references: [id], onDelete: Cascade)
   product Product        @relation(fields: [productId], references: [id])
-  variant ProductVariant @relation(fields: [variantId], references: [id]) // Variant relation
+  variant ProductVariant @relation(fields: [variantId], references: [id])
 
-  // Uniqueness constraint: same product/variant in the same cart
-  @@unique([cartId, productId, variantId])
   @@index([cartId])
   @@index([productId])
-  @@index([variantId]) // Variant index
-  @@schema("core")
+  @@index([variantId])
   @@map("cart_items")
+  @@schema("public")
 }
 
-// Payment Record Table
+// ============================================================
+// CORE: PAYMENT
+// ============================================================
 model Payment {
   id              String    @id @default(cuid())
   orderId         String
-  attemptNumber   Int       @default(1) // Attempt number
-  expiresAt       DateTime? // Session expiration time
-  failureReason   String? // Reason for failure
-  paymentMethod   String // 'stripe', 'paypal', etc.
-  paymentIntentId String? // Stripe Payment Intent ID
-  sessionId       String? // Stripe Checkout Session ID
-  sessionUrl      String? // Stripe Checkout Session URL - For session reuse
-  amount          Float
+  attemptNumber   Int       @default(1)
+  expiresAt       DateTime?
+  failureReason   String?
+  paymentMethod   String
+  paymentIntentId String?
+  sessionId       String?
+  sessionUrl      String?
+  amount          Decimal @db.Decimal(18, 2)
   currency        String    @default("USD")
-  status          String    @default("PENDING") // 'PENDING', 'SUCCEEDED', 'FAILED'
-  metadata        String? // Metadata (JSON)
+  status          PaymentAttemptStatus @default(PENDING)
+  idempotencyKey  String?
+  providerEventId String?
+  metadata        Json?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
   order   Order    @relation(fields: [orderId], references: [id])
   refunds Refund[]
+  ledger  PaymentLedger[]
+  refundLedgers RefundLedger[]
 
-  @@index([paymentIntentId])
-  @@index([sessionId])
-  @@index([orderId, attemptNumber])
-  @@schema("core")
+  @@unique([idempotencyKey])
+  @@unique([providerEventId])
+  @@unique([paymentIntentId])
+  @@unique([sessionId])
+  @@unique([orderId, attemptNumber])
   @@map("payments")
+  @@schema("public")
 }
 
-// Refund Record Table
+// ============================================================
+// CORE: REFUND
+// ============================================================
 model Refund {
   id               String   @id @default(cuid())
   paymentId        String
   orderId          String
-  amount           Float
+  amount           Decimal @db.Decimal(18, 2)
   currency         String   @default("USD")
-  status           String   @default("PENDING") // PENDING, SUCCEEDED, FAILED, CANCELLED
+  status           RefundStatus @default(PENDING)
   reason           String?
-  provider         String? // e.g., 'stripe'
-  providerRefundId String?  @unique // ID returned by payment provider after success
-  idempotencyKey   String   @unique // Mandatory business identity for idempotency
-  metadata         String? // JSON
+  provider         String?
+  providerRefundId String?  @unique
+  idempotencyKey   String   @unique
+  metadata         Json?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   payment Payment @relation(fields: [paymentId], references: [id])
   order   Order   @relation(fields: [orderId], references: [id])
+  ledger  RefundLedger[]
 
   @@index([paymentId])
   @@index([orderId])
-  @@schema("core")
   @@map("refunds")
+  @@schema("public")
 }
 
+// ============================================================
+// CORE: PAYMENT LEDGER (audit + reconciliation)
+// ============================================================
+model PaymentLedger {
+  id               String                 @id @default(cuid())
+  paymentId        String
+  orderId          String
+  eventType        PaymentLedgerEventType
+  amount           Decimal                @db.Decimal(18, 2)
+  currency         String
+  provider         String?
+  providerEventId  String?
+  idempotencyKey   String?
+  metadata         Json?
+  createdAt        DateTime               @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@index([orderId])
+  @@unique([providerEventId])
+  @@unique([idempotencyKey])
+  @@map("payment_ledger")
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: REFUND LEDGER (audit + reconciliation)
+// ============================================================
+model RefundLedger {
+  id               String                @id @default(cuid())
+  refundId         String
+  paymentId        String
+  orderId          String
+  eventType        RefundLedgerEventType
+  amount           Decimal               @db.Decimal(18, 2)
+  currency         String
+  provider         String?
+  providerRefundId String?
+  idempotencyKey   String?
+  metadata         Json?
+  createdAt        DateTime              @default(now())
+
+  refund  Refund  @relation(fields: [refundId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([refundId])
+  @@index([paymentId])
+  @@index([orderId])
+  @@unique([providerRefundId])
+  @@unique([idempotencyKey])
+  @@map("refund_ledger")
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: SYSTEM SETTINGS
+// ============================================================
 model SystemSettings {
   id String @id @default("system")
 
-  // Installation status
   isInstalled Boolean   @default(false)
   installedAt DateTime?
-  installedBy String? // Installing User ID
+  installedBy String?
 
-  // System version
   version       String    @default("1.0.0")
   lastUpdatedAt DateTime?
 
-  // Global config (JSON)
   siteName        String  @default("Jiffoo Mall")
   siteDescription String?
   logoUrl         String?
   faviconUrl      String?
 
-  // Feature toggles
   maintenanceMode          Boolean @default(false)
   allowRegistration        Boolean @default(true)
   requireEmailVerification Boolean @default(true)
 
-  // Other settings (including theme rollback state)
-  // theme.active.shop.slug / theme.previous.shop.slug
-  settings String? // External settings (JSON)
+  settings Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@schema("core")
   @@map("system_settings")
+  @@schema("public")
 }
 
+// ============================================================
+// PLUGIN SYSTEM: PLUGIN INSTALL (package metadata)
+// ============================================================
 model PluginInstall {
-  id String @id @default(cuid())
+  id   String @id @default(cuid())
+  slug String @unique
 
-  // Plugin identifier
-  slug String @unique // Plugin unique identifier
+  name        String
+  version     String
+  author      String?
+  authorUrl   String?
+  description String?
+  category    String?
 
-  // Plugin metadata
-  name        String // Plugin name
-  version     String // Plugin version
-  author      String? // Plugin author
-  description String? // Plugin description
-  category    String? // Plugin category (e.g., 'payment', 'shipping')
+  runtimeType     String  @default("internal-fastify")
+  entryModule     String?
+  externalBaseUrl String?
 
-  // Installation info
-  source      String @default("local-zip") // 'builtin' | 'local-zip' | 'official-market'
-  installPath String? // Relative path to extensions/plugins/ (null for builtin)
+  source      String  @default("local-zip")
+  installPath String?
 
-  // Status
-  isEnabled Boolean @default(false) // Whether currently enabled
+  zipHash      String?
+  manifestJson Json?
 
-  // Plugin config (JSON)
-  config String? // Config override
+  permissions Json?
+
+  deletedAt DateTime?
 
   installedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  installations PluginInstallation[]
+
   @@index([category])
-  @@index([isEnabled])
-  @@schema("core")
+  @@index([runtimeType])
+  @@index([zipHash])
+  @@index([deletedAt])
   @@map("plugin_installs")
+  @@schema("public")
 }
 
+// ============================================================
+// PLUGIN SYSTEM: PLUGIN INSTALLATION (instance)
+// ============================================================
+model PluginInstallation {
+  id          String @id @default(uuid())
+  pluginSlug  String
+  instanceKey String
+
+  enabled Boolean @default(true)
+
+  configJson Json?
+
+  grantedPermissions Json?
+
+  deletedAt DateTime?
+
+  lifecycleWarning String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  plugin               PluginInstall         @relation(fields: [pluginSlug], references: [slug], onDelete: Cascade)
+  serviceTokens        PluginServiceToken[]
+  webhookSubscriptions WebhookSubscription[]
+  themeExtensions      PluginThemeExtension[]
+
+  @@unique([pluginSlug, instanceKey])
+  @@index([pluginSlug])
+  @@index([enabled])
+  @@index([deletedAt])
+  @@map("plugin_installations")
+  @@schema("public")
+}
+
+// ============================================================
+// PLUGIN SYSTEM: SERVICE TOKEN
+// ============================================================
+model PluginServiceToken {
+  id             String    @id @default(cuid())
+  installationId String
+  tokenHash      String
+  status         String    @default("active")
+  expiresAt      DateTime
+  issuedAt       DateTime  @default(now())
+  lastUsedAt     DateTime?
+
+  installation PluginInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@index([installationId])
+  @@index([tokenHash])
+  @@index([status])
+  @@map("plugin_service_tokens")
+  @@schema("public")
+}
+
+// ============================================================
+// PLUGIN SYSTEM: WEBHOOK SUBSCRIPTION
+// ============================================================
+model WebhookSubscription {
+  id             String   @id @default(cuid())
+  installationId String
+  eventType      String
+  deliveryMode   String   @default("internal")
+  endpointUrl    String?
+  secret         String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  installation PluginInstallation  @relation(fields: [installationId], references: [id], onDelete: Cascade)
+  deliveryLogs WebhookDeliveryLog[]
+  deadLetters  WebhookDeadLetter[]
+
+  @@index([installationId])
+  @@index([eventType])
+  @@index([active])
+  @@map("webhook_subscriptions")
+  @@schema("public")
+}
+
+// ============================================================
+// PLUGIN SYSTEM: WEBHOOK DELIVERY LOG
+// ============================================================
+model WebhookDeliveryLog {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  eventId        String
+  attempt        Int      @default(1)
+  status         String
+  responseCode   Int?
+  responseBody   String?
+  errorMessage   String?
+  deliveredAt    DateTime @default(now())
+  latencyMs      Int?
+
+  subscription WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([eventId])
+  @@index([status])
+  @@map("webhook_delivery_logs")
+  @@schema("public")
+}
+
+// ============================================================
+// PLUGIN SYSTEM: WEBHOOK DEAD LETTER
+// ============================================================
+model WebhookDeadLetter {
+  id             String    @id @default(cuid())
+  eventId        String
+  subscriptionId String
+  eventType      String
+  payload        Json
+  lastError      String?
+  retryCount     Int       @default(0)
+  createdAt      DateTime  @default(now())
+  replayedAt     DateTime?
+
+  subscription WebhookSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@index([subscriptionId])
+  @@index([eventId])
+  @@index([eventType])
+  @@map("webhook_dead_letters")
+  @@schema("public")
+}
+
+// ============================================================
+// PLUGIN SYSTEM: THEME EXTENSION
+// ============================================================
+model PluginThemeExtension {
+  id             String   @id @default(cuid())
+  installationId String
+  kind           String
+  extensionId    String
+  name           String
+  schema         Json?
+  dataEndpoint   String?
+  targetPosition String?
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  installation PluginInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
+
+  @@unique([installationId, extensionId])
+  @@index([installationId])
+  @@index([kind])
+  @@index([active])
+  @@map("plugin_theme_extensions")
+  @@schema("public")
+}
+
+// ============================================================
+// PLUGIN SYSTEM: INSTALLED THEME
+// ============================================================
 model InstalledTheme {
   id String @id @default(cuid())
 
-  // Theme identifier
-  slug   String @unique // Theme unique identifier
-  target String // 'shop' | 'admin'
+  slug   String
+  target String
 
-  // Theme metadata
-  name        String // Theme name
-  version     String // Theme version
-  author      String? // Theme author
-  description String? // Theme description
+  name        String
+  version     String
+  author      String?
+  description String?
 
-  // Installation info
-  source      String @default("local-zip") // 'local-zip' | 'official-market'
-  installPath String // Relative path to extensions/themes/
+  source      String @default("local-zip")
+  installPath String
 
-  // Status
-  isActive Boolean @default(false) // Whether currently active (Can match SystemSettings)
+  isActive Boolean @default(false)
 
-  // Theme config (JSON)
-  config String? // Config override
+  config Json?
 
   installedAt DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  @@unique([slug, target])
   @@index([target])
   @@index([isActive])
-  @@schema("core")
   @@map("installed_themes")
+  @@schema("public")
 }
 
-// Outbox Event Table for Reliable Event Publishing
+// ============================================================
+// CORE: OUTBOX EVENT (transactional outbox pattern)
+// ============================================================
 model OutboxEvent {
-  id          String   @id @default(uuid())
-  type        String   // e.g. "order.created"
-  aggregateId String   // e.g. order-123
-  payload     Json     // Full event data
-  
-  // Metadata
-  version     String   @default("v1")
-  occurredAt  DateTime @default(now())
-  
-  // Publishing Status
-  published   Boolean  @default(false)
+  id          String @id @default(uuid())
+  type        String
+  aggregateId String
+  payload     Json
+
+  version    String   @default("v1")
+  occurredAt DateTime @default(now())
+
+  published   Boolean   @default(false)
   publishedAt DateTime?
-  retryCount  Int      @default(0)
+  retryCount  Int       @default(0)
   lastError   String?
-  
-  // Metadata for tracing
-  traceId     String?
-  actorId     String?
-  
-  @@index([published, occurredAt]) // For polling worker
-  @@index([aggregateId])           // For debugging/ordering checks
-  @@schema("core")
+
+  traceId String?
+  actorId String?
+
+  @@index([published, occurredAt])
+  @@index([aggregateId])
   @@map("outbox_events")
+  @@schema("public")
 }
 
+// ============================================================
+// CORE: PUSH SUBSCRIPTION (web push notifications)
+// ============================================================
+model PushSubscription {
+  id       String @id @default(cuid())
+  userId   String
+  endpoint String
+
+  p256dh String
+  auth   String
+
+  userAgent String?
+  platform  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+  @@map("push_subscriptions")
+  @@schema("public")
+}
+
+// ============================================================
+// PLUGIN INTEGRATION: EXTERNAL CATEGORY LINK
+// storeId: plugin-protocol routing metadata, not multi-tenancy
+// ============================================================
+model ExternalCategoryLink {
+  id String @id @default(cuid())
+
+  provider       String
+  installationId String
+  storeId        String
+
+  externalCode     String
+  externalName     String?
+  externalHash     String?
+  coreCategoryId   String
+  coreCategorySlug String?
+  syncStatus       String    @default("ACTIVE")
+  lastSyncedAt     DateTime?
+  sourceUpdatedAt  DateTime?
+  lastError        String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([provider, installationId, storeId, externalCode], map: "ext_cat_links_uq_src_store_code")
+  @@index([provider, installationId], map: "ext_cat_links_idx_src")
+  @@index([coreCategoryId], map: "ext_cat_links_idx_core_cat")
+  @@index([syncStatus], map: "ext_cat_links_idx_status")
+  @@map("external_category_links")
+  @@schema("public")
+}
+
+// ============================================================
+// PLUGIN INTEGRATION: EXTERNAL PRODUCT LINK
+// storeId: plugin-protocol routing metadata, not multi-tenancy
+// ============================================================
+model ExternalProductLink {
+  id String @id @default(cuid())
+
+  provider       String
+  installationId String
+  storeId        String
+
+  externalProductCode  String
+  externalName         String?
+  externalHash         String?
+  coreProductId        String
+  coreProductSlug      String?
+  syncStatus           String    @default("ACTIVE")
+  lastSyncedAt         DateTime?
+  sourceUpdatedAt      DateTime?
+  lastError            String?
+  sourceName           String?
+  sourceDescription    String?
+  sourceCategoryCode   String?
+  sourceIsActive       Boolean?
+  sourcePayloadJson    Json?
+  sourcePayloadHash    String?
+  hasPendingChange     Boolean   @default(false)
+  pendingChangeSummary Json?
+  lastComparedAt       DateTime?
+  lastApprovedAt       DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([provider, installationId, storeId, externalProductCode], map: "ext_prod_links_uq_src_store_code")
+  @@index([provider, installationId], map: "ext_prod_links_idx_src")
+  @@index([coreProductId], map: "ext_prod_links_idx_core_prod")
+  @@index([syncStatus], map: "ext_prod_links_idx_status")
+  @@map("external_product_links")
+  @@schema("public")
+}
+
+// ============================================================
+// PLUGIN INTEGRATION: EXTERNAL VARIANT LINK
+// storeId: plugin-protocol routing metadata, not multi-tenancy
+// ============================================================
+model ExternalVariantLink {
+  id String @id @default(cuid())
+
+  provider       String
+  installationId String
+  storeId        String
+
+  externalProductCode  String
+  externalVariantCode  String
+  externalHash         String?
+  coreProductId        String
+  coreVariantId        String
+  coreSkuCode          String?
+  syncStatus           String    @default("ACTIVE")
+  lastSyncedAt         DateTime?
+  sourceUpdatedAt      DateTime?
+  lastError            String?
+  sourceVariantName    String?
+  sourceSkuCode        String?
+  sourceCostPrice      Decimal? @db.Decimal(18, 2)
+  sourceIsActive       Boolean?
+  sourceAttributesJson Json?
+  sourcePayloadHash    String?
+  hasPendingChange     Boolean   @default(false)
+  pendingChangeSummary Json?
+  lastComparedAt       DateTime?
+  lastApprovedAt       DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([provider, installationId, storeId, externalVariantCode], map: "ext_var_links_uq_src_store_var")
+  @@index([provider, installationId, externalProductCode], map: "ext_var_links_idx_src_prod")
+  @@index([coreProductId], map: "ext_var_links_idx_core_prod")
+  @@index([coreVariantId], map: "ext_var_links_idx_core_var")
+  @@index([syncStatus], map: "ext_var_links_idx_status")
+  @@map("external_variant_links")
+  @@schema("public")
+}
+
+// ============================================================
+// PLUGIN INTEGRATION: EXTERNAL ORDER LINK
+// storeId: plugin-protocol routing metadata, not multi-tenancy
+// ============================================================
+model ExternalOrderLink {
+  id String @id @default(cuid())
+
+  provider       String
+  installationId String
+  storeId        String
+
+  coreOrderId     String
+  coreOrderItemId String
+
+  externalOrderRef  String
+  externalOrderName String?
+  externalStatus    String?
+  syncStatus        String    @default("PENDING")
+  requestPayload    String?
+  responsePayload   String?
+  lastSyncedAt      DateTime?
+  lastError         String?
+  attemptCount      Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  order     Order     @relation(fields: [coreOrderId], references: [id], onDelete: Cascade)
+  orderItem OrderItem @relation(fields: [coreOrderItemId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, installationId, storeId, coreOrderItemId], map: "ext_order_links_uq_src_store_item")
+  @@unique([provider, installationId, storeId, externalOrderRef], map: "ext_order_links_uq_src_store_ref")
+  @@index([coreOrderId], map: "ext_order_links_idx_core_order")
+  @@index([coreOrderItemId], map: "ext_order_links_idx_core_item")
+  @@index([syncStatus], map: "ext_order_links_idx_status")
+  @@map("external_order_links")
+  @@schema("public")
+}
+
+// ============================================================
+// CORE: ERROR LOG
+// ============================================================
+model ErrorLog {
+  id              String    @id @default(cuid())
+  errorHash       String
+  message         String
+  stack           String?
+  requestId       String?
+  userId          String?
+  storeId         String?
+  path            String
+  method          String
+  statusCode      Int
+  userAgent       String?
+  ip              String?
+  headers         String?
+  body            String?
+  query           String?
+  params          String?
+  environment     String
+  occurredAt      DateTime  @default(now())
+  firstSeenAt     DateTime  @default(now())
+  lastSeenAt      DateTime  @default(now())
+  occurrenceCount Int       @default(1)
+  severity        String    @default("error")
+  resolved        Boolean   @default(false)
+  resolvedAt      DateTime?
+  resolvedBy      String?
+  store           Store?    @relation(fields: [storeId], references: [id])
+
+  @@index([errorHash])
+  @@index([occurredAt])
+  @@index([userId])
+  @@index([storeId])
+  @@index([severity])
+  @@index([resolved])
+  @@index([lastSeenAt])
+  @@map("error_logs")
+  @@schema("public")
+}

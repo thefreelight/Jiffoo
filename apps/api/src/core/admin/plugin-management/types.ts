@@ -9,13 +9,15 @@ export interface PluginMeta {
   description?: string;
   author?: string;
   category?: string;
-  source?: 'builtin' | 'installed' | 'marketplace';
+  source?: 'builtin' | 'installed';
   icon?: string;
 }
 
 export interface PluginState {
   slug: string;
   enabled: boolean;
+  /** Pseudo-uninstall flag: hidden plugins are treated as removed from UI and gateway */
+  hidden?: boolean;
   installed?: boolean;
   config: Record<string, unknown>;
   name?: string;
@@ -28,6 +30,7 @@ export interface PluginState {
   enabledAt?: string;
   disabledAt?: string;
   installedAt?: string;
+  hiddenAt?: string;
 }
 
 export interface PluginConfig {
@@ -35,7 +38,7 @@ export interface PluginConfig {
 }
 
 export interface InstalledPluginsResponse {
-  plugins: Array<PluginMeta & { enabled: boolean }>;
+  items: Array<PluginMeta & { enabled: boolean }>;
   total: number;
 }
 

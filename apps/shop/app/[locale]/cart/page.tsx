@@ -14,6 +14,8 @@ import { useAuthStore } from '@/store/auth';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useT } from 'shared/src/i18n/react';
 import { LoadingState, ErrorState } from '@/components/ui/state-components';
+import { toast } from '@/components/ui/toaster';
+import { persistSelectedCartItemIds } from '@/lib/checkout-selection';
 
 export default function CartPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
@@ -21,6 +23,8 @@ export default function CartPage() {
   const { cart, fetchCart, updateQuantity, removeItem, isLoading } = useCartStore();
   const { isAuthenticated } = useAuthStore();
   const t = useT();
+  const [selectedItemIds, setSelectedItemIds] = React.useState<string[]>([]);
+  const selectionInitializedRef = React.useRef(false);
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -33,6 +37,24 @@ export default function CartPage() {
       fetchCart();
     }
   }, [isAuthenticated, fetchCart]);
+
+  React.useEffect(() => {
+    const itemIds = cart.items.map((item) => item.id);
+
+    if (itemIds.length === 0) {
+      setSelectedItemIds([]);
+      selectionInitializedRef.current = false;
+      return;
+    }
+
+    if (!selectionInitializedRef.current) {
+      setSelectedItemIds(itemIds);
+      selectionInitializedRef.current = true;
+      return;
+    }
+
+    setSelectedItemIds((prev) => prev.filter((id) => itemIds.includes(id)));
+  }, [cart.items]);
 
   // Handle update quantity
   const handleUpdateQuantity = async (itemId: string, newQuantity: number) => {
@@ -47,20 +69,58 @@ export default function CartPage() {
   const handleRemoveItem = async (itemId: string) => {
     try {
       await removeItem(itemId);
+      setSelectedItemIds((prev) => prev.filter((id) => id !== itemId));
     } catch (error) {
       console.error('Failed to remove item:', error);
     }
   };
 
-  // Handle checkout - preserves locale in navigation
-  const handleCheckout = () => {
+  const proceedCheckout = (itemIds: string[]) => {
+    if (itemIds.length === 0) {
+      toast({
+        title: getText('common.errors.general', 'Cannot Checkout'),
+        description: getText('shop.cart.selectAtLeastOne', 'Please select at least one item to checkout'),
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    persistSelectedCartItemIds(itemIds);
+
     if (!isAuthenticated) {
-      // Save localized redirect path for after login
       sessionStorage.setItem('redirectAfterLogin', nav.getHref('/checkout'));
       nav.push('/auth/login');
       return;
     }
+
     nav.push('/checkout');
+  };
+
+  // Handle checkout - preserves locale in navigation
+  const handleCheckout = () => {
+    proceedCheckout(selectedItemIds);
+  };
+
+  const handleCheckoutSelected = (itemIds: string[]) => {
+    setSelectedItemIds(itemIds);
+    proceedCheckout(itemIds);
+  };
+
+  const handleToggleItemSelection = (itemId: string) => {
+    setSelectedItemIds((prev) => {
+      if (prev.includes(itemId)) {
+        return prev.filter((id) => id !== itemId);
+      }
+      return [...prev, itemId];
+    });
+  };
+
+  const handleSelectAllItems = () => {
+    setSelectedItemIds(cart.items.map((item) => item.id));
+  };
+
+  const handleDeselectAllItems = () => {
+    setSelectedItemIds([]);
   };
 
   // Handle continue shopping - preserves locale
@@ -114,6 +174,12 @@ export default function CartPage() {
       config={config}
       locale={nav.locale}
       t={t}
+      selectedItemIds={selectedItemIds}
+      selectedItemCount={selectedItemIds.length}
+      onToggleItemSelection={handleToggleItemSelection}
+      onSelectAllItems={handleSelectAllItems}
+      onDeselectAllItems={handleDeselectAllItems}
+      onCheckoutSelected={handleCheckoutSelected}
       onUpdateQuantity={handleUpdateQuantity}
       onRemoveItem={handleRemoveItem}
       onCheckout={handleCheckout}

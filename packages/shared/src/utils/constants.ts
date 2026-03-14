@@ -6,9 +6,7 @@ export const API_ENDPOINTS = {
     LOGOUT: '/auth/logout',
     REFRESH: '/auth/refresh',
     PROFILE: '/auth/me', // Get user profile
-    UPDATE_PROFILE: '/user/profile', // Update user profile
-    FORGOT_PASSWORD: '/auth/forgot-password',
-    RESET_PASSWORD: '/auth/reset-password',
+    UPDATE_PROFILE: '/account/profile', // Update user profile
     CHANGE_PASSWORD: '/auth/change-password', // Update password endpoint
   },
 
@@ -23,8 +21,6 @@ export const API_ENDPOINTS = {
     DETAIL: '/products/:id',
     SEARCH: '/products/search',
     CATEGORIES: '/products/categories',
-    FEATURED: '/products/featured',
-    REVIEWS: '/products/:id/reviews',
   },
 
   // Cart
@@ -34,6 +30,7 @@ export const API_ENDPOINTS = {
     UPDATE: '/cart/items/:id',
     REMOVE: '/cart/items/:id',
     CLEAR: '/cart',
+    BATCH: '/cart/items/batch',
   },
 
   // Orders
@@ -43,7 +40,6 @@ export const API_ENDPOINTS = {
     CREATE: '/orders',
     UPDATE: '/orders/:id',
     CANCEL: '/orders/:id/cancel',
-    TRACK: '/orders/:id/track',
   },
 
   // Users
@@ -76,8 +72,9 @@ export const USER_ROLES = {
 
 export const ORDER_STATUS = {
   PENDING: 'PENDING',
-  CONFIRMED: 'CONFIRMED',
+  PAID: 'PAID',
   PROCESSING: 'PROCESSING',
+  COMPLETED: 'COMPLETED',
   SHIPPED: 'SHIPPED',
   DELIVERED: 'DELIVERED',
   CANCELLED: 'CANCELLED',

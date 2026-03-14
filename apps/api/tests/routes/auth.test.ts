@@ -18,6 +18,7 @@ import {
   signJwt,
   signExpiredJwt,
   signInvalidJwt,
+  signRefreshToken,
   deleteAllTestUsers,
   verifyJwt,
 } from '../helpers/auth';
@@ -62,6 +63,7 @@ describe('Auth Endpoints', () => {
       expect(body.data).toHaveProperty('access_token');
       expect(body.data.user.email).toBe(`newuser-${uniqueId}@example.com`);
       expect(body.data.user.role).toBe('USER');
+      expect(body.data.user.emailVerified).toBe(false);
 
       // Verify token is valid
       const decoded = verifyJwt(body.data.token);
@@ -183,8 +185,9 @@ describe('Auth Endpoints', () => {
     let testUser: Awaited<ReturnType<typeof createTestUser>>;
 
     beforeAll(async () => {
+      const uniqueId = uuidv4().substring(0, 8);
       testUser = await createTestUser({
-        email: 'login-test@example.com',
+        email: `test-login-${uniqueId}@example.com`,
         password: 'TestPassword123!',
       });
     });
@@ -208,6 +211,31 @@ describe('Auth Endpoints', () => {
       expect(body.data).toHaveProperty('token');
       expect(body.data).toHaveProperty('access_token');
       expect(body.data.user.email).toBe(testUser.email);
+    });
+
+    it('should return 400 for unverified email', async () => {
+      const unverifiedUser = await createTestUser({
+        email: 'unverified@example.com',
+        password: 'TestPassword123!',
+        emailVerified: false,
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        payload: {
+          email: unverifiedUser.email,
+          password: unverifiedUser.password,
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+
+      const body = response.json();
+      expect(body).toHaveProperty('success', false);
+      expect(body).toHaveProperty('error');
+      expect(body.error).toHaveProperty('message');
+      expect(body.error.message).toContain('Email not verified');
     });
 
     it('should return 401 for wrong password', async () => {
@@ -333,11 +361,11 @@ describe('Auth Endpoints', () => {
       const body = response.json();
       expect(body).toHaveProperty('success', true);
       expect(body).toHaveProperty('data');
-      expect(body.data).toHaveProperty('user');
-      expect(body.data.user).toHaveProperty('id');
-      expect(body.data.user).toHaveProperty('email');
-      expect(body.data.user.id).toBe(testUser.id);
-      expect(body.data.user.email).toBe(testUser.email);
+      // API returns user data directly in data, not nested in data.user
+      expect(body.data).toHaveProperty('id');
+      expect(body.data).toHaveProperty('email');
+      expect(body.data.id).toBe(testUser.id);
+      expect(body.data.email).toBe(testUser.email);
     });
 
     it('should not return password in response', async () => {
@@ -350,34 +378,35 @@ describe('Auth Endpoints', () => {
       });
 
       const body = response.json();
-      expect(body.data.user).not.toHaveProperty('password');
+      // API returns user data directly in data, not nested in data.user
+      expect(body.data).not.toHaveProperty('password');
     });
   });
 
   describe('POST /api/auth/refresh', () => {
     let testUser: Awaited<ReturnType<typeof createTestUser>>;
-    let validToken: string;
+    let validRefreshToken: string;
 
     beforeAll(async () => {
       testUser = await createTestUser();
-      validToken = signJwt(testUser);
+      validRefreshToken = signRefreshToken(testUser.id);
     });
 
-    it('should return 401 without token', async () => {
+    it('should return 400 without token', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/auth/refresh',
       });
 
-      expect(response.statusCode).toBe(401);
+      expect(response.statusCode).toBe(400);
     });
 
-    it('should return new token with valid token', async () => {
+    it('should return new token with valid refresh token', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/auth/refresh',
-        headers: {
-          authorization: `Bearer ${validToken}`,
+        payload: {
+          refresh_token: validRefreshToken,
         },
       });
 
@@ -386,10 +415,12 @@ describe('Auth Endpoints', () => {
       const body = response.json();
       expect(body).toHaveProperty('success', true);
       expect(body).toHaveProperty('data');
-      expect(body.data).toHaveProperty('token');
+      expect(body.data).toHaveProperty('access_token');
+      expect(body.data).toHaveProperty('refresh_token');
+      expect(body.data).toHaveProperty('user');
 
       // Verify new token is valid
-      const decoded = verifyJwt(body.data.token);
+      const decoded = verifyJwt(body.data.access_token);
       expect(decoded.userId).toBe(testUser.id);
     });
   });

@@ -4,20 +4,157 @@
  */
 
 import { prisma } from '@/config/database';
-import Stripe from 'stripe';
+import { OrderPaymentStatus as PrismaOrderPaymentStatus, OrderStatus as PrismaOrderStatus, Prisma } from '@prisma/client';
+import { systemSettingsService } from '../system-settings/service';
+import { CacheService } from '@/core/cache/service';
+import { getTodayAndYesterdayRangeUtc } from '@/utils/timezone';
+import { ExternalOrderService } from '@/core/external-orders/service';
+import { OrderStatus, OrderStatusType, PaymentStatus } from '@/core/order/types';
+import { recordOrderStatusHistory } from '@/core/order/status-history';
+import { InventoryService } from '@/core/inventory/service';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-07-30.basil', // Updated to valid version
-});
+const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
+  error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+
+function calculateTrendPercent(current: number, previous: number): number {
+  if (previous === 0) {
+    return current === 0 ? 0 : 100;
+  }
+  return Number((((current - previous) / previous) * 100).toFixed(2));
+}
 
 export class AdminOrderService {
-  static async getOrders(page = 1, limit = 10, status?: string) {
+  static async getOrderStats() {
+    const [currency, timezone] = await Promise.all([
+      systemSettingsService.getShopCurrency(),
+      systemSettingsService.getTimezone(),
+    ]);
+    const { startOfTodayUtc, startOfYesterdayUtc } = getTodayAndYesterdayRangeUtc(timezone);
+
+    const [
+      totalOrders, 
+      paidRevenue, 
+      paidOrders, 
+      shippedOrders, 
+      refundedOrders,
+      todayTotalOrders, 
+      yesterdayTotalOrders, 
+      todayPaidOrders, 
+      yesterdayPaidOrders, 
+      todayShippedOrders, 
+      yesterdayShippedOrders,
+      todayRefundedOrders,
+      yesterdayRefundedOrders,
+      todayRevenue, 
+      yesterdayRevenue
+    ] = await Promise.all([
+      prisma.order.count(),
+      prisma.order.aggregate({
+        _sum: { totalAmount: true },
+        where: {
+          paymentStatus: 'PAID',
+          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+        },
+      }),
+      prisma.order.count({ where: { paymentStatus: 'PAID' } }),
+      prisma.order.count({ where: { status: 'SHIPPED' } }),
+      prisma.order.count({ where: { status: 'REFUNDED' } }),
+      prisma.order.count({ where: { createdAt: { gte: startOfTodayUtc } } }),
+      prisma.order.count({ where: { createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
+      prisma.order.count({ where: { paymentStatus: 'PAID', createdAt: { gte: startOfTodayUtc } } }),
+      prisma.order.count({ where: { paymentStatus: 'PAID', createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
+      prisma.order.count({ where: { status: 'SHIPPED', createdAt: { gte: startOfTodayUtc } } }),
+      prisma.order.count({ where: { status: 'SHIPPED', createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
+      prisma.order.count({ where: { status: 'REFUNDED', createdAt: { gte: startOfTodayUtc } } }),
+      prisma.order.count({ where: { status: 'REFUNDED', createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc } } }),
+      prisma.order.aggregate({
+        _sum: { totalAmount: true },
+        where: {
+          paymentStatus: 'PAID',
+          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+          createdAt: { gte: startOfTodayUtc },
+        },
+      }),
+      prisma.order.aggregate({
+        _sum: { totalAmount: true },
+        where: {
+          paymentStatus: 'PAID',
+          status: { notIn: ['CANCELLED', 'REFUNDED'] },
+          createdAt: { gte: startOfYesterdayUtc, lt: startOfTodayUtc },
+        },
+      }),
+    ]);
+
+    return {
+      metrics: {
+        totalOrders,
+        paidOrders,
+        shippedOrders,
+        refundedOrders,
+        totalRevenue: Number(paidRevenue._sum.totalAmount || 0),
+        currency,
+        totalOrdersTrend: calculateTrendPercent(todayTotalOrders, yesterdayTotalOrders),
+        paidOrdersTrend: calculateTrendPercent(todayPaidOrders, yesterdayPaidOrders),
+        shippedOrdersTrend: calculateTrendPercent(todayShippedOrders, yesterdayShippedOrders),
+        refundedOrdersTrend: calculateTrendPercent(todayRefundedOrders, yesterdayRefundedOrders),
+        totalRevenueTrend: calculateTrendPercent(
+          Number(todayRevenue._sum.totalAmount || 0),
+          Number(yesterdayRevenue._sum.totalAmount || 0)
+        ),
+      }
+    };
+  }
+
+  /**
+   * Get orders list - flattened response for UI display
+   * Returns: { items: [...], pagination: {...} }
+   */
+  static async getOrders(page = 1, limit = 10, status?: string, search?: string, storeId?: string) {
     const skip = (page - 1) * limit;
     const where: any = {};
+    const searchText = search?.trim();
 
     if (status) {
       where.status = status;
     }
+
+    if (searchText) {
+      where.OR = [
+        {
+          id: {
+            contains: searchText,
+            mode: 'insensitive',
+          },
+        },
+        {
+          user: {
+            email: {
+              contains: searchText,
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
+          user: {
+            username: {
+              contains: searchText,
+              mode: 'insensitive',
+            },
+          },
+        },
+      ];
+    }
+
+    if (storeId) {
+      where.storeId = storeId;
+    }
+
+    // Try cache
+    const cached = await CacheService.getOrderList(page, limit, { status, search: searchText || undefined, storeId });
+    if (cached) return cached;
+
+    // Fetch currency once for all items (same store = same currency, cached)
+    const currency = await systemSettingsService.getShopCurrency();
 
     const [orders, total] = await Promise.all([
       prisma.order.findMany({
@@ -25,7 +162,13 @@ export class AdminOrderService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
+        select: {
+          id: true,
+          status: true,
+          paymentStatus: true,
+          totalAmount: true,
+          createdAt: true,
+          userId: true,
           user: {
             select: {
               id: true,
@@ -33,37 +176,60 @@ export class AdminOrderService {
               username: true
             }
           },
-          shippingAddress: true, // Include the relation
-          items: {
-            include: {
-              product: true,
-              variant: true
-            }
+          _count: {
+            select: { items: true }
           }
         }
       }),
       prisma.order.count({ where })
     ]);
 
-    return {
-      orders: orders.map(order => ({
-        ...order,
+    const result = {
+      items: orders.map(order => ({
+        id: order.id,
+        status: order.status,
+        paymentStatus: order.paymentStatus,
         totalAmount: Number(order.totalAmount),
-        // shippingAddress is already an object due to the include above, no need to parse
+        currency,
+        createdAt: order.createdAt.toISOString(),
+        itemsCount: order._count.items,
+        customer: {
+          id: order.user?.id || null,
+          email: order.user?.email || null,
+          username: order.user?.username || null
+        }
       })),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit)
     };
+
+    // Save to cache (30s TTL for admin orders)
+    await CacheService.setOrderList(page, limit, result, { status, search: searchText || undefined }, 30);
+
+    return result;
   }
 
+  /**
+   * Get order by ID - projected detail response for editing/viewing
+   */
   static async getOrderById(orderId: string) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      include: {
+      select: {
+        id: true,
+        status: true,
+        paymentStatus: true,
+        totalAmount: true,
+        expiresAt: true,
+        lastPaymentAttemptAt: true,
+        paymentAttempts: true,
+        lastPaymentMethod: true,
+        cancelReason: true,
+        cancelledAt: true,
+        createdAt: true,
+        updatedAt: true,
         user: {
           select: {
             id: true,
@@ -71,11 +237,49 @@ export class AdminOrderService {
             username: true
           }
         },
-        shippingAddress: true, // Include the relation
+        shippingAddress: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+            addressLine1: true,
+            addressLine2: true,
+            city: true,
+            state: true,
+            postalCode: true,
+            country: true
+          }
+        },
         items: {
-          include: {
-            product: true,
-            variant: true
+          select: {
+            id: true,
+            quantity: true,
+            unitPrice: true,
+            fulfillmentStatus: true,
+            product: {
+              select: {
+                id: true,
+                name: true
+              }
+            },
+            variant: {
+              select: {
+                id: true,
+                skuCode: true,
+                name: true
+              }
+            }
+          }
+        },
+        shipments: {
+          select: {
+            id: true,
+            carrier: true,
+            trackingNumber: true,
+            status: true,
+            shippedAt: true,
+            deliveredAt: true
           }
         }
       }
@@ -85,53 +289,92 @@ export class AdminOrderService {
       return null;
     }
 
+    const shippingAddr = order.shippingAddress ? {
+      recipientName: `${order.shippingAddress.firstName} ${order.shippingAddress.lastName}`.trim(),
+      phone: order.shippingAddress.phone,
+      street: order.shippingAddress.addressLine1,
+      street2: order.shippingAddress.addressLine2,
+      city: order.shippingAddress.city,
+      state: order.shippingAddress.state,
+      zipCode: order.shippingAddress.postalCode,
+      country: order.shippingAddress.country
+    } : null;
+
     return {
-      ...order,
+      id: order.id,
+      status: order.status,
+      paymentStatus: order.paymentStatus,
       totalAmount: Number(order.totalAmount),
-      // shippingAddress is already an object
+      currency: await systemSettingsService.getShopCurrency(),
+      notes: null,
+      paymentMethod: order.lastPaymentMethod,
+      paymentAttempts: order.paymentAttempts,
+      lastPaymentAttemptAt: order.lastPaymentAttemptAt ? order.lastPaymentAttemptAt.toISOString() : null,
+      expiresAt: order.expiresAt ? order.expiresAt.toISOString() : null,
+      cancelReason: order.cancelReason,
+      cancelledAt: order.cancelledAt ? order.cancelledAt.toISOString() : null,
+      createdAt: order.createdAt.toISOString(),
+      updatedAt: order.updatedAt.toISOString(),
+      customer: {
+        id: order.user?.id || null,
+        email: order.user?.email || null,
+        username: order.user?.username || null
+      },
+      shippingAddress: shippingAddr,
+      items: order.items.map(item => ({
+        id: item.id,
+        quantity: item.quantity,
+        unitPrice: Number(item.unitPrice),
+        totalPrice: Number(item.unitPrice) * item.quantity,
+        productId: item.product?.id || null,
+        productName: item.product?.name || null,
+        variantId: item.variant?.id || null,
+        skuCode: item.variant?.skuCode || null,
+        variantName: item.variant?.name || null,
+        fulfillmentStatus: item.fulfillmentStatus
+      })),
+      shipments: order.shipments.map(s => ({
+        id: s.id,
+        carrier: s.carrier || '',
+        trackingNumber: s.trackingNumber || '',
+        status: s.status,
+        shippedAt: s.shippedAt ? s.shippedAt.toISOString() : null,
+        deliveredAt: s.deliveredAt ? s.deliveredAt.toISOString() : null
+      }))
     };
   }
 
-  static async updateOrderStatus(orderId: string, status: string) {
-    const order = await prisma.order.update({
+  static async updateOrderStatus(orderId: string, status: OrderStatusType) {
+    const existing = await prisma.order.findUnique({
       where: { id: orderId },
-      data: { status },
-      include: {
-        shippingAddress: true, // Include the relation
-        items: {
-          include: {
-            product: true,
-            variant: true
-          }
-        }
-      }
+      select: { status: true, paymentStatus: true },
     });
 
-    return {
-      ...order,
-      totalAmount: Number(order.totalAmount),
-      // shippingAddress is already an object
-    };
-  }
+    if (!existing) {
+      throw new Error('Order not found');
+    }
 
-  static async getOrderStats() {
-    const [total, pending, processing, shipped, delivered, cancelled] = await Promise.all([
-      prisma.order.count(),
-      prisma.order.count({ where: { status: 'PENDING' } }),
-      prisma.order.count({ where: { status: 'PROCESSING' } }),
-      prisma.order.count({ where: { status: 'SHIPPED' } }),
-      prisma.order.count({ where: { status: 'DELIVERED' } }),
-      prisma.order.count({ where: { status: 'CANCELLED' } })
-    ]);
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.order.update({
+        where: { id: orderId },
+        data: { status }
+      });
 
-    return {
-      total,
-      pending,
-      processing,
-      shipped,
-      delivered,
-      cancelled
-    };
+      await recordOrderStatusHistory(tx, {
+        orderId: updated.id,
+        fromStatus: existing.status as PrismaOrderStatus,
+        toStatus: updated.status as PrismaOrderStatus,
+        fromPaymentStatus: existing.paymentStatus as PrismaOrderPaymentStatus,
+        toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
+        reason: 'admin_update_status',
+        actorType: 'admin',
+      });
+    });
+
+    // Invalidate list cache
+    await CacheService.incrementOrderVersion();
+
+    return this.getOrderById(orderId);
   }
 
   /**
@@ -155,47 +398,51 @@ export class AdminOrderService {
       throw new Error(`Cannot ship order with status: ${order.status}`);
     }
 
-    // Create shipment record
-    const shipment = await prisma.shipment.create({
-      data: {
-        orderId,
-        carrier: data.carrier,
-        trackingNumber: data.trackingNumber,
-        status: 'SHIPPED',
-        shippedAt: new Date(),
-        items: data.items ? {
-          create: data.items.map(item => ({
-            orderItemId: item.orderItemId,
-            quantity: item.quantity,
-          })),
-        } : undefined,
-      },
-      include: {
-        items: true,
-      },
+    await prisma.$transaction(async (tx) => {
+      // Create shipment record
+      await tx.shipment.create({
+        data: {
+          orderId,
+          carrier: data.carrier,
+          trackingNumber: data.trackingNumber,
+          status: 'SHIPPED',
+          shippedAt: new Date(),
+          items: data.items ? {
+            create: data.items.map(item => ({
+              orderItemId: item.orderItemId,
+              quantity: item.quantity,
+            })),
+          } : undefined,
+        }
+      });
+
+      // Update order status to SHIPPED
+      const updated = await tx.order.update({
+        where: { id: orderId },
+        data: { status: OrderStatus.SHIPPED }
+      });
+
+      await recordOrderStatusHistory(tx, {
+        orderId: updated.id,
+        fromStatus: order.status as PrismaOrderStatus,
+        toStatus: updated.status as PrismaOrderStatus,
+        fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+        toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
+        reason: 'admin_ship_order',
+        actorType: 'admin',
+      });
     });
 
-    // Update order status to SHIPPED
-    const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
-      data: { status: 'SHIPPED' },
-      include: {
-        items: true,
-        shipments: true,
-      },
-    });
+    // Invalidate list cache
+    await CacheService.incrementOrderVersion();
 
-    return {
-      order: updatedOrder,
-      shipment,
-    };
+    return this.getOrderById(orderId);
   }
 
   /**
-   * Refund order - create refund record and process via Stripe
+   * Refund order
    */
   static async refundOrder(orderId: string, data: {
-    // amount: number; // Alpha: Full refund only, amount is derived
     reason?: string;
     idempotencyKey: string;
   }) {
@@ -207,6 +454,7 @@ export class AdminOrderService {
           orderBy: { createdAt: 'desc' },
           take: 1,
         },
+        items: true,
       },
     });
 
@@ -223,82 +471,93 @@ export class AdminOrderService {
       throw new Error('No successful payment found for this order');
     }
 
-    // Alpha Constraint: Full Refund Only
-    // Ensure we strictly use the order total amount
     const refundAmount = Number(order.totalAmount);
 
-    // Check if refund already exists with this idempotency key
+    // Check if refund already exists
     const existingRefund = await prisma.refund.findUnique({
       where: { idempotencyKey: data.idempotencyKey },
     });
 
     if (existingRefund) {
-      return existingRefund;
+      return this.getOrderById(orderId);
     }
 
-    // Validation for partial refund attempt is removed as we force full refund
-    // if (data.amount > order.totalAmount) ...
-
-    // Create refund record first (PENDING status)
-    const refund = await prisma.refund.create({
-      data: {
-        paymentId: payment.id,
-        orderId,
-        amount: refundAmount,
-        currency: payment.currency,
-        status: 'PENDING',
-        reason: data.reason,
-        provider: 'stripe',
-        idempotencyKey: data.idempotencyKey,
-      },
-    });
+    await ExternalOrderService.requestRefundForOrder(orderId);
 
     try {
-      // Process refund via Stripe
-      if (payment.paymentIntentId) {
-        // Stripe uses smallest currency unit (e.g., cents)
-        const stripeRefund = await stripe.refunds.create({
-          payment_intent: payment.paymentIntentId,
-          amount: Math.round(refundAmount * 100),
-        }, {
-          idempotencyKey: data.idempotencyKey,
-        });
-
-        // Update refund with Stripe refund ID
-        const updatedRefund = await prisma.refund.update({
-          where: { id: refund.id },
+      await prisma.$transaction(async (tx) => {
+        const refund = await tx.refund.create({
           data: {
-            providerRefundId: stripeRefund.id,
-            status: stripeRefund.status === 'succeeded' ? 'SUCCEEDED' : 'PENDING',
+            paymentId: payment.id,
+            orderId,
+            amount: refundAmount,
+            currency: payment.currency,
+            status: 'COMPLETED',
+            reason: data.reason,
+            provider: payment.paymentMethod.toUpperCase(),
+            idempotencyKey: data.idempotencyKey,
           },
         });
 
-        // Update order payment status if full refund (which is always true in Alpha)
-        if (refundAmount >= Number(order.totalAmount)) {
-          await prisma.order.update({
-            where: { id: orderId },
-            data: {
-              paymentStatus: 'REFUNDED',
-              status: 'REFUNDED',
-            },
-          });
-        }
+        await tx.refundLedger.create({
+          data: {
+            refundId: refund.id,
+            paymentId: payment.id,
+            orderId,
+            eventType: 'SUCCEEDED',
+            amount: refundAmount,
+            currency: payment.currency,
+            provider: payment.paymentMethod,
+            idempotencyKey: data.idempotencyKey,
+          },
+        });
 
-        return updatedRefund;
-      } else {
-        throw new Error('No payment intent ID found');
-      }
-    } catch (error: any) {
-      // Update refund status to FAILED
-      await prisma.refund.update({
-        where: { id: refund.id },
-        data: {
-          status: 'FAILED',
-          metadata: JSON.stringify({ error: error.message }),
-        },
+        await tx.paymentLedger.create({
+          data: {
+            paymentId: payment.id,
+            orderId,
+            eventType: 'REFUNDED',
+            amount: refundAmount,
+            currency: payment.currency,
+            provider: payment.paymentMethod,
+            providerEventId: `refund:${refund.id}`,
+            idempotencyKey: data.idempotencyKey,
+          },
+        });
+
+        const updated = await tx.order.update({
+          where: { id: orderId },
+          data: {
+            paymentStatus: PaymentStatus.REFUNDED,
+            status: OrderStatus.REFUNDED,
+          },
+        });
+
+        await recordOrderStatusHistory(tx, {
+          orderId: updated.id,
+          fromStatus: order.status as PrismaOrderStatus,
+          toStatus: updated.status as PrismaOrderStatus,
+          fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+          toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
+          reason: data.reason ?? 'admin_refund',
+          actorType: 'admin',
+        });
+
+        for (const item of order.items) {
+          await InventoryService.incrementStock(tx, item.variantId, item.quantity);
+        }
       });
+    } catch (error) {
+      if (isUniqueConstraintError(error)) {
+        return this.getOrderById(orderId);
+      }
       throw error;
     }
+
+    // Invalidate list cache
+    await CacheService.incrementOrderVersion();
+
+    return this.getOrderById(orderId);
   }
 
   /**
@@ -309,6 +568,7 @@ export class AdminOrderService {
   }) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
+      include: { items: true },
     });
 
     if (!order) {
@@ -323,30 +583,34 @@ export class AdminOrderService {
       throw new Error('Order is already cancelled');
     }
 
-    // Update order status to CANCELLED
-    const updatedOrder = await prisma.order.update({
-      where: { id: orderId },
-      data: {
-        status: 'CANCELLED',
-        cancelReason: data.cancelReason,
-        cancelledAt: new Date(),
-      },
-      include: {
-        items: true,
-      },
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: OrderStatus.CANCELLED,
+          cancelReason: data.cancelReason,
+          cancelledAt: new Date(),
+        }
+      });
+
+      await recordOrderStatusHistory(tx, {
+        orderId: updated.id,
+        fromStatus: order.status as PrismaOrderStatus,
+        toStatus: updated.status as PrismaOrderStatus,
+        fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+        toPaymentStatus: updated.paymentStatus as PrismaOrderPaymentStatus,
+        reason: data.cancelReason,
+        actorType: 'admin',
+      });
+
+      for (const item of order.items) {
+        await InventoryService.incrementStock(tx, item.variantId, item.quantity);
+      }
     });
 
-    // Release inventory reservations if any
-    await prisma.inventoryReservation.updateMany({
-      where: {
-        orderId,
-        status: 'ACTIVE',
-      },
-      data: {
-        status: 'RELEASED',
-      },
-    });
+    // Invalidate list cache
+    await CacheService.incrementOrderVersion();
 
-    return updatedOrder;
+    return this.getOrderById(orderId);
   }
 }

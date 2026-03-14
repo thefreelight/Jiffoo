@@ -1,6 +1,6 @@
 /**
  * Auth Routes
- * 
+ *
  * Simplified version, removed multi-tenant related logic.
  */
 
@@ -9,6 +9,9 @@ import { AuthService } from './service';
 import { authMiddleware, requireAdmin } from './middleware';
 import { prisma } from '@/config/database';
 import { PasswordUtils } from '@/utils/password';
+import { sendSuccess, sendError } from '@/utils/response';
+import { authSchemas } from './schemas';
+import { EmailVerificationService } from '@/services/email-verification.service';
 
 export async function authRoutes(fastify: FastifyInstance) {
   // Register
@@ -16,31 +19,16 @@ export async function authRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['auth'],
       summary: 'Register new user',
-      body: {
-        type: 'object',
-        required: ['email', 'username', 'password'],
-        properties: {
-          email: { type: 'string', format: 'email' },
-          username: { type: 'string', minLength: 3 },
-          password: { type: 'string', minLength: 6 },
-          referralCode: { type: 'string' }
-        }
-      }
+      description: 'Create a new user account and receive authentication tokens',
+      ...authSchemas.register,
     }
   }, async (request, reply) => {
     try {
       const { email, username, password } = request.body as any;
       const result = await AuthService.register({ email, username, password });
-      return reply.code(201).send({
-        success: true,
-        data: result,
-        message: 'Registration successful'
-      });
+      return sendSuccess(reply, result, 'Registration successful', 201);
     } catch (error: any) {
-      return reply.code(400).send({
-        success: false,
-        error: error.message
-      });
+      return sendError(reply, 400, 'REGISTRATION_FAILED', error.message);
     }
   });
 
@@ -49,28 +37,22 @@ export async function authRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['auth'],
       summary: 'User login',
-      body: {
-        type: 'object',
-        required: ['email', 'password'],
-        properties: {
-          email: { type: 'string', format: 'email' },
-          password: { type: 'string' }
-        }
-      }
+      description: 'Authenticate user and receive access and refresh tokens',
+      ...authSchemas.login,
     }
   }, async (request, reply) => {
     try {
       const { email, password } = request.body as any;
       const result = await AuthService.login({ email, password });
-      return reply.send({
-        success: true,
-        data: result
-      });
+      return sendSuccess(reply, result);
     } catch (error: any) {
-      return reply.code(401).send({
-        success: false,
-        error: error.message
-      });
+      if (error.message === 'Account is inactive') {
+        return sendError(reply, 403, 'ACCOUNT_INACTIVE', error.message);
+      }
+      if (error.message === 'Email not verified. Please check your email for verification link.') {
+        return sendError(reply, 400, 'EMAIL_NOT_VERIFIED', error.message);
+      }
+      return sendError(reply, 401, 'LOGIN_FAILED', error.message);
     }
   });
 
@@ -80,20 +62,16 @@ export async function authRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['auth'],
       summary: 'Get current user info',
-      security: [{ bearerAuth: [] }]
+      description: 'Get authenticated user profile information',
+      security: [{ bearerAuth: [] }],
+      ...authSchemas.me,
     }
   }, async (request, reply) => {
     try {
       const user = await AuthService.getCurrentUser(request.user!.id);
-      return reply.send({
-        success: true,
-        data: user // Directly return UserProfile, no nesting
-      });
+      return sendSuccess(reply, user); // Directly return UserProfile, no nesting
     } catch (error: any) {
-      return reply.code(401).send({
-        success: false,
-        error: error.message
-      });
+      return sendError(reply, 401, 'UNAUTHORIZED', error.message);
     }
   });
 
@@ -103,13 +81,8 @@ export async function authRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['auth'],
       summary: 'Refresh access token',
-      body: {
-        type: 'object',
-        required: ['refresh_token'],
-        properties: {
-          refresh_token: { type: 'string' }
-        }
-      }
+      description: 'Use a refresh token to obtain a new access token',
+      ...authSchemas.refresh,
     }
   }, async (request, reply) => {
     try {
@@ -118,15 +91,12 @@ export async function authRoutes(fastify: FastifyInstance) {
         throw new Error('Refresh token is required');
       }
       const result = await AuthService.refreshSession(refresh_token);
-      return reply.send({
-        success: true,
-        data: result
-      });
+      return sendSuccess(reply, result);
     } catch (error: any) {
-      return reply.code(401).send({
-        success: false,
-        error: error.message
-      });
+      if (error.message === 'Account is inactive') {
+        return sendError(reply, 403, 'ACCOUNT_INACTIVE', error.message);
+      }
+      return sendError(reply, 401, 'REFRESH_FAILED', error.message);
     }
   });
 
@@ -134,13 +104,121 @@ export async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/logout', {
     schema: {
       tags: ['auth'],
-      summary: 'User logout'
+      summary: 'User logout',
+      description: 'Logout user (client-side token removal)',
+      ...authSchemas.logout,
     }
   }, async (_request, reply) => {
-    return reply.send({
-      success: true,
-      message: 'Logged out successfully'
-    });
+    return sendSuccess(reply, {
+      loggedOut: true,
+      timestamp: new Date().toISOString(),
+    }, 'Logged out successfully');
+  });
+
+  // Verify email
+  fastify.get('/verify-email', {
+    schema: {
+      tags: ['auth'],
+      summary: 'Verify email address',
+      querystring: {
+        type: 'object',
+        properties: {
+          token: { type: 'string' }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    try {
+      const { token } = request.query as any;
+      if (!token) {
+        return reply.code(400).send({
+          success: false,
+          error: {
+            code: 'TOKEN_REQUIRED',
+            message: 'Verification token is required'
+          }
+        });
+      }
+
+      const result = await EmailVerificationService.verifyToken(token);
+
+      if (!result.success) {
+        return reply.code(400).send({
+          success: false,
+          error: {
+            code: 'VERIFICATION_FAILED',
+            message: result.error || 'Failed to verify email'
+          }
+        });
+      }
+
+      return reply.send({
+        success: true,
+        data: null,
+        message: 'Email verified successfully'
+      });
+    } catch (error: any) {
+      return reply.code(500).send({
+        success: false,
+        error: {
+          code: 'VERIFICATION_ERROR',
+          message: error.message
+        }
+      });
+    }
+  });
+
+  // Resend verification email
+  fastify.post('/resend-verification', {
+    schema: {
+      tags: ['auth'],
+      summary: 'Resend verification email',
+      body: {
+        type: 'object',
+        properties: {
+          email: { type: 'string', format: 'email' }
+        }
+      }
+    }
+  }, async (request, reply) => {
+    try {
+      const { email } = request.body as any;
+      if (!email) {
+        return reply.code(400).send({
+          success: false,
+          error: {
+            code: 'EMAIL_REQUIRED',
+            message: 'Email address is required'
+          }
+        });
+      }
+
+      const result = await EmailVerificationService.resendVerificationEmail(email);
+
+      if (!result.success) {
+        return reply.code(400).send({
+          success: false,
+          error: {
+            code: 'RESEND_FAILED',
+            message: result.error || 'Failed to resend verification email'
+          }
+        });
+      }
+
+      return reply.send({
+        success: true,
+        data: null,
+        message: 'Verification email sent successfully'
+      });
+    } catch (error: any) {
+      return reply.code(500).send({
+        success: false,
+        error: {
+          code: 'RESEND_ERROR',
+          message: error.message
+        }
+      });
+    }
   });
 
   // Change password
@@ -149,15 +227,9 @@ export async function authRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['auth'],
       summary: 'Change password',
+      description: 'Change current user password (requires authentication)',
       security: [{ bearerAuth: [] }],
-      body: {
-        type: 'object',
-        required: ['currentPassword', 'newPassword'],
-        properties: {
-          currentPassword: { type: 'string' },
-          newPassword: { type: 'string', minLength: 6 }
-        }
-      }
+      ...authSchemas.changePassword,
     }
   }, async (request, reply) => {
     try {
@@ -167,18 +239,12 @@ export async function authRoutes(fastify: FastifyInstance) {
       });
 
       if (!user) {
-        return reply.code(404).send({
-          success: false,
-          error: 'User not found'
-        });
+        return sendError(reply, 404, 'USER_NOT_FOUND', 'User not found');
       }
 
       const isValid = await PasswordUtils.verify(currentPassword, user.password);
       if (!isValid) {
-        return reply.code(400).send({
-          success: false,
-          error: 'Current password is incorrect'
-        });
+        return sendError(reply, 400, 'INVALID_PASSWORD', 'Current password is incorrect');
       }
 
       const hashedPassword = await PasswordUtils.hash(newPassword);
@@ -187,15 +253,12 @@ export async function authRoutes(fastify: FastifyInstance) {
         data: { password: hashedPassword }
       });
 
-      return reply.send({
-        success: true,
-        message: 'Password changed successfully'
-      });
+      return sendSuccess(reply, {
+        passwordChanged: true,
+        changedAt: new Date().toISOString(),
+      }, 'Password changed successfully');
     } catch (error: any) {
-      return reply.code(500).send({
-        success: false,
-        error: error.message
-      });
+      return sendError(reply, 500, 'CHANGE_PASSWORD_FAILED', error.message);
     }
   });
 }

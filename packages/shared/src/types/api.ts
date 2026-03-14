@@ -1,10 +1,23 @@
-// API Response Types
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   message?: string;
-  error?: string;
-  code?: string;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+}
+
+export interface ListResult<T> {
+  items: T[];
+  total: number;
+}
+
+export interface PageResult<T> extends ListResult<T> {
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 export interface PaginatedResponse<T> {
@@ -57,7 +70,7 @@ export interface ApiEndpoints {
   register: '/auth/register';
   logout: '/auth/logout';
   refresh: '/auth/refresh';
-  profile: '/auth/profile';
+  profile: '/auth/me';
 
   // Products
   products: '/products';
@@ -66,10 +79,10 @@ export interface ApiEndpoints {
 
   // Cart
   cart: '/cart';
-  cartAdd: '/cart/add';
-  cartUpdate: '/cart/update';
-  cartRemove: '/cart/remove';
-  cartClear: '/cart/clear';
+  cartAdd: '/cart/items';
+  cartUpdate: '/cart/items/:id';
+  cartRemove: '/cart/items/:id';
+  cartClear: '/cart';
 
   // Orders
   orders: '/orders';
@@ -81,9 +94,9 @@ export interface ApiEndpoints {
   users: '/users';
   userById: '/users/:id';
 
-  // Admin
-  adminStats: '/api/admin/stats';
-  adminUsers: '/api/admin/users';
-  adminOrders: '/api/admin/orders';
-  adminProducts: '/api/admin/products';
+  // Admin - baseURL already contains /api, so no /api prefix needed
+  adminStats: '/admin/stats';
+  adminUsers: '/admin/users';
+  adminOrders: '/admin/orders';
+  adminProducts: '/admin/products';
 }

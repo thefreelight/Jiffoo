@@ -13,7 +13,8 @@ import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { ordersApi } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { useT } from 'shared/src/i18n/react';
-import type { Order } from 'shared/src/types/order';
+import type { PageResult } from 'shared/src';
+import type { ShopOrderListItemDTO } from 'shared';
 
 export default function OrdersPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
@@ -21,7 +22,7 @@ export default function OrdersPage() {
   const { toast } = useToast();
   const t = useT();
 
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [orders, setOrders] = useState<ShopOrderListItemDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -39,21 +40,12 @@ export default function OrdersPage() {
       const response = await ordersApi.getOrders({});
 
       if (response.success && response.data) {
-        // Handle paginated response (Alpha Gate: data.orders + data.pagination)
-        const responseData = response.data as any;
-        if (responseData.orders) {
-          setOrders(responseData.orders);
-          if (responseData.pagination && responseData.pagination.totalPages) {
-            setTotalPages(responseData.pagination.totalPages);
-          }
-        } else if (Array.isArray(responseData)) {
-          // Fallback for direct array
-          setOrders(responseData);
-        } else {
-          setOrders([]);
-        }
+        // Backend now returns PageResult format: { items, page, limit, total, totalPages }
+        const responseData = response.data as PageResult<ShopOrderListItemDTO>;
+        setOrders(responseData.items);
+        setTotalPages(responseData.totalPages);
       } else {
-        setError(response.message || getText('common.errors.general', 'Failed to fetch orders'));
+        setError(response.error?.message || getText('common.errors.general', 'Failed to fetch orders'));
       }
     } catch (err: unknown) {
       setError((err as { message?: string }).message || getText('common.errors.general', 'Failed to fetch orders'));
@@ -86,7 +78,7 @@ export default function OrdersPage() {
       } else {
         toast({
           title: getText('shop.orders.cancelFailed', 'Cancel failed'),
-          description: response.message || getText('common.errors.general', 'Failed to cancel order'),
+          description: response.error?.message || (typeof response.error === 'string' ? response.error : undefined) || getText('common.errors.general', 'Failed to cancel order'),
           variant: 'destructive',
         });
       }

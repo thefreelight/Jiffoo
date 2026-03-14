@@ -7,14 +7,9 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse, AxiosError } f
 import { envConfig } from '../config/env';
 import { StorageAdapter, StorageAdapterFactory } from './storage-adapters';
 
-// API Response type
-export interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  message?: string;
-  error?: string;
-  errors?: Record<string, string[]>;
-}
+// API Response type - Import from shared types for consistency
+import type { ApiResponse as SharedApiResponse } from '../src/types/api';
+export type ApiResponse<T = any> = SharedApiResponse<T>;
 
 // Paginated response type
 export interface PaginatedResponse<T = any> {
@@ -66,7 +61,7 @@ export interface UserProfile {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-  lastLoginAt?: string;
+  lastLoginAt?: string | null;
 }
 
 // API Client Configuration
@@ -288,14 +283,20 @@ export class ApiClient {
 
         return {
           success: false,
-          error: error.message,
+          error: {
+            code: 'REQUEST_FAILED',
+            message: error.message
+          },
           message: error.response?.statusText || 'Request failed',
         };
       }
 
       return {
         success: false,
-        error: 'Unknown error',
+        error: {
+          code: 'UNKNOWN_ERROR',
+          message: 'An unexpected error occurred'
+        },
         message: 'An unexpected error occurred',
       };
     }

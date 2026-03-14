@@ -37,6 +37,8 @@ describe('Extensions Installer Endpoints', () => {
     const endpoints = [
       { method: 'POST', url: '/api/extensions/plugin/install' },
       { method: 'DELETE', url: '/api/extensions/plugin/test-slug' },
+      { method: 'POST', url: '/api/extensions/plugin/test-slug/restore' },
+      { method: 'DELETE', url: '/api/extensions/plugin/test-slug/purge' },
       { method: 'GET', url: '/api/extensions/plugin/test-slug' },
       { method: 'GET', url: '/api/extensions/plugin' },
     ];
@@ -51,6 +53,8 @@ describe('Extensions Installer Endpoints', () => {
     const endpoints = [
       { method: 'POST', url: '/api/extensions/plugin/install' },
       { method: 'DELETE', url: '/api/extensions/plugin/test-slug' },
+      { method: 'POST', url: '/api/extensions/plugin/test-slug/restore' },
+      { method: 'DELETE', url: '/api/extensions/plugin/test-slug/purge' },
       { method: 'GET', url: '/api/extensions/plugin/test-slug' },
       { method: 'GET', url: '/api/extensions/plugin' },
     ];
@@ -107,6 +111,30 @@ describe('Extensions Installer Endpoints', () => {
     });
   });
 
+  describe('DELETE /api/extensions/plugin/:slug/purge', () => {
+    it('should return 404 for non-existent plugin purge', async () => {
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/api/extensions/plugin/non-existent-plugin/purge',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+  });
+
+  describe('POST /api/extensions/plugin/:slug/restore', () => {
+    it('should return 404 for non-existent plugin restore', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/extensions/plugin/non-existent-plugin/restore',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(404);
+    });
+  });
+
   describe('GET /api/extensions/:kind/:slug', () => {
     it('should return 404 for non-existent extension', async () => {
       const response = await app.inject({
@@ -133,7 +161,12 @@ describe('Extensions Installer Endpoints', () => {
       const body = response.json();
       expect(body).toHaveProperty('success', true);
       expect(body).toHaveProperty('data');
-      expect(Array.isArray(body.data)).toBe(true);
+      expect(body.data).toHaveProperty('items');
+      expect(Array.isArray(body.data.items)).toBe(true);
+      expect(body.data).toHaveProperty('total');
+      // Response format is { items: [...], total: number }
+      expect(body.data).toHaveProperty('items');
+      expect(Array.isArray(body.data.items)).toBe(true);
     });
   });
 });

@@ -12,27 +12,33 @@ import { PrismaClient } from '@prisma/client';
 // Create a dedicated Prisma client for tests
 let prisma: PrismaClient | null = null;
 
+function resolveTestDatabaseUrl(): string {
+  const databaseUrl = process.env.DATABASE_URL_TEST;
+  if (!databaseUrl) {
+    throw new Error('DATABASE_URL_TEST is required for tests.');
+  }
+
+  if (!/(^|[_-])test([^a-zA-Z0-9]|$)/i.test(databaseUrl)) {
+    throw new Error(`Unsafe DATABASE_URL for tests: ${databaseUrl}`);
+  }
+
+  return databaseUrl;
+}
+
 /**
  * Get the test Prisma client (singleton)
  */
 export function getTestPrisma(): PrismaClient {
   if (!prisma) {
-    const databaseUrl = process.env.DATABASE_URL_TEST || process.env.DATABASE_URL;
-    
-    if (!databaseUrl) {
-      console.warn('⚠️ DATABASE_URL not set, using in-memory fallback for tests');
-    }
+    const databaseUrl = resolveTestDatabaseUrl();
     
     prisma = new PrismaClient({
       log: process.env.DEBUG_PRISMA === 'true' ? ['query', 'info', 'warn', 'error'] : ['error'],
-      // Only specify datasources if URL is available
-      ...(databaseUrl && {
-        datasources: {
-          db: {
-            url: databaseUrl,
-          },
+      datasources: {
+        db: {
+          url: databaseUrl,
         },
-      }),
+      },
     });
   }
   return prisma;
@@ -53,13 +59,6 @@ export async function setupTestDatabase(): Promise<void> {
     // Optionally run migrations in test mode
     // await runMigrations();
   } catch (error: any) {
-    // If database doesn't exist (P1003), try to use main database
-    if (error.errorCode === 'P1003') {
-      console.warn('⚠️ Test database does not exist, using main DATABASE_URL');
-      console.warn('   Consider creating a separate test database for isolation');
-      // Continue anyway - tests will use whatever database is available
-      return;
-    }
     console.error('❌ Failed to connect to test database:', error);
     throw error;
   }

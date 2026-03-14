@@ -37,7 +37,7 @@ cd jiffoo
 pnpm install
 
 # Setup database
-cp .env.example .env
+cp apps/api/.env.example .env
 # Edit .env with your database credentials
 
 # Run migrations
@@ -53,6 +53,23 @@ pnpm dev
 - Admin: http://localhost:3002
 - API: http://localhost:3001
 
+### Test Environment URLs
+
+The current canonical test environment entrypoints are maintained in:
+- [/.gitlab-ci.yml](/Users/jordan/Projects/jiffoo-mall-core/.gitlab-ci.yml)
+- [/infra/ops/ci-templates/notify-feishu.yml](/Users/jordan/Projects/jiffoo-mall-core/infra/ops/ci-templates/notify-feishu.yml)
+
+Use these URLs for dev/test verification:
+- Shop: http://jiffoo-shop.chfastpay.com:8888
+- API: http://jiffoo-api.chfastpay.com:8888
+- Admin: http://jiffoo-admin.chfastpay.com:8888
+- Super Admin: http://jiffoo-super-admin.chfastpay.com:8888
+- Developer Portal: http://jiffoo-developer-portal.chfastpay.com:8888
+- Docs: http://jiffoo-docs.chfastpay.com:8888
+- Platform API: http://jiffoo-platform-api.chfastpay.com:8888
+
+Do not use the legacy `jiffoo.chfastpay.com:3000x` NodePort addresses for smoke testing.
+
 ## Architecture
 
 ```
@@ -65,19 +82,20 @@ jiffoo/
 │   ├── shared/       # Shared types and utilities
 │   ├── ui/           # UI component library
 │   ├── plugin-sdk/   # Plugin development SDK
-│   └── theme-sdk/    # Theme development SDK
+│   └── theme-api-sdk/ # Theme-facing Core API client
 └── extensions/
     ├── plugins/      # Installed plugins
-    └── themes/       # Installed themes
+    ├── themes/       # Installed Theme Packs
+    └── themes-app/   # Installed Theme Apps
 ```
 
 ## Documentation
 
-- [Installation Guide](docs/installation.md)
-- [API Documentation](docs/api.md)
-- [Plugin Development](docs/plugins.md)
-- [Theme Development](docs/themes.md)
-- [Contributing Guide](CONTRIBUTING.md)
+- [Installation Guide](apps/docs/content/getting-started/installation.mdx)
+- [API Documentation](apps/docs/content/developer/api-reference.mdx)
+- [Plugin Development](apps/docs/content/developer/plugin-development.mdx)
+- [Theme Development](apps/docs/content/developer/theme-development.mdx)
+- [Theme App Runtime](apps/docs/content/developer/theme-app-runtime-architecture.mdx)
 
 ## License
 
@@ -103,7 +121,7 @@ But you must:
 
 ## Contributing
 
-We welcome contributions! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details.
+We welcome contributions!
 
 ---
 

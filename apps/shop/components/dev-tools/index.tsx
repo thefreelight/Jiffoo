@@ -7,9 +7,16 @@
 
 'use client';
 
-import { ReactScan } from './react-scan';
+import dynamic from 'next/dynamic';
 
 const isDev = process.env.NODE_ENV === 'development';
+
+// Dynamically import ReactScan only in development to avoid build issues
+const ReactScan = isDev
+  ? dynamic(() => import('./react-scan').then((mod) => mod.ReactScan), {
+      ssr: false,
+    })
+  : null;
 
 /**
  * DevTools component
@@ -22,7 +29,7 @@ const isDev = process.env.NODE_ENV === 'development';
  * - React Grab: Browser extension for React debugging (requires extension)
  */
 export function DevTools() {
-  if (!isDev) {
+  if (!isDev || !ReactScan) {
     return null;
   }
 
@@ -45,5 +52,4 @@ export function DevTools() {
   );
 }
 
-export { ReactScan };
 export default DevTools;

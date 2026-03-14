@@ -14,13 +14,14 @@ import { useToast } from '@/hooks/use-toast';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useShopTheme } from '@/lib/themes/provider';
 import { useT } from 'shared/src/i18n/react';
+import { LoadingState, ErrorState } from '@/components/ui/state-components';
 
 export default function LoginPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
   const router = useRouter();
   const nav = useLocalizedNavigation();
   const { toast } = useToast();
-  const { login, isLoading, error, clearError, googleLogin } = useAuthStore();
+  const { login, isLoading, error, clearError } = useAuthStore();
   const t = useT();
 
   // Helper function for translations with fallback
@@ -28,25 +29,39 @@ export default function LoginPage() {
     return t ? t(key) : fallback;
   };
 
+  // Theme loading state - use unified LoadingState component
   if (themeLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="animate-pulse space-y-4">
-          <div className="h-12 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
-      </div>
+      <LoadingState
+        type="spinner"
+        message={getText('common.actions.loading', 'Loading...')}
+        fullPage
+      />
     );
   }
 
+  // If theme component is unavailable, use ErrorState fallback
   if (!theme?.components?.LoginPage) {
+    const NotFoundComponent = theme?.components?.NotFound;
+    if (NotFoundComponent) {
+      return (
+        <NotFoundComponent
+          route="/auth/login"
+          message={getText('common.errors.loginUnavailable', 'Login component unavailable')}
+          config={config}
+          onGoHome={() => nav.push('/')}
+          t={t}
+        />
+      );
+    }
+
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-md p-6">
-          <h1 className="text-xl font-bold text-red-600">{getText('common.errors.componentUnavailable', 'Login Page Not Found')}</h1>
-          <p className="mt-2 text-sm text-gray-600">{getText('common.errors.componentUnavailable', 'The login page component is not available in the current theme.')}</p>
-        </div>
-      </div>
+      <ErrorState
+        title={getText('common.errors.themeUnavailable', 'Theme Component Unavailable')}
+        message={getText('common.errors.loginUnavailable', 'Unable to load login component')}
+        onGoHome={() => nav.push('/')}
+        fullPage
+      />
     );
   }
 
@@ -77,19 +92,7 @@ export default function LoginPage() {
     }
   };
 
-  const handleOAuthClick = async (provider: 'google') => {
-    try {
-      if (provider === 'google') {
-        await googleLogin();
-      }
-    } catch (error: any) {
-      toast({
-        title: getText('shop.auth.login.oauthFailed', 'OAuth login failed'),
-        description: error.message || getText('common.errors.tryAgain', 'Please try again'),
-        variant: 'destructive',
-      });
-    }
-  };
+
 
   const handleNavigateToRegister = () => {
     nav.push('/auth/register');
@@ -97,6 +100,11 @@ export default function LoginPage() {
 
   const handleNavigateToForgotPassword = () => {
     nav.push('/auth/forgot-password');
+  };
+
+  const handleOAuthClick = async (provider: string) => {
+    // OAuth feature not implemented
+    console.log('OAuth not implemented:', provider);
   };
 
   const LoginPageComponent = theme.components.LoginPage;
@@ -109,8 +117,8 @@ export default function LoginPage() {
       locale={nav.locale}
       t={t}
       onSubmit={handleSubmit}
-      onOAuthClick={handleOAuthClick}
       onNavigateToRegister={handleNavigateToRegister}
+      onOAuthClick={handleOAuthClick}
       onNavigateToForgotPassword={handleNavigateToForgotPassword}
     />
   );

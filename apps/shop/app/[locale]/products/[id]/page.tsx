@@ -1,183 +1,112 @@
 /**
  * Product Detail Page for Shop Application
  *
- * Displays detailed product information with add to cart functionality.
- * Supports i18n through the translation function.
+ * Server component that generates SEO metadata and structured data.
+ * Renders ProductDetailClient for interactive functionality.
  */
 
-'use client';
-
-import * as React from 'react';
-import { useShopTheme } from '@/lib/themes/provider';
-import { useCartStore } from '@/store/cart';
-import { useToast } from '@/hooks/use-toast';
-import { ProductService, Product } from '@/services/product.service';
-import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { useT } from 'shared/src/i18n/react';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { ProductService } from '@/services/product.service';
+import { generateProductMetaTags, generateProductStructuredData } from '@/lib/seo-utils';
+import { generateMetadata as generateSeoMetadata } from '@/components/seo/SeoHead';
+import ProductDetailClient from './ProductDetailClient';
 
 interface ProductPageProps {
   params: Promise<{
     id: string;
+    locale: string;
   }>;
 }
 
-export default function ProductPage({ params }: ProductPageProps) {
-  // Use React.use() to unwrap params Promise
-  const resolvedParams = React.use(params);
-  const { theme, config, isLoading: themeLoading } = useShopTheme();
-  const nav = useLocalizedNavigation();
-  const { addToCart } = useCartStore();
-  const { toast } = useToast();
-  const t = useT();
+/**
+ * Generate metadata for the product detail page
+ * This function is called by Next.js to generate <head> tags
+ */
+export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
+  try {
+    const resolvedParams = await params;
+    const product = await ProductService.getProduct(
+      resolvedParams.id,
+      resolvedParams.locale
+    );
 
-  const [product, setProduct] = React.useState<Product | null>(null);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const [selectedVariant, setSelectedVariant] = React.useState<string | undefined>(undefined);
-  const [quantity, setQuantity] = React.useState(1);
+    // Get image URL - use first image if available
+    const imageUrl = product.images && product.images.length > 0
+      ? product.images[0]
+      : undefined;
 
-  // Helper function for translations with fallback
-  const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback;
-  };
+    // Generate meta tags using SEO utilities
+    const metaTags = generateProductMetaTags({
+      name: product.name,
+      description: product.description || '',
+      slug: resolvedParams.id,
+      imageUrl,
+      price: product.price,
+      currency: 'USD',
+    });
 
-  // Load product data with locale for translated content
-  React.useEffect(() => {
-    const loadProduct = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const productData = await ProductService.getProduct(
-          resolvedParams.id,
-          nav.locale
-        );
-        setProduct(productData);
-
-        // Auto-select first available variant
-        if (productData.variants && productData.variants.length > 0) {
-          const availableVariants = productData.variants.filter((v: any) => v.isActive !== false);
-          if (availableVariants.length > 0) {
-            setSelectedVariant(availableVariants[0].id);
-          }
-        }
-      } catch (err) {
-        const errorMessage = 'Failed to load product';
-        setError(err instanceof Error ? err.message : errorMessage);
-        console.error('Failed to load product:', err);
-      } finally {
-        setLoading(false);
-      }
+    // Convert to Next.js Metadata format
+    return generateSeoMetadata(metaTags, {
+      siteName: 'Jiffoo Mall',
+      locale: resolvedParams.locale,
+    });
+  } catch (error) {
+    // Return default metadata if product not found
+    return {
+      title: 'Product Not Found',
+      description: 'The requested product could not be found.',
     };
+  }
+}
 
-    loadProduct();
-  }, [resolvedParams.id, nav.locale]);
+/**
+ * Product Detail Page Component
+ * Fetches product data server-side and renders client component
+ */
+export default async function ProductPage({ params }: ProductPageProps) {
+  const resolvedParams = await params;
 
-  // Handle variant selection
-  const handleVariantChange = (variantId: string) => {
-    setSelectedVariant(variantId);
-  };
-
-  // Handle quantity change
-  const handleQuantityChange = (newQuantity: number) => {
-    if (!product) return;
-    const maxStock = product.inventory?.available ?? (product as any).stock ?? 100;
-    if (newQuantity >= 1 && newQuantity <= maxStock) {
-      setQuantity(newQuantity);
-    }
-  };
-
-  // Handle add to cart
-  const handleAddToCart = async () => {
-    console.log('[ProductPage] handleAddToCart called', { product, selectedVariant, quantity });
-
-    if (!product) {
-      return;
-    }
-
-    if (product.variants && product.variants.length > 0 && !selectedVariant) {
-      toast({
-        title: getText('shop.product.selectVariant', 'Please select an option'),
-        description: getText('shop.product.selectVariantDescription', 'Please select a product option before adding to cart'),
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    try {
-      await addToCart(product.id, quantity, selectedVariant);
-      toast({
-        title: getText('shop.cart.addedToCart', 'Added to cart'),
-        description: `${product.name} ${getText('shop.cart.addedToCart', 'added to cart')}`,
-      });
-    } catch (err) {
-      console.error('[ProductPage] addToCart error', err);
-      toast({
-        title: getText('shop.cart.addFailed', 'Failed to add'),
-        description: err instanceof Error ? err.message : getText('common.errors.unknown', 'Unknown error'),
-        variant: 'destructive',
-      });
-    }
-  };
-
-  // Handle back navigation
-  const handleBack = () => {
-    nav.push('/products');
-  };
-
-  // Theme loading state
-  if (themeLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-current border-r-transparent" />
-          <p className="mt-4 text-sm text-gray-600">{getText('common.actions.loading', 'Loading...')}</p>
-        </div>
-      </div>
+  let product;
+  try {
+    product = await ProductService.getProduct(
+      resolvedParams.id,
+      resolvedParams.locale
     );
+  } catch (error) {
+    // If product not found, show 404
+    notFound();
   }
 
-  // If theme component is unavailable, use NotFound fallback
-  if (!theme?.components?.ProductDetailPage) {
-    const NotFoundComponent = theme?.components?.NotFound;
-    if (NotFoundComponent) {
-      return (
-        <NotFoundComponent
-          route={`/products/${resolvedParams.id}`}
-          message={getText('common.errors.componentUnavailable', 'Product detail component unavailable')}
-          config={config}
-          onGoHome={() => nav.push('/')}
-          t={t}
-        />
-      );
-    }
+  // Determine product availability status
+  const availability = product.stock && product.stock > 0 ? 'InStock' : 'OutOfStock';
 
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-red-600">{getText('common.errors.themeUnavailable', 'Theme Component Unavailable')}</h1>
-          <p className="mt-2 text-sm text-gray-600">{getText('common.errors.componentUnavailable', 'Unable to load product detail component')}</p>
-        </div>
-      </div>
-    );
-  }
+  // Get image URL - use first image if available
+  const imageUrl = product.images && product.images.length > 0
+    ? product.images[0]
+    : undefined;
 
-  // Render with theme component
-  const ProductDetailPageComponent = theme.components.ProductDetailPage;
+  // Generate structured data for the product
+  const structuredData = generateProductStructuredData({
+    name: product.name,
+    description: product.description || '',
+    slug: resolvedParams.id,
+    imageUrl,
+    price: product.price,
+    currency: 'USD',
+    availability,
+  });
 
   return (
-    <ProductDetailPageComponent
-      product={product}
-      isLoading={loading}
-      selectedVariant={selectedVariant}
-      quantity={quantity}
-      config={config}
-      locale={nav.locale}
-      t={t}
-      onVariantChange={handleVariantChange}
-      onQuantityChange={handleQuantityChange}
-      onAddToCart={handleAddToCart}
-      onBack={handleBack}
-    />
+    <>
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: structuredData }}
+      />
+
+      {/* Render client component for interactivity */}
+      <ProductDetailClient product={product} locale={resolvedParams.locale} />
+    </>
   );
 }

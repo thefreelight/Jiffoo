@@ -11,8 +11,14 @@ export const UpdateProfileSchema = z.object({
   avatar: z.string().url().optional(),
 });
 
+export const UpdateEmailSchema = z.object({
+  newEmail: z.string().email(),
+  currentPassword: z.string().min(1),
+});
+
 // TypeScript type definition
 export type UpdateProfileRequest = z.infer<typeof UpdateProfileSchema>;
+export type UpdateEmailRequest = z.infer<typeof UpdateEmailSchema>;
 
 // User profile response structure
 export interface UserProfileResponse {
@@ -21,6 +27,10 @@ export interface UserProfileResponse {
   username: string;
   avatar?: string;
   role: string;
+  isActive: boolean;
+  orderCount: number;
+  totalOrders: number;
+  totalSpent: number;
   createdAt: Date;
   updatedAt: Date;
   languagePreferences?: {

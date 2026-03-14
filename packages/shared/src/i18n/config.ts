@@ -47,7 +47,9 @@ export const LOCALE_CONFIG: Record<Locale, { name: string; nativeName: string; d
  * @returns True if the locale is supported
  */
 export function isSupportedLocale(locale: string): locale is Locale {
-  return LOCALES.includes(locale as Locale);
+  // Guard against LOCALES being undefined (can happen if tree-shaken in client bundles)
+  const locales = LOCALES ?? ['en', 'zh-Hant'];
+  return (locales as readonly string[]).includes(locale);
 }
 
 /**

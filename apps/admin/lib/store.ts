@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { DashboardStats } from './types'
-import { statisticsApi } from './api'
+import { dashboardApi, unwrapApiResponse } from './api'
 import { authClient, type UserProfile } from 'shared'
 
 interface AppUser extends UserProfile { }
@@ -29,59 +29,52 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true })
     try {
       const response = await authClient.login({ email, password });
+      const loginData = unwrapApiResponse(response);
 
-      if (response.success && response.data) {
-        if (response.data.access_token) {
-          authClient.setToken(response.data.access_token);
-          if (response.data.refresh_token) {
-            (authClient as any).setRefreshToken(response.data.refresh_token);
-          }
-
-          const token = response.data.access_token;
-          const tokenPayload = (() => {
-            try {
-              const parts = token.split('.');
-              if (parts.length !== 3) return null;
-              return JSON.parse(atob(parts[1]));
-            } catch (error) {
-              console.error('Failed to parse token payload:', error);
-              return null;
-            }
-          })();
-
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('auth_status', 'authenticated');
-          }
-
-          const profileResponse = await authClient.getProfile();
-          if (profileResponse.success && profileResponse.data) {
-            const userData = profileResponse.data;
-            const userProfile = {
-              id: userData.id,
-              email: userData.email,
-              username: userData.username,
-              firstName: userData.firstName,
-              lastName: userData.lastName,
-              avatar: userData.avatar,
-              role: tokenPayload?.role || userData.role as any,
-              permissions: userData.permissions,
-              isActive: userData.isActive,
-              createdAt: userData.createdAt,
-              updatedAt: userData.updatedAt,
-              lastLoginAt: userData.lastLoginAt || new Date().toISOString()
-            }
-
-            set({ user: userProfile, isAuthenticated: true, isLoading: false })
-          } else {
-            throw new Error('Failed to get user profile')
-          }
-        } else {
-          throw new Error('Invalid response format: missing access_token')
-        }
-      } else {
-        set({ isLoading: false })
-        throw new Error(response.message || 'Login failed')
+      if (!loginData.access_token) {
+        throw new Error('Invalid response format: missing access_token');
       }
+
+      authClient.setToken(loginData.access_token);
+      if (loginData.refresh_token) {
+        (authClient as any).setRefreshToken(loginData.refresh_token);
+      }
+
+      const token = loginData.access_token;
+      const tokenPayload = (() => {
+        try {
+          const parts = token.split('.');
+          if (parts.length !== 3) return null;
+          return JSON.parse(atob(parts[1]));
+        } catch (error) {
+          console.error('Failed to parse token payload:', error);
+          return null;
+        }
+      })();
+
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('auth_status', 'authenticated');
+      }
+
+      const profileResponse = await authClient.getProfile();
+      const userData = unwrapApiResponse(profileResponse);
+
+      const userProfile = {
+        id: userData.id,
+        email: userData.email,
+        username: userData.username,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        avatar: userData.avatar,
+        role: tokenPayload?.role || userData.role as any,
+        permissions: userData.permissions,
+        isActive: userData.isActive,
+        createdAt: userData.createdAt,
+        updatedAt: userData.updatedAt,
+        lastLoginAt: userData.lastLoginAt || new Date().toISOString()
+      }
+
+      set({ user: userProfile, isAuthenticated: true, isLoading: false })
     } catch (error) {
       set({ isLoading: false })
       throw error
@@ -110,26 +103,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     try {
       const response = await authClient.getProfile();
-      if (response.success && response.data) {
-        const userData = response.data;
-        const user = {
-          id: userData.id,
-          email: userData.email,
-          username: userData.username,
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          avatar: userData.avatar,
-          role: userData.role as any,
-          permissions: userData.permissions,
-          isActive: userData.isActive,
-          createdAt: userData.createdAt,
-          updatedAt: userData.updatedAt,
-          lastLoginAt: userData.lastLoginAt || new Date().toISOString()
-        }
-        set({ user, isAuthenticated: true, isLoading: false, isChecking: false })
-      } else {
-        throw new Error(response.message || 'Token validation failed')
+      const userData = unwrapApiResponse(response);
+
+      const user = {
+        id: userData.id,
+        email: userData.email,
+        username: userData.username,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        avatar: userData.avatar,
+        role: userData.role as any,
+        permissions: userData.permissions,
+        isActive: userData.isActive,
+        createdAt: userData.createdAt,
+        updatedAt: userData.updatedAt,
+        lastLoginAt: userData.lastLoginAt || new Date().toISOString()
       }
+      set({ user, isAuthenticated: true, isLoading: false, isChecking: false })
     } catch (error) {
       console.warn('Auth check failed:', error)
       authClient.clearAuth()
@@ -163,10 +153,20 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   fetchStats: async () => {
     set({ isLoading: true, error: null })
     try {
-      const response = await statisticsApi.getDashboard()
-      set({ stats: (response.data as any).data || response.data, isLoading: false })
+      const response = await dashboardApi.get()
+      const data = unwrapApiResponse(response)
+
+      const stats: DashboardStats = {
+        ...data.metrics,
+        ordersByStatus: data.ordersByStatus,
+        recentOrders: data.recentOrders,
+      }
+
+      set({ stats, isLoading: false })
     } catch (error: unknown) {
-      set({ error: error instanceof Error ? error.message : 'Unknown error', isLoading: false })
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Fetch stats failed:', msg);
+      set({ error: msg, isLoading: false })
     }
   },
 

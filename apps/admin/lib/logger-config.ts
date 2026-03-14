@@ -25,15 +25,15 @@ export const loggerConfig = {
     timestamp: true
   },
 
-  // Remote logging configuration - Admin operations need more frequent reporting
+  // Remote logging configuration - Disabled (logs endpoint removed)
   remote: {
-    enabled: true,
+    enabled: false,
     endpoint: `${getApiBaseUrl()}/api/logs/batch`,
-    batchSize: 15, // Smaller batch size, more timely reporting
-    flushInterval: 3000, // Shorter flush interval
-    maxRetries: 5, // More retries
+    batchSize: 15,
+    flushInterval: 3000,
+    maxRetries: 5,
     retryDelay: 1000,
-    timeout: 15000 // Longer timeout duration
+    timeout: 15000
   },
 
   // Local storage configuration

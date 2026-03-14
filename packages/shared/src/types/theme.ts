@@ -5,7 +5,7 @@
 
 import type { Product, ProductCategory } from './product';
 import type { Cart, CartItem } from './cart';
-import type { Order } from './order';
+import type { ShopOrderListItemDTO, ShopOrderDetailDTO } from './dto/order-dto';
 import type { Locale, TranslationFunction } from '../i18n/types';
 
 // ============================================================================
@@ -106,10 +106,10 @@ export interface ThemePackage {
     CheckoutPage: React.ComponentType<CheckoutPageProps>;
     NotFound: React.ComponentType<NotFoundProps>;
     // Product list variant pages
-    BestsellersPage: React.ComponentType<BestsellersPageProps>;
-    NewArrivalsPage: React.ComponentType<NewArrivalsPageProps>;
-    CategoriesPage: React.ComponentType<CategoriesPageProps>;
-    SearchPage: React.ComponentType<SearchPageProps>;
+    BestsellersPage?: React.ComponentType<BestsellersPageProps>;
+    NewArrivalsPage?: React.ComponentType<NewArrivalsPageProps>;
+    CategoriesPage?: React.ComponentType<CategoriesPageProps>;
+    SearchPage?: React.ComponentType<SearchPageProps>;
     // Order-related pages
     OrdersPage: React.ComponentType<OrdersPageProps>;
     OrderDetailPage: React.ComponentType<OrderDetailPageProps>;
@@ -117,15 +117,15 @@ export interface ThemePackage {
     OrderCancelledPage: React.ComponentType<OrderCancelledPageProps>;
     // User center pages
     ProfilePage: React.ComponentType<ProfilePageProps>;
-    ProfileSettingsPage: React.ComponentType<ProfileSettingsPageProps>;
+    ProfileSettingsPage?: React.ComponentType<ProfileSettingsPageProps>;
     // Content pages
     ContactPage: React.ComponentType<ContactPageProps>;
     HelpPage: React.ComponentType<HelpPageProps>;
+    HowItWorksPage?: React.ComponentType<HowItWorksPageProps>;
     PrivacyPage: React.ComponentType<PrivacyPageProps>;
     TermsPage: React.ComponentType<TermsPageProps>;
     // Special pages
-    DealsPage: React.ComponentType<DealsPageProps>;
-    AffiliateDashboardPage: React.ComponentType<AffiliateDashboardPageProps>;
+    DealsPage?: React.ComponentType<DealsPageProps>;
     // Auth pages
     LoginPage: React.ComponentType<LoginPageProps>;
     RegisterPage: React.ComponentType<RegisterPageProps>;
@@ -196,6 +196,7 @@ export interface ProductsPageProps extends ThemeI18nProps {
   onPageChange: (page: number) => void;
   onAddToCart: (productId: string) => Promise<void>;
   onProductClick: (productId: string) => void;
+  onSearch?: (query: string) => void;
 }
 
 /**
@@ -220,6 +221,12 @@ export interface CartPageProps extends ThemeI18nProps {
   cart: Cart;
   isLoading: boolean;
   config?: ThemeConfig;
+  selectedItemIds?: string[];
+  selectedItemCount?: number;
+  onToggleItemSelection?: (itemId: string) => void;
+  onSelectAllItems?: () => void;
+  onDeselectAllItems?: () => void;
+  onCheckoutSelected?: (itemIds: string[]) => void;
   onUpdateQuantity: (itemId: string, quantity: number) => Promise<void>;
   onRemoveItem: (itemId: string) => Promise<void>;
   onCheckout: () => void;
@@ -234,10 +241,10 @@ export interface CheckoutFormData {
   email: string;
   firstName: string;
   lastName: string;
-  phone: string;  // ✅ Required by backend
-  addressLine1: string;  // ✅ Backend uses addressLine1, not address
+  phone: string;
+  addressLine1: string;
   city: string;
-  state: string;  // ✅ Required by backend
+  state: string;
   postalCode: string;
   country: string;
   paymentMethod: string;
@@ -251,6 +258,14 @@ export interface CheckoutPageProps extends ThemeI18nProps {
   isLoading: boolean;
   isProcessing: boolean;
   config?: ThemeConfig;
+  requireShippingAddress?: boolean;
+  countriesRequireStatePostal?: string[];
+  currentUserEmail?: string;
+  availablePaymentMethods?: Array<{
+    name: string;
+    displayName: string;
+    icon?: string;
+  }>;
   onSubmit: (data: CheckoutFormData) => Promise<void>;
   onBack: () => void;
 }
@@ -346,7 +361,7 @@ export interface SearchPageProps extends ThemeI18nProps {
  * Orders Page Component Props
  */
 export interface OrdersPageProps extends ThemeI18nProps {
-  orders: Order[];
+  orders: ShopOrderListItemDTO[];
   isLoading: boolean;
   error?: string | null;
   currentPage: number;
@@ -361,7 +376,7 @@ export interface OrdersPageProps extends ThemeI18nProps {
  * Order Detail Page Component Props
  */
 export interface OrderDetailPageProps extends ThemeI18nProps {
-  order: Order | null;
+  order: ShopOrderDetailDTO | null;
   isLoading: boolean;
   config?: ThemeConfig;
   onBack?: () => void;
@@ -463,6 +478,13 @@ export interface HelpPageProps extends ThemeI18nProps {
 }
 
 /**
+ * How It Works Page Component Props
+ */
+export interface HowItWorksPageProps extends ThemeI18nProps {
+  config?: ThemeConfig;
+}
+
+/**
  * Privacy Page Component Props
  */
 export interface PrivacyPageProps extends ThemeI18nProps {
@@ -486,40 +508,6 @@ export interface DealsPageProps extends ThemeI18nProps {
   config?: ThemeConfig;
   onAddToCart: (productId: string) => Promise<void>;
   onProductClick: (productId: string) => void;
-}
-
-/**
- * Affiliate Dashboard Page Component Props
- */
-export interface AffiliateDashboardPageProps extends ThemeI18nProps {
-  referralCode: string;
-  stats: {
-    totalReferrals: number;
-    totalCommissions: number;
-    availableBalance: number;
-    pendingBalance: number;
-  };
-  commissions: Array<{
-    id: string;
-    orderId: string;
-    amount: number;
-    status: string;
-    createdAt: string;
-  }>;
-  payouts: Array<{
-    id: string;
-    amount: number;
-    status: string;
-    requestedAt: string;
-    processedAt?: string;
-  }>;
-  isLoading: boolean;
-  isLoadingCommissions: boolean;
-  isLoadingPayouts: boolean;
-  config?: ThemeConfig;
-  onRequestPayout: (amount: number) => Promise<void>;
-  onLoadMoreCommissions: (page: number) => Promise<void>;
-  onLoadMorePayouts: (page: number) => Promise<void>;
 }
 
 /**

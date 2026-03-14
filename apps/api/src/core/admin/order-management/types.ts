@@ -3,14 +3,14 @@ import { OrderStatusType } from '@/core/order/types';
 
 // Update order status request
 export const UpdateOrderStatusSchema = z.object({
-  status: z.enum(['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED']),
+  status: z.enum(['PENDING', 'PAID', 'PROCESSING', 'COMPLETED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED']),
 });
 
 // Batch operation request
 export const BatchOrderOperationSchema = z.object({
   action: z.enum(['updateStatus', 'delete']),
   orderIds: z.array(z.string()).min(1, 'At least one order ID is required'),
-  status: z.enum(['PENDING', 'PAID', 'SHIPPED', 'DELIVERED', 'CANCELLED']).optional(),
+  status: z.enum(['PENDING', 'PAID', 'PROCESSING', 'COMPLETED', 'SHIPPED', 'DELIVERED', 'CANCELLED', 'REFUNDED']).optional(),
 });
 
 // TypeScript Type Inferenece

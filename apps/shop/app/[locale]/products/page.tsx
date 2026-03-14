@@ -15,10 +15,11 @@ import { useSearchParams } from 'next/navigation';
 import { useShopTheme } from '@/lib/themes/provider';
 import { useCartStore } from '@/store/cart';
 import { useToast } from '@/hooks/use-toast';
-import { ProductService, Product, ProductSearchFilters } from '@/services/product.service';
+import { ProductService, ShopProductListItemDTO, ProductSearchFilters } from '@/services/product.service';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useT } from 'shared/src/i18n/react';
 import { LoadingState, ErrorState, EmptyState } from '@/components/ui/state-components';
+import { TemplateRenderer } from '@/lib/theme-pack';
 
 export default function ProductsPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
@@ -36,7 +37,7 @@ export default function ProductsPage() {
     return t ? t(key) : fallback;
   };
 
-  const [products, setProducts] = React.useState<Product[]>([]);
+  const [products, setProducts] = React.useState<ShopProductListItemDTO[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -45,9 +46,10 @@ export default function ProductsPage() {
   const [currentPage, setCurrentPage] = React.useState(1);
   const [totalPages, setTotalPages] = React.useState(1);
   const [totalProducts, setTotalProducts] = React.useState(0);
+  const [searchQuery, setSearchQuery] = React.useState('');
 
   // Load products with locale for translated data
-  const loadProducts = React.useCallback(async (page = 1, filters: ProductSearchFilters = {}) => {
+  const loadProducts = React.useCallback(async (page = 1, filters: ProductSearchFilters = {}, query?: string) => {
     try {
       setLoading(true);
       setError(null);
@@ -57,18 +59,31 @@ export default function ProductsPage() {
       // Include category from URL if present
       const categoryFilter = categoryFromUrl ? { category: categoryFromUrl } : {};
 
-      const response = await ProductService.getProducts(page, 12, {
-        ...filters,
-        ...categoryFilter,
-        sortBy: sortBy === 'rating' ? 'name' : sortBy as 'price' | 'name' | 'createdAt' | 'stock',
-        sortOrder,
-        locale: nav.locale, // Pass current locale for translated product data
-      });
+      let response;
+      
+      // Use search API if query is provided
+      if (query && query.trim()) {
+        response = await ProductService.searchProducts(query.trim(), page, 12, {
+          ...filters,
+          ...categoryFilter,
+          sortBy: sortBy === 'rating' ? 'name' : sortBy as 'price' | 'name' | 'createdAt' | 'stock',
+          sortOrder,
+          locale: nav.locale,
+        });
+      } else {
+        response = await ProductService.getProducts(page, 12, {
+          ...filters,
+          ...categoryFilter,
+          sortBy: sortBy === 'rating' ? 'name' : sortBy as 'price' | 'name' | 'createdAt' | 'stock',
+          sortOrder,
+          locale: nav.locale,
+        });
+      }
 
-      setProducts(response.products);
-      setCurrentPage(response.pagination.page);
-      setTotalPages(response.pagination.totalPages);
-      setTotalProducts(response.pagination.total);
+      setProducts(response.items);
+      setCurrentPage(response.page);
+      setTotalPages(response.totalPages);
+      setTotalProducts(response.total);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       console.error('Failed to load products:', err);
@@ -97,8 +112,12 @@ export default function ProductsPage() {
   // Handle add to cart
   const handleAddToCart = async (productId: string) => {
     try {
-      await addToCart(productId, 1);
       const product = products.find(p => p.id === productId);
+      const variantId = product?.variants?.[0]?.id;
+      if (!variantId) {
+        throw new Error(getText('shop.cart.addFailed', 'No available SKU for this product'));
+      }
+      await addToCart(productId, 1, variantId);
       toast({
         title: getText('shop.cart.itemAdded', 'Item added to cart'),
         description: product ? product.name : getText('shop.cart.itemAdded', 'Item added to cart'),
@@ -125,7 +144,14 @@ export default function ProductsPage() {
 
   // Handle page change
   const handlePageChange = (page: number) => {
-    loadProducts(page);
+    loadProducts(page, {}, searchQuery);
+  };
+
+  // Handle search
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setCurrentPage(1);
+    loadProducts(1, {}, query);
   };
 
   // Theme loading state - use unified LoadingState component
@@ -166,10 +192,9 @@ export default function ProductsPage() {
 
   // Render with theme component
   const ProductsPageComponent = theme.components.ProductsPage;
-
-  return (
+  const defaultProductsPage = (
     <ProductsPageComponent
-      products={products}
+      products={products as any}
       isLoading={loading}
       totalProducts={totalProducts}
       currentPage={currentPage}
@@ -184,6 +209,9 @@ export default function ProductsPage() {
       onPageChange={handlePageChange}
       onAddToCart={handleAddToCart}
       onProductClick={handleProductClick}
+      onSearch={handleSearch}
     />
   );
+
+  return <TemplateRenderer page="products" fallback={defaultProductsPage} />;
 }

@@ -1,32 +1,32 @@
 /**
- * 统一日志系统 - 主入口
+ * Unified Logging System - Main Entry
  */
 
-// 导出类型
+// Export types
 export * from './types';
 
-// 导出工具函数
+// Export utilities
 export * from './utils';
 
-// 导出格式化器
+// Export formatters
 export * from './formatters';
 
-// 导出基础日志器
+// Export base logger
 export { BaseLogger } from './base-logger';
 
-// 导出工厂函数
+// Export factory functions
 export { createLogger, getLogger } from './factory';
 
-// 导出传输器
+// Export transports
 export * from './transports';
 
-// 导出适配器
+// Export adapters
 export * from './adapters';
 
-// 导出数据脱敏模块
+// Export data sanitizer module
 export * from './sanitizer';
 
-// 导出常量
+// Export constants
 export const LOG_LEVELS: Record<string, number> = {
   debug: 0,
   info: 1,

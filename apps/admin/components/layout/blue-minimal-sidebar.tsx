@@ -2,16 +2,15 @@
  * Blue Minimal Sidebar Component for Tenant Application
  *
  * Modern sidebar navigation using Jiffoo Blue Minimal design system.
- * Dynamically shows Agent menu if agent plugin is installed.
  * Supports responsive design with mobile overlay.
  */
 
 'use client'
 
-import { useMemo } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useT, useLocale } from 'shared/src/i18n/react'
+import { cn } from '@/lib/utils'
 
 import {
   LayoutDashboard,
@@ -20,8 +19,25 @@ import {
   FileText,
   Sliders,
   Palette,
-  X
+  Warehouse,
+  X,
+  User,
+  Settings,
+  LogOut,
+  ChevronUp,
+  Monitor
 } from 'lucide-react'
+import { useAuthStore } from '@/lib/store'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu'
+import { useUpdateCheck } from '@/hooks/use-update-check'
+import { UserAvatar } from '../ui/user-avatar'
 
 interface NavigationItem {
   id: string;
@@ -48,6 +64,13 @@ const baseNavigationConfig: NavigationItem[] = [
     icon: Package,
   },
   {
+    id: 'inventory',
+    nameKey: 'merchant.inventory.title',
+    fallback: 'Inventory',
+    href: '/inventory',
+    icon: Warehouse,
+  },
+  {
     id: 'orders',
     nameKey: 'merchant.orders.title',
     fallback: 'Orders',
@@ -63,21 +86,26 @@ const baseNavigationConfig: NavigationItem[] = [
   },
   {
     id: 'plugins',
-    nameKey: 'merchant.plugins.title',
+    nameKey: 'merchant.nav.plugins',
     fallback: 'Plugins',
     href: '/plugins',
     icon: Sliders,
   },
   {
     id: 'themes',
-    nameKey: 'merchant.themes.title',
+    nameKey: 'merchant.nav.themes',
     fallback: 'Themes',
     href: '/themes',
     icon: Palette,
   },
+  {
+    id: 'system',
+    nameKey: 'merchant.nav.system',
+    fallback: 'System',
+    href: '/system/updates',
+    icon: Monitor,
+  },
 ];
-
-
 
 interface BlueMinimalSidebarProps {
   isOpen?: boolean;
@@ -88,8 +116,9 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   const pathname = usePathname()
   const locale = useLocale()
   const t = useT()
-
-
+  const router = useRouter()
+  const { user, logout } = useAuthStore()
+  const { hasUpdate } = useUpdateCheck()
 
   // Build navigation config dynamically
   const navigationConfig = baseNavigationConfig
@@ -98,8 +127,12 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   const getText = (key: string, fallback: string): string => {
     if (!t) return fallback
     const translated = t(key)
-    // If translation returns the key itself, use fallback
     return translated === key ? fallback : translated
+  }
+
+  const handleLogout = () => {
+    logout()
+    router.push(`/${locale}/auth/login`)
   }
 
   // Build localized href
@@ -134,26 +167,29 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
       <aside
         className={`
           fixed lg:static inset-y-0 left-0 z-50
-          w-[260px] h-screen bg-white border-r border-[#E2E8F0]
-          p-6 flex flex-col flex-shrink-0
+          w-[230px] h-screen bg-white border-r border-gray-100
+          px-4 py-8 flex flex-col flex-shrink-0
           transform transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
         {/* Logo Area */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex items-center justify-between mb-10 px-2">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-[#3B82F6] rounded-lg flex items-center justify-center text-white font-semibold">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30">
               J
             </div>
-            <span className="font-semibold text-lg text-[#0F172A]">Jiffoo Mall</span>
+            <div className="flex flex-col">
+              <span className="font-bold text-base text-gray-900 leading-none">Jiffoo Mall</span>
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Admin Panel</span>
+            </div>
           </div>
 
           {/* Close button for mobile */}
           {onClose && (
             <button
               onClick={onClose}
-              className="lg:hidden p-2 rounded-md text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]"
+              className="lg:hidden p-2 rounded-md text-gray-400 hover:bg-gray-50 hover:text-gray-900"
             >
               <X className="w-5 h-5" />
             </button>
@@ -172,22 +208,88 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
                 href={getLocalizedHref(item.href)}
                 onClick={handleNavClick}
                 className={`
-                  flex items-center gap-3 px-3 py-3 rounded-lg font-medium
-                  transition-all duration-150
+                  flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold
+                  transition-all duration-200
                   ${isActive
-                    ? 'bg-[#EFF6FF] text-[#3B82F6]'
-                    : 'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#0F172A]'
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                    : 'text-gray-400 hover:bg-gray-50 hover:text-gray-900'
                   }
                 `}
               >
-                <Icon className="w-5 h-5" />
+                <Icon className={cn("w-5 h-5 transition-transform", isActive && "scale-110")} />
                 <span>{getText(item.nameKey, item.fallback)}</span>
+                {/* Update badge for System menu */}
+                {item.id === 'system' && hasUpdate && (
+                  <span
+                    className="w-2 h-2 rounded-full bg-[#3B82F6] ml-auto"
+                    aria-label="Update available"
+                  />
+                )}
               </Link>
             )
           })}
         </nav>
+
+        {/* User Account Section */}
+        <div className="mt-auto pt-6 border-t border-gray-50">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-full flex items-center justify-between p-2 rounded-2xl border border-transparent hover:border-gray-100 hover:bg-gray-50 transition-all group">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center overflow-hidden border border-blue-100">
+                    <UserAvatar
+                      src={user?.avatar}
+                      name={user?.firstName}
+                      username={user?.username}
+                      className="h-full w-full"
+                      imageClassName="h-full w-full object-cover"
+                      fallbackClassName="h-full w-full bg-blue-50 text-blue-600"
+                      textClassName="text-xs"
+                    />
+                  </div>
+                  <div className="flex flex-col items-start min-w-0">
+                    <span className="text-xs font-bold text-gray-900 truncate w-24 text-left">
+                      {user?.firstName || user?.username || 'User'}
+                    </span>
+                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-tighter">
+                      Store Owner
+                    </span>
+                  </div>
+                </div>
+                <ChevronUp className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="center" side="top" className="w-[200px] rounded-2xl border-gray-100 shadow-2xl p-2 mb-2">
+              <DropdownMenuLabel className="px-3 py-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-gray-900">{user?.firstName || user?.username || 'User'}</p>
+                  <p className="text-[10px] text-gray-500 font-medium truncate">{user?.email}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator className="bg-gray-50" />
+              <DropdownMenuItem
+                className="rounded-xl py-2.5 cursor-pointer focus:bg-gray-50"
+                onClick={() => router.push(`/${locale}/profile`)}
+              >
+                <User className="mr-3 h-4 w-4 text-gray-400" />
+                <span className="text-sm font-semibold">{getText('merchant.header.profile', 'Profile')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="rounded-xl py-2.5 cursor-pointer focus:bg-gray-50"
+                onClick={() => router.push(`/${locale}/settings`)}
+              >
+                <Settings className="mr-3 h-4 w-4 text-gray-400" />
+                <span className="text-sm font-semibold">{getText('merchant.header.settings', 'Settings')}</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator className="bg-gray-50" />
+              <DropdownMenuItem onClick={handleLogout} className="rounded-xl py-2.5 cursor-pointer focus:bg-red-50 focus:text-red-600 text-red-500">
+                <LogOut className="mr-3 h-4 w-4" />
+                <span className="text-sm font-semibold">{getText('merchant.header.logout', 'Log out')}</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </aside>
     </>
   )
 }
-

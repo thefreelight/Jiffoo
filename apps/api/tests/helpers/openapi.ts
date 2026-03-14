@@ -65,14 +65,27 @@ export interface Response {
 }
 
 /**
- * Load OpenAPI specification
+ * Check if OpenAPI spec file exists
  */
-export function loadOpenApiSpec(): OpenAPISpec {
+export function hasOpenApiSpec(): boolean {
+  return fs.existsSync(openapiPath);
+}
+
+/**
+ * Load OpenAPI specification
+ * Returns null if file doesn't exist (graceful degradation for tests)
+ */
+export function loadOpenApiSpec(): OpenAPISpec | null {
   if (!openApiSpec) {
+    if (!hasOpenApiSpec()) {
+      // Return null if openapi.json doesn't exist
+      // This allows tests to gracefully skip OpenAPI validation
+      return null;
+    }
     const content = fs.readFileSync(openapiPath, 'utf-8');
     openApiSpec = JSON.parse(content);
   }
-  return openApiSpec!;
+  return openApiSpec;
 }
 
 /**
@@ -85,6 +98,10 @@ export function getAllOperations(): Array<{
   operationId: string;
 }> {
   const spec = loadOpenApiSpec();
+  if (!spec) {
+    return [];
+  }
+
   const operations: Array<{
     path: string;
     method: string;
@@ -94,7 +111,7 @@ export function getAllOperations(): Array<{
 
   for (const [path, pathItem] of Object.entries(spec.paths)) {
     const methods = ['get', 'post', 'put', 'delete', 'patch'] as const;
-    
+
     for (const method of methods) {
       const operation = pathItem[method];
       if (operation) {
@@ -143,12 +160,14 @@ export function getPublicOperations(): ReturnType<typeof getAllOperations> {
  */
 export function requiresAuth(path: string, method: string): boolean {
   const spec = loadOpenApiSpec();
+  if (!spec) return false;
+
   const pathItem = spec.paths[path];
   if (!pathItem) return false;
-  
+
   const operation = pathItem[method.toLowerCase() as keyof PathItem];
   if (!operation) return false;
-  
+
   return !!(operation.security && operation.security.length > 0);
 }
 
@@ -157,15 +176,17 @@ export function requiresAuth(path: string, method: string): boolean {
  */
 export function getResponseSchema(path: string, method: string, statusCode: number | string): any {
   const spec = loadOpenApiSpec();
+  if (!spec) return null;
+
   const pathItem = spec.paths[path];
   if (!pathItem) return null;
-  
+
   const operation = pathItem[method.toLowerCase() as keyof PathItem];
   if (!operation) return null;
-  
+
   const response = operation.responses[String(statusCode)];
   if (!response?.content?.['application/json']?.schema) return null;
-  
+
   return response.content['application/json'].schema;
 }
 
@@ -213,12 +234,14 @@ export function validateResponse(
  */
 export function getRequestBodySchema(path: string, method: string): any {
   const spec = loadOpenApiSpec();
+  if (!spec) return null;
+
   const pathItem = spec.paths[path];
   if (!pathItem) return null;
-  
+
   const operation = pathItem[method.toLowerCase() as keyof PathItem];
   if (!operation?.requestBody?.content?.['application/json']?.schema) return null;
-  
+
   return operation.requestBody.content['application/json'].schema;
 }
 

@@ -65,13 +65,20 @@ export async function validateCommand(options: ValidateOptions) {
     const packageJson = await fs.readJson(path.join(cwd, 'package.json'));
     const entryPoint = packageJson.main || 'src/index.js';
     const entryPath = path.join(cwd, entryPoint);
-    
-    // Check both .js and .ts versions
-    const jsExists = await fs.pathExists(entryPath);
-    const tsExists = await fs.pathExists(entryPath.replace('.js', '.ts'));
-    
-    if (!jsExists && !tsExists) {
-      errors.push(`Entry point not found: ${entryPoint}`);
+
+    // Check both declared entry and source fallback for TS projects.
+    const entryJsExists = await fs.pathExists(entryPath);
+    const entryTsExists = await fs.pathExists(entryPath.replace(/\.js$/i, '.ts'));
+    const sourceFallbackExists = await fs.pathExists(path.join(cwd, 'src', 'index.ts'));
+
+    if (!entryJsExists && !entryTsExists) {
+      if (sourceFallbackExists && /(^|[\\/])dist[\\/]/.test(entryPoint)) {
+        warnings.push(
+          `Entry point ${entryPoint} is not built yet; found src/index.ts. Run build before packaging.`
+        );
+      } else {
+        errors.push(`Entry point not found: ${entryPoint}`);
+      }
     }
 
     // 4. Check LICENSE content

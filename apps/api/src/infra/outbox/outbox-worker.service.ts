@@ -71,12 +71,24 @@ export class OutboxWorkerService {
     }
 
     /**
-     * Dispatch event to the external bus
-     * 
+     * Dispatch event to the external bus and webhook subscribers.
+     *
      * @param event The full event payload
      */
     private static async dispatch(event: any) {
-        // Dispatch logic (e.g., log, queue, webhook)
         logger.debug(`Dispatching event: ${event.type}`, { aggregateId: event.aggregateId });
+
+        // Dispatch to webhook subscribers
+        try {
+            const { dispatchWebhookEvent } = await import('@/core/webhooks/event-dispatcher');
+            await dispatchWebhookEvent({
+                id: event.id,
+                type: event.type,
+                payload: event.data ?? event,
+                aggregateId: event.aggregateId,
+            });
+        } catch (error) {
+            logger.error('Failed to dispatch webhook event:', error);
+        }
     }
 }

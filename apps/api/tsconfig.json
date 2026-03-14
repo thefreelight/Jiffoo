@@ -43,25 +43,31 @@
         "./src/utils/*"
       ],
       "shared/logger": [
-        "../../packages/shared/dist/src/logger/index"
+        "../../packages/shared/dist/shared/src/logger/index"
       ],
       "shared/logger/*": [
-        "../../packages/shared/dist/src/logger/*"
+        "../../packages/shared/dist/shared/src/logger/*"
       ],
       "@shared/security": [
-        "../../packages/shared/dist/src/security/index"
+        "../../packages/shared/dist/shared/src/security/index"
       ],
       "@shared/security/*": [
-        "../../packages/shared/dist/src/security/*"
+        "../../packages/shared/dist/shared/src/security/*"
       ],
       "@shared/observability": [
-        "../../packages/shared/dist/src/observability/index"
+        "../../packages/shared/dist/shared/src/observability/index"
       ],
       "@shared/observability/*": [
-        "../../packages/shared/dist/src/observability/*"
+        "../../packages/shared/dist/shared/src/observability/*"
       ],
       "@jiffoo/shared": [
-        "../../packages/shared/dist/index"
+        "../../packages/shared/dist/shared/index"
+      ],
+      "@jiffoo/shared/versioning": [
+        "../../packages/shared/dist/shared/src/versioning/index"
+      ],
+      "@jiffoo/shared/versioning/*": [
+        "../../packages/shared/dist/shared/src/versioning/*"
       ]
     },
     "moduleResolution": "node",

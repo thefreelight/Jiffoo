@@ -3,7 +3,7 @@ const { createNextConfig } = require('../../packages/shared/config/next.config.b
 /** @type {import('next').NextConfig} */
 const nextConfig = createNextConfig({
   appName: 'Admin',
-  port: 3003,
+  port: 3002,
   images: {
     remotePatterns: [
       {
@@ -17,6 +17,10 @@ const nextConfig = createNextConfig({
       {
         protocol: 'https',
         hostname: 'localhost',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.pravatar.cc',
       },
     ],
   },

@@ -20,10 +20,28 @@ export interface User {
   updatedAt: string;
 }
 
-export interface UserProfile extends Omit<User, 'role' | 'isActive'> {
-  addresses: Address[];
-  orderCount: number;
-  totalSpent: number;
+export interface UserProfile {
+  id: string;
+  email: string;
+  name?: string;
+  username: string;
+  avatar?: string;
+  role: UserRole | string;
+  isActive?: boolean;
+  emailVerified?: boolean;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: 'MALE' | 'FEMALE' | 'OTHER';
+  preferredLanguage?: string;
+  timezone?: string;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt?: string | null;
+  // E-commerce statistics
+  addresses?: Address[];
+  orderCount?: number;
+  totalOrders?: number;
+  totalSpent?: number;
 }
 
 export interface Address {

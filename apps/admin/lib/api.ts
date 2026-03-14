@@ -1,22 +1,242 @@
 /**
  * Admin API Client
- * Uses unified AuthClient. Independent cookie token management logic removed.
+ * Uses unified AuthClient. 
  */
 
 import {
   createAdminClient,
   getAdminClient,
   type ApiResponse,
-  type PaginatedResponse,
-  type UserProfile
+  type ListResult,
+  type PageResult,
+  type UserProfile,
+  // Import DTO types
+  type AdminProductListItemDTO,
+  type AdminProductDetailDTO,
+  type AdminOrderListItemDTO,
+  type AdminOrderDetailDTO,
+} from 'shared';
+import type {
+  PlatformConnectionPollRequest,
+  PlatformConnectionStartRequest,
+  PlatformConnectionStatus,
 } from 'shared';
 
+export type { ApiResponse, ListResult, PageResult, UserProfile };
+
 import type {
-  DashboardStats,
   ProductForm,
   Product,
-  Order
+  Order,
+  OrderDetail,
+  ThemeMeta,
+  ActiveTheme,
+  PluginMetaWithState,
+  PluginState,
+  HealthMetricsResponse,
+  HealthSummaryResponse,
 } from './types';
+
+/**
+ * Unwrap ApiResponse and throw error if success is false
+ * This is the SINGLE SOURCE OF TRUTH for unwrapping in Admin.
+ */
+export class AdminApiError extends Error {
+  code: string;
+  details?: unknown;
+
+  constructor(message: string, code: string = 'ERROR', details?: unknown) {
+    super(message);
+    this.name = 'AdminApiError';
+    this.code = code;
+    this.details = details;
+  }
+}
+
+export function isAdminApiError(error: unknown): error is AdminApiError {
+  return error instanceof AdminApiError;
+}
+
+export function unwrapApiResponse<T>(response: ApiResponse<T>): T {
+  if (response.success) {
+    return response.data as T;
+  }
+
+  const error = response.error;
+  let message = 'Request failed';
+  let code = 'ERROR';
+  let details: unknown = undefined;
+
+  if (typeof error === 'object' && error !== null) {
+    message = (error as { message?: string }).message || message;
+    code = (error as { code?: string }).code || code;
+    details = (error as { details?: unknown }).details;
+  } else if (typeof error === 'string') {
+    message = error;
+  } else if (response.message) {
+    message = response.message;
+  }
+
+  throw new AdminApiError(message, code, details);
+}
+
+export interface DashboardData {
+  metrics: {
+    totalRevenue: number;
+    totalOrders: number;
+    totalProducts: number;
+    totalUsers: number;
+    currency: string;
+    totalRevenueTrend: number;
+    totalOrdersTrend: number;
+    totalProductsTrend: number;
+    totalUsersTrend: number;
+  };
+  ordersByStatus: Record<string, number>;
+  recentOrders: Order[];
+}
+
+export interface ThemeTargetsResponse {
+  targets: Array<'shop' | 'admin'>;
+}
+
+export type SystemSettingsMap = Record<string, unknown>;
+
+export interface ProductStatsData {
+  metrics: {
+    totalProducts: number;
+    activeProducts: number;
+    lowStockProducts: number;
+    outOfStockProducts: number;
+    totalProductsTrend: number;
+    activeProductsTrend: number;
+    lowStockProductsTrend: number;
+    outOfStockProductsTrend: number;
+  };
+}
+
+export interface OrderStatsData {
+  metrics: {
+    totalOrders: number;
+    paidOrders: number;
+    shippedOrders: number;
+    refundedOrders: number;
+    totalRevenue: number;
+    currency: string;
+    totalOrdersTrend: number;
+    paidOrdersTrend: number;
+    shippedOrdersTrend: number;
+    refundedOrdersTrend: number;
+    totalRevenueTrend: number;
+    pendingOrders?: number;
+    deliveredOrders?: number;
+    pendingOrdersTrend?: number;
+    deliveredOrdersTrend?: number;
+  };
+}
+
+export interface UserStatsData {
+  metrics: {
+    totalUsers: number;
+    activeUsers: number;
+    inactiveUsers: number;
+    newThisMonth: number;
+    totalUsersTrend: number;
+    activeUsersTrend: number;
+    inactiveUsersTrend: number;
+    newUsersTrend: number;
+  };
+}
+
+export interface InventoryStatsData {
+  metrics: {
+    totalAlerts: number;
+    stockoutRisks: number;
+    overstockItems: number;
+    avgAccuracy: number;
+    totalAlertsTrend: number;
+    stockoutRisksTrend: number;
+    overstockItemsTrend: number;
+    avgAccuracyTrend: number;
+  };
+}
+
+export interface InventoryDashboardData {
+  alerts: {
+    items: Array<{
+      id: string;
+      productId: string;
+      productName?: string;
+      variantId: string;
+      variantName?: string | null;
+      alertType: 'STOCKOUT_RISK' | 'OVERSTOCK' | 'REORDER_POINT';
+      severity: 'HIGH' | 'MEDIUM' | 'LOW';
+      status: 'ACTIVE' | 'DISMISSED' | 'RESOLVED';
+      message: string;
+      threshold: number | null;
+      currentStock: number;
+      recommendedOrder: number | null;
+      resolvedAt: string | null;
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+  context: {
+    productId: string | null;
+    variantId: string | null;
+  };
+  accuracy: {
+    avgAccuracy: number;
+    avgMAPE: number;
+    avgMAE: number;
+    avgRMSE: number;
+    totalForecasts: number;
+    accuracyTrend: 'IMPROVING' | 'DECLINING' | 'STABLE';
+    period: {
+      startDate: string;
+      endDate: string;
+    };
+  } | null;
+  latestForecast: {
+    id: string;
+    productId: string;
+    variantId: string;
+    forecastDate: string;
+    predictedDemand: number;
+    confidence: number;
+    method: 'MOVING_AVERAGE' | 'LINEAR_REGRESSION' | 'SEASONAL_DECOMPOSITION';
+    seasonalFactors: {
+      weeklyPattern: number[];
+      monthlyPattern: number[];
+      dayOfWeekMultipliers: Record<string, number>;
+      holidayImpact: Record<string, number> | null;
+    } | null;
+    trendAnalysis: {
+      dailyAverage: number;
+      weeklyAverage: number;
+      monthlyAverage: number;
+      growthRate: number;
+      trend: 'INCREASING' | 'DECREASING' | 'STABLE';
+      volatility: number;
+      confidence: number;
+    };
+    reorderPoint: {
+      reorderPoint: number;
+      safetyStock: number;
+      averageDailyDemand: number;
+      leadTime: number;
+      maxDailyDemand: number;
+      daysUntilStockout: number | null;
+      recommendedOrderQuantity: number;
+    };
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+}
 
 // Type definitions (Admin specific)
 export interface PaginationParams {
@@ -27,34 +247,112 @@ export interface PaginationParams {
   role?: string;
 }
 
-// Lazy initialize API client to avoid environment variable issues during module loading
+export interface AccountProfile {
+  id: string;
+  email: string;
+  username: string;
+  avatar: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SourceChangeSummary {
+  changedFields?: string[];
+  [key: string]: unknown;
+}
+
+export interface ProductExternalSourceRecord {
+  provider: string;
+  installationId: string;
+  storeId: string;
+  externalProductCode: string;
+  externalName: string | null;
+  externalHash: string | null;
+  sourceName: string | null;
+  sourceDescription: string | null;
+  sourceCategoryCode: string | null;
+  sourceIsActive: boolean | null;
+  sourcePayloadJson: Record<string, unknown> | null;
+  sourcePayloadHash: string | null;
+  syncStatus: string;
+  sourceUpdatedAt: string | null;
+  lastSyncedAt: string | null;
+  lastComparedAt: string | null;
+  lastApprovedAt: string | null;
+  hasPendingChange: boolean;
+  pendingChangeSummary: SourceChangeSummary | null;
+}
+
+export interface VariantExternalSourceRecord {
+  coreVariantId: string;
+  coreSkuCode: string | null;
+  externalVariantCode: string;
+  externalProductCode: string;
+  externalHash: string | null;
+  sourceVariantName: string | null;
+  sourceSkuCode: string | null;
+  sourceCostPrice: number | null;
+  sourceIsActive: boolean | null;
+  sourceAttributesJson: Record<string, unknown> | null;
+  sourcePayloadHash: string | null;
+  syncStatus: string;
+  sourceUpdatedAt: string | null;
+  lastSyncedAt: string | null;
+  lastComparedAt: string | null;
+  lastApprovedAt: string | null;
+  hasPendingChange: boolean;
+  pendingChangeSummary: SourceChangeSummary | null;
+}
+
+export interface ProductExternalSourceDetails {
+  productId: string;
+  productName: string;
+  sourceProvider: string | null;
+  linked: boolean;
+  product: ProductExternalSourceRecord | null;
+  variants: VariantExternalSourceRecord[];
+}
+
+export interface ProductSourceAckResult {
+  productId: string;
+  acknowledgedAt: string;
+  productLinksUpdated: number;
+  variantLinksUpdated: number;
+}
+
+export interface VariantSourceAckResult {
+  productId: string;
+  variantId: string;
+  acknowledgedAt: string;
+  variantLinksUpdated: number;
+}
+
+// Lazy initialize API client
 let _apiClient: ReturnType<typeof createAdminClient> | null = null;
 
 const getApiClient = () => {
   if (!_apiClient) {
     _apiClient = createAdminClient({
-      // 🔧 Fix API path duplication: do not pass basePath, use default backend URL config
-      // Next.js proxy will automatically forward /api/* to the backend
-      storageType: 'hybrid', // Use hybrid storage strategy
+      storageType: 'hybrid',
       customConfig: {
-        timeout: 10000,
+        // Theme App ZIP installs can take longer than typical API calls (upload + unzip + validation)
+        timeout: 120000,
       }
     });
   }
   return _apiClient;
 };
 
-// Export Proxy for backward compatibility
+// Export Proxy
 export const apiClient = new Proxy({} as ReturnType<typeof createAdminClient>, {
   get: (target, prop) => {
     return getApiClient()[prop as keyof ReturnType<typeof createAdminClient>];
   }
 });
 
-// Export factory for other modules
 export { getAdminClient };
 
-// Auth API - Using unified AuthClient methods
+// Auth API
 export const authApi = {
   login: (email: string, password: string) =>
     apiClient.login({ email, password }),
@@ -63,236 +361,914 @@ export const authApi = {
 
   logout: () => apiClient.logout(),
 
-  refreshToken: () =>
-    // 🔧 Fix type definition: direct use of AuthClient's return type
-    apiClient.refreshAuthToken(),
+  refreshToken: () => apiClient.refreshAuthToken(),
+
+  changePassword: (currentPassword: string, newPassword: string): Promise<ApiResponse<{ passwordChanged: boolean; changedAt: string }>> =>
+    apiClient.post('/auth/change-password', { currentPassword, newPassword }),
 };
 
+export const accountApi = {
+  getProfile: (): Promise<ApiResponse<AccountProfile>> =>
+    apiClient.get('/account/profile'),
 
+  updateProfile: (data: { username?: string; avatar?: string }): Promise<ApiResponse<AccountProfile>> =>
+    apiClient.put('/account/profile', data),
 
-// Products API - Using unified apiClient targeting admin endpoints
+  updateEmail: (newEmail: string, currentPassword: string): Promise<ApiResponse<AccountProfile>> =>
+    apiClient.put('/account/email', { newEmail, currentPassword }),
+};
+
+// Products API
 export const productsApi = {
-  getAll: (page = 1, limit = 10, search?: string): Promise<ApiResponse<PaginatedResponse<Product>>> =>
+  getAll: (page = 1, limit = 10, search?: string): Promise<ApiResponse<PageResult<AdminProductListItemDTO>>> =>
     apiClient.get('/admin/products', { params: { page, limit, search } }),
 
-  // Alias methods for backward compatibility
-  getProducts: (params: PaginationParams = {}): Promise<ApiResponse<PaginatedResponse<Product>>> => {
-    const { page = 1, limit = 10, search } = params;
-    return apiClient.get('/admin/products', { params: { page, limit, search } });
-  },
+  getStats: (params?: {
+    search?: string;
+    categoryId?: string;
+    lowStockThreshold?: number;
+  }): Promise<ApiResponse<ProductStatsData>> =>
+    apiClient.get('/admin/products/stats', { params }),
 
-  getById: (id: string): Promise<ApiResponse<Product>> => apiClient.get(`/admin/products/${id}`),
-  getProduct: (id: string): Promise<ApiResponse<Product>> => apiClient.get(`/admin/products/${id}`), // Alias
+  getById: (id: string): Promise<ApiResponse<AdminProductDetailDTO>> => apiClient.get(`/admin/products/${id}`),
 
-  create: (data: ProductForm): Promise<ApiResponse<Product>> => apiClient.post('/admin/products', data),
-  createProduct: (data: ProductForm): Promise<ApiResponse<Product>> => apiClient.post('/admin/products', data), // Alias
+  getExternalSource: (id: string): Promise<ApiResponse<ProductExternalSourceDetails>> => apiClient.get(`/admin/products/${id}/external-source`),
 
-  update: (id: string, data: Partial<ProductForm>): Promise<ApiResponse<Product>> => apiClient.put(`/admin/products/${id}`, data),
-  updateProduct: (id: string, data: Partial<ProductForm>): Promise<ApiResponse<Product>> => apiClient.put(`/admin/products/${id}`, data), // Alias
+  acknowledgeSourceChanges: (id: string): Promise<ApiResponse<ProductSourceAckResult>> => apiClient.post(`/admin/products/${id}/ack-source-change`),
+
+  acknowledgeVariantSourceChange: (id: string, variantId: string): Promise<ApiResponse<VariantSourceAckResult>> =>
+    apiClient.post(`/admin/products/${id}/variants/${variantId}/ack-source-change`),
+
+  create: (data: ProductForm): Promise<ApiResponse<AdminProductDetailDTO>> => apiClient.post('/admin/products', data),
+
+  update: (id: string, data: Partial<ProductForm>): Promise<ApiResponse<AdminProductDetailDTO>> => apiClient.put(`/admin/products/${id}`, data),
 
   delete: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/admin/products/${id}`),
-  deleteProduct: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/admin/products/${id}`), // Alias
 
-  // Inventory management API removed (Alpha)
+  getCategories: (page = 1, limit = 20): Promise<ApiResponse<PageResult<any>>> =>
+    apiClient.get('/admin/products/categories', { params: { page, limit } }),
 };
 
-
-// Orders API - Using unified apiClient targeting admin endpoints
+// Orders API
 export const ordersApi = {
-  getAll: (page = 1, limit = 10): Promise<ApiResponse<PaginatedResponse<Order>>> =>
-    apiClient.get('/admin/orders', { params: { page, limit } }),
+  getAll: (page = 1, limit = 10, status?: string, search?: string): Promise<ApiResponse<PageResult<AdminOrderListItemDTO>>> =>
+    apiClient.get('/admin/orders', { params: { page, limit, status, search } }),
 
-  // Alias methods for backward compatibility
-  getOrders: (params: PaginationParams = {}): Promise<ApiResponse<PaginatedResponse<Order>>> => {
-    const { page = 1, limit = 10 } = params;
-    return apiClient.get('/admin/orders', { params: { page, limit } });
-  },
+  getStats: (): Promise<ApiResponse<OrderStatsData>> =>
+    apiClient.get('/admin/orders/stats'),
 
-  getById: (id: string): Promise<ApiResponse<Order>> => apiClient.get(`/admin/orders/${id}`),
-  getOrder: (id: string): Promise<ApiResponse<Order>> => apiClient.get(`/admin/orders/${id}`), // Alias
+  getById: (id: string): Promise<ApiResponse<AdminOrderDetailDTO>> => apiClient.get(`/admin/orders/${id}`),
 
-  updateStatus: (id: string, status: string): Promise<ApiResponse<Order>> =>
+  updateStatus: (id: string, status: string): Promise<ApiResponse<OrderDetail>> =>
     apiClient.put(`/admin/orders/${id}/status`, { status }),
 
-  updateOrderStatus: (id: string, status: string): Promise<ApiResponse<Order>> =>
-    apiClient.put(`/admin/orders/${id}/status`, { status }),
-
-  // Add admin specific stats API
-  getStats: (): Promise<ApiResponse<DashboardStats>> => apiClient.get('/admin/orders/stats'),
-
-  // Ship order with tracking info (PRD requirement)
   shipOrder: (id: string, data: {
     carrier: string;
     trackingNumber: string;
     items?: Array<{ orderItemId: string; quantity: number }>
-  }): Promise<ApiResponse<Order>> =>
+  }): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/ship`, data),
 
-  // Cancel order with reason
-  cancelOrder: (id: string, cancelReason: string): Promise<ApiResponse<Order>> =>
+  cancelOrder: (id: string, cancelReason: string): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/cancel`, { cancelReason }),
 
-  // ❌ Batch operations removed - backend route not implemented
-  // batchOperations: (data: { operation: string, orderIds: string[], [key: string]: unknown }) =>
-  //   apiClient.post('/admin/orders/batch', data),
-
-  // Refund order
-  refundOrder: (id: string, data: { reason?: string; idempotencyKey: string }): Promise<ApiResponse<any>> =>
+  refundOrder: (id: string, data: { reason?: string; idempotencyKey: string }): Promise<ApiResponse<OrderDetail>> =>
     apiClient.post(`/admin/orders/${id}/refund`, data),
 };
 
-// Users API - Using unified apiClient, targeting admin endpoints
+// Users API
 export const usersApi = {
-  getAll: (params: PaginationParams = {}): Promise<ApiResponse<PaginatedResponse<UserProfile>>> => {
+  getAll: (params: PaginationParams = {}): Promise<ApiResponse<PageResult<UserProfile>>> => {
     const { page = 1, limit = 10, search } = params;
     return apiClient.get('/admin/users', { params: { page, limit, search } });
   },
 
-  getUsers: (params: PaginationParams = {}): Promise<ApiResponse<PaginatedResponse<UserProfile>>> => {
-    const { page = 1, limit = 10, search } = params;
-    return apiClient.get('/admin/users', { params: { page, limit, search } });
-  },
+  getStats: (): Promise<ApiResponse<UserStatsData>> =>
+    apiClient.get('/admin/users/stats'),
 
   getById: (id: string): Promise<ApiResponse<UserProfile>> => apiClient.get(`/admin/users/${id}`),
-  getUser: (id: string): Promise<ApiResponse<UserProfile>> => apiClient.get(`/admin/users/${id}`), // Alias
 
-  // Note: All write operations (create, update, delete, role) removed for Alpha Gate compliance.
+  create: (data: {
+    email: string;
+    password: string;
+    username?: string;
+    role?: string;
+  }): Promise<ApiResponse<UserProfile>> => apiClient.post('/admin/users', data),
+
+  update: (id: string, data: {
+    username?: string;
+    role?: string;
+    avatar?: string;
+    isActive?: boolean;
+  }): Promise<ApiResponse<UserProfile>> => apiClient.put(`/admin/users/${id}`, data),
+
+  delete: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/admin/users/${id}`),
+
+  resetPassword: (id: string, newPassword: string): Promise<ApiResponse<{ message: string }>> =>
+    apiClient.post(`/admin/users/${id}/reset-password`, { newPassword }),
 };
 
-// Statistics API - Using admin specific statistics endpoints
-export const statisticsApi = {
-  // Dashboard statistics - Combined multiple admin stats endpoints for complete data
-  getDashboard: async (): Promise<ApiResponse<DashboardStats>> => {
+// Dashboard API
+export const dashboardApi = {
+  get: (): Promise<ApiResponse<DashboardData>> => apiClient.get('/admin/dashboard'),
+};
+
+// Health Monitoring API
+export const healthApi = {
+  getMetrics: (): Promise<ApiResponse<HealthMetricsResponse>> =>
+    apiClient.get('/admin/health/metrics'),
+
+  getSummary: (): Promise<ApiResponse<HealthSummaryResponse>> =>
+    apiClient.get('/admin/health/summary'),
+};
+
+// Company type
+export interface Company {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  taxId?: string;
+  website?: string;
+  description?: string;
+  industry?: string;
+  employeeCount?: string;
+  annualRevenue?: string;
+  isActive: boolean;
+  accountStatus: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
+  accountType: 'STANDARD' | 'PREMIUM' | 'ENTERPRISE';
+  paymentTerms: 'IMMEDIATE' | 'NET15' | 'NET30' | 'NET60' | 'NET90';
+  creditLimit: number;
+  currentBalance: number;
+  taxExempt: boolean;
+  taxExemptionId?: string;
+  customerGroupId?: string;
+  discountPercent: number;
+  billingAddress1?: string;
+  billingAddress2?: string;
+  billingCity?: string;
+  billingState?: string;
+  billingCountry?: string;
+  billingPostalCode?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Quote types
+export interface QuoteItem {
+  id: string;
+  quoteId: string;
+  productId: string;
+  variantId?: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+  discountAmount: number;
+  taxAmount: number;
+  total: number;
+  product?: {
+    id: string;
+    name: string;
+    skuCode?: string;
+  };
+  variant?: {
+    id: string;
+    name: string;
+    skuCode?: string;
+  };
+}
+
+export interface Quote {
+  id: string;
+  quoteNumber: string;
+  companyId: string;
+  userId: string;
+  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'CONVERTED';
+  subtotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  total: number;
+  validUntil: string;
+  notes?: string;
+  internalNotes?: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  shippingAddress1?: string;
+  shippingAddress2?: string;
+  shippingCity?: string;
+  shippingState?: string;
+  shippingCountry?: string;
+  shippingPostalCode?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
+  convertedToOrderId?: string;
+  convertedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  company?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  user?: {
+    id: string;
+    email: string;
+    username?: string;
+  };
+  items?: QuoteItem[];
+}
+
+// Companies API
+export const companiesApi = {
+  getAll: (page = 1, limit = 10, search?: string): Promise<ApiResponse<PageResult<Company>>> =>
+    apiClient.get('/b2b/companies', { params: { page, limit, search } }),
+
+  getById: (id: string): Promise<ApiResponse<Company>> => apiClient.get(`/b2b/companies/${id}`),
+
+  create: (data: Partial<Company>): Promise<ApiResponse<Company>> => apiClient.post('/b2b/companies', data),
+
+  update: (id: string, data: Partial<Company>): Promise<ApiResponse<Company>> => apiClient.put(`/b2b/companies/${id}`, data),
+
+  delete: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/b2b/companies/${id}`),
+
+  updateStatus: (id: string, accountStatus: string): Promise<ApiResponse<Company>> =>
+    apiClient.put(`/b2b/companies/${id}/status`, { accountStatus }),
+};
+
+// Quotes API
+export const quotesApi = {
+  getAll: (page = 1, limit = 10, status?: string): Promise<ApiResponse<PageResult<Quote>>> =>
+    apiClient.get('/b2b/quotes', { params: { page, limit, status } }),
+
+  getById: (id: string): Promise<ApiResponse<Quote>> => apiClient.get(`/b2b/quotes/${id}`),
+
+  approve: (id: string, data: { approvedBy: string; validUntil?: string }): Promise<ApiResponse<Quote>> =>
+    apiClient.post(`/b2b/quotes/${id}/approve`, data),
+
+  reject: (id: string, data: { rejectedBy: string; rejectionReason: string }): Promise<ApiResponse<Quote>> =>
+    apiClient.post(`/b2b/quotes/${id}/reject`, data),
+
+  delete: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/b2b/quotes/${id}`),
+
+  convertToOrder: (id: string): Promise<ApiResponse<{ orderId: string }>> =>
+    apiClient.post(`/b2b/quotes/${id}/convert`),
+};
+
+// Purchase Order types
+export interface PurchaseOrderItem {
+  id: string;
+  purchaseOrderId: string;
+  productId: string;
+  variantId: string;
+  quantity: number;
+  unitPrice: number;
+  discount: number;
+  taxRate: number;
+  total: number;
+  quantityReceived: number;
+  receivedDate?: string;
+  receivedBy?: string;
+  notes?: string;
+  skuSnapshot?: string;
+  customization?: string;
+  product?: {
+    id: string;
+    name: string;
+    slug: string;
+  };
+  variant?: {
+    id: string;
+    name: string;
+    sku: string;
+  };
+}
+
+export interface PurchaseOrder {
+  id: string;
+  poNumber: string;
+  companyId: string;
+  userId: string;
+  quoteId?: string;
+  status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'ORDERED' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED';
+  paymentStatus: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE';
+  paymentTermId?: string;
+  orderDate: string;
+  approvalDate?: string;
+  expectedDate?: string;
+  receivedDate?: string;
+  paymentDueDate?: string;
+  subtotal: number;
+  taxAmount: number;
+  discountAmount: number;
+  shippingAmount: number;
+  totalAmount: number;
+  notes?: string;
+  customerNotes?: string;
+  termsConditions?: string;
+  internalRef?: string;
+  contactName?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  shippingAddress1?: string;
+  shippingAddress2?: string;
+  shippingCity?: string;
+  shippingState?: string;
+  shippingCountry?: string;
+  shippingPostalCode?: string;
+  billingAddress1?: string;
+  billingAddress2?: string;
+  billingCity?: string;
+  billingState?: string;
+  billingCountry?: string;
+  billingPostalCode?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectedBy?: string;
+  rejectedAt?: string;
+  rejectionReason?: string;
+  trackingNumber?: string;
+  carrier?: string;
+  createdAt: string;
+  updatedAt: string;
+  items?: PurchaseOrderItem[];
+  company?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  user?: {
+    id: string;
+    username: string;
+    email: string;
+  };
+  paymentTerm?: {
+    id: string;
+    code: string;
+    name: string;
+    dueInDays: number;
+  };
+}
+
+// Purchase Orders API
+export const purchaseOrdersApi = {
+  getAll: (page = 1, limit = 10, status?: string): Promise<ApiResponse<PageResult<PurchaseOrder>>> =>
+    apiClient.get('/b2b/purchase-orders', { params: { page, limit, status } }),
+
+  getById: (id: string): Promise<ApiResponse<PurchaseOrder>> =>
+    apiClient.get(`/b2b/purchase-orders/${id}`),
+
+  updateStatus: (id: string, status: string): Promise<ApiResponse<PurchaseOrder>> =>
+    apiClient.put(`/b2b/purchase-orders/${id}/status`, { status }),
+
+  approve: (id: string, data: { approvedBy: string; notes?: string }): Promise<ApiResponse<PurchaseOrder>> =>
+    apiClient.post(`/b2b/purchase-orders/${id}/approve`, data),
+
+  reject: (id: string, data: { rejectedBy: string; rejectionReason: string }): Promise<ApiResponse<PurchaseOrder>> =>
+    apiClient.post(`/b2b/purchase-orders/${id}/reject`, data),
+
+  delete: (id: string): Promise<ApiResponse<void>> =>
+    apiClient.delete(`/b2b/purchase-orders/${id}`),
+};
+
+// PriceRule types
+export interface PriceRule {
+  id: string;
+  name: string;
+  description?: string | null;
+  customerGroupId?: string | null;
+  productId?: string | null;
+  variantId?: string | null;
+  categoryId?: string | null;
+  minQuantity: number;
+  maxQuantity?: number | null;
+  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT' | 'FIXED_PRICE';
+  discountValue: number;
+  priority: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  customerGroup?: {
+    id: string;
+    name: string;
+  };
+  product?: {
+    id: string;
+    name: string;
+  };
+  variant?: {
+    id: string;
+    name: string;
+  };
+  category?: {
+    id: string;
+    name: string;
+  };
+}
+
+// Pricing API
+export const pricingApi = {
+  getAll: (page = 1, limit = 10, params?: {
+    customerGroupId?: string;
+    productId?: string;
+    variantId?: string;
+    categoryId?: string;
+    isActive?: boolean;
+    search?: string;
+  }): Promise<ApiResponse<PageResult<PriceRule>>> =>
+    apiClient.get('/b2b/pricing/rules', { params: { page, limit, ...params } }),
+
+  getById: (id: string): Promise<ApiResponse<PriceRule>> =>
+    apiClient.get(`/b2b/pricing/rules/${id}`),
+
+  create: (data: Partial<PriceRule>): Promise<ApiResponse<PriceRule>> =>
+    apiClient.post('/b2b/pricing/rules', data),
+
+  update: (id: string, data: Partial<PriceRule>): Promise<ApiResponse<PriceRule>> =>
+    apiClient.put(`/b2b/pricing/rules/${id}`, data),
+
+  updateStatus: (id: string, isActive: boolean): Promise<ApiResponse<PriceRule>> =>
+    apiClient.patch(`/b2b/pricing/rules/${id}/status`, { isActive }),
+
+  delete: (id: string): Promise<ApiResponse<void>> =>
+    apiClient.delete(`/b2b/pricing/rules/${id}`),
+};
+
+// Plugin Instance types
+export interface PluginInstance {
+  installationId: string;
+  pluginSlug: string;
+  instanceKey: string;
+  enabled: boolean;
+  config: Record<string, unknown>;
+  grantedPermissions: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateInstanceRequest {
+  instanceKey: string;
+  enabled?: boolean;
+  config?: Record<string, unknown>;
+  grantedPermissions?: string[];
+}
+
+export interface UpdateInstanceRequest {
+  enabled?: boolean;
+  config?: Record<string, unknown>;
+  grantedPermissions?: string[];
+}
+
+export type OfficialCatalogInstallState = 'not_installed' | 'installed' | 'enabled' | 'active';
+export type OfficialCatalogReleaseStatus = 'published' | 'catalog-only' | 'offline';
+export type OfficialCatalogPricingModel = 'free' | 'one_time' | 'subscription';
+
+export interface OfficialCatalogItem {
+  slug: string;
+  name: string;
+  kind: 'theme' | 'plugin';
+  listingDomain?: 'app_marketplace' | 'goods_marketplace' | 'merchant_store';
+  listingKind?: 'theme' | 'plugin';
+  providerType?: 'platform' | 'developer' | 'vendor' | 'merchant';
+  version: string;
+  author: string;
+  description: string;
+  category: string;
+  deliveryMode: 'package-managed' | 'service-managed';
+  paymentMode?: 'platform_collect' | 'merchant_collect';
+  settlementTargetType?: 'platform' | 'developer' | 'vendor' | 'merchant' | 'none';
+  settlementTargetId?: string | null;
+  target?: 'shop' | 'admin';
+  pricingModel: OfficialCatalogPricingModel;
+  price: number;
+  currency: string;
+  installState: OfficialCatalogInstallState;
+  releaseStatus: OfficialCatalogReleaseStatus;
+  source: 'builtin' | 'installed' | 'local-zip' | 'official-market' | 'catalog';
+  availableInMarket: boolean;
+  marketError?: string;
+  rating?: number;
+  downloads?: number;
+  thumbnailUrl?: string;
+  compatibility?: string;
+  screenshots?: string[];
+  configRequired?: boolean;
+  configReady?: boolean;
+  missingConfigFields?: string[];
+  adminUi?: {
+    entryPath?: string;
+    label?: string;
+    icon?: string;
+  };
+}
+
+export interface OfficialCatalogResponse {
+  items: OfficialCatalogItem[];
+  marketOnline: boolean;
+  marketError?: string;
+  officialMarketOnly: boolean;
+  generatedAt: string;
+}
+
+export interface InstallOfficialExtensionRequest {
+  version?: string;
+  kind: 'plugin' | 'theme-shop' | 'theme-admin' | 'theme-app-shop' | 'theme-app-admin';
+}
+
+export interface InstallOfficialExtensionResult {
+  kind: string;
+  slug: string;
+  version: string;
+  source: string;
+  fsPath?: string;
+}
+
+export type {
+  PlatformConnectionStatus,
+};
+
+const DEFAULT_PLUGIN_INSTANCE_KEY = 'default';
+
+type PluginConfigReadiness = {
+  configRequired: boolean;
+  configReady: boolean;
+  missingConfigFields: string[];
+};
+
+function getPluginAdminUi(manifest: Record<string, any> | null): PluginState['adminUi'] | undefined {
+  const adminUi = manifest?.adminUi;
+  if (!adminUi || typeof adminUi !== 'object' || Array.isArray(adminUi)) {
+    return undefined;
+  }
+
+  const entryPath = typeof adminUi.entryPath === 'string' ? adminUi.entryPath : undefined;
+  const label = typeof adminUi.label === 'string' ? adminUi.label : undefined;
+  const icon = typeof adminUi.icon === 'string' ? adminUi.icon : undefined;
+
+  if (!entryPath && !label && !icon) {
+    return undefined;
+  }
+
+  return { entryPath, label, icon };
+}
+
+export function buildPluginAdminUiUrl(slug: string, installationId = DEFAULT_PLUGIN_INSTANCE_KEY): string {
+  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/$/, '');
+  const params = new URLSearchParams({ installation: installationId });
+  return `${baseUrl}/extensions/plugin/${slug}/admin-ui?${params.toString()}`;
+}
+
+function isObject(value: unknown): value is Record<string, any> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function evaluateConfigReadiness(
+  configSchema: Record<string, any> | undefined,
+  config: Record<string, any> | undefined
+): PluginConfigReadiness {
+  if (!configSchema || Object.keys(configSchema).length === 0) {
+    return {
+      configRequired: false,
+      configReady: true,
+      missingConfigFields: [],
+    };
+  }
+
+  const currentConfig = isObject(config) ? config : {};
+  const missingConfigFields: string[] = [];
+  let configRequired = false;
+
+  for (const [key, descriptor] of Object.entries(configSchema)) {
+    if (!isObject(descriptor) || !descriptor.required) {
+      continue;
+    }
+    configRequired = true;
+    const value = currentConfig[key];
+    const type = typeof descriptor.type === 'string' ? descriptor.type : '';
+
+    if (value === undefined || value === null) {
+      missingConfigFields.push(key);
+      continue;
+    }
+
+    if (type === 'string' && (typeof value !== 'string' || value.trim().length === 0)) {
+      missingConfigFields.push(key);
+      continue;
+    }
+
+    if (type === 'object') {
+      if (!isObject(value) || Object.keys(value).length === 0) {
+        missingConfigFields.push(key);
+      }
+      continue;
+    }
+
+    if (type === 'array' && (!Array.isArray(value) || value.length === 0)) {
+      missingConfigFields.push(key);
+      continue;
+    }
+  }
+
+  return {
+    configRequired,
+    configReady: !configRequired || missingConfigFields.length === 0,
+    missingConfigFields,
+  };
+}
+
+function parseManifestJson(value: any): Record<string, any> | null {
+  if (!value) return null;
+  if (typeof value === 'object') {
+    return value as Record<string, any>;
+  }
+  if (typeof value !== 'string') return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function toPluginState(slug: string, detail: any, instance: PluginInstance | null): PluginState {
+  const parsedManifest = parseManifestJson(detail?.manifestJson);
+
+  const configSchema = (parsedManifest?.configSchema || detail?.configSchema || undefined) as Record<string, any> | undefined;
+  const config = (instance?.config || {}) as Record<string, any>;
+  const readiness = evaluateConfigReadiness(configSchema, config);
+  const adminUi = getPluginAdminUi(parsedManifest);
+
+  return {
+    slug,
+    enabled: instance?.enabled ?? false,
+    config,
+    configSchema,
+    configRequired: readiness.configRequired,
+    configReady: readiness.configReady,
+    missingConfigFields: readiness.missingConfigFields,
+    adminUi,
+    name: detail?.name,
+    version: detail?.version,
+    description: detail?.description,
+    author: detail?.author,
+    category: detail?.category,
+    runtimeType: detail?.runtimeType,
+    source: detail?.source || 'installed',
+  } as PluginState;
+}
+
+async function fetchPluginDetail(slug: string): Promise<any> {
+  const response = await apiClient.get(`/extensions/plugin/${slug}`) as ApiResponse<any>;
+  if (!response.success) {
+    const message = response.error?.message || `Plugin "${slug}" not found`;
+    const code = response.error?.code || 'NOT_FOUND';
+    throw new AdminApiError(message, code, response.error?.details);
+  }
+  return response.data || {};
+}
+
+async function fetchPluginInstances(slug: string): Promise<PluginInstance[]> {
+  const response = await apiClient.get(`/extensions/plugin/${slug}/instances`, {
+    params: { page: 1, limit: 100 },
+  }) as ApiResponse<PageResult<PluginInstance>>;
+  if (!response.success || !response.data) return [];
+  return response.data.items || [];
+}
+
+async function getDefaultInstance(slug: string): Promise<PluginInstance | null> {
+  const instances = await fetchPluginInstances(slug);
+  return instances.find((item) => item.instanceKey === DEFAULT_PLUGIN_INSTANCE_KEY) || instances[0] || null;
+}
+
+function toApiErrorPayload(
+  error: unknown,
+  fallbackCode: string,
+  fallbackMessage: string
+): { code: string; message: string; details?: unknown } {
+  if (isAdminApiError(error)) {
+    return {
+      code: error.code || fallbackCode,
+      message: error.message || fallbackMessage,
+      details: error.details,
+    };
+  }
+  if (error instanceof Error) {
+    return {
+      code: fallbackCode,
+      message: error.message || fallbackMessage,
+    };
+  }
+  return {
+    code: fallbackCode,
+    message: fallbackMessage,
+  };
+}
+
+export const marketApi = {
+  getOfficialCatalog: (): Promise<ApiResponse<OfficialCatalogResponse>> =>
+    apiClient.get('/admin/market/official-catalog'),
+
+  getHealth: (): Promise<ApiResponse<{
+    officialMarketOnly: boolean;
+    signatureMode: string;
+    officialKeyPresent: boolean;
+    marketApiUrl: string;
+    marketOnline: boolean;
+    marketLatencyMs: number;
+    marketStatus?: number;
+    marketError?: string;
+  }>> =>
+    apiClient.get('/admin/market/health'),
+
+  installOfficialExtension: (
+    slug: string,
+    data: InstallOfficialExtensionRequest
+  ): Promise<ApiResponse<InstallOfficialExtensionResult>> =>
+    apiClient.post(`/admin/market/extensions/${slug}/install`, data),
+};
+
+export const platformConnectionApi = {
+  getStatus: (): Promise<ApiResponse<PlatformConnectionStatus>> =>
+    apiClient.get('/admin/platform/connection/status'),
+
+  start: (data: Omit<PlatformConnectionStartRequest, 'instanceKey'>): Promise<ApiResponse<PlatformConnectionStatus>> =>
+    apiClient.post('/admin/platform/connection/start', data),
+
+  poll: (data: PlatformConnectionPollRequest): Promise<ApiResponse<PlatformConnectionStatus>> =>
+    apiClient.post('/admin/platform/connection/poll', data),
+
+  complete: (data: { deviceCode: string; accountEmail: string; accountName?: string }): Promise<ApiResponse<PlatformConnectionStatus>> =>
+    apiClient.post('/admin/platform/connection/complete', data),
+
+  bindTenant: (): Promise<ApiResponse<PlatformConnectionStatus>> =>
+    apiClient.post('/admin/platform/connection/bind-tenant', {}),
+
+  disconnect: (): Promise<ApiResponse<PlatformConnectionStatus>> =>
+    apiClient.post('/admin/platform/connection/disconnect', {}),
+};
+
+// Plugin Management API
+export const pluginsApi = {
+  getInstalled: async (page = 1, limit = 20): Promise<ApiResponse<PageResult<PluginMetaWithState>>> => {
+    const response = await apiClient.get('/extensions/plugin', { params: { page, limit } }) as ApiResponse<PageResult<any>>;
+    if (!response.success || !response.data) {
+      return response as ApiResponse<PageResult<PluginMetaWithState>>;
+    }
+
+    const items = await Promise.all(
+      (response.data.items || []).map(async (plugin: any) => {
+        const defaultInstance = await getDefaultInstance(plugin.slug).catch(() => null);
+        const parsedManifest = parseManifestJson(plugin?.manifestJson);
+        const configSchema = (parsedManifest?.configSchema || plugin?.configSchema || undefined) as Record<string, any> | undefined;
+        const config = (defaultInstance?.config || {}) as Record<string, any>;
+        const readiness = evaluateConfigReadiness(configSchema, config);
+        const adminUi = getPluginAdminUi(parsedManifest);
+
+        return {
+          ...plugin,
+          source: (plugin?.source || 'installed') as PluginMetaWithState['source'],
+          enabled: plugin?.deletedAt ? false : (defaultInstance?.enabled ?? false),
+          deletedAt: plugin?.deletedAt || null,
+          uninstalled: Boolean(plugin?.deletedAt),
+          configRequired: readiness.configRequired,
+          configReady: readiness.configReady,
+          missingConfigFields: readiness.missingConfigFields,
+          adminUi,
+        } as PluginMetaWithState;
+      })
+    );
+
+    return {
+      ...response,
+      data: {
+        ...response.data,
+        items,
+      },
+    } as ApiResponse<PageResult<PluginMetaWithState>>;
+  },
+
+  getConfig: async (slug: string): Promise<ApiResponse<PluginState>> => {
     try {
-      // Parallel fetch order, user, product stats
-      const [orderStatsRes, userStatsRes, productStatsRes] = await Promise.all([
-        apiClient.get('/admin/orders/stats'),
-        // Admin stats specific
-        // For Alpha, stick to minimum viable stats.
-        // User stats and product stats might not be fully available on backend in "stats" form
-        // Checking whitelist: /api/admin/orders/stats is allowed.
-        // /api/admin/users/stats, /api/admin/products/stats are NOT explicitly in the simplified whitelist but Plan says "Dashboard Aggregation: Only use orders stats; do not request users/products stats".
-        // SO I WILL REMOVE THEM.
-        { data: {} } as any, // Mock response
-        { data: {} } as any, // Mock response
+      const [detail, instance] = await Promise.all([
+        fetchPluginDetail(slug),
+        getDefaultInstance(slug),
       ]);
-
-      // Extract data from endpoints
-      const orderStats = orderStatsRes.data || {};
-      // const userStats = userStatsRes.data || {};
-      // const productStats = productStatsRes.data || {};
-
-      // Combine stats - align with DashboardStats interface
-      const combinedStats: DashboardStats = {
-        // Core metrics
-        totalUsers: 0, // userStats.totalUsers || 0,
-        totalProducts: 0, // productStats.totalProducts || 0,
-        totalOrders: orderStats.totalOrders || 0,
-        totalRevenue: orderStats.totalRevenue || 0,
-        // Today metrics (if returned by backend)
-        todayOrders: orderStats.todayOrders || 0,
-        todayRevenue: orderStats.todayRevenue || 0,
-        // Growth rates (if returned by backend)
-        userGrowth: 0, // userStats.userGrowth || 0,
-        productGrowth: 0, // productStats.productGrowth || 0,
-        orderGrowth: orderStats.orderGrowth || 0,
-        revenueGrowth: orderStats.revenueGrowth || 0,
-        // Order status distribution
-        ordersByStatus: orderStats.ordersByStatus || {
-          PENDING: 0,
-          PAID: 0,
-          SHIPPED: 0,
-          DELIVERED: 0,
-          CANCELLED: 0,
-        },
-        // Product stock status
-        inStockProducts: 0, // productStats.inStockProducts || 0,
-        outOfStockProducts: 0, // productStats.outOfStockProducts || 0,
-        // Optional data
-        recentOrders: orderStats.recentOrders || [],
-        topProducts: orderStats.topProducts || [],
-      };
 
       return {
         success: true,
-        data: combinedStats,
-        message: 'Dashboard statistics retrieved successfully'
+        data: toPluginState(slug, detail, instance),
       };
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('Failed to fetch dashboard stats:', errorMessage);
+    } catch (error: any) {
       return {
         success: false,
-        data: {
-          totalUsers: 0,
-          totalProducts: 0,
-          totalOrders: 0,
-          totalRevenue: 0,
-          todayOrders: 0,
-          todayRevenue: 0,
-          userGrowth: 0,
-          productGrowth: 0,
-          orderGrowth: 0,
-          revenueGrowth: 0,
-        } as DashboardStats,
-        message: errorMessage || 'Failed to retrieve dashboard statistics'
+        error: {
+          code: 'NOT_FOUND',
+          message: error?.message || `Plugin "${slug}" not found`,
+        },
       };
     }
   },
 
-  getDashboardStats: async (): Promise<ApiResponse<DashboardStats>> => {
-    // Alias, compatible with existing code
-    return statisticsApi.getDashboard();
-  },
+  updateConfig: async (slug: string, config: Record<string, any>): Promise<ApiResponse<PluginState>> => {
+    try {
+      const detail = await fetchPluginDetail(slug);
+      const existing = await getDefaultInstance(slug);
 
-  // Order statistics - Using admin specific endpoint
-  getOrders: (): Promise<ApiResponse<{ totalOrders: number; totalRevenue: number }>> => apiClient.get('/admin/orders/stats'),
+      if (existing) {
+        const response = await apiClient.patch(`/extensions/plugin/${slug}/instances/${existing.installationId}`, {
+          config,
+          enabled: existing.enabled,
+        });
+        unwrapApiResponse(response);
+      } else {
+        const response = await apiClient.post(`/extensions/plugin/${slug}/instances`, {
+          instanceKey: DEFAULT_PLUGIN_INSTANCE_KEY,
+          enabled: true,
+          config,
+        });
+        unwrapApiResponse(response);
+      }
 
-  // User/Product stats removed from dashboard aggregation as per plan
-};
-
-// Cache API - Using unified apiClient, fixed paths
-export const cacheApi = {
-  getStats: (): Promise<ApiResponse<{ totalKeys: number; memoryUsage: number; hitRate: number }>> =>
-    apiClient.get('/cache/stats'),
-
-  clear: (pattern?: string): Promise<ApiResponse<void>> =>
-    apiClient.delete('/cache/clear', { params: pattern ? { pattern } : {} }),
-};
-
-// Plugin Management API - Simplified for Alpha Gate (Open Source)
-export const pluginsApi = {
-  // Get all installed plugins (built-in + zip)
-  getInstalled: (params?: {
-    status?: 'ACTIVE' | 'INACTIVE';
-    enabled?: boolean;
-  }): Promise<ApiResponse<any>> =>
-    apiClient.get('/admin/plugins/installed', { params }),
-
-  // Get specific plugin state (includes config)
-  getConfig: async (slug: string): Promise<ApiResponse<any>> => {
-    const res = await apiClient.get<any>(`/admin/plugins/${slug}`);
-    if (res.success && res.data) {
-      // Unify response: frontend expects config object
-      return { ...res, data: res.data.config || res.data };
+      const latest = await getDefaultInstance(slug);
+      return {
+        success: true,
+        data: toPluginState(slug, detail, latest),
+      };
+    } catch (error: any) {
+      const normalized = toApiErrorPayload(error, 'UPDATE_ERROR', 'Failed to update plugin config');
+      return {
+        success: false,
+        error: normalized,
+      };
     }
-    return res;
   },
 
-  // Save specific plugin configuration
-  updateConfig: (slug: string, configData: Record<string, any>): Promise<ApiResponse<any>> =>
-    apiClient.put(`/admin/plugins/${slug}/config`, { configData }),
+  enable: async (slug: string): Promise<ApiResponse<PluginState>> => {
+    try {
+      const detail = await fetchPluginDetail(slug);
+      const existing = await getDefaultInstance(slug);
 
-  // Enable a plugin
-  enable: (slug: string): Promise<ApiResponse<any>> =>
-    apiClient.post(`/admin/plugins/${slug}/enable`),
+      if (existing) {
+        const response = await apiClient.patch(`/extensions/plugin/${slug}/instances/${existing.installationId}`, {
+          enabled: true,
+          config: existing.config,
+        });
+        unwrapApiResponse(response);
+      } else {
+        const response = await apiClient.post(`/extensions/plugin/${slug}/instances`, {
+          instanceKey: DEFAULT_PLUGIN_INSTANCE_KEY,
+          enabled: true,
+          config: {},
+        });
+        unwrapApiResponse(response);
+      }
 
-  // Disable a plugin
-  disable: (slug: string): Promise<ApiResponse<any>> =>
-    apiClient.post(`/admin/plugins/${slug}/disable`),
+      const latest = await getDefaultInstance(slug);
+      return {
+        success: true,
+        data: toPluginState(slug, detail, latest),
+      };
+    } catch (error: any) {
+      const normalized = toApiErrorPayload(error, 'UPDATE_ERROR', 'Failed to enable plugin');
+      return {
+        success: false,
+        error: normalized,
+      };
+    }
+  },
 
-  // Install from local ZIP
-  installFromZip: (file: File): Promise<ApiResponse<any>> => {
+  disable: async (slug: string): Promise<ApiResponse<PluginState>> => {
+    try {
+      const detail = await fetchPluginDetail(slug);
+      const existing = await getDefaultInstance(slug);
+
+      if (existing) {
+        const response = await apiClient.patch(`/extensions/plugin/${slug}/instances/${existing.installationId}`, {
+          enabled: false,
+          config: existing.config,
+        });
+        unwrapApiResponse(response);
+      }
+
+      const latest = await getDefaultInstance(slug);
+      return {
+        success: true,
+        data: toPluginState(slug, detail, latest ? { ...latest, enabled: false } : null),
+      };
+    } catch (error: any) {
+      const normalized = toApiErrorPayload(error, 'UPDATE_ERROR', 'Failed to disable plugin');
+      return {
+        success: false,
+        error: normalized,
+      };
+    }
+  },
+
+  installFromZip: (file: File): Promise<ApiResponse<{ slug: string; version: string }>> => {
     const formData = new FormData();
     formData.append('file', file);
     return apiClient.post('/extensions/plugin/install', formData, {
@@ -300,31 +1276,392 @@ export const pluginsApi = {
     });
   },
 
-  // Uninstall plugin
-  uninstall: (slug: string): Promise<ApiResponse<any>> =>
+  installBundleFromZip: (file: File): Promise<ApiResponse<any>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient.post('/extensions/bundle/install', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  uninstall: (slug: string): Promise<ApiResponse<{ kind: 'plugin'; slug: string; uninstalled: boolean }>> =>
     apiClient.delete(`/extensions/plugin/${slug}`),
 
-  // List all plugins in /extensions (used for discovery/install management)
-  getExtensions: (): Promise<ApiResponse<any>> =>
-    apiClient.get('/api/extensions/plugin'),
+  restore: (slug: string): Promise<ApiResponse<{ kind: 'plugin'; slug: string; restored: boolean }>> =>
+    apiClient.post(`/extensions/plugin/${slug}/restore`),
+
+  purge: (slug: string): Promise<ApiResponse<{ kind: 'plugin'; slug: string; purged: boolean }>> =>
+    apiClient.delete(`/extensions/plugin/${slug}/purge`),
+
+  // ============================================================================
+  // Instance Management API (Multi-instance support)
+  // ============================================================================
+
+  /** Get all instances for a plugin */
+  getInstances: (slug: string, page = 1, limit = 20): Promise<ApiResponse<PageResult<PluginInstance>>> =>
+    apiClient.get(`/extensions/plugin/${slug}/instances`, { params: { page, limit } }),
+
+  /** Create a new instance for a plugin */
+  createInstance: (
+    slug: string,
+    data: CreateInstanceRequest
+  ): Promise<ApiResponse<PluginInstance>> =>
+    apiClient.post(`/extensions/plugin/${slug}/instances`, data),
+
+  /** Update an instance */
+  updateInstance: (
+    slug: string,
+    installationId: string,
+    data: UpdateInstanceRequest
+  ): Promise<ApiResponse<PluginInstance>> =>
+    apiClient.patch(`/extensions/plugin/${slug}/instances/${installationId}`, data),
+
+  /** Delete (soft-delete) an instance */
+  deleteInstance: (slug: string, installationId: string): Promise<ApiResponse<{
+    pluginSlug: string;
+    installationId: string;
+    instanceKey: string;
+    deleted: boolean;
+  }>> =>
+    apiClient.delete(`/extensions/plugin/${slug}/instances/${installationId}`),
 };
 
-// Upload API - Using unified apiClient
+// Themes Management API
+export const themesApi = {
+  getTargets: (): Promise<ApiResponse<ThemeTargetsResponse>> =>
+    apiClient.get('/admin/themes'),
+
+  getInstalled: (
+    target: 'shop' | 'admin' = 'shop',
+    page = 1,
+    limit = 20
+  ): Promise<ApiResponse<PageResult<ThemeMeta>>> =>
+    apiClient.get(`/admin/themes/${target}/installed`, { params: { page, limit } }),
+
+  getActive: (target: 'shop' | 'admin' = 'shop'): Promise<ApiResponse<ActiveTheme>> =>
+    apiClient.get(`/admin/themes/${target}/active`),
+
+  activate: (
+    slug: string,
+    target: 'shop' | 'admin' = 'shop',
+    config?: Record<string, unknown>,
+    type?: 'pack' | 'app'
+  ): Promise<ApiResponse<ActiveTheme>> => {
+    const body: Record<string, unknown> = {};
+    if (config) body.config = config;
+    if (type) body.type = type;
+    return apiClient.post(`/admin/themes/${target}/${slug}/activate`, body);
+  },
+
+  rollback: (target: 'shop' | 'admin' = 'shop'): Promise<ApiResponse<ActiveTheme>> =>
+    apiClient.post(`/admin/themes/${target}/rollback`, {}),
+
+  updateConfig: (config: any, target: 'shop' | 'admin' = 'shop'): Promise<ApiResponse<ActiveTheme>> =>
+    apiClient.put(`/admin/themes/${target}/config`, config),
+
+  installFromZip: (target: 'shop' | 'admin', file: File): Promise<ApiResponse<{ slug: string; version: string }>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const kind = `theme-${target}`;
+    return apiClient.post(`/extensions/${kind}/install`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  installThemeAppFromZip: (target: 'shop' | 'admin', file: File): Promise<ApiResponse<{ slug: string; version: string }>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const kind = `theme-app-${target}`;
+    return apiClient.post(`/extensions/${kind}/install`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  uninstall: (target: 'shop' | 'admin', slug: string, type: 'pack' | 'app' = 'pack'): Promise<ApiResponse<void>> => {
+    const kind = type === 'app' ? `theme-app-${target}` : `theme-${target}`;
+    return apiClient.delete(`/extensions/${kind}/${slug}`);
+  },
+};
+
+// Upload API
 export const uploadApi = {
   uploadProductImage: (file: File): Promise<ApiResponse<{ url: string }>> => {
     const formData = new FormData();
     formData.append('file', file);
-    // 🔧 Fix API path: Avoid /api/api duplication if base has /api
-    // Assuming backend is proxying /api/upload -> backend /upload, or direct.
-    // Plan says: "Upload: /api/upload/*".
-    // If client base is /api, then request /upload/product-image results in /api/upload/product-image.
-    return apiClient.post('/upload/product-image', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
+    return apiClient.post('/admin/products/upload-image', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+
+  uploadAvatar: (file: File): Promise<ApiResponse<{ url: string }>> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return apiClient.post('/account/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
     });
   },
 };
 
-// Export default apiClient instance
+// Upgrade API
+export const upgradeApi = {
+  getVersion: (): Promise<ApiResponse<{
+    currentVersion: string;
+    latestVersion: string;
+    updateAvailable: boolean;
+    releaseNotes?: string | null;
+    deploymentMode: 'single-host' | 'docker-compose' | 'k8s' | 'unsupported';
+    oneClickUpgradeSupported: boolean;
+    updateSource: 'public-manifest' | 'local-fallback';
+    recoveryMode: 'automatic-recovery';
+    manualGuidance?: string | null;
+  }>> =>
+    apiClient.get('/upgrade/version'),
+
+  getStatus: (): Promise<ApiResponse<{
+    status: string;
+    progress: number;
+    currentStep?: string | null;
+    error?: string | null;
+  }>> =>
+    apiClient.get('/upgrade/status'),
+
+  perform: (targetVersion: string): Promise<ApiResponse<{
+    targetVersion: string;
+    upgraded: boolean;
+    completedAt: string;
+  }>> =>
+    apiClient.post('/upgrade/perform', { targetVersion }),
+
+  check: (targetVersion: string): Promise<ApiResponse<{
+    compatible: boolean;
+    currentVersion: string;
+    targetVersion: string;
+    issues: string[];
+    warnings: string[];
+  }>> => apiClient.post('/upgrade/check', { targetVersion }),
+
+  backup: (): Promise<ApiResponse<{ id: string; version: string; createdAt: string; size: number }>> =>
+    apiClient.post('/upgrade/backup', {}),
+};
+
+// Settings API
+export const settingsApi = {
+  getAll: (): Promise<ApiResponse<SystemSettingsMap>> =>
+    apiClient.get('/admin/settings'),
+
+  batchUpdate: (settings: SystemSettingsMap): Promise<ApiResponse<SystemSettingsMap>> =>
+    apiClient.put('/admin/settings/batch', { settings }),
+};
+
+// Inventory Forecasting API
+export const inventoryApi = {
+  getDashboard: (params: {
+    page?: number;
+    limit?: number;
+    status?: 'ACTIVE' | 'DISMISSED' | 'RESOLVED';
+    productId?: string;
+    variantId?: string;
+  }): Promise<ApiResponse<InventoryDashboardData>> =>
+    apiClient.get('/admin/inventory/dashboard', { params }),
+
+  getStats: (): Promise<ApiResponse<InventoryStatsData>> =>
+    apiClient.get('/admin/inventory/stats'),
+
+  generateForecast: (data: {
+    productId: string;
+    variantId: string;
+    days?: number;
+    historicalDays?: number;
+  }): Promise<ApiResponse<any>> => apiClient.post('/admin/inventory/forecast', data),
+  recomputeAll: (data?: {
+    days?: number;
+    historicalDays?: number;
+  }): Promise<ApiResponse<any>> => apiClient.post('/admin/inventory/recompute-all', data || {}),
+  checkAndCreateAlerts: (productId: string, variantId: string): Promise<ApiResponse<any>> =>
+    apiClient.post('/admin/inventory/alerts/check', { productId, variantId }),
+
+  dismissAlert: (id: string, reason?: string): Promise<ApiResponse<any>> =>
+    apiClient.put(`/admin/inventory/alerts/${id}/dismiss`, { reason }),
+
+  resolveAlert: (id: string): Promise<ApiResponse<any>> =>
+    apiClient.put(`/admin/inventory/alerts/${id}/resolve`),
+
+  updateAlertStatus: (id: string, status: 'ACTIVE' | 'DISMISSED' | 'RESOLVED', reason?: string): Promise<ApiResponse<any>> =>
+    apiClient.put(`/admin/inventory/alerts/${id}/status`, { status, reason }),
+
+  recordAccuracy: (forecastId: string, actualDemand: number): Promise<ApiResponse<any>> =>
+    apiClient.post(`/admin/inventory/accuracy/${forecastId}`, { actualDemand }),
+};
+
+// SEO Redirect types
+export interface SeoRedirect {
+  id: string;
+  fromPath: string;
+  toPath: string;
+  statusCode: number;
+  isActive: boolean;
+  hitCount: number;
+}
+
+// Promotions/Discounts API
+export interface Promotion {
+  id: string;
+  code: string;
+  type: 'PERCENTAGE' | 'FIXED_AMOUNT' | 'BUY_X_GET_Y' | 'FREE_SHIPPING';
+  value: number;
+  description?: string;
+  minAmount?: number;
+  maxUses?: number;
+  usedCount: number;
+  startDate?: string;
+  endDate?: string;
+  isActive: boolean;
+  stackable: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// SEO Redirect API
+export const redirectsApi = {
+  getAll: (page = 1, limit = 10, search?: string): Promise<ApiResponse<PageResult<SeoRedirect>>> =>
+    apiClient.get('/api/seo/redirects', { params: { page, limit, search } }),
+
+  getById: (id: string): Promise<ApiResponse<SeoRedirect>> =>
+    apiClient.get(`/api/seo/redirects/${id}`),
+
+  create: (data: { fromPath: string; toPath: string; statusCode?: number; isActive?: boolean }): Promise<ApiResponse<SeoRedirect>> =>
+    apiClient.post('/api/seo/redirects', data),
+
+  update: (id: string, data: Partial<SeoRedirect>): Promise<ApiResponse<SeoRedirect>> =>
+    apiClient.put(`/api/seo/redirects/${id}`, data),
+
+  delete: (id: string): Promise<ApiResponse<void>> =>
+    apiClient.delete(`/api/seo/redirects/${id}`),
+};
+
+// SEO Audit types
+export interface SeoIssue {
+  id: string;
+  type: string;
+  severity: 'critical' | 'warning' | 'info';
+  message: string;
+  entity: {
+    type: 'product' | 'category';
+    id: string;
+    name: string;
+    slug: string;
+  };
+  recommendation?: string;
+}
+
+export interface AuditSummary {
+  totalIssues: number;
+  critical: number;
+  warnings: number;
+  info: number;
+  issuesByType: Record<string, number>;
+}
+
+export interface AuditResult {
+  summary: AuditSummary;
+  issues: SeoIssue[];
+  timestamp: string;
+}
+
+export interface AuditStats {
+  products: {
+    total: number;
+    missingMetaTitle: number;
+    missingMetaDescription: number;
+    missingCanonicalUrl: number;
+    missingStructuredData: number;
+  };
+  categories: {
+    total: number;
+    missingMetaTitle: number;
+    missingMetaDescription: number;
+    missingCanonicalUrl: number;
+    missingStructuredData: number;
+  };
+}
+
+// SEO Audit API
+export const seoAuditApi = {
+  runAudit: (options?: {
+    includeProducts?: boolean;
+    includeCategories?: boolean;
+    limit?: number;
+    offset?: number;
+  }): Promise<ApiResponse<AuditResult>> =>
+    apiClient.get('/api/seo/audit', { params: options }),
+
+  getStats: (): Promise<ApiResponse<AuditStats>> =>
+    apiClient.get('/api/seo/audit/stats'),
+};
+
+export interface PromotionForm {
+  code: string;
+  type: 'PERCENTAGE' | 'FIXED_AMOUNT' | 'BUY_X_GET_Y' | 'FREE_SHIPPING';
+  value: number;
+  description?: string;
+  minAmount?: number;
+  maxUses?: number;
+  startDate?: string;
+  endDate?: string;
+  isActive?: boolean;
+  stackable?: boolean;
+  productIds?: string[];
+  customerGroups?: string[];
+}
+
+export const promotionsApi = {
+  getAll: (page = 1, limit = 10, search?: string, type?: string): Promise<ApiResponse<PageResult<Promotion>>> =>
+    apiClient.get('/admin/discounts', { params: { page, limit, search, type } }),
+
+  getById: (id: string): Promise<ApiResponse<Promotion>> =>
+    apiClient.get(`/admin/discounts/${id}`),
+
+  create: (data: PromotionForm): Promise<ApiResponse<Promotion>> =>
+    apiClient.post('/admin/discounts', data),
+
+  update: (id: string, data: Partial<PromotionForm>): Promise<ApiResponse<Promotion>> =>
+    apiClient.put(`/admin/discounts/${id}`, data),
+
+  delete: (id: string): Promise<ApiResponse<void>> =>
+    apiClient.delete(`/admin/discounts/${id}`),
+};
+
+// Errors API
+export const errorsApi = {
+  getAll: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    severity?: string;
+    resolved?: boolean;
+    startDate?: string;
+    endDate?: string;
+    sortBy?: string;
+    sortOrder?: string;
+  } = {}): Promise<ApiResponse<PageResult<any>>> => {
+    const { page = 1, limit = 10, ...filters } = params;
+    return apiClient.get('/api/admin/errors', { params: { page, limit, ...filters } });
+  },
+
+  getById: (id: string): Promise<ApiResponse<any>> =>
+    apiClient.get(`/api/admin/errors/${id}`),
+
+  resolve: (id: string): Promise<ApiResponse<any>> =>
+    apiClient.patch(`/api/admin/errors/${id}/resolve`, { resolved: true }),
+
+  unresolve: (id: string): Promise<ApiResponse<any>> =>
+    apiClient.patch(`/api/admin/errors/${id}/resolve`, { resolved: false }),
+
+  getStats: (): Promise<ApiResponse<any>> =>
+    apiClient.get('/api/admin/errors/stats'),
+
+  getTrends: (timeRange?: string): Promise<ApiResponse<any>> =>
+    apiClient.get('/api/admin/errors/trends', { params: { timeRange } }),
+};
+
 export default apiClient;

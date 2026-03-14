@@ -38,7 +38,7 @@ export default async function AuthLayout({
 
         {/* Footer */}
         <div className="text-center mt-8 text-sm text-muted-foreground">
-          <p>© 2024 Jiffoo Mall. All rights reserved.</p>
+          <p>© 2026 Jiffoo Mall. All rights reserved.</p>
         </div>
       </div>
     </div>

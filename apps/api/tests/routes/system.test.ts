@@ -6,8 +6,6 @@
  * - GET /health
  * - GET /health/live
  * - GET /health/ready
- * - GET /success (payment redirect)
- * - GET /cancel (payment redirect)
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -121,50 +119,6 @@ describe('System Endpoints', () => {
       const body = response.json();
       expect(body).toHaveProperty('status');
       expect(['ready', 'not_ready', 'ok']).toContain(body.status);
-    });
-  });
-
-  describe('GET /success (Payment Success Redirect)', () => {
-    it('should redirect to shop success page', async () => {
-      const response = await app.inject({
-        method: 'GET',
-        url: '/success',
-      });
-
-      // Should redirect (302 or 303)
-      expect([302, 303]).toContain(response.statusCode);
-      
-      // Check redirect location
-      const location = response.headers.location as string;
-      expect(location).toContain('order-success');
-    });
-
-    it('should pass session_id to redirect URL', async () => {
-      const sessionId = 'test-session-123';
-      
-      const response = await app.inject({
-        method: 'GET',
-        url: `/success?session_id=${sessionId}`,
-      });
-
-      const location = response.headers.location as string;
-      expect(location).toContain(`session_id=${sessionId}`);
-    });
-  });
-
-  describe('GET /cancel (Payment Cancel Redirect)', () => {
-    it('should redirect to shop cancel page', async () => {
-      const response = await app.inject({
-        method: 'GET',
-        url: '/cancel',
-      });
-
-      // Should redirect
-      expect([302, 303]).toContain(response.statusCode);
-      
-      // Check redirect location
-      const location = response.headers.location as string;
-      expect(location).toContain('order-cancelled');
     });
   });
 

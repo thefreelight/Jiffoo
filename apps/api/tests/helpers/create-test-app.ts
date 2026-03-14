@@ -44,17 +44,132 @@ export interface CreateTestAppOptions {
   env?: Record<string, string>;
 }
 
-// Mock Redis cache for testing
-const mockRedisCache = {
-  isConnected: true,
-  async connect() { return this; },
-  async disconnect() { return; },
-  async get(key: string) { return null; },
-  async set(key: string, value: any, ttl?: number) { return 'OK'; },
-  async del(key: string) { return 1; },
-  async exists(key: string) { return 0; },
-  async ping() { return 'PONG'; },
-};
+// In-memory Redis mock with TTL support for cache testing
+interface CacheEntry {
+  value: string;
+  expiresAt: number | null; // timestamp in ms, null = no expiry
+}
+
+class InMemoryRedisCache {
+  private store = new Map<string, CacheEntry>();
+  isConnected = true;
+
+  async connect() { return this; }
+  async disconnect() { this.store.clear(); }
+
+  async get<T = any>(key: string): Promise<T | null> {
+    const entry = this.store.get(key);
+    if (!entry) return null;
+    if (entry.expiresAt !== null && Date.now() > entry.expiresAt) {
+      this.store.delete(key);
+      return null;
+    }
+    return JSON.parse(entry.value) as T;
+  }
+
+  async set(key: string, value: any, ttl?: number): Promise<boolean> {
+    const expiresAt = ttl ? Date.now() + ttl * 1000 : null;
+    this.store.set(key, { value: JSON.stringify(value), expiresAt });
+    return true;
+  }
+
+  async del(key: string): Promise<boolean> {
+    return this.store.delete(key);
+  }
+
+  async exists(key: string): Promise<number> {
+    const entry = this.store.get(key);
+    if (!entry) return 0;
+    if (entry.expiresAt !== null && Date.now() > entry.expiresAt) {
+      this.store.delete(key);
+      return 0;
+    }
+    return 1;
+  }
+
+  async incr(key: string): Promise<number> {
+    const entry = this.store.get(key);
+    let current = 0;
+    if (entry) {
+      if (entry.expiresAt !== null && Date.now() > entry.expiresAt) {
+        this.store.delete(key);
+      } else {
+        current = Number(JSON.parse(entry.value)) || 0;
+      }
+    }
+    const newVal = current + 1;
+    this.store.set(key, { value: JSON.stringify(newVal), expiresAt: entry?.expiresAt ?? null });
+    return newVal;
+  }
+
+  async expire(key: string, ttl: number): Promise<boolean> {
+    const entry = this.store.get(key);
+    if (!entry) return false;
+    entry.expiresAt = Date.now() + ttl * 1000;
+    return true;
+  }
+
+  async ping() { return 'PONG'; }
+  getConnectionStatus() { return this.isConnected; }
+  async flushAll() { this.store.clear(); return true; }
+  async deleteByPattern(pattern: string): Promise<number> {
+    const prefix = pattern.replace('*', '');
+    let count = 0;
+    for (const key of this.store.keys()) {
+      if (key.startsWith(prefix)) {
+        this.store.delete(key);
+        count++;
+      }
+    }
+    return count;
+  }
+  async keys(pattern: string): Promise<string[]> {
+    const prefix = pattern.replace('*', '');
+    return [...this.store.keys()].filter(k => k.startsWith(prefix));
+  }
+  async countByPattern(pattern: string): Promise<number> {
+    const prefix = pattern.replace('*', '');
+    return [...this.store.keys()].filter(k => k.startsWith(prefix)).length;
+  }
+  getRawClient() {
+    return {
+      incr: async (key: string) => this.incr(key),
+      pexpire: async (key: string, ms: number) => {
+        const entry = this.store.get(key);
+        if (!entry) return 0;
+        entry.expiresAt = Date.now() + ms;
+        return 1;
+      },
+      pttl: async (key: string) => {
+        const entry = this.store.get(key);
+        if (!entry || entry.expiresAt === null) return -1;
+        return Math.max(0, entry.expiresAt - Date.now());
+      },
+      del: async (...keys: string[]) => {
+        let count = 0;
+        for (const key of keys) {
+          if (this.store.delete(key)) count++;
+        }
+        return count;
+      },
+      get: async (key: string) => {
+        const entry = this.store.get(key);
+        if (!entry) return null;
+        if (entry.expiresAt !== null && Date.now() > entry.expiresAt) {
+          this.store.delete(key);
+          return null;
+        }
+        return entry.value;
+      }
+    };
+  }
+
+  // Expose store for test inspection
+  _getStore() { return this.store; }
+  _clear() { this.store.clear(); }
+}
+
+export const mockRedisCache = new InMemoryRedisCache();
 
 /**
  * Create a new Fastify instance for testing
@@ -74,6 +189,7 @@ export async function createTestApp(options: CreateTestAppOptions = {}): Promise
   process.env.DISABLE_REDIS = disableRedis ? 'true' : 'false';
   process.env.DISABLE_DYNAMIC_PLUGINS = disableDynamicPlugins ? 'true' : 'false';
   process.env.DISABLE_FILE_SYSTEM = disableFileSystem ? 'true' : 'false';
+  process.env.STORE_DEFAULT_ID = process.env.STORE_DEFAULT_ID || 'test-store';
 
   // Apply custom env vars
   Object.entries(env).forEach(([key, value]) => {
@@ -87,6 +203,45 @@ export async function createTestApp(options: CreateTestAppOptions = {}): Promise
   });
 
   try {
+    // Standardize error responses to match API envelope and OpenAPI schemas
+    fastify.setErrorHandler((error: any, _request, reply) => {
+      if (error?.validation) {
+        const issues = error.validation.map((issue: any) => ({
+          path: issue.instancePath?.replace(/^\//, '') || issue.params?.missingProperty || 'unknown',
+          message: issue.message || 'Validation failed',
+          code: issue.keyword?.toUpperCase() || 'VALIDATION_ERROR',
+        }));
+
+        return reply.code(400).send({
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Request validation failed',
+            details: { issues },
+          },
+        });
+      }
+
+      const statusCode = error?.statusCode || 500;
+      const code =
+        statusCode === 401 ? 'UNAUTHORIZED' :
+          statusCode === 403 ? 'FORBIDDEN' :
+            statusCode === 404 ? 'NOT_FOUND' :
+              statusCode === 429 ? 'RATE_LIMITED' :
+                statusCode === 413 ? 'PAYLOAD_TOO_LARGE' :
+                  statusCode === 400 ? (error?.code || 'BAD_REQUEST') :
+                    'INTERNAL_SERVER_ERROR';
+
+      return reply.code(statusCode).send({
+        success: false,
+        error: {
+          code,
+          message: error?.message || 'An error occurred',
+          details: error?.details,
+        },
+      });
+    });
+
     // Register cookie support
     await fastify.register(cookie, {
       secret: process.env.JWT_SECRET || 'test-secret-key-for-testing',
@@ -117,6 +272,25 @@ export async function createTestApp(options: CreateTestAppOptions = {}): Promise
     // Add Prisma to Fastify instance
     const prisma = getTestPrisma();
     fastify.decorate('prisma', prisma);
+
+    await prisma.store.upsert({
+      where: { id: process.env.STORE_DEFAULT_ID },
+      update: {
+        name: 'Test Store',
+        slug: 'test-store',
+        status: 'active',
+        currency: 'USD',
+        defaultLocale: 'en',
+      },
+      create: {
+        id: process.env.STORE_DEFAULT_ID,
+        name: 'Test Store',
+        slug: 'test-store',
+        status: 'active',
+        currency: 'USD',
+        defaultLocale: 'en',
+      },
+    });
 
     // Register trace context plugin (simplified for tests)
     fastify.addHook('onRequest', async (request) => {
@@ -169,20 +343,6 @@ export async function createTestApp(options: CreateTestAppOptions = {}): Promise
       schema: { tags: ['system'], summary: 'Readiness probe' },
     }, async () => {
       return { status: 'ready' };
-    });
-
-    // Register payment redirect routes
-    fastify.get('/success', {
-      schema: { tags: ['payments'], summary: 'Payment success redirect' },
-    }, async (request, reply) => {
-      const sessionId = (request.query as any).session_id;
-      return reply.redirect(`/order-success?session_id=${sessionId || ''}`);
-    });
-
-    fastify.get('/cancel', {
-      schema: { tags: ['payments'], summary: 'Payment cancel redirect' },
-    }, async (_request, reply) => {
-      return reply.redirect('/order-cancelled');
     });
 
     // Register all API routes

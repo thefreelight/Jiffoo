@@ -54,8 +54,7 @@ export {
 export {
   getContext,
   createContextMiddleware,
-  isFromJiffooPlatform,
-  isProduction
+  isFromJiffooPlatform
 } from './context';
 
 // Validators
@@ -66,6 +65,47 @@ export {
   VALID_CATEGORIES,
   VALID_CAPABILITIES
 } from './validators';
+
+// Version compatibility checking
+export {
+  checkPluginCompatibility,
+  checkRequestCompatibility,
+  getPlatformVersion,
+  satisfiesVersion,
+  isValidVersionRequirement,
+  getSdkVersion,
+  getPlatformCompatibility,
+  isSdkCompatibleWithPlatform
+} from './version-checker';
+
+// Compatibility matrix
+export {
+  SDK_COMPATIBILITY_MATRIX,
+  PLATFORM_COMPATIBILITY_MATRIX,
+  getSdkCompatibility,
+  getCurrentSdkCompatibility,
+  getCompatibleSdkVersions,
+  getRecommendedSdkVersion,
+  isSdkDeprecated,
+  isSdkSunset,
+  getActiveSdkVersions,
+  getSupportedPlatformVersions,
+  isLatestSdk,
+  getSdkWarnings,
+  generateCompatibilityReport
+} from './compatibility';
+
+// Core API Client (§4.6)
+export { createCoreApiClient } from './core-api-client';
+export type { CoreApiClient, CoreApiClientOptions, ApiRequestOptions } from './core-api-client';
+
+// Webhook Handler (§4.7)
+export { createWebhookHandler } from './webhook-handler';
+export type { WebhookHandler, WebhookHandlerOptions, WebhookEventHandler } from './webhook-handler';
+
+// Lifecycle Handler (§4.5)
+export { defineLifecycleHooks } from './lifecycle-handler';
+export type { LifecycleHandler, LifecycleHooks } from './lifecycle-handler';
 
 // Database & Storage (sandboxed)
 export { createPluginDatabase, createPluginStorage } from './sandbox';
@@ -101,7 +141,25 @@ export type {
   SettingsSchema
 } from './validators';
 
+export type {
+  VersionRequirement,
+  VersionCompatibilityResult
+} from './types';
+
+export type {
+  PluginServiceTokenPayload,
+  WebhookEventEnvelope,
+  LifecycleHookName,
+  LifecycleContext,
+  ExtendedPluginManifest,
+} from './types';
+
+export type {
+  CompatibilityMatrixEntry,
+  PlatformCompatibilityEntry
+} from './compatibility';
+
 // SDK Version
-export const SDK_VERSION = '1.0.0';
+export const SDK_VERSION = '1.2.0';
 export const PLATFORM_COMPATIBILITY = '>=0.2.0';
 

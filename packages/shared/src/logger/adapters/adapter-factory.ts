@@ -1,5 +1,5 @@
 /**
- * 统一日志系统 - 适配器工厂
+ * Unified Logging System - Adapter Factory
  */
 
 import { ILogger, LoggerConfig } from '../types';
@@ -17,7 +17,7 @@ export interface AdapterFactoryOptions {
 }
 
 /**
- * 创建适配器的统一工厂函数
+ * Create adapter using unified factory function
  */
 export function createAdapter(options: AdapterFactoryOptions): ILogger {
   const adapterType = options.type || detectEnvironment();
@@ -50,7 +50,7 @@ export function createAdapter(options: AdapterFactoryOptions): ILogger {
 }
 
 /**
- * 自动检测环境并创建适配器
+ * Auto-detect environment and create adapter
  */
 function createAutoAdapter(options: AdapterFactoryOptions): ILogger {
   const isBrowser = typeof window !== 'undefined';
@@ -62,7 +62,7 @@ function createAutoAdapter(options: AdapterFactoryOptions): ILogger {
       enableLocalStorage: options.enableLocalStorage
     });
   } else {
-    // Node.js 环境
+    // Node.js environment
     if (options.winston) {
       return new WinstonAdapter({
         winston: options.winston,
@@ -71,7 +71,7 @@ function createAutoAdapter(options: AdapterFactoryOptions): ILogger {
         version: options.config.version
       });
     } else {
-      // 如果没有提供 Winston 实例，使用基础 Logger
+      // If no Winston instance provided, use base Logger
       const { BaseLogger } = require('../base-logger');
       return new BaseLogger(options.config);
     }
@@ -79,7 +79,7 @@ function createAutoAdapter(options: AdapterFactoryOptions): ILogger {
 }
 
 /**
- * 检测当前环境
+ * Detect current environment
  */
 function detectEnvironment(): AdapterType {
   if (typeof window !== 'undefined') {
@@ -92,7 +92,7 @@ function detectEnvironment(): AdapterType {
 }
 
 /**
- * 创建适合当前环境的默认适配器
+ * Create default adapter suitable for current environment
  */
 export function createDefaultAdapter(appName: string, options: Partial<AdapterFactoryOptions> = {}): ILogger {
   const config: LoggerConfig = {

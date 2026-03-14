@@ -1,5 +1,5 @@
 /**
- * Security Module - 安全模块统一导出
+ * Security Module - Unified Security Module Exports
  */
 
 // Rate Limiter

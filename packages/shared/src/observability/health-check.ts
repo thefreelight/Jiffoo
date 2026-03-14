@@ -50,6 +50,26 @@ export interface HealthCheckConfig {
   version?: string;
   /** Startup time */
   startTime?: Date;
+  /** Enable metrics tracking */
+  enableMetrics?: boolean;
+  /** Maximum number of response times to store per check */
+  maxMetricsHistory?: number;
+}
+
+/**
+ * Check Metrics
+ */
+export interface CheckMetrics {
+  name: string;
+  totalCalls: number;
+  errorCount: number;
+  successCount: number;
+  errorRate: number;
+  avgResponseTimeMs: number;
+  minResponseTimeMs: number;
+  maxResponseTimeMs: number;
+  lastError?: string;
+  lastErrorTimestamp?: string;
 }
 
 /**
@@ -59,7 +79,21 @@ const DEFAULT_CONFIG: Required<HealthCheckConfig> = {
   timeout: 5000,
   version: '1.0.0',
   startTime: new Date(),
+  enableMetrics: true,
+  maxMetricsHistory: 100,
 };
+
+/**
+ * Metrics Data Storage
+ */
+interface MetricsData {
+  totalCalls: number;
+  errorCount: number;
+  successCount: number;
+  responseTimes: number[];
+  lastError?: string;
+  lastErrorTimestamp?: string;
+}
 
 /**
  * Health Check Service Class
@@ -69,6 +103,7 @@ export class HealthCheckService {
   private checks: Map<string, HealthCheckFn> = new Map();
   private livenessChecks: Map<string, HealthCheckFn> = new Map();
   private readinessChecks: Map<string, HealthCheckFn> = new Map();
+  private metricsData: Map<string, MetricsData> = new Map();
 
   constructor(config: HealthCheckConfig = {}) {
     this.config = { ...DEFAULT_CONFIG, ...config };
@@ -150,13 +185,27 @@ export class HealthCheckService {
         ]);
         result.latencyMs = Date.now() - startTime;
         results.push(result);
+
+        // Track metrics for successful checks
+        if (this.config.enableMetrics) {
+          const isError = result.status === HealthStatus.UNHEALTHY;
+          this.recordMetrics(name, result.latencyMs, isError);
+        }
       } catch (error) {
+        const latencyMs = Date.now() - startTime;
+        const errorMessage = error instanceof Error ? error.message : 'Check failed';
+
         results.push({
           name,
           status: HealthStatus.UNHEALTHY,
-          message: error instanceof Error ? error.message : 'Check failed',
-          latencyMs: Date.now() - startTime,
+          message: errorMessage,
+          latencyMs,
         });
+
+        // Track metrics for failed checks
+        if (this.config.enableMetrics) {
+          this.recordMetrics(name, latencyMs, true, errorMessage);
+        }
       }
     }
 
@@ -205,6 +254,115 @@ export class HealthCheckService {
   getUptime(): number {
     return Math.floor((Date.now() - this.config.startTime.getTime()) / 1000);
   }
+
+  /**
+   * Record metrics for a check execution
+   */
+  private recordMetrics(
+    name: string,
+    responseTimeMs: number,
+    isError: boolean,
+    errorMessage?: string
+  ): void {
+    let data = this.metricsData.get(name);
+
+    if (!data) {
+      data = {
+        totalCalls: 0,
+        errorCount: 0,
+        successCount: 0,
+        responseTimes: [],
+      };
+      this.metricsData.set(name, data);
+    }
+
+    // Update counters
+    data.totalCalls++;
+    if (isError) {
+      data.errorCount++;
+      data.lastError = errorMessage;
+      data.lastErrorTimestamp = new Date().toISOString();
+    } else {
+      data.successCount++;
+    }
+
+    // Track response times (keep within limit)
+    data.responseTimes.push(responseTimeMs);
+    if (data.responseTimes.length > this.config.maxMetricsHistory) {
+      data.responseTimes.shift();
+    }
+  }
+
+  /**
+   * Get metrics for a specific check
+   */
+  getCheckMetrics(name: string): CheckMetrics | undefined {
+    const data = this.metricsData.get(name);
+    if (!data) {
+      return undefined;
+    }
+
+    return this.calculateMetrics(name, data);
+  }
+
+  /**
+   * Get metrics for all checks
+   */
+  getAllMetrics(): CheckMetrics[] {
+    const metrics: CheckMetrics[] = [];
+
+    for (const [name, data] of this.metricsData) {
+      metrics.push(this.calculateMetrics(name, data));
+    }
+
+    return metrics;
+  }
+
+  /**
+   * Calculate metrics from raw data
+   */
+  private calculateMetrics(name: string, data: MetricsData): CheckMetrics {
+    const responseTimes = data.responseTimes;
+    const avgResponseTimeMs = responseTimes.length > 0
+      ? responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length
+      : 0;
+    const minResponseTimeMs = responseTimes.length > 0
+      ? Math.min(...responseTimes)
+      : 0;
+    const maxResponseTimeMs = responseTimes.length > 0
+      ? Math.max(...responseTimes)
+      : 0;
+    const errorRate = data.totalCalls > 0
+      ? (data.errorCount / data.totalCalls) * 100
+      : 0;
+
+    return {
+      name,
+      totalCalls: data.totalCalls,
+      errorCount: data.errorCount,
+      successCount: data.successCount,
+      errorRate,
+      avgResponseTimeMs,
+      minResponseTimeMs,
+      maxResponseTimeMs,
+      lastError: data.lastError,
+      lastErrorTimestamp: data.lastErrorTimestamp,
+    };
+  }
+
+  /**
+   * Reset metrics for a specific check
+   */
+  resetCheckMetrics(name: string): void {
+    this.metricsData.delete(name);
+  }
+
+  /**
+   * Reset all metrics
+   */
+  resetAllMetrics(): void {
+    this.metricsData.clear();
+  }
 }
 
 // Predefined health check factory functions
@@ -235,6 +393,21 @@ export function createDatabaseCheck(
 }
 
 /**
+ * Redis Cache Statistics
+ */
+export interface RedisCacheStats {
+  [key: string]: unknown;
+  hitRate?: number;
+  missRate?: number;
+  keyCount?: number;
+  memoryUsed?: number;
+  memoryPeak?: number;
+  evictedKeys?: number;
+  connectedClients?: number;
+  uptime?: number;
+}
+
+/**
  * Create Redis Check
  */
 export function createRedisCheck(
@@ -254,6 +427,64 @@ export function createRedisCheck(
         name,
         status: HealthStatus.UNHEALTHY,
         message: error instanceof Error ? error.message : 'Redis check failed',
+      };
+    }
+  };
+}
+
+/**
+ * Create Redis Cache Statistics Check
+ */
+export function createRedisCacheStatsCheck(
+  name: string,
+  statsFn: () => Promise<RedisCacheStats>
+): HealthCheckFn {
+  return async () => {
+    try {
+      const stats = await statsFn();
+
+      // Determine health status based on cache stats
+      let status = HealthStatus.HEALTHY;
+      const messages: string[] = [];
+
+      // Check hit rate (if available)
+      if (stats.hitRate !== undefined) {
+        if (stats.hitRate < 50) {
+          status = HealthStatus.DEGRADED;
+          messages.push(`Low hit rate: ${stats.hitRate.toFixed(1)}%`);
+        } else {
+          messages.push(`Hit rate: ${stats.hitRate.toFixed(1)}%`);
+        }
+      }
+
+      // Check memory usage (if available)
+      if (stats.memoryUsed !== undefined && stats.memoryPeak !== undefined) {
+        const memoryPercent = (stats.memoryUsed / stats.memoryPeak) * 100;
+        if (memoryPercent > 90) {
+          status = HealthStatus.DEGRADED;
+          messages.push(`High memory usage: ${memoryPercent.toFixed(1)}%`);
+        }
+      }
+
+      // Check eviction rate
+      if (stats.evictedKeys !== undefined && stats.evictedKeys > 0) {
+        if (status === HealthStatus.HEALTHY) {
+          status = HealthStatus.DEGRADED;
+        }
+        messages.push(`Keys evicted: ${stats.evictedKeys}`);
+      }
+
+      return {
+        name,
+        status,
+        message: messages.length > 0 ? messages.join(', ') : 'Cache is healthy',
+        details: stats,
+      };
+    } catch (error) {
+      return {
+        name,
+        status: HealthStatus.UNHEALTHY,
+        message: error instanceof Error ? error.message : 'Redis cache stats check failed',
       };
     }
   };

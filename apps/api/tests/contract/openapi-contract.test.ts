@@ -36,7 +36,7 @@ describe('OpenAPI Contract Tests', () => {
 
     // Print operation statistics
     const stats = getOperationStats();
-    console.log('\n📊 OpenAPI Contract Test Coverage:');
+    console.log('\n OpenAPI Contract Test Coverage:');
     console.log(`   Total Operations: ${stats.total}`);
     console.log(`   Authenticated: ${stats.authenticated}`);
     console.log(`   Public: ${stats.public}`);
@@ -88,9 +88,6 @@ describe('OpenAPI Contract Tests', () => {
       if (path.includes('/upgrade/check') || path.includes('/upgrade/perform')) {
         return { targetVersion: '1.0.0' };
       }
-      if (path.includes('/upgrade/rollback')) {
-        return { backupId: 'test-backup-id' };
-      }
 
       // Default minimal payload
       return {};
@@ -120,21 +117,13 @@ describe('OpenAPI Contract Tests', () => {
 
     // Filter out operations that need special handling
     const simplePublicOps = publicOperations.filter(op =>
-      // Skip redirect endpoints
-      !op.path.includes('/success') &&
-      !op.path.includes('/cancel') &&
       // Skip endpoints that need request body
       op.method === 'GET' &&
       // Skip endpoints with complex path params that need real data
       !op.path.includes('/api/products/{id}') &&
-      !op.path.includes('/api/plugins/{slug}') &&
       !op.path.includes('/api/extensions/') &&
       // Skip all admin endpoints (they all require auth)
-      !op.path.includes('/api/admin/') &&
-      // Skip cache endpoints (require auth)
-      !op.path.includes('/api/cache/') &&
-      // Skip log endpoints (require auth)
-      !op.path.includes('/api/logs/')
+      !op.path.includes('/api/admin/')
     );
 
     it.each(
@@ -188,38 +177,6 @@ describe('OpenAPI Contract Tests', () => {
       });
     });
 
-    describe('Install Endpoints', () => {
-      it('GET /api/install/status should return valid schema', async () => {
-        const response = await app.inject({
-          method: 'GET',
-          url: '/api/install/status'
-        });
-
-        expect(response.statusCode).toBe(200);
-        const body = response.json();
-
-        // Validate against OpenAPI schema
-        const validation = validateResponse('/api/install/status', 'GET', 200, body);
-        if (!validation.valid) {
-          console.log('Schema validation errors:', validation.errors);
-        }
-        expect(validation.valid).toBe(true);
-      });
-
-      it('GET /api/install/check-database should return valid schema', async () => {
-        const response = await app.inject({
-          method: 'GET',
-          url: '/api/install/check-database'
-        });
-
-        expect(response.statusCode).toBe(200);
-        const body = response.json();
-
-        const validation = validateResponse('/api/install/check-database', 'GET', 200, body);
-        expect(validation.valid).toBe(true);
-      });
-    });
-
     describe('Products Endpoints', () => {
       it('GET /api/products/ should return valid response', async () => {
         const response = await app.inject({
@@ -230,12 +187,15 @@ describe('OpenAPI Contract Tests', () => {
         expect(response.statusCode).toBe(200);
         const body = response.json();
 
-        // Should return a paginated list structure
+        // Should return a paginated PageResult structure
         expect(body).toHaveProperty('success', true);
         expect(body).toHaveProperty('data');
-        expect(body.data).toHaveProperty('products');
-        expect(body.data).toHaveProperty('pagination');
-        expect(Array.isArray(body.data.products)).toBe(true);
+        expect(body.data).toHaveProperty('items');
+        expect(body.data).toHaveProperty('page');
+        expect(body.data).toHaveProperty('limit');
+        expect(body.data).toHaveProperty('total');
+        expect(body.data).toHaveProperty('totalPages');
+        expect(Array.isArray(body.data.items)).toBe(true);
       });
 
       it('GET /api/products/categories should return valid response', async () => {
@@ -258,48 +218,19 @@ describe('OpenAPI Contract Tests', () => {
       });
     });
 
-    describe('Mall Endpoints', () => {
-      it('GET /api/mall/context should return valid schema', async () => {
+    describe('Store Endpoints', () => {
+      it('GET /api/store/context should return valid schema', async () => {
         const response = await app.inject({
           method: 'GET',
-          url: '/api/mall/context'
+          url: '/api/store/context'
         });
 
         expect([200, 500]).toContain(response.statusCode);
 
         if (response.statusCode === 200) {
-          const validation = validateResponse('/api/mall/context', 'GET', 200, response.json());
+          const validation = validateResponse('/api/store/context', 'GET', 200, response.json());
           expect(validation.valid).toBe(true);
         }
-      });
-    });
-
-    describe('Cache Endpoints', () => {
-      it('GET /api/cache/health should return valid schema', async () => {
-        const response = await app.inject({
-          method: 'GET',
-          url: '/api/cache/health',
-          headers: { authorization: `Bearer ${adminToken}` },
-        });
-
-        expect([200, 500]).toContain(response.statusCode);
-        const body = response.json();
-
-        const statusCode = response.statusCode as 200 | 500;
-        const validation = validateResponse('/api/cache/health', 'GET', statusCode, body);
-        expect(validation.valid).toBe(true);
-      });
-    });
-
-    describe('Logger Endpoints', () => {
-      it('GET /api/logs/health should return valid response', async () => {
-        const response = await app.inject({
-          method: 'GET',
-          url: '/api/logs/health'
-        });
-
-        // Should require authentication
-        expect(response.statusCode).toBe(401);
       });
     });
   });
@@ -316,7 +247,6 @@ describe('OpenAPI Contract Tests', () => {
         { path: '/api/admin/products/', method: 'GET' },
         { path: '/api/admin/orders/', method: 'GET' },
         { path: '/api/admin/themes/', method: 'GET' },
-        { path: '/api/admin/plugins/', method: 'GET' },
       ];
 
       it.each(adminEndpointsToTest)(
@@ -384,7 +314,6 @@ describe('OpenAPI Contract Tests', () => {
         { path: '/api/upgrade/check', method: 'POST', body: { targetVersion: '1.0.0' } },
         { path: '/api/upgrade/backup', method: 'POST' },
         { path: '/api/upgrade/perform', method: 'POST', body: { targetVersion: '1.0.0' } },
-        { path: '/api/upgrade/rollback', method: 'POST', body: { backupId: 'test' } },
       ];
 
       it.each(upgradeEndpoints)(
@@ -458,7 +387,7 @@ describe('OpenAPI Contract Tests', () => {
       expect(stats.total).toBeGreaterThanOrEqual(90);
 
       // Log actual count for reference
-      console.log(`\n📊 Actual operation count: ${stats.total}`);
+      console.log(`\n Actual operation count: ${stats.total}`);
     });
 
     it('should have operations tagged by module', () => {

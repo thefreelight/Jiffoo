@@ -1,0 +1,46 @@
+name: Opensource Sync Check
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  check-opensource-isolation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Run opensource isolation checks
+        run: |
+          bash scripts/check-opensource-isolation.sh .
+      
+      - name: Test opensource build
+        run: |
+          # Simulate opensource sync
+          export OPENSOURCE_REPO_DIR=/tmp/jiffoo-opensource
+          mkdir -p $OPENSOURCE_REPO_DIR
+          bash scripts/sync-opensource.sh
+          
+          # Try to build opensource version
+          cd $OPENSOURCE_REPO_DIR
+          pnpm install
+          # We might need to mock some env vars for build if needed
+          pnpm build
+      
+      - name: Report results
+        if: failure()
+        run: |
+          echo "❌ Opensource sync check failed!"
+          echo "Please ensure:"
+          echo "1. No tenantId in opensource scope"
+          echo "2. No platform-api/super-admin imports"
+          echo "3. No Chinese comments in code"
+          echo "4. LICENSE is GPLv2+"
+          exit 1

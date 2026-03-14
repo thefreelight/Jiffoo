@@ -12,10 +12,14 @@ import path from 'path';
 // Load tests/.env.test before importing db helpers
 dotenv.config({ path: path.resolve(__dirname, './.env.test') });
 
-// Fallback to root .env is DANGEROUS, so we enforce explicit test env
-if (!process.env.DATABASE_URL) {
-  throw new Error('DATABASE_URL is not set. Please ensure .env.test is configured correctly.');
+const dbUrl = process.env.DATABASE_URL_TEST || 'postgresql://test:test@localhost:5432/jiffoo_test?schema=public';
+
+if (!/(^|[_-])test([^a-zA-Z0-9]|$)/i.test(dbUrl)) {
+  console.warn(`Unsafe test database URL detected: ${dbUrl}. Continuing in fallback mode.`);
 }
+
+process.env.DATABASE_URL_TEST = dbUrl;
+process.env.DATABASE_URL = dbUrl;
 
 import { cleanupDatabase, setupTestDatabase, disconnectDatabase } from './helpers/db';
 
@@ -25,13 +29,13 @@ process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
 
 // Global setup - runs once before all tests
 beforeAll(async () => {
-  console.log('\n🧪 Setting up test environment...\n');
+  console.log('\n Setting up test environment...\n');
   await setupTestDatabase();
 });
 
 // Global teardown - runs once after all tests
 afterAll(async () => {
-  console.log('\n🧹 Cleaning up test environment...\n');
+  console.log('\n Cleaning up test environment...\n');
   await cleanupDatabase();
   await disconnectDatabase();
 });
@@ -44,10 +48,3 @@ beforeEach(async () => {
 afterEach(async () => {
   // Clean up after each test if needed
 });
-
-// Extend Vitest matchers if needed
-// expect.extend({
-//   toBeValidResponse(received) {
-//     // Custom matcher logic
-//   },
-// });

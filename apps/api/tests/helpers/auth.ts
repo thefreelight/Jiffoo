@@ -30,6 +30,7 @@ export interface CreateUserOptions {
   username?: string;
   password?: string;
   role?: 'USER' | 'ADMIN';
+  emailVerified?: boolean;
 }
 
 /**
@@ -56,6 +57,7 @@ export async function createTestUser(options: CreateUserOptions = {}): Promise<T
       username: userData.username,
       password: hashedPassword,
       role: userData.role,
+      emailVerified: options.emailVerified !== undefined ? options.emailVerified : true,
     },
   });
 
@@ -82,7 +84,16 @@ export async function createAdminUser(options: Omit<CreateUserOptions, 'role'> =
 /**
  * Sign a JWT token for a user
  */
-export function signJwt(user: Pick<TestUser, 'id' | 'email' | 'role'>): string {
+export function signJwt(
+  userOrId: Pick<TestUser, 'id' | 'email' | 'role'> | string,
+  emailArg?: string,
+  roleArg: 'USER' | 'ADMIN' = 'USER'
+): string {
+  const user =
+    typeof userOrId === 'string'
+      ? { id: userOrId, email: emailArg || '', role: roleArg }
+      : userOrId;
+
   return jwt.sign(
     {
       userId: user.id,
@@ -206,12 +217,58 @@ export async function deleteTestUser(userId: string): Promise<void> {
 
 /**
  * Delete all test users (users with test- prefix in email)
+ * Also cleans up related records (orders, carts, etc.) to avoid FK constraints
  */
 export async function deleteAllTestUsers(): Promise<void> {
   const prisma = getTestPrisma();
-  await prisma.user.deleteMany({
+
+  const users = await prisma.user.findMany({
     where: {
-      email: { contains: 'test-' },
+      OR: [
+        { email: { contains: 'test-' } },
+        { email: { endsWith: '@test.com' } },
+      ],
     },
+    select: { id: true },
   });
+
+  if (users.length === 0) return;
+
+  const userIds = users.map(u => u.id);
+
+  const carts = await prisma.cart.findMany({
+    where: { userId: { in: userIds } },
+    select: { id: true },
+  });
+  const cartIds = carts.map(c => c.id);
+
+  const orders = await prisma.order.findMany({
+    where: { userId: { in: userIds } },
+    select: { id: true },
+  });
+  const orderIds = orders.map(o => o.id);
+
+  const shipments = await prisma.shipment.findMany({
+    where: { orderId: { in: orderIds } },
+    select: { id: true },
+  });
+  const shipmentIds = shipments.map(s => s.id);
+
+  await prisma.$transaction([
+    prisma.shipmentItem.deleteMany({ where: { shipmentId: { in: shipmentIds } } }),
+    prisma.shipment.deleteMany({ where: { id: { in: shipmentIds } } }),
+    prisma.refund.deleteMany({ where: { orderId: { in: orderIds } } }),
+    prisma.payment.deleteMany({ where: { orderId: { in: orderIds } } }),
+    prisma.inventoryReservation.deleteMany({ where: { orderId: { in: orderIds } } }),
+    prisma.orderItem.deleteMany({ where: { orderId: { in: orderIds } } }),
+    prisma.orderShippingAddress.deleteMany({ where: { orderId: { in: orderIds } } }),
+    prisma.order.deleteMany({ where: { id: { in: orderIds } } }),
+    prisma.cartItem.deleteMany({ where: { cartId: { in: cartIds } } }),
+    prisma.cart.deleteMany({ where: { id: { in: cartIds } } }),
+    prisma.systemSettings.updateMany({
+      where: { installedBy: { in: userIds } },
+      data: { installedBy: null },
+    }),
+    prisma.user.deleteMany({ where: { id: { in: userIds } } }),
+  ]);
 }

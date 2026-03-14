@@ -1,4 +1,5 @@
-# 子流水线不发通知，由父流水线统一发送
+# Child pipeline: build + gitops
+# GitOps 完成后由 ArgoCD 负责同步部署到 K8s
 include:
   - project: 'ops/cicd-template'
     ref: main
@@ -32,6 +33,7 @@ test:
 
 build:
   extends: .build
+  timeout: 2h
   needs:
     - job: precheck
       artifacts: true

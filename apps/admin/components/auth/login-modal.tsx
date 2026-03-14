@@ -15,6 +15,7 @@ import { useAuthStore } from '@/lib/store';
 import { useToast } from '@/components/ui/toast';
 import { Eye, EyeOff, Lock, Mail, Loader2 } from 'lucide-react';
 import { useT } from 'shared/src/i18n/react';
+import { resolveApiErrorMessage } from '@/lib/error-utils';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -34,7 +35,9 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback;
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,7 +60,12 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
       onClose();
       onSuccess?.();
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : getText('merchant.auth.invalidCredentials', 'Invalid email or password. Please try again.');
+      const errorMessage = resolveApiErrorMessage(
+        error,
+        t,
+        'merchant.auth.invalidCredentials',
+        'Invalid email or password'
+      );
       setError(errorMessage);
       addToast({
         type: 'error',

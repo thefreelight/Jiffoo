@@ -175,3 +175,98 @@ export function getRandomImage(width = 400, height = 300, category = 'product'):
   const query = categories[category as keyof typeof categories] || 'technology';
   return `https://images.unsplash.com/${width}x${height}/?${query}&random=${Math.random()}`;
 }
+
+// Country code to currency mapping for major countries
+const COUNTRY_TO_CURRENCY: Record<string, string> = {
+  US: 'USD',
+  GB: 'GBP',
+  EU: 'EUR',
+  DE: 'EUR',
+  FR: 'EUR',
+  IT: 'EUR',
+  ES: 'EUR',
+  NL: 'EUR',
+  BE: 'EUR',
+  AT: 'EUR',
+  PT: 'EUR',
+  IE: 'EUR',
+  FI: 'EUR',
+  GR: 'EUR',
+  CA: 'CAD',
+  AU: 'AUD',
+  JP: 'JPY',
+  CN: 'CNY',
+  IN: 'INR',
+  NZ: 'NZD',
+  CH: 'CHF',
+  SE: 'SEK',
+  NO: 'NOK',
+  DK: 'DKK',
+  PL: 'PLN',
+  CZ: 'CZK',
+  HU: 'HUF',
+  RO: 'RON',
+  BG: 'BGN',
+  HR: 'HRK',
+  MX: 'MXN',
+  BR: 'BRL',
+  AR: 'ARS',
+  CL: 'CLP',
+  CO: 'COP',
+  PE: 'PEN',
+  ZA: 'ZAR',
+  KR: 'KRW',
+  TW: 'TWD',
+  HK: 'HKD',
+  SG: 'SGD',
+  MY: 'MYR',
+  TH: 'THB',
+  ID: 'IDR',
+  PH: 'PHP',
+  VN: 'VND',
+  SA: 'SAR',
+  AE: 'AED',
+  IL: 'ILS',
+  TR: 'TRY',
+  RU: 'RUB',
+  UA: 'UAH',
+  EG: 'EGP',
+  NG: 'NGN',
+  KE: 'KES',
+};
+
+export async function detectCurrencyFromGeo(): Promise<string> {
+  try {
+    // Use ipapi.co free IP geolocation API (no API key required for basic usage)
+    const response = await fetch('https://ipapi.co/json/', {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Geolocation API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Get country code from response
+    const countryCode = data.country_code || data.country;
+
+    if (countryCode && COUNTRY_TO_CURRENCY[countryCode]) {
+      return COUNTRY_TO_CURRENCY[countryCode];
+    }
+
+    // If currency is directly provided by the API, use it
+    if (data.currency) {
+      return data.currency;
+    }
+
+    // Default to USD if country not found
+    return 'USD';
+  } catch (error) {
+    // On error, return USD as fallback
+    return 'USD';
+  }
+}

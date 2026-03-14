@@ -18,7 +18,8 @@ import {
   Area,
   AreaChart
 } from 'recharts'
-import { useOrderStats } from '@/lib/hooks/use-api'
+import { formatCurrency } from '@/lib/utils'
+
 import { useT } from 'shared/src/i18n/react'
 
 // Transform order stats into chart data
@@ -32,16 +33,20 @@ function transformOrderStatsToChartData(stats: any) {
 
 interface ChartCardProps {
   title: string
+  subtitle?: string
   children: React.ReactNode
   className?: string
   action?: React.ReactNode
 }
 
-function ChartCard({ title, children, className, action }: ChartCardProps) {
+function ChartCard({ title, subtitle, children, className, action }: ChartCardProps) {
   return (
-    <div className={`bg-white rounded-xl border border-gray-200 p-6 ${className}`}>
+    <div className={className}>
       <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <div>
+          <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+          {subtitle && <p className="text-gray-400 text-xs mt-1">{subtitle}</p>}
+        </div>
         {action}
       </div>
       {children}
@@ -49,58 +54,72 @@ function ChartCard({ title, children, className, action }: ChartCardProps) {
   )
 }
 
-export function SalesChannelChart() {
+export function SalesChannelChart({ metrics }: { metrics?: { totalRevenue: number, totalOrders: number, currency?: string } }) {
   const t = useT()
-  const { data: orderStats } = useOrderStats()
 
-  // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback
+    if (!t) return fallback
+    const translated = t(key)
+    return translated === key ? fallback : translated
   }
 
-  const totalRevenue = orderStats?.totalRevenue || 0
-  const totalOrders = orderStats?.totalOrders || 0
+  const totalRevenue = metrics?.totalRevenue || 0
+  const totalOrders = metrics?.totalOrders || 0
 
   return (
-    <ChartCard title={getText('merchant.dashboard.charts.monthlyRevenue', 'Monthly Revenue Overview')}>
-      <div className="mb-4">
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <span className="text-sm text-gray-600">{getText('merchant.dashboard.totalRevenue', 'Total Revenue')}</span>
-            <span className="text-lg font-semibold text-gray-900">¥{(totalRevenue / 1000).toFixed(1)}K</span>
+    <ChartCard
+      title={getText('merchant.dashboard.charts.monthlyRevenue', 'Global Matrix')}
+      subtitle="Cross-channel signal analysis"
+    >
+      <div className="space-y-6">
+        <div className="bg-gray-50/50 rounded-2xl p-6 border border-gray-100">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.dashboard.totalRevenue', 'Gross')}</span>
+              </div>
+              <p className="text-xl font-black text-gray-900">{formatCurrency(totalRevenue, metrics?.currency)}</p>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <div className="w-2 h-2 bg-blue-300 rounded-full"></div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{getText('merchant.dashboard.totalOrders', 'Orders')}</span>
+              </div>
+              <p className="text-xl font-black text-gray-900">{totalOrders}</p>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <div className="w-3 h-3 bg-blue-300 rounded-full"></div>
-            <span className="text-sm text-gray-600">{getText('merchant.dashboard.totalOrders', 'Total Orders')}</span>
-            <span className="text-lg font-semibold text-gray-900">{totalOrders}</span>
-          </div>
+          <p className="mt-4 text-[9px] font-bold text-blue-600 uppercase tracking-widest border-t border-gray-100 pt-3">
+            {getText('merchant.dashboard.charts.realtimeData', 'Live Signal Active')}
+          </p>
         </div>
-        <div className="mt-2 text-sm text-gray-500">
-          <span className="text-gray-600">{getText('merchant.dashboard.charts.realtimeData', 'Real-time data from backend')}</span>
-        </div>
-      </div>
 
-      <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
-        <div className="text-center">
-          <p className="text-gray-600 mb-2">{getText('merchant.dashboard.charts.revenueBreakdown', 'Detailed revenue breakdown by channel')}</p>
-          <p className="text-sm text-gray-500">{getText('merchant.dashboard.charts.comingSoon', 'Coming soon - requires backend API enhancement')}</p>
+        <div className="h-40 flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-[2rem] bg-gray-50/30">
+          <p className="text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em] mb-1">
+            {getText('merchant.dashboard.charts.revenueBreakdown', 'Analysis Pending')}
+          </p>
+          <p className="text-[9px] font-medium text-gray-400 italic">
+            {getText('merchant.dashboard.charts.comingSoon', 'Revenue breakdown sync in progress')}
+          </p>
         </div>
       </div>
     </ChartCard>
   )
 }
 
-export function RealTimeOrdersChart() {
+export function RealTimeOrdersChart({ todayOrders = 0 }: { todayOrders?: number }) {
   const t = useT()
-  const { data: orderStats } = useOrderStats()
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback
+    if (!t) return fallback
+    const translated = t(key)
+    return translated === key ? fallback : translated
   }
 
-  const todayOrders = orderStats?.todayOrders || 0
+  // Use props instead of fetching
+  // const todayOrders = orderStats?.todayOrders || 0
+  // Note: todayOrders is currently 0 in dashboardApi until extended, but we pass it via props
 
   return (
     <ChartCard

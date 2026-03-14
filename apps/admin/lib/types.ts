@@ -9,7 +9,9 @@ export interface User {
   isActive: boolean
   createdAt: string
   updatedAt: string
-  lastLoginAt?: string
+  lastLoginAt?: string | null
+  totalOrders?: number
+  totalSpent?: number
 }
 
 export enum UserRole {
@@ -22,27 +24,36 @@ export interface ProductVariant {
   id: string
   name: string
   price?: number
-  basePrice?: number
+  salePrice?: number
   stock?: number
   baseStock?: number
   sku?: string
+  skuCode?: string
+  isActive?: boolean
+  attributes?: any
 }
 
 export interface Product {
   id: string
   name: string
-  description: string
-  price: number
-  originalPrice?: number
-  sku: string
-  stock: number
-  categoryId: string
-  category: string | Category
-  images: ProductImage[]
+  description?: string | null
+  requiresShipping?: boolean
+
+  // Flattened List Fields
+  categoryName?: string | null
+  categoryId?: string | null
+  skuCode?: string | null
+  price?: number
+  stock?: number
+  isActive?: boolean
+  variantsCount?: number
+
+  // Detail Fields
+  images?: string[]
   variants?: ProductVariant[]
-  status: string
-  isActive: boolean
-  isFeatured: boolean
+
+  status?: string
+  isFeatured?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -65,27 +76,147 @@ export interface ProductImage {
   order: number
 }
 
-// Order types
+// Order types - Flattened list format
 export interface Order {
   id: string
-  orderNumber: string
-  userId: string
-  user: User
-  customerEmail: string
-  status: OrderStatus
-  paymentStatus?: string // Added to match backend and enable refund check
+  status: OrderStatus | string
+  paymentStatus?: string
   totalAmount: number
-  shippingAddress: Address
-  billingAddress: Address
-  items: OrderItem[]
+  currency: string
   createdAt: string
-  updatedAt: string
+  itemsCount?: number
+
+  // Flattened customer info (for list)
+  customer: {
+    id: string | null
+    email: string | null
+    username: string | null
+  }
+}
+
+// Order detail type - Projected detail format
+export interface OrderDetail {
+  id: string
+  status: OrderStatus | string
+  paymentStatus?: string
+  totalAmount: number
+  currency: string
+  notes?: string | null
+  cancelReason?: string | null
+  cancelledAt?: string | null
+  createdAt: string
+  updatedAt?: string
+  customer: {
+    id: string | null
+    email: string | null
+    username: string | null
+  }
+  shippingAddress?: Address | null
+  items: OrderDetailItem[]
+  shipments?: OrderShipment[]
+  paymentMethod?: string | null
+  paymentAttempts?: number
+  lastPaymentAttemptAt?: string | null
+  expiresAt?: string | null
+}
+
+// Theme types
+export interface ThemeMeta {
+  slug: string
+  name: string
+  version: string
+  description?: string
+  author?: string
+  previewImage?: string
+  source: 'builtin' | 'installed' | 'local-zip' | 'official-market'
+  type?: 'pack' | 'app'
+  target: 'shop' | 'admin'
+}
+
+export interface ActiveTheme {
+  slug: string
+  version: string
+  source: string
+  type?: 'pack' | 'app'
+  config: Record<string, any>
+  activatedAt: string
+  previousSlug?: string
+}
+
+// Plugin types
+export interface PluginMetaWithState {
+  slug: string
+  name: string
+  version: string
+  description?: string
+  author?: string
+  source: 'installed' | 'builtin' | 'local-zip' | 'official-market'
+  enabled: boolean
+  deletedAt?: string | null
+  uninstalled?: boolean
+  configRequired?: boolean
+  configReady?: boolean
+  missingConfigFields?: string[]
+  adminUi?: {
+    entryPath?: string
+    label?: string
+    icon?: string
+  }
+}
+
+export interface PluginState {
+  slug: string
+  enabled: boolean
+  hidden?: boolean
+  config: Record<string, any>
+  name?: string
+  version?: string
+  description?: string
+  author?: string
+  category?: string
+  source?: string
+  configSchema?: Record<string, any>
+  configRequired?: boolean
+  configReady?: boolean
+  missingConfigFields?: string[]
+  runtimeType?: 'internal-fastify' | 'external-http'
+  adminUi?: {
+    entryPath?: string
+    label?: string
+    icon?: string
+  }
+  enabledAt?: string
+  disabledAt?: string
+}
+
+
+export interface OrderDetailItem {
+  id: string
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+  productId: string | null
+  productName: string | null
+  variantId: string | null
+  skuCode: string | null
+  variantName: string | null
+  fulfillmentStatus?: string | null
+}
+
+export interface OrderShipment {
+  id: string
+  carrier: string
+  trackingNumber: string
+  status: string
+  shippedAt?: string | null
+  deliveredAt?: string | null
 }
 
 export enum OrderStatus {
   PENDING = 'PENDING',
-  CONFIRMED = 'CONFIRMED',
+  PAID = 'PAID',
   PROCESSING = 'PROCESSING',
+  COMPLETED = 'COMPLETED',
   SHIPPED = 'SHIPPED',
   DELIVERED = 'DELIVERED',
   CANCELLED = 'CANCELLED',
@@ -104,7 +235,10 @@ export interface OrderItem {
 
 export interface Address {
   id: string
+  recipientName?: string
+  phone?: string
   street: string
+  street2?: string | null
   city: string
   state: string
   zipCode: string
@@ -118,29 +252,17 @@ export interface DashboardStats {
   totalProducts: number
   totalOrders: number
   totalRevenue: number
-  // Today's metrics
-  todayOrders: number
-  todayRevenue: number
-  // Growth percentages
-  userGrowth: number
-  productGrowth: number
-  orderGrowth: number
-  revenueGrowth: number
+  currency: string
+  totalRevenueTrend: number
+  totalOrdersTrend: number
+  totalProductsTrend: number
+  totalUsersTrend: number
+
   // Order status breakdown
-  ordersByStatus?: {
-    PENDING: number
-    PAID: number
-    SHIPPED: number
-    DELIVERED: number
-    CANCELLED: number
-  }
-  // Product stats
-  inStockProducts?: number
-  outOfStockProducts?: number
-  // Optional chart data
-  recentOrders?: Order[]
-  topProducts?: Product[]
-  revenueChart?: ChartData[]
+  ordersByStatus: Record<string, number>
+
+  // Recent activity
+  recentOrders: Array<Order>
 }
 
 export interface ChartData {
@@ -149,23 +271,12 @@ export interface ChartData {
   label?: string
 }
 
-// API Response types
-export interface ApiResponse<T> {
-  data?: T
-  message?: string
-  success: boolean
-  error?: string
-  code?: string
-}
-
-export interface PaginatedResponse<T> {
-  data: T[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
+// Pagination Params
+export interface PaginationParams {
+  page?: number
+  limit?: number
+  search?: string
+  status?: string
 }
 
 // Form types
@@ -180,7 +291,16 @@ export interface ProductForm {
   price: number
   stock?: number
   category?: string
-  images?: string
+  images?: string | string[]
+  requiresShipping?: boolean
+  variants?: Array<{
+    name: string
+    salePrice: number
+    costPrice?: number | null
+    baseStock: number
+    skuCode?: string
+    isActive?: boolean
+  }>
 }
 
 export interface UserForm {
@@ -232,63 +352,130 @@ export interface NavItem {
   children?: NavItem[]
 }
 
-// Plugin types
-export interface Plugin {
-  id: string
-  slug: string
-  name: string
-  description: string
-  version: string
-  developer: string
-  category: string
-  businessModel: 'free' | 'freemium' | 'subscription' | 'usage_based'
-  supportsSubscription: boolean
-  trialDays: number
-  tags: string[]
-  iconUrl: string | null
-  screenshots: string[]
-  rating: number
-  installCount: number
-  subscriptionPlans?: SubscriptionPlan[]
-}
+// Health Monitoring types
+// Import SystemMetrics from shared package to avoid duplicate definitions
+import type { SystemMetrics } from 'shared/observability'
+export type { SystemMetrics }
 
-export interface PluginInstallation {
-  id: string
-  pluginId: string
-  plugin: Plugin
-  status: 'ACTIVE' | 'INACTIVE'
-  enabled: boolean
-  configData: Record<string, any>
-  installedAt: string
-  subscription?: {
-    id: string
-    planId: string
-    status: string
-    currentPeriodEnd: string
+export interface CheckMetrics {
+  name: string
+  totalCalls: number
+  errorCount: number
+  successCount: number
+  errorRate: number
+  avgResponseTime: number
+  minResponseTime: number
+  maxResponseTime: number
+  lastError?: {
+    message: string
+    timestamp: string
   }
 }
 
-export interface SubscriptionPlan {
-  id: string
-  pluginId: string
-  planId: string
-  name: string
-  description: string
-  amount: number
-  currency: string
-  billingCycle: 'monthly' | 'yearly'
-  trialDays: number
-  features: string
-  limits: string
-  isActive: boolean
-  isPublic: boolean
-  sortOrder: number
-  metadata: any
-  createdAt: string
-  updatedAt: string
+export interface RedisCacheStats {
+  hitRate: number
+  missRate: number
+  keyCount: number
+  memoryUsed: number
+  memoryPeak: number
+  evictedKeys: number
+  connectedClients: number
+  uptime: number
 }
 
-export interface PluginCategory {
-  name: string
-  count: number
+export interface HealthCheckResult {
+  status: 'HEALTHY' | 'DEGRADED' | 'UNHEALTHY'
+  checks: Record<string, {
+    status: 'HEALTHY' | 'DEGRADED' | 'UNHEALTHY'
+    message?: string
+    timestamp: string
+  }>
+  timestamp: string
+}
+
+export interface DatabasePoolStatus {
+  size: number
+  active: number
+  idle: number
+  max: number
+  waiting: number
+  usage: number
+}
+
+export interface HealthMetricsResponse {
+  system: SystemMetrics
+  health: HealthCheckResult
+  database: DatabasePoolStatus
+  cache: RedisCacheStats
+  responseMetrics: CheckMetrics[]
+  uptimePercent: number
+  timestamp: string
+}
+
+export interface AlertStatus {
+  type: 'cpu' | 'memory' | 'disk' | 'error_rate' | 'response_time' | 'cache_hit_rate'
+  value: number
+  threshold: number
+  severity: 'warning' | 'critical'
+  message: string
+  triggeredAt: string
+}
+
+export interface HealthSummaryResponse {
+  status: 'healthy' | 'degraded' | 'unhealthy'
+  alerts: AlertStatus[]
+  uptime: number
+  stats: {
+    cpuUsage: number
+    memoryUsage: number
+    diskUsage: number
+    errorRate: number
+    avgResponseTime: number
+    cacheHitRate: number
+  }
+  timestamp: string
+}
+
+// Error tracking types
+export enum ErrorSeverity {
+  CRITICAL = 'CRITICAL',
+  ERROR = 'ERROR',
+  WARNING = 'WARNING',
+  INFO = 'INFO'
+}
+
+export interface ErrorLog {
+  id: string
+  errorHash: string
+  message: string
+  stack?: string | null
+  statusCode?: number | null
+  path?: string | null
+  method?: string | null
+  severity: ErrorSeverity
+  environment?: string | null
+  firstSeenAt: string
+  lastSeenAt: string
+  occurrenceCount: number
+  resolved: boolean
+  resolvedAt?: string | null
+  resolvedBy?: string | null
+  userId?: string | null
+  username?: string | null
+  storeId?: string | null
+  storeName?: string | null
+  requestContext?: any
+  userContext?: any
+  storeContext?: any
+  tags?: any
+  metadata?: any
+}
+
+export interface ErrorListParams extends PaginationParams {
+  severity?: ErrorSeverity
+  resolved?: boolean
+  startDate?: string
+  endDate?: string
+  sortBy?: 'lastSeenAt' | 'occurrenceCount' | 'firstSeenAt'
+  sortOrder?: 'asc' | 'desc'
 }

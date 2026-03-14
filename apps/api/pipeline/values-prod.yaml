@@ -1,0 +1,23 @@
+# Production environment values override for API
+# This overrides apps/api/pipeline/values.yaml for production deployment
+
+# Database - Singapore server
+env:
+  - name: DATABASE_URL
+    value: "postgresql://postgres:jiffoo_password_2024@47.79.6.79:5432/jiffoo_mall"
+  - name: REDIS_URL
+    value: "redis://:redis123@47.79.6.79:6379"
+  
+  # Production URLs
+  - name: NEXT_PUBLIC_API_URL
+    value: "https://api.jiffoo.com"
+  - name: CORS_ORIGIN
+    value: "https://shop.jiffoo.com,https://admin.jiffoo.com,https://super-admin.jiffoo.com"
+
+# Production ingress
+ingress:
+  hosts:
+    - host: api.jiffoo.com
+      paths:
+        - path: /
+          pathType: Prefix

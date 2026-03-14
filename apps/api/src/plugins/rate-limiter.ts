@@ -4,7 +4,15 @@
 
 import { FastifyPluginAsync, FastifyRequest, FastifyReply } from 'fastify';
 import fp from 'fastify-plugin';
-import { RateLimiter, RateLimitConfig, RateLimitPresets, MemoryRateLimitStore, RateLimitStore } from '@shared/security';
+import {
+  RateLimiter,
+  RateLimitConfig,
+  RateLimitPresets,
+  MemoryRateLimitStore,
+  RedisRateLimitStore,
+  RateLimitStore
+} from '@shared/security';
+import { redisCache } from '@/core/cache/redis';
 
 export interface RateLimiterPluginOptions {
   /** Global configuration */
@@ -47,11 +55,33 @@ const rateLimiterPlugin: FastifyPluginAsync<RateLimiterPluginOptions> = async (f
   const {
     global = RateLimitPresets.default,
     routes = {},
-    store = new MemoryRateLimitStore(),
+    store: customStore,
     enabled = true,
     skipPaths = ['/health', '/metrics', '/api/health'],
     keyGenerator = defaultKeyGenerator,
   } = options;
+
+  const defaultRouteLimits: Record<string, Partial<RateLimitConfig>> = {
+    '/api/auth/login': RateLimitPresets.login,
+    '/api/auth/register': RateLimitPresets.register,
+    '/login': RateLimitPresets.login,
+    '/register': RateLimitPresets.register,
+  };
+  const routeLimits = { ...defaultRouteLimits, ...routes };
+
+  const store: RateLimitStore = customStore ?? (() => {
+    if (redisCache.getConnectionStatus()) {
+      return new RedisRateLimitStore({
+        incr: (key: string) => redisCache.getRawClient().incr(key),
+        pexpire: (key: string, ms: number) => redisCache.getRawClient().pexpire(key, ms),
+        pttl: (key: string) => redisCache.getRawClient().pttl(key),
+        del: (key: string) => redisCache.getRawClient().del(key),
+        get: (key: string) => redisCache.getRawClient().get(key),
+      });
+    }
+    fastify.log.warn('Rate limiter is using in-memory store (Redis unavailable)');
+    return new MemoryRateLimitStore();
+  })();
 
   // Create rate limiter instance cache
   const limiters = new Map<string, RateLimiter>();
@@ -86,8 +116,12 @@ const rateLimiterPlugin: FastifyPluginAsync<RateLimiterPluginOptions> = async (f
     // Skip specified paths
     if (skipPaths.some((p) => request.url.startsWith(p))) return;
 
-    // Get route-specific configuration
-    const routeConfig = routes[request.routeOptions?.url ?? ''] ?? {};
+    const routeUrl = request.routeOptions?.url ?? '';
+    const requestPath = request.url.split('?')[0];
+    const routeConfig =
+      routeLimits[routeUrl] ??
+      routeLimits[requestPath] ??
+      {};
     const config = { ...global, ...routeConfig } as RateLimitConfig;
     const limiter = getLimiter(config);
 
@@ -106,10 +140,15 @@ const rateLimiterPlugin: FastifyPluginAsync<RateLimiterPluginOptions> = async (f
     // If rate limited
     if (result.limited) {
       reply.header('Retry-After', result.retryAfter);
-      reply.code(429).send({
-        error: 'Too Many Requests',
-        message: 'Rate limit exceeded. Please try again later.',
-        retryAfter: result.retryAfter,
+      return reply.code(429).send({
+        success: false,
+        error: {
+          code: 'RATE_LIMITED',
+          message: 'Rate limit exceeded. Please try again later.',
+          details: {
+            retryAfter: result.retryAfter,
+          },
+        },
       });
     }
   });

@@ -8,6 +8,10 @@
 export const common = {
   // Direct access keys
   noData: 'No data available',
+  loading: 'Loading...',
+  redirecting: 'Redirecting...',
+  unknown: 'Unknown',
+  cancel: 'Cancel',
 
   // Actions
   actions: {
@@ -15,6 +19,7 @@ export const common = {
     saveChanges: 'Save Changes',
     cancel: 'Cancel',
     edit: 'Edit',
+    update: 'Update',
     delete: 'Delete',
     view: 'View',
     search: 'Search',
@@ -32,6 +37,8 @@ export const common = {
     refresh: 'Refresh',
     retry: 'Retry',
     loading: 'Loading...',
+    saving: 'Saving...',
+    processing: 'Processing...',
     apply: 'Apply',
     filter: 'Filter',
     sort: 'Sort',
@@ -39,6 +46,7 @@ export const common = {
     import: 'Import',
     download: 'Download',
     upload: 'Upload',
+    uploading: 'Uploading...',
     copy: 'Copy',
     share: 'Share',
     print: 'Print',
@@ -51,6 +59,7 @@ export const common = {
 
   // Status
   status: {
+    loading: 'Loading',
     success: 'Success',
     error: 'Error',
     warning: 'Warning',
@@ -71,6 +80,9 @@ export const common = {
   labels: {
     pages: 'PAGES',
     more: 'MORE',
+    file: 'File',
+    by: 'by',
+    builtin: 'Built-in',
     groups: 'Groups',
     reviews: 'Reviews',
     analytics: 'Analytics',
@@ -79,7 +91,12 @@ export const common = {
     authentication: 'Authentication',
     utility: 'Utility',
     finance: 'Finance',
-    licenses: 'Licenses',
+  },
+
+  // Common messages
+  messages: {
+    saveSuccess: 'Saved successfully',
+    saveFailed: 'Failed to save changes',
   },
 
   // Validation
@@ -102,6 +119,7 @@ export const common = {
     forbidden: 'Access forbidden',
     serverError: 'Server error. Please try again later.',
     networkError: 'Network error. Please check your connection.',
+    rateLimited: 'Too many requests. Please try again later.',
     timeout: 'Request timed out. Please try again.',
     unknown: 'An unknown error occurred',
     themeUnavailable: 'Theme Component Unavailable',

@@ -21,6 +21,10 @@ export interface CreateProductOptions {
   description?: string;
   price?: number;
   stock?: number;
+  productType?: string;
+  requiresShipping?: boolean;
+  typeData?: Record<string, unknown>;
+  skuCode?: string;
   /**
    * Category identifier used by tests.
    * Most tests pass a slug-like string (e.g. "electronics"), not a DB id.
@@ -32,6 +36,7 @@ export interface CreateProductOptions {
 export async function createTestProduct(options: CreateProductOptions = {}) {
   const prisma = getTestPrisma();
   const id = uuidv4();
+  const store = await getOrCreateTestStore(prisma);
 
   let categoryId: string | undefined;
   if (options.category) {
@@ -59,23 +64,26 @@ export async function createTestProduct(options: CreateProductOptions = {}) {
     }
   }
 
-  return prisma.product.create({
+  const product = await prisma.product.create({
     data: {
       id,
       name: options.name || `Test Product ${id.substring(0, 8)}`,
       slug: `product-${id}`, // Mandatory unique slug
       description: options.description || 'A test product description',
-      productType: 'physical',
+      productType: options.productType || 'physical',
+      requiresShipping: options.requiresShipping ?? true,
+      typeData: options.typeData ?? (options.images ? { images: options.images } : null),
+      storeId: store.id,
       // price/stock moved to ProductVariant
       categoryId,
       variants: {
         create: [
           {
-            name: 'Default Variant',
-            basePrice: options.price ?? 99.99,
+            name: 'Base Variant',
+            salePrice: options.price ?? 99.99,
             baseStock: options.stock ?? 100,
-            isDefault: true,
-            isActive: true
+            isActive: true,
+            skuCode: options.skuCode,
           }
         ]
       }
@@ -84,6 +92,47 @@ export async function createTestProduct(options: CreateProductOptions = {}) {
       variants: true
     }
   });
+
+  const defaultWarehouse = await prisma.warehouse.upsert({
+    where: { code: 'TEST' },
+    update: { isDefault: true },
+    create: {
+      id: 'test-warehouse',
+      name: 'Test Warehouse',
+      code: 'TEST',
+      isActive: true,
+      isDefault: true,
+    },
+  });
+
+  const variant = product.variants[0];
+  if (variant) {
+    const stock = Math.max(0, Math.trunc(Number(options.stock ?? 100)));
+    await prisma.warehouseInventory.upsert({
+      where: {
+        warehouseId_variantId: {
+          warehouseId: defaultWarehouse.id,
+          variantId: variant.id,
+        },
+      },
+      update: {
+        quantity: stock,
+        reserved: 0,
+        available: stock,
+        lowStock: 10,
+      },
+      create: {
+        warehouseId: defaultWarehouse.id,
+        variantId: variant.id,
+        quantity: stock,
+        reserved: 0,
+        available: stock,
+        lowStock: 10,
+      },
+    });
+  }
+
+  return product;
 }
 
 export async function createMultipleProducts(count: number, options: CreateProductOptions = {}) {
@@ -129,7 +178,7 @@ export async function createTestCartItem(options: CreateCartItemOptions) {
   const prisma = getTestPrisma();
   const id = uuidv4();
 
-  // If no variantId provided, try to find default variant for product
+  // If no variantId provided, use the first available variant for product
   let variantId = options.variantId;
   let price = options.price;
 
@@ -141,9 +190,9 @@ export async function createTestCartItem(options: CreateCartItemOptions) {
     if (!product || !product.variants.length) {
       throw new Error(`Product ${options.productId} has no variants, cannot create cart item`);
     }
-    const defaultVariant = product.variants.find(v => v.isDefault) || product.variants[0];
-    variantId = variantId || defaultVariant.id;
-    price = price || defaultVariant.basePrice;
+    const variant = product.variants[0];
+    variantId = variantId || variant.id;
+    price = price || variant.salePrice;
   }
 
   return prisma.cartItem.create({
@@ -187,16 +236,45 @@ export interface CreateOrderOptions {
   total?: number; // kept for backward compat, mapped to totalAmount
 }
 
+async function getOrCreateTestStore(prisma: ReturnType<typeof getTestPrisma>) {
+  const storeId = process.env.STORE_DEFAULT_ID || 'test-store';
+  return prisma.store.upsert({
+    where: { slug: 'test-store' },
+    update: {
+      name: 'Test Store',
+      status: 'active',
+      currency: 'USD',
+      defaultLocale: 'en',
+    },
+    create: {
+      id: storeId,
+      name: 'Test Store',
+      slug: 'test-store',
+      status: 'active',
+      currency: 'USD',
+      defaultLocale: 'en',
+    },
+  });
+}
+
 export async function createTestOrder(options: CreateOrderOptions) {
   const prisma = getTestPrisma();
   const id = uuidv4();
+  const store = await getOrCreateTestStore(prisma);
+  const totalAmount = options.total ?? 0;
 
   return prisma.order.create({
     data: {
       id,
       userId: options.userId,
+      storeId: store.id,
       status: options.status || 'PENDING',
-      totalAmount: options.total ?? 0,
+      paymentStatus: 'PENDING',
+      subtotalAmount: totalAmount,
+      discountAmount: 0,
+      taxAmount: 0,
+      totalAmount,
+      currency: 'USD',
     },
   });
 }
@@ -213,7 +291,7 @@ export async function createTestOrderItem(options: CreateOrderItemOptions) {
   const prisma = getTestPrisma();
   const id = uuidv4();
 
-  // If no variantId provided, try to find default variant for product
+  // If no variantId provided, use the first available variant for product
   let variantId = options.variantId;
   let unitPrice = options.price;
 
@@ -223,9 +301,9 @@ export async function createTestOrderItem(options: CreateOrderItemOptions) {
       include: { variants: true }
     });
     if (product && product.variants.length > 0) {
-      const defaultVariant = product.variants.find(v => v.isDefault) || product.variants[0];
-      variantId = defaultVariant.id;
-      if (!unitPrice) unitPrice = defaultVariant.basePrice;
+      const variant = product.variants[0];
+      variantId = variant.id;
+      if (!unitPrice) unitPrice = variant.salePrice;
     } else {
       // Fallback for tests that might mock products or rely on loose constraints (though DB will fail)
       variantId = 'missing-variant-id';
@@ -255,7 +333,7 @@ export async function createOrderWithItems(
   // Calculate total from variants if available (test products usually have them now)
   const total = products.reduce(
     (sum, p) => {
-      const price = p.product.variants?.[0]?.basePrice ?? p.product.price ?? 0;
+      const price = p.product.variants?.[0]?.salePrice ?? p.product.price ?? 0;
       return sum + price * (p.quantity ?? 1);
     },
     0
@@ -274,7 +352,7 @@ export async function createOrderWithItems(
       productId: product.id,
       variantId: variant?.id,
       quantity: quantity ?? 1,
-      price: variant?.basePrice ?? product.price,
+      price: variant?.salePrice ?? product.price,
     });
     items.push(item);
   }
@@ -297,6 +375,15 @@ export async function deleteTestProduct(productId: string) {
 
 export async function deleteAllTestProducts() {
   const prisma = getTestPrisma();
+  await prisma.reorderAlert.deleteMany({});
+  await prisma.inventoryForecast.deleteMany({});
+  await prisma.productTranslation.deleteMany({});
+  // Variants are referenced by cart items in several route suites.
+  await prisma.cartItem.deleteMany({});
+  await prisma.productVariant.deleteMany({});
+  await prisma.externalVariantLink.deleteMany({});
+  await prisma.externalProductLink.deleteMany({});
+  await prisma.externalCategoryLink.deleteMany({});
   // Clean all products created during tests, not just 'Test Product'
   // But to be safe, we look for those containing 'Test' or specific prefix patterns
   // or simply delete all if it's a dedicated test DB (but that's dangerous).
@@ -325,7 +412,15 @@ export async function deleteTestOrder(orderId: string) {
 
 export async function deleteAllTestOrders() {
   const prisma = getTestPrisma();
+  // Delete dependent records first to avoid FK constraint violations
+  await prisma.externalOrderLink.deleteMany({});
+  await prisma.shipmentItem.deleteMany({});
+  await prisma.shipment.deleteMany({});
+  await prisma.refund.deleteMany({});
+  await prisma.payment.deleteMany({});
+  await prisma.inventoryReservation.deleteMany({});
   await prisma.orderItem.deleteMany({});
+  await prisma.orderShippingAddress.deleteMany({});
   await prisma.order.deleteMany({});
 }
 

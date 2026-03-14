@@ -5,6 +5,8 @@
 import { FastifyInstance } from 'fastify';
 import { AdminUserService } from './service';
 import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
+import { sendSuccess, sendError } from '@/utils/response';
+import { adminUserSchemas } from './schemas';
 
 export async function adminUserRoutes(fastify: FastifyInstance) {
   // Apply auth middleware to all admin user routes (before schema validation)
@@ -16,23 +18,35 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-users'],
       summary: 'Get users list',
+      description: 'Get paginated list of all users (admin only)',
       security: [{ bearerAuth: [] }],
-      querystring: {
-        type: 'object',
-        properties: {
-          page: { type: 'integer', default: 1 },
-          limit: { type: 'integer', default: 10 },
-          search: { type: 'string' }
-        }
-      }
+      ...adminUserSchemas.listUsers,
     }
   }, async (request, reply) => {
     try {
       const { page, limit, search } = request.query as any;
       const result = await AdminUserService.getUsers(page, limit, search);
-      return reply.send({ success: true, data: result });
+      return sendSuccess(reply, result);
     } catch (error: any) {
-      return reply.code(500).send({ success: false, error: error.message });
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
+    }
+  });
+
+  // Get global user stats
+  fastify.get('/stats', {
+    schema: {
+      tags: ['admin-users'],
+      summary: 'Get user stats',
+      description: 'Get global user statistics for admin customers page',
+      security: [{ bearerAuth: [] }],
+      ...adminUserSchemas.getUserStats,
+    }
+  }, async (_request, reply) => {
+    try {
+      const result = await AdminUserService.getUserStats();
+      return sendSuccess(reply, result);
+    } catch (error: any) {
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
 
@@ -41,18 +55,20 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-users'],
       summary: 'Get user by ID',
-      security: [{ bearerAuth: [] }]
+      description: 'Get detailed information about a specific user',
+      security: [{ bearerAuth: [] }],
+      ...adminUserSchemas.getUser,
     }
   }, async (request, reply) => {
     try {
       const { id } = request.params as any;
       const user = await AdminUserService.getUserById(id);
       if (!user) {
-        return reply.code(404).send({ success: false, error: 'User not found' });
+        return sendError(reply, 404, 'NOT_FOUND', 'User not found');
       }
-      return reply.send({ success: true, data: user });
+      return sendSuccess(reply, user);
     } catch (error: any) {
-      return reply.code(500).send({ success: false, error: error.message });
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
 
@@ -61,24 +77,16 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-users'],
       summary: 'Create user',
+      description: 'Create a new user account (admin only)',
       security: [{ bearerAuth: [] }],
-      body: {
-        type: 'object',
-        required: ['email', 'password'],
-        properties: {
-          email: { type: 'string', format: 'email' },
-          password: { type: 'string', minLength: 6 },
-          username: { type: 'string' },
-          role: { type: 'string' }
-        }
-      }
+      ...adminUserSchemas.createUser,
     }
   }, async (request, reply) => {
     try {
       const user = await AdminUserService.createUser(request.body as any);
-      return reply.code(201).send({ success: true, data: user });
+      return sendSuccess(reply, user, undefined, 201);
     } catch (error: any) {
-      return reply.code(400).send({ success: false, error: error.message });
+      return sendError(reply, 400, 'BAD_REQUEST', error.message);
     }
   });
 
@@ -87,15 +95,17 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-users'],
       summary: 'Update user',
-      security: [{ bearerAuth: [] }]
+      description: 'Update user information (admin only)',
+      security: [{ bearerAuth: [] }],
+      ...adminUserSchemas.updateUser,
     }
   }, async (request, reply) => {
     try {
       const { id } = request.params as any;
       const user = await AdminUserService.updateUser(id, request.body as any);
-      return reply.send({ success: true, data: user });
+      return sendSuccess(reply, user);
     } catch (error: any) {
-      return reply.code(500).send({ success: false, error: error.message });
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
 
@@ -104,18 +114,23 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-users'],
       summary: 'Delete user',
-      security: [{ bearerAuth: [] }]
+      description: 'Delete a user account (admin only)',
+      security: [{ bearerAuth: [] }],
+      ...adminUserSchemas.deleteUser,
     }
   }, async (request, reply) => {
     try {
       const { id } = request.params as any;
-      await AdminUserService.deleteUser(id);
-      return reply.send({ success: true, message: 'User deleted' });
+      const result = await AdminUserService.deleteUser(id);
+      return sendSuccess(reply, {
+        userId: id,
+        deleted: result.deleted,
+      }, 'User permanently deleted');
     } catch (error: any) {
       if (error.code === 'P2025' || error.message === 'User not found') {
-        return reply.code(404).send({ success: false, error: 'User not found' });
+        return sendError(reply, 404, 'NOT_FOUND', 'User not found');
       }
-      return reply.code(500).send({ success: false, error: error.message });
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
 
@@ -124,23 +139,22 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-users'],
       summary: 'Reset user password',
+      description: 'Reset password for a specific user (admin only)',
       security: [{ bearerAuth: [] }],
-      body: {
-        type: 'object',
-        required: ['newPassword'],
-        properties: {
-          newPassword: { type: 'string', minLength: 6 }
-        }
-      }
+      ...adminUserSchemas.resetPassword,
     }
   }, async (request, reply) => {
     try {
       const { id } = request.params as any;
       const { newPassword } = request.body as any;
       await AdminUserService.resetPassword(id, newPassword);
-      return reply.send({ success: true, message: 'Password reset successfully' });
+      return sendSuccess(reply, {
+        userId: id,
+        passwordReset: true,
+        resetAt: new Date().toISOString(),
+      }, 'Password reset successfully');
     } catch (error: any) {
-      return reply.code(500).send({ success: false, error: error.message });
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
   });
 }

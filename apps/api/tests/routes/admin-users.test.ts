@@ -3,6 +3,7 @@
  * 
  * Coverage:
  * - GET /api/admin/users/
+ * - GET /api/admin/users/stats
  * - POST /api/admin/users/
  * - GET /api/admin/users/:id
  * - PUT /api/admin/users/:id
@@ -85,7 +86,7 @@ describe('Admin Users Endpoints', () => {
 
       const body = response.json();
       expect(body).toHaveProperty('data');
-      expect(Array.isArray(body.data.users)).toBe(true);
+      expect(Array.isArray(body.data.items)).toBe(true);
     });
 
     it('should support pagination', async () => {
@@ -98,7 +99,7 @@ describe('Admin Users Endpoints', () => {
       expect(response.statusCode).toBe(200);
 
       const body = response.json();
-      expect(body.data.users.length).toBeLessThanOrEqual(5);
+      expect(body.data.items.length).toBeLessThanOrEqual(5);
     });
 
     it('should support search', async () => {
@@ -109,6 +110,46 @@ describe('Admin Users Endpoints', () => {
       });
 
       expect(response.statusCode).toBe(200);
+    });
+  });
+
+  describe('GET /api/admin/users/stats', () => {
+    it('should return 401 without token', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/admin/users/stats',
+      });
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('should return 403 for regular user', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/admin/users/stats',
+        headers: { authorization: `Bearer ${userToken}` },
+      });
+      expect(response.statusCode).toBe(403);
+    });
+
+    it('should return global user stats for admin', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/admin/users/stats',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body).toHaveProperty('success', true);
+      expect(body.data).toHaveProperty('metrics');
+      expect(body.data.metrics).toHaveProperty('totalUsers');
+      expect(body.data.metrics).toHaveProperty('activeUsers');
+      expect(body.data.metrics).toHaveProperty('inactiveUsers');
+      expect(body.data.metrics).toHaveProperty('newThisMonth');
+      expect(body.data.metrics).toHaveProperty('totalUsersTrend');
+      expect(body.data.metrics).toHaveProperty('activeUsersTrend');
+      expect(body.data.metrics).toHaveProperty('inactiveUsersTrend');
+      expect(body.data.metrics).toHaveProperty('newUsersTrend');
     });
   });
 

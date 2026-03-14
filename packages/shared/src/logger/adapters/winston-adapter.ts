@@ -1,5 +1,5 @@
 /**
- * 统一日志系统 - Winston 适配器
+ * Unified Logging System - Winston Adapter
  */
 
 import { ILogger, LogLevel, LogMeta, OperationLog, LoggerConfig } from '../types';
@@ -14,7 +14,7 @@ export interface WinstonAdapterOptions {
 }
 
 /**
- * Winston 适配器 - 将现有的 Winston logger 适配到统一接口
+ * Winston Adapter - Adapts existing Winston logger to unified interface
  */
 export class WinstonAdapter implements ILogger {
   private winston: any;
@@ -30,28 +30,28 @@ export class WinstonAdapter implements ILogger {
   }
 
   /**
-   * Debug 级别日志
+   * Debug level log
    */
   debug(message: string, meta: LogMeta = {}): void {
     this.log('debug', message, meta);
   }
 
   /**
-   * Info 级别日志
+   * Info level log
    */
   info(message: string, meta: LogMeta = {}): void {
     this.log('info', message, meta);
   }
 
   /**
-   * Warn 级别日志
+   * Warn level log
    */
   warn(message: string, meta: LogMeta = {}): void {
     this.log('warn', message, meta);
   }
 
   /**
-   * Error 级别日志
+   * Error level log
    */
   error(message: string | Error, meta: LogMeta = {}): void {
     let logMessage: string;
@@ -68,7 +68,7 @@ export class WinstonAdapter implements ILogger {
   }
 
   /**
-   * 记录操作日志
+   * Log operation
    */
   logOperation(operation: OperationLog): void {
     this.info('Operation performed', {
@@ -78,7 +78,7 @@ export class WinstonAdapter implements ILogger {
   }
 
   /**
-   * 记录性能日志
+   * Log performance
    */
   logPerformance(operation: string, duration: number, meta: LogMeta = {}): void {
     this.info('Performance metric', {
@@ -92,7 +92,7 @@ export class WinstonAdapter implements ILogger {
   }
 
   /**
-   * 记录安全日志
+   * Log security event
    */
   logSecurity(event: string, details: any): void {
     this.warn('Security event', {
@@ -104,7 +104,7 @@ export class WinstonAdapter implements ILogger {
   }
 
   /**
-   * 记录业务日志
+   * Log business event
    */
   logBusiness(event: string, details: any): void {
     this.info('Business event', {
@@ -116,7 +116,7 @@ export class WinstonAdapter implements ILogger {
   }
 
   /**
-   * 设置日志级别
+   * Set log level
    */
   setLevel(level: LogLevel): void {
     if (this.winston && typeof this.winston.level !== 'undefined') {
@@ -125,7 +125,7 @@ export class WinstonAdapter implements ILogger {
   }
 
   /**
-   * 添加传输器 (Winston specific)
+   * Add transport (Winston specific)
    */
   addTransport(transport: any): void {
     if (this.winston && typeof this.winston.add === 'function') {
@@ -134,7 +134,7 @@ export class WinstonAdapter implements ILogger {
   }
 
   /**
-   * 移除传输器 (Winston specific)
+   * Remove transport (Winston specific)
    */
   removeTransport(transport: any): void {
     if (this.winston && typeof this.winston.remove === 'function') {
@@ -143,14 +143,14 @@ export class WinstonAdapter implements ILogger {
   }
 
   /**
-   * 核心日志方法
+   * Core log method
    */
   private log(level: LogLevel, message: string, meta: LogMeta = {}): void {
     try {
-      // 脱敏处理
+      // Sanitize data
       const sanitizedMeta = sanitizeData(meta);
 
-      // 添加统一的元数据
+      // Add unified metadata
       const enrichedMeta = {
         ...sanitizedMeta,
         appName: this.appName,
@@ -159,26 +159,26 @@ export class WinstonAdapter implements ILogger {
         timestamp: new Date().toISOString()
       };
 
-      // 调用 Winston logger
+      // Call Winston logger
       this.winston.log(level, message, enrichedMeta);
     } catch (error) {
-      // 日志系统内部错误不应影响主业务
+      // Logging system internal errors should not affect main business
       this.handleInternalError(error as Error);
     }
   }
 
   /**
-   * 处理内部错误
+   * Handle internal errors
    */
   private handleInternalError(error: Error): void {
-    // 在开发环境下输出错误信息
+    // Output error info in development environment
     if (process.env.NODE_ENV === 'development') {
       console.error('WinstonAdapter internal error:', error);
     }
   }
 
   /**
-   * 获取底层 Winston 实例 (用于高级用法)
+   * Get underlying Winston instance (for advanced usage)
    */
   getWinstonInstance(): any {
     return this.winston;
@@ -186,7 +186,7 @@ export class WinstonAdapter implements ILogger {
 }
 
 /**
- * 创建 Winston 适配器的工厂函数
+ * Factory function to create Winston adapter
  */
 export function createWinstonAdapter(winston: any, config: Partial<WinstonAdapterOptions>): WinstonAdapter {
   return new WinstonAdapter({
@@ -198,7 +198,7 @@ export function createWinstonAdapter(winston: any, config: Partial<WinstonAdapte
 }
 
 /**
- * 从 LoggerConfig 创建 Winston 适配器
+ * Create Winston adapter from LoggerConfig
  */
 export function createWinstonAdapterFromConfig(winston: any, config: LoggerConfig): WinstonAdapter {
   return new WinstonAdapter({

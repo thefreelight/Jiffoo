@@ -1,45 +1,53 @@
 /**
- * Tenant Application Proxy
+ * Admin Application Proxy (Next.js 16)
  *
- * Handles locale-based routing for the tenant dashboard.
- * Redirects requests without locale prefix to /{locale}/...
+ * Handles:
+ * 1. Theme App forwarding (L4): When activeTheme.type === 'app', proxy all requests to Theme App
+ * 2. Locale-based routing: Redirects requests without locale prefix to /{locale}/...
+ *
+ * Priority: Theme App forwarding > Locale redirect > Pass through
+ *
+ * @see https://nextjs.org/docs/app/api-reference/file-conventions/proxy
  */
 
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
-import {
-  DEFAULT_LOCALE,
-  getLocaleFromPathname,
-  shouldSkipLocaleHandling,
-} from 'shared/src/i18n/middleware';
+import { LOCALES, DEFAULT_LOCALE } from 'shared/src/i18n';
+import { createProxyHandler, type ProxyConfig } from 'shared/src/proxy';
 
-export function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
-
-  // Skip locale handling for static files, API routes, etc.
-  if (shouldSkipLocaleHandling(pathname)) {
-    return NextResponse.next();
-  }
-
-  // Check if pathname already has a locale
-  const pathnameLocale = getLocaleFromPathname(pathname);
-
-  if (pathnameLocale) {
-    // Locale exists, continue with request
-    return NextResponse.next();
-  }
-
-  // No locale in pathname, redirect to default locale
-  const url = request.nextUrl.clone();
-  url.pathname = `/${DEFAULT_LOCALE}${pathname === '/' ? '' : pathname}`;
-
-  return NextResponse.redirect(url);
-}
-
-export const config = {
-  // Match all paths except static files and API routes
-  matcher: [
-    '/((?!_next/static|_next/image|api|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|json|xml|txt|pdf|woff|woff2|ttf|eot)$).*)',
-  ],
+/**
+ * Admin proxy configuration
+ */
+const adminProxyConfig: ProxyConfig = {
+  target: 'admin',
+  defaultLocale: DEFAULT_LOCALE,
+  locales: LOCALES,
 };
 
+/**
+ * Admin proxy handler
+ *
+ * Request flow:
+ * 1. Check if path should never be forwarded (/api/*, /extensions/*, /uploads/*, /theme-app/*)
+ * 2. Check if Theme App mode is active -> rewrite to Theme App Gateway
+ * 3. Handle locale redirect if no locale prefix
+ * 4. Pass through
+ */
+export const proxy = createProxyHandler(adminProxyConfig);
+
+/**
+ * Matcher configuration
+ *
+ * IMPORTANT: This matcher MUST NOT exclude /_next/* because Theme App mode
+ * needs to forward static resources to the Theme App server.
+ *
+ * Excluded paths (handled by next.config.js rewrites):
+ * - /api/* - Core API routes (prevents infinite loop)
+ * - /extensions/* - Extension static files
+ * - /uploads/* - Upload files
+ * - /theme-app/* - Theme App Gateway (prevents infinite loop)
+ * - favicon.ico - Browser default request
+ *
+ * NOTE: Next.js requires matcher to be a static literal, cannot be imported.
+ */
+export const config = {
+  matcher: ['/((?!api/|extensions/|uploads/|theme-app/|favicon.ico).*)'],
+};

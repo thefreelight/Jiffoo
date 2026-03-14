@@ -36,7 +36,7 @@ env:
   - name: LOG_LEVEL
     value: "info"
   
-  # Database
+  # Database (cluster services)
   - name: DATABASE_URL
     value: "postgresql://jiffoo_user:jiffoo_password@postgres-service.database.svc.cluster.local:5432/jiffoo_dev"
   - name: REDIS_URL
@@ -62,7 +62,11 @@ env:
   
   # Service URLs
   - name: API_SERVICE_URL
-    value: "http://jiffoo-mall-api-dev:80"
+    value: "http://api:80"
+  - name: MARKET_API_URL
+    value: "http://platform-api:80/api"
+  - name: OFFICIAL_EXTENSIONS_BOOTSTRAP_MODE
+    value: "launch-ready"
   - name: NEXT_PUBLIC_API_URL
     value: "http://jiffoo-api.chfastpay.com:8888"
   - name: NEXT_PUBLIC_ADMIN_URL
@@ -106,7 +110,7 @@ env:
   - name: GOOGLE_CLIENT_SECRET
     value: "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"
   - name: GOOGLE_REDIRECT_URI
-    value: "http://jiffoo-shop.chfastpay.com:8888/api/plugins/google/api/callback"
+    value: "http://jiffoo-shop.chfastpay.com:8888/api/extensions/plugin/google/api/callback"
   
   # Email (Resend)
   - name: RESEND_API_KEY
