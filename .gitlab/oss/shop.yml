@@ -25,6 +25,7 @@ precheck:
 
 test:
   extends: .test
+  image: node:20-bookworm-slim
   needs:
     - job: precheck
       artifacts: true
