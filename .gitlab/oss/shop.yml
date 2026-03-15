@@ -25,7 +25,7 @@ precheck:
 
 test:
   extends: .test
-  image: node:20-bookworm-slim
+  image: harbor.lafdru.local/library/node:20-alpine
   needs:
     - job: precheck
       artifacts: true
