@@ -3,6 +3,9 @@
     DEV_SHOP_URL: "http://jiffoo-oss-shop.chfastpay.com:8888"
     DEV_API_URL: "http://jiffoo-oss-api.chfastpay.com:8888"
     DEV_ADMIN_URL: "http://jiffoo-oss-admin.chfastpay.com:8888"
+    PROD_SHOP_URL: "https://jiffoo-oss-shop.jiffoo.com"
+    PROD_API_URL: "https://jiffoo-oss-api.jiffoo.com"
+    PROD_ADMIN_URL: "https://jiffoo-oss-admin.jiffoo.com"
 
 .notify_feishu_deploy_success_oss:
   extends: .notify_vars_oss
@@ -28,9 +31,9 @@
 
       if [ "$CI_COMMIT_BRANCH" = "main" ]; then
         ENV_NAME="🚀 OSS 生产环境"
-        SHOP_URL="${OSS_PROD_SHOP_URL:-}"
-        API_URL="${OSS_PROD_API_URL:-}"
-        ADMIN_URL="${OSS_PROD_ADMIN_URL:-}"
+        SHOP_URL="${OSS_PROD_SHOP_URL:-$PROD_SHOP_URL}"
+        API_URL="${OSS_PROD_API_URL:-$PROD_API_URL}"
+        ADMIN_URL="${OSS_PROD_ADMIN_URL:-$PROD_ADMIN_URL}"
       else
         ENV_NAME="🧪 OSS 测试环境"
         SHOP_URL="$DEV_SHOP_URL"

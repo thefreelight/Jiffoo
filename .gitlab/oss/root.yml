@@ -6,6 +6,7 @@
 #
 # Deployment target:
 #   - dev branch -> jiffoo-oss-dev namespace (OSS test env)
+#   - main branch -> jiffoo-oss-prod namespace (OSS prod env)
 
 stages:
   - trigger
@@ -15,6 +16,8 @@ workflow:
     - if: '$CI_COMMIT_MESSAGE =~ /\[skip\]/i'
       when: never
     - if: '$CI_COMMIT_BRANCH == "dev"'
+      when: always
+    - if: '$CI_COMMIT_BRANCH == "main"'
       when: always
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       when: always
@@ -30,9 +33,21 @@ trigger:api:
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /\[skip\]/i'
       when: never
-    - if: '$CI_COMMIT_MESSAGE =~ /\[deploy\]/i && $CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_COMMIT_MESSAGE =~ /\[deploy\]/i && ($CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "main")'
       when: always
     - if: '$CI_COMMIT_BRANCH == "dev"'
+      changes:
+        - apps/api/**/*
+        - packages/shared/**/*
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - turbo.json
+        - apps/api/Dockerfile
+        - .gitlab-ci.yml
+        - .gitlab/oss/**/*
+        - scripts/**/*
+    - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - apps/api/**/*
         - packages/shared/**/*
@@ -65,9 +80,21 @@ trigger:admin:
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /\[skip\]/i'
       when: never
-    - if: '$CI_COMMIT_MESSAGE =~ /\[deploy\]/i && $CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_COMMIT_MESSAGE =~ /\[deploy\]/i && ($CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "main")'
       when: always
     - if: '$CI_COMMIT_BRANCH == "dev"'
+      changes:
+        - apps/admin/**/*
+        - packages/shared/**/*
+        - packages/ui/**/*
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - turbo.json
+        - apps/admin/Dockerfile
+        - .gitlab-ci.yml
+        - .gitlab/oss/**/*
+    - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - apps/admin/**/*
         - packages/shared/**/*
@@ -100,9 +127,24 @@ trigger:shop:
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /\[skip\]/i'
       when: never
-    - if: '$CI_COMMIT_MESSAGE =~ /\[deploy\]/i && $CI_COMMIT_BRANCH == "dev"'
+    - if: '$CI_COMMIT_MESSAGE =~ /\[deploy\]/i && ($CI_COMMIT_BRANCH == "dev" || $CI_COMMIT_BRANCH == "main")'
       when: always
     - if: '$CI_COMMIT_BRANCH == "dev"'
+      changes:
+        - apps/shop/**/*
+        - packages/shared/**/*
+        - packages/ui/**/*
+        - packages/theme-api-sdk/**/*
+        - packages/core-api-sdk/**/*
+        - packages/shop-themes/default/**/*
+        - package.json
+        - pnpm-lock.yaml
+        - pnpm-workspace.yaml
+        - turbo.json
+        - apps/shop/Dockerfile
+        - .gitlab-ci.yml
+        - .gitlab/oss/**/*
+    - if: '$CI_COMMIT_BRANCH == "main"'
       changes:
         - apps/shop/**/*
         - packages/shared/**/*
