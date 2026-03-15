@@ -26,6 +26,15 @@ const paymentMethodSchema = {
       description: 'List of supported currency codes',
     },
     isLive: { type: 'boolean', description: 'Whether this is a live (real) payment method' },
+    clientConfig: {
+      type: 'object',
+      nullable: true,
+      description: 'Client-safe payment config exposed to storefronts',
+      properties: {
+        publishableKey: { type: 'string', description: 'Public key used by client SDKs such as Stripe.js' },
+      },
+      additionalProperties: false,
+    },
   },
   required: ['pluginSlug', 'name', 'displayName', 'icon', 'supportedCurrencies', 'isLive'],
 } as const;

@@ -237,6 +237,9 @@ export const paymentApi = {
     displayName: string;
     icon: string;
     supportedCurrencies: string[];
+    clientConfig?: {
+      publishableKey?: string;
+    } | null;
   }>>> => apiClient.get('/payments/available-methods'),
 
   /**

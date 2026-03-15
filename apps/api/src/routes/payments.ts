@@ -225,7 +225,7 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
                 throw new Error('Raw body is missing. Ensure fastify-raw-body is registered.');
             }
 
-            event = StripeService.constructWebhookEvent(payload, signature as string);
+            event = await StripeService.constructWebhookEvent(payload, signature as string);
         } catch (err: any) {
             return reply.status(400).send({ error: `Webhook Error: ${err.message}` });
         }

@@ -40,6 +40,9 @@ type PaymentMethodDescriptor = {
   icon: string;
   supportedCurrencies: string[];
   isLive: boolean;
+  clientConfig?: {
+    publishableKey?: string;
+  };
 };
 
 function parseManifestJson(manifestJson: unknown): Record<string, unknown> | null {
@@ -87,6 +90,25 @@ function isLiveMode(config: Record<string, unknown>): boolean {
   return String(config?.mode || '').toLowerCase() === 'live';
 }
 
+function getStringConfig(config: Record<string, unknown>, ...keys: string[]): string | undefined {
+  for (const key of keys) {
+    const value = config[key];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+  return undefined;
+}
+
+function getClientConfig(pluginSlug: string, config: Record<string, unknown>): PaymentMethodDescriptor['clientConfig'] | undefined {
+  if (pluginSlug !== 'stripe') return undefined;
+
+  const publishableKey = getStringConfig(config, 'publishableKey', 'publishable_key');
+  if (!publishableKey) return undefined;
+
+  return { publishableKey };
+}
+
 async function getEnabledPaymentMethods(): Promise<PaymentMethodDescriptor[]> {
   const packages = await PluginManagementService.getAllPluginPackages();
   const paymentPackages = packages.filter((pkg) => String(pkg.category || '').toLowerCase() === 'payment');
@@ -107,6 +129,7 @@ async function getEnabledPaymentMethods(): Promise<PaymentMethodDescriptor[]> {
       icon: manifest?.icon ? String(manifest.icon) : `/icons/${pkg.slug}.svg`,
       supportedCurrencies: normalizeCurrencies(manifest),
       isLive: isLiveMode(config),
+      clientConfig: getClientConfig(pkg.slug, config),
     });
   }
 

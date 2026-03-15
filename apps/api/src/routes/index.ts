@@ -126,6 +126,8 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(cartRoutes, { prefix: '/api/cart' });
   await fastify.register(orderRoutes, { prefix: '/api/orders' });
   await fastify.register(legacyPaymentRoutes, { prefix: '/api/payments' });
+  // Keep the legacy Stripe direct-intent path alive for the current shop checkout.
+  await fastify.register(stripePaymentRoutes, { prefix: '/api/payments' });
   await fastify.register(stripePaymentRoutes, { prefix: '/api/payments/stripe' });
   await fastify.register(notificationRoutes, { prefix: '/api/notifications' });
   await fastify.register(publicThemeRoutes, { prefix: '/api/themes' });

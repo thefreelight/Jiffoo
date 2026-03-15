@@ -30,6 +30,9 @@ type PaymentMethodOption = {
   name: string;
   displayName: string;
   icon?: string;
+  clientConfig?: {
+    publishableKey?: string;
+  } | null;
 };
 
 export default function CheckoutPage() {
@@ -46,6 +49,7 @@ export default function CheckoutPage() {
   // Stripe Elements integration state
   const [stripeClientSecret, setStripeClientSecret] = React.useState<string | null>(null);
   const [stripeOrderId, setStripeOrderId] = React.useState<string | null>(null);
+  const [stripePublishableKey, setStripePublishableKey] = React.useState<string | null>(null);
   const [isStripeModalOpen, setIsStripeModalOpen] = React.useState(false);
 
   // Helper function for translations with fallback
@@ -131,6 +135,7 @@ export default function CheckoutPage() {
                 name: method?.name || '',
                 displayName: method?.displayName || method?.name || '',
                 icon: method?.icon,
+                clientConfig: method?.clientConfig || null,
               }))
               .filter((method) => method.name.length > 0)
           );
@@ -209,11 +214,18 @@ export default function CheckoutPage() {
 
       // Check for native Stripe direct-intent flow
       if (data.paymentMethod === 'stripe') {
+        const stripeMethod = availablePaymentMethods.find((method) => method.name === 'stripe');
+        const publishableKey = stripeMethod?.clientConfig?.publishableKey?.trim();
+        if (!publishableKey) {
+          throw new Error(getText('common.errors.general', 'Stripe storefront key is not configured'));
+        }
+
         const intentResponse = await paymentApi.createIntent({ orderId });
         if (!intentResponse || !intentResponse.success || !intentResponse.data) {
           throw new Error(intentResponse?.message || getText('common.errors.general', 'Failed to create payment intent'));
         }
 
+        setStripePublishableKey(publishableKey);
         setStripeClientSecret(intentResponse.data.clientSecret);
         setStripeOrderId(orderId);
         setIsStripeModalOpen(true);
@@ -325,6 +337,7 @@ export default function CheckoutPage() {
       <StripeCheckoutModal
         isOpen={isStripeModalOpen}
         onOpenChange={setIsStripeModalOpen}
+        publishableKey={stripePublishableKey || ''}
         clientSecret={stripeClientSecret || ''}
         orderId={stripeOrderId || ''}
       />
