@@ -25,7 +25,18 @@ precheck:
 
 test:
   extends: .test
-  image: harbor.lafdru.local/library/node:20-bookworm-slim
+  image: harbor.lafdru.local/library/node:20-alpine
+  script:
+    - |
+      echo "=== Running tests for ${SERVICE_NAME} ==="
+      FULL_SERVICE_PATH="${CI_PROJECT_DIR}/${SERVICE_PATH}"
+      echo "Full service path: ${FULL_SERVICE_PATH}"
+      if [ -f "${FULL_SERVICE_PATH}/pipeline/test.sh" ]; then
+        cd "${FULL_SERVICE_PATH}"
+        sh pipeline/test.sh
+      else
+        echo "No test script found at ${FULL_SERVICE_PATH}/pipeline/test.sh"
+      fi
   needs:
     - job: precheck
       artifacts: true
