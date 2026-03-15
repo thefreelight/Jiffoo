@@ -132,3 +132,10 @@ trigger:shop:
         - apps/shop/Dockerfile
         - .gitlab-ci.yml
         - .gitlab/oss/**/*
+
+
+notify_feishu_deploy_success:
+  extends: .notify_feishu_deploy_success_oss
+
+notify_feishu_failure:
+  extends: .notify_feishu_failure_oss
