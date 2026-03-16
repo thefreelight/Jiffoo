@@ -65,7 +65,6 @@ RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 
 # Copy source code
 COPY . .
@@ -77,7 +76,7 @@ RUN mkdir -p /app/plugins
 RUN pnpm --filter shared build
 
 # Generate Prisma client
-RUN pnpm --filter api prisma generate
+RUN pnpm --filter api db:generate
 
 # Build api service
 RUN pnpm --filter api build && \
@@ -119,7 +118,6 @@ COPY --from=builder --chown=api:nodejs /app/apps/api/prisma ./apps/api/prisma
 # Must copy from builder, not deps, because prisma generate runs in builder stage
 COPY --from=builder --chown=api:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=api:nodejs /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=builder --chown=api:nodejs /app/packages/shared/node_modules ./packages/shared/node_modules
 
 # Create logs, uploads, and extensions directories with proper permissions
 RUN mkdir -p /app/logs /app/uploads /app/extensions && chown -R api:nodejs /app/logs /app/uploads /app/extensions

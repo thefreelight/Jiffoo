@@ -30,12 +30,12 @@
       fi
 
       if [ "$CI_COMMIT_BRANCH" = "main" ]; then
-        ENV_NAME="🚀 OSS 生产环境"
+        ENV_NAME="🚀 OSS production"
         SHOP_URL="${OSS_PROD_SHOP_URL:-$PROD_SHOP_URL}"
         API_URL="${OSS_PROD_API_URL:-$PROD_API_URL}"
         ADMIN_URL="${OSS_PROD_ADMIN_URL:-$PROD_ADMIN_URL}"
       else
-        ENV_NAME="🧪 OSS 测试环境"
+        ENV_NAME="🧪 OSS test"
         SHOP_URL="$DEV_SHOP_URL"
         API_URL="$DEV_API_URL"
         ADMIN_URL="$DEV_ADMIN_URL"
@@ -84,7 +84,7 @@
             "header": {
               "title": {
                 "tag": "plain_text",
-                "content": "✅ Jiffoo OSS 部署成功"
+                "content": "✅ Jiffoo OSS deployment succeeded"
               },
               "template": "green"
             },
@@ -92,37 +92,37 @@
               {
                 "tag": "div",
                 "fields": [
-                  {"is_short": true, "text": {"tag": "lark_md", "content": "**状态:** ✅ 部署成功 ('"$READY_COUNT"'个核心服务就绪)"}},
-                  {"is_short": true, "text": {"tag": "lark_md", "content": "**环境:** '"$ENV_NAME"'"}}
+                  {"is_short": true, "text": {"tag": "lark_md", "content": "**Status:** ✅ deployment succeeded ('"$READY_COUNT"' core services ready)"}},
+                  {"is_short": true, "text": {"tag": "lark_md", "content": "**Environment:** '"$ENV_NAME"'"}}
                 ]
               },
               {
                 "tag": "div",
                 "fields": [
-                  {"is_short": true, "text": {"tag": "lark_md", "content": "**分支:** '"$CI_COMMIT_BRANCH"'"}},
-                  {"is_short": true, "text": {"tag": "lark_md", "content": "**版本:** '"${CI_COMMIT_BRANCH}-${CI_COMMIT_SHORT_SHA}"'"}}
+                  {"is_short": true, "text": {"tag": "lark_md", "content": "**Branch:** '"$CI_COMMIT_BRANCH"'"}},
+                  {"is_short": true, "text": {"tag": "lark_md", "content": "**Version:** '"${CI_COMMIT_BRANCH}-${CI_COMMIT_SHORT_SHA}"'"}}
                 ]
               },
               {
                 "tag": "div",
                 "fields": [
-                  {"is_short": false, "text": {"tag": "lark_md", "content": "**提交:** '"$CI_COMMIT_SHA"'"}},
-                  {"is_short": false, "text": {"tag": "lark_md", "content": "**触发者:** '"$GITLAB_USER_NAME"'"}}
+                  {"is_short": false, "text": {"tag": "lark_md", "content": "**Commit:** '"$CI_COMMIT_SHA"'"}},
+                  {"is_short": false, "text": {"tag": "lark_md", "content": "**Triggered by:** '"$GITLAB_USER_NAME"'"}}
                 ]
               },
               {"tag": "hr"},
               {
                 "tag": "action",
                 "actions": [
-                  {"tag": "button", "text": {"tag": "plain_text", "content": "🛒 商城前台"}, "type": "primary", "url": "'"$SHOP_URL"'"},
-                  {"tag": "button", "text": {"tag": "plain_text", "content": "⚙️ 商户后台"}, "type": "default", "url": "'"$ADMIN_URL"'"},
+                  {"tag": "button", "text": {"tag": "plain_text", "content": "🛒 Storefront"}, "type": "primary", "url": "'"$SHOP_URL"'"},
+                  {"tag": "button", "text": {"tag": "plain_text", "content": "⚙️ Merchant Admin"}, "type": "default", "url": "'"$ADMIN_URL"'"},
                   {"tag": "button", "text": {"tag": "plain_text", "content": "🔌 Core API"}, "type": "default", "url": "'"$API_URL"'"}
                 ]
               },
               {
                 "tag": "action",
                 "actions": [
-                  {"tag": "button", "text": {"tag": "plain_text", "content": "📋 流水线"}, "type": "default", "url": "'"$CI_PIPELINE_URL"'"},
+                  {"tag": "button", "text": {"tag": "plain_text", "content": "📋 Pipeline"}, "type": "default", "url": "'"$CI_PIPELINE_URL"'"},
                   {"tag": "button", "text": {"tag": "plain_text", "content": "🔄 ArgoCD"}, "type": "default", "url": "https://argocd.lafdru.local/applications"}
                 ]
               }
@@ -150,9 +150,9 @@
       fi
 
       if [ "$CI_COMMIT_BRANCH" = "main" ]; then
-        ENV_NAME="🚀 OSS 生产环境"
+        ENV_NAME="🚀 OSS production"
       else
-        ENV_NAME="🧪 OSS 测试环境"
+        ENV_NAME="🧪 OSS test"
       fi
 
       curl --retry 3 --retry-delay 5 --connect-timeout 10 --max-time 30 -X POST "$WEBHOOK" \
@@ -163,7 +163,7 @@
             "header": {
               "title": {
                 "tag": "plain_text",
-                "content": "❌ Jiffoo OSS 部署失败"
+                "content": "❌ Jiffoo OSS deployment failed"
               },
               "template": "red"
             },
@@ -171,29 +171,29 @@
               {
                 "tag": "div",
                 "fields": [
-                  {"is_short": true, "text": {"tag": "lark_md", "content": "**状态:** ❌ 部署失败"}},
-                  {"is_short": true, "text": {"tag": "lark_md", "content": "**环境:** '"$ENV_NAME"'"}}
+                  {"is_short": true, "text": {"tag": "lark_md", "content": "**Status:** ❌ deployment failed"}},
+                  {"is_short": true, "text": {"tag": "lark_md", "content": "**Environment:** '"$ENV_NAME"'"}}
                 ]
               },
               {
                 "tag": "div",
                 "fields": [
-                  {"is_short": true, "text": {"tag": "lark_md", "content": "**分支:** '"$CI_COMMIT_BRANCH"'"}},
-                  {"is_short": true, "text": {"tag": "lark_md", "content": "**版本:** '"${CI_COMMIT_BRANCH}-${CI_COMMIT_SHORT_SHA}"'"}}
+                  {"is_short": true, "text": {"tag": "lark_md", "content": "**Branch:** '"$CI_COMMIT_BRANCH"'"}},
+                  {"is_short": true, "text": {"tag": "lark_md", "content": "**Version:** '"${CI_COMMIT_BRANCH}-${CI_COMMIT_SHORT_SHA}"'"}}
                 ]
               },
               {
                 "tag": "div",
                 "fields": [
-                  {"is_short": false, "text": {"tag": "lark_md", "content": "**提交:** '"$CI_COMMIT_SHA"'"}},
-                  {"is_short": false, "text": {"tag": "lark_md", "content": "**触发者:** '"$GITLAB_USER_NAME"'"}}
+                  {"is_short": false, "text": {"tag": "lark_md", "content": "**Commit:** '"$CI_COMMIT_SHA"'"}},
+                  {"is_short": false, "text": {"tag": "lark_md", "content": "**Triggered by:** '"$GITLAB_USER_NAME"'"}}
                 ]
               },
               {"tag": "hr"},
               {
                 "tag": "action",
                 "actions": [
-                  {"tag": "button", "text": {"tag": "plain_text", "content": "🔍 查看流水线"}, "type": "danger", "url": "'"$CI_PIPELINE_URL"'"},
+                  {"tag": "button", "text": {"tag": "plain_text", "content": "🔍 View pipeline"}, "type": "danger", "url": "'"$CI_PIPELINE_URL"'"},
                   {"tag": "button", "text": {"tag": "plain_text", "content": "🔄 ArgoCD"}, "type": "default", "url": "https://argocd.lafdru.local/applications"}
                 ]
               }

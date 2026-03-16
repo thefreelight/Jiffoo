@@ -1,128 +1,92 @@
-# Jiffoo - Open Source E-Commerce Platform
+# Jiffoo
 
-[![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2+-blue.svg)](https://www.gnu.org/licenses/gpl-2.0)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js- black.svg)](https://nextjs.org/)
-[![Fastify](https://img.shields.io/badge/Fastify-5-green.svg)](https://www.fastify.io/)
+Jiffoo is an open-source commerce platform for self-hosted stores. It provides the core services required to run an online store and leaves official marketplace themes and plugins to a post-install download flow.
 
-Jiffoo is a modern, open-source e-commerce platform built with TypeScript, Node.js, and React. It provides the core capabilities needed to run an independent online store with professional-grade engineering.
+## What is included
 
-## Features
+- `apps/api`: core commerce API
+- `apps/admin`: merchant admin
+- `apps/shop`: storefront
+- `packages/shared`: shared types and utilities
+- `packages/ui`: UI components
+- `packages/plugin-sdk`: public plugin SDK
+- `packages/theme-api-sdk`: theme-facing API client
+- `packages/core-api-sdk`: admin and storefront API client
 
-- 🛒 **Complete E-Commerce**: Products, cart, checkout, orders, payments
-- 🎨 **Theme System**: Customizable themes with hot-swapping
-- 🔌 **Plugin Architecture**: Extend functionality with plugins
-- 🌐 **Internationalization**: Multi-language support (en, zh-Hans)
-- 🔒 **Security**: Built-in rate limiting, CORS, input validation
-- 📊 **Observability**: Structured logging, distributed tracing
-- 🚀 **Modern Stack**: TypeScript, Fastify, Next.js, Prisma
+## What is not included
 
-## Quick Start
+This public repository does not ship Jiffoo commercial or official marketplace assets.
+
+- Official themes such as `eSIM Mall` and `Yevbi`
+- Official plugins such as `Stripe`, `i18n`, and `Odoo`
+- Platform control-plane services such as `platform-api` and `super-admin`
+
+Those assets are installed from the Jiffoo Marketplace after the instance is connected to the platform.
+
+## Quick start
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
+- pnpm 9
 - PostgreSQL 14+
-- Redis 6+ (optional for basic features)
-- pnpm 8+
+- Redis 6+ for optional background features
 
-### Installation
+### Development
 
 ```bash
-# Clone repository
-git clone https://github.com/jiffoo/jiffoo.git
-cd jiffoo
-
-# Install dependencies
+git clone https://github.com/thefreelight/Jiffoo.git
+cd Jiffoo
 pnpm install
-
-# Setup database
 cp apps/api/.env.example .env
-# Edit .env with your database credentials
-
-# Run migrations
 pnpm --filter api db:migrate
-
-# Start development servers
 pnpm dev
 ```
 
-### Access
+### Default local ports
 
-- Shop: http://localhost:3003
-- Admin: http://localhost:3002
-- API: http://localhost:3001
+- API: `http://localhost:3001`
+- Admin: `http://localhost:3003`
+- Shop: `http://localhost:3000`
 
-### Test Environment URLs
+## Deployment
 
-The current canonical test environment entrypoints are maintained in:
-- [/.gitlab-ci.yml](/Users/jordan/Projects/jiffoo-mall-core/.gitlab-ci.yml)
-- [/infra/ops/ci-templates/notify-feishu.yml](/Users/jordan/Projects/jiffoo-mall-core/infra/ops/ci-templates/notify-feishu.yml)
+Officially supported self-hosted deployment targets:
 
-Use these URLs for dev/test verification:
-- Shop: http://jiffoo-shop.chfastpay.com:8888
-- API: http://jiffoo-api.chfastpay.com:8888
-- Admin: http://jiffoo-admin.chfastpay.com:8888
-- Super Admin: http://jiffoo-super-admin.chfastpay.com:8888
-- Developer Portal: http://jiffoo-developer-portal.chfastpay.com:8888
-- Docs: http://jiffoo-docs.chfastpay.com:8888
-- Platform API: http://jiffoo-platform-api.chfastpay.com:8888
+- Single host install
+- Docker Compose
+- Kubernetes
 
-Do not use the legacy `jiffoo.chfastpay.com:3000x` NodePort addresses for smoke testing.
+The public repository is paired with dedicated OSS CI/CD pipelines for:
 
-## Architecture
+- `dev` -> OSS test environment
+- `main` -> OSS production environment
 
-```
-jiffoo/
-├── apps/
-│   ├── api/          # Core API (Fastify)
-│   ├── admin/        # Admin Dashboard (Next.js)
-│   └── shop/         # Storefront (Next.js)
-├── packages/
-│   ├── shared/       # Shared types and utilities
-│   ├── ui/           # UI component library
-│   ├── plugin-sdk/   # Plugin development SDK
-│   └── theme-api-sdk/ # Theme-facing Core API client
-└── extensions/
-    ├── plugins/      # Installed plugins
-    ├── themes/       # Installed Theme Packs
-    └── themes-app/   # Installed Theme Apps
-```
+## Updating the open-source core
+
+Jiffoo is moving toward a unified in-admin update experience for the open-source core. The user-facing flow is designed to be consistent across:
+
+- Single-host installations
+- Docker Compose deployments
+- Kubernetes deployments
+
+The update UX is unified, while the execution path is environment-specific.
+
+## Repository policy
+
+- Public repository content is English-first
+- Marketplace-only themes and plugins are excluded
+- Commercial control-plane services are excluded
+- Versioning follows strict semantic versioning
 
 ## Documentation
 
-- [Installation Guide](apps/docs/content/getting-started/installation.mdx)
-- [API Documentation](apps/docs/content/developer/api-reference.mdx)
-- [Plugin Development](apps/docs/content/developer/plugin-development.mdx)
-- [Theme Development](apps/docs/content/developer/theme-development.mdx)
-- [Theme App Runtime](apps/docs/content/developer/theme-app-runtime-architecture.mdx)
+- [Contributing](./CONTRIBUTING.md)
+- [API Overview](./API_DESCRIPTION.md)
+- [Plugin System Architecture](./PLUGIN_SYSTEM_ARCHITECTURE.md)
+- [External Plugin Development Guide](./EXTERNAL_PLUGIN_DEVELOPMENT_GUIDE.md)
+- [Backup and Recovery](./docs/operations/backup-and-recovery.md)
 
 ## License
 
-Jiffoo is licensed under the [GNU General Public License v2.0 or later](LICENSE).
-
-This means you can:
-- ✅ Use commercially
-- ✅ Modify
-- ✅ Distribute
-- ✅ Use privately
-
-But you must:
-- 📄 Disclose source
-- 📄 Include license and copyright
-- 📄 State changes
-- 📄 Use same license
-
-## Community
-
-- [GitHub Discussions](https://github.com/jiffoo/jiffoo/discussions)
-- [Discord](https://discord.gg/jiffoo)
-- [Twitter](https://twitter.com/jiffoo)
-
-## Contributing
-
-We welcome contributions!
-
----
-
-Made with ❤️ by the Jiffoo team
+Jiffoo is licensed under the [GNU General Public License v2.0 or later](./LICENSE).
