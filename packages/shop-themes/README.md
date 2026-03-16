@@ -1,172 +1,54 @@
 # Jiffoo Shop Themes
 
-主题包开发指南 - 为 Jiffoo 商城创建自定义主题。
+This package namespace contains storefront themes used by the open-source shop runtime.
 
-## 概述
+## Scope
 
-Jiffoo 主题系统允许开发者创建完全自定义的商城前端主题。每个主题是一个独立的 npm 包，实现 `ThemePackage` 接口。
+The public repository ships only the open-source default theme.
 
-## 快速开始
+Official marketplace themes such as `eSIM Mall` and `Yevbi` are not bundled here. They are installed from the Jiffoo Marketplace after the merchant connects the instance to the platform.
 
-### 1. 创建主题包
+## Theme package model
 
-```bash
-mkdir packages/shop-themes/my-theme
-cd packages/shop-themes/my-theme
-pnpm init
+A theme package provides:
+
+- page components
+- design tokens
+- default theme configuration
+- optional helper UI components
+
+## Typical structure
+
+```text
+packages/shop-themes/<theme-name>/
+  src/
+    index.ts
+    tokens.css
+    components/
+  package.json
+  tsconfig.json
 ```
 
-### 2. 配置 package.json
+## Required storefront surfaces
 
-```json
-{
-  "name": "@shop-themes/my-theme",
-  "version": "1.0.0",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
-  "dependencies": {
-    "react": "^18.0.0",
-    "shared": "workspace:*"
-  }
-}
-```
+The default embedded theme model expects coverage for:
 
-### 3. 创建主题入口
+- home page
+- products page
+- product detail page
+- cart page
+- checkout page
+- not-found page
+- header
+- footer
 
-```typescript
-// src/index.ts
-import type { ThemePackage } from 'shared';
-import { HomePage } from './components/HomePage';
-import { ProductsPage } from './components/ProductsPage';
-// ... 导入其他组件
+## Development notes
 
-const theme: ThemePackage = {
-  components: {
-    HomePage,
-    ProductsPage,
-    ProductDetailPage,
-    CartPage,
-    CheckoutPage,
-    NotFound,
-    // ... 其他必需组件
-  },
-  tokensCSS: () => import('./tokens.css?raw').then(m => m.default),
-  defaultConfig: {
-    brand: { name: 'My Theme' },
-    colors: { primary: '#3B82F6' }
-  }
-};
+- use the shared storefront types from `packages/shared`
+- keep theme packages framework-compatible with the open-source shop runtime
+- avoid embedding marketplace-only assets in the public repository
 
-export default theme;
-```
+## Reference
 
-## 必需组件
-
-每个主题必须实现以下组件：
-
-| 组件 | Props 接口 | 说明 |
-|------|-----------|------|
-| `HomePage` | `HomePageProps` | 首页 |
-| `ProductsPage` | `ProductsPageProps` | 商品列表页 |
-| `ProductDetailPage` | `ProductDetailPageProps` | 商品详情页 |
-| `CartPage` | `CartPageProps` | 购物车页 |
-| `CheckoutPage` | `CheckoutPageProps` | 结账页 |
-| `NotFound` | `NotFoundProps` | 404 页面 |
-| `Header` | `HeaderProps` | 页头组件 |
-| `Footer` | `FooterProps` | 页脚组件 |
-
-完整组件列表见 `shared/src/types/theme.ts`。
-
-## 组件 Props 示例
-
-### HomePageProps
-
-```typescript
-interface HomePageProps extends ThemeI18nProps {
-  featuredProducts: Product[];
-  categories: ProductCategory[];
-  onProductClick: (productId: string) => void;
-  onCategoryClick: (categoryId: string) => void;
-  onAddToCart: (productId: string) => void;
-}
-```
-
-### ProductsPageProps
-
-```typescript
-interface ProductsPageProps extends ThemeI18nProps {
-  products: Product[];
-  categories: ProductCategory[];
-  currentCategory?: ProductCategory;
-  pagination: { page: number; totalPages: number; total: number };
-  sortBy: string;
-  onSortChange: (sort: string) => void;
-  onPageChange: (page: number) => void;
-  onProductClick: (productId: string) => void;
-  onAddToCart: (productId: string) => void;
-}
-```
-
-## CSS 变量 (Design Tokens)
-
-主题可以通过 CSS 变量定义设计令牌：
-
-```css
-/* src/tokens.css */
-:root {
-  --theme-primary: #3B82F6;
-  --theme-secondary: #10B981;
-  --theme-background: #FFFFFF;
-  --theme-text: #1F2937;
-  --theme-font: 'Inter', sans-serif;
-  --theme-radius: 8px;
-}
-```
-
-## 主题配置
-
-租户可以通过 `ThemeConfig` 自定义主题：
-
-```typescript
-interface ThemeConfig {
-  brand?: { logoUrl?: string; name?: string };
-  colors?: { primary?: string; secondary?: string };
-  layout?: { headerStyle?: 'fixed' | 'static' };
-  features?: { showReviews?: boolean };
-}
-```
-
-## 国际化支持
-
-所有组件都接收 `locale` 和 `t` props：
-
-```typescript
-const HomePage: React.FC<HomePageProps> = ({ t, locale }) => {
-  return <h1>{t?.('home.welcome') || 'Welcome'}</h1>;
-};
-```
-
-## 目录结构
-
-```
-packages/shop-themes/my-theme/
-├── src/
-│   ├── index.ts          # 主题入口
-│   ├── tokens.css        # CSS 变量
-│   ├── components/       # 页面组件
-│   │   ├── HomePage.tsx
-│   │   ├── ProductsPage.tsx
-│   │   └── ...
-│   └── ui/               # UI 组件
-│       ├── Button.tsx
-│       └── Card.tsx
-├── package.json
-└── tsconfig.json
-```
-
-## 参考
-
-- 默认主题: `packages/shop-themes/default/`
-- 类型定义: `packages/shared/src/types/theme.ts`
-- 主题系统 API: `apps/frontend/lib/themes/README.md`
-
+- default theme: `packages/shop-themes/default/`
+- shared types: `packages/shared/`
