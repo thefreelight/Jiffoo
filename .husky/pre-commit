@@ -1,19 +1,19 @@
 #!/bin/sh
 
-echo "🔍 Pre-commit: Verifying backend build..."
+echo "Checking core OSS workspace builds..."
 
-# Build shared package first (required for backend)
+# Build shared package first because the public apps depend on it.
 pnpm --filter shared build
 if [ $? -ne 0 ]; then
-  echo "❌ Failed to build shared package"
+  echo "Shared package build failed."
   exit 1
 fi
 
-# Verify backend can compile
-pnpm --filter backend build
+# Verify the public API can compile before commit.
+pnpm --filter api build
 if [ $? -ne 0 ]; then
-  echo "❌ Failed to build backend - check tsconfig.json paths"
+  echo "API build failed."
   exit 1
 fi
 
-echo "✅ Build verification passed!"
+echo "Pre-commit build verification passed."
