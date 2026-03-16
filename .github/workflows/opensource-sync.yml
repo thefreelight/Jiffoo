@@ -14,17 +14,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
+
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: 'pnpm'
-      
-      - name: Enable pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@9.15.9 --activate
       
       - name: Run opensource isolation checks
         run: |

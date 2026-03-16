@@ -12,6 +12,12 @@ By contributing to Jiffoo Mall, you agree that:
 
 ## 🚀 Getting Started
 
+## 🌍 Public Repository Standards
+
+- Keep external-facing documentation, commit messages, and release notes in English.
+- Do not add official marketplace themes or plugins to this repository. They are downloaded after install from Jiffoo Platform.
+- Prefer changes that keep the open-source workspace self-contained for `api`, `admin`, and `shop`.
+
 ### Prerequisites
 
 - Node.js 18+
@@ -202,4 +208,3 @@ When requesting features:
 ---
 
 Thank you for contributing to Jiffoo Mall! 🎉
-
