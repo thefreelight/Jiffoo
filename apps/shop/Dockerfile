@@ -62,12 +62,6 @@ RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 # Copy dependencies from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/shop/node_modules ./apps/shop/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
-COPY --from=deps /app/packages/shop-themes/default/node_modules ./packages/shop-themes/default/node_modules
-
-COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
-COPY --from=deps /app/packages/theme-api-sdk/node_modules ./packages/theme-api-sdk/node_modules
-COPY --from=deps /app/packages/core-api-sdk/node_modules ./packages/core-api-sdk/node_modules
 
 # Copy source code
 COPY . .
