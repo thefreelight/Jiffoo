@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, companiesApi, pricingApi, quotesApi, purchaseOrdersApi, promotionsApi, redirectsApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type Company, type PriceRule, type Quote, type PurchaseOrder, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData } from '../api';
+import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, companiesApi, pricingApi, quotesApi, purchaseOrdersApi, promotionsApi, redirectsApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type Company, type PriceRule, type Quote, type PurchaseOrder, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
@@ -737,6 +737,23 @@ const platformConnectionQueryKeys = {
   status: ['platform-connection', 'status'] as const,
 };
 
+const managedPackageQueryKeys = {
+  all: ['managed-package'] as const,
+  branding: ['managed-package', 'branding'] as const,
+  status: ['managed-package', 'status'] as const,
+};
+
+export function useManagedPackageBranding() {
+  return useQuery({
+    queryKey: managedPackageQueryKeys.branding,
+    queryFn: async () => {
+      const response = await managedPackageApi.getBranding();
+      return unwrapApiResponse(response);
+    },
+    staleTime: 30 * 1000,
+  });
+}
+
 export function useOfficialCatalog() {
   return useQuery({
     queryKey: marketQueryKeys.all,
@@ -769,6 +786,7 @@ export function useInstallOfficialExtension() {
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
       queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
       toast.success(
         variables.kind === 'plugin'
           ? getText('merchant.plugins.installSuccess', 'Plugin installed successfully')
@@ -783,6 +801,61 @@ export function useInstallOfficialExtension() {
         ? 'Failed to install plugin'
         : 'Failed to install theme';
       toast.error(getErrorMessage(error, fallbackKey, fallbackText));
+    },
+  });
+}
+
+export function useManagedPackageStatus() {
+  return useQuery({
+    queryKey: managedPackageQueryKeys.status,
+    queryFn: async () => {
+      const response = await managedPackageApi.getStatus();
+      return unwrapApiResponse(response);
+    },
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useActivateManagedPackage() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async (activationCode: string) => {
+      const response = await managedPackageApi.activate({ activationCode });
+      return unwrapApiResponse(response);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
+      toast.success('Commercial package activated');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'merchant.extensions.managedPackageActivationFailed', 'Failed to activate commercial package'));
+    },
+  });
+}
+
+export function useProvisionManagedPackage() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await managedPackageApi.provision();
+      return unwrapApiResponse(response);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
+      toast.success('Included assets provisioned');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'merchant.extensions.managedPackageProvisionFailed', 'Failed to provision included assets'));
     },
   });
 }
@@ -867,7 +940,7 @@ export function useBindPlatformTenant() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformConnectionQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success('Default store bound to Jiffoo Platform');
+      toast.success('Default store bound to the official platform');
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, 'merchant.extensions.platformBindTenantFailed', 'Failed to bind the default store'));

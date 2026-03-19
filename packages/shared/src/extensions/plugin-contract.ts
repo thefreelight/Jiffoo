@@ -96,12 +96,6 @@ export interface PluginWebhookDeclaration {
   url: string;
 }
 
-export interface PluginAdminUiDeclaration {
-  entryPath?: string;
-  label?: string;
-  icon?: string;
-}
-
 export interface PluginManifest {
   schemaVersion: 1;
   slug: string;
@@ -126,7 +120,6 @@ export interface PluginManifest {
   dependencies?: Record<string, string>;
   tags?: string[];
   configSchema?: Record<string, unknown>;
-  adminUi?: PluginAdminUiDeclaration;
   capabilities?: string[];
   requiredScopes?: string[];
   webhooks?: PluginWebhookDeclaration;
@@ -368,24 +361,6 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
 
   if (manifest.configSchema !== undefined && !isRecord(manifest.configSchema)) {
     pushIssue(issues, 'configSchema', 'configSchema must be an object', 'INVALID_MANIFEST');
-  }
-
-  if (manifest.adminUi !== undefined) {
-    if (!isRecord(manifest.adminUi)) {
-      pushIssue(issues, 'adminUi', 'adminUi must be an object', 'INVALID_MANIFEST');
-    } else {
-      if (manifest.adminUi.entryPath !== undefined &&
-        (typeof manifest.adminUi.entryPath !== 'string' || !manifest.adminUi.entryPath.startsWith('/'))
-      ) {
-        pushIssue(issues, 'adminUi.entryPath', 'adminUi.entryPath must start with "/"', 'INVALID_MANIFEST');
-      }
-      if (manifest.adminUi.label !== undefined && typeof manifest.adminUi.label !== 'string') {
-        pushIssue(issues, 'adminUi.label', 'adminUi.label must be a string', 'INVALID_MANIFEST');
-      }
-      if (manifest.adminUi.icon !== undefined && typeof manifest.adminUi.icon !== 'string') {
-        pushIssue(issues, 'adminUi.icon', 'adminUi.icon must be a string', 'INVALID_MANIFEST');
-      }
-    }
   }
 
   if (manifest.webhooks !== undefined) {

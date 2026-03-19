@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { AlertCircle, Loader2, Search, Settings2, WifiOff } from 'lucide-react';
+import { AlertCircle, ArrowRight, Loader2, Search, Settings2, ShieldCheck, WifiOff } from 'lucide-react';
 import type { OfficialCatalogItem } from '@/lib/api';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -10,8 +11,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ExtensionAvatar, OfficialBadge } from '@/components/extensions/ExtensionVisuals';
+import type { ManagedPackageDefinition } from '@/lib/managed-mode';
 
 interface OfficialPluginsCatalogProps {
+  locale: string;
   items: OfficialCatalogItem[];
   isLoading: boolean;
   marketOnline: boolean;
@@ -19,11 +22,13 @@ interface OfficialPluginsCatalogProps {
   officialMarketOnly: boolean;
   marketplaceReady: boolean;
   installingSlug?: string | null;
+  isProvisioningPackage?: boolean;
   onInstall: (item: OfficialCatalogItem) => void;
   onEnable: (item: OfficialCatalogItem) => void;
   onConfigure: (item: OfficialCatalogItem) => void;
   onManage: (item: OfficialCatalogItem) => void;
   getText: (key: string, fallback: string) => string;
+  managedPackage?: ManagedPackageDefinition | null;
 }
 
 function formatPrice(item: OfficialCatalogItem): string {
@@ -54,6 +59,7 @@ function getInstallTone(item: OfficialCatalogItem): string {
 }
 
 export function OfficialPluginsCatalog({
+  locale,
   items,
   isLoading,
   marketOnline,
@@ -61,23 +67,34 @@ export function OfficialPluginsCatalog({
   officialMarketOnly,
   marketplaceReady,
   installingSlug,
+  isProvisioningPackage = false,
   onInstall,
   onEnable,
   onConfigure,
   onManage,
   getText,
+  managedPackage,
 }: OfficialPluginsCatalogProps) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
+  const isThemeFirstSolution = managedPackage?.offerKind === 'theme_first_solution';
+
+  const visibleItems = useMemo(() => {
+    if (!managedPackage) {
+      return items;
+    }
+    const allowed = new Set(managedPackage.includedPlugins);
+    return items.filter((item) => allowed.has(item.slug));
+  }, [items, managedPackage]);
 
   const categories = useMemo(
-    () => Array.from(new Set(items.map((item) => item.category).filter(Boolean))).sort(),
-    [items]
+    () => Array.from(new Set(visibleItems.map((item) => item.category).filter(Boolean))).sort(),
+    [visibleItems]
   );
 
   const filteredItems = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
-    return items.filter((item) => {
+    return visibleItems.filter((item) => {
       if (category !== 'all' && item.category !== category) {
         return false;
       }
@@ -90,22 +107,40 @@ export function OfficialPluginsCatalog({
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(normalizedSearch));
     });
-  }, [category, items, search]);
+  }, [category, visibleItems, search]);
 
   return (
     <section className="space-y-4">
       <div className="rounded-[1.75rem] border border-gray-100 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-1">
           <h3 className="text-xl font-semibold tracking-tight">
-            {getText('merchant.plugins.marketplace', 'Official plugin marketplace')}
+            {managedPackage
+              ? getText('merchant.plugins.includedPlugins', 'Included plugins')
+              : getText('merchant.plugins.marketplace', 'Official plugin marketplace')}
           </h3>
           <p className="text-sm text-muted-foreground">
-            {getText(
-              'merchant.plugins.officialCatalogDescription',
-              'Install, enable, and manage the launch plugins without leaving Merchant Admin.'
-            )}
+            {managedPackage
+              ? getText(
+                  'merchant.plugins.includedPluginsDescription',
+                  'These plugins are included in your managed package and can be installed or configured without exposing the public marketplace.'
+                )
+              : getText(
+                  'merchant.plugins.officialCatalogDescription',
+                  'Install, enable, and manage the launch plugins without leaving Merchant Admin.'
+                )}
           </p>
         </div>
+
+        {managedPackage ? (
+          <Alert className="mt-4 border-blue-200 bg-blue-50 text-blue-900">
+            <AlertTitle>{getText('merchant.plugins.managedModeActive', 'Managed Mode active')}</AlertTitle>
+            <AlertDescription>
+              {isThemeFirstSolution
+                ? `${managedPackage.displaySolutionName} ships companion runtime capabilities through licensed plugins. Use Your Package for guided setup and recovery.`
+                : `${managedPackage.displaySolutionName} unlocks the licensed plugin stack only.`}
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         {!isLoading && !marketOnline ? (
           <Alert className="mt-4 border-amber-200 bg-amber-50 text-amber-900">
@@ -127,7 +162,7 @@ export function OfficialPluginsCatalog({
           </Alert>
         ) : null}
 
-        {!isLoading && marketOnline && !marketplaceReady ? (
+        {!isLoading && marketOnline && !marketplaceReady && !managedPackage ? (
           <Alert className="mt-4 border-slate-200 bg-slate-50 text-slate-900">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>{getText('merchant.extensions.platformConnectionRequired', 'Platform connection required')}</AlertTitle>
@@ -182,27 +217,36 @@ export function OfficialPluginsCatalog({
         </div>
       ) : filteredItems.length === 0 ? (
         <div className="rounded-[1.75rem] border border-dashed border-slate-200 bg-white px-6 py-12 text-center text-sm text-muted-foreground">
-          {getText('merchant.extensions.noOfficialMatches', 'No official plugins match the current filter.')}
+          {managedPackage
+            ? getText('merchant.extensions.noIncludedPlugins', 'No licensed plugins are available for this package.')
+            : getText('merchant.extensions.noOfficialMatches', 'No official plugins match the current filter.')}
         </div>
       ) : (
         <div className="grid gap-4 xl:grid-cols-2">
           {filteredItems.map((item) => {
-            const isInstalling = installingSlug === item.slug;
+            const solutionMeta = item.solutionPackage;
+            const controlPlaneSolution = item.solutionOffer;
+            const hasSolutionSemantics = solutionMeta?.offerKind === 'theme_first_solution' || controlPlaneSolution?.offerKind === 'theme_first_solution';
+            const isInstalling = installingSlug === item.slug || (isProvisioningPackage && solutionMeta?.offerKind === 'theme_first_solution');
             const showConfigure = item.installState === 'installed' && item.configRequired && !item.configReady;
             const installDisabled =
               item.installState === 'not_installed' &&
               (!marketOnline || !marketplaceReady || !item.availableInMarket || isInstalling);
+            const effectiveInstallDisabled =
+              managedPackage && item.installState === 'not_installed'
+                ? isInstalling || managedPackage.status === 'SUSPENDED'
+                : installDisabled;
 
             const primaryActionLabel =
               item.installState === 'not_installed'
-                ? getText('merchant.plugins.install', 'Install')
+                ? hasSolutionSemantics
+                  ? (controlPlaneSolution?.ctaLabel || getText('merchant.package.provisionSolution', 'Provision solution'))
+                  : getText('merchant.plugins.install', 'Install')
                 : item.installState === 'installed'
                   ? showConfigure
                     ? getText('common.actions.configure', 'Configure')
                     : getText('merchant.plugins.enable', 'Enable')
-                  : item.adminUi
-                    ? getText('common.actions.manage', 'Manage')
-                    : getText('common.actions.configure', 'Configure');
+                  : getText('common.actions.manage', 'Manage');
 
             const handlePrimaryAction = () => {
               if (item.installState === 'not_installed') {
@@ -217,12 +261,12 @@ export function OfficialPluginsCatalog({
                 onEnable(item);
                 return;
               }
-              if (item.adminUi) {
-                onManage(item);
-                return;
-              }
-              onConfigure(item);
+              onManage(item);
             };
+
+            const priceLabel = managedPackage
+              ? getText('merchant.plugins.includedInPackage', 'Included in package')
+              : formatPrice(item);
 
             return (
               <Card key={item.slug} className="overflow-hidden rounded-[1.75rem] border-gray-100 shadow-sm">
@@ -240,6 +284,12 @@ export function OfficialPluginsCatalog({
                       <div className="flex flex-wrap items-center gap-2">
                         <h4 className="text-lg font-semibold text-slate-950">{item.name}</h4>
                         <OfficialBadge compact />
+                        {hasSolutionSemantics ? (
+                          <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
+                            <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                            {controlPlaneSolution?.badgeLabel || getText('merchant.package.solutionBadge', 'Theme-first solution')}
+                          </Badge>
+                        ) : null}
                         <Badge variant="outline" className={`rounded-full capitalize ${getReleaseTone(item)}`}>
                           {item.releaseStatus === 'published'
                             ? getText('merchant.extensions.releasePublished', 'Published')
@@ -262,9 +312,19 @@ export function OfficialPluginsCatalog({
 
                       <p className="mt-3 text-sm leading-6 text-slate-600">{item.description}</p>
 
+                      {hasSolutionSemantics ? (
+                        <div className="mt-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-blue-900">
+                          {controlPlaneSolution?.summary ||
+                            getText(
+                              'merchant.package.includedPluginExplanation',
+                              'This plugin is part of the managed solution package and powers companion runtime capability behind the storefront theme.'
+                            )}
+                        </div>
+                      ) : null}
+
                       <div className="mt-4 flex flex-wrap gap-2">
                         <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                          {formatPrice(item)}
+                          {priceLabel}
                         </Badge>
                         <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
                           {getText('merchant.extensions.deliveryMode', 'Delivery')}: {item.deliveryMode}
@@ -277,12 +337,21 @@ export function OfficialPluginsCatalog({
                       <div className="mt-5 flex flex-wrap items-center gap-3">
                         <Button
                           onClick={handlePrimaryAction}
-                          disabled={installDisabled || isInstalling}
+                          disabled={effectiveInstallDisabled}
                           className="rounded-xl"
                         >
                           {isInstalling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Settings2 className="mr-2 h-4 w-4" />}
                           {primaryActionLabel}
                         </Button>
+
+                        {hasSolutionSemantics ? (
+                          <Button asChild variant="outline" className="rounded-xl">
+                            <Link href={`/${locale}/package`}>
+                              {getText('merchant.package.openPackageWorkspace', 'Open Your Package')}
+                              <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                          </Button>
+                        ) : null}
 
                         {item.configRequired && !item.configReady ? (
                           <p className="text-xs font-medium text-amber-700">

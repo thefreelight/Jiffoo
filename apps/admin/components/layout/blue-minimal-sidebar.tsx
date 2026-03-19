@@ -11,6 +11,8 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { cn } from '@/lib/utils'
+import { useMemo } from 'react'
+import { useManagedMode } from '@/lib/managed-mode'
 
 import {
   LayoutDashboard,
@@ -25,7 +27,8 @@ import {
   Settings,
   LogOut,
   ChevronUp,
-  Monitor
+  Monitor,
+  ShieldCheck,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import {
@@ -119,9 +122,24 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   const router = useRouter()
   const { user, logout } = useAuthStore()
   const { hasUpdate } = useUpdateCheck()
+  const { record, isManaged, isLoading } = useManagedMode()
 
   // Build navigation config dynamically
-  const navigationConfig = baseNavigationConfig
+  const navigationConfig = useMemo(() => {
+    if (!isManaged || !record) {
+      return baseNavigationConfig
+    }
+
+    const packageItem: NavigationItem = {
+      id: 'package',
+      nameKey: 'merchant.nav.yourPackage',
+      fallback: 'Your Package',
+      href: '/package',
+      icon: ShieldCheck,
+    }
+
+    return [baseNavigationConfig[0], packageItem, ...baseNavigationConfig.slice(1)]
+  }, [isManaged, record])
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -153,6 +171,20 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
     }
   }
 
+  const brandTitle = isManaged && record
+    ? record.displayBrandName
+    : isLoading
+      ? 'Store Console'
+      : 'Store Console'
+
+  const solutionTitle = isManaged && record
+    ? record.displaySolutionName
+    : isLoading
+      ? 'Loading workspace'
+      : 'Management Workspace'
+
+  const brandInitial = brandTitle.trim().charAt(0).toUpperCase() || 'J'
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -175,15 +207,15 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
       >
         {/* Logo Area */}
         <div className="flex items-center justify-between mb-10 px-2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30">
-              J
-            </div>
-            <div className="flex flex-col">
-              <span className="font-bold text-base text-gray-900 leading-none">Jiffoo Mall</span>
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Admin Panel</span>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30">
+              {brandInitial}
           </div>
+          <div className="flex flex-col">
+              <span className="font-bold text-base text-gray-900 leading-none">{brandTitle}</span>
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">{solutionTitle}</span>
+          </div>
+        </div>
 
           {/* Close button for mobile */}
           {onClose && (

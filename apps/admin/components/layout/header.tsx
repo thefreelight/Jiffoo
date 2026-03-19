@@ -63,10 +63,10 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
   }
 
   return (
-    <header className="bg-white dark:bg-gray-950 border-b border-gray-200 dark:border-gray-800 px-4 md:px-6 py-4">
-      <div className="flex items-center justify-between">
+    <header className="border-b border-gray-200 bg-white px-3 py-3 dark:border-gray-800 dark:bg-gray-950 sm:px-4 sm:py-4 md:px-6">
+      <div className="flex items-center justify-between gap-3">
         {/* Left side - Menu Trigger (Mobile) and Title */}
-        <div className="flex items-center space-x-3 md:space-x-4">
+        <div className="flex min-w-0 items-center space-x-2 sm:space-x-3 md:space-x-4">
           <Button
             variant="ghost"
             size="sm"
@@ -75,8 +75,8 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
           >
             <Menu className="h-6 w-6 text-gray-500" />
           </Button>
-          <div>
-            <h1 className="text-xl md:text-2xl font-semibold text-gray-900 dark:text-white truncate max-w-[150px] md:max-w-none">{title}</h1>
+          <div className="min-w-0">
+            <h1 className="max-w-[10rem] truncate text-lg font-semibold text-gray-900 dark:text-white sm:max-w-[16rem] sm:text-xl md:max-w-none md:text-2xl">{title}</h1>
             <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400 hidden sm:block">
               {new Date().toLocaleDateString('en-US', {
                 weekday: 'long',
@@ -89,9 +89,9 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
         </div>
 
         {/* Right side - Search, Actions, Profile */}
-        <div className="flex items-center space-x-4">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-3 md:gap-4">
           {/* Search */}
-          <div className="relative">
+          <div className="relative hidden md:block">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Search className="h-4 w-4 text-gray-400" />
             </div>
@@ -103,7 +103,7 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1 sm:space-x-2">
             {/* Theme Toggle */}
             <Button
               variant="ghost"
@@ -185,7 +185,7 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
           </DropdownMenu>
 
           {/* Add View Button - Hide on mobile */}
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white hidden sm:flex">
+          <Button className="hidden bg-blue-600 text-white hover:bg-blue-700 lg:flex">
             {getText('merchant.header.addView', 'Add View')}
           </Button>
         </div>

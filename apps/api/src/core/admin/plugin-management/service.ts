@@ -17,6 +17,7 @@ import type { PluginInstall, PluginInstallation } from '@prisma/client';
 import { executeLifecycleHook, hasLifecycleHook } from './lifecycle-hooks';
 import { isAllowedExtensionSource, isOfficialMarketOnly } from '@/core/admin/extension-installer/official-only';
 import { ensureOfficialMarketExtensionFiles } from '@/core/admin/market/official-package-recovery';
+import { mergeSecretConfigForUpdate } from './config-secrets';
 
 const EXTENSIONS_DIR = getPluginDir();
 
@@ -283,7 +284,9 @@ async function updateInstance(
   }
 
   const existingConfig = parseJsonObject(existing.configJson);
-  const nextConfig = updates.config !== undefined ? updates.config : existingConfig;
+  const nextConfig = updates.config !== undefined
+    ? mergeSecretConfigForUpdate(pluginPackage.manifestJson, existingConfig, updates.config)
+    : existingConfig;
   const nextEnabled = updates.enabled !== undefined ? updates.enabled : existing.enabled;
 
   if (nextEnabled) {
@@ -322,7 +325,7 @@ async function updateInstance(
   }
 
   if (updates.config !== undefined) {
-    updateData.configJson = updates.config ?? null;
+    updateData.configJson = nextConfig ?? null;
   }
 
   if (updates.grantedPermissions !== undefined) {

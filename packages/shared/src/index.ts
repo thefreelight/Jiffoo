@@ -8,6 +8,7 @@ export * from './types/cart';
 export * from './types/common';
 export * from './types/theme';
 export * from './extensions/plugin-contract';
+export * from './extensions/commercial-package';
 export * from './extensions/official-catalog';
 export * from './extensions/platform-connection';
 

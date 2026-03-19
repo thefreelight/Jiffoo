@@ -169,6 +169,20 @@ export interface ThemeConfig {
     /** Current locale */
     locale?: Locale;
   };
+  site?: {
+    archetype?: 'storefront' | 'landing-commerce' | 'product-site';
+    eyebrow?: string;
+    headline?: string;
+    subheadline?: string;
+    primaryCtaLabel?: string;
+    primaryCtaHref?: string;
+    secondaryCtaLabel?: string;
+    secondaryCtaHref?: string;
+    installCommand?: string;
+    docsHref?: string;
+    demoHref?: string;
+    supportEmail?: string;
+  };
 }
 
 /**

@@ -267,10 +267,35 @@ export const paymentApi = {
   /**
    * Create Stripe Payment Intent directly
    */
-  createIntent: (data: { orderId: string; }): Promise<ApiResponse<{
+  createIntent: async (data: { orderId: string; }): Promise<ApiResponse<{
     clientSecret: string;
     paymentIntentId: string;
-  }>> => apiClient.post('/payments/create-intent', data),
+  }>> => {
+    const response = await apiClient.post('/payments/create-intent', data) as ApiResponse<{
+      clientSecret: string;
+      paymentIntentId: string;
+    }> & {
+      clientSecret?: string;
+      paymentIntentId?: string;
+    };
+
+    if (
+      response?.success &&
+      !response.data &&
+      typeof response.clientSecret === 'string' &&
+      response.clientSecret.length > 0
+    ) {
+      return {
+        ...response,
+        data: {
+          clientSecret: response.clientSecret,
+          paymentIntentId: response.paymentIntentId || '',
+        },
+      };
+    }
+
+    return response;
+  },
 };
 
 // Themes API

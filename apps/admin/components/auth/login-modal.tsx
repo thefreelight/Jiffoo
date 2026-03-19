@@ -16,6 +16,7 @@ import { useToast } from '@/components/ui/toast';
 import { Eye, EyeOff, Lock, Mail, Loader2 } from 'lucide-react';
 import { useT } from 'shared/src/i18n/react';
 import { resolveApiErrorMessage } from '@/lib/error-utils';
+import { useManagedPackageBranding } from '@/lib/hooks/use-api';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -32,6 +33,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   const { login, isLoading } = useAuthStore();
   const { addToast } = useToast();
   const t = useT();
+  const brandingQuery = useManagedPackageBranding();
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -55,7 +57,7 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
       addToast({
         type: 'success',
         title: getText('merchant.auth.loginSuccess', 'Login Successful'),
-        description: getText('merchant.auth.welcomeBack', 'Welcome back to Jiffoo Mall Admin!')
+        description: getText('merchant.auth.welcomeBack', 'Welcome back to your admin workspace!')
       });
       onClose();
       onSuccess?.();
@@ -77,6 +79,14 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
 
   if (!isOpen) return null;
 
+  const isManagedBranding = brandingQuery.data?.mode === 'managed';
+  const modalTitle = isManagedBranding
+    ? `Welcome to ${brandingQuery.data?.displayBrandName || 'your store'}`
+    : getText('merchant.auth.welcomeBackTitle', 'Welcome Back');
+  const modalDescription = isManagedBranding
+    ? `Sign in to access the ${brandingQuery.data?.displaySolutionName || 'managed admin workspace'}.`
+    : getText('merchant.auth.signInDescription', 'Sign in to access your commerce admin workspace');
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
@@ -92,9 +102,9 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
             <Lock className="w-8 h-8 text-white" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">{getText('merchant.auth.welcomeBackTitle', 'Welcome Back')}</CardTitle>
+            <CardTitle className="text-2xl font-bold">{modalTitle}</CardTitle>
             <CardDescription className="text-gray-600">
-              {getText('merchant.auth.signInDescription', 'Sign in to access the Jiffoo Mall Admin Panel')}
+              {modalDescription}
             </CardDescription>
           </div>
         </CardHeader>

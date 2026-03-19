@@ -8,6 +8,8 @@
 import { CacheService } from '@/core/cache/service';
 import { LoggerService } from '@/core/logger/unified-logger';
 import type {
+  CommercialPackageActivationRequest,
+  CommercialPackageActivationResponse,
   OfficialExtensionCatalogItem,
   OfficialExtensionCatalogResponse,
   OfficialInstallAuthorizationRequest,
@@ -195,6 +197,25 @@ export const MarketClient = {
     if (!response.ok) {
       throw new Error(`Official install record error: ${response.status}`);
     }
+  },
+
+  async activateCommercialPackage(
+    payload: CommercialPackageActivationRequest,
+  ): Promise<CommercialPackageActivationResponse> {
+    const response = await marketFetch('/marketplace/commercial-packages/activate', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      throw new Error(`Commercial package activation error: ${response.status}`);
+    }
+
+    const envelope = (await response.json()) as MarketApiEnvelope<CommercialPackageActivationResponse>;
+    if (!envelope?.data) {
+      throw new Error('Commercial package activation payload missing data');
+    }
+
+    return envelope.data;
   },
 
   async startPlatformConnection(

@@ -45,7 +45,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#fcfdfe]">
-      <div className="border-b border-gray-100 pl-20 pr-8 lg:px-8 py-4 sticky top-0 bg-white/80 backdrop-blur-md z-40 flex items-center justify-between">
+      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex flex-col">
           <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
             {getText('merchant.profile.title', 'Profile')}
@@ -56,7 +56,7 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="w-full px-10 py-10 space-y-8 max-w-[1200px] mx-auto">
+      <div className="mx-auto w-full max-w-[1200px] space-y-8 px-4 py-6 sm:px-10 sm:py-10">
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="h-24 bg-gray-50 border-b border-gray-100" />
           <div className="px-8 pb-8 flex flex-col sm:flex-row items-end gap-6 -mt-12 relative z-10">

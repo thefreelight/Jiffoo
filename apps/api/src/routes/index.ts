@@ -29,6 +29,7 @@ import { adminOrderRoutes } from '@/core/admin/order-management/routes';
 import { adminThemeRoutes, publicThemeRoutes } from '@/core/admin/theme-management/routes';
 import systemSettingsRoutes from '@/core/admin/system-settings/routes';
 import platformConnectionRoutes from '@/core/admin/platform-connection/routes';
+import managedPackageRoutes from '@/core/admin/managed-package/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
 import { healthMonitoringRoutes } from '@/core/admin/health-monitoring/routes';
 import { errorTrackingRoutes } from '@/core/error-tracking/routes';
@@ -95,6 +96,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(adminStockAlertRoutes, { prefix: '/api/admin/stock-alerts' });
   await fastify.register(systemSettingsRoutes, { prefix: '/api/admin' });
   await fastify.register(platformConnectionRoutes, { prefix: '/api/admin/platform/connection' });
+  await fastify.register(managedPackageRoutes, { prefix: '/api/admin/commercial-package' });
   await fastify.register(adminStoreManagementRoutes, { prefix: '/api/admin/stores' });
   await fastify.register(adminCatalogImportRoutes, { prefix: '/api/admin/integrations/catalog-import' });
 

@@ -5,8 +5,8 @@
  */
 
 import React from 'react';
-import { Heart, ShoppingCart } from 'lucide-react';
-import { Button, cn } from '@jiffoo/ui';
+import { Heart } from 'lucide-react';
+import { cn } from '@jiffoo/ui';
 import type { Product } from '../../../../shared/src/types/product';
 
 export interface ProductCardProps {
@@ -24,6 +24,15 @@ export const ProductCard = React.memo(function ProductCard({
   onAddToCart,
   onClick,
 }: ProductCardProps) {
+  const handleProductImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    if (event.currentTarget.dataset.fallbackApplied === 'true') {
+      return;
+    }
+
+    event.currentTarget.dataset.fallbackApplied = 'true';
+    event.currentTarget.src = '/placeholder-product.svg';
+  };
+
   // Get first image - handle both array of objects and array of strings
   let imageUrl = '/placeholder-product.svg';
   if (product.images && product.images.length > 0) {
@@ -34,6 +43,7 @@ export const ProductCard = React.memo(function ProductCard({
       imageUrl = firstImage.url;
     }
   }
+  const usesPlaceholder = imageUrl === '/placeholder-product.svg';
 
   // Handle stock from multiple sources:
   // 1. inventory.isInStock (standard)
@@ -53,11 +63,20 @@ export const ProductCard = React.memo(function ProductCard({
     return (
       <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4 sm:p-6 bg-white dark:bg-slate-800 rounded-2xl border border-gray-200 dark:border-slate-700 shadow-sm hover:shadow-md dark:hover:shadow-slate-900/50 hover:border-blue-200 dark:hover:border-blue-700 transition-all duration-300">
         {/* Image */}
-        <div className="relative w-full sm:w-40 h-48 sm:h-40 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100 dark:bg-slate-700">
+        <div className={cn(
+          'relative h-48 w-full flex-shrink-0 overflow-hidden rounded-xl sm:h-40 sm:w-40',
+          usesPlaceholder
+            ? 'bg-[radial-gradient(circle_at_top_right,_rgba(191,219,254,0.8),_transparent_26%),linear-gradient(180deg,_#f8fbff_0%,_#eef5ff_100%)]'
+            : 'bg-gray-100 dark:bg-slate-700'
+        )}>
           <img
             src={imageUrl}
             alt={product.name}
-            className="w-full h-full object-cover"
+            className={cn(
+              'h-full w-full transition-transform duration-500 ease-out',
+              usesPlaceholder ? 'object-contain p-5' : 'object-cover'
+            )}
+            onError={handleProductImageError}
           />
           {isOutOfStock && (
             <div className="absolute inset-0 bg-black/60 flex items-center justify-center backdrop-blur-sm">
@@ -109,18 +128,35 @@ export const ProductCard = React.memo(function ProductCard({
       onClick={onClick}
     >
       {/* Image - fixed height container */}
-      <div className="relative w-full h-48 sm:h-56 flex-shrink-0 overflow-hidden bg-gray-100 dark:bg-slate-700">
+      <div
+        className={cn(
+          'relative h-48 w-full flex-shrink-0 overflow-hidden sm:h-56',
+          usesPlaceholder
+            ? 'bg-[radial-gradient(circle_at_top_right,_rgba(191,219,254,0.9),_transparent_24%),linear-gradient(180deg,_#f8fbff_0%,_#eef5ff_100%)]'
+            : 'bg-gray-100 dark:bg-slate-700'
+        )}
+      >
+        <div
+          className={cn(
+            'absolute inset-0 transition-opacity duration-300',
+            usesPlaceholder
+              ? 'bg-[linear-gradient(90deg,rgba(59,130,246,0.08)_0,rgba(59,130,246,0.02)_48%,transparent_100%)] opacity-100'
+              : 'bg-blue-600/0 group-hover:bg-blue-600/5 dark:group-hover:bg-blue-400/10'
+          )}
+        />
         <img
           src={imageUrl}
           alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+          className={cn(
+            'h-full w-full transition-transform duration-500 ease-out',
+            usesPlaceholder ? 'object-contain p-5 sm:p-6 group-hover:scale-[1.04]' : 'object-cover group-hover:scale-105'
+          )}
+          onError={handleProductImageError}
         />
 
-        {/* Brand overlay on hover */}
-        <div className="absolute inset-0 bg-blue-600/0 group-hover:bg-blue-600/5 dark:group-hover:bg-blue-400/10 transition-colors duration-300" />
-
         {/* Badges */}
-        <div className="absolute top-2 sm:top-3 left-2 sm:left-3 flex flex-col gap-1.5 sm:gap-2">
+        <div className="absolute inset-x-2 top-2 flex items-start justify-between gap-2 sm:inset-x-3 sm:top-3">
+          <div className="flex max-w-[65%] flex-wrap gap-1.5 sm:gap-2">
           {hasDiscount && !isOutOfStock && (
             <span className="bg-red-500 text-white text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg shadow-sm">
               -{discountPercent}%
@@ -131,8 +167,9 @@ export const ProductCard = React.memo(function ProductCard({
               Only {availableStock} left
             </span>
           )}
+          </div>
           {isOutOfStock && (
-            <span className="bg-gray-800 dark:bg-slate-900 text-white text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg shadow-sm">
+            <span className="bg-gray-800/95 dark:bg-slate-900 text-white text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg shadow-sm whitespace-nowrap">
               Out of Stock
             </span>
           )}
@@ -146,7 +183,7 @@ export const ProductCard = React.memo(function ProductCard({
               'absolute top-2 sm:top-3 right-2 sm:right-3 p-2 sm:p-2.5 rounded-full',
               'bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm',
               'shadow-sm hover:bg-white dark:hover:bg-slate-800 hover:shadow-md',
-              'opacity-0 group-hover:opacity-100 transition-all duration-200',
+              'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-all duration-200',
               'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
             )}
             aria-label="Add to wishlist"
@@ -158,16 +195,16 @@ export const ProductCard = React.memo(function ProductCard({
 
       {/* Product info - flex-grow to fill remaining space */}
       <div className="flex-1 flex flex-col p-4 sm:p-5">
-        <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-1">
+        <h3 className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2 min-h-[2.5rem]">
           {product.name}
         </h3>
 
-        <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-1 leading-relaxed h-4 sm:h-5">
+        <p className="mt-1 min-h-[2.5rem] text-xs leading-relaxed text-gray-600 dark:text-gray-400 line-clamp-2 sm:text-sm">
           {product.description || '\u00A0'}
         </p>
 
         {/* Price - push to bottom with mt-auto */}
-        <div className="flex items-baseline gap-2 mt-auto pt-2 sm:pt-3">
+        <div className="mt-auto flex items-baseline gap-2 border-t border-gray-100 pt-3 dark:border-slate-700 sm:pt-4">
           <span className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">${product.price}</span>
           {hasDiscount && (
             <span className="text-xs sm:text-sm text-gray-400 dark:text-gray-500 line-through">

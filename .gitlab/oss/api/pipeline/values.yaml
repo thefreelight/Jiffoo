@@ -35,7 +35,7 @@ env:
   - name: API_HOST
     value: "0.0.0.0"
   - name: CORS_ORIGIN
-    value: "http://jiffoo-oss-shop.chfastpay.com:8888,http://jiffoo-oss-admin.chfastpay.com:8888"
+    value: "http://jiffoo-oss-shop.chfastpay.com:8888,http://jiffoo-oss-admin.chfastpay.com:8888,https://yevbi.com,https://www.yevbi.com,https://qwesim.com,https://www.qwesim.com"
   - name: CORS_ENABLED
     value: "true"
   - name: CORS_CREDENTIALS
@@ -53,7 +53,7 @@ env:
   - name: NEXT_PUBLIC_TENANT_URL
     value: "http://jiffoo-oss-admin.chfastpay.com:8888"
   - name: NEXT_PUBLIC_SHOP_URL
-    value: "http://jiffoo-oss-shop.chfastpay.com:8888"
+    value: "https://yevbi.com"
   - name: MARKET_API_URL
     value: "http://jiffoo-platform-api.chfastpay.com:8888/api"
   - name: PLATFORM_MAIN_DOMAIN

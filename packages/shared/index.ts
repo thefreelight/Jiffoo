@@ -57,6 +57,11 @@ export {
   type StorageAdapter,
 } from './api/storage-adapters';
 
+// Extension and marketplace contracts
+export * from './src/extensions/commercial-package';
+export * from './src/extensions/official-catalog';
+export * from './src/extensions/platform-connection';
+
 
 
 // Constants

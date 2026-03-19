@@ -195,7 +195,7 @@ interface ProductCardProps {
 }
 
 function ProductCard({ product, primaryColor }: ProductCardProps) {
-  const imageUrl = product.images?.[0]?.url || '/placeholder.png';
+  const imageUrl = product.images?.[0]?.url || '/placeholder-product.svg';
   const hasDiscount = product.compareAtPrice && product.compareAtPrice > product.price;
 
   return (

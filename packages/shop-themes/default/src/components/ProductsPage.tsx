@@ -70,8 +70,8 @@ export const ProductsPage = React.memo(function ProductsPage({
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-slate-900 pt-20">
       {/* Hero Header */}
-      <section className="pb-8 sm:pb-12 bg-white dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700">
-        <div className="container mx-auto px-4 pt-6 sm:pt-8">
+      <section className="border-b border-gray-100 bg-[radial-gradient(circle_at_top_left,_rgba(59,130,246,0.14),_transparent_26%),linear-gradient(180deg,_#ffffff_0%,_#f8fbff_100%)] pb-6 dark:border-slate-700 dark:bg-slate-800 sm:pb-8">
+        <div className="container mx-auto px-4 pt-5 sm:pt-7">
           {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-sm mb-4 sm:mb-6" aria-label="Breadcrumb">
             <a href="/" className="text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors text-xs font-medium">
@@ -94,19 +94,38 @@ export const ProductsPage = React.memo(function ProductsPage({
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 dark:text-white mb-2 sm:mb-3">
               {getText('shop.products.title', 'All Products')}
             </h1>
-            <p className="text-[10px] font-medium text-gray-300 dark:text-gray-600 uppercase tracking-wider">
-              {getText('shop.products.subtitle', 'DISCOVER OUR COMPLETE COLLECTION')}
+            <p className="max-w-2xl text-sm font-medium leading-6 text-gray-500 dark:text-gray-400 sm:text-base">
+              {getText('shop.products.subtitle', 'Discover our complete collection of quality products.')}
             </p>
+
+            <div className="mt-4 flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center rounded-full border border-blue-100 bg-white/90 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-600 shadow-sm">
+                {totalProducts} {getText('shop.products.productsCount', 'Items')}
+              </span>
+              <span className="inline-flex items-center rounded-full border border-white/80 bg-white/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500 shadow-sm">
+                {viewMode === 'grid'
+                  ? getText('shop.products.view.grid', 'Grid view')
+                  : getText('shop.products.view.list', 'List view')}
+              </span>
+              {activeSearchQuery && (
+                <button
+                  type="button"
+                  onClick={handleClearFilters}
+                  className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500 shadow-sm transition-colors hover:border-red-200 hover:text-red-500"
+                >
+                  <span>{activeSearchQuery}</span>
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Filters and Controls - Premium Admin Card Style */}
-      <section className="py-4 sm:py-6 bg-gray-50 dark:bg-slate-900 sticky top-0 z-10 transition-all duration-300">
+      <section className="sticky top-0 z-10 border-b border-gray-100/80 bg-white/80 py-3 backdrop-blur-xl transition-all duration-300 dark:border-slate-700/80 dark:bg-slate-900/80 sm:py-4">
         <div className="container mx-auto px-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl sm:rounded-[2rem] border border-gray-100 dark:border-slate-700 p-2 sm:p-3 shadow-sm flex flex-col lg:flex-row gap-3 sm:gap-4 items-center transition-all">
+          <div className="flex flex-col gap-3 rounded-[1.75rem] border border-gray-100 bg-white/90 p-3 shadow-sm transition-all dark:border-slate-700 dark:bg-slate-800/90 lg:flex-row lg:items-center lg:gap-4">
 
-            {/* Left: Search Bar with Integrated Stat */}
             <div className="flex-1 w-full relative group">
               <Search className="absolute left-4 sm:left-5 top-1/2 -translate-y-1/2 h-4 w-4 sm:h-5 sm:w-5 text-gray-300 dark:text-gray-600 group-focus-within:text-blue-500 dark:group-focus-within:text-blue-400 transition-colors" />
               <form onSubmit={handleSearchSubmit}>
@@ -126,10 +145,10 @@ export const ProductsPage = React.memo(function ProductsPage({
                 />
               </form>
 
-              {/* Clear button inside search bar */}
               {searchQuery && (
                 <button
-                  onClick={() => { setSearchQuery(''); onSearch?.(''); }}
+                  type="button"
+                  onClick={handleClearFilters}
                   className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 px-2 sm:px-3 py-1 sm:py-1.5 bg-white dark:bg-slate-700 border border-gray-100 dark:border-slate-600 rounded-lg sm:rounded-xl text-[10px] font-bold text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:shadow-md transition-all"
                 >
                   <X className="h-3 w-3" />
@@ -138,20 +157,14 @@ export const ProductsPage = React.memo(function ProductsPage({
               )}
             </div>
 
-            {/* Right: Controls Area */}
-            <div className="flex items-center gap-2 sm:gap-3 w-full lg:w-auto justify-between lg:justify-end">
-              {/* Results pill */}
-              <div className="hidden sm:flex items-center px-4 sm:px-5 h-12 sm:h-14 bg-gray-50/80 dark:bg-slate-900/50 rounded-xl sm:rounded-[1.5rem] border border-dashed border-gray-200 dark:border-slate-700">
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto lg:justify-end">
+              <div className="flex h-11 items-center rounded-[1.25rem] border border-dashed border-gray-200 bg-gray-50/90 px-4 dark:border-slate-700 dark:bg-slate-900/60 sm:h-12 sm:px-5">
                 <span className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] whitespace-nowrap">
-                  {totalProducts} <span className="text-gray-900 dark:text-white mx-1">{getText('shop.products.productsCount', 'Items')}</span> FOUND
+                  {totalProducts} <span className="text-gray-900 dark:text-white mx-1">{getText('shop.products.productsCount', 'Items')}</span> {getText('shop.products.found', 'Found')}
                 </span>
               </div>
 
-              {/* Interaction divider */}
-              <div className="hidden lg:block h-8 w-px bg-gray-100 dark:bg-slate-700 mx-1" />
-
               <div className="flex items-center gap-2">
-                {/* Sort selector - Premium Admin Style Custom Dropdown */}
                 <CustomSelect
                   value={sortBy}
                   onChange={onSortChange}
@@ -160,10 +173,9 @@ export const ProductsPage = React.memo(function ProductsPage({
                     { value: 'name', label: getText('shop.products.sort.featured', 'Featured') },
                     { value: 'price', label: getText('shop.products.sort.priceLowToHigh', 'Price: Low to High') },
                   ]}
-                  className="min-w-[140px] sm:min-w-[160px] md:min-w-[200px]"
+                  className="min-w-[140px] sm:min-w-[170px] md:min-w-[210px]"
                 />
 
-                {/* View toggle - Premium Admin style */}
                 <div className="flex rounded-xl sm:rounded-[1.5rem] overflow-hidden border border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/50 p-1 sm:p-1.5 h-10 sm:h-14 items-center">
                   <button
                     onClick={() => onViewModeChange('grid')}

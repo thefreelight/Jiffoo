@@ -257,6 +257,41 @@ if [ "${DRY_RUN}" != "true" ]; then
   node -e "
     const fs = require('fs');
     const pkg = JSON.parse(fs.readFileSync('${OPENSOURCE_REPO_DIR}/package.json', 'utf8'));
+    const openSourceVersion = process.env.OPENSOURCE_VERSION;
+    const allowedScripts = new Set([
+      'dev',
+      'dev:core',
+      'dev:minimal',
+      'dev:api-only',
+      'dev:shop-only',
+      'dev:admin-only',
+      'dev:packages',
+      'dev:api',
+      'dev:shop',
+      'build',
+      'build:core',
+      'build:official-artifacts',
+      'start',
+      'lint',
+      'type-check',
+      'clean',
+      'db:generate',
+      'db:migrate',
+      'db:studio',
+      'db:reset',
+      'db:seed',
+      'test',
+      'test:api:quality',
+      'test:e2e',
+      'test:e2e:shop',
+      'test:e2e:admin',
+      'test:e2e:all',
+      'test:e2e:ui',
+      'test:e2e:report',
+      'changeset',
+      'version:bump',
+      'release',
+    ]);
     
     // Update workspaces to only include opensource packages
     pkg.workspaces = [
@@ -267,11 +302,24 @@ if [ "${DRY_RUN}" != "true" ]; then
       'packages/shop-themes/*'
     ];
     
+    if (openSourceVersion) {
+      pkg.version = openSourceVersion;
+    }
+
+    pkg.description = 'Jiffoo open-source core for self-hosted commerce deployments';
+
     // Update license
     pkg.license = 'GPL-2.0-or-later';
     
     // Remove private flag
     delete pkg.private;
+
+    if (pkg.scripts) {
+      pkg.scripts = Object.fromEntries(
+        Object.entries(pkg.scripts).filter(([name]) => allowedScripts.has(name))
+      );
+      pkg.scripts['smoke:opensource-build'] = 'bash scripts/test-opensource-build.sh';
+    }
     
     fs.writeFileSync(
       '${OPENSOURCE_REPO_DIR}/package.json',

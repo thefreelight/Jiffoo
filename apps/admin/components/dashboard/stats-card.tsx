@@ -29,28 +29,53 @@ interface StatsCardProps {
 const colorClasses = {
   blue: {
     bg: 'bg-[#EFF6FF]',
-    text: 'text-[#3B82F6]',
-    chart: '#3B82F6'
+    text: 'text-[#2563EB]',
+    chart: '#3B82F6',
+    ring: 'border-blue-100',
+    surface: 'from-blue-50/90 via-white to-white',
+    accent: 'bg-blue-500/80',
+    micro: 'bg-blue-200/80',
+    softText: 'text-blue-600/70',
   },
   green: {
     bg: 'bg-[#DCFCE7]',
-    text: 'text-[#166534]',
-    chart: '#22C55E'
+    text: 'text-[#15803D]',
+    chart: '#22C55E',
+    ring: 'border-green-100',
+    surface: 'from-green-50/90 via-white to-white',
+    accent: 'bg-green-500/80',
+    micro: 'bg-green-200/80',
+    softText: 'text-green-600/70',
   },
   purple: {
     bg: 'bg-[#F3E8FF]',
     text: 'text-[#7C3AED]',
-    chart: '#8B5CF6'
+    chart: '#8B5CF6',
+    ring: 'border-purple-100',
+    surface: 'from-purple-50/90 via-white to-white',
+    accent: 'bg-purple-500/80',
+    micro: 'bg-purple-200/80',
+    softText: 'text-purple-600/70',
   },
   orange: {
     bg: 'bg-[#FEF3C7]',
     text: 'text-[#D97706]',
-    chart: '#F59E0B'
+    chart: '#F59E0B',
+    ring: 'border-orange-100',
+    surface: 'from-orange-50/90 via-white to-white',
+    accent: 'bg-orange-500/80',
+    micro: 'bg-orange-200/80',
+    softText: 'text-orange-600/70',
   },
   red: {
     bg: 'bg-[#FEE2E2]',
     text: 'text-[#991B1B]',
-    chart: '#EF4444'
+    chart: '#EF4444',
+    ring: 'border-red-100',
+    surface: 'from-red-50/90 via-white to-white',
+    accent: 'bg-red-500/80',
+    micro: 'bg-red-200/80',
+    softText: 'text-red-600/70',
   }
 }
 
@@ -77,81 +102,132 @@ export function StatsCard({
 
   // Only render chart when there is real data, otherwise show "No data"
   const hasData = data && data.length > 0
+  const previewBars = [18, 26, 20, 34, 24, 30]
 
   return (
     <div className={cn(
-      "bg-white rounded-3xl border border-gray-100 p-8 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 transition-all group relative overflow-hidden",
+      'group relative overflow-hidden rounded-[2rem] border border-gray-100 bg-gradient-to-br p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-blue-500/5 sm:p-6',
+      colors.surface,
+      colors.ring,
       className
     )}>
-      {/* Decorative background element */}
+      <div className={cn('absolute inset-x-0 top-0 h-1', colors.accent)} />
       <div className={cn(
-        "absolute -right-4 -top-4 w-24 h-24 rounded-full opacity-[0.03] group-hover:scale-150 transition-transform duration-700",
+        'absolute -right-6 -top-8 h-28 w-28 rounded-full opacity-[0.14] blur-2xl transition-transform duration-700 group-hover:scale-125',
         colors.bg
       )} />
+      <div className="absolute inset-x-5 bottom-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center space-x-4">
+      <div className="relative flex h-full flex-col">
+        <div className="mb-5 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {icon && (
+              <div className={cn(
+                'flex h-11 w-11 items-center justify-center rounded-2xl border border-white/80 shadow-sm transition-transform group-hover:scale-105',
+                colors.bg
+              )}>
+                <div className={colors.text}>
+                  {icon}
+                </div>
+              </div>
+            )}
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">
+                {title}
+              </p>
+              <p className="mt-1 text-[11px] font-semibold text-gray-400">
+                {getText('common.status.live', 'Live metric')}
+              </p>
+            </div>
+          </div>
           {icon && (
-            <div className={cn(
-              "w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110",
-              colors.bg
+            <span className={cn(
+              'inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] shadow-sm backdrop-blur',
+              colors.softText
             )}>
-              <div className={colors.text}>
-                {icon}
+              <span className={cn('h-2 w-2 rounded-full', colors.accent)} />
+              {getText('common.status.active', 'Active')}
+            </span>
+          )}
+        </div>
+
+        <div className="mb-5">
+          <div className="text-3xl font-black tracking-tight text-gray-900 sm:text-[2rem]">
+            {value}
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            {change && (
+              <div className={cn(
+                'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold shadow-sm',
+                changeType === 'increase' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+              )}>
+                {changeType === 'increase' ? (
+                  <TrendingUp className="h-3.5 w-3.5" />
+                ) : (
+                  <TrendingDown className="h-3.5 w-3.5" />
+                )}
+                <span>{change}</span>
+              </div>
+            )}
+            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+              {comparisonLabel || getText('merchant.dashboard.fromLastMonth', 'vs last month')}
+            </span>
+          </div>
+        </div>
+
+        <div className="mt-auto rounded-[1.5rem] border border-white/80 bg-white/75 p-3 shadow-sm backdrop-blur">
+          {hasData ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                  {getText('merchant.dashboard.trend', 'Trend')}
+                </span>
+                <span className={cn('text-[10px] font-bold uppercase tracking-[0.18em]', colors.softText)}>
+                  {getText('merchant.dashboard.recentPeriod', 'Recent period')}
+                </span>
+              </div>
+              <div className="h-14">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data}>
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke={colors.chart}
+                      strokeWidth={3}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </div>
-          )}
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              {title}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Value */}
-      <div className="mb-6">
-        <div className="text-3xl font-black text-gray-900 tracking-tight mb-2">
-          {value}
-        </div>
-        {change && (
-          <div className="flex items-center space-x-2">
-            <div className={cn(
-              "flex items-center space-x-1 text-xs font-bold px-2 py-0.5 rounded-lg",
-              changeType === 'increase' ? 'text-green-600 bg-green-50' : 'text-red-600 bg-red-50'
-            )}>
-              {changeType === 'increase' ? (
-                <TrendingUp className="w-3 h-3" />
-              ) : (
-                <TrendingDown className="w-3 h-3" />
-              )}
-              <span>{change}</span>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                  {getText('common.noData', 'No recent points')}
+                </span>
+                <span className={cn('text-[10px] font-bold uppercase tracking-[0.18em]', colors.softText)}>
+                  {getText('merchant.dashboard.stable', 'Stable')}
+                </span>
+              </div>
+              <div className="flex h-14 items-end gap-1.5">
+                {previewBars.map((height, index) => (
+                  <div
+                    key={`${title}-${index}`}
+                    className={cn(
+                      'flex-1 rounded-full',
+                      index % 2 === 0 ? colors.micro : 'bg-gray-100'
+                    )}
+                    style={{ height }}
+                  />
+                ))}
+              </div>
+              <p className="text-[11px] font-medium text-gray-400">
+                {getText('merchant.dashboard.awaitingTrend', 'Awaiting enough activity to render a recent trend line.')}
+              </p>
             </div>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">{comparisonLabel || getText('merchant.dashboard.fromLastMonth', 'vs last month')}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Chart preview */}
-      <div className="h-12 -mx-4">
-        {hasData ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data}>
-              <Line
-                type="monotone"
-                dataKey="value"
-                stroke={colors.chart}
-                strokeWidth={3}
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="h-full border-t border-dashed border-gray-100 mt-4 pt-4 flex items-center justify-center opacity-40">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest italic">{getText('common.noData', 'Stable Node')}</p>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

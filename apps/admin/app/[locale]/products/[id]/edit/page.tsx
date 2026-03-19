@@ -226,7 +226,7 @@ export default function EditProductPage() {
   return (
     <div className="w-full bg-[#fcfdfe] min-h-screen">
       {/* Header Bar */}
-      <div className="border-b border-gray-100 pl-20 pr-4 sm:pr-8 lg:px-8 py-4 sticky top-0 bg-white/80 backdrop-blur-md z-50 flex items-center justify-between">
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex items-center space-x-2 sm:space-x-4 min-w-0">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-gray-100 rounded-xl w-8 h-8 sm:w-10 sm:h-10 shrink-0">
             <ArrowLeft className="w-4 h-4 sm:w-5 h-5 text-gray-900" />

@@ -1,7 +1,7 @@
 {
   "name": "jiffoo-mall-core",
-  "version": "0.2.3",
-  "description": "Jiffoo Mall Core - Private development repository with full features",
+  "version": "1.0.3-opensource",
+  "description": "Jiffoo open-source core for self-hosted commerce deployments",
   "_moduleAliases": {
     "@shared/security": "packages/shared/dist/shared/src/security",
     "@shared/observability": "packages/shared/dist/shared/src/observability",
@@ -18,12 +18,10 @@
   "scripts": {
     "dev": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --concurrency=5",
     "dev:core": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --concurrency=5",
-    "dev:cloud": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --filter=docs --concurrency=6",
     "dev:minimal": "turbo run dev --filter=api --filter=shop --concurrency=2",
     "dev:api-only": "dotenv -e .env -- pnpm --filter api dev",
     "dev:shop-only": "dotenv -e .env -- pnpm --filter shop dev",
     "dev:admin-only": "dotenv -e .env -- pnpm --filter admin dev",
-    "dev:docs-only": "dotenv -e .env -- pnpm --filter docs dev",
     "dev:packages": "turbo run dev --filter='./packages/**' --concurrency=8",
     "build": "turbo run build",
     "build:core": "turbo run build --filter=api --filter=shop --filter=admin",
@@ -33,7 +31,6 @@
     "clean": "turbo run clean",
     "dev:api": "pnpm --filter api dev",
     "dev:shop": "pnpm --filter shop dev",
-    "dev:setup": "npx tsx scripts/dev-setup.ts",
     "db:generate": "pnpm --filter api db:generate",
     "db:migrate": "pnpm --filter api db:migrate",
     "db:studio": "pnpm --filter api db:studio",
@@ -46,20 +43,12 @@
     "test:e2e:shop": "playwright test -c apps/api/tests/e2e/playwright.shop.config.ts",
     "test:e2e:admin": "playwright test -c apps/api/tests/e2e/playwright.admin.config.ts",
     "test:e2e:all": "pnpm test:e2e",
-    "test:e2e:api": "echo \"API E2E tests not yet implemented\"",
-    "test:e2e:developer-portal": "echo \"Developer portal E2E tests not yet implemented\"",
     "test:e2e:ui": "playwright test -c apps/api/tests/e2e/playwright.shop.config.ts --ui",
     "test:e2e:report": "playwright show-report apps/api/tests/e2e/playwright-report",
-    "docker:build": "turbo run docker:build",
-    "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f",
-    "smoke:local-docker": "bash scripts/smoke-local-docker.sh",
-    "deploy": "turbo run deploy",
-    "prepare": "husky",
     "changeset": "changeset",
     "version:bump": "changeset version",
-    "release": "pnpm version:bump && pnpm build"
+    "release": "pnpm version:bump && pnpm build",
+    "smoke:opensource-build": "bash scripts/test-opensource-build.sh"
   },
   "lint-staged": {
     "apps/api/src/**/*.ts": [

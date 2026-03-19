@@ -145,7 +145,7 @@ export default function CustomerDetailPage() {
   return (
     <div className="min-h-screen bg-[#fcfdfe]">
       {/* Header Bar */}
-      <div className="border-b border-gray-100 pl-20 pr-8 lg:px-8 py-4 sticky top-0 bg-white/80 backdrop-blur-md z-40 flex items-center justify-between">
+      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -208,7 +208,7 @@ export default function CustomerDetailPage() {
         </div>
       </div>
 
-      <div className="w-full px-10 py-10 space-y-8 max-w-[1600px] mx-auto">
+      <div className="mx-auto w-full max-w-[1600px] space-y-8 px-4 py-6 sm:px-10 sm:py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 text-left">
           {/* Left Column: Essential Info */}
           <div className="lg:col-span-2 space-y-8">
@@ -401,7 +401,7 @@ export default function CustomerDetailPage() {
                   { label: getText('merchant.customers.detail.initializationDate', 'INITIALIZATION'), value: new Date(user.createdAt).toLocaleString(), icon: Calendar },
                   { label: getText('merchant.customers.detail.lastSpecificationUpdate', 'SPECIFICATION UPDATE'), value: new Date(user.updatedAt).toLocaleString(), icon: ShieldCheck },
                 ].map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-6 hover:bg-blue-50/20 transition-colors px-10">
+                  <div key={idx} className="flex items-center justify-between p-6 px-4 transition-colors hover:bg-blue-50/20 sm:px-10">
                     <div className="flex items-center gap-4">
                       <div className="p-3 bg-gray-50 rounded-2xl group-hover:bg-white transition-colors">
                         <item.icon className="w-4 h-4 text-gray-400" />

@@ -14,8 +14,49 @@ import { productsApi } from '@/lib/api';
 export type { ShopProductListItemDTO, ShopProductDetailDTO, ProductCategory, ProductSearchFilters } from 'shared';
 
 // Import the DTO types for internal use
-import type { ShopProductListItemDTO, ShopProductDetailDTO, ProductSearchFilters, PageResult } from 'shared';
+import type { ApiResponse, ShopProductListItemDTO, ShopProductDetailDTO, ProductSearchFilters, PageResult } from 'shared';
 import type { ProductCategoryDTO } from 'shared';
+
+async function getProductServerSide(
+    id: string,
+    locale?: string,
+    agentId?: string
+): Promise<ApiResponse<ShopProductDetailDTO>> {
+    const baseUrl = process.env.API_SERVICE_URL;
+    if (!baseUrl) {
+        throw new Error('API_SERVICE_URL is not set');
+    }
+
+    const url = new URL(`/api/products/${id}`, baseUrl);
+    if (locale) {
+        url.searchParams.set('locale', locale);
+    }
+    if (agentId) {
+        url.searchParams.set('agentId', agentId);
+    }
+
+    const response = await fetch(url.toString(), {
+        cache: 'no-store',
+        headers: {
+            'Accept': 'application/json',
+            'X-App-Type': 'shop',
+            'X-Client-Version': '1.0.0',
+        },
+    });
+
+    const data = await response.json() as ApiResponse<ShopProductDetailDTO>;
+    if (!response.ok) {
+        return {
+            success: false,
+            error: data?.error || {
+                code: String(response.status),
+                message: `Failed to fetch product ${id}`,
+            },
+        };
+    }
+
+    return data;
+}
 
 export interface ProductListResponse {
     items: ShopProductListItemDTO[];
@@ -77,7 +118,9 @@ export const ProductService = {
         locale?: string,
         agentId?: string
     ): Promise<ShopProductDetailDTO> {
-        const response = await productsApi.getProduct(id, locale, agentId);
+        const response = typeof window === 'undefined'
+            ? await getProductServerSide(id, locale, agentId)
+            : await productsApi.getProduct(id, locale, agentId);
 
         if (!response.success || !response.data) {
             throw new Error(response.error?.message || 'Product not found');

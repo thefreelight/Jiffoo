@@ -89,7 +89,7 @@ export default function OrderDetailPage() {
   return (
     <div className="w-full bg-[#fcfdfe] min-h-screen pb-20">
       {/* Header Bar */}
-      <div className="border-b border-gray-100 pl-20 pr-4 sm:pr-8 lg:px-8 py-4 sticky top-0 bg-white/80 backdrop-blur-md z-50 flex items-center justify-between">
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"

@@ -35,6 +35,20 @@ type PaymentMethodOption = {
   } | null;
 };
 
+const readLegacyStripeIntentResponse = (
+  response: unknown
+): { clientSecret: string; paymentIntentId: string } | null => {
+  const payload = response as { clientSecret?: unknown; paymentIntentId?: unknown } | null;
+  if (typeof payload?.clientSecret !== 'string' || payload.clientSecret.length === 0) {
+    return null;
+  }
+
+  return {
+    clientSecret: payload.clientSecret,
+    paymentIntentId: typeof payload.paymentIntentId === 'string' ? payload.paymentIntentId : '',
+  };
+};
+
 export default function CheckoutPage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
   const nav = useLocalizedNavigation();
@@ -51,6 +65,7 @@ export default function CheckoutPage() {
   const [stripeOrderId, setStripeOrderId] = React.useState<string | null>(null);
   const [stripePublishableKey, setStripePublishableKey] = React.useState<string | null>(null);
   const [isStripeModalOpen, setIsStripeModalOpen] = React.useState(false);
+  const fallbackStripePublishableKey = (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '').trim();
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -215,18 +230,22 @@ export default function CheckoutPage() {
       // Check for native Stripe direct-intent flow
       if (data.paymentMethod === 'stripe') {
         const stripeMethod = availablePaymentMethods.find((method) => method.name === 'stripe');
-        const publishableKey = stripeMethod?.clientConfig?.publishableKey?.trim();
+        const publishableKey =
+          stripeMethod?.clientConfig?.publishableKey?.trim() ||
+          fallbackStripePublishableKey;
         if (!publishableKey) {
           throw new Error(getText('common.errors.general', 'Stripe storefront key is not configured'));
         }
 
         const intentResponse = await paymentApi.createIntent({ orderId });
-        if (!intentResponse || !intentResponse.success || !intentResponse.data) {
+        const intentData = intentResponse?.data || readLegacyStripeIntentResponse(intentResponse);
+
+        if (!intentResponse || !intentResponse.success || !intentData?.clientSecret) {
           throw new Error(intentResponse?.message || getText('common.errors.general', 'Failed to create payment intent'));
         }
 
         setStripePublishableKey(publishableKey);
-        setStripeClientSecret(intentResponse.data.clientSecret);
+        setStripeClientSecret(intentData.clientSecret);
         setStripeOrderId(orderId);
         setIsStripeModalOpen(true);
         setIsProcessing(false);
@@ -337,7 +356,7 @@ export default function CheckoutPage() {
       <StripeCheckoutModal
         isOpen={isStripeModalOpen}
         onOpenChange={setIsStripeModalOpen}
-        publishableKey={stripePublishableKey || ''}
+        publishableKey={stripePublishableKey || fallbackStripePublishableKey}
         clientSecret={stripeClientSecret || ''}
         orderId={stripeOrderId || ''}
       />

@@ -7,6 +7,9 @@ import {
   createAdminClient,
   getAdminClient,
   type ApiResponse,
+  type CommercialPackageProjection,
+  type ManagedPackageBrandingResponse,
+  type ManagedPackageStatusResponse,
   type ListResult,
   type PageResult,
   type UserProfile,
@@ -32,6 +35,7 @@ import type {
   ThemeMeta,
   ActiveTheme,
   PluginMetaWithState,
+  PluginConfigMeta,
   PluginState,
   HealthMetricsResponse,
   HealthSummaryResponse,
@@ -806,6 +810,7 @@ export interface PluginInstance {
   instanceKey: string;
   enabled: boolean;
   config: Record<string, unknown>;
+  configMeta?: PluginConfigMeta;
   grantedPermissions: string[];
   createdAt: string;
   updatedAt: string;
@@ -860,11 +865,25 @@ export interface OfficialCatalogItem {
   configRequired?: boolean;
   configReady?: boolean;
   missingConfigFields?: string[];
-  adminUi?: {
-    entryPath?: string;
-    label?: string;
-    icon?: string;
-  };
+  solutionOffer?: {
+    offerKind: 'theme_first_solution';
+    packageId?: string | null;
+    role: 'primary_theme' | 'included_theme' | 'companion_plugin';
+    badgeLabel?: string | null;
+    ctaLabel?: string | null;
+    summary?: string | null;
+  } | null;
+  solutionPackage?: {
+    offerKind: 'theme_first_solution';
+    packageId: string;
+    packageName: string;
+    displayBrandName: string;
+    displaySolutionName: string;
+    packageStatus: 'ACTIVE' | 'SUSPENDED' | 'REVOKED';
+    role: 'primary_theme' | 'included_theme' | 'companion_plugin';
+    defaultTheme: boolean;
+    setupStepCount: number;
+  } | null;
 }
 
 export interface OfficialCatalogResponse {
@@ -872,6 +891,7 @@ export interface OfficialCatalogResponse {
   marketOnline: boolean;
   marketError?: string;
   officialMarketOnly: boolean;
+  managedPackage?: CommercialPackageProjection | null;
   generatedAt: string;
 }
 
@@ -888,6 +908,10 @@ export interface InstallOfficialExtensionResult {
   fsPath?: string;
 }
 
+export interface ActivateManagedPackageRequest {
+  activationCode: string;
+}
+
 export type {
   PlatformConnectionStatus,
 };
@@ -900,36 +924,14 @@ type PluginConfigReadiness = {
   missingConfigFields: string[];
 };
 
-function getPluginAdminUi(manifest: Record<string, any> | null): PluginState['adminUi'] | undefined {
-  const adminUi = manifest?.adminUi;
-  if (!adminUi || typeof adminUi !== 'object' || Array.isArray(adminUi)) {
-    return undefined;
-  }
-
-  const entryPath = typeof adminUi.entryPath === 'string' ? adminUi.entryPath : undefined;
-  const label = typeof adminUi.label === 'string' ? adminUi.label : undefined;
-  const icon = typeof adminUi.icon === 'string' ? adminUi.icon : undefined;
-
-  if (!entryPath && !label && !icon) {
-    return undefined;
-  }
-
-  return { entryPath, label, icon };
-}
-
-export function buildPluginAdminUiUrl(slug: string, installationId = DEFAULT_PLUGIN_INSTANCE_KEY): string {
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/$/, '');
-  const params = new URLSearchParams({ installation: installationId });
-  return `${baseUrl}/extensions/plugin/${slug}/admin-ui?${params.toString()}`;
-}
-
 function isObject(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function evaluateConfigReadiness(
   configSchema: Record<string, any> | undefined,
-  config: Record<string, any> | undefined
+  config: Record<string, any> | undefined,
+  configMeta?: PluginConfigMeta
 ): PluginConfigReadiness {
   if (!configSchema || Object.keys(configSchema).length === 0) {
     return {
@@ -950,13 +952,22 @@ function evaluateConfigReadiness(
     configRequired = true;
     const value = currentConfig[key];
     const type = typeof descriptor.type === 'string' ? descriptor.type : '';
+    const secretConfigured = Boolean(configMeta?.secretFields?.[key]?.configured);
 
     if (value === undefined || value === null) {
+      if (type === 'secret' && secretConfigured) {
+        continue;
+      }
       missingConfigFields.push(key);
       continue;
     }
 
     if (type === 'string' && (typeof value !== 'string' || value.trim().length === 0)) {
+      missingConfigFields.push(key);
+      continue;
+    }
+
+    if (type === 'secret' && ((typeof value !== 'string' || value.trim().length === 0) && !secretConfigured)) {
       missingConfigFields.push(key);
       continue;
     }
@@ -999,18 +1010,17 @@ function toPluginState(slug: string, detail: any, instance: PluginInstance | nul
 
   const configSchema = (parsedManifest?.configSchema || detail?.configSchema || undefined) as Record<string, any> | undefined;
   const config = (instance?.config || {}) as Record<string, any>;
-  const readiness = evaluateConfigReadiness(configSchema, config);
-  const adminUi = getPluginAdminUi(parsedManifest);
+  const readiness = evaluateConfigReadiness(configSchema, config, instance?.configMeta);
 
   return {
     slug,
     enabled: instance?.enabled ?? false,
     config,
+    configMeta: instance?.configMeta,
     configSchema,
     configRequired: readiness.configRequired,
     configReady: readiness.configReady,
     missingConfigFields: readiness.missingConfigFields,
-    adminUi,
     name: detail?.name,
     version: detail?.version,
     description: detail?.description,
@@ -1091,6 +1101,20 @@ export const marketApi = {
     apiClient.post(`/admin/market/extensions/${slug}/install`, data),
 };
 
+export const managedPackageApi = {
+  getBranding: (): Promise<ApiResponse<ManagedPackageBrandingResponse>> =>
+    apiClient.get('/admin/commercial-package/branding'),
+
+  getStatus: (): Promise<ApiResponse<ManagedPackageStatusResponse>> =>
+    apiClient.get('/admin/commercial-package/status'),
+
+  activate: (data: ActivateManagedPackageRequest): Promise<ApiResponse<ManagedPackageStatusResponse>> =>
+    apiClient.post('/admin/commercial-package/activate', data),
+
+  provision: (): Promise<ApiResponse<ManagedPackageStatusResponse>> =>
+    apiClient.post('/admin/commercial-package/provision', {}),
+};
+
 export const platformConnectionApi = {
   getStatus: (): Promise<ApiResponse<PlatformConnectionStatus>> =>
     apiClient.get('/admin/platform/connection/status'),
@@ -1125,8 +1149,7 @@ export const pluginsApi = {
         const parsedManifest = parseManifestJson(plugin?.manifestJson);
         const configSchema = (parsedManifest?.configSchema || plugin?.configSchema || undefined) as Record<string, any> | undefined;
         const config = (defaultInstance?.config || {}) as Record<string, any>;
-        const readiness = evaluateConfigReadiness(configSchema, config);
-        const adminUi = getPluginAdminUi(parsedManifest);
+        const readiness = evaluateConfigReadiness(configSchema, config, defaultInstance?.configMeta);
 
         return {
           ...plugin,
@@ -1137,7 +1160,6 @@ export const pluginsApi = {
           configRequired: readiness.configRequired,
           configReady: readiness.configReady,
           missingConfigFields: readiness.missingConfigFields,
-          adminUi,
         } as PluginMetaWithState;
       })
     );

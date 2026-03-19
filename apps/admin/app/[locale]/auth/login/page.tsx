@@ -10,6 +10,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/lib/store'
+import { useManagedPackageBranding } from '@/lib/hooks/use-api'
 import { Sparkles, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
@@ -22,6 +23,7 @@ export default function AdminLoginPage() {
   const { login, isAuthenticated, isLoading, checkAuth } = useAuthStore()
   const t = useT()
   const locale = useLocale()
+  const brandingQuery = useManagedPackageBranding()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -37,6 +39,13 @@ export default function AdminLoginPage() {
   useEffect(() => {
     checkAuth()
   }, [checkAuth])
+
+  useEffect(() => {
+    const branding = brandingQuery.data
+    document.title = branding?.mode === 'managed' && branding.displayBrandName
+      ? `${branding.displayBrandName} Admin`
+      : 'Commerce Admin - Management Dashboard'
+  }, [brandingQuery.data])
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -86,6 +95,17 @@ export default function AdminLoginPage() {
     setPassword('admin123')
   }
 
+  const isManagedBranding = brandingQuery.data?.mode === 'managed'
+  const brandedTitle = isManagedBranding
+    ? brandingQuery.data?.displayBrandName || 'Store Admin'
+    : getText('merchant.auth.title', 'Store Console')
+  const brandedSubtitle = isManagedBranding
+    ? brandingQuery.data?.displaySolutionName || 'AUTHENTICATION INTERFACE'
+    : getText('merchant.auth.welcomeBack', 'SECURE ACCESS')
+  const brandedFooter = isManagedBranding
+    ? `© 2026 ${(brandingQuery.data?.displayBrandName || 'STORE ADMIN').toUpperCase()}. ALL RIGHTS RESERVED.`
+    : getText('merchant.auth.copyright', '© 2026 STORE CONSOLE. ALL RIGHTS RESERVED.')
+
   if (isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -104,10 +124,10 @@ export default function AdminLoginPage() {
           </div>
           <div className="space-y-2">
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-              {getText('merchant.auth.title', 'Jiffoo Admin')}
+              {brandedTitle}
             </h1>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              {getText('merchant.auth.welcomeBack', 'AUTHENTICATION INTERFACE')}
+              {brandedSubtitle}
             </p>
           </div>
         </div>
@@ -237,7 +257,7 @@ export default function AdminLoginPage() {
         {/* Footer */}
         <div className="text-center">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-            {getText('merchant.auth.copyright', '© 2026 JIFFOO MALL. ALL RIGHTS RESERVED.')}
+            {brandedFooter}
           </p>
         </div>
       </div>

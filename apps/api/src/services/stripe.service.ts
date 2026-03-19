@@ -9,6 +9,7 @@
 import Stripe from 'stripe';
 import { env } from '@/config/env';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { SecretManagerService } from '@/core/secrets/secret-manager';
 
 type CreatePaymentIntentInput = {
   amount: number;
@@ -22,6 +23,8 @@ type StripeRuntimeConfig = {
   secretKey: string;
   webhookSecret: string;
 };
+
+type HttpsProxyAgentModule = typeof import('https-proxy-agent');
 
 function parseJsonObject(value: unknown): Record<string, unknown> {
   if (!value) return {};
@@ -52,6 +55,65 @@ function getConfiguredValue(config: Record<string, unknown>, ...keys: string[]):
   return '';
 }
 
+function getOutboundProxyUrl(): string {
+  const candidates = [
+    process.env.HTTPS_PROXY,
+    process.env.HTTP_PROXY,
+    process.env.https_proxy,
+    process.env.http_proxy,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return '';
+}
+
+async function createStripeHttpAgent(proxyUrl: string): Promise<Stripe.HttpAgent | undefined> {
+  if (!proxyUrl) {
+    return undefined;
+  }
+
+  try {
+    // `https-proxy-agent` is ESM-only in v8+, while the API runtime still builds
+    // to CommonJS. Use native dynamic import so non-proxy environments do not
+    // crash at module load time.
+    const importModule = new Function(
+      'specifier',
+      'return import(specifier)'
+    ) as (specifier: string) => Promise<HttpsProxyAgentModule>;
+    const { HttpsProxyAgent } = await importModule('https-proxy-agent');
+    return new HttpsProxyAgent(proxyUrl);
+  } catch (error) {
+    console.warn('[StripeService] Failed to initialize HTTPS proxy agent, continuing without proxy.', error);
+    return undefined;
+  }
+}
+
+async function resolveConfiguredSecret(
+  config: Record<string, unknown>,
+  options: {
+    refKeys: string[];
+    valueKeys: string[];
+    envFallback?: string;
+  }
+): Promise<string> {
+  const secretRef = getConfiguredValue(config, ...options.refKeys);
+  if (secretRef) {
+    return SecretManagerService.resolve(secretRef);
+  }
+
+  const inlineValue = getConfiguredValue(config, ...options.valueKeys);
+  if (inlineValue) {
+    return inlineValue;
+  }
+
+  return String(options.envFallback || '').trim();
+}
+
 export class StripeService {
   private static client: Stripe | null = null;
   private static clientKey = '';
@@ -77,12 +139,16 @@ export class StripeService {
       publishableKey:
         getConfiguredValue(pluginConfig, 'publishableKey', 'publishable_key')
         || String(env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || env.STRIPE_PUBLISHABLE_KEY || '').trim(),
-      secretKey:
-        getConfiguredValue(pluginConfig, 'secretKey', 'secret_key')
-        || String(env.STRIPE_SECRET_KEY || '').trim(),
-      webhookSecret:
-        getConfiguredValue(pluginConfig, 'webhookSecret', 'webhook_secret')
-        || String(env.STRIPE_WEBHOOK_SECRET || '').trim(),
+      secretKey: await resolveConfiguredSecret(pluginConfig, {
+        refKeys: ['secretKeyRef', 'secret_key_ref'],
+        valueKeys: ['secretKey', 'secret_key'],
+        envFallback: env.STRIPE_SECRET_KEY,
+      }),
+      webhookSecret: await resolveConfiguredSecret(pluginConfig, {
+        refKeys: ['webhookSecretRef', 'webhook_secret_ref'],
+        valueKeys: ['webhookSecret', 'webhook_secret'],
+        envFallback: env.STRIPE_WEBHOOK_SECRET,
+      }),
     };
 
     this.configCache = {
@@ -99,12 +165,19 @@ export class StripeService {
       return null;
     }
 
-    if (!this.client || this.clientKey !== secretKey) {
+    const proxyUrl = getOutboundProxyUrl();
+    const clientKey = `${secretKey}::${proxyUrl}`;
+
+    if (!this.client || this.clientKey !== clientKey) {
+      const httpAgent = await createStripeHttpAgent(proxyUrl);
       this.client = new Stripe(secretKey, {
         apiVersion: '2024-06-20',
         typescript: true,
+        maxNetworkRetries: 0,
+        timeout: 20_000,
+        ...(httpAgent ? { httpAgent } : {}),
       });
-      this.clientKey = secretKey;
+      this.clientKey = clientKey;
     }
 
     return this.client;
