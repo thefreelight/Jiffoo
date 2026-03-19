@@ -85,8 +85,6 @@ ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
 
 # Build workspace packages first (required for workspace dependency resolution)
 RUN cd packages/shared && npm run build
-RUN cd packages/core-api-sdk && npm run build
-RUN cd packages/theme-api-sdk && npm run build
 RUN cd packages/ui && npm run build
 
 # Build the Next.js application (use pnpm to ensure correct binary resolution)
