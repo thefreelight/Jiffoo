@@ -1,9 +1,12 @@
 import { evaluatePluginConfigReadiness } from '@/core/admin/extension-installer/config-readiness';
 import { isOfficialMarketOnly } from '@/core/admin/extension-installer/official-only';
+import { managedPackageService } from '@/core/admin/managed-package/service';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { ThemeManagementService } from '@/core/admin/theme-management/service';
 import {
   OFFICIAL_LAUNCH_EXTENSIONS,
+  type CommercialPackageProjection,
+  type OfficialCatalogSolutionPackageMeta,
   type OfficialCatalogEntry,
   type OfficialExtensionCatalogItem as RemoteOfficialCatalogItem,
   type OfficialExtensionDeliveryMode,
@@ -59,11 +62,7 @@ export interface OfficialCatalogItem {
   configRequired?: boolean;
   configReady?: boolean;
   missingConfigFields?: string[];
-  adminUi?: {
-    entryPath?: string;
-    label?: string;
-    icon?: string;
-  };
+  solutionPackage?: OfficialCatalogSolutionPackageMeta | null;
 }
 
 export interface OfficialCatalogResponse {
@@ -71,6 +70,7 @@ export interface OfficialCatalogResponse {
   marketOnline: boolean;
   marketError?: string;
   officialMarketOnly: boolean;
+  managedPackage?: CommercialPackageProjection | null;
   generatedAt: string;
 }
 
@@ -112,26 +112,6 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function getPluginAdminUi(manifestJson: unknown): OfficialCatalogItem['adminUi'] | undefined {
-  const manifest = parseJsonObject(manifestJson);
-  const adminUi = manifest.adminUi;
-
-  if (!adminUi || typeof adminUi !== 'object' || Array.isArray(adminUi)) {
-    return undefined;
-  }
-
-  const adminUiRecord = adminUi as Record<string, unknown>;
-  const entryPath = typeof adminUiRecord.entryPath === 'string' ? adminUiRecord.entryPath : undefined;
-  const label = typeof adminUiRecord.label === 'string' ? adminUiRecord.label : undefined;
-  const icon = typeof adminUiRecord.icon === 'string' ? adminUiRecord.icon : undefined;
-
-  if (!entryPath && !label && !icon) {
-    return undefined;
-  }
-
-  return { entryPath, label, icon };
-}
-
 function normalizeCatalogSource(source: unknown): OfficialCatalogItem['source'] {
   return source === 'builtin' ||
     source === 'installed' ||
@@ -139,6 +119,42 @@ function normalizeCatalogSource(source: unknown): OfficialCatalogItem['source'] 
     source === 'official-market'
     ? source
     : 'catalog';
+}
+
+function buildSolutionPackageMeta(
+  managedPackage: CommercialPackageProjection | null | undefined,
+  kind: OfficialExtensionKind,
+  slug: string,
+): OfficialCatalogSolutionPackageMeta | null {
+  if (!managedPackage || managedPackage.offerKind !== 'theme_first_solution') {
+    return null;
+  }
+
+  const included = kind === 'theme'
+    ? managedPackage.includedThemes.includes(slug)
+    : managedPackage.includedPlugins.includes(slug);
+
+  if (!included) {
+    return null;
+  }
+
+  const defaultTheme = kind === 'theme' && managedPackage.defaultThemeSlug === slug;
+
+  return {
+    offerKind: 'theme_first_solution',
+    packageId: managedPackage.packageId,
+    packageName: managedPackage.packageName,
+    displayBrandName: managedPackage.displayBrandName,
+    displaySolutionName: managedPackage.displaySolutionName,
+    packageStatus: managedPackage.status,
+    role: kind === 'theme'
+      ? defaultTheme
+        ? 'primary_theme'
+        : 'included_theme'
+      : 'companion_plugin',
+    defaultTheme,
+    setupStepCount: managedPackage.setupSteps.length,
+  };
 }
 
 function isNonBuiltinThemeSource(
@@ -197,11 +213,12 @@ function getCatalogSeed(slug: string): OfficialCatalogEntry | undefined {
 }
 
 export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
-  const [connectivity, activeTheme, installedThemes, pluginPackages] = await Promise.all([
+  const [connectivity, activeTheme, installedThemes, pluginPackages, managedStatus] = await Promise.all([
     MarketClient.checkConnectivity(),
     ThemeManagementService.getActiveTheme('shop'),
     ThemeManagementService.getInstalledThemes('shop'),
     PluginManagementService.getAllPluginPackages(),
+    managedPackageService.getStatus().catch(() => ({ mode: 'oss' as const, package: null })),
   ]);
 
   const remoteCatalog = connectivity.ok
@@ -214,6 +231,7 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
       item,
     ]),
   );
+  const managedPackage = managedStatus.package;
 
   const installedThemesBySlug = new Map(installedThemes.items.map((theme) => [theme.slug, theme]));
   const installedPluginsBySlug = new Map(pluginPackages.map((plugin) => [plugin.slug, plugin]));
@@ -270,6 +288,7 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
           installable: remoteItem.installable,
           sellableVersion: remoteItem.sellableVersion,
           downloads: remoteItem.installCount,
+          solutionPackage: buildSolutionPackageMeta(managedPackage, seed.kind, seed.slug),
         };
       }
 
@@ -321,20 +340,26 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         configRequired: readiness.requiresConfiguration,
         configReady: readiness.ready,
         missingConfigFields: readiness.missingFields,
-        adminUi: pluginPackage ? getPluginAdminUi(pluginPackage.manifestJson) : undefined,
+        solutionPackage: buildSolutionPackageMeta(managedPackage, seed.kind, seed.slug),
       };
     }),
   );
-
-  const visibleItems = connectivity.ok && remoteCatalog
-    ? items.filter((item) => item.availableInMarket || item.installState !== 'not_installed')
-    : items.filter((item) => item.installState !== 'not_installed');
+  const visibleItems = managedPackage
+    ? items.filter((item) =>
+        item.kind === 'theme'
+          ? managedPackage.includedThemes.includes(item.slug)
+          : managedPackage.includedPlugins.includes(item.slug),
+      )
+    : connectivity.ok && remoteCatalog
+      ? items.filter((item) => item.availableInMarket || item.installState !== 'not_installed')
+      : items.filter((item) => item.installState !== 'not_installed');
 
   return {
     items: visibleItems,
     marketOnline: Boolean(connectivity.ok && remoteCatalog),
     marketError: remoteCatalog ? connectivity.error : connectivity.error || 'Official marketplace unavailable',
     officialMarketOnly: isOfficialMarketOnly(),
+    managedPackage,
     generatedAt: new Date().toISOString(),
   };
 }

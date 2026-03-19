@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState } from 'react';
-import { AlertCircle, Loader2, Search, Sparkles, WifiOff } from 'lucide-react';
+import { AlertCircle, ArrowRight, Loader2, Sparkles, Search, ShieldCheck, WifiOff } from 'lucide-react';
 import type { OfficialCatalogItem } from '@/lib/api';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -10,8 +11,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ExtensionAvatar, OfficialBadge } from '@/components/extensions/ExtensionVisuals';
+import type { ManagedPackageDefinition } from '@/lib/managed-mode';
 
 interface OfficialThemesCatalogProps {
+  locale: string;
   target: 'shop' | 'admin';
   items: OfficialCatalogItem[];
   isLoading: boolean;
@@ -20,10 +23,12 @@ interface OfficialThemesCatalogProps {
   officialMarketOnly: boolean;
   marketplaceReady: boolean;
   installingSlug?: string | null;
+  isProvisioningPackage?: boolean;
   isActivating: boolean;
   onInstall: (item: OfficialCatalogItem) => void;
   onActivate: (item: OfficialCatalogItem) => void;
   getText: (key: string, fallback: string) => string;
+  managedPackage?: ManagedPackageDefinition | null;
 }
 
 function formatPrice(item: OfficialCatalogItem): string {
@@ -34,6 +39,7 @@ function formatPrice(item: OfficialCatalogItem): string {
 }
 
 export function OfficialThemesCatalog({
+  locale,
   target,
   items,
   isLoading,
@@ -42,21 +48,32 @@ export function OfficialThemesCatalog({
   officialMarketOnly,
   marketplaceReady,
   installingSlug,
+  isProvisioningPackage = false,
   isActivating,
   onInstall,
   onActivate,
   getText,
+  managedPackage,
 }: OfficialThemesCatalogProps) {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
+  const isThemeFirstSolution = managedPackage?.offerKind === 'theme_first_solution';
+
+  const visibleItems = useMemo(() => {
+    if (!managedPackage) {
+      return items;
+    }
+    const allowed = new Set(managedPackage.includedThemes);
+    return items.filter((item) => allowed.has(item.slug));
+  }, [items, managedPackage]);
 
   const categories = useMemo(() => {
-    return Array.from(new Set(items.map((item) => item.category).filter(Boolean))).sort();
-  }, [items]);
+    return Array.from(new Set(visibleItems.map((item) => item.category).filter(Boolean))).sort();
+  }, [visibleItems]);
 
   const filteredItems = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
-    return items.filter((item) => {
+    return visibleItems.filter((item) => {
       if (category !== 'all' && item.category !== category) {
         return false;
       }
@@ -69,7 +86,7 @@ export function OfficialThemesCatalog({
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(normalizedSearch));
     });
-  }, [category, items, search]);
+  }, [category, visibleItems, search]);
 
   if (target !== 'shop') {
     return (
@@ -89,15 +106,33 @@ export function OfficialThemesCatalog({
       <div className="flex flex-col gap-3 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-1">
           <h3 className="text-xl font-semibold tracking-tight">
-            {getText('merchant.themes.officialCatalog', 'Official theme marketplace')}
+            {managedPackage
+              ? getText('merchant.themes.includedThemes', 'Included themes')
+              : getText('merchant.themes.officialCatalog', 'Official theme marketplace')}
           </h3>
           <p className="text-sm text-muted-foreground">
-            {getText(
-              'merchant.themes.officialCatalogDescription',
-              'Browse the official storefront themes and activate them directly from Merchant Admin.'
-            )}
+            {managedPackage
+              ? getText(
+                  'merchant.themes.includedThemesDescription',
+                  'These storefront themes are included in your managed package. Activate the approved theme directly from Merchant Admin.'
+                )
+              : getText(
+                  'merchant.themes.officialCatalogDescription',
+                  'Browse the official storefront themes and activate them directly from Merchant Admin.'
+                )}
           </p>
         </div>
+
+        {managedPackage ? (
+          <Alert className="border-blue-200 bg-blue-50 text-blue-900">
+            <AlertTitle>{getText('merchant.themes.managedModeActive', 'Managed Mode active')}</AlertTitle>
+            <AlertDescription>
+              {isThemeFirstSolution
+                ? `${managedPackage.displaySolutionName} is delivered as a theme-first solution package. Use the package workspace for guided setup and launch tasks.`
+                : `${managedPackage.displaySolutionName} only exposes the licensed storefront themes.`}
+            </AlertDescription>
+          </Alert>
+        ) : null}
 
         {!isLoading && !marketOnline ? (
           <Alert className="border-amber-200 bg-amber-50 text-amber-900">
@@ -119,7 +154,7 @@ export function OfficialThemesCatalog({
           </Alert>
         ) : null}
 
-        {!isLoading && !marketplaceReady ? (
+        {!isLoading && !marketplaceReady && !managedPackage ? (
           <Alert className="border-slate-200 bg-slate-50 text-slate-900">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>{getText('merchant.extensions.platformConnectionRequired', 'Platform connection required')}</AlertTitle>
@@ -155,8 +190,8 @@ export function OfficialThemesCatalog({
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        {isLoading ? (
+        <div className="grid gap-4 xl:grid-cols-2">
+          {isLoading ? (
           Array.from({ length: 2 }).map((_, index) => (
             <Card key={`official-theme-skeleton-${index}`} className="rounded-[1.75rem] border-gray-100">
               <CardHeader className="space-y-4">
@@ -171,29 +206,45 @@ export function OfficialThemesCatalog({
           ))
         ) : filteredItems.length === 0 ? (
           <div className="col-span-full rounded-[1.75rem] border border-dashed border-slate-200 bg-white px-6 py-12 text-center text-sm text-muted-foreground">
-            {getText('merchant.extensions.noOfficialMatches', 'No official themes match the current filter.')}
-          </div>
+            {managedPackage
+              ? getText('merchant.extensions.noIncludedThemes', 'No licensed storefront themes are available for this package.')
+              : getText('merchant.extensions.noOfficialMatches', 'No official themes match the current filter.')}
+        </div>
         ) : (
           filteredItems.map((item) => {
-            const isInstalling = installingSlug === item.slug;
+            const solutionMeta = item.solutionPackage;
+            const controlPlaneSolution = item.solutionOffer;
+            const hasSolutionSemantics = solutionMeta?.offerKind === 'theme_first_solution' || controlPlaneSolution?.offerKind === 'theme_first_solution';
+            const isInstalling = installingSlug === item.slug || (isProvisioningPackage && solutionMeta?.offerKind === 'theme_first_solution');
+            const isManagedDefaultTheme = solutionMeta?.defaultTheme ?? managedPackage?.defaultThemeSlug === item.slug;
             const canInstall = item.installState === 'not_installed' && marketOnline && marketplaceReady && item.availableInMarket;
+            const effectiveCanInstall =
+              managedPackage && item.installState === 'not_installed'
+                ? managedPackage.status !== 'SUSPENDED'
+                : canInstall;
             const actionLabel =
               item.installState === 'active'
                 ? getText('merchant.themes.active', 'Active')
                 : item.installState === 'installed'
                   ? getText('merchant.themes.activate', 'Activate')
-                  : getText('merchant.themes.install', 'Install');
+                  : hasSolutionSemantics
+                    ? (controlPlaneSolution?.ctaLabel || getText('merchant.package.provisionSolution', 'Provision solution'))
+                    : getText('merchant.themes.install', 'Install');
 
-            const handlePrimaryAction = () => {
-              if (item.installState === 'not_installed') {
-                onInstall(item);
-                return;
-              }
+              const handlePrimaryAction = () => {
+                if (item.installState === 'not_installed') {
+                  onInstall(item);
+                  return;
+                }
 
-              onActivate(item);
-            };
+                onActivate(item);
+              };
 
-            return (
+              const priceLabel = managedPackage
+                ? getText('merchant.themes.includedInPackage', 'Included in package')
+                : formatPrice(item);
+
+              return (
               <Card key={item.slug} className="overflow-hidden rounded-[1.75rem] border-gray-100 shadow-sm">
                 <div className="h-48 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-6 text-white">
                   <div className="flex h-full flex-col justify-between">
@@ -209,6 +260,17 @@ export function OfficialThemesCatalog({
                         <div>
                           <div className="flex flex-wrap items-center gap-2">
                             <OfficialBadge compact className="border-white/15 bg-white/10 text-white" />
+                            {hasSolutionSemantics ? (
+                              <Badge variant="outline" className="rounded-lg border-white/20 bg-white/10 text-white">
+                                <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                                {controlPlaneSolution?.badgeLabel || getText('merchant.package.solutionBadge', 'Theme-first solution')}
+                              </Badge>
+                            ) : null}
+                            {isManagedDefaultTheme ? (
+                              <Badge variant="outline" className="rounded-lg border-white/20 bg-white/10 text-white">
+                                {getText('merchant.package.defaultThemeBadge', 'Default package theme')}
+                              </Badge>
+                            ) : null}
                           </div>
                           <p className="mt-3 text-xs font-semibold uppercase tracking-[0.25em] text-white/60">
                             {getText('merchant.themes.embeddedFullTheme', 'Embedded Full Theme')}
@@ -220,7 +282,7 @@ export function OfficialThemesCatalog({
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="outline" className="rounded-lg border-white/20 bg-white/10 text-white">
-                        {formatPrice(item)}
+                        {priceLabel}
                       </Badge>
                       <Badge variant="outline" className="rounded-lg border-white/20 bg-white/10 text-white capitalize">
                         {item.installState.replace('_', ' ')}
@@ -254,6 +316,21 @@ export function OfficialThemesCatalog({
                 <CardContent className="space-y-4">
                   <p className="text-sm leading-6 text-slate-600">{item.description}</p>
 
+                  {hasSolutionSemantics ? (
+                    <div className="rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-blue-900">
+                      {isManagedDefaultTheme
+                        ? getText(
+                            'merchant.package.defaultThemeExplanation',
+                            'This theme is the default storefront surface for the managed solution package. Companion gateway capabilities and setup steps are handled from Your Package.'
+                          )
+                        : controlPlaneSolution?.summary ||
+                          getText(
+                            'merchant.package.includedThemeExplanation',
+                            'This theme is included through the managed solution package. Install or activate it here, then continue setup from Your Package.'
+                          )}
+                    </div>
+                  ) : null}
+
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     <div className="rounded-2xl bg-slate-50 px-4 py-3">
                       <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
@@ -269,14 +346,25 @@ export function OfficialThemesCatalog({
                     </div>
                   </div>
 
-                  <Button
-                    onClick={handlePrimaryAction}
-                    disabled={item.installState === 'active' || (item.installState === 'not_installed' && (!canInstall || isInstalling)) || isActivating}
-                    className="w-full rounded-xl"
-                  >
-                    {isInstalling || isActivating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    {actionLabel}
-                  </Button>
+                  <div className="flex flex-col gap-3">
+                    <Button
+                      onClick={handlePrimaryAction}
+                      disabled={item.installState === 'active' || (item.installState === 'not_installed' && (!effectiveCanInstall || isInstalling)) || isActivating}
+                      className="w-full rounded-xl"
+                    >
+                      {isInstalling || isActivating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      {actionLabel}
+                    </Button>
+
+                    {hasSolutionSemantics ? (
+                      <Button asChild variant="outline" className="w-full rounded-xl">
+                        <Link href={`/${locale}/package`}>
+                          {getText('merchant.package.openPackageWorkspace', 'Open Your Package')}
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    ) : null}
+                  </div>
                 </CardContent>
               </Card>
             );

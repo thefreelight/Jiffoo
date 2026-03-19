@@ -144,9 +144,9 @@ export function Sidebar({ className, onCloseMobile }: SidebarProps) {
         {!isCollapsed && (
           <div className="flex items-center space-x-2.5">
             <div className="w-8 h-8 bg-gray-900 dark:bg-blue-600 rounded-md flex items-center justify-center">
-              <span className="text-white font-semibold text-sm">J</span>
+              <span className="text-white font-semibold text-sm">S</span>
             </div>
-            <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm tracking-tight">Jiffoo Mall</span>
+            <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm tracking-tight">Store Console</span>
           </div>
         )}
         <button

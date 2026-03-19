@@ -8,26 +8,14 @@
 
 'use client'
 
-import { usePathname } from 'next/navigation'
-import { AlertTriangle, Box, CheckCircle, Eye, Filter, Pencil, Plus, Search, Trash2, TrendingUp, Settings } from 'lucide-react'
+import { AlertTriangle, Box, CheckCircle, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { useProducts, useDeleteProduct, useProductStats, useAdminDashboard, type Product as ApiProduct } from '@/lib/hooks/use-api'
-import { PageNav } from '@/components/layout/page-nav'
 import { formatCurrency, cn } from '@/lib/utils'
 import { StatsCard } from '@/components/dashboard/stats-card'
-
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -40,7 +28,6 @@ import { useT, useLocale } from 'shared/src/i18n/react'
 export default function ProductsPage() {
   const t = useT()
   const locale = useLocale()
-  const pathname = usePathname()
   const { data: dashboardData } = useAdminDashboard()
   const currency = dashboardData?.metrics?.currency
 
@@ -51,10 +38,6 @@ export default function ProductsPage() {
     return translated === key ? fallback : translated
   }
 
-  // Page navigation items for Products module
-  const navItems = [
-    { label: getText('merchant.products.allProducts', 'All Products'), href: '/products', exact: true },
-  ]
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [currentPage, setCurrentPage] = useState(1)
@@ -95,6 +78,28 @@ export default function ProductsPage() {
     const matchesCategory = selectedCategory === 'All' || categoryName === selectedCategory
     return matchesCategory
   })
+  const visibleProductsCount = filteredProducts.length
+  const visibleUnits = filteredProducts.reduce((sum, product) => sum + (product.stock ?? 0), 0)
+  const outOfStockCount = filteredProducts.filter((product) => (product.stock ?? 0) === 0).length
+
+  const getProductImageUrl = (product: ApiProduct) => {
+    const firstImage = Array.isArray(product.images)
+      ? (product.images[0] as string | { url?: string } | null)
+      : null
+    if (typeof firstImage === 'string' && firstImage.trim()) {
+      return firstImage
+    }
+    if (
+      firstImage &&
+      typeof firstImage === 'object' &&
+      'url' in firstImage &&
+      typeof firstImage.url === 'string' &&
+      firstImage.url.trim()
+    ) {
+      return firstImage.url
+    }
+    return '/placeholder-product.svg'
+  }
 
   const getStatusStyle = (stock: number) => {
     if (stock === 0) {
@@ -147,7 +152,7 @@ export default function ProductsPage() {
   return (
     <div className="w-full bg-[#fcfdfe] min-h-screen">
       {/* Header Bar */}
-      <div className="border-b border-gray-100 pl-20 pr-8 lg:px-8 py-4 sticky top-0 bg-white/80 backdrop-blur-md z-40 flex items-center justify-between">
+      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex flex-col">
           <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
             {getText('merchant.products.title', 'Products')}
@@ -159,9 +164,9 @@ export default function ProductsPage() {
 
         <div className="flex gap-3">
           <Link href={`/${locale}/products/create`}>
-            <Button className="h-10 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-sm shadow-lg shadow-blue-500/20 transition-all">
-              <Plus className="w-4 h-4 mr-2" />
-              {getText('merchant.products.addProduct', 'Add Product')}
+            <Button className="h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-700 sm:px-6">
+              <Plus className="mr-0 h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">{getText('merchant.products.addProduct', 'Add Product')}</span>
             </Button>
           </Link>
         </div>
@@ -209,8 +214,32 @@ export default function ProductsPage() {
 
 
         {/* Filters */}
-        <div className="bg-white rounded-3xl border border-gray-100 p-8 shadow-sm">
-          <div className="flex flex-col sm:flex-row gap-6">
+        <div className="rounded-[2rem] border border-gray-100 bg-white p-4 shadow-sm sm:p-6">
+          <div className="mb-5 flex flex-wrap items-center gap-2 border-b border-gray-100 pb-4">
+            <span className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-600">
+              {visibleProductsCount} {getText('merchant.products.product', 'Products')}
+            </span>
+            <span className="inline-flex items-center rounded-full border border-gray-100 bg-gray-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+              {visibleUnits} {getText('merchant.products.stock', 'Units Tracked')}
+            </span>
+            {outOfStockCount > 0 && (
+              <span className="inline-flex items-center rounded-full border border-red-100 bg-red-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-red-600">
+                {outOfStockCount} {getText('merchant.products.outOfStock', 'Out of Stock')}
+              </span>
+            )}
+            {selectedCategory !== 'All' && (
+              <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-emerald-600">
+                {selectedCategory}
+              </span>
+            )}
+            {searchTerm && (
+              <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                Search: {searchTerm}
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-6 sm:flex-row">
             <div className="flex-1">
               <div className="relative group">
                 <Search className="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-300 group-focus-within:text-blue-500 transition-colors" />
@@ -226,9 +255,9 @@ export default function ProductsPage() {
                 />
               </div>
             </div>
-            <div className="flex gap-4">
+            <div className="flex w-full gap-4 sm:w-auto">
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="h-12 w-[220px] bg-gray-50 border-gray-50 rounded-2xl focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 flex items-center px-6 text-sm font-bold text-gray-700">
+                <SelectTrigger className="h-12 w-full bg-gray-50 border-gray-50 rounded-2xl px-6 text-sm font-bold text-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 sm:w-[220px]">
                   <SelectValue placeholder="Category Mapping" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-gray-100 shadow-2xl p-2">
@@ -245,7 +274,110 @@ export default function ProductsPage() {
 
         {/* Products Table */}
         <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+          <div className="flex flex-col gap-3 border-b border-gray-100 px-4 py-4 sm:flex-row sm:items-end sm:justify-between sm:px-6">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-gray-400">
+                {getText('merchant.products.inventoryOverview', 'Inventory Slate')}
+              </p>
+              <p className="mt-1 text-sm font-medium text-gray-500">
+                {getText('merchant.products.inventoryOverviewDescription', 'Review pricing, stock health, and media coverage without opening each record.')}
+              </p>
+            </div>
+            <div className="inline-flex items-center rounded-full border border-gray-100 bg-gray-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+              {visibleProductsCount} {getText('merchant.products.rowsVisible', 'Rows Visible')}
+            </div>
+          </div>
+
+          <div className="divide-y divide-gray-100 md:hidden">
+            {filteredProducts.length === 0 ? (
+              <div className="px-4 py-12 text-center">
+                <Box className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
+                  {getText('merchant.products.noProducts', 'No Assets Matched')}
+                </p>
+              </div>
+            ) : (
+              filteredProducts.map((product: ApiProduct) => {
+                const status = getStatusStyle(product.stock || 0)
+                const productImage = getProductImageUrl(product)
+                const usesPlaceholder = productImage === '/placeholder-product.svg'
+                return (
+                  <div key={product.id} className="space-y-4 p-4">
+                    <div className="flex items-start gap-4">
+                      <div className="relative h-20 w-20 overflow-hidden rounded-2xl border border-gray-100 bg-[#f7fbff] shadow-sm">
+                        <Image
+                          src={productImage}
+                          alt={product.name}
+                          fill
+                          className={cn(
+                            'transition-transform duration-300',
+                            usesPlaceholder ? 'object-contain p-3' : 'object-cover'
+                          )}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <Link href={`/${locale}/products/${product.id}/edit`} className="block">
+                          <h3 className="line-clamp-2 text-base font-bold text-gray-900 transition-colors hover:text-blue-600">
+                            {product.name}
+                          </h3>
+                        </Link>
+                        <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                          {product.categoryName || 'General Mapping'}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className="inline-flex rounded-full border border-gray-100 bg-gray-50 px-3 py-1 text-[11px] font-bold text-gray-500">
+                            {product.skuCode || 'NO-REF'}
+                          </span>
+                          <span className={cn('inline-flex rounded-full border px-3 py-1 text-[11px] font-bold uppercase tracking-[0.16em]', status.class)}>
+                            {status.text}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 rounded-2xl bg-gray-50/70 p-3">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                          {getText('merchant.products.price', 'Valuation')}
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-gray-900">
+                          {currency ? formatCurrency(product.price || 0, currency) : '--'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                          {getText('merchant.products.stock', 'Node Inventory')}
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-gray-900">
+                          {product.stock ?? 0} <span className="text-[11px] font-medium text-gray-400">units</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button variant="outline" size="sm" asChild className="flex-1 rounded-xl border-gray-200">
+                        <Link href={`/${locale}/products/${product.id}/edit`}>
+                          <Pencil className="mr-2 h-4 w-4" />
+                          {getText('common.actions.edit', 'Edit')}
+                        </Link>
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteProduct(product.id)}
+                        disabled={deleteProductMutation.isPending}
+                        className="rounded-xl px-4 text-red-600 hover:bg-red-50 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="border-b border-gray-50 bg-gray-50/30">
@@ -260,16 +392,18 @@ export default function ProductsPage() {
               <tbody className="divide-y divide-gray-50">
                 {filteredProducts.map((product: ApiProduct) => {
                   const status = getStatusStyle(product.stock || 0)
+                  const productImage = getProductImageUrl(product)
+                  const usesPlaceholder = productImage === '/placeholder-product.svg'
                   return (
                     <tr key={product.id} className="group hover:bg-blue-50/30 transition-colors">
                       <td className="py-5 px-8">
                         <div className="flex items-center gap-4">
                           <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-gray-100 flex-shrink-0 shadow-sm transition-transform group-hover:scale-105">
                             <Image
-                              src={product.images?.[0] || 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=100&h=100&fit=crop'}
+                              src={productImage}
                               alt={product.name}
                               fill
-                              className="object-cover"
+                              className={cn(usesPlaceholder ? 'object-contain bg-[#f7fbff] p-2' : 'object-cover')}
                             />
                           </div>
                           <div className="flex flex-col min-w-0">

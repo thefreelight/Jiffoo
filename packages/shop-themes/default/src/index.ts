@@ -65,8 +65,10 @@ export const theme: ThemePackage = {
   },
   defaultConfig: {
     brand: {
+      name: 'Jiffoo',
       primaryColor: '#2563eb',
-      secondaryColor: '#7c3aed',
+      secondaryColor: '#0f766e',
+      fontFamily: 'Outfit, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
     },
     layout: {
       headerSticky: true,
@@ -77,6 +79,21 @@ export const theme: ThemePackage = {
       showWishlist: true,
       showRatings: true,
       enableQuickView: false,
+    },
+    site: {
+      archetype: 'product-site',
+      eyebrow: 'Open-source commerce operating system',
+      headline: 'Install storefront, Admin, themes, plugins, and launch pages from one coherent stack.',
+      subheadline:
+        'The default Jiffoo theme is now a product-site starter that still keeps commerce routes, cart, checkout, and theme extensibility close by.',
+      primaryCtaLabel: 'One-click install',
+      primaryCtaHref: 'https://get.jiffoo.com',
+      secondaryCtaLabel: 'Explore the storefront',
+      secondaryCtaHref: '/products',
+      installCommand: 'curl -fsSL https://get.jiffoo.com | bash',
+      docsHref: '/help',
+      demoHref: '/products',
+      supportEmail: 'hello@jiffoo.com',
     },
   },
 };

@@ -17,6 +17,7 @@ import { bundleInstaller } from './bundle-installer';
 import { PluginTokenService } from '@/core/admin/plugin-management/token-service';
 import { ThemeExtensionsService } from '@/core/admin/plugin-management/theme-extensions-service';
 import { isOfficialMarketOnly } from './official-only';
+import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/config-secrets';
 
 // Per spec (EXTENSIONS_IMPLEMENTATION.md) size limits for offline ZIP installs
 const ZIP_SIZE_LIMITS: Record<ExtensionKind, number> = {
@@ -135,15 +136,6 @@ function parseJsonArray(value: unknown): string[] {
     }
   }
   return [];
-}
-
-function resolvePluginAdminUiEntryPath(manifestJson: unknown): string | null {
-  const parsed = parseJsonObject(manifestJson) as { adminUi?: { entryPath?: string } };
-  const entryPath = parsed.adminUi?.entryPath;
-  if (typeof entryPath === 'string' && entryPath.startsWith('/')) {
-    return entryPath;
-  }
-  return null;
 }
 
 /**
@@ -288,96 +280,6 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.all<{ Params: { slug: string } }>('/plugin/:slug/admin-ui', {
-    onRequest: [authMiddleware, adminMiddleware],
-    schema: {
-      tags: ['admin-plugins'],
-      summary: 'Plugin Admin UI Gateway (root)',
-      description: 'Proxy to the plugin-provided admin UI entry path.',
-      security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: {
-          slug: { type: 'string' },
-        },
-        required: ['slug'],
-      },
-      response: {
-        200: { type: 'string' },
-        400: errorResponseSchema,
-        404: errorResponseSchema,
-        500: errorResponseSchema,
-      },
-    }
-  }, async (request, reply) => {
-    try {
-      const pluginPackage = await PluginManagementService.getPluginPackage(request.params.slug);
-      if (!pluginPackage) {
-        return sendError(reply, 404, 'NOT_FOUND', `Plugin "${request.params.slug}" not found`);
-      }
-
-      const entryPath = resolvePluginAdminUiEntryPath(pluginPackage.manifestJson);
-      if (!entryPath) {
-        return sendError(reply, 404, 'PLUGIN_ADMIN_UI_NOT_FOUND', `Plugin "${request.params.slug}" does not provide an admin UI`);
-      }
-
-      await handlePluginGateway(request, reply, entryPath, fastify, { requireEnabled: false });
-    } catch (error: any) {
-      if (error instanceof PluginGatewayError) {
-        return sendError(reply, error.statusCode, error.code, error.message);
-      }
-      fastify.log.error({ err: error }, 'Plugin admin UI gateway failed');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error?.message || 'Plugin admin UI gateway failed');
-    }
-  });
-
-  fastify.all<{ Params: { slug: string; '*': string } }>('/plugin/:slug/admin-ui/*', {
-    onRequest: [authMiddleware, adminMiddleware],
-    schema: {
-      tags: ['admin-plugins'],
-      summary: 'Plugin Admin UI Gateway (wildcard)',
-      description: 'Proxy nested admin UI requests to a plugin-provided admin UI.',
-      security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: {
-          slug: { type: 'string' },
-          '*': { type: 'string' },
-        },
-        required: ['slug'],
-      },
-      response: {
-        200: { type: 'string' },
-        400: errorResponseSchema,
-        404: errorResponseSchema,
-        500: errorResponseSchema,
-      },
-    }
-  }, async (request, reply) => {
-    try {
-      const pluginPackage = await PluginManagementService.getPluginPackage(request.params.slug);
-      if (!pluginPackage) {
-        return sendError(reply, 404, 'NOT_FOUND', `Plugin "${request.params.slug}" not found`);
-      }
-
-      const entryPath = resolvePluginAdminUiEntryPath(pluginPackage.manifestJson);
-      if (!entryPath) {
-        return sendError(reply, 404, 'PLUGIN_ADMIN_UI_NOT_FOUND', `Plugin "${request.params.slug}" does not provide an admin UI`);
-      }
-
-      const wildcardPath = (request.params as any)['*'] || '';
-      const normalizedEntryPath = entryPath.endsWith('/') ? entryPath.slice(0, -1) : entryPath;
-      const forwardPath = wildcardPath ? `${normalizedEntryPath}/${wildcardPath}` : normalizedEntryPath;
-      await handlePluginGateway(request, reply, forwardPath, fastify, { requireEnabled: false });
-    } catch (error: any) {
-      if (error instanceof PluginGatewayError) {
-        return sendError(reply, error.statusCode, error.code, error.message);
-      }
-      fastify.log.error({ err: error }, 'Plugin admin UI gateway failed');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error?.message || 'Plugin admin UI gateway failed');
-    }
-  });
-
   // Slug-level routes removed - use instance-level API only
 
   // ============================================================================
@@ -412,16 +314,20 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       const instances = await PluginManagementService.getPluginInstances(slug);
 
       // Transform to API response format
-      const items = instances.map((inst) => ({
-        installationId: inst.id,
-        pluginSlug: inst.pluginSlug,
-        instanceKey: inst.instanceKey,
-        enabled: inst.enabled,
-        config: parseJsonObject(inst.configJson),
-        grantedPermissions: parseJsonArray(inst.grantedPermissions),
-        createdAt: inst.createdAt.toISOString(),
-        updatedAt: inst.updatedAt.toISOString(),
-      }));
+      const items = instances.map((inst) => {
+        const adminConfig = sanitizePluginConfigForAdmin(pluginPackage.manifestJson, parseJsonObject(inst.configJson));
+        return {
+          installationId: inst.id,
+          pluginSlug: inst.pluginSlug,
+          instanceKey: inst.instanceKey,
+          enabled: inst.enabled,
+          config: adminConfig.config,
+          configMeta: adminConfig.configMeta,
+          grantedPermissions: parseJsonArray(inst.grantedPermissions),
+          createdAt: inst.createdAt.toISOString(),
+          updatedAt: inst.updatedAt.toISOString(),
+        };
+      });
 
       const total = items.length;
       const pagedItems = items.slice((safePage - 1) * safeLimit, safePage * safeLimit);
@@ -483,13 +389,15 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         config,
         grantedPermissions,
       });
+      const adminConfig = sanitizePluginConfigForAdmin(pluginPackage.manifestJson, parseJsonObject(instance.configJson));
 
       return sendSuccess(reply, {
         installationId: instance.id,
         pluginSlug: instance.pluginSlug,
         instanceKey: instance.instanceKey,
         enabled: instance.enabled,
-        config: parseJsonObject(instance.configJson),
+        config: adminConfig.config,
+        configMeta: adminConfig.configMeta,
         grantedPermissions: parseJsonArray(instance.grantedPermissions),
         createdAt: instance.createdAt.toISOString(),
         updatedAt: instance.updatedAt.toISOString(),
@@ -546,19 +454,25 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       if (existing.pluginSlug !== slug) {
         return sendError(reply, 400, 'BAD_REQUEST', `Installation "${installationId}" does not belong to plugin "${slug}"`);
       }
+      const pluginPackage = await PluginManagementService.getPluginPackage(slug);
+      if (!pluginPackage) {
+        return sendError(reply, 404, 'NOT_FOUND', `Plugin "${slug}" not found`);
+      }
 
       const instance = await PluginManagementService.updateInstance(installationId, {
         enabled,
         config,
         grantedPermissions,
       });
+      const adminConfig = sanitizePluginConfigForAdmin(pluginPackage.manifestJson, parseJsonObject(instance.configJson));
 
       return sendSuccess(reply, {
         installationId: instance.id,
         pluginSlug: instance.pluginSlug,
         instanceKey: instance.instanceKey,
         enabled: instance.enabled,
-        config: parseJsonObject(instance.configJson),
+        config: adminConfig.config,
+        configMeta: adminConfig.configMeta,
         grantedPermissions: parseJsonArray(instance.grantedPermissions),
         createdAt: instance.createdAt.toISOString(),
         updatedAt: instance.updatedAt.toISOString(),

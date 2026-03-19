@@ -39,6 +39,26 @@ import { getSupplierProductProfile, resolveSupplierFulfillmentData, parseJsonRec
 import { InventoryService } from '@/core/inventory/service';
 import { WarehouseService } from '@/core/warehouse/service';
 
+const shipmentItemSelect = {
+  id: true,
+  shipmentId: true,
+  orderItemId: true,
+  quantity: true,
+  createdAt: true,
+} as const;
+
+const shipmentSelect = {
+  id: true,
+  carrier: true,
+  trackingNumber: true,
+  status: true,
+  shippedAt: true,
+  deliveredAt: true,
+  items: {
+    select: shipmentItemSelect,
+  },
+} as const;
+
 export class OrderService {
   private static async ensureProductPurchasable(productId: string, variantId: string): Promise<void> {
     const [productLink, variantLink] = await Promise.all([
@@ -487,7 +507,7 @@ export class OrderService {
         include: {
           shippingAddress: true,
           shipments: {
-            include: { items: true }
+            select: shipmentSelect
           },
           items: {
             include: {
@@ -535,7 +555,7 @@ export class OrderService {
       include: {
         shippingAddress: true,
         shipments: {
-          include: { items: true }
+          select: shipmentSelect
         },
         items: {
           include: {

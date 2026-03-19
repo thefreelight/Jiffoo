@@ -1,38 +1,30 @@
-# Jiffoo
+# Jiffoo - Open Source E-Commerce Platform
 
-Jiffoo is an open-source commerce platform for self-hosted stores. It provides the core services required to run an online store and leaves official marketplace themes and plugins to a post-install download flow.
+[![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2+-blue.svg)](https://www.gnu.org/licenses/gpl-2.0)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-black.svg)](https://nextjs.org/)
+[![Fastify](https://img.shields.io/badge/Fastify-5-green.svg)](https://www.fastify.io/)
 
-## What is included
+Jiffoo is a TypeScript commerce core for self-hosted storefronts, admin tooling, and extension-driven customization.
 
-- `apps/api`: core commerce API
-- `apps/admin`: merchant admin
-- `apps/shop`: storefront
-- `packages/shared`: shared types and utilities
-- `packages/ui`: UI components
-- `packages/plugin-sdk`: public plugin SDK
-- `packages/theme-api-sdk`: theme-facing API client
-- `packages/core-api-sdk`: admin and storefront API client
+## Features
 
-## What is not included
+- Complete commerce flows for catalog, cart, checkout, orders, and payments
+- Theme packs and plugin-based extensibility
+- Fastify API with Prisma-backed data access
+- Next.js shop and admin applications
+- Shared SDKs for frontend, theme, and plugin integrations
 
-This public repository does not ship Jiffoo commercial or official marketplace assets.
-
-- Official themes such as `eSIM Mall` and `Yevbi`
-- Official plugins such as `Stripe`, `i18n`, and `Odoo`
-- Platform control-plane services such as `platform-api` and `super-admin`
-
-Those assets are installed from the Jiffoo Marketplace after the instance is connected to the platform.
-
-## Quick start
+## Quick Start
 
 ### Prerequisites
 
 - Node.js 20+
-- pnpm 9
 - PostgreSQL 14+
-- Redis 6+ for optional background features
+- Redis 6+ for caching and async jobs
+- pnpm 9+
 
-### Development
+### Installation
 
 ```bash
 git clone https://github.com/thefreelight/Jiffoo.git
@@ -43,50 +35,38 @@ pnpm --filter api db:migrate
 pnpm dev
 ```
 
-### Default local ports
+### Local URLs
 
+- Shop: `http://localhost:3003`
+- Admin: `http://localhost:3002`
 - API: `http://localhost:3001`
-- Admin: `http://localhost:3003`
-- Shop: `http://localhost:3000`
 
-## Deployment
+## Repository Layout
 
-Officially supported self-hosted deployment targets:
-
-- Single host install
-- Docker Compose
-- Kubernetes
-
-The public repository is paired with dedicated OSS CI/CD pipelines for:
-
-- `dev` -> OSS test environment
-- `main` -> OSS production environment
-
-## Updating the open-source core
-
-Jiffoo is moving toward a unified in-admin update experience for the open-source core. The user-facing flow is designed to be consistent across:
-
-- Single-host installations
-- Docker Compose deployments
-- Kubernetes deployments
-
-The update UX is unified, while the execution path is environment-specific.
-
-## Repository policy
-
-- Public repository content is English-first
-- Marketplace-only themes and plugins are excluded
-- Commercial control-plane services are excluded
-- Versioning follows strict semantic versioning
+```text
+Jiffoo/
+├── apps/
+│   ├── api/
+│   ├── admin/
+│   └── shop/
+├── packages/
+│   ├── core-api-sdk/
+│   ├── plugin-sdk/
+│   ├── shared/
+│   ├── shop-themes/
+│   ├── theme-api-sdk/
+│   └── ui/
+└── scripts/
+```
 
 ## Documentation
 
-- [Contributing](./CONTRIBUTING.md)
-- [API Overview](./API_DESCRIPTION.md)
-- [Plugin System Architecture](./PLUGIN_SYSTEM_ARCHITECTURE.md)
-- [External Plugin Development Guide](./EXTERNAL_PLUGIN_DEVELOPMENT_GUIDE.md)
-- [Backup and Recovery](./docs/operations/backup-and-recovery.md)
+- [Create App CLI](packages/create-jiffoo-app/README.md)
+- [Core API SDK](packages/core-api-sdk/README.md)
+- [Plugin SDK](packages/plugin-sdk/README.md)
+- [Theme API SDK](packages/theme-api-sdk/README.md)
+- [Default Theme Pack](packages/shop-themes/default/README.md)
 
 ## License
 
-Jiffoo is licensed under the [GNU General Public License v2.0 or later](./LICENSE).
+Jiffoo is licensed under the [GNU General Public License v2.0 or later](LICENSE).

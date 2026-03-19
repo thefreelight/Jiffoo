@@ -181,7 +181,7 @@ export default function CustomersPage() {
   return (
     <div className="w-full bg-[#fcfdfe] min-h-screen">
       {/* Header Bar */}
-      <div className="border-b border-gray-100 pl-20 pr-8 lg:px-8 py-4 sticky top-0 bg-white/80 backdrop-blur-md z-40 flex items-center justify-between">
+      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex flex-col">
           <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
             {getText('merchant.customers.title', 'Customers')}

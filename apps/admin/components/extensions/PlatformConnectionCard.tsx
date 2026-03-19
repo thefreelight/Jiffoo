@@ -30,9 +30,9 @@ function resolveDefaultOrigin(): string | undefined {
 
 function resolveDefaultInstanceName(): string {
   if (typeof window === 'undefined') {
-    return 'Jiffoo Self-Hosted';
+    return 'Self-hosted workspace';
   }
-  return window.location.host || 'Jiffoo Self-Hosted';
+  return window.location.host || 'Self-hosted workspace';
 }
 
 function renderStatusCopy(status: NonNullable<ReturnType<typeof usePlatformConnectionStatus>['data']>, getText: PlatformConnectionCardProps['getText']): string {
@@ -56,7 +56,7 @@ export function PlatformConnectionCard({ getText }: PlatformConnectionCardProps)
   const bindTenantMutation = useBindPlatformTenant();
   const disconnectMutation = useDisconnectPlatformConnection();
 
-  const [accountEmail, setAccountEmail] = useState('merchant@jiffoo.com');
+  const [accountEmail, setAccountEmail] = useState('merchant@workspace.local');
   const [accountName, setAccountName] = useState('Merchant Owner');
 
   const pendingDevice = status?.pending;

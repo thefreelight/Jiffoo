@@ -41,6 +41,32 @@ export type OfficialCatalogInstallState =
   | 'enabled'
   | 'active';
 
+export interface OfficialCatalogSolutionOffer {
+  offerKind: 'theme_first_solution';
+  packageId?: string | null;
+  role: 'primary_theme' | 'included_theme' | 'companion_plugin';
+  badgeLabel?: string | null;
+  ctaLabel?: string | null;
+  summary?: string | null;
+}
+
+export type OfficialCatalogSolutionRole =
+  | 'primary_theme'
+  | 'included_theme'
+  | 'companion_plugin';
+
+export interface OfficialCatalogSolutionPackageMeta {
+  offerKind: 'theme_first_solution';
+  packageId: string;
+  packageName: string;
+  displayBrandName: string;
+  displaySolutionName: string;
+  packageStatus: 'ACTIVE' | 'SUSPENDED' | 'REVOKED';
+  role: OfficialCatalogSolutionRole;
+  defaultTheme: boolean;
+  setupStepCount: number;
+}
+
 export interface OfficialCatalogEntry {
   slug: string;
   name: string;
@@ -103,6 +129,8 @@ export interface OfficialExtensionCatalogItem {
   installCount: number;
   entitlementCount: number;
   activeEntitlementCount: number;
+  solutionOffer?: OfficialCatalogSolutionOffer | null;
+  solutionPackage?: OfficialCatalogSolutionPackageMeta | null;
   versions: OfficialExtensionVersionSummary[];
   createdAt: string;
   updatedAt: string;
@@ -224,6 +252,7 @@ export interface UpdateOfficialExtensionInput {
   price?: number | null;
   currency?: string;
   sellableVersion?: string;
+  solutionOffer?: OfficialCatalogSolutionOffer | null;
 }
 
 export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [

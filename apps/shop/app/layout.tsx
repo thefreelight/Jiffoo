@@ -11,7 +11,10 @@ import { Providers } from './providers';
 import { DevTools } from '@/components/dev-tools';
 import { ServiceWorkerRegister } from '@/components/service-worker-register';
 import { PwaInstallBanner } from '@/components/pwa-install-banner';
+import { getServerStoreContext } from '@/lib/server-store-context';
 import { AppEmbedInjector } from '@/lib/theme-pack/app-embed-injector';
+import { resolvePublicOrigin } from '@/lib/server-api-url';
+import { generateThemeStyles } from '@/lib/theme-runtime';
 
 /**
  * Viewport configuration for PWA support
@@ -25,65 +28,68 @@ export const viewport: Viewport = {
   themeColor: '#3b82f6', // Matches manifest.json theme_color
 };
 
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SHOP_URL || 'http://localhost:3003'),
-  title: {
-    default: 'Jiffoo Mall - Modern E-commerce System',
-    template: '%s | Jiffoo Mall',
-  },
-  description: 'A modern, fast, and beautiful e-commerce system built with Next.js and TypeScript.',
-  keywords: ['e-commerce', 'shopping', 'online store', 'modern', 'fast', 'beautiful'],
-  authors: [{ name: 'Jiffoo Team' }],
-  creator: 'Jiffoo Team',
-  openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    url: 'https://jiffoo-mall.com',
-    title: 'Jiffoo Mall - Modern E-commerce System',
+export async function generateMetadata(): Promise<Metadata> {
+  const publicOrigin = await resolvePublicOrigin();
+  const metadataBase = new URL(publicOrigin);
+  const socialImageUrl = new URL('/icon-512x512.png', metadataBase).toString();
+
+  return {
+    metadataBase,
+    title: {
+      default: 'Jiffoo Mall - Modern E-commerce System',
+      template: '%s | Jiffoo Mall',
+    },
     description: 'A modern, fast, and beautiful e-commerce system built with Next.js and TypeScript.',
-    siteName: 'Jiffoo Mall',
-    images: [
-      {
-        url: '/og-image.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'Jiffoo Mall',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Jiffoo Mall - Modern E-commerce System',
-    description: 'A modern, fast, and beautiful e-commerce system built with Next.js and TypeScript.',
-    images: ['/og-image.jpg'],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+    keywords: ['e-commerce', 'shopping', 'online store', 'modern', 'fast', 'beautiful'],
+    authors: [{ name: 'Jiffoo Team' }],
+    creator: 'Jiffoo Team',
+    openGraph: {
+      type: 'website',
+      locale: 'en_US',
+      url: publicOrigin,
+      title: 'Jiffoo Mall - Modern E-commerce System',
+      description: 'A modern, fast, and beautiful e-commerce system built with Next.js and TypeScript.',
+      siteName: 'Jiffoo Mall',
+      images: [
+        {
+          url: socialImageUrl,
+          width: 512,
+          height: 512,
+          alt: 'Jiffoo Mall',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'Jiffoo Mall - Modern E-commerce System',
+      description: 'A modern, fast, and beautiful e-commerce system built with Next.js and TypeScript.',
+      images: [socialImageUrl],
+    },
+    robots: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
-  },
-  manifest: '/manifest.json',
-  icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon-16x16.png',
-    apple: '/apple-touch-icon.png',
-  },
-  other: {
-    'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'black-translucent',
-    'mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-title': 'Jiffoo Mall',
-  },
-};
-
-import { getServerStoreContext } from '@/lib/server-store-context';
-import { generateThemeStyles } from '@/lib/theme-runtime';
+    manifest: '/manifest.json',
+    icons: {
+      icon: '/favicon.ico',
+      shortcut: '/favicon-16x16.png',
+      apple: '/apple-touch-icon.png',
+    },
+    other: {
+      'apple-mobile-web-app-capable': 'yes',
+      'apple-mobile-web-app-status-bar-style': 'black-translucent',
+      'mobile-web-app-capable': 'yes',
+      'apple-mobile-web-app-title': 'Jiffoo Mall',
+    },
+  };
+}
 
 /**
  * Runtime assertion to verify CSS doesn't contain dangerous patterns

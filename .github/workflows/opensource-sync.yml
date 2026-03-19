@@ -6,25 +6,16 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: read
-
 jobs:
   check-opensource-isolation:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          run_install: false
-
+      - uses: actions/checkout@v3
+      
       - name: Setup Node.js
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v4
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: '20'
       
       - name: Run opensource isolation checks
         run: |
@@ -39,7 +30,8 @@ jobs:
           
           # Try to build opensource version
           cd $OPENSOURCE_REPO_DIR
-          pnpm install --frozen-lockfile
+          pnpm install
+          # We might need to mock some env vars for build if needed
           pnpm build
       
       - name: Report results

@@ -48,6 +48,11 @@ const envSchema = z.object({
   STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
   STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  VAULT_ADDR: z.string().optional(),
+  VAULT_TOKEN: z.string().optional(),
+  VAULT_NAMESPACE: z.string().optional(),
+  VAULT_TIMEOUT_MS: z.string().transform(Number).default('5000'),
+  VAULT_CACHE_TTL_MS: z.string().transform(Number).default('60000'),
 
   // Optional: Email
   RESEND_API_KEY: z.string().optional(),

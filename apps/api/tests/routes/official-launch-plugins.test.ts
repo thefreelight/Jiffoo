@@ -428,7 +428,7 @@ describe('Official Launch Plugin Packages', () => {
 
     const adminStatusResponse = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${stripeSlug}/admin-ui/api/status?installationId=${stripeInstallationId}`,
+      url: `/api/extensions/plugin/${stripeSlug}/api/status?installationId=${stripeInstallationId}`,
       headers: {
         authorization: `Bearer ${adminToken}`,
       },
@@ -451,7 +451,6 @@ describe('Official Launch Plugin Packages', () => {
     expect(detailResponse.statusCode).toBe(200);
     const detailBody = detailResponse.json();
     expect(detailBody.success).toBe(true);
-    expect(detailBody.data.manifestJson.adminUi.entryPath).toBe('/admin');
   });
 
   it('installs, enables, and updates storefront locales through the official i18n plugin package', async () => {
@@ -499,7 +498,7 @@ describe('Official Launch Plugin Packages', () => {
 
     const stateResponse = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${i18nSlug}/admin-ui/api/localization?installationId=${i18nInstallationId}`,
+      url: `/api/extensions/plugin/${i18nSlug}/api/localization?installationId=${i18nInstallationId}`,
       headers: {
         authorization: `Bearer ${adminToken}`,
       },
@@ -516,7 +515,7 @@ describe('Official Launch Plugin Packages', () => {
 
     const updateResponse = await app.inject({
       method: 'PUT',
-      url: `/api/extensions/plugin/${i18nSlug}/admin-ui/api/localization?installationId=${i18nInstallationId}`,
+      url: `/api/extensions/plugin/${i18nSlug}/api/localization?installationId=${i18nInstallationId}`,
       headers: {
         authorization: `Bearer ${adminToken}`,
         'content-type': 'application/json',
@@ -544,7 +543,6 @@ describe('Official Launch Plugin Packages', () => {
     expect(detailResponse.statusCode).toBe(200);
     const detailBody = detailResponse.json();
     expect(detailBody.success).toBe(true);
-    expect(detailBody.data.manifestJson.adminUi.entryPath).toBe('/admin');
 
     const store = await prisma.store.findUnique({
       where: { id: defaultStoreId },

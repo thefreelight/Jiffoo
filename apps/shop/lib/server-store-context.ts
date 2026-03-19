@@ -1,3 +1,5 @@
+import { buildServerApiUrl } from './server-api-url';
+
 /**
  * Server-side Store Context Helper (Single Store)
  */
@@ -27,8 +29,7 @@ export interface ServerStoreContext {
  */
 export async function getServerStoreContext(): Promise<ServerStoreContext | null> {
   try {
-    const apiServiceUrl = process.env.API_SERVICE_URL || 'http://localhost:3001';
-    const url = `${apiServiceUrl}/api/store/context`;
+    const url = await buildServerApiUrl('/store/context');
 
     const response = await fetch(url, {
       cache: 'force-cache',

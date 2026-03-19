@@ -52,6 +52,12 @@ const pluginInstanceSchema = {
     instanceKey: { type: 'string', description: 'Instance key (unique per plugin)' },
     enabled: { type: 'boolean', description: 'Whether instance is enabled' },
     config: { type: 'object', additionalProperties: true, description: 'Instance configuration' },
+    configMeta: {
+      type: 'object',
+      nullable: true,
+      additionalProperties: true,
+      description: 'Metadata describing write-only configuration fields',
+    },
     grantedPermissions: {
       type: 'array',
       items: { type: 'string' },
