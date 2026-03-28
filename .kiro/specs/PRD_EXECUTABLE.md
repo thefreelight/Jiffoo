@@ -52,6 +52,8 @@
 - **多端复用口径（Post-Alpha 执行约束）**：`jiffoo-mall-desktop-private` 采用 Electron + Web-heavy adapter；`jiffoo-mall-mobile-private` 采用 React Native / Expo native-first adapter。Web / Desktop / Mobile 共享 SDK、schema、theme tokens、plugin capability contract 与 solution package manifest，但不以“同一份 Web 页面实现跑三端”为目标。
 - **主题/插件跨端主路径（Post-Alpha 执行约束）**：`Theme Pack` 是 Web / Desktop / Mobile 的统一主路径。Desktop 可以支持更接近 Web 的可执行主题/插件扩展；Mobile 默认只支持声明式主题/插件（tokens、assets、templates、config schema、capability metadata），不将任意下载执行代码作为默认能力。
 - **组合工作区约束（执行约束）**：本地开发默认使用同级目录组合工作区，例如 `/Users/jordan/Projects/jiffoo-mall-core`、`/Users/jordan/Projects/jiffoo-extensions-official`、`/Users/jordan/Projects/jiffoo-mall-desktop`、`/Users/jordan/Projects/jiffoo-mall-mobile`。
+- **客户端仓库同步约束（执行约束）**：公开 `jiffoo-mall-desktop` / `jiffoo-mall-mobile` 是两端各自的前端 OSS sync 输出；同步方向必须是 `jiffoo-mall-desktop-private -> jiffoo-mall-desktop`、`jiffoo-mall-mobile-private -> jiffoo-mall-mobile`。`jiffoo-mall-core` 只同步到公开 `jiffoo`，不承担 desktop/mobile 开源仓的同步源角色。
+- **本地目录命名约束（执行约束）**：本地组合工作区可以继续使用 `/Users/jordan/Projects/jiffoo-mall-desktop` 与 `/Users/jordan/Projects/jiffoo-mall-mobile` 作为 sibling checkout 目录，但它们的 canonical authoring remotes 仍应分别指向 `jiffoo-mall-desktop-private` 与 `jiffoo-mall-mobile-private`。
 - **未来闭源市场域模型（非 Alpha 验收项）**：闭源后续阶段应明确拆分：
   - `app_marketplace`：主题、插件、扩展服务，平台代收，结算给 `developer`
   - `goods_marketplace`：实体商品、数字商品、组合包，平台代收，结算给 `vendor`
@@ -78,6 +80,10 @@
   - `bootstrap` 模式下允许展示一次初始化管理员凭证
   - 初始化管理员改密成功后，系统必须关闭凭证展示并移除“需要改密”状态
   - `demo` 模式可持续展示示例凭证，但不得与正常安装环境混淆
+- **开源默认版权口径（Alpha 必须对齐）**：
+  - 默认开源 storefront Footer 必须保留可见的 `Powered by Jiffoo` 归属信息
+  - 该归属信息必须由后端下发的运行时状态显式控制，而不是前端硬编码猜测
+  - 只有在实例填入授权码并进入 managed/customized 模式后，系统才允许自动移除该 Footer 归属信息
 
 ### 1.2 多端执行约束（非 Alpha Release Gate，但必须对齐）
 
@@ -94,6 +100,7 @@
   - `plugins`
   - `branding`
   - `surfaces`
+- storefront 运行时读模型应允许携带 `platformBranding` / attribution 状态，以便 Web、Desktop、Mobile 对默认开源归属信息作出一致渲染决策
 - `desktop` 应优先复用 `shop-web` / `desktop-web` 这类 Web-heavy surface，再通过 Electron shell 暴露桌面能力。
 - `mobile` 应优先实现 `shop-native` / `mobile-native` surface，不应把 Web DOM 主题页面直接当作移动端主实现。
 - `Theme Pack` 应作为三端统一主路径；Desktop 可额外支持 executable theme/plugin surface，Mobile 默认走 declarative path。
@@ -104,6 +111,10 @@
   - 官方主题/插件：`jiffoo-extensions-official`
   - 桌面宿主/桌面 adapter：`jiffoo-mall-desktop-private`
   - 移动宿主/native adapter：`jiffoo-mall-mobile-private`
+- 开源同步方向必须保持单向：
+  - `jiffoo-mall-core` -> `jiffoo`
+  - `jiffoo-mall-desktop-private` -> `jiffoo-mall-desktop`
+  - `jiffoo-mall-mobile-private` -> `jiffoo-mall-mobile`
 - `Admin` 应被视为统一扩展控制面：
   - 安装主题
   - 安装插件

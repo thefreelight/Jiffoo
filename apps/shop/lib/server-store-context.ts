@@ -1,5 +1,3 @@
-import { buildServerApiUrl } from './server-api-url';
-
 /**
  * Server-side Store Context Helper (Single Store)
  */
@@ -8,6 +6,12 @@ export interface ServerStoreContext {
   storeId: string;
   storeName: string;
   logo: string | null;
+  platformBranding?: {
+    mode: 'oss' | 'managed';
+    showPoweredByJiffoo: boolean;
+    poweredByHref: string | null;
+    poweredByLabel: string;
+  };
   theme: {
     slug: string;
     config?: Record<string, any>;
@@ -29,11 +33,13 @@ export interface ServerStoreContext {
  */
 export async function getServerStoreContext(): Promise<ServerStoreContext | null> {
   try {
-    const url = await buildServerApiUrl('/store/context');
+    const apiServiceUrl = process.env.API_SERVICE_URL || 'http://localhost:3001';
+    const url = `${apiServiceUrl}/api/store/context`;
 
     const response = await fetch(url, {
-      cache: 'force-cache',
-      next: { revalidate: 3600 }, // Cache for 1 hour
+      // Theme / branding activation must reflect immediately after Admin changes.
+      // The API already owns short-lived caching and invalidation via store-context versioning.
+      cache: 'no-store',
       headers: {
         'Content-Type': 'application/json',
       },

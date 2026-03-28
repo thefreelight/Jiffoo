@@ -2,13 +2,15 @@
 
 > **文档定位说明**：本文档是 Jiffoo 产品的**战略概览文档**，而非可执行的 PRD。它定义了产品愿景、开源/闭源边界、商业模式和仓库结构。具体功能的详细需求请参考各模块的 Spec 文档。
 
-> **开源与闭源关系**：**闭源版（jiffoo-mall-core）是开源版（jiffoo）的超集**。闭源版包含开源版的全部运行时代码，并在此基础上增加平台管理功能（super-admin、developer-portal 等）。官方主题/插件源码由独立私有仓库 `jiffoo-extensions-official` 承载；桌面端与移动端的私有开发主仓分别是 `jiffoo-mall-desktop-private` 与 `jiffoo-mall-mobile-private`，公开的 `jiffoo-mall-desktop` / `jiffoo-mall-mobile` 作为后续 OSS sync 输出。它们共享同一套运行时契约、扩展模型与 solution package 交付模型，而不是继续依赖“所有代码都在一个仓库里”的假设。
+> **开源与闭源关系**：**闭源版（jiffoo-mall-core）是开源版（jiffoo）的超集**。闭源版包含开源版的全部运行时代码，并在此基础上增加平台管理功能（super-admin、developer-portal 等）。官方主题/插件源码由独立私有仓库 `jiffoo-extensions-official` 承载；桌面端与移动端的私有开发主仓分别是 `jiffoo-mall-desktop-private` 与 `jiffoo-mall-mobile-private`，公开的 `jiffoo-mall-desktop` / `jiffoo-mall-mobile` 则作为这两端各自的前端 OSS sync 输出。整体上仍以 `jiffoo-mall-core` 作为主编排仓，再分别把开源范围同步到 `jiffoo`、`jiffoo-mall-desktop`、`jiffoo-mall-mobile`。
 
 > **可执行 PRD（Alpha）**：见 [`.kiro/specs/PRD_EXECUTABLE.md`](./PRD_EXECUTABLE.md)（定义 Alpha 范围、验收口径与 Release Gate）。
 >
 > **官方扩展首发（闭源专项）**：见 [`.kiro/specs/official-extensions-go-live/requirements.md`](./official-extensions-go-live/requirements.md)（定义 `esim-mall`、`yevbi`、`digital-vault`、`stripe`、`i18n`、`odoo` 的首发范围，以及 `Marketplace Control Plane + Artifact Registry + Entitlement Service + Admin Installer + Event-Activated Runtime` 的闭环）。
 >
 > **官方扩展源码仓库**：`jiffoo-extensions-official`（私有 GitLab 仓库）是官方主题/插件源码的权威仓库；`jiffoo-mall-core` 负责运行时、Marketplace 控制平面集成、默认 fallback 主题以及签名包构建/安装能力。若主仓库中仍保留过渡期兼容副本，它们也不应再被当作官方扩展的 source of truth。
+
+> **开源默认版权口径**：开源默认 storefront 体验应保留可见的 `Powered by Jiffoo` Footer 归属信息；只有在实例通过授权码进入 managed/customized 模式后，才允许自动移除该归属信息。
 
 ---
 
@@ -666,12 +668,18 @@ pnpm --filter api dev    # 启动 Core API (端口 3001)
 | `jiffoo-mall-desktop` | 桌面端开源同步仓库 | Electron + Vite | 🟢 开源 |
 
 > 移动端和桌面端因不适合继续塞在同一个运行时 Monorepo 中，已移至独立仓库。
-> 日常开发以私有开发主仓为准，公开仓库只作为后续开源同步输出。
+> 日常开发以私有开发主仓为准，公开仓库只作为后续前端 OSS sync 输出。
+> 同步方向固定为：
+> `jiffoo-mall-core -> jiffoo`
+> `jiffoo-mall-desktop-private -> jiffoo-mall-desktop`
+> `jiffoo-mall-mobile-private -> jiffoo-mall-mobile`
+> 其中桌面端/移动端公开仓只承载各自客户端前端宿主代码，不作为 `core` 运行时服务的同步目标。
 > 推荐本地开发布局固定为同级组合工作区，例如：
 > `/Users/jordan/Projects/jiffoo-mall-core`
 > `/Users/jordan/Projects/jiffoo-extensions-official`
 > `/Users/jordan/Projects/jiffoo-mall-desktop`
 > `/Users/jordan/Projects/jiffoo-mall-mobile`
+> 上述本地目录名可以保持不带 `-private` 的工作区名称，但 desktop/mobile 的 canonical 私有远端仓名仍分别是 `jiffoo-mall-desktop-private` 与 `jiffoo-mall-mobile-private`；公开 `jiffoo-mall-desktop` / `jiffoo-mall-mobile` 通过额外 `oss-*` 远端同步。
 > 它们共享 API/SDK、主题/插件契约与 solution package 元数据，但**不再假定复用同一份 Web 页面实现**。
 
 ```

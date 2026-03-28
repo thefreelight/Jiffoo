@@ -215,6 +215,12 @@ export const storeContextApi = {
     storeName: string;
     domain: string | null;
     logo: string | null;
+    platformBranding?: {
+      mode: 'oss' | 'managed';
+      showPoweredByJiffoo: boolean;
+      poweredByHref: string | null;
+      poweredByLabel: string;
+    };
     theme: Record<string, unknown> | null;
     settings: Record<string, unknown> | null;
     status: string;

@@ -71,6 +71,8 @@ This changelog records high-signal product, architecture, and delivery changes t
 - Changed the official-extension ownership rule so themes/plugins created through the main core-repo conversation flow now default to official-extension classification unless they are explicitly declared core-owned fallback/runtime work.
 - Changed the multi-surface architecture docs so Desktop is treated as Web-like with optional richer executable theme/plugin support, while Mobile defaults to declarative theme/plugin delivery.
 - Changed the repository topology docs so `jiffoo-mall-desktop-private` / `jiffoo-mall-mobile-private` are the private development repos and the public desktop/mobile repos are described as OSS sync targets.
+- Changed the client-repo topology docs so the public desktop/mobile repos are now explicitly described as frontend-only OSS sync outputs from `jiffoo-mall-desktop-private` / `jiffoo-mall-mobile-private`, while `jiffoo-mall-core` remains the sync source only for public `jiffoo`.
+- Changed the storefront attribution rule so the open-source default experience now keeps a visible `Powered by Jiffoo` footer by default, while managed/customized commercial-package mode can hide it through runtime state.
 - Changed the official catalog/theme set to include `digital-vault` as an official downloadable storefront theme.
 - Changed the multi-surface execution guidance so `Admin` is explicitly the unified extension control plane and clients are runtime consumers of the same snapshot-driven product shape.
 - Changed the Admin credential-display guidance so demo/bootstrap credentials are state-driven and automatically hidden after the seeded admin rotates the initial password.

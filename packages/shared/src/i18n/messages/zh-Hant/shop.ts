@@ -332,6 +332,8 @@ export const shop = {
     termsOfService: '服務條款',
     cookiePolicy: 'Cookie 政策',
     copyright: '© {year} {brand}. 版權所有。',
+    poweredBy: 'Powered by',
+    poweredByDescription: '開源商務技術棧',
     companyDescription: '您值得信賴的線上購物平台，提供優質商品與卓越服務。',
     newsletter: {
       title: '訂閱電子報',
@@ -395,4 +397,3 @@ export const shop = {
     },
   },
 };
-
