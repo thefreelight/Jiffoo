@@ -725,6 +725,8 @@ export const merchant = {
     invalidCredentials: 'Invalid email or password',
     demoCredentials: 'Demo Credentials',
     useDemoCredentials: 'Use Demo Credentials',
+    demoCredentialsHint: 'These credentials are visible because this instance is still in bootstrap or demo mode.',
+    bootstrapPasswordRotationHint: 'Change the initial admin password after sign-in to hide these bootstrap credentials.',
     copyright: '© 2026 Store Console. All rights reserved.',
     redirectingToLogin: 'Redirecting to login...',
     verifyingIdentity: 'Verifying identity...',
@@ -767,6 +769,8 @@ export const merchant = {
     updatePasswordAction: 'Update Password',
     emailTaken: 'Email is already in use',
     passwordSection: 'Password',
+    bootstrapPasswordTitle: 'Change the initial admin password',
+    bootstrapPasswordDescription: 'This account is still using the initial bootstrap password. Update it now to hide the example credentials from the login screen and secure the admin workspace.',
   },
 
   // Plugins

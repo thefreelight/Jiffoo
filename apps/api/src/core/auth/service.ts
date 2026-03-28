@@ -10,7 +10,7 @@ import { PasswordUtils } from '@/utils/password';
 import { JwtUtils } from '@/utils/jwt';
 import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
-import { createAuthUser, findAuthUserByEmail, findAuthUserById } from './user-compat';
+import { shouldRequirePasswordRotation } from './bootstrap';
 
 export interface AuthResponse {
   user: {
@@ -20,6 +20,7 @@ export interface AuthResponse {
     role: string;
     emailVerified?: boolean;
     avatar?: string | null;
+    requiresPasswordRotation?: boolean;
   };
   // OAuth2 standard fields
   access_token: string;
@@ -29,6 +30,17 @@ export interface AuthResponse {
   // Compatible with old fields
   token: string;
 }
+
+const authUserSelect = {
+  id: true,
+  email: true,
+  username: true,
+  password: true,
+  role: true,
+  isActive: true,
+  emailVerified: true,
+  avatar: true,
+} as const;
 
 export class AuthService {
   /**
@@ -57,20 +69,23 @@ export class AuthService {
     }
 
     const hashedPassword = await PasswordUtils.hash(data.password);
-    const user = await createAuthUser({
-      email: data.email,
-      username: data.username,
-      password: hashedPassword,
-      role: 'USER',
+    const user = await prisma.user.create({
+      data: {
+        email: data.email,
+        username: data.username,
+        password: hashedPassword,
+        role: 'USER',
+        emailVerified: false
+      },
+      select: authUserSelect,
     });
 
-    if (!user.emailVerified) {
-      await EmailVerificationService.sendVerificationEmail(
-        user.id,
-        user.email,
-        user.username
-      );
-    }
+    // Send verification email
+    await EmailVerificationService.sendVerificationEmail(
+      user.id,
+      user.email,
+      user.username
+    );
 
     const token = JwtUtils.sign({
       userId: user.id,
@@ -89,7 +104,8 @@ export class AuthService {
         username: user.username,
         role: user.role,
         emailVerified: user.emailVerified,
-        avatar: user.avatar
+        avatar: user.avatar,
+        requiresPasswordRotation: false,
       },
       // OAuth2 standard fields
       access_token: token,
@@ -109,9 +125,12 @@ export class AuthService {
    * @param data Login credentials containing email and password
    * @returns Authentication response with user details and OAuth2-compliant tokens
    * @throws Error if the email does not exist or password is incorrect
-  */
+   */
   static async login(data: LoginRequest): Promise<AuthResponse> {
-    const user = await findAuthUserByEmail(data.email);
+    const user = await prisma.user.findUnique({
+      where: { email: data.email },
+      select: authUserSelect,
+    });
 
     if (!user) {
       throw new Error('Invalid email or password');
@@ -130,6 +149,8 @@ export class AuthService {
       throw new Error('Email not verified. Please check your email for verification link.');
     }
 
+    const requiresPasswordRotation = await shouldRequirePasswordRotation(user.email);
+
     const token = JwtUtils.sign({
       userId: user.id,
       email: user.email,
@@ -147,7 +168,8 @@ export class AuthService {
         username: user.username,
         role: user.role,
         emailVerified: user.emailVerified,
-        avatar: user.avatar
+        avatar: user.avatar,
+        requiresPasswordRotation,
       },
       // OAuth2 standard fields
       access_token: token,
@@ -190,7 +212,10 @@ export class AuthService {
       throw new Error('Account is inactive');
     }
 
-    return user;
+    return {
+      ...user,
+      requiresPasswordRotation: await shouldRequirePasswordRotation(user.email),
+    };
   }
 
   /**
@@ -204,7 +229,10 @@ export class AuthService {
    * @throws Error if the user is not found
    */
   static async refreshToken(userId: string): Promise<{ token: string }> {
-    const user = await findAuthUserById(userId);
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: authUserSelect,
+    });
 
     if (!user) {
       throw new Error('User not found');
@@ -239,7 +267,10 @@ export class AuthService {
         throw new Error('Invalid refresh token');
       }
 
-      const user = await findAuthUserById(payload.userId);
+      const user = await prisma.user.findUnique({
+        where: { id: payload.userId },
+        select: authUserSelect,
+      });
 
       if (!user) {
         throw new Error('User not found');

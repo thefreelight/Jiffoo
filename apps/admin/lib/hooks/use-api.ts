@@ -87,7 +87,7 @@ export function useProducts(params: PaginationParams = {}) {
   return useQuery({
     queryKey: [...queryKeys.products, params],
     queryFn: async () => {
-      const response = await productsApi.getAll(params.page, params.limit, params.search);
+      const response = await productsApi.getAll(params.page, params.limit, params.search, (params as any).productType);
       const data = unwrapApiResponse(response);
 
       // Adapt PageResult to frontend pagination structure
@@ -303,6 +303,36 @@ export function useOrder(id: string) {
       return unwrapApiResponse(response);
     },
     enabled: !!id,
+  });
+}
+
+export function useUpdateOrderItemFulfillment() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      itemId,
+      data,
+    }: {
+      id: string;
+      itemId: string;
+      data: { fulfillmentStatus?: string; fulfillmentData?: Record<string, unknown> | null };
+    }) => {
+      const response = await ordersApi.updateItemFulfillment(id, itemId, data);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orderStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
+      toast.success('Fulfillment payload updated successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
   });
 }
 
@@ -705,6 +735,13 @@ export function useChangePassword() {
       return unwrapApiResponse(response);
     },
     onSuccess: () => {
+      const { user, updateUser } = useAuthStore.getState();
+      if (user) {
+        updateUser({
+          ...user,
+          requiresPasswordRotation: false,
+        });
+      }
       toast.success('Password changed successfully');
     },
     onError: (error: unknown) => {
@@ -726,6 +763,11 @@ const pluginQueryKeys = {
   installed: (params?: any) => [...pluginQueryKeys.all, 'installed', params] as const,
   config: (slug: string) => [...pluginQueryKeys.all, 'config', slug] as const,
   instances: (slug: string) => [...pluginQueryKeys.all, 'instances', slug] as const,
+};
+
+const pluginTokenQueryKeys = {
+  all: ['plugin-token'] as const,
+  status: (slug: string, installationId: string) => [...pluginTokenQueryKeys.all, slug, installationId, 'status'] as const,
 };
 
 const marketQueryKeys = {
@@ -834,28 +876,6 @@ export function useActivateManagedPackage() {
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, 'merchant.extensions.managedPackageActivationFailed', 'Failed to activate commercial package'));
-    },
-  });
-}
-
-export function useProvisionManagedPackage() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async () => {
-      const response = await managedPackageApi.provision();
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
-      toast.success('Included assets provisioned');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, 'merchant.extensions.managedPackageProvisionFailed', 'Failed to provision included assets'));
     },
   });
 }
@@ -1212,6 +1232,117 @@ export function useDeletePluginInstance() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: pluginQueryKeys.instances(variables.slug) });
       toast.success('Instance deleted successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function usePluginInstanceTokenStatus(slug: string, installationId: string) {
+  return useQuery({
+    queryKey: pluginTokenQueryKeys.status(slug, installationId || 'default'),
+    queryFn: async () => {
+      const response = await pluginsApi.getInstanceTokenStatus(slug, installationId);
+      return unwrapApiResponse(response);
+    },
+    enabled: Boolean(slug && installationId && installationId !== 'default'),
+    staleTime: 30 * 1000,
+  });
+}
+
+function invalidatePluginTokenStatus(queryClient: ReturnType<typeof useQueryClient>, slug: string, installationId: string) {
+  queryClient.invalidateQueries({ queryKey: pluginTokenQueryKeys.status(slug, installationId) });
+}
+
+export function useIssuePluginInstanceToken() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
+      const response = await pluginsApi.issueInstanceToken(slug, installationId);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, variables) => {
+      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
+      toast.success('Gateway access token issued');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useRefreshPluginInstanceToken() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
+      const response = await pluginsApi.refreshInstanceToken(slug, installationId);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, variables) => {
+      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
+      toast.success('Gateway access token rotated');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useSuspendPluginInstanceToken() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
+      const response = await pluginsApi.suspendInstanceToken(slug, installationId);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, variables) => {
+      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
+      toast.success('Gateway access token suspended');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useResumePluginInstanceToken() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
+      const response = await pluginsApi.resumeInstanceToken(slug, installationId);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, variables) => {
+      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
+      toast.success('Gateway access token resumed');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useRevokePluginInstanceToken() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
+      const response = await pluginsApi.revokeInstanceToken(slug, installationId);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, variables) => {
+      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
+      toast.success('Gateway access token revoked');
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));

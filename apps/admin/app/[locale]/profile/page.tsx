@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react'
 import { useT } from 'shared/src/i18n/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useAuthStore } from '@/lib/store'
 import { useAccountProfile, useChangePassword, useUpdateAccountEmail, useUpdateAccountProfile, useUploadAvatar } from '@/lib/hooks/use-api'
-import { Mail, Save, ShieldCheck, Upload } from 'lucide-react'
+import { AlertTriangle, Mail, Save, ShieldCheck, Upload } from 'lucide-react'
 import { ProfileSecurityCard } from '@/components/profile/ProfileSecurityCard'
 
 export default function ProfilePage() {
   const t = useT()
+  const user = useAuthStore((state) => state.user)
   const { data: profile, isLoading } = useAccountProfile()
   const updateProfile = useUpdateAccountProfile()
   const updateEmail = useUpdateAccountEmail()
@@ -45,7 +47,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#fcfdfe]">
-      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
+      <div className="border-b border-gray-100 pl-20 pr-8 lg:px-8 py-4 sticky top-0 bg-white/80 backdrop-blur-md z-40 flex items-center justify-between">
         <div className="flex flex-col">
           <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
             {getText('merchant.profile.title', 'Profile')}
@@ -56,7 +58,26 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-[1200px] space-y-8 px-4 py-6 sm:px-10 sm:py-10">
+      <div className="w-full px-10 py-10 space-y-8 max-w-[1200px] mx-auto">
+        {user?.requiresPasswordRotation ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-900 shadow-sm">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">
+                  {getText('merchant.profile.bootstrapPasswordTitle', 'Change the initial admin password')}
+                </p>
+                <p className="text-sm leading-6">
+                  {getText(
+                    'merchant.profile.bootstrapPasswordDescription',
+                    'This account is still using the initial bootstrap password. Update it now to hide the example credentials from the login screen and secure the admin workspace.'
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="h-24 bg-gray-50 border-b border-gray-100" />
           <div className="px-8 pb-8 flex flex-col sm:flex-row items-end gap-6 -mt-12 relative z-10">

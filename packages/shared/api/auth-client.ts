@@ -4,7 +4,7 @@
  */
 
 import { ApiClient, ApiResponse, LoginCredentials, RegisterData, UserProfile } from './client';
-import { RefreshTokenResponse } from '../src/types/auth';
+import { AuthBootstrapStatus, RefreshTokenResponse } from '../src/types/auth';
 import { API_ENDPOINTS } from '../src/utils/constants';
 
 export class AuthClient extends ApiClient {
@@ -80,6 +80,10 @@ export class AuthClient extends ApiClient {
   // Get user profile
   public async getProfile(): Promise<ApiResponse<UserProfile>> {
     return this.get(API_ENDPOINTS.AUTH.PROFILE);
+  }
+
+  public async getBootstrapStatus(): Promise<ApiResponse<AuthBootstrapStatus>> {
+    return this.get('/auth/bootstrap-status');
   }
 
   // Adapt backend: Role info is extracted from JWT token as API only provides basic info

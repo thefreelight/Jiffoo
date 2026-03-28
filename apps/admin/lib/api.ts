@@ -19,6 +19,7 @@ import {
   type AdminOrderListItemDTO,
   type AdminOrderDetailDTO,
 } from 'shared';
+import type { AuthBootstrapStatus } from 'shared/src/types/auth';
 import type {
   PlatformConnectionPollRequest,
   PlatformConnectionStartRequest,
@@ -249,6 +250,7 @@ export interface PaginationParams {
   search?: string;
   status?: string;
   role?: string;
+  productType?: string;
 }
 
 export interface AccountProfile {
@@ -363,6 +365,9 @@ export const authApi = {
 
   me: (): Promise<ApiResponse<UserProfile>> => apiClient.getProfile(),
 
+  bootstrapStatus: (): Promise<ApiResponse<AuthBootstrapStatus>> =>
+    apiClient.get('/auth/bootstrap-status'),
+
   logout: () => apiClient.logout(),
 
   refreshToken: () => apiClient.refreshAuthToken(),
@@ -384,8 +389,13 @@ export const accountApi = {
 
 // Products API
 export const productsApi = {
-  getAll: (page = 1, limit = 10, search?: string): Promise<ApiResponse<PageResult<AdminProductListItemDTO>>> =>
-    apiClient.get('/admin/products', { params: { page, limit, search } }),
+  getAll: (
+    page = 1,
+    limit = 10,
+    search?: string,
+    productType?: string
+  ): Promise<ApiResponse<PageResult<AdminProductListItemDTO>>> =>
+    apiClient.get('/admin/products', { params: { page, limit, search, productType } }),
 
   getStats: (params?: {
     search?: string;
@@ -422,6 +432,13 @@ export const ordersApi = {
     apiClient.get('/admin/orders/stats'),
 
   getById: (id: string): Promise<ApiResponse<AdminOrderDetailDTO>> => apiClient.get(`/admin/orders/${id}`),
+
+  updateItemFulfillment: (
+    id: string,
+    itemId: string,
+    data: { fulfillmentStatus?: string; fulfillmentData?: Record<string, unknown> | null }
+  ): Promise<ApiResponse<AdminOrderDetailDTO>> =>
+    apiClient.put(`/admin/orders/${id}/items/${itemId}/fulfillment`, data),
 
   updateStatus: (id: string, status: string): Promise<ApiResponse<OrderDetail>> =>
     apiClient.put(`/admin/orders/${id}/status`, { status }),
@@ -829,6 +846,15 @@ export interface UpdateInstanceRequest {
   grantedPermissions?: string[];
 }
 
+export interface PluginServiceTokenStatus {
+  installationId: string;
+  pluginSlug: string;
+  status: 'active' | 'suspended' | 'revoked';
+  issuedAt: string;
+  expiresAt: string;
+  lastUsedAt?: string | null;
+}
+
 export type OfficialCatalogInstallState = 'not_installed' | 'installed' | 'enabled' | 'active';
 export type OfficialCatalogReleaseStatus = 'published' | 'catalog-only' | 'offline';
 export type OfficialCatalogPricingModel = 'free' | 'one_time' | 'subscription';
@@ -865,25 +891,6 @@ export interface OfficialCatalogItem {
   configRequired?: boolean;
   configReady?: boolean;
   missingConfigFields?: string[];
-  solutionOffer?: {
-    offerKind: 'theme_first_solution';
-    packageId?: string | null;
-    role: 'primary_theme' | 'included_theme' | 'companion_plugin';
-    badgeLabel?: string | null;
-    ctaLabel?: string | null;
-    summary?: string | null;
-  } | null;
-  solutionPackage?: {
-    offerKind: 'theme_first_solution';
-    packageId: string;
-    packageName: string;
-    displayBrandName: string;
-    displaySolutionName: string;
-    packageStatus: 'ACTIVE' | 'SUSPENDED' | 'REVOKED';
-    role: 'primary_theme' | 'included_theme' | 'companion_plugin';
-    defaultTheme: boolean;
-    setupStepCount: number;
-  } | null;
 }
 
 export interface OfficialCatalogResponse {
@@ -1017,6 +1024,7 @@ function toPluginState(slug: string, detail: any, instance: PluginInstance | nul
     enabled: instance?.enabled ?? false,
     config,
     configMeta: instance?.configMeta,
+    adminUi: parsedManifest?.adminUi || detail?.adminUi || undefined,
     configSchema,
     configRequired: readiness.configRequired,
     configReady: readiness.configReady,
@@ -1110,9 +1118,6 @@ export const managedPackageApi = {
 
   activate: (data: ActivateManagedPackageRequest): Promise<ApiResponse<ManagedPackageStatusResponse>> =>
     apiClient.post('/admin/commercial-package/activate', data),
-
-  provision: (): Promise<ApiResponse<ManagedPackageStatusResponse>> =>
-    apiClient.post('/admin/commercial-package/provision', {}),
 };
 
 export const platformConnectionApi = {
@@ -1346,6 +1351,50 @@ export const pluginsApi = {
     deleted: boolean;
   }>> =>
     apiClient.delete(`/extensions/plugin/${slug}/instances/${installationId}`),
+
+  /** Get latest service token status for an instance */
+  getInstanceTokenStatus: (slug: string, installationId: string): Promise<ApiResponse<PluginServiceTokenStatus | null>> =>
+    apiClient.get(`/extensions/plugin/${slug}/instances/${installationId}/token/status`),
+
+  /** Issue a new service token for an instance */
+  issueInstanceToken: (slug: string, installationId: string): Promise<ApiResponse<{
+    token: string;
+    installationId: string;
+    pluginSlug: string;
+  }>> =>
+    apiClient.post(`/extensions/plugin/${slug}/instances/${installationId}/token`),
+
+  /** Refresh an existing service token for an instance */
+  refreshInstanceToken: (slug: string, installationId: string): Promise<ApiResponse<{
+    token: string;
+    installationId: string;
+    pluginSlug: string;
+  }>> =>
+    apiClient.post(`/extensions/plugin/${slug}/instances/${installationId}/token/refresh`),
+
+  /** Suspend the active service token for an instance */
+  suspendInstanceToken: (slug: string, installationId: string): Promise<ApiResponse<{
+    installationId: string;
+    pluginSlug: string;
+    suspended: boolean;
+  }>> =>
+    apiClient.post(`/extensions/plugin/${slug}/instances/${installationId}/token/suspend`),
+
+  /** Resume the suspended service token for an instance */
+  resumeInstanceToken: (slug: string, installationId: string): Promise<ApiResponse<{
+    installationId: string;
+    pluginSlug: string;
+    resumed: boolean;
+  }>> =>
+    apiClient.post(`/extensions/plugin/${slug}/instances/${installationId}/token/resume`),
+
+  /** Revoke the latest service token for an instance */
+  revokeInstanceToken: (slug: string, installationId: string): Promise<ApiResponse<{
+    installationId: string;
+    pluginSlug: string;
+    revoked: boolean;
+  }>> =>
+    apiClient.delete(`/extensions/plugin/${slug}/instances/${installationId}/token`),
 };
 
 // Themes Management API

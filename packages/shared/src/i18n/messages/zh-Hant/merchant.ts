@@ -728,6 +728,8 @@ export const merchant = {
     invalidCredentials: '電子郵件或密碼錯誤',
     demoCredentials: '演示憑證',
     useDemoCredentials: '使用演示憑證',
+    demoCredentialsHint: '此實例仍處於 bootstrap 或 demo 模式，因此仍會顯示這組憑證。',
+    bootstrapPasswordRotationHint: '登入後請立即修改初始管理員密碼，修改後登入頁就不會再顯示這組憑證。',
     copyright: '© 2026 商店控制台。保留所有權利。',
     redirectingToLogin: '正在跳轉至登入頁面...',
     verifyingIdentity: '正在驗證身份...',
@@ -770,6 +772,8 @@ export const merchant = {
     updatePasswordAction: '更新密碼',
     emailTaken: '電子郵件已被使用',
     passwordSection: '密碼',
+    bootstrapPasswordTitle: '請先修改初始管理員密碼',
+    bootstrapPasswordDescription: '此帳號仍在使用初始 bootstrap 密碼。請立即更新，以便從登入頁隱藏示例憑證並保護管理後台。',
   },
 
   // Plugins
