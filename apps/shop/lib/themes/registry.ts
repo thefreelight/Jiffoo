@@ -8,6 +8,12 @@
  */
 
 import type { ThemePackage, ThemeMeta, ThemeRegistryEntry, ThemeRegistry } from 'shared/src/types/theme';
+import digitalVaultTheme from '@shop-themes/digital-vault/src/runtime';
+import esimMallTheme from '@shop-themes/esim-mall/src/runtime';
+import yevbiTheme from '@shop-themes/yevbi/src/runtime';
+import bokmooTheme from '@shop-themes/bokmoo/src/runtime';
+import imagicStudioTheme from '@shop-themes/imagic-studio/src/runtime';
+import navtoaiTheme from '@shop-themes/navtoai/src/runtime';
 
 // ============================================================================
 // Built-in Theme Constants
@@ -41,14 +47,14 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       slug: BUILTIN_DEFAULT_SLUG,
       name: 'Default Theme',
       version: '1.0.0',
-      description: 'The default Jiffoo Mall theme, modern and clean e-commerce style.',
-      category: 'general',
+      description: 'The default Jiffoo Mall theme, optimized for instant digital fulfillment and operational clarity.',
+      category: 'digital-goods',
       author: 'Jiffoo',
       target: 'shop',
-      tags: ['modern', 'clean', 'responsive'],
+      tags: ['digital', 'codes', 'credentials', 'responsive'],
     },
     load: async () => {
-      const module = await import('@shop-themes/default');
+      const module = await import('@shop-themes/digital-vault');
       return module.default || module.theme;
     },
   },
@@ -58,19 +64,144 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       slug: LEGACY_DEFAULT_SLUG,
       name: 'Default Theme',
       version: '1.0.0',
-      description: 'The default Jiffoo Mall theme, modern and clean e-commerce style.',
-      category: 'general',
+      description: 'The default Jiffoo Mall theme, optimized for instant digital fulfillment and operational clarity.',
+      category: 'digital-goods',
       author: 'Jiffoo',
       target: 'shop',
-      tags: ['modern', 'clean', 'responsive'],
+      tags: ['digital', 'codes', 'credentials', 'responsive'],
     },
     load: async () => {
-      const module = await import('@shop-themes/default');
+      const module = await import('@shop-themes/digital-vault');
       return module.default || module.theme;
     },
   },
-  // NOTE: The open-source core only embeds the default theme.
-  // Official marketplace themes are downloaded after deployment as Theme Packs.
+  // eSIM Mall theme - official embedded full theme
+  'esim-mall': {
+    meta: {
+      slug: 'esim-mall',
+      name: 'eSIM Mall Theme',
+      version: '1.0.0',
+      description: 'eSIM marketplace theme with modern travel-focused design for eSIM businesses.',
+      category: 'esim',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['esim', 'travel', 'connectivity', 'modern'],
+    },
+    load: async () => {
+      try {
+        const module = await import('@shop-themes/esim-mall');
+        return module.default || module.theme;
+      } catch {
+        // Keep a stub fallback so local worktrees without this package still boot.
+        return { components: {}, defaultConfig: {} } as any;
+      }
+    },
+  },
+  // Yevbi theme - official embedded full theme
+  'yevbi': {
+    meta: {
+      slug: 'yevbi',
+      name: 'Yevbi Theme',
+      version: '1.0.0',
+      description: 'Travel-focused e-commerce theme with modern design.',
+      category: 'travel',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['travel', 'modern', 'responsive'],
+    },
+    load: async () => {
+      try {
+        const module = await import('@shop-themes/yevbi');
+        return module.default || module.theme;
+      } catch {
+        return { components: {}, defaultConfig: {} } as any;
+      }
+    },
+  },
+  'digital-vault': {
+    meta: {
+      slug: 'digital-vault',
+      name: 'Digital Vault Theme',
+      version: '1.0.0',
+      description: 'Virtual goods storefront theme for codes, credentials, gift cards, and downloadable assets.',
+      category: 'digital-goods',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['digital', 'gift-card', 'codes', 'downloads', 'credentials'],
+    },
+    load: async () => {
+      try {
+        const module = await import('@shop-themes/digital-vault');
+        return module.default || module.theme;
+      } catch {
+        return { components: {}, defaultConfig: {} } as any;
+      }
+    },
+  },
+  'bokmoo': {
+    meta: {
+      slug: 'bokmoo',
+      name: 'Bokmoo Theme',
+      version: '1.0.0',
+      description: 'Premium black-and-gold travel eSIM storefront for Bokmoo official use.',
+      category: 'esim',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['bokmoo', 'esim', 'travel', 'premium', 'connectivity'],
+    },
+    load: async () => {
+      try {
+        const module = await import('@shop-themes/bokmoo');
+        return module.default || module.theme;
+      } catch {
+        return { components: {}, defaultConfig: {} } as any;
+      }
+    },
+  },
+  'imagic-studio': {
+    meta: {
+      slug: 'imagic-studio',
+      name: 'Imagic Studio',
+      version: '0.1.0',
+      description: 'Creator-focused image and video transformation storefront for imagic.art.',
+      category: 'ai',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['ai', 'creative', 'image', 'video', 'ghibli'],
+    },
+    load: async () => {
+      try {
+        const module = await import('@shop-themes/imagic-studio');
+        return module.default || module.theme;
+      } catch {
+        return { components: {}, defaultConfig: {} } as any;
+      }
+    },
+  },
+  'navtoai': {
+    meta: {
+      slug: 'navtoai',
+      name: 'NavToAI',
+      version: '0.1.0',
+      description: 'AI navigation storefront theme with editorial directory layouts for modern tool catalogs.',
+      category: 'ai',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['ai', 'directory', 'navigation', 'workflow', 'tooling'],
+    },
+    load: async () => {
+      try {
+        const module = await import('@shop-themes/navtoai');
+        return module.default || module.theme;
+      } catch {
+        return { components: {}, defaultConfig: {} } as any;
+      }
+    },
+  },
+  // NOTE: Only 'builtin-default' is the canonical built-in theme.
+  // 'default' is kept for backwards compatibility but maps to the same package.
+  // Third-party themes should be installed as Theme Packs
+  // via Extension Installer to extensions/themes/shop/
 };
 
 // ============================================================================
@@ -81,6 +212,16 @@ export const BUILTIN_THEMES: ThemeRegistry = {
  * Installed themes registry (dynamically added at runtime)
  */
 const installedThemes: ThemeRegistry = {};
+const builtinRuntimeThemes: Record<string, ThemePackage> = {
+  [BUILTIN_DEFAULT_SLUG]: digitalVaultTheme,
+  [LEGACY_DEFAULT_SLUG]: digitalVaultTheme,
+  'digital-vault': digitalVaultTheme,
+  'esim-mall': esimMallTheme,
+  'yevbi': yevbiTheme,
+  'bokmoo': bokmooTheme,
+  'imagic-studio': imagicStudioTheme,
+  'navtoai': navtoaiTheme,
+};
 
 /**
  * Get the complete combined theme registry
@@ -90,6 +231,10 @@ export function getThemeRegistry(): ThemeRegistry {
     ...BUILTIN_THEMES,
     ...installedThemes,
   };
+}
+
+export function getSynchronousBuiltinTheme(slug: string): ThemePackage | null {
+  return builtinRuntimeThemes[slug] ?? null;
 }
 
 /**

@@ -33,7 +33,7 @@ export const OFFICIAL_FULL_THEME_COMPONENTS = [
   'ProfileSettingsPage',
 ] as const satisfies ReadonlyArray<keyof ThemePackage['components']>;
 
-export const OFFICIAL_EMBEDDED_THEME_SLUGS = ['esim-mall', 'yevbi'] as const;
+export const OFFICIAL_EMBEDDED_THEME_SLUGS = ['esim-mall', 'yevbi', 'digital-vault', 'bokmoo'] as const;
 
 type ThemeComponentName = keyof ThemePackage['components'];
 

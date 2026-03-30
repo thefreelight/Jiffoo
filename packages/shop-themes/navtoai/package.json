@@ -1,0 +1,30 @@
+{
+  "name": "@shop-themes/navtoai",
+  "version": "0.1.0",
+  "description": "NavToAI theme for curated AI tool directory storefronts",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "sideEffects": [
+    "./src/tokens.css"
+  ],
+  "peerDependencies": {
+    "next": ">=14",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "@jiffoo/ui": "workspace:*",
+    "@shop-themes/digital-vault": "workspace:*",
+    "lucide-react": "^0.460.0",
+    "next": "^16.0.7",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
+    "shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.8.3"
+  }
+}

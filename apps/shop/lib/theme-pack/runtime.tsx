@@ -227,10 +227,6 @@ export function ThemePackProvider({
         state.activeTheme?.version
       );
 
-      if (template) {
-        setState((prev) => ({ ...prev, currentTemplate: template }));
-      }
-
       return template;
     },
     [effectiveSlug, state.activeTheme, manifest, previewSlug]
@@ -282,14 +278,17 @@ export function ThemePackProvider({
     };
   }, [mergedConfig]);
 
-  const contextValue: ThemePackContextValue = {
-    ...state,
-    reloadTheme,
-    loadPageTemplate,
-    resolveAsset,
-    manifest,
-    mergedConfig,
-  };
+  const contextValue: ThemePackContextValue = useMemo(
+    () => ({
+      ...state,
+      reloadTheme,
+      loadPageTemplate,
+      resolveAsset,
+      manifest,
+      mergedConfig,
+    }),
+    [state, reloadTheme, loadPageTemplate, resolveAsset, manifest, mergedConfig]
+  );
 
   // Show fallback while loading
   if (state.isLoading && fallback) {

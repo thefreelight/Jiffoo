@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "slug": "bokmoo",
+  "name": "Bokmoo",
+  "version": "1.0.0",
+  "target": "shop",
+  "description": "A premium black-and-gold storefront theme for Bokmoo travel eSIM products.",
+  "author": "Jiffoo",
+  "entry": {
+    "tokensCSS": "tokens.css",
+    "templatesDir": "templates"
+  },
+  "compatibility": {
+    "minCoreVersion": "0.2.0"
+  },
+  "defaultConfig": {
+    "colors": {
+      "primary": "#c9a85f",
+      "secondary": "#1f1d19",
+      "background": "#1f1d19",
+      "foreground": "#f4efe6",
+      "muted": "#2f2b24",
+      "border": "#5f584a",
+      "accent": "#d4d8df"
+    },
+    "typography": {
+      "fontFamily": "Inter, system-ui, sans-serif",
+      "headingFamily": "\"Iowan Old Style\", Georgia, serif",
+      "fontSize": "16px",
+      "lineHeight": "1.5"
+    },
+    "layout": {
+      "radius": "20px",
+      "containerWidth": "1280px",
+      "spacing": "1rem",
+      "headerHeight": "76px"
+    }
+  },
+  "x-jiffoo-renderer-mode": "embedded",
+  "x-jiffoo-renderer-slug": "bokmoo",
+  "category": "esim",
+  "tags": ["esim", "travel", "premium", "connectivity", "global"]
+}

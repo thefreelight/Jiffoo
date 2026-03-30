@@ -13,7 +13,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useRef, useMemo } from 'react';
 import type { ThemePackage, ThemeConfig } from 'shared/src/types/theme';
-import { THEME_REGISTRY, type ThemeSlug, isValidThemeSlug } from './registry';
+import { THEME_REGISTRY, getSynchronousBuiltinTheme, type ThemeSlug, isValidThemeSlug } from './registry';
 import { assertThemeComponents } from './contract';
 
 // Module-level theme cache shared across all ThemeProvider instances
@@ -76,7 +76,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
   // Synchronously check cache to avoid loading flash on re-mounts
   const normalizedSlugInit = slug === 'default' ? 'builtin-default' : slug;
   const validSlugInit = isValidThemeSlug(normalizedSlugInit) ? normalizedSlugInit : 'builtin-default';
-  const cachedTheme = cacheRef.current.get(validSlugInit) ?? null;
+  const cachedTheme = cacheRef.current.get(validSlugInit) ?? getSynchronousBuiltinTheme(validSlugInit) ?? null;
 
   const [theme, setTheme] = useState<ThemePackage | null>(cachedTheme);
   const [isLoading, setIsLoading] = useState(!cachedTheme);
@@ -85,18 +85,25 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
   // Load theme
   useEffect(() => {
     let mounted = true;
+    const normalizedSlug = slug === 'default' ? 'builtin-default' : slug;
+    const validSlug = isValidThemeSlug(normalizedSlug) ? normalizedSlug : 'builtin-default';
+    const synchronousTheme = getSynchronousBuiltinTheme(validSlug);
+    const hasImmediateTheme = Boolean(cacheRef.current.get(validSlug) || synchronousTheme);
 
     async function loadTheme() {
       const startTime = performance.now();
 
       try {
-        setIsLoading(true);
         setError(null);
 
-        // Normalize slug: both 'default' and 'builtin-default' are valid
-        // 'builtin-default' is the canonical slug as per PRD_FINAL_BLUEPRINT.md
-        const normalizedSlug = slug === 'default' ? 'builtin-default' : slug;
-        const validSlug = isValidThemeSlug(normalizedSlug) ? normalizedSlug : 'builtin-default';
+        if (mounted) {
+          if (synchronousTheme) {
+            setTheme((previous) => previous ?? synchronousTheme);
+            setIsLoading(false);
+          } else {
+            setIsLoading(true);
+          }
+        }
 
         if (validSlug !== normalizedSlug) {
           console.warn(`Invalid theme slug "${slug}", falling back to "builtin-default"`);
@@ -153,7 +160,9 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
         console.error('Failed to load theme:', err);
 
         if (mounted) {
-          setError(error);
+          if (!hasImmediateTheme) {
+            setError(error);
+          }
 
           // Try loading builtin-default theme as fallback
           const isAlreadyDefault = slug === 'default' || slug === 'builtin-default';

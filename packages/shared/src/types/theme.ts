@@ -403,6 +403,7 @@ export interface OrderDetailPageProps extends ThemeI18nProps {
  */
 export interface OrderSuccessPageProps extends ThemeI18nProps {
   orderNumber: string;
+  order?: ShopOrderDetailDTO | null;
   isVerifying?: boolean;
   config?: ThemeConfig;
   onContinueShopping: () => void;

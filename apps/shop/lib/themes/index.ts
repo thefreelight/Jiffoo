@@ -16,6 +16,7 @@ export {
   BUILTIN_THEMES,
   THEME_REGISTRY,
   getThemeRegistry,
+  getSynchronousBuiltinTheme,
   registerInstalledTheme,
   unregisterInstalledTheme,
   clearInstalledThemes,

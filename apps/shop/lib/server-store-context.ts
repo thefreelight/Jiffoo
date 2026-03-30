@@ -32,8 +32,10 @@ export async function getServerStoreContext(): Promise<ServerStoreContext | null
     const url = await buildServerApiUrl('/store/context');
 
     const response = await fetch(url, {
-      cache: 'force-cache',
-      next: { revalidate: 3600 }, // Cache for 1 hour
+      // Storefront branding must reflect the active tenant on every request.
+      // Caching a transient upstream failure here leaves the app stuck on a
+      // blank shell or fallback theme long after the API has recovered.
+      cache: 'no-store',
       headers: {
         'Content-Type': 'application/json',
       },
