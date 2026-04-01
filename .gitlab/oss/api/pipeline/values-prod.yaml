@@ -1,0 +1,77 @@
+serviceName: "api"
+replicaCount: 2
+image:
+  repository: harbor.lafdru.local/public/jiffoo-oss/api
+  pullPolicy: IfNotPresent
+  tag: latest
+imagePullSecrets:
+  - name: harbor-secret
+service:
+  enabled: true
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3002
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts: []
+  tls: []
+env:
+  - name: NODE_ENV
+    value: "production"
+  - name: PORT
+    value: "3002"
+  - name: LOG_LEVEL
+    value: "info"
+  - name: DATABASE_URL
+    value: "postgresql://jiffoo_user:jiffoo_password@postgres-service.database.svc.cluster.local:5432/jiffoo_prod"
+  - name: REDIS_URL
+    value: "redis://redis-service.database.svc.cluster.local:6379"
+  - name: API_PORT
+    value: "3002"
+  - name: API_HOST
+    value: "0.0.0.0"
+  - name: CORS_ORIGIN
+    value: "https://accsboom.com,https://www.accsboom.com,https://admin.accsboom.com"
+  - name: CORS_ENABLED
+    value: "true"
+  - name: CORS_CREDENTIALS
+    value: "true"
+  - name: JWT_SECRET
+    value: "dev-jwt-secret-key-change-in-production"
+  - name: JWT_EXPIRES_IN
+    value: "7d"
+  - name: API_SERVICE_URL
+    value: "http://api:80"
+  - name: NEXT_PUBLIC_API_URL
+    value: "https://api.accsboom.com"
+  - name: NEXT_PUBLIC_ADMIN_URL
+    value: "https://admin.accsboom.com"
+  - name: NEXT_PUBLIC_TENANT_URL
+    value: "https://admin.accsboom.com"
+  - name: NEXT_PUBLIC_SHOP_URL
+    value: "https://accsboom.com"
+  - name: MARKET_API_URL
+    value: "https://platform-api.jiffoo.com/api"
+  - name: PLATFORM_MAIN_DOMAIN
+    value: "accsboom.com"
+  - name: PLATFORM_FRONTEND_DOMAIN
+    value: "accsboom.com"
+  - name: PLATFORM_ADMIN_DOMAIN
+    value: "admin.accsboom.com"
+  - name: PLATFORM_API_DOMAIN
+    value: "api.accsboom.com"
+  - name: PLATFORM_AUTH_DOMAIN
+    value: "accsboom.com"
+  - name: GOOGLE_REDIRECT_URI
+    value: "https://accsboom.com/api/extensions/plugin/google/api/callback"
+resources: {}
+livenessProbe: {}
+readinessProbe: {}
+startupProbe: {}
+persistence: {}
+envFromConfigMap: {}
+projectName: jiffoo-oss
