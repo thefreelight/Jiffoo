@@ -91,7 +91,7 @@ export function shouldSkipLocaleHandling(pathname: string): boolean {
   // Skip static file extensions
   const staticExtensions = [
     '.ico', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp',
-    '.css', '.js', '.json', '.xml', '.txt', '.pdf',
+    '.css', '.js', '.json', '.xml', '.txt', '.pdf', '.sh', '.yml', '.yaml',
     '.woff', '.woff2', '.ttf', '.eot',
   ];
 
