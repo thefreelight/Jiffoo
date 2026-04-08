@@ -30,9 +30,9 @@ function resolveDefaultOrigin(): string | undefined {
 
 function resolveDefaultInstanceName(): string {
   if (typeof window === 'undefined') {
-    return 'Jiffoo Self-Hosted';
+    return 'Self-hosted workspace';
   }
-  return window.location.host || 'Jiffoo Self-Hosted';
+  return window.location.host || 'Self-hosted workspace';
 }
 
 function renderStatusCopy(status: NonNullable<ReturnType<typeof usePlatformConnectionStatus>['data']>, getText: PlatformConnectionCardProps['getText']): string {
@@ -56,7 +56,7 @@ export function PlatformConnectionCard({ getText }: PlatformConnectionCardProps)
   const bindTenantMutation = useBindPlatformTenant();
   const disconnectMutation = useDisconnectPlatformConnection();
 
-  const [accountEmail, setAccountEmail] = useState('merchant@jiffoo.com');
+  const [accountEmail, setAccountEmail] = useState('merchant@workspace.local');
   const [accountName, setAccountName] = useState('Merchant Owner');
 
   const pendingDevice = status?.pending;
@@ -238,7 +238,24 @@ export function PlatformConnectionCard({ getText }: PlatformConnectionCardProps)
             <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50 px-4 py-3 font-mono text-lg tracking-[0.25em] text-amber-900">
               {status.pending?.userCode}
             </div>
-            <p className="text-xs text-slate-500">{status.pending?.verifyUrl}</p>
+            {status.pending?.verifyUrl ? (
+              <div className="space-y-2">
+                <a
+                  href={status.pending.verifyUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-blue-700 underline-offset-4 hover:underline"
+                >
+                  <Link2 className="h-4 w-4" />
+                  {getText('merchant.extensions.openPlatformConnect', 'Open platform connect page')}
+                </a>
+                <p className="text-xs text-slate-500 break-all">{status.pending.verifyUrl}</p>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-500">
+                {getText('merchant.extensions.platformVerifyUrlMissing', 'The platform verification page is not available yet. Keep this code and try again later.')}
+              </p>
+            )}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="platform-account-email">{getText('merchant.extensions.platformAccountEmail', 'Platform account email')}</Label>
