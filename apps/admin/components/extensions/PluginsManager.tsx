@@ -5,12 +5,11 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { pluginsApi, unwrapApiResponse } from '@/lib/api';
 import type { OfficialCatalogItem } from '@/lib/api';
-import { useInstalledPlugins, useInstallOfficialExtension, useOfficialCatalog, usePlatformConnectionStatus, usePurgePlugin, useTogglePlugin, useUpdatePluginConfig } from '@/lib/hooks/use-api';
+import { useInstalledPlugins, useInstallOfficialExtension, useOfficialCatalog, usePlatformConnectionStatus, useProvisionManagedPackage, usePurgePlugin, useTogglePlugin } from '@/lib/hooks/use-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -41,28 +40,7 @@ import { OfficialPluginsCatalog } from '@/components/extensions/OfficialPluginsC
 import { PlatformConnectionCard } from '@/components/extensions/PlatformConnectionCard';
 import { ExtensionAvatar, OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRail';
-
-type PluginConfigDescriptor = {
-  type?: string;
-  label?: string;
-  description?: string;
-  required?: boolean;
-  enum?: string[];
-};
-
-type PluginConfigSchema = Record<string, PluginConfigDescriptor>;
-
-function isPlainObject(value: unknown): value is Record<string, any> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function getDescriptorType(descriptor: PluginConfigDescriptor | undefined): string {
-  return typeof descriptor?.type === 'string' ? descriptor.type : 'string';
-}
-
-function getConfigFieldLabel(field: string, descriptor: PluginConfigDescriptor | undefined): string {
-  return descriptor?.label || field;
-}
+import { useManagedMode } from '@/lib/managed-mode';
 
 export function PluginsManager() {
   const router = useRouter();
@@ -70,15 +48,9 @@ export function PluginsManager() {
   const t = useT();
   const locale = useLocale();
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [configOpen, setConfigOpen] = useState(false);
   const [installType, setInstallType] = useState<'plugin' | 'bundle'>('plugin');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [editingPlugin, setEditingPlugin] = useState<any>(null);
   const [purgingPlugin, setPurgingPlugin] = useState<any>(null);
-  const [configJson, setConfigJson] = useState('{}');
-  const [configDraft, setConfigDraft] = useState<Record<string, any>>({});
-  const [jsonFieldDrafts, setJsonFieldDrafts] = useState<Record<string, string>>({});
-  const [jsonFieldErrors, setJsonFieldErrors] = useState<Record<string, string>>({});
   const [installingOfficialSlug, setInstallingOfficialSlug] = useState<string | null>(null);
 
   const getText = (key: string, fallback: string): string => {
@@ -91,6 +63,7 @@ export function PluginsManager() {
   const { data: officialCatalogData, isLoading: isOfficialCatalogLoading } = useOfficialCatalog();
   const { data: platformConnectionStatus } = usePlatformConnectionStatus();
   const installOfficialMutation = useInstallOfficialExtension();
+  const provisionManagedPackageMutation = useProvisionManagedPackage();
 
   const installMutation = useMutation({
     mutationFn: (file: File) => (
@@ -118,7 +91,6 @@ export function PluginsManager() {
 
   const toggleMutation = useTogglePlugin();
   const purgeMutation = usePurgePlugin();
-  const updateConfigMutation = useUpdatePluginConfig();
 
   const handleUpload = () => {
     if (!selectedFile) return;
@@ -137,62 +109,13 @@ export function PluginsManager() {
     toggleMutation.mutate({ slug: plugin.slug, enabled: checked });
   };
 
-  const handleConfigOpen = async (plugin: any) => {
-    if (plugin?.adminUi) {
-      router.push(`/${locale}/plugins/${plugin.slug}`);
+  const handleConfigOpen = (plugin: { slug?: string }) => {
+    if (!plugin?.slug) {
+      toast.error(getText('merchant.plugins.loadConfigFailed', 'Failed to load configuration'));
       return;
     }
 
-    try {
-      const state = unwrapApiResponse(await pluginsApi.getConfig(plugin.slug));
-      const nextConfig = isPlainObject(state.config) ? state.config : {};
-      const nextSchema = isPlainObject(state.configSchema) ? state.configSchema : undefined;
-
-      setEditingPlugin({
-        ...plugin,
-        configSchema: nextSchema,
-      });
-      setConfigDraft(nextConfig);
-      setConfigJson(JSON.stringify(nextConfig, null, 2));
-      setJsonFieldDrafts(
-        Object.fromEntries(
-          Object.entries(nextSchema || {})
-            .filter(([, descriptor]) => {
-              const type = getDescriptorType(descriptor as PluginConfigDescriptor);
-              return type === 'object' || type === 'array';
-            })
-            .map(([key]) => [key, JSON.stringify(nextConfig[key] ?? (getDescriptorType(nextSchema?.[key]) === 'array' ? [] : {}), null, 2)])
-        )
-      );
-      setJsonFieldErrors({});
-      setConfigOpen(true);
-    } catch (error: unknown) {
-      toast.error(resolveApiErrorMessage(error, t, 'merchant.plugins.loadConfigFailed', 'Failed to load configuration'));
-    }
-  };
-
-  const handleSaveConfig = () => {
-    if (!editingPlugin) return;
-
-    if (Object.values(jsonFieldErrors).some(Boolean)) {
-      toast.error(getText('common.validation.invalidFormat', 'Invalid format'));
-      return;
-    }
-
-    if (editingPlugin.configSchema) {
-      updateConfigMutation.mutate({
-        slug: editingPlugin.slug,
-        config: configDraft,
-      });
-      return;
-    }
-
-    try {
-      const config = JSON.parse(configJson);
-      updateConfigMutation.mutate({ slug: editingPlugin.slug, config });
-    } catch {
-      toast.error(getText('common.validation.invalidFormat', 'Invalid format'));
-    }
+    router.push(`/${locale}/plugins/${plugin.slug}`);
   };
 
   const handleConfirmPurge = async () => {
@@ -211,61 +134,33 @@ export function PluginsManager() {
     () => new Set(officialPluginItems.map((item) => item.slug)),
     [officialPluginItems]
   );
-  const activeConfigSchema = isPlainObject(editingPlugin?.configSchema)
-    ? (editingPlugin.configSchema as PluginConfigSchema)
-    : undefined;
+  const { record } = useManagedMode();
+  const managedPluginSlugs = useMemo(
+    () => new Set(record?.includedPlugins ?? []),
+    [record]
+  );
+  const visiblePluginList = useMemo(
+    () => (
+      record
+        ? pluginList.filter((plugin) => managedPluginSlugs.has(plugin.slug))
+        : pluginList
+    ),
+    [managedPluginSlugs, pluginList, record]
+  );
 
   const handleInstallOfficialPlugin = async (item: OfficialCatalogItem) => {
     setInstallingOfficialSlug(item.slug);
     try {
-      await installOfficialMutation.mutateAsync({
-        slug: item.slug,
-        kind: 'plugin',
-      });
+      if (item.solutionPackage?.offerKind === 'theme_first_solution' && record?.offerKind === 'theme_first_solution') {
+        await provisionManagedPackageMutation.mutateAsync();
+      } else {
+        await installOfficialMutation.mutateAsync({
+          slug: item.slug,
+          kind: 'plugin',
+        });
+      }
     } finally {
       setInstallingOfficialSlug(null);
-    }
-  };
-
-  const updateConfigField = (field: string, value: unknown) => {
-    setConfigDraft((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  };
-
-  const updateJsonConfigField = (field: string, rawValue: string, expectedType: 'object' | 'array') => {
-    setJsonFieldDrafts((current) => ({
-      ...current,
-      [field]: rawValue,
-    }));
-
-    const trimmed = rawValue.trim();
-    if (!trimmed) {
-      updateConfigField(field, expectedType === 'array' ? [] : {});
-      setJsonFieldErrors((current) => ({
-        ...current,
-        [field]: '',
-      }));
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(rawValue);
-      const valid = expectedType === 'array' ? Array.isArray(parsed) : isPlainObject(parsed);
-      if (!valid) {
-        throw new Error(`Value must be a JSON ${expectedType}`);
-      }
-      updateConfigField(field, parsed);
-      setJsonFieldErrors((current) => ({
-        ...current,
-        [field]: '',
-      }));
-    } catch (error) {
-      setJsonFieldErrors((current) => ({
-        ...current,
-        [field]: error instanceof Error ? error.message : 'Invalid JSON',
-      }));
     }
   };
 
@@ -273,13 +168,14 @@ export function PluginsManager() {
     <div className="grid gap-6 lg:grid-cols-[280px,minmax(0,1fr)]">
       <InstalledPluginsRail
         locale={locale}
-        plugins={pluginList}
+        plugins={visiblePluginList}
         officialSlugs={officialPluginSlugs}
         getText={getText}
+        managedPackage={record}
       />
 
       <div className="space-y-6">
-        <PlatformConnectionCard getText={getText} />
+        {record ? null : <PlatformConnectionCard getText={getText} />}
 
         <div className="flex flex-col justify-between gap-4 rounded-[1.75rem] border border-gray-100 bg-white p-6 shadow-sm lg:flex-row lg:items-center">
           <div>
@@ -287,17 +183,32 @@ export function PluginsManager() {
               {getText('merchant.plugins.management', 'Plugins')}
             </p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
-              {getText('merchant.plugins.pluginCenter', 'Plugin center')}
+              {record
+                ? getText('merchant.plugins.licensedPluginCenter', 'Licensed plugins')
+                : getText('merchant.plugins.pluginCenter', 'Plugin center')}
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-              {getText(
-                'merchant.plugins.pluginCenterIntro',
-                'Installed plugins live in a dedicated control rail, while the official marketplace stays ready for the next capability you want to add.'
-              )}
+              {record
+                ? getText(
+                    'merchant.plugins.pluginCenterManagedIntro',
+                    'This managed workspace only surfaces the plugins included in your commercial package.'
+                  )
+                : getText(
+                    'merchant.plugins.pluginCenterIntro',
+                    'Installed plugins live in a dedicated control rail, while the official marketplace stays ready for the next capability you want to add.'
+                  )}
             </p>
           </div>
 
-          {officialCatalogData?.officialMarketOnly ? null : (
+          {record?.offerKind === 'theme_first_solution' ? (
+            <Button asChild variant="outline" className="rounded-xl">
+              <Link href={`/${locale}/package`}>
+                {getText('merchant.package.openPackageWorkspace', 'Open Your Package')}
+              </Link>
+            </Button>
+          ) : null}
+
+          {officialCatalogData?.officialMarketOnly || record ? null : (
             <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
               <DialogTrigger asChild>
                 <Button className="rounded-xl shadow-lg shadow-blue-500/20">
@@ -313,23 +224,23 @@ export function PluginsManager() {
                   </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="plugin-file" className="text-right">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                    <Label htmlFor="plugin-file" className="text-left sm:text-right">
                       {getText('common.labels.file', 'File')}
                     </Label>
                     <Input
                       id="plugin-file"
                       type="file"
                       accept=".zip"
-                      className="col-span-3 rounded-xl"
+                      className="rounded-xl sm:col-span-3"
                       onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                     />
                   </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label className="text-right">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+                    <Label className="text-left sm:text-right">
                       {getText('merchant.plugins.installType', 'Type')}
                     </Label>
-                    <div className="col-span-3">
+                    <div className="sm:col-span-3">
                       <Select value={installType} onValueChange={(v) => setInstallType(v as 'plugin' | 'bundle')}>
                         <SelectTrigger className="rounded-xl">
                           <SelectValue placeholder={getText('merchant.plugins.installType', 'Type')} />
@@ -363,11 +274,11 @@ export function PluginsManager() {
                 {getText('merchant.plugins.installedCollection', 'Installed plugins')}
               </h3>
               <p className="mt-1 text-sm text-slate-600">
-                {getText('merchant.plugins.installedCollectionDescription', 'Open a plugin workspace, toggle availability, or finish configuration without leaving the plugin center.')}
+                {getText('merchant.plugins.installedCollectionDescription', 'Open a native plugin workspace, toggle availability, or review configuration readiness from the plugin center.')}
               </p>
             </div>
             <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
-              {pluginList.length}
+              {visiblePluginList.length}
             </Badge>
           </div>
 
@@ -376,16 +287,19 @@ export function PluginsManager() {
               <Loader2 className="h-4 w-4 animate-spin" />
               {getText('merchant.plugins.loading', 'Loading plugins...')}
             </div>
-          ) : !pluginList || pluginList.length === 0 ? (
+          ) : visiblePluginList.length === 0 ? (
             <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center text-sm text-muted-foreground">
-              {getText('merchant.plugins.noPluginsInstalled', 'No plugins installed.')}
+              {record
+                ? getText('merchant.plugins.noLicensedPluginsInstalled', 'No licensed plugins are currently installed.')
+                : getText('merchant.plugins.noPluginsInstalled', 'No plugins installed.')}
             </div>
           ) : (
             <div className="grid gap-4 xl:grid-cols-2">
-              {pluginList.map((plugin, index) => {
+              {visiblePluginList.map((plugin, index) => {
                 if (!plugin) return null;
                 const safeKey = plugin.slug || `plugin-${index}`;
                 const isOfficial = officialPluginSlugs.has(plugin.slug) || plugin.source === 'official-market';
+                const isThemeFirstSolution = record?.offerKind === 'theme_first_solution';
 
                 return (
                   <div key={safeKey} className="rounded-[1.5rem] border border-slate-100 bg-slate-50/60 p-5">
@@ -401,6 +315,11 @@ export function PluginsManager() {
                         <div className="flex flex-wrap items-center gap-2">
                           <h4 className="text-lg font-semibold text-slate-950">{plugin.name}</h4>
                           {isOfficial ? <OfficialBadge compact /> : null}
+                          {isThemeFirstSolution ? (
+                            <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
+                              {getText('merchant.package.solutionBadge', 'Theme-first solution')}
+                            </Badge>
+                          ) : null}
                           <Badge variant="outline" className="rounded-full capitalize">
                             {plugin.source}
                           </Badge>
@@ -411,6 +330,14 @@ export function PluginsManager() {
                         <p className="mt-3 text-sm leading-6 text-slate-600">
                           {plugin.description || getText('merchant.plugins.defaultDescription', 'A merchant-facing plugin that extends your store operations.')}
                         </p>
+                        {isThemeFirstSolution ? (
+                          <p className="mt-3 text-sm leading-6 text-blue-700">
+                            {getText(
+                              'merchant.package.includedPluginExplanation',
+                              'This plugin is part of the managed solution package and provides companion runtime capability behind the storefront surface.'
+                            )}
+                          </p>
+                        ) : null}
 
                         {plugin.configRequired && !plugin.configReady ? (
                           <p className="mt-3 text-xs font-semibold text-amber-700">
@@ -432,23 +359,20 @@ export function PluginsManager() {
                             </span>
                           </div>
 
-                          {plugin.adminUi ? (
-                            <Button asChild className="rounded-xl">
-                              <Link href={`/${locale}/plugins/${plugin.slug}`}>
-                                <Settings className="mr-2 h-4 w-4" />
-                                {getText('common.actions.manage', 'Manage')}
+                          <Button asChild className="rounded-xl">
+                            <Link href={`/${locale}/plugins/${plugin.slug}`}>
+                              <Settings className="mr-2 h-4 w-4" />
+                              {getText('common.actions.manage', 'Manage')}
+                            </Link>
+                          </Button>
+
+                          {isThemeFirstSolution ? (
+                            <Button asChild variant="outline" className="rounded-xl">
+                              <Link href={`/${locale}/package`}>
+                                {getText('merchant.package.openPackageWorkspace', 'Open Your Package')}
                               </Link>
                             </Button>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              onClick={() => handleConfigOpen(plugin)}
-                              className="rounded-xl"
-                            >
-                              <Settings className="mr-2 h-4 w-4" />
-                              {getText('common.actions.configure', 'Configure')}
-                            </Button>
-                          )}
+                          ) : null}
 
                           <Button
                             variant="ghost"
@@ -470,6 +394,7 @@ export function PluginsManager() {
         </div>
 
         <OfficialPluginsCatalog
+          locale={locale}
           items={officialPluginItems}
           isLoading={isOfficialCatalogLoading}
           marketOnline={officialCatalogData?.marketOnline ?? false}
@@ -477,6 +402,8 @@ export function PluginsManager() {
           officialMarketOnly={Boolean(officialCatalogData?.officialMarketOnly)}
           marketplaceReady={Boolean(platformConnectionStatus?.marketplaceReady)}
           installingSlug={installingOfficialSlug || (installOfficialMutation.isPending ? installingOfficialSlug : null)}
+          isProvisioningPackage={provisionManagedPackageMutation.isPending}
+          managedPackage={record}
           onInstall={(item) => void handleInstallOfficialPlugin(item)}
           onEnable={(item) => void handleTogglePlugin(item, true)}
           onConfigure={(item) => void handleConfigOpen(item)}
@@ -484,146 +411,6 @@ export function PluginsManager() {
           getText={getText}
         />
       </div>
-
-      <Dialog open={configOpen} onOpenChange={setConfigOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>
-              {getText('common.actions.configure', 'Configure')} {editingPlugin?.name}
-            </DialogTitle>
-            <DialogDescription>
-              {getText('merchant.plugins.configureDescription', 'Edit configuration JSON for this plugin.')}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            {activeConfigSchema ? (
-              <div className="space-y-5">
-                {Object.entries(activeConfigSchema).map(([field, descriptor]) => {
-                  const type = getDescriptorType(descriptor);
-                  const label = getConfigFieldLabel(field, descriptor);
-                  const description = descriptor?.description;
-                  const required = Boolean(descriptor?.required);
-                  const value = configDraft[field];
-
-                  if (Array.isArray(descriptor?.enum) && descriptor.enum.length > 0) {
-                    const normalizedValue = typeof value === 'string' && descriptor.enum.includes(value)
-                      ? value
-                      : undefined;
-                    return (
-                      <div key={field} className="space-y-2">
-                        <Label>
-                          {label}
-                          {required ? ' *' : ''}
-                        </Label>
-                        <Select
-                          value={normalizedValue}
-                          onValueChange={(nextValue) => updateConfigField(field, nextValue)}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={label} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {descriptor.enum.map((option) => (
-                              <SelectItem key={option} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-                      </div>
-                    );
-                  }
-
-                  if (type === 'boolean') {
-                    return (
-                      <div key={field} className="flex items-center justify-between rounded-lg border p-4">
-                        <div className="space-y-1 pr-4">
-                          <Label>
-                            {label}
-                            {required ? ' *' : ''}
-                          </Label>
-                          {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-                        </div>
-                        <Switch
-                          checked={Boolean(value)}
-                          onCheckedChange={(checked) => updateConfigField(field, checked)}
-                        />
-                      </div>
-                    );
-                  }
-
-                  if (type === 'object' || type === 'array') {
-                    const error = jsonFieldErrors[field];
-                    return (
-                      <div key={field} className="space-y-2">
-                        <Label>
-                          {label}
-                          {required ? ' *' : ''}
-                        </Label>
-                        <Textarea
-                          value={jsonFieldDrafts[field] ?? JSON.stringify(value ?? (type === 'array' ? [] : {}), null, 2)}
-                          onChange={(e) => updateJsonConfigField(field, e.target.value, type)}
-                          className="font-mono min-h-[160px]"
-                        />
-                        {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-                        {error ? <p className="text-xs text-red-600">{error}</p> : null}
-                      </div>
-                    );
-                  }
-
-                  if (type === 'number' || type === 'integer') {
-                    return (
-                      <div key={field} className="space-y-2">
-                        <Label>
-                          {label}
-                          {required ? ' *' : ''}
-                        </Label>
-                        <Input
-                          type="number"
-                          value={value ?? ''}
-                          onChange={(e) => updateConfigField(field, e.target.value === '' ? '' : Number(e.target.value))}
-                        />
-                        {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-                      </div>
-                    );
-                  }
-
-                  const inputType = type === 'secret' ? 'password' : 'text';
-                  return (
-                    <div key={field} className="space-y-2">
-                      <Label>
-                        {label}
-                        {required ? ' *' : ''}
-                      </Label>
-                      <Input
-                        type={inputType}
-                        value={value == null ? '' : String(value)}
-                        onChange={(e) => updateConfigField(field, e.target.value)}
-                      />
-                      {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <Textarea
-                value={configJson}
-                onChange={(e) => setConfigJson(e.target.value)}
-                className="font-mono min-h-[300px]"
-              />
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfigOpen(false)}>
-              {getText('common.actions.cancel', 'Cancel')}
-            </Button>
-            <Button onClick={handleSaveConfig} disabled={updateConfigMutation.isPending}>
-              {getText('common.actions.saveChanges', 'Save Changes')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <AlertDialog open={!!purgingPlugin} onOpenChange={(open) => !open && setPurgingPlugin(null)}>
         <AlertDialogContent>

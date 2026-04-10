@@ -8,13 +8,26 @@ import {
     useStripe,
     useElements,
 } from '@stripe/react-stripe-js';
+import type { Stripe } from '@stripe/stripe-js';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 
-// Make sure to call loadStripe outside of a component's render to avoid
-// recreating the Stripe object on every render.
-const stripePromise = loadStripe(
-    process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
-);
+const stripePromiseCache = new Map<string, Promise<Stripe | null>>();
+
+function getStripePromise(publishableKey: string): Promise<Stripe | null> {
+    const normalizedKey = publishableKey.trim();
+    if (!normalizedKey) {
+        return Promise.resolve(null);
+    }
+
+    const existing = stripePromiseCache.get(normalizedKey);
+    if (existing) {
+        return existing;
+    }
+
+    const promise = loadStripe(normalizedKey);
+    stripePromiseCache.set(normalizedKey, promise);
+    return promise;
+}
 
 interface CheckoutFormProps {
     onSuccess: () => void;
@@ -75,6 +88,7 @@ const CheckoutForm: React.FC<CheckoutFormProps> = ({ onSuccess, onError }) => {
 interface StripeCheckoutModalProps {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
+    publishableKey: string;
     clientSecret: string;
     orderId: string;
 }
@@ -82,10 +96,15 @@ interface StripeCheckoutModalProps {
 export const StripeCheckoutModal: React.FC<StripeCheckoutModalProps> = ({
     isOpen,
     onOpenChange,
+    publishableKey,
     clientSecret,
     orderId,
 }) => {
     const nav = useLocalizedNavigation();
+    const stripePromise = React.useMemo(
+        () => getStripePromise(publishableKey),
+        [publishableKey]
+    );
 
     const handleSuccess = React.useCallback(() => {
         // Payment was successful, handle post-payment logic and redirect
@@ -111,7 +130,7 @@ export const StripeCheckoutModal: React.FC<StripeCheckoutModalProps> = ({
                     </button>
                 </div>
 
-                {clientSecret && (
+                {clientSecret && publishableKey && (
                     <Elements stripe={stripePromise} options={{ clientSecret }}>
                         <CheckoutForm
                             onSuccess={handleSuccess}

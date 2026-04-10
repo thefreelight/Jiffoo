@@ -34,11 +34,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install pnpm from a vendored tarball so CI does not depend on external npm mirrors.
-COPY .tools/pnpm/pnpm-9.0.0.tgz /tmp/pnpm-9.0.0.tgz
-RUN npm config set proxy ${HTTP_PROXY} && \
-    npm config set https-proxy ${HTTPS_PROXY} && \
-    npm config set registry ${NPM_REGISTRY} && \
-    npm install -g /tmp/pnpm-9.0.0.tgz
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Set working directory
 WORKDIR /app
@@ -48,8 +44,6 @@ FROM base AS deps
 # Copy workspace files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json ./apps/api/
-COPY .tools/npm/react-19.2.1.tgz ./.tools/npm/react-19.2.1.tgz
-COPY .tools/npm/react-dom-19.2.1.tgz ./.tools/npm/react-dom-19.2.1.tgz
 COPY packages/shared/package.json ./packages/shared/
 
 # Install dependencies using a public npm mirror by default.
@@ -58,8 +52,8 @@ RUN pnpm config set fetch-retries 5 && \
     pnpm config set fetch-retry-mintimeout 20000 && \
     pnpm config set fetch-retry-maxtimeout 120000 && \
     pnpm config set registry ${NPM_REGISTRY} && \
-    pnpm config set network-concurrency 1 && \
-    pnpm config set child-concurrency 1 && \
+    pnpm config set network-concurrency 8 && \
+    pnpm config set child-concurrency 4 && \
     pnpm install --frozen-lockfile
 
 # Builder stage
@@ -67,15 +61,10 @@ FROM base AS builder
 WORKDIR /app
 
 # Install pnpm in builder stage (needed for build commands) from the vendored tarball.
-COPY .tools/pnpm/pnpm-9.0.0.tgz /tmp/pnpm-9.0.0.tgz
-RUN npm config set proxy ${HTTP_PROXY} && \
-    npm config set https-proxy ${HTTPS_PROXY} && \
-    npm config set registry ${NPM_REGISTRY} && \
-    npm install -g /tmp/pnpm-9.0.0.tgz
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
 
 # Copy source code
 COPY . .
@@ -85,6 +74,10 @@ RUN mkdir -p /app/plugins
 
 # Build shared package first
 RUN pnpm --filter shared build
+
+# Build embedded official artifacts so free official installs do not depend on
+# an external marketplace artifact host at runtime.
+RUN pnpm --filter api exec tsx scripts/build-official-artifacts.ts || echo "Skipping embedded official artifacts for API image"
 
 # Generate Prisma client
 RUN pnpm --filter api prisma generate
@@ -124,12 +117,12 @@ COPY --from=builder --chown=api:nodejs /app/packages/shared/package.json ./packa
 COPY --from=builder --chown=api:nodejs /app/plugins ./plugins
 # Copy Prisma schema and migrations for database migration
 COPY --from=builder --chown=api:nodejs /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder --chown=api:nodejs /app/dist/official-artifacts ./dist/official-artifacts
 
 # Copy production dependencies from builder (includes Prisma generated client)
 # Must copy from builder, not deps, because prisma generate runs in builder stage
 COPY --from=builder --chown=api:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=api:nodejs /app/apps/api/node_modules ./apps/api/node_modules
-COPY --from=builder --chown=api:nodejs /app/packages/shared/node_modules ./packages/shared/node_modules
 
 # Create logs, uploads, and extensions directories with proper permissions
 RUN mkdir -p /app/logs /app/uploads /app/extensions && chown -R api:nodejs /app/logs /app/uploads /app/extensions

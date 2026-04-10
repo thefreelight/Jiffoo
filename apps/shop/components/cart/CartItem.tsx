@@ -1,15 +1,12 @@
 /**
  * CartItem Component
  *
- * Displays a single shopping cart item with B2B minimum order quantity (MOQ) validation.
- * Validates against pricing rules to ensure orders meet minimum quantity requirements.
+ * Displays a single shopping cart item for the storefront checkout flow.
  */
 
 'use client';
 
-import * as React from 'react';
-import { Minus, Plus, Trash2, AlertCircle } from 'lucide-react';
-import { b2bApi } from '@/lib/api';
+import { Minus, Plus, Trash2 } from 'lucide-react';
 
 export interface CartItemProps {
   item: {
@@ -30,13 +27,6 @@ export interface CartItemProps {
   getText: (key: string, fallback: string) => string;
 }
 
-interface PricingTier {
-  minQuantity: number;
-  maxQuantity?: number;
-  pricePerUnit: number;
-  discount?: number;
-}
-
 export function CartItem({
   item,
   isLoading = false,
@@ -44,52 +34,8 @@ export function CartItem({
   onRemoveItem,
   getText,
 }: CartItemProps) {
-  const [minOrderQuantity, setMinOrderQuantity] = React.useState<number>(1);
-  const [pricingTiers, setPricingTiers] = React.useState<PricingTier[]>([]);
-  const [isLoadingMOQ, setIsLoadingMOQ] = React.useState(false);
-
-  // Fetch minimum order quantity from pricing rules
-  React.useEffect(() => {
-    const fetchMinimumOrderQuantity = async () => {
-      if (!item.variantId && !item.productId) {
-        return;
-      }
-
-      setIsLoadingMOQ(true);
-      try {
-        const response = await b2bApi.getTieredPricing(
-          item.variantId || item.productId
-        );
-
-        const tiers = response?.data;
-        if (tiers && tiers.length > 0) {
-          // Find the minimum quantity across all tiers
-          const minQty = Math.min(...tiers.map((tier) => tier.minQuantity));
-          setMinOrderQuantity(minQty > 1 ? minQty : 1);
-          setPricingTiers(tiers as any);
-        } else {
-          setMinOrderQuantity(1);
-          setPricingTiers([]);
-        }
-      } catch (error) {
-        // If pricing API fails, default to 1
-        console.error('Failed to fetch MOQ:', error);
-        setMinOrderQuantity(1);
-        setPricingTiers([]);
-      } finally {
-        setIsLoadingMOQ(false);
-      }
-    };
-
-    fetchMinimumOrderQuantity();
-  }, [item.variantId, item.productId]);
-
-  // Check if current quantity is below MOQ
-  const isBelowMOQ = item.quantity < minOrderQuantity;
-  const isAtMOQ = item.quantity === minOrderQuantity;
-
-  // Disable decrease button if at or below MOQ
-  const canDecrease = item.quantity > minOrderQuantity && !isLoading;
+  const minimumQuantity = 1;
+  const canDecrease = item.quantity > minimumQuantity && !isLoading;
 
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm hover:shadow-md transition-shadow p-6">
@@ -116,32 +62,6 @@ export function CartItem({
           <p className="text-xl font-bold text-brand-600">
             ${item.price}
           </p>
-
-          {/* MOQ Validation Message */}
-          {!isLoadingMOQ && minOrderQuantity > 1 && (
-            <div className="mt-3">
-              {isBelowMOQ ? (
-                <div className="flex items-start gap-2 p-2.5 bg-error-50 border border-error-200 rounded-lg">
-                  <AlertCircle className="h-4 w-4 text-error-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm">
-                    <p className="font-medium text-error-900">
-                      {getText('shop.cart.belowMinimum', 'Below minimum order quantity')}
-                    </p>
-                    <p className="text-error-700 mt-0.5">
-                      {getText('shop.cart.minimumRequired', 'Minimum required')}: {minOrderQuantity} {getText('shop.cart.units', 'units')}
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-1.5 text-sm text-neutral-600">
-                  <AlertCircle className="h-3.5 w-3.5" />
-                  <span>
-                    {getText('shop.cart.minimumOrder', 'Min. order')}: {minOrderQuantity} {getText('shop.cart.units', 'units')}
-                  </span>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Quantity control and delete */}
@@ -163,8 +83,8 @@ export function CartItem({
               disabled={!canDecrease}
               className="p-2.5 hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               title={
-                isAtMOQ
-                  ? getText('shop.cart.atMinimum', `Minimum quantity is ${minOrderQuantity}`)
+                item.quantity === minimumQuantity
+                  ? getText('shop.cart.atMinimum', `Minimum quantity is ${minimumQuantity}`)
                   : undefined
               }
             >

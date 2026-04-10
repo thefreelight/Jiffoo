@@ -1,18 +1,22 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Jiffoo Mall 状态查看脚本
-echo "📊 Jiffoo Mall 服务状态："
-echo ""
+set -euo pipefail
 
-docker-compose -f docker-compose.dev.yml ps
+ENV_FILE="${PWD}/.env.production.local"
+COMPOSE_FILE="${PWD}/docker-compose.prod.yml"
 
-echo ""
-echo "🌐 服务访问地址："
-echo "  🛍️  前端商城:      http://localhost:3000"
-echo "  ⚙️  管理后台:      http://localhost:3001"
-echo "  📊 后端API:       http://localhost:8001"
-echo "  📚 API文档:       http://localhost:8001/docs"
-echo "  🗄️  PostgreSQL:    localhost:5433"
-echo "  🔴 Redis:         localhost:6380"
-echo ""
-echo "💡 查看日志: docker-compose -f docker-compose.dev.yml logs -f [服务名]"
+if [ -f "${ENV_FILE}" ]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "${ENV_FILE}"
+  set +a
+fi
+
+docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" ps
+
+echo
+echo "Shop:  ${JIFFOO_PUBLIC_SHOP_URL:-http://localhost:3000}"
+echo "Admin: ${JIFFOO_PUBLIC_ADMIN_URL:-http://localhost:3002}"
+echo "API:   ${JIFFOO_PUBLIC_API_URL:-http://localhost:3001}"
+echo
+echo "Logs: docker compose --env-file ${ENV_FILE} -f ${COMPOSE_FILE} logs -f [service]"

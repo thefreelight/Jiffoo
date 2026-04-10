@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { PluginMetaWithState } from '@/lib/types';
 import { ExtensionAvatar, OfficialBadge } from '@/components/extensions/ExtensionVisuals';
+import type { ManagedPackageDefinition } from '@/lib/managed-mode';
 import { ChevronRight, Settings2 } from 'lucide-react';
 
 interface InstalledPluginsRailProps {
@@ -14,6 +15,7 @@ interface InstalledPluginsRailProps {
   selectedSlug?: string;
   officialSlugs?: Set<string>;
   getText: (key: string, fallback: string) => string;
+  managedPackage?: ManagedPackageDefinition | null;
 }
 
 function resolvePluginStatus(plugin: PluginMetaWithState, getText: InstalledPluginsRailProps['getText']): string {
@@ -34,6 +36,7 @@ export function InstalledPluginsRail({
   selectedSlug,
   officialSlugs,
   getText,
+  managedPackage,
 }: InstalledPluginsRailProps) {
   return (
     <aside className="space-y-4 lg:sticky lg:top-24">
@@ -44,13 +47,20 @@ export function InstalledPluginsRail({
               {getText('merchant.plugins.installedCollection', 'Installed plugins')}
             </p>
             <h3 className="mt-2 text-lg font-semibold text-slate-950">
-              {getText('merchant.plugins.pluginCenter', 'Plugin center')}
+              {managedPackage
+                ? getText('merchant.plugins.licensedPluginCenter', 'Licensed plugins')
+                : getText('merchant.plugins.pluginCenter', 'Plugin center')}
             </h3>
             <p className="mt-1 text-sm leading-6 text-slate-500">
-              {getText(
-                'merchant.plugins.pluginCenterDescription',
-                'Jump straight into each plugin workspace, keep configuration close, and manage the official catalog from one place.'
-              )}
+              {managedPackage
+                ? getText(
+                    'merchant.plugins.licensedPluginCenterDescription',
+                    'Open the plugins included in your managed package and adjust their configuration without exposing the public marketplace.'
+                  )
+                : getText(
+                    'merchant.plugins.pluginCenterDescription',
+                    'Jump straight into each plugin workspace, keep configuration close, and manage the official catalog from one place.'
+                  )}
             </p>
           </div>
           <Button asChild variant="outline" size="icon" className="h-11 w-11 rounded-2xl shrink-0">

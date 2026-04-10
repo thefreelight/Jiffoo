@@ -8,9 +8,9 @@
  */
 
 import React, { useEffect, useState, useMemo } from 'react';
-import type { PageTemplate, BlockInstance, BlockSettings, ThemePackConfig } from './types';
-import { getBlockComponent, mergeBlockSettings, isAppBlockType, parseAppBlockType } from './block-registry';
-import { useThemePack, useThemePackOptional } from './runtime';
+import type { PageTemplate, BlockInstance, ThemePackConfig } from './types';
+import { getBlockComponent, mergeBlockSettings, parseAppBlockType } from './block-registry';
+import { useThemePackOptional } from './runtime';
 import { AppBlockRenderer } from './app-block-renderer';
 import { getEmbeddedRendererSlug } from './rendering-mode';
 
@@ -67,10 +67,10 @@ export function TemplateRenderer({
   // If no theme pack or loading
   if (isLoading) {
     return (
-      <div className="animate-pulse p-8">
-        <div className="h-64 bg-gray-200 rounded-lg mb-4" />
-        <div className="h-8 bg-gray-200 rounded w-1/3 mb-4" />
-        <div className="grid grid-cols-4 gap-4">
+      <div className="animate-pulse p-4 sm:p-8">
+        <div className="mb-4 h-48 rounded-lg bg-gray-200 sm:h-64" />
+        <div className="mb-4 h-8 w-1/2 rounded bg-gray-200 sm:w-1/3" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-48 bg-gray-200 rounded" />
           ))}

@@ -42,12 +42,12 @@ const KEYS_DIR = path.join(__dirname, 'keys');
  * Falls back to 'optional' for unrecognized values.
  */
 export function getSignatureVerifyMode(): SignatureVerifyMode {
-  if (isOfficialMarketOnly()) {
-    return 'required';
-  }
   const mode = process.env.EXTENSION_SIGNATURE_VERIFY || 'optional';
   if (mode === 'required' || mode === 'optional' || mode === 'disabled') {
     return mode;
+  }
+  if (isOfficialMarketOnly()) {
+    return 'required';
   }
   return 'optional';
 }

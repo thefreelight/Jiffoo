@@ -14,10 +14,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { useOrders, useOrderStats, useUpdateOrderStatus, useCancelOrder, type Order } from '@/lib/hooks/use-api'
-import { Badge } from '@/components/ui/badge'
+import { useOrders, useOrderStats, useUpdateOrderStatus, type Order } from '@/lib/hooks/use-api'
 import { toast } from 'sonner'
-import { PageNav } from '@/components/layout/page-nav'
 import { StatsCard } from '@/components/dashboard/stats-card'
 import { Input } from '@/components/ui/input'
 import {
@@ -41,13 +39,10 @@ export default function OrdersPage() {
     return translated === key ? fallback : translated
   }
 
-  const navItems = [
-    { label: getText('merchant.orders.allOrders', 'All Orders'), href: '/orders', exact: true },
-  ]
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedStatus, setSelectedStatus] = useState('All')
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const [pageSize] = useState(10)
 
   // API hooks
   const {
@@ -63,7 +58,6 @@ export default function OrdersPage() {
   })
 
   const updateOrderStatusMutation = useUpdateOrderStatus()
-  const cancelOrderMutation = useCancelOrder()
   const { data: orderStatsData } = useOrderStats()
 
   const orders = ordersData?.data || []
@@ -74,20 +68,7 @@ export default function OrdersPage() {
       await updateOrderStatusMutation.mutateAsync({ id: orderId, status: newStatus })
       refetch()
       toast.success(getText('merchant.orders.statusUpdated', 'Status updated'))
-    } catch (_error) {
-      // Error toast is already handled by the mutation hook.
-    }
-  }
-
-  const handleCancelOrder = async (orderId: string) => {
-    const cancelReason = window.prompt(getText('merchant.orders.cancelReasonPrompt', 'Enter cancellation reason'), '') || ''
-    if (!cancelReason.trim()) return
-
-    try {
-      await cancelOrderMutation.mutateAsync({ id: orderId, cancelReason: cancelReason.trim() })
-      refetch()
-      toast.success(getText('merchant.orders.cancelled', 'Order cancelled'))
-    } catch (_error) {
+    } catch {
       // Error toast is already handled by the mutation hook.
     }
   }
@@ -156,6 +137,8 @@ export default function OrdersPage() {
     refundedTrend: orderStatsData?.metrics.refundedOrdersTrend,
     revenueTrend: orderStatsData?.metrics.totalRevenueTrend,
   }
+  const visibleOrderCount = orders.length
+  const pendingVisibleCount = orders.filter((order) => order.status?.toUpperCase() === 'PENDING').length
 
   if (isLoading) {
     return (
@@ -191,7 +174,7 @@ export default function OrdersPage() {
   return (
     <div className="w-full bg-[#fcfdfe] min-h-screen">
       {/* Header Bar */}
-      <div className="border-b border-gray-100 pl-20 pr-8 lg:px-8 py-4 sticky top-0 bg-white/80 backdrop-blur-md z-50 flex items-center justify-between">
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex flex-col">
           <h1 className="text-xl font-bold text-gray-900 tracking-tight leading-none">
             {getText('merchant.orders.title', 'Orders')}
@@ -250,7 +233,7 @@ export default function OrdersPage() {
         </div>
 
         {/* Revenue Card */}
-        <div className="bg-gray-900 rounded-[2.5rem] p-10 text-white relative overflow-hidden group shadow-xl">
+        <div className="group relative overflow-hidden rounded-[2.5rem] bg-gray-900 p-6 text-white shadow-xl sm:p-10">
           <div className="absolute top-0 right-0 p-12 opacity-5 scale-110 -translate-y-4 translate-x-4">
             <TrendingUp className="w-48 h-48 -rotate-12" />
           </div>
@@ -286,7 +269,28 @@ export default function OrdersPage() {
 
         {/* Filters and Table Section */}
         <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-8 border-b border-gray-50 flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
+          <div className="flex flex-wrap items-center gap-2 border-b border-gray-100 px-4 py-4 sm:px-8">
+            <span className="inline-flex items-center rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-blue-600">
+              {pagination?.total ?? visibleOrderCount} {getText('merchant.orders.totalOrders', 'Orders')}
+            </span>
+            {pendingVisibleCount > 0 && (
+              <span className="inline-flex items-center rounded-full border border-orange-100 bg-orange-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-orange-600">
+                {pendingVisibleCount} {getText('merchant.orders.pending', 'Pending')}
+              </span>
+            )}
+            <span className="inline-flex items-center rounded-full border border-gray-100 bg-gray-50 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+              {selectedStatus === 'All'
+                ? getText('merchant.orders.allStatus', 'All Status')
+                : selectedStatus}
+            </span>
+            {searchTerm && (
+              <span className="inline-flex items-center rounded-full border border-gray-200 bg-white px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-gray-500">
+                Search: {searchTerm}
+              </span>
+            )}
+          </div>
+
+          <div className="flex flex-col items-start justify-between gap-6 border-b border-gray-50 p-4 sm:p-8 lg:flex-row lg:items-center">
             <div className="flex-1 w-full max-w-md relative">
               <Search className="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <Input
@@ -296,9 +300,9 @@ export default function OrdersPage() {
                 className="pl-11 h-11 rounded-xl bg-gray-50/50 border-gray-100 focus:bg-white transition-all text-sm"
               />
             </div>
-            <div className="flex items-center gap-3 w-full lg:w-auto">
+            <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center lg:w-auto">
               <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="h-11 min-w-[180px] bg-gray-50 border-gray-50 rounded-2xl focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 flex items-center px-6 text-sm font-bold text-gray-700">
+                <SelectTrigger className="h-11 w-full min-w-0 bg-gray-50 border-gray-50 rounded-2xl px-6 text-sm font-bold text-gray-700 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 sm:min-w-[180px] sm:w-auto">
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-gray-100 shadow-2xl p-2">
@@ -315,7 +319,96 @@ export default function OrdersPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="divide-y divide-gray-100 md:hidden">
+            {orders.length === 0 ? (
+              <div className="px-4 py-12 text-center">
+                <Box className="mx-auto mb-3 h-10 w-10 text-gray-300" />
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
+                  {getText('merchant.orders.noOrdersFound', 'Ledger Empty')}
+                </p>
+              </div>
+            ) : (
+              orders.map((order: Order) => (
+                <div key={order.id} className="space-y-4 p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="font-mono text-sm font-bold text-blue-600">
+                        #{order.id.substring(0, 13).toUpperCase()}
+                      </p>
+                      <p className="mt-1 text-[11px] font-medium text-gray-400">
+                        ...{order.id.slice(-12)}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl bg-gray-50 px-3 py-2 text-right">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-gray-400">
+                        {getText('merchant.orders.total', 'Volume')}
+                      </p>
+                      <p className="mt-1 text-sm font-bold text-gray-900">
+                        {formatCurrency(order.totalAmount || 0, order.currency)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl bg-gray-50/70 p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-xs font-black text-gray-400 shadow-sm">
+                        {order.customer.username?.charAt(0) || order.customer.email?.charAt(0) || 'U'}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-gray-900">
+                          {order.customer.username || 'Anonymous User'}
+                        </p>
+                        <p className="truncate text-xs font-medium text-gray-400">
+                          {order.customer.email || 'no-email'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="mt-4 flex items-center justify-between text-[11px] font-medium text-gray-500">
+                      <span>{order.itemsCount ?? 0} ITEMS</span>
+                      <span>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <Select
+                      value={order.status}
+                      onValueChange={(newStatus) => {
+                        handleStatusUpdate(order.id, newStatus)
+                      }}
+                      disabled={updateOrderStatusMutation.isPending}
+                    >
+                      <SelectTrigger className={cn(
+                        'h-11 w-full rounded-2xl border-gray-50 bg-gray-50 px-4 text-[10px] font-bold uppercase tracking-widest transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10',
+                        getStatusColor(order.status)
+                      )}>
+                        <div className="flex items-center space-x-2">
+                          {getStatusIcon(order.status)}
+                          <SelectValue />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent className="rounded-2xl border-gray-100 p-2 shadow-2xl">
+                        <SelectItem value="PENDING" className="rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-widest">{getText('merchant.orders.pending', 'Pending')}</SelectItem>
+                        <SelectItem value="PAID" className="rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-widest">{getText('merchant.orders.paid', 'Paid')}</SelectItem>
+                        <SelectItem value="PROCESSING" className="rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-widest">{getText('merchant.orders.processing', 'Processing')}</SelectItem>
+                        <SelectItem value="SHIPPED" className="rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-widest">{getText('merchant.orders.shipped', 'Shipped')}</SelectItem>
+                        <SelectItem value="DELIVERED" className="rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-widest">{getText('merchant.orders.delivered', 'Delivered')}</SelectItem>
+                        <SelectItem value="CANCELLED" className="rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-widest">{getText('merchant.orders.cancelled', 'Cancelled')}</SelectItem>
+                        <SelectItem value="REFUNDED" className="rounded-xl py-2.5 text-[10px] font-semibold uppercase tracking-widest">{getText('merchant.orders.refunded', 'Refunded')}</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Button variant="outline" size="sm" asChild className="h-11 rounded-2xl border-gray-200 px-4">
+                      <Link href={`/${locale}/orders/${order.id}`}>
+                        {getText('common.actions.view', 'View')}
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="bg-gray-50/30">
@@ -408,7 +501,7 @@ export default function OrdersPage() {
 
           {/* Pagination Section */}
           {pagination && (
-            <div className="px-8 py-6 border-t border-gray-50 bg-gray-50/10 flex items-center justify-between">
+            <div className="flex flex-col items-start justify-between gap-4 border-t border-gray-50 bg-gray-50/10 px-4 py-4 sm:flex-row sm:items-center sm:px-8 sm:py-6">
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                 {getText('merchant.orders.showingResults', 'Showing {from} to {to} of {total}')
                   .replace('{from}', String((currentPage - 1) * pageSize + 1))

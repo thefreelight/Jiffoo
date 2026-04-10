@@ -7,6 +7,9 @@ import {
   createAdminClient,
   getAdminClient,
   type ApiResponse,
+  type CommercialPackageProjection,
+  type ManagedPackageBrandingResponse,
+  type ManagedPackageStatusResponse,
   type ListResult,
   type PageResult,
   type UserProfile,
@@ -32,6 +35,7 @@ import type {
   ThemeMeta,
   ActiveTheme,
   PluginMetaWithState,
+  PluginConfigMeta,
   PluginState,
   HealthMetricsResponse,
   HealthSummaryResponse,
@@ -482,323 +486,6 @@ export const healthApi = {
     apiClient.get('/admin/health/summary'),
 };
 
-// Company type
-export interface Company {
-  id: string;
-  name: string;
-  email: string;
-  phone?: string;
-  taxId?: string;
-  website?: string;
-  description?: string;
-  industry?: string;
-  employeeCount?: string;
-  annualRevenue?: string;
-  isActive: boolean;
-  accountStatus: 'PENDING' | 'ACTIVE' | 'SUSPENDED' | 'CLOSED';
-  accountType: 'STANDARD' | 'PREMIUM' | 'ENTERPRISE';
-  paymentTerms: 'IMMEDIATE' | 'NET15' | 'NET30' | 'NET60' | 'NET90';
-  creditLimit: number;
-  currentBalance: number;
-  taxExempt: boolean;
-  taxExemptionId?: string;
-  customerGroupId?: string;
-  discountPercent: number;
-  billingAddress1?: string;
-  billingAddress2?: string;
-  billingCity?: string;
-  billingState?: string;
-  billingCountry?: string;
-  billingPostalCode?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Quote types
-export interface QuoteItem {
-  id: string;
-  quoteId: string;
-  productId: string;
-  variantId?: string;
-  quantity: number;
-  unitPrice: number;
-  subtotal: number;
-  discountAmount: number;
-  taxAmount: number;
-  total: number;
-  product?: {
-    id: string;
-    name: string;
-    skuCode?: string;
-  };
-  variant?: {
-    id: string;
-    name: string;
-    skuCode?: string;
-  };
-}
-
-export interface Quote {
-  id: string;
-  quoteNumber: string;
-  companyId: string;
-  userId: string;
-  status: 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'EXPIRED' | 'CONVERTED';
-  subtotal: number;
-  taxAmount: number;
-  discountAmount: number;
-  total: number;
-  validUntil: string;
-  notes?: string;
-  internalNotes?: string;
-  contactName?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  shippingAddress1?: string;
-  shippingAddress2?: string;
-  shippingCity?: string;
-  shippingState?: string;
-  shippingCountry?: string;
-  shippingPostalCode?: string;
-  approvedBy?: string;
-  approvedAt?: string;
-  rejectedBy?: string;
-  rejectedAt?: string;
-  rejectionReason?: string;
-  convertedToOrderId?: string;
-  convertedAt?: string;
-  createdAt: string;
-  updatedAt: string;
-  company?: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  user?: {
-    id: string;
-    email: string;
-    username?: string;
-  };
-  items?: QuoteItem[];
-}
-
-// Companies API
-export const companiesApi = {
-  getAll: (page = 1, limit = 10, search?: string): Promise<ApiResponse<PageResult<Company>>> =>
-    apiClient.get('/b2b/companies', { params: { page, limit, search } }),
-
-  getById: (id: string): Promise<ApiResponse<Company>> => apiClient.get(`/b2b/companies/${id}`),
-
-  create: (data: Partial<Company>): Promise<ApiResponse<Company>> => apiClient.post('/b2b/companies', data),
-
-  update: (id: string, data: Partial<Company>): Promise<ApiResponse<Company>> => apiClient.put(`/b2b/companies/${id}`, data),
-
-  delete: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/b2b/companies/${id}`),
-
-  updateStatus: (id: string, accountStatus: string): Promise<ApiResponse<Company>> =>
-    apiClient.put(`/b2b/companies/${id}/status`, { accountStatus }),
-};
-
-// Quotes API
-export const quotesApi = {
-  getAll: (page = 1, limit = 10, status?: string): Promise<ApiResponse<PageResult<Quote>>> =>
-    apiClient.get('/b2b/quotes', { params: { page, limit, status } }),
-
-  getById: (id: string): Promise<ApiResponse<Quote>> => apiClient.get(`/b2b/quotes/${id}`),
-
-  approve: (id: string, data: { approvedBy: string; validUntil?: string }): Promise<ApiResponse<Quote>> =>
-    apiClient.post(`/b2b/quotes/${id}/approve`, data),
-
-  reject: (id: string, data: { rejectedBy: string; rejectionReason: string }): Promise<ApiResponse<Quote>> =>
-    apiClient.post(`/b2b/quotes/${id}/reject`, data),
-
-  delete: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/b2b/quotes/${id}`),
-
-  convertToOrder: (id: string): Promise<ApiResponse<{ orderId: string }>> =>
-    apiClient.post(`/b2b/quotes/${id}/convert`),
-};
-
-// Purchase Order types
-export interface PurchaseOrderItem {
-  id: string;
-  purchaseOrderId: string;
-  productId: string;
-  variantId: string;
-  quantity: number;
-  unitPrice: number;
-  discount: number;
-  taxRate: number;
-  total: number;
-  quantityReceived: number;
-  receivedDate?: string;
-  receivedBy?: string;
-  notes?: string;
-  skuSnapshot?: string;
-  customization?: string;
-  product?: {
-    id: string;
-    name: string;
-    slug: string;
-  };
-  variant?: {
-    id: string;
-    name: string;
-    sku: string;
-  };
-}
-
-export interface PurchaseOrder {
-  id: string;
-  poNumber: string;
-  companyId: string;
-  userId: string;
-  quoteId?: string;
-  status: 'DRAFT' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED' | 'ORDERED' | 'PARTIALLY_RECEIVED' | 'RECEIVED' | 'CANCELLED';
-  paymentStatus: 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE';
-  paymentTermId?: string;
-  orderDate: string;
-  approvalDate?: string;
-  expectedDate?: string;
-  receivedDate?: string;
-  paymentDueDate?: string;
-  subtotal: number;
-  taxAmount: number;
-  discountAmount: number;
-  shippingAmount: number;
-  totalAmount: number;
-  notes?: string;
-  customerNotes?: string;
-  termsConditions?: string;
-  internalRef?: string;
-  contactName?: string;
-  contactEmail?: string;
-  contactPhone?: string;
-  shippingAddress1?: string;
-  shippingAddress2?: string;
-  shippingCity?: string;
-  shippingState?: string;
-  shippingCountry?: string;
-  shippingPostalCode?: string;
-  billingAddress1?: string;
-  billingAddress2?: string;
-  billingCity?: string;
-  billingState?: string;
-  billingCountry?: string;
-  billingPostalCode?: string;
-  approvedBy?: string;
-  approvedAt?: string;
-  rejectedBy?: string;
-  rejectedAt?: string;
-  rejectionReason?: string;
-  trackingNumber?: string;
-  carrier?: string;
-  createdAt: string;
-  updatedAt: string;
-  items?: PurchaseOrderItem[];
-  company?: {
-    id: string;
-    name: string;
-    email: string;
-  };
-  user?: {
-    id: string;
-    username: string;
-    email: string;
-  };
-  paymentTerm?: {
-    id: string;
-    code: string;
-    name: string;
-    dueInDays: number;
-  };
-}
-
-// Purchase Orders API
-export const purchaseOrdersApi = {
-  getAll: (page = 1, limit = 10, status?: string): Promise<ApiResponse<PageResult<PurchaseOrder>>> =>
-    apiClient.get('/b2b/purchase-orders', { params: { page, limit, status } }),
-
-  getById: (id: string): Promise<ApiResponse<PurchaseOrder>> =>
-    apiClient.get(`/b2b/purchase-orders/${id}`),
-
-  updateStatus: (id: string, status: string): Promise<ApiResponse<PurchaseOrder>> =>
-    apiClient.put(`/b2b/purchase-orders/${id}/status`, { status }),
-
-  approve: (id: string, data: { approvedBy: string; notes?: string }): Promise<ApiResponse<PurchaseOrder>> =>
-    apiClient.post(`/b2b/purchase-orders/${id}/approve`, data),
-
-  reject: (id: string, data: { rejectedBy: string; rejectionReason: string }): Promise<ApiResponse<PurchaseOrder>> =>
-    apiClient.post(`/b2b/purchase-orders/${id}/reject`, data),
-
-  delete: (id: string): Promise<ApiResponse<void>> =>
-    apiClient.delete(`/b2b/purchase-orders/${id}`),
-};
-
-// PriceRule types
-export interface PriceRule {
-  id: string;
-  name: string;
-  description?: string | null;
-  customerGroupId?: string | null;
-  productId?: string | null;
-  variantId?: string | null;
-  categoryId?: string | null;
-  minQuantity: number;
-  maxQuantity?: number | null;
-  discountType: 'PERCENTAGE' | 'FIXED_AMOUNT' | 'FIXED_PRICE';
-  discountValue: number;
-  priority: number;
-  startDate?: string | null;
-  endDate?: string | null;
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
-  customerGroup?: {
-    id: string;
-    name: string;
-  };
-  product?: {
-    id: string;
-    name: string;
-  };
-  variant?: {
-    id: string;
-    name: string;
-  };
-  category?: {
-    id: string;
-    name: string;
-  };
-}
-
-// Pricing API
-export const pricingApi = {
-  getAll: (page = 1, limit = 10, params?: {
-    customerGroupId?: string;
-    productId?: string;
-    variantId?: string;
-    categoryId?: string;
-    isActive?: boolean;
-    search?: string;
-  }): Promise<ApiResponse<PageResult<PriceRule>>> =>
-    apiClient.get('/b2b/pricing/rules', { params: { page, limit, ...params } }),
-
-  getById: (id: string): Promise<ApiResponse<PriceRule>> =>
-    apiClient.get(`/b2b/pricing/rules/${id}`),
-
-  create: (data: Partial<PriceRule>): Promise<ApiResponse<PriceRule>> =>
-    apiClient.post('/b2b/pricing/rules', data),
-
-  update: (id: string, data: Partial<PriceRule>): Promise<ApiResponse<PriceRule>> =>
-    apiClient.put(`/b2b/pricing/rules/${id}`, data),
-
-  updateStatus: (id: string, isActive: boolean): Promise<ApiResponse<PriceRule>> =>
-    apiClient.patch(`/b2b/pricing/rules/${id}/status`, { isActive }),
-
-  delete: (id: string): Promise<ApiResponse<void>> =>
-    apiClient.delete(`/b2b/pricing/rules/${id}`),
-};
-
 // Plugin Instance types
 export interface PluginInstance {
   installationId: string;
@@ -806,6 +493,7 @@ export interface PluginInstance {
   instanceKey: string;
   enabled: boolean;
   config: Record<string, unknown>;
+  configMeta?: PluginConfigMeta;
   grantedPermissions: string[];
   createdAt: string;
   updatedAt: string;
@@ -860,11 +548,25 @@ export interface OfficialCatalogItem {
   configRequired?: boolean;
   configReady?: boolean;
   missingConfigFields?: string[];
-  adminUi?: {
-    entryPath?: string;
-    label?: string;
-    icon?: string;
-  };
+  solutionOffer?: {
+    offerKind: 'theme_first_solution';
+    packageId?: string | null;
+    role: 'primary_theme' | 'included_theme' | 'companion_plugin';
+    badgeLabel?: string | null;
+    ctaLabel?: string | null;
+    summary?: string | null;
+  } | null;
+  solutionPackage?: {
+    offerKind: 'theme_first_solution';
+    packageId: string;
+    packageName: string;
+    displayBrandName: string;
+    displaySolutionName: string;
+    packageStatus: 'ACTIVE' | 'SUSPENDED' | 'REVOKED';
+    role: 'primary_theme' | 'included_theme' | 'companion_plugin';
+    defaultTheme: boolean;
+    setupStepCount: number;
+  } | null;
 }
 
 export interface OfficialCatalogResponse {
@@ -872,6 +574,7 @@ export interface OfficialCatalogResponse {
   marketOnline: boolean;
   marketError?: string;
   officialMarketOnly: boolean;
+  managedPackage?: CommercialPackageProjection | null;
   generatedAt: string;
 }
 
@@ -888,6 +591,10 @@ export interface InstallOfficialExtensionResult {
   fsPath?: string;
 }
 
+export interface ActivateManagedPackageRequest {
+  activationCode: string;
+}
+
 export type {
   PlatformConnectionStatus,
 };
@@ -900,36 +607,14 @@ type PluginConfigReadiness = {
   missingConfigFields: string[];
 };
 
-function getPluginAdminUi(manifest: Record<string, any> | null): PluginState['adminUi'] | undefined {
-  const adminUi = manifest?.adminUi;
-  if (!adminUi || typeof adminUi !== 'object' || Array.isArray(adminUi)) {
-    return undefined;
-  }
-
-  const entryPath = typeof adminUi.entryPath === 'string' ? adminUi.entryPath : undefined;
-  const label = typeof adminUi.label === 'string' ? adminUi.label : undefined;
-  const icon = typeof adminUi.icon === 'string' ? adminUi.icon : undefined;
-
-  if (!entryPath && !label && !icon) {
-    return undefined;
-  }
-
-  return { entryPath, label, icon };
-}
-
-export function buildPluginAdminUiUrl(slug: string, installationId = DEFAULT_PLUGIN_INSTANCE_KEY): string {
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/$/, '');
-  const params = new URLSearchParams({ installation: installationId });
-  return `${baseUrl}/extensions/plugin/${slug}/admin-ui?${params.toString()}`;
-}
-
 function isObject(value: unknown): value is Record<string, any> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
 function evaluateConfigReadiness(
   configSchema: Record<string, any> | undefined,
-  config: Record<string, any> | undefined
+  config: Record<string, any> | undefined,
+  configMeta?: PluginConfigMeta
 ): PluginConfigReadiness {
   if (!configSchema || Object.keys(configSchema).length === 0) {
     return {
@@ -950,13 +635,22 @@ function evaluateConfigReadiness(
     configRequired = true;
     const value = currentConfig[key];
     const type = typeof descriptor.type === 'string' ? descriptor.type : '';
+    const secretConfigured = Boolean(configMeta?.secretFields?.[key]?.configured);
 
     if (value === undefined || value === null) {
+      if (type === 'secret' && secretConfigured) {
+        continue;
+      }
       missingConfigFields.push(key);
       continue;
     }
 
     if (type === 'string' && (typeof value !== 'string' || value.trim().length === 0)) {
+      missingConfigFields.push(key);
+      continue;
+    }
+
+    if (type === 'secret' && ((typeof value !== 'string' || value.trim().length === 0) && !secretConfigured)) {
       missingConfigFields.push(key);
       continue;
     }
@@ -999,18 +693,17 @@ function toPluginState(slug: string, detail: any, instance: PluginInstance | nul
 
   const configSchema = (parsedManifest?.configSchema || detail?.configSchema || undefined) as Record<string, any> | undefined;
   const config = (instance?.config || {}) as Record<string, any>;
-  const readiness = evaluateConfigReadiness(configSchema, config);
-  const adminUi = getPluginAdminUi(parsedManifest);
+  const readiness = evaluateConfigReadiness(configSchema, config, instance?.configMeta);
 
   return {
     slug,
     enabled: instance?.enabled ?? false,
     config,
+    configMeta: instance?.configMeta,
     configSchema,
     configRequired: readiness.configRequired,
     configReady: readiness.configReady,
     missingConfigFields: readiness.missingConfigFields,
-    adminUi,
     name: detail?.name,
     version: detail?.version,
     description: detail?.description,
@@ -1091,6 +784,20 @@ export const marketApi = {
     apiClient.post(`/admin/market/extensions/${slug}/install`, data),
 };
 
+export const managedPackageApi = {
+  getBranding: (): Promise<ApiResponse<ManagedPackageBrandingResponse>> =>
+    apiClient.get('/admin/commercial-package/branding'),
+
+  getStatus: (): Promise<ApiResponse<ManagedPackageStatusResponse>> =>
+    apiClient.get('/admin/commercial-package/status'),
+
+  activate: (data: ActivateManagedPackageRequest): Promise<ApiResponse<ManagedPackageStatusResponse>> =>
+    apiClient.post('/admin/commercial-package/activate', data),
+
+  provision: (): Promise<ApiResponse<ManagedPackageStatusResponse>> =>
+    apiClient.post('/admin/commercial-package/provision', {}),
+};
+
 export const platformConnectionApi = {
   getStatus: (): Promise<ApiResponse<PlatformConnectionStatus>> =>
     apiClient.get('/admin/platform/connection/status'),
@@ -1125,8 +832,7 @@ export const pluginsApi = {
         const parsedManifest = parseManifestJson(plugin?.manifestJson);
         const configSchema = (parsedManifest?.configSchema || plugin?.configSchema || undefined) as Record<string, any> | undefined;
         const config = (defaultInstance?.config || {}) as Record<string, any>;
-        const readiness = evaluateConfigReadiness(configSchema, config);
-        const adminUi = getPluginAdminUi(parsedManifest);
+        const readiness = evaluateConfigReadiness(configSchema, config, defaultInstance?.configMeta);
 
         return {
           ...plugin,
@@ -1137,7 +843,6 @@ export const pluginsApi = {
           configRequired: readiness.configRequired,
           configReady: readiness.configReady,
           missingConfigFields: readiness.missingConfigFields,
-          adminUi,
         } as PluginMetaWithState;
       })
     );

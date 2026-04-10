@@ -31,6 +31,7 @@ export interface ProductMetaOptions {
   name: string;
   description?: string;
   slug: string;
+  baseUrl?: string;
   imageUrl?: string;
   price?: number;
   currency?: string;
@@ -41,6 +42,7 @@ export interface CategoryMetaOptions {
   name: string;
   description?: string;
   slug: string;
+  baseUrl?: string;
   seoMetadata?: SeoMetadata;
 }
 
@@ -64,6 +66,7 @@ export function generateProductMetaTags(options: ProductMetaOptions): MetaTags {
     name,
     description = '',
     slug,
+    baseUrl,
     imageUrl,
     price,
     currency = 'USD',
@@ -72,7 +75,7 @@ export function generateProductMetaTags(options: ProductMetaOptions): MetaTags {
 
   const title = seoMetadata?.metaTitle || name;
   const desc = seoMetadata?.metaDescription || description;
-  const canonical = seoMetadata?.canonicalUrl || generateCanonicalUrl(`/products/${slug}`);
+  const canonical = seoMetadata?.canonicalUrl || generateCanonicalUrl(`/products/${slug}`, baseUrl);
 
   return {
     title,
@@ -95,11 +98,11 @@ export function generateProductMetaTags(options: ProductMetaOptions): MetaTags {
  * @param options - Category meta options
  */
 export function generateCategoryMetaTags(options: CategoryMetaOptions): MetaTags {
-  const { name, description = '', slug, seoMetadata } = options;
+  const { name, description = '', slug, baseUrl, seoMetadata } = options;
 
   const title = seoMetadata?.metaTitle || name;
   const desc = seoMetadata?.metaDescription || description;
-  const canonical = seoMetadata?.canonicalUrl || generateCanonicalUrl(`/categories/${slug}`);
+  const canonical = seoMetadata?.canonicalUrl || generateCanonicalUrl(`/categories/${slug}`, baseUrl);
 
   return {
     title,
@@ -148,6 +151,7 @@ export function generateProductStructuredData(product: {
   name: string;
   description?: string;
   slug: string;
+  baseUrl?: string;
   imageUrl?: string;
   price?: number;
   currency?: string;
@@ -163,6 +167,7 @@ export function generateProductStructuredData(product: {
     name,
     description = '',
     slug,
+    baseUrl,
     imageUrl,
     price,
     currency = 'USD',
@@ -177,7 +182,7 @@ export function generateProductStructuredData(product: {
     '@type': 'Product',
     name,
     description,
-    url: generateCanonicalUrl(`/products/${slug}`),
+    url: generateCanonicalUrl(`/products/${slug}`, baseUrl),
   };
 
   if (imageUrl) {

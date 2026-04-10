@@ -1,23 +1,15 @@
-/**
- * Header Component - Jiffoo Admin Style Design
- *
- * Main navigation header with search, cart, and user menu.
- * Supports i18n through the t() translation function prop.
- * Uses Jiffoo Admin Style design system with dark mode support.
- */
-
 import React from 'react';
-import { Search, ShoppingCart, User, Menu, X, Moon, Sun } from 'lucide-react';
-import { Button, cn } from '@jiffoo/ui';
+import { Menu, Moon, ShoppingCart, Sun, User, X } from 'lucide-react';
+import { cn } from '@jiffoo/ui';
 import { useTheme } from 'next-themes';
 import type { HeaderProps } from '../../../../shared/src/types/theme';
+import { isExternalHref, resolveSiteConfig } from '../site';
 
 export const Header = React.memo(function Header({
   cartItemCount = 0,
   isAuthenticated = false,
   config,
   t,
-  onSearch,
   onNavigate,
   onNavigateToCart,
   onNavigateToProfile,
@@ -26,36 +18,57 @@ export const Header = React.memo(function Header({
   onLogout,
   onNavigateToHome,
   onNavigateToProducts,
-  onNavigateToCategories,
-  onNavigateToDeals,
 }: HeaderProps) {
-  const [searchQuery, setSearchQuery] = React.useState('');
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = React.useState(false);
+  const site = resolveSiteConfig(config);
+  const showCart = site.archetype !== 'product-site' || cartItemCount > 0;
 
-  // Track scroll for header shadow
   React.useEffect(() => {
     setMounted(true);
-    const handleScroll = () => setIsScrolled(window.scrollY > 0);
+    const handleScroll = () => setIsScrolled(window.scrollY > 8);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Helper function to get translated text with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback;
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      onSearch(searchQuery.trim());
-      setSearchQuery('');
-    }
-  };
+  const openHref = React.useCallback(
+    (href: string) => {
+      if (isExternalHref(href)) {
+        window.open(href, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      onNavigate?.(href);
+    },
+    [onNavigate]
+  );
+
+  const navItems = [
+    {
+      label: getText('shop.nav.install', 'Install'),
+      onClick: () => openHref(site.primaryCtaHref),
+    },
+    {
+      label: getText('shop.nav.docs', 'Docs'),
+      onClick: () => openHref(site.docsHref),
+    },
+    {
+      label: getText('shop.nav.products', 'Products'),
+      onClick: onNavigateToProducts,
+    },
+    {
+      label: getText('shop.nav.help', 'Guide'),
+      onClick: () => onNavigate?.('/help'),
+    },
+  ];
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
@@ -64,248 +77,169 @@ export const Header = React.memo(function Header({
   return (
     <header
       className={cn(
-        'fixed top-0 left-0 right-0 z-[1000] transition-all duration-200',
-        'bg-white/98 dark:bg-slate-900/98 backdrop-blur-xl',
-        'border-b border-gray-200 dark:border-slate-700',
-        isScrolled && 'shadow-sm'
+        'fixed inset-x-0 top-0 z-[1000] transition-all duration-300',
+        'border-b border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_12%,transparent)]',
+        'bg-[color:color-mix(in_oklab,oklch(0.985_0.012_84)_84%,white)] backdrop-blur-xl',
+        isScrolled && 'shadow-[0_12px_40px_-28px_rgba(28,32,48,0.35)]'
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16 sm:h-18 lg:h-20">
-          {/* Logo */}
-          <button
-            onClick={onNavigateToHome}
-            className="flex items-center gap-2 sm:gap-3 flex-shrink-0 hover:opacity-80 transition-opacity"
-          >
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-              <span className="text-white font-extrabold text-base sm:text-lg">J</span>
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:h-[4.6rem] sm:px-6 lg:px-10">
+        <button
+          onClick={onNavigateToHome}
+          className="flex items-center gap-3 text-left"
+          aria-label={getText('shop.header.home', 'Go home')}
+        >
+          <div className="flex h-11 w-11 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_14%,transparent)] bg-[oklch(0.24_0.03_255)] text-[oklch(0.97_0.01_84)]">
+            <span className="text-sm font-black tracking-[0.26em]">J</span>
+          </div>
+          <div className="hidden min-w-0 sm:block">
+            <div className="text-base font-black tracking-[-0.04em] text-[oklch(0.22_0.03_255)]">
+              {site.brandName}
             </div>
-            <span className="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-              Jiffoo
-            </span>
-          </button>
+            <div className="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-[oklch(0.47_0.04_245)]">
+              {site.archetype.replace('-', ' ')}
+            </div>
+          </div>
+        </button>
 
-          {/* Desktop Navigation - Centered */}
-          <nav className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center gap-1">
-            {[
-              { label: getText('shop.nav.products', 'Products'), onClick: onNavigateToProducts },
-              { label: getText('shop.nav.contact', 'Contact'), onClick: () => onNavigate?.('/contact') },
-              { label: getText('shop.nav.help', 'Help'), onClick: () => onNavigate?.('/help') },
-            ].map((item) => (
+        <nav className="hidden items-center gap-1 lg:flex">
+          {navItems.map((item) => (
+            <button
+              key={item.label}
+              onClick={item.onClick}
+              className="rounded-full px-4 py-2 text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[oklch(0.37_0.03_248)] transition-colors hover:bg-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_4%,transparent)] hover:text-[oklch(0.22_0.03_255)]"
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-2">
+          <div className="hidden items-center gap-1 rounded-full border border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_12%,transparent)] bg-[color:color-mix(in_oklab,oklch(0.985_0.012_84)_76%,white)] p-1 sm:flex">
+            {mounted ? (
               <button
-                key={item.label}
-                onClick={item.onClick}
-                className={cn(
-                  'px-4 py-2 text-sm font-semibold rounded-xl transition-all',
-                  'text-gray-600 dark:text-gray-300',
-                  'hover:text-blue-600 dark:hover:text-blue-400',
-                  'hover:bg-blue-50 dark:hover:bg-slate-800'
-                )}
+                onClick={toggleTheme}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-[oklch(0.34_0.03_250)] transition-colors hover:bg-[oklch(0.22_0.03_255)] hover:text-[oklch(0.97_0.01_84)]"
+                aria-label={getText('shop.header.toggleTheme', 'Toggle theme')}
               >
-                {item.label}
+                {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
-            ))}
-          </nav>
+            ) : null}
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            {/* Action Group */}
-            <div className="flex items-center gap-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-1">
-              {/* Theme Toggle */}
-              {mounted && (
-                <button
-                  onClick={toggleTheme}
-                  className={cn(
-                    'flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl',
-                    'text-gray-600 dark:text-gray-300 transition-all',
-                    'hover:bg-white dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400'
-                  )}
-                  aria-label="Toggle theme"
-                >
-                  {theme === 'dark' ? (
-                    <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
-                  ) : (
-                    <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  )}
-                </button>
-              )}
-
-              {/* Cart Button */}
+            {showCart ? (
               <button
                 onClick={onNavigateToCart}
-                className={cn(
-                  'relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl',
-                  'text-gray-600 dark:text-gray-300 transition-all',
-                  'hover:bg-white dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400'
-                )}
-                aria-label="Cart"
+                className="relative flex h-10 w-10 items-center justify-center rounded-full text-[oklch(0.34_0.03_250)] transition-colors hover:bg-[oklch(0.22_0.03_255)] hover:text-[oklch(0.97_0.01_84)]"
+                aria-label={getText('shop.header.cart', 'Cart')}
               >
-                <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                {cartItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shadow-lg">
+                <ShoppingCart className="h-4 w-4" />
+                {cartItemCount > 0 ? (
+                  <span className="absolute -right-1 -top-1 flex min-h-[1.2rem] min-w-[1.2rem] items-center justify-center rounded-full bg-[oklch(0.6_0.17_37)] px-1 text-[0.62rem] font-bold text-white">
                     {cartItemCount > 99 ? '99+' : cartItemCount}
                   </span>
-                )}
+                ) : null}
               </button>
+            ) : null}
 
-              {/* User Menu */}
-              {isAuthenticated && (
-                <div className="relative">
-                  <button
-                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className={cn(
-                      'flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl transition-all',
-                      isUserMenuOpen
-                        ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400'
-                    )}
-                  >
-                    <User className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
-                  {isUserMenuOpen && (
-                    <div className="absolute top-full right-0 mt-2 min-w-[200px] bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-xl p-2 z-50">
-                      <button
-                        onClick={() => { onNavigateToProfile(); setIsUserMenuOpen(false); }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
-                      >
-                        {getText('shop.header.profile', 'Profile')}
-                      </button>
-                      <button
-                        onClick={() => { onLogout(); setIsUserMenuOpen(false); }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all"
-                      >
-                        {getText('shop.header.logout', 'Logout')}
-                      </button>
-                    </div>
+            {isAuthenticated ? (
+              <div className="relative">
+                <button
+                  onClick={() => setIsUserMenuOpen((value) => !value)}
+                  className={cn(
+                    'flex h-10 w-10 items-center justify-center rounded-full transition-colors',
+                    isUserMenuOpen
+                      ? 'bg-[oklch(0.22_0.03_255)] text-[oklch(0.97_0.01_84)]'
+                      : 'text-[oklch(0.34_0.03_250)] hover:bg-[oklch(0.22_0.03_255)] hover:text-[oklch(0.97_0.01_84)]'
                   )}
-                </div>
-              )}
-            </div>
-
-            {/* Auth Buttons - Desktop */}
-            {!isAuthenticated && (
-              <div className="hidden sm:flex items-center gap-2">
+                >
+                  <User className="h-4 w-4" />
+                </button>
+                {isUserMenuOpen ? (
+                  <div className="absolute right-0 top-full mt-2 min-w-[14rem] border border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_12%,transparent)] bg-[oklch(0.985_0.012_84)] p-2 shadow-[0_16px_40px_-24px_rgba(28,32,48,0.35)]">
+                    <button
+                      onClick={() => {
+                        onNavigateToProfile();
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="w-full rounded-full px-4 py-2 text-left text-sm font-semibold text-[oklch(0.3_0.03_250)] transition-colors hover:bg-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_4%,transparent)]"
+                    >
+                      {getText('shop.header.profile', 'Profile')}
+                    </button>
+                    <button
+                      onClick={() => {
+                        onLogout();
+                        setIsUserMenuOpen(false);
+                      }}
+                      className="mt-1 w-full rounded-full px-4 py-2 text-left text-sm font-semibold text-[oklch(0.3_0.03_250)] transition-colors hover:bg-[color:color-mix(in_oklab,oklch(0.6_0.17_37)_10%,transparent)]"
+                    >
+                      {getText('shop.header.logout', 'Logout')}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div className="hidden items-center gap-2 sm:flex">
                 <button
                   onClick={onNavigateToLogin}
-                  className={cn(
-                    'px-4 py-2 text-sm font-semibold rounded-xl transition-all',
-                    'border border-gray-200 dark:border-slate-700',
-                    'text-gray-700 dark:text-gray-300',
-                    'hover:border-blue-600 dark:hover:border-blue-400',
-                    'hover:text-blue-600 dark:hover:text-blue-400',
-                    'hover:bg-blue-50 dark:hover:bg-slate-800'
-                  )}
+                  className="rounded-full px-4 py-2 text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[oklch(0.34_0.03_250)] transition-colors hover:bg-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_4%,transparent)]"
                 >
                   {getText('shop.header.login', 'Login')}
                 </button>
                 <button
                   onClick={onNavigateToRegister}
-                  className={cn(
-                    'px-4 py-2 text-sm font-bold rounded-xl transition-all',
-                    'bg-gradient-to-r from-blue-600 to-blue-500 text-white',
-                    'hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5'
-                  )}
+                  className="rounded-full bg-[oklch(0.22_0.03_255)] px-4 py-2 text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[oklch(0.97_0.01_84)] transition-transform duration-300 hover:-translate-y-0.5"
                 >
-                  {getText('shop.header.signUp', 'Sign Up')}
+                  {getText('shop.header.signUp', 'Create account')}
                 </button>
               </div>
             )}
+          </div>
 
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={cn(
-                'lg:hidden flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl',
-                'text-gray-600 dark:text-gray-300 transition-all',
-                'hover:bg-gray-100 dark:hover:bg-slate-800'
-              )}
-              aria-label="Menu"
-            >
-              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+          <button
+            onClick={() => setIsMenuOpen((value) => !value)}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_12%,transparent)] text-[oklch(0.34_0.03_250)] lg:hidden"
+            aria-label={getText('shop.header.menu', 'Menu')}
+          >
+            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+      </div>
+
+      {isMenuOpen ? (
+        <div className="border-t border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_12%,transparent)] bg-[oklch(0.985_0.012_84)] px-4 py-4 lg:hidden">
+          <div className="flex flex-col gap-2">
+            {navItems.map((item) => (
+              <button
+                key={item.label}
+                onClick={() => {
+                  item.onClick();
+                  setIsMenuOpen(false);
+                }}
+                className="rounded-full px-4 py-3 text-left text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[oklch(0.32_0.03_250)] transition-colors hover:bg-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_4%,transparent)]"
+              >
+                {item.label}
+              </button>
+            ))}
+
+            {!isAuthenticated ? (
+              <div className="mt-2 grid gap-2">
+                <button
+                  onClick={onNavigateToLogin}
+                  className="rounded-full border border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_12%,transparent)] px-4 py-3 text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[oklch(0.32_0.03_250)]"
+                >
+                  {getText('shop.header.login', 'Login')}
+                </button>
+                <button
+                  onClick={onNavigateToRegister}
+                  className="rounded-full bg-[oklch(0.22_0.03_255)] px-4 py-3 text-[0.78rem] font-semibold uppercase tracking-[0.18em] text-[oklch(0.97_0.01_84)]"
+                >
+                  {getText('shop.header.signUp', 'Create account')}
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
-
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 dark:border-slate-700 py-4 animate-in slide-in-from-top-2 duration-200">
-            <nav className="flex flex-col space-y-1">
-              {[
-                { label: getText('shop.nav.products', 'Products'), onClick: onNavigateToProducts },
-                { label: getText('shop.nav.contact', 'Contact'), onClick: () => onNavigate?.('/contact') },
-                { label: getText('shop.nav.help', 'Help'), onClick: () => onNavigate?.('/help') },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => {
-                    item.onClick();
-                    setIsMenuOpen(false);
-                  }}
-                  className={cn(
-                    'px-4 py-3 text-base font-medium rounded-xl text-left transition-all',
-                    'text-gray-700 dark:text-gray-300',
-                    'hover:bg-gray-100 dark:hover:bg-slate-800',
-                    'active:bg-gray-200 dark:active:bg-slate-700'
-                  )}
-                >
-                  {item.label}
-                </button>
-              ))}
-
-              <div className="flex flex-col space-y-2 pt-4 mt-4 border-t border-gray-200 dark:border-slate-700">
-                {isAuthenticated ? (
-                  <>
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        onNavigateToProfile();
-                        setIsMenuOpen(false);
-                      }}
-                      className="justify-start w-full"
-                    >
-                      <User className="h-4 w-4 mr-2" />
-                      {getText('shop.header.profile', 'Profile')}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        onLogout();
-                        setIsMenuOpen(false);
-                      }}
-                      className="justify-start w-full text-error-600 hover:text-error-700 hover:bg-error-50"
-                    >
-                      {getText('shop.header.logout', 'Logout')}
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        onNavigateToLogin();
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full"
-                    >
-                      {getText('shop.header.login', 'Login')}
-                    </Button>
-                    <Button
-                      variant="primary"
-                      onClick={() => {
-                        onNavigateToRegister();
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full"
-                    >
-                      {getText('shop.header.signUp', 'Sign Up')}
-                    </Button>
-                  </>
-                )}
-              </div>
-            </nav>
-          </div>
-        )}
-      </div>
+      ) : null}
     </header>
   );
 });

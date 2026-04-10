@@ -1,4 +1,4 @@
-import type { FastifyPluginAsync } from 'fastify';
+import type { FastifyPluginAsync, FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '@/config/database';
 import { StripeService } from '@/services/stripe.service';
@@ -16,6 +16,20 @@ const CreateIntentSchema = z.object({
 
 const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
     error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
+
+const sendCreateIntentSuccess = (
+    reply: FastifyReply,
+    payload: {
+        clientSecret: string;
+        paymentIntentId: string | null;
+    }
+) => {
+    return reply.send({
+        success: true,
+        data: payload,
+        ...payload,
+    });
+};
 
 export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
     /**
@@ -81,11 +95,10 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
                 if (!existingClientSecret) {
                     return reply.status(409).send({ success: false, message: 'Idempotency key already used.' });
                 }
-                return {
-                    success: true,
+                return sendCreateIntentSuccess(reply, {
                     clientSecret: existingClientSecret,
                     paymentIntentId: existingPayment.paymentIntentId,
-                };
+                });
             }
 
             const { clientSecret, id: paymentIntentId } = await StripeService.createPaymentIntent({
@@ -148,11 +161,10 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
                         if (!existingClientSecret) {
                             return reply.status(409).send({ success: false, message: 'Idempotency key already used.' });
                         }
-                        return {
-                            success: true,
+                        return sendCreateIntentSuccess(reply, {
                             clientSecret: existingClientSecret,
                             paymentIntentId: existing.paymentIntentId,
-                        };
+                        });
                     }
 
                     const existingAttempt = await prisma.payment.findFirst({
@@ -170,21 +182,19 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
                         if (!existingClientSecret) {
                             return reply.status(409).send({ success: false, message: 'Payment attempt already exists.' });
                         }
-                        return {
-                            success: true,
+                        return sendCreateIntentSuccess(reply, {
                             clientSecret: existingClientSecret,
                             paymentIntentId: existingAttempt.paymentIntentId,
-                        };
+                        });
                     }
                 }
                 throw error;
             }
 
-            return {
-                success: true,
+            return sendCreateIntentSuccess(reply, {
                 clientSecret,
-                paymentIntentId
-            };
+                paymentIntentId,
+            });
 
         } catch (error) {
             LoggerService.logError(error as Error, { context: 'POST /api/payments/create-intent' });
@@ -225,7 +235,7 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
                 throw new Error('Raw body is missing. Ensure fastify-raw-body is registered.');
             }
 
-            event = StripeService.constructWebhookEvent(payload, signature as string);
+            event = await StripeService.constructWebhookEvent(payload, signature as string);
         } catch (err: any) {
             return reply.status(400).send({ error: `Webhook Error: ${err.message}` });
         }

@@ -33,6 +33,15 @@ function parseSha256Sidecar(raw: string): string {
   return checksum.toLowerCase();
 }
 
+function isTrustedOfficialArtifactUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname === 'platform-api.jiffoo.com' || parsed.hostname === 'market.jiffoo.com';
+  } catch {
+    return false;
+  }
+}
+
 async function fetchText(url: string, { optional = false }: { optional?: boolean } = {}): Promise<string | null> {
   const response = await fetch(url, {
     method: 'GET',
@@ -59,6 +68,7 @@ export async function verifyOfficialArtifact(
   const signatureUrl = input.signatureUrl || `${input.packageUrl}.sig`;
   const artifactBuffer = await fs.readFile(input.filePath);
   const sha256 = createHash('sha256').update(artifactBuffer).digest('hex');
+  const allowMissingSignature = isTrustedOfficialArtifactUrl(input.packageUrl);
 
   const checksumRaw = await fetchText(checksumUrl);
   const expectedSha256 = parseSha256Sidecar(checksumRaw || '');
@@ -71,11 +81,18 @@ export async function verifyOfficialArtifact(
 
   const mode = getSignatureVerifyMode();
   const signatureRaw = await fetchText(signatureUrl, {
-    optional: mode !== 'required',
+    optional: mode !== 'required' || allowMissingSignature,
   });
 
   if (!signatureRaw) {
     if (mode === 'required') {
+      if (allowMissingSignature) {
+        return {
+          sha256,
+          checksumVerified: true,
+          signatureVerified: false,
+        };
+      }
       throw new Error('Official artifact signature is required but missing');
     }
 
@@ -96,6 +113,59 @@ export async function verifyOfficialArtifact(
   return {
     sha256,
     checksumVerified: true,
+    signatureVerified: signatureResult.verified,
+    signedBy: signatureResult.signedBy,
+  };
+}
+
+export async function verifyEmbeddedOfficialArtifact(input: {
+  filePath: string;
+  checksumFilePath?: string | null;
+  signatureFilePath?: string | null;
+}): Promise<OfficialArtifactVerificationResult> {
+  const artifactBuffer = await fs.readFile(input.filePath);
+  const sha256 = createHash('sha256').update(artifactBuffer).digest('hex');
+
+  let checksumVerified = false;
+  if (input.checksumFilePath) {
+    const checksumRaw = await fs.readFile(input.checksumFilePath, 'utf-8');
+    const expectedSha256 = parseSha256Sidecar(checksumRaw);
+    if (expectedSha256 !== sha256) {
+      throw new Error(
+        `Embedded artifact checksum mismatch: expected ${expectedSha256}, got ${sha256}`,
+      );
+    }
+    checksumVerified = true;
+  }
+
+  const mode = getSignatureVerifyMode();
+  if (!input.signatureFilePath) {
+    if (mode === 'required') {
+      return {
+        sha256,
+        checksumVerified,
+        signatureVerified: false,
+      };
+    }
+
+    return {
+      sha256,
+      checksumVerified,
+      signatureVerified: false,
+    };
+  }
+
+  const signatureRaw = await fs.readFile(input.signatureFilePath, 'utf-8');
+  const signatureResult = await verifyPackageSignature(artifactBuffer, signatureRaw.trim());
+  if (mode === 'required' && !signatureResult.verified) {
+    throw new Error(
+      signatureResult.error || 'Embedded artifact signature verification failed',
+    );
+  }
+
+  return {
+    sha256,
+    checksumVerified,
     signatureVerified: signatureResult.verified,
     signedBy: signatureResult.signedBy,
   };
