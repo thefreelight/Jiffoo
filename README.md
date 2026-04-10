@@ -7,6 +7,14 @@
 
 Jiffoo is a TypeScript commerce core for self-hosted storefronts, admin tooling, and extension-driven customization.
 
+The public runtime surface owned by this repository is:
+
+- `shop`
+- `api`
+- `admin`
+
+In the long-term deployment model, this repository is the source of the public/open-source runtime surface, including the future `jiffoo-prod` production namespace.
+
 ## Features
 
 - Complete commerce flows for catalog, cart, checkout, orders, and payments
@@ -33,6 +41,32 @@ pnpm install
 cp apps/api/.env.example .env
 pnpm --filter api db:migrate
 pnpm dev
+```
+
+### One-Command Server Install
+
+For a fresh server, the quickest self-hosted path is:
+
+```bash
+curl -fsSL https://get.jiffoo.com | bash
+```
+
+If you already have the repository on the server, you can also run:
+
+```bash
+./install.sh
+```
+
+This path installs Docker if needed, prepares a production `.env.production.local`,
+builds `shop + api + admin`, starts PostgreSQL and Redis, runs Prisma migrations,
+and optionally seeds demo data with:
+
+- Admin: `admin@jiffoo.com / admin123`
+
+The underlying production compose file is:
+
+```bash
+docker compose --env-file .env.production.local -f docker-compose.prod.yml up -d --build
 ```
 
 ### Local URLs

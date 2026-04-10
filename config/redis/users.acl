@@ -1,0 +1,5 @@
+user default off
+user jiffoo on >jiffoo123 ~* &* +@all
+user plugin on >plugin123 ~plugin:* ~session:* +@read +@write +@string +@hash +@list +@set +@sortedset +@stream +ping +info
+user monitor on >monitor123 ~* +@read +ping +info +client +config
+user replicator on >replicator123 +psync +replconf +ping

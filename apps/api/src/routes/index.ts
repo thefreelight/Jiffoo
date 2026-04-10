@@ -41,14 +41,6 @@ import { seoRoutes, sitemapRoute } from '@/core/seo/routes';
 import { adminWarehouseRoutes } from '@/core/warehouse/routes';
 import { adminInventoryRoutes } from '@/core/inventory/routes';
 import { adminStockAlertRoutes } from '@/core/stock-alert/routes';
-// B2B routes
-import { companyRoutes } from '@/core/b2b/company/routes';
-import { companyUserRoutes } from '@/core/b2b/company-user/routes';
-import { customerGroupRoutes } from '@/core/b2b/customer-group/routes';
-import { pricingRoutes } from '@/core/b2b/pricing/routes';
-import { quoteRoutes } from '@/core/b2b/quote/routes';
-import { purchaseOrderRoutes } from '@/core/b2b/purchase-order/routes';
-import { paymentTermRoutes } from '@/core/b2b/payment-term/routes';
 
 import { forecastingRoutes } from '@/core/inventory/forecasting/routes';
 
@@ -113,15 +105,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // Store context routes
   await fastify.register(storeRoutes, { prefix: '/api/store' });
-
-  // B2B routes
-  await fastify.register(companyRoutes, { prefix: '/api/b2b/companies' });
-  await fastify.register(companyUserRoutes, { prefix: '/api/b2b/companies' });
-  await fastify.register(customerGroupRoutes, { prefix: '/api/b2b/customer-groups' });
-  await fastify.register(pricingRoutes, { prefix: '/api/b2b/pricing' });
-  await fastify.register(quoteRoutes, { prefix: '/api/b2b/quotes' });
-  await fastify.register(purchaseOrderRoutes, { prefix: '/api/b2b/purchase-orders' });
-  await fastify.register(paymentTermRoutes, { prefix: '/api/b2b/payment-terms' });
 
   // Public routes
   await fastify.register(productRoutes, { prefix: '/api/products' });

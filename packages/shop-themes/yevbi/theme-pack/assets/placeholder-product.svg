@@ -1,7 +1,0 @@
-<svg width="400" height="400" viewBox="0 0 400 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="400" height="400" fill="#F3F4F6"/>
-  <rect x="120" y="120" width="160" height="160" rx="8" stroke="#D1D5DB" stroke-width="2" stroke-dasharray="8 4"/>
-  <path d="M160 200L180 180L200 200L240 160" stroke="#D1D5DB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-  <circle cx="240" cy="160" r="12" stroke="#D1D5DB" stroke-width="2"/>
-  <text x="200" y="320" text-anchor="middle" fill="#9CA3AF" font-family="system-ui, -apple-system, sans-serif" font-size="14">No Image</text>
-</svg>

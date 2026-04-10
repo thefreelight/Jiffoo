@@ -1,10 +1,11 @@
+'use client';
+
+import { usePathname, useSearchParams } from 'next/navigation';
 import { StoreContextProvider } from '@/components/store-context-provider';
 import { ThemePackProvider } from '@/lib/theme-pack';
-import type { StoreContext } from '@/lib/store-context';
 
 interface ConditionalLayoutProps {
   children: React.ReactNode;
-  initialContext?: StoreContext | null;
 }
 
 /**
@@ -16,14 +17,31 @@ interface ConditionalLayoutProps {
  *
  * The actual theme-based layout is handled by ThemedLayout component inside StoreContextProvider.
  */
-export function ConditionalLayout({ children, initialContext }: ConditionalLayoutProps) {
+export function ConditionalLayout({ children }: ConditionalLayoutProps) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Read ?theme= param for Theme Pack preview
+  const previewSlug = searchParams.get('theme') ?? undefined;
+
+  // Pages that do not require store context or standard layout
+  const isErrorPage = pathname?.includes('/store-not-found');
+  const isPreviewPage = pathname?.includes('/design-preview');
+
+  if (isErrorPage || isPreviewPage) {
+    return (
+      <main className="min-h-screen">
+        {children}
+      </main>
+    );
+  }
+
   // Render with ThemePackProvider wrapping StoreContextProvider
-  // ThemePackProvider handles tokens CSS injection and template loading.
-  // Keep this component server-renderable so storefront HTML does not get
-  // stuck behind the outer Suspense fallback as a blank loading shell.
+  // ThemePackProvider handles tokens CSS injection and template loading
+  // StoreContextProvider handles store context and the default theme renderer
   return (
-    <ThemePackProvider>
-      <StoreContextProvider initialContext={initialContext}>
+    <ThemePackProvider previewSlug={previewSlug}>
+      <StoreContextProvider>
         {children}
       </StoreContextProvider>
     </ThemePackProvider>

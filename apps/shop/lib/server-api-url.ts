@@ -45,14 +45,14 @@ export async function resolvePublicOrigin(): Promise<string> {
 }
 
 export async function resolveServerApiOrigin(): Promise<string> {
-  const apiServiceUrl = process.env.API_SERVICE_URL;
-  if (apiServiceUrl) {
-    return stripTrailingSlash(apiServiceUrl);
-  }
-
   const requestOrigin = await readRequestOrigin();
   if (requestOrigin) {
     return requestOrigin;
+  }
+
+  const apiServiceUrl = process.env.API_SERVICE_URL;
+  if (apiServiceUrl) {
+    return stripTrailingSlash(apiServiceUrl);
   }
 
   throw new Error('Unable to resolve server API origin');

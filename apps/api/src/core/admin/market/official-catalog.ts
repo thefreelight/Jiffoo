@@ -75,13 +75,50 @@ export interface OfficialCatalogResponse {
 }
 
 const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
+  fire: {
+    category: 'finance',
+    target: 'shop',
+  },
+  'imagic-studio': {
+    category: 'ai',
+    target: 'shop',
+  },
+  'navtoai': {
+    category: 'ai',
+    target: 'shop',
+  },
+  modelsfind: {
+    category: 'gallery',
+    target: 'shop',
+  },
+  'ai-gateway': {
+    category: 'ai',
+    target: 'shop',
+  },
   'esim-mall': {
     category: 'storefront',
+    target: 'shop',
+  },
+  'quiet-curator': {
+    category: 'community',
+    target: 'shop',
+  },
+  'stellar-midnight': {
+    category: 'saas',
     target: 'shop',
   },
   yevbi: {
     category: 'storefront',
     target: 'shop',
+  },
+  'imagic-core': {
+    category: 'ai',
+  },
+  'quiet-curator-cms': {
+    category: 'content',
+  },
+  'ai-gateway-core': {
+    category: 'ai',
   },
   stripe: {
     category: 'payment',
@@ -91,6 +128,18 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
   },
   odoo: {
     category: 'integration',
+  },
+  'admin-security': {
+    category: 'security',
+    target: 'admin',
+  },
+  'partner-network': {
+    category: 'operations',
+    target: 'admin',
+  },
+  'support-hub': {
+    category: 'support',
+    target: 'admin',
   },
 };
 

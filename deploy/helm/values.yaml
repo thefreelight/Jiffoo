@@ -1,0 +1,200 @@
+# Global configuration
+global:
+  image:
+    registry: harbor.lafdru.local
+    repository: jiffoo-mall-core
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  imagePullSecrets:
+    - name: harbor-registry
+
+# Service configurations
+# 服务名映射: backend→api, super-admin→admin, admin→tenant, frontend→shop, agent-portal→agent
+services:
+  api:
+    enabled: true
+    replicaCount: 2
+    port: 3002
+    targetPort: 3002
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    healthCheck:
+      # liveness: 只检查进程存活，快速响应
+      livenessPath: /health/live
+      # readiness: 检查 DB/Redis/插件状态，确认可接受流量
+      readinessPath: /health/ready
+      port: 3002
+
+  shop:
+    enabled: true
+    replicaCount: 2
+    port: 3001
+    targetPort: 3001
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+    healthCheck:
+      path: /
+      port: 3001
+
+  tenant:
+    enabled: true
+    replicaCount: 2
+    port: 3003
+    targetPort: 3003
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 400m
+        memory: 512Mi
+    healthCheck:
+      path: /
+      port: 3003
+
+  admin:
+    enabled: true
+    replicaCount: 2
+    port: 3004
+    targetPort: 3004
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 400m
+        memory: 512Mi
+    healthCheck:
+      path: /
+      port: 3004
+
+  # DEPRECATED: agent, white-label, distribution-plugin, docs-internal services removed
+  # These services have been migrated to:
+  # - agent → Super Admin (分销系统)
+  # - white-label → Super Admin (系统设置 → 品牌定制)
+  # - distribution-plugin → extensions/plugins/distribution/
+  # - docs-internal → Super Admin (帮助中心) + Swagger API 文档
+
+  docs-public:
+    enabled: true
+    replicaCount: 1
+    port: 3009
+    targetPort: 3009
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+    healthCheck:
+      path: /
+      port: 3009
+
+# Security context
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+# Service account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+# ConfigMap and Secret
+config:
+  enabled: false
+  data: {}
+
+secret:
+  enabled: false
+  data: {}
+
+# Ingress (disabled by default, dev uses NodePort)
+# Production uses Traefik IngressClass
+ingress:
+  enabled: false
+  className: "traefik"  # Use "traefik" for production
+  annotations: {}
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    # traefik.ingress.kubernetes.io/redirect-entry-point: "https"
+    # traefik.ingress.kubernetes.io/redirect-permanent: "true"
+  hosts: []
+  tls: []
+  # Production configuration example (using Traefik):
+  # 服务名映射: backend→api, super-admin→admin, admin→tenant, frontend→shop
+  # hosts:
+  #   - host: jiffoo.com
+  #     paths:
+  #       - path: /
+  #         pathType: Prefix
+  #         service: shop
+  #   - host: api.jiffoo.com
+  #     paths:
+  #       - path: /
+  #         pathType: Prefix
+  #         service: api
+  #   - host: tenant.jiffoo.com
+  #     paths:
+  #       - path: /
+  #         pathType: Prefix
+  #         service: tenant
+  #   - host: admin.jiffoo.com
+  #     paths:
+  #       - path: /
+  #         pathType: Prefix
+  #         service: admin
+  #   - host: docs.jiffoo.com
+  #     paths:
+  #       - path: /
+  #         pathType: Prefix
+  #         service: docs-public
+
+# Node affinity and tolerations
+affinity: {}
+nodeSelector: {}
+tolerations: []
+
+# Monitoring configuration (Prometheus + Grafana)
+monitoring:
+  enabled: true
+
+  # ServiceMonitor for Prometheus Operator
+  serviceMonitor:
+    # Additional labels for ServiceMonitor (e.g., for Prometheus selector)
+    labels:
+      release: prometheus  # Match your Prometheus Operator release name
+    interval: 30s
+    scrapeTimeout: 10s
+
+  # PrometheusRule for alerting
+  alerts:
+    enabled: true
+    # Additional labels for PrometheusRule
+    labels:
+      release: prometheus
+
+  # Grafana dashboards (ConfigMaps)
+  grafana:
+    enabled: true
+    # Folder in Grafana to store dashboards
+    folder: "Jiffoo Mall"
+    # Dashboard provider label (must match Grafana sidecar config)
+    label: grafana_dashboard
+    labelValue: "1"

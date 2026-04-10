@@ -117,4 +117,44 @@ describe('market install binding guard', () => {
     });
     expect(mocks.authorizeInstall).not.toHaveBeenCalled();
   });
+
+  it('allows free official installs to continue without a platform binding', async () => {
+    mocks.getOfficialCatalogEntry.mockReturnValue({
+      slug: 'stripe',
+      kind: 'plugin',
+      defaultPricingModel: 'free',
+    });
+    mocks.authorizeInstall.mockResolvedValue({
+      allowed: true,
+      slug: 'stripe',
+      kind: 'plugin',
+      deliveryMode: 'package-managed',
+      paymentMode: 'platform_collect',
+      settlementTargetType: 'platform',
+      artifactKind: 'plugin-package',
+      version: '1.0.0',
+      packageUrl: 'https://platform.example.com/plugins/stripe/1.0.0.jplugin',
+      checksumUrl: 'https://platform.example.com/plugins/stripe/1.0.0.jplugin.sha256',
+      signatureUrl: 'https://platform.example.com/plugins/stripe/1.0.0.jplugin.sig',
+      pricingModel: 'free',
+      price: null,
+      currency: 'USD',
+      entitlement: {
+        required: false,
+        status: 'not_required',
+        pricingModel: 'free',
+      },
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/extensions/stripe/install',
+      payload: {
+        kind: 'plugin',
+      },
+    });
+
+    expect(response.statusCode).not.toBe(403);
+    expect(mocks.authorizeInstall).toHaveBeenCalled();
+  });
 });

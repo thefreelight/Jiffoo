@@ -1,0 +1,134 @@
+name: 🧹 Daily Runner Cleanup
+
+on:
+  schedule:
+    # 每天凌晨2点执行清理 (UTC时间)
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      cleanup_level:
+        description: 'Cleanup level'
+        required: true
+        default: 'normal'
+        type: choice
+        options:
+        - normal
+        - deep
+        - emergency
+
+jobs:
+  daily-cleanup:
+    name: 🧹 Dell R730 Daily Cleanup
+    runs-on: [self-hosted, linux, x64]
+    timeout-minutes: 30
+    
+    steps:
+      - name: 🧹 Daily system cleanup
+        run: |
+          echo "🧹 Starting daily cleanup..."
+          echo "📅 Date: $(date)"
+          echo "🔧 Cleanup level: ${{ github.event.inputs.cleanup_level || 'scheduled' }}"
+          
+          # 📊 显示清理前的系统状态
+          echo "📊 System status before cleanup:"
+          df -h / | head -2
+          docker system df || true
+          echo "💾 Memory usage: $(free -h | head -2)"
+          echo "🗂️ Temp directory size: $(du -sh /tmp 2>/dev/null || echo 'N/A')"
+          
+          # 🐳 Docker清理 (根据清理级别)
+          CLEANUP_LEVEL="${{ github.event.inputs.cleanup_level || 'normal' }}"
+          
+          if [ "$CLEANUP_LEVEL" = "emergency" ]; then
+            echo "🚨 EMERGENCY CLEANUP - Removing ALL Docker data!"
+            docker system prune -a -f --volumes || true
+            docker builder prune -a -f || true
+            
+          elif [ "$CLEANUP_LEVEL" = "deep" ]; then
+            echo "🔥 DEEP CLEANUP - Removing old Docker data"
+            docker container prune -f || true
+            docker image prune -a -f --filter until=6h || true
+            docker builder prune -a -f --filter until=168h || true  # 保留 7 天的 BuildKit 缓存
+            docker volume prune -f || true
+            docker network prune -f || true
+
+          else
+            echo "🧹 NORMAL CLEANUP - Removing unused Docker data"
+            docker container prune -f || true
+            docker image prune -f --filter until=24h || true
+            docker builder prune -f --filter until=168h || true  # 保留 7 天的 BuildKit 缓存
+            docker volume prune -f || true
+            docker network prune -f || true
+          fi
+          
+          # 🗑️ 清理系统临时文件
+          echo "🗑️ Cleaning system temp files..."
+          sudo rm -rf /tmp/* || true
+          sudo rm -rf /var/tmp/* || true
+          sudo rm -rf /var/log/*.log.* || true  # 清理旧日志文件
+          
+          # 🧹 清理用户缓存
+          echo "🧹 Cleaning user caches..."
+          rm -rf ~/.cache || true
+          rm -rf ~/.npm/_cacache || true
+          rm -rf ~/.pnpm-store || true
+          rm -rf ~/.yarn/cache || true
+          
+          # 🗂️ 清理GitHub Actions工作目录
+          echo "🗂️ Cleaning GitHub Actions workspace..."
+          find /home/runner/work -name "node_modules" -type d -exec rm -rf {} + 2>/dev/null || true
+          find /home/runner/work -name ".next" -type d -exec rm -rf {} + 2>/dev/null || true
+          find /home/runner/work -name "dist" -type d -exec rm -rf {} + 2>/dev/null || true
+          find /home/runner/work -name "build" -type d -exec rm -rf {} + 2>/dev/null || true
+          rm -rf /home/runner/work/_temp || true
+          
+          # 📊 显示清理后的系统状态
+          echo "📊 System status after cleanup:"
+          df -h / | head -2
+          docker system df || true
+          echo "💾 Memory usage: $(free -h | head -2)"
+          echo "🗂️ Temp directory size: $(du -sh /tmp 2>/dev/null || echo 'N/A')"
+          
+          # 🎯 磁盘使用分析和警告
+          DISK_USAGE=$(df / | tail -1 | awk '{print $5}' | sed 's/%//')
+          echo "📊 Current disk usage: ${DISK_USAGE}%"
+          
+          if [ "$DISK_USAGE" -gt 90 ]; then
+            echo "🚨 CRITICAL: Disk usage is ${DISK_USAGE}% - EMERGENCY CLEANUP NEEDED!"
+            exit 1
+          elif [ "$DISK_USAGE" -gt 80 ]; then
+            echo "⚠️ WARNING: Disk usage is ${DISK_USAGE}% - Consider deep cleanup!"
+          elif [ "$DISK_USAGE" -gt 70 ]; then
+            echo "⚠️ NOTICE: Disk usage is ${DISK_USAGE}% - Monitoring recommended"
+          else
+            echo "✅ Disk usage is ${DISK_USAGE}% - Healthy level"
+          fi
+          
+          # 📈 生成清理报告
+          echo "📈 Cleanup Report:"
+          echo "  🕐 Completed at: $(date)"
+          echo "  💿 Disk usage: ${DISK_USAGE}%"
+          echo "  🧹 Cleanup level: $CLEANUP_LEVEL"
+          echo "  🎯 Status: $([ "$DISK_USAGE" -lt 80 ] && echo "✅ Healthy" || echo "⚠️ Needs attention")"
+          
+          echo "✅ Daily cleanup completed!"
+          echo "🎉 Dell R730 runner is optimized and ready!"
+
+      - name: 📊 System health check
+        run: |
+          echo "📊 Post-cleanup system health check..."
+          
+          # 检查关键服务
+          echo "🔍 Checking Docker service..."
+          docker version || echo "❌ Docker service issue detected"
+          
+          echo "🔍 Checking disk space..."
+          df -h / | head -2
+          
+          echo "🔍 Checking memory..."
+          free -h | head -2
+          
+          echo "🔍 Checking system load..."
+          uptime
+          
+          echo "✅ System health check completed!"

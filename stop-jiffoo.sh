@@ -1,11 +1,9 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Jiffoo OSS local development shutdown helper
-echo "🛑 Stopping the Jiffoo OSS local development environment..."
+set -euo pipefail
 
-docker-compose -f docker-compose.dev.yml down
+ENV_FILE="${PWD}/.env.production.local"
+COMPOSE_FILE="${PWD}/docker-compose.prod.yml"
 
-echo "✅ All services have been stopped"
-echo ""
-echo "💡 Remove local data: docker-compose -f docker-compose.dev.yml down -v"
-echo "💡 Start again: ./start-jiffoo.sh"
+docker compose --env-file "${ENV_FILE}" -f "${COMPOSE_FILE}" down
+echo "Stopped Jiffoo services."

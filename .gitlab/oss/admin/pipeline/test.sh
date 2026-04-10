@@ -1,5 +1,5 @@
-#!/bin/sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 cd "${CI_PROJECT_DIR}"
 corepack enable

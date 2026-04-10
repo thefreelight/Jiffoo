@@ -1,0 +1,20 @@
+{{- if .Values.services.api.enabled }}
+{{- $serviceName := "api" }}
+{{- $serviceConfig := .Values.services.api }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "jiffoo-mall-core.fullname" . }}-{{ $serviceName }}
+  labels:
+    {{- include "jiffoo-mall-core.serviceLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "serviceName" $serviceName) | nindent 4 }}
+spec:
+  type: NodePort
+  ports:
+    - port: {{ $serviceConfig.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+      nodePort: {{ include "jiffoo-mall-core.nodePort" (dict "port" $serviceConfig.port) }}
+  selector:
+    {{- include "jiffoo-mall-core.serviceSelectorLabels" (dict "Chart" .Chart "Release" .Release "Values" .Values "serviceName" $serviceName) | nindent 4 }}
+{{- end }}

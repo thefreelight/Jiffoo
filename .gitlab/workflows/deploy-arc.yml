@@ -1,0 +1,210 @@
+name: Deploy ARC (Actions Runner Controller)
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - install-cert-manager
+          - install-arc-controller
+          - deploy-runners
+          - full-deployment
+          - uninstall
+
+env:
+  KUBECONFIG_PATH: /tmp/kubeconfig.yaml
+
+jobs:
+  deploy-arc:
+    runs-on: [self-hosted, k8s, test]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubeconfig
+        run: |
+          echo "${{ secrets.KUBECONFIG_KUNMING }}" | base64 -d > $KUBECONFIG_PATH
+          export KUBECONFIG=$KUBECONFIG_PATH
+          kubectl cluster-info
+
+      - name: Install cert-manager
+        if: ${{ github.event.inputs.action == 'install-cert-manager' || github.event.inputs.action == 'full-deployment' }}
+        run: |
+          export KUBECONFIG=$KUBECONFIG_PATH
+          
+          echo "📦 Installing cert-manager..."
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
+          
+          echo "⏳ Waiting for cert-manager to be ready..."
+          kubectl wait --for=condition=Available --timeout=300s \
+            deployment/cert-manager -n cert-manager
+          kubectl wait --for=condition=Available --timeout=300s \
+            deployment/cert-manager-webhook -n cert-manager
+          kubectl wait --for=condition=Available --timeout=300s \
+            deployment/cert-manager-cainjector -n cert-manager
+          
+          echo "✅ cert-manager installed successfully"
+
+      - name: Add ARC Helm repo
+        if: ${{ github.event.inputs.action == 'install-arc-controller' || github.event.inputs.action == 'full-deployment' }}
+        run: |
+          echo "📦 Adding ARC Helm repository..."
+          helm repo add actions-runner-controller https://actions-runner-controller.github.io/actions-runner-controller
+          helm repo update
+          echo "✅ Helm repo added"
+
+      - name: Install ARC Controller
+        if: ${{ github.event.inputs.action == 'install-arc-controller' || github.event.inputs.action == 'full-deployment' }}
+        run: |
+          export KUBECONFIG=$KUBECONFIG_PATH
+          
+          echo "🚀 Installing ARC Controller..."
+          
+          # Create values file
+          cat > /tmp/arc-values.yaml << EOF
+          authSecret:
+            create: true
+            github_token: "${{ secrets.GITHUB_PAT }}"
+          
+          replicaCount: 1
+          
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi
+          
+          logLevel: info
+          
+          nodeSelector:
+            kubernetes.io/hostname: k8s-master-01
+          
+          tolerations: []
+          
+          affinity: {}
+          EOF
+          
+          # Install ARC Controller
+          helm upgrade --install actions-runner-controller \
+            actions-runner-controller/actions-runner-controller \
+            --namespace github-runner \
+            --create-namespace \
+            --values /tmp/arc-values.yaml \
+            --wait \
+            --timeout 5m
+          
+          echo "✅ ARC Controller installed successfully"
+
+      - name: Deploy Runners
+        if: ${{ github.event.inputs.action == 'deploy-runners' || github.event.inputs.action == 'full-deployment' }}
+        run: |
+          export KUBECONFIG=$KUBECONFIG_PATH
+          
+          echo "🏃 Deploying ARC Runners..."
+          
+          # Create RunnerDeployment manifest
+          cat > /tmp/runner-deployment.yaml << 'EOF'
+          apiVersion: actions.summerwind.dev/v1alpha1
+          kind: RunnerDeployment
+          metadata:
+            name: github-runner
+            namespace: github-runner
+          spec:
+            replicas: 9
+            template:
+              spec:
+                repository: thefreelight/jiffoo-mall-core
+                labels:
+                  - k8s
+                  - test
+                  - self-hosted
+                ephemeral: true
+                dockerdWithinRunnerContainer: true
+                workDir: /runner/_work
+                env:
+                  - name: TURBO_API
+                    value: "http://192.168.0.113:3001"
+                  - name: TURBO_TOKEN
+                    value: "d7eb0b51c0899a3ef0c3a5cefc9989c45371d9974acd756c44bb967b0c0819af"
+                  - name: TURBO_TEAM
+                    value: "team_jiffoo-mall-core"
+                resources:
+                  limits:
+                    cpu: "4"
+                    memory: "8Gi"
+                  requests:
+                    cpu: "300m"
+                    memory: "2Gi"
+                nodeSelector:
+                  kubernetes.io/hostname: k8s-master-01
+                image: 192.168.0.114/jiffoo-mall/actions-runner:latest
+                imagePullPolicy: Always
+                imagePullSecrets:
+                  - name: harbor-secret
+                securityContext:
+                  privileged: true
+                  fsGroup: 121
+                volumeMounts:
+                  - name: work
+                    mountPath: /runner/_work
+                  - name: docker-sock
+                    mountPath: /var/run/docker.sock
+                volumes:
+                  - name: work
+                    emptyDir: {}
+                  - name: docker-sock
+                    hostPath:
+                      path: /var/run/docker.sock
+                      type: Socket
+          EOF
+          
+          # Apply RunnerDeployment
+          kubectl apply -f /tmp/runner-deployment.yaml
+          
+          echo "✅ Runners deployed successfully"
+          
+          # Wait for runners to be ready
+          echo "⏳ Waiting for runners to be ready..."
+          sleep 30
+          kubectl get pods -n github-runner -l app=github-runner
+
+      - name: Uninstall ARC
+        if: ${{ github.event.inputs.action == 'uninstall' }}
+        run: |
+          export KUBECONFIG=$KUBECONFIG_PATH
+          
+          echo "🗑️ Uninstalling ARC..."
+          
+          # Delete RunnerDeployment
+          kubectl delete runnerdeployment github-runner -n github-runner --ignore-not-found=true
+          
+          # Uninstall ARC Controller
+          helm uninstall actions-runner-controller -n github-runner --ignore-not-found
+          
+          echo "✅ ARC uninstalled successfully"
+
+      - name: Verify deployment
+        if: ${{ github.event.inputs.action != 'uninstall' }}
+        run: |
+          export KUBECONFIG=$KUBECONFIG_PATH
+          
+          echo "🔍 Verifying deployment..."
+          
+          echo "📊 ARC Controller status:"
+          kubectl get pods -n github-runner -l app.kubernetes.io/name=actions-runner-controller
+          
+          echo "📊 Runners status:"
+          kubectl get runnerdeployment -n github-runner
+          kubectl get pods -n github-runner -l app=github-runner
+          
+          echo "✅ Deployment verification complete"
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f $KUBECONFIG_PATH /tmp/arc-values.yaml /tmp/runner-deployment.yaml

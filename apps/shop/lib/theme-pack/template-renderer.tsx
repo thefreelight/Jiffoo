@@ -36,13 +36,12 @@ export function TemplateRenderer({
 }: TemplateRendererProps) {
   const themePack = useThemePackOptional();
   const embeddedRendererSlug = getEmbeddedRendererSlug(themePack?.manifest);
-  const loadPageTemplate = themePack?.loadPageTemplate;
   const [template, setTemplate] = useState<PageTemplate | null>(staticTemplate || null);
   const [isLoading, setIsLoading] = useState(!staticTemplate);
 
   // Load template
   useEffect(() => {
-    if (staticTemplate || !loadPageTemplate || embeddedRendererSlug) {
+    if (staticTemplate || !themePack || embeddedRendererSlug) {
       setIsLoading(false);
       return;
     }
@@ -50,12 +49,8 @@ export function TemplateRenderer({
     let mounted = true;
 
     async function load() {
-      if (!loadPageTemplate) {
-        setIsLoading(false);
-        return;
-      }
       setIsLoading(true);
-      const loadedTemplate = await loadPageTemplate(page);
+      const loadedTemplate = await themePack!.loadPageTemplate(page);
       if (mounted) {
         setTemplate(loadedTemplate);
         setIsLoading(false);
@@ -67,7 +62,7 @@ export function TemplateRenderer({
     return () => {
       mounted = false;
     };
-  }, [page, staticTemplate, loadPageTemplate, embeddedRendererSlug]);
+  }, [page, staticTemplate, themePack, embeddedRendererSlug]);
 
   // If no theme pack or loading
   if (isLoading) {

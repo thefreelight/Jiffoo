@@ -32,43 +32,37 @@ export async function generateMetadata(): Promise<Metadata> {
   const publicOrigin = await resolvePublicOrigin();
   const metadataBase = new URL(publicOrigin);
   const socialImageUrl = new URL('/icon-512x512.png', metadataBase).toString();
-  const context = await getServerStoreContext();
-  const storeName = context?.storeName?.trim() || 'Jiffoo Mall';
-  const description =
-    typeof context?.settings?.description === 'string' && context.settings.description.trim().length > 0
-      ? context.settings.description.trim()
-      : `${storeName} online storefront.`;
 
   return {
     metadataBase,
     title: {
-      default: storeName,
-      template: `%s | ${storeName}`,
+      default: 'Jiffoo Mall - Modern E-commerce System',
+      template: '%s | Jiffoo Mall',
     },
-    description,
+    description: 'A modern, fast, and beautiful e-commerce system built with Next.js and TypeScript.',
     keywords: ['e-commerce', 'shopping', 'online store', 'modern', 'fast', 'beautiful'],
-    authors: [{ name: storeName }],
-    creator: storeName,
+    authors: [{ name: 'Jiffoo Team' }],
+    creator: 'Jiffoo Team',
     openGraph: {
       type: 'website',
       locale: 'en_US',
       url: publicOrigin,
-      title: storeName,
-      description,
-      siteName: storeName,
+      title: 'Jiffoo Mall - Modern E-commerce System',
+      description: 'A modern, fast, and beautiful e-commerce system built with Next.js and TypeScript.',
+      siteName: 'Jiffoo Mall',
       images: [
         {
           url: socialImageUrl,
           width: 512,
           height: 512,
-          alt: storeName,
+          alt: 'Jiffoo Mall',
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: storeName,
-      description,
+      title: 'Jiffoo Mall - Modern E-commerce System',
+      description: 'A modern, fast, and beautiful e-commerce system built with Next.js and TypeScript.',
       images: [socialImageUrl],
     },
     robots: {
@@ -92,7 +86,7 @@ export async function generateMetadata(): Promise<Metadata> {
       'apple-mobile-web-app-capable': 'yes',
       'apple-mobile-web-app-status-bar-style': 'black-translucent',
       'mobile-web-app-capable': 'yes',
-      'apple-mobile-web-app-title': storeName,
+      'apple-mobile-web-app-title': 'Jiffoo Mall',
     },
   };
 }

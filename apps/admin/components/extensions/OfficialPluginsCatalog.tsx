@@ -162,7 +162,7 @@ export function OfficialPluginsCatalog({
           </Alert>
         ) : null}
 
-        {!isLoading && marketOnline && !marketplaceReady && !managedPackage ? (
+        {!isLoading && marketOnline && !marketplaceReady && !managedPackage && visibleItems.some((item) => item.pricingModel !== 'free') ? (
           <Alert className="mt-4 border-slate-200 bg-slate-50 text-slate-900">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>{getText('merchant.extensions.platformConnectionRequired', 'Platform connection required')}</AlertTitle>
@@ -199,7 +199,7 @@ export function OfficialPluginsCatalog({
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, index) => (
             <Card key={`official-plugin-skeleton-${index}`} className="rounded-[1.75rem] border-gray-100">
               <CardContent className="p-6">
@@ -222,16 +222,17 @@ export function OfficialPluginsCatalog({
             : getText('merchant.extensions.noOfficialMatches', 'No official plugins match the current filter.')}
         </div>
       ) : (
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {filteredItems.map((item) => {
             const solutionMeta = item.solutionPackage;
             const controlPlaneSolution = item.solutionOffer;
             const hasSolutionSemantics = solutionMeta?.offerKind === 'theme_first_solution' || controlPlaneSolution?.offerKind === 'theme_first_solution';
             const isInstalling = installingSlug === item.slug || (isProvisioningPackage && solutionMeta?.offerKind === 'theme_first_solution');
             const showConfigure = item.installState === 'installed' && item.configRequired && !item.configReady;
+            const requiresPlatformBinding = item.pricingModel !== 'free';
             const installDisabled =
               item.installState === 'not_installed' &&
-              (!marketOnline || !marketplaceReady || !item.availableInMarket || isInstalling);
+              (!marketOnline || !item.availableInMarket || (requiresPlatformBinding && !marketplaceReady) || isInstalling);
             const effectiveInstallDisabled =
               managedPackage && item.installState === 'not_installed'
                 ? isInstalling || managedPackage.status === 'SUSPENDED'
@@ -269,96 +270,100 @@ export function OfficialPluginsCatalog({
               : formatPrice(item);
 
             return (
-              <Card key={item.slug} className="overflow-hidden rounded-[1.75rem] border-gray-100 shadow-sm">
-                <CardContent className="p-6">
-                  <div className="flex items-start gap-4">
-                    <ExtensionAvatar
-                      slug={item.slug}
-                      name={item.name}
-                      kind="plugin"
-                      thumbnailUrl={item.thumbnailUrl}
-                      className="h-14 w-14 shrink-0"
-                    />
+              <Card key={item.slug} className="overflow-hidden rounded-[1.35rem] border-gray-100 shadow-sm">
+                <CardContent className="p-4">
+                  <div className="flex h-full flex-col gap-4">
+                    <div className="flex items-start gap-3">
+                      <ExtensionAvatar
+                        slug={item.slug}
+                        name={item.name}
+                        kind="plugin"
+                        thumbnailUrl={item.thumbnailUrl}
+                        className="h-10 w-10 shrink-0"
+                      />
 
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="text-lg font-semibold text-slate-950">{item.name}</h4>
-                        <OfficialBadge compact />
-                        {hasSolutionSemantics ? (
-                          <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
-                            <ShieldCheck className="mr-1 h-3.5 w-3.5" />
-                            {controlPlaneSolution?.badgeLabel || getText('merchant.package.solutionBadge', 'Theme-first solution')}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="text-base font-semibold text-slate-950">{item.name}</h4>
+                          <OfficialBadge compact />
+                          {hasSolutionSemantics ? (
+                            <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
+                              <ShieldCheck className="mr-1 h-3.5 w-3.5" />
+                              {controlPlaneSolution?.badgeLabel || getText('merchant.package.solutionBadge', 'Theme-first solution')}
+                            </Badge>
+                          ) : null}
+                          <Badge variant="outline" className={`rounded-full capitalize ${getReleaseTone(item)}`}>
+                            {item.releaseStatus === 'published'
+                              ? getText('merchant.extensions.releasePublished', 'Published')
+                              : item.releaseStatus === 'offline'
+                                ? getText('merchant.extensions.releaseOffline', 'Offline')
+                                : getText('merchant.extensions.releaseCatalogOnly', 'Catalog only')}
                           </Badge>
-                        ) : null}
-                        <Badge variant="outline" className={`rounded-full capitalize ${getReleaseTone(item)}`}>
-                          {item.releaseStatus === 'published'
-                            ? getText('merchant.extensions.releasePublished', 'Published')
-                            : item.releaseStatus === 'offline'
-                              ? getText('merchant.extensions.releaseOffline', 'Offline')
-                              : getText('merchant.extensions.releaseCatalogOnly', 'Catalog only')}
-                        </Badge>
-                        <Badge variant="outline" className={`rounded-full capitalize ${getInstallTone(item)}`}>
-                          {item.installState.replace('_', ' ')}
-                        </Badge>
-                      </div>
-
-                      <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                        <span>v{item.version}</span>
-                        <span className="text-slate-300">•</span>
-                        <span>{item.author}</span>
-                        <span className="text-slate-300">•</span>
-                        <span className="capitalize">{item.category}</span>
-                      </div>
-
-                      <p className="mt-3 text-sm leading-6 text-slate-600">{item.description}</p>
-
-                      {hasSolutionSemantics ? (
-                        <div className="mt-3 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-blue-900">
-                          {controlPlaneSolution?.summary ||
-                            getText(
-                              'merchant.package.includedPluginExplanation',
-                              'This plugin is part of the managed solution package and powers companion runtime capability behind the storefront theme.'
-                            )}
+                          <Badge variant="outline" className={`rounded-full capitalize ${getInstallTone(item)}`}>
+                            {item.installState.replace('_', ' ')}
+                          </Badge>
                         </div>
+
+                        <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                          <span>v{item.version}</span>
+                          <span className="text-slate-300">•</span>
+                          <span>{item.author}</span>
+                          <span className="text-slate-300">•</span>
+                          <span className="capitalize">{item.category}</span>
+                        </div>
+
+                        <p className="mt-2 line-clamp-3 text-sm leading-5 text-slate-600">{item.description}</p>
+
+                        {hasSolutionSemantics ? (
+                          <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-sm text-blue-900">
+                            {controlPlaneSolution?.summary ||
+                              getText(
+                                'merchant.package.includedPluginExplanation',
+                                'This plugin is part of the managed solution package and powers companion runtime capability behind the storefront theme.'
+                              )}
+                          </div>
+                        ) : null}
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                            {priceLabel}
+                          </Badge>
+                          <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                            {getText('merchant.extensions.deliveryMode', 'Delivery')}: {item.deliveryMode}
+                          </Badge>
+                          <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                            {getText('merchant.extensions.downloads', 'Downloads')}: {item.downloads ?? 0}
+                          </Badge>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 flex flex-col gap-3">
+                    <Button
+                      onClick={handlePrimaryAction}
+                      disabled={effectiveInstallDisabled}
+                      className="w-full rounded-lg"
+                    >
+                      {isInstalling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Settings2 className="mr-2 h-4 w-4" />}
+                      {primaryActionLabel}
+                    </Button>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {hasSolutionSemantics ? (
+                        <Button asChild variant="outline" className="rounded-lg">
+                          <Link href={`/${locale}/package`}>
+                            {getText('merchant.package.openPackageWorkspace', 'Open Your Package')}
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
                       ) : null}
 
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                          {priceLabel}
-                        </Badge>
-                        <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                          {getText('merchant.extensions.deliveryMode', 'Delivery')}: {item.deliveryMode}
-                        </Badge>
-                        <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                          {getText('merchant.extensions.downloads', 'Downloads')}: {item.downloads ?? 0}
-                        </Badge>
-                      </div>
-
-                      <div className="mt-5 flex flex-wrap items-center gap-3">
-                        <Button
-                          onClick={handlePrimaryAction}
-                          disabled={effectiveInstallDisabled}
-                          className="rounded-xl"
-                        >
-                          {isInstalling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Settings2 className="mr-2 h-4 w-4" />}
-                          {primaryActionLabel}
-                        </Button>
-
-                        {hasSolutionSemantics ? (
-                          <Button asChild variant="outline" className="rounded-xl">
-                            <Link href={`/${locale}/package`}>
-                              {getText('merchant.package.openPackageWorkspace', 'Open Your Package')}
-                              <ArrowRight className="ml-2 h-4 w-4" />
-                            </Link>
-                          </Button>
-                        ) : null}
-
-                        {item.configRequired && !item.configReady ? (
-                          <p className="text-xs font-medium text-amber-700">
-                            {getText('merchant.plugins.needsConfiguration', 'Needs configuration before it can be enabled.')}
-                          </p>
-                        ) : null}
-                      </div>
+                      {item.configRequired && !item.configReady ? (
+                        <p className="text-xs font-medium text-amber-700">
+                          {getText('merchant.plugins.needsConfiguration', 'Needs configuration before it can be enabled.')}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </CardContent>

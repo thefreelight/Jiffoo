@@ -25,7 +25,7 @@ plugins/core/services/license.*
 # Payment Providers (contain API keys and sensitive logic)
 apps/backend/src/core/payment/providers/
 
-# Plugin placeholders and backup files
+# 插件系统和其他备份文件
 backup/
 
 # Sync and Deployment Scripts
@@ -76,11 +76,12 @@ Thumbs.db
 *.bak
 *.old
 
-# Documentation (internal) - moved to backup/
+# Documentation (internal) - 已移动到backup/
 # DOCKER_SETUP.md
 # HEAT_UPDATE_SUMMARY.md
 # PROJECT_STRUCTURE.md
 # REQUIREMENTS.md
+# 产品需求文档.md
 # PRODUCT_REQUIREMENTS.md
 # DEPLOYMENT.md
 .env.prod
@@ -120,7 +121,7 @@ backups/commercial-protection/
 plugins/core/managers/installer.ts
 plugins/core/types/index.*
 
-# Note: unified-manager.ts is intentionally included as an open-source stub
+# Note: unified-manager.ts is now included as open source stub version
 
 # Kubernetes Deployment (contains secrets)
 deploy/k8s/arc-values.yaml
@@ -131,7 +132,7 @@ deploy/k8s/gitlab/
 kubeconfig*
 *.kubeconfig
 
-# Internal specs and planning
+# Internal Specs and Planning
 .kiro/
 
 # Super Admin (Platform Management - Private)

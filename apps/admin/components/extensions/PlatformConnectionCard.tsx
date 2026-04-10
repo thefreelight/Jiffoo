@@ -1,10 +1,9 @@
 'use client';
 
-import { useMemo, useState } from 'react';
-import { AlertCircle, CheckCircle2, Link2, Loader2, PlugZap, RefreshCcw, ShieldCheck, Store } from 'lucide-react';
+import { useMemo } from 'react';
+import { AlertCircle, Link2, Loader2, PlugZap, RefreshCcw, ShieldCheck, Store } from 'lucide-react';
 import {
   useBindPlatformTenant,
-  useCompletePlatformConnection,
   useDisconnectPlatformConnection,
   usePlatformConnectionStatus,
   usePollPlatformConnection,
@@ -13,8 +12,6 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 interface PlatformConnectionCardProps {
@@ -48,28 +45,56 @@ function renderStatusCopy(status: NonNullable<ReturnType<typeof usePlatformConne
   }
 }
 
+function isPendingCodeExpired(expiresAt?: string | null): boolean {
+  if (!expiresAt) {
+    return false;
+  }
+
+  const expiresAtTime = Date.parse(expiresAt);
+  return Number.isFinite(expiresAtTime) && expiresAtTime <= Date.now();
+}
+
+function formatExpiryCopy(expiresAt?: string | null): string | null {
+  if (!expiresAt) {
+    return null;
+  }
+
+  const expiresAtTime = Date.parse(expiresAt);
+  if (!Number.isFinite(expiresAtTime)) {
+    return null;
+  }
+
+  const minutesRemaining = Math.max(0, Math.ceil((expiresAtTime - Date.now()) / 60_000));
+  if (minutesRemaining <= 0) {
+    return 'This code has expired. Click Connect again to get a new one.';
+  }
+
+  if (minutesRemaining === 1) {
+    return 'This code expires in about 1 minute.';
+  }
+
+  return `This code expires in about ${minutesRemaining} minutes.`;
+}
+
 export function PlatformConnectionCard({ getText }: PlatformConnectionCardProps) {
   const { data: status, isLoading } = usePlatformConnectionStatus();
   const startMutation = useStartPlatformConnection();
   const pollMutation = usePollPlatformConnection();
-  const completeMutation = useCompletePlatformConnection();
   const bindTenantMutation = useBindPlatformTenant();
   const disconnectMutation = useDisconnectPlatformConnection();
 
-  const [accountEmail, setAccountEmail] = useState('merchant@workspace.local');
-  const [accountName, setAccountName] = useState('Merchant Owner');
-
   const pendingDevice = status?.pending;
+  const pendingExpired = isPendingCodeExpired(pendingDevice?.expiresAt);
+  const pendingExpiryCopy = formatExpiryCopy(pendingDevice?.expiresAt);
   const isBusy =
     startMutation.isPending ||
     pollMutation.isPending ||
-    completeMutation.isPending ||
     bindTenantMutation.isPending ||
     disconnectMutation.isPending;
 
   const canStart = !status || status.status === 'unbound';
   const canRefreshPending = status?.status === 'pending' && pendingDevice?.deviceCode;
-  const canComplete = status?.status === 'pending' && pendingDevice?.deviceCode;
+  const canRestartPending = status?.status === 'pending';
   const canBindTenant = status?.instanceBound && !status?.tenantBound;
 
   const tone = useMemo(() => {
@@ -183,21 +208,20 @@ export function PlatformConnectionCard({ getText }: PlatformConnectionCardProps)
             </Button>
           ) : null}
 
-          {canComplete ? (
+          {canRestartPending ? (
             <Button
               variant="outline"
               onClick={() =>
-                completeMutation.mutate({
-                  deviceCode: pendingDevice!.deviceCode,
-                  accountEmail,
-                  accountName,
+                startMutation.mutate({
+                  instanceName: resolveDefaultInstanceName(),
+                  originUrl: resolveDefaultOrigin(),
                 })
               }
-              disabled={isBusy || !accountEmail.trim()}
+              disabled={isBusy}
               className="rounded-xl"
             >
-              {completeMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
-              {getText('merchant.extensions.completePlatformConnection', 'Complete')}
+              {startMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCcw className="mr-2 h-4 w-4" />}
+              {getText('merchant.extensions.restartPlatformConnection', 'Get new code')}
             </Button>
           ) : null}
 
@@ -233,32 +257,36 @@ export function PlatformConnectionCard({ getText }: PlatformConnectionCardProps)
           <AlertTitle>{getText('merchant.extensions.platformDeviceCode', 'Finish the sign-in flow')}</AlertTitle>
           <AlertDescription className="space-y-4">
             <p>
-              {getText('merchant.extensions.platformDeviceCodeDescription', 'Use the code below in the Jiffoo Platform bootstrap flow, then confirm the account details here.')}
+              {getText('merchant.extensions.platformDeviceCodeDescription', 'Open the secure platform page below. The code is already filled in there, so you only need to confirm which platform account should own this instance.')}
             </p>
             <div className="rounded-xl border border-dashed border-amber-300 bg-amber-50 px-4 py-3 font-mono text-lg tracking-[0.25em] text-amber-900">
               {status.pending?.userCode}
             </div>
-            <p className="text-xs text-slate-500">{status.pending?.verifyUrl}</p>
-            <div className="grid gap-4 md:grid-cols-2">
+            {pendingExpiryCopy ? (
+              <p className={cn('text-xs', pendingExpired ? 'font-medium text-amber-800' : 'text-slate-500')}>
+                {pendingExpiryCopy}
+              </p>
+            ) : null}
+            {status.pending?.verifyUrl ? (
               <div className="space-y-2">
-                <Label htmlFor="platform-account-email">{getText('merchant.extensions.platformAccountEmail', 'Platform account email')}</Label>
-                <Input
-                  id="platform-account-email"
-                  type="email"
-                  value={accountEmail}
-                  onChange={(event) => setAccountEmail(event.target.value)}
-                  className="rounded-xl"
-                />
+                <a
+                  href={status.pending.verifyUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-blue-700 underline-offset-4 hover:underline"
+                >
+                  <Link2 className="h-4 w-4" />
+                  {getText('merchant.extensions.openPlatformConnect', 'Open platform connect page')}
+                </a>
+                <p className="text-xs text-slate-500 break-all">{status.pending.verifyUrl}</p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="platform-account-name">{getText('merchant.extensions.platformAccountName', 'Platform account name')}</Label>
-                <Input
-                  id="platform-account-name"
-                  value={accountName}
-                  onChange={(event) => setAccountName(event.target.value)}
-                  className="rounded-xl"
-                />
-              </div>
+            ) : (
+              <p className="text-xs text-slate-500">
+                {getText('merchant.extensions.platformVerifyUrlMissing', 'The platform verification page is not available yet. Keep this code and try again later.')}
+              </p>
+            )}
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+              {getText('merchant.extensions.platformPendingNextStep', 'After the platform page confirms the account, return here and click Refresh. Jiffoo will detect the finished authorization automatically.')}
             </div>
           </AlertDescription>
         </Alert>

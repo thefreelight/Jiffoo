@@ -47,8 +47,7 @@
     "test:e2e:report": "playwright show-report apps/api/tests/e2e/playwright-report",
     "changeset": "changeset",
     "version:bump": "changeset version",
-    "release": "pnpm version:bump && pnpm build",
-    "smoke:opensource-build": "bash scripts/test-opensource-build.sh"
+    "release": "pnpm version:bump && pnpm build"
   },
   "lint-staged": {
     "apps/api/src/**/*.ts": [

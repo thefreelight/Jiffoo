@@ -1,0 +1,74 @@
+# Buildkite Pipeline for Jiffoo Mall Core
+# 🚀 Dell R730 16C32G Ultimate - 9 个服务并行构建
+
+env:
+  REGISTRY: "192.168.0.113:5000"
+  IMAGE_NAME: "jiffoo-mall-core"
+  TURBO_API: "http://192.168.0.113:3001"
+  TURBO_TOKEN: "${TURBO_TOKEN}"
+  TURBO_TEAM: "jiffoo-mall-core"
+  HTTP_PROXY: "http://192.168.0.106:7890"
+  HTTPS_PROXY: "http://192.168.0.106:7890"
+  DOCKER_BUILDKIT: "1"
+  BUILDKIT_PROGRESS: "plain"
+
+steps:
+  - label: "🖥️ Environment Info"
+    key: "env-info"
+    command: |
+      echo "--- 🖥️ Dell R730 16C32G Ultimate Environment"
+      echo "Runner: $(hostname)"
+      echo "CPU Cores: $(nproc)"
+      echo "Memory: $(free -h | grep Mem | awk '{print $2}')"
+      echo "Docker: $(docker --version)"
+      echo "Buildkite Agent: $(buildkite-agent --version)"
+    agents:
+      queue: "default"
+
+  - wait
+
+  - label: "🏗️ Build {{matrix}}"
+    key: "build-{{matrix}}"
+    command: |
+      echo "--- 🏗️ Building {{matrix}}"
+      docker build \
+        --build-arg BUILDKIT_INLINE_CACHE=1 \
+        --cache-from ${REGISTRY}/${IMAGE_NAME}/{{matrix}}:latest \
+        --tag ${REGISTRY}/${IMAGE_NAME}/{{matrix}}:${BUILDKITE_COMMIT:0:7} \
+        --tag ${REGISTRY}/${IMAGE_NAME}/{{matrix}}:latest \
+        --file apps/{{matrix}}/Dockerfile \
+        .
+      
+      echo "--- 📤 Pushing {{matrix}}"
+      docker push ${REGISTRY}/${IMAGE_NAME}/{{matrix}}:${BUILDKITE_COMMIT:0:7}
+      docker push ${REGISTRY}/${IMAGE_NAME}/{{matrix}}:latest
+    
+    matrix:
+      - "backend"
+      - "frontend"
+      - "admin"
+      - "super-admin"
+      - "agent-portal"
+      - "white-label"
+      - "distribution-plugin"
+      - "docs-internal"
+      - "docs-public"
+    
+    agents:
+      queue: "default"
+
+  - wait
+
+  - label: "🚀 Deploy to Dev"
+    key: "deploy-dev"
+    command: |
+      echo "--- 🚀 Deploying to Dev (Kunming)"
+      helm upgrade --install jiffoo-mall-core-dev deploy/helm/app/ \
+        -f deploy/helm/app/values-dev.yaml \
+        -n jiffoo-mall-core-dev \
+        --set image.tag=${BUILDKITE_COMMIT:0:7} \
+        --wait \
+        --timeout 10m
+    agents:
+      queue: "default"
+    branches: "main develop"

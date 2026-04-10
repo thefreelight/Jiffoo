@@ -1,0 +1,180 @@
+# Production environment overrides
+global:
+  image:
+    tag: latest
+
+# Production resources
+# 服务名映射: backend→api, super-admin→admin, admin→tenant, frontend→shop, agent-portal→agent
+services:
+  api:
+    replicaCount: 3
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+
+  shop:
+    replicaCount: 3
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+
+  tenant:
+    replicaCount: 2
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+
+  admin:
+    replicaCount: 2
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+
+  agent:
+    replicaCount: 2
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+
+  white-label:
+    replicaCount: 2
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+
+  distribution-plugin:
+    replicaCount: 2
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+
+  docs-internal:
+    replicaCount: 2
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 200m
+        memory: 512Mi
+
+  docs-public:
+    replicaCount: 2
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 200m
+        memory: 512Mi
+
+# Production-specific configuration
+config:
+  enabled: true
+  data:
+    NODE_ENV: "production"
+    LOG_LEVEL: "info"
+    # Frontend API URLs for production
+    # 服务名映射: SUPER_ADMIN→ADMIN, ADMIN→TENANT, FRONTEND→SHOP, AGENT_PORTAL→AGENT
+    NEXT_PUBLIC_API_URL: "https://api.jiffoo.com"
+    NEXT_PUBLIC_TENANT_API_URL: "https://api.jiffoo.com"
+    NEXT_PUBLIC_ADMIN_API_URL: "https://api.jiffoo.com"
+    NEXT_PUBLIC_AGENT_API_URL: "https://api.jiffoo.com"
+    NEXT_PUBLIC_WHITE_LABEL_API_URL: "https://api.jiffoo.com"
+    NEXT_PUBLIC_DISTRIBUTION_API_URL: "https://api.jiffoo.com"
+
+# Production ingress configuration (using Traefik)
+# 服务名映射: backend→api, super-admin→admin, admin→tenant, frontend→shop, agent-portal→agent
+ingress:
+  enabled: true
+  className: "traefik"
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    traefik.ingress.kubernetes.io/redirect-entry-point: "https"
+    traefik.ingress.kubernetes.io/redirect-permanent: "true"
+  hosts:
+    - host: jiffoo.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: shop
+    - host: api.jiffoo.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: api
+    - host: tenant.jiffoo.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: tenant
+    - host: admin.jiffoo.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: admin
+    - host: agents.jiffoo.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: agent
+    - host: white-label.jiffoo.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: white-label
+    - host: distribution.jiffoo.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: distribution-plugin
+    - host: docs.jiffoo.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: docs-internal
+    - host: open.jiffoo.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: docs-public
+  tls:
+    - hosts:
+        - jiffoo.com
+        - api.jiffoo.com
+        - tenant.jiffoo.com
+        - admin.jiffoo.com
+        - agents.jiffoo.com
+        - white-label.jiffoo.com
+        - distribution.jiffoo.com
+        - docs.jiffoo.com
+        - open.jiffoo.com
+      secretName: jiffoo-wildcard-tls

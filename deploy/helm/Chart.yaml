@@ -1,0 +1,17 @@
+apiVersion: v2
+name: jiffoo-mall-core
+description: Helm chart for Jiffoo Mall Core - Complete E-commerce Platform
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+keywords:
+  - ecommerce
+  - microservices
+  - nodejs
+  - nextjs
+home: https://github.com/thefreelight/jiffoo-mall-core
+sources:
+  - https://github.com/thefreelight/jiffoo-mall-core
+maintainers:
+  - name: Jiffoo Team
+    email: support@jiffoo.com

@@ -1,0 +1,151 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.selfhost
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
+    image: ${API_IMAGE:-jiffoo/api:self-hosted}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?schema=public
+      REDIS_URL: redis://redis:6379
+      API_PORT: 3002
+      API_HOST: 0.0.0.0
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
+      EXTENSION_SIGNATURE_VERIFY: ${EXTENSION_SIGNATURE_VERIFY:-optional}
+      CORS_ENABLED: "true"
+      CORS_CREDENTIALS: "true"
+      CORS_ORIGIN: ${JIFFOO_CORS_ORIGIN}
+      API_SERVICE_URL: ${JIFFOO_PUBLIC_API_URL}
+      NEXT_PUBLIC_API_URL: ${JIFFOO_PUBLIC_API_URL}/api
+      NEXT_PUBLIC_ADMIN_URL: ${JIFFOO_PUBLIC_ADMIN_URL}
+      NEXT_PUBLIC_TENANT_URL: ${JIFFOO_PUBLIC_ADMIN_URL}
+      NEXT_PUBLIC_SHOP_URL: ${JIFFOO_PUBLIC_SHOP_URL}
+      PLATFORM_MAIN_DOMAIN: ${JIFFOO_MAIN_DOMAIN}
+      PLATFORM_SHOP_DOMAIN: ${JIFFOO_SHOP_DOMAIN}
+      PLATFORM_ADMIN_DOMAIN: ${JIFFOO_ADMIN_DOMAIN}
+      PLATFORM_API_DOMAIN: ${JIFFOO_API_DOMAIN}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@example.com}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Jiffoo}
+      EMAIL_REPLY_TO: ${EMAIL_REPLY_TO:-support@example.com}
+      NEXT_PUBLIC_AGENT_URL: ${NEXT_PUBLIC_AGENT_URL:-http://localhost:3010}
+      NEXT_PUBLIC_WHITE_LABEL_URL: ${NEXT_PUBLIC_WHITE_LABEL_URL:-http://localhost:3011}
+      NEXT_PUBLIC_DISTRIBUTION_PLUGIN_URL: ${NEXT_PUBLIC_DISTRIBUTION_PLUGIN_URL:-http://localhost:3012}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_placeholder}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:-pk_test_placeholder}
+      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:-pk_test_placeholder}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_test_placeholder}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-local-google-client}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-local-google-secret}
+      GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3001/api/auth/google/callback}
+      RESEND_API_KEY: ${RESEND_API_KEY:-re_local_placeholder}
+      RESEND_WEBHOOK_SECRET: ${RESEND_WEBHOOK_SECRET:-whsec_resend_placeholder}
+      MARKET_API_URL: ${MARKET_API_URL:-https://platform-api.jiffoo.com/api}
+    ports:
+      - "${JIFFOO_API_PORT:-3001}:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - jiffoo_logs:/app/logs
+      - jiffoo_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3002/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+
+  shop:
+    build:
+      context: .
+      dockerfile: apps/shop/Dockerfile
+      args:
+        NODE_BASE_IMAGE: node:20-alpine
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        NO_PROXY: localhost,127.0.0.1,api
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
+        API_SERVICE_URL: http://api:3002
+        NEXT_PUBLIC_SHOP_URL: ${JIFFOO_PUBLIC_SHOP_URL}
+        NEXT_PUBLIC_API_URL: ${JIFFOO_PUBLIC_API_URL}/api
+    image: ${SHOP_IMAGE:-jiffoo/shop:self-hosted}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      API_SERVICE_URL: http://api:3002
+      NEXT_PUBLIC_API_URL: ${JIFFOO_PUBLIC_API_URL}/api
+      NEXT_PUBLIC_SHOP_URL: ${JIFFOO_PUBLIC_SHOP_URL}
+    ports:
+      - "${JIFFOO_SHOP_PORT:-3000}:3001"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+      args:
+        NODE_BASE_IMAGE: node:20-alpine
+        HTTP_PROXY: ""
+        HTTPS_PROXY: ""
+        NO_PROXY: localhost,127.0.0.1,api
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
+        API_SERVICE_URL: http://api:3002
+    image: ${ADMIN_IMAGE:-jiffoo/admin:self-hosted}
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3003
+      API_SERVICE_URL: http://api:3002
+      NEXT_PUBLIC_API_URL: ${JIFFOO_PUBLIC_API_URL}/api
+      NEXT_PUBLIC_ADMIN_URL: ${JIFFOO_PUBLIC_ADMIN_URL}
+    ports:
+      - "${JIFFOO_ADMIN_PORT:-3002}:3003"
+    depends_on:
+      api:
+        condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:
+  jiffoo_logs:
+  jiffoo_uploads:

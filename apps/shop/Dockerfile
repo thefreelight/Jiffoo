@@ -23,7 +23,8 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # The Shop image only needs Node.js and the standalone Next.js output.
-# Avoid apk network fetches here so CI is not coupled to external Alpine mirrors.
+# Install git because Next.js may inspect repository metadata during build.
+RUN apk add --no-cache git
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -37,10 +38,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/shop/package.json ./apps/shop/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/shop-themes/default/package.json ./packages/shop-themes/default/
-
 COPY packages/ui/package.json ./packages/ui/
-COPY packages/theme-api-sdk/package.json ./packages/theme-api-sdk/
-COPY packages/core-api-sdk/package.json ./packages/core-api-sdk/
 
 # Install dependencies using a public npm mirror by default.
 # CI can still override NPM_REGISTRY when an internal cache is healthy.
@@ -106,6 +104,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy the built application
+COPY --from=builder /app/install.sh ./install.sh
 COPY --from=builder /app/apps/shop/public ./apps/shop/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/shop/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/shop/.next/static ./apps/shop/.next/static

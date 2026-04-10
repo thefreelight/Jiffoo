@@ -12,6 +12,8 @@
 
 import { LOCALES, DEFAULT_LOCALE } from 'shared/src/i18n';
 import { createProxyHandler, type ProxyConfig } from 'shared/src/proxy';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 /**
  * Shop proxy configuration
@@ -31,7 +33,26 @@ const shopProxyConfig: ProxyConfig = {
  * 3. Handle locale redirect if no locale prefix
  * 4. Pass through
  */
-export const proxy = createProxyHandler(shopProxyConfig);
+const baseProxy = createProxyHandler(shopProxyConfig);
+
+function isInstallRootRequest(request: NextRequest): boolean {
+  const host = request.headers.get('host')?.split(':')[0]?.toLowerCase();
+  const pathname = request.nextUrl.pathname;
+
+  if (host !== 'get.jiffoo.com') {
+    return false;
+  }
+
+  return pathname === '/' || pathname === `/${DEFAULT_LOCALE}`;
+}
+
+export async function proxy(request: NextRequest) {
+  if (isInstallRootRequest(request)) {
+    return NextResponse.redirect(new URL('/install.sh', request.url));
+  }
+
+  return baseProxy(request);
+}
 
 /**
  * Matcher configuration

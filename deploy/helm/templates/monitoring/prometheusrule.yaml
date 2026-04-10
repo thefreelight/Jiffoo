@@ -1,0 +1,120 @@
+{{- if and .Values.monitoring.enabled .Values.monitoring.alerts.enabled }}
+# PrometheusRule for alerting
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "jiffoo-mall-core.fullname" . }}-alerts
+  labels:
+    {{- include "jiffoo-mall-core.labels" . | nindent 4 }}
+    app.kubernetes.io/component: monitoring
+  {{- with .Values.monitoring.alerts.labels }}
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  groups:
+    - name: jiffoo-mall-backend
+      rules:
+        # 1. High 5xx Error Rate
+        - alert: JiffooBackendHighErrorRate
+          expr: |
+            (
+              sum(rate(http_errors_total{service="{{ include "jiffoo-mall-core.fullname" . }}-backend"}[5m])) 
+              / 
+              sum(rate(http_requests_total{service="{{ include "jiffoo-mall-core.fullname" . }}-backend"}[5m]))
+            ) > 0.05
+          for: 2m
+          labels:
+            severity: critical
+            team: backend
+          annotations:
+            summary: "High 5xx error rate on Jiffoo Backend"
+            description: "Error rate is {{ "{{" }} $value | humanizePercentage {{ "}}" }} (threshold: 5%)"
+            runbook_url: "https://docs.jiffoo.com/runbooks/high-error-rate"
+
+        # 2. Readiness Probe Failures
+        - alert: JiffooBackendNotReady
+          expr: |
+            kube_deployment_status_replicas_ready{deployment="{{ include "jiffoo-mall-core.fullname" . }}-backend"} 
+            < 
+            kube_deployment_spec_replicas{deployment="{{ include "jiffoo-mall-core.fullname" . }}-backend"}
+          for: 5m
+          labels:
+            severity: warning
+            team: platform
+          annotations:
+            summary: "Jiffoo Backend pods not ready"
+            description: "Only {{ "{{" }} $value {{ "}}" }} replicas ready, expected {{ "{{" }} $labels.replicas {{ "}}" }}"
+            runbook_url: "https://docs.jiffoo.com/runbooks/pods-not-ready"
+
+        # 3. High Database Latency
+        - alert: JiffooBackendHighDbLatency
+          expr: |
+            histogram_quantile(0.95, 
+              sum(rate(db_query_duration_seconds_bucket{service="{{ include "jiffoo-mall-core.fullname" . }}-backend"}[5m])) by (le)
+            ) > 0.5
+          for: 3m
+          labels:
+            severity: warning
+            team: backend
+          annotations:
+            summary: "High database latency on Jiffoo Backend"
+            description: "P95 DB latency is {{ "{{" }} $value | humanizeDuration {{ "}}" }} (threshold: 500ms)"
+            runbook_url: "https://docs.jiffoo.com/runbooks/high-db-latency"
+
+        # 4. Redis Connection Issues
+        - alert: JiffooBackendRedisDown
+          expr: |
+            redis_connection_status{service="{{ include "jiffoo-mall-core.fullname" . }}-backend"} == 0
+          for: 1m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Redis connection lost on Jiffoo Backend"
+            description: "Backend cannot connect to Redis, cache and rate limiting affected"
+            runbook_url: "https://docs.jiffoo.com/runbooks/redis-down"
+
+        # 5. Plugin Errors
+        - alert: JiffooBackendPluginErrors
+          expr: |
+            sum(rate(plugin_errors_total{service="{{ include "jiffoo-mall-core.fullname" . }}-backend"}[5m])) > 0.1
+          for: 5m
+          labels:
+            severity: warning
+            team: backend
+          annotations:
+            summary: "Plugin errors detected on Jiffoo Backend"
+            description: "Plugin error rate: {{ "{{" }} $value {{ "}}" }}/s"
+            runbook_url: "https://docs.jiffoo.com/runbooks/plugin-errors"
+
+        # 6. High Request Latency (P95)
+        - alert: JiffooBackendHighLatency
+          expr: |
+            histogram_quantile(0.95, 
+              sum(rate(http_request_duration_seconds_bucket{service="{{ include "jiffoo-mall-core.fullname" . }}-backend"}[5m])) by (le)
+            ) > 2
+          for: 5m
+          labels:
+            severity: warning
+            team: backend
+          annotations:
+            summary: "High request latency on Jiffoo Backend"
+            description: "P95 latency is {{ "{{" }} $value | humanizeDuration {{ "}}" }} (threshold: 2s)"
+            runbook_url: "https://docs.jiffoo.com/runbooks/high-latency"
+
+        # 7. Pod Crash Loop
+        - alert: JiffooBackendCrashLoop
+          expr: |
+            increase(kube_pod_container_status_restarts_total{
+              pod=~"{{ include "jiffoo-mall-core.fullname" . }}-backend.*"
+            }[1h]) > 3
+          for: 5m
+          labels:
+            severity: critical
+            team: platform
+          annotations:
+            summary: "Jiffoo Backend pod in crash loop"
+            description: "Pod {{ "{{" }} $labels.pod {{ "}}" }} has restarted {{ "{{" }} $value {{ "}}" }} times in last hour"
+            runbook_url: "https://docs.jiffoo.com/runbooks/crash-loop"
+{{- end }}
+

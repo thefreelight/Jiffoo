@@ -1,3 +1,2 @@
 include:
   - local: '.gitlab/oss/root.yml'
-  - local: '.gitlab/oss/notify-feishu.yml'

@@ -23,10 +23,6 @@ import {
   X,
   Sliders,
   Activity,
-  Building2,
-  FileCheck,
-  DollarSign,
-  ShoppingCart,
   Palette,
 } from 'lucide-react'
 
@@ -43,7 +39,7 @@ interface NavigationItem {
 }
 
 // Base navigation configuration - Shopify style flat menu
-// Main items: Dashboard / Products / Orders / Customers / B2B Features / Plugins / Themes
+// Main items: Dashboard / Products / Orders / Customers / Plugins / Themes / System Health
 const baseNavigationConfig: NavigationItem[] = [
   {
     nameKey: 'merchant.nav.dashboard',
@@ -68,30 +64,6 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Customers',
     href: '/customers',
     icon: Users,
-  },
-  {
-    nameKey: 'merchant.b2b.companies.title',
-    fallback: 'Companies',
-    href: '/b2b/companies',
-    icon: Building2,
-  },
-  {
-    nameKey: 'merchant.b2b.quotes.title',
-    fallback: 'Quotes',
-    href: '/b2b/quotes',
-    icon: FileCheck,
-  },
-  {
-    nameKey: 'merchant.b2b.pricing.title',
-    fallback: 'Pricing',
-    href: '/b2b/pricing',
-    icon: DollarSign,
-  },
-  {
-    nameKey: 'merchant.b2b.purchase_orders.title',
-    fallback: 'Purchase Orders',
-    href: '/b2b/purchase-orders',
-    icon: ShoppingCart,
   },
   {
     nameKey: 'merchant.nav.plugins',

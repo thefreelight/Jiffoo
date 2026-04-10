@@ -1,0 +1,46 @@
+FROM node:20-bookworm-slim
+
+ARG NPM_REGISTRY=https://registry.npmjs.org
+
+ENV NODE_ENV=production
+ENV API_PORT=3002
+ENV API_HOST=0.0.0.0
+ENV PORT=3002
+ENV npm_config_registry=${NPM_REGISTRY}
+ENV NPM_CONFIG_REGISTRY=${NPM_REGISTRY}
+ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
+ENV ELECTRON_SKIP_BINARY_DOWNLOAD=1
+
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    git \
+    openssl \
+    python3 \
+    make \
+    g++ && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
+COPY apps/api/package.json ./apps/api/
+COPY packages/shared/package.json ./packages/shared/
+
+RUN pnpm install --filter api... --frozen-lockfile
+
+COPY . .
+
+RUN pnpm --filter shared build
+RUN pnpm --filter api exec tsx scripts/build-official-artifacts.ts || echo "Skipping embedded official artifacts for self-hosted build"
+RUN cd apps/api && pnpm exec prisma generate --schema prisma/schema.prisma
+
+RUN mkdir -p /app/logs /app/uploads /app/extensions
+
+EXPOSE 3002
+
+CMD ["sh", "-lc", "cd apps/api && pnpm exec tsx src/server.ts"]

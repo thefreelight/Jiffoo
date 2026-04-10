@@ -23,7 +23,8 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # The Admin image only needs Node.js and the standalone Next.js output.
-# Avoid apk network fetches here so CI is not coupled to external Alpine mirrors.
+# Install git because Next.js may inspect repository metadata during build.
+RUN apk add --no-cache git
 
 # Install dependencies only when needed
 FROM base AS deps
