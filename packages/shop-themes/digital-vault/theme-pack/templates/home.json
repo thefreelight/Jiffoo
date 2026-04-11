@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "page": "home",
+  "blocks": [
+    {
+      "type": "hero",
+      "settings": {
+        "headline": "Sell card codes, accounts, and downloads with a storefront built for delivery.",
+        "subtitle": "Browse by category, confirm stock before payment, and keep every delivery inside the order center instead of losing it in support chat.",
+        "ctaText": "Browse products",
+        "ctaHref": "/products",
+        "secondaryCtaText": "Help center",
+        "secondaryCtaHref": "/help",
+        "height": "medium",
+        "textAlign": "left",
+        "backgroundColor": "#111827",
+        "textColor": "#ffffff"
+      }
+    },
+    {
+      "type": "featured-categories",
+      "settings": {
+        "title": "Browse by category",
+        "limit": 6,
+        "columns": 3,
+        "showTitle": true
+      }
+    },
+    {
+      "type": "product-grid",
+      "settings": {
+        "title": "Latest digital goods",
+        "limit": 8,
+        "columns": 4,
+        "showTitle": true,
+        "sortBy": "newest",
+        "showViewAll": true,
+        "viewAllLink": "/products"
+      }
+    },
+    {
+      "type": "faq",
+      "settings": {
+        "title": "Digital delivery FAQs",
+        "items": [
+          {
+            "question": "Where do I get my code or account after payment?",
+            "answer": "The storefront writes delivery details to the order center, so buyers can return to the same order page instead of searching through email threads."
+          },
+          {
+            "question": "Do digital goods need shipping details?",
+            "answer": "Digital-only orders do not require shipping. Shipping fields are only used when the cart contains a physical or hybrid item."
+          },
+          {
+            "question": "What happens if fulfillment is delayed?",
+            "answer": "The order remains the source of truth. Buyers can reopen it to check for updates, and operators can still complete delivery manually when needed."
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+:root {
+  --imagic-bg: oklch(0.985 0.008 95);
+  --imagic-surface: oklch(0.997 0.004 95);
+  --imagic-surface-strong: oklch(0.965 0.014 260);
+  --imagic-ink: oklch(0.245 0.03 262);
+  --imagic-muted: oklch(0.56 0.028 252);
+  --imagic-line: oklch(0.9 0.02 250);
+  --imagic-primary: oklch(0.58 0.23 262);
+  --imagic-primary-soft: oklch(0.84 0.09 256);
+  --imagic-warm: oklch(0.74 0.17 56);
+  --imagic-accent: oklch(0.86 0.09 95);
+  --imagic-shadow: 0 24px 60px color-mix(in srgb, var(--imagic-primary) 16%, transparent);
+  --imagic-card-shadow: 0 16px 40px color-mix(in srgb, var(--imagic-ink) 10%, transparent);
+}
+
+.imagic-grid {
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--imagic-primary) 9%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--imagic-primary) 9%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.imagic-noise {
+  position: relative;
+}
+
+.imagic-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.18;
+  background-image:
+    radial-gradient(circle at 10% 20%, color-mix(in srgb, var(--imagic-warm) 24%, transparent) 0, transparent 28%),
+    radial-gradient(circle at 88% 12%, color-mix(in srgb, var(--imagic-primary) 24%, transparent) 0, transparent 24%),
+    radial-gradient(circle at 78% 82%, color-mix(in srgb, var(--imagic-accent) 36%, transparent) 0, transparent 32%);
+}
+
+.imagic-film-edge {
+  position: relative;
+}
+
+.imagic-film-edge::before,
+.imagic-film-edge::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 12px;
+  background-image: radial-gradient(circle, rgba(255,255,255,0.8) 0 3px, transparent 3.2px);
+  background-size: 20px 12px;
+  opacity: 0.45;
+}
+
+.imagic-film-edge::before {
+  inset: 0 0 auto 0;
+}

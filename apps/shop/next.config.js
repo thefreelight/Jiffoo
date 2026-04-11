@@ -6,9 +6,19 @@ const withPWA = require('@ducanh2912/next-pwa').default;
 const nextConfig = createNextConfig({
   appName: 'Frontend',
   port: 3003,
-  // The open-source core only ships the default embedded theme.
-  // Official marketplace themes are installed later as Theme Packs.
-  transpilePackages: ['shared', '@shop-themes/default', '@jiffoo/core-api-sdk', '@jiffoo/theme-api-sdk'],
+  // The shop runtime embeds the default theme plus the official full-renderer
+  // themes that can be activated through the marketplace/package flow.
+  transpilePackages: [
+    'shared',
+    '@shop-themes/default',
+    '@shop-themes/bokmoo',
+    '@shop-themes/esim-mall',
+    '@shop-themes/imagic-studio',
+    '@shop-themes/modelsfind',
+    '@shop-themes/yevbi',
+    '@jiffoo/core-api-sdk',
+    '@jiffoo/theme-api-sdk',
+  ],
   images: {
     // Image optimization formats - prefer modern formats with fallback
     formats: ['image/avif', 'image/webp'],

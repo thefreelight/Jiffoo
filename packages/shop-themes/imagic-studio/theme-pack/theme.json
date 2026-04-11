@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "slug": "imagic-studio",
+  "name": "Imagic Studio",
+  "version": "0.1.0",
+  "target": "shop",
+  "description": "Cinematic creator storefront for imagic.art with image restyling and video transformation flows.",
+  "author": "Jiffoo",
+  "category": "ai",
+  "entry": {
+    "tokensCSS": "tokens.css",
+    "templatesDir": "templates",
+    "settingsSchema": "schemas/settings.schema.json"
+  },
+  "compatibility": {
+    "minCoreVersion": "0.2.0"
+  },
+  "x-jiffoo-renderer-mode": "embedded",
+  "x-jiffoo-renderer-slug": "imagic-studio",
+  "defaultConfig": {
+    "brand": {
+      "name": "Imagic",
+      "primaryColor": "#2457f5",
+      "secondaryColor": "#f97316",
+      "fontFamily": "\"Space Grotesk\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif"
+    },
+    "layout": {
+      "headerSticky": true,
+      "showFooterLinks": true,
+      "maxWidth": "1320px"
+    },
+    "features": {
+      "showWishlist": false,
+      "showRatings": false,
+      "enableQuickView": false
+    },
+    "site": {
+      "archetype": "product-site",
+      "eyebrow": "Creator-grade AI film lab",
+      "headline": "Turn photos and clips into painterly worlds that feel ready to publish.",
+      "subheadline": "Launch a lighter, sharper creative storefront with guided image restyling, async video transformation, and a more cinematic visual system for imagic.art.",
+      "primaryCtaLabel": "Start Creating",
+      "primaryCtaHref": "/",
+      "secondaryCtaLabel": "How It Works",
+      "secondaryCtaHref": "/help",
+      "docsHref": "/help",
+      "demoHref": "/",
+      "supportEmail": "support@imagic.art"
+    }
+  },
+  "tags": [
+    "ai",
+    "creative",
+    "image",
+    "video",
+    "ghibli",
+    "studio",
+    "creator",
+    "light-theme"
+  ]
+}

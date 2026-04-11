@@ -4,7 +4,10 @@ set -euo pipefail
 
 REPO_URL="${JIFFOO_REPO_URL:-https://github.com/thefreelight/Jiffoo.git}"
 REF="${JIFFOO_REF:-main}"
-SOURCE_ARCHIVE_URL="${JIFFOO_SOURCE_ARCHIVE_URL:-https://get.jiffoo.com/jiffoo-source.tar.gz}"
+LEGACY_UPDATE_MANIFEST_URL="https://get.jiffoo.com/releases/core/manifest.json"
+DEFAULT_UPDATE_MANIFEST_URL="https://api.jiffoo.com/api/upgrade/manifest.json"
+DEFAULT_SOURCE_ARCHIVE_URL="https://get.jiffoo.com/jiffoo-source.tar.gz"
+SOURCE_ARCHIVE_URL="${JIFFOO_SOURCE_ARCHIVE_URL:-${DEFAULT_SOURCE_ARCHIVE_URL}}"
 INSTALL_DIR="${JIFFOO_INSTALL_DIR:-/opt/jiffoo}"
 APP_DIR="${INSTALL_DIR}/current"
 ENV_FILE="${APP_DIR}/.env.production.local"
@@ -67,10 +70,54 @@ detect_public_ip() {
   hostname -I 2>/dev/null | awk '{print $1}'
 }
 
+install_updater_binary() {
+  local source_path target_path
+  source_path="${APP_DIR}/scripts/jiffoo-updater.mjs"
+  target_path="/usr/local/bin/jiffoo-updater"
+
+  if [ ! -f "${source_path}" ]; then
+    log_warn "Updater source not found at ${source_path}; skipping updater install"
+    return 0
+  fi
+
+  ${SUDO} install -m 0755 "${source_path}" "${target_path}"
+  log_ok "Installed local updater to ${target_path}"
+}
+
+normalize_manifest_url() {
+  local manifest_url
+  manifest_url="$1"
+
+  if [ "${manifest_url}" = "${LEGACY_UPDATE_MANIFEST_URL}" ]; then
+    printf '%s' "${DEFAULT_UPDATE_MANIFEST_URL}"
+    return 0
+  fi
+
+  printf '%s' "${manifest_url}"
+}
+
+resolve_default_app_version() {
+  local manifest_url version
+  manifest_url="${JIFFOO_CORE_UPDATE_MANIFEST_URL:-${JIFFOO_UPDATE_MANIFEST_URL:-${DEFAULT_UPDATE_MANIFEST_URL}}}"
+  manifest_url="$(normalize_manifest_url "${manifest_url}")"
+  version="$(curl -fsSL "${manifest_url}" 2>/dev/null | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data.get("latestVersion",""))' 2>/dev/null || true)"
+
+  if printf '%s' "${version}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$'; then
+    printf '%s' "${version}"
+    return 0
+  fi
+
+  printf '1.0.0'
+}
+
 write_env_file() {
   local public_ip domain shop_url admin_url api_url cors_origin
+  local default_app_version manifest_url
   public_ip="$(detect_public_ip)"
   domain="${JIFFOO_DOMAIN:-}"
+  manifest_url="${JIFFOO_CORE_UPDATE_MANIFEST_URL:-${JIFFOO_UPDATE_MANIFEST_URL:-${DEFAULT_UPDATE_MANIFEST_URL}}}"
+  manifest_url="$(normalize_manifest_url "${manifest_url}")"
+  default_app_version="${APP_VERSION:-$(resolve_default_app_version)}"
 
   if [ -n "${domain}" ]; then
     shop_url="https://${domain}"
@@ -129,7 +176,11 @@ RESEND_WEBHOOK_SECRET=${RESEND_WEBHOOK_SECRET:-whsec_resend_placeholder}
 MARKET_API_URL=${MARKET_API_URL:-https://platform-api.jiffoo.com/api}
 BUILD_SHA=${BUILD_SHA:-install-${REF}}
 BUILD_TIME=${BUILD_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
-APP_VERSION=${APP_VERSION:-self-hosted}
+APP_VERSION=${default_app_version}
+JIFFOO_DEPLOYMENT_MODE=${JIFFOO_DEPLOYMENT_MODE:-docker-compose}
+JIFFOO_CORE_UPDATE_MANIFEST_URL=${manifest_url}
+JIFFOO_UPDATE_CHANNEL=${JIFFOO_UPDATE_CHANNEL:-stable}
+JIFFOO_SOURCE_ARCHIVE_URL=${SOURCE_ARCHIVE_URL}
 JIFFOO_SEED_DEMO_DATA=${SEED_DEMO_DATA}
 EOF
 
@@ -195,6 +246,8 @@ main() {
   ensure_system_package git git
   ensure_system_package curl curl
   ensure_system_package openssl openssl
+  ensure_system_package python3 python3
+  ensure_system_package tar tar
 
   if ! require_command docker; then
     log_info "Installing Docker"
@@ -210,13 +263,14 @@ main() {
   ${SUDO} systemctl start docker >/dev/null 2>&1 || true
 
   prepare_source_tree
+  install_updater_binary
   write_env_file
 
   log_info "Starting PostgreSQL and Redis"
   compose up -d postgres redis
 
   log_info "Building and starting Jiffoo services"
-  compose up -d --build api shop admin
+  compose up -d --build api shop admin updater
 
   log_info "Waiting for API readiness"
   if ! wait_for_api; then

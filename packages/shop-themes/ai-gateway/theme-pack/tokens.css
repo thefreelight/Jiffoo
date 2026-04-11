@@ -1,0 +1,13 @@
+:root {
+  --theme-primary: #0f4c81;
+  --theme-secondary: #138f7a;
+  --theme-accent: #f59e0b;
+  --theme-background: #f7fafc;
+  --theme-foreground: #0f172a;
+  --theme-muted: #475569;
+  --theme-border: #dbe4f0;
+  --theme-radius: 1rem;
+  --theme-container-width: 1240px;
+  --theme-header-height: 76px;
+  --theme-spacing: 1rem;
+}

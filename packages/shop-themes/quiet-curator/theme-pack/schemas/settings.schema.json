@@ -1,0 +1,56 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "brand": {
+      "type": "object",
+      "title": "Brand",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Brand Name",
+          "default": "The Quiet Curator"
+        },
+        "primaryColor": {
+          "type": "string",
+          "title": "Primary Color",
+          "format": "color",
+          "default": "#4e6073"
+        },
+        "secondaryColor": {
+          "type": "string",
+          "title": "Secondary Color",
+          "format": "color",
+          "default": "#dde4e5"
+        },
+        "fontFamily": {
+          "type": "string",
+          "title": "Body Font",
+          "default": "\"Inter\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif"
+        }
+      }
+    },
+    "site": {
+      "type": "object",
+      "title": "Site",
+      "properties": {
+        "supportEmail": {
+          "type": "string",
+          "title": "Support Email",
+          "default": "support@quietcurator.example"
+        },
+        "primaryCtaLabel": {
+          "type": "string",
+          "title": "Primary CTA Label",
+          "default": "Join Now"
+        },
+        "primaryCtaHref": {
+          "type": "string",
+          "title": "Primary CTA Link",
+          "default": "/products"
+        }
+      }
+    }
+  }
+}
+

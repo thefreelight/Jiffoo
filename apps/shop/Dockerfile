@@ -38,6 +38,11 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/shop/package.json ./apps/shop/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/shop-themes/default/package.json ./packages/shop-themes/default/
+COPY packages/shop-themes/bokmoo/package.json ./packages/shop-themes/bokmoo/
+COPY packages/shop-themes/esim-mall/package.json ./packages/shop-themes/esim-mall/
+COPY packages/shop-themes/imagic-studio/package.json ./packages/shop-themes/imagic-studio/
+COPY packages/shop-themes/modelsfind/package.json ./packages/shop-themes/modelsfind/
+COPY packages/shop-themes/yevbi/package.json ./packages/shop-themes/yevbi/
 COPY packages/ui/package.json ./packages/ui/
 
 # Install dependencies using a public npm mirror by default.
@@ -57,9 +62,10 @@ WORKDIR /app
 # Install pnpm (needed for build commands) from the same vendored tarball.
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
-# Copy dependencies from deps stage
+# Copy dependencies from deps stage.
+# Keep only the workspace root node_modules to avoid loading duplicate Next.js
+# packages from both /app/node_modules and /app/apps/shop/node_modules.
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/shop/node_modules ./apps/shop/node_modules
 
 # Copy source code
 COPY . .

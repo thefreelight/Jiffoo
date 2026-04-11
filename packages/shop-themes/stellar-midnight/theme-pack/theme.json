@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "slug": "stellar-midnight",
+  "name": "Stellar Midnight",
+  "version": "0.1.0",
+  "target": "shop",
+  "description": "Official dark SaaS storefront theme for control-room launches, onboarding dashboards, and pricing-led product sites.",
+  "author": "Jiffoo",
+  "category": "saas",
+  "entry": {
+    "tokensCSS": "tokens.css",
+    "settingsSchema": "schemas/settings.schema.json"
+  },
+  "compatibility": {
+    "minCoreVersion": "0.2.0"
+  },
+  "x-jiffoo-renderer-mode": "embedded",
+  "x-jiffoo-renderer-slug": "stellar-midnight",
+  "defaultConfig": {
+    "brand": {
+      "name": "Codex",
+      "primaryColor": "#8a7fff",
+      "secondaryColor": "#0f1529",
+      "fontFamily": "\"Manrope\", \"Inter\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif"
+    },
+    "layout": {
+      "headerSticky": true,
+      "showFooterLinks": true,
+      "maxWidth": "1240px"
+    },
+    "features": {
+      "showWishlist": false,
+      "showRatings": false,
+      "enableQuickView": false
+    },
+    "site": {
+      "archetype": "product-site",
+      "eyebrow": "Automation control-room theme",
+      "headline": "Codex Team Automation Panel",
+      "subheadline": "Launch a dark SaaS storefront that explains the product, previews live execution telemetry, and sells automation plans from one focused surface.",
+      "primaryCtaLabel": "Get Started",
+      "primaryCtaHref": "/auth/register",
+      "secondaryCtaLabel": "View Plans",
+      "secondaryCtaHref": "/products",
+      "docsHref": "/help",
+      "demoHref": "/products",
+      "supportEmail": "support@codex.example"
+    }
+  },
+  "tags": [
+    "saas",
+    "automation",
+    "dashboard",
+    "dark-theme",
+    "pricing",
+    "product-site"
+  ]
+}

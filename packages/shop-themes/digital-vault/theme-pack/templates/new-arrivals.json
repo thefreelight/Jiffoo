@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "page": "new-arrivals",
+  "blocks": [
+    {
+      "type": "product-grid",
+      "settings": {
+        "title": "New arrivals",
+        "limit": 8,
+        "columns": 4,
+        "showTitle": true,
+        "sortBy": "newest",
+        "showViewAll": false
+      }
+    }
+  ]
+}

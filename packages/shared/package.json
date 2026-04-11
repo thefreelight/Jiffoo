@@ -72,6 +72,10 @@
     "./versioning/*": {
       "types": "./dist/shared/src/versioning/*.d.ts",
       "default": "./dist/shared/src/versioning/*.js"
+    },
+    "./core-update/public-manifest": {
+      "types": "./dist/shared/src/core-update/public-manifest.d.ts",
+      "default": "./dist/shared/src/core-update/public-manifest.js"
     }
   },
   "scripts": {

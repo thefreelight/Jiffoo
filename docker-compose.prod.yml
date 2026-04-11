@@ -45,6 +45,12 @@ services:
       REDIS_URL: redis://redis:6379
       API_PORT: 3002
       API_HOST: 0.0.0.0
+      APP_VERSION: ${APP_VERSION:-1.0.1}
+      JIFFOO_DEPLOYMENT_MODE: ${JIFFOO_DEPLOYMENT_MODE:-docker-compose}
+      JIFFOO_CORE_UPDATE_MANIFEST_URL: ${JIFFOO_CORE_UPDATE_MANIFEST_URL:-https://api.jiffoo.com/api/upgrade/manifest.json}
+      JIFFOO_UPDATE_CHANNEL: ${JIFFOO_UPDATE_CHANNEL:-stable}
+      JIFFOO_SOURCE_ARCHIVE_URL: ${JIFFOO_SOURCE_ARCHIVE_URL:-https://get.jiffoo.com/jiffoo-source.tar.gz}
+      JIFFOO_UPDATER_URL: ${JIFFOO_UPDATER_URL:-http://updater:3015}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       EXTENSION_SIGNATURE_VERIFY: ${EXTENSION_SIGNATURE_VERIFY:-optional}
@@ -91,6 +97,32 @@ services:
       interval: 15s
       timeout: 5s
       retries: 20
+
+  updater:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile.selfhost
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
+    image: ${UPDATER_IMAGE:-jiffoo/updater:self-hosted}
+    restart: unless-stopped
+    command: ["node", "scripts/jiffoo-updater-agent.mjs"]
+    environment:
+      JIFFOO_UPDATER_AGENT_PORT: 3015
+      JIFFOO_DOCKER_COMPOSE_FILE: /workspace/docker-compose.prod.yml
+      JIFFOO_DOCKER_ENV_FILE: /workspace/.env.production.local
+      JIFFOO_UPDATER_STATUS_FILE: /app/uploads/upgrade-status.json
+      JIFFOO_UPDATER_BIN: /usr/local/bin/jiffoo-updater
+      JIFFOO_CORE_UPDATE_MANIFEST_URL: ${JIFFOO_CORE_UPDATE_MANIFEST_URL:-https://api.jiffoo.com/api/upgrade/manifest.json}
+      JIFFOO_SOURCE_ARCHIVE_URL: ${JIFFOO_SOURCE_ARCHIVE_URL:-https://get.jiffoo.com/jiffoo-source.tar.gz}
+      APP_VERSION: ${APP_VERSION:-1.0.1}
+    volumes:
+      - ./:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+      - jiffoo_uploads:/app/uploads
+    depends_on:
+      api:
+        condition: service_healthy
 
   shop:
     build:

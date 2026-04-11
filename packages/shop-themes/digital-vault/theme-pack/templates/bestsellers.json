@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "page": "bestsellers",
+  "blocks": [
+    {
+      "type": "product-grid",
+      "settings": {
+        "title": "Bestsellers",
+        "limit": 8,
+        "columns": 4,
+        "showTitle": true,
+        "sortBy": "popular",
+        "showViewAll": false
+      }
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@shop-themes/fire",
+  "version": "0.1.0",
+  "description": "Official Fire finance storefront theme pack",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "type-check": "echo \"theme-pack only\""
+  }
+}

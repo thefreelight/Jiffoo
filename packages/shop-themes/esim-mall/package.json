@@ -1,0 +1,44 @@
+{
+    "name": "@shop-themes/esim-mall",
+    "version": "1.0.0",
+    "description": "eSIM Mall Theme for Jiffoo Mall",
+    "private": true,
+    "main": "./src/index.ts",
+    "sideEffects": [
+        "./src/tokens.css"
+    ],
+    "type": "module",
+    "scripts": {
+        "dev": "next dev",
+        "build": "next build",
+        "start": "next start",
+        "type-check": "tsc --noEmit"
+    },
+    "peerDependencies": {
+        "next": ">=14",
+        "react": ">=18",
+        "react-dom": ">=18"
+    },
+    "dependencies": {
+        "@jiffoo/theme-api-sdk": "workspace:*",
+        "class-variance-authority": "^0.7.1",
+        "clsx": "^2.1.0",
+        "framer-motion": "^11.0.0",
+        "lucide-react": "^0.473.0",
+        "next": "^16.1.6",
+        "next-themes": "^0.4.6",
+        "react": "file:../../../.tools/npm/react-19.2.1.tgz",
+        "react-dom": "file:../../../.tools/npm/react-dom-19.2.1.tgz"
+    },
+    "devDependencies": {
+        "@types/node": "^22.10.5",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "archiver": "^7.0.1",
+        "autoprefixer": "^10.4.19",
+        "baseline-browser-mapping": "^2.9.19",
+        "postcss": "^8.4.38",
+        "tailwindcss": "^3.4.4",
+        "typescript": "^5.8.3"
+    }
+}

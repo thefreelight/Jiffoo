@@ -92,6 +92,29 @@ export function StoreContextProvider({
   const setStoreLoading = useStoreStore((state) => state.setLoading);
   const setStoreError = useStoreStore((state) => state.setError);
 
+  const persistContext = React.useCallback((storeContext: StoreContext | null) => {
+    if (!storeContext || typeof window === 'undefined') return;
+
+    try {
+      sessionStorage.setItem('store-context', JSON.stringify(storeContext));
+    } catch {
+      // Ignore storage write failures; runtime state still updates in memory.
+    }
+  }, []);
+
+  const applyContext = React.useCallback(
+    (storeContext: StoreContext | null) => {
+      setContext((prev) => {
+        const previousSnapshot = prev ? JSON.stringify(prev) : '';
+        const nextSnapshot = storeContext ? JSON.stringify(storeContext) : '';
+        return previousSnapshot === nextSnapshot ? prev : storeContext;
+      });
+      setStoreContext(storeContext);
+      persistContext(storeContext);
+    },
+    [persistContext, setStoreContext]
+  );
+
   // Removed unused authLogout and resetCart hooks that caused infinite rerenders
 
   // No-op useEffect as we now handle immediate hydration in the state initializer
@@ -109,16 +132,9 @@ export function StoreContextProvider({
 
         if (!initialContext) {
           const storeContext = await initializeStoreContext();
-          setContext(storeContext);
-          setStoreContext(storeContext);
-
-          if (storeContext) {
-            try {
-              sessionStorage.setItem('store-context', JSON.stringify(storeContext));
-            } catch { }
-          }
+          applyContext(storeContext);
         } else {
-          setStoreContext(initialContext);
+          applyContext(initialContext);
         }
       } catch (err) {
         console.error('Failed to initialize store context:', err);
@@ -134,7 +150,40 @@ export function StoreContextProvider({
     }
 
     loadContext();
-  }, [initialContext, setStoreContext, setStoreLoading, setStoreError]);
+  }, [applyContext, initialContext, setStoreLoading, setStoreError]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const revalidateContext = async () => {
+      try {
+        const latestContext = await initializeStoreContext();
+        applyContext(latestContext);
+        setError(null);
+        setStoreError(null);
+      } catch (err) {
+        console.warn('Failed to refresh store context on window focus:', err);
+      }
+    };
+
+    const handleFocus = () => {
+      void revalidateContext();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void revalidateContext();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [applyContext, setStoreError]);
 
   // Resolve the storefront renderer from the active Theme Pack contract.
   // Downloaded Theme Packs may declare an embedded renderer slug in theme.json,

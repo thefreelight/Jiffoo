@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "slug": "ai-gateway",
+  "name": "AI Gateway Theme",
+  "version": "0.1.0",
+  "target": "shop",
+  "description": "Theme-first storefront surface for the AI Gateway solution package.",
+  "author": "Jiffoo",
+  "entry": {
+    "tokensCSS": "tokens.css",
+    "templatesDir": "templates",
+    "assetsDir": "assets",
+    "settingsSchema": "schemas/settings.schema.json"
+  },
+  "compatibility": {
+    "minCoreVersion": "0.2.0"
+  },
+  "defaultConfig": {
+    "site": {
+      "archetype": "product-site",
+      "heroEyebrow": "AI Gateway",
+      "heroTitle": "Launch your own model gateway with pricing, quotas, and provider routing built in.",
+      "heroDescription": "Sell API access with a storefront that feels product-led on the surface and operationally solid behind the scenes.",
+      "primaryCtaLabel": "Launch Solution",
+      "secondaryCtaLabel": "View Docs"
+    },
+    "colors": {
+      "primary": "#0f4c81",
+      "secondary": "#138f7a",
+      "accent": "#f59e0b",
+      "background": "#f7fafc",
+      "foreground": "#0f172a",
+      "muted": "#475569",
+      "border": "#dbe4f0"
+    },
+    "typography": {
+      "fontFamily": "\"Inter\", system-ui, sans-serif",
+      "headingFamily": "\"Inter\", system-ui, sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "1.6"
+    },
+    "layout": {
+      "containerWidth": "1240px",
+      "headerHeight": "76px",
+      "radius": "1rem",
+      "spacing": "1rem"
+    },
+    "features": {
+      "showWishlist": false,
+      "showRatings": false,
+      "enableQuickView": false
+    }
+  },
+  "category": "ai",
+  "tags": [
+    "ai",
+    "gateway",
+    "llm",
+    "openai",
+    "anthropic",
+    "gemini",
+    "product-site",
+    "saas"
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "page": "search",
+  "blocks": [
+    {
+      "type": "product-grid",
+      "settings": {
+        "title": "Search results",
+        "limit": 12,
+        "columns": 4,
+        "showTitle": false,
+        "sortBy": "newest",
+        "showViewAll": false
+      }
+    }
+  ]
+}

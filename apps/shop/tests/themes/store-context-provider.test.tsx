@@ -99,8 +99,38 @@ describe('StoreContextProvider storefront theme resolution', () => {
       </StoreContextProvider>,
     );
 
-    expect(screen.getByTestId('theme-provider')).toHaveAttribute('data-slug', 'esim-mall');
-    expect(screen.getByTestId('themed-layout')).toHaveTextContent('storefront');
+    expect(screen.getByTestId('theme-provider').getAttribute('data-slug')).toBe('esim-mall');
+    expect(screen.getByTestId('themed-layout').textContent).toContain('storefront');
+  });
+
+  it('resolves marketplace themes such as modelsfind to their embedded renderer instead of builtin-default', () => {
+    themePackState = {
+      activeTheme: {
+        slug: 'modelsfind',
+        version: '0.1.0',
+        source: 'official-market',
+        config: {},
+        activatedAt: new Date().toISOString(),
+      },
+      manifest: {
+        schemaVersion: 1,
+        slug: 'modelsfind',
+        name: 'ModelsFind',
+        version: '0.1.0',
+        target: 'shop',
+        'x-jiffoo-renderer-mode': 'embedded',
+        'x-jiffoo-renderer-slug': 'modelsfind',
+      },
+      mergedConfig: {},
+    };
+
+    render(
+      <StoreContextProvider initialContext={initialContext}>
+        <div>storefront</div>
+      </StoreContextProvider>,
+    );
+
+    expect(screen.getByTestId('theme-provider').getAttribute('data-slug')).toBe('modelsfind');
   });
 
   it('falls back to the server theme slug when no embedded renderer contract is present', () => {
@@ -128,6 +158,6 @@ describe('StoreContextProvider storefront theme resolution', () => {
       </StoreContextProvider>,
     );
 
-    expect(screen.getByTestId('theme-provider')).toHaveAttribute('data-slug', 'builtin-default');
+    expect(screen.getByTestId('theme-provider').getAttribute('data-slug')).toBe('builtin-default');
   });
 });

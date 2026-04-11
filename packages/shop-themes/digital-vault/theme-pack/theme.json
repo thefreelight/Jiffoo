@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "slug": "digital-vault",
+  "name": "Digital Vault",
+  "version": "1.0.0",
+  "target": "shop",
+  "description": "Official digital-goods storefront theme rebuilt around card-code, account, and download commerce flows.",
+  "author": "Jiffoo",
+  "entry": {
+    "tokensCSS": "tokens.css",
+    "templatesDir": "templates",
+    "assetsDir": "assets",
+    "settingsSchema": "schemas/settings.schema.json"
+  },
+  "compatibility": {
+    "minCoreVersion": "0.2.0"
+  },
+  "defaultConfig": {
+    "colors": {
+      "primary": "#0071e3",
+      "secondary": "#111827",
+      "background": "#f5f5f7",
+      "foreground": "#1d1d1f",
+      "muted": "#f2f2f4",
+      "border": "rgba(0,0,0,0.12)",
+      "accent": "#0071e3"
+    },
+    "typography": {
+      "fontFamily": "Inter, system-ui, sans-serif",
+      "headingFamily": "Inter, system-ui, sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "1.5"
+    },
+    "layout": {
+      "radius": "16px",
+      "containerWidth": "1280px",
+      "spacing": "1rem",
+      "headerHeight": "72px"
+    },
+    "features": {
+      "showWishlist": false,
+      "showRatings": false,
+      "enableQuickView": false
+    }
+  },
+  "x-jiffoo-renderer-mode": "embedded",
+  "x-jiffoo-renderer-slug": "digital-vault",
+  "category": "digital-goods",
+  "tags": ["digital", "gift-cards", "codes", "accounts", "downloads", "credentials", "dujiao-inspired"]
+}

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "slug": "quiet-curator",
+  "name": "Quiet Curator",
+  "version": "0.1.0",
+  "target": "shop",
+  "description": "Official editorial membership storefront theme for paid communities, premium archives, and calm member dashboards.",
+  "author": "Jiffoo",
+  "category": "community",
+  "entry": {
+    "tokensCSS": "tokens.css",
+    "settingsSchema": "schemas/settings.schema.json"
+  },
+  "compatibility": {
+    "minCoreVersion": "0.2.0"
+  },
+  "x-jiffoo-renderer-mode": "embedded",
+  "x-jiffoo-renderer-slug": "quiet-curator",
+  "defaultConfig": {
+    "brand": {
+      "name": "The Quiet Curator",
+      "primaryColor": "#4e6073",
+      "secondaryColor": "#dde4e5",
+      "fontFamily": "\"Inter\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif"
+    },
+    "layout": {
+      "headerSticky": true,
+      "showFooterLinks": true,
+      "maxWidth": "1280px"
+    },
+    "features": {
+      "showWishlist": false,
+      "showRatings": false,
+      "enableQuickView": false
+    },
+    "site": {
+      "archetype": "landing-commerce",
+      "eyebrow": "Premium editorial community",
+      "headline": "Build a calmer paid community around premium writing, private discussion, and member rituals.",
+      "subheadline": "Use a restrained editorial storefront to sell membership access, preview paid artifacts, and keep your community surfaces coherent from landing page to member dashboard.",
+      "primaryCtaLabel": "Join Now",
+      "primaryCtaHref": "/products",
+      "secondaryCtaLabel": "Explore Archive",
+      "secondaryCtaHref": "/products",
+      "docsHref": "/help",
+      "demoHref": "/",
+      "supportEmail": "support@quietcurator.example"
+    }
+  },
+  "tags": [
+    "community",
+    "membership",
+    "editorial",
+    "paid-content",
+    "archive",
+    "light-theme"
+  ]
+}
+

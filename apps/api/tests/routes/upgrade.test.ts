@@ -11,10 +11,28 @@
  * All upgrade endpoints require admin authentication.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
+
+const PUBLIC_MANIFEST_URL = 'https://api.jiffoo.com/api/upgrade/manifest.json';
+const PUBLIC_MANIFEST = {
+  latestVersion: '1.0.1',
+  latestStableVersion: '1.0.1',
+  latestPrereleaseVersion: null,
+  channel: 'stable',
+  releaseDate: '2026-04-11T00:00:00.000Z',
+  changelogUrl: 'https://github.com/thefreelight/Jiffoo/commit/ef3e6481e12ae52fdb344896252d02d295a75f35',
+  sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
+  minimumCompatibleVersion: '1.0.0',
+  minimumAutoUpgradableVersion: '1.0.0',
+  requiresManualIntervention: false,
+  releaseNotes:
+    'Adds a public core update manifest path, clearer self-hosted update diagnostics, and official embedded storefront renderer activation for package-managed themes.',
+  checksumUrl: null,
+  signatureUrl: null,
+} as const;
 
 describe('Upgrade Endpoints', () => {
   let app: FastifyInstance;
@@ -32,6 +50,24 @@ describe('Upgrade Endpoints', () => {
   afterAll(async () => {
     await deleteAllTestUsers();
     await app.close();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  describe('GET /api/upgrade/manifest.json', () => {
+    it('should return the public manifest without authentication', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/upgrade/manifest.json',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-type']).toContain('application/json');
+      expect(response.json()).toEqual(PUBLIC_MANIFEST);
+    });
   });
 
   describe('Security - 401 without token', () => {
@@ -88,8 +124,76 @@ describe('Upgrade Endpoints', () => {
       expect(body).toHaveProperty('success', true);
       expect(body).toHaveProperty('data');
       expect(body.data).toHaveProperty('deploymentMode');
+      expect(body.data).toHaveProperty('deploymentModeSource');
       expect(body.data).toHaveProperty('oneClickUpgradeSupported');
+      expect(body.data).toHaveProperty('releaseChannel');
+      expect(body.data).toHaveProperty('manifestStatus');
       expect(body.data).toHaveProperty('recoveryMode', 'automatic-recovery');
+    });
+
+    it('should prefer the public manifest when one is configured and reachable', async () => {
+      vi.stubEnv('JIFFOO_CORE_UPDATE_MANIFEST_URL', 'https://updates.example.com/releases/core/manifest.json');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => ({
+          ok: true,
+          json: async () => ({
+            latestVersion: '1.0.1',
+            latestStableVersion: '1.0.1',
+            latestPrereleaseVersion: null,
+            channel: 'stable',
+            releaseDate: '2026-04-11T00:00:00.000Z',
+            changelogUrl: 'https://example.com/changelog/1.0.1',
+            minimumCompatibleVersion: '1.0.0',
+            minimumAutoUpgradableVersion: '1.0.0',
+            requiresManualIntervention: false,
+            releaseNotes: 'Test release manifest',
+          }),
+        })) as typeof fetch,
+      );
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/upgrade/version',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.data.latestVersion).toBe('1.0.1');
+      expect(body.data.updateSource).toBe('env-manifest');
+      expect(body.data.manifestStatus).toBe('available');
+      expect(body.data.manifestUrl).toBe('https://updates.example.com/releases/core/manifest.json');
+      expect(body.data.releaseChannel).toBe('stable');
+    });
+
+    it('should transparently remap the legacy get.jiffoo.com manifest URL', async () => {
+      vi.stubEnv('JIFFOO_CORE_UPDATE_MANIFEST_URL', 'https://get.jiffoo.com/releases/core/manifest.json');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (input: RequestInfo | URL) => ({
+          ok: true,
+          json: async () => PUBLIC_MANIFEST,
+        })) as typeof fetch,
+      );
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/upgrade/version',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.data.manifestUrl).toBe(PUBLIC_MANIFEST_URL);
+      expect(body.data.updateSource).toBe('default-public-manifest');
+      expect(fetch).toHaveBeenCalledWith(
+        PUBLIC_MANIFEST_URL,
+        expect.objectContaining({
+          method: 'GET',
+          headers: { accept: 'application/json' },
+        }),
+      );
     });
   });
 

@@ -1114,9 +1114,20 @@ export const upgradeApi = {
     latestVersion: string;
     updateAvailable: boolean;
     releaseNotes?: string | null;
+    changelogUrl?: string | null;
+    sourceArchiveUrl?: string | null;
+    releaseDate?: string | null;
+    releaseChannel: 'stable' | 'prerelease';
     deploymentMode: 'single-host' | 'docker-compose' | 'k8s' | 'unsupported';
+    deploymentModeSource: 'env' | 'k8s-signals' | 'compose-signals' | 'single-host-signals' | 'fallback';
+    deploymentModeReason?: string | null;
     oneClickUpgradeSupported: boolean;
-    updateSource: 'public-manifest' | 'local-fallback';
+    updateSource: 'env-manifest' | 'default-public-manifest' | 'local-fallback';
+    manifestUrl?: string | null;
+    manifestStatus: 'available' | 'missing' | 'unreachable' | 'invalid';
+    manifestError?: string | null;
+    minimumAutoUpgradableVersion?: string | null;
+    requiresManualIntervention?: boolean;
     recoveryMode: 'automatic-recovery';
     manualGuidance?: string | null;
   }>> =>
@@ -1132,8 +1143,9 @@ export const upgradeApi = {
 
   perform: (targetVersion: string): Promise<ApiResponse<{
     targetVersion: string;
-    upgraded: boolean;
-    completedAt: string;
+    started: boolean;
+    completed: boolean;
+    completedAt?: string | null;
   }>> =>
     apiClient.post('/upgrade/perform', { targetVersion }),
 

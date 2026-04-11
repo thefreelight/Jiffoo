@@ -16,6 +16,8 @@ RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
+    docker.io \
+    docker-compose \
     git \
     openssl \
     python3 \
@@ -34,6 +36,8 @@ COPY packages/shared/package.json ./packages/shared/
 RUN pnpm install --filter api... --frozen-lockfile
 
 COPY . .
+
+RUN install -m 0755 /app/scripts/jiffoo-updater.mjs /usr/local/bin/jiffoo-updater
 
 RUN pnpm --filter shared build
 RUN pnpm --filter api exec tsx scripts/build-official-artifacts.ts || echo "Skipping embedded official artifacts for self-hosted build"

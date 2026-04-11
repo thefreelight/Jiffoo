@@ -1,0 +1,22 @@
+:root {
+  --theme-color-primary: #8a7fff;
+  --theme-color-secondary: #0f1529;
+  --theme-color-accent: #76e3c3;
+  --theme-color-background: #070b14;
+  --theme-color-foreground: #eff2ff;
+  --theme-color-muted: #94a0c2;
+  --theme-color-border: rgba(154, 166, 206, 0.18);
+
+  --stellar-bg: #070b14;
+  --stellar-bg-elevated: #0d1324;
+  --stellar-panel: rgba(13, 19, 36, 0.86);
+  --stellar-panel-strong: rgba(16, 24, 46, 0.96);
+  --stellar-line: rgba(148, 160, 194, 0.18);
+  --stellar-line-strong: rgba(138, 127, 255, 0.34);
+  --stellar-text: #eff2ff;
+  --stellar-text-soft: #b3bdd9;
+  --stellar-text-muted: #94a0c2;
+  --stellar-primary: #8a7fff;
+  --stellar-accent: #76e3c3;
+  --stellar-shadow: 0 28px 80px rgba(2, 6, 23, 0.42);
+}

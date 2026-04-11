@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "slug": "modelsfind",
+  "name": "ModelsFind",
+  "version": "0.1.0",
+  "target": "shop",
+  "description": "Official dark editorial storefront theme for premium model directories, curated portfolios, and appointment-first booking flows.",
+  "author": "Jiffoo",
+  "category": "gallery",
+  "entry": {
+    "tokensCSS": "tokens.css",
+    "templatesDir": "templates",
+    "settingsSchema": "schemas/settings.schema.json"
+  },
+  "compatibility": {
+    "minCoreVersion": "0.2.0"
+  },
+  "x-jiffoo-renderer-mode": "embedded",
+  "x-jiffoo-renderer-slug": "modelsfind",
+  "defaultConfig": {
+    "brand": {
+      "name": "modelsfind",
+      "primaryColor": "#d25ad3",
+      "secondaryColor": "#f4b5ea",
+      "fontFamily": "\"Cormorant Garamond\", \"Iowan Old Style\", serif"
+    },
+    "layout": {
+      "headerSticky": true,
+      "showFooterLinks": true,
+      "maxWidth": "1320px"
+    },
+    "features": {
+      "showWishlist": true,
+      "showRatings": false,
+      "enableQuickView": false
+    },
+    "site": {
+      "archetype": "product-site",
+      "eyebrow": "Curated model directory",
+      "headline": "Editorial model profiles, instant availability cues, and premium booking requests in one refined destination.",
+      "subheadline": "Built for operators presenting premium model portfolios. Filter by region, look, and access tier while keeping the storefront polished, discreet, and booking-ready.",
+      "primaryCtaLabel": "Explore collection",
+      "primaryCtaHref": "/products",
+      "secondaryCtaLabel": "Request access",
+      "secondaryCtaHref": "/auth/register",
+      "docsHref": "/help",
+      "demoHref": "/products",
+      "supportEmail": "hello@modelsfind.com"
+    }
+  },
+  "tags": [
+    "gallery",
+    "editorial",
+    "portrait",
+    "luxury",
+    "dark-theme",
+    "model-directory"
+  ]
+}

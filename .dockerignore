@@ -120,6 +120,10 @@ docs/
 
 # Scripts
 scripts/
+!scripts/
+scripts/*
+!scripts/jiffoo-updater.mjs
+!scripts/jiffoo-updater-agent.mjs
 deploy.sh
 
 # Test files

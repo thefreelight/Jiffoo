@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "slug": "fire",
+  "name": "Fire Theme",
+  "version": "0.1.0",
+  "target": "shop",
+  "description": "Finance-first storefront theme pack with an upload-driven FIRE dashboard for mixed personal and company balance sheets.",
+  "author": "Jiffoo",
+  "category": "finance",
+  "entry": {
+    "tokensCSS": "tokens.css",
+    "templatesDir": "templates",
+    "settingsSchema": "schemas/settings.schema.json"
+  },
+  "compatibility": {
+    "minCoreVersion": "0.2.0"
+  },
+  "defaultConfig": {
+    "colors": {
+      "primary": "#325dff",
+      "secondary": "#0f1d3a",
+      "accent": "#c45d22",
+      "background": "#f5f7fb",
+      "foreground": "#10182c",
+      "muted": "#60708c",
+      "border": "#d8dfeb"
+    },
+    "typography": {
+      "fontFamily": "\"Inter\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+      "headingFamily": "\"Inter\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+      "fontSize": "16px",
+      "lineHeight": "1.6"
+    },
+    "layout": {
+      "containerWidth": "1360px",
+      "headerHeight": "76px",
+      "radius": "24px",
+      "spacing": "1rem"
+    },
+    "fire": {
+      "goalAmount": 2500000,
+      "goalLabel": "Financial Independence",
+      "assistantName": "FIRE Agent"
+    }
+  },
+  "tags": [
+    "fire",
+    "finance",
+    "wealth",
+    "debt",
+    "dashboard",
+    "agent",
+    "upload"
+  ]
+}

@@ -11,7 +11,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
-    "build": "prisma generate && tsc && tsc-alias -p tsconfig.json",
+    "build": "prisma generate && tsc && tsc-alias -p tsconfig.json && node scripts/repair-dist-runtime-imports.mjs",
     "start": "node dist/server.js",
     "lint": "eslint src --ext .ts",
     "type-check": "tsc --noEmit",

@@ -1,0 +1,32 @@
+{
+  "name": "@shop-themes/bokmoo",
+  "version": "1.0.0",
+  "description": "Bokmoo premium travel eSIM theme",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "sideEffects": [
+    "./src/tokens.css"
+  ],
+  "peerDependencies": {
+    "next": ">=14",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "@jiffoo/ui": "workspace:*",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.15.0",
+    "lucide-react": "^0.460.0",
+    "next": "^16.0.7",
+    "next-themes": "^0.4.6",
+    "react": "file:../../../.tools/npm/react-19.2.1.tgz",
+    "react-dom": "file:../../../.tools/npm/react-dom-19.2.1.tgz",
+    "shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.8.3"
+  }
+}

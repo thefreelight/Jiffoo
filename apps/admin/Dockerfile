@@ -56,9 +56,10 @@ WORKDIR /app
 # Install pnpm (needed for build commands) from the vendored tarball.
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
-# Copy dependencies from deps stage
+# Copy dependencies from deps stage.
+# Keep only the workspace root node_modules to avoid duplicate Next.js module
+# resolution between /app/node_modules and /app/apps/admin/node_modules.
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/admin/node_modules ./apps/admin/node_modules
 
 # Copy source code
 COPY . .

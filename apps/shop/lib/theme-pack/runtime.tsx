@@ -207,6 +207,28 @@ export function ThemePackProvider({
     setReloadToken((prev) => prev + 1);
   }, [effectiveSlug]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleFocus = () => {
+      void reloadTheme();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void reloadTheme();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [reloadTheme]);
+
   // Load page template - uses effectiveSlug to handle preview correctly
   const loadPageTemplate = useCallback(
     async (page: string): Promise<PageTemplate | null> => {
