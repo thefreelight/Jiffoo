@@ -87,12 +87,12 @@ exec node "${UPDATER_SCRIPT}" "$@"
 
 async function startHttpServer(tarballPath) {
   const manifest = JSON.stringify({
-    latestVersion: '1.0.1',
-    latestStableVersion: '1.0.1',
+    latestVersion: '1.0.5',
+    latestStableVersion: '1.0.5',
     latestPrereleaseVersion: null,
     channel: 'stable',
     releaseDate: '2026-04-11T00:00:00.000Z',
-    changelogUrl: 'https://example.com/releases/1.0.1',
+    changelogUrl: 'https://example.com/releases/1.0.5',
     sourceArchiveUrl: 'http://127.0.0.1:43219/jiffoo-source.tar.gz',
     minimumCompatibleVersion: '1.0.0',
     minimumAutoUpgradableVersion: '1.0.0',
@@ -167,7 +167,7 @@ async function main() {
     const trigger = await fetch(`http://127.0.0.1:${agentPort}/upgrade`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ targetVersion: '1.0.1' }),
+      body: JSON.stringify({ targetVersion: '1.0.5' }),
     });
 
     if (!trigger.ok) {
@@ -180,8 +180,8 @@ async function main() {
     }
 
     const envFile = await fs.readFile(path.join(workspaceDir, '.env.production.local'), 'utf8');
-    if (!envFile.includes('APP_VERSION=1.0.1')) {
-      throw new Error('Updater rehearsal did not persist APP_VERSION=1.0.1');
+    if (!envFile.includes('APP_VERSION=1.0.5')) {
+      throw new Error('Updater rehearsal did not persist APP_VERSION=1.0.5');
     }
 
     const dockerCalls = await fs.readFile(dockerLog, 'utf8');

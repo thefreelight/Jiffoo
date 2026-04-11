@@ -4,8 +4,8 @@ set -euo pipefail
 
 REPO_URL="${JIFFOO_REPO_URL:-https://github.com/thefreelight/Jiffoo.git}"
 REF="${JIFFOO_REF:-main}"
-LEGACY_UPDATE_MANIFEST_URL="https://get.jiffoo.com/releases/core/manifest.json"
-DEFAULT_UPDATE_MANIFEST_URL="https://api.jiffoo.com/api/upgrade/manifest.json"
+LEGACY_UPDATE_MANIFEST_URL="https://api.jiffoo.com/api/upgrade/manifest.json"
+DEFAULT_UPDATE_MANIFEST_URL="https://get.jiffoo.com/releases/core/manifest.json"
 DEFAULT_SOURCE_ARCHIVE_URL="https://get.jiffoo.com/jiffoo-source.tar.gz"
 SOURCE_ARCHIVE_URL="${JIFFOO_SOURCE_ARCHIVE_URL:-${DEFAULT_SOURCE_ARCHIVE_URL}}"
 INSTALL_DIR="${JIFFOO_INSTALL_DIR:-/opt/jiffoo}"

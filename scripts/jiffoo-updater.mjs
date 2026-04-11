@@ -6,8 +6,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
 
-const LEGACY_MANIFEST_URL = 'https://get.jiffoo.com/releases/core/manifest.json';
-const DEFAULT_MANIFEST_URL = 'https://api.jiffoo.com/api/upgrade/manifest.json';
+const LEGACY_MANIFEST_URL = 'https://api.jiffoo.com/api/upgrade/manifest.json';
+const DEFAULT_MANIFEST_URL = 'https://get.jiffoo.com/releases/core/manifest.json';
 const DEFAULT_SOURCE_ARCHIVE_URL = 'https://get.jiffoo.com/jiffoo-source.tar.gz';
 const DEFAULT_STATUS = {
   status: 'idle',
