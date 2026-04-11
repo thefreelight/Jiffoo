@@ -45,9 +45,9 @@ services:
       REDIS_URL: redis://redis:6379
       API_PORT: 3002
       API_HOST: 0.0.0.0
-      APP_VERSION: ${APP_VERSION:-1.0.1}
+      APP_VERSION: ${APP_VERSION:-1.0.5}
       JIFFOO_DEPLOYMENT_MODE: ${JIFFOO_DEPLOYMENT_MODE:-docker-compose}
-      JIFFOO_CORE_UPDATE_MANIFEST_URL: ${JIFFOO_CORE_UPDATE_MANIFEST_URL:-https://api.jiffoo.com/api/upgrade/manifest.json}
+      JIFFOO_CORE_UPDATE_MANIFEST_URL: ${JIFFOO_CORE_UPDATE_MANIFEST_URL:-https://get.jiffoo.com/releases/core/manifest.json}
       JIFFOO_UPDATE_CHANNEL: ${JIFFOO_UPDATE_CHANNEL:-stable}
       JIFFOO_SOURCE_ARCHIVE_URL: ${JIFFOO_SOURCE_ARCHIVE_URL:-https://get.jiffoo.com/jiffoo-source.tar.gz}
       JIFFOO_UPDATER_URL: ${JIFFOO_UPDATER_URL:-http://updater:3015}
@@ -113,9 +113,9 @@ services:
       JIFFOO_DOCKER_ENV_FILE: /workspace/.env.production.local
       JIFFOO_UPDATER_STATUS_FILE: /app/uploads/upgrade-status.json
       JIFFOO_UPDATER_BIN: /usr/local/bin/jiffoo-updater
-      JIFFOO_CORE_UPDATE_MANIFEST_URL: ${JIFFOO_CORE_UPDATE_MANIFEST_URL:-https://api.jiffoo.com/api/upgrade/manifest.json}
+      JIFFOO_CORE_UPDATE_MANIFEST_URL: ${JIFFOO_CORE_UPDATE_MANIFEST_URL:-https://get.jiffoo.com/releases/core/manifest.json}
       JIFFOO_SOURCE_ARCHIVE_URL: ${JIFFOO_SOURCE_ARCHIVE_URL:-https://get.jiffoo.com/jiffoo-source.tar.gz}
-      APP_VERSION: ${APP_VERSION:-1.0.1}
+      APP_VERSION: ${APP_VERSION:-1.0.5}
     volumes:
       - ./:/workspace
       - /var/run/docker.sock:/var/run/docker.sock

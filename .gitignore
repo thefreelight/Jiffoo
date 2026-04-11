@@ -128,6 +128,7 @@ imagerAI/
 .claude_settings.json
 .worktrees/
 .tools/
+.release/
 .security-key
 logs/security/
 

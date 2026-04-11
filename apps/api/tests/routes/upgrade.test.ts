@@ -16,10 +16,10 @@ import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 
-const PUBLIC_MANIFEST_URL = 'https://api.jiffoo.com/api/upgrade/manifest.json';
+const PUBLIC_MANIFEST_URL = 'https://get.jiffoo.com/releases/core/manifest.json';
 const PUBLIC_MANIFEST = {
-  latestVersion: '1.0.1',
-  latestStableVersion: '1.0.1',
+  latestVersion: '1.0.5',
+  latestStableVersion: '1.0.5',
   latestPrereleaseVersion: null,
   channel: 'stable',
   releaseDate: '2026-04-11T00:00:00.000Z',
@@ -29,7 +29,7 @@ const PUBLIC_MANIFEST = {
   minimumAutoUpgradableVersion: '1.0.0',
   requiresManualIntervention: false,
   releaseNotes:
-    'Adds a public core update manifest path, clearer self-hosted update diagnostics, and official embedded storefront renderer activation for package-managed themes.',
+    'Adds the GitHub-release-driven update feed, public manifest publishing automation, clearer self-hosted update diagnostics, and official embedded storefront renderer activation for package-managed themes.',
   checksumUrl: null,
   signatureUrl: null,
 } as const;
@@ -138,12 +138,12 @@ describe('Upgrade Endpoints', () => {
         vi.fn(async () => ({
           ok: true,
           json: async () => ({
-            latestVersion: '1.0.1',
-            latestStableVersion: '1.0.1',
+            latestVersion: '1.0.5',
+            latestStableVersion: '1.0.5',
             latestPrereleaseVersion: null,
             channel: 'stable',
             releaseDate: '2026-04-11T00:00:00.000Z',
-            changelogUrl: 'https://example.com/changelog/1.0.1',
+            changelogUrl: 'https://example.com/changelog/1.0.5',
             minimumCompatibleVersion: '1.0.0',
             minimumAutoUpgradableVersion: '1.0.0',
             requiresManualIntervention: false,
@@ -160,15 +160,15 @@ describe('Upgrade Endpoints', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.data.latestVersion).toBe('1.0.1');
+      expect(body.data.latestVersion).toBe('1.0.5');
       expect(body.data.updateSource).toBe('env-manifest');
       expect(body.data.manifestStatus).toBe('available');
       expect(body.data.manifestUrl).toBe('https://updates.example.com/releases/core/manifest.json');
       expect(body.data.releaseChannel).toBe('stable');
     });
 
-    it('should transparently remap the legacy get.jiffoo.com manifest URL', async () => {
-      vi.stubEnv('JIFFOO_CORE_UPDATE_MANIFEST_URL', 'https://get.jiffoo.com/releases/core/manifest.json');
+    it('should transparently remap the legacy api.jiffoo.com manifest URL', async () => {
+      vi.stubEnv('JIFFOO_CORE_UPDATE_MANIFEST_URL', 'https://api.jiffoo.com/api/upgrade/manifest.json');
       vi.stubGlobal(
         'fetch',
         vi.fn(async (input: RequestInfo | URL) => ({
