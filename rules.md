@@ -60,6 +60,38 @@ Canonical repos:
 - `jiffoo-mall-core` may temporarily contain overlapping OSS files during migration, but `Jiffoo` remains canonical for OSS scope.
 - `apps/api` and `apps/platform-api` must not share one Prisma migration history table; even on one Postgres server they should use separate logical databases.
 
+## Theme Client Contract Rules
+
+When implementing official storefront support for web, mobile, desktop, or future custom clients, treat the following files as the only source of truth:
+
+- `docs/theme-client-platform-contract.md`
+- `docs/theme-client-api-catalog.json`
+- `docs/theme-client-adapter-registry.json`
+- `docs/theme-client-compatibility-matrix.md`
+- `docs/theme-client-official-theme-support.md`
+- `docs/theme-client-first-wave-rollout.md`
+
+If you are changing client-specific storefront support in another repository, that repository must point back here instead of redefining the contract locally.
+
+### Hard Invariants
+
+- `切主题 != 切核心 commerce API`
+- Theme switches may change presentation, renderer selection, and adapter selection only.
+- Theme switches must not fork product, cart, order, payment, or auth semantics.
+- Clients must resolve store and active theme through `/api/store/context` and `/api/themes/active`.
+- Do not add client-private commerce endpoints. If a new storefront contract is required, propose it in core first.
+- Plugin-backed features must continue to go through the existing extension/plugin gateway model.
+- `builtin-default` is the first official priority. `quiet-curator` and `stellar-midnight` remain first-wave targets until implementation and verification upgrade their support state.
+- Limited, experimental, and unsupported themes must have explicit fallback behavior; do not allow silent failure.
+
+### Required Verification
+
+- Run `node scripts/verify-theme-client-contracts.mjs --strict-cross-repo` after changing the cross-platform storefront contract or official support metadata.
+
+### Database Safety
+
+- Stop immediately if any database drift is detected.
+
 ## Temporary Agile Deployment Path
 
 - Until the formal release docs are updated, the current rapid production iteration path for OSS runtime work is the Singapore cluster path below.
