@@ -60,6 +60,7 @@ async function createFakeDocker(rootDir) {
   await fs.mkdir(binDir, { recursive: true });
 
   const dockerPath = path.join(binDir, 'docker');
+  const dockerComposePath = path.join(binDir, 'docker-compose');
   await fs.writeFile(
     dockerPath,
     `#!/usr/bin/env bash
@@ -70,6 +71,16 @@ exit 0
     'utf8',
   );
   await fs.chmod(dockerPath, 0o755);
+  await fs.writeFile(
+    dockerComposePath,
+    `#!/usr/bin/env bash
+set -euo pipefail
+printf 'compose:%s\\n' "$*" >> "${dockerLog}"
+exit 0
+`,
+    'utf8',
+  );
+  await fs.chmod(dockerComposePath, 0o755);
 
   const wrapperPath = path.join(binDir, 'jiffoo-updater');
   await fs.writeFile(
@@ -87,12 +98,12 @@ exec node "${UPDATER_SCRIPT}" "$@"
 
 async function startHttpServer(tarballPath) {
   const manifest = JSON.stringify({
-    latestVersion: '1.0.5',
-    latestStableVersion: '1.0.5',
+    latestVersion: '1.0.6',
+    latestStableVersion: '1.0.6',
     latestPrereleaseVersion: null,
     channel: 'stable',
     releaseDate: '2026-04-11T00:00:00.000Z',
-    changelogUrl: 'https://example.com/releases/1.0.5',
+    changelogUrl: 'https://example.com/releases/1.0.6',
     sourceArchiveUrl: 'http://127.0.0.1:43219/jiffoo-source.tar.gz',
     minimumCompatibleVersion: '1.0.0',
     minimumAutoUpgradableVersion: '1.0.0',
@@ -167,7 +178,7 @@ async function main() {
     const trigger = await fetch(`http://127.0.0.1:${agentPort}/upgrade`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ targetVersion: '1.0.5' }),
+      body: JSON.stringify({ targetVersion: '1.0.6' }),
     });
 
     if (!trigger.ok) {
@@ -180,12 +191,12 @@ async function main() {
     }
 
     const envFile = await fs.readFile(path.join(workspaceDir, '.env.production.local'), 'utf8');
-    if (!envFile.includes('APP_VERSION=1.0.5')) {
-      throw new Error('Updater rehearsal did not persist APP_VERSION=1.0.5');
+    if (!envFile.includes('APP_VERSION=1.0.6')) {
+      throw new Error('Updater rehearsal did not persist APP_VERSION=1.0.6');
     }
 
     const dockerCalls = await fs.readFile(dockerLog, 'utf8');
-    for (const expected of ['compose', 'up -d --build api shop admin', 'exec -T api npx prisma migrate deploy']) {
+    for (const expected of ['compose:-p', 'up -d --build --no-deps api shop admin', 'exec -T api npx prisma migrate deploy']) {
       if (!dockerCalls.includes(expected)) {
         throw new Error(`Expected docker call not observed: ${expected}`);
       }
