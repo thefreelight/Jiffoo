@@ -66,6 +66,9 @@ RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 # Keep only the workspace root node_modules to avoid loading duplicate Next.js
 # packages from both /app/node_modules and /app/apps/shop/node_modules.
 COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/shop/node_modules ./apps/shop/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
 
 # Copy source code
 COPY . .
