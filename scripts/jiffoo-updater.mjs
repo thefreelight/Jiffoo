@@ -4,7 +4,7 @@ import fs from 'node:fs/promises';
 import fsSync from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 
 const LEGACY_MANIFEST_URL = 'https://api.jiffoo.com/api/upgrade/manifest.json';
 const DEFAULT_MANIFEST_URL = 'https://get.jiffoo.com/releases/core/manifest.json';
@@ -17,6 +17,119 @@ const DEFAULT_STATUS = {
   updatedAt: null,
   targetVersion: null,
 };
+
+function parseEnvFile(content) {
+  const env = {};
+  const lines = content.split(/\r?\n/);
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith('#')) continue;
+
+    const equalsIndex = line.indexOf('=');
+    if (equalsIndex === -1) continue;
+
+    const key = line.slice(0, equalsIndex).trim();
+    let value = line.slice(equalsIndex + 1).trim();
+
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    if (key) {
+      env[key] = value;
+    }
+  }
+
+  return env;
+}
+
+async function buildComposeEnv(envFile) {
+  const nextEnv = { ...process.env };
+  if (!envFile || !fsSync.existsSync(envFile)) {
+    return nextEnv;
+  }
+
+  try {
+    const content = await fs.readFile(envFile, 'utf8');
+    return {
+      ...nextEnv,
+      ...parseEnvFile(content),
+    };
+  } catch {
+    return nextEnv;
+  }
+}
+
+function inferComposeProjectName(commandEnv) {
+  const result = spawnSync(
+    'docker',
+    ['ps', '--format', '{{.Names}}'],
+    {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      env: commandEnv,
+    },
+  );
+
+  if (result.status !== 0 || !result.stdout) {
+    return null;
+  }
+
+  const candidates = new Map();
+  for (const rawLine of result.stdout.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+
+    const match = line.match(/^(.+?)[-_](api|shop|admin|updater|postgres|redis)[-_]1$/);
+    if (!match) continue;
+
+    const [, prefix, service] = match;
+    const existing = candidates.get(prefix) || new Set();
+    existing.add(service);
+    candidates.set(prefix, existing);
+  }
+
+  let bestPrefix = null;
+  let bestScore = -1;
+
+  for (const [prefix, services] of candidates.entries()) {
+    const score =
+      (services.has('api') ? 4 : 0) +
+      (services.has('shop') ? 3 : 0) +
+      (services.has('admin') ? 3 : 0) +
+      services.size;
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestPrefix = prefix;
+    }
+  }
+
+  return bestPrefix;
+}
+
+function resolveComposeProjectName(workspaceDir, commandEnv) {
+  const explicit = commandEnv.JIFFOO_DOCKER_COMPOSE_PROJECT_NAME || commandEnv.COMPOSE_PROJECT_NAME;
+  if (explicit && explicit.trim().length > 0) {
+    return explicit.trim();
+  }
+
+  const inferred = inferComposeProjectName(commandEnv);
+  if (inferred && inferred.trim().length > 0) {
+    return inferred.trim();
+  }
+
+  const basename = path.basename(workspaceDir);
+  if (basename && basename !== 'workspace') {
+    return basename;
+  }
+
+  return 'current';
+}
 
 function printUsage() {
   console.log(`Usage:
@@ -73,6 +186,29 @@ async function run(command, args, options = {}) {
     });
     child.on('error', reject);
   });
+}
+
+function hasCommand(command, args = []) {
+  const result = spawnSync(command, args, { stdio: 'ignore', env: process.env });
+  return result.status === 0;
+}
+
+function resolveComposeInvocation() {
+  if (hasCommand('docker-compose', ['--version'])) {
+    return {
+      command: 'docker-compose',
+      prefixArgs: [],
+    };
+  }
+
+  if (hasCommand('docker', ['compose', 'version'])) {
+    return {
+      command: 'docker',
+      prefixArgs: ['compose'],
+    };
+  }
+
+  throw new Error('Neither "docker compose" nor "docker-compose" is available in the updater runtime');
 }
 
 function resolvePath(inputPath) {
@@ -182,14 +318,13 @@ async function replaceWorkspace(workspaceDir, sourceDir) {
   }
 }
 
-async function waitForApiHealth(composeFile, envFile) {
+async function waitForApiHealth(composeCommand, composePrefixArgs, composeFile, commandEnv) {
   for (let attempt = 0; attempt < 24; attempt += 1) {
     try {
-      const args = ['compose'];
-      if (envFile && fsSync.existsSync(envFile)) {
-        args.push('--env-file', envFile);
-      }
-      args.push(
+      const args = [
+        ...composePrefixArgs,
+        '-p',
+        commandEnv.COMPOSE_PROJECT_NAME,
         '-f',
         composeFile,
         'exec',
@@ -198,8 +333,8 @@ async function waitForApiHealth(composeFile, envFile) {
         'sh',
         '-lc',
         'curl -fsS http://127.0.0.1:3002/health/ready >/dev/null',
-      );
-      await run('docker', args, { env: process.env });
+      ];
+      await run(composeCommand, args, { env: commandEnv });
       return;
     } catch {
       await new Promise((resolve) => setTimeout(resolve, 5000));
@@ -221,6 +356,10 @@ async function performDockerComposeUpgrade(options) {
   const backupId = `backup-${Date.now()}`;
   const backupTarPath = path.join(backupRoot, `${backupId}.tar.gz`);
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'jiffoo-updater-'));
+  const composeEnv = await buildComposeEnv(envFile);
+  const composeProjectName = resolveComposeProjectName(workspaceDir, composeEnv);
+  composeEnv.COMPOSE_PROJECT_NAME = composeProjectName;
+  const { command: composeCommand, prefixArgs: composePrefixArgs } = resolveComposeInvocation();
 
   try {
     let archiveUrl = options['source-archive-url']
@@ -283,12 +422,14 @@ async function performDockerComposeUpgrade(options) {
         'JIFFOO_CORE_UPDATE_MANIFEST_URL',
         normalizeManifestUrl(process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || DEFAULT_MANIFEST_URL),
       );
+      await writeEnvValue(envFile, 'COMPOSE_PROJECT_NAME', composeProjectName);
     }
     process.env.APP_VERSION = targetVersion;
     process.env.JIFFOO_DEPLOYMENT_MODE = 'docker-compose';
     process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL = normalizeManifestUrl(
       process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || DEFAULT_MANIFEST_URL,
     );
+    process.env.COMPOSE_PROJECT_NAME = composeProjectName;
 
     console.log('[jiffoo-updater] Rebuilding and restarting docker-compose services');
     await writeStatus(statusFile, {
@@ -297,12 +438,37 @@ async function performDockerComposeUpgrade(options) {
       currentStep: 'Rebuilding and restarting api/shop/admin services',
       targetVersion,
     });
-    const composeArgs = ['compose'];
-    if (envFile && fsSync.existsSync(envFile)) {
-      composeArgs.push('--env-file', envFile);
-    }
-    composeArgs.push('-f', composeFile, 'up', '-d', '--build', 'api', 'shop', 'admin');
-    await run('docker', composeArgs, { env: process.env });
+    const removeArgs = [
+      ...composePrefixArgs,
+      '-p',
+      composeProjectName,
+      '-f',
+      composeFile,
+      'rm',
+      '-f',
+      '-s',
+      'api',
+      'shop',
+      'admin',
+    ];
+    await run(composeCommand, removeArgs, { env: composeEnv }).catch(() => {
+      // Ignore when target containers do not exist yet.
+    });
+    const composeArgs = [
+      ...composePrefixArgs,
+      '-p',
+      composeProjectName,
+      '-f',
+      composeFile,
+      'up',
+      '-d',
+      '--build',
+      '--no-deps',
+      'api',
+      'shop',
+      'admin',
+    ];
+    await run(composeCommand, composeArgs, { env: composeEnv });
 
     console.log('[jiffoo-updater] Applying database migrations');
     await writeStatus(statusFile, {
@@ -311,11 +477,10 @@ async function performDockerComposeUpgrade(options) {
       currentStep: 'Applying database migrations',
       targetVersion,
     });
-    const migrateArgs = ['compose'];
-    if (envFile && fsSync.existsSync(envFile)) {
-      migrateArgs.push('--env-file', envFile);
-    }
-    migrateArgs.push(
+    const migrateArgs = [
+      ...composePrefixArgs,
+      '-p',
+      composeProjectName,
       '-f',
       composeFile,
       'exec',
@@ -327,8 +492,8 @@ async function performDockerComposeUpgrade(options) {
       'deploy',
       '--schema',
       'apps/api/prisma/schema.prisma',
-    );
-    await run('docker', migrateArgs, { env: process.env });
+    ];
+    await run(composeCommand, migrateArgs, { env: composeEnv });
 
     console.log('[jiffoo-updater] Waiting for API health');
     await writeStatus(statusFile, {
@@ -337,7 +502,7 @@ async function performDockerComposeUpgrade(options) {
       currentStep: 'Waiting for API health checks',
       targetVersion,
     });
-    await waitForApiHealth(composeFile, envFile);
+    await waitForApiHealth(composeCommand, composePrefixArgs, composeFile, composeEnv);
     await writeStatus(statusFile, {
       status: 'completed',
       progress: 100,

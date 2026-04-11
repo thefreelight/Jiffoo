@@ -51,6 +51,7 @@ services:
       JIFFOO_UPDATE_CHANNEL: ${JIFFOO_UPDATE_CHANNEL:-stable}
       JIFFOO_SOURCE_ARCHIVE_URL: ${JIFFOO_SOURCE_ARCHIVE_URL:-https://get.jiffoo.com/jiffoo-source.tar.gz}
       JIFFOO_UPDATER_URL: ${JIFFOO_UPDATER_URL:-http://updater:3015}
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-current}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-7d}
       EXTENSION_SIGNATURE_VERIFY: ${EXTENSION_SIGNATURE_VERIFY:-optional}
@@ -111,6 +112,7 @@ services:
       JIFFOO_UPDATER_AGENT_PORT: 3015
       JIFFOO_DOCKER_COMPOSE_FILE: /workspace/docker-compose.prod.yml
       JIFFOO_DOCKER_ENV_FILE: /workspace/.env.production.local
+      JIFFOO_DOCKER_COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-current}
       JIFFOO_UPDATER_STATUS_FILE: /app/uploads/upgrade-status.json
       JIFFOO_UPDATER_BIN: /usr/local/bin/jiffoo-updater
       JIFFOO_CORE_UPDATE_MANIFEST_URL: ${JIFFOO_CORE_UPDATE_MANIFEST_URL:-https://get.jiffoo.com/releases/core/manifest.json}
@@ -119,6 +121,7 @@ services:
     volumes:
       - ./:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOST_DOCKER_CLI_PLUGIN_DIR:-/usr/libexec/docker/cli-plugins}:/usr/libexec/docker/cli-plugins:ro
       - jiffoo_uploads:/app/uploads
     depends_on:
       api:

@@ -11,8 +11,24 @@ const STATUS_FILE = process.env.JIFFOO_UPDATER_STATUS_FILE || '/workspace/.jiffo
 const COMPOSE_FILE = process.env.JIFFOO_DOCKER_COMPOSE_FILE || '/workspace/docker-compose.prod.yml';
 const ENV_FILE = process.env.JIFFOO_DOCKER_ENV_FILE || '/workspace/.env.production.local';
 const UPDATER_BIN = process.env.JIFFOO_UPDATER_BIN || '/usr/local/bin/jiffoo-updater';
+const WORKSPACE_UPDATER_SCRIPT =
+  process.env.JIFFOO_UPDATER_SCRIPT || '/workspace/scripts/jiffoo-updater.mjs';
 
 let activeProcess = null;
+
+function resolveUpdaterInvocation() {
+  if (WORKSPACE_UPDATER_SCRIPT && fsSync.existsSync(WORKSPACE_UPDATER_SCRIPT)) {
+    return {
+      command: 'node',
+      prefixArgs: [WORKSPACE_UPDATER_SCRIPT],
+    };
+  }
+
+  return {
+    command: UPDATER_BIN,
+    prefixArgs: [],
+  };
+}
 
 async function readJsonBody(request) {
   const chunks = [];
@@ -64,7 +80,9 @@ async function startUpgrade(targetVersion) {
     targetVersion,
   });
 
+  const { command, prefixArgs } = resolveUpdaterInvocation();
   const args = [
+    ...prefixArgs,
     'upgrade',
     '--mode',
     'docker-compose',
@@ -80,7 +98,7 @@ async function startUpgrade(targetVersion) {
     args.push('--env-file', ENV_FILE);
   }
 
-  activeProcess = spawn(UPDATER_BIN, args, {
+  activeProcess = spawn(command, args, {
     detached: true,
     stdio: 'ignore',
     env: process.env,
