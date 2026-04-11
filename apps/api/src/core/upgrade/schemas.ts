@@ -21,6 +21,23 @@ const versionInfoSchema = {
     releaseNotes: { type: 'string', nullable: true, description: 'Release notes for latest version' },
     changelogUrl: { type: 'string', nullable: true, description: 'Public changelog URL for the latest release' },
     sourceArchiveUrl: { type: 'string', nullable: true, description: 'Public source archive URL for the latest release' },
+    deliveryMode: {
+      type: 'string',
+      enum: ['source', 'image'],
+      nullable: true,
+      description: 'Preferred delivery mode published for this release',
+    },
+    images: {
+      type: 'object',
+      nullable: true,
+      additionalProperties: false,
+      properties: {
+        api: { type: 'string' },
+        shop: { type: 'string' },
+        admin: { type: 'string' },
+        updater: { type: 'string', nullable: true },
+      },
+    },
     releaseDate: { type: 'string', nullable: true, description: 'Release date for the latest version' },
     releaseChannel: {
       type: 'string',
@@ -92,6 +109,24 @@ const publicManifestSchema = {
       type: 'string',
       enum: ['stable', 'prerelease'],
       description: 'Release channel represented by this manifest payload',
+    },
+    deliveryMode: {
+      type: 'string',
+      enum: ['source', 'image'],
+      nullable: true,
+      description: 'Preferred delivery mode for this release',
+    },
+    images: {
+      type: 'object',
+      nullable: true,
+      additionalProperties: false,
+      properties: {
+        api: { type: 'string' },
+        shop: { type: 'string' },
+        admin: { type: 'string' },
+        updater: { type: 'string', nullable: true },
+      },
+      description: 'Optional prebuilt service image references for image-based upgrades',
     },
     releaseDate: { type: 'string', description: 'Release publication date' },
     changelogUrl: { type: 'string', description: 'Public changelog URL for this release' },

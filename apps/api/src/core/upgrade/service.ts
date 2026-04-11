@@ -590,6 +590,8 @@ export class UpgradeService {
       latestStableVersion: stableVersion,
       latestPrereleaseVersion: prereleaseVersion,
       channel: preferredChannel,
+      deliveryMode: payload.deliveryMode || null,
+      images: payload.images || null,
       releaseDate: payload.releaseDate || null,
       changelogUrl: payload.changelogUrl || null,
       sourceArchiveUrl: payload.sourceArchiveUrl || null,

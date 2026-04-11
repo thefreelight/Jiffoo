@@ -83,6 +83,12 @@ function sanitizeReleaseNotes(rawNotes) {
   return compact.length > 0 ? compact.slice(0, 600) : null;
 }
 
+function normalizeImageRef(value) {
+  if (!value || typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 function run(command, args, options = {}) {
   const result = spawnSync(command, args, {
     stdio: 'inherit',
@@ -153,6 +159,14 @@ async function main() {
   const sourceArchiveName = args['source-archive-name'] || DEFAULT_SOURCE_ARCHIVE_NAME;
   const sourceArchiveUrl = args['source-archive-url'] || DEFAULT_SOURCE_ARCHIVE_URL;
   const checksumUrl = args['checksum-url'] || `${sourceArchiveUrl}.sha256`;
+  const imageRefs = {
+    api: normalizeImageRef(args['api-image']),
+    shop: normalizeImageRef(args['shop-image']),
+    admin: normalizeImageRef(args['admin-image']),
+    updater: normalizeImageRef(args['updater-image']),
+  };
+  const hasImageBundle = Boolean(imageRefs.api && imageRefs.shop && imageRefs.admin);
+  const deliveryMode = args['delivery-mode'] || (hasImageBundle ? 'image' : 'source');
   const manifestPath = path.join(outputDir, DEFAULT_RELEASES_DIR, 'manifest.json');
   const releaseAssetManifestPath = path.join(outputDir, 'core-update-manifest.json');
   const archivePath = path.join(outputDir, sourceArchiveName);
@@ -175,6 +189,15 @@ async function main() {
     latestStableVersion: releaseChannel === 'stable' ? coreVersion : DEFAULT_MINIMUM_AUTO_UPGRADABLE_VERSION,
     latestPrereleaseVersion: releaseChannel === 'prerelease' ? coreVersion : null,
     channel: releaseChannel,
+    deliveryMode,
+    images: hasImageBundle
+      ? {
+          api: imageRefs.api,
+          shop: imageRefs.shop,
+          admin: imageRefs.admin,
+          updater: imageRefs.updater,
+        }
+      : null,
     releaseDate,
     changelogUrl: releaseUrl,
     sourceArchiveUrl,
@@ -201,6 +224,8 @@ async function main() {
     releaseUrl,
     sourceArchiveName,
     sourceArchiveUrl,
+    deliveryMode,
+    imageRefs: hasImageBundle ? imageRefs : null,
     checksum,
     checksumUrl,
     manifestPath: path.relative(rootDir, manifestPath),
@@ -211,6 +236,7 @@ async function main() {
     outputDir,
     releaseTag,
     coreVersion,
+    deliveryMode,
     manifestPath,
     releaseAssetManifestPath,
     archivePath,

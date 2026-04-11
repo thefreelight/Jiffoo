@@ -9,6 +9,7 @@ import { spawn, spawnSync } from 'node:child_process';
 const LEGACY_MANIFEST_URL = 'https://api.jiffoo.com/api/upgrade/manifest.json';
 const DEFAULT_MANIFEST_URL = 'https://get.jiffoo.com/releases/core/manifest.json';
 const DEFAULT_SOURCE_ARCHIVE_URL = 'https://get.jiffoo.com/jiffoo-source.tar.gz';
+const IMAGE_DELIVERY_MODE = 'image';
 const DEFAULT_STATUS = {
   status: 'idle',
   progress: 0,
@@ -17,6 +18,26 @@ const DEFAULT_STATUS = {
   updatedAt: null,
   targetVersion: null,
 };
+
+function isNonEmptyString(value) {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function extractImageBundle(manifest) {
+  const images = manifest?.images;
+  if (!images || typeof images !== 'object') return null;
+
+  const api = isNonEmptyString(images.api) ? images.api.trim() : null;
+  const shop = isNonEmptyString(images.shop) ? images.shop.trim() : null;
+  const admin = isNonEmptyString(images.admin) ? images.admin.trim() : null;
+  const updater = isNonEmptyString(images.updater) ? images.updater.trim() : null;
+
+  if (!api || !shop || !admin) {
+    return null;
+  }
+
+  return { api, shop, admin, updater };
+}
 
 function parseEnvFile(content) {
   const env = {};
@@ -344,6 +365,109 @@ async function waitForApiHealth(composeCommand, composePrefixArgs, composeFile, 
   throw new Error('API health check did not become ready in time');
 }
 
+async function performDockerComposeImageUpgrade({
+  composeCommand,
+  composePrefixArgs,
+  composeFile,
+  composeEnv,
+  composeProjectName,
+  envFile,
+  imageBundle,
+  targetVersion,
+  statusFile,
+}) {
+  if (envFile && fsSync.existsSync(envFile)) {
+    await writeEnvValue(envFile, 'APP_VERSION', targetVersion);
+    await writeEnvValue(envFile, 'JIFFOO_DEPLOYMENT_MODE', 'docker-compose');
+    await writeEnvValue(
+      envFile,
+      'JIFFOO_CORE_UPDATE_MANIFEST_URL',
+      normalizeManifestUrl(process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || DEFAULT_MANIFEST_URL),
+    );
+    await writeEnvValue(envFile, 'COMPOSE_PROJECT_NAME', composeProjectName);
+    await writeEnvValue(envFile, 'API_IMAGE', imageBundle.api);
+    await writeEnvValue(envFile, 'SHOP_IMAGE', imageBundle.shop);
+    await writeEnvValue(envFile, 'ADMIN_IMAGE', imageBundle.admin);
+    if (imageBundle.updater) {
+      await writeEnvValue(envFile, 'UPDATER_IMAGE', imageBundle.updater);
+    }
+  }
+
+  composeEnv.APP_VERSION = targetVersion;
+  composeEnv.JIFFOO_DEPLOYMENT_MODE = 'docker-compose';
+  composeEnv.JIFFOO_CORE_UPDATE_MANIFEST_URL = normalizeManifestUrl(
+    process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || DEFAULT_MANIFEST_URL,
+  );
+  composeEnv.COMPOSE_PROJECT_NAME = composeProjectName;
+  composeEnv.API_IMAGE = imageBundle.api;
+  composeEnv.SHOP_IMAGE = imageBundle.shop;
+  composeEnv.ADMIN_IMAGE = imageBundle.admin;
+  if (imageBundle.updater) {
+    composeEnv.UPDATER_IMAGE = imageBundle.updater;
+  }
+
+  console.log('[jiffoo-updater] Pulling prebuilt service images');
+  await writeStatus(statusFile, {
+    status: 'applying',
+    progress: 45,
+    currentStep: 'Pulling prebuilt api/shop/admin images',
+    targetVersion,
+    error: null,
+  });
+
+  const pullArgs = [
+    ...composePrefixArgs,
+    '-p',
+    composeProjectName,
+    '-f',
+    composeFile,
+    'pull',
+    'api',
+    'shop',
+    'admin',
+  ];
+  await run(composeCommand, pullArgs, { env: composeEnv });
+
+  console.log('[jiffoo-updater] Restarting services from prebuilt images');
+  await writeStatus(statusFile, {
+    status: 'applying',
+    progress: 70,
+    currentStep: 'Restarting api/shop/admin from prebuilt images',
+    targetVersion,
+  });
+
+  const removeArgs = [
+    ...composePrefixArgs,
+    '-p',
+    composeProjectName,
+    '-f',
+    composeFile,
+    'rm',
+    '-f',
+    '-s',
+    'api',
+    'shop',
+    'admin',
+  ];
+  await run(composeCommand, removeArgs, { env: composeEnv }).catch(() => {});
+
+  const upArgs = [
+    ...composePrefixArgs,
+    '-p',
+    composeProjectName,
+    '-f',
+    composeFile,
+    'up',
+    '-d',
+    '--no-build',
+    '--no-deps',
+    'api',
+    'shop',
+    'admin',
+  ];
+  await run(composeCommand, upArgs, { env: composeEnv });
+}
+
 async function performDockerComposeUpgrade(options) {
   const composeFile = resolvePath(String(options['compose-file']));
   const envFile = options['env-file']
@@ -362,21 +486,40 @@ async function performDockerComposeUpgrade(options) {
   const { command: composeCommand, prefixArgs: composePrefixArgs } = resolveComposeInvocation();
 
   try {
+    let manifest = null;
+    try {
+      manifest = await fetchJson(
+        normalizeManifestUrl(process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || DEFAULT_MANIFEST_URL),
+      );
+    } catch {
+      manifest = null;
+    }
+
+    const imageBundle = extractImageBundle(manifest);
+    const shouldPreferImageDelivery =
+      options['prefer-source'] !== 'true' &&
+      imageBundle &&
+      (manifest?.deliveryMode === IMAGE_DELIVERY_MODE || options['prefer-image'] === 'true');
+
+    if (shouldPreferImageDelivery) {
+      await performDockerComposeImageUpgrade({
+        composeCommand,
+        composePrefixArgs,
+        composeFile,
+        composeEnv,
+        composeProjectName,
+        envFile,
+        imageBundle,
+        targetVersion,
+        statusFile,
+      });
+    } else {
     let archiveUrl = options['source-archive-url']
       ? String(options['source-archive-url'])
       : process.env.JIFFOO_SOURCE_ARCHIVE_URL || DEFAULT_SOURCE_ARCHIVE_URL;
 
-    if (!options['source-archive-url']) {
-      try {
-        const manifest = await fetchJson(
-          normalizeManifestUrl(process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || DEFAULT_MANIFEST_URL),
-        );
-        if (typeof manifest?.sourceArchiveUrl === 'string' && manifest.sourceArchiveUrl.trim().length > 0) {
-          archiveUrl = manifest.sourceArchiveUrl.trim();
-        }
-      } catch {
-        // keep fallback archive URL
-      }
+    if (!options['source-archive-url'] && typeof manifest?.sourceArchiveUrl === 'string' && manifest.sourceArchiveUrl.trim().length > 0) {
+      archiveUrl = manifest.sourceArchiveUrl.trim();
     }
 
     archiveUrl = substituteVersion(archiveUrl, targetVersion);
@@ -469,6 +612,7 @@ async function performDockerComposeUpgrade(options) {
       'admin',
     ];
     await run(composeCommand, composeArgs, { env: composeEnv });
+    }
 
     console.log('[jiffoo-updater] Applying database migrations');
     await writeStatus(statusFile, {

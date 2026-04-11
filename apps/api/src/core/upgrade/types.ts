@@ -8,6 +8,14 @@ export type DeploymentModeSource =
   | 'single-host-signals'
   | 'fallback';
 export type ReleaseChannel = 'stable' | 'prerelease';
+export type ReleaseDeliveryMode = 'source' | 'image';
+
+export interface CoreUpdateImages {
+  api: string;
+  shop: string;
+  admin: string;
+  updater?: string | null;
+}
 
 export type UpgradeStatusState =
   | 'idle'
@@ -27,6 +35,8 @@ export interface CoreUpdateManifest {
   latestStableVersion?: string | null;
   latestPrereleaseVersion?: string | null;
   channel?: ReleaseChannel | null;
+  deliveryMode?: ReleaseDeliveryMode | null;
+  images?: CoreUpdateImages | null;
   releaseDate?: string | null;
   changelogUrl?: string | null;
   sourceArchiveUrl?: string | null;
