@@ -20,15 +20,79 @@ import { generateThemeStyles } from '@/lib/theme-runtime';
  * Viewport configuration for PWA support
  * Separated from metadata as per Next.js 14 best practices
  */
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-  themeColor: '#3b82f6', // Matches manifest.json theme_color
+type MetadataThemeConfig = {
+  brand?: {
+    name?: string;
+    primaryColor?: string;
+  };
+  site?: {
+    eyebrow?: string;
+    headline?: string;
+    subheadline?: string;
+  };
 };
 
+function resolveThemeConfig(
+  context: Awaited<ReturnType<typeof getServerStoreContext>>,
+): MetadataThemeConfig | null {
+  if (!context?.theme?.config || typeof context.theme.config !== 'object') {
+    return null;
+  }
+
+  return context.theme.config as MetadataThemeConfig;
+}
+
+function resolveBrandName(
+  context: Awaited<ReturnType<typeof getServerStoreContext>>,
+  themeConfig: MetadataThemeConfig | null,
+): string {
+  const brandName = themeConfig?.brand?.name?.trim();
+  if (brandName) {
+    return brandName;
+  }
+
+  const storeName = context?.storeName?.trim();
+  if (storeName) {
+    return storeName;
+  }
+
+  return 'Jiffoo Mall';
+}
+
+function resolveMetadataDescription(
+  brandName: string,
+  themeConfig: MetadataThemeConfig | null,
+): string {
+  return (
+    themeConfig?.site?.subheadline?.trim() ||
+    themeConfig?.site?.headline?.trim() ||
+    themeConfig?.site?.eyebrow?.trim() ||
+    `A self-hosted commerce storefront for ${brandName}.`
+  );
+}
+
+function resolveThemeColor(themeConfig: MetadataThemeConfig | null): string {
+  return themeConfig?.brand?.primaryColor?.trim() || '#3b82f6';
+}
+
+export async function generateViewport(): Promise<Viewport> {
+  const context = await getServerStoreContext({ cache: 'no-store' });
+  const themeConfig = resolveThemeConfig(context);
+
+  return {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+    themeColor: resolveThemeColor(themeConfig),
+  };
+}
+
 export async function generateMetadata(): Promise<Metadata> {
+  const context = await getServerStoreContext({ cache: 'no-store' });
+  const themeConfig = resolveThemeConfig(context);
+  const brandName = resolveBrandName(context, themeConfig);
+  const description = resolveMetadataDescription(brandName, themeConfig);
   const publicOrigin = await resolvePublicOrigin();
   const metadataBase = new URL(publicOrigin);
   const socialImageUrl = new URL('/icon-512x512.png', metadataBase).toString();
@@ -36,10 +100,10 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase,
     title: {
-      default: 'Jiffoo Mall - Modern E-commerce System',
-      template: '%s | Jiffoo Mall',
+      default: brandName,
+      template: `%s | ${brandName}`,
     },
-    description: 'A modern, fast, and beautiful e-commerce system built with Next.js and TypeScript.',
+    description,
     keywords: ['e-commerce', 'shopping', 'online store', 'modern', 'fast', 'beautiful'],
     authors: [{ name: 'Jiffoo Team' }],
     creator: 'Jiffoo Team',
@@ -47,22 +111,22 @@ export async function generateMetadata(): Promise<Metadata> {
       type: 'website',
       locale: 'en_US',
       url: publicOrigin,
-      title: 'Jiffoo Mall - Modern E-commerce System',
-      description: 'A modern, fast, and beautiful e-commerce system built with Next.js and TypeScript.',
-      siteName: 'Jiffoo Mall',
+      title: brandName,
+      description,
+      siteName: brandName,
       images: [
         {
           url: socialImageUrl,
           width: 512,
           height: 512,
-          alt: 'Jiffoo Mall',
+          alt: brandName,
         },
       ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'Jiffoo Mall - Modern E-commerce System',
-      description: 'A modern, fast, and beautiful e-commerce system built with Next.js and TypeScript.',
+      title: brandName,
+      description,
       images: [socialImageUrl],
     },
     robots: {
@@ -86,7 +150,7 @@ export async function generateMetadata(): Promise<Metadata> {
       'apple-mobile-web-app-capable': 'yes',
       'apple-mobile-web-app-status-bar-style': 'black-translucent',
       'mobile-web-app-capable': 'yes',
-      'apple-mobile-web-app-title': 'Jiffoo Mall',
+      'apple-mobile-web-app-title': brandName,
     },
   };
 }
