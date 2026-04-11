@@ -13,6 +13,7 @@ APP_DIR="${INSTALL_DIR}/current"
 ENV_FILE="${APP_DIR}/.env.production.local"
 COMPOSE_FILE="${APP_DIR}/docker-compose.prod.yml"
 SEED_DEMO_DATA="${JIFFOO_SEED_DEMO_DATA:-true}"
+DEFAULT_DELIVERY_MODE="source"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -110,14 +111,87 @@ resolve_default_app_version() {
   printf '1.0.0'
 }
 
+read_manifest_metadata() {
+  local manifest_url
+  manifest_url="$1"
+
+  python3 - "$manifest_url" <<'PY'
+import json
+import sys
+import urllib.request
+
+url = sys.argv[1]
+try:
+    with urllib.request.urlopen(url, timeout=5) as response:
+        data = json.load(response)
+except Exception:
+    sys.exit(0)
+
+def emit(key, value):
+    if value is None:
+        value = ""
+    if not isinstance(value, str):
+        value = str(value)
+    print(f"{key}\t{value}")
+
+emit("latest_version", data.get("latestVersion", ""))
+emit("delivery_mode", data.get("deliveryMode", "source"))
+images = data.get("images") or {}
+emit("api_image", images.get("api", ""))
+emit("shop_image", images.get("shop", ""))
+emit("admin_image", images.get("admin", ""))
+emit("updater_image", images.get("updater", ""))
+PY
+}
+
 write_env_file() {
   local public_ip domain shop_url admin_url api_url cors_origin
-  local default_app_version manifest_url
+  local default_app_version manifest_url delivery_mode api_image shop_image admin_image updater_image
   public_ip="$(detect_public_ip)"
   domain="${JIFFOO_DOMAIN:-}"
   manifest_url="${JIFFOO_CORE_UPDATE_MANIFEST_URL:-${JIFFOO_UPDATE_MANIFEST_URL:-${DEFAULT_UPDATE_MANIFEST_URL}}}"
   manifest_url="$(normalize_manifest_url "${manifest_url}")"
   default_app_version="${APP_VERSION:-$(resolve_default_app_version)}"
+  delivery_mode="${JIFFOO_RELEASE_DELIVERY_MODE:-${DEFAULT_DELIVERY_MODE}}"
+  api_image="${API_IMAGE:-}"
+  shop_image="${SHOP_IMAGE:-}"
+  admin_image="${ADMIN_IMAGE:-}"
+  updater_image="${UPDATER_IMAGE:-}"
+
+  while IFS=$'\t' read -r key value; do
+    case "${key}" in
+      latest_version)
+        if [ -z "${APP_VERSION:-}" ] && [ -n "${value}" ]; then
+          default_app_version="${value}"
+        fi
+        ;;
+      delivery_mode)
+        if [ -z "${JIFFOO_RELEASE_DELIVERY_MODE:-}" ] && [ -n "${value}" ]; then
+          delivery_mode="${value}"
+        fi
+        ;;
+      api_image)
+        if [ -z "${API_IMAGE:-}" ] && [ -n "${value}" ]; then
+          api_image="${value}"
+        fi
+        ;;
+      shop_image)
+        if [ -z "${SHOP_IMAGE:-}" ] && [ -n "${value}" ]; then
+          shop_image="${value}"
+        fi
+        ;;
+      admin_image)
+        if [ -z "${ADMIN_IMAGE:-}" ] && [ -n "${value}" ]; then
+          admin_image="${value}"
+        fi
+        ;;
+      updater_image)
+        if [ -z "${UPDATER_IMAGE:-}" ] && [ -n "${value}" ]; then
+          updater_image="${value}"
+        fi
+        ;;
+    esac
+  done < <(read_manifest_metadata "${manifest_url}")
 
   if [ -n "${domain}" ]; then
     shop_url="https://${domain}"
@@ -182,6 +256,11 @@ JIFFOO_CORE_UPDATE_MANIFEST_URL=${manifest_url}
 JIFFOO_UPDATE_CHANNEL=${JIFFOO_UPDATE_CHANNEL:-stable}
 JIFFOO_SOURCE_ARCHIVE_URL=${SOURCE_ARCHIVE_URL}
 COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-current}
+JIFFOO_RELEASE_DELIVERY_MODE=${delivery_mode}
+API_IMAGE=${api_image}
+SHOP_IMAGE=${shop_image}
+ADMIN_IMAGE=${admin_image}
+UPDATER_IMAGE=${updater_image}
 JIFFOO_SEED_DEMO_DATA=${SEED_DEMO_DATA}
 EOF
 
@@ -242,6 +321,7 @@ wait_for_api() {
 }
 
 main() {
+  local release_delivery_mode
   log_info "Preparing Jiffoo server installation"
 
   ensure_system_package git git
@@ -267,11 +347,20 @@ main() {
   install_updater_binary
   write_env_file
 
+  release_delivery_mode="$(grep '^JIFFOO_RELEASE_DELIVERY_MODE=' "${ENV_FILE}" | cut -d= -f2- || true)"
+
   log_info "Starting PostgreSQL and Redis"
   compose up -d postgres redis
 
-  log_info "Building and starting Jiffoo services"
-  compose up -d --build api shop admin updater
+  if [ "${release_delivery_mode}" = "image" ]; then
+    log_info "Pulling prebuilt Jiffoo images"
+    compose pull api shop admin updater
+    log_info "Starting Jiffoo services from prebuilt images"
+    compose up -d --no-build api shop admin updater
+  else
+    log_info "Building and starting Jiffoo services"
+    compose up -d --build api shop admin updater
+  fi
 
   log_info "Waiting for API readiness"
   if ! wait_for_api; then
