@@ -6,8 +6,10 @@ import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const REPO_ROOT = '/Users/jordan/Projects/Jiffoo';
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
 const UPDATER_SCRIPT = path.join(REPO_ROOT, 'scripts', 'jiffoo-updater.mjs');
 const AGENT_SCRIPT = path.join(REPO_ROOT, 'scripts', 'jiffoo-updater-agent.mjs');
 
@@ -70,6 +72,18 @@ exit 0
     'utf8',
   );
   await fs.chmod(dockerPath, 0o755);
+
+  const dockerComposePath = path.join(binDir, 'docker-compose');
+  await fs.writeFile(
+    dockerComposePath,
+    `#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\\n' "$*" >> "${dockerLog}"
+exit 0
+`,
+    'utf8',
+  );
+  await fs.chmod(dockerComposePath, 0o755);
 
   const wrapperPath = path.join(binDir, 'jiffoo-updater');
   await fs.writeFile(
@@ -185,7 +199,7 @@ async function main() {
     }
 
     const dockerCalls = await fs.readFile(dockerLog, 'utf8');
-    for (const expected of ['compose', 'up -d --build api shop admin', 'exec -T api npx prisma migrate deploy']) {
+    for (const expected of ['up -d --build --no-deps api shop admin', 'exec -T api npx prisma migrate deploy']) {
       if (!dockerCalls.includes(expected)) {
         throw new Error(`Expected docker call not observed: ${expected}`);
       }
