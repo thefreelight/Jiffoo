@@ -46,6 +46,8 @@
     "test:e2e:ui": "playwright test -c apps/api/tests/e2e/playwright.shop.config.ts --ui",
     "test:e2e:report": "playwright show-report apps/api/tests/e2e/playwright-report",
     "test:updater:docker-compose": "node scripts/rehearse-docker-compose-updater.mjs",
+    "verify:theme-clients": "node scripts/verify-theme-client-contracts.mjs",
+    "verify:theme-clients:strict": "node scripts/verify-theme-client-contracts.mjs --strict-cross-repo",
     "release:update-feed:build": "node scripts/build-update-feed.mjs --output-dir .release/self-hosted",
     "changeset": "changeset",
     "version:bump": "changeset version",
