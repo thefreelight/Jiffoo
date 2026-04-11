@@ -23,17 +23,31 @@ export interface ServerStoreContext {
   };
 }
 
+export interface ServerStoreContextOptions {
+  cache?: RequestCache;
+  revalidate?: number | false;
+}
+
 /**
  * Fetch store context from backend API (server-side)
  * Used in server components or for SSR optimization
  */
-export async function getServerStoreContext(): Promise<ServerStoreContext | null> {
+export async function getServerStoreContext(
+  options: ServerStoreContextOptions = {},
+): Promise<ServerStoreContext | null> {
   try {
     const url = await buildServerApiUrl('/store/context');
+    const shouldBypassCache = options.cache === 'no-store';
 
     const response = await fetch(url, {
-      cache: 'force-cache',
-      next: { revalidate: 3600 }, // Cache for 1 hour
+      cache: shouldBypassCache ? 'no-store' : (options.cache ?? 'force-cache'),
+      ...(shouldBypassCache
+        ? {}
+        : {
+            next: {
+              revalidate: options.revalidate === false ? 0 : (options.revalidate ?? 3600),
+            },
+          }),
       headers: {
         'Content-Type': 'application/json',
       },
