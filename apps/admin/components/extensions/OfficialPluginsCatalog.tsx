@@ -329,7 +329,7 @@ export function OfficialPluginsCatalog({
 
                         {hasUpdate ? (
                           <p className="mt-2 text-xs font-medium text-amber-700">
-                            Installed v{item.installedVersion} -> Latest v{item.latestVersion}
+                            Installed v{item.installedVersion} {'->'} Latest v{item.latestVersion}
                           </p>
                         ) : null}
 

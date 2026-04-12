@@ -338,7 +338,7 @@ export function OfficialThemesCatalog({
 
                   {hasUpdate ? (
                     <p className="text-xs font-medium text-amber-700">
-                      Installed v{item.installedVersion} -> Latest v{item.latestVersion}
+                      Installed v{item.installedVersion} {'->'} Latest v{item.latestVersion}
                     </p>
                   ) : null}
 

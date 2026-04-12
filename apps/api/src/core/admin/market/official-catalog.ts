@@ -313,8 +313,8 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
   );
   const managedPackage = managedStatus.package;
 
-  const installedThemesBySlug = new Map(installedThemes.items.map((theme) => [theme.slug, theme]));
-  const installedPluginsBySlug = new Map(pluginPackages.map((plugin) => [plugin.slug, plugin]));
+  const installedThemesBySlug = new Map<string, any>(installedThemes.items.map((theme) => [theme.slug, theme]));
+  const installedPluginsBySlug = new Map<string, any>(pluginPackages.map((plugin) => [plugin.slug, plugin]));
 
   const items = await Promise.all(
     OFFICIAL_LAUNCH_EXTENSIONS.map(async (seed): Promise<OfficialCatalogItem> => {
