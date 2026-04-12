@@ -774,32 +774,49 @@ export function useInstallOfficialExtension() {
       slug,
       kind,
       version,
+      intent = 'install',
     }: {
       slug: string;
       kind: 'plugin' | 'theme-shop' | 'theme-admin' | 'theme-app-shop' | 'theme-app-admin';
       version?: string;
+      intent?: 'install' | 'update';
     }) => {
       const response = await marketApi.installOfficialExtension(slug, { kind, version });
-      return unwrapApiResponse(response);
+      return {
+        intent,
+        result: unwrapApiResponse(response),
+      };
     },
-    onSuccess: (_, variables) => {
+    onSuccess: ({ intent }, variables) => {
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
       queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
       toast.success(
         variables.kind === 'plugin'
-          ? getText('merchant.plugins.installSuccess', 'Plugin installed successfully')
-          : getText('merchant.themes.installSuccess', 'Theme installed successfully')
+          ? intent === 'update'
+            ? getText('merchant.plugins.updateSuccess', 'Plugin updated successfully')
+            : getText('merchant.plugins.installSuccess', 'Plugin installed successfully')
+          : intent === 'update'
+            ? getText('merchant.themes.updateSuccess', 'Theme updated successfully')
+            : getText('merchant.themes.installSuccess', 'Theme installed successfully')
       );
     },
     onError: (error: unknown, variables) => {
       const fallbackKey = variables.kind === 'plugin'
-        ? 'merchant.plugins.installFailed'
-        : 'merchant.themes.installFailed';
+        ? variables.intent === 'update'
+          ? 'merchant.plugins.updateFailed'
+          : 'merchant.plugins.installFailed'
+        : variables.intent === 'update'
+          ? 'merchant.themes.updateFailed'
+          : 'merchant.themes.installFailed';
       const fallbackText = variables.kind === 'plugin'
-        ? 'Failed to install plugin'
-        : 'Failed to install theme';
+        ? variables.intent === 'update'
+          ? 'Failed to update plugin'
+          : 'Failed to install plugin'
+        : variables.intent === 'update'
+          ? 'Failed to update theme'
+          : 'Failed to install theme';
       toast.error(getErrorMessage(error, fallbackKey, fallbackText));
     },
   });

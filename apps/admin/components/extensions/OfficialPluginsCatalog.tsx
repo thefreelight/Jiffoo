@@ -228,18 +228,26 @@ export function OfficialPluginsCatalog({
             const controlPlaneSolution = item.solutionOffer;
             const hasSolutionSemantics = solutionMeta?.offerKind === 'theme_first_solution' || controlPlaneSolution?.offerKind === 'theme_first_solution';
             const isInstalling = installingSlug === item.slug || (isProvisioningPackage && solutionMeta?.offerKind === 'theme_first_solution');
+            const hasUpdate = Boolean(item.updateAvailable && item.latestVersion && item.installedVersion);
             const showConfigure = item.installState === 'installed' && item.configRequired && !item.configReady;
             const requiresPlatformBinding = item.pricingModel !== 'free';
             const installDisabled =
               item.installState === 'not_installed' &&
               (!marketOnline || !item.availableInMarket || (requiresPlatformBinding && !marketplaceReady) || isInstalling);
+            const updateDisabled =
+              hasUpdate &&
+              (!marketOnline || !item.availableInMarket || (requiresPlatformBinding && !marketplaceReady) || isInstalling);
             const effectiveInstallDisabled =
-              managedPackage && item.installState === 'not_installed'
+              managedPackage && (item.installState === 'not_installed' || hasUpdate)
                 ? isInstalling || managedPackage.status === 'SUSPENDED'
-                : installDisabled;
+                : hasUpdate
+                  ? updateDisabled
+                  : installDisabled;
 
             const primaryActionLabel =
-              item.installState === 'not_installed'
+              hasUpdate
+                ? getText('common.actions.update', 'Update')
+                : item.installState === 'not_installed'
                 ? hasSolutionSemantics
                   ? (controlPlaneSolution?.ctaLabel || getText('merchant.package.provisionSolution', 'Provision solution'))
                   : getText('merchant.plugins.install', 'Install')
@@ -250,7 +258,7 @@ export function OfficialPluginsCatalog({
                   : getText('common.actions.manage', 'Manage');
 
             const handlePrimaryAction = () => {
-              if (item.installState === 'not_installed') {
+              if (hasUpdate || item.installState === 'not_installed') {
                 onInstall(item);
                 return;
               }
@@ -302,6 +310,11 @@ export function OfficialPluginsCatalog({
                           <Badge variant="outline" className={`rounded-full capitalize ${getInstallTone(item)}`}>
                             {item.installState.replace('_', ' ')}
                           </Badge>
+                          {hasUpdate ? (
+                            <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 text-amber-700">
+                              {getText('common.actions.update', 'Update')} available
+                            </Badge>
+                          ) : null}
                         </div>
 
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -313,6 +326,12 @@ export function OfficialPluginsCatalog({
                         </div>
 
                         <p className="mt-2 line-clamp-3 text-sm leading-5 text-slate-600">{item.description}</p>
+
+                        {hasUpdate ? (
+                          <p className="mt-2 text-xs font-medium text-amber-700">
+                            Installed v{item.installedVersion} -> Latest v{item.latestVersion}
+                          </p>
+                        ) : null}
 
                         {hasSolutionSemantics ? (
                           <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-sm text-blue-900">

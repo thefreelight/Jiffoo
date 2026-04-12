@@ -1,5 +1,6 @@
 import { evaluatePluginConfigReadiness } from '@/core/admin/extension-installer/config-readiness';
 import { isOfficialMarketOnly } from '@/core/admin/extension-installer/official-only';
+import { compareVersions } from '@/core/admin/extension-installer/version-utils';
 import { managedPackageService } from '@/core/admin/managed-package/service';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { ThemeManagementService } from '@/core/admin/theme-management/service';
@@ -59,6 +60,9 @@ export interface OfficialCatalogItem {
   publishState?: RemoteOfficialCatalogItem['publishState'];
   installable?: boolean;
   sellableVersion?: string;
+  installedVersion?: string | null;
+  latestVersion?: string | null;
+  updateAvailable?: boolean;
   configRequired?: boolean;
   configReady?: boolean;
   missingConfigFields?: string[];
@@ -212,6 +216,33 @@ function isNonBuiltinThemeSource(
   return source === 'installed' || source === 'local-zip' || source === 'official-market';
 }
 
+function resolveLatestCatalogVersion(
+  remoteCatalogAvailable: boolean,
+  remoteItem: RemoteOfficialCatalogItem,
+): string | null {
+  if (!remoteCatalogAvailable) {
+    return null;
+  }
+
+  return remoteItem.sellableVersion || remoteItem.currentVersion || null;
+}
+
+function isOfficialUpdateAvailable(
+  installedVersion: string | null | undefined,
+  latestVersion: string | null | undefined,
+  availableInMarket: boolean,
+): boolean {
+  if (!availableInMarket || !installedVersion || !latestVersion) {
+    return false;
+  }
+
+  try {
+    return compareVersions(latestVersion, installedVersion) > 0;
+  } catch {
+    return false;
+  }
+}
+
 function toFallbackRemoteItem(seed: OfficialCatalogEntry): RemoteOfficialCatalogItem {
   return {
     id: `seed:${seed.slug}`,
@@ -301,6 +332,9 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         const installedMarketTheme = installedTheme && isNonBuiltinThemeSource(installedTheme.source)
           ? installedTheme
           : null;
+        const installedOfficialTheme = installedTheme?.source === 'official-market'
+          ? installedTheme
+          : null;
         const activeMarketTheme = activeTheme.slug === seed.slug && isNonBuiltinThemeSource(activeTheme.source)
           ? activeTheme
           : null;
@@ -309,6 +343,13 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
           : installedMarketTheme
             ? 'installed'
             : 'not_installed';
+        const latestVersion = resolveLatestCatalogVersion(Boolean(connectivity.ok && remoteCatalog), remoteItem);
+        const installedVersion = installedOfficialTheme?.version ?? null;
+        const updateAvailable = isOfficialUpdateAvailable(
+          installedVersion,
+          latestVersion,
+          availableInMarket,
+        );
 
         return {
           slug: seed.slug,
@@ -336,6 +377,9 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
           publishState: remoteItem.publishState,
           installable: remoteItem.installable,
           sellableVersion: remoteItem.sellableVersion,
+          installedVersion,
+          latestVersion,
+          updateAvailable,
           downloads: remoteItem.installCount,
           solutionPackage: buildSolutionPackageMeta(managedPackage, seed.kind, seed.slug),
         };
@@ -359,6 +403,15 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         : pluginPackage
           ? 'installed'
           : 'not_installed';
+      const latestVersion = resolveLatestCatalogVersion(Boolean(connectivity.ok && remoteCatalog), remoteItem);
+      const installedVersion = pluginPackage?.source === 'official-market'
+        ? pluginPackage.version
+        : null;
+      const updateAvailable = isOfficialUpdateAvailable(
+        installedVersion,
+        latestVersion,
+        availableInMarket,
+      );
 
       return {
         slug: seed.slug,
@@ -385,6 +438,9 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         publishState: remoteItem.publishState,
         installable: remoteItem.installable,
         sellableVersion: remoteItem.sellableVersion,
+        installedVersion,
+        latestVersion,
+        updateAvailable,
         downloads: remoteItem.installCount,
         configRequired: readiness.requiresConfiguration,
         configReady: readiness.ready,

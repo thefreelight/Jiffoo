@@ -216,6 +216,7 @@ export function OfficialThemesCatalog({
             const controlPlaneSolution = item.solutionOffer;
             const hasSolutionSemantics = solutionMeta?.offerKind === 'theme_first_solution' || controlPlaneSolution?.offerKind === 'theme_first_solution';
             const isInstalling = installingSlug === item.slug || (isProvisioningPackage && solutionMeta?.offerKind === 'theme_first_solution');
+            const hasUpdate = Boolean(item.updateAvailable && item.latestVersion && item.installedVersion);
             const isManagedDefaultTheme = solutionMeta?.defaultTheme ?? managedPackage?.defaultThemeSlug === item.slug;
             const requiresPlatformBinding = item.pricingModel !== 'free';
             const canInstall =
@@ -223,12 +224,21 @@ export function OfficialThemesCatalog({
               marketOnline &&
               item.availableInMarket &&
               (!requiresPlatformBinding || marketplaceReady);
+            const canUpdate =
+              hasUpdate &&
+              marketOnline &&
+              item.availableInMarket &&
+              (!requiresPlatformBinding || marketplaceReady);
             const effectiveCanInstall =
-              managedPackage && item.installState === 'not_installed'
+              managedPackage && (item.installState === 'not_installed' || hasUpdate)
                 ? managedPackage.status !== 'SUSPENDED'
-                : canInstall;
+                : hasUpdate
+                  ? canUpdate
+                  : canInstall;
             const actionLabel =
-              item.installState === 'active'
+              hasUpdate
+                ? getText('common.actions.update', 'Update')
+                : item.installState === 'active'
                 ? getText('merchant.themes.active', 'Active')
                 : item.installState === 'installed'
                   ? getText('merchant.themes.activate', 'Activate')
@@ -237,7 +247,7 @@ export function OfficialThemesCatalog({
                     : getText('merchant.themes.install', 'Install');
 
               const handlePrimaryAction = () => {
-                if (item.installState === 'not_installed') {
+                if (hasUpdate || item.installState === 'not_installed') {
                   onInstall(item);
                   return;
                 }
@@ -274,6 +284,11 @@ export function OfficialThemesCatalog({
                             {isManagedDefaultTheme ? (
                               <Badge variant="outline" className="rounded-lg border-white/20 bg-white/10 text-white">
                                 {getText('merchant.package.defaultThemeBadge', 'Default package theme')}
+                              </Badge>
+                            ) : null}
+                            {hasUpdate ? (
+                              <Badge variant="outline" className="rounded-lg border-amber-200 bg-amber-50 text-amber-700">
+                                {getText('common.actions.update', 'Update')} available
                               </Badge>
                             ) : null}
                           </div>
@@ -321,6 +336,12 @@ export function OfficialThemesCatalog({
                 <CardContent className="space-y-3 px-4 pb-4 pt-3">
                   <p className="line-clamp-3 text-sm leading-5 text-slate-600">{item.description}</p>
 
+                  {hasUpdate ? (
+                    <p className="text-xs font-medium text-amber-700">
+                      Installed v{item.installedVersion} -> Latest v{item.latestVersion}
+                    </p>
+                  ) : null}
+
                   {hasSolutionSemantics ? (
                     <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-sm text-blue-900">
                       {isManagedDefaultTheme
@@ -354,7 +375,7 @@ export function OfficialThemesCatalog({
                   <div className="flex flex-col gap-3">
                     <Button
                       onClick={handlePrimaryAction}
-                      disabled={item.installState === 'active' || (item.installState === 'not_installed' && (!effectiveCanInstall || isInstalling)) || isActivating}
+                      disabled={(!hasUpdate && item.installState === 'active') || ((item.installState === 'not_installed' || hasUpdate) && (!effectiveCanInstall || isInstalling)) || isActivating}
                       className="w-full rounded-lg"
                     >
                       {isInstalling || isActivating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

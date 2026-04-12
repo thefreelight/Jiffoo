@@ -545,6 +545,10 @@ export interface OfficialCatalogItem {
   thumbnailUrl?: string;
   compatibility?: string;
   screenshots?: string[];
+  sellableVersion?: string;
+  installedVersion?: string | null;
+  latestVersion?: string | null;
+  updateAvailable?: boolean;
   configRequired?: boolean;
   configReady?: boolean;
   missingConfigFields?: string[];
