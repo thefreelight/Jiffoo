@@ -59,6 +59,10 @@ export class UpgradeService {
   private static status: UpgradeStatusState = 'idle';
   private static lastError: string | null = null;
 
+  private static supportsExternalUpdaterBridge(mode: DeploymentMode): boolean {
+    return Boolean(process.env.JIFFOO_UPDATER_URL) && (mode === 'docker-compose' || mode === 'k8s');
+  }
+
   private static async ensureSystemSettings() {
     const defaultSettings = {
       'localization.currency': 'USD',
@@ -189,7 +193,7 @@ export class UpgradeService {
    */
   static async getUpgradeStatus(): Promise<UpgradeStatus> {
     const deployment = this.detectDeploymentMode();
-    if (deployment.mode === 'docker-compose' && process.env.JIFFOO_UPDATER_URL) {
+    if (this.supportsExternalUpdaterBridge(deployment.mode)) {
       try {
         const response = await fetch(`${process.env.JIFFOO_UPDATER_URL}/status`);
         if (response.ok) {
@@ -284,8 +288,11 @@ export class UpgradeService {
         return { success: false, error: this.lastError };
       }
 
-      if (deployment.mode === 'docker-compose' && process.env.JIFFOO_UPDATER_URL) {
-        this.reportProgress('preparing', 'Upgrade accepted by updater agent', 15);
+      if (this.supportsExternalUpdaterBridge(deployment.mode)) {
+        const acceptedStep = deployment.mode === 'k8s'
+          ? 'Upgrade accepted by cluster updater bridge'
+          : 'Upgrade accepted by updater agent';
+        this.reportProgress('preparing', acceptedStep, 15);
         return {
           success: true,
           result: {

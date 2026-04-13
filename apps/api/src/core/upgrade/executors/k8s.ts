@@ -4,6 +4,10 @@ import { BaseUpdateExecutor } from './base';
 export class K8sUpdateExecutor extends BaseUpdateExecutor {
   readonly mode = 'k8s' as const;
 
+  private resolveUpdaterUrl(): string | null {
+    return process.env.JIFFOO_UPDATER_URL || null;
+  }
+
   private resolveReleaseName(): string | null {
     return process.env.JIFFOO_HELM_RELEASE_NAME
       || process.env.HELM_RELEASE_NAME
@@ -19,6 +23,25 @@ export class K8sUpdateExecutor extends BaseUpdateExecutor {
   }
 
   async probe(): Promise<ExecutorAvailability> {
+    const updaterUrl = this.resolveUpdaterUrl();
+    if (updaterUrl) {
+      try {
+        const response = await fetch(`${updaterUrl}/health`);
+        if (response.ok) {
+          return {
+            available: true,
+            reason: null,
+            guidance: null,
+          };
+        }
+      } catch {
+        return this.buildUnavailable(
+          this.getManualGuidance('Cluster updater bridge is configured but unreachable.'),
+          'Cluster updater bridge unreachable',
+        );
+      }
+    }
+
     const binary = this.resolveUpdaterBinary();
     if (!binary) {
       return this.buildUnavailable(this.getManualGuidance('Local updater binary is not installed.'));
@@ -34,12 +57,49 @@ export class K8sUpdateExecutor extends BaseUpdateExecutor {
 
   getManualGuidance(reason?: string | null): string {
     const prefix = reason ? `${reason} ` : '';
-    return `${prefix}Install the local updater and provide a release identifier via JIFFOO_HELM_RELEASE_NAME or the cluster controller environment. Until then, use the operator guide to roll the release forward with Helm or your GitOps controller and verify rollout health.`;
+    return `${prefix}Expose a cluster updater bridge via JIFFOO_UPDATER_URL or install the local updater and provide a release identifier via JIFFOO_HELM_RELEASE_NAME or the cluster controller environment. Until then, use the operator guide to roll the release forward with Helm or your GitOps controller and verify rollout health.`;
   }
 
   async execute(context: UpdateExecutionContext): Promise<UpdateExecutionResult> {
-    const availability = await this.probe();
+    const updaterUrl = this.resolveUpdaterUrl();
     const releaseName = this.resolveReleaseName();
+
+    if (updaterUrl) {
+      context.reportProgress('preparing', 'Dispatching Kubernetes upgrade to cluster updater bridge', 20);
+      const response = await fetch(`${updaterUrl}/upgrade`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          mode: this.mode,
+          targetVersion: context.targetVersion,
+          releaseName,
+          namespace: this.resolveNamespace(),
+        }),
+      });
+
+      if (!response.ok) {
+        let message = `Cluster updater bridge returned HTTP ${response.status}`;
+        try {
+          const body = await response.json() as { error?: string };
+          if (body?.error) message = body.error;
+        } catch {
+          // keep fallback message
+        }
+        return {
+          success: false,
+          error: message,
+        };
+      }
+
+      return {
+        success: true,
+        output: 'k8s upgrade accepted by cluster updater bridge',
+      };
+    }
+
+    const availability = await this.probe();
     if (!availability.available || !availability.updaterBinary || !releaseName) {
       return {
         success: false,

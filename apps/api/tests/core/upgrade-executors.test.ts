@@ -103,6 +103,39 @@ describe('upgrade executors', () => {
     expect(availability.updaterBinary).toBe(updaterBinary);
   });
 
+  it('reports k8s executor as available when cluster updater bridge is reachable', async () => {
+    vi.stubEnv('JIFFOO_UPDATER_URL', 'http://updater.k8s.svc:3015');
+    vi.stubEnv('JIFFOO_HELM_RELEASE_NAME', 'jiffoo-core');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: true,
+      })) as typeof fetch,
+    );
+
+    const executor = createUpdateExecutor('k8s');
+    const availability = await executor.probe();
+
+    expect(availability.available).toBe(true);
+  });
+
+  it('reports k8s executor as unavailable when cluster updater bridge is configured but unreachable', async () => {
+    vi.stubEnv('JIFFOO_UPDATER_URL', 'http://updater.k8s.svc:3015');
+    vi.stubEnv('JIFFOO_HELM_RELEASE_NAME', 'jiffoo-core');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        throw new Error('connect ECONNREFUSED');
+      }) as typeof fetch,
+    );
+
+    const executor = createUpdateExecutor('k8s');
+    const availability = await executor.probe();
+
+    expect(availability.available).toBe(false);
+    expect(availability.guidance).toContain('JIFFOO_UPDATER_URL');
+  });
+
   it('reports unsupported mode as manual-only', async () => {
     const executor = createUpdateExecutor('unsupported');
     const availability = await executor.probe();

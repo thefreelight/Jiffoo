@@ -113,6 +113,7 @@ COPY --from=builder --chown=api:nodejs /app/apps/api/dist ./apps/api/dist
 COPY --from=builder --chown=api:nodejs /app/apps/api/package.json ./apps/api/
 COPY --from=builder --chown=api:nodejs /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder --chown=api:nodejs /app/packages/shared/package.json ./packages/shared/
+COPY --from=builder --chown=api:nodejs /app/scripts ./scripts
 # Copy plugins directory (required by payment-manager)
 COPY --from=builder --chown=api:nodejs /app/plugins ./plugins
 # Copy Prisma schema and migrations for database migration
