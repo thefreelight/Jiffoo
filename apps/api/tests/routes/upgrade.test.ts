@@ -18,18 +18,18 @@ import { createUserWithToken, createAdminWithToken, deleteAllTestUsers } from '.
 
 const PUBLIC_MANIFEST_URL = 'https://get.jiffoo.com/releases/core/manifest.json';
 const PUBLIC_MANIFEST = {
-  latestVersion: '1.0.5',
-  latestStableVersion: '1.0.5',
+  latestVersion: '1.0.7',
+  latestStableVersion: '1.0.7',
   latestPrereleaseVersion: null,
   channel: 'stable',
-  releaseDate: '2026-04-11T00:00:00.000Z',
-  changelogUrl: 'https://github.com/thefreelight/Jiffoo/commit/ef3e6481e12ae52fdb344896252d02d295a75f35',
+  releaseDate: '2026-04-13T00:00:00.000Z',
+  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.7-opensource',
   sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
   minimumCompatibleVersion: '1.0.0',
   minimumAutoUpgradableVersion: '1.0.0',
   requiresManualIntervention: false,
   releaseNotes:
-    'Adds the GitHub-release-driven update feed, public manifest publishing automation, clearer self-hosted update diagnostics, and official embedded storefront renderer activation for package-managed themes.',
+    'Adds official theme/plugin update detection in Merchant Admin, while keeping the self-hosted update feed and docker-compose recovery path aligned with the public 1.0.7 release.',
   checksumUrl: null,
   signatureUrl: null,
 } as const;
@@ -138,12 +138,12 @@ describe('Upgrade Endpoints', () => {
         vi.fn(async () => ({
           ok: true,
           json: async () => ({
-            latestVersion: '1.0.5',
-            latestStableVersion: '1.0.5',
+            latestVersion: '1.0.7',
+            latestStableVersion: '1.0.7',
             latestPrereleaseVersion: null,
             channel: 'stable',
             releaseDate: '2026-04-11T00:00:00.000Z',
-            changelogUrl: 'https://example.com/changelog/1.0.5',
+            changelogUrl: 'https://example.com/changelog/1.0.7',
             minimumCompatibleVersion: '1.0.0',
             minimumAutoUpgradableVersion: '1.0.0',
             requiresManualIntervention: false,
@@ -160,7 +160,7 @@ describe('Upgrade Endpoints', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.data.latestVersion).toBe('1.0.5');
+      expect(body.data.latestVersion).toBe('1.0.7');
       expect(body.data.updateSource).toBe('env-manifest');
       expect(body.data.manifestStatus).toBe('available');
       expect(body.data.manifestUrl).toBe('https://updates.example.com/releases/core/manifest.json');
