@@ -295,13 +295,19 @@ export function validateZipEntry(
     const fullPath = path.join(baseDir, entryPath);
     validatePathTraversal(fullPath, baseDir);
 
+    const normalizedEntryPath = entryPath.replace(/\\/g, '/');
+    const isDirectoryEntry = normalizedEntryPath.endsWith('/');
+
     // Validate file size
     if (entrySize > 0) {
         validateFileSize(entryPath, entrySize, kind);
     }
 
-    // Validate file extension
-    validateFileExtension(entryPath, kind);
+    // Directory names like "modelsfind-0.1.2/" are not files and should not
+    // be interpreted as having an extension of ".2".
+    if (!isDirectoryEntry) {
+        validateFileExtension(entryPath, kind);
+    }
 }
 
 // ============================================================================

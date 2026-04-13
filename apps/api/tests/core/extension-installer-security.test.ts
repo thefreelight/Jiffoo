@@ -3,7 +3,7 @@ import path from 'path';
 import { promises as fs } from 'fs';
 import { describe, expect, it } from 'vitest';
 import { ExtensionInstallerError } from '../../src/core/admin/extension-installer/errors';
-import { validateDirectoryFiles, validateFileExtension } from '../../src/core/admin/extension-installer/security';
+import { validateDirectoryFiles, validateFileExtension, validateZipEntry } from '../../src/core/admin/extension-installer/security';
 
 describe('extension installer security', () => {
   it('allows TypeScript declaration files in executable plugin packages', () => {
@@ -44,5 +44,11 @@ describe('extension installer security', () => {
     } finally {
       await fs.rm(tempRoot, { recursive: true, force: true });
     }
+  });
+
+  it('allows official theme zip directory entries that include semver dots', () => {
+    expect(() =>
+      validateZipEntry('modelsfind-0.1.2/', 0, '/tmp/theme-pack-test', 'theme-shop'),
+    ).not.toThrow();
   });
 });

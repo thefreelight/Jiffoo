@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.8-opensource - 2026-04-13
+
+- publishes the April 13 hotfix release cut for the self-hosted `1.0.8` core update
+- fixes official theme package upgrades so `.jtheme` archives with versioned top-level directories such as `modelsfind-0.1.2/` no longer fail extension security validation with an unsupported `.2` file-type error
+- keeps the public update manifest and self-hosted release feed aligned with the `v1.0.8-opensource` release tag
+
 ## v1.0.7-opensource - 2026-04-13
 
 - publishes the April 13 open-source release cut for the self-hosted `1.0.7` core update
