@@ -45,7 +45,31 @@ jobs:
           short_sha="$(git rev-parse --short=8 HEAD)"
           app_version="$(node -p "require('./package.json').version.replace(/-opensource$/, '')")"
           build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          image_tag="${{ github.event.inputs.image_tag }}"
+          target_ref="${{ github.event.inputs.target_ref || '' }}"
+          image_tag="${{ github.event.inputs.image_tag || '' }}"
+          head_message="$(git log -1 --pretty=%B)"
+          build_target_file=".github/oss-build-target.json"
+
+          if [ -z "${target_ref}" ] && [ -f "${build_target_file}" ] && printf '%s' "${head_message}" | grep -qi '\[oss-build-target\]'; then
+            file_target_ref="$(jq -r '.target_ref // empty' "${build_target_file}")"
+            file_image_tag="$(jq -r '.image_tag // empty' "${build_target_file}")"
+            file_app_version="$(jq -r '.app_version // empty' "${build_target_file}")"
+
+            if [ -n "${file_target_ref}" ]; then
+              target_ref="${file_target_ref}"
+            fi
+            if [ -z "${image_tag}" ] && [ -n "${file_image_tag}" ]; then
+              image_tag="${file_image_tag}"
+            fi
+            if [ -n "${file_app_version}" ]; then
+              app_version="${file_app_version}"
+            fi
+          fi
+
+          if [ -z "${target_ref}" ]; then
+            target_ref="${GITHUB_SHA}"
+          fi
+
           if [ -z "${image_tag}" ]; then
             image_tag="gha-${short_sha}"
           fi
@@ -54,6 +78,7 @@ jobs:
           echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
           echo "app_version=${app_version}" >> "$GITHUB_OUTPUT"
           echo "build_time=${build_time}" >> "$GITHUB_OUTPUT"
+          echo "target_ref=${target_ref}" >> "$GITHUB_OUTPUT"
 
   build-and-push:
     needs: prepare
