@@ -6,8 +6,10 @@ import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const REPO_ROOT = '/Users/jordan/Projects/Jiffoo';
+const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
+const REPO_ROOT = path.resolve(SCRIPT_DIR, '..');
 const UPDATER_SCRIPT = path.join(REPO_ROOT, 'scripts', 'jiffoo-updater.mjs');
 const AGENT_SCRIPT = path.join(REPO_ROOT, 'scripts', 'jiffoo-updater-agent.mjs');
 
@@ -59,17 +61,19 @@ async function createFakeDocker(rootDir) {
   const dockerLog = path.join(rootDir, 'docker.log');
   await fs.mkdir(binDir, { recursive: true });
 
-  const dockerPath = path.join(binDir, 'docker');
-  await fs.writeFile(
-    dockerPath,
-    `#!/usr/bin/env bash
+  const dockerShim = `#!/usr/bin/env bash
 set -euo pipefail
 printf '%s\\n' "$*" >> "${dockerLog}"
 exit 0
-`,
-    'utf8',
-  );
+`;
+
+  const dockerPath = path.join(binDir, 'docker');
+  await fs.writeFile(dockerPath, dockerShim, 'utf8');
   await fs.chmod(dockerPath, 0o755);
+
+  const dockerComposePath = path.join(binDir, 'docker-compose');
+  await fs.writeFile(dockerComposePath, dockerShim, 'utf8');
+  await fs.chmod(dockerComposePath, 0o755);
 
   const wrapperPath = path.join(binDir, 'jiffoo-updater');
   await fs.writeFile(
@@ -91,6 +95,13 @@ async function startHttpServer(tarballPath) {
     latestStableVersion: '1.0.5',
     latestPrereleaseVersion: null,
     channel: 'stable',
+    deliveryMode: 'image',
+    images: {
+      api: 'ghcr.io/thefreelight/jiffoo-api:v1.0.5-opensource',
+      shop: 'ghcr.io/thefreelight/jiffoo-shop:v1.0.5-opensource',
+      admin: 'ghcr.io/thefreelight/jiffoo-admin:v1.0.5-opensource',
+      updater: 'ghcr.io/thefreelight/jiffoo-updater:v1.0.5-opensource',
+    },
     releaseDate: '2026-04-11T00:00:00.000Z',
     changelogUrl: 'https://example.com/releases/1.0.5',
     sourceArchiveUrl: 'http://127.0.0.1:43219/jiffoo-source.tar.gz',
@@ -183,12 +194,32 @@ async function main() {
     if (!envFile.includes('APP_VERSION=1.0.5')) {
       throw new Error('Updater rehearsal did not persist APP_VERSION=1.0.5');
     }
+    for (const expectedEnv of [
+      'API_IMAGE=ghcr.io/thefreelight/jiffoo-api:v1.0.5-opensource',
+      'SHOP_IMAGE=ghcr.io/thefreelight/jiffoo-shop:v1.0.5-opensource',
+      'ADMIN_IMAGE=ghcr.io/thefreelight/jiffoo-admin:v1.0.5-opensource',
+      'UPDATER_IMAGE=ghcr.io/thefreelight/jiffoo-updater:v1.0.5-opensource',
+    ]) {
+      if (!envFile.includes(expectedEnv)) {
+        throw new Error(`Updater rehearsal did not persist ${expectedEnv}`);
+      }
+    }
 
     const dockerCalls = await fs.readFile(dockerLog, 'utf8');
-    for (const expected of ['compose', 'up -d --build api shop admin', 'exec -T api npx prisma migrate deploy']) {
+    for (const expected of [
+      'compose',
+      'pull api shop admin',
+      'up -d --no-build --no-deps api shop admin',
+      'exec -T api npx prisma migrate deploy',
+      'exec -T shop node -e',
+      'exec -T admin node -e',
+    ]) {
       if (!dockerCalls.includes(expected)) {
         throw new Error(`Expected docker call not observed: ${expected}`);
       }
+    }
+    if (dockerCalls.includes('--build api shop admin')) {
+      throw new Error('Image-first rehearsal unexpectedly rebuilt api/shop/admin');
     }
 
     console.log('Rehearsal completed successfully.');

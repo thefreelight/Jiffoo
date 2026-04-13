@@ -22,6 +22,8 @@ const PUBLIC_MANIFEST = {
   latestStableVersion: '1.0.5',
   latestPrereleaseVersion: null,
   channel: 'stable',
+  deliveryMode: 'source',
+  images: null,
   releaseDate: '2026-04-11T00:00:00.000Z',
   changelogUrl: 'https://github.com/thefreelight/Jiffoo/commit/ef3e6481e12ae52fdb344896252d02d295a75f35',
   sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',

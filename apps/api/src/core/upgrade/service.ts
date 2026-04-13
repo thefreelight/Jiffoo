@@ -590,6 +590,8 @@ export class UpgradeService {
       latestStableVersion: stableVersion,
       latestPrereleaseVersion: prereleaseVersion,
       channel: preferredChannel,
+      deliveryMode: payload.deliveryMode || 'source',
+      images: payload.images || null,
       releaseDate: payload.releaseDate || null,
       changelogUrl: payload.changelogUrl || null,
       sourceArchiveUrl: payload.sourceArchiveUrl || null,
@@ -599,6 +601,8 @@ export class UpgradeService {
       requiresManualIntervention: payload.requiresManualIntervention ?? false,
       checksumUrl: payload.checksumUrl || null,
       signatureUrl: payload.signatureUrl || null,
+      releaseTag: payload.releaseTag || null,
+      repository: payload.repository || null,
     };
   }
 }

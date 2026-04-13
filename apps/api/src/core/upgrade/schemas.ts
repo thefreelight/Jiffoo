@@ -93,6 +93,24 @@ const publicManifestSchema = {
       enum: ['stable', 'prerelease'],
       description: 'Release channel represented by this manifest payload',
     },
+    deliveryMode: {
+      type: 'string',
+      nullable: true,
+      enum: ['source', 'image'],
+      description: 'Preferred execution mode for this self-hosted release',
+    },
+    images: {
+      nullable: true,
+      type: 'object',
+      properties: {
+        api: { type: 'string' },
+        shop: { type: 'string' },
+        admin: { type: 'string' },
+        updater: { type: 'string', nullable: true },
+      },
+      required: ['api', 'shop', 'admin'],
+      description: 'Optional prebuilt image references for image-first upgrades',
+    },
     releaseDate: { type: 'string', description: 'Release publication date' },
     changelogUrl: { type: 'string', description: 'Public changelog URL for this release' },
     sourceArchiveUrl: { type: 'string', description: 'Public source archive URL for this release' },
@@ -105,6 +123,8 @@ const publicManifestSchema = {
     releaseNotes: { type: 'string', nullable: true, description: 'Short release summary' },
     checksumUrl: { type: 'string', nullable: true, description: 'Optional checksum file URL' },
     signatureUrl: { type: 'string', nullable: true, description: 'Optional signature file URL' },
+    releaseTag: { type: 'string', nullable: true, description: 'Source release tag associated with this manifest' },
+    repository: { type: 'string', nullable: true, description: 'Repository that published the release manifest' },
   },
   required: [
     'latestVersion',

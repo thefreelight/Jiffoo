@@ -1,6 +1,7 @@
 export type DeploymentMode = 'single-host' | 'docker-compose' | 'k8s' | 'unsupported';
 export type UpdateSource = 'env-manifest' | 'default-public-manifest' | 'local-fallback';
 export type UpdateManifestStatus = 'available' | 'missing' | 'unreachable' | 'invalid';
+export type CoreReleaseDeliveryMode = 'source' | 'image';
 export type DeploymentModeSource =
   | 'env'
   | 'k8s-signals'
@@ -8,6 +9,13 @@ export type DeploymentModeSource =
   | 'single-host-signals'
   | 'fallback';
 export type ReleaseChannel = 'stable' | 'prerelease';
+
+export interface CoreUpdateImages {
+  api: string;
+  shop: string;
+  admin: string;
+  updater?: string | null;
+}
 
 export type UpgradeStatusState =
   | 'idle'
@@ -27,6 +35,8 @@ export interface CoreUpdateManifest {
   latestStableVersion?: string | null;
   latestPrereleaseVersion?: string | null;
   channel?: ReleaseChannel | null;
+  deliveryMode?: CoreReleaseDeliveryMode | null;
+  images?: CoreUpdateImages | null;
   releaseDate?: string | null;
   changelogUrl?: string | null;
   sourceArchiveUrl?: string | null;
@@ -36,6 +46,8 @@ export interface CoreUpdateManifest {
   requiresManualIntervention?: boolean | null;
   checksumUrl?: string | null;
   signatureUrl?: string | null;
+  releaseTag?: string | null;
+  repository?: string | null;
 }
 
 export interface VersionInfo {

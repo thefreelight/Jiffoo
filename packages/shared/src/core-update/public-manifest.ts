@@ -1,10 +1,20 @@
 export type CoreReleaseChannel = 'stable' | 'prerelease';
+export type CoreReleaseDeliveryMode = 'source' | 'image';
+
+export interface PublicCoreUpdateImages {
+  api: string;
+  shop: string;
+  admin: string;
+  updater?: string | null;
+}
 
 export interface PublicCoreUpdateManifest {
   latestVersion: string;
   latestStableVersion: string;
   latestPrereleaseVersion: string | null;
   channel: CoreReleaseChannel;
+  deliveryMode?: CoreReleaseDeliveryMode;
+  images?: PublicCoreUpdateImages | null;
   releaseDate: string;
   changelogUrl: string;
   sourceArchiveUrl: string;
@@ -30,6 +40,8 @@ export const PUBLIC_CORE_UPDATE_MANIFEST: PublicCoreUpdateManifest = {
   latestStableVersion: '1.0.5',
   latestPrereleaseVersion: null,
   channel: 'stable',
+  deliveryMode: 'source',
+  images: null,
   releaseDate: '2026-04-11T09:54:50.000Z',
   changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.5-opensource',
   sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',

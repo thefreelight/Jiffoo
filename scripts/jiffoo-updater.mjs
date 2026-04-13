@@ -233,6 +233,29 @@ function normalizeManifestUrl(url) {
   return url === LEGACY_MANIFEST_URL ? DEFAULT_MANIFEST_URL : url;
 }
 
+function normalizeImageRef(value) {
+  if (!value || typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function resolveImageBundle(manifest) {
+  if (!manifest || manifest.deliveryMode !== 'image') {
+    return null;
+  }
+
+  const api = normalizeImageRef(manifest.images?.api);
+  const shop = normalizeImageRef(manifest.images?.shop);
+  const admin = normalizeImageRef(manifest.images?.admin);
+  const updater = normalizeImageRef(manifest.images?.updater);
+
+  if (!api || !shop || !admin) {
+    return null;
+  }
+
+  return { api, shop, admin, updater };
+}
+
 async function downloadFile(url, targetPath) {
   const response = await fetch(url);
   if (!response.ok) {
@@ -281,6 +304,19 @@ async function writeEnvValue(envPath, key, value) {
   await fs.writeFile(envPath, nextContent, 'utf8');
 }
 
+async function removeEnvValue(envPath, key) {
+  let content = '';
+  try {
+    content = await fs.readFile(envPath, 'utf8');
+  } catch {
+    return;
+  }
+
+  const pattern = new RegExp(`^${key}=.*(?:\\r?\\n)?`, 'gm');
+  const nextContent = content.replace(pattern, '');
+  await fs.writeFile(envPath, nextContent, 'utf8');
+}
+
 async function backupWorkspace(workspaceDir, backupTarPath) {
   await fs.mkdir(path.dirname(backupTarPath), { recursive: true });
   await run('tar', [
@@ -318,7 +354,15 @@ async function replaceWorkspace(workspaceDir, sourceDir) {
   }
 }
 
-async function waitForApiHealth(composeCommand, composePrefixArgs, composeFile, commandEnv) {
+async function waitForComposeServiceCommand(
+  composeCommand,
+  composePrefixArgs,
+  composeFile,
+  commandEnv,
+  service,
+  commandArgs,
+  failureMessage,
+) {
   for (let attempt = 0; attempt < 24; attempt += 1) {
     try {
       const args = [
@@ -329,10 +373,8 @@ async function waitForApiHealth(composeCommand, composePrefixArgs, composeFile, 
         composeFile,
         'exec',
         '-T',
-        'api',
-        'sh',
-        '-lc',
-        'curl -fsS http://127.0.0.1:3002/health/ready >/dev/null',
+        service,
+        ...commandArgs,
       ];
       await run(composeCommand, args, { env: commandEnv });
       return;
@@ -341,7 +383,199 @@ async function waitForApiHealth(composeCommand, composePrefixArgs, composeFile, 
     }
   }
 
-  throw new Error('API health check did not become ready in time');
+  throw new Error(failureMessage);
+}
+
+async function waitForApiHealth(composeCommand, composePrefixArgs, composeFile, commandEnv) {
+  await waitForComposeServiceCommand(
+    composeCommand,
+    composePrefixArgs,
+    composeFile,
+    commandEnv,
+    'api',
+    [
+      'node',
+      '-e',
+      "fetch('http://127.0.0.1:3002/health/ready').then((response)=>{if(!response.ok) process.exit(1); process.exit(0);}).catch(()=>process.exit(1));",
+    ],
+    'API health check did not become ready in time',
+  );
+}
+
+async function waitForWebServiceHealth(
+  composeCommand,
+  composePrefixArgs,
+  composeFile,
+  commandEnv,
+  service,
+  url,
+  label,
+) {
+  await waitForComposeServiceCommand(
+    composeCommand,
+    composePrefixArgs,
+    composeFile,
+    commandEnv,
+    service,
+    [
+      'node',
+      '-e',
+      `fetch(${JSON.stringify(url)}, { redirect: 'manual' }).then((response)=>{ if (response.status >= 200 && response.status < 400) process.exit(0); process.exit(1); }).catch(()=>process.exit(1));`,
+    ],
+    `${label} health check did not become ready in time`,
+  );
+}
+
+async function waitForRequiredServiceHealth(composeCommand, composePrefixArgs, composeFile, commandEnv) {
+  await waitForApiHealth(composeCommand, composePrefixArgs, composeFile, commandEnv);
+  await waitForWebServiceHealth(
+    composeCommand,
+    composePrefixArgs,
+    composeFile,
+    commandEnv,
+    'shop',
+    'http://127.0.0.1:3001',
+    'Shop',
+  );
+  await waitForWebServiceHealth(
+    composeCommand,
+    composePrefixArgs,
+    composeFile,
+    commandEnv,
+    'admin',
+    'http://127.0.0.1:3003',
+    'Admin',
+  );
+}
+
+async function fetchUpdateManifest(manifestUrl) {
+  try {
+    return await fetchJson(manifestUrl);
+  } catch {
+    return null;
+  }
+}
+
+async function applyComposeBaselineEnv(envFile, composeEnv, composeProjectName, targetVersion) {
+  if (envFile) {
+    await writeEnvValue(envFile, 'APP_VERSION', targetVersion);
+    await writeEnvValue(envFile, 'JIFFOO_DEPLOYMENT_MODE', 'docker-compose');
+    await writeEnvValue(
+      envFile,
+      'JIFFOO_CORE_UPDATE_MANIFEST_URL',
+      normalizeManifestUrl(process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || DEFAULT_MANIFEST_URL),
+    );
+    await writeEnvValue(envFile, 'COMPOSE_PROJECT_NAME', composeProjectName);
+  }
+
+  process.env.APP_VERSION = targetVersion;
+  process.env.JIFFOO_DEPLOYMENT_MODE = 'docker-compose';
+  process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL = normalizeManifestUrl(
+    process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || DEFAULT_MANIFEST_URL,
+  );
+  process.env.COMPOSE_PROJECT_NAME = composeProjectName;
+  composeEnv.APP_VERSION = targetVersion;
+  composeEnv.JIFFOO_DEPLOYMENT_MODE = 'docker-compose';
+  composeEnv.JIFFOO_CORE_UPDATE_MANIFEST_URL = normalizeManifestUrl(
+    process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || DEFAULT_MANIFEST_URL,
+  );
+  composeEnv.COMPOSE_PROJECT_NAME = composeProjectName;
+}
+
+async function applyComposeImageEnv(envFile, composeEnv, imageBundle) {
+  const imageEnvEntries = [
+    ['API_IMAGE', imageBundle.api],
+    ['SHOP_IMAGE', imageBundle.shop],
+    ['ADMIN_IMAGE', imageBundle.admin],
+  ];
+
+  if (imageBundle.updater) {
+    imageEnvEntries.push(['UPDATER_IMAGE', imageBundle.updater]);
+  }
+
+  for (const [key, value] of imageEnvEntries) {
+    if (envFile) {
+      await writeEnvValue(envFile, key, value);
+    }
+    process.env[key] = value;
+    composeEnv[key] = value;
+  }
+}
+
+async function clearComposeImageEnv(envFile, composeEnv) {
+  for (const key of ['API_IMAGE', 'SHOP_IMAGE', 'ADMIN_IMAGE', 'UPDATER_IMAGE']) {
+    if (envFile) {
+      await removeEnvValue(envFile, key);
+    }
+    delete process.env[key];
+    delete composeEnv[key];
+  }
+}
+
+async function performDockerComposeImageUpgrade({
+  composeCommand,
+  composePrefixArgs,
+  composeFile,
+  composeEnv,
+  envFile,
+  composeProjectName,
+  imageBundle,
+  targetVersion,
+  statusFile,
+}) {
+  console.log('[jiffoo-updater] Preparing image-first docker-compose release');
+  await writeStatus(statusFile, {
+    status: 'applying',
+    progress: 50,
+    currentStep: 'Preparing image-first release metadata',
+    targetVersion,
+  });
+
+  await applyComposeBaselineEnv(envFile, composeEnv, composeProjectName, targetVersion);
+  await applyComposeImageEnv(envFile, composeEnv, imageBundle);
+
+  console.log('[jiffoo-updater] Pulling release images and recreating docker-compose services');
+  await writeStatus(statusFile, {
+    status: 'applying',
+    progress: 65,
+    currentStep: 'Pulling release images and recreating api/shop/admin services',
+    targetVersion,
+  });
+
+  await run(
+    composeCommand,
+    [
+      ...composePrefixArgs,
+      '-p',
+      composeProjectName,
+      '-f',
+      composeFile,
+      'pull',
+      'api',
+      'shop',
+      'admin',
+    ],
+    { env: composeEnv },
+  );
+
+  await run(
+    composeCommand,
+    [
+      ...composePrefixArgs,
+      '-p',
+      composeProjectName,
+      '-f',
+      composeFile,
+      'up',
+      '-d',
+      '--no-build',
+      '--no-deps',
+      'api',
+      'shop',
+      'admin',
+    ],
+    { env: composeEnv },
+  );
 }
 
 async function performDockerComposeUpgrade(options) {
@@ -360,22 +594,53 @@ async function performDockerComposeUpgrade(options) {
   const composeProjectName = resolveComposeProjectName(workspaceDir, composeEnv);
   composeEnv.COMPOSE_PROJECT_NAME = composeProjectName;
   const { command: composeCommand, prefixArgs: composePrefixArgs } = resolveComposeInvocation();
+  const manifestUrl = normalizeManifestUrl(process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || DEFAULT_MANIFEST_URL);
 
   try {
+    const manifest = await fetchUpdateManifest(manifestUrl);
+    const imageBundle = resolveImageBundle(manifest);
+
+    await writeStatus(statusFile, {
+      status: 'preparing',
+      progress: 12,
+      currentStep: imageBundle
+        ? 'Resolved image-first release manifest'
+        : 'Resolved source release manifest',
+      error: null,
+      targetVersion,
+    });
+
+    console.log('[jiffoo-updater] Creating workspace backup');
+    await writeStatus(statusFile, {
+      status: 'backing_up',
+      progress: 35,
+      currentStep: 'Creating pre-upgrade backup',
+      targetVersion,
+    });
+    await backupWorkspace(workspaceDir, backupTarPath);
+
+    if (imageBundle) {
+      await performDockerComposeImageUpgrade({
+        composeCommand,
+        composePrefixArgs,
+        composeFile,
+        composeEnv,
+        envFile,
+        composeProjectName,
+        imageBundle,
+        targetVersion,
+        statusFile,
+      });
+    } else {
+      await clearComposeImageEnv(envFile, composeEnv);
+
     let archiveUrl = options['source-archive-url']
       ? String(options['source-archive-url'])
       : process.env.JIFFOO_SOURCE_ARCHIVE_URL || DEFAULT_SOURCE_ARCHIVE_URL;
 
     if (!options['source-archive-url']) {
-      try {
-        const manifest = await fetchJson(
-          normalizeManifestUrl(process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || DEFAULT_MANIFEST_URL),
-        );
-        if (typeof manifest?.sourceArchiveUrl === 'string' && manifest.sourceArchiveUrl.trim().length > 0) {
-          archiveUrl = manifest.sourceArchiveUrl.trim();
-        }
-      } catch {
-        // keep fallback archive URL
+      if (typeof manifest?.sourceArchiveUrl === 'string' && manifest.sourceArchiveUrl.trim().length > 0) {
+        archiveUrl = manifest.sourceArchiveUrl.trim();
       }
     }
 
@@ -397,15 +662,6 @@ async function performDockerComposeUpgrade(options) {
 
     const nextRoot = await findProjectRoot(extractDir);
 
-    console.log('[jiffoo-updater] Creating workspace backup');
-    await writeStatus(statusFile, {
-      status: 'backing_up',
-      progress: 35,
-      currentStep: 'Creating pre-upgrade backup',
-      targetVersion,
-    });
-    await backupWorkspace(workspaceDir, backupTarPath);
-
     console.log('[jiffoo-updater] Replacing workspace with downloaded release');
     await writeStatus(statusFile, {
       status: 'applying',
@@ -414,22 +670,7 @@ async function performDockerComposeUpgrade(options) {
       targetVersion,
     });
     await replaceWorkspace(workspaceDir, nextRoot);
-    if (envFile && fsSync.existsSync(envFile)) {
-      await writeEnvValue(envFile, 'APP_VERSION', targetVersion);
-      await writeEnvValue(envFile, 'JIFFOO_DEPLOYMENT_MODE', 'docker-compose');
-      await writeEnvValue(
-        envFile,
-        'JIFFOO_CORE_UPDATE_MANIFEST_URL',
-        normalizeManifestUrl(process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || DEFAULT_MANIFEST_URL),
-      );
-      await writeEnvValue(envFile, 'COMPOSE_PROJECT_NAME', composeProjectName);
-    }
-    process.env.APP_VERSION = targetVersion;
-    process.env.JIFFOO_DEPLOYMENT_MODE = 'docker-compose';
-    process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL = normalizeManifestUrl(
-      process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || DEFAULT_MANIFEST_URL,
-    );
-    process.env.COMPOSE_PROJECT_NAME = composeProjectName;
+    await applyComposeBaselineEnv(envFile, composeEnv, composeProjectName, targetVersion);
 
     console.log('[jiffoo-updater] Rebuilding and restarting docker-compose services');
     await writeStatus(statusFile, {
@@ -469,6 +710,7 @@ async function performDockerComposeUpgrade(options) {
       'admin',
     ];
     await run(composeCommand, composeArgs, { env: composeEnv });
+    }
 
     console.log('[jiffoo-updater] Applying database migrations');
     await writeStatus(statusFile, {
@@ -495,14 +737,14 @@ async function performDockerComposeUpgrade(options) {
     ];
     await run(composeCommand, migrateArgs, { env: composeEnv });
 
-    console.log('[jiffoo-updater] Waiting for API health');
+    console.log('[jiffoo-updater] Waiting for required service health');
     await writeStatus(statusFile, {
       status: 'verifying',
       progress: 92,
-      currentStep: 'Waiting for API health checks',
+      currentStep: 'Waiting for api/shop/admin health checks',
       targetVersion,
     });
-    await waitForApiHealth(composeCommand, composePrefixArgs, composeFile, composeEnv);
+    await waitForRequiredServiceHealth(composeCommand, composePrefixArgs, composeFile, composeEnv);
     await writeStatus(statusFile, {
       status: 'completed',
       progress: 100,
