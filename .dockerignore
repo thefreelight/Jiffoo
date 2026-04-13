@@ -124,6 +124,7 @@ scripts/
 scripts/*
 !scripts/jiffoo-updater.mjs
 !scripts/jiffoo-updater-agent.mjs
+!scripts/jiffoo-k8s-updater-agent.mjs
 deploy.sh
 
 # Test files
