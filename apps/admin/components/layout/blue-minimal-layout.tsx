@@ -12,6 +12,7 @@ import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
 import { Menu } from 'lucide-react'
 import { BlueMinimalSidebar } from './blue-minimal-sidebar'
+import { SystemUpdateNotifier } from './system-update-notifier'
 import ProtectedRoute from '../auth/ProtectedRoute'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { ManagedModeProvider, useManagedMode } from '@/lib/managed-mode'
@@ -48,6 +49,7 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
     <ProtectedRoute requireAdmin={true}>
       <ManagedModeProvider>
         <ManagedDocumentTitle />
+        <SystemUpdateNotifier />
         <div className="flex h-screen overflow-hidden bg-[#F1F5F9] font-sans">
           {/* Sidebar */}
           <BlueMinimalSidebar
