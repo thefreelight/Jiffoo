@@ -33,6 +33,11 @@ interface BuiltArtifactSummary {
   kind: OfficialArtifactKind;
   version: string;
   packageUrl: string;
+  thumbnailUrl?: string | null;
+  screenshots?: string[];
+  iconName?: string | null;
+  iconUrl?: string | null;
+  releaseNotesUrl?: string | null;
   filePath: string;
   relativePath: string;
   sha256: string;
@@ -48,6 +53,8 @@ interface ThemePackSourceManifest {
   name: string;
   version: string;
   target: 'shop' | 'admin';
+  thumbnail?: string;
+  screenshots?: string[];
   entry?: {
     tokensCSS?: string;
     templatesDir?: string;
@@ -60,6 +67,11 @@ interface ThemePackSourceManifest {
   };
   'x-jiffoo-renderer-mode'?: 'platform' | 'embedded';
   'x-jiffoo-renderer-slug'?: string;
+}
+
+interface ThemeVisualAssets {
+  thumbnailUrl?: string | null;
+  screenshots: string[];
 }
 
 interface BuildOfficialArtifactsResult {
@@ -142,6 +154,22 @@ function getDefaultPackageUrl(entry: OfficialCatalogEntry, artifactBaseUrl?: str
   const extension = entry.kind === 'theme' ? 'jtheme' : 'jplugin';
   const kindPath = entry.kind === 'theme' ? 'themes' : 'plugins';
   return `${artifactBaseUrl.replace(/\/$/, '')}/${kindPath}/${entry.slug}/${entry.version}.${extension}`;
+}
+
+function buildArtifactAssetUrl(
+  artifactBaseUrl: string | undefined,
+  kind: OfficialCatalogEntry['kind'],
+  slug: string,
+  version: string,
+  assetPath: string,
+): string | null {
+  if (!artifactBaseUrl) {
+    return null;
+  }
+
+  const kindPath = kind === 'theme' ? 'themes' : 'plugins';
+  const normalizedAssetPath = assetPath.replace(/\\/g, '/').replace(/^\/+/, '');
+  return `${artifactBaseUrl.replace(/\/$/, '')}/${kindPath}/${slug}/${version}/${normalizedAssetPath}`;
 }
 
 function sanitizeManifestEntryRoot(entryModule?: string): string | null {
@@ -620,6 +648,62 @@ async function stageThemeArtifact(entry: OfficialCatalogEntry, stagingDir: strin
   return gatherFiles(stagingDir);
 }
 
+async function copyThemePreviewAssets(
+  entry: OfficialCatalogEntry,
+  manifest: ThemePackSourceManifest,
+  sourceDir: string,
+  outputDir: string,
+  artifactBaseUrl?: string,
+): Promise<ThemeVisualAssets> {
+  const result: ThemeVisualAssets = {
+    thumbnailUrl: entry.thumbnailUrl || null,
+    screenshots: Array.isArray(entry.screenshots) ? [...entry.screenshots] : [],
+  };
+
+  const versionAssetRoot = path.join(outputDir, 'themes', entry.slug, entry.version);
+
+  if (typeof manifest.thumbnail === 'string' && manifest.thumbnail.trim().length > 0) {
+    const relativeThumbnailPath = manifest.thumbnail.replace(/\\/g, '/').replace(/^\/+/, '');
+    const sourceThumbnailPath = path.join(sourceDir, relativeThumbnailPath);
+    if (await pathExists(sourceThumbnailPath)) {
+      await ensureDir(path.join(versionAssetRoot, path.dirname(relativeThumbnailPath)));
+      const targetPath = path.join(versionAssetRoot, relativeThumbnailPath);
+      await fs.copyFile(sourceThumbnailPath, targetPath);
+      result.thumbnailUrl =
+        buildArtifactAssetUrl(artifactBaseUrl, 'theme', entry.slug, entry.version, relativeThumbnailPath) || result.thumbnailUrl;
+    }
+  }
+
+  if (Array.isArray(manifest.screenshots)) {
+    const screenshotUrls: string[] = [];
+    for (const relativeScreenshot of manifest.screenshots) {
+      if (typeof relativeScreenshot !== 'string' || relativeScreenshot.trim().length === 0) {
+        continue;
+      }
+
+      const normalizedRelativePath = relativeScreenshot.replace(/\\/g, '/').replace(/^\/+/, '');
+      const sourceScreenshotPath = path.join(sourceDir, normalizedRelativePath);
+      if (!(await pathExists(sourceScreenshotPath))) {
+        continue;
+      }
+
+      await ensureDir(path.join(versionAssetRoot, path.dirname(normalizedRelativePath)));
+      const targetPath = path.join(versionAssetRoot, normalizedRelativePath);
+      await fs.copyFile(sourceScreenshotPath, targetPath);
+      const url = buildArtifactAssetUrl(artifactBaseUrl, 'theme', entry.slug, entry.version, normalizedRelativePath);
+      if (url) {
+        screenshotUrls.push(url);
+      }
+    }
+
+    if (screenshotUrls.length > 0) {
+      result.screenshots = screenshotUrls;
+    }
+  }
+
+  return result;
+}
+
 async function buildSingleArtifact(
   entry: OfficialCatalogEntry,
   outputDir: string,
@@ -646,6 +730,20 @@ async function buildSingleArtifact(
         ? await stageThemeArtifact(entry, stagingDir)
         : await stagePluginArtifact(entry, stagingDir);
 
+    const visualAssets =
+      kind === 'theme'
+        ? await copyThemePreviewAssets(
+            entry,
+            JSON.parse(await fs.readFile(path.join(sourceDir, 'theme.json'), 'utf-8')) as ThemePackSourceManifest,
+            sourceDir,
+            outputDir,
+            artifactBaseUrl,
+          )
+        : {
+            thumbnailUrl: entry.thumbnailUrl || null,
+            screenshots: Array.isArray(entry.screenshots) ? [...entry.screenshots] : [],
+          };
+
     await createZipArchive(stagingDir, outputFilePath);
     const sidecars = await writeArtifactSidecars(outputFilePath);
 
@@ -654,6 +752,11 @@ async function buildSingleArtifact(
       kind,
       version,
       packageUrl: getDefaultPackageUrl(entry, artifactBaseUrl),
+      thumbnailUrl: visualAssets.thumbnailUrl ?? null,
+      screenshots: visualAssets.screenshots,
+      iconName: entry.iconName || null,
+      iconUrl: entry.iconUrl || null,
+      releaseNotesUrl: entry.releaseNotesUrl || null,
       filePath: outputFilePath,
       relativePath,
       sha256: sidecars.sha256,

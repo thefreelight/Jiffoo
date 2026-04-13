@@ -70,8 +70,16 @@ describe('buildOfficialArtifacts', () => {
       expect(theme?.includedFiles).toContain('templates/home.json');
       expect(theme?.includedFiles).toContain('tokens.css');
       expect(theme?.includedFiles).toContain('schemas/settings.schema.json');
+      expect(theme?.thumbnailUrl).toMatch(/\/themes\/.+\/1\.0\.0\/assets\/thumbnail\.svg$/);
       expect(theme?.includedFiles).toContain('assets/placeholder-product.svg');
     }
+
+    await expect(
+      fs.stat(path.join(outputDir, 'themes', 'esim-mall', '1.0.0', 'assets', 'thumbnail.svg')),
+    ).resolves.toBeDefined();
+    await expect(
+      fs.stat(path.join(outputDir, 'themes', 'yevbi', '1.0.0', 'assets', 'thumbnail.svg')),
+    ).resolves.toBeDefined();
 
     const pluginExtracted = await extractArtifact(plugin!.filePath);
     const i18nPluginExtracted = await extractArtifact(i18nPlugin!.filePath);
