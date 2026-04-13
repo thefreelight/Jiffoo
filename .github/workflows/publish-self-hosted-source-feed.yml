@@ -1,0 +1,146 @@
+name: Publish Self-Hosted Source Feed
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to publish, e.g. v1.0.8-opensource
+        required: true
+      release_url:
+        description: Optional release URL override
+        required: false
+      release_date:
+        description: Optional ISO-8601 release date override
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish-source-feed:
+    runs-on: ubuntu-latest
+    env:
+      GET_JIFFOO_ROOT: /var/www/get-jiffoo
+      GET_JIFFOO_NGINX_PATH: /etc/nginx/conf.d/get-jiffoo.conf
+      CLOUDFLARE_ZONE_ID: 0ad261d681b797c5356abafc0453603e
+      RELEASE_TAG: ${{ inputs.release_tag }}
+      RELEASE_URL: ${{ inputs.release_url }}
+      RELEASE_DATE: ${{ inputs.release_date }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Prepare release notes
+        run: |
+          mkdir -p .release
+          printf '%s\n' "Automated self-hosted source-feed publish for ${RELEASE_TAG}." > .release/release-notes.md
+
+      - name: Build self-hosted source update feed
+        run: |
+          node scripts/build-update-feed.mjs \
+            --output-dir .release/self-hosted \
+            --release-tag "$RELEASE_TAG" \
+            --release-url "${RELEASE_URL:-https://github.com/${{ github.repository }}/releases/tag/$RELEASE_TAG}" \
+            --release-date "${RELEASE_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" \
+            --release-notes-file .release/release-notes.md \
+            --repository "${{ github.repository }}"
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            .release/self-hosted/jiffoo-source.tar.gz \
+            .release/self-hosted/jiffoo-source.tar.gz.sha256 \
+            .release/self-hosted/core-update-manifest.json \
+            --clobber
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Deploy source feed to get.jiffoo.com
+        env:
+          GET_JIFFOO_SSH_HOST: ${{ secrets.GET_JIFFOO_SSH_HOST }}
+          GET_JIFFOO_SSH_USER: ${{ secrets.GET_JIFFOO_SSH_USER }}
+          GET_JIFFOO_SSH_PASSWORD: ${{ secrets.GET_JIFFOO_SSH_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${GET_JIFFOO_SSH_HOST:-}" ] || [ -z "${GET_JIFFOO_SSH_USER:-}" ] || [ -z "${GET_JIFFOO_SSH_PASSWORD:-}" ]; then
+            echo "Missing GET_JIFFOO_SSH_* secrets"
+            exit 1
+          fi
+
+          sshpass -p "$GET_JIFFOO_SSH_PASSWORD" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            .release/self-hosted/install.sh \
+            .release/self-hosted/docker-compose.yml \
+            .release/self-hosted/.env.production.example \
+            .release/self-hosted/jiffoo-source.tar.gz \
+            .release/self-hosted/jiffoo-source.tar.gz.sha256 \
+            .release/self-hosted/releases/core/manifest.json \
+            .release/self-hosted/get-jiffoo.conf \
+            "${GET_JIFFOO_SSH_USER}@${GET_JIFFOO_SSH_HOST}:/tmp/"
+
+          sshpass -p "$GET_JIFFOO_SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "${GET_JIFFOO_SSH_USER}@${GET_JIFFOO_SSH_HOST}" \
+            "GET_JIFFOO_ROOT='${GET_JIFFOO_ROOT}' GET_JIFFOO_NGINX_PATH='${GET_JIFFOO_NGINX_PATH}' bash -s" <<'EOF'
+          set -euo pipefail
+          stamp=$(date +%Y%m%d%H%M%S)
+          mkdir -p "${GET_JIFFOO_ROOT}/backups/${stamp}" "${GET_JIFFOO_ROOT}/releases/core"
+          cp "${GET_JIFFOO_ROOT}/install.sh" "${GET_JIFFOO_ROOT}/backups/${stamp}/install.sh" 2>/dev/null || true
+          cp "${GET_JIFFOO_ROOT}/docker-compose.yml" "${GET_JIFFOO_ROOT}/backups/${stamp}/docker-compose.yml" 2>/dev/null || true
+          cp "${GET_JIFFOO_ROOT}/.env.production.example" "${GET_JIFFOO_ROOT}/backups/${stamp}/.env.production.example" 2>/dev/null || true
+          cp "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz" "${GET_JIFFOO_ROOT}/backups/${stamp}/jiffoo-source.tar.gz" 2>/dev/null || true
+          cp "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz.sha256" "${GET_JIFFOO_ROOT}/backups/${stamp}/jiffoo-source.tar.gz.sha256" 2>/dev/null || true
+          cp "${GET_JIFFOO_ROOT}/releases/core/manifest.json" "${GET_JIFFOO_ROOT}/backups/${stamp}/manifest.json" 2>/dev/null || true
+
+          install -m 0755 /tmp/install.sh "${GET_JIFFOO_ROOT}/install.sh"
+          install -m 0644 /tmp/docker-compose.yml "${GET_JIFFOO_ROOT}/docker-compose.yml"
+          install -m 0644 /tmp/.env.production.example "${GET_JIFFOO_ROOT}/.env.production.example"
+          install -m 0644 /tmp/jiffoo-source.tar.gz "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz"
+          install -m 0644 /tmp/jiffoo-source.tar.gz.sha256 "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz.sha256"
+          install -m 0644 /tmp/manifest.json "${GET_JIFFOO_ROOT}/releases/core/manifest.json"
+          install -m 0644 /tmp/get-jiffoo.conf "${GET_JIFFOO_NGINX_PATH}"
+
+          nginx -t
+          if command -v systemctl >/dev/null 2>&1; then
+            systemctl reload nginx
+          else
+            nginx -s reload
+          fi
+          EOF
+
+      - name: Purge Cloudflare cache
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "Skipping Cloudflare purge because CLOUDFLARE_API_TOKEN is not set"
+            exit 0
+          fi
+
+          curl -fsSL -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{
+              "files": [
+                "https://get.jiffoo.com/install.sh",
+                "https://get.jiffoo.com/docker-compose.yml",
+                "https://get.jiffoo.com/.env.production.example",
+                "https://get.jiffoo.com/jiffoo-source.tar.gz",
+                "https://get.jiffoo.com/jiffoo-source.tar.gz.sha256",
+                "https://get.jiffoo.com/releases/core/manifest.json"
+              ]
+            }'
+
+      - name: Verify public feed
+        run: |
+          curl -fsSL https://get.jiffoo.com/releases/core/manifest.json | jq '{latestVersion,deliveryMode,images}'
+          curl -fsSI https://get.jiffoo.com/jiffoo-source.tar.gz
