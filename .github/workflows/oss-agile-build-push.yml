@@ -1,6 +1,9 @@
 name: OSS Agile Build And Push
 
 on:
+  push:
+    branches:
+      - codex/local-recovery-20260411
   workflow_dispatch:
     inputs:
       target_ref:
@@ -31,7 +34,7 @@ jobs:
       - name: Checkout target ref
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.target_ref }}
+          ref: ${{ github.event.inputs.target_ref || github.sha }}
           fetch-depth: 1
 
       - name: Resolve image metadata
@@ -42,7 +45,7 @@ jobs:
           short_sha="$(git rev-parse --short=8 HEAD)"
           app_version="$(node -p "require('./package.json').version.replace(/-opensource$/, '')")"
           build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          image_tag="${{ inputs.image_tag }}"
+          image_tag="${{ github.event.inputs.image_tag }}"
           if [ -z "${image_tag}" ]; then
             image_tag="gha-${short_sha}"
           fi
@@ -66,7 +69,7 @@ jobs:
       - name: Checkout target ref
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.target_ref }}
+          ref: ${{ github.event.inputs.target_ref || github.sha }}
           fetch-depth: 1
 
       - name: Set up Docker Buildx
@@ -144,7 +147,7 @@ jobs:
         run: |
           cat <<EOF >> "$GITHUB_STEP_SUMMARY"
           ## OSS Agile Build Output
-          - target ref: \`${{ inputs.target_ref }}\`
+          - target ref: \`${{ github.event.inputs.target_ref || github.sha }}\`
           - image tag: \`${{ needs.prepare.outputs.image_tag }}\`
           - app version: \`${{ needs.prepare.outputs.app_version }}\`
           - api: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/api:${{ needs.prepare.outputs.image_tag }}\`
