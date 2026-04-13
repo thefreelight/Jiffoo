@@ -1,0 +1,153 @@
+name: OSS Agile Build And Push
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: Git ref or SHA to build
+        required: true
+      image_tag:
+        description: Optional image tag override
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com
+  IMAGE_NAMESPACE: jiffoo-oss
+  DEFAULT_SHOP_URL: https://bokmoo.com
+  DEFAULT_API_URL: /api
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      short_sha: ${{ steps.meta.outputs.short_sha }}
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+      app_version: ${{ steps.meta.outputs.app_version }}
+      build_time: ${{ steps.meta.outputs.build_time }}
+    steps:
+      - name: Checkout target ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_ref }}
+          fetch-depth: 1
+
+      - name: Resolve image metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          short_sha="$(git rev-parse --short=8 HEAD)"
+          app_version="$(node -p "require('./package.json').version.replace(/-opensource$/, '')")"
+          build_time="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          image_tag="${{ inputs.image_tag }}"
+          if [ -z "${image_tag}" ]; then
+            image_tag="gha-${short_sha}"
+          fi
+
+          echo "short_sha=${short_sha}" >> "$GITHUB_OUTPUT"
+          echo "image_tag=${image_tag}" >> "$GITHUB_OUTPUT"
+          echo "app_version=${app_version}" >> "$GITHUB_OUTPUT"
+          echo "build_time=${build_time}" >> "$GITHUB_OUTPUT"
+
+  build-and-push:
+    needs: prepare
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - api
+          - admin
+          - shop
+    steps:
+      - name: Checkout target ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target_ref }}
+          fetch-depth: 1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push ${{ matrix.service }}
+        shell: bash
+        env:
+          IMAGE_TAG: ${{ needs.prepare.outputs.image_tag }}
+          SHORT_SHA: ${{ needs.prepare.outputs.short_sha }}
+          APP_VERSION: ${{ needs.prepare.outputs.app_version }}
+          BUILD_TIME: ${{ needs.prepare.outputs.build_time }}
+        run: |
+          set -euo pipefail
+
+          image="${REGISTRY}/${IMAGE_NAMESPACE}/${{ matrix.service }}:${IMAGE_TAG}"
+          dockerfile="apps/${{ matrix.service }}/Dockerfile"
+
+          args=(
+            --platform linux/amd64
+            --file "${dockerfile}"
+            --tag "${image}"
+            --push
+            --build-arg "HTTP_PROXY="
+            --build-arg "HTTPS_PROXY="
+            --build-arg "NO_PROXY=localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16"
+            --build-arg "NPM_REGISTRY=https://registry.npmjs.org"
+            --build-arg "BUILD_SHA=${SHORT_SHA}"
+          )
+
+          case "${{ matrix.service }}" in
+            api)
+              args+=(
+                --build-arg "BUILD_TIME=${BUILD_TIME}"
+                --build-arg "APP_VERSION=${APP_VERSION}"
+              )
+              ;;
+            admin)
+              args+=(
+                --build-arg "NODE_BASE_IMAGE=node:20-alpine"
+                --build-arg "API_SERVICE_URL=http://api:80"
+              )
+              ;;
+            shop)
+              args+=(
+                --build-arg "NODE_BASE_IMAGE=node:20-alpine"
+                --build-arg "API_SERVICE_URL=http://api:80"
+                --build-arg "NEXT_PUBLIC_SHOP_URL=${DEFAULT_SHOP_URL}"
+                --build-arg "NEXT_PUBLIC_API_URL=${DEFAULT_API_URL}"
+              )
+              ;;
+          esac
+
+          docker buildx build "${args[@]}" .
+
+          {
+            echo "### ${{ matrix.service }}"
+            echo "- image: \`${image}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  summarize:
+    needs:
+      - prepare
+      - build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print image set
+        run: |
+          cat <<EOF >> "$GITHUB_STEP_SUMMARY"
+          ## OSS Agile Build Output
+          - target ref: \`${{ inputs.target_ref }}\`
+          - image tag: \`${{ needs.prepare.outputs.image_tag }}\`
+          - app version: \`${{ needs.prepare.outputs.app_version }}\`
+          - api: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/api:${{ needs.prepare.outputs.image_tag }}\`
+          - admin: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/admin:${{ needs.prepare.outputs.image_tag }}\`
+          - shop: \`${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/shop:${{ needs.prepare.outputs.image_tag }}\`
+          EOF
