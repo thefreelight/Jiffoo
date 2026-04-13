@@ -978,10 +978,12 @@ export const merchant = {
     manifestUnavailable: 'The public update manifest could not be reached.',
     manifestUrlUnavailable: 'No manifest URL configured',
     openChangelog: 'Open changelog',
+    openUpdateCenter: 'Open Update Center',
     minimumAutoUpgradableVersion: 'Minimum auto-upgradable version',
     requiresManualIntervention:
       'This target release still requires manual operator intervention even if a newer version is available.',
     latestVersionMsg: 'You are running the latest version',
+    proactiveHint: 'A newer Jiffoo core release is ready for this installation.',
     updateStarted: 'Update Started',
     updateStartedDesc: 'System update is beginning...',
     updateCompleted: 'Update Completed',
