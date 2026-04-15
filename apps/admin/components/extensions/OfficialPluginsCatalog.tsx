@@ -230,6 +230,7 @@ export function OfficialPluginsCatalog({
             const isInstalling = installingSlug === item.slug || (isProvisioningPackage && solutionMeta?.offerKind === 'theme_first_solution');
             const showConfigure = item.installState === 'installed' && item.configRequired && !item.configReady;
             const requiresPlatformBinding = item.pricingModel !== 'free';
+            const isUpdateAction = Boolean(item.updateAvailable && item.installState !== 'not_installed');
             const installDisabled =
               item.installState === 'not_installed' &&
               (!marketOnline || !item.availableInMarket || (requiresPlatformBinding && !marketplaceReady) || isInstalling);
@@ -237,9 +238,14 @@ export function OfficialPluginsCatalog({
               managedPackage && item.installState === 'not_installed'
                 ? isInstalling || managedPackage.status === 'SUSPENDED'
                 : installDisabled;
+            const isUpdateDisabled =
+              isUpdateAction &&
+              (!marketOnline || !item.availableInMarket || isInstalling || managedPackage?.status === 'SUSPENDED');
 
             const primaryActionLabel =
-              item.installState === 'not_installed'
+              isUpdateAction
+                ? getText('merchant.plugins.update', 'Update')
+                : item.installState === 'not_installed'
                 ? hasSolutionSemantics
                   ? (controlPlaneSolution?.ctaLabel || getText('merchant.package.provisionSolution', 'Provision solution'))
                   : getText('merchant.plugins.install', 'Install')
@@ -250,7 +256,7 @@ export function OfficialPluginsCatalog({
                   : getText('common.actions.manage', 'Manage');
 
             const handlePrimaryAction = () => {
-              if (item.installState === 'not_installed') {
+              if (item.installState === 'not_installed' || isUpdateAction) {
                 onInstall(item);
                 return;
               }
@@ -302,6 +308,11 @@ export function OfficialPluginsCatalog({
                           <Badge variant="outline" className={`rounded-full capitalize ${getInstallTone(item)}`}>
                             {item.installState.replace('_', ' ')}
                           </Badge>
+                          {item.updateAvailable && item.latestVersion ? (
+                            <Badge variant="outline" className="rounded-full border-amber-200 bg-amber-50 text-amber-900">
+                              {getText('merchant.plugins.updateAvailable', 'Update available')} · v{item.latestVersion}
+                            </Badge>
+                          ) : null}
                         </div>
 
                         <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
@@ -342,7 +353,7 @@ export function OfficialPluginsCatalog({
                   <div className="mt-2 flex flex-col gap-3">
                     <Button
                       onClick={handlePrimaryAction}
-                      disabled={effectiveInstallDisabled}
+                      disabled={isUpdateDisabled || effectiveInstallDisabled}
                       className="w-full rounded-lg"
                     >
                       {isInstalling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Settings2 className="mr-2 h-4 w-4" />}

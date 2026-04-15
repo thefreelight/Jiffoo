@@ -223,12 +223,18 @@ export function OfficialThemesCatalog({
               marketOnline &&
               item.availableInMarket &&
               (!requiresPlatformBinding || marketplaceReady);
+            const isUpdateAction = Boolean(item.updateAvailable && item.installState !== 'not_installed');
             const effectiveCanInstall =
               managedPackage && item.installState === 'not_installed'
                 ? managedPackage.status !== 'SUSPENDED'
                 : canInstall;
+            const isUpdateDisabled =
+              isUpdateAction &&
+              (!marketOnline || !item.availableInMarket || isInstalling || isActivating || managedPackage?.status === 'SUSPENDED');
             const actionLabel =
-              item.installState === 'active'
+              isUpdateAction
+                ? getText('merchant.themes.update', 'Update')
+                : item.installState === 'active'
                 ? getText('merchant.themes.active', 'Active')
                 : item.installState === 'installed'
                   ? getText('merchant.themes.activate', 'Activate')
@@ -237,7 +243,7 @@ export function OfficialThemesCatalog({
                     : getText('merchant.themes.install', 'Install');
 
               const handlePrimaryAction = () => {
-                if (item.installState === 'not_installed') {
+                if (item.installState === 'not_installed' || isUpdateAction) {
                   onInstall(item);
                   return;
                 }
@@ -292,6 +298,11 @@ export function OfficialThemesCatalog({
                       <Badge variant="outline" className="rounded-lg border-white/20 bg-white/10 text-white capitalize">
                         {item.installState.replace('_', ' ')}
                       </Badge>
+                      {item.updateAvailable && item.latestVersion ? (
+                        <Badge variant="outline" className="rounded-lg border-amber-200 bg-amber-50 text-amber-900">
+                          {getText('merchant.themes.updateAvailable', 'Update available')} · v{item.latestVersion}
+                        </Badge>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -315,6 +326,11 @@ export function OfficialThemesCatalog({
                           ? getText('merchant.extensions.releaseOffline', 'Offline')
                           : getText('merchant.extensions.releaseCatalogOnly', 'Catalog Only')}
                     </Badge>
+                    {item.updateAvailable && item.latestVersion ? (
+                      <Badge variant="outline" className="rounded-lg border-amber-200 bg-amber-50 text-amber-900">
+                        {getText('merchant.themes.updateAvailable', 'Update available')} · v{item.latestVersion}
+                      </Badge>
+                    ) : null}
                   </div>
                 </CardHeader>
 
@@ -354,7 +370,7 @@ export function OfficialThemesCatalog({
                   <div className="flex flex-col gap-3">
                     <Button
                       onClick={handlePrimaryAction}
-                      disabled={item.installState === 'active' || (item.installState === 'not_installed' && (!effectiveCanInstall || isInstalling)) || isActivating}
+                      disabled={isUpdateDisabled || (!isUpdateAction && item.installState === 'active') || (item.installState === 'not_installed' && (!effectiveCanInstall || isInstalling)) || isActivating}
                       className="w-full rounded-lg"
                     >
                       {isInstalling || isActivating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}

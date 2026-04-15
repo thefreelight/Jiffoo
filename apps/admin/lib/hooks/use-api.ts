@@ -774,12 +774,14 @@ export function useInstallOfficialExtension() {
       slug,
       kind,
       version,
+      activate,
     }: {
       slug: string;
       kind: 'plugin' | 'theme-shop' | 'theme-admin' | 'theme-app-shop' | 'theme-app-admin';
       version?: string;
+      activate?: boolean;
     }) => {
-      const response = await marketApi.installOfficialExtension(slug, { kind, version });
+      const response = await marketApi.installOfficialExtension(slug, { kind, version, activate });
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {

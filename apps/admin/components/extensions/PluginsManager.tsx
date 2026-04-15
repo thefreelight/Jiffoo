@@ -157,6 +157,7 @@ export function PluginsManager() {
         await installOfficialMutation.mutateAsync({
           slug: item.slug,
           kind: 'plugin',
+          version: item.latestVersion || item.sellableVersion || item.version,
         });
       }
     } finally {

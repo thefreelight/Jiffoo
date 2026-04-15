@@ -16,6 +16,7 @@ import { getOfficialCatalog, getOfficialCatalogEntry } from './official-catalog'
 import { installOfficialMarketExtension } from './install-handoff';
 import { cleanupDownloadedArtifact, downloadArtifactWithResume } from './resumable-downloader';
 import { verifyEmbeddedOfficialArtifact, verifyOfficialArtifact } from './artifact-verification';
+import { assertOfficialArtifactReachable } from './official-artifact-health';
 import { getMarketBaseUrl } from './market-client';
 import { platformConnectionService } from '@/core/admin/platform-connection/service';
 import { managedPackageService } from '@/core/admin/managed-package/service';
@@ -350,6 +351,7 @@ export async function marketRoutes(fastify: FastifyInstance) {
               ),
             })
           : await (async () => {
+              await assertOfficialArtifactReachable(authorization.packageUrl);
               const downloadResult = await downloadArtifactWithResume({
                 slug,
                 version: authorization.version,

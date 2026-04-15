@@ -4,8 +4,11 @@ const mocks = vi.hoisted(() => ({
   getActiveTheme: vi.fn(),
   getInstalledThemes: vi.fn(),
   getAllPluginPackages: vi.fn(),
+  getDefaultInstance: vi.fn(),
   checkConnectivity: vi.fn(),
   getOfficialCatalog: vi.fn(),
+  getManagedStatus: vi.fn(),
+  checkOfficialArtifactReachable: vi.fn(),
 }));
 
 vi.mock('@/core/admin/theme-management/service', () => ({
@@ -18,6 +21,7 @@ vi.mock('@/core/admin/theme-management/service', () => ({
 vi.mock('@/core/admin/plugin-management/service', () => ({
   PluginManagementService: {
     getAllPluginPackages: mocks.getAllPluginPackages,
+    getDefaultInstance: mocks.getDefaultInstance,
   },
 }));
 
@@ -28,13 +32,23 @@ vi.mock('@/core/admin/market/market-client', () => ({
   },
 }));
 
+vi.mock('@/core/admin/managed-package/service', () => ({
+  managedPackageService: {
+    getStatus: mocks.getManagedStatus,
+  },
+}));
+
 vi.mock('@/core/admin/extension-installer/official-only', () => ({
   isOfficialMarketOnly: () => false,
 }));
 
+vi.mock('@/core/admin/market/official-artifact-health', () => ({
+  checkOfficialArtifactReachable: mocks.checkOfficialArtifactReachable,
+}));
+
 import { getOfficialCatalog } from '@/core/admin/market/official-catalog';
 
-function makeRemoteTheme(slug: string, name: string) {
+function makeRemoteTheme(slug: string, name: string, version = '1.0.0') {
   return {
     id: `submission:${slug}`,
     submissionId: `submission:${slug}`,
@@ -58,16 +72,61 @@ function makeRemoteTheme(slug: string, name: string) {
     pricingModel: 'free',
     price: 0,
     currency: 'USD',
-    currentVersion: '1.0.0',
-    sellableVersion: '1.0.0',
+    currentVersion: version,
+    sellableVersion: version,
     installState: 'not_installed',
     installCount: 0,
     entitlementCount: 0,
     activeEntitlementCount: 0,
     versions: [
       {
-        version: '1.0.0',
+        version,
         packageUrl: `https://market.example.com/${slug}.jtheme`,
+        minCoreVersion: '0.2.0',
+        isCurrent: true,
+        isSellable: true,
+        createdAt: new Date(0).toISOString(),
+      },
+    ],
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+  };
+}
+
+function makeRemotePlugin(slug: string, name: string, version = '1.0.0') {
+  return {
+    id: `submission:${slug}`,
+    submissionId: `submission:${slug}`,
+    slug,
+    name,
+    kind: 'plugin',
+    listingDomain: 'app_marketplace',
+    listingKind: 'plugin',
+    providerType: 'platform',
+    description: `${name} description`,
+    author: 'Jiffoo',
+    deliveryMode: 'package-managed',
+    paymentMode: 'platform_collect',
+    settlementTargetType: 'platform',
+    settlementTargetId: 'platform:jiffoo',
+    launchWave: 'wave-1',
+    publishState: 'published',
+    installable: true,
+    featured: true,
+    recommended: true,
+    pricingModel: 'free',
+    price: 0,
+    currency: 'USD',
+    currentVersion: version,
+    sellableVersion: version,
+    installState: 'not_installed',
+    installCount: 0,
+    entitlementCount: 0,
+    activeEntitlementCount: 0,
+    versions: [
+      {
+        version,
+        packageUrl: `https://market.example.com/${slug}.jplugin`,
         minCoreVersion: '0.2.0',
         isCurrent: true,
         isSellable: true,
@@ -83,11 +142,15 @@ describe('getOfficialCatalog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getAllPluginPackages.mockResolvedValue([]);
+    mocks.getDefaultInstance.mockResolvedValue(null);
     mocks.checkConnectivity.mockResolvedValue({ ok: true, error: undefined });
+    mocks.getManagedStatus.mockResolvedValue({ mode: 'oss', package: null });
+    mocks.checkOfficialArtifactReachable.mockResolvedValue(true);
     mocks.getOfficialCatalog.mockResolvedValue({
       items: [
         makeRemoteTheme('esim-mall', 'eSIM Mall'),
         makeRemoteTheme('yevbi', 'Yevbi'),
+        makeRemotePlugin('stripe', 'Stripe'),
       ],
     });
   });
@@ -163,6 +226,91 @@ describe('getOfficialCatalog', () => {
       slug: 'esim-mall',
       installState: 'active',
       source: 'official-market',
+    });
+  });
+
+  it('surfaces theme updates when the installed official-market version is older than sellableVersion', async () => {
+    mocks.getOfficialCatalog.mockResolvedValue({
+      items: [
+        makeRemoteTheme('modelsfind', 'ModelsFind', '0.1.3'),
+      ],
+    });
+    mocks.getActiveTheme.mockResolvedValue({
+      slug: 'modelsfind',
+      version: '0.1.2',
+      source: 'official-market',
+      type: 'pack',
+      config: {},
+    });
+    mocks.getInstalledThemes.mockResolvedValue({
+      items: [
+        {
+          slug: 'modelsfind',
+          name: 'ModelsFind',
+          version: '0.1.2',
+          source: 'official-market',
+          type: 'pack',
+          target: 'shop',
+          description: 'Downloaded official theme pack',
+          author: 'Jiffoo',
+        },
+      ],
+      total: 1,
+    });
+
+    const response = await getOfficialCatalog();
+    const modelsfind = response.items.find((item) => item.slug === 'modelsfind');
+
+    expect(modelsfind).toMatchObject({
+      slug: 'modelsfind',
+      version: '0.1.2',
+      latestVersion: '0.1.3',
+      updateAvailable: true,
+      installState: 'active',
+    });
+  });
+
+  it('surfaces plugin updates when the installed version is older than sellableVersion', async () => {
+    mocks.getInstalledThemes.mockResolvedValue({ items: [], total: 0 });
+    mocks.getAllPluginPackages.mockResolvedValue([
+      {
+        slug: 'stripe',
+        name: 'Stripe',
+        version: '1.0.0',
+        source: 'official-market',
+        description: 'Stripe payments',
+        author: 'Jiffoo',
+        manifestJson: {
+          configSchema: {},
+        },
+      },
+    ]);
+    mocks.getDefaultInstance.mockResolvedValue({
+      enabled: true,
+      configJson: {},
+    });
+    mocks.getOfficialCatalog.mockResolvedValue({
+      items: [
+        makeRemotePlugin('stripe', 'Stripe', '1.1.0'),
+      ],
+    });
+    mocks.getActiveTheme.mockResolvedValue({
+      slug: 'builtin-default',
+      version: '1.0.0',
+      source: 'builtin',
+      type: 'pack',
+      config: {},
+    });
+
+    const response = await getOfficialCatalog();
+    const stripe = response.items.find((item) => item.slug === 'stripe');
+
+    expect(stripe).toMatchObject({
+      slug: 'stripe',
+      version: '1.0.0',
+      latestVersion: '1.1.0',
+      updateAvailable: true,
+      installState: 'enabled',
     });
   });
 });

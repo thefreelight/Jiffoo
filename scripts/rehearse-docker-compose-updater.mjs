@@ -59,17 +59,21 @@ async function createFakeDocker(rootDir) {
   const dockerLog = path.join(rootDir, 'docker.log');
   await fs.mkdir(binDir, { recursive: true });
 
-  const dockerPath = path.join(binDir, 'docker');
-  await fs.writeFile(
-    dockerPath,
-    `#!/usr/bin/env bash
+  const wrapperBody = `#!/usr/bin/env bash
 set -euo pipefail
 printf '%s\\n' "$*" >> "${dockerLog}"
 exit 0
-`,
-    'utf8',
-  );
-  await fs.chmod(dockerPath, 0o755);
+`;
+
+  for (const binaryName of ['docker', 'docker-compose']) {
+    const binaryPath = path.join(binDir, binaryName);
+    await fs.writeFile(
+      binaryPath,
+      wrapperBody,
+      'utf8',
+    );
+    await fs.chmod(binaryPath, 0o755);
+  }
 
   const wrapperPath = path.join(binDir, 'jiffoo-updater');
   await fs.writeFile(
@@ -91,6 +95,13 @@ async function startHttpServer(tarballPath) {
     latestStableVersion: '1.0.5',
     latestPrereleaseVersion: null,
     channel: 'stable',
+    deliveryMode: 'image-first',
+    images: {
+      api: 'registry.example.com/jiffoo-oss/api:1.0.5',
+      admin: 'registry.example.com/jiffoo-oss/admin:1.0.5',
+      shop: 'registry.example.com/jiffoo-oss/shop:1.0.5',
+      updater: 'registry.example.com/jiffoo-oss/updater:1.0.5',
+    },
     releaseDate: '2026-04-11T00:00:00.000Z',
     changelogUrl: 'https://example.com/releases/1.0.5',
     sourceArchiveUrl: 'http://127.0.0.1:43219/jiffoo-source.tar.gz',
@@ -183,9 +194,24 @@ async function main() {
     if (!envFile.includes('APP_VERSION=1.0.5')) {
       throw new Error('Updater rehearsal did not persist APP_VERSION=1.0.5');
     }
+    for (const expectedEnvLine of [
+      'API_IMAGE=registry.example.com/jiffoo-oss/api:1.0.5',
+      'ADMIN_IMAGE=registry.example.com/jiffoo-oss/admin:1.0.5',
+      'SHOP_IMAGE=registry.example.com/jiffoo-oss/shop:1.0.5',
+      'UPDATER_IMAGE=registry.example.com/jiffoo-oss/updater:1.0.5',
+    ]) {
+      if (!envFile.includes(expectedEnvLine)) {
+        throw new Error(`Updater rehearsal did not persist ${expectedEnvLine}`);
+      }
+    }
 
     const dockerCalls = await fs.readFile(dockerLog, 'utf8');
-    for (const expected of ['compose', 'up -d --build api shop admin', 'exec -T api npx prisma migrate deploy']) {
+    for (const expected of [
+      'compose',
+      'pull api shop admin updater',
+      'up -d --no-build --no-deps --force-recreate api shop admin',
+      'exec -T api npx prisma migrate deploy',
+    ]) {
       if (!dockerCalls.includes(expected)) {
         throw new Error(`Expected docker call not observed: ${expected}`);
       }

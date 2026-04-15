@@ -17,6 +17,13 @@ const WORKSPACE_UPDATER_SCRIPT =
 let activeProcess = null;
 
 function resolveUpdaterInvocation() {
+  if (UPDATER_BIN && fsSync.existsSync(UPDATER_BIN)) {
+    return {
+      command: UPDATER_BIN,
+      prefixArgs: [],
+    };
+  }
+
   if (WORKSPACE_UPDATER_SCRIPT && fsSync.existsSync(WORKSPACE_UPDATER_SCRIPT)) {
     return {
       command: 'node',
@@ -24,10 +31,7 @@ function resolveUpdaterInvocation() {
     };
   }
 
-  return {
-    command: UPDATER_BIN,
-    prefixArgs: [],
-  };
+  throw new Error('No updater invocation is available');
 }
 
 async function readJsonBody(request) {

@@ -1,10 +1,20 @@
 export type CoreReleaseChannel = 'stable' | 'prerelease';
+export type CoreUpdateDeliveryMode = 'image-first' | 'source-archive';
+
+export interface PublicCoreUpdateRuntimeImages {
+  api: string;
+  admin: string;
+  shop: string;
+  updater?: string | null;
+}
 
 export interface PublicCoreUpdateManifest {
   latestVersion: string;
   latestStableVersion: string;
   latestPrereleaseVersion: string | null;
   channel: CoreReleaseChannel;
+  deliveryMode: CoreUpdateDeliveryMode;
+  images: PublicCoreUpdateRuntimeImages | null;
   releaseDate: string;
   changelogUrl: string;
   sourceArchiveUrl: string;
@@ -26,18 +36,25 @@ export const DEFAULT_PUBLIC_CORE_UPDATE_MANIFEST_URL =
 // for release detection. Keep it aligned with the published OSS release tag and
 // changelog entry whenever a new public release is cut.
 export const PUBLIC_CORE_UPDATE_MANIFEST: PublicCoreUpdateManifest = {
-  latestVersion: '1.0.5',
-  latestStableVersion: '1.0.5',
+  latestVersion: '1.0.10',
+  latestStableVersion: '1.0.10',
   latestPrereleaseVersion: null,
   channel: 'stable',
-  releaseDate: '2026-04-11T09:54:50.000Z',
-  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.5-opensource',
+  deliveryMode: 'image-first',
+  images: {
+    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.10',
+    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.10',
+    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.10',
+    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.10',
+  },
+  releaseDate: '2026-04-16T18:45:00.000Z',
+  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.10-opensource',
   sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
   minimumCompatibleVersion: '1.0.0',
   minimumAutoUpgradableVersion: '1.0.0',
   requiresManualIntervention: false,
   releaseNotes:
-    'Adds the GitHub-release-driven update feed, public manifest publishing automation, clearer self-hosted update diagnostics, and official embedded storefront renderer activation for package-managed themes.',
+    'Ships image-first self-hosted updates, official marketplace artifact prechecks, and version-aware update prompts for official themes and plugins.',
   checksumUrl: null,
   signatureUrl: null,
 };

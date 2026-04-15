@@ -12,6 +12,8 @@ const DEFAULT_SOURCE_ARCHIVE_URL = 'https://get.jiffoo.com/jiffoo-source.tar.gz'
 const DEFAULT_CHANGELOG_URL = 'https://github.com/thefreelight/Jiffoo/releases';
 const DEFAULT_MINIMUM_COMPATIBLE_VERSION = '1.0.0';
 const DEFAULT_MINIMUM_AUTO_UPGRADABLE_VERSION = '1.0.0';
+const DEFAULT_RUNTIME_IMAGE_REGISTRY = 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com';
+const DEFAULT_RUNTIME_IMAGE_NAMESPACE = 'jiffoo-oss';
 
 function parseArgs(argv) {
   const args = {};
@@ -81,6 +83,28 @@ function sanitizeReleaseNotes(rawNotes) {
     .filter(Boolean)
     .join(' ');
   return compact.length > 0 ? compact.slice(0, 600) : null;
+}
+
+function buildRuntimeImageRef(registry, namespace, service, tag) {
+  return `${registry}/${namespace}/${service}:${tag}`;
+}
+
+function buildRuntimeImages(args, coreVersion) {
+  const deliveryMode = args['delivery-mode'] || 'image-first';
+  if (deliveryMode !== 'image-first') {
+    return null;
+  }
+
+  const registry = args['image-registry'] || DEFAULT_RUNTIME_IMAGE_REGISTRY;
+  const namespace = args['image-namespace'] || DEFAULT_RUNTIME_IMAGE_NAMESPACE;
+  const tag = args['image-tag'] || coreVersion;
+
+  return {
+    api: args['api-image'] || buildRuntimeImageRef(registry, namespace, 'api', tag),
+    admin: args['admin-image'] || buildRuntimeImageRef(registry, namespace, 'admin', tag),
+    shop: args['shop-image'] || buildRuntimeImageRef(registry, namespace, 'shop', tag),
+    updater: args['updater-image'] || buildRuntimeImageRef(registry, namespace, 'updater', tag),
+  };
 }
 
 function run(command, args, options = {}) {
@@ -153,6 +177,8 @@ async function main() {
   const sourceArchiveName = args['source-archive-name'] || DEFAULT_SOURCE_ARCHIVE_NAME;
   const sourceArchiveUrl = args['source-archive-url'] || DEFAULT_SOURCE_ARCHIVE_URL;
   const checksumUrl = args['checksum-url'] || `${sourceArchiveUrl}.sha256`;
+  const deliveryMode = args['delivery-mode'] || 'image-first';
+  const runtimeImages = buildRuntimeImages(args, coreVersion);
   const manifestPath = path.join(outputDir, DEFAULT_RELEASES_DIR, 'manifest.json');
   const releaseAssetManifestPath = path.join(outputDir, 'core-update-manifest.json');
   const archivePath = path.join(outputDir, sourceArchiveName);
@@ -175,6 +201,8 @@ async function main() {
     latestStableVersion: releaseChannel === 'stable' ? coreVersion : DEFAULT_MINIMUM_AUTO_UPGRADABLE_VERSION,
     latestPrereleaseVersion: releaseChannel === 'prerelease' ? coreVersion : null,
     channel: releaseChannel,
+    deliveryMode,
+    images: runtimeImages,
     releaseDate,
     changelogUrl: releaseUrl,
     sourceArchiveUrl,
@@ -197,6 +225,8 @@ async function main() {
     releaseTag,
     coreVersion,
     releaseChannel,
+    deliveryMode,
+    runtimeImages,
     releaseDate,
     releaseUrl,
     sourceArchiveName,

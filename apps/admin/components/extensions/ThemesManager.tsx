@@ -179,6 +179,8 @@ export function ThemesManager() {
         await installOfficialMutation.mutateAsync({
           slug: item.slug,
           kind: 'theme-shop',
+          version: item.latestVersion || item.sellableVersion || item.version,
+          activate: item.installState === 'active',
         });
       }
     } finally {

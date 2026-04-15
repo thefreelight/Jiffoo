@@ -88,6 +88,7 @@ jobs:
       matrix:
         service:
           - api
+          - updater
           - admin
           - shop
     steps:
@@ -119,6 +120,9 @@ jobs:
 
           image="${REGISTRY}/${IMAGE_NAMESPACE}/${{ matrix.service }}:${IMAGE_TAG}"
           dockerfile="apps/${{ matrix.service }}/Dockerfile"
+          if [ "${{ matrix.service }}" = "updater" ]; then
+            dockerfile="apps/api/Dockerfile.selfhost"
+          fi
 
           args=(
             --platform linux/amd64
@@ -134,6 +138,12 @@ jobs:
 
           case "${{ matrix.service }}" in
             api)
+              args+=(
+                --build-arg "BUILD_TIME=${BUILD_TIME}"
+                --build-arg "APP_VERSION=${APP_VERSION}"
+              )
+              ;;
+            updater)
               args+=(
                 --build-arg "BUILD_TIME=${BUILD_TIME}"
                 --build-arg "APP_VERSION=${APP_VERSION}"

@@ -1,5 +1,6 @@
 import { evaluatePluginConfigReadiness } from '@/core/admin/extension-installer/config-readiness';
 import { isOfficialMarketOnly } from '@/core/admin/extension-installer/official-only';
+import { compareVersions } from '@/core/admin/extension-installer/version-utils';
 import { managedPackageService } from '@/core/admin/managed-package/service';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { ThemeManagementService } from '@/core/admin/theme-management/service';
@@ -17,6 +18,7 @@ import {
   type OfficialPricingModel,
 } from 'shared';
 import { MarketClient } from './market-client';
+import { checkOfficialArtifactReachable } from './official-artifact-health';
 
 type OfficialExtensionKind = 'theme' | 'plugin';
 type OfficialInstallState = 'not_installed' | 'installed' | 'enabled' | 'active';
@@ -59,6 +61,8 @@ export interface OfficialCatalogItem {
   publishState?: RemoteOfficialCatalogItem['publishState'];
   installable?: boolean;
   sellableVersion?: string;
+  latestVersion?: string | null;
+  updateAvailable?: boolean;
   configRequired?: boolean;
   configReady?: boolean;
   missingConfigFields?: string[];
@@ -168,6 +172,18 @@ function normalizeCatalogSource(source: unknown): OfficialCatalogItem['source'] 
     source === 'official-market'
     ? source
     : 'catalog';
+}
+
+function hasVersionUpdate(currentVersion?: string | null, latestVersion?: string | null): boolean {
+  if (!currentVersion || !latestVersion) {
+    return false;
+  }
+
+  try {
+    return compareVersions(latestVersion, currentVersion) > 0;
+  } catch {
+    return latestVersion !== currentVersion;
+  }
 }
 
 function buildSolutionPackageMeta(
@@ -289,9 +305,15 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
     OFFICIAL_LAUNCH_EXTENSIONS.map(async (seed): Promise<OfficialCatalogItem> => {
       const meta = OFFICIAL_CATALOG_META[seed.slug];
       const remoteItem = remoteItemsBySlug.get(seed.slug) || toFallbackRemoteItem(seed);
+      const effectiveSellableVersion = remoteItem.sellableVersion || remoteItem.currentVersion || seed.version;
+      const effectiveVersionSummary = remoteItem.versions.find((candidate) => candidate.version === effectiveSellableVersion)
+        || remoteItem.versions.find((candidate) => candidate.isSellable)
+        || remoteItem.versions[0];
+      const artifactReachable = await checkOfficialArtifactReachable(effectiveVersionSummary?.packageUrl);
       const availableInMarket = Boolean(connectivity.ok && remoteCatalog && remoteItem.installable && remoteItem.publishState === 'published');
+      const marketInstallable = availableInMarket && artifactReachable;
       const releaseStatus: OfficialReleaseStatus = connectivity.ok
-        ? availableInMarket
+        ? marketInstallable
           ? 'published'
           : 'catalog-only'
         : 'offline';
@@ -309,6 +331,11 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
           : installedMarketTheme
             ? 'installed'
             : 'not_installed';
+        const installedVersion = installedMarketTheme?.version || null;
+        const latestVersion = remoteItem.sellableVersion || remoteItem.currentVersion || seed.version;
+        const updateAvailable = installedMarketTheme
+          ? hasVersionUpdate(installedVersion, latestVersion)
+          : false;
 
         return {
           slug: seed.slug,
@@ -332,12 +359,17 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
           installState,
           releaseStatus,
           source: installedMarketTheme?.source || 'catalog',
-          availableInMarket,
+          availableInMarket: marketInstallable,
           publishState: remoteItem.publishState,
-          installable: remoteItem.installable,
+          installable: remoteItem.installable && artifactReachable,
           sellableVersion: remoteItem.sellableVersion,
+          latestVersion,
+          updateAvailable,
           downloads: remoteItem.installCount,
           solutionPackage: buildSolutionPackageMeta(managedPackage, seed.kind, seed.slug),
+          marketError: availableInMarket && !artifactReachable
+            ? 'Official artifact is currently unavailable for installation'
+            : undefined,
         };
       }
 
@@ -359,6 +391,10 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         : pluginPackage
           ? 'installed'
           : 'not_installed';
+      const latestVersion = remoteItem.sellableVersion || remoteItem.currentVersion || seed.version;
+      const updateAvailable = pluginPackage
+        ? hasVersionUpdate(pluginPackage.version, latestVersion)
+        : false;
 
       return {
         slug: seed.slug,
@@ -381,15 +417,20 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         installState,
         releaseStatus,
         source: normalizeCatalogSource(pluginPackage?.source),
-        availableInMarket,
+        availableInMarket: marketInstallable,
         publishState: remoteItem.publishState,
-        installable: remoteItem.installable,
+        installable: remoteItem.installable && artifactReachable,
         sellableVersion: remoteItem.sellableVersion,
+        latestVersion,
+        updateAvailable,
         downloads: remoteItem.installCount,
         configRequired: readiness.requiresConfiguration,
         configReady: readiness.ready,
         missingConfigFields: readiness.missingFields,
         solutionPackage: buildSolutionPackageMeta(managedPackage, seed.kind, seed.slug),
+        marketError: availableInMarket && !artifactReachable
+          ? 'Official artifact is currently unavailable for installation'
+          : undefined,
       };
     }),
   );

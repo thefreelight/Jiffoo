@@ -545,6 +545,9 @@ export interface OfficialCatalogItem {
   thumbnailUrl?: string;
   compatibility?: string;
   screenshots?: string[];
+  sellableVersion?: string;
+  latestVersion?: string | null;
+  updateAvailable?: boolean;
   configRequired?: boolean;
   configReady?: boolean;
   missingConfigFields?: string[];
@@ -580,6 +583,7 @@ export interface OfficialCatalogResponse {
 
 export interface InstallOfficialExtensionRequest {
   version?: string;
+  activate?: boolean;
   kind: 'plugin' | 'theme-shop' | 'theme-admin' | 'theme-app-shop' | 'theme-app-admin';
 }
 
@@ -781,7 +785,9 @@ export const marketApi = {
     slug: string,
     data: InstallOfficialExtensionRequest
   ): Promise<ApiResponse<InstallOfficialExtensionResult>> =>
-    apiClient.post(`/admin/market/extensions/${slug}/install`, data),
+    apiClient.post(`/admin/market/extensions/${slug}/install`, data, {
+      timeout: 120000,
+    }),
 };
 
 export const managedPackageApi = {
