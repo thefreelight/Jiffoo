@@ -49,6 +49,7 @@
     "verify:theme-clients": "node scripts/verify-theme-client-contracts.mjs",
     "verify:theme-clients:strict": "node scripts/verify-theme-client-contracts.mjs --strict-cross-repo",
     "release:update-feed:build": "node scripts/build-update-feed.mjs --output-dir .release/self-hosted",
+    "release:oss:patch": "node scripts/release-oss-patch.mjs",
     "changeset": "changeset",
     "version:bump": "changeset version",
     "release": "pnpm version:bump && pnpm build"

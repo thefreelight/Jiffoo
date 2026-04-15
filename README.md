@@ -69,6 +69,35 @@ The underlying production compose file is:
 docker compose --env-file .env.production.local -f docker-compose.prod.yml up -d --build
 ```
 
+### Public update-feed topology
+
+The public self-hosted update flow currently has two separate publication surfaces:
+
+1. `jiffoo-installer`
+   - a Kubernetes-side installer/static helper service used by the Singapore cluster topology
+2. `get.jiffoo.com`
+   - the canonical public self-hosted update-feed and source-archive origin used by OSS update checks
+
+`https://get.jiffoo.com/releases/core/manifest.json` is the source of truth for self-hosted version detection. Updating the Kubernetes `jiffoo-installer` service alone does not update the public OSS manifest or source archive assets.
+
+### Maintainer OSS Patch Release Helper
+
+Maintainers can prepare or publish an OSS patch release with:
+
+```bash
+pnpm release:oss:patch -- --version 1.0.12 --notes "Short release summary"
+```
+
+Add `--publish` to let the helper:
+
+- stage the release files only
+- create the release commit and tag
+- push the current branch and tag
+- create the GitHub Release
+- upload `core-update-manifest.json`, `jiffoo-source.tar.gz`, and `jiffoo-source.tar.gz.sha256`
+
+Use `--dry-run` first if you want to inspect the planned actions before it touches git state.
+
 ### Local URLs
 
 - Shop: `http://localhost:3003`
@@ -99,6 +128,11 @@ Jiffoo/
 - [Core API SDK](packages/core-api-sdk/README.md)
 - [Plugin SDK](packages/plugin-sdk/README.md)
 - [Theme API SDK](packages/theme-api-sdk/README.md)
+- [Cross-Platform Theme Client Contract](docs/theme-client-platform-contract.md)
+- [Theme Client API Catalog](docs/theme-client-api-catalog.json)
+- [Theme Client Compatibility Matrix](docs/theme-client-compatibility-matrix.md)
+- [Official Theme Support Inventory](docs/theme-client-official-theme-support.md)
+- [First-Wave Theme Rollout](docs/theme-client-first-wave-rollout.md)
 - [Default Theme Pack](packages/shop-themes/default/README.md)
 
 ## License
