@@ -116,15 +116,21 @@ async function marketFetch(path: string, options?: RequestInit): Promise<Respons
 }
 
 export const MarketClient = {
-  async getOfficialCatalog(search?: string): Promise<OfficialExtensionCatalogResponse> {
+  async getOfficialCatalog(
+    search?: string,
+    options?: { fresh?: boolean }
+  ): Promise<OfficialExtensionCatalogResponse> {
     const cacheKey = `market:official-catalog:${getMarketBaseUrl()}:${search || 'all'}`;
+    const fresh = options?.fresh === true;
 
-    const cached = await CacheService.get<string>(cacheKey);
-    if (cached) {
-      try {
-        return JSON.parse(cached);
-      } catch {
-        /* ignore corrupted cache */
+    if (!fresh) {
+      const cached = await CacheService.get<string>(cacheKey);
+      if (cached) {
+        try {
+          return JSON.parse(cached);
+        } catch {
+          /* ignore corrupted cache */
+        }
       }
     }
 

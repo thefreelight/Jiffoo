@@ -361,6 +361,15 @@ export const authApi = {
   login: (email: string, password: string) =>
     apiClient.login({ email, password }),
 
+  getLoginConfig: (): Promise<ApiResponse<{
+    demoModeEnabled: boolean;
+    demoCredentials: {
+      email: string;
+      password: string;
+    } | null;
+  }>> =>
+    apiClient.get('/auth/login-config'),
+
   me: (): Promise<ApiResponse<UserProfile>> => apiClient.getProfile(),
 
   logout: () => apiClient.logout(),
@@ -1144,6 +1153,8 @@ export const upgradeApi = {
     progress: number;
     currentStep?: string | null;
     error?: string | null;
+    targetVersion?: string | null;
+    updatedAt?: string | null;
   }>> =>
     apiClient.get('/upgrade/status'),
 

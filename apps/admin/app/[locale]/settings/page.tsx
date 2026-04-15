@@ -6,7 +6,7 @@
 
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, RefreshCw, Save, Settings2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useT } from 'shared/src/i18n/react'
@@ -159,14 +159,18 @@ function SettingsPageContent() {
   const [saving, setSaving] = useState(false)
   const [checkingVersion, setCheckingVersion] = useState(false)
   const [startingUpgrade, setStartingUpgrade] = useState(false)
+  const [finalizingUpgrade, setFinalizingUpgrade] = useState(false)
   const [settingsMap, setSettingsMap] = useState<SystemSettingsMap>({})
   const [draft, setDraft] = useState<SystemSettingsMap>({})
   const [initialDraft, setInitialDraft] = useState<SystemSettingsMap>({})
+  const terminalUpgradeHandledRef = useRef<string | null>(null)
   const [upgradeStatus, setUpgradeStatus] = useState<{
     status: string
     progress: number
     currentStep?: string | null
     error?: string | null
+    targetVersion?: string | null
+    updatedAt?: string | null
   } | null>(null)
   const [versionInfo, setVersionInfo] = useState<{
     currentVersion: string
@@ -257,6 +261,31 @@ function SettingsPageContent() {
   const activeUpgradeStates = new Set(['checking', 'preparing', 'downloading', 'backing_up', 'applying', 'migrating', 'verifying'])
   const isUpgradeActive = upgradeStatus ? activeUpgradeStates.has(upgradeStatus.status) : false
 
+  const syncVersionAfterUpgrade = useCallback(async (expectedVersion?: string | null) => {
+    const targetVersion = expectedVersion || versionInfo?.latestVersion || null
+    if (!targetVersion) {
+      return false
+    }
+
+    setFinalizingUpgrade(true)
+    try {
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const response = await upgradeApi.getVersion()
+        const data = unwrapApiResponse(response)
+        setVersionInfo(data)
+
+        if (!data.updateAvailable || data.currentVersion === targetVersion) {
+          return true
+        }
+
+        await new Promise((resolve) => window.setTimeout(resolve, 3000))
+      }
+      return false
+    } finally {
+      setFinalizingUpgrade(false)
+    }
+  }, [versionInfo?.latestVersion])
+
   const updateField = (key: string, value: string) => {
     setDraft((prev) => ({ ...prev, [key]: value }))
   }
@@ -306,6 +335,56 @@ function SettingsPageContent() {
 
     return () => window.clearInterval(interval)
   }, [isUpgradeActive, loadUpgradeStatus])
+
+  useEffect(() => {
+    if (!upgradeStatus || !['completed', 'recovered'].includes(upgradeStatus.status)) {
+      return
+    }
+
+    const completionKey = `${upgradeStatus.status}:${upgradeStatus.targetVersion ?? ''}:${upgradeStatus.updatedAt ?? ''}`
+    if (terminalUpgradeHandledRef.current === completionKey) {
+      return
+    }
+    terminalUpgradeHandledRef.current = completionKey
+
+    let cancelled = false
+
+    const finalizeUpgrade = async () => {
+      try {
+        const refreshed = await syncVersionAfterUpgrade(upgradeStatus.targetVersion)
+        if (cancelled) return
+
+        await loadUpgradeStatus().catch(() => undefined)
+
+        if (upgradeStatus.status === 'completed') {
+          toast.success(
+            refreshed
+              ? getText('merchant.systemUpdates.updateCompletedDesc', 'System has been updated successfully!')
+              : getText(
+                  'merchant.systemUpdates.updateVersionRefreshPending',
+                  'System updated successfully. Version metadata may take a few more seconds to refresh.'
+                )
+          )
+        } else {
+          toast.info(
+            getText(
+              'merchant.systemUpdates.updateRecovered',
+              'Update finished with automatic recovery. The system has returned to the last healthy state.'
+            )
+          )
+        }
+      } catch (error: unknown) {
+        if (cancelled) return
+        toast.error(resolveApiErrorMessage(error, t))
+      }
+    }
+
+    finalizeUpgrade()
+
+    return () => {
+      cancelled = true
+    }
+  }, [getText, loadUpgradeStatus, syncVersionAfterUpgrade, t, upgradeStatus])
 
   const handleSave = async () => {
     if (!hasChanges) {
@@ -633,11 +712,11 @@ function SettingsPageContent() {
                 {versionInfo?.updateAvailable && versionInfo?.oneClickUpgradeSupported && !versionInfo?.requiresManualIntervention ? (
                   <Button
                     onClick={handleUpgrade}
-                    disabled={startingUpgrade || isUpgradeActive}
+                    disabled={startingUpgrade || isUpgradeActive || finalizingUpgrade}
                     className="h-10 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-sm"
                   >
-                    <RefreshCw className={`h-4 w-4 mr-2 ${(startingUpgrade || isUpgradeActive) ? 'animate-spin' : ''}`} />
-                    {startingUpgrade || isUpgradeActive
+                    <RefreshCw className={`h-4 w-4 mr-2 ${(startingUpgrade || isUpgradeActive || finalizingUpgrade) ? 'animate-spin' : ''}`} />
+                    {startingUpgrade || isUpgradeActive || finalizingUpgrade
                       ? getText('merchant.systemUpdates.updateInProgress', 'Update in progress')
                       : getText('merchant.systemUpdates.updateNow', 'Update Now')}
                   </Button>
@@ -645,7 +724,7 @@ function SettingsPageContent() {
                 <Button
                   variant="outline"
                   onClick={refreshVersion}
-                  disabled={checkingVersion || startingUpgrade}
+                  disabled={checkingVersion || startingUpgrade || finalizingUpgrade}
                   className="h-10 px-6 rounded-xl border-gray-100 font-semibold text-sm hover:bg-gray-50"
                 >
                   <RefreshCw className={`h-4 w-4 mr-2 ${checkingVersion ? 'animate-spin' : ''}`} />

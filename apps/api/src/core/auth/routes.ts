@@ -14,6 +14,23 @@ import { authSchemas } from './schemas';
 import { EmailVerificationService } from '@/services/email-verification.service';
 
 export async function authRoutes(fastify: FastifyInstance) {
+  // Public login configuration
+  fastify.get('/login-config', {
+    schema: {
+      tags: ['auth'],
+      summary: 'Get public login configuration',
+      description: 'Returns unauthenticated login-page configuration such as demo-mode visibility',
+      ...authSchemas.loginConfig,
+    }
+  }, async (_request, reply) => {
+    try {
+      const result = await AuthService.getLoginConfig();
+      return sendSuccess(reply, result);
+    } catch (error: any) {
+      return sendError(reply, 500, 'LOGIN_CONFIG_FAILED', error.message || 'Failed to load login configuration');
+    }
+  });
+
   // Register
   fastify.post('/register', {
     schema: {

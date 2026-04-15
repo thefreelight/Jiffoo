@@ -7,6 +7,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +18,7 @@ import { Eye, EyeOff, Lock, Mail, Loader2 } from 'lucide-react';
 import { useT } from 'shared/src/i18n/react';
 import { resolveApiErrorMessage } from '@/lib/error-utils';
 import { useManagedPackageBranding } from '@/lib/hooks/use-api';
+import { authApi, unwrapApiResponse } from '@/lib/api';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -25,10 +27,11 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
-  const [email, setEmail] = useState('admin@jiffoo.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [demoCredentials, setDemoCredentials] = useState<{ email: string; password: string } | null>(null);
 
   const { login, isLoading } = useAuthStore();
   const { addToast } = useToast();
@@ -41,6 +44,32 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     const translated = t(key);
     return translated === key ? fallback : translated;
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLoginConfig() {
+      try {
+        const response = await authApi.getLoginConfig();
+        const data = unwrapApiResponse(response);
+        if (!cancelled) {
+          setDemoCredentials(data.demoModeEnabled ? data.demoCredentials : null);
+        }
+      } catch {
+        if (!cancelled) {
+          setDemoCredentials(null);
+        }
+      }
+    }
+
+    if (isOpen) {
+      loadLoginConfig();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -87,6 +116,12 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
     ? `Sign in to access the ${brandingQuery.data?.displaySolutionName || 'managed admin workspace'}.`
     : getText('merchant.auth.signInDescription', 'Sign in to access your commerce admin workspace');
 
+  const fillDemo = () => {
+    if (!demoCredentials) return;
+    setEmail(demoCredentials.email);
+    setPassword(demoCredentials.password);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
@@ -111,14 +146,26 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Demo Credentials Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-blue-800 mb-2">{getText('merchant.auth.demoCredentials', 'Demo Credentials')}</h4>
-              <div className="text-xs text-blue-700 space-y-1">
-                <div><strong>{getText('merchant.auth.email', 'Email')}:</strong> admin@jiffoo.com</div>
-                <div><strong>{getText('merchant.auth.password', 'Password')}:</strong> admin123</div>
+            {demoCredentials ? (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-blue-800 mb-2">{getText('merchant.auth.demoCredentials', 'Demo Credentials')}</h4>
+                  <div className="text-xs text-blue-700 space-y-1">
+                    <div><strong>{getText('merchant.auth.email', 'Email')}:</strong> {demoCredentials.email}</div>
+                    <div><strong>{getText('merchant.auth.password', 'Password')}:</strong> {demoCredentials.password}</div>
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={fillDemo}
+                  disabled={isLoading}
+                >
+                  {getText('merchant.auth.useDemoCredentials', 'Use Demo Credentials')}
+                </Button>
               </div>
-            </div>
+            ) : null}
 
             {/* Error Message */}
             {error && (

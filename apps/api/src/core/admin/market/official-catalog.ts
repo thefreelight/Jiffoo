@@ -286,8 +286,12 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
     managedPackageService.getStatus().catch(() => ({ mode: 'oss' as const, package: null })),
   ]);
 
+  const hasInstalledOfficialSurface =
+    installedThemes.items.some((theme) => isNonBuiltinThemeSource(theme.source)) ||
+    pluginPackages.some((plugin) => normalizeCatalogSource(plugin?.source) !== 'catalog' && normalizeCatalogSource(plugin?.source) !== 'builtin');
+
   const remoteCatalog = connectivity.ok
-    ? await MarketClient.getOfficialCatalog().catch(() => null)
+    ? await MarketClient.getOfficialCatalog(undefined, { fresh: hasInstalledOfficialSurface }).catch(() => null)
     : null;
 
   const remoteItemsBySlug = new Map<string, RemoteOfficialCatalogItem>(

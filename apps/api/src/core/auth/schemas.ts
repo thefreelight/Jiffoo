@@ -63,6 +63,23 @@ const changePasswordResultSchema = {
   required: ['passwordChanged', 'changedAt'],
 } as const;
 
+const loginConfigSchema = {
+  type: 'object',
+  properties: {
+    demoModeEnabled: { type: 'boolean', description: 'Whether demo mode is enabled for this instance' },
+    demoCredentials: {
+      type: 'object',
+      nullable: true,
+      properties: {
+        email: { type: 'string', format: 'email', description: 'Demo admin email' },
+        password: { type: 'string', description: 'Demo admin password' },
+      },
+      required: ['email', 'password'],
+    },
+  },
+  required: ['demoModeEnabled', 'demoCredentials'],
+} as const;
+
 // ============================================================================
 // Endpoint Schemas
 // ============================================================================
@@ -94,6 +111,11 @@ export const authSchemas = {
       },
     },
     response: createTypedCrudResponses(authResponseSchema),
+  },
+
+  // GET /api/auth/login-config
+  loginConfig: {
+    response: createTypedReadResponses(loginConfigSchema),
   },
 
   // GET /api/auth/me

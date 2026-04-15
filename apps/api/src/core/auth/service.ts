@@ -12,6 +12,9 @@ import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { createAuthUser, findAuthUserByEmail, findAuthUserById } from './user-compat';
 
+const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
+const DEFAULT_DEMO_ADMIN_PASSWORD = 'admin123';
+
 export interface AuthResponse {
   user: {
     id: string;
@@ -30,7 +33,92 @@ export interface AuthResponse {
   token: string;
 }
 
+export interface LoginConfigResponse {
+  demoModeEnabled: boolean;
+  demoCredentials: {
+    email: string;
+    password: string;
+  } | null;
+}
+
 export class AuthService {
+  private static isDemoModeEnabled(): boolean {
+    return process.env.JIFFOO_DEMO_MODE === 'true';
+  }
+
+  private static resolveDemoCredentials() {
+    return {
+      email: process.env.JIFFOO_DEMO_ADMIN_EMAIL?.trim() || DEFAULT_DEMO_ADMIN_EMAIL,
+      password: process.env.JIFFOO_DEMO_ADMIN_PASSWORD || DEFAULT_DEMO_ADMIN_PASSWORD,
+    };
+  }
+
+  private static async ensureDemoModeAdminCredentials(credentials: { email: string; password: string }): Promise<void> {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: credentials.email },
+      select: {
+        id: true,
+        password: true,
+        role: true,
+        isActive: true,
+        emailVerified: true,
+      },
+    });
+
+    const hashedPassword = await PasswordUtils.hash(credentials.password);
+
+    if (!existingUser) {
+      await prisma.user.create({
+        data: {
+          email: credentials.email,
+          username: credentials.email.split('@')[0] || 'admin',
+          password: hashedPassword,
+          role: 'ADMIN',
+          isActive: true,
+          emailVerified: true,
+        },
+      });
+      return;
+    }
+
+    const passwordMatches = await PasswordUtils.verify(credentials.password, existingUser.password);
+    if (
+      passwordMatches &&
+      existingUser.role === 'ADMIN' &&
+      existingUser.isActive &&
+      existingUser.emailVerified
+    ) {
+      return;
+    }
+
+    await prisma.user.update({
+      where: { id: existingUser.id },
+      data: {
+        password: hashedPassword,
+        role: 'ADMIN',
+        isActive: true,
+        emailVerified: true,
+      },
+    });
+  }
+
+  static async getLoginConfig(): Promise<LoginConfigResponse> {
+    if (!this.isDemoModeEnabled()) {
+      return {
+        demoModeEnabled: false,
+        demoCredentials: null,
+      };
+    }
+
+    const credentials = this.resolveDemoCredentials();
+    await this.ensureDemoModeAdminCredentials(credentials);
+
+    return {
+      demoModeEnabled: true,
+      demoCredentials: credentials,
+    };
+  }
+
   /**
    * Register a new user account
    *
