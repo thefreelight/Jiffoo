@@ -15,31 +15,10 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
+import { PUBLIC_CORE_UPDATE_MANIFEST } from 'shared';
 
 const PUBLIC_MANIFEST_URL = 'https://get.jiffoo.com/releases/core/manifest.json';
-const PUBLIC_MANIFEST = {
-  latestVersion: '1.0.13',
-  latestStableVersion: '1.0.13',
-  latestPrereleaseVersion: null,
-  channel: 'stable',
-  deliveryMode: 'image-first',
-  images: {
-    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.13',
-    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.13',
-    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.13',
-    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.13',
-  },
-  releaseDate: '2026-04-11T00:00:00.000Z',
-  changelogUrl: 'https://github.com/thefreelight/Jiffoo/commit/ef3e6481e12ae52fdb344896252d02d295a75f35',
-  sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
-  minimumCompatibleVersion: '1.0.0',
-  minimumAutoUpgradableVersion: '1.0.0',
-  requiresManualIntervention: false,
-  releaseNotes:
-    'Adds the GitHub-release-driven update feed, public manifest publishing automation, clearer self-hosted update diagnostics, and official embedded storefront renderer activation for package-managed themes.',
-  checksumUrl: null,
-  signatureUrl: null,
-} as const;
+const PUBLIC_MANIFEST = PUBLIC_CORE_UPDATE_MANIFEST;
 
 describe('Upgrade Endpoints', () => {
   let app: FastifyInstance;
