@@ -5,6 +5,11 @@ const mocks = vi.hoisted(() => ({
   getOfficialCatalogEntry: vi.fn(),
   getMarketplaceBindingContext: vi.fn(),
   authorizeInstall: vi.fn(),
+  getOfficialDetail: vi.fn(),
+  assertOfficialArtifactReachable: vi.fn(),
+  downloadArtifactWithResume: vi.fn(),
+  verifyOfficialArtifact: vi.fn(),
+  installOfficialMarketExtension: vi.fn(),
 }));
 
 vi.mock('@/core/auth/middleware', () => ({
@@ -32,26 +37,35 @@ vi.mock('@/core/admin/platform-connection/service', () => ({
 vi.mock('@/core/admin/market/market-client', () => ({
   MarketClient: {
     authorizeInstall: mocks.authorizeInstall,
+    getOfficialDetail: mocks.getOfficialDetail,
     recordInstall: vi.fn(),
     checkConnectivity: vi.fn(),
     browse: vi.fn(),
     search: vi.fn(),
-    getOfficialDetail: vi.fn(),
   },
   getMarketBaseUrl: () => 'http://platform-api:80/api',
 }));
 
 vi.mock('@/core/admin/market/resumable-downloader', () => ({
-  downloadArtifactWithResume: vi.fn(),
+  downloadArtifactWithResume: mocks.downloadArtifactWithResume,
   cleanupDownloadedArtifact: vi.fn(),
 }));
 
 vi.mock('@/core/admin/market/artifact-verification', () => ({
-  verifyOfficialArtifact: vi.fn(),
+  verifyOfficialArtifact: mocks.verifyOfficialArtifact,
+  verifyEmbeddedOfficialArtifact: vi.fn(),
 }));
 
 vi.mock('@/core/admin/market/install-handoff', () => ({
-  installOfficialMarketExtension: vi.fn(),
+  installOfficialMarketExtension: mocks.installOfficialMarketExtension,
+}));
+
+vi.mock('@/core/admin/market/official-artifact-health', () => ({
+  assertOfficialArtifactReachable: mocks.assertOfficialArtifactReachable,
+}));
+
+vi.mock('@/core/admin/market/embedded-artifact-store', () => ({
+  resolveEmbeddedOfficialArtifactPath: vi.fn().mockResolvedValue(null),
 }));
 
 vi.mock('@/core/admin/extension-installer/signature-verifier', () => ({
@@ -97,6 +111,38 @@ describe('market install binding guard', () => {
       },
       context: null,
     });
+    mocks.getOfficialDetail.mockResolvedValue({
+      slug: 'stripe',
+      kind: 'plugin',
+      listingDomain: 'app_marketplace',
+      listingKind: 'plugin',
+      providerType: 'official',
+      deliveryMode: 'package-managed',
+      paymentMode: 'platform_collect',
+      settlementTargetType: 'platform',
+      settlementTargetId: null,
+      pricingModel: 'free',
+      price: null,
+      currency: 'USD',
+      sellableVersion: '1.0.0',
+      versions: [
+        {
+          version: '1.0.0',
+          packageUrl: 'https://platform.example.com/plugins/stripe/1.0.0.jplugin',
+          minCoreVersion: '1.0.0',
+        },
+      ],
+    });
+    mocks.assertOfficialArtifactReachable.mockResolvedValue(undefined);
+    mocks.downloadArtifactWithResume.mockResolvedValue({
+      filePath: '/tmp/stripe-1.0.0.jplugin',
+    });
+    mocks.verifyOfficialArtifact.mockResolvedValue({ verified: true });
+    mocks.installOfficialMarketExtension.mockResolvedValue({
+      slug: 'stripe',
+      version: '1.0.0',
+      source: 'official-market',
+    });
   });
 
   it('blocks official marketplace install when the instance is not platform-bound', async () => {
@@ -124,27 +170,6 @@ describe('market install binding guard', () => {
       kind: 'plugin',
       defaultPricingModel: 'free',
     });
-    mocks.authorizeInstall.mockResolvedValue({
-      allowed: true,
-      slug: 'stripe',
-      kind: 'plugin',
-      deliveryMode: 'package-managed',
-      paymentMode: 'platform_collect',
-      settlementTargetType: 'platform',
-      artifactKind: 'plugin-package',
-      version: '1.0.0',
-      packageUrl: 'https://platform.example.com/plugins/stripe/1.0.0.jplugin',
-      checksumUrl: 'https://platform.example.com/plugins/stripe/1.0.0.jplugin.sha256',
-      signatureUrl: 'https://platform.example.com/plugins/stripe/1.0.0.jplugin.sig',
-      pricingModel: 'free',
-      price: null,
-      currency: 'USD',
-      entitlement: {
-        required: false,
-        status: 'not_required',
-        pricingModel: 'free',
-      },
-    });
 
     const response = await app.inject({
       method: 'POST',
@@ -155,6 +180,7 @@ describe('market install binding guard', () => {
     });
 
     expect(response.statusCode).not.toBe(403);
-    expect(mocks.authorizeInstall).toHaveBeenCalled();
+    expect(mocks.authorizeInstall).not.toHaveBeenCalled();
+    expect(mocks.getOfficialDetail).toHaveBeenCalledWith('stripe');
   });
 });

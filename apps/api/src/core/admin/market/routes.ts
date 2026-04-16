@@ -30,6 +30,50 @@ const MARKET_INSTALL_KINDS: ExtensionKind[] = [
   'theme-app-admin',
 ];
 
+async function buildFreeInstallAuthorization(
+  slug: string,
+  requestedVersion: string | undefined,
+) {
+  const detail = await MarketClient.getOfficialDetail(slug);
+  const resolvedVersion = requestedVersion ?? detail.sellableVersion;
+  const versionSummary = detail.versions.find((item) => item.version === resolvedVersion);
+
+  if (!resolvedVersion || !versionSummary) {
+    throw Object.assign(new Error('Official artifact not found for requested version'), {
+      statusCode: 404,
+      code: 'ARTIFACT_NOT_FOUND',
+    });
+  }
+
+  return {
+    allowed: true,
+    slug: detail.slug,
+    kind: detail.kind,
+    listingDomain: detail.listingDomain,
+    listingKind: detail.listingKind,
+    providerType: detail.providerType,
+    deliveryMode: detail.deliveryMode,
+    paymentMode: detail.paymentMode,
+    settlementTargetType: detail.settlementTargetType,
+    settlementTargetId: detail.settlementTargetId ?? null,
+    artifactKind: detail.kind === 'theme' ? 'theme-package' : 'plugin-package',
+    version: resolvedVersion,
+    packageUrl: versionSummary.packageUrl,
+    checksumUrl: versionSummary.packageUrl ? `${versionSummary.packageUrl}.sha256` : null,
+    signatureUrl: versionSummary.packageUrl ? `${versionSummary.packageUrl}.sig` : null,
+    minCoreVersion: versionSummary.minCoreVersion ?? null,
+    pricingModel: detail.pricingModel,
+    price: detail.price,
+    currency: detail.currency,
+    entitlement: {
+      required: false,
+      status: 'not_required' as const,
+      pricingModel: detail.pricingModel,
+    },
+    reason: undefined,
+  };
+}
+
 export async function marketRoutes(fastify: FastifyInstance) {
   fastify.get(
     '/official-catalog',
@@ -291,6 +335,8 @@ export async function marketRoutes(fastify: FastifyInstance) {
                 reason: undefined,
               };
             })()
+          : officialEntry.defaultPricingModel === 'free'
+            ? await buildFreeInstallAuthorization(slug, version)
           : await MarketClient.authorizeInstall(slug, {
               userId: request.user.id,
               version,
