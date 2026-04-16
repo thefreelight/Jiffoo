@@ -1,6 +1,6 @@
 # Changelog
 
-## v1.0.14-opensource - 2026-04-17
+## v1.0.15-opensource - 2026-04-17
 
 - hardens the Docker Compose self-hosted upgrader with a durable update lock and explicit runtime-version verification
 - commits `APP_VERSION` only after the live runtime cutover succeeds, instead of persisting the target version up front

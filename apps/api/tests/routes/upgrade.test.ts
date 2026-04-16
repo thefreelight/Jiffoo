@@ -18,19 +18,19 @@ import { createUserWithToken, createAdminWithToken, deleteAllTestUsers } from '.
 
 const PUBLIC_MANIFEST_URL = 'https://get.jiffoo.com/releases/core/manifest.json';
 const PUBLIC_MANIFEST = {
-  latestVersion: '1.0.14',
-  latestStableVersion: '1.0.14',
+  latestVersion: '1.0.15',
+  latestStableVersion: '1.0.15',
   latestPrereleaseVersion: null,
   channel: 'stable',
   deliveryMode: 'image-first',
   images: {
-    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.14',
-    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.14',
-    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.14',
-    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.14',
+    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.15',
+    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.15',
+    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.15',
+    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.15',
   },
-  releaseDate: '2026-04-16T18:45:25.370Z',
-  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.14-opensource',
+  releaseDate: '2026-04-16T18:50:29.345Z',
+  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.15-opensource',
   sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
   minimumCompatibleVersion: '1.0.0',
   minimumAutoUpgradableVersion: '1.0.0',
@@ -147,19 +147,19 @@ describe('Upgrade Endpoints', () => {
         vi.fn(async () => ({
           ok: true,
           json: async () => ({
-            latestVersion: '1.0.14',
-            latestStableVersion: '1.0.14',
+            latestVersion: '1.0.15',
+            latestStableVersion: '1.0.15',
             latestPrereleaseVersion: null,
             channel: 'stable',
             deliveryMode: 'image-first',
             images: {
-              api: 'registry.example.com/jiffoo-oss/api:1.0.14',
-              admin: 'registry.example.com/jiffoo-oss/admin:1.0.14',
-              shop: 'registry.example.com/jiffoo-oss/shop:1.0.14',
-              updater: 'registry.example.com/jiffoo-oss/updater:1.0.14',
+              api: 'registry.example.com/jiffoo-oss/api:1.0.15',
+              admin: 'registry.example.com/jiffoo-oss/admin:1.0.15',
+              shop: 'registry.example.com/jiffoo-oss/shop:1.0.15',
+              updater: 'registry.example.com/jiffoo-oss/updater:1.0.15',
             },
             releaseDate: '2026-04-11T00:00:00.000Z',
-            changelogUrl: 'https://example.com/changelog/1.0.14',
+            changelogUrl: 'https://example.com/changelog/1.0.15',
             minimumCompatibleVersion: '1.0.0',
             minimumAutoUpgradableVersion: '1.0.0',
             requiresManualIntervention: false,
@@ -176,17 +176,17 @@ describe('Upgrade Endpoints', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.data.latestVersion).toBe('1.0.14');
+      expect(body.data.latestVersion).toBe('1.0.15');
       expect(body.data.updateSource).toBe('env-manifest');
       expect(body.data.manifestStatus).toBe('available');
       expect(body.data.manifestUrl).toBe('https://updates.example.com/releases/core/manifest.json');
       expect(body.data.releaseChannel).toBe('stable');
       expect(body.data.deliveryMode).toBe('image-first');
       expect(body.data.runtimeImages).toEqual({
-        api: 'registry.example.com/jiffoo-oss/api:1.0.14',
-        admin: 'registry.example.com/jiffoo-oss/admin:1.0.14',
-        shop: 'registry.example.com/jiffoo-oss/shop:1.0.14',
-        updater: 'registry.example.com/jiffoo-oss/updater:1.0.14',
+        api: 'registry.example.com/jiffoo-oss/api:1.0.15',
+        admin: 'registry.example.com/jiffoo-oss/admin:1.0.15',
+        shop: 'registry.example.com/jiffoo-oss/shop:1.0.15',
+        updater: 'registry.example.com/jiffoo-oss/updater:1.0.15',
       });
     });
 
