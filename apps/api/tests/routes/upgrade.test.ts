@@ -126,19 +126,19 @@ describe('Upgrade Endpoints', () => {
         vi.fn(async () => ({
           ok: true,
           json: async () => ({
-            latestVersion: '1.0.13',
-            latestStableVersion: '1.0.13',
+            latestVersion: '1.0.16',
+            latestStableVersion: '1.0.16',
             latestPrereleaseVersion: null,
             channel: 'stable',
             deliveryMode: 'image-first',
             images: {
-              api: 'registry.example.com/jiffoo-oss/api:1.0.13',
-              admin: 'registry.example.com/jiffoo-oss/admin:1.0.13',
-              shop: 'registry.example.com/jiffoo-oss/shop:1.0.13',
-              updater: 'registry.example.com/jiffoo-oss/updater:1.0.13',
+              api: 'registry.example.com/jiffoo-oss/api:1.0.16',
+              admin: 'registry.example.com/jiffoo-oss/admin:1.0.16',
+              shop: 'registry.example.com/jiffoo-oss/shop:1.0.16',
+              updater: 'registry.example.com/jiffoo-oss/updater:1.0.16',
             },
             releaseDate: '2026-04-11T00:00:00.000Z',
-            changelogUrl: 'https://example.com/changelog/1.0.13',
+            changelogUrl: 'https://example.com/changelog/1.0.16',
             minimumCompatibleVersion: '1.0.0',
             minimumAutoUpgradableVersion: '1.0.0',
             requiresManualIntervention: false,
@@ -155,17 +155,17 @@ describe('Upgrade Endpoints', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.data.latestVersion).toBe('1.0.13');
+      expect(body.data.latestVersion).toBe('1.0.16');
       expect(body.data.updateSource).toBe('env-manifest');
       expect(body.data.manifestStatus).toBe('available');
       expect(body.data.manifestUrl).toBe('https://updates.example.com/releases/core/manifest.json');
       expect(body.data.releaseChannel).toBe('stable');
       expect(body.data.deliveryMode).toBe('image-first');
       expect(body.data.runtimeImages).toEqual({
-        api: 'registry.example.com/jiffoo-oss/api:1.0.13',
-        admin: 'registry.example.com/jiffoo-oss/admin:1.0.13',
-        shop: 'registry.example.com/jiffoo-oss/shop:1.0.13',
-        updater: 'registry.example.com/jiffoo-oss/updater:1.0.13',
+        api: 'registry.example.com/jiffoo-oss/api:1.0.16',
+        admin: 'registry.example.com/jiffoo-oss/admin:1.0.16',
+        shop: 'registry.example.com/jiffoo-oss/shop:1.0.16',
+        updater: 'registry.example.com/jiffoo-oss/updater:1.0.16',
       });
     });
 

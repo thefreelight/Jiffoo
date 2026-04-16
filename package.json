@@ -1,6 +1,6 @@
 {
   "name": "jiffoo-mall-core",
-  "version": "1.0.15-opensource",
+  "version": "1.0.16-opensource",
   "description": "Jiffoo open-source core for self-hosted commerce deployments",
   "_moduleAliases": {
     "@shared/security": "packages/shared/dist/shared/src/security",
