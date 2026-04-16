@@ -262,7 +262,10 @@ export async function installOfficialMarketExtension(
 
   const installResult = await extensionInstaller.installFromZip(
     options.kind,
-    zipStream
+    zipStream,
+    options.kind === 'theme-shop' || options.kind === 'theme-admin'
+      ? { allowThemeRuntimeScript: true }
+      : undefined,
   );
 
   await markInstalledSource(options.kind, installResult.slug, installResult.fsPath, installResult, options);

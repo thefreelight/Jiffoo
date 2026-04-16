@@ -6,6 +6,7 @@ import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { OFFICIAL_LAUNCH_EXTENSIONS } from '../../../../packages/shared/src/extensions/official-catalog';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { createTestApp } from '../helpers/create-test-app';
@@ -102,11 +103,12 @@ describe('Admin Market Install Flow', () => {
       primaryColor: '#0f172a',
       etag: '"esim-mall-1.0.0"',
     },
-    yevbi: {
-      name: 'Yevbi',
-      artifactUrl: 'https://market.example.com/artifacts/themes/yevbi/1.0.0.jtheme',
-      primaryColor: '#111111',
-      etag: '"yevbi-1.0.0"',
+    modelsfind: {
+      name: 'ModelsFind',
+      artifactUrl: 'https://market.example.com/artifacts/themes/modelsfind/1.0.0.jtheme',
+      primaryColor: '#ff6cf0',
+      etag: '"modelsfind-1.0.0"',
+      runtimeScript: 'runtime/theme-runtime.js',
     },
   } as const;
   const themeSlugs = Object.keys(themeFixtures) as Array<keyof typeof themeFixtures>;
@@ -120,8 +122,14 @@ describe('Admin Market Install Flow', () => {
   let originalFetch: typeof global.fetch | undefined;
   let pluginZip: Buffer;
   let themeZips: Record<string, Buffer> = {};
+  const deniedEntry = OFFICIAL_LAUNCH_EXTENSIONS.find((item) => item.slug === deniedSlug);
+  const originalDeniedPricingModel = deniedEntry?.defaultPricingModel ?? 'free';
 
   beforeAll(async () => {
+    if (deniedEntry) {
+      deniedEntry.defaultPricingModel = 'subscription';
+    }
+
     extensionsRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'official-market-ext-'));
     pluginRoot = path.join(extensionsRoot, 'plugins', pluginSlug);
     themeRoots = Object.fromEntries(
@@ -198,6 +206,7 @@ module.exports = plugin;
                 entry: {
                   tokensCSS: 'tokens.css',
                   templatesDir: 'templates',
+                  ...(fixture.runtimeScript ? { runtimeJS: fixture.runtimeScript } : {}),
                 },
                 defaultConfig: {
                   colors: {
@@ -220,6 +229,11 @@ module.exports = plugin;
               null,
               2,
             ),
+            ...(fixture.runtimeScript
+              ? {
+                  [fixture.runtimeScript]: 'globalThis.__MODELSFIND_THEME_RUNTIME__ = true;',
+                }
+              : {}),
           });
 
           return [slug, zip] as const;
@@ -275,6 +289,41 @@ module.exports = plugin;
         });
       }
 
+      if (url.endsWith(`/marketplace/official/catalog/${pluginSlug}`) && method === 'GET') {
+        return jsonResponse({
+          success: true,
+          data: {
+            item: {
+              slug: pluginSlug,
+              name: 'Official Odoo',
+              kind: 'plugin',
+              listingDomain: 'app_marketplace',
+              listingKind: 'plugin',
+              providerType: 'platform',
+              deliveryMode: 'package-managed',
+              paymentMode: 'platform_collect',
+              settlementTargetType: 'platform',
+              settlementTargetId: 'platform:jiffoo',
+              pricingModel: 'free',
+              price: null,
+              currency: 'USD',
+              sellableVersion: '1.0.0',
+              minCoreVersion: '0.2.0',
+              versionCount: 1,
+              publishedAt: '2026-04-17T00:00:00.000Z',
+              updatedAt: '2026-04-17T00:00:00.000Z',
+              versions: [
+                {
+                  version: '1.0.0',
+                  packageUrl: pluginArtifactUrl,
+                  minCoreVersion: '0.2.0',
+                },
+              ],
+            },
+          },
+        });
+      }
+
       for (const slug of themeSlugs) {
         const fixture = themeFixtures[slug];
         const themeArtifactUrl = fixture.artifactUrl;
@@ -309,6 +358,41 @@ module.exports = plugin;
                 required: false,
                 status: 'not_required',
                 pricingModel: 'free',
+              },
+            },
+          });
+        }
+
+        if (url.endsWith(`/marketplace/official/catalog/${slug}`) && method === 'GET') {
+          return jsonResponse({
+            success: true,
+            data: {
+              item: {
+                slug,
+                name: fixture.name,
+                kind: 'theme',
+                listingDomain: 'app_marketplace',
+                listingKind: 'theme',
+                providerType: 'platform',
+                deliveryMode: 'package-managed',
+                paymentMode: 'platform_collect',
+                settlementTargetType: 'platform',
+                settlementTargetId: 'platform:jiffoo',
+                pricingModel: 'free',
+                price: null,
+                currency: 'USD',
+                sellableVersion: '1.0.0',
+                minCoreVersion: '0.2.0',
+                versionCount: 1,
+                publishedAt: '2026-04-17T00:00:00.000Z',
+                updatedAt: '2026-04-17T00:00:00.000Z',
+                versions: [
+                  {
+                    version: '1.0.0',
+                    packageUrl: themeArtifactUrl,
+                    minCoreVersion: '0.2.0',
+                  },
+                ],
               },
             },
           });
@@ -469,6 +553,10 @@ module.exports = plugin;
   });
 
   afterAll(async () => {
+    if (deniedEntry) {
+      deniedEntry.defaultPricingModel = originalDeniedPricingModel;
+    }
+
     global.fetch = originalFetch as typeof fetch;
     await app.inject({
       method: 'POST',
@@ -606,6 +694,9 @@ module.exports = plugin;
   });
 
   it.each(themeSlugs)('installs and activates official-market theme %s through the real theme-management flow', async (themeSlug) => {
+    await prisma.installedTheme.deleteMany({ where: { slug: themeSlug, target: 'shop' } });
+    await fs.rm(themeRoots[themeSlug], { recursive: true, force: true });
+
     const response = await app.inject({
       method: 'POST',
       url: `/api/admin/market/extensions/${themeSlug}/install`,
@@ -642,7 +733,7 @@ module.exports = plugin;
     expect(installedMeta.officialMarket?.installedVersion).toBe('1.0.0');
   });
 
-  it('rejects official installs when entitlement authorization denies access', async () => {
+  it('requires a platform binding before attempting commercial official installs', async () => {
     const response = await app.inject({
       method: 'POST',
       url: `/api/admin/market/extensions/${deniedSlug}/install`,
@@ -657,7 +748,7 @@ module.exports = plugin;
     expect(response.statusCode).toBe(403);
     const body = response.json();
     expect(body.success).toBe(false);
-    expect(body.error.code).toBe('OFFICIAL_EXTENSION_NOT_INSTALLABLE');
-    expect(body.error.message).toContain('Active entitlement required');
+    expect(body.error.code).toBe('PLATFORM_CONNECTION_REQUIRED');
+    expect(body.error.message).toContain('Connect this instance to Jiffoo Platform');
   });
 });

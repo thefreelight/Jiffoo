@@ -129,6 +129,10 @@ export function resolveApiErrorMessage(
   }
 
   const directMessage = readErrorMessage(error);
+  if (directMessage && /forbidden file type detected|unsupported file type/i.test(directMessage)) {
+    return directMessage;
+  }
+
   if (directMessage) {
     const matchedRule = MESSAGE_RULES.find((rule) => rule.matcher.test(directMessage));
     if (matchedRule) {

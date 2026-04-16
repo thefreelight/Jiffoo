@@ -122,6 +122,9 @@ async function recoverOfficialMarketExtensionFilesInternal(
     const installResult = await extensionInstaller.installFromZip(
       toExtensionKind(input.kind),
       createReadStream(download.filePath),
+      input.kind === 'theme-shop'
+        ? { allowThemeRuntimeScript: true }
+        : undefined,
     );
 
     if (input.kind === 'plugin') {

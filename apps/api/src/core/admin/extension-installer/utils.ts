@@ -13,6 +13,7 @@ import { createHash } from 'crypto';
 import { Parse } from 'unzip-stream';
 import {
   ExtensionKind,
+  ExtensionInstallOptions,
   ThemeTarget,
   ThemeManifest,
   PluginManifest,
@@ -70,7 +71,11 @@ export function getTargetDir(kind: ExtensionKind, slug: string): string {
  * Extract ZIP to temporary directory with security validation
  * @returns Temporary directory path
  */
-export async function extractZipToTemp(zipStream: Readable, kind?: ExtensionKind): Promise<string> {
+export async function extractZipToTemp(
+  zipStream: Readable,
+  kind?: ExtensionKind,
+  options?: ExtensionInstallOptions,
+): Promise<string> {
   const tempDir = path.join(EXTENSIONS_ROOT, '.tmp', `extract-${Date.now()}`);
   await fs.mkdir(tempDir, { recursive: true });
 
@@ -152,7 +157,7 @@ export async function extractZipToTemp(zipStream: Readable, kind?: ExtensionKind
           }
 
           // 1. Security validation BEFORE writing any data (Zip Slip & File Type Protection)
-          validateZipEntry(entryPath, entrySize, tempDir, kind);
+          validateZipEntry(entryPath, entrySize, tempDir, kind, options);
 
           const fullPath = path.join(tempDir, entryPath);
 
@@ -392,7 +397,7 @@ export function validateThemeManifest(manifest: ThemeManifest, expectedTarget?: 
 
   // Validate entry paths if provided
   if (manifest.entry) {
-    const { tokensCSS, templatesDir, assetsDir, settingsSchema, presetsDir } = manifest.entry;
+    const { tokensCSS, templatesDir, assetsDir, runtimeJS, settingsSchema, presetsDir } = manifest.entry;
 
     // All entry paths must be strings if provided
     if (tokensCSS !== undefined && typeof tokensCSS !== 'string') {
@@ -410,6 +415,12 @@ export function validateThemeManifest(manifest: ThemeManifest, expectedTarget?: 
     if (assetsDir !== undefined && typeof assetsDir !== 'string') {
       throw new ExtensionInstallerError(
         'Invalid theme manifest: entry.assetsDir must be a string',
+        { code: 'INVALID_ENTRY', statusCode: 400 }
+      );
+    }
+    if (runtimeJS !== undefined && typeof runtimeJS !== 'string') {
+      throw new ExtensionInstallerError(
+        'Invalid theme manifest: entry.runtimeJS must be a string',
         { code: 'INVALID_ENTRY', statusCode: 400 }
       );
     }

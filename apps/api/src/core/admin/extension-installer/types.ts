@@ -39,6 +39,15 @@ export type ThemeTarget = 'shop' | 'admin';
 /** Extension source */
 export type ExtensionSource = 'local-zip' | 'official-market' | 'builtin';
 
+/** Installation-time validation policy overrides. */
+export interface ExtensionInstallOptions {
+  /**
+   * Allow the packaged embedded theme runtime bridge artifact.
+   * Reserved for verified official-market theme packs.
+   */
+  allowThemeRuntimeScript?: boolean;
+}
+
 /** Plugin runtime type */
 export type PluginRuntimeType = SharedPluginRuntimeType;
 
@@ -160,6 +169,8 @@ export interface ThemePackEntry {
   templatesDir?: string;
   /** Assets directory path, e.g., "assets" */
   assetsDir?: string;
+  /** Optional packaged embedded theme runtime bridge. */
+  runtimeJS?: string;
   /** Settings schema file path, e.g., "schemas/settings.schema.json" */
   settingsSchema?: string;
   /** Presets directory path, e.g., "presets" */
@@ -218,7 +229,7 @@ export type PluginManifest = SharedPluginManifest;
 /** Unified Extension Installer Interface */
 export interface IExtensionInstaller {
   /** Install extension from ZIP */
-  installFromZip(kind: ExtensionKind, zipStream: Readable): Promise<InstallResult>;
+  installFromZip(kind: ExtensionKind, zipStream: Readable, options?: ExtensionInstallOptions): Promise<InstallResult>;
   /** Uninstall extension */
   uninstall(kind: ExtensionKind, slug: string): Promise<UninstallResult>;
   /** List installed extensions */
@@ -229,7 +240,7 @@ export interface IExtensionInstaller {
 
 /** Theme Installer Interface */
 export interface IThemeInstaller {
-  install(target: ThemeTarget, zipStream: Readable): Promise<InstalledTheme>;
+  install(target: ThemeTarget, zipStream: Readable, options?: ExtensionInstallOptions): Promise<InstalledTheme>;
   uninstall(target: ThemeTarget, slug: string): Promise<void>;
   list(target: ThemeTarget): Promise<InstalledTheme[]>;
   get(target: ThemeTarget, slug: string): Promise<InstalledTheme | null>;

@@ -10,6 +10,7 @@ import { Readable } from 'stream';
 import {
   IExtensionInstaller,
   ExtensionKind,
+  ExtensionInstallOptions,
   ExtensionSource,
   InstallResult,
   UninstallResult,
@@ -53,10 +54,14 @@ export class ExtensionInstaller implements IExtensionInstaller {
    * 2. Read and validate manifest - theme.json / theme-app.json / manifest.json
    * 3. Save metadata - .installed.json
    */
-  async installFromZip(kind: ExtensionKind, zipStream: Readable): Promise<InstallResult> {
+  async installFromZip(
+    kind: ExtensionKind,
+    zipStream: Readable,
+    options?: ExtensionInstallOptions,
+  ): Promise<InstallResult> {
     switch (kind) {
       case 'theme-shop': {
-        const theme = await themeInstaller.install('shop', zipStream);
+        const theme = await themeInstaller.install('shop', zipStream, options);
         return {
           kind,
           slug: theme.slug,
@@ -66,7 +71,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
         };
       }
       case 'theme-admin': {
-        const theme = await themeInstaller.install('admin', zipStream);
+        const theme = await themeInstaller.install('admin', zipStream, options);
         return {
           kind,
           slug: theme.slug,

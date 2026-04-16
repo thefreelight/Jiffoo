@@ -6,6 +6,7 @@
 
 import path from 'path';
 import { ExtensionInstallerError } from './errors';
+import type { ExtensionInstallOptions } from './types';
 
 // ============================================================================
 // File Type Validation
@@ -94,15 +95,35 @@ function isThemePackKind(kind?: string): boolean {
     return kind === 'theme-shop' || kind === 'theme-admin';
 }
 
+function isAllowedThemeRuntimeScript(
+    filename: string,
+    kind?: string,
+    options?: ExtensionInstallOptions
+): boolean {
+    if (!isThemePackKind(kind) || !options?.allowThemeRuntimeScript) {
+        return false;
+    }
+
+    const normalized = filename.replace(/\\/g, '/').toLowerCase();
+    return /(^|\/)runtime\/theme-runtime\.js$/.test(normalized);
+}
+
 /**
  * Validate file extension
  * @throws Error if file type is forbidden or not allowed
  */
-export function validateFileExtension(filename: string, kind?: string): void {
+export function validateFileExtension(
+    filename: string,
+    kind?: string,
+    options?: ExtensionInstallOptions
+): void {
     const ext = path.extname(filename).toLowerCase();
 
     // Theme Pack (L3.5): strict allow-list + strict forbidden-list
     if (isThemePackKind(kind)) {
+        if (isAllowedThemeRuntimeScript(filename, kind, options)) {
+            return;
+        }
         if (FORBIDDEN_EXTENSIONS.includes(ext as any)) {
             throw new ExtensionInstallerError(
                 `Forbidden file type detected: ${ext}. Executable scripts are not allowed for ${kind} security reasons.`,
@@ -139,7 +160,8 @@ export function validateFileExtension(filename: string, kind?: string): void {
 export async function validateDirectoryFiles(
     dirPath: string,
     kind?: string,
-    rootDir: string = dirPath
+    rootDir: string = dirPath,
+    options?: ExtensionInstallOptions
 ): Promise<void> {
     const fs = await import('fs/promises');
     const entries = await fs.readdir(dirPath, { withFileTypes: true });
@@ -149,10 +171,10 @@ export async function validateDirectoryFiles(
 
         if (entry.isDirectory()) {
             // Recursively validate subdirectories
-            await validateDirectoryFiles(fullPath, kind, rootDir);
+            await validateDirectoryFiles(fullPath, kind, rootDir, options);
         } else if (entry.isFile()) {
             // Validate file extension
-            validateFileExtension(path.relative(rootDir, fullPath), kind);
+            validateFileExtension(path.relative(rootDir, fullPath), kind, options);
         }
     }
 }
@@ -289,19 +311,26 @@ export function validateZipEntry(
     entryPath: string,
     entrySize: number,
     baseDir: string,
-    kind?: string
+    kind?: string,
+    options?: ExtensionInstallOptions
 ): void {
     // Validate path traversal
     const fullPath = path.join(baseDir, entryPath);
     validatePathTraversal(fullPath, baseDir);
+
+    const normalizedEntryPath = entryPath.replace(/\\/g, '/');
+    const isDirectoryEntry = normalizedEntryPath.endsWith('/');
 
     // Validate file size
     if (entrySize > 0) {
         validateFileSize(entryPath, entrySize, kind);
     }
 
-    // Validate file extension
-    validateFileExtension(entryPath, kind);
+    // Directory entries like "modelsfind-0.1.3/" are not files and should
+    // not be interpreted as having a forbidden ".3" extension.
+    if (!isDirectoryEntry) {
+        validateFileExtension(entryPath, kind, options);
+    }
 }
 
 // ============================================================================

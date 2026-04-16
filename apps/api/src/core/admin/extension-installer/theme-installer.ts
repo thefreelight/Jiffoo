@@ -10,6 +10,7 @@ import { promises as fs } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import {
   IThemeInstaller,
+  ExtensionInstallOptions,
   ThemeTarget,
   InstalledTheme,
   ThemeManifest,
@@ -41,7 +42,11 @@ export class ThemeInstaller implements IThemeInstaller {
   /**
    * Install theme from ZIP
    */
-  async install(target: ThemeTarget, zipStream: Readable): Promise<InstalledTheme> {
+  async install(
+    target: ThemeTarget,
+    zipStream: Readable,
+    options?: ExtensionInstallOptions,
+  ): Promise<InstalledTheme> {
     let tempDir: string | null = null;
 
     try {
@@ -49,7 +54,11 @@ export class ThemeInstaller implements IThemeInstaller {
       const hashResult = await calculateStreamHash(zipStream);
       const zipBuffer = hashResult.buffer;
       const bufferStream = bufferToStream(zipBuffer);
-      tempDir = await extractZipToTemp(bufferStream, target === 'shop' ? 'theme-shop' : 'theme-admin');
+      tempDir = await extractZipToTemp(
+        bufferStream,
+        target === 'shop' ? 'theme-shop' : 'theme-admin',
+        options,
+      );
 
       // 2. Resolve package root & read theme.json
       const { rootDir, manifestPath } = await resolveExtractedPackageRoot(

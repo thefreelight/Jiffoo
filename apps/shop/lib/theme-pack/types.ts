@@ -54,6 +54,8 @@ export interface ThemePackEntry {
   templatesDir?: string;
   /** Assets directory path, e.g., "assets" */
   assetsDir?: string;
+  /** Optional packaged embedded theme runtime bridge. */
+  runtimeJS?: string;
   /** Settings schema file path, e.g., "schemas/settings.schema.json" */
   settingsSchema?: string;
   /** Presets directory path, e.g., "presets" */
