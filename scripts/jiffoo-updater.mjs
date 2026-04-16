@@ -323,6 +323,30 @@ async function backupComposeState(backupRoot, backupId, snapshot) {
   return { backupDir, snapshotPath };
 }
 
+function applyProcessEnvSnapshot(snapshot) {
+  for (const [key, value] of Object.entries(snapshot)) {
+    if (typeof value === 'string' && value.length > 0) {
+      process.env[key] = value;
+    } else {
+      delete process.env[key];
+    }
+  }
+}
+
+function buildSourceFallbackEnvState(commandEnv, composeProjectName, manifestUrl, archiveUrl, targetVersion) {
+  return {
+    APP_VERSION: targetVersion,
+    JIFFOO_DEPLOYMENT_MODE: 'docker-compose',
+    JIFFOO_CORE_UPDATE_MANIFEST_URL: manifestUrl,
+    JIFFOO_SOURCE_ARCHIVE_URL: archiveUrl,
+    COMPOSE_PROJECT_NAME: composeProjectName,
+    API_IMAGE: commandEnv.API_IMAGE || null,
+    ADMIN_IMAGE: commandEnv.ADMIN_IMAGE || null,
+    SHOP_IMAGE: commandEnv.SHOP_IMAGE || null,
+    UPDATER_IMAGE: commandEnv.UPDATER_IMAGE || null,
+  };
+}
+
 async function runComposeCommand(composeCommand, composePrefixArgs, composeProjectName, composeFile, extraArgs, commandEnv) {
   await run(composeCommand, buildComposeArgs(composePrefixArgs, composeProjectName, composeFile, extraArgs), {
     env: commandEnv,
@@ -480,6 +504,7 @@ async function performDockerComposeUpgrade(options) {
   const composeProjectName = resolveComposeProjectName(workspaceDir, composeEnv);
   composeEnv.COMPOSE_PROJECT_NAME = composeProjectName;
   const { command: composeCommand, prefixArgs: composePrefixArgs } = resolveComposeInvocation();
+  const envSnapshot = snapshotComposeState(composeEnv, composeProjectName);
   let imageFallbackSnapshot = null;
   let useImageFirst = false;
 
@@ -613,6 +638,13 @@ async function performDockerComposeUpgrade(options) {
     }
 
     archiveUrl = substituteVersion(archiveUrl, targetVersion);
+    const sourceFallbackComposeState = buildSourceFallbackEnvState(
+      composeEnv,
+      composeProjectName,
+      manifestUrl,
+      archiveUrl,
+      targetVersion,
+    );
     const archivePath = path.join(tempDir, 'release.tar.gz');
     const extractDir = path.join(tempDir, 'extract');
     await fs.mkdir(extractDir, { recursive: true });
@@ -647,22 +679,12 @@ async function performDockerComposeUpgrade(options) {
       targetVersion,
     });
     await replaceWorkspace(workspaceDir, nextRoot);
-    if (envFile && fsSync.existsSync(envFile)) {
-      await writeEnvValue(envFile, 'APP_VERSION', targetVersion);
-      await writeEnvValue(envFile, 'JIFFOO_DEPLOYMENT_MODE', 'docker-compose');
-      await writeEnvValue(
-        envFile,
-        'JIFFOO_CORE_UPDATE_MANIFEST_URL',
-        manifestUrl,
-      );
-      await writeEnvValue(envFile, 'JIFFOO_SOURCE_ARCHIVE_URL', archiveUrl);
-      await writeEnvValue(envFile, 'COMPOSE_PROJECT_NAME', composeProjectName);
-    }
-    process.env.APP_VERSION = targetVersion;
-    process.env.JIFFOO_DEPLOYMENT_MODE = 'docker-compose';
-    process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL = manifestUrl;
-    process.env.JIFFOO_SOURCE_ARCHIVE_URL = archiveUrl;
-    process.env.COMPOSE_PROJECT_NAME = composeProjectName;
+    Object.assign(composeEnv, sourceFallbackComposeState);
+    process.env.APP_VERSION = sourceFallbackComposeState.APP_VERSION;
+    process.env.JIFFOO_DEPLOYMENT_MODE = sourceFallbackComposeState.JIFFOO_DEPLOYMENT_MODE;
+    process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL = sourceFallbackComposeState.JIFFOO_CORE_UPDATE_MANIFEST_URL;
+    process.env.JIFFOO_SOURCE_ARCHIVE_URL = sourceFallbackComposeState.JIFFOO_SOURCE_ARCHIVE_URL;
+    process.env.COMPOSE_PROJECT_NAME = sourceFallbackComposeState.COMPOSE_PROJECT_NAME;
 
     console.log('[jiffoo-updater] Rebuilding and restarting docker-compose services');
     await writeStatus(statusFile, {
@@ -720,6 +742,9 @@ async function performDockerComposeUpgrade(options) {
       targetVersion,
       error: null,
     });
+    if (envFile && fsSync.existsSync(envFile)) {
+      await writeComposeState(envFile, sourceFallbackComposeState);
+    }
     console.log('[jiffoo-updater] Upgrade completed successfully');
   } catch (error) {
     console.error(`[jiffoo-updater] Upgrade failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -754,6 +779,11 @@ async function performDockerComposeUpgrade(options) {
     } else if (fsSync.existsSync(backupTarPath)) {
       console.error('[jiffoo-updater] Restoring previous workspace backup');
       await restoreWorkspace(workspaceDir, backupTarPath);
+      if (envFile && fsSync.existsSync(envFile)) {
+        await writeComposeState(envFile, envSnapshot);
+      }
+      Object.assign(composeEnv, envSnapshot);
+      applyProcessEnvSnapshot(envSnapshot);
       const restoreArgs = ['up', '-d', '--build', ...RUNTIME_SERVICES];
       await runComposeCommand(
         composeCommand,

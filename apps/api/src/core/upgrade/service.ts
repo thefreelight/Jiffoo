@@ -86,9 +86,9 @@ export class UpgradeService {
       where: { id: 'system' }
     });
 
-    const runtimeVersion = this.resolveCurrentVersion();
-    const installedVersion = this.resolveInstalledVersion(settings?.version ?? null, runtimeVersion);
     const deployment = this.detectDeploymentMode();
+    const runtimeVersion = this.resolveCurrentVersion(deployment.mode);
+    const installedVersion = this.resolveInstalledVersion(settings?.version ?? null, runtimeVersion, deployment.mode);
     const preferredChannel = this.resolveReleaseChannel();
     const manifestResult = await this.fetchUpdateManifest(preferredChannel);
     const manifest = manifestResult.manifest;
@@ -138,9 +138,9 @@ export class UpgradeService {
       where: { id: 'system' }
     });
 
-    const runtimeVersion = this.resolveCurrentVersion();
-    const currentVersion = this.resolveInstalledVersion(settings?.version ?? null, runtimeVersion);
     const deployment = this.detectDeploymentMode();
+    const runtimeVersion = this.resolveCurrentVersion(deployment.mode);
+    const currentVersion = this.resolveInstalledVersion(settings?.version ?? null, runtimeVersion, deployment.mode);
     const manifest = (await this.fetchUpdateManifest(this.resolveReleaseChannel())).manifest;
     const minimumCompatibleVersion = manifest?.minimumCompatibleVersion || MIN_COMPATIBLE_VERSION;
     const executor = createUpdateExecutor(deployment.mode);
@@ -343,10 +343,23 @@ export class UpgradeService {
     }
   }
 
-  private static resolveCurrentVersion(): string {
+  private static resolveCurrentVersion(deploymentMode?: DeploymentMode): string {
+    const packageVersion = this.resolveWorkspacePackageVersion();
+    if ((deploymentMode === 'docker-compose' || deploymentMode === 'single-host') && packageVersion) {
+      return packageVersion;
+    }
+
     const envVersion = process.env.JIFFOO_VERSION || process.env.APP_VERSION;
     if (envVersion && this.isValidReleaseVersion(envVersion)) {
       return envVersion;
+    }
+
+    if (packageVersion) {
+      return packageVersion;
+    }
+
+    if (deploymentMode === 'docker-compose' || deploymentMode === 'single-host') {
+      return CURRENT_VERSION;
     }
 
     if (
@@ -356,9 +369,14 @@ export class UpgradeService {
       return PUBLIC_CORE_UPDATE_MANIFEST.latestStableVersion;
     }
 
+    return CURRENT_VERSION;
+  }
+
+  private static resolveWorkspacePackageVersion(): string | null {
     const candidates = [
       path.resolve(process.cwd(), '../../package.json'),
       path.resolve(process.cwd(), 'package.json'),
+      '/opt/jiffoo/current/package.json',
     ];
 
     for (const candidate of candidates) {
@@ -373,7 +391,7 @@ export class UpgradeService {
       }
     }
 
-    return CURRENT_VERSION;
+    return null;
   }
 
   private static async fetchUpdateManifest(preferredChannel: ReleaseChannel): Promise<ManifestResolution> {
@@ -571,7 +589,15 @@ export class UpgradeService {
     return 0;
   }
 
-  private static resolveInstalledVersion(storedVersion: string | null, runtimeVersion: string): string {
+  private static resolveInstalledVersion(
+    storedVersion: string | null,
+    runtimeVersion: string,
+    deploymentMode?: DeploymentMode,
+  ): string {
+    if (deploymentMode === 'docker-compose' || deploymentMode === 'single-host') {
+      return runtimeVersion;
+    }
+
     if (storedVersion && this.isValidReleaseVersion(storedVersion)) {
       return this.compareVersions(storedVersion, runtimeVersion) >= 0 ? storedVersion : runtimeVersion;
     }
