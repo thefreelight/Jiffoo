@@ -251,6 +251,19 @@ function buildComposeArgs(composePrefixArgs, composeProjectName, composeFile, ex
   ];
 }
 
+async function removeComposeService(composeCommand, composePrefixArgs, composeProjectName, composeFile, service, commandEnv) {
+  await runComposeCommand(
+    composeCommand,
+    composePrefixArgs,
+    composeProjectName,
+    composeFile,
+    ['rm', '-f', '-s', service],
+    commandEnv,
+  ).catch(() => {
+    // Ignore when the target container does not exist yet.
+  });
+}
+
 function normalizeRuntimeImages(images, targetVersion) {
   if (!images || typeof images !== 'object') {
     return null;
@@ -359,14 +372,29 @@ async function pullComposeRuntimeImages(composeCommand, composePrefixArgs, compo
 }
 
 async function recreateComposeRuntimeServices(composeCommand, composePrefixArgs, composeProjectName, composeFile, commandEnv) {
-  await runComposeCommand(
-    composeCommand,
-    composePrefixArgs,
-    composeProjectName,
-    composeFile,
-    ['up', '-d', '--no-build', '--no-deps', '--force-recreate', ...RUNTIME_SERVICES],
-    commandEnv,
-  );
+  for (const service of RUNTIME_SERVICES) {
+    await removeComposeService(
+      composeCommand,
+      composePrefixArgs,
+      composeProjectName,
+      composeFile,
+      service,
+      commandEnv,
+    );
+
+    await runComposeCommand(
+      composeCommand,
+      composePrefixArgs,
+      composeProjectName,
+      composeFile,
+      ['up', '-d', '--no-build', '--no-deps', service],
+      commandEnv,
+    );
+
+    if (service === 'api') {
+      await waitForApiHealth(composeCommand, composePrefixArgs, composeFile, commandEnv);
+    }
+  }
 }
 
 async function runComposeMigrations(composeCommand, composePrefixArgs, composeProjectName, composeFile, commandEnv) {
@@ -583,7 +611,7 @@ async function performDockerComposeUpgrade(options) {
       console.log('[jiffoo-updater] Recreating runtime services from pulled images');
       await writeStatus(statusFile, {
         status: 'applying',
-        progress: 60,
+        progress: 55,
         currentStep: 'Recreating api/shop/admin from prebuilt images',
         targetVersion,
       });

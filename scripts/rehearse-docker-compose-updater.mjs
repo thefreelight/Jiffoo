@@ -150,6 +150,22 @@ async function pollStatus(port) {
   throw new Error('Timed out waiting for updater status to finish');
 }
 
+async function waitForAgent(port) {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    try {
+      const response = await fetch(`http://127.0.0.1:${port}/health`);
+      if (response.ok) {
+        return;
+      }
+    } catch {
+      // keep polling
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  throw new Error('Timed out waiting for updater agent health endpoint');
+}
+
 async function main() {
   const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), 'jiffoo-updater-rehearsal-'));
   const { workspaceDir, tarballPath } = await createFixtureWorkspace(rootDir);
@@ -173,7 +189,7 @@ async function main() {
   });
 
   try {
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    await waitForAgent(agentPort);
 
     const trigger = await fetch(`http://127.0.0.1:${agentPort}/upgrade`, {
       method: 'POST',
@@ -209,7 +225,12 @@ async function main() {
     for (const expected of [
       'compose',
       'pull api shop admin updater',
-      'up -d --no-build --no-deps --force-recreate api shop admin',
+      'rm -f -s api',
+      'up -d --no-build --no-deps api',
+      'rm -f -s shop',
+      'up -d --no-build --no-deps shop',
+      'rm -f -s admin',
+      'up -d --no-build --no-deps admin',
       'exec -T api npx prisma migrate deploy',
     ]) {
       if (!dockerCalls.includes(expected)) {

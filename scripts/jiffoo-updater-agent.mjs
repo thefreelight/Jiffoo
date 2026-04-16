@@ -13,10 +13,82 @@ const ENV_FILE = process.env.JIFFOO_DOCKER_ENV_FILE || '/workspace/.env.producti
 const UPDATER_BIN = process.env.JIFFOO_UPDATER_BIN || '/usr/local/bin/jiffoo-updater';
 const WORKSPACE_UPDATER_SCRIPT =
   process.env.JIFFOO_UPDATER_SCRIPT || '/workspace/scripts/jiffoo-updater.mjs';
+const WORKSPACE_PACKAGE_JSON =
+  process.env.JIFFOO_WORKSPACE_PACKAGE_JSON || '/workspace/package.json';
 
 let activeProcess = null;
 
+function parseReleaseVersion(version) {
+  if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
+    return null;
+  }
+
+  const [core, prerelease = ''] = version.split('-', 2);
+  const [major, minor, patch] = core.split('.').map((part) => Number(part));
+  return {
+    major,
+    minor,
+    patch,
+    prerelease: prerelease.length > 0 ? prerelease.split('.') : [],
+  };
+}
+
+function compareReleaseVersions(a, b) {
+  const parsedA = parseReleaseVersion(a);
+  const parsedB = parseReleaseVersion(b);
+  if (!parsedA || !parsedB) return 0;
+
+  if (parsedA.major !== parsedB.major) return parsedA.major < parsedB.major ? -1 : 1;
+  if (parsedA.minor !== parsedB.minor) return parsedA.minor < parsedB.minor ? -1 : 1;
+  if (parsedA.patch !== parsedB.patch) return parsedA.patch < parsedB.patch ? -1 : 1;
+
+  const aPre = parsedA.prerelease;
+  const bPre = parsedB.prerelease;
+  if (aPre.length === 0 && bPre.length === 0) return 0;
+  if (aPre.length === 0) return 1;
+  if (bPre.length === 0) return -1;
+
+  const maxLen = Math.max(aPre.length, bPre.length);
+  for (let i = 0; i < maxLen; i += 1) {
+    const left = aPre[i];
+    const right = bPre[i];
+    if (left === undefined) return -1;
+    if (right === undefined) return 1;
+    if (left !== right) return left < right ? -1 : 1;
+  }
+
+  return 0;
+}
+
+function resolveWorkspaceVersion() {
+  try {
+    if (!WORKSPACE_PACKAGE_JSON || !fsSync.existsSync(WORKSPACE_PACKAGE_JSON)) {
+      return null;
+    }
+    const json = JSON.parse(fsSync.readFileSync(WORKSPACE_PACKAGE_JSON, 'utf8'));
+    return typeof json.version === 'string' ? json.version.replace(/-opensource$/, '') : null;
+  } catch {
+    return null;
+  }
+}
+
 function resolveUpdaterInvocation() {
+  const containerVersion = (process.env.APP_VERSION || '').trim();
+  const workspaceVersion = resolveWorkspaceVersion();
+
+  if (
+    WORKSPACE_UPDATER_SCRIPT &&
+    fsSync.existsSync(WORKSPACE_UPDATER_SCRIPT) &&
+    workspaceVersion &&
+    containerVersion &&
+    compareReleaseVersions(workspaceVersion, containerVersion) > 0
+  ) {
+    return {
+      command: 'node',
+      prefixArgs: [WORKSPACE_UPDATER_SCRIPT],
+    };
+  }
+
   if (UPDATER_BIN && fsSync.existsSync(UPDATER_BIN)) {
     return {
       command: UPDATER_BIN,
