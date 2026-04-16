@@ -260,6 +260,12 @@ function SettingsPageContent() {
   const hasChanges = JSON.stringify(draft) !== JSON.stringify(initialDraft)
   const activeUpgradeStates = new Set(['checking', 'preparing', 'downloading', 'backing_up', 'applying', 'migrating', 'verifying'])
   const isUpgradeActive = upgradeStatus ? activeUpgradeStates.has(upgradeStatus.status) : false
+  const hasUpdateAvailable = Boolean(
+    versionInfo?.updateAvailable &&
+      versionInfo.currentVersion &&
+      versionInfo.latestVersion &&
+      versionInfo.currentVersion !== versionInfo.latestVersion
+  )
 
   const syncVersionAfterUpgrade = useCallback(async (expectedVersion?: string | null) => {
     const targetVersion = expectedVersion || versionInfo?.latestVersion || null
@@ -325,16 +331,16 @@ function SettingsPageContent() {
   }, [loadSettings, loadUpgradeStatus, loadVersion, t])
 
   useEffect(() => {
-    if (!isUpgradeActive) return
+    if (!isUpgradeActive && !finalizingUpgrade) return
 
     const interval = window.setInterval(() => {
-      loadUpgradeStatus().catch(() => {
+      Promise.allSettled([loadUpgradeStatus(), loadVersion()]).catch(() => {
         // Keep the current progress visible even if one poll fails.
       })
     }, 3000)
 
     return () => window.clearInterval(interval)
-  }, [isUpgradeActive, loadUpgradeStatus])
+  }, [finalizingUpgrade, isUpgradeActive, loadUpgradeStatus, loadVersion])
 
   useEffect(() => {
     if (!upgradeStatus || !['completed', 'recovered'].includes(upgradeStatus.status)) {
@@ -699,17 +705,17 @@ function SettingsPageContent() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className={cn(
                 "inline-flex items-center px-4 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest border",
-                versionInfo?.updateAvailable
+                hasUpdateAvailable
                   ? 'bg-yellow-50 text-yellow-600 border-yellow-100'
                   : 'bg-green-50 text-green-600 border-green-100'
               )}>
                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                {versionInfo?.updateAvailable
+                {hasUpdateAvailable
                   ? getText('merchant.systemUpdates.updateAvailable', 'Update Available')
                   : getText('merchant.systemUpdates.noUpdates', 'No Updates')}
               </div>
               <div className="flex flex-wrap gap-3">
-                {versionInfo?.updateAvailable && versionInfo?.oneClickUpgradeSupported && !versionInfo?.requiresManualIntervention ? (
+                {hasUpdateAvailable && versionInfo?.oneClickUpgradeSupported && !versionInfo?.requiresManualIntervention ? (
                   <Button
                     onClick={handleUpgrade}
                     disabled={startingUpgrade || isUpgradeActive || finalizingUpgrade}
