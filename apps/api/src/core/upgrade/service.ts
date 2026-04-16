@@ -34,6 +34,7 @@ export const CURRENT_VERSION = '1.0.0';
 export const MIN_COMPATIBLE_VERSION = '0.9.0';
 
 const UPDATE_MANIFEST_TIMEOUT_MS = 5000;
+const OSS_DISTRIBUTION_SUFFIX = /-opensource$/;
 
 type DeploymentModeDetection = {
   mode: DeploymentMode;
@@ -48,6 +49,15 @@ type ManifestResolution = {
   status: UpdateManifestStatus;
   error: string | null;
 };
+
+function normalizeOperatorFacingVersion(version: string | null | undefined): string | null {
+  if (!version || typeof version !== 'string') {
+    return null;
+  }
+
+  const normalized = version.replace(OSS_DISTRIBUTION_SUFFIX, '');
+  return /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(normalized) ? normalized : null;
+}
 
 /**
  * Upgrade Service
@@ -352,8 +362,9 @@ export class UpgradeService {
     }
 
     const envVersion = process.env.JIFFOO_VERSION || process.env.APP_VERSION;
-    if (envVersion && this.isValidReleaseVersion(envVersion)) {
-      return envVersion;
+    const normalizedEnvVersion = normalizeOperatorFacingVersion(envVersion);
+    if (normalizedEnvVersion) {
+      return normalizedEnvVersion;
     }
 
     if (packageVersion) {
@@ -385,8 +396,9 @@ export class UpgradeService {
       try {
         if (!fs.existsSync(candidate)) continue;
         const json = JSON.parse(fs.readFileSync(candidate, 'utf8')) as { version?: string };
-        if (json.version && this.isValidReleaseVersion(json.version)) {
-          return json.version;
+        const normalizedPackageVersion = normalizeOperatorFacingVersion(json.version);
+        if (normalizedPackageVersion) {
+          return normalizedPackageVersion;
         }
       } catch {
         // ignore malformed or unreadable package metadata
@@ -600,8 +612,11 @@ export class UpgradeService {
       return runtimeVersion;
     }
 
-    if (storedVersion && this.isValidReleaseVersion(storedVersion)) {
-      return this.compareVersions(storedVersion, runtimeVersion) >= 0 ? storedVersion : runtimeVersion;
+    const normalizedStoredVersion = normalizeOperatorFacingVersion(storedVersion);
+    if (normalizedStoredVersion) {
+      return this.compareVersions(normalizedStoredVersion, runtimeVersion) >= 0
+        ? normalizedStoredVersion
+        : runtimeVersion;
     }
 
     return runtimeVersion;

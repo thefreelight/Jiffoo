@@ -218,6 +218,29 @@ describe('Upgrade Endpoints', () => {
         }),
       );
     });
+
+    it('should strip the opensource distribution suffix from currentVersion and stop advertising a phantom update', async () => {
+      vi.stubEnv('JIFFOO_VERSION', '1.0.17-opensource');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => ({
+          ok: true,
+          json: async () => PUBLIC_MANIFEST,
+        })) as typeof fetch,
+      );
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/upgrade/version',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.data.currentVersion).toBe('1.0.17');
+      expect(body.data.latestVersion).toBe('1.0.17');
+      expect(body.data.updateAvailable).toBe(false);
+    });
   });
 
   describe('POST /api/upgrade/check', () => {

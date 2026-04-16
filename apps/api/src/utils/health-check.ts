@@ -5,7 +5,7 @@ import { env } from '@/config/env';
 // Build info injected at build time via environment variables
 const BUILD_SHA = process.env.BUILD_SHA || 'development';
 const BUILD_TIME = process.env.BUILD_TIME || new Date().toISOString();
-const APP_VERSION = process.env.APP_VERSION || '1.0.0';
+const APP_VERSION = (process.env.APP_VERSION || '1.0.0').replace(/-opensource$/, '');
 
 export interface HealthCheckResult {
   status: 'ok' | 'degraded' | 'unhealthy';
@@ -173,4 +173,3 @@ export async function readinessCheck(): Promise<{
     },
   };
 }
-

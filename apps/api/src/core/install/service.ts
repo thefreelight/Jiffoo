@@ -24,9 +24,18 @@ export interface InstallData {
 
 const CURRENT_VERSION = '1.0.0';
 const RELEASE_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
+const OSS_DISTRIBUTION_SUFFIX = /-opensource$/;
 
 function isValidReleaseVersion(version: string | null | undefined): version is string {
   return typeof version === 'string' && RELEASE_VERSION_PATTERN.test(version);
+}
+
+function normalizeOperatorFacingVersion(version: string | null | undefined): string | null {
+  if (!isValidReleaseVersion(version)) {
+    return null;
+  }
+
+  return version.replace(OSS_DISTRIBUTION_SUFFIX, '');
 }
 
 function parseReleaseVersion(version: string) {
@@ -83,8 +92,9 @@ function compareReleaseVersions(a: string, b: string): number {
 
 function resolveCurrentVersion(): string {
   const envVersion = process.env.JIFFOO_VERSION || process.env.APP_VERSION;
-  if (isValidReleaseVersion(envVersion)) {
-    return envVersion;
+  const normalizedEnvVersion = normalizeOperatorFacingVersion(envVersion);
+  if (normalizedEnvVersion) {
+    return normalizedEnvVersion;
   }
 
   const candidates = [
@@ -96,8 +106,9 @@ function resolveCurrentVersion(): string {
     try {
       if (!fs.existsSync(candidate)) continue;
       const json = JSON.parse(fs.readFileSync(candidate, 'utf8')) as { version?: string };
-      if (isValidReleaseVersion(json.version)) {
-        return json.version;
+      const normalizedPackageVersion = normalizeOperatorFacingVersion(json.version);
+      if (normalizedPackageVersion) {
+        return normalizedPackageVersion;
       }
     } catch {
       // Ignore unreadable package metadata and continue to fallback.
@@ -108,8 +119,11 @@ function resolveCurrentVersion(): string {
 }
 
 function resolveInstalledVersion(storedVersion: string | null | undefined, runtimeVersion: string): string {
-  if (isValidReleaseVersion(storedVersion)) {
-    return compareReleaseVersions(storedVersion, runtimeVersion) >= 0 ? storedVersion : runtimeVersion;
+  const normalizedStoredVersion = normalizeOperatorFacingVersion(storedVersion);
+  if (normalizedStoredVersion) {
+    return compareReleaseVersions(normalizedStoredVersion, runtimeVersion) >= 0
+      ? normalizedStoredVersion
+      : runtimeVersion;
   }
 
   return runtimeVersion;
