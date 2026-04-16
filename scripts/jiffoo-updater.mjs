@@ -177,6 +177,17 @@ async function writeStatus(statusFile, patch) {
   await fs.writeFile(statusFile, JSON.stringify(next, null, 2), 'utf8');
 }
 
+async function readStatusFile(statusFile) {
+  if (!statusFile) return null;
+
+  try {
+    const raw = await fs.readFile(statusFile, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
 async function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
@@ -238,6 +249,11 @@ function substituteVersion(url, version) {
 
 function normalizeManifestUrl(url) {
   return url === LEGACY_MANIFEST_URL ? DEFAULT_MANIFEST_URL : url;
+}
+
+function normalizeReleaseVersion(version) {
+  if (typeof version !== 'string') return '';
+  return version.trim().replace(/-opensource$/, '');
 }
 
 function buildComposeArgs(composePrefixArgs, composeProjectName, composeFile, extraArgs) {
@@ -315,6 +331,21 @@ function snapshotComposeState(commandEnv, composeProjectName) {
     ADMIN_IMAGE: commandEnv.ADMIN_IMAGE || null,
     SHOP_IMAGE: commandEnv.SHOP_IMAGE || null,
     UPDATER_IMAGE: commandEnv.UPDATER_IMAGE || null,
+  };
+}
+
+function buildImageFirstComposeState(commandEnv, composeProjectName, manifestUrl, sourceArchiveUrl, runtimeImages, targetVersion) {
+  return {
+    ...snapshotComposeState(commandEnv, composeProjectName),
+    APP_VERSION: targetVersion,
+    JIFFOO_DEPLOYMENT_MODE: 'docker-compose',
+    JIFFOO_CORE_UPDATE_MANIFEST_URL: manifestUrl,
+    JIFFOO_SOURCE_ARCHIVE_URL: sourceArchiveUrl,
+    COMPOSE_PROJECT_NAME: composeProjectName,
+    API_IMAGE: runtimeImages.api,
+    ADMIN_IMAGE: runtimeImages.admin,
+    SHOP_IMAGE: runtimeImages.shop,
+    UPDATER_IMAGE: runtimeImages.updater || commandEnv.UPDATER_IMAGE || null,
   };
 }
 
@@ -515,6 +546,79 @@ async function waitForApiHealth(composeCommand, composePrefixArgs, composeFile, 
   throw new Error('API health check did not become ready in time');
 }
 
+async function waitForApiLiveRuntime(composeCommand, composePrefixArgs, composeFile, commandEnv, targetVersion) {
+  const expectedVersion = normalizeReleaseVersion(targetVersion);
+  const validationScript = `
+const fs = require('fs');
+const normalize = (value) => String(value || '').trim().replace(/-opensource$/, '');
+const pkgVersion = normalize(JSON.parse(fs.readFileSync('/app/package.json', 'utf8')).version);
+const envVersion = normalize(process.env.APP_VERSION);
+const expected = normalize(process.argv[1]);
+
+if (pkgVersion !== expected || envVersion !== expected) {
+  console.error(JSON.stringify({ expected, pkgVersion, envVersion }));
+  process.exit(1);
+}
+`;
+
+  for (let attempt = 0; attempt < 24; attempt += 1) {
+    try {
+      await run(
+        composeCommand,
+        buildComposeArgs(
+          composePrefixArgs,
+          commandEnv.COMPOSE_PROJECT_NAME,
+          composeFile,
+          ['exec', '-T', 'api', 'node', '-e', validationScript, expectedVersion],
+        ),
+        { env: commandEnv },
+      );
+      return;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+    }
+  }
+
+  throw new Error(`Live API runtime did not converge to ${expectedVersion} in time`);
+}
+
+async function acquireUpgradeLock(workspaceDir, statusFile, targetVersion) {
+  const lockFile = path.join(workspaceDir, '.jiffoo-updater', 'upgrade.lock');
+  await fs.mkdir(path.dirname(lockFile), { recursive: true });
+
+  const writeLock = async () => {
+    await fs.writeFile(
+      lockFile,
+      `${JSON.stringify({
+        pid: process.pid,
+        targetVersion,
+        createdAt: new Date().toISOString(),
+      }, null, 2)}\n`,
+      { encoding: 'utf8', flag: 'wx' },
+    );
+  };
+
+  try {
+    await writeLock();
+  } catch (error) {
+    if (error?.code !== 'EEXIST') {
+      throw error;
+    }
+
+    const status = await readStatusFile(statusFile);
+    if (status && ['idle', 'completed', 'failed', 'recovered'].includes(status.status)) {
+      await fs.rm(lockFile, { force: true });
+      await writeLock();
+    } else {
+      throw new Error(`Another upgrade is already in progress (lock file: ${lockFile})`);
+    }
+  }
+
+  return async () => {
+    await fs.rm(lockFile, { force: true });
+  };
+}
+
 async function performDockerComposeUpgrade(options) {
   const composeFile = resolvePath(String(options['compose-file']));
   const envFile = options['env-file']
@@ -533,6 +637,7 @@ async function performDockerComposeUpgrade(options) {
   composeEnv.COMPOSE_PROJECT_NAME = composeProjectName;
   const { command: composeCommand, prefixArgs: composePrefixArgs } = resolveComposeInvocation();
   const envSnapshot = snapshotComposeState(composeEnv, composeProjectName);
+  const releaseUpgradeLock = await acquireUpgradeLock(workspaceDir, statusFile, targetVersion);
   let imageFallbackSnapshot = null;
   let useImageFirst = false;
 
@@ -552,6 +657,22 @@ async function performDockerComposeUpgrade(options) {
     if (runtimeImages) {
       useImageFirst = true;
       imageFallbackSnapshot = snapshotComposeState(composeEnv, composeProjectName);
+      const sourceArchiveUrl =
+        typeof manifest?.sourceArchiveUrl === 'string' && manifest.sourceArchiveUrl.trim().length > 0
+          ? manifest.sourceArchiveUrl.trim()
+          : composeEnv.JIFFOO_SOURCE_ARCHIVE_URL || DEFAULT_SOURCE_ARCHIVE_URL;
+      const nextComposeState = buildImageFirstComposeState(
+        composeEnv,
+        composeProjectName,
+        manifestUrl,
+        sourceArchiveUrl,
+        runtimeImages,
+        targetVersion,
+      );
+      const cutoverEnv = {
+        ...composeEnv,
+        ...nextComposeState,
+      };
 
       console.log('[jiffoo-updater] Creating image-first rollback snapshot');
       await writeStatus(statusFile, {
@@ -562,35 +683,7 @@ async function performDockerComposeUpgrade(options) {
       });
       await backupComposeState(backupRoot, backupId, imageFallbackSnapshot);
 
-      console.log('[jiffoo-updater] Writing target image refs into compose environment');
-      const nextComposeState = {
-        ...imageFallbackSnapshot,
-        APP_VERSION: targetVersion,
-        JIFFOO_DEPLOYMENT_MODE: 'docker-compose',
-        JIFFOO_CORE_UPDATE_MANIFEST_URL: manifestUrl,
-        JIFFOO_SOURCE_ARCHIVE_URL:
-          typeof manifest?.sourceArchiveUrl === 'string' && manifest.sourceArchiveUrl.trim().length > 0
-            ? manifest.sourceArchiveUrl.trim()
-            : composeEnv.JIFFOO_SOURCE_ARCHIVE_URL || DEFAULT_SOURCE_ARCHIVE_URL,
-        API_IMAGE: runtimeImages.api,
-        ADMIN_IMAGE: runtimeImages.admin,
-        SHOP_IMAGE: runtimeImages.shop,
-        UPDATER_IMAGE: runtimeImages.updater || imageFallbackSnapshot.UPDATER_IMAGE,
-        COMPOSE_PROJECT_NAME: composeProjectName,
-      };
-      await writeComposeState(envFile, nextComposeState);
-      Object.assign(composeEnv, nextComposeState);
-      process.env.APP_VERSION = targetVersion;
-      process.env.JIFFOO_DEPLOYMENT_MODE = 'docker-compose';
-      process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL = manifestUrl;
-      process.env.JIFFOO_SOURCE_ARCHIVE_URL = nextComposeState.JIFFOO_SOURCE_ARCHIVE_URL;
-      process.env.COMPOSE_PROJECT_NAME = composeProjectName;
-      process.env.API_IMAGE = runtimeImages.api;
-      process.env.ADMIN_IMAGE = runtimeImages.admin;
-      process.env.SHOP_IMAGE = runtimeImages.shop;
-      if (runtimeImages.updater) {
-        process.env.UPDATER_IMAGE = runtimeImages.updater;
-      }
+      console.log('[jiffoo-updater] Staging target image refs for image-first cutover');
 
       console.log('[jiffoo-updater] Pulling target runtime images');
       await writeStatus(statusFile, {
@@ -604,7 +697,7 @@ async function performDockerComposeUpgrade(options) {
         composePrefixArgs,
         composeProjectName,
         composeFile,
-        composeEnv,
+        cutoverEnv,
         Boolean(runtimeImages.updater),
       );
 
@@ -620,7 +713,7 @@ async function performDockerComposeUpgrade(options) {
         composePrefixArgs,
         composeProjectName,
         composeFile,
-        composeEnv,
+        cutoverEnv,
       );
 
       console.log('[jiffoo-updater] Applying database migrations');
@@ -635,7 +728,7 @@ async function performDockerComposeUpgrade(options) {
         composePrefixArgs,
         composeProjectName,
         composeFile,
-        composeEnv,
+        cutoverEnv,
       );
 
       console.log('[jiffoo-updater] Waiting for API health');
@@ -645,7 +738,24 @@ async function performDockerComposeUpgrade(options) {
         currentStep: 'Waiting for API health checks',
         targetVersion,
       });
-      await waitForApiHealth(composeCommand, composePrefixArgs, composeFile, composeEnv);
+      await waitForApiHealth(composeCommand, composePrefixArgs, composeFile, cutoverEnv);
+      await writeStatus(statusFile, {
+        status: 'verifying',
+        progress: 96,
+        currentStep: 'Verifying live runtime version before commit',
+        targetVersion,
+      });
+      await waitForApiLiveRuntime(composeCommand, composePrefixArgs, composeFile, cutoverEnv, targetVersion);
+      console.log('[jiffoo-updater] Committing runtime version and image refs');
+      await writeStatus(statusFile, {
+        status: 'verifying',
+        progress: 98,
+        currentStep: 'Committing runtime version and image refs',
+        targetVersion,
+      });
+      await writeComposeState(envFile, nextComposeState);
+      Object.assign(composeEnv, nextComposeState);
+      applyProcessEnvSnapshot(nextComposeState);
       await writeStatus(statusFile, {
         status: 'completed',
         progress: 100,
@@ -655,6 +765,12 @@ async function performDockerComposeUpgrade(options) {
       });
       console.log('[jiffoo-updater] Image-first upgrade completed successfully');
       return;
+    }
+
+    if (options['force-source-archive'] !== true) {
+      throw new Error(
+        'Image-first upgrade metadata is unavailable. Source-archive rescue is disabled by default; rerun with --force-source-archive only for recovery.',
+      );
     }
 
     let archiveUrl = options['source-archive-url']
@@ -703,16 +819,14 @@ async function performDockerComposeUpgrade(options) {
     await writeStatus(statusFile, {
       status: 'applying',
       progress: 50,
-      currentStep: 'Applying release payload',
+      currentStep: 'Applying rescue source-archive payload',
       targetVersion,
     });
     await replaceWorkspace(workspaceDir, nextRoot);
-    Object.assign(composeEnv, sourceFallbackComposeState);
-    process.env.APP_VERSION = sourceFallbackComposeState.APP_VERSION;
-    process.env.JIFFOO_DEPLOYMENT_MODE = sourceFallbackComposeState.JIFFOO_DEPLOYMENT_MODE;
-    process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL = sourceFallbackComposeState.JIFFOO_CORE_UPDATE_MANIFEST_URL;
-    process.env.JIFFOO_SOURCE_ARCHIVE_URL = sourceFallbackComposeState.JIFFOO_SOURCE_ARCHIVE_URL;
-    process.env.COMPOSE_PROJECT_NAME = sourceFallbackComposeState.COMPOSE_PROJECT_NAME;
+    const sourceFallbackEnv = {
+      ...composeEnv,
+      ...sourceFallbackComposeState,
+    };
 
     console.log('[jiffoo-updater] Rebuilding and restarting docker-compose services');
     await writeStatus(statusFile, {
@@ -727,7 +841,7 @@ async function performDockerComposeUpgrade(options) {
       composeProjectName,
       composeFile,
       ['rm', '-f', '-s', ...RUNTIME_SERVICES],
-      composeEnv,
+      sourceFallbackEnv,
     ).catch(() => {
       // Ignore when target containers do not exist yet.
     });
@@ -737,7 +851,7 @@ async function performDockerComposeUpgrade(options) {
       composeProjectName,
       composeFile,
       ['up', '-d', '--build', '--no-deps', ...RUNTIME_SERVICES],
-      composeEnv,
+      sourceFallbackEnv,
     );
 
     console.log('[jiffoo-updater] Applying database migrations');
@@ -752,7 +866,7 @@ async function performDockerComposeUpgrade(options) {
       composePrefixArgs,
       composeProjectName,
       composeFile,
-      composeEnv,
+      sourceFallbackEnv,
     );
 
     console.log('[jiffoo-updater] Waiting for API health');
@@ -762,7 +876,29 @@ async function performDockerComposeUpgrade(options) {
       currentStep: 'Waiting for API health checks',
       targetVersion,
     });
-    await waitForApiHealth(composeCommand, composePrefixArgs, composeFile, composeEnv);
+    await waitForApiHealth(composeCommand, composePrefixArgs, composeFile, sourceFallbackEnv);
+    await writeStatus(statusFile, {
+      status: 'verifying',
+      progress: 96,
+      currentStep: 'Verifying live runtime version before commit',
+      targetVersion,
+    });
+    await waitForApiLiveRuntime(
+      composeCommand,
+      composePrefixArgs,
+      composeFile,
+      sourceFallbackEnv,
+      targetVersion,
+    );
+    await writeStatus(statusFile, {
+      status: 'verifying',
+      progress: 98,
+      currentStep: 'Committing rescue runtime version metadata',
+      targetVersion,
+    });
+    await writeComposeState(envFile, sourceFallbackComposeState);
+    Object.assign(composeEnv, sourceFallbackComposeState);
+    applyProcessEnvSnapshot(sourceFallbackComposeState);
     await writeStatus(statusFile, {
       status: 'completed',
       progress: 100,
@@ -770,9 +906,6 @@ async function performDockerComposeUpgrade(options) {
       targetVersion,
       error: null,
     });
-    if (envFile && fsSync.existsSync(envFile)) {
-      await writeComposeState(envFile, sourceFallbackComposeState);
-    }
     console.log('[jiffoo-updater] Upgrade completed successfully');
   } catch (error) {
     console.error(`[jiffoo-updater] Upgrade failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -788,15 +921,27 @@ async function performDockerComposeUpgrade(options) {
     if (useImageFirst && imageFallbackSnapshot) {
       console.error('[jiffoo-updater] Restoring previous runtime image state');
       await writeComposeState(envFile, imageFallbackSnapshot);
+      const restoreEnv = {
+        ...composeEnv,
+        ...imageFallbackSnapshot,
+      };
       Object.assign(composeEnv, imageFallbackSnapshot);
+      applyProcessEnvSnapshot(imageFallbackSnapshot);
       await recreateComposeRuntimeServices(
         composeCommand,
         composePrefixArgs,
         composeProjectName,
         composeFile,
-        composeEnv,
+        restoreEnv,
       );
-      await waitForApiHealth(composeCommand, composePrefixArgs, composeFile, composeEnv);
+      await waitForApiHealth(composeCommand, composePrefixArgs, composeFile, restoreEnv);
+      await waitForApiLiveRuntime(
+        composeCommand,
+        composePrefixArgs,
+        composeFile,
+        restoreEnv,
+        imageFallbackSnapshot.APP_VERSION || targetVersion,
+      );
       await writeStatus(statusFile, {
         status: 'recovered',
         progress: 100,
@@ -821,6 +966,14 @@ async function performDockerComposeUpgrade(options) {
         restoreArgs,
         composeEnv,
       );
+      await waitForApiHealth(composeCommand, composePrefixArgs, composeFile, composeEnv);
+      await waitForApiLiveRuntime(
+        composeCommand,
+        composePrefixArgs,
+        composeFile,
+        composeEnv,
+        envSnapshot.APP_VERSION || targetVersion,
+      );
       await writeStatus(statusFile, {
         status: 'recovered',
         progress: 100,
@@ -831,6 +984,7 @@ async function performDockerComposeUpgrade(options) {
     }
     throw error;
   } finally {
+    await releaseUpgradeLock();
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 }

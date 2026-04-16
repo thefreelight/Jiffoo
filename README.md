@@ -63,6 +63,12 @@ and optionally seeds demo data with:
 
 - Admin: `admin@jiffoo.com / admin123`
 
+Important defaults:
+
+- one-command installs now default `JIFFOO_DEMO_MODE=false`
+- the login UI will not display demo credentials unless demo mode is explicitly enabled
+- demo-mode login credentials are controlled by the backend, not hardcoded in the frontend
+
 The underlying production compose file is:
 
 ```bash
@@ -80,6 +86,17 @@ The public self-hosted update flow currently has two separate publication surfac
 
 `https://get.jiffoo.com/releases/core/manifest.json` is the source of truth for self-hosted version detection. Updating the Kubernetes `jiffoo-installer` service alone does not update the public OSS manifest or source archive assets.
 
+### Self-Hosted Upgrade Model
+
+The Docker Compose upgrader follows a staged runtime cutover model:
+
+- `image-first` is the default path
+- `source-archive` is recovery-only
+- `APP_VERSION` is committed only after live runtime verification succeeds
+- `api`, `shop`, and `admin` switch sequentially instead of a one-shot recreate
+
+See the dedicated upgrade docs for the full decision trail and execution record.
+
 ### Maintainer OSS Patch Release Helper
 
 Maintainers can prepare or publish an OSS patch release with:
@@ -95,6 +112,13 @@ Add `--publish` to let the helper:
 - push the current branch and tag
 - create the GitHub Release
 - upload `core-update-manifest.json`, `jiffoo-source.tar.gz`, and `jiffoo-source.tar.gz.sha256`
+
+The helper is for maintainers, not merchants. Its job is to remove the repetitive patch-release ceremony around:
+
+- bumping OSS release metadata
+- aligning `package.json`, public manifest defaults, and build-target metadata
+- generating self-hosted release artifacts
+- creating the GitHub tag/release and attaching the public update assets
 
 Use `--dry-run` first if you want to inspect the planned actions before it touches git state.
 
@@ -128,6 +152,10 @@ Jiffoo/
 - [Core API SDK](packages/core-api-sdk/README.md)
 - [Plugin SDK](packages/plugin-sdk/README.md)
 - [Theme API SDK](packages/theme-api-sdk/README.md)
+- [Self-Hosted Updater Spec](docs/operations/self-hosted-updater-spec.md)
+- [Self-Hosted Updater PRD](docs/operations/self-hosted-updater-prd.md)
+- [Self-Hosted Updater PRD Executable](docs/operations/self-hosted-updater-prd-executable.md)
+- [ADR-0001 Self-Hosted Updater Commits Version Last](docs/adr/ADR-0001-self-hosted-updater-version-commit-last.md)
 - [Cross-Platform Theme Client Contract](docs/theme-client-platform-contract.md)
 - [Theme Client API Catalog](docs/theme-client-api-catalog.json)
 - [Theme Client Compatibility Matrix](docs/theme-client-compatibility-matrix.md)

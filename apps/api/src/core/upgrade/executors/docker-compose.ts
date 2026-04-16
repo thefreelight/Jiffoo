@@ -53,7 +53,7 @@ export class DockerComposeUpdateExecutor extends BaseUpdateExecutor {
 
   getManualGuidance(reason?: string | null): string {
     const prefix = reason ? `${reason} ` : '';
-    return `${prefix}Install the local updater bridge (or set JIFFOO_UPDATER_URL) and configure JIFFOO_DOCKER_COMPOSE_FILE if needed. Until the executor is ready, follow the operator guide: pull the new images, update the compose release tag, run migrations, and verify service health.`;
+    return `${prefix}Install the local updater bridge (or set JIFFOO_UPDATER_URL) and configure JIFFOO_DOCKER_COMPOSE_FILE if needed. Until the executor is ready, follow the operator guide: pull the new images, switch api/shop/admin sequentially, verify the live runtime version, and only then commit the compose APP_VERSION. Treat source-archive as a recovery path, not the default upgrade flow.`;
   }
 
   async execute(context: UpdateExecutionContext): Promise<UpdateExecutionResult> {

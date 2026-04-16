@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.14-opensource - 2026-04-17
+
+- hardens the Docker Compose self-hosted upgrader with a durable update lock and explicit runtime-version verification
+- commits `APP_VERSION` only after the live runtime cutover succeeds, instead of persisting the target version up front
+- keeps `image-first` as the normal path and makes `source-archive` an explicit recovery-only mode
+- adds updater architecture docs: spec, PRD, PRD executable, and ADR
+- aligns Admin/API operator guidance with the new upgrade model
+
 ## v1.0.5-opensource - 2026-04-11
 
 - publishes the April 11 open-source release cut for the self-hosted `1.0.5` core update

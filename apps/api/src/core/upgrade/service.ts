@@ -172,6 +172,8 @@ export class UpgradeService {
       'Create a pre-upgrade backup',
       'Run backward-compatible migrations only',
       'Verify plugin and theme compatibility before cutover',
+      'Verify the live runtime before committing the version change',
+      'Treat source-archive as a recovery path, not the default upgrade flow',
       'Rely on automatic recovery if the upgrade fails',
     ];
 

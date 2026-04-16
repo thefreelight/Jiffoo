@@ -62,6 +62,9 @@ async function createFakeDocker(rootDir) {
   const wrapperBody = `#!/usr/bin/env bash
 set -euo pipefail
 printf '%s\\n' "$*" >> "${dockerLog}"
+if [[ "$*" == *"exec -T api npx prisma migrate deploy"* ]]; then
+  sleep 2
+fi
 exit 0
 `;
 
@@ -150,6 +153,18 @@ async function pollStatus(port) {
   throw new Error('Timed out waiting for updater status to finish');
 }
 
+async function pollStatusUntil(port, predicate) {
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const status = await fetch(`http://127.0.0.1:${port}/status`).then((response) => response.json());
+    if (predicate(status)) {
+      return status;
+    }
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+
+  throw new Error('Timed out waiting for updater status to reach the requested checkpoint');
+}
+
 async function waitForAgent(port) {
   for (let attempt = 0; attempt < 30; attempt += 1) {
     try {
@@ -201,6 +216,19 @@ async function main() {
       throw new Error(`Agent returned HTTP ${trigger.status}`);
     }
 
+    const inFlightStatus = await pollStatusUntil(
+      agentPort,
+      (status) => status.progress >= 55 && !['completed', 'failed', 'recovered'].includes(status.status),
+    );
+    if (inFlightStatus.targetVersion !== '1.0.5') {
+      throw new Error(`Unexpected in-flight target version: ${JSON.stringify(inFlightStatus)}`);
+    }
+
+    const envDuringUpgrade = await fs.readFile(path.join(workspaceDir, '.env.production.local'), 'utf8');
+    if (!envDuringUpgrade.includes('APP_VERSION=1.0.0')) {
+      throw new Error('Updater rehearsal committed APP_VERSION before the runtime cutover finished');
+    }
+
     const finalStatus = await pollStatus(agentPort);
     if (finalStatus.status !== 'completed') {
       throw new Error(`Updater rehearsal did not complete successfully: ${JSON.stringify(finalStatus)}`);
@@ -232,6 +260,7 @@ async function main() {
       'rm -f -s admin',
       'up -d --no-build --no-deps admin',
       'exec -T api npx prisma migrate deploy',
+      'exec -T api node -e',
     ]) {
       if (!dockerCalls.includes(expected)) {
         throw new Error(`Expected docker call not observed: ${expected}`);
