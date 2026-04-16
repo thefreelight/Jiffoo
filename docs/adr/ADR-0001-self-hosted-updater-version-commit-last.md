@@ -17,6 +17,9 @@ We will treat the updater as a bootstrap layer and adopt a two-phase runtime com
 - target images and target `APP_VERSION` are staged in command env only during cutover.
 - the live API runtime must report both package version and `APP_VERSION` equal to the target release before the compose state is committed.
 - the compose env file is written last.
+- formal OSS release publication remains anchored to the Singapore cluster path that updates `get.jiffoo.com`.
+- GitHub Release creation is not by itself the self-hosted detection source of truth.
+- consumer hosts such as RackNerd-branded sites are rollout targets that may remain on older runtime/updater versions until they are explicitly updated.
 
 ## Consequences
 
@@ -24,3 +27,4 @@ We will treat the updater as a bootstrap layer and adopt a two-phase runtime com
 - operators get clearer terminal states and fewer ambiguous retries.
 - unexpected manifest regressions fail fast instead of silently changing upgrade strategy.
 - a crash between cutover and final commit becomes smaller and easier to reason about, because version persistence is isolated as a final step.
+- release debugging must distinguish publication state (`Singapore -> get.jiffoo.com`) from consumer rollout state (`RackNerd/brand host -> runtime update`).

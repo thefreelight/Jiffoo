@@ -24,6 +24,7 @@ That made it possible for the UI to announce a new version while the real contai
 - Treat `source-archive` as an explicit recovery tool instead of an invisible fallback.
 - Record terminal states as `completed`, `failed`, or `recovered`.
 - Prevent overlapping upgrades with a durable lock.
+- Keep release publication truth anchored to the Singapore cluster publication path instead of assuming GitHub Release alone updates the public feed.
 
 ## Non-Goals
 
@@ -40,6 +41,8 @@ That made it possible for the UI to announce a new version while the real contai
 - Final truth comes from the live runtime, not just the env file.
 - `source-archive` requires explicit rescue intent.
 - Only one upgrade may hold the lock at a time.
+- Formal OSS release publication is complete only after the Singapore cluster path updates `get.jiffoo.com/releases/core/manifest.json`.
+- Consumer installations such as RackNerd or branded domains are update consumers, not release authorities.
 
 ## Success Criteria
 
@@ -47,3 +50,4 @@ That made it possible for the UI to announce a new version while the real contai
 - After a successful upgrade, the live API container reports both package version and `APP_VERSION` equal to the target release.
 - Failed image-first upgrades restore the previous runtime and land in `recovered`.
 - Missing image metadata no longer triggers an automatic `source-archive` fallback.
+- A newly created GitHub Release does not count as "published" for self-hosted detection until `get.jiffoo.com` serves the same version.

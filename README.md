@@ -86,6 +86,10 @@ The public self-hosted update flow currently has two separate publication surfac
 
 `https://get.jiffoo.com/releases/core/manifest.json` is the source of truth for self-hosted version detection. Updating the Kubernetes `jiffoo-installer` service alone does not update the public OSS manifest or source archive assets.
 
+Formal OSS version publication is anchored to the Singapore cluster release path. A GitHub tag or GitHub Release does not, by itself, mean self-hosted instances will detect the new version. Detection changes only after the Singapore publication path has updated `get.jiffoo.com`.
+
+Downstream environments such as RackNerd-branded deployments are consumer instances. They may still report an older current version or still run an older updater until they are explicitly rolled forward, even after the public feed has advanced.
+
 ### Self-Hosted Upgrade Model
 
 The Docker Compose upgrader follows a staged runtime cutover model:
@@ -121,6 +125,12 @@ The helper is for maintainers, not merchants. Its job is to remove the repetitiv
 - creating the GitHub tag/release and attaching the public update assets
 
 Use `--dry-run` first if you want to inspect the planned actions before it touches git state.
+
+Important:
+
+- GitHub Release creation is not the final publication step for self-hosted update detection.
+- The final publication check is `https://get.jiffoo.com/releases/core/manifest.json`.
+- If a consumer instance still detects an older version, verify the public manifest first, then verify that the consumer host has actually rolled forward.
 
 ### Local URLs
 
