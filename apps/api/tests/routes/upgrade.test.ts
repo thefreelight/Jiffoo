@@ -29,14 +29,14 @@ const PUBLIC_MANIFEST = {
     shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.22',
     updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.22',
   },
-  releaseDate: '2026-04-17T09:25:14.822Z',
-  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.21-opensource',
+  releaseDate: '2026-04-17T11:19:22.585Z',
+  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.22-opensource',
   sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
   minimumCompatibleVersion: '1.0.0',
   minimumAutoUpgradableVersion: '1.0.0',
   requiresManualIntervention: false,
   releaseNotes:
-    'Adds packaged storefront runtime loading for official themes, version-aware theme asset resolution, and the shop-side support needed for ModelsFind theme-pack runtime upgrades.',
+    'Fixes self-hosted upgrade UI state so successful updates clear cached banners and normalize -opensource runtime versions before comparing them to the public feed.',
   checksumUrl: null,
   signatureUrl: null,
 } as const;
