@@ -18,16 +18,16 @@ import { createUserWithToken, createAdminWithToken, deleteAllTestUsers } from '.
 
 const PUBLIC_MANIFEST_URL = 'https://get.jiffoo.com/releases/core/manifest.json';
 const PUBLIC_MANIFEST = {
-  latestVersion: '1.0.22',
-  latestStableVersion: '1.0.22',
+  latestVersion: '1.0.23',
+  latestStableVersion: '1.0.23',
   latestPrereleaseVersion: null,
   channel: 'stable',
   deliveryMode: 'image-first',
   images: {
-    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.22',
-    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.22',
-    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.22',
-    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.22',
+    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.23',
+    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.23',
+    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.23',
+    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.23',
   },
   releaseDate: '2026-04-17T11:19:22.585Z',
   changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.22-opensource',
@@ -147,19 +147,19 @@ describe('Upgrade Endpoints', () => {
         vi.fn(async () => ({
           ok: true,
           json: async () => ({
-            latestVersion: '1.0.22',
-            latestStableVersion: '1.0.22',
+            latestVersion: '1.0.23',
+            latestStableVersion: '1.0.23',
             latestPrereleaseVersion: null,
             channel: 'stable',
             deliveryMode: 'image-first',
             images: {
-              api: 'registry.example.com/jiffoo-oss/api:1.0.22',
-              admin: 'registry.example.com/jiffoo-oss/admin:1.0.22',
-              shop: 'registry.example.com/jiffoo-oss/shop:1.0.22',
-              updater: 'registry.example.com/jiffoo-oss/updater:1.0.22',
+              api: 'registry.example.com/jiffoo-oss/api:1.0.23',
+              admin: 'registry.example.com/jiffoo-oss/admin:1.0.23',
+              shop: 'registry.example.com/jiffoo-oss/shop:1.0.23',
+              updater: 'registry.example.com/jiffoo-oss/updater:1.0.23',
             },
             releaseDate: '2026-04-11T00:00:00.000Z',
-            changelogUrl: 'https://example.com/changelog/1.0.22',
+            changelogUrl: 'https://example.com/changelog/1.0.23',
             minimumCompatibleVersion: '1.0.0',
             minimumAutoUpgradableVersion: '1.0.0',
             requiresManualIntervention: false,
@@ -176,17 +176,17 @@ describe('Upgrade Endpoints', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.data.latestVersion).toBe('1.0.22');
+      expect(body.data.latestVersion).toBe('1.0.23');
       expect(body.data.updateSource).toBe('env-manifest');
       expect(body.data.manifestStatus).toBe('available');
       expect(body.data.manifestUrl).toBe('https://updates.example.com/releases/core/manifest.json');
       expect(body.data.releaseChannel).toBe('stable');
       expect(body.data.deliveryMode).toBe('image-first');
       expect(body.data.runtimeImages).toEqual({
-        api: 'registry.example.com/jiffoo-oss/api:1.0.22',
-        admin: 'registry.example.com/jiffoo-oss/admin:1.0.22',
-        shop: 'registry.example.com/jiffoo-oss/shop:1.0.22',
-        updater: 'registry.example.com/jiffoo-oss/updater:1.0.22',
+        api: 'registry.example.com/jiffoo-oss/api:1.0.23',
+        admin: 'registry.example.com/jiffoo-oss/admin:1.0.23',
+        shop: 'registry.example.com/jiffoo-oss/shop:1.0.23',
+        updater: 'registry.example.com/jiffoo-oss/updater:1.0.23',
       });
     });
 
@@ -237,8 +237,8 @@ describe('Upgrade Endpoints', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.data.currentVersion).toBe('1.0.22');
-      expect(body.data.latestVersion).toBe('1.0.22');
+      expect(body.data.currentVersion).toBe('1.0.23');
+      expect(body.data.latestVersion).toBe('1.0.23');
       expect(body.data.updateAvailable).toBe(false);
     });
   });
