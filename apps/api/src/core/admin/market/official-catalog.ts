@@ -4,6 +4,7 @@ import { compareVersions } from '@/core/admin/extension-installer/version-utils'
 import { managedPackageService } from '@/core/admin/managed-package/service';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { ThemeManagementService } from '@/core/admin/theme-management/service';
+import type { ThemeMeta } from '@/core/admin/theme-management/types';
 import {
   OFFICIAL_LAUNCH_EXTENSIONS,
   type CommercialPackageProjection,
@@ -19,6 +20,7 @@ import {
 } from 'shared';
 import { MarketClient } from './market-client';
 import { checkOfficialArtifactReachable } from './official-artifact-health';
+import { UpdateChecker, type MarketUpdateCheckResult } from './update-checker';
 
 type OfficialExtensionKind = 'theme' | 'plugin';
 type OfficialInstallState = 'not_installed' | 'installed' | 'enabled' | 'active';
@@ -228,6 +230,48 @@ function isNonBuiltinThemeSource(
   return source === 'installed' || source === 'local-zip' || source === 'official-market';
 }
 
+function buildInstalledOfficialThemeState(
+  activeTheme: Awaited<ReturnType<typeof ThemeManagementService.getActiveTheme>>,
+  installedThemes: Awaited<ReturnType<typeof ThemeManagementService.getInstalledThemes>>,
+) {
+  const installedBySlug = new Map<
+    string,
+    {
+      version: string;
+      source: Exclude<OfficialCatalogItem['source'], 'builtin' | 'catalog'>;
+      installState: OfficialInstallState;
+      themeMeta?: ThemeMeta;
+    }
+  >();
+
+  for (const theme of installedThemes.items) {
+    if (theme.target !== 'shop' || !isNonBuiltinThemeSource(theme.source)) {
+      continue;
+    }
+
+    installedBySlug.set(theme.slug, {
+      version: theme.version,
+      source: theme.source,
+      installState: activeTheme.slug === theme.slug && activeTheme.type === (theme.type ?? 'pack')
+        ? 'active'
+        : 'installed',
+      themeMeta: theme,
+    });
+  }
+
+  if (activeTheme.source === 'official-market' && activeTheme.type === 'pack') {
+    const existing = installedBySlug.get(activeTheme.slug);
+    installedBySlug.set(activeTheme.slug, {
+      version: activeTheme.version,
+      source: 'official-market',
+      installState: 'active',
+      themeMeta: existing?.themeMeta,
+    });
+  }
+
+  return installedBySlug;
+}
+
 function toFallbackRemoteItem(seed: OfficialCatalogEntry): RemoteOfficialCatalogItem {
   return {
     id: `seed:${seed.slug}`,
@@ -293,6 +337,12 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
   const remoteCatalog = connectivity.ok
     ? await MarketClient.getOfficialCatalog(undefined, { fresh: hasInstalledOfficialSurface }).catch(() => null)
     : null;
+  const cachedUpdates = remoteCatalog
+    ? null
+    : await UpdateChecker.getCachedResults().catch(() => null);
+  const cachedUpdatesBySlug = new Map<string, MarketUpdateCheckResult>(
+    (cachedUpdates || []).map((item) => [`${item.kind}:${item.slug}`, item] as const),
+  );
 
   const remoteItemsBySlug = new Map<string, RemoteOfficialCatalogItem>(
     (remoteCatalog?.items || OFFICIAL_LAUNCH_EXTENSIONS.map(toFallbackRemoteItem)).map((item) => [
@@ -302,7 +352,7 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
   );
   const managedPackage = managedStatus.package;
 
-  const installedThemesBySlug = new Map(installedThemes.items.map((theme) => [theme.slug, theme]));
+  const installedOfficialThemesBySlug = buildInstalledOfficialThemeState(activeTheme, installedThemes);
   const installedPluginsBySlug = new Map(pluginPackages.map((plugin) => [plugin.slug, plugin]));
 
   const items = await Promise.all(
@@ -323,34 +373,31 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         : 'offline';
 
       if (seed.kind === 'theme') {
-        const installedTheme = installedThemesBySlug.get(seed.slug);
-        const installedMarketTheme = installedTheme && isNonBuiltinThemeSource(installedTheme.source)
-          ? installedTheme
-          : null;
-        const activeMarketTheme = activeTheme.slug === seed.slug && isNonBuiltinThemeSource(activeTheme.source)
-          ? activeTheme
-          : null;
-        const installState: OfficialInstallState = activeMarketTheme
-          ? 'active'
-          : installedMarketTheme
-            ? 'installed'
-            : 'not_installed';
-        const installedVersion = installedMarketTheme?.version || null;
-        const latestVersion = remoteItem.sellableVersion || remoteItem.currentVersion || seed.version;
-        const updateAvailable = installedMarketTheme
+        const installedThemeState = installedOfficialThemesBySlug.get(seed.slug);
+        const installedVersion = installedThemeState?.version || null;
+        const cachedThemeUpdate = cachedUpdatesBySlug.get(`theme:${seed.slug}`);
+        const latestVersion = (!remoteCatalog ? cachedThemeUpdate?.latestVersion : null)
+          || remoteItem.sellableVersion
+          || remoteItem.currentVersion
+          || cachedThemeUpdate?.latestVersion
+          || seed.version;
+        const updateAvailable = installedThemeState
           ? hasVersionUpdate(installedVersion, latestVersion)
-          : false;
+          : cachedThemeUpdate?.hasUpdate || false;
+
+        const installState: OfficialInstallState = installedThemeState?.installState || 'not_installed';
+        const installedTheme = installedThemeState?.themeMeta || null;
 
         return {
           slug: seed.slug,
-          name: installedMarketTheme?.name || remoteItem.name || seed.name,
+          name: installedTheme?.name || remoteItem.name || seed.name,
           kind: seed.kind,
           listingDomain: remoteItem.listingDomain ?? seed.listingDomain,
           listingKind: remoteItem.listingKind ?? seed.listingKind,
           providerType: remoteItem.providerType ?? seed.providerType,
-          version: installedMarketTheme?.version || remoteItem.sellableVersion || remoteItem.currentVersion || seed.version,
-          author: installedMarketTheme?.author || remoteItem.author || seed.author,
-          description: installedMarketTheme?.description || remoteItem.description || seed.description,
+          version: installedVersion || remoteItem.sellableVersion || remoteItem.currentVersion || seed.version,
+          author: installedTheme?.author || remoteItem.author || seed.author,
+          description: installedTheme?.description || remoteItem.description || seed.description,
           category: meta.category,
           deliveryMode: remoteItem.deliveryMode,
           paymentMode: remoteItem.paymentMode ?? seed.paymentMode,
@@ -362,7 +409,7 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
           currency: remoteItem.currency,
           installState,
           releaseStatus,
-          source: installedMarketTheme?.source || 'catalog',
+          source: installedThemeState?.source || 'catalog',
           availableInMarket: marketInstallable,
           publishState: remoteItem.publishState,
           installable: remoteItem.installable && artifactReachable,
@@ -395,10 +442,15 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         : pluginPackage
           ? 'installed'
           : 'not_installed';
-      const latestVersion = remoteItem.sellableVersion || remoteItem.currentVersion || seed.version;
+      const cachedPluginUpdate = cachedUpdatesBySlug.get(`plugin:${seed.slug}`);
+      const latestVersion = (!remoteCatalog ? cachedPluginUpdate?.latestVersion : null)
+        || remoteItem.sellableVersion
+        || remoteItem.currentVersion
+        || cachedPluginUpdate?.latestVersion
+        || seed.version;
       const updateAvailable = pluginPackage
         ? hasVersionUpdate(pluginPackage.version, latestVersion)
-        : false;
+        : cachedPluginUpdate?.hasUpdate || false;
 
       return {
         slug: seed.slug,

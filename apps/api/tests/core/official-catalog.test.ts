@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getOfficialCatalog: vi.fn(),
   getManagedStatus: vi.fn(),
   checkOfficialArtifactReachable: vi.fn(),
+  getCachedResults: vi.fn(),
 }));
 
 vi.mock('@/core/admin/theme-management/service', () => ({
@@ -44,6 +45,12 @@ vi.mock('@/core/admin/extension-installer/official-only', () => ({
 
 vi.mock('@/core/admin/market/official-artifact-health', () => ({
   checkOfficialArtifactReachable: mocks.checkOfficialArtifactReachable,
+}));
+
+vi.mock('@/core/admin/market/update-checker', () => ({
+  UpdateChecker: {
+    getCachedResults: mocks.getCachedResults,
+  },
 }));
 
 import { getOfficialCatalog } from '@/core/admin/market/official-catalog';
@@ -146,6 +153,7 @@ describe('getOfficialCatalog', () => {
     mocks.checkConnectivity.mockResolvedValue({ ok: true, error: undefined });
     mocks.getManagedStatus.mockResolvedValue({ mode: 'oss', package: null });
     mocks.checkOfficialArtifactReachable.mockResolvedValue(true);
+    mocks.getCachedResults.mockResolvedValue(null);
     mocks.getOfficialCatalog.mockResolvedValue({
       items: [
         makeRemoteTheme('esim-mall', 'eSIM Mall'),
@@ -268,6 +276,73 @@ describe('getOfficialCatalog', () => {
       updateAvailable: true,
       installState: 'active',
     });
+  });
+
+  it('treats an active official-market theme as installed even when the local theme-pack file list is missing', async () => {
+    mocks.getOfficialCatalog.mockResolvedValue({
+      items: [
+        makeRemoteTheme('modelsfind', 'ModelsFind', '0.1.4'),
+      ],
+    });
+    mocks.getActiveTheme.mockResolvedValue({
+      slug: 'modelsfind',
+      version: '0.1.3',
+      source: 'official-market',
+      type: 'pack',
+      config: {},
+    });
+    mocks.getInstalledThemes.mockResolvedValue({
+      items: [],
+      total: 0,
+    });
+
+    const response = await getOfficialCatalog();
+    const modelsfind = response.items.find((item) => item.slug === 'modelsfind');
+
+    expect(modelsfind).toMatchObject({
+      slug: 'modelsfind',
+      version: '0.1.3',
+      latestVersion: '0.1.4',
+      updateAvailable: true,
+      installState: 'active',
+      source: 'official-market',
+    });
+  });
+
+  it('uses cached theme update results when the marketplace is temporarily offline', async () => {
+    mocks.checkConnectivity.mockResolvedValue({ ok: false, error: 'offline' });
+    mocks.getActiveTheme.mockResolvedValue({
+      slug: 'modelsfind',
+      version: '0.1.3',
+      source: 'official-market',
+      type: 'pack',
+      config: {},
+    });
+    mocks.getInstalledThemes.mockResolvedValue({
+      items: [],
+      total: 0,
+    });
+    mocks.getCachedResults.mockResolvedValue([
+      {
+        kind: 'theme',
+        slug: 'modelsfind',
+        currentVersion: '0.1.3',
+        latestVersion: '0.1.4',
+        hasUpdate: true,
+      },
+    ]);
+
+    const response = await getOfficialCatalog();
+    const modelsfind = response.items.find((item) => item.slug === 'modelsfind');
+
+    expect(modelsfind).toMatchObject({
+      slug: 'modelsfind',
+      version: '0.1.3',
+      latestVersion: '0.1.4',
+      updateAvailable: true,
+      installState: 'active',
+    });
+    expect(response.marketOnline).toBe(false);
   });
 
   it('surfaces plugin updates when the installed version is older than sellableVersion', async () => {
