@@ -20,6 +20,7 @@ import {
 } from 'shared';
 import { MarketClient } from './market-client';
 import { checkOfficialArtifactReachable } from './official-artifact-health';
+import { buildOfficialArtifactMap, fetchOfficialArtifactsIndex } from './official-artifacts-client';
 import { UpdateChecker, type MarketUpdateCheckResult } from './update-checker';
 
 type OfficialExtensionKind = 'theme' | 'plugin';
@@ -60,10 +61,12 @@ export interface OfficialCatalogItem {
   thumbnailUrl?: string;
   compatibility?: string;
   screenshots?: string[];
+  installedVersion?: string | null;
   publishState?: RemoteOfficialCatalogItem['publishState'];
   installable?: boolean;
   sellableVersion?: string;
   latestVersion?: string | null;
+  artifactPackageUrl?: string | null;
   updateAvailable?: boolean;
   configRequired?: boolean;
   configReady?: boolean;
@@ -334,9 +337,12 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
     installedThemes.items.some((theme) => isNonBuiltinThemeSource(theme.source)) ||
     pluginPackages.some((plugin) => normalizeCatalogSource(plugin?.source) !== 'catalog' && normalizeCatalogSource(plugin?.source) !== 'builtin');
 
-  const remoteCatalog = connectivity.ok
-    ? await MarketClient.getOfficialCatalog(undefined, { fresh: hasInstalledOfficialSurface }).catch(() => null)
-    : null;
+  const [remoteCatalog, artifactItems] = await Promise.all([
+    connectivity.ok
+      ? MarketClient.getOfficialCatalog(undefined, { fresh: hasInstalledOfficialSurface }).catch(() => null)
+      : Promise.resolve(null),
+    fetchOfficialArtifactsIndex({ fresh: hasInstalledOfficialSurface }).catch(() => []),
+  ]);
   const cachedUpdates = remoteCatalog
     ? null
     : await UpdateChecker.getCachedResults().catch(() => null);
@@ -350,6 +356,7 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
       item,
     ]),
   );
+  const artifactItemsByKey = buildOfficialArtifactMap(artifactItems);
   const managedPackage = managedStatus.package;
 
   const installedOfficialThemesBySlug = buildInstalledOfficialThemeState(activeTheme, installedThemes);
@@ -359,24 +366,30 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
     OFFICIAL_LAUNCH_EXTENSIONS.map(async (seed): Promise<OfficialCatalogItem> => {
       const meta = OFFICIAL_CATALOG_META[seed.slug];
       const remoteItem = remoteItemsBySlug.get(seed.slug) || toFallbackRemoteItem(seed);
-      const effectiveSellableVersion = remoteItem.sellableVersion || remoteItem.currentVersion || seed.version;
+      const artifactItem = artifactItemsByKey.get(`${seed.kind}:${seed.slug}`);
+      const effectiveSellableVersion = artifactItem?.version || remoteItem.sellableVersion || remoteItem.currentVersion || seed.version;
       const effectiveVersionSummary = remoteItem.versions.find((candidate) => candidate.version === effectiveSellableVersion)
         || remoteItem.versions.find((candidate) => candidate.isSellable)
         || remoteItem.versions[0];
-      const artifactReachable = await checkOfficialArtifactReachable(effectiveVersionSummary?.packageUrl);
-      const availableInMarket = Boolean(connectivity.ok && remoteCatalog && remoteItem.installable && remoteItem.publishState === 'published');
+      const effectivePackageUrl = artifactItem?.packageUrl || effectiveVersionSummary?.packageUrl || seed.packageUrl;
+      const artifactReachable = await checkOfficialArtifactReachable(effectivePackageUrl);
+      const hasPublishedArtifact = Boolean(artifactItem && artifactReachable);
+      const availableInMarket = Boolean(hasPublishedArtifact || (connectivity.ok && remoteCatalog && remoteItem.installable && remoteItem.publishState === 'published'));
       const marketInstallable = availableInMarket && artifactReachable;
-      const releaseStatus: OfficialReleaseStatus = connectivity.ok
-        ? marketInstallable
-          ? 'published'
-          : 'catalog-only'
-        : 'offline';
+      const releaseStatus: OfficialReleaseStatus = hasPublishedArtifact
+        ? 'published'
+        : connectivity.ok
+          ? marketInstallable
+            ? 'published'
+            : 'catalog-only'
+          : 'offline';
 
       if (seed.kind === 'theme') {
         const installedThemeState = installedOfficialThemesBySlug.get(seed.slug);
         const installedVersion = installedThemeState?.version || null;
         const cachedThemeUpdate = cachedUpdatesBySlug.get(`theme:${seed.slug}`);
-        const latestVersion = (!remoteCatalog ? cachedThemeUpdate?.latestVersion : null)
+        const latestVersion = artifactItem?.version
+          || (!remoteCatalog ? cachedThemeUpdate?.latestVersion : null)
           || remoteItem.sellableVersion
           || remoteItem.currentVersion
           || cachedThemeUpdate?.latestVersion
@@ -396,6 +409,7 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
           listingKind: remoteItem.listingKind ?? seed.listingKind,
           providerType: remoteItem.providerType ?? seed.providerType,
           version: installedVersion || remoteItem.sellableVersion || remoteItem.currentVersion || seed.version,
+          installedVersion,
           author: installedTheme?.author || remoteItem.author || seed.author,
           description: installedTheme?.description || remoteItem.description || seed.description,
           category: meta.category,
@@ -415,6 +429,7 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
           installable: remoteItem.installable && artifactReachable,
           sellableVersion: remoteItem.sellableVersion,
           latestVersion,
+          artifactPackageUrl: effectivePackageUrl,
           updateAvailable,
           downloads: remoteItem.installCount,
           solutionPackage: buildSolutionPackageMeta(managedPackage, seed.kind, seed.slug),
@@ -443,7 +458,8 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
           ? 'installed'
           : 'not_installed';
       const cachedPluginUpdate = cachedUpdatesBySlug.get(`plugin:${seed.slug}`);
-      const latestVersion = (!remoteCatalog ? cachedPluginUpdate?.latestVersion : null)
+      const latestVersion = artifactItem?.version
+        || (!remoteCatalog ? cachedPluginUpdate?.latestVersion : null)
         || remoteItem.sellableVersion
         || remoteItem.currentVersion
         || cachedPluginUpdate?.latestVersion
@@ -460,6 +476,7 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         listingKind: remoteItem.listingKind ?? seed.listingKind,
         providerType: remoteItem.providerType ?? seed.providerType,
         version: pluginPackage?.version || remoteItem.sellableVersion || remoteItem.currentVersion || seed.version,
+        installedVersion: pluginPackage?.version || null,
         author: pluginPackage?.author || remoteItem.author || seed.author,
         description: pluginPackage?.description || remoteItem.description || seed.description,
         category: meta.category,
@@ -478,6 +495,7 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         installable: remoteItem.installable && artifactReachable,
         sellableVersion: remoteItem.sellableVersion,
         latestVersion,
+        artifactPackageUrl: effectivePackageUrl,
         updateAvailable,
         downloads: remoteItem.installCount,
         configRequired: readiness.requiresConfiguration,
@@ -502,8 +520,10 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
 
   return {
     items: visibleItems,
-    marketOnline: Boolean(connectivity.ok && remoteCatalog),
-    marketError: remoteCatalog ? connectivity.error : connectivity.error || 'Official marketplace unavailable',
+    marketOnline: Boolean((connectivity.ok && remoteCatalog) || artifactItems.length > 0),
+    marketError: remoteCatalog || artifactItems.length > 0
+      ? connectivity.error
+      : connectivity.error || 'Official marketplace unavailable',
     officialMarketOnly: isOfficialMarketOnly(),
     managedPackage,
     generatedAt: new Date().toISOString(),

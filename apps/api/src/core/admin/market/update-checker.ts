@@ -11,6 +11,8 @@ import { CacheService } from '@/core/cache/service';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { ThemeManagementService } from '@/core/admin/theme-management/service';
 import { compareVersions } from '@/core/admin/extension-installer/version-utils';
+import { buildOfficialArtifactMap, fetchOfficialArtifactsIndex } from './official-artifacts-client';
+import type { OfficialExtensionCatalogItem } from 'shared';
 
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const CACHE_KEY = 'market:update-check:results';
@@ -100,14 +102,19 @@ export const UpdateChecker = {
     if (installedPlugins.length === 0 && installedThemes.length === 0) return [];
 
     try {
-      const remoteCatalog = await MarketClient.getOfficialCatalog(undefined, { fresh: true });
-      const remoteItemsBySlug = new Map(
-        remoteCatalog.items.map((item) => [item.slug, item]),
+      const [remoteCatalog, artifactItems] = await Promise.all([
+        MarketClient.getOfficialCatalog(undefined, { fresh: true }).catch(() => null),
+        fetchOfficialArtifactsIndex({ fresh: true }).catch(() => []),
+      ]);
+      const artifactItemsByKey = buildOfficialArtifactMap(artifactItems);
+      const remoteItemsBySlug = new Map<string, OfficialExtensionCatalogItem>(
+        (remoteCatalog?.items || []).map((item) => [item.slug, item]),
       );
       const updates: MarketUpdateCheckResult[] = [
         ...installedThemes.map(({ slug, version }) => {
+          const artifactItem = artifactItemsByKey.get(`theme:${slug}`);
           const remoteItem = remoteItemsBySlug.get(slug);
-          const latestVersion = remoteItem?.sellableVersion || remoteItem?.currentVersion || version;
+          const latestVersion = artifactItem?.version || remoteItem?.sellableVersion || remoteItem?.currentVersion || version;
           return {
             kind: 'theme' as const,
             slug,
@@ -117,8 +124,9 @@ export const UpdateChecker = {
           };
         }),
         ...installedPlugins.map(({ slug, version }) => {
+          const artifactItem = artifactItemsByKey.get(`plugin:${slug}`);
           const remoteItem = remoteItemsBySlug.get(slug);
-          const latestVersion = remoteItem?.sellableVersion || remoteItem?.currentVersion || version;
+          const latestVersion = artifactItem?.version || remoteItem?.sellableVersion || remoteItem?.currentVersion || version;
           return {
             kind: 'plugin' as const,
             slug,

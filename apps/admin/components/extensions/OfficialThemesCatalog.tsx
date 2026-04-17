@@ -254,6 +254,8 @@ export function OfficialThemesCatalog({
               const priceLabel = managedPackage
                 ? getText('merchant.themes.includedInPackage', 'Included in package')
                 : formatPrice(item);
+              const installedVersionLabel = item.installedVersion ? `v${item.installedVersion}` : '—';
+              const latestVersionLabel = item.latestVersion ? `v${item.latestVersion}` : `v${item.version}`;
 
               return (
               <Card key={item.slug} className="overflow-hidden rounded-[1.35rem] border-gray-100 shadow-sm">
@@ -364,6 +366,21 @@ export function OfficialThemesCatalog({
                         {getText('merchant.extensions.downloads', 'Downloads')}
                       </p>
                       <p className="mt-1 font-medium text-slate-900">{item.downloads ?? 0}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div className="rounded-xl bg-slate-50 px-3 py-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        {getText('merchant.themes.installedVersion', 'Installed')}
+                      </p>
+                      <p className="mt-1 font-medium text-slate-900">{installedVersionLabel}</p>
+                    </div>
+                    <div className="rounded-xl bg-slate-50 px-3 py-2">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        {getText('merchant.themes.latestVersion', 'Latest')}
+                      </p>
+                      <p className="mt-1 font-medium text-slate-900">{latestVersionLabel}</p>
                     </div>
                   </div>
 

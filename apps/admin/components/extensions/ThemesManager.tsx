@@ -134,6 +134,10 @@ export function ThemesManager() {
   const officialThemeItems = (officialCatalogData?.items || []).filter(
     (item) => item.kind === 'theme' && (item.target || 'shop') === 'shop'
   );
+  const activeOfficialTheme = useMemo(
+    () => officialThemeItems.find((item) => item.slug === currentActiveTheme?.slug),
+    [currentActiveTheme?.slug, officialThemeItems],
+  );
   const { record } = useManagedMode();
   const managedThemeSlugs = useMemo(
     () => new Set(record?.includedThemes ?? []),
@@ -211,7 +215,11 @@ export function ThemesManager() {
                   'This managed workspace only surfaces the storefront themes included in your commercial package.'
                 )
               : currentActiveTheme?.slug
-                ? `${getText('merchant.themes.currentTheme', 'Current Theme')}: ${currentActiveTheme.slug}`
+                ? `${getText('merchant.themes.currentTheme', 'Current Theme')}: ${currentActiveTheme.slug}${
+                    activeOfficialTheme?.latestVersion
+                      ? ` · ${getText('merchant.themes.installedVersion', 'Installed')} v${activeOfficialTheme.installedVersion || currentActiveTheme.version} · ${getText('merchant.themes.latestVersion', 'Latest')} v${activeOfficialTheme.latestVersion}`
+                      : ''
+                  }`
                 : getText('merchant.themes.subtitle', 'Customize your store appearance with beautiful themes')}
           </p>
         </div>

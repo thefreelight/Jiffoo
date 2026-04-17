@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   getManagedStatus: vi.fn(),
   checkOfficialArtifactReachable: vi.fn(),
   getCachedResults: vi.fn(),
+  fetchOfficialArtifactsIndex: vi.fn(),
+  buildOfficialArtifactMap: vi.fn(),
 }));
 
 vi.mock('@/core/admin/theme-management/service', () => ({
@@ -51,6 +53,11 @@ vi.mock('@/core/admin/market/update-checker', () => ({
   UpdateChecker: {
     getCachedResults: mocks.getCachedResults,
   },
+}));
+
+vi.mock('@/core/admin/market/official-artifacts-client', () => ({
+  fetchOfficialArtifactsIndex: mocks.fetchOfficialArtifactsIndex,
+  buildOfficialArtifactMap: mocks.buildOfficialArtifactMap,
 }));
 
 import { getOfficialCatalog } from '@/core/admin/market/official-catalog';
@@ -154,6 +161,10 @@ describe('getOfficialCatalog', () => {
     mocks.getManagedStatus.mockResolvedValue({ mode: 'oss', package: null });
     mocks.checkOfficialArtifactReachable.mockResolvedValue(true);
     mocks.getCachedResults.mockResolvedValue(null);
+    mocks.fetchOfficialArtifactsIndex.mockResolvedValue([]);
+    mocks.buildOfficialArtifactMap.mockImplementation((items: Array<{ slug: string; kind: string }>) => {
+      return new Map(items.map((item) => [`${item.kind}:${item.slug}`, item]));
+    });
     mocks.getOfficialCatalog.mockResolvedValue({
       items: [
         makeRemoteTheme('esim-mall', 'eSIM Mall'),
@@ -275,6 +286,45 @@ describe('getOfficialCatalog', () => {
       latestVersion: '0.1.3',
       updateAvailable: true,
       installState: 'active',
+    });
+  });
+
+  it('prefers the public artifact index version over stale marketplace catalog metadata', async () => {
+    mocks.getOfficialCatalog.mockResolvedValue({
+      items: [
+        makeRemoteTheme('modelsfind', 'ModelsFind', '0.1.3'),
+      ],
+    });
+    mocks.fetchOfficialArtifactsIndex.mockResolvedValue([
+      {
+        slug: 'modelsfind',
+        kind: 'theme',
+        version: '0.1.5',
+        packageUrl: 'https://market.jiffoo.com/artifacts/themes/modelsfind/0.1.5.jtheme',
+      },
+    ]);
+    mocks.getActiveTheme.mockResolvedValue({
+      slug: 'modelsfind',
+      version: '0.1.3',
+      source: 'official-market',
+      type: 'pack',
+      config: {},
+    });
+    mocks.getInstalledThemes.mockResolvedValue({
+      items: [],
+      total: 0,
+    });
+
+    const response = await getOfficialCatalog();
+    const modelsfind = response.items.find((item) => item.slug === 'modelsfind');
+
+    expect(modelsfind).toMatchObject({
+      slug: 'modelsfind',
+      version: '0.1.3',
+      installedVersion: '0.1.3',
+      latestVersion: '0.1.5',
+      artifactPackageUrl: 'https://market.jiffoo.com/artifacts/themes/modelsfind/0.1.5.jtheme',
+      updateAvailable: true,
     });
   });
 

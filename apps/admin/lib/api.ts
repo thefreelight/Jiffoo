@@ -554,8 +554,10 @@ export interface OfficialCatalogItem {
   thumbnailUrl?: string;
   compatibility?: string;
   screenshots?: string[];
+  installedVersion?: string | null;
   sellableVersion?: string;
   latestVersion?: string | null;
+  artifactPackageUrl?: string | null;
   updateAvailable?: boolean;
   configRequired?: boolean;
   configReady?: boolean;

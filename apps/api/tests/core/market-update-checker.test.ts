@@ -5,6 +5,8 @@ const mocks = vi.hoisted(() => ({
   getActiveTheme: vi.fn(),
   getInstalledThemes: vi.fn(),
   getOfficialCatalog: vi.fn(),
+  fetchOfficialArtifactsIndex: vi.fn(),
+  buildOfficialArtifactMap: vi.fn(),
   cacheSet: vi.fn(),
   cacheGet: vi.fn(),
   logSystem: vi.fn(),
@@ -30,6 +32,11 @@ vi.mock('@/core/admin/market/market-client', () => ({
   MarketClient: {
     getOfficialCatalog: mocks.getOfficialCatalog,
   },
+}));
+
+vi.mock('@/core/admin/market/official-artifacts-client', () => ({
+  fetchOfficialArtifactsIndex: mocks.fetchOfficialArtifactsIndex,
+  buildOfficialArtifactMap: mocks.buildOfficialArtifactMap,
 }));
 
 vi.mock('@/core/cache/service', () => ({
@@ -61,11 +68,15 @@ describe('UpdateChecker', () => {
     });
     mocks.getInstalledThemes.mockResolvedValue({ items: [], total: 0 });
     mocks.getOfficialCatalog.mockResolvedValue({ items: [] });
+    mocks.fetchOfficialArtifactsIndex.mockResolvedValue([]);
+    mocks.buildOfficialArtifactMap.mockImplementation((items: Array<{ slug: string; kind: string }>) => {
+      return new Map(items.map((item) => [`${item.kind}:${item.slug}`, item]));
+    });
     mocks.cacheSet.mockResolvedValue(true);
     mocks.cacheGet.mockResolvedValue(null);
   });
 
-  it('includes active official-market themes in the cached update check results even when local installed file entries are missing', async () => {
+  it('prefers the artifact index version for active official-market themes even when local installed file entries are missing', async () => {
     mocks.getActiveTheme.mockResolvedValue({
       slug: 'modelsfind',
       version: '0.1.3',
@@ -82,6 +93,14 @@ describe('UpdateChecker', () => {
         },
       ],
     });
+    mocks.fetchOfficialArtifactsIndex.mockResolvedValue([
+      {
+        slug: 'modelsfind',
+        kind: 'theme',
+        version: '0.1.5',
+        packageUrl: 'https://market.jiffoo.com/artifacts/themes/modelsfind/0.1.5.jtheme',
+      },
+    ]);
 
     const result = await UpdateChecker.check();
 
@@ -89,7 +108,7 @@ describe('UpdateChecker', () => {
       kind: 'theme',
       slug: 'modelsfind',
       currentVersion: '0.1.3',
-      latestVersion: '0.1.4',
+      latestVersion: '0.1.5',
       hasUpdate: true,
     });
     expect(mocks.cacheSet).toHaveBeenCalledWith(

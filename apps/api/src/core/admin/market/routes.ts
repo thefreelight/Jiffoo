@@ -18,6 +18,7 @@ import { cleanupDownloadedArtifact, downloadArtifactWithResume } from './resumab
 import { verifyEmbeddedOfficialArtifact, verifyOfficialArtifact } from './artifact-verification';
 import { assertOfficialArtifactReachable } from './official-artifact-health';
 import { getMarketBaseUrl } from './market-client';
+import { buildOfficialArtifactMap, fetchOfficialArtifactsIndex } from './official-artifacts-client';
 import { platformConnectionService } from '@/core/admin/platform-connection/service';
 import { managedPackageService } from '@/core/admin/managed-package/service';
 import { resolveEmbeddedOfficialArtifactPath } from './embedded-artifact-store';
@@ -29,6 +30,61 @@ const MARKET_INSTALL_KINDS: ExtensionKind[] = [
   'theme-app-shop',
   'theme-app-admin',
 ];
+
+async function buildFreeInstallAuthorization(
+  slug: string,
+  requestedVersion: string | undefined,
+) {
+  const seed = getOfficialCatalogEntry(slug);
+  const [detail, artifactItems] = await Promise.all([
+    MarketClient.getOfficialDetail(slug).catch(() => null),
+    fetchOfficialArtifactsIndex().catch(() => []),
+  ]);
+  const artifactKind = detail?.kind || seed?.kind;
+  const artifactItem = artifactKind
+    ? buildOfficialArtifactMap(artifactItems).get(`${artifactKind}:${slug}`)
+    : null;
+  const resolvedVersion = requestedVersion ?? artifactItem?.version ?? detail?.sellableVersion ?? detail?.currentVersion;
+  const versionSummary = detail?.versions.find((item) => item.version === resolvedVersion);
+  const packageUrl = artifactItem?.version === resolvedVersion
+    ? artifactItem.packageUrl
+    : versionSummary?.packageUrl;
+
+  if (!resolvedVersion || !packageUrl || !artifactKind) {
+    throw Object.assign(new Error('Official artifact not found for requested version'), {
+      statusCode: 404,
+      code: 'ARTIFACT_NOT_FOUND',
+    });
+  }
+
+  return {
+    allowed: true,
+    slug: detail?.slug || seed?.slug || slug,
+    kind: detail?.kind || artifactKind,
+    listingDomain: detail?.listingDomain || seed?.listingDomain,
+    listingKind: detail?.listingKind || seed?.listingKind || artifactKind,
+    providerType: detail?.providerType || seed?.providerType,
+    deliveryMode: detail?.deliveryMode || seed?.deliveryMode || 'package-managed',
+    paymentMode: detail?.paymentMode || seed?.paymentMode,
+    settlementTargetType: detail?.settlementTargetType || seed?.settlementTargetType,
+    settlementTargetId: detail?.settlementTargetId ?? seed?.settlementTargetId ?? null,
+    artifactKind: artifactKind === 'theme' ? 'theme-package' : 'plugin-package',
+    version: resolvedVersion,
+    packageUrl,
+    checksumUrl: `${packageUrl}.sha256`,
+    signatureUrl: `${packageUrl}.sig`,
+    minCoreVersion: versionSummary?.minCoreVersion ?? seed?.minCoreVersion ?? null,
+    pricingModel: detail?.pricingModel || seed?.defaultPricingModel || 'free',
+    price: detail?.price ?? 0,
+    currency: detail?.currency || seed?.defaultCurrency || 'USD',
+    entitlement: {
+      required: false,
+      status: 'not_required' as const,
+      pricingModel: detail?.pricingModel || seed?.defaultPricingModel || 'free',
+    },
+    reason: undefined,
+  };
+}
 
 export async function marketRoutes(fastify: FastifyInstance) {
   fastify.get(
@@ -291,6 +347,8 @@ export async function marketRoutes(fastify: FastifyInstance) {
                 reason: undefined,
               };
             })()
+          : officialEntry.defaultPricingModel === 'free'
+            ? await buildFreeInstallAuthorization(slug, version)
           : await MarketClient.authorizeInstall(slug, {
               userId: request.user.id,
               version,
@@ -444,7 +502,6 @@ export async function marketRoutes(fastify: FastifyInstance) {
         if (installed.length === 0) {
           return sendSuccess(reply, { updates: [] });
         }
-
         const updates = await MarketClient.checkUpdates(installed);
         return sendSuccess(reply, { updates });
       } catch (error: any) {
