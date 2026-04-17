@@ -151,5 +151,12 @@ jobs:
 
       - name: Verify public feed
         run: |
-          curl -fsSL https://get.jiffoo.com/releases/core/manifest.json | jq .
+          version_without_suffix="${RELEASE_TAG#v}"
+          version_without_suffix="${version_without_suffix%-opensource}"
+          curl -fsSL https://get.jiffoo.com/releases/core/manifest.json | tee /tmp/public-manifest.json | jq .
+          published_version="$(jq -r '.latestVersion' /tmp/public-manifest.json)"
+          if [ "$published_version" != "$version_without_suffix" ]; then
+            echo "Expected public latestVersion ${version_without_suffix}, got ${published_version}"
+            exit 1
+          fi
           curl -fsSI https://get.jiffoo.com/jiffoo-source.tar.gz

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import https from 'node:https';
 
 const SCRIPT_PATH = fileURLToPath(import.meta.url);
 const SCRIPT_DIR = path.dirname(SCRIPT_PATH);
@@ -16,6 +17,7 @@ const FEED_WORKFLOW = 'publish-self-hosted-update-feed.yml';
 const CORE_REPO = 'thefreelight/Jiffoo';
 const OFFICIAL_ARTIFACTS_REPO = 'thefreelight/jiffoo-extensions-official';
 const OFFICIAL_ARTIFACTS_WORKFLOW = 'publish-official-artifacts.yml';
+const PUBLIC_FEED_URL = 'https://get.jiffoo.com/releases/core/manifest.json';
 
 function parseArgs(argv) {
   const args = {};
@@ -47,6 +49,34 @@ Examples:
 
 function sleep(ms) {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+function fetchJson(url) {
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, (response) => {
+        const chunks = [];
+        response.on('data', (chunk) => chunks.push(chunk));
+        response.on('end', () => {
+          const body = Buffer.concat(chunks).toString('utf8');
+          if (!response.statusCode || response.statusCode < 200 || response.statusCode >= 300) {
+            reject(new Error(`GET ${url} failed with status ${response.statusCode ?? 'unknown'}: ${body}`));
+            return;
+          }
+
+          try {
+            resolve(JSON.parse(body));
+          } catch (error) {
+            reject(
+              new Error(
+                `Failed to parse JSON from ${url}: ${error instanceof Error ? error.message : String(error)}`,
+              ),
+            );
+          }
+        });
+      })
+      .on('error', reject);
+  });
 }
 
 function assertSemver(version) {
@@ -378,6 +408,21 @@ function ensureSelfHostedPublication(version, releaseDate) {
   throw new Error('Failed to observe a self-hosted feed publication workflow run after release creation.');
 }
 
+async function verifyPublishedFeedVersion(version) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const manifest = await fetchJson(PUBLIC_FEED_URL).catch(() => null);
+    if (manifest?.latestVersion === version) {
+      return manifest;
+    }
+
+    sleep(5_000);
+  }
+
+  throw new Error(
+    `Public feed did not publish version ${version} at ${PUBLIC_FEED_URL} within the expected window.`,
+  );
+}
+
 function ensureOfficialArtifactsPublication(ref) {
   const startedAtMs = Date.now();
   console.log(`Dispatching official artifacts publish workflow on ${OFFICIAL_ARTIFACTS_REPO}@${ref}`);
@@ -407,7 +452,7 @@ function ensureOfficialArtifactsPublication(ref) {
   );
 }
 
-function main() {
+async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || !args.version) {
     printUsage();
@@ -498,6 +543,7 @@ function main() {
   ]);
   uploadReleaseAssets(version);
   const publicationRunUrl = ensureSelfHostedPublication(version, releaseDate);
+  const publishedManifest = await verifyPublishedFeedVersion(version);
   let officialArtifactsRunUrl = null;
   if (publishOfficialArtifacts) {
     officialArtifactsRunUrl = ensureOfficialArtifactsPublication(officialArtifactsRef);
@@ -505,9 +551,13 @@ function main() {
 
   console.log(`Release https://github.com/thefreelight/Jiffoo/releases/tag/v${version}-opensource created.`);
   console.log(`Self-hosted feed publication completed via ${publicationRunUrl}.`);
+  console.log(`Verified ${PUBLIC_FEED_URL} now serves latestVersion=${publishedManifest.latestVersion}.`);
   if (officialArtifactsRunUrl) {
     console.log(`Official artifacts publication completed via ${officialArtifactsRunUrl}.`);
   }
 }
 
-main();
+main().catch((error) => {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+});
