@@ -596,13 +596,12 @@ async function stageThemeArtifact(entry: OfficialCatalogEntry, stagingDir: strin
     );
   }
 
-  if (manifest['x-jiffoo-renderer-mode'] !== 'embedded') {
-    throw new Error(`Theme Pack manifest for ${entry.slug} must declare x-jiffoo-renderer-mode=embedded`);
-  }
+  const rendererMode = manifest['x-jiffoo-renderer-mode'];
+  const rendererSlug = manifest['x-jiffoo-renderer-slug'];
 
-  if (manifest['x-jiffoo-renderer-slug'] !== entry.slug) {
+  if (rendererMode === 'embedded' && rendererSlug !== entry.slug) {
     throw new Error(
-      `Theme Pack manifest renderer slug ${manifest['x-jiffoo-renderer-slug']} does not match official theme slug ${entry.slug}`,
+      `Theme Pack manifest renderer slug ${rendererSlug} does not match official theme slug ${entry.slug}`,
     );
   }
 
