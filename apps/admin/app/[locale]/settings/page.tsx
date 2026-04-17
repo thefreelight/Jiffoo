@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
 import { settingsApi, type SystemSettingsMap, unwrapApiResponse, upgradeApi } from '@/lib/api'
+import { clearUpdateCheckCache } from '@/hooks/use-update-check'
 import { cn } from '@/lib/utils'
 import CurrencySettings from '@/components/settings/currency-settings'
 import { ManagedLicensePanel } from '@/components/settings/ManagedLicensePanel'
@@ -269,6 +270,7 @@ function SettingsPageContent() {
 
     setFinalizingUpgrade(true)
     try {
+      clearUpdateCheckCache()
       for (let attempt = 0; attempt < 10; attempt += 1) {
         const response = await upgradeApi.getVersion()
         const data = unwrapApiResponse(response)
@@ -419,6 +421,7 @@ function SettingsPageContent() {
   const refreshVersion = async () => {
     setCheckingVersion(true)
     try {
+      clearUpdateCheckCache()
       await Promise.all([loadVersion(), loadUpgradeStatus()])
     } catch (error: unknown) {
       toast.error(resolveApiErrorMessage(error, t))
@@ -437,6 +440,7 @@ function SettingsPageContent() {
       await loadUpgradeStatus()
 
       if (data.completed) {
+        clearUpdateCheckCache()
         toast.success(getText('merchant.systemUpdates.updateCompletedDesc', 'System has been updated successfully!'))
         await loadVersion()
       } else {

@@ -49,6 +49,12 @@ type ManifestResolution = {
   error: string | null;
 };
 
+function normalizePublicReleaseVersion(version: string | null | undefined): string | null {
+  if (typeof version !== 'string') return null;
+  const normalized = version.trim().replace(/-opensource$/, '');
+  return normalized.length > 0 ? normalized : null;
+}
+
 /**
  * Upgrade Service
  */
@@ -351,7 +357,7 @@ export class UpgradeService {
       return packageVersion;
     }
 
-    const envVersion = process.env.JIFFOO_VERSION || process.env.APP_VERSION;
+    const envVersion = normalizePublicReleaseVersion(process.env.JIFFOO_VERSION || process.env.APP_VERSION);
     if (envVersion && this.isValidReleaseVersion(envVersion)) {
       return envVersion;
     }
@@ -385,8 +391,9 @@ export class UpgradeService {
       try {
         if (!fs.existsSync(candidate)) continue;
         const json = JSON.parse(fs.readFileSync(candidate, 'utf8')) as { version?: string };
-        if (json.version && this.isValidReleaseVersion(json.version)) {
-          return json.version;
+        const normalizedVersion = normalizePublicReleaseVersion(json.version);
+        if (normalizedVersion && this.isValidReleaseVersion(normalizedVersion)) {
+          return normalizedVersion;
         }
       } catch {
         // ignore malformed or unreadable package metadata
@@ -596,15 +603,20 @@ export class UpgradeService {
     runtimeVersion: string,
     deploymentMode?: DeploymentMode,
   ): string {
+    const normalizedStoredVersion = normalizePublicReleaseVersion(storedVersion);
+    const normalizedRuntimeVersion = normalizePublicReleaseVersion(runtimeVersion) || runtimeVersion;
+
     if (deploymentMode === 'docker-compose' || deploymentMode === 'single-host') {
-      return runtimeVersion;
+      return normalizedRuntimeVersion;
     }
 
-    if (storedVersion && this.isValidReleaseVersion(storedVersion)) {
-      return this.compareVersions(storedVersion, runtimeVersion) >= 0 ? storedVersion : runtimeVersion;
+    if (normalizedStoredVersion && this.isValidReleaseVersion(normalizedStoredVersion)) {
+      return this.compareVersions(normalizedStoredVersion, normalizedRuntimeVersion) >= 0
+        ? normalizedStoredVersion
+        : normalizedRuntimeVersion;
     }
 
-    return runtimeVersion;
+    return normalizedRuntimeVersion;
   }
 
   private static normalizeManifestPayload(

@@ -25,6 +25,12 @@ export interface InstallData {
 const CURRENT_VERSION = '1.0.0';
 const RELEASE_VERSION_PATTERN = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/;
 
+function normalizePublicReleaseVersion(version: string | null | undefined): string | null {
+  if (typeof version !== 'string') return null;
+  const normalized = version.trim().replace(/-opensource$/, '');
+  return normalized.length > 0 ? normalized : null;
+}
+
 function isValidReleaseVersion(version: string | null | undefined): version is string {
   return typeof version === 'string' && RELEASE_VERSION_PATTERN.test(version);
 }
@@ -82,7 +88,7 @@ function compareReleaseVersions(a: string, b: string): number {
 }
 
 function resolveCurrentVersion(): string {
-  const envVersion = process.env.JIFFOO_VERSION || process.env.APP_VERSION;
+  const envVersion = normalizePublicReleaseVersion(process.env.JIFFOO_VERSION || process.env.APP_VERSION);
   if (isValidReleaseVersion(envVersion)) {
     return envVersion;
   }
@@ -96,8 +102,9 @@ function resolveCurrentVersion(): string {
     try {
       if (!fs.existsSync(candidate)) continue;
       const json = JSON.parse(fs.readFileSync(candidate, 'utf8')) as { version?: string };
-      if (isValidReleaseVersion(json.version)) {
-        return json.version;
+      const normalizedVersion = normalizePublicReleaseVersion(json.version);
+      if (isValidReleaseVersion(normalizedVersion)) {
+        return normalizedVersion;
       }
     } catch {
       // Ignore unreadable package metadata and continue to fallback.
@@ -108,11 +115,16 @@ function resolveCurrentVersion(): string {
 }
 
 function resolveInstalledVersion(storedVersion: string | null | undefined, runtimeVersion: string): string {
-  if (isValidReleaseVersion(storedVersion)) {
-    return compareReleaseVersions(storedVersion, runtimeVersion) >= 0 ? storedVersion : runtimeVersion;
+  const normalizedStoredVersion = normalizePublicReleaseVersion(storedVersion);
+  const normalizedRuntimeVersion = normalizePublicReleaseVersion(runtimeVersion) || runtimeVersion;
+
+  if (isValidReleaseVersion(normalizedStoredVersion)) {
+    return compareReleaseVersions(normalizedStoredVersion, normalizedRuntimeVersion) >= 0
+      ? normalizedStoredVersion
+      : normalizedRuntimeVersion;
   }
 
-  return runtimeVersion;
+  return normalizedRuntimeVersion;
 }
 
 export class InstallService {

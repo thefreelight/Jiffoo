@@ -12,8 +12,18 @@
 import { useState, useEffect, useCallback } from 'react';
 import { upgradeApi, unwrapApiResponse } from '@/lib/api';
 
-const CACHE_KEY = 'jiffoo_last_update_check';
+export const SYSTEM_UPDATE_CHECK_CACHE_KEY = 'jiffoo_last_update_check';
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+export function clearUpdateCheckCache(): void {
+  if (typeof window === 'undefined') return;
+
+  try {
+    localStorage.removeItem(SYSTEM_UPDATE_CHECK_CACHE_KEY);
+  } catch {
+    // Ignore storage access failures.
+  }
+}
 
 interface CachedUpdateData {
   timestamp: number;
@@ -51,7 +61,7 @@ export function useUpdateCheck(): UpdateCheckResult {
     if (typeof window === 'undefined') return null;
 
     try {
-      const cached = localStorage.getItem(CACHE_KEY);
+      const cached = localStorage.getItem(SYSTEM_UPDATE_CHECK_CACHE_KEY);
       if (!cached) return null;
 
       const data: CachedUpdateData = JSON.parse(cached);
@@ -63,11 +73,11 @@ export function useUpdateCheck(): UpdateCheckResult {
       }
 
       // Cache expired, remove it
-      localStorage.removeItem(CACHE_KEY);
+      localStorage.removeItem(SYSTEM_UPDATE_CHECK_CACHE_KEY);
       return null;
     } catch {
       // Invalid cache data, remove it
-      localStorage.removeItem(CACHE_KEY);
+      localStorage.removeItem(SYSTEM_UPDATE_CHECK_CACHE_KEY);
       return null;
     }
   }, []);
@@ -83,7 +93,7 @@ export function useUpdateCheck(): UpdateCheckResult {
         ...data,
         timestamp: Date.now(),
       };
-      localStorage.setItem(CACHE_KEY, JSON.stringify(cacheData));
+      localStorage.setItem(SYSTEM_UPDATE_CHECK_CACHE_KEY, JSON.stringify(cacheData));
     } catch {
       // localStorage might be full or disabled, ignore
     }
