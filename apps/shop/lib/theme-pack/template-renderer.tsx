@@ -12,7 +12,7 @@ import type { PageTemplate, BlockInstance, ThemePackConfig } from './types';
 import { getBlockComponent, mergeBlockSettings, parseAppBlockType } from './block-registry';
 import { useThemePackOptional } from './runtime';
 import { AppBlockRenderer } from './app-block-renderer';
-import { getEmbeddedRendererSlug } from './rendering-mode';
+import { getEmbeddedRendererSlug, hasPackagedThemeRuntime } from './rendering-mode';
 
 interface TemplateRendererProps {
   /** Page identifier to load template for */
@@ -36,12 +36,14 @@ export function TemplateRenderer({
 }: TemplateRendererProps) {
   const themePack = useThemePackOptional();
   const embeddedRendererSlug = getEmbeddedRendererSlug(themePack?.manifest);
+  const packagedRuntime = hasPackagedThemeRuntime(themePack?.manifest);
+  const loadPageTemplate = themePack?.loadPageTemplate;
   const [template, setTemplate] = useState<PageTemplate | null>(staticTemplate || null);
   const [isLoading, setIsLoading] = useState(!staticTemplate);
 
   // Load template
   useEffect(() => {
-    if (staticTemplate || !themePack || embeddedRendererSlug) {
+    if (staticTemplate || !loadPageTemplate || embeddedRendererSlug || packagedRuntime) {
       setIsLoading(false);
       return;
     }
@@ -49,8 +51,12 @@ export function TemplateRenderer({
     let mounted = true;
 
     async function load() {
+      if (!loadPageTemplate) {
+        setIsLoading(false);
+        return;
+      }
       setIsLoading(true);
-      const loadedTemplate = await themePack!.loadPageTemplate(page);
+      const loadedTemplate = await loadPageTemplate(page);
       if (mounted) {
         setTemplate(loadedTemplate);
         setIsLoading(false);
@@ -62,7 +68,7 @@ export function TemplateRenderer({
     return () => {
       mounted = false;
     };
-  }, [page, staticTemplate, themePack, embeddedRendererSlug]);
+  }, [page, staticTemplate, loadPageTemplate, embeddedRendererSlug, packagedRuntime]);
 
   // If no theme pack or loading
   if (isLoading) {
@@ -159,7 +165,7 @@ export function BlockRenderer({ block, themeConfig }: BlockRendererProps) {
           <p className="font-bold">Unknown Block Type</p>
           <p>Block type "{type}" is not registered in the Block Registry.</p>
           <p className="text-sm mt-2">
-            Theme Packs can only use blocks from the platform's built-in Block Registry.
+            Theme Packs can only use blocks from the platform&apos;s built-in Block Registry.
           </p>
         </div>
       );
@@ -192,6 +198,11 @@ export function useHasTemplate(page: string): boolean {
 
   useEffect(() => {
     if (!themePack || !themePack.activeTheme) {
+      setHasTemplate(false);
+      return;
+    }
+
+    if (hasPackagedThemeRuntime(themePack.manifest)) {
       setHasTemplate(false);
       return;
     }

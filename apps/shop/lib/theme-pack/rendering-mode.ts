@@ -44,11 +44,25 @@ export function getEmbeddedRendererSlug(manifest?: ThemePackManifest | null): st
     : null;
 }
 
+export function hasPackagedThemeRuntime(manifest?: ThemePackManifest | null): boolean {
+  return typeof manifest?.entry?.runtimeJS === 'string' && manifest.entry.runtimeJS.trim().length > 0;
+}
+
 export function resolveThemeRendererSlug(options: {
   manifest?: ThemePackManifest | null;
   activeThemeSlug?: string | null;
   serverThemeSlug?: string | null;
 }): string {
+  if (hasPackagedThemeRuntime(options.manifest)) {
+    if (options.activeThemeSlug) {
+      return options.activeThemeSlug;
+    }
+
+    if (options.manifest?.slug) {
+      return options.manifest.slug;
+    }
+  }
+
   const embeddedRendererSlug = getEmbeddedRendererSlug(options.manifest);
 
   if (embeddedRendererSlug && isValidThemeSlug(embeddedRendererSlug)) {
