@@ -23,6 +23,8 @@ jobs:
   publish-update-feed:
     runs-on: ubuntu-latest
     env:
+      # This workflow publishes the canonical public OSS update origin served from
+      # the Singapore public host static directory, not the Kubernetes jiffoo-installer service.
       GET_JIFFOO_ROOT: /var/www/get-jiffoo
       GET_JIFFOO_NGINX_PATH: /etc/nginx/conf.d/get-jiffoo.conf
       CLOUDFLARE_ZONE_ID: 0ad261d681b797c5356abafc0453603e
@@ -127,10 +129,14 @@ jobs:
           EOF
 
       - name: Purge Cloudflare cache
-        if: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "Skipping Cloudflare purge because CLOUDFLARE_API_TOKEN is not set"
+            exit 0
+          fi
+
           curl -fsSL -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
             -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
             -H "Content-Type: application/json" \
