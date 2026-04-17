@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import os from 'os';
+import path from 'path';
+import { promises as fs } from 'fs';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   getSetting: vi.fn(),
@@ -53,6 +56,7 @@ vi.mock('@/core/admin/market/official-package-recovery', () => ({
 import { getActiveTheme, restoreActiveThemeApps } from '@/core/admin/theme-management/service';
 
 describe('ThemeManagementService', () => {
+  const originalExtensionsPath = process.env.EXTENSIONS_PATH;
   const legacyBuiltinDefaultThemeApp = {
     slug: 'default',
     version: '1.0.0',
@@ -80,6 +84,8 @@ describe('ThemeManagementService', () => {
     activatedAt: '2026-03-10T10:00:00.000Z',
   };
 
+  let tempExtensionsRoot: string;
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.cacheGet.mockResolvedValue(null);
@@ -90,7 +96,29 @@ describe('ThemeManagementService', () => {
     mocks.startThemeApp.mockResolvedValue(undefined);
     mocks.checkThemeAppHealth.mockResolvedValue({ success: true });
     mocks.ensureOfficialMarketExtensionFiles.mockResolvedValue(undefined);
+    tempExtensionsRoot = path.join(os.tmpdir(), `jiffoo-theme-management-${Date.now()}-${Math.random().toString(16).slice(2)}`);
+    process.env.EXTENSIONS_PATH = tempExtensionsRoot;
   });
+
+  afterEach(async () => {
+    if (originalExtensionsPath === undefined) {
+      delete process.env.EXTENSIONS_PATH;
+    } else {
+      process.env.EXTENSIONS_PATH = originalExtensionsPath;
+    }
+
+    await fs.rm(tempExtensionsRoot, { recursive: true, force: true });
+  });
+
+  async function writeOfficialThemeManifest(
+    slug: string,
+    manifest: Record<string, unknown>,
+  ): Promise<string> {
+    const themeDir = path.join(tempExtensionsRoot, 'themes', 'shop', slug);
+    await fs.mkdir(themeDir, { recursive: true });
+    await fs.writeFile(path.join(themeDir, 'theme.json'), JSON.stringify(manifest, null, 2), 'utf-8');
+    return themeDir;
+  }
 
   it('normalizes builtin default themes stored with legacy app metadata', async () => {
     mocks.getSetting
@@ -175,6 +203,67 @@ describe('ThemeManagementService', () => {
       }),
       { ttl: 60 },
     );
+  });
+
+  it('restores official theme packs when packaged runtime files are missing', async () => {
+    await writeOfficialThemeManifest('modelsfind', {
+      slug: 'modelsfind',
+      version: '0.1.4',
+      entry: {
+        runtimeJS: 'runtime/theme-runtime.js',
+        templatesDir: 'templates',
+      },
+    });
+
+    mocks.getSetting
+      .mockResolvedValueOnce({
+        slug: 'modelsfind',
+        version: '0.1.4',
+        source: 'official-market',
+        type: 'pack',
+        config: {},
+        activatedAt: '2026-04-18T00:00:00.000Z',
+      })
+      .mockResolvedValueOnce(null);
+
+    const theme = await getActiveTheme('shop');
+
+    expect(theme.slug).toBe('modelsfind');
+    expect(mocks.ensureOfficialMarketExtensionFiles).toHaveBeenCalledWith({
+      slug: 'modelsfind',
+      kind: 'theme-shop',
+      version: '0.1.4',
+    });
+  });
+
+  it('skips official theme recovery when packaged runtime files are present', async () => {
+    const themeDir = await writeOfficialThemeManifest('modelsfind', {
+      slug: 'modelsfind',
+      version: '0.1.4',
+      entry: {
+        runtimeJS: 'runtime/theme-runtime.js',
+        templatesDir: 'templates',
+      },
+    });
+    await fs.mkdir(path.join(themeDir, 'runtime'), { recursive: true });
+    await fs.mkdir(path.join(themeDir, 'templates'), { recursive: true });
+    await fs.writeFile(path.join(themeDir, 'runtime', 'theme-runtime.js'), 'window.__JIFFOO_THEME_RUNTIME__ = {};', 'utf-8');
+
+    mocks.getSetting
+      .mockResolvedValueOnce({
+        slug: 'modelsfind',
+        version: '0.1.4',
+        source: 'official-market',
+        type: 'pack',
+        config: {},
+        activatedAt: '2026-04-18T00:00:00.000Z',
+      })
+      .mockResolvedValueOnce(null);
+
+    const theme = await getActiveTheme('shop');
+
+    expect(theme.slug).toBe('modelsfind');
+    expect(mocks.ensureOfficialMarketExtensionFiles).not.toHaveBeenCalled();
   });
 
   it('skips restoring builtin themes as theme apps', async () => {

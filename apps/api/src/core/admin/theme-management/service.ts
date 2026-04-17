@@ -199,9 +199,37 @@ async function ensureOfficialThemePackFilesPresent(theme: ActiveTheme, target: T
     return;
   }
 
-  const themeJsonPath = path.join(getExtensionsDir(target), normalizeThemeSlug(theme.slug), 'theme.json');
+  const themeDir = path.join(getExtensionsDir(target), normalizeThemeSlug(theme.slug));
+  const themeJsonPath = path.join(themeDir, 'theme.json');
+  const requiredPaths = new Set<string>([themeJsonPath]);
+
   try {
-    await fs.access(themeJsonPath);
+    const rawManifest = await fs.readFile(themeJsonPath, 'utf-8');
+    const manifest = JSON.parse(rawManifest) as {
+      entry?: {
+        tokensCSS?: string;
+        runtimeJS?: string;
+        templatesDir?: string;
+        settingsSchema?: string;
+      };
+    };
+    const entry = manifest.entry;
+    const optionalThemePaths = [
+      entry?.tokensCSS,
+      entry?.runtimeJS,
+      entry?.templatesDir,
+      entry?.settingsSchema,
+    ].filter((value): value is string => typeof value === 'string' && value.trim().length > 0);
+
+    for (const relativePath of optionalThemePaths) {
+      requiredPaths.add(path.join(themeDir, relativePath));
+    }
+  } catch {
+    // Restore below.
+  }
+
+  try {
+    await Promise.all(Array.from(requiredPaths, (candidate) => fs.access(candidate)));
     return;
   } catch {
     // Restore below.
