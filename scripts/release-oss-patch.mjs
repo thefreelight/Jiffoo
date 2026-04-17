@@ -13,6 +13,9 @@ const OSS_BUILD_TARGET_PATH = path.join(ROOT, '.github', 'oss-build-target.json'
 const PUBLIC_MANIFEST_TS_PATH = path.join(ROOT, 'packages', 'shared', 'src', 'core-update', 'public-manifest.ts');
 const UPGRADE_TEST_PATH = path.join(ROOT, 'apps', 'api', 'tests', 'routes', 'upgrade.test.ts');
 const FEED_WORKFLOW = 'publish-self-hosted-update-feed.yml';
+const CORE_REPO = 'thefreelight/Jiffoo';
+const OFFICIAL_ARTIFACTS_REPO = 'thefreelight/jiffoo-extensions-official';
+const OFFICIAL_ARTIFACTS_WORKFLOW = 'publish-official-artifacts.yml';
 
 function parseArgs(argv) {
   const args = {};
@@ -33,11 +36,12 @@ function parseArgs(argv) {
 
 function printUsage() {
   console.log(`Usage:
-  node scripts/release-oss-patch.mjs --version 1.0.12 --notes "Short release summary" [--release-date ISO8601] [--publish] [--skip-checks] [--dry-run]
+  node scripts/release-oss-patch.mjs --version 1.0.12 --notes "Short release summary" [--release-date ISO8601] [--publish] [--skip-checks] [--publish-official-artifacts] [--official-artifacts-ref master] [--dry-run]
 
 Examples:
   node scripts/release-oss-patch.mjs --version 1.0.12 --notes "Fixes login demo mode and marketplace update refresh." --dry-run
   node scripts/release-oss-patch.mjs --version 1.0.12 --notes-file .release/release-notes.md --publish
+  node scripts/release-oss-patch.mjs --version 1.0.12 --notes-file .release/release-notes.md --publish --publish-official-artifacts --official-artifacts-ref master
 `);
 }
 
@@ -288,38 +292,42 @@ function parseJson(stdout, label) {
   }
 }
 
-function findRecentFeedWorkflowRun(startedAtMs) {
+function findRecentWorkflowRun({ repo, workflow, startedAtMs, branch }) {
   const stdout = runCapture('gh', [
     'run',
     'list',
     '--repo',
-    'thefreelight/Jiffoo',
+    repo,
     '--workflow',
-    FEED_WORKFLOW,
+    workflow,
     '--limit',
     '10',
     '--json',
-    'databaseId,event,status,conclusion,url,createdAt,displayTitle',
+    'databaseId,event,status,conclusion,url,createdAt,displayTitle,headBranch',
   ]);
 
   const runs = parseJson(stdout, 'workflow runs');
   return runs.find((run) => {
     const createdAtMs = Date.parse(run.createdAt);
-    return Number.isFinite(createdAtMs) && createdAtMs >= startedAtMs - 10_000;
+    return (
+      Number.isFinite(createdAtMs) &&
+      createdAtMs >= startedAtMs - 10_000 &&
+      (!branch || run.headBranch === branch)
+    );
   });
 }
 
-function waitForFeedWorkflowRun(startedAtMs) {
+function waitForWorkflowRun({ repo, workflow, startedAtMs, branch }) {
   for (let attempt = 0; attempt < 12; attempt += 1) {
-    const runInfo = findRecentFeedWorkflowRun(startedAtMs);
+    const runInfo = findRecentWorkflowRun({ repo, workflow, startedAtMs, branch });
     if (runInfo) {
-      console.log(`Watching self-hosted feed publication run: ${runInfo.url}`);
+      console.log(`Watching workflow run: ${runInfo.url}`);
       run('gh', [
         'run',
         'watch',
         String(runInfo.databaseId),
         '--repo',
-        'thefreelight/Jiffoo',
+        repo,
         '--exit-status',
       ]);
       return runInfo.url;
@@ -332,8 +340,13 @@ function waitForFeedWorkflowRun(startedAtMs) {
 }
 
 function ensureSelfHostedPublication(version, releaseDate) {
-  const releaseUrl = `https://github.com/thefreelight/Jiffoo/releases/tag/v${version}-opensource`;
-  const observedRunUrl = waitForFeedWorkflowRun(Date.now());
+  const now = Date.now();
+  const releaseUrl = `https://github.com/${CORE_REPO}/releases/tag/v${version}-opensource`;
+  const observedRunUrl = waitForWorkflowRun({
+    repo: CORE_REPO,
+    workflow: FEED_WORKFLOW,
+    startedAtMs: now,
+  });
   if (observedRunUrl) {
     return observedRunUrl;
   }
@@ -344,7 +357,7 @@ function ensureSelfHostedPublication(version, releaseDate) {
     'run',
     FEED_WORKFLOW,
     '--repo',
-    'thefreelight/Jiffoo',
+    CORE_REPO,
     '-f',
     `release_tag=v${version}-opensource`,
     '-f',
@@ -353,12 +366,45 @@ function ensureSelfHostedPublication(version, releaseDate) {
     `release_date=${releaseDate}`,
   ]);
 
-  const dispatchedRunUrl = waitForFeedWorkflowRun(Date.now());
+  const dispatchedRunUrl = waitForWorkflowRun({
+    repo: CORE_REPO,
+    workflow: FEED_WORKFLOW,
+    startedAtMs: Date.now(),
+  });
   if (dispatchedRunUrl) {
     return dispatchedRunUrl;
   }
 
   throw new Error('Failed to observe a self-hosted feed publication workflow run after release creation.');
+}
+
+function ensureOfficialArtifactsPublication(ref) {
+  const startedAtMs = Date.now();
+  console.log(`Dispatching official artifacts publish workflow on ${OFFICIAL_ARTIFACTS_REPO}@${ref}`);
+  run('gh', [
+    'workflow',
+    'run',
+    OFFICIAL_ARTIFACTS_WORKFLOW,
+    '--repo',
+    OFFICIAL_ARTIFACTS_REPO,
+    '--ref',
+    ref,
+  ]);
+
+  const runUrl = waitForWorkflowRun({
+    repo: OFFICIAL_ARTIFACTS_REPO,
+    workflow: OFFICIAL_ARTIFACTS_WORKFLOW,
+    startedAtMs,
+    branch: ref,
+  });
+
+  if (runUrl) {
+    return runUrl;
+  }
+
+  throw new Error(
+    `Failed to observe an official artifact publish workflow run on ${OFFICIAL_ARTIFACTS_REPO}@${ref}.`,
+  );
 }
 
 function main() {
@@ -378,6 +424,8 @@ function main() {
   const dryRun = args['dry-run'] === 'true';
   const publish = args.publish === 'true';
   const skipChecks = args['skip-checks'] === 'true';
+  const publishOfficialArtifacts = args['publish-official-artifacts'] === 'true';
+  const officialArtifactsRef = args['official-artifacts-ref'] || 'master';
 
   console.log(`Preparing OSS patch release v${version}-opensource`);
   if (publish && !dryRun) {
@@ -417,6 +465,11 @@ function main() {
     console.log(`[dry-run] gh release create v${version}-opensource ...`);
     console.log(`[dry-run] gh release upload v${version}-opensource ...`);
     console.log(`[dry-run] observe or dispatch ${FEED_WORKFLOW} and wait for get.jiffoo.com publication`);
+    if (publishOfficialArtifacts) {
+      console.log(
+        `[dry-run] gh workflow run ${OFFICIAL_ARTIFACTS_WORKFLOW} --repo ${OFFICIAL_ARTIFACTS_REPO} --ref ${officialArtifactsRef} && watch completion`,
+      );
+    }
     return;
   }
 
@@ -445,9 +498,16 @@ function main() {
   ]);
   uploadReleaseAssets(version);
   const publicationRunUrl = ensureSelfHostedPublication(version, releaseDate);
+  let officialArtifactsRunUrl = null;
+  if (publishOfficialArtifacts) {
+    officialArtifactsRunUrl = ensureOfficialArtifactsPublication(officialArtifactsRef);
+  }
 
   console.log(`Release https://github.com/thefreelight/Jiffoo/releases/tag/v${version}-opensource created.`);
   console.log(`Self-hosted feed publication completed via ${publicationRunUrl}.`);
+  if (officialArtifactsRunUrl) {
+    console.log(`Official artifacts publication completed via ${officialArtifactsRunUrl}.`);
+  }
 }
 
 main();

@@ -124,6 +124,19 @@ Add `--publish` to let the helper:
 - upload `core-update-manifest.json`, `jiffoo-source.tar.gz`, and `jiffoo-source.tar.gz.sha256`
 - wait for the `publish-self-hosted-update-feed` workflow so `get.jiffoo.com` is updated as part of the same release flow
 
+Add `--publish-official-artifacts` if the same release pass should also dispatch the official artifact build in `jiffoo-extensions-official` and wait for that workflow to finish. Use `--official-artifacts-ref master` to choose which branch of the official repo to publish from.
+
+Example:
+
+```bash
+pnpm -C /Users/jordan/Projects/Jiffoo release:oss:patch -- \
+  --version 1.0.22 \
+  --notes "Short release summary" \
+  --publish \
+  --publish-official-artifacts \
+  --official-artifacts-ref master
+```
+
 The helper is for maintainers, not merchants. Its job is to remove the repetitive patch-release ceremony around:
 
 - bumping OSS release metadata
@@ -137,6 +150,7 @@ Important:
 
 - The helper refuses to publish from a dirty worktree. Commit the code you actually want to ship first, then run the release step.
 - GitHub Release creation is not the final publication step for self-hosted update detection, so the helper now waits for the public feed publication workflow to finish.
+- The optional official-artifacts dispatch only automates the `jiffoo-extensions-official` workflow run. If your downstream marketplace still requires a later promotion step, keep that step in your ops checklist.
 - The final publication check is `https://get.jiffoo.com/releases/core/manifest.json`.
 - If a consumer instance still detects an older version, verify the public manifest first, then verify that the consumer host has actually rolled forward.
 
