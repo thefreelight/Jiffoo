@@ -3,12 +3,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = process.cwd();
+const SCRIPT_PATH = fileURLToPath(import.meta.url);
+const SCRIPT_DIR = path.dirname(SCRIPT_PATH);
+const ROOT = path.resolve(SCRIPT_DIR, '..');
 const PACKAGE_JSON_PATH = path.join(ROOT, 'package.json');
 const OSS_BUILD_TARGET_PATH = path.join(ROOT, '.github', 'oss-build-target.json');
 const PUBLIC_MANIFEST_TS_PATH = path.join(ROOT, 'packages', 'shared', 'src', 'core-update', 'public-manifest.ts');
 const UPGRADE_TEST_PATH = path.join(ROOT, 'apps', 'api', 'tests', 'routes', 'upgrade.test.ts');
+const FEED_WORKFLOW = 'publish-self-hosted-update-feed.yml';
 
 function parseArgs(argv) {
   const args = {};
@@ -35,6 +39,10 @@ Examples:
   node scripts/release-oss-patch.mjs --version 1.0.12 --notes "Fixes login demo mode and marketplace update refresh." --dry-run
   node scripts/release-oss-patch.mjs --version 1.0.12 --notes-file .release/release-notes.md --publish
 `);
+}
+
+function sleep(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 }
 
 function assertSemver(version) {
@@ -91,6 +99,17 @@ function replaceOrThrow(content, pattern, replacer, label) {
   }
   pattern.lastIndex = 0;
   return content.replace(pattern, replacer);
+}
+
+function assertCleanWorktree() {
+  const status = runCapture('git', ['status', '--porcelain']);
+  if (!status) {
+    return;
+  }
+
+  throw new Error(
+    `Refusing to publish from a dirty worktree. Commit or stash outstanding changes first.\n${status}`,
+  );
 }
 
 function updatePackageJson(version, dryRun) {
@@ -261,6 +280,87 @@ function uploadReleaseAssets(version) {
   ]);
 }
 
+function parseJson(stdout, label) {
+  try {
+    return JSON.parse(stdout);
+  } catch (error) {
+    throw new Error(`Failed to parse ${label} JSON: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+function findRecentFeedWorkflowRun(startedAtMs) {
+  const stdout = runCapture('gh', [
+    'run',
+    'list',
+    '--repo',
+    'thefreelight/Jiffoo',
+    '--workflow',
+    FEED_WORKFLOW,
+    '--limit',
+    '10',
+    '--json',
+    'databaseId,event,status,conclusion,url,createdAt,displayTitle',
+  ]);
+
+  const runs = parseJson(stdout, 'workflow runs');
+  return runs.find((run) => {
+    const createdAtMs = Date.parse(run.createdAt);
+    return Number.isFinite(createdAtMs) && createdAtMs >= startedAtMs - 10_000;
+  });
+}
+
+function waitForFeedWorkflowRun(startedAtMs) {
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const runInfo = findRecentFeedWorkflowRun(startedAtMs);
+    if (runInfo) {
+      console.log(`Watching self-hosted feed publication run: ${runInfo.url}`);
+      run('gh', [
+        'run',
+        'watch',
+        String(runInfo.databaseId),
+        '--repo',
+        'thefreelight/Jiffoo',
+        '--exit-status',
+      ]);
+      return runInfo.url;
+    }
+
+    sleep(5_000);
+  }
+
+  return null;
+}
+
+function ensureSelfHostedPublication(version, releaseDate) {
+  const releaseUrl = `https://github.com/thefreelight/Jiffoo/releases/tag/v${version}-opensource`;
+  const observedRunUrl = waitForFeedWorkflowRun(Date.now());
+  if (observedRunUrl) {
+    return observedRunUrl;
+  }
+
+  console.log('No automatic self-hosted feed publication run detected. Dispatching workflow fallback.');
+  run('gh', [
+    'workflow',
+    'run',
+    FEED_WORKFLOW,
+    '--repo',
+    'thefreelight/Jiffoo',
+    '-f',
+    `release_tag=v${version}-opensource`,
+    '-f',
+    `release_url=${releaseUrl}`,
+    '-f',
+    `release_date=${releaseDate}`,
+  ]);
+
+  const dispatchedRunUrl = waitForFeedWorkflowRun(Date.now());
+  if (dispatchedRunUrl) {
+    return dispatchedRunUrl;
+  }
+
+  throw new Error('Failed to observe a self-hosted feed publication workflow run after release creation.');
+}
+
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help || !args.version) {
@@ -280,21 +380,26 @@ function main() {
   const skipChecks = args['skip-checks'] === 'true';
 
   console.log(`Preparing OSS patch release v${version}-opensource`);
+  if (publish && !dryRun) {
+    assertCleanWorktree();
+  }
   updatePackageJson(version, dryRun);
   updateOssBuildTarget(version, dryRun);
   updatePublicManifestSource(version, releaseDate, notes, dryRun);
   updateUpgradeRouteFixture(version, dryRun);
 
-  if (!skipChecks) {
-    if (dryRun) {
+  if (dryRun) {
+    if (!skipChecks) {
       console.log('[dry-run] pnpm --filter api type-check');
       console.log('[dry-run] pnpm --filter admin type-check');
-      console.log('[dry-run] node scripts/build-update-feed.mjs ...');
-    } else {
+    }
+    console.log('[dry-run] node scripts/build-update-feed.mjs ...');
+  } else {
+    if (!skipChecks) {
       run('pnpm', ['--filter', 'api', 'type-check']);
       run('pnpm', ['--filter', 'admin', 'type-check']);
-      buildFeed(version, releaseDate, notes, false);
     }
+    buildFeed(version, releaseDate, notes, false);
   }
 
   if (!publish) {
@@ -311,6 +416,7 @@ function main() {
     console.log(`[dry-run] git push origin v${version}-opensource`);
     console.log(`[dry-run] gh release create v${version}-opensource ...`);
     console.log(`[dry-run] gh release upload v${version}-opensource ...`);
+    console.log(`[dry-run] observe or dispatch ${FEED_WORKFLOW} and wait for get.jiffoo.com publication`);
     return;
   }
 
@@ -338,9 +444,10 @@ function main() {
     notesPath,
   ]);
   uploadReleaseAssets(version);
+  const publicationRunUrl = ensureSelfHostedPublication(version, releaseDate);
 
   console.log(`Release https://github.com/thefreelight/Jiffoo/releases/tag/v${version}-opensource created.`);
-  console.log('Reminder: sync get.jiffoo.com public feed/install assets if the workflow does not do it automatically.');
+  console.log(`Self-hosted feed publication completed via ${publicationRunUrl}.`);
 }
 
 main();

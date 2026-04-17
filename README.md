@@ -109,6 +109,12 @@ Maintainers can prepare or publish an OSS patch release with:
 pnpm release:oss:patch -- --version 1.0.12 --notes "Short release summary"
 ```
 
+You do not need to `cd` into the repo first. This works from any current directory:
+
+```bash
+pnpm -C /Users/jordan/Projects/Jiffoo release:oss:patch -- --version 1.0.12 --notes "Short release summary"
+```
+
 Add `--publish` to let the helper:
 
 - stage the release files only
@@ -116,6 +122,7 @@ Add `--publish` to let the helper:
 - push the current branch and tag
 - create the GitHub Release
 - upload `core-update-manifest.json`, `jiffoo-source.tar.gz`, and `jiffoo-source.tar.gz.sha256`
+- wait for the `publish-self-hosted-update-feed` workflow so `get.jiffoo.com` is updated as part of the same release flow
 
 The helper is for maintainers, not merchants. Its job is to remove the repetitive patch-release ceremony around:
 
@@ -128,7 +135,8 @@ Use `--dry-run` first if you want to inspect the planned actions before it touch
 
 Important:
 
-- GitHub Release creation is not the final publication step for self-hosted update detection.
+- The helper refuses to publish from a dirty worktree. Commit the code you actually want to ship first, then run the release step.
+- GitHub Release creation is not the final publication step for self-hosted update detection, so the helper now waits for the public feed publication workflow to finish.
 - The final publication check is `https://get.jiffoo.com/releases/core/manifest.json`.
 - If a consumer instance still detects an older version, verify the public manifest first, then verify that the consumer host has actually rolled forward.
 

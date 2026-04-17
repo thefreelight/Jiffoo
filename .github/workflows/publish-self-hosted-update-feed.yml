@@ -16,6 +16,10 @@ on:
         description: Optional ISO-8601 release date override
         required: false
 
+concurrency:
+  group: publish-self-hosted-update-feed-${{ github.event.release.tag_name || inputs.release_tag || github.run_id }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
