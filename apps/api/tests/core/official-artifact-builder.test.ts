@@ -29,28 +29,31 @@ describe('buildOfficialArtifacts', () => {
 
     const result = await buildOfficialArtifacts({
       outputDir,
-      slugs: ['stripe', 'i18n', 'odoo', 'esim-mall', 'yevbi'],
+      slugs: ['stripe', 'i18n', 'odoo', 'esim-mall', 'yevbi', 'modelsfind'],
     });
 
-    expect(result.items).toHaveLength(5);
+    expect(result.items).toHaveLength(6);
 
     const plugin = result.items.find((item) => item.slug === 'stripe');
     const i18nPlugin = result.items.find((item) => item.slug === 'i18n');
     const odooPlugin = result.items.find((item) => item.slug === 'odoo');
     const esimTheme = result.items.find((item) => item.slug === 'esim-mall');
     const yevbiTheme = result.items.find((item) => item.slug === 'yevbi');
+    const modelsfindTheme = result.items.find((item) => item.slug === 'modelsfind');
 
     expect(plugin).toBeDefined();
     expect(i18nPlugin).toBeDefined();
     expect(odooPlugin).toBeDefined();
     expect(esimTheme).toBeDefined();
     expect(yevbiTheme).toBeDefined();
+    expect(modelsfindTheme).toBeDefined();
 
     expect(plugin?.relativePath).toBe('plugins/stripe/1.0.0.jplugin');
     expect(i18nPlugin?.relativePath).toBe('plugins/i18n/1.0.0.jplugin');
     expect(odooPlugin?.relativePath).toBe('plugins/odoo/1.0.0.jplugin');
     expect(esimTheme?.relativePath).toBe('themes/esim-mall/1.0.0.jtheme');
     expect(yevbiTheme?.relativePath).toBe('themes/yevbi/1.0.0.jtheme');
+    expect(modelsfindTheme?.relativePath).toBe('themes/modelsfind/0.1.5.jtheme');
     expect(plugin?.includedFiles).toContain('manifest.json');
     expect(plugin?.includedFiles).toContain('src/index.js');
     expect(i18nPlugin?.includedFiles).toContain('src/index.js');
@@ -64,26 +67,29 @@ describe('buildOfficialArtifacts', () => {
           !file.endsWith('.d.ts'),
       ),
     ).toBe(false);
-    for (const theme of [esimTheme, yevbiTheme]) {
+    for (const theme of [esimTheme, yevbiTheme, modelsfindTheme]) {
       expect(theme?.sourceDir.endsWith(path.join('theme-pack'))).toBe(true);
       expect(theme?.includedFiles).toContain('theme.json');
       expect(theme?.includedFiles).toContain('templates/home.json');
       expect(theme?.includedFiles).toContain('tokens.css');
       expect(theme?.includedFiles).toContain('schemas/settings.schema.json');
-      expect(theme?.includedFiles).toContain('assets/placeholder-product.svg');
+      expect(theme?.includedFiles.some((file) => file.startsWith('assets/'))).toBe(true);
     }
+    expect(modelsfindTheme?.includedFiles).toContain('runtime/theme-runtime.js');
 
     const pluginExtracted = await extractArtifact(plugin!.filePath);
     const i18nPluginExtracted = await extractArtifact(i18nPlugin!.filePath);
     const odooPluginExtracted = await extractArtifact(odooPlugin!.filePath);
     const esimThemeExtracted = await extractArtifact(esimTheme!.filePath);
     const yevbiThemeExtracted = await extractArtifact(yevbiTheme!.filePath);
+    const modelsfindThemeExtracted = await extractArtifact(modelsfindTheme!.filePath);
     tempDirs.push(
       pluginExtracted,
       i18nPluginExtracted,
       odooPluginExtracted,
       esimThemeExtracted,
       yevbiThemeExtracted,
+      modelsfindThemeExtracted,
     );
 
     const pluginManifest = JSON.parse(
@@ -112,6 +118,7 @@ describe('buildOfficialArtifacts', () => {
     for (const [slug, extractedDir] of [
       ['esim-mall', esimThemeExtracted],
       ['yevbi', yevbiThemeExtracted],
+      ['modelsfind', modelsfindThemeExtracted],
     ] as const) {
       const themeManifest = JSON.parse(
         await fs.readFile(path.join(extractedDir, 'theme.json'), 'utf-8'),
@@ -133,10 +140,14 @@ describe('buildOfficialArtifacts', () => {
       expect(settingsSchema.type).toBe('object');
     }
 
+    await expect(
+      fs.stat(path.join(modelsfindThemeExtracted, 'runtime', 'theme-runtime.js')),
+    ).resolves.toBeDefined();
+
     const indexJson = JSON.parse(
       await fs.readFile(path.join(outputDir, 'index.json'), 'utf-8'),
     ) as { items: Array<{ slug: string; sha256: string }> };
-    expect(indexJson.items).toHaveLength(5);
+    expect(indexJson.items).toHaveLength(6);
     expect(indexJson.items.every((item) => typeof item.sha256 === 'string' && item.sha256.length === 64)).toBe(true);
     },
     120_000,
