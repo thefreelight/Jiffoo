@@ -67,17 +67,17 @@ COPY --from=builder --chown=api:nodejs /app/apps/api/prisma ./apps/api/prisma
 COPY --from=builder --chown=api:nodejs /app/packages/shared/package.json ./packages/shared/
 COPY --from=builder --chown=api:nodejs /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder --chown=api:nodejs /app/dist/official-artifacts ./dist/official-artifacts
+COPY --from=builder --chown=api:nodejs /app/apps/api/scripts/start-selfhost-api.sh ./apps/api/scripts/start-selfhost-api.sh
 COPY --from=builder --chown=api:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=api:nodejs /app/plugins ./plugins
 COPY --from=builder --chown=api:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=api:nodejs /app/apps/api/node_modules ./apps/api/node_modules
 
 RUN install -m 0755 /app/scripts/jiffoo-updater.mjs /usr/local/bin/jiffoo-updater && \
+    install -m 0755 /app/apps/api/scripts/start-selfhost-api.sh /usr/local/bin/start-selfhost-api && \
     mkdir -p /app/logs /app/uploads /app/extensions /tmp/.corepack && \
     chown -R api:nodejs /app/logs /app/uploads /app/extensions /tmp/.corepack
 
-USER api
-
 EXPOSE 3002
 
-CMD ["node", "apps/api/dist/server.js"]
+CMD ["start-selfhost-api"]
