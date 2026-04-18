@@ -197,6 +197,8 @@ const upgradeStatusSchema = {
     progress: { type: 'number', minimum: 0, maximum: 100, description: 'Progress percentage' },
     currentStep: { type: 'string', nullable: true, description: 'Current step description' },
     error: { type: 'string', nullable: true, description: 'Error message if failed' },
+    targetVersion: { type: 'string', nullable: true, description: 'Target version for the most recent upgrade request' },
+    updatedAt: { type: 'string', format: 'date-time', nullable: true, description: 'Last status update time' },
   },
   required: ['status', 'progress'],
 } as const;
@@ -259,6 +261,11 @@ export const upgradeSchemas = {
   // GET /api/upgrade/status
   getStatus: {
     response: createTypedReadResponses(upgradeStatusSchema),
+  },
+
+  // POST /api/upgrade/status/reset
+  resetStatus: {
+    response: createTypedUpdateResponses(upgradeStatusSchema),
   },
 
   // POST /api/upgrade/backup

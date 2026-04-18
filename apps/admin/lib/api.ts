@@ -1160,6 +1160,16 @@ export const upgradeApi = {
   }>> =>
     apiClient.get('/upgrade/status'),
 
+  resetStatus: (): Promise<ApiResponse<{
+    status: string;
+    progress: number;
+    currentStep?: string | null;
+    error?: string | null;
+    targetVersion?: string | null;
+    updatedAt?: string | null;
+  }>> =>
+    apiClient.post('/upgrade/status/reset', {}),
+
   perform: (targetVersion: string): Promise<ApiResponse<{
     targetVersion: string;
     started: boolean;

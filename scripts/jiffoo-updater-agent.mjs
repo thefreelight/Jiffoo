@@ -11,12 +11,17 @@ const STATUS_FILE = process.env.JIFFOO_UPDATER_STATUS_FILE || '/workspace/.jiffo
 const COMPOSE_FILE = process.env.JIFFOO_DOCKER_COMPOSE_FILE || '/workspace/docker-compose.prod.yml';
 const ENV_FILE = process.env.JIFFOO_DOCKER_ENV_FILE || '/workspace/.env.production.local';
 const UPDATER_BIN = process.env.JIFFOO_UPDATER_BIN || '/usr/local/bin/jiffoo-updater';
+const TERMINAL_STATUS_TTL_MS = Math.max(
+  0,
+  Number.parseInt(process.env.JIFFOO_UPDATER_TERMINAL_STATUS_TTL_MS || '300000', 10) || 300000,
+);
 const WORKSPACE_UPDATER_SCRIPT =
   process.env.JIFFOO_UPDATER_SCRIPT || '/workspace/scripts/jiffoo-updater.mjs';
 const WORKSPACE_PACKAGE_JSON =
   process.env.JIFFOO_WORKSPACE_PACKAGE_JSON || '/workspace/package.json';
 
 let activeProcess = null;
+const TERMINAL_STATUSES = new Set(['completed', 'failed', 'recovered']);
 
 function parseReleaseVersion(version) {
   if (!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(version)) {
@@ -115,19 +120,49 @@ async function readJsonBody(request) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
+function buildIdleStatus() {
+  return {
+    status: 'idle',
+    progress: 0,
+    currentStep: null,
+    error: null,
+    updatedAt: null,
+    targetVersion: null,
+  };
+}
+
+async function persistStatus(status) {
+  await fs.mkdir(path.dirname(STATUS_FILE), { recursive: true });
+  await fs.writeFile(STATUS_FILE, JSON.stringify(status, null, 2), 'utf8');
+  return status;
+}
+
+function isTerminalStatus(status) {
+  return typeof status?.status === 'string' && TERMINAL_STATUSES.has(status.status);
+}
+
+function isExpiredTerminalStatus(status) {
+  if (!isTerminalStatus(status) || activeProcess || TERMINAL_STATUS_TTL_MS <= 0) {
+    return false;
+  }
+
+  const updatedAt = typeof status.updatedAt === 'string' ? Date.parse(status.updatedAt) : Number.NaN;
+  return Number.isFinite(updatedAt) && Date.now() - updatedAt >= TERMINAL_STATUS_TTL_MS;
+}
+
 async function readStatus() {
   try {
     const raw = await fs.readFile(STATUS_FILE, 'utf8');
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (isExpiredTerminalStatus(parsed)) {
+      return await persistStatus({
+        ...buildIdleStatus(),
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    return parsed;
   } catch {
-    return {
-      status: 'idle',
-      progress: 0,
-      currentStep: null,
-      error: null,
-      updatedAt: null,
-      targetVersion: null,
-    };
+    return buildIdleStatus();
   }
 }
 
@@ -138,9 +173,14 @@ async function writeStatus(patch) {
     ...patch,
     updatedAt: new Date().toISOString(),
   };
-  await fs.mkdir(path.dirname(STATUS_FILE), { recursive: true });
-  await fs.writeFile(STATUS_FILE, JSON.stringify(next, null, 2), 'utf8');
-  return next;
+  return await persistStatus(next);
+}
+
+async function resetStatus() {
+  return await persistStatus({
+    ...buildIdleStatus(),
+    updatedAt: new Date().toISOString(),
+  });
 }
 
 async function startUpgrade(targetVersion) {
@@ -210,6 +250,17 @@ const server = http.createServer(async (request, response) => {
 
     if (request.method === 'GET' && request.url === '/status') {
       sendJson(response, 200, await readStatus());
+      return;
+    }
+
+    if (request.method === 'POST' && request.url === '/status/reset') {
+      const status = await readStatus();
+      if (activeProcess || !['idle', 'completed', 'failed', 'recovered'].includes(status.status)) {
+        sendJson(response, 409, { error: 'Upgrade is still active', status });
+        return;
+      }
+
+      sendJson(response, 200, await resetStatus());
       return;
     }
 

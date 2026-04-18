@@ -150,6 +150,21 @@ function parseCountryCodes(input: string): string[] {
   return Array.from(new Set(normalized))
 }
 
+function normalizeUpgradeStatusView(status: {
+  status: string
+  progress: number
+  currentStep?: string | null
+  error?: string | null
+  targetVersion?: string | null
+  updatedAt?: string | null
+} | null) {
+  if (!status) return null
+  if (status.status === 'idle' && !status.currentStep && !status.error) {
+    return null
+  }
+  return status
+}
+
 export default function SettingsPage() {
   return <SettingsPageContent />
 }
@@ -310,7 +325,14 @@ function SettingsPageContent() {
   const loadUpgradeStatus = useCallback(async () => {
     const response = await upgradeApi.getStatus()
     const data = unwrapApiResponse(response)
-    setUpgradeStatus(data)
+    setUpgradeStatus(normalizeUpgradeStatusView(data))
+  }, [])
+
+  const resetUpgradeStatus = useCallback(async () => {
+    const response = await upgradeApi.resetStatus()
+    const data = unwrapApiResponse(response)
+    setUpgradeStatus(normalizeUpgradeStatusView(data))
+    return data
   }, [])
 
   useEffect(() => {
@@ -365,7 +387,7 @@ function SettingsPageContent() {
               : getText(
                   'merchant.systemUpdates.updateVersionRefreshPending',
                   'System updated successfully. Version metadata may take a few more seconds to refresh.'
-                )
+            )
           )
         } else {
           toast.info(
@@ -375,6 +397,10 @@ function SettingsPageContent() {
             )
           )
         }
+
+        await new Promise((resolve) => window.setTimeout(resolve, 1500))
+        if (cancelled) return
+        await resetUpgradeStatus().catch(() => undefined)
       } catch (error: unknown) {
         if (cancelled) return
         toast.error(resolveApiErrorMessage(error, t))
@@ -386,7 +412,7 @@ function SettingsPageContent() {
     return () => {
       cancelled = true
     }
-  }, [getText, loadUpgradeStatus, syncVersionAfterUpgrade, t, upgradeStatus])
+  }, [getText, loadUpgradeStatus, resetUpgradeStatus, syncVersionAfterUpgrade, t, upgradeStatus])
 
   const handleSave = async () => {
     if (!hasChanges) {

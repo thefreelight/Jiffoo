@@ -15,31 +15,11 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
+import { PUBLIC_CORE_UPDATE_MANIFEST } from 'shared';
 
 const PUBLIC_MANIFEST_URL = 'https://get.jiffoo.com/releases/core/manifest.json';
-const PUBLIC_MANIFEST = {
-  latestVersion: '1.0.22',
-  latestStableVersion: '1.0.22',
-  latestPrereleaseVersion: null,
-  channel: 'stable',
-  deliveryMode: 'image-first',
-  images: {
-    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.22',
-    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.22',
-    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.22',
-    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.22',
-  },
-  releaseDate: '2026-04-17T11:19:22.585Z',
-  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.22-opensource',
-  sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
-  minimumCompatibleVersion: '1.0.0',
-  minimumAutoUpgradableVersion: '1.0.0',
-  requiresManualIntervention: false,
-  releaseNotes:
-    'Fixes self-hosted upgrade UI state so successful updates clear cached banners and normalize -opensource runtime versions before comparing them to the public feed.',
-  checksumUrl: null,
-  signatureUrl: null,
-} as const;
+const PUBLIC_MANIFEST = PUBLIC_CORE_UPDATE_MANIFEST;
+const TEST_LATEST_VERSION = PUBLIC_MANIFEST.latestVersion;
 
 describe('Upgrade Endpoints', () => {
   let app: FastifyInstance;
@@ -82,6 +62,7 @@ describe('Upgrade Endpoints', () => {
       { method: 'GET', url: '/api/upgrade/version' },
       { method: 'POST', url: '/api/upgrade/check', body: { targetVersion: '1.0.0' } },
       { method: 'GET', url: '/api/upgrade/status' },
+      { method: 'POST', url: '/api/upgrade/status/reset' },
       { method: 'POST', url: '/api/upgrade/backup' },
       { method: 'POST', url: '/api/upgrade/perform', body: { targetVersion: '1.0.0' } },
     ];
@@ -102,6 +83,7 @@ describe('Upgrade Endpoints', () => {
       { method: 'GET', url: '/api/upgrade/version' },
       { method: 'POST', url: '/api/upgrade/check', body: { targetVersion: '1.0.0' } },
       { method: 'GET', url: '/api/upgrade/status' },
+      { method: 'POST', url: '/api/upgrade/status/reset' },
       { method: 'POST', url: '/api/upgrade/backup' },
       { method: 'POST', url: '/api/upgrade/perform', body: { targetVersion: '1.0.0' } },
     ];
@@ -147,19 +129,19 @@ describe('Upgrade Endpoints', () => {
         vi.fn(async () => ({
           ok: true,
           json: async () => ({
-            latestVersion: '1.0.22',
-            latestStableVersion: '1.0.22',
+            latestVersion: TEST_LATEST_VERSION,
+            latestStableVersion: TEST_LATEST_VERSION,
             latestPrereleaseVersion: null,
             channel: 'stable',
             deliveryMode: 'image-first',
             images: {
-              api: 'registry.example.com/jiffoo-oss/api:1.0.22',
-              admin: 'registry.example.com/jiffoo-oss/admin:1.0.22',
-              shop: 'registry.example.com/jiffoo-oss/shop:1.0.22',
-              updater: 'registry.example.com/jiffoo-oss/updater:1.0.22',
+              api: `registry.example.com/jiffoo-oss/api:${TEST_LATEST_VERSION}`,
+              admin: `registry.example.com/jiffoo-oss/admin:${TEST_LATEST_VERSION}`,
+              shop: `registry.example.com/jiffoo-oss/shop:${TEST_LATEST_VERSION}`,
+              updater: `registry.example.com/jiffoo-oss/updater:${TEST_LATEST_VERSION}`,
             },
             releaseDate: '2026-04-11T00:00:00.000Z',
-            changelogUrl: 'https://example.com/changelog/1.0.22',
+            changelogUrl: `https://example.com/changelog/${TEST_LATEST_VERSION}`,
             minimumCompatibleVersion: '1.0.0',
             minimumAutoUpgradableVersion: '1.0.0',
             requiresManualIntervention: false,
@@ -176,17 +158,17 @@ describe('Upgrade Endpoints', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.data.latestVersion).toBe('1.0.22');
+      expect(body.data.latestVersion).toBe(TEST_LATEST_VERSION);
       expect(body.data.updateSource).toBe('env-manifest');
       expect(body.data.manifestStatus).toBe('available');
       expect(body.data.manifestUrl).toBe('https://updates.example.com/releases/core/manifest.json');
       expect(body.data.releaseChannel).toBe('stable');
       expect(body.data.deliveryMode).toBe('image-first');
       expect(body.data.runtimeImages).toEqual({
-        api: 'registry.example.com/jiffoo-oss/api:1.0.22',
-        admin: 'registry.example.com/jiffoo-oss/admin:1.0.22',
-        shop: 'registry.example.com/jiffoo-oss/shop:1.0.22',
-        updater: 'registry.example.com/jiffoo-oss/updater:1.0.22',
+        api: `registry.example.com/jiffoo-oss/api:${TEST_LATEST_VERSION}`,
+        admin: `registry.example.com/jiffoo-oss/admin:${TEST_LATEST_VERSION}`,
+        shop: `registry.example.com/jiffoo-oss/shop:${TEST_LATEST_VERSION}`,
+        updater: `registry.example.com/jiffoo-oss/updater:${TEST_LATEST_VERSION}`,
       });
     });
 
@@ -237,8 +219,8 @@ describe('Upgrade Endpoints', () => {
 
       expect(response.statusCode).toBe(200);
       const body = response.json();
-      expect(body.data.currentVersion).toBe('1.0.22');
-      expect(body.data.latestVersion).toBe('1.0.22');
+      expect(body.data.currentVersion).toBe(TEST_LATEST_VERSION);
+      expect(body.data.latestVersion).toBe(TEST_LATEST_VERSION);
       expect(body.data.updateAvailable).toBe(false);
     });
   });
@@ -279,6 +261,51 @@ describe('Upgrade Endpoints', () => {
       const body = response.json();
       expect(body).toHaveProperty('success', true);
       expect(body).toHaveProperty('data');
+    });
+  });
+
+  describe('POST /api/upgrade/status/reset', () => {
+    it('should reset upgrade status for admin through the updater bridge', async () => {
+      vi.stubEnv('JIFFOO_DEPLOYMENT_MODE', 'docker-compose');
+      vi.stubEnv('JIFFOO_UPDATER_URL', 'http://updater:3015');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => ({
+          ok: true,
+          json: async () => ({
+            status: 'idle',
+            progress: 0,
+            currentStep: null,
+            error: null,
+            targetVersion: null,
+            updatedAt: '2026-04-18T09:25:00.000Z',
+          }),
+        })) as typeof fetch,
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/upgrade/status/reset',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body).toHaveProperty('success', true);
+      expect(body.data).toEqual({
+        status: 'idle',
+        progress: 0,
+        currentStep: null,
+        error: null,
+        targetVersion: null,
+        updatedAt: '2026-04-18T09:25:00.000Z',
+      });
+      expect(fetch).toHaveBeenCalledWith(
+        'http://updater:3015/status/reset',
+        expect.objectContaining({
+          method: 'POST',
+        }),
+      );
     });
   });
 

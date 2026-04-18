@@ -1,5 +1,12 @@
 # Changelog
 
+## v1.0.25-opensource - 2026-04-18
+
+- auto-clears terminal self-hosted upgrade status so the Settings page can return to a clean idle state after completion or recovery
+- adds an authenticated upgrade-status reset path that the Admin UI can use to hide stale success and recovery progress bars without a manual refresh
+- expires stale terminal updater status files on the updater agent so old failed runs stop polluting future visits
+- makes the self-hosted feed publication workflow wait for `api`, `admin`, `shop`, and `updater` runtime images before publishing a public manifest that references them
+
 ## v1.0.15-opensource - 2026-04-17
 
 - hardens the Docker Compose self-hosted upgrader with a durable update lock and explicit runtime-version verification

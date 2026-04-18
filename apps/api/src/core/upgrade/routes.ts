@@ -93,6 +93,23 @@ export async function upgradeRoutes(fastify: FastifyInstance) {
       }
     });
 
+    protectedFastify.post('/status/reset', {
+      schema: {
+        tags: ['upgrade'],
+        summary: 'Reset Upgrade Status',
+        description: 'Reset the visible upgrade status back to idle after a terminal state (Admin only)',
+        security: [{ bearerAuth: [] }],
+        ...upgradeSchemas.resetStatus,
+      }
+    }, async (_request, reply: FastifyReply) => {
+      try {
+        const status = await UpgradeService.resetUpgradeStatus();
+        return sendSuccess(reply, status);
+      } catch (error: any) {
+        return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to reset upgrade status');
+      }
+    });
+
     /**
      * Create backup
      */

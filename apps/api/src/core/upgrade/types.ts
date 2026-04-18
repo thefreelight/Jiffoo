@@ -78,6 +78,8 @@ export interface UpgradeStatus {
   progress: number;
   currentStep?: string | null;
   error?: string | null;
+  targetVersion?: string | null;
+  updatedAt?: string | null;
 }
 
 export interface UpgradePerformResult {

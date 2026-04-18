@@ -23,6 +23,8 @@ jobs:
   publish-update-feed:
     runs-on: ubuntu-latest
     env:
+      REGISTRY: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com
+      IMAGE_NAMESPACE: jiffoo-oss
       # This workflow publishes the canonical public OSS update origin served from
       # the Singapore public host static directory, not the Kubernetes jiffoo-installer service.
       GET_JIFFOO_ROOT: /var/www/get-jiffoo
@@ -42,6 +44,43 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Wait for runtime images
+        shell: bash
+        run: |
+          set -euo pipefail
+          core_version="${RELEASE_TAG#v}"
+          core_version="${core_version%-opensource}"
+
+          for service in api admin shop updater; do
+            image="${REGISTRY}/${IMAGE_NAMESPACE}/${service}:${core_version}"
+            echo "Waiting for ${image}"
+            ready=0
+
+            for attempt in $(seq 1 18); do
+              if docker buildx imagetools inspect "${image}" >/dev/null 2>&1; then
+                ready=1
+                break
+              fi
+
+              sleep 10
+            done
+
+            if [ "${ready}" -ne 1 ]; then
+              echo "Missing published runtime image: ${image}" >&2
+              exit 1
+            fi
+          done
 
       - name: Prepare release notes
         shell: bash

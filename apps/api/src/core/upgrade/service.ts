@@ -64,6 +64,8 @@ export class UpgradeService {
   private static progress = 0;
   private static status: UpgradeStatusState = 'idle';
   private static lastError: string | null = null;
+  private static targetVersion: string | null = null;
+  private static updatedAt: string | null = null;
 
   private static supportsExternalUpdaterBridge(mode: DeploymentMode): boolean {
     return Boolean(process.env.JIFFOO_UPDATER_URL) && (mode === 'docker-compose' || mode === 'k8s');
@@ -219,6 +221,39 @@ export class UpgradeService {
       progress: this.progress,
       currentStep: this.currentStep || null,
       error: this.lastError,
+      targetVersion: this.targetVersion,
+      updatedAt: this.updatedAt,
+    };
+  }
+
+  static async resetUpgradeStatus(): Promise<UpgradeStatus> {
+    const deployment = this.detectDeploymentMode();
+    if (this.supportsExternalUpdaterBridge(deployment.mode)) {
+      const response = await fetch(`${process.env.JIFFOO_UPDATER_URL}/status/reset`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to reset updater status (HTTP ${response.status})`);
+      }
+
+      return await response.json() as UpgradeStatus;
+    }
+
+    this.status = 'idle';
+    this.progress = 0;
+    this.currentStep = '';
+    this.lastError = null;
+    this.targetVersion = null;
+    this.updatedAt = new Date().toISOString();
+
+    return {
+      status: this.status,
+      progress: this.progress,
+      currentStep: null,
+      error: null,
+      targetVersion: null,
+      updatedAt: this.updatedAt,
     };
   }
 
@@ -269,6 +304,7 @@ export class UpgradeService {
     try {
       this.upgradeInProgress = true;
       this.lastError = null;
+      this.targetVersion = targetVersion;
       this.reportProgress('checking', 'Resolving updater executor', 5);
 
       const executor = createUpdateExecutor(deployment.mode);
@@ -342,6 +378,7 @@ export class UpgradeService {
     } catch (error) {
       this.status = 'failed';
       this.lastError = error instanceof Error ? error.message : 'Unknown error';
+      this.updatedAt = new Date().toISOString();
       return {
         success: false,
         error: this.lastError,
@@ -532,6 +569,7 @@ export class UpgradeService {
     this.status = status;
     this.currentStep = step;
     this.progress = progress;
+    this.updatedAt = new Date().toISOString();
   }
 
   /**
