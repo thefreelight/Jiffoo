@@ -607,6 +607,7 @@ async function stageThemeArtifact(entry: OfficialCatalogEntry, stagingDir: strin
   }
 
   await ensureThemePackPath(sourceDir, manifest.entry?.tokensCSS || 'tokens.css');
+  await ensureThemePackPath(sourceDir, manifest.entry?.runtimeJS);
   await ensureThemePackPath(sourceDir, manifest.entry?.templatesDir || 'templates');
   await ensureThemePackPath(sourceDir, manifest.entry?.assetsDir);
   await ensureThemePackPath(sourceDir, manifest.entry?.settingsSchema);
