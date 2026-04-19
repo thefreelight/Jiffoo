@@ -1,4 +1,4 @@
-FROM node:20-bookworm-slim
+FROM node:20-bookworm-slim AS base
 
 ARG NPM_REGISTRY=https://registry.npmjs.org
 
@@ -29,22 +29,55 @@ RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 WORKDIR /app
 
+FROM base AS deps
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
 
-RUN pnpm install --filter api... --frozen-lockfile
+RUN pnpm install --filter api... --frozen-lockfile --prod=false
 
+FROM base AS builder
+
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 COPY . .
 
-RUN install -m 0755 /app/scripts/jiffoo-updater.mjs /usr/local/bin/jiffoo-updater
-
+RUN mkdir -p /app/plugins
 RUN pnpm --filter shared build
 RUN pnpm --filter api exec tsx scripts/build-official-artifacts.ts || echo "Skipping embedded official artifacts for self-hosted build"
-RUN cd apps/api && pnpm exec prisma generate --schema prisma/schema.prisma
+RUN pnpm --filter api build
 
-RUN mkdir -p /app/logs /app/uploads /app/extensions
+FROM base AS runner
+
+ENV NODE_ENV=production
+ENV API_PORT=3002
+ENV API_HOST=0.0.0.0
+ENV PORT=3002
+ENV HOME=/tmp
+ENV COREPACK_HOME=/tmp/.corepack
+
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 api
+
+COPY --from=builder --chown=api:nodejs /app/package.json ./
+COPY --from=builder --chown=api:nodejs /app/apps/api/package.json ./apps/api/
+COPY --from=builder --chown=api:nodejs /app/apps/api/dist ./apps/api/dist
+COPY --from=builder --chown=api:nodejs /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder --chown=api:nodejs /app/packages/shared/package.json ./packages/shared/
+COPY --from=builder --chown=api:nodejs /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder --chown=api:nodejs /app/dist/official-artifacts ./dist/official-artifacts
+COPY --from=builder --chown=api:nodejs /app/apps/api/scripts/start-selfhost-api.sh ./apps/api/scripts/start-selfhost-api.sh
+COPY --from=builder --chown=api:nodejs /app/scripts ./scripts
+COPY --from=builder --chown=api:nodejs /app/plugins ./plugins
+COPY --from=builder --chown=api:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=api:nodejs /app/apps/api/node_modules ./apps/api/node_modules
+
+RUN install -m 0755 /app/scripts/jiffoo-updater.mjs /usr/local/bin/jiffoo-updater && \
+    install -m 0755 /app/apps/api/scripts/start-selfhost-api.sh /usr/local/bin/start-selfhost-api && \
+    mkdir -p /app/logs /app/uploads /app/extensions /tmp/.corepack && \
+    chown -R api:nodejs /app/logs /app/uploads /app/extensions /tmp/.corepack
 
 EXPOSE 3002
 
-CMD ["sh", "-lc", "cd apps/api && pnpm exec tsx src/server.ts"]
+CMD ["start-selfhost-api"]

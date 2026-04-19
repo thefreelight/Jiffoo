@@ -190,16 +190,34 @@ async function readStatusFile(statusFile) {
 
 async function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
+    let stdout = '';
+    let stderr = '';
     const child = spawn(command, args, {
-      stdio: 'inherit',
+      stdio: ['ignore', 'pipe', 'pipe'],
       ...options,
+    });
+
+    child.stdout?.on('data', (chunk) => {
+      const text = chunk.toString();
+      stdout = `${stdout}${text}`.slice(-4000);
+      process.stdout.write(chunk);
+    });
+
+    child.stderr?.on('data', (chunk) => {
+      const text = chunk.toString();
+      stderr = `${stderr}${text}`.slice(-4000);
+      process.stderr.write(chunk);
     });
 
     child.on('exit', (code) => {
       if (code === 0) {
         resolve();
       } else {
-        reject(new Error(`${command} ${args.join(' ')} failed with exit code ${code ?? 1}`));
+        const details = stderr.trim() || stdout.trim();
+        const suffix = details.length > 0
+          ? `: ${details.split(/\r?\n/).filter(Boolean).slice(-3).join(' | ')}`
+          : '';
+        reject(new Error(`${command} ${args.join(' ')} failed with exit code ${code ?? 1}${suffix}`));
       }
     });
     child.on('error', reject);
@@ -278,6 +296,53 @@ async function removeComposeService(composeCommand, composePrefixArgs, composePr
   ).catch(() => {
     // Ignore when the target container does not exist yet.
   });
+}
+
+function getComposeContainerNameCandidates(composeProjectName, service) {
+  return [
+    `${composeProjectName}_${service}_1`,
+    `${composeProjectName}-${service}-1`,
+  ];
+}
+
+async function removeConflictingComposeServiceContainers(service, composeProjectName, commandEnv) {
+  const candidates = getComposeContainerNameCandidates(composeProjectName, service);
+
+  for (const containerName of candidates) {
+    const inspect = spawnSync(
+      'docker',
+      ['inspect', containerName, '--format', '{{json .Config.Labels}}'],
+      {
+        encoding: 'utf8',
+        env: commandEnv,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      },
+    );
+
+    if (inspect.status !== 0) {
+      continue;
+    }
+
+    let labels = {};
+    try {
+      labels = JSON.parse(inspect.stdout || '{}') || {};
+    } catch {
+      labels = {};
+    }
+
+    const isManagedContainer =
+      labels['com.docker.compose.project'] === composeProjectName &&
+      labels['com.docker.compose.service'] === service;
+
+    if (isManagedContainer) {
+      continue;
+    }
+
+    console.warn(
+      `[jiffoo-updater] Removing conflicting unmanaged container "${containerName}" before compose cutover`,
+    );
+    await run('docker', ['rm', '-f', containerName], { env: commandEnv });
+  }
 }
 
 function normalizeRuntimeImages(images, targetVersion) {
@@ -412,6 +477,7 @@ async function recreateComposeRuntimeServices(composeCommand, composePrefixArgs,
       service,
       commandEnv,
     );
+    await removeConflictingComposeServiceContainers(service, composeProjectName, commandEnv);
 
     await runComposeCommand(
       composeCommand,

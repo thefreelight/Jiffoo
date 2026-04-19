@@ -94,6 +94,15 @@ function isThemePackKind(kind?: string): boolean {
     return kind === 'theme-shop' || kind === 'theme-admin';
 }
 
+function isAllowedThemePackRuntimeScript(filename: string, kind?: string): boolean {
+    if (!isThemePackKind(kind)) {
+        return false;
+    }
+
+    const normalized = filename.replace(/\\/g, '/').toLowerCase();
+    return normalized === 'runtime/theme-runtime.js';
+}
+
 /**
  * Validate file extension
  * @throws Error if file type is forbidden or not allowed
@@ -103,6 +112,9 @@ export function validateFileExtension(filename: string, kind?: string): void {
 
     // Theme Pack (L3.5): strict allow-list + strict forbidden-list
     if (isThemePackKind(kind)) {
+        if (isAllowedThemePackRuntimeScript(filename, kind)) {
+            return;
+        }
         if (FORBIDDEN_EXTENSIONS.includes(ext as any)) {
             throw new ExtensionInstallerError(
                 `Forbidden file type detected: ${ext}. Executable scripts are not allowed for ${kind} security reasons.`,

@@ -100,6 +100,33 @@ export async function downloadArtifactWithResume(
 
   const sameArtifact = previousMeta?.url === options.url;
   const etagMatches = !head.etag || !previousMeta?.etag || previousMeta.etag === head.etag;
+
+  if (
+    sameArtifact &&
+    etagMatches &&
+    head.totalBytes !== null &&
+    existingSize === head.totalBytes &&
+    existingSize > 0
+  ) {
+    await writeMeta(metaPath, {
+      url: options.url,
+      etag: head.etag,
+      totalBytes: head.totalBytes,
+      downloadedBytes: existingSize,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return {
+      filePath: artifactPath,
+      workspaceDir,
+      totalBytes: head.totalBytes,
+      downloadedBytes: existingSize,
+      resumed: false,
+      etag: head.etag,
+      acceptRanges: head.acceptRanges,
+    };
+  }
+
   const canResume = sameArtifact && head.acceptRanges && existingSize > 0 && etagMatches;
 
   if (!sameArtifact || !etagMatches) {

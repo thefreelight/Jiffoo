@@ -98,13 +98,13 @@ describe('Admin Market Install Flow', () => {
   const themeFixtures = {
     'esim-mall': {
       name: 'eSIM Mall',
-      artifactUrl: 'https://market.example.com/artifacts/themes/esim-mall/1.0.0.jtheme',
+      artifactUrl: 'https://market.example.com/artifacts/themes/esim-mall/esim-mall-1.0.0.jtheme',
       primaryColor: '#0f172a',
       etag: '"esim-mall-1.0.0"',
     },
     yevbi: {
       name: 'Yevbi',
-      artifactUrl: 'https://market.example.com/artifacts/themes/yevbi/1.0.0.jtheme',
+      artifactUrl: 'https://market.example.com/artifacts/themes/yevbi/yevbi-1.0.0.jtheme',
       primaryColor: '#111111',
       etag: '"yevbi-1.0.0"',
     },
@@ -197,6 +197,7 @@ module.exports = plugin;
                 category: 'storefront',
                 entry: {
                   tokensCSS: 'tokens.css',
+                  runtimeJS: 'runtime/theme-runtime.js',
                   templatesDir: 'templates',
                 },
                 defaultConfig: {
@@ -211,6 +212,7 @@ module.exports = plugin;
               2,
             ),
             'tokens.css': `:root { --brand-primary: ${fixture.primaryColor}; }`,
+            'runtime/theme-runtime.js': `window.__JIFFOO_THEME_RUNTIME__ = { version: '1.0.0', components: {}, defaultConfig: {} };`,
             'templates/home.json': JSON.stringify(
               {
                 schemaVersion: 1,
@@ -640,6 +642,9 @@ module.exports = plugin;
     ) as { source?: string; officialMarket?: { installedVersion?: string } };
     expect(installedMeta.source).toBe('official-market');
     expect(installedMeta.officialMarket?.installedVersion).toBe('1.0.0');
+    await expect(
+      fs.stat(path.join(themeRoots[themeSlug], 'runtime', 'theme-runtime.js')),
+    ).resolves.toBeDefined();
   });
 
   it('rejects official installs when entitlement authorization denies access', async () => {
