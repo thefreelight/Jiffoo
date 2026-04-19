@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- documents the permanent OSS direction that official theme/plugin binaries must publish to a standalone canonical artifact origin instead of depending on `platform-api` deployment
+- splits official extension release flow into artifact publication, metadata promotion, and downstream consumer rollout so failures do not blur together
+- adds ADR-0002 to record that `platform-api` remains the control plane for metadata but is no longer the required runtime host for official package binaries
+
 ## v1.0.25-opensource - 2026-04-18
 
 - auto-clears terminal self-hosted upgrade status so the Settings page can return to a clean idle state after completion or recovery

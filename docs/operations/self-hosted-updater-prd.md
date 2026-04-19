@@ -14,6 +14,10 @@ The desired model borrows from two proven patterns:
 - WordPress: stage first, verify, then commit the version marker last.
 - sub2api: keep the upgrade unit small and switch the runtime in clear steps.
 
+It also needs one more structural rule for official themes and plugins:
+
+- artifact publication must be lighter than metadata promotion, so a package release never requires a `platform-api` deployment just to make the binary downloadable.
+
 ## Product Outcomes
 
 - Upgrades feel boring and predictable.
@@ -21,6 +25,8 @@ The desired model borrows from two proven patterns:
 - Version reporting follows the runtime, not marketing copy in an env file.
 - Rescue tooling exists without polluting the default path.
 - Release publication and release consumption stop drifting apart across Singapore, `get.jiffoo.com`, and downstream self-hosted instances.
+- Official theme/plugin package publication becomes independently reliable instead of being blocked by `platform-api` rollout timing.
+- Metadata promotion becomes a separate control-plane concern, not the binary delivery path itself.
 
 ## Functional Requirements
 
@@ -36,6 +42,9 @@ The desired model borrows from two proven patterns:
 10. Formal OSS release publication must remain anchored to the Singapore cluster release path.
 11. GitHub Release creation must not be treated as sufficient for self-hosted version detection until `get.jiffoo.com` serves the same release metadata.
 12. Consumer runtimes such as RackNerd-branded instances must be documented as downstream consumers that can lag behind the public feed until they are explicitly updated.
+13. Official theme/plugin artifact binaries must publish to a standalone canonical artifact origin that does not depend on `platform-api` deployment.
+14. `platform-api` promotion must update metadata such as `currentVersion`, `sellableVersion`, and `installable`, but package URLs must remain valid even if that promotion step is delayed or partially failed.
+15. Official artifact publication must reject incomplete theme packs, including missing packaged runtime bundles declared by `entry.runtimeJS`.
 
 ## Operator Expectations
 
@@ -44,6 +53,9 @@ The desired model borrows from two proven patterns:
 - Manual guidance in the Admin/API layer matches the runtime behavior.
 - Operators understand that version detection comes from `get.jiffoo.com`, not directly from GitHub tags or release pages.
 - Operators understand that Singapore is the release publication anchor and RackNerd-like hosts are rollout targets, not the publication source.
+- Official extension maintainers can publish a theme/plugin package without scheduling a `platform-api` deployment.
+- If `platform-api` promotion fails, maintainers can still verify that the canonical artifact URL serves the expected package payload.
+- Operators can distinguish "artifact not published" from "metadata not promoted" without reverse engineering the marketplace stack.
 
 ## Acceptance Signals
 
@@ -51,3 +63,7 @@ The desired model borrows from two proven patterns:
 - Manual guidance tells operators to verify live runtime before committing the version.
 - Release notes and changelog clearly state the new cutover model.
 - Release operations docs clearly state that Singapore publication and public manifest sync are the required completion step for self-hosted update detection.
+- Official extension release docs explicitly separate:
+  - artifact publication
+  - metadata promotion
+  - downstream consumer rollout

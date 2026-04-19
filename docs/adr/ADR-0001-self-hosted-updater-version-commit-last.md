@@ -28,3 +28,4 @@ We will treat the updater as a bootstrap layer and adopt a two-phase runtime com
 - unexpected manifest regressions fail fast instead of silently changing upgrade strategy.
 - a crash between cutover and final commit becomes smaller and easier to reason about, because version persistence is isolated as a final step.
 - release debugging must distinguish publication state (`Singapore -> get.jiffoo.com`) from consumer rollout state (`RackNerd/brand host -> runtime update`).
+- official package publication concerns are documented separately in `ADR-0002`, so updater state and artifact-host responsibilities do not remain conflated.
