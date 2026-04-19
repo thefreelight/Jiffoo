@@ -60,6 +60,31 @@ Canonical repos:
 - `jiffoo-mall-core` may temporarily contain overlapping OSS files during migration, but `Jiffoo` remains canonical for OSS scope.
 - `apps/api` and `apps/platform-api` must not share one Prisma migration history table; even on one Postgres server they should use separate logical databases.
 
+## Official Artifact Publication Boundary
+
+- Official theme/plugin source still belongs to `jiffoo-extensions-official`.
+- `Jiffoo` owns the OSS-side runtime contracts, consumer restore behavior, updater logic, release docs, and public artifact/public-feed assumptions.
+- The canonical standalone artifact origin for official themes/plugins is:
+  - `https://get.jiffoo.com/official-artifacts`
+- Do not treat `platform-api` as the required runtime host for official theme/plugin binaries.
+- Do not introduce new official package URLs that point at `market.jiffoo.com`.
+- `platform-api` may promote metadata such as:
+  - `currentVersion`
+  - `sellableVersion`
+  - `publishState`
+  - `installable`
+  but that promotion must not be the only thing making the binary downloadable.
+
+### Publication Model
+
+- Official package publication is split into three stages:
+  - canonical artifact publication
+  - metadata promotion
+  - downstream consumer rollout
+- Canonical artifact publication must complete before metadata promotion is considered successful.
+- Metadata promotion may fail independently from artifact publication; do not collapse those failures into one generic “release failed” state.
+- Consumer restore/install logic in `Jiffoo` must prefer the canonical artifact URL and remain functional even if control-plane promotion lags behind.
+
 ## Theme Client Contract Rules
 
 When implementing official storefront support for web, mobile, desktop, or future custom clients, treat the following files as the only source of truth:
