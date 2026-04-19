@@ -88,4 +88,54 @@ describe('resumable-downloader', () => {
     await cleanupDownloadedArtifact(slug, version);
     await expect(fs.stat(workspaceDir)).rejects.toThrow();
   });
+
+  it('reuses a complete downloaded artifact without issuing a trailing range request', async () => {
+    const workspaceDir = path.join(downloadRoot, slug, version);
+    await fs.mkdir(workspaceDir, { recursive: true });
+    await fs.writeFile(path.join(workspaceDir, 'artifact.part'), artifact);
+    await fs.writeFile(
+      path.join(workspaceDir, 'download.json'),
+      JSON.stringify(
+        {
+          url,
+          etag: '"artifact-etag"',
+          totalBytes: artifact.length,
+          downloadedBytes: artifact.length,
+          updatedAt: new Date().toISOString(),
+        },
+        null,
+        2,
+      ),
+      'utf-8',
+    );
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const requestUrl = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const method = (init?.method || 'GET').toUpperCase();
+
+      if (requestUrl !== url) {
+        throw new Error(`Unexpected URL: ${requestUrl}`);
+      }
+
+      if (method === 'HEAD') {
+        return new Response(null, {
+          status: 200,
+          headers: {
+            'Content-Length': String(artifact.length),
+            'Accept-Ranges': 'bytes',
+            ETag: '"artifact-etag"',
+          },
+        });
+      }
+
+      throw new Error('Download request should not be issued for a complete artifact');
+    }) as typeof fetch;
+
+    const result = await downloadArtifactWithResume({ slug, version, url });
+    const written = await fs.readFile(result.filePath);
+
+    expect(result.resumed).toBe(false);
+    expect(result.downloadedBytes).toBe(artifact.length);
+    expect(written.equals(artifact)).toBe(true);
+  });
 });
