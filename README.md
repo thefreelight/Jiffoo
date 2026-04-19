@@ -90,6 +90,19 @@ Formal OSS version publication is anchored to the Singapore cluster release path
 
 Downstream environments such as RackNerd-branded deployments are consumer instances. They may still report an older current version or still run an older updater until they are explicitly rolled forward, even after the public feed has advanced.
 
+### Official Theme And Plugin Publication
+
+Official theme/plugin publication is being standardized into two separate truths:
+
+1. canonical artifact publication
+   - the package binary must publish to a stable artifact origin
+   - artifact publication should not require a `platform-api` deployment
+2. metadata promotion
+   - `platform-api` promotes `currentVersion`, `sellableVersion`, `publishState`, and `installable`
+   - metadata promotion can lag behind artifact publication
+
+This separation exists because a package can be technically ready before catalog promotion is complete. Future official package flows should treat `platform-api` as the control plane, not the mandatory runtime host for the package binary itself.
+
 ### Self-Hosted Upgrade Model
 
 The Docker Compose upgrader follows a staged runtime cutover model:
@@ -131,6 +144,7 @@ Important:
 - GitHub Release creation is not the final publication step for self-hosted update detection.
 - The final publication check is `https://get.jiffoo.com/releases/core/manifest.json`.
 - If a consumer instance still detects an older version, verify the public manifest first, then verify that the consumer host has actually rolled forward.
+- Official theme/plugin publication should follow the same discipline: verify the canonical artifact URL first, then verify `platform-api` promotion, then verify downstream rollout.
 
 ### Local URLs
 
@@ -166,6 +180,7 @@ Jiffoo/
 - [Self-Hosted Updater PRD](docs/operations/self-hosted-updater-prd.md)
 - [Self-Hosted Updater PRD Executable](docs/operations/self-hosted-updater-prd-executable.md)
 - [ADR-0001 Self-Hosted Updater Commits Version Last](docs/adr/ADR-0001-self-hosted-updater-version-commit-last.md)
+- [ADR-0002 Official Artifact Host Is Decoupled From Platform-API](docs/adr/ADR-0002-official-artifact-host-decoupled-from-platform-api.md)
 - [Cross-Platform Theme Client Contract](docs/theme-client-platform-contract.md)
 - [Theme Client API Catalog](docs/theme-client-api-catalog.json)
 - [Theme Client Compatibility Matrix](docs/theme-client-compatibility-matrix.md)
