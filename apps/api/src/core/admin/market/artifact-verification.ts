@@ -36,7 +36,11 @@ function parseSha256Sidecar(raw: string): string {
 function isTrustedOfficialArtifactUrl(url: string): boolean {
   try {
     const parsed = new URL(url);
-    return parsed.hostname === 'platform-api.jiffoo.com' || parsed.hostname === 'market.jiffoo.com';
+    return (
+      parsed.hostname === 'platform-api.jiffoo.com' ||
+      parsed.hostname === 'market.jiffoo.com' ||
+      parsed.hostname === 'get.jiffoo.com'
+    );
   } catch {
     return false;
   }
