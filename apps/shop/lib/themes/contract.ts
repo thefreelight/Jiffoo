@@ -33,6 +33,8 @@ export const OFFICIAL_FULL_THEME_COMPONENTS = [
   'ProfileSettingsPage',
 ] as const satisfies ReadonlyArray<keyof ThemePackage['components']>;
 
+// Embedded storefront renderers are migration-only compatibility bridges.
+// New official themes should ship a packaged runtime and load by slug + version.
 export const OFFICIAL_EMBEDDED_THEME_SLUGS = ['esim-mall', 'yevbi'] as const;
 
 type ThemeComponentName = keyof ThemePackage['components'];

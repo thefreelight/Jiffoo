@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased
+
+- makes `apps/shop` treat installed official theme runtimes as the canonical renderer source and removes silent fallback to same-slug embedded host copies for remote-only themes such as `modelsfind`
+- narrows embedded storefront renderer fallback to an explicit compatibility allowlist and logs fallback usage so rollout drift is observable
+- formalizes the single-source-of-truth runtime model across spec, PRD, executable PRD, and ADR docs
+
+## v1.0.28-opensource - 2026-04-20
+
+- removes host-owned auth branding and footer chrome from theme-owned shop auth routes so branded domains no longer inherit the generic `Jiffoo` auth shell
+- publishes the `1.0.28` OSS runtime images and self-hosted update feed assets for `api`, `admin`, `shop`, and `updater`
+- documents the official storefront runtime single-source-of-truth problem and the need to verify branded live HTML instead of relying only on Admin version state
+
+## v1.0.27-opensource - 2026-04-20
+
+- refreshes official theme install state after marketplace installs so `404` / `409` install races no longer leave Admin stuck on stale theme status
+- retries theme activation after cache invalidation when an official theme install succeeds but the active-theme lookup still sees the old installed list
+- prevents Admin theme/plugin install clicks from surfacing unhandled promise rejections while the post-install state refresh catches up
+
 ## v1.0.25-opensource - 2026-04-18
 
 - auto-clears terminal self-hosted upgrade status so the Settings page can return to a clean idle state after completion or recovery

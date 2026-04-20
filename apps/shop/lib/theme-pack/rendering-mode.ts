@@ -1,4 +1,5 @@
 import type { ActiveTheme, ThemePackManifest } from './types';
+import { isOfficialEmbeddedThemeSlug } from '@/lib/themes/contract';
 import { isValidThemeSlug } from '@/lib/themes/registry';
 
 function isBuiltinFallbackSlug(slug?: string | null): boolean {
@@ -39,8 +40,13 @@ export function getEmbeddedRendererSlug(manifest?: ThemePackManifest | null): st
   }
 
   const rendererSlug = manifest['x-jiffoo-renderer-slug'];
-  return typeof rendererSlug === 'string' && rendererSlug.trim().length > 0
-    ? rendererSlug.trim()
+  if (typeof rendererSlug !== 'string' || rendererSlug.trim().length === 0) {
+    return null;
+  }
+
+  const normalizedRendererSlug = rendererSlug.trim();
+  return isOfficialEmbeddedThemeSlug(normalizedRendererSlug)
+    ? normalizedRendererSlug
     : null;
 }
 
@@ -69,11 +75,11 @@ export function resolveThemeRendererSlug(options: {
     return embeddedRendererSlug;
   }
 
-  if (options.activeThemeSlug && isValidThemeSlug(options.activeThemeSlug)) {
+  if (options.activeThemeSlug) {
     return options.activeThemeSlug;
   }
 
-  if (options.serverThemeSlug && isValidThemeSlug(options.serverThemeSlug)) {
+  if (options.serverThemeSlug) {
     return options.serverThemeSlug;
   }
 

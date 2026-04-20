@@ -67,6 +67,10 @@ function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>)
   return result;
 }
 
+function isBuiltinFallbackSlug(slug: string): boolean {
+  return slug === 'builtin-default' || slug === 'default';
+}
+
 export function getFallbackThemeSlugs(options: {
   compatibilityFallbackSlug?: string | null;
   validSlug: ThemeSlug;
@@ -128,9 +132,13 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
         }
       : null;
   const hasRemoteRuntimeInit = Boolean(remoteRuntimeManifest?.url);
+  const shouldDeferThemeResolutionInit =
+    Boolean(themePack?.isLoading) &&
+    !hasRemoteRuntimeInit &&
+    !isBuiltinFallbackSlug(normalizedSlugInit);
   const validSlugInit =
     hasRemoteRuntimeInit || isValidThemeSlug(normalizedSlugInit) ? normalizedSlugInit : 'builtin-default';
-  const cachedTheme = shouldDeferEmbeddedBuiltinInit || hasRemoteRuntimeInit
+  const cachedTheme = shouldDeferEmbeddedBuiltinInit || shouldDeferThemeResolutionInit || hasRemoteRuntimeInit
     ? null
     : cacheRef.current.get(validSlugInit) ?? null;
 
@@ -154,6 +162,10 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
           }
         : null;
     const canLoadRemoteRuntime = Boolean(remoteRuntime?.url);
+    const shouldDeferThemeResolution =
+      Boolean(themePack?.isLoading) &&
+      !canLoadRemoteRuntime &&
+      !isBuiltinFallbackSlug(normalizedSlug);
     const shouldDeferEmbeddedBuiltin =
       themePack?.isLoading && isOfficialEmbeddedThemeSlug(normalizedSlug) && !canLoadRemoteRuntime;
     const validSlug = canLoadRemoteRuntime || isValidThemeSlug(normalizedSlug) ? normalizedSlug : 'builtin-default';
@@ -166,7 +178,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
       try {
         setError(null);
 
-        if (shouldDeferEmbeddedBuiltin) {
+        if (shouldDeferEmbeddedBuiltin || shouldDeferThemeResolution) {
           if (mounted) {
             setTheme(null);
             setIsLoading(true);
@@ -184,7 +196,9 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
         }
 
         if (!canLoadRemoteRuntime && validSlug !== normalizedSlug) {
-          console.warn(`Invalid theme slug "${slug}", falling back to "builtin-default"`);
+          console.warn(
+            `[ThemeProvider] Theme "${slug}" has no packaged runtime or approved compatibility renderer; falling back to "builtin-default"`,
+          );
         }
 
         if (remoteRuntime?.url) {
@@ -258,6 +272,11 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
               const fallbackTheme = await loadRegistryThemePackage(fallbackSlug);
               assertThemeComponents(fallbackTheme, fallbackSlug);
               cacheRef.current.set(fallbackSlug, fallbackTheme);
+              if (fallbackSlug !== 'builtin-default') {
+                console.warn(
+                  `[ThemeProvider] Using compatibility renderer "${fallbackSlug}" after failing to load "${normalizedSlug}"`,
+                );
+              }
               setTheme(fallbackTheme);
               setError(null);
               return;

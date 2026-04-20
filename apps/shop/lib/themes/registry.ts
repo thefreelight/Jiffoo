@@ -8,10 +8,7 @@
  */
 
 import type { ThemePackage, ThemeMeta, ThemeRegistryEntry, ThemeRegistry } from 'shared/src/types/theme';
-import bokmooTheme from '@shop-themes/bokmoo/src/runtime';
 import esimMallTheme from '@shop-themes/esim-mall/src/runtime';
-import imagicStudioTheme from '@shop-themes/imagic-studio/src/runtime';
-import modelsfindTheme from '@shop-themes/modelsfind/src/runtime';
 import yevbiTheme from '@shop-themes/yevbi/src/runtime';
 
 // ============================================================================
@@ -74,23 +71,8 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       return module.default || module.theme;
     },
   },
-  // Official marketplace themes that ship embedded storefront renderers.
-  // Their Theme Pack artifacts still provide tokens/templates, but the
-  // renderer itself must also be present in the shop bundle so activation
-  // does not silently fall back to builtin-default.
-  'bokmoo': {
-    meta: {
-      slug: 'bokmoo',
-      name: 'Bokmoo Theme',
-      version: '1.0.0',
-      description: 'Premium black-and-gold travel eSIM storefront for Bokmoo official use.',
-      category: 'esim',
-      author: 'Jiffoo',
-      target: 'shop',
-      tags: ['bokmoo', 'esim', 'travel', 'premium', 'connectivity'],
-    },
-    load: async () => bokmooTheme,
-  },
+  // Migration-only compatibility bridges. Official themes that publish a
+  // packaged runtime must resolve from the installed artifact instead.
   'esim-mall': {
     meta: {
       slug: 'esim-mall',
@@ -103,32 +85,6 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       tags: ['esim', 'travel', 'connectivity', 'modern'],
     },
     load: async () => esimMallTheme,
-  },
-  'imagic-studio': {
-    meta: {
-      slug: 'imagic-studio',
-      name: 'Imagic Studio',
-      version: '0.1.0',
-      description: 'Creator-focused image and video transformation storefront for imagic.art.',
-      category: 'ai',
-      author: 'Jiffoo',
-      target: 'shop',
-      tags: ['ai', 'creative', 'image', 'video', 'ghibli'],
-    },
-    load: async () => imagicStudioTheme,
-  },
-  'modelsfind': {
-    meta: {
-      slug: 'modelsfind',
-      name: 'ModelsFind',
-      version: '0.1.0',
-      description: 'Premium portrait archive storefront theme with dark editorial layouts and private collection cues.',
-      category: 'gallery',
-      author: 'Jiffoo',
-      target: 'shop',
-      tags: ['gallery', 'editorial', 'portrait', 'luxury', 'archive'],
-    },
-    load: async () => modelsfindTheme,
   },
   'yevbi': {
     meta: {

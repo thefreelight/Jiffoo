@@ -61,6 +61,20 @@ describe('theme pack rendering mode contract', () => {
     ).toBe('esim-mall');
   });
 
+  it('rejects embedded renderer slugs that are not on the compatibility allowlist', () => {
+    expect(
+      getEmbeddedRendererSlug({
+        schemaVersion: 1,
+        slug: 'modelsfind',
+        name: 'ModelsFind',
+        version: '0.1.0',
+        target: 'shop',
+        'x-jiffoo-renderer-mode': 'embedded',
+        'x-jiffoo-renderer-slug': 'modelsfind',
+      }),
+    ).toBeNull();
+  });
+
   it('prefers manifest-declared embedded renderers over raw active theme slugs', () => {
     expect(
       resolveThemeRendererSlug({
@@ -79,12 +93,45 @@ describe('theme pack rendering mode contract', () => {
     ).toBe('esim-mall');
   });
 
-  it('falls back to builtin-default when neither manifest nor theme slugs map to a known renderer', () => {
+  it('preserves the active theme slug so the provider can wait for a packaged runtime', () => {
     expect(
       resolveThemeRendererSlug({
-        activeThemeSlug: 'unknown-market-theme',
-        serverThemeSlug: 'still-unknown',
+        activeThemeSlug: 'modelsfind',
+        serverThemeSlug: 'builtin-default',
       }),
-    ).toBe('builtin-default');
+    ).toBe('modelsfind');
+  });
+
+  it('preserves the server theme slug when the client theme pack has not loaded yet', () => {
+    expect(
+      resolveThemeRendererSlug({
+        serverThemeSlug: 'imagic-studio',
+      }),
+    ).toBe('imagic-studio');
+  });
+
+  it('prefers packaged runtimes over embedded fallback metadata', () => {
+    expect(
+      resolveThemeRendererSlug({
+        manifest: {
+          schemaVersion: 1,
+          slug: 'modelsfind',
+          name: 'ModelsFind',
+          version: '0.1.10',
+          target: 'shop',
+          entry: {
+            runtimeJS: 'runtime/theme-runtime.js',
+          },
+          'x-jiffoo-renderer-mode': 'embedded',
+          'x-jiffoo-renderer-slug': 'modelsfind',
+        },
+        activeThemeSlug: 'modelsfind',
+        serverThemeSlug: 'builtin-default',
+      }),
+    ).toBe('modelsfind');
+  });
+
+  it('still falls back to builtin-default when nothing provides a theme slug', () => {
+    expect(resolveThemeRendererSlug({})).toBe('builtin-default');
   });
 });
