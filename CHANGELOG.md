@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## v1.0.29-opensource - 2026-04-21
 
 - makes `apps/shop` treat installed official theme runtimes as the canonical renderer source and removes silent fallback to same-slug embedded host copies for remote-only themes such as `modelsfind`
 - narrows embedded storefront renderer fallback to an explicit compatibility allowlist and logs fallback usage so rollout drift is observable
