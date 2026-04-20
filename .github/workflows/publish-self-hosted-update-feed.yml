@@ -160,23 +160,34 @@ jobs:
             .release/self-hosted/core-update-manifest.json \
             --clobber
 
-      - name: Install sshpass
-        run: sudo apt-get update && sudo apt-get install -y sshpass
+      - name: Prepare SSH key
+        env:
+          GET_JIFFOO_SSH_PRIVATE_KEY: ${{ secrets.GET_JIFFOO_SSH_PRIVATE_KEY }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${GET_JIFFOO_SSH_PRIVATE_KEY:-}" ]; then
+            echo "Missing GET_JIFFOO_SSH_PRIVATE_KEY"
+            exit 1
+          fi
+
+          install -m 0700 -d ~/.ssh
+          printf '%s\n' "${GET_JIFFOO_SSH_PRIVATE_KEY}" > ~/.ssh/get_jiffoo_deploy_key
+          chmod 600 ~/.ssh/get_jiffoo_deploy_key
 
       - name: Deploy update feed to get.jiffoo.com
         env:
           GET_JIFFOO_SSH_HOST: ${{ secrets.GET_JIFFOO_SSH_HOST }}
           GET_JIFFOO_SSH_USER: ${{ secrets.GET_JIFFOO_SSH_USER }}
-          GET_JIFFOO_SSH_PASSWORD: ${{ secrets.GET_JIFFOO_SSH_PASSWORD }}
         shell: bash
         run: |
           set -euo pipefail
-          if [ -z "${GET_JIFFOO_SSH_HOST:-}" ] || [ -z "${GET_JIFFOO_SSH_USER:-}" ] || [ -z "${GET_JIFFOO_SSH_PASSWORD:-}" ]; then
-            echo "Missing GET_JIFFOO_SSH_* secrets"
+          if [ -z "${GET_JIFFOO_SSH_HOST:-}" ] || [ -z "${GET_JIFFOO_SSH_USER:-}" ]; then
+            echo "Missing GET_JIFFOO_SSH_HOST or GET_JIFFOO_SSH_USER"
             exit 1
           fi
 
-          sshpass -p "$GET_JIFFOO_SSH_PASSWORD" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+          scp -i ~/.ssh/get_jiffoo_deploy_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             .release/self-hosted/install.sh \
             .release/self-hosted/docker-compose.yml \
             .release/self-hosted/.env.production.example \
@@ -186,7 +197,7 @@ jobs:
             .release/self-hosted/get-jiffoo.conf \
             "${GET_JIFFOO_SSH_USER}@${GET_JIFFOO_SSH_HOST}:/tmp/"
 
-          sshpass -p "$GET_JIFFOO_SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+          ssh -i ~/.ssh/get_jiffoo_deploy_key -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             "${GET_JIFFOO_SSH_USER}@${GET_JIFFOO_SSH_HOST}" \
             "GET_JIFFOO_ROOT='${GET_JIFFOO_ROOT}' GET_JIFFOO_NGINX_PATH='${GET_JIFFOO_NGINX_PATH}' bash -s" <<'EOF'
           set -euo pipefail
