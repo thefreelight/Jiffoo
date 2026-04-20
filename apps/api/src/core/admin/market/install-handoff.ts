@@ -4,6 +4,7 @@ import { createReadStream } from 'fs';
 import { promises as fs } from 'fs';
 import { Readable } from 'stream';
 import { prisma } from '@/config/database';
+import { CacheService } from '@/core/cache/service';
 import {
   extensionInstaller,
   type ExtensionKind,
@@ -127,6 +128,12 @@ function resolveThemeTarget(kind: ExtensionKind): ThemeTarget | null {
   }
 }
 
+async function invalidateThemeInstallCache(target: ThemeTarget): Promise<void> {
+  await CacheService.delete(`themes:installed:${target}`);
+  await CacheService.delete(`themes:active:${target}`);
+  await CacheService.incrementStoreContextVersion();
+}
+
 async function updateInstalledMetaSource(
   fsPath: string,
   installResult: InstallResult,
@@ -195,6 +202,11 @@ async function markInstalledSource(
   }
 
   await updateInstalledMetaSource(fsPath, installResult, options);
+
+  const target = resolveThemeTarget(kind);
+  if (target) {
+    await invalidateThemeInstallCache(target);
+  }
 }
 
 async function buildPluginInstallationState(slug: string): Promise<PluginInstallationState> {
@@ -236,9 +248,22 @@ async function buildThemeActivationState(
     return undefined;
   }
 
-  const activeTheme = activate
-    ? await ThemeManagementService.activateTheme(slug, target, themeConfig)
-    : await ThemeManagementService.getActiveTheme(target);
+  let activeTheme: ActiveTheme;
+
+  if (activate) {
+    try {
+      activeTheme = await ThemeManagementService.activateTheme(slug, target, themeConfig);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes(`Theme "${slug}" not found for target "${target}"`)) {
+        await invalidateThemeInstallCache(target);
+        activeTheme = await ThemeManagementService.activateTheme(slug, target, themeConfig);
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    activeTheme = await ThemeManagementService.getActiveTheme(target);
+  }
 
   return {
     target,
