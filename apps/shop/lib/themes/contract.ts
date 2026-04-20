@@ -38,9 +38,7 @@ export const OFFICIAL_FULL_THEME_COMPONENTS = [
 export const OFFICIAL_EMBEDDED_THEME_SLUGS = [
   'esim-mall',
   'yevbi',
-  'digital-vault',
   'bokmoo',
-  'imagic-studio',
   'navtoai',
 ] as const;
 
