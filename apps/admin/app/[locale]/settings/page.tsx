@@ -6,7 +6,7 @@
 
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CheckCircle2, RefreshCw, Save, Settings2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useT } from 'shared/src/i18n/react'
@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
 import { settingsApi, type SystemSettingsMap, unwrapApiResponse, upgradeApi } from '@/lib/api'
+import { clearUpdateCheckCache } from '@/hooks/use-update-check'
 import { cn } from '@/lib/utils'
 import CurrencySettings from '@/components/settings/currency-settings'
 import { ManagedLicensePanel } from '@/components/settings/ManagedLicensePanel'
@@ -149,6 +150,21 @@ function parseCountryCodes(input: string): string[] {
   return Array.from(new Set(normalized))
 }
 
+function normalizeUpgradeStatusView(status: {
+  status: string
+  progress: number
+  currentStep?: string | null
+  error?: string | null
+  targetVersion?: string | null
+  updatedAt?: string | null
+} | null) {
+  if (!status) return null
+  if (status.status === 'idle' && !status.currentStep && !status.error) {
+    return null
+  }
+  return status
+}
+
 export default function SettingsPage() {
   return <SettingsPageContent />
 }
@@ -158,16 +174,38 @@ function SettingsPageContent() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [checkingVersion, setCheckingVersion] = useState(false)
+  const [startingUpgrade, setStartingUpgrade] = useState(false)
+  const [finalizingUpgrade, setFinalizingUpgrade] = useState(false)
   const [settingsMap, setSettingsMap] = useState<SystemSettingsMap>({})
   const [draft, setDraft] = useState<SystemSettingsMap>({})
   const [initialDraft, setInitialDraft] = useState<SystemSettingsMap>({})
+  const terminalUpgradeHandledRef = useRef<string | null>(null)
+  const [upgradeStatus, setUpgradeStatus] = useState<{
+    status: string
+    progress: number
+    currentStep?: string | null
+    error?: string | null
+    targetVersion?: string | null
+    updatedAt?: string | null
+  } | null>(null)
   const [versionInfo, setVersionInfo] = useState<{
     currentVersion: string
     latestVersion: string
     updateAvailable: boolean
+    changelogUrl?: string | null
+    sourceArchiveUrl?: string | null
+    releaseDate?: string | null
+    releaseChannel: 'stable' | 'prerelease'
     deploymentMode: 'single-host' | 'docker-compose' | 'k8s' | 'unsupported'
+    deploymentModeSource: 'env' | 'k8s-signals' | 'compose-signals' | 'single-host-signals' | 'fallback'
+    deploymentModeReason?: string | null
     oneClickUpgradeSupported: boolean
-    updateSource: 'public-manifest' | 'local-fallback'
+    updateSource: 'env-manifest' | 'default-public-manifest' | 'local-fallback'
+    manifestUrl?: string | null
+    manifestStatus: 'available' | 'missing' | 'unreachable' | 'invalid'
+    manifestError?: string | null
+    minimumAutoUpgradableVersion?: string | null
+    requiresManualIntervention?: boolean
     recoveryMode: 'automatic-recovery'
     manualGuidance?: string | null
   } | null>(null)
@@ -196,7 +234,74 @@ function SettingsPageContent() {
     }
   }
 
+  const formatReleaseChannel = (channel: string) => {
+    switch (channel) {
+      case 'prerelease':
+        return getText('merchant.systemUpdates.prereleaseChannel', 'Prerelease')
+      default:
+        return getText('merchant.systemUpdates.stableChannel', 'Stable')
+    }
+  }
+
+  const describeManifestState = () => {
+    if (!versionInfo) return null
+
+    if (versionInfo.manifestStatus === 'available') {
+      return getText(
+        'merchant.systemUpdates.manifestHealthy',
+        'The public update manifest is reachable and release detection is active.'
+      )
+    }
+
+    if (versionInfo.manifestStatus === 'missing') {
+      return getText(
+        'merchant.systemUpdates.manifestMissing',
+        'No public update manifest is configured for this installation.'
+      )
+    }
+
+    if (versionInfo.manifestStatus === 'invalid') {
+      return versionInfo.manifestError || getText(
+        'merchant.systemUpdates.manifestInvalid',
+        'The public update manifest is present but invalid.'
+      )
+    }
+
+    return versionInfo.manifestError || getText(
+      'merchant.systemUpdates.manifestUnavailable',
+      'The public update manifest could not be reached.'
+    )
+  }
+
   const hasChanges = JSON.stringify(draft) !== JSON.stringify(initialDraft)
+  const activeUpgradeStates = new Set(['checking', 'preparing', 'downloading', 'backing_up', 'applying', 'migrating', 'verifying'])
+  const isUpgradeActive = upgradeStatus ? activeUpgradeStates.has(upgradeStatus.status) : false
+
+  const syncVersionAfterUpgrade = useCallback(async (expectedVersion?: string | null) => {
+    const targetVersion = expectedVersion || versionInfo?.latestVersion || null
+    if (!targetVersion) {
+      return false
+    }
+
+    setFinalizingUpgrade(true)
+    try {
+      clearUpdateCheckCache()
+      for (let attempt = 0; attempt < 10; attempt += 1) {
+        const response = await upgradeApi.getVersion()
+        const data = unwrapApiResponse(response)
+        setVersionInfo(data)
+
+        if (!data.updateAvailable || data.currentVersion === targetVersion) {
+          return true
+        }
+
+        await new Promise((resolve) => window.setTimeout(resolve, 3000))
+      }
+      return false
+    } finally {
+      setFinalizingUpgrade(false)
+    }
+  }, [versionInfo?.latestVersion])
 
   const updateField = (key: string, value: string) => {
     setDraft((prev) => ({ ...prev, [key]: value }))
@@ -217,10 +322,23 @@ function SettingsPageContent() {
     setVersionInfo(data)
   }, [])
 
+  const loadUpgradeStatus = useCallback(async () => {
+    const response = await upgradeApi.getStatus()
+    const data = unwrapApiResponse(response)
+    setUpgradeStatus(normalizeUpgradeStatusView(data))
+  }, [])
+
+  const resetUpgradeStatus = useCallback(async () => {
+    const response = await upgradeApi.resetStatus()
+    const data = unwrapApiResponse(response)
+    setUpgradeStatus(normalizeUpgradeStatusView(data))
+    return data
+  }, [])
+
   useEffect(() => {
     async function bootstrap() {
       try {
-        await Promise.all([loadSettings(), loadVersion()])
+        await Promise.all([loadSettings(), loadVersion(), loadUpgradeStatus()])
       } catch (error: unknown) {
         toast.error(resolveApiErrorMessage(error, t))
       } finally {
@@ -228,7 +346,73 @@ function SettingsPageContent() {
       }
     }
     bootstrap()
-  }, [loadSettings, loadVersion, t])
+  }, [loadSettings, loadUpgradeStatus, loadVersion, t])
+
+  useEffect(() => {
+    if (!isUpgradeActive) return
+
+    const interval = window.setInterval(() => {
+      loadUpgradeStatus().catch(() => {
+        // Keep the current progress visible even if one poll fails.
+      })
+    }, 3000)
+
+    return () => window.clearInterval(interval)
+  }, [isUpgradeActive, loadUpgradeStatus])
+
+  useEffect(() => {
+    if (!upgradeStatus || !['completed', 'recovered'].includes(upgradeStatus.status)) {
+      return
+    }
+
+    const completionKey = `${upgradeStatus.status}:${upgradeStatus.targetVersion ?? ''}:${upgradeStatus.updatedAt ?? ''}`
+    if (terminalUpgradeHandledRef.current === completionKey) {
+      return
+    }
+    terminalUpgradeHandledRef.current = completionKey
+
+    let cancelled = false
+
+    const finalizeUpgrade = async () => {
+      try {
+        const refreshed = await syncVersionAfterUpgrade(upgradeStatus.targetVersion)
+        if (cancelled) return
+
+        await loadUpgradeStatus().catch(() => undefined)
+
+        if (upgradeStatus.status === 'completed') {
+          toast.success(
+            refreshed
+              ? getText('merchant.systemUpdates.updateCompletedDesc', 'System has been updated successfully!')
+              : getText(
+                  'merchant.systemUpdates.updateVersionRefreshPending',
+                  'System updated successfully. Version metadata may take a few more seconds to refresh.'
+            )
+          )
+        } else {
+          toast.info(
+            getText(
+              'merchant.systemUpdates.updateRecovered',
+              'Update finished with automatic recovery. The system has returned to the last healthy state.'
+            )
+          )
+        }
+
+        await new Promise((resolve) => window.setTimeout(resolve, 1500))
+        if (cancelled) return
+        await resetUpgradeStatus().catch(() => undefined)
+      } catch (error: unknown) {
+        if (cancelled) return
+        toast.error(resolveApiErrorMessage(error, t))
+      }
+    }
+
+    finalizeUpgrade()
+
+    return () => {
+      cancelled = true
+    }
+  }, [getText, loadUpgradeStatus, resetUpgradeStatus, syncVersionAfterUpgrade, t, upgradeStatus])
 
   const handleSave = async () => {
     if (!hasChanges) {
@@ -263,11 +447,37 @@ function SettingsPageContent() {
   const refreshVersion = async () => {
     setCheckingVersion(true)
     try {
-      await loadVersion()
+      clearUpdateCheckCache()
+      await Promise.all([loadVersion(), loadUpgradeStatus()])
     } catch (error: unknown) {
       toast.error(resolveApiErrorMessage(error, t))
     } finally {
       setCheckingVersion(false)
+    }
+  }
+
+  const handleUpgrade = async () => {
+    if (!versionInfo?.latestVersion) return
+
+    setStartingUpgrade(true)
+    try {
+      const response = await upgradeApi.perform(versionInfo.latestVersion)
+      const data = unwrapApiResponse(response)
+      await loadUpgradeStatus()
+
+      if (data.completed) {
+        clearUpdateCheckCache()
+        toast.success(getText('merchant.systemUpdates.updateCompletedDesc', 'System has been updated successfully!'))
+        await loadVersion()
+      } else {
+        toast.success(
+          getText('merchant.systemUpdates.updateAccepted', 'Upgrade accepted. The updater is now running in the background.')
+        )
+      }
+    } catch (error: unknown) {
+      toast.error(resolveApiErrorMessage(error, t))
+    } finally {
+      setStartingUpgrade(false)
     }
   }
 
@@ -494,6 +704,9 @@ function SettingsPageContent() {
                   {getText('merchant.systemUpdates.latestVersion', 'Latest Version')}
                 </p>
                 <p className="text-2xl font-black text-gray-900 tracking-tight">{versionInfo?.latestVersion || '-'}</p>
+                <p className="mt-2 text-xs text-gray-500">
+                  {formatReleaseChannel(versionInfo?.releaseChannel || 'stable')}
+                </p>
               </div>
               <div className="rounded-2xl border border-gray-100 p-6 bg-gray-50/30">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">
@@ -525,17 +738,76 @@ function SettingsPageContent() {
                   ? getText('merchant.systemUpdates.updateAvailable', 'Update Available')
                   : getText('merchant.systemUpdates.noUpdates', 'No Updates')}
               </div>
-              <Button
-                variant="outline"
-                onClick={refreshVersion}
-                disabled={checkingVersion}
-                className="h-10 px-6 rounded-xl border-gray-100 font-semibold text-sm hover:bg-gray-50"
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${checkingVersion ? 'animate-spin' : ''}`} />
-                {checkingVersion
-                  ? getText('merchant.systemUpdates.loading', 'Loading...')
-                  : getText('merchant.systemUpdates.checkForUpdates', 'Check for Updates')}
-              </Button>
+              <div className="flex flex-wrap gap-3">
+                {versionInfo?.updateAvailable && versionInfo?.oneClickUpgradeSupported && !versionInfo?.requiresManualIntervention ? (
+                  <Button
+                    onClick={handleUpgrade}
+                    disabled={startingUpgrade || isUpgradeActive || finalizingUpgrade}
+                    className="h-10 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 font-semibold text-sm"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${(startingUpgrade || isUpgradeActive || finalizingUpgrade) ? 'animate-spin' : ''}`} />
+                    {startingUpgrade || isUpgradeActive || finalizingUpgrade
+                      ? getText('merchant.systemUpdates.updateInProgress', 'Update in progress')
+                      : getText('merchant.systemUpdates.updateNow', 'Update Now')}
+                  </Button>
+                ) : null}
+                <Button
+                  variant="outline"
+                  onClick={refreshVersion}
+                  disabled={checkingVersion || startingUpgrade || finalizingUpgrade}
+                  className="h-10 px-6 rounded-xl border-gray-100 font-semibold text-sm hover:bg-gray-50"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${checkingVersion ? 'animate-spin' : ''}`} />
+                  {checkingVersion
+                    ? getText('merchant.systemUpdates.loading', 'Loading...')
+                    : getText('merchant.systemUpdates.checkForUpdates', 'Check for Updates')}
+                </Button>
+              </div>
+            </div>
+
+            {upgradeStatus ? (
+              <div className="rounded-2xl border border-gray-100 bg-gray-50/40 p-5 space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    {getText('merchant.systemUpdates.updateProgress', 'Update Progress')}
+                  </p>
+                  <span className="text-sm font-semibold text-gray-700">{upgradeStatus.progress}%</span>
+                </div>
+                <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-blue-600 transition-all"
+                    style={{ width: `${Math.max(0, Math.min(100, upgradeStatus.progress || 0))}%` }}
+                  />
+                </div>
+                <p className="text-sm text-gray-700">
+                  {upgradeStatus.currentStep || getText('merchant.systemUpdates.historyDesc', 'Updates will appear here after completion')}
+                </p>
+                {upgradeStatus.error ? (
+                  <p className="text-xs text-red-600">{upgradeStatus.error}</p>
+                ) : null}
+              </div>
+            ) : null}
+
+            <div className="rounded-2xl border border-gray-100 bg-gray-50/40 p-5 space-y-2">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                {getText('merchant.systemUpdates.publicFeed', 'Public Update Feed')}
+              </p>
+              <p className="text-sm text-gray-700 break-all">
+                {versionInfo?.manifestUrl || getText('merchant.systemUpdates.manifestUrlUnavailable', 'No manifest URL configured')}
+              </p>
+              <p className="text-xs text-gray-500">
+                {describeManifestState()}
+              </p>
+              {versionInfo?.changelogUrl ? (
+                <a
+                  href={versionInfo.changelogUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex text-xs font-semibold text-blue-600 hover:text-blue-700"
+                >
+                  {getText('merchant.systemUpdates.openChangelog', 'Open changelog')}
+                </a>
+              ) : null}
             </div>
 
             <div className="rounded-2xl border border-gray-100 bg-gray-50/40 p-5 space-y-2">
@@ -554,6 +826,25 @@ function SettingsPageContent() {
                         'This installation currently requires operator-guided manual core upgrades.'
                       ))}
               </p>
+              {versionInfo?.deploymentModeReason ? (
+                <p className="text-xs text-gray-500">
+                  {versionInfo.deploymentModeReason}
+                </p>
+              ) : null}
+              {versionInfo?.minimumAutoUpgradableVersion ? (
+                <p className="text-xs text-gray-500">
+                  {getText('merchant.systemUpdates.minimumAutoUpgradableVersion', 'Minimum auto-upgradable version')}:{' '}
+                  <span className="font-medium text-gray-700">{versionInfo.minimumAutoUpgradableVersion}</span>
+                </p>
+              ) : null}
+              {versionInfo?.requiresManualIntervention ? (
+                <p className="text-xs font-medium text-amber-700">
+                  {getText(
+                    'merchant.systemUpdates.requiresManualIntervention',
+                    'This target release still requires manual operator intervention even if a newer version is available.'
+                  )}
+                </p>
+              ) : null}
               <p className="text-xs text-gray-500">
                 {getText(
                   'merchant.systemUpdates.autoRecoveryHint',

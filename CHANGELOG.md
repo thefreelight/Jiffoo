@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.32-opensource - 2026-04-21
+
+- restores the self-hosted Admin upgrade center UI and docker-compose updater bridge support so `Check for Updates` can surface a real `Update Now` action again
+- keeps self-hosted upgrade state, current version reporting, and official catalog completeness aligned with the live runtime
+- preserves the self-hosted release guardrails introduced after the 1.0.29 / 1.0.30 regressions
+
 ## v1.0.31-opensource - 2026-04-21
 
 - restores the full official theme catalog in self-hosted Admin so published official themes like `modelsfind`, `imagic-studio`, `navtoai`, `quiet-curator`, and `stellar-midnight` no longer disappear behind the old two-theme seed

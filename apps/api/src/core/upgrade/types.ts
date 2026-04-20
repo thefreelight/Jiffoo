@@ -1,4 +1,21 @@
 export type DeploymentMode = 'single-host' | 'docker-compose' | 'k8s' | 'unsupported';
+export type UpdateSource = 'env-manifest' | 'default-public-manifest' | 'local-fallback';
+export type UpdateManifestStatus = 'available' | 'missing' | 'unreachable' | 'invalid';
+export type CoreUpdateDeliveryMode = 'image-first' | 'source-archive';
+export type DeploymentModeSource =
+  | 'env'
+  | 'k8s-signals'
+  | 'compose-signals'
+  | 'single-host-signals'
+  | 'fallback';
+export type ReleaseChannel = 'stable' | 'prerelease';
+
+export interface CoreUpdateRuntimeImages {
+  api: string;
+  admin: string;
+  shop: string;
+  updater?: string | null;
+}
 
 export type UpgradeStatusState =
   | 'idle'
@@ -15,8 +32,18 @@ export type UpgradeStatusState =
 
 export interface CoreUpdateManifest {
   latestVersion: string;
+  latestStableVersion?: string | null;
+  latestPrereleaseVersion?: string | null;
+  channel?: ReleaseChannel | null;
+  deliveryMode?: CoreUpdateDeliveryMode | null;
+  images?: CoreUpdateRuntimeImages | null;
+  releaseDate?: string | null;
+  changelogUrl?: string | null;
+  sourceArchiveUrl?: string | null;
   releaseNotes?: string | null;
   minimumCompatibleVersion?: string | null;
+  minimumAutoUpgradableVersion?: string | null;
+  requiresManualIntervention?: boolean | null;
   checksumUrl?: string | null;
   signatureUrl?: string | null;
 }
@@ -25,10 +52,23 @@ export interface VersionInfo {
   currentVersion: string;
   latestVersion: string;
   updateAvailable: boolean;
+  deliveryMode?: CoreUpdateDeliveryMode | null;
+  runtimeImages?: CoreUpdateRuntimeImages | null;
   releaseNotes?: string | null;
+  changelogUrl?: string | null;
+  sourceArchiveUrl?: string | null;
+  releaseDate?: string | null;
+  releaseChannel: ReleaseChannel;
   deploymentMode: DeploymentMode;
+  deploymentModeSource: DeploymentModeSource;
+  deploymentModeReason?: string | null;
   oneClickUpgradeSupported: boolean;
-  updateSource: 'public-manifest' | 'local-fallback';
+  updateSource: UpdateSource;
+  manifestUrl?: string | null;
+  manifestStatus: UpdateManifestStatus;
+  manifestError?: string | null;
+  minimumAutoUpgradableVersion?: string | null;
+  requiresManualIntervention?: boolean;
   recoveryMode: 'automatic-recovery';
   manualGuidance?: string | null;
 }
@@ -38,6 +78,15 @@ export interface UpgradeStatus {
   progress: number;
   currentStep?: string | null;
   error?: string | null;
+  targetVersion?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface UpgradePerformResult {
+  targetVersion: string;
+  started: boolean;
+  completed: boolean;
+  completedAt?: string | null;
 }
 
 export interface BackupInfo {
