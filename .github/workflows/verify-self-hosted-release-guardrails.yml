@@ -1,0 +1,25 @@
+name: Verify Self-Hosted Release Guardrails
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - main
+      - 'codex/release-*'
+
+jobs:
+  verify-guardrails:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Verify self-hosted release guardrails
+        run: |
+          node scripts/verify-self-hosted-release.mjs

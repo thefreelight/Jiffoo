@@ -31,3 +31,4 @@ We will treat the updater as a bootstrap layer and adopt a two-phase runtime com
 - a crash between cutover and final commit becomes smaller and easier to reason about, because version persistence is isolated as a final step.
 - release debugging must distinguish publication state (`Singapore -> get.jiffoo.com`) from consumer rollout state (`RackNerd/brand host -> runtime update`).
 - failed candidate validations should not force an immediate new stable release if the same built artifact can be promoted after verification fixes.
+- release automation must block publication when release metadata, required self-hosted assets, SSH deploy mode, or official catalog completeness drift away from the validated baseline.

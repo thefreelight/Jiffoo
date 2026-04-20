@@ -25,6 +25,7 @@ Linear issue: JIF-112
 - Confirmed a `1.0.30` release-line regression where the self-hosted API carried an outdated `OFFICIAL_LAUNCH_EXTENSIONS` seed and only exposed two official themes in Admin despite the live platform catalog containing the full set.
 - Added runtime-version reconciliation so self-hosted Admin follows the live runtime version instead of stale persisted `system_settings.version`.
 - Added release-line follow-up to restore the complete official catalog aggregation path (artifact index + platform catalog + installed state) on self-hosted Admin.
+- Added a self-hosted release guardrail script and workflow gate that fails publication when root version metadata drifts, required runtime assets are missing, password-based deploy secrets are reintroduced, or the official theme seed regresses below the minimum supported catalog set.
 
 ## Verification
 

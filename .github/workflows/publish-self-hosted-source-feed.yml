@@ -37,6 +37,10 @@ jobs:
         with:
           node-version: 20
 
+      - name: Verify self-hosted release guardrails
+        run: |
+          node scripts/verify-self-hosted-release.mjs --release-tag "$RELEASE_TAG"
+
       - name: Prepare release notes
         run: |
           mkdir -p .release
