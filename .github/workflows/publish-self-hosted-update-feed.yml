@@ -59,7 +59,10 @@ jobs:
           set -euo pipefail
           owner="$(printf '%s' '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
           tag="${RELEASE_TAG}"
+          core_version="${tag#v}"
+          core_version="${core_version%-opensource}"
           echo "owner=${owner}" >> "$GITHUB_OUTPUT"
+          echo "core_version=${core_version}" >> "$GITHUB_OUTPUT"
           echo "api=ghcr.io/${owner}/jiffoo-api:${tag}" >> "$GITHUB_OUTPUT"
           echo "shop=ghcr.io/${owner}/jiffoo-shop:${tag}" >> "$GITHUB_OUTPUT"
           echo "admin=ghcr.io/${owner}/jiffoo-admin:${tag}" >> "$GITHUB_OUTPUT"
@@ -73,6 +76,11 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ${{ steps.image_refs.outputs.api }}
+          build-args: |
+            BUILD_SHA=${{ github.sha }}
+            BUILD_TIME=${{ github.event.release.published_at || inputs.release_date || github.run_id }}
+            APP_VERSION=${{ steps.image_refs.outputs.core_version }}
+            NPM_REGISTRY=https://registry.npmjs.org
           cache-from: type=gha,scope=jiffoo-api
           cache-to: type=gha,scope=jiffoo-api,mode=max
 
@@ -84,6 +92,11 @@ jobs:
           platforms: linux/amd64
           push: true
           tags: ${{ steps.image_refs.outputs.updater }}
+          build-args: |
+            BUILD_SHA=${{ github.sha }}
+            BUILD_TIME=${{ github.event.release.published_at || inputs.release_date || github.run_id }}
+            APP_VERSION=${{ steps.image_refs.outputs.core_version }}
+            NPM_REGISTRY=https://registry.npmjs.org
           cache-from: type=gha,scope=jiffoo-updater
           cache-to: type=gha,scope=jiffoo-updater,mode=max
 

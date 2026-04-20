@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.30-opensource - 2026-04-21
+
+- fixes self-hosted release metadata so published GHCR images and the copied runtime package version both converge to the target release version during updater verification
+- keeps the self-hosted feed deploy path on SSH key auth instead of repo-level password secrets
+- restores the required self-hosted runtime assets (`install.sh`, `docker-compose.prod.yml`, `.env.production.example`) to the public release line
+
 ## v1.0.29-opensource - 2026-04-21
 
 - makes `apps/shop` treat installed official theme runtimes as the canonical renderer source and removes silent fallback to same-slug embedded host copies for remote-only themes such as `modelsfind`
