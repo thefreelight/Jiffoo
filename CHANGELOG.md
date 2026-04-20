@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.31-opensource - 2026-04-21
+
+- restores the full official theme catalog in self-hosted Admin so published official themes like `modelsfind`, `imagic-studio`, `navtoai`, `quiet-curator`, and `stellar-midnight` no longer disappear behind the old two-theme seed
+- makes self-hosted upgrade version reporting converge to the live runtime version and auto-reconcile stale `system_settings.version` metadata
+- keeps the self-hosted updater and runtime line aligned on `1.0.31` defaults for future Docker Compose rollouts
+
 ## v1.0.30-opensource - 2026-04-21
 
 - fixes self-hosted release metadata so published GHCR images and the copied runtime package version both converge to the target release version during updater verification
