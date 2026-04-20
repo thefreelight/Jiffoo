@@ -58,8 +58,12 @@ export class UpgradeService {
       where: { id: 'system' }
     });
 
-    const installedVersion = settings?.version || this.resolveCurrentVersion();
     const deploymentMode = this.detectDeploymentMode();
+    const runtimeVersion = this.resolveCurrentVersion();
+    const installedVersion = this.resolveInstalledVersion(settings?.version ?? null, runtimeVersion, deploymentMode);
+
+    await this.reconcileStoredVersion(installedVersion, settings?.version ?? null, deploymentMode);
+
     const manifest = await this.fetchUpdateManifest();
     const latestVersion = manifest?.latestVersion || installedVersion;
     const updateAvailable = this.compareVersions(installedVersion, latestVersion) < 0;
@@ -94,8 +98,9 @@ export class UpgradeService {
       where: { id: 'system' }
     });
 
-    const currentVersion = settings?.version || this.resolveCurrentVersion();
     const deploymentMode = this.detectDeploymentMode();
+    const runtimeVersion = this.resolveCurrentVersion();
+    const currentVersion = this.resolveInstalledVersion(settings?.version ?? null, runtimeVersion, deploymentMode);
     const manifest = await this.fetchUpdateManifest();
     const minimumCompatibleVersion = manifest?.minimumCompatibleVersion || MIN_COMPATIBLE_VERSION;
     const executor = createUpdateExecutor(deploymentMode);
@@ -171,13 +176,15 @@ export class UpgradeService {
     const backupPath = deploymentMode === 'single-host'
       ? `/opt/jiffoo/backups/${backupId}`
       : `/backups/${backupId}`;
+    const runtimeVersion = this.resolveCurrentVersion();
+    const backupVersion = this.resolveInstalledVersion(settings?.version ?? null, runtimeVersion, deploymentMode);
 
     // In production, this would create actual database backup
     // For now, we just record the backup metadata
 
     return {
       id: backupId,
-      version: settings?.version || CURRENT_VERSION,
+      version: backupVersion,
       createdAt: new Date(),
       size: 0, // Would be actual backup size
       path: backupPath
@@ -286,6 +293,54 @@ export class UpgradeService {
     }
 
     return CURRENT_VERSION;
+  }
+
+  private static resolveInstalledVersion(
+    storedVersion: string | null,
+    runtimeVersion: string,
+    deploymentMode: DeploymentMode,
+  ): string {
+    if (deploymentMode === 'docker-compose' || deploymentMode === 'single-host') {
+      return runtimeVersion;
+    }
+
+    if (storedVersion && this.isStrictSemver(storedVersion)) {
+      return this.compareVersions(storedVersion, runtimeVersion) >= 0
+        ? storedVersion
+        : runtimeVersion;
+    }
+
+    return runtimeVersion;
+  }
+
+  private static async reconcileStoredVersion(
+    resolvedVersion: string,
+    storedVersion: string | null,
+    deploymentMode: DeploymentMode,
+  ): Promise<void> {
+    if (deploymentMode !== 'docker-compose' && deploymentMode !== 'single-host') {
+      return;
+    }
+
+    if (storedVersion === resolvedVersion) {
+      return;
+    }
+
+    await prisma.systemSettings.upsert({
+      where: { id: 'system' },
+      create: {
+        id: 'system',
+        settings: {
+          'localization.currency': 'USD',
+          'localization.locale': 'en',
+          'localization.timezone': 'UTC',
+        },
+        version: resolvedVersion,
+      },
+      update: {
+        version: resolvedVersion,
+      },
+    });
   }
 
   private static async fetchUpdateManifest(): Promise<CoreUpdateManifest | null> {
