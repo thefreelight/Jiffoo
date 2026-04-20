@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData } from '../api';
+import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, unwrapApiResponse, isAdminApiError, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
@@ -769,6 +769,13 @@ export function useInstallOfficialExtension() {
   const queryClient = useQueryClient();
   const { getText, getErrorMessage } = useLocalizedApiFeedback();
 
+  const refreshOfficialExtensionState = () => {
+    queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
+    queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+    queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
+    queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
+  };
+
   return useMutation({
     mutationFn: async ({
       slug,
@@ -785,10 +792,7 @@ export function useInstallOfficialExtension() {
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
-      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
+      refreshOfficialExtensionState();
       toast.success(
         variables.kind === 'plugin'
           ? getText('merchant.plugins.installSuccess', 'Plugin installed successfully')
@@ -796,6 +800,25 @@ export function useInstallOfficialExtension() {
       );
     },
     onError: (error: unknown, variables) => {
+      if (isAdminApiError(error)) {
+        const isVersionConflict =
+          error.code === 'VERSION_CONFLICT' || error.message.includes('is equal or newer');
+        const isThemeActivationRace =
+          variables.kind === 'theme-shop' &&
+          error.code === 'NOT_FOUND' &&
+          error.message.includes('not found for target');
+
+        if (isVersionConflict || isThemeActivationRace) {
+          refreshOfficialExtensionState();
+          toast.success(
+            variables.kind === 'plugin'
+              ? getText('merchant.plugins.installStateRefreshed', 'Plugin state refreshed')
+              : getText('merchant.themes.installStateRefreshed', 'Theme state refreshed')
+          );
+          return;
+        }
+      }
+
       const fallbackKey = variables.kind === 'plugin'
         ? 'merchant.plugins.installFailed'
         : 'merchant.themes.installFailed';

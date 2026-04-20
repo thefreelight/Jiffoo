@@ -187,6 +187,8 @@ export function ThemesManager() {
           activate: item.installState === 'active',
         });
       }
+    } catch {
+      // Mutations handle their own user feedback. Prevent bubbling unhandled promise rejections from button clicks.
     } finally {
       setInstallingOfficialSlug(null);
     }

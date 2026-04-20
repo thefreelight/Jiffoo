@@ -160,6 +160,8 @@ export function PluginsManager() {
           version: item.latestVersion || item.sellableVersion || item.version,
         });
       }
+    } catch {
+      // Mutations already toast localized errors. Avoid surfacing unhandled promise rejections from the click handler.
     } finally {
       setInstallingOfficialSlug(null);
     }
