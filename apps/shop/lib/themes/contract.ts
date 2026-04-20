@@ -33,13 +33,22 @@ export const OFFICIAL_FULL_THEME_COMPONENTS = [
   'ProfileSettingsPage',
 ] as const satisfies ReadonlyArray<keyof ThemePackage['components']>;
 
-export const OFFICIAL_EMBEDDED_THEME_SLUGS = ['esim-mall', 'yevbi', 'digital-vault', 'bokmoo'] as const;
+// Embedded storefront renderers are migration-only compatibility bridges.
+// New official themes should ship a packaged runtime and load by slug + version.
+export const OFFICIAL_EMBEDDED_THEME_SLUGS = [
+  'esim-mall',
+  'yevbi',
+  'digital-vault',
+  'bokmoo',
+  'imagic-studio',
+  'navtoai',
+] as const;
 
 type ThemeComponentName = keyof ThemePackage['components'];
 
 export function getMissingThemeComponents(
   themePackage: ThemePackage,
-  requiredComponents: readonly ThemeComponentName[]
+  requiredComponents: readonly ThemeComponentName[],
 ): ThemeComponentName[] {
   const components = themePackage?.components ?? {};
 
@@ -49,17 +58,21 @@ export function getMissingThemeComponents(
 export function assertThemeComponents(
   themePackage: ThemePackage,
   slug: string,
-  requiredComponents: readonly ThemeComponentName[] = MINIMUM_REQUIRED_THEME_COMPONENTS
+  requiredComponents: readonly ThemeComponentName[] = MINIMUM_REQUIRED_THEME_COMPONENTS,
 ): void {
   const missing = getMissingThemeComponents(themePackage, requiredComponents);
 
   if (missing.length > 0) {
     throw new Error(
-      `Theme "${slug}" is missing required components: ${missing.join(', ')}`
+      `Theme "${slug}" is missing required components: ${missing.join(', ')}`,
     );
   }
 }
 
-export function isOfficialEmbeddedThemeSlug(slug: string): slug is (typeof OFFICIAL_EMBEDDED_THEME_SLUGS)[number] {
-  return OFFICIAL_EMBEDDED_THEME_SLUGS.includes(slug as (typeof OFFICIAL_EMBEDDED_THEME_SLUGS)[number]);
+export function isOfficialEmbeddedThemeSlug(
+  slug: string,
+): slug is (typeof OFFICIAL_EMBEDDED_THEME_SLUGS)[number] {
+  return OFFICIAL_EMBEDDED_THEME_SLUGS.includes(
+    slug as (typeof OFFICIAL_EMBEDDED_THEME_SLUGS)[number],
+  );
 }

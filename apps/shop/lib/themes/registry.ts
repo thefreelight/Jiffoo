@@ -7,41 +7,18 @@
  * 2. Installed themes - Installed via Extension Installer to extensions/themes/shop/
  */
 
-import type { ThemePackage, ThemeMeta, ThemeRegistryEntry, ThemeRegistry } from 'shared/src/types/theme';
+import type { ThemeMeta, ThemePackage, ThemeRegistry, ThemeRegistryEntry } from 'shared/src/types/theme';
+import bokmooTheme from '@shop-themes/bokmoo/src/runtime';
 import digitalVaultTheme from '@shop-themes/digital-vault/src/runtime';
 import esimMallTheme from '@shop-themes/esim-mall/src/runtime';
-import yevbiTheme from '@shop-themes/yevbi/src/runtime';
-import bokmooTheme from '@shop-themes/bokmoo/src/runtime';
 import imagicStudioTheme from '@shop-themes/imagic-studio/src/runtime';
 import navtoaiTheme from '@shop-themes/navtoai/src/runtime';
+import yevbiTheme from '@shop-themes/yevbi/src/runtime';
 
-// ============================================================================
-// Built-in Theme Constants
-// ============================================================================
-
-/**
- * Canonical builtin theme slug (as per PRD_FINAL_BLUEPRINT.md)
- */
 const BUILTIN_DEFAULT_SLUG = 'builtin-default';
-
-/**
- * Legacy slug for backwards compatibility
- */
 const LEGACY_DEFAULT_SLUG = 'default';
 
-// ============================================================================
-// Built-in Theme Registry (Static)
-// ============================================================================
-
-/**
- * Built-in Theme Registry
- * Maps theme slug to dynamic import functions
- *
- * Note: Both 'builtin-default' (canonical) and 'default' (legacy) are supported.
- * The canonical slug is 'builtin-default' as per PRD_FINAL_BLUEPRINT.md.
- */
 export const BUILTIN_THEMES: ThemeRegistry = {
-  // Canonical builtin-default entry
   [BUILTIN_DEFAULT_SLUG]: {
     meta: {
       slug: BUILTIN_DEFAULT_SLUG,
@@ -58,7 +35,6 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       return module.default || module.theme;
     },
   },
-  // Legacy 'default' alias for backwards compatibility
   [LEGACY_DEFAULT_SLUG]: {
     meta: {
       slug: LEGACY_DEFAULT_SLUG,
@@ -75,7 +51,8 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       return module.default || module.theme;
     },
   },
-  // eSIM Mall theme - official embedded full theme
+  // Migration-only compatibility bridges. Themes that ship packaged runtimes
+  // must resolve from the installed artifact instead of a stale host mirror.
   'esim-mall': {
     meta: {
       slug: 'esim-mall',
@@ -92,12 +69,10 @@ export const BUILTIN_THEMES: ThemeRegistry = {
         const module = await import('@shop-themes/esim-mall');
         return module.default || module.theme;
       } catch {
-        // Keep a stub fallback so local worktrees without this package still boot.
         return { components: {}, defaultConfig: {} } as any;
       }
     },
   },
-  // Yevbi theme - official embedded full theme
   'yevbi': {
     meta: {
       slug: 'yevbi',
@@ -198,19 +173,8 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       }
     },
   },
-  // NOTE: Only 'builtin-default' is the canonical built-in theme.
-  // 'default' is kept for backwards compatibility but maps to the same package.
-  // Third-party themes should be installed as Theme Packs
-  // via Extension Installer to extensions/themes/shop/
 };
 
-// ============================================================================
-// Dynamic Theme Registry (Runtime)
-// ============================================================================
-
-/**
- * Installed themes registry (dynamically added at runtime)
- */
 const installedThemes: ThemeRegistry = {};
 const builtinRuntimeThemes: Record<string, ThemePackage> = {
   [BUILTIN_DEFAULT_SLUG]: digitalVaultTheme,
@@ -223,9 +187,6 @@ const builtinRuntimeThemes: Record<string, ThemePackage> = {
   'navtoai': navtoaiTheme,
 };
 
-/**
- * Get the complete combined theme registry
- */
 export function getThemeRegistry(): ThemeRegistry {
   return {
     ...BUILTIN_THEMES,
@@ -237,38 +198,18 @@ export function getSynchronousBuiltinTheme(slug: string): ThemePackage | null {
   return builtinRuntimeThemes[slug] ?? null;
 }
 
-/**
- * Register an installed theme
- * @param slug - Theme identifier
- * @param entry - Theme registry entry
- */
 export function registerInstalledTheme(slug: string, entry: ThemeRegistryEntry): void {
   installedThemes[slug] = entry;
 }
 
-/**
- * Unregister an installed theme
- * @param slug - Theme identifier
- */
 export function unregisterInstalledTheme(slug: string): void {
   delete installedThemes[slug];
 }
 
-/**
- * Clear the installed themes registry
- */
 export function clearInstalledThemes(): void {
-  Object.keys(installedThemes).forEach(key => delete installedThemes[key]);
+  Object.keys(installedThemes).forEach((key) => delete installedThemes[key]);
 }
 
-// ============================================================================
-// Compatibility Exports
-// ============================================================================
-
-/**
- * Theme registry proxy for legacy support
- * @deprecated Use getThemeRegistry() instead
- */
 export const THEME_REGISTRY = new Proxy({} as Record<string, () => Promise<any>>, {
   get(_, slug: string) {
     const registry = getThemeRegistry();
@@ -289,70 +230,36 @@ export const THEME_REGISTRY = new Proxy({} as Record<string, () => Promise<any>>
   },
 });
 
-/**
- * Theme Slug Type
- */
 export type ThemeSlug = string;
 
-/**
- * Validate theme slug
- * @param slug - Theme identifier to validate
- * @returns true if slug exists in the registry
- */
 export function isValidThemeSlug(slug: string): boolean {
   return slug in getThemeRegistry();
 }
 
-/**
- * Get theme importer function
- * @param slug - Theme identifier
- * @returns Dynamic import function for the theme package
- */
 export function getThemeImporter(slug: string): (() => Promise<any>) | undefined {
   const registry = getThemeRegistry();
   const entry = registry[slug];
   return entry?.load;
 }
 
-/**
- * Get theme metadata
- * @param slug - Theme identifier
- * @returns Theme metadata
- */
 export function getThemeMeta(slug: string): ThemeMeta | undefined {
   const registry = getThemeRegistry();
   return registry[slug]?.meta;
 }
 
-/**
- * Get all available theme slugs
- * @returns Array of theme identifiers
- */
-export function getAvailableThemes(): string[] {
-  return Object.keys(getThemeRegistry());
-}
-
-/**
- * Get all theme metadata
- * @returns Array of theme metadata
- */
-export function getAllThemeMetas(): ThemeMeta[] {
-  const registry = getThemeRegistry();
-  return Object.values(registry).map(entry => entry.meta);
-}
-
-/**
- * Check if a theme is built-in
- * @param slug - Theme identifier
- */
 export function isBuiltinTheme(slug: string): boolean {
   return slug in BUILTIN_THEMES;
 }
 
-/**
- * Check if a theme is installed via Extension Installer
- * @param slug - Theme identifier
- */
 export function isInstalledTheme(slug: string): boolean {
   return slug in installedThemes;
+}
+
+export function getAvailableThemes(): string[] {
+  return Object.keys(getThemeRegistry());
+}
+
+export function getAllThemeMetas(): ThemeMeta[] {
+  const registry = getThemeRegistry();
+  return Object.values(registry).map((entry) => entry.meta);
 }

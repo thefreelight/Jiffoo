@@ -4,24 +4,26 @@
  * Theme Renderer Provider
  *
  * Loads and provides theme renderer packages (React components).
- * This is the renderer-loading layer that loads UI components from @shop-themes/default.
- *
- * Note: This is separate from Theme Pack Runtime which handles tokens/templates.
- * - Theme Renderer (this): Loads React components for rendering pages
- * - Theme Pack Runtime: Loads CSS tokens and JSON templates for styling
+ * This is the renderer-loading layer that loads UI components from installed
+ * Theme Packs or explicit embedded compatibility bridges.
  */
 
-import React, { createContext, useContext, useEffect, useState, useRef, useMemo } from 'react';
-import type { ThemePackage, ThemeConfig } from 'shared/src/types/theme';
-import { THEME_REGISTRY, getSynchronousBuiltinTheme, type ThemeSlug, isValidThemeSlug } from './registry';
-import { assertThemeComponents } from './contract';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import type { ThemeConfig, ThemePackage } from 'shared/src/types/theme';
+import { useThemePackOptional } from '@/lib/theme-pack';
+import { getRuntimeJsUrl } from '@/lib/theme-pack/loader';
+import { getEmbeddedRendererSlug } from '@/lib/theme-pack/rendering-mode';
+import { assertThemeComponents, isOfficialEmbeddedThemeSlug } from './contract';
+import { loadRemoteThemeRuntime } from './remote-runtime';
+import {
+  getSynchronousBuiltinTheme,
+  isValidThemeSlug,
+  THEME_REGISTRY,
+  type ThemeSlug,
+} from './registry';
 
-// Module-level theme cache shared across all ThemeProvider instances
 const themeCache = new Map<ThemeSlug, ThemePackage>();
 
-/**
- * Theme Context Value
- */
 interface ThemeContextValue {
   theme: ThemePackage | null;
   config: ThemeConfig;
@@ -29,23 +31,14 @@ interface ThemeContextValue {
   error: Error | null;
 }
 
-/**
- * Theme Context
- */
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-/**
- * ThemeProvider Props
- */
 interface ThemeProviderProps {
   slug: string;
   config?: ThemeConfig;
   children: React.ReactNode;
 }
 
-/**
- * Deep merge two objects
- */
 function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>): T {
   const result = { ...target };
 
@@ -53,7 +46,7 @@ function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>)
     if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
       result[key] = deepMerge(
         result[key] || {} as any,
-        source[key] as any
+        source[key] as any,
       );
     } else if (source[key] !== undefined) {
       result[key] = source[key] as any;
@@ -63,31 +56,114 @@ function deepMerge<T extends Record<string, any>>(target: T, source: Partial<T>)
   return result;
 }
 
-/**
- * Theme provider component
- * @param slug - Theme identifier
- * @param config - Tenant specific theme configuration
- * @param children - Child components
- */
+function isBuiltinFallbackSlug(slug: string): boolean {
+  return slug === 'builtin-default' || slug === 'default';
+}
+
+function getFallbackThemeSlugs(options: {
+  compatibilityFallbackSlug?: string | null;
+  validSlug: ThemeSlug;
+}): ThemeSlug[] {
+  const fallbackCandidates: ThemeSlug[] = [];
+  const embeddedFallbackSlug =
+    options.compatibilityFallbackSlug && isValidThemeSlug(options.compatibilityFallbackSlug)
+      ? (options.compatibilityFallbackSlug as ThemeSlug)
+      : null;
+
+  if (embeddedFallbackSlug && embeddedFallbackSlug !== options.validSlug) {
+    fallbackCandidates.push(embeddedFallbackSlug);
+  }
+
+  if (!fallbackCandidates.includes('builtin-default')) {
+    fallbackCandidates.push('builtin-default');
+  }
+
+  return fallbackCandidates;
+}
+
+async function loadRegistryThemePackage(slug: ThemeSlug): Promise<ThemePackage> {
+  const importer = THEME_REGISTRY[slug];
+  const result = await importer();
+
+  if (result && result.components) {
+    return result;
+  }
+
+  if (result && (result.default || result.theme)) {
+    return (result.default || result.theme) as ThemePackage;
+  }
+
+  throw new Error(`Invalid theme package: ${slug}`);
+}
+
 export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProps) {
-  // Theme package cache (shared across component instances via module-level ref)
+  const themePack = useThemePackOptional();
   const cacheRef = useRef(themeCache);
 
-  // Synchronously check cache to avoid loading flash on re-mounts
   const normalizedSlugInit = slug === 'default' ? 'builtin-default' : slug;
-  const validSlugInit = isValidThemeSlug(normalizedSlugInit) ? normalizedSlugInit : 'builtin-default';
-  const cachedTheme = cacheRef.current.get(validSlugInit) ?? getSynchronousBuiltinTheme(validSlugInit) ?? null;
+  const shouldDeferEmbeddedBuiltinInit =
+    Boolean(themePack?.isLoading) && isOfficialEmbeddedThemeSlug(normalizedSlugInit);
+  const remoteRuntimeManifest =
+    themePack?.activeTheme && themePack.activeTheme.source !== 'builtin' && themePack.manifest
+      ? {
+          slug: themePack.activeTheme.slug || normalizedSlugInit,
+          version: themePack.activeTheme.version,
+          url: getRuntimeJsUrl(
+            themePack.activeTheme.slug || normalizedSlugInit,
+            themePack.manifest,
+            themePack.activeTheme.version,
+          ),
+        }
+      : null;
+  const hasRemoteRuntimeInit = Boolean(remoteRuntimeManifest?.url);
+  const shouldDeferThemeResolutionInit =
+    Boolean(themePack?.isLoading) &&
+    !hasRemoteRuntimeInit &&
+    !isBuiltinFallbackSlug(normalizedSlugInit);
+  const validSlugInit =
+    hasRemoteRuntimeInit || isValidThemeSlug(normalizedSlugInit)
+      ? normalizedSlugInit
+      : 'builtin-default';
+  const cachedTheme = shouldDeferEmbeddedBuiltinInit || shouldDeferThemeResolutionInit || hasRemoteRuntimeInit
+    ? null
+    : cacheRef.current.get(validSlugInit) ?? getSynchronousBuiltinTheme(validSlugInit) ?? null;
 
   const [theme, setTheme] = useState<ThemePackage | null>(cachedTheme);
   const [isLoading, setIsLoading] = useState(!cachedTheme);
   const [error, setError] = useState<Error | null>(null);
 
-  // Load theme
   useEffect(() => {
     let mounted = true;
     const normalizedSlug = slug === 'default' ? 'builtin-default' : slug;
-    const validSlug = isValidThemeSlug(normalizedSlug) ? normalizedSlug : 'builtin-default';
-    const synchronousTheme = getSynchronousBuiltinTheme(validSlug);
+    const compatibilityFallbackSlug = themePack?.manifest
+      ? getEmbeddedRendererSlug(themePack.manifest)
+      : null;
+    const remoteRuntime =
+      themePack?.activeTheme && themePack.activeTheme.source !== 'builtin' && themePack.manifest
+        ? {
+            slug: themePack.activeTheme.slug || normalizedSlug,
+            version: themePack.activeTheme.version,
+            url: getRuntimeJsUrl(
+              themePack.activeTheme.slug || normalizedSlug,
+              themePack.manifest,
+              themePack.activeTheme.version,
+            ),
+          }
+        : null;
+    const canLoadRemoteRuntime = Boolean(remoteRuntime?.url);
+    const shouldDeferThemeResolution =
+      Boolean(themePack?.isLoading) &&
+      !canLoadRemoteRuntime &&
+      !isBuiltinFallbackSlug(normalizedSlug);
+    const shouldDeferEmbeddedBuiltin =
+      Boolean(themePack?.isLoading) &&
+      isOfficialEmbeddedThemeSlug(normalizedSlug) &&
+      !canLoadRemoteRuntime;
+    const validSlug =
+      canLoadRemoteRuntime || isValidThemeSlug(normalizedSlug)
+        ? normalizedSlug
+        : 'builtin-default';
+    const synchronousTheme = canLoadRemoteRuntime ? null : getSynchronousBuiltinTheme(validSlug);
     const hasImmediateTheme = Boolean(cacheRef.current.get(validSlug) || synchronousTheme);
 
     async function loadTheme() {
@@ -95,6 +171,14 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
 
       try {
         setError(null);
+
+        if (shouldDeferEmbeddedBuiltin || shouldDeferThemeResolution) {
+          if (mounted) {
+            setTheme(null);
+            setIsLoading(true);
+          }
+          return;
+        }
 
         if (mounted) {
           if (synchronousTheme) {
@@ -105,84 +189,93 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
           }
         }
 
-        if (validSlug !== normalizedSlug) {
-          console.warn(`Invalid theme slug "${slug}", falling back to "builtin-default"`);
+        if (!canLoadRemoteRuntime && validSlug !== normalizedSlug) {
+          console.warn(
+            `[ThemeProvider] Theme "${slug}" has no packaged runtime or approved compatibility renderer; falling back to "builtin-default"`,
+          );
         }
 
-        // Check cache
+        if (remoteRuntime?.url) {
+          const cacheKey = `runtime:${remoteRuntime.slug}:${remoteRuntime.version}`;
+          const remoteTheme = await loadRemoteThemeRuntime({
+            cacheKey,
+            url: remoteRuntime.url,
+          });
+
+          assertThemeComponents(remoteTheme, remoteRuntime.slug);
+          if (mounted) {
+            setTheme(remoteTheme);
+
+            if (process.env.NODE_ENV === 'development') {
+              console.log(
+                `✅ Theme runtime "${remoteRuntime.slug}" loaded in ${(performance.now() - startTime).toFixed(2)}ms (remote bundle)`,
+              );
+            }
+          }
+          return;
+        }
+
         if (cacheRef.current.has(validSlug)) {
           if (mounted) {
             setTheme(cacheRef.current.get(validSlug)!);
             setIsLoading(false);
 
             if (process.env.NODE_ENV === 'development') {
-              console.log(`⚡ Theme "${validSlug}" loaded in ${(performance.now() - startTime).toFixed(2)}ms (cached)`);
+              console.log(
+                `⚡ Theme "${validSlug}" loaded in ${(performance.now() - startTime).toFixed(2)}ms (cached)`,
+              );
             }
           }
           return;
         }
 
-        // Dynamically import theme package
-        const importer = THEME_REGISTRY[validSlug];
-        const result = await importer();
-
-        // registry.load() already returns module.default || module.theme
-        // So result may be ThemePackage directly, or a module containing default/theme
-        let themePkg: ThemePackage;
-        if (result && result.components) {
-          // result is already ThemePackage
-          themePkg = result;
-        } else if (result && (result.default || result.theme)) {
-          // result is module, needs unpacking
-          themePkg = (result.default || result.theme) as ThemePackage;
-        } else {
-          throw new Error(`Invalid theme package: ${validSlug}`);
-        }
+        const themePkg = await loadRegistryThemePackage(validSlug);
 
         if (!themePkg || !themePkg.components) {
           throw new Error(`Invalid theme package structure: ${validSlug}`);
         }
 
         assertThemeComponents(themePkg, validSlug);
-
-        // Cache theme package
         cacheRef.current.set(validSlug, themePkg);
 
         if (mounted) {
           setTheme(themePkg);
 
           if (process.env.NODE_ENV === 'development') {
-            console.log(`✅ Theme "${validSlug}" loaded in ${(performance.now() - startTime).toFixed(2)}ms (fresh)`);
+            console.log(
+              `✅ Theme "${validSlug}" loaded in ${(performance.now() - startTime).toFixed(2)}ms (fresh)`,
+            );
           }
         }
       } catch (err) {
-        const error = err instanceof Error ? err : new Error('Unknown error');
+        const resolvedError = err instanceof Error ? err : new Error('Unknown error');
         console.error('Failed to load theme:', err);
 
         if (mounted) {
           if (!hasImmediateTheme) {
-            setError(error);
+            setError(resolvedError);
           }
 
-          // Try loading builtin-default theme as fallback
-          const isAlreadyDefault = slug === 'default' || slug === 'builtin-default';
-          if (!isAlreadyDefault) {
+          const fallbackCandidates = getFallbackThemeSlugs({
+            compatibilityFallbackSlug,
+            validSlug,
+          });
+
+          for (const fallbackSlug of fallbackCandidates) {
             try {
-              const defaultResult = await THEME_REGISTRY['builtin-default']();
-              let defaultTheme: ThemePackage;
-              if (defaultResult && defaultResult.components) {
-                defaultTheme = defaultResult;
-              } else if (defaultResult && (defaultResult.default || defaultResult.theme)) {
-                defaultTheme = (defaultResult.default || defaultResult.theme) as ThemePackage;
-              } else {
-                throw new Error('Invalid builtin-default theme package');
+              const fallbackTheme = await loadRegistryThemePackage(fallbackSlug);
+              assertThemeComponents(fallbackTheme, fallbackSlug);
+              cacheRef.current.set(fallbackSlug, fallbackTheme);
+              if (fallbackSlug !== 'builtin-default') {
+                console.warn(
+                  `[ThemeProvider] Using compatibility renderer "${fallbackSlug}" after failing to load "${normalizedSlug}"`,
+                );
               }
-              assertThemeComponents(defaultTheme, 'builtin-default');
-              cacheRef.current.set('builtin-default', defaultTheme);
-              setTheme(defaultTheme);
-              setError(null); // Clear error because fallback succeeded
+              setTheme(fallbackTheme);
+              setError(null);
+              return;
             } catch (fallbackErr) {
-              console.error('Failed to load builtin-default theme:', fallbackErr);
+              console.error(`Failed to load fallback theme "${fallbackSlug}":`, fallbackErr);
             }
           }
         }
@@ -193,23 +286,17 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
       }
     }
 
-    loadTheme();
+    void loadTheme();
 
     return () => {
       mounted = false;
     };
-  }, [slug]);
+  }, [slug, themePack?.activeTheme?.slug, themePack?.activeTheme?.source, themePack?.activeTheme?.version, themePack?.manifest, themePack?.isLoading]);
 
-  // Merge configuration and inject CSS variables
   useEffect(() => {
     if (!theme) return;
 
-    const mergedConfig = deepMerge(
-      theme.defaultConfig || {},
-      config
-    );
-
-    // Inject CSS variables
+    const mergedConfig = deepMerge(theme.defaultConfig || {}, config);
     const root = document.documentElement;
 
     if (mergedConfig.brand?.primaryColor) {
@@ -223,7 +310,6 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
     }
 
     return () => {
-      // Cleanup CSS variables
       root.style.removeProperty('--theme-primary');
       root.style.removeProperty('--theme-secondary');
       root.style.removeProperty('--theme-font');
@@ -237,11 +323,9 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
       isLoading,
       error,
     }),
-    [theme, config, isLoading, error]
+    [theme, config, isLoading, error],
   );
 
-  // Simplify loading state: no more full-screen mask, only show skeleton in content area
-  // Do not show loading if theme is already cached
   if (isLoading && !theme) {
     return (
       <ThemeContext.Provider value={value}>
@@ -250,12 +334,10 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
     );
   }
 
-  // Error state: simplified display, provide retry instead of page refresh
   if (error && !theme) {
     const handleRetry = () => {
       setError(null);
       setIsLoading(true);
-      // Clear theme cache to trigger reload
       setTheme(null);
     };
 
@@ -288,11 +370,6 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
-/**
- * Custom hook for using the shop theme
- * @returns Theme context value
- * @throws If used outside of ThemeProvider
- */
 export function useShopTheme() {
   const context = useContext(ThemeContext);
 

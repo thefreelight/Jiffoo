@@ -2,8 +2,8 @@
  * Theme Pack Types
  *
  * Type definitions for Theme Pack v1 specification
- * Theme Packs are configuration/resource packages that control appearance and layout
- * WITHOUT any executable code (JS/TS/React runtime code).
+ * Theme Packs primarily control appearance and layout resources. They may
+ * optionally ship a storefront runtime bundle for package-managed full themes.
  */
 
 /**
@@ -50,6 +50,8 @@ export interface ThemePackManifest {
 export interface ThemePackEntry {
   /** CSS tokens file path, e.g., "tokens.css" */
   tokensCSS?: string;
+  /** Optional storefront runtime bundle path, e.g., "runtime/theme-runtime.js" */
+  runtimeJS?: string;
   /** Templates directory path, e.g., "templates" */
   templatesDir?: string;
   /** Assets directory path, e.g., "assets" */
@@ -142,6 +144,7 @@ export interface ActiveTheme {
   config: ThemePackConfig;
   activatedAt: string;
   previousSlug?: string;
+  previousVersion?: string;
 }
 
 /**
