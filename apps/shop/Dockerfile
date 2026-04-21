@@ -53,7 +53,7 @@ RUN pnpm config set fetch-retries 5 && \
     pnpm config set registry ${NPM_REGISTRY} && \
     pnpm config set network-concurrency 8 && \
     pnpm config set child-concurrency 4 && \
-    pnpm install --frozen-lockfile
+    pnpm install --no-frozen-lockfile
 
 # Rebuild the source code only when needed
 FROM base AS builder
