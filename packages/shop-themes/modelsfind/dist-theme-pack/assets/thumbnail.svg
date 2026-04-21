@@ -1,0 +1,26 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="models-bg" x1="120" y1="84" x2="1048" y2="846" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#17111A"/>
+      <stop offset="1" stop-color="#09070C"/>
+    </linearGradient>
+    <radialGradient id="models-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(820 246) rotate(124.191) scale(382 468)">
+      <stop stop-color="#FF6CF0" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#FF6CF0" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="900" rx="56" fill="url(#models-bg)"/>
+  <rect x="724" y="150" width="320" height="520" rx="34" fill="rgba(255,255,255,0.03)" stroke="rgba(255,108,240,0.32)"/>
+  <rect x="758" y="186" width="252" height="382" rx="26" fill="url(#models-glow)"/>
+  <circle cx="884" cy="318" r="82" fill="rgba(214,184,255,0.16)"/>
+  <path d="M806 520C842 444 888 420 946 424C974 426 996 438 1012 458V560H806V520Z" fill="rgba(255,108,240,0.24)"/>
+  <rect x="146" y="560" width="506" height="120" rx="24" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)"/>
+  <rect x="176" y="592" width="180" height="16" rx="8" fill="#FF6CF0"/>
+  <rect x="176" y="626" width="400" height="12" rx="6" fill="rgba(239,231,236,0.72)"/>
+  <rect x="176" y="652" width="328" height="12" rx="6" fill="rgba(239,231,236,0.34)"/>
+  <rect x="146" y="160" width="458" height="248" rx="30" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.08)"/>
+  <text x="146" y="126" fill="#D6B8FF" font-size="26" font-family="Arial, sans-serif" letter-spacing="0.18em">JIFFOO OFFICIAL THEME</text>
+  <text x="146" y="294" fill="#F2EAF1" font-size="110" font-family="Georgia, serif" font-weight="700">ModelsFind</text>
+  <text x="146" y="356" fill="rgba(239,231,236,0.76)" font-size="34" font-family="Arial, sans-serif">Dark editorial booking storefront with premium shortlist energy</text>
+  <text x="146" y="432" fill="#BFA15C" font-size="22" font-family="Arial, sans-serif" letter-spacing="0.16em">PRIVATE ACCESS • CURATED TALENT • CINEMATIC MOOD</text>
+</svg>

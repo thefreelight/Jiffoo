@@ -40,6 +40,7 @@ export const OFFICIAL_EMBEDDED_THEME_SLUGS = [
   'yevbi',
   'bokmoo',
   'navtoai',
+  'modelsfind',
 ] as const;
 
 type ThemeComponentName = keyof ThemePackage['components'];

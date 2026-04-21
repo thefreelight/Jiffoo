@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "slug": "modelsfind",
+  "name": "ModelsFind",
+  "version": "0.1.9",
+  "target": "shop",
+  "description": "Official ModelsFind storefront theme with packaged runtime upgrades for premium model directories, private bookings, and editorial concierge discovery.",
+  "author": "Jiffoo",
+  "thumbnail": "assets/thumbnail.svg",
+  "category": "gallery",
+  "entry": {
+    "tokensCSS": "tokens.css",
+    "runtimeJS": "runtime/theme-runtime.js",
+    "templatesDir": "templates",
+    "assetsDir": "assets",
+    "settingsSchema": "schemas/settings.schema.json"
+  },
+  "compatibility": {
+    "minCoreVersion": "0.2.0"
+  },
+  "x-jiffoo-renderer-mode": "embedded",
+  "x-jiffoo-renderer-slug": "modelsfind",
+  "defaultConfig": {
+    "brand": {
+      "name": "modelsfind",
+      "primaryColor": "#e84fda",
+      "secondaryColor": "#9a6cff",
+      "fontFamily": "\"Noto Serif\", \"Iowan Old Style\", serif"
+    },
+    "layout": {
+      "headerSticky": true,
+      "showFooterLinks": true,
+      "maxWidth": "1440px"
+    },
+    "features": {
+      "showWishlist": true,
+      "showRatings": false,
+      "enableQuickView": false
+    },
+    "site": {
+      "archetype": "product-site",
+      "eyebrow": "Curated exclusivity",
+      "headline": "modelsfind",
+      "subheadline": "Curated exclusivity beyond the ordinary.",
+      "primaryCtaLabel": "Browse collection",
+      "primaryCtaHref": "/products",
+      "secondaryCtaLabel": "Private access",
+      "secondaryCtaHref": "/auth/register",
+      "docsHref": "/help",
+      "demoHref": "/products",
+      "supportEmail": "concierge@modelsfind.com"
+    }
+  },
+  "tags": [
+    "gallery",
+    "editorial",
+    "portrait",
+    "luxury",
+    "dark-theme",
+    "model-directory",
+    "mobile-optimized",
+    "ai-concierge"
+  ]
+}

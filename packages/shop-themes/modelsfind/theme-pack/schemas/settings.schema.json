@@ -1,0 +1,131 @@
+{
+  "type": "object",
+  "title": "ModelsFind Settings",
+  "properties": {
+    "brand": {
+      "type": "object",
+      "title": "Brand",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Brand Name",
+          "description": "Shown in the header, hero, and footer."
+        },
+        "primaryColor": {
+          "type": "string",
+          "title": "Primary Color",
+          "description": "Used for the luminous accent color and primary actions."
+        },
+        "secondaryColor": {
+          "type": "string",
+          "title": "Secondary Color",
+          "description": "Used for supporting gradients and softer highlights."
+        },
+        "fontFamily": {
+          "type": "string",
+          "title": "Display Font Family",
+          "description": "Main serif font stack used across hero and section headings."
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "title": "Layout",
+      "properties": {
+        "headerSticky": {
+          "type": "boolean",
+          "title": "Sticky Header"
+        },
+        "showFooterLinks": {
+          "type": "boolean",
+          "title": "Show Footer Links"
+        },
+        "maxWidth": {
+          "type": "string",
+          "title": "Max Content Width",
+          "description": "Main desktop content width, for example 1440px."
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "title": "Feature Flags",
+      "properties": {
+        "showWishlist": {
+          "type": "boolean",
+          "title": "Show Wishlist"
+        },
+        "showRatings": {
+          "type": "boolean",
+          "title": "Show Ratings"
+        },
+        "enableQuickView": {
+          "type": "boolean",
+          "title": "Enable Quick View"
+        }
+      }
+    },
+    "site": {
+      "type": "object",
+      "title": "Hero Content",
+      "properties": {
+        "archetype": {
+          "type": "string",
+          "title": "Site Archetype",
+          "enum": ["storefront", "landing-commerce", "product-site"]
+        },
+        "eyebrow": {
+          "type": "string",
+          "title": "Hero Eyebrow",
+          "description": "Small label shown above the main hero headline."
+        },
+        "headline": {
+          "type": "string",
+          "title": "Hero Headline",
+          "description": "Main landing page headline."
+        },
+        "subheadline": {
+          "type": "string",
+          "title": "Hero Subheadline",
+          "description": "Supporting copy for the hero section."
+        },
+        "primaryCtaLabel": {
+          "type": "string",
+          "title": "Primary CTA Label"
+        },
+        "primaryCtaHref": {
+          "type": "string",
+          "title": "Primary CTA Link"
+        },
+        "secondaryCtaLabel": {
+          "type": "string",
+          "title": "Secondary CTA Label"
+        },
+        "secondaryCtaHref": {
+          "type": "string",
+          "title": "Secondary CTA Link"
+        },
+        "docsHref": {
+          "type": "string",
+          "title": "Concierge / Help Link",
+          "description": "Used for the AI concierge and help entry points."
+        },
+        "demoHref": {
+          "type": "string",
+          "title": "Directory / Demo Link",
+          "description": "Used for primary browse or demo destinations."
+        },
+        "installCommand": {
+          "type": "string",
+          "title": "Install Command",
+          "description": "Reference install command shown in documentation-oriented surfaces."
+        },
+        "supportEmail": {
+          "type": "string",
+          "title": "Support Email",
+          "description": "Shown in footer and support-related surfaces."
+        }
+      }
+    }
+  }
+}

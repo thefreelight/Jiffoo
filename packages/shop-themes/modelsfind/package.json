@@ -1,0 +1,33 @@
+{
+  "name": "@shop-themes/modelsfind",
+  "version": "0.1.9",
+  "description": "ModelsFind booking storefront with packaged runtime upgrades for premium model directories and editorial concierge flows",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "type-check": "tsc -p tsconfig.json --noEmit",
+    "build:theme-pack": "node build-theme-pack.mjs",
+    "install:theme-pack": "node test-theme-pack-install.mjs"
+  },
+  "sideEffects": [
+    "./src/tokens.css"
+  ],
+  "peerDependencies": {
+    "next": ">=14",
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "lucide-react": "^0.460.0",
+    "next": "^16.0.7",
+    "react": "file:../../../.tools/npm/react-19.2.1.tgz",
+    "react-dom": "file:../../../.tools/npm/react-dom-19.2.1.tgz",
+    "shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.8.3"
+  }
+}

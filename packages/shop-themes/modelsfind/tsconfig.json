@@ -1,0 +1,24 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "baseUrl": "../../..",
+    "paths": {
+      "shared": ["../jiffoo-mall-core/packages/shared"],
+      "shared/*": ["../jiffoo-mall-core/packages/shared/*"],
+      "@shop-themes/default/*": ["../jiffoo-mall-core/packages/shop-themes/default/*"]
+    }
+  },
+  "include": ["src/**/*"]
+}

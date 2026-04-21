@@ -12,6 +12,7 @@ import bokmooTheme from '@shop-themes/bokmoo/src/runtime';
 import digitalVaultTheme from '@shop-themes/digital-vault/src/runtime';
 import esimMallTheme from '@shop-themes/esim-mall/src/runtime';
 import imagicStudioTheme from '@shop-themes/imagic-studio/src/runtime';
+import modelsfindTheme from '@shop-themes/modelsfind/src/runtime';
 import navtoaiTheme from '@shop-themes/navtoai/src/runtime';
 import yevbiTheme from '@shop-themes/yevbi/src/runtime';
 
@@ -173,6 +174,26 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       }
     },
   },
+  'modelsfind': {
+    meta: {
+      slug: 'modelsfind',
+      name: 'ModelsFind',
+      version: '0.1.11',
+      description: 'Editorial premium directory storefront for ModelsFind.',
+      category: 'gallery',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['gallery', 'editorial', 'luxury', 'models'],
+    },
+    load: async () => {
+      try {
+        const module = await import('@shop-themes/modelsfind');
+        return module.default || module.theme;
+      } catch {
+        return modelsfindTheme;
+      }
+    },
+  },
 };
 
 const installedThemes: ThemeRegistry = {};
@@ -185,6 +206,7 @@ const builtinRuntimeThemes: Record<string, ThemePackage> = {
   'bokmoo': bokmooTheme,
   'imagic-studio': imagicStudioTheme,
   'navtoai': navtoaiTheme,
+  'modelsfind': modelsfindTheme,
 };
 
 export function getThemeRegistry(): ThemeRegistry {
