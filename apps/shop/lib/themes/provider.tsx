@@ -199,8 +199,9 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
 
         if (remoteRuntime?.url) {
           const cacheKey = `runtime:${remoteRuntime.slug}:${remoteRuntime.version}`;
+          const runtimeCacheKey = `${cacheKey}:${themePack?.activeTheme?.activatedAt || 'default'}`;
           const remoteTheme = await loadRemoteThemeRuntime({
-            cacheKey,
+            cacheKey: runtimeCacheKey,
             url: remoteRuntime.url,
           });
 
@@ -293,7 +294,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
     return () => {
       mounted = false;
     };
-  }, [slug, themePack?.activeTheme?.slug, themePack?.activeTheme?.source, themePack?.activeTheme?.version, themePack?.manifest, themePack?.isLoading]);
+  }, [slug, themePack?.activeTheme?.slug, themePack?.activeTheme?.source, themePack?.activeTheme?.version, themePack?.activeTheme?.activatedAt, themePack?.manifest, themePack?.isLoading]);
 
   useEffect(() => {
     if (!theme) return;
