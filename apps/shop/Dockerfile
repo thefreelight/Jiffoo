@@ -44,6 +44,8 @@ COPY packages/shop-themes/imagic-studio/package.json ./packages/shop-themes/imag
 COPY packages/shop-themes/modelsfind/package.json ./packages/shop-themes/modelsfind/
 COPY packages/shop-themes/yevbi/package.json ./packages/shop-themes/yevbi/
 COPY packages/ui/package.json ./packages/ui/
+COPY packages/theme-api-sdk/package.json ./packages/theme-api-sdk/
+COPY packages/core-api-sdk/package.json ./packages/core-api-sdk/
 
 # Install dependencies using a public npm mirror by default.
 # CI can still override NPM_REGISTRY when an internal cache is healthy.
