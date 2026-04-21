@@ -19,6 +19,10 @@ function stripTrailingSlash(value: string): string {
 }
 
 function resolveThemeAssetsOrigin(): string {
+  if (typeof window !== 'undefined') {
+    return '';
+  }
+
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
   if (!apiUrl) {
     return '';
