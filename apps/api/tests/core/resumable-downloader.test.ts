@@ -88,4 +88,132 @@ describe('resumable-downloader', () => {
     await cleanupDownloadedArtifact(slug, version);
     await expect(fs.stat(workspaceDir)).rejects.toThrow();
   });
+
+  it('restarts from scratch when the upstream partial is larger than the current artifact', async () => {
+    const workspaceDir = path.join(downloadRoot, slug, version);
+    await fs.mkdir(workspaceDir, { recursive: true });
+    await fs.writeFile(path.join(workspaceDir, 'artifact.part'), Buffer.concat([artifact, Buffer.from('-stale')]));
+    await fs.writeFile(
+      path.join(workspaceDir, 'download.json'),
+      JSON.stringify(
+        {
+          url,
+          etag: '"artifact-etag"',
+          totalBytes: artifact.length,
+          downloadedBytes: artifact.length + 6,
+          updatedAt: new Date().toISOString(),
+        },
+        null,
+        2,
+      ),
+      'utf-8',
+    );
+
+    let getRequests = 0;
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const requestUrl = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const method = (init?.method || 'GET').toUpperCase();
+
+      if (requestUrl !== url) {
+        throw new Error(`Unexpected URL: ${requestUrl}`);
+      }
+
+      if (method === 'HEAD') {
+        return new Response(null, {
+          status: 200,
+          headers: {
+            'Content-Length': String(artifact.length),
+            'Accept-Ranges': 'bytes',
+            ETag: '"artifact-etag"',
+          },
+        });
+      }
+
+      getRequests += 1;
+      expect((init?.headers as Record<string, string>)?.Range).toBeUndefined();
+
+      return new Response(artifact, {
+        status: 200,
+        headers: {
+          'Content-Length': String(artifact.length),
+          'Accept-Ranges': 'bytes',
+        },
+      });
+    }) as typeof fetch;
+
+    const result = await downloadArtifactWithResume({ slug, version, url });
+    const written = await fs.readFile(result.filePath);
+
+    expect(result.resumed).toBe(false);
+    expect(result.downloadedBytes).toBe(artifact.length);
+    expect(written.equals(artifact)).toBe(true);
+    expect(getRequests).toBe(1);
+  });
+
+  it('falls back to a clean download after a 416 resume response', async () => {
+    const workspaceDir = path.join(downloadRoot, slug, version);
+    await fs.mkdir(workspaceDir, { recursive: true });
+    await fs.writeFile(path.join(workspaceDir, 'artifact.part'), artifact.subarray(0, 8));
+    await fs.writeFile(
+      path.join(workspaceDir, 'download.json'),
+      JSON.stringify(
+        {
+          url,
+          etag: '"artifact-etag"',
+          totalBytes: artifact.length,
+          downloadedBytes: 8,
+          updatedAt: new Date().toISOString(),
+        },
+        null,
+        2,
+      ),
+      'utf-8',
+    );
+
+    let getRequests = 0;
+
+    global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const requestUrl = typeof input === 'string' ? input : input instanceof URL ? input.toString() : input.url;
+      const method = (init?.method || 'GET').toUpperCase();
+
+      if (requestUrl !== url) {
+        throw new Error(`Unexpected URL: ${requestUrl}`);
+      }
+
+      if (method === 'HEAD') {
+        return new Response(null, {
+          status: 200,
+          headers: {
+            'Content-Length': String(artifact.length),
+            'Accept-Ranges': 'bytes',
+            ETag: '"artifact-etag"',
+          },
+        });
+      }
+
+      getRequests += 1;
+      if (getRequests === 1) {
+        expect((init?.headers as Record<string, string>)?.Range).toBe('bytes=8-');
+        return new Response(null, { status: 416 });
+      }
+
+      expect((init?.headers as Record<string, string>)?.Range).toBeUndefined();
+      return new Response(artifact, {
+        status: 200,
+        headers: {
+          'Content-Length': String(artifact.length),
+          'Accept-Ranges': 'bytes',
+        },
+      });
+    }) as typeof fetch;
+
+    const result = await downloadArtifactWithResume({ slug, version, url });
+    const written = await fs.readFile(result.filePath);
+
+    expect(result.resumed).toBe(false);
+    expect(result.downloadedBytes).toBe(artifact.length);
+    expect(written.equals(artifact)).toBe(true);
+    expect(getRequests).toBe(2);
+  });
 });

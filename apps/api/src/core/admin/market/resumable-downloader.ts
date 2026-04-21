@@ -96,58 +96,114 @@ export async function downloadArtifactWithResume(
 
   const head = await fetchHead(options.url);
   const previousMeta = await readMeta(metaPath);
-  const existingSize = await getExistingSize(artifactPath);
+  let existingSize = await getExistingSize(artifactPath);
 
   const sameArtifact = previousMeta?.url === options.url;
   const etagMatches = !head.etag || !previousMeta?.etag || previousMeta.etag === head.etag;
-  const canResume = sameArtifact && head.acceptRanges && existingSize > 0 && etagMatches;
+  const isOversizedPartial =
+    head.totalBytes !== null && existingSize > head.totalBytes;
+  const isAlreadyComplete =
+    sameArtifact &&
+    etagMatches &&
+    head.totalBytes !== null &&
+    existingSize === head.totalBytes &&
+    existingSize > 0;
 
-  if (!sameArtifact || !etagMatches) {
-    await fs.rm(artifactPath, { force: true });
+  if (isAlreadyComplete) {
+    await writeMeta(metaPath, {
+      url: options.url,
+      etag: head.etag,
+      totalBytes: head.totalBytes ?? undefined,
+      downloadedBytes: existingSize,
+      updatedAt: new Date().toISOString(),
+    });
+
+    return {
+      filePath: artifactPath,
+      workspaceDir,
+      totalBytes: head.totalBytes,
+      downloadedBytes: existingSize,
+      resumed: false,
+      etag: head.etag,
+      acceptRanges: head.acceptRanges,
+    };
   }
 
-  const requestHeaders: Record<string, string> = {};
-  let resumed = false;
-  let writeFlags: 'a' | 'w' = 'w';
+  if (!sameArtifact || !etagMatches || isOversizedPartial) {
+    await fs.rm(artifactPath, { force: true });
+    existingSize = 0;
+  }
 
-  if (canResume) {
-    requestHeaders.Range = `bytes=${existingSize}-`;
-    if (head.etag) {
-      requestHeaders['If-Range'] = head.etag;
+  const canResume =
+    sameArtifact &&
+    head.acceptRanges &&
+    existingSize > 0 &&
+    etagMatches &&
+    (head.totalBytes === null || existingSize < head.totalBytes);
+
+  const performDownload = async (resume: boolean) => {
+    const requestHeaders: Record<string, string> = {};
+    let writeFlags: 'a' | 'w' = 'w';
+    let resumed = false;
+
+    if (resume) {
+      requestHeaders.Range = `bytes=${existingSize}-`;
+      if (head.etag) {
+        requestHeaders['If-Range'] = head.etag;
+      }
+    }
+
+    const response = await fetch(options.url, {
+      headers: requestHeaders,
+    });
+
+    if (!response.ok && response.status !== 206) {
+      throw Object.assign(new Error(`Artifact download failed: ${response.status}`), {
+        statusCode: response.status,
+      });
+    }
+
+    if (resume && response.status === 206) {
+      resumed = true;
+      writeFlags = 'a';
+    } else if (!resume || response.status === 200) {
+      await fs.rm(artifactPath, { force: true });
+      writeFlags = 'w';
+    }
+
+    if (!response.body) {
+      throw new Error('Artifact download returned an empty body');
+    }
+
+    const counter = new Transform({
+      transform(chunk, _encoding, callback) {
+        callback(null, chunk);
+      },
+    });
+
+    await pipeline(
+      Readable.fromWeb(response.body as any),
+      counter,
+      createWriteStream(artifactPath, { flags: writeFlags }),
+    );
+
+    return resumed;
+  };
+
+  let resumed = false;
+  try {
+    resumed = await performDownload(canResume);
+  } catch (error) {
+    const statusCode = (error as { statusCode?: number })?.statusCode;
+    if (canResume && statusCode === 416) {
+      await fs.rm(artifactPath, { force: true });
+      await fs.rm(metaPath, { force: true });
+      existingSize = 0;
+      resumed = await performDownload(false);
+    } else {
+      throw error;
     }
   }
-
-  const response = await fetch(options.url, {
-    headers: requestHeaders,
-  });
-
-  if (!response.ok && response.status !== 206) {
-    throw new Error(`Artifact download failed: ${response.status}`);
-  }
-
-  if (canResume && response.status === 206) {
-    resumed = true;
-    writeFlags = 'a';
-  } else if (!canResume || response.status === 200) {
-    await fs.rm(artifactPath, { force: true });
-    writeFlags = 'w';
-  }
-
-  if (!response.body) {
-    throw new Error('Artifact download returned an empty body');
-  }
-
-  const counter = new Transform({
-    transform(chunk, _encoding, callback) {
-      callback(null, chunk);
-    },
-  });
-
-  await pipeline(
-    Readable.fromWeb(response.body as any),
-    counter,
-    createWriteStream(artifactPath, { flags: writeFlags }),
-  );
 
   const downloadedBytes = await getExistingSize(artifactPath);
   const totalBytes = head.totalBytes;

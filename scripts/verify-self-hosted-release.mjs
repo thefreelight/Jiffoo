@@ -98,7 +98,16 @@ function main() {
     'docker-compose.prod.yml',
     '.env.production.example',
     'nginx/get-jiffoo.conf',
+    'scripts/jiffoo-updater-agent.mjs',
   ].forEach((relativePath) => expectFile(rootDir, relativePath));
+
+  const dockerComposePath = path.join(rootDir, 'docker-compose.prod.yml');
+  const dockerComposeContent = readText(dockerComposePath);
+  expectContains(
+    dockerComposeContent,
+    '/workspace/scripts/jiffoo-updater-agent.mjs',
+    'docker-compose.prod.yml',
+  );
 
   const officialCatalogPath = expectFile(rootDir, 'packages/shared/src/extensions/official-catalog.ts');
   const officialCatalogContent = readText(officialCatalogPath);

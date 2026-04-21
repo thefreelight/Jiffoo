@@ -1,5 +1,11 @@
 # Changelog
 
+## v1.0.33-opensource - 2026-04-21
+
+- restores the missing shared core-update manifest exports and ships the docker-compose updater agent script plus the correct `/workspace` compose command so the public self-hosted release line can publish cleanly again
+- makes official theme installs recover from stale partial downloads by retrying cleanly after `416` resume failures instead of surfacing a generic network error forever
+- compacts the official theme marketplace back to a denser four-column desktop layout with smaller hero thumbnails so the catalog matches the intended Merchant Admin presentation
+
 ## v1.0.32-opensource - 2026-04-21
 
 - restores the self-hosted Admin upgrade center UI and docker-compose updater bridge support so `Check for Updates` can surface a real `Update Now` action again

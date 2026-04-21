@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, companiesApi, pricingApi, quotesApi, purchaseOrdersApi, promotionsApi, redirectsApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type Company, type PriceRule, type Quote, type PurchaseOrder, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData } from '../api';
+import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, companiesApi, pricingApi, quotesApi, purchaseOrdersApi, promotionsApi, redirectsApi, unwrapApiResponse, isAdminApiError, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type Company, type PriceRule, type Quote, type PurchaseOrder, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
@@ -769,6 +769,13 @@ export function useInstallOfficialExtension() {
   const queryClient = useQueryClient();
   const { getText, getErrorMessage } = useLocalizedApiFeedback();
 
+  const refreshOfficialExtensionState = () => {
+    queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
+    queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+    queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
+    queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
+  };
+
   return useMutation({
     mutationFn: async ({
       slug,
@@ -783,10 +790,7 @@ export function useInstallOfficialExtension() {
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
-      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
+      refreshOfficialExtensionState();
       toast.success(
         variables.kind === 'plugin'
           ? getText('merchant.plugins.installSuccess', 'Plugin installed successfully')
@@ -794,6 +798,17 @@ export function useInstallOfficialExtension() {
       );
     },
     onError: (error: unknown, variables) => {
+      if (isAdminApiError(error) && error.message.includes('Artifact download failed: 416')) {
+        refreshOfficialExtensionState();
+        toast.error(
+          getText(
+            'merchant.extensions.installRetryRequired',
+            'The previous partial download was invalid. Please retry the install.',
+          ),
+        );
+        return;
+      }
+
       const fallbackKey = variables.kind === 'plugin'
         ? 'merchant.plugins.installFailed'
         : 'merchant.themes.installFailed';
