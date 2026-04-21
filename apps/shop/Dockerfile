@@ -35,7 +35,6 @@ RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
 # Copy workspace files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
-COPY .tools/npm ./.tools/npm/
 COPY apps/shop/package.json ./apps/shop/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/shop-themes/default/package.json ./packages/shop-themes/default/
