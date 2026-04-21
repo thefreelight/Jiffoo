@@ -13,6 +13,7 @@ import * as ThemeAppRuntime from '../theme-app-runtime/manager';
 import { THEME_APP_MANIFEST_FILE } from '../theme-app-runtime/contract';
 import { getThemeAppRuntimePolicy } from '../theme-app-runtime/policy';
 import { isAllowedExtensionSource, isOfficialMarketOnly } from '@/core/admin/extension-installer/official-only';
+import { ensureInstalledThemeVersionAlias } from '@/core/admin/extension-installer/utils';
 import { ensureOfficialMarketExtensionFiles } from '@/core/admin/market/official-package-recovery';
 
 // Target type
@@ -221,6 +222,21 @@ async function ensureOfficialThemePackFilesPresent(theme: ActiveTheme, target: T
   }
 }
 
+async function ensureThemePackVersionAlias(theme: ActiveTheme, target: ThemeTarget): Promise<void> {
+  if (theme.type !== 'pack' || theme.source === 'builtin') {
+    return;
+  }
+
+  try {
+    await ensureInstalledThemeVersionAlias(target, normalizeThemeSlug(theme.slug), theme.version);
+  } catch (error) {
+    console.warn(
+      `Failed to ensure versioned theme alias for "${theme.slug}" (${theme.version}) while resolving active theme:`,
+      error,
+    );
+  }
+}
+
 function didNormalizeActiveTheme(original: ActiveTheme, normalized: ActiveTheme): boolean {
   return (
     original.slug !== normalized.slug ||
@@ -262,6 +278,7 @@ export async function getActiveTheme(target: ThemeTarget = 'shop'): Promise<Acti
   const prev = (previous && typeof previous === 'object' ? previous : null) as ActiveTheme | null;
 
   await ensureOfficialThemePackFilesPresent(theme, target);
+  await ensureThemePackVersionAlias(theme, target);
 
   if (active && typeof active === 'object' && didNormalizeActiveTheme(rawTheme, theme)) {
     await systemSettingsService.setSetting(keys.active, theme);

@@ -22,6 +22,7 @@ import {
   validateThemeManifest,
   resolveExtractedPackageRoot,
   getThemeDir,
+  ensureInstalledThemeVersionAlias,
   moveDir,
   dirExists,
   removeDir,
@@ -171,6 +172,7 @@ export class ThemeInstaller implements IThemeInstaller {
 
       // 9. Write metadata file
       await this.saveInstalledMeta(target, manifest.slug, installedTheme);
+      await ensureInstalledThemeVersionAlias(target, manifest.slug, manifest.version);
 
       // 10. Invalidate theme cache to ensure immediate visibility
       const { CacheService } = await import('@/core/cache/service');
@@ -208,6 +210,7 @@ export class ThemeInstaller implements IThemeInstaller {
     }
 
     await removeDir(targetDir);
+    await removeDir(path.join(getThemeDir(target), '.versions', slug));
 
     // Invalidate theme cache to ensure immediate visibility
     const { CacheService } = await import('@/core/cache/service');

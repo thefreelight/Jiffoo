@@ -44,6 +44,40 @@ export function getThemeDir(target: ThemeTarget, slug?: string): string {
   return slug ? path.join(base, slug) : base;
 }
 
+export function getThemeVersionAliasDir(
+  target: ThemeTarget,
+  slug: string,
+  version: string,
+): string {
+  return path.join(getThemeDir(target), '.versions', slug, version);
+}
+
+export async function ensureInstalledThemeVersionAlias(
+  target: ThemeTarget,
+  slug: string,
+  version: string,
+): Promise<void> {
+  const installedThemeDir = getThemeDir(target, slug);
+  const slugAliasRoot = path.join(getThemeDir(target), '.versions', slug);
+  const versionAliasDir = getThemeVersionAliasDir(target, slug, version);
+
+  await fs.mkdir(slugAliasRoot, { recursive: true });
+  await fs.rm(slugAliasRoot, { recursive: true, force: true });
+  await fs.mkdir(slugAliasRoot, { recursive: true });
+
+  const relativeTarget = path.relative(slugAliasRoot, installedThemeDir) || '.';
+
+  try {
+    await fs.symlink(relativeTarget, versionAliasDir, 'dir');
+  } catch (error: any) {
+    if (error?.code === 'EPERM' || error?.code === 'EOPNOTSUPP') {
+      await fs.cp(installedThemeDir, versionAliasDir, { recursive: true, force: true });
+      return;
+    }
+    throw error;
+  }
+}
+
 /** Get plugin directory path */
 export function getPluginDir(slug?: string): string {
   const base = path.join(EXTENSIONS_ROOT, 'plugins');

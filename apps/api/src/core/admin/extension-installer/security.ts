@@ -103,13 +103,16 @@ export function validateFileExtension(filename: string, kind?: string): void {
 
     // Theme Pack (L3.5): strict allow-list + strict forbidden-list
     if (isThemePackKind(kind)) {
-        if (FORBIDDEN_EXTENSIONS.includes(ext as any)) {
+        const normalized = filename.replace(/\\/g, '/').toLowerCase();
+        const isThemeRuntimeBundle = normalized.startsWith('runtime/') && ext === '.js';
+
+        if (!isThemeRuntimeBundle && FORBIDDEN_EXTENSIONS.includes(ext as any)) {
             throw new ExtensionInstallerError(
                 `Forbidden file type detected: ${ext}. Executable scripts are not allowed for ${kind} security reasons.`,
                 { code: 'FORBIDDEN_FILE_TYPE', statusCode: 400 }
             );
         }
-        if (ext && !ALLOWED_EXTENSIONS.includes(ext as any)) {
+        if (!isThemeRuntimeBundle && ext && !ALLOWED_EXTENSIONS.includes(ext as any)) {
             throw new ExtensionInstallerError(
                 `Unsupported file type: ${ext}. Only ${ALLOWED_EXTENSIONS.join(', ')} are allowed.`,
                 { code: 'UNSUPPORTED_FILE_TYPE', statusCode: 400 }
