@@ -108,11 +108,11 @@ function main() {
   }
 
   const requiredThemeSlugs = [
-    'modelsfind',
-    'bokmoo',
-    'digital-vault',
+    'fire',
     'imagic-studio',
     'navtoai',
+    'modelsfind',
+    'ai-gateway',
     'quiet-curator',
     'stellar-midnight',
     'yevbi',
