@@ -21,8 +21,8 @@
   "dependencies": {
     "lucide-react": "^0.460.0",
     "next": "^16.0.7",
-    "react": "file:../../../.tools/npm/react-19.2.1.tgz",
-    "react-dom": "file:../../../.tools/npm/react-dom-19.2.1.tgz",
+    "react": "19.2.1",
+    "react-dom": "19.2.1",
     "shared": "workspace:*"
   },
   "devDependencies": {
