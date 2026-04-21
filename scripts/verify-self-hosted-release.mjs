@@ -99,6 +99,7 @@ function main() {
     '.env.production.example',
     'nginx/get-jiffoo.conf',
     'scripts/jiffoo-updater-agent.mjs',
+    'packages/shared/src/security/admin-rbac.ts',
   ].forEach((relativePath) => expectFile(rootDir, relativePath));
 
   const dockerComposePath = path.join(rootDir, 'docker-compose.prod.yml');
