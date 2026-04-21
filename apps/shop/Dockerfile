@@ -23,7 +23,8 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # The Shop image only needs Node.js and the standalone Next.js output.
-# Avoid apk network fetches here so CI is not coupled to external Alpine mirrors.
+# Install git because Next.js may inspect repository metadata during build.
+RUN apk add --no-cache git
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -37,10 +38,12 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/shop/package.json ./apps/shop/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/shop-themes/default/package.json ./packages/shop-themes/default/
-
+COPY packages/shop-themes/bokmoo/package.json ./packages/shop-themes/bokmoo/
+COPY packages/shop-themes/esim-mall/package.json ./packages/shop-themes/esim-mall/
+COPY packages/shop-themes/imagic-studio/package.json ./packages/shop-themes/imagic-studio/
+COPY packages/shop-themes/modelsfind/package.json ./packages/shop-themes/modelsfind/
+COPY packages/shop-themes/yevbi/package.json ./packages/shop-themes/yevbi/
 COPY packages/ui/package.json ./packages/ui/
-COPY packages/theme-api-sdk/package.json ./packages/theme-api-sdk/
-COPY packages/core-api-sdk/package.json ./packages/core-api-sdk/
 
 # Install dependencies using a public npm mirror by default.
 # CI can still override NPM_REGISTRY when an internal cache is healthy.
@@ -59,9 +62,13 @@ WORKDIR /app
 # Install pnpm (needed for build commands) from the same vendored tarball.
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
-# Copy dependencies from deps stage
+# Copy dependencies from deps stage.
+# Keep only the workspace root node_modules to avoid loading duplicate Next.js
+# packages from both /app/node_modules and /app/apps/shop/node_modules.
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/shop/node_modules ./apps/shop/node_modules
+COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
 
 # Copy source code
 COPY . .
@@ -106,6 +113,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy the built application
+COPY --from=builder /app/install.sh ./install.sh
 COPY --from=builder /app/apps/shop/public ./apps/shop/public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/shop/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/shop/.next/static ./apps/shop/.next/static
