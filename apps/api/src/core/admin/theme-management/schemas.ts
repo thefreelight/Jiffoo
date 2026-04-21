@@ -41,6 +41,7 @@ const activeThemeSchema = {
     name: { type: 'string', description: 'Theme name' },
     version: { type: 'string', description: 'Theme version' },
     source: { type: 'string', description: 'Theme source (builtin or installed)' },
+    activatedAt: { type: 'string', description: 'Theme activation timestamp' },
     type: { type: 'string', enum: ['pack', 'app'], description: 'Theme type' },
     baseUrl: { type: 'string', nullable: true, description: 'Base URL for theme-app' },
     port: { type: 'number', nullable: true, description: 'Port for theme-app' },
