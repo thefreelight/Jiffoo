@@ -48,12 +48,20 @@ function withThemeAssetsOrigin(path: string): string {
 const resourceCache = new Map<string, unknown>();
 const resolvedBaseUrlCache = new Map<string, string>();
 
-function getBaseUrlCacheKey(slug: string, version?: string): string {
-  return `${slug}:base-url:${version || 'latest'}`;
+function getBaseUrlCacheKey(slug: string, version?: string, cacheBust?: string): string {
+  return `${slug}:base-url:${version || 'latest'}:${cacheBust || 'default'}`;
 }
 
-function appendVersionQuery(url: string, version?: string): string {
-  return version ? `${url}?v=${version}` : url;
+function appendVersionQuery(url: string, version?: string, cacheBust?: string): string {
+  const params = new URLSearchParams();
+  if (version) {
+    params.set('v', version);
+  }
+  if (cacheBust) {
+    params.set('r', cacheBust);
+  }
+  const query = params.toString();
+  return query ? `${url}?${query}` : url;
 }
 
 function getLegacyThemeBaseUrl(slug: string): string {
@@ -75,21 +83,21 @@ function getThemeBaseUrlCandidates(slug: string, version?: string): string[] {
   ];
 }
 
-function setResolvedThemeBaseUrl(slug: string, baseUrl: string, version?: string): void {
-  resolvedBaseUrlCache.set(getBaseUrlCacheKey(slug, version), baseUrl);
+function setResolvedThemeBaseUrl(slug: string, baseUrl: string, version?: string, cacheBust?: string): void {
+  resolvedBaseUrlCache.set(getBaseUrlCacheKey(slug, version, cacheBust), baseUrl);
 }
 
-function getResolvedThemeBaseUrl(slug: string, version?: string): string {
-  return resolvedBaseUrlCache.get(getBaseUrlCacheKey(slug, version))
+function getResolvedThemeBaseUrl(slug: string, version?: string, cacheBust?: string): string {
+  return resolvedBaseUrlCache.get(getBaseUrlCacheKey(slug, version, cacheBust))
     || (version ? getVersionedThemeBaseUrl(slug, version) : getLegacyThemeBaseUrl(slug));
 }
 
-export function getThemeBaseUrl(slug: string, version?: string): string {
-  return getResolvedThemeBaseUrl(slug, version);
+export function getThemeBaseUrl(slug: string, version?: string, cacheBust?: string): string {
+  return getResolvedThemeBaseUrl(slug, version, cacheBust);
 }
 
-function getCacheKey(slug: string, resource: string, version?: string): string {
-  return `${slug}:${resource}:${version || 'latest'}`;
+function getCacheKey(slug: string, resource: string, version?: string, cacheBust?: string): string {
+  return `${slug}:${resource}:${version || 'latest'}:${cacheBust || 'default'}`;
 }
 
 export async function fetchActiveTheme(): Promise<ActiveTheme | null> {
@@ -107,14 +115,14 @@ export async function fetchActiveTheme(): Promise<ActiveTheme | null> {
   }
 }
 
-export async function fetchThemeManifest(slug: string, version?: string): Promise<ThemePackManifest | null> {
-  const cacheKey = getCacheKey(slug, 'manifest', version);
+export async function fetchThemeManifest(slug: string, version?: string, cacheBust?: string): Promise<ThemePackManifest | null> {
+  const cacheKey = getCacheKey(slug, 'manifest', version, cacheBust);
   const cached = resourceCache.get(cacheKey);
   if (cached) return cached as ThemePackManifest;
 
   try {
     for (const baseUrl of getThemeBaseUrlCandidates(slug, version)) {
-      const response = await fetch(appendVersionQuery(`${baseUrl}/theme.json`, version));
+      const response = await fetch(appendVersionQuery(`${baseUrl}/theme.json`, version, cacheBust));
       if (!response.ok) {
         if (response.status !== 404) {
           console.warn(`[ThemePack] Failed to fetch manifest for ${slug} from ${baseUrl}:`, response.status);
@@ -123,7 +131,7 @@ export async function fetchThemeManifest(slug: string, version?: string): Promis
       }
       const manifest = await response.json();
       resourceCache.set(cacheKey, manifest);
-      setResolvedThemeBaseUrl(slug, baseUrl, version);
+      setResolvedThemeBaseUrl(slug, baseUrl, version, cacheBust);
       return manifest;
     }
     return null;
@@ -133,23 +141,23 @@ export async function fetchThemeManifest(slug: string, version?: string): Promis
   }
 }
 
-export function getTokensCssUrl(slug: string, manifest?: ThemePackManifest, version?: string): string | null {
+export function getTokensCssUrl(slug: string, manifest?: ThemePackManifest, version?: string, cacheBust?: string): string | null {
   const tokensPath = manifest?.entry?.tokensCSS || 'tokens.css';
-  const baseUrl = getResolvedThemeBaseUrl(slug, version);
+  const baseUrl = getResolvedThemeBaseUrl(slug, version, cacheBust);
   const url = `${baseUrl}/${tokensPath}`;
 
-  return appendVersionQuery(url, version);
+  return appendVersionQuery(url, version, cacheBust);
 }
 
-export function getRuntimeJsUrl(slug: string, manifest?: ThemePackManifest, version?: string): string | null {
+export function getRuntimeJsUrl(slug: string, manifest?: ThemePackManifest, version?: string, cacheBust?: string): string | null {
   const runtimePath = manifest?.entry?.runtimeJS;
   if (!runtimePath) {
     return null;
   }
 
-  const baseUrl = getResolvedThemeBaseUrl(slug, version);
+  const baseUrl = getResolvedThemeBaseUrl(slug, version, cacheBust);
   const url = `${baseUrl}/${runtimePath}`;
-  return appendVersionQuery(url, version);
+  return appendVersionQuery(url, version, cacheBust);
 }
 
 export async function fetchPageTemplate(
@@ -157,15 +165,16 @@ export async function fetchPageTemplate(
   page: string,
   manifest?: ThemePackManifest,
   version?: string,
+  cacheBust?: string,
 ): Promise<PageTemplate | null> {
-  const cacheKey = getCacheKey(slug, `template:${page}`, version);
+  const cacheKey = getCacheKey(slug, `template:${page}`, version, cacheBust);
   const cached = resourceCache.get(cacheKey);
   if (cached) return cached as PageTemplate;
 
   try {
     const templatesDir = manifest?.entry?.templatesDir || 'templates';
     for (const baseUrl of getThemeBaseUrlCandidates(slug, version)) {
-      const url = appendVersionQuery(`${baseUrl}/${templatesDir}/${page}.json`, version);
+      const url = appendVersionQuery(`${baseUrl}/${templatesDir}/${page}.json`, version, cacheBust);
       const response = await fetch(url);
 
       if (!response.ok) {
@@ -176,7 +185,7 @@ export async function fetchPageTemplate(
       }
       const template = await response.json();
       resourceCache.set(cacheKey, template);
-      setResolvedThemeBaseUrl(slug, baseUrl, version);
+      setResolvedThemeBaseUrl(slug, baseUrl, version, cacheBust);
       return template;
     }
     console.debug(`[ThemePack] Template ${page}.json not found for theme ${slug}`);
@@ -191,8 +200,9 @@ export async function fetchSettingsSchema(
   slug: string,
   manifest?: ThemePackManifest,
   version?: string,
+  cacheBust?: string,
 ): Promise<SettingsSchema | null> {
-  const cacheKey = getCacheKey(slug, 'settingsSchema', version);
+  const cacheKey = getCacheKey(slug, 'settingsSchema', version, cacheBust);
   const cached = resourceCache.get(cacheKey);
   if (cached) return cached as SettingsSchema;
 
@@ -203,7 +213,7 @@ export async function fetchSettingsSchema(
 
   try {
     for (const baseUrl of getThemeBaseUrlCandidates(slug, version)) {
-      const url = appendVersionQuery(`${baseUrl}/${schemaPath}`, version);
+      const url = appendVersionQuery(`${baseUrl}/${schemaPath}`, version, cacheBust);
       const response = await fetch(url);
       if (!response.ok) {
         if (response.status !== 404) {
@@ -213,7 +223,7 @@ export async function fetchSettingsSchema(
       }
       const schema = await response.json();
       resourceCache.set(cacheKey, schema);
-      setResolvedThemeBaseUrl(slug, baseUrl, version);
+      setResolvedThemeBaseUrl(slug, baseUrl, version, cacheBust);
       return schema;
     }
     return null;
@@ -228,6 +238,7 @@ export function resolveAssetUrl(
   assetPath: string,
   manifest?: ThemePackManifest,
   version?: string,
+  cacheBust?: string,
 ): string {
   if (assetPath.startsWith('http://') || assetPath.startsWith('https://')) {
     return assetPath;
@@ -237,14 +248,14 @@ export function resolveAssetUrl(
     return assetPath;
   }
 
-  const baseUrl = getResolvedThemeBaseUrl(slug, version);
+  const baseUrl = getResolvedThemeBaseUrl(slug, version, cacheBust);
 
   if (assetPath.startsWith('assets/')) {
-    return `${baseUrl}/${assetPath}`;
+    return appendVersionQuery(`${baseUrl}/${assetPath}`, version, cacheBust);
   }
 
   const assetsDir = manifest?.entry?.assetsDir || 'assets';
-  return `${baseUrl}/${assetsDir}/${assetPath}`;
+  return appendVersionQuery(`${baseUrl}/${assetsDir}/${assetPath}`, version, cacheBust);
 }
 
 export function clearCache(): void {

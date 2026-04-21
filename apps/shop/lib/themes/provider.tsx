@@ -112,6 +112,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
             themePack.activeTheme.slug || normalizedSlugInit,
             themePack.manifest,
             themePack.activeTheme.version,
+            themePack.activeTheme.activatedAt,
           ),
         }
       : null;
@@ -147,6 +148,7 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
               themePack.activeTheme.slug || normalizedSlug,
               themePack.manifest,
               themePack.activeTheme.version,
+              themePack.activeTheme.activatedAt,
             ),
           }
         : null;

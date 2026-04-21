@@ -154,14 +154,14 @@ export function ThemePackProvider({
         }
 
         // 3. For installed themes, load manifest (with version in cache key)
-        const themeManifest = await fetchThemeManifest(slug, activeTheme.version);
+        const themeManifest = await fetchThemeManifest(slug, activeTheme.version, activeTheme.activatedAt);
         if (!mounted) return;
 
         setManifest(themeManifest);
 
         // 4. Inject tokens CSS and wait for it to load
         if (themeManifest?.entry?.tokensCSS) {
-          const cssUrl = getTokensCssUrl(slug, themeManifest, activeTheme.version);
+          const cssUrl = getTokensCssUrl(slug, themeManifest, activeTheme.version, activeTheme.activatedAt);
           if (cssUrl) {
             try {
               await injectTokensCSS(cssUrl, slug);
@@ -224,7 +224,8 @@ export function ThemePackProvider({
         effectiveSlug,
         page,
         manifest || undefined,
-        state.activeTheme?.version
+        state.activeTheme?.version,
+        state.activeTheme?.activatedAt,
       );
 
       return template;
@@ -242,7 +243,9 @@ export function ThemePackProvider({
       return resolveAssetUrl(
         effectiveSlug,
         assetPath,
-        manifest || undefined
+        manifest || undefined,
+        state.activeTheme?.version,
+        state.activeTheme?.activatedAt,
       );
     },
     [effectiveSlug, manifest]

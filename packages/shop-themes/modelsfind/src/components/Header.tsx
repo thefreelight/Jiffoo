@@ -41,7 +41,7 @@ export const Header = React.memo(function Header({
     { label: 'Access', action: isAuthenticated ? onNavigateToProfile : onNavigateToRegister },
   ];
 
-  const shouldHideOnLanding =
+  const shouldHideOnLandingMobile =
     pathname !== '' &&
     /^\/(?:[a-z]{2}(?:-[A-Z]{2})?)?$/.test(pathname);
   const shouldHideOnAuth =
@@ -55,7 +55,7 @@ export const Header = React.memo(function Header({
       /^\/checkout(?:\/.*)?$/,
     ].some((pattern) => pattern.test(normalizedPathname));
 
-  if (shouldHideOnLanding || shouldHideOnAuth) {
+  if (shouldHideOnAuth) {
     return null;
   }
 
@@ -68,7 +68,7 @@ export const Header = React.memo(function Header({
     <header
       className={[
         'fixed inset-x-0 top-0 z-50 border-b border-[var(--modelsfind-line)] bg-[rgba(9,8,12,0.88)] backdrop-blur-xl [font-family:var(--modelsfind-body)] text-[var(--modelsfind-ink)]',
-        shouldHideOnMobile ? 'hidden md:block' : '',
+        shouldHideOnMobile || shouldHideOnLandingMobile ? 'hidden md:block' : '',
       ].join(' ')}
     >
       <div className="mx-auto flex h-[4.5rem] max-w-[1240px] items-center gap-4 px-4 sm:px-6">
