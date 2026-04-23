@@ -366,6 +366,28 @@ export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
     defaultCurrency: 'USD',
     pricingConfigured: false,
   },
+  {
+    slug: 'girls-importer',
+    name: 'Girls Importer',
+    kind: 'plugin',
+    listingDomain: 'app_marketplace',
+    listingKind: 'plugin',
+    providerType: 'platform',
+    version: '0.1.1',
+    author: 'Jiffoo',
+    description: 'Official downloadable girls profile ingestion plugin package for lane-based editorial review and bulk publishing workflows.',
+    deliveryMode: 'package-managed',
+    paymentMode: 'platform_collect',
+    settlementTargetType: 'platform',
+    settlementTargetId: 'platform:jiffoo',
+    artifactKind: 'plugin-package',
+    launchWave: 'official-extensions-go-live-v1',
+    packageUrl: 'https://get.jiffoo.com/official-artifacts/plugins/girls-importer/0.1.1.jplugin',
+    minCoreVersion: '0.2.0',
+    defaultPricingModel: 'free',
+    defaultCurrency: 'USD',
+    pricingConfigured: false,
+  },
 ];
 
 export function getOfficialLaunchExtensions(): OfficialCatalogEntry[] {
