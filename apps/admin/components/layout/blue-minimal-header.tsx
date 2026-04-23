@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
 import { UserAvatar } from '../ui/user-avatar'
 import { useT, useLocale } from 'shared/src/i18n/react'
+import { ADMIN_ROLES } from 'shared'
 import {
   Search,
   Bell,
@@ -54,6 +55,25 @@ export function BlueMinimalHeader({ title = "Dashboard", onMenuClick }: BlueMini
     sessionStorage.removeItem('redirectPath')
     router.push(`/${locale}/auth/login`)
   }
+
+  const roleLabel = (() => {
+    switch (user?.adminRole || user?.role) {
+      case ADMIN_ROLES.OWNER:
+        return getText('merchant.staff.owner', 'Owner')
+      case ADMIN_ROLES.ADMIN:
+        return getText('merchant.staff.admin', 'Admin')
+      case ADMIN_ROLES.CATALOG_MANAGER:
+        return getText('merchant.staff.catalogManager', 'Catalog Manager')
+      case ADMIN_ROLES.OPERATIONS_MANAGER:
+        return getText('merchant.staff.operationsManager', 'Operations Manager')
+      case ADMIN_ROLES.SUPPORT_AGENT:
+        return getText('merchant.staff.supportAgent', 'Support Agent')
+      case ADMIN_ROLES.ANALYST:
+        return getText('merchant.staff.analyst', 'Analyst')
+      default:
+        return getText('merchant.header.account', 'Team Member')
+    }
+  })()
 
   // Format current date
   const currentDate = new Date().toLocaleDateString('en-US', {
@@ -106,7 +126,7 @@ export function BlueMinimalHeader({ title = "Dashboard", onMenuClick }: BlueMini
                   {user?.firstName || user?.username || 'User'}
                 </span>
                 <span className="text-[10px] text-gray-400 font-medium mt-1 uppercase tracking-tighter">
-                  Store Owner
+                  {roleLabel}
                 </span>
               </div>
             </button>

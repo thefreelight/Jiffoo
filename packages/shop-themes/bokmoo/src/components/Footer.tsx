@@ -5,6 +5,7 @@ import { isExternalHref, resolveBokmooSiteConfig } from '../site';
 
 export const Footer = React.memo(function Footer({
   config,
+  platformBranding,
   onNavigate,
   onNavigateToProducts,
   onNavigateToCategories,
@@ -18,6 +19,7 @@ export const Footer = React.memo(function Footer({
 }: FooterProps) {
   const site = resolveBokmooSiteConfig(config);
   const year = new Date().getFullYear();
+  const showPoweredBy = platformBranding?.showPoweredByJiffoo !== false;
 
   const openHref = React.useCallback(
     (href: string) => {
@@ -103,7 +105,18 @@ export const Footer = React.memo(function Footer({
 
       <div className="mx-auto mt-12 flex max-w-[1280px] flex-col gap-3 border-t border-[var(--bokmoo-line)] pt-5 text-sm text-[var(--bokmoo-copy)] sm:flex-row sm:items-center sm:justify-between">
         <p>© {year} {site.brandName}. Official Bokmoo storefront theme.</p>
-        <p>Instant QR delivery, destination-ready plans, and calmer pre-trip setup.</p>
+        {showPoweredBy ? (
+          <a
+            href={platformBranding?.poweredByHref || 'https://jiffoo.com'}
+            target="_blank"
+            rel="noreferrer"
+            className="transition-colors hover:text-[var(--bokmoo-ink)]"
+          >
+            {platformBranding?.poweredByLabel || 'Powered by Jiffoo'}
+          </a>
+        ) : (
+          <p>Instant QR delivery, destination-ready plans, and calmer pre-trip setup.</p>
+        )}
       </div>
     </footer>
   );

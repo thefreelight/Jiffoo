@@ -30,6 +30,10 @@ const settingsSchema = {
     'branding.logo': { type: 'string', nullable: true, description: 'Store logo URL' },
     'branding.store_url': { type: 'string', nullable: true, description: 'Store public URL' },
     'branding.store_description': { type: 'string', nullable: true, description: 'Store description' },
+    'branding.powered_by_jiffoo_enabled': {
+      type: 'boolean',
+      description: 'Whether eligible paid/package storefront themes may hide the Powered by Jiffoo footer link',
+    },
     'contact.email': { type: 'string', nullable: true, description: 'Contact email' },
     'contact.phone': { type: 'string', nullable: true, description: 'Contact phone' },
     'contact.address': { type: 'string', nullable: true, description: 'Contact address' },

@@ -35,6 +35,7 @@ import { healthMonitoringRoutes } from '@/core/admin/health-monitoring/routes';
 import { errorTrackingRoutes } from '@/core/error-tracking/routes';
 import { adminStoreManagementRoutes } from '@/core/admin/store-management/routes';
 import { adminCatalogImportRoutes } from '@/core/admin/catalog-import/routes';
+import { adminStaffRoutes } from '@/core/admin/staff-management/routes';
 
 // SEO routes
 import { seoRoutes, sitemapRoute } from '@/core/seo/routes';
@@ -57,11 +58,16 @@ import { webhookRoutes } from '@/core/webhooks/routes';
 import { storeRoutes } from '@/core/store/routes';
 // Install routes (Restored)
 import { installRoutes } from '@/core/install/routes';
+import { adminPermissionGuard } from '@/core/auth/admin-permission-guard';
 
 /**
  * Register all API routes
  */
 export async function registerRoutes(fastify: FastifyInstance) {
+  // Centralized admin permission enforcement keeps route modules compatible
+  // while still allowing us to apply permission-based checks consistently.
+  fastify.addHook('preHandler', adminPermissionGuard);
+
   // Register v1 routes (versioned)
   await fastify.register(registerV1Routes, { prefix: '/api/v1' });
 
@@ -91,6 +97,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(managedPackageRoutes, { prefix: '/api/admin/commercial-package' });
   await fastify.register(adminStoreManagementRoutes, { prefix: '/api/admin/stores' });
   await fastify.register(adminCatalogImportRoutes, { prefix: '/api/admin/integrations/catalog-import' });
+  await fastify.register(adminStaffRoutes, { prefix: '/api/admin/staff' });
 
   // Dashboard routes
   await fastify.register(adminDashboardRoutes, { prefix: '/api/admin' });

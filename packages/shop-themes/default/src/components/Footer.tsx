@@ -6,6 +6,7 @@ import { isExternalHref, resolveSiteConfig } from '../site';
 
 export const Footer = React.memo(function Footer({
   config,
+  platformBranding,
   t,
   onNavigate,
   onNavigateToProducts,
@@ -20,6 +21,7 @@ export const Footer = React.memo(function Footer({
 }: FooterProps) {
   const site = resolveSiteConfig(config);
   const currentYear = new Date().getFullYear();
+  const showPoweredBy = platformBranding?.showPoweredByJiffoo !== false;
 
   const getText = (key: string, fallback: string): string => {
     if (!t) return fallback;
@@ -249,12 +251,23 @@ export const Footer = React.memo(function Footer({
               : `© ${currentYear} ${site.brandName}. All rights reserved.`
             }
           </p>
-          <p className="max-w-2xl">
-            {getText(
-              'shop.footer.note',
-              'Built as a reusable default for storefronts, launch pages, and SaaS sites that need commerce close by.'
-            )}
-          </p>
+          {showPoweredBy ? (
+            <a
+              href={platformBranding?.poweredByHref || 'https://jiffoo.com'}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold transition-colors hover:text-[oklch(0.23_0.03_255)]"
+            >
+              {platformBranding?.poweredByLabel || 'Powered by Jiffoo'}
+            </a>
+          ) : (
+            <p className="max-w-2xl">
+              {getText(
+                'shop.footer.note',
+                'Built as a reusable default for storefronts, launch pages, and SaaS sites that need commerce close by.'
+              )}
+            </p>
+          )}
         </div>
       </div>
     </footer>

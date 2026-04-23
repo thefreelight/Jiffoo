@@ -83,12 +83,13 @@ export async function storeRoutes(fastify: FastifyInstance) {
             }
 
             // Parallel fetch settings and theme
-            const [platformName, activeTheme, currency, logo, defaultLocale] = await Promise.all([
+            const [platformName, activeTheme, currency, logo, defaultLocale, settings] = await Promise.all([
                 systemSettingsService.getString('branding.platform_name', 'Jiffoo Store'),
                 ThemeManagementService.getActiveTheme('shop'),
                 systemSettingsService.getShopCurrency(),
                 systemSettingsService.getString('branding.logo', null),
                 systemSettingsService.getShopLocale(),
+                systemSettingsService.getAllSettings(),
             ]);
 
             const contextData = {
@@ -101,7 +102,9 @@ export async function storeRoutes(fastify: FastifyInstance) {
                 defaultLocale,
                 supportedLocales: ['en', 'zh-Hant'], // Alpha Gate: Only En + zh-Hant
                 theme: activeTheme, // Includes slug & config
-                settings: null, // Reserved for future use
+                settings: {
+                    'branding.powered_by_jiffoo_enabled': settings['branding.powered_by_jiffoo_enabled'] !== false,
+                },
             };
 
             await CacheService.set(cacheKey, contextData, { ttl: 60 });

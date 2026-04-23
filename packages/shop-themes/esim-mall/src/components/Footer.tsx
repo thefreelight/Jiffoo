@@ -18,6 +18,7 @@ const getText = (t: FooterProps['t'], key: string, fallback: string): string => 
 
 export const Footer = React.memo(function Footer({
   config,
+  platformBranding,
   onNavigate,
   onNavigateToProducts,
   onNavigateToCategories,
@@ -32,6 +33,7 @@ export const Footer = React.memo(function Footer({
 }: FooterProps) {
   const [email, setEmail] = useState('');
   const brandName = config?.brand?.name?.trim() || 'TravelPass';
+  const showPoweredBy = platformBranding?.showPoweredByJiffoo !== false;
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -155,13 +157,23 @@ export const Footer = React.memo(function Footer({
           <p className="text-gray-400">
             © {new Date().getFullYear()} {brandName}. {getText(t, 'travelpass.footer.rights', 'All rights reserved.')}
           </p>
-          <div className="flex space-x-6 mt-4 md:mt-0">
-            {/* Payment Icons */}
-            <i className="fab fa-cc-visa text-2xl text-gray-400"></i>
-            <i className="fab fa-cc-mastercard text-2xl text-gray-400"></i>
-            <i className="fab fa-cc-paypal text-2xl text-gray-400"></i>
-            <i className="fab fa-cc-apple-pay text-2xl text-gray-400"></i>
-          </div>
+          {showPoweredBy ? (
+            <a
+              href={platformBranding?.poweredByHref || 'https://jiffoo.com'}
+              target="_blank"
+              rel="noreferrer"
+              className="text-gray-400 hover:text-white transition mt-4 md:mt-0"
+            >
+              {platformBranding?.poweredByLabel || 'Powered by Jiffoo'}
+            </a>
+          ) : (
+            <div className="flex space-x-6 mt-4 md:mt-0">
+              <i className="fab fa-cc-visa text-2xl text-gray-400"></i>
+              <i className="fab fa-cc-mastercard text-2xl text-gray-400"></i>
+              <i className="fab fa-cc-paypal text-2xl text-gray-400"></i>
+              <i className="fab fa-cc-apple-pay text-2xl text-gray-400"></i>
+            </div>
+          )}
         </div>
       </div>
     </footer>

@@ -27,6 +27,19 @@ export interface UserProfile {
   username: string;
   avatar?: string;
   role: UserRole | string;
+  admin?: {
+    membershipId: string | null;
+    role: string;
+    status: 'ACTIVE' | 'SUSPENDED';
+    permissions: string[];
+    isOwner: boolean;
+    extraPermissions: string[];
+    revokedPermissions: string[];
+  };
+  adminRole?: string | null;
+  permissions?: string[];
+  isOwner?: boolean;
+  adminStatus?: 'ACTIVE' | 'SUSPENDED';
   isActive?: boolean;
   emailVerified?: boolean;
   phone?: string;

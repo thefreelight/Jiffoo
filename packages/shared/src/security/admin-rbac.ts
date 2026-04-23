@@ -104,13 +104,12 @@ export const ADMIN_PERMISSION_GROUPS = {
 } as const satisfies Record<string, readonly AdminPermission[]>;
 
 const ALL_ADMIN_PERMISSIONS = Object.values(ADMIN_PERMISSIONS) as AdminPermission[];
-const STAFF_PERMISSION_SET: ReadonlySet<AdminPermission> = new Set(
-  ADMIN_PERMISSION_GROUPS.STAFF as readonly AdminPermission[]
-);
 
 export const DEFAULT_ADMIN_ROLE_PERMISSIONS: Record<AdminRole, readonly AdminPermission[]> = {
   OWNER: ALL_ADMIN_PERMISSIONS,
-  ADMIN: ALL_ADMIN_PERMISSIONS.filter((permission) => !STAFF_PERMISSION_SET.has(permission)),
+  // Owner-only safeguards are enforced in application logic (for example,
+  // preventing non-owners from assigning OWNER or removing the last owner).
+  ADMIN: ALL_ADMIN_PERMISSIONS,
   CATALOG_MANAGER: [
     ADMIN_PERMISSIONS.DASHBOARD_READ,
     ADMIN_PERMISSIONS.PRODUCTS_READ,

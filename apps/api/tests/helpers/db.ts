@@ -75,6 +75,8 @@ export async function cleanupDatabase(): Promise<void> {
     // Delete in correct order to avoid foreign key constraints
     // Order: dependent tables first, then parent tables
     const tablesToClean = [
+      'AdminStaffAuditLog',
+      'AdminMembership',
       'OrderItem',
       'Order',
       'CartItem',

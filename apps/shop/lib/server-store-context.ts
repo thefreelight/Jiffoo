@@ -13,6 +13,8 @@ export interface ServerStoreContext {
     config?: Record<string, any>;
     version?: string;
     pluginSlug?: string;
+    source?: 'builtin' | 'installed' | 'local-zip' | 'official-market';
+    type?: 'pack' | 'app';
   } | null;
   settings: Record<string, unknown> | null;
   status: string;

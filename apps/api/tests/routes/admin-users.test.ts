@@ -17,6 +17,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import {
   createUserWithToken,
   createAdminWithToken,
+  createStaffWithToken,
   deleteAllTestUsers,
 } from '../helpers/auth';
 import { v4 as uuidv4 } from 'uuid';
@@ -25,6 +26,7 @@ describe('Admin Users Endpoints', () => {
   let app: FastifyInstance;
   let userToken: string;
   let adminToken: string;
+  let supportAgentToken: string;
   let adminUserId: string;
 
   beforeAll(async () => {
@@ -32,9 +34,11 @@ describe('Admin Users Endpoints', () => {
 
     const { token: uToken } = await createUserWithToken();
     const { token: aToken, user: adminUser } = await createAdminWithToken();
+    const { token: supportToken } = await createStaffWithToken('SUPPORT_AGENT');
 
     userToken = uToken;
     adminToken = aToken;
+    supportAgentToken = supportToken;
     adminUserId = adminUser.id;
   });
 
@@ -68,6 +72,16 @@ describe('Admin Users Endpoints', () => {
         method: 'GET',
         url: '/api/admin/users/',
         headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+    });
+
+    it('GET /api/admin/users/ should return 200 for support agent with customers.read', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/admin/users/',
+        headers: { authorization: `Bearer ${supportAgentToken}` },
       });
 
       expect(response.statusCode).toBe(200);

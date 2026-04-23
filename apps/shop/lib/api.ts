@@ -83,7 +83,35 @@ export const authApi = {
   changePassword: (data: { currentPassword: string; newPassword: string }): Promise<ApiResponse<any>> =>
     apiClient.changePassword(data),
 
-  // Email verification APIs removed for Alpha Gate (Direct Registration only)
+  verifyEmail: (token: string): Promise<ApiResponse<null>> =>
+    apiClient.get('/auth/verify-email', { params: { token } }),
+
+  acceptStaffInvite: async (data: { token: string; password: string }): Promise<ApiResponse<{
+    access_token: string;
+    token_type: string;
+    expires_in: number;
+    refresh_token?: string;
+  }>> => {
+    const response = await apiClient.post('/auth/accept-staff-invite', data);
+    if (response.success && response.data) {
+      const authData = response.data as {
+        access_token?: string;
+        refresh_token?: string;
+      };
+      if (authData.access_token) {
+        apiClient.setToken(authData.access_token);
+      }
+      if (authData.refresh_token) {
+        (apiClient as any).setRefreshToken(authData.refresh_token);
+      }
+    }
+    return response as ApiResponse<{
+      access_token: string;
+      token_type: string;
+      expires_in: number;
+      refresh_token?: string;
+    }>;
+  },
 };
 
 // Auth Gateway API REMOVED - Legacy

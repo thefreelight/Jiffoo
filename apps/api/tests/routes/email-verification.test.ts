@@ -419,4 +419,118 @@ describe('Email Verification Endpoints', () => {
       expect(body.error.message).toContain('already verified');
     });
   });
+
+  describe('POST /api/auth/accept-staff-invite', () => {
+    let invitedStaff: Awaited<ReturnType<typeof createTestUser>>;
+    let inviteToken: string;
+
+    beforeEach(async () => {
+      await deleteAllTestUsers();
+
+      invitedStaff = await createTestUser({
+        email: `staff-invite-${uuidv4().substring(0, 8)}@example.com`,
+        emailVerified: false,
+      });
+
+      inviteToken = crypto.randomBytes(32).toString('base64url');
+      const expiry = new Date();
+      expiry.setHours(expiry.getHours() + 24);
+
+      await prisma.user.update({
+        where: { id: invitedStaff.id },
+        data: {
+          verificationToken: inviteToken,
+          verificationTokenExpiry: expiry,
+          emailVerified: false,
+        },
+      });
+
+      await prisma.adminMembership.create({
+        data: {
+          userId: invitedStaff.id,
+          role: 'ANALYST',
+          status: 'ACTIVE',
+          isOwner: false,
+        },
+      });
+    });
+
+    it('should accept staff invite, set password, and allow login', async () => {
+      const newPassword = 'NewStaff123!';
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/auth/accept-staff-invite',
+        payload: {
+          token: inviteToken,
+          password: newPassword,
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body).toHaveProperty('success', true);
+      expect(body.data).toHaveProperty('access_token');
+      expect(body.data.user).toEqual(
+        expect.objectContaining({
+          id: invitedStaff.id,
+          emailVerified: true,
+          adminRole: 'ANALYST',
+        }),
+      );
+
+      const updatedUser = await prisma.user.findUnique({
+        where: { id: invitedStaff.id },
+      });
+      expect(updatedUser?.emailVerified).toBe(true);
+      expect(updatedUser?.verificationToken).toBeNull();
+      expect(updatedUser?.verificationTokenExpiry).toBeNull();
+
+      const auditEntry = await prisma.adminStaffAuditLog.findFirst({
+        where: {
+          staffUserId: invitedStaff.id,
+          action: 'STAFF_INVITE_ACCEPTED',
+        },
+      });
+      expect(auditEntry).toBeTruthy();
+
+      const loginResponse = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        payload: {
+          email: invitedStaff.email,
+          password: newPassword,
+        },
+      });
+      expect(loginResponse.statusCode).toBe(200);
+    });
+
+    it('should reject invite acceptance for non-staff verification tokens', async () => {
+      const customer = await createTestUser({
+        email: `customer-token-${uuidv4().substring(0, 8)}@example.com`,
+        emailVerified: false,
+      });
+      const customerToken = crypto.randomBytes(32).toString('base64url');
+      await prisma.user.update({
+        where: { id: customer.id },
+        data: {
+          verificationToken: customerToken,
+          verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          emailVerified: false,
+        },
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/auth/accept-staff-invite',
+        payload: {
+          token: customerToken,
+          password: 'NewStaff123!',
+        },
+      });
+
+      expect(response.statusCode).toBe(400);
+      expect(response.json()).toHaveProperty('error.code', 'ACCEPT_STAFF_INVITE_FAILED');
+      expect(response.json().error.message).toContain('Staff invitation not found');
+    });
+  });
 });

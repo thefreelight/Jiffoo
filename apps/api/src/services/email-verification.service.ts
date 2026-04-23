@@ -47,7 +47,7 @@ export class EmailVerificationService {
         },
       });
 
-      const verificationUrl = `${env.NEXT_PUBLIC_SHOP_URL}/verify-email?token=${token}`;
+      const verificationUrl = `${env.NEXT_PUBLIC_SHOP_URL}/auth/verify-email?token=${token}`;
 
       // If no email provider is configured, treat as success to avoid blocking signup.
       if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
@@ -83,6 +83,64 @@ export class EmailVerificationService {
       return {
         success: false,
         error: error.message || 'Failed to send verification email',
+      };
+    }
+  }
+
+  /**
+   * Send staff invitation email with a one-time password setup link.
+   */
+  static async sendStaffInvitationEmail(
+    userId: string,
+    email: string,
+    username: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const token = this.generateToken();
+      const expiry = this.getTokenExpiry();
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          verificationToken: token,
+          verificationTokenExpiry: expiry,
+        },
+      });
+
+      const invitationUrl = `${env.NEXT_PUBLIC_SHOP_URL}/auth/accept-invite?token=${token}`;
+
+      if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
+        if (env.NODE_ENV !== 'test') {
+          console.warn('Email provider not configured; skipping staff invitation email send.');
+        }
+        return { success: true };
+      }
+
+      const { Resend } = await import('resend');
+      const resend = new Resend(env.RESEND_API_KEY);
+      const fromName = env.EMAIL_FROM_NAME || 'Jiffoo';
+      const fromAddress = `${fromName} <${env.EMAIL_FROM}>`;
+
+      const result = await resend.emails.send({
+        from: fromAddress,
+        to: email,
+        subject: 'You have been invited to Jiffoo Admin',
+        html: this.getStaffInvitationEmailHtml(username, invitationUrl),
+        text: this.getStaffInvitationEmailText(username, invitationUrl),
+      });
+
+      if (!result.data) {
+        return {
+          success: false,
+          error: result.error?.message || 'Failed to send staff invitation email',
+        };
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to send staff invitation email',
       };
     }
   }
@@ -187,5 +245,35 @@ export class EmailVerificationService {
 
   private static getVerificationEmailText(name: string, verificationUrl: string): string {
     return `Hi ${name},\n\nPlease verify your email address:\n${verificationUrl}\n\nThis link expires in 24 hours.`;
+  }
+
+  private static getStaffInvitationEmailHtml(name: string, invitationUrl: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Accept Your Jiffoo Admin Invite</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h1 style="color: #111;">You're invited to Jiffoo Admin</h1>
+          <p>Hi ${name},</p>
+          <p>An administrator invited you to access the Jiffoo back office. Set your password to activate your staff account.</p>
+          <p style="margin: 24px 0;">
+            <a href="${invitationUrl}" style="background-color: #111; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 4px;">
+              Accept Invite
+            </a>
+          </p>
+          <p>If the button does not work, copy and paste this link into your browser:</p>
+          <p style="word-break: break-all;">${invitationUrl}</p>
+          <p>This link expires in 24 hours.</p>
+        </body>
+      </html>
+    `;
+  }
+
+  private static getStaffInvitationEmailText(name: string, invitationUrl: string): string {
+    return `Hi ${name},\n\nYou have been invited to Jiffoo Admin. Set your password here:\n${invitationUrl}\n\nThis link expires in 24 hours.`;
   }
 }

@@ -16,20 +16,31 @@ import { v4 as uuidv4 } from 'uuid';
 const TEST_JWT_SECRET = process.env.JWT_SECRET || 'test-secret-key-for-testing';
 const TEST_JWT_EXPIRES_IN = '7d';
 
+export type TestUserRole =
+  | 'USER'
+  | 'ADMIN'
+  | 'SUPER_ADMIN'
+  | 'TENANT_ADMIN'
+  | 'OWNER'
+  | 'CATALOG_MANAGER'
+  | 'OPERATIONS_MANAGER'
+  | 'SUPPORT_AGENT'
+  | 'ANALYST';
+
 export interface TestUser {
   id: string;
   email: string;
   username: string;
   password: string; // Plain text password for login tests
   hashedPassword: string;
-  role: 'USER' | 'ADMIN';
+  role: TestUserRole;
 }
 
 export interface CreateUserOptions {
   email?: string;
   username?: string;
   password?: string;
-  role?: 'USER' | 'ADMIN';
+  role?: TestUserRole;
   emailVerified?: boolean;
 }
 
@@ -87,7 +98,7 @@ export async function createAdminUser(options: Omit<CreateUserOptions, 'role'> =
 export function signJwt(
   userOrId: Pick<TestUser, 'id' | 'email' | 'role'> | string,
   emailArg?: string,
-  roleArg: 'USER' | 'ADMIN' = 'USER'
+  roleArg: TestUserRole = 'USER'
 ): string {
   const user =
     typeof userOrId === 'string'
@@ -203,6 +214,17 @@ export async function createAdminWithToken(options: Omit<CreateUserOptions, 'rol
   return createUserWithToken({ ...options, role: 'ADMIN' });
 }
 
+export async function createStaffWithToken(
+  role: Exclude<TestUserRole, 'USER'>,
+  options: Omit<CreateUserOptions, 'role'> = {}
+): Promise<{
+  user: TestUser;
+  token: string;
+  authHeader: { authorization: string };
+}> {
+  return createUserWithToken({ ...options, role });
+}
+
 /**
  * Delete a test user
  */
@@ -255,6 +277,15 @@ export async function deleteAllTestUsers(): Promise<void> {
   const shipmentIds = shipments.map(s => s.id);
 
   await prisma.$transaction([
+    prisma.adminStaffAuditLog.deleteMany({
+      where: {
+        OR: [
+          { staffUserId: { in: userIds } },
+          { actorUserId: { in: userIds } },
+        ],
+      },
+    }),
+    prisma.adminMembership.deleteMany({ where: { userId: { in: userIds } } }),
     prisma.shipmentItem.deleteMany({ where: { shipmentId: { in: shipmentIds } } }),
     prisma.shipment.deleteMany({ where: { id: { in: shipmentIds } } }),
     prisma.refund.deleteMany({ where: { orderId: { in: orderIds } } }),

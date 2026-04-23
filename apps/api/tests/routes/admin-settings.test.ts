@@ -134,4 +134,22 @@ describe('Admin Settings Endpoints', () => {
     expect(body.data).toHaveProperty('branding.store_url', 'https://localhost:3003');
     expect(body.data).toHaveProperty('branding.store_description', 'Store description from test');
   });
+
+  it('PUT /api/admin/settings/batch should persist powered by footer toggle', async () => {
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/api/admin/settings/batch',
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: {
+        settings: {
+          'branding.powered_by_jiffoo_enabled': false,
+        },
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body).toHaveProperty('success', true);
+    expect(body.data).toHaveProperty('branding.powered_by_jiffoo_enabled', false);
+  });
 });

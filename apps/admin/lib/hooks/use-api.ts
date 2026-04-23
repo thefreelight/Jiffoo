@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData } from '../api';
+import { PaginationParams, productsApi, ordersApi, usersApi, staffApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, unwrapApiResponse, isAdminApiError, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type CreateStaffPayload, type UpdateStaffPayload, type StaffMembership, type StaffPermissionCatalogGroup, type StaffRoleDefinition, type StaffAuditLogEntry } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
@@ -52,6 +52,11 @@ export const queryKeys = {
   users: ['users'] as const,
   user: (id: string) => ['users', id] as const,
   userStats: ['user-stats'] as const,
+  staff: ['staff'] as const,
+  staffMember: (userId: string) => ['staff', userId] as const,
+  staffAuditLogs: (userId: string, page: number, limit: number) => ['staff', userId, 'audit', page, limit] as const,
+  staffRoles: ['staff-roles'] as const,
+  staffPermissions: ['staff-permissions'] as const,
   dashboardStats: ['dashboard-stats'] as const,
   salesStats: (period: string) => ['sales-stats', period] as const,
   productStats: ['product-stats'] as const,
@@ -511,6 +516,161 @@ export function useUpdateUser() {
   });
 }
 
+export function useStaff(params: PaginationParams = {}) {
+  return useQuery({
+    queryKey: [...queryKeys.staff, params],
+    queryFn: async () => {
+      const response = await staffApi.getAll(params);
+      const data = unwrapApiResponse(response);
+      return {
+        data: (data.items as StaffMembership[]) || [],
+        pagination: {
+          page: data.page || 1,
+          limit: data.limit || 20,
+          total: data.total || 0,
+          totalPages: data.totalPages || 0,
+        },
+      };
+    },
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useStaffMember(userId: string) {
+  return useQuery({
+    queryKey: queryKeys.staffMember(userId),
+    queryFn: async () => {
+      const response = await staffApi.getByUserId(userId);
+      return unwrapApiResponse(response);
+    },
+    enabled: Boolean(userId),
+  });
+}
+
+export function useStaffAuditLogs(userId: string, page = 1, limit = 20) {
+  return useQuery({
+    queryKey: queryKeys.staffAuditLogs(userId, page, limit),
+    queryFn: async () => {
+      const response = await staffApi.getAuditLogs(userId, page, limit);
+      const data = unwrapApiResponse(response);
+      return {
+        data: (data.items as StaffAuditLogEntry[]) || [],
+        pagination: {
+          page: data.page || 1,
+          limit: data.limit || 20,
+          total: data.total || 0,
+          totalPages: data.totalPages || 0,
+        },
+      };
+    },
+    enabled: Boolean(userId),
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useStaffRoles() {
+  return useQuery({
+    queryKey: queryKeys.staffRoles,
+    queryFn: async () => {
+      const response = await staffApi.getRoles();
+      return unwrapApiResponse(response) as StaffRoleDefinition[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useStaffPermissions() {
+  return useQuery({
+    queryKey: queryKeys.staffPermissions,
+    queryFn: async () => {
+      const response = await staffApi.getPermissionCatalog();
+      return unwrapApiResponse(response) as StaffPermissionCatalogGroup[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useCreateStaff() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async (payload: CreateStaffPayload) => {
+      const response = await staffApi.create(payload);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
+      queryClient.invalidateQueries({ queryKey: queryKeys.staffRoles });
+      toast.success('Staff access granted successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useUpdateStaff() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({ userId, data }: { userId: string; data: UpdateStaffPayload }) => {
+      const response = await staffApi.update(userId, data);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, { userId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
+      queryClient.invalidateQueries({ queryKey: queryKeys.staffMember(userId) });
+      toast.success('Staff permissions updated successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useResendStaffInvite() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await staffApi.resendInvite(userId);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, userId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
+      queryClient.invalidateQueries({ queryKey: queryKeys.staffMember(userId) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.staffAuditLogs(userId, 1, 20) });
+      toast.success('Staff invitation sent successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useRemoveStaff() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await staffApi.remove(userId);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, userId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
+      queryClient.removeQueries({ queryKey: queryKeys.staffMember(userId) });
+      toast.success('Staff access removed successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
 // Dashboard hooks
 export function useDashboardStats() {
   // Deprecated: migrating to useAdminDashboard
@@ -769,6 +929,13 @@ export function useInstallOfficialExtension() {
   const queryClient = useQueryClient();
   const { getText, getErrorMessage } = useLocalizedApiFeedback();
 
+  const refreshOfficialExtensionState = () => {
+    queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
+    queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+    queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
+    queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
+  };
+
   return useMutation({
     mutationFn: async ({
       slug,
@@ -785,10 +952,7 @@ export function useInstallOfficialExtension() {
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
-      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
+      refreshOfficialExtensionState();
       toast.success(
         variables.kind === 'plugin'
           ? getText('merchant.plugins.installSuccess', 'Plugin installed successfully')
@@ -796,12 +960,43 @@ export function useInstallOfficialExtension() {
       );
     },
     onError: (error: unknown, variables) => {
+      if (isAdminApiError(error)) {
+        const isVersionConflict =
+          error.code === 'VERSION_CONFLICT' || error.message.includes('is equal or newer');
+        const isThemeActivationRace =
+          variables.kind === 'theme-shop' &&
+          error.code === 'NOT_FOUND' &&
+          error.message.includes('not found for target');
+
+        if (isVersionConflict || isThemeActivationRace) {
+          refreshOfficialExtensionState();
+          toast.success(
+            variables.kind === 'plugin'
+              ? getText('merchant.plugins.installStateRefreshed', 'Plugin state refreshed')
+              : getText('merchant.themes.installStateRefreshed', 'Theme state refreshed')
+          );
+          return;
+        }
+      }
+
       const fallbackKey = variables.kind === 'plugin'
         ? 'merchant.plugins.installFailed'
         : 'merchant.themes.installFailed';
       const fallbackText = variables.kind === 'plugin'
         ? 'Failed to install plugin'
         : 'Failed to install theme';
+
+      if (isAdminApiError(error) && error.message.includes('Artifact download failed: 416')) {
+        refreshOfficialExtensionState();
+        toast.error(
+          getText(
+            'merchant.extensions.installRetryRequired',
+            'The previous partial download was invalid. Please retry the install.',
+          ),
+        );
+        return;
+      }
+
       toast.error(getErrorMessage(error, fallbackKey, fallbackText));
     },
   });

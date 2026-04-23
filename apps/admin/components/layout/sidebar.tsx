@@ -8,11 +8,14 @@
 
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '../../lib/utils'
 import { useT, useLocale } from 'shared/src/i18n/react'
+import { useAuthStore } from '@/lib/store'
+import { canAccessAnyPermission, getSystemNavHref } from '@/lib/admin-access'
+import { ADMIN_PERMISSIONS, type AdminPermission } from 'shared'
 
 import {
   LayoutDashboard,
@@ -24,6 +27,7 @@ import {
   Sliders,
   Activity,
   Palette,
+  ShieldCheck,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -36,6 +40,7 @@ interface NavigationItem {
   fallback: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  requiredPermissions?: readonly AdminPermission[];
 }
 
 // Base navigation configuration - Shopify style flat menu
@@ -46,42 +51,56 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
+    requiredPermissions: [ADMIN_PERMISSIONS.DASHBOARD_READ],
   },
   {
     nameKey: 'merchant.products.title',
     fallback: 'Products',
     href: '/products',
     icon: Package,
+    requiredPermissions: [ADMIN_PERMISSIONS.PRODUCTS_READ],
   },
   {
     nameKey: 'merchant.orders.title',
     fallback: 'Orders',
     href: '/orders',
     icon: FileText,
+    requiredPermissions: [ADMIN_PERMISSIONS.ORDERS_READ],
   },
   {
     nameKey: 'merchant.customers.title',
     fallback: 'Customers',
     href: '/customers',
     icon: Users,
+    requiredPermissions: [ADMIN_PERMISSIONS.CUSTOMERS_READ],
+  },
+  {
+    nameKey: 'merchant.nav.staff',
+    fallback: 'Staff',
+    href: '/staff',
+    icon: ShieldCheck,
+    requiredPermissions: [ADMIN_PERMISSIONS.STAFF_READ],
   },
   {
     nameKey: 'merchant.nav.plugins',
     fallback: 'Plugins',
     href: '/plugins',
     icon: Sliders,
+    requiredPermissions: [ADMIN_PERMISSIONS.PLUGINS_READ],
   },
   {
     nameKey: 'merchant.nav.themes',
     fallback: 'Themes',
     href: '/themes',
     icon: Palette,
+    requiredPermissions: [ADMIN_PERMISSIONS.THEMES_READ],
   },
   {
     nameKey: 'merchant.nav.systemHealth',
     fallback: 'System Health',
     href: '/system/health',
     icon: Activity,
+    requiredPermissions: [ADMIN_PERMISSIONS.HEALTH_READ],
   },
 ];
 
@@ -90,6 +109,7 @@ export function Sidebar({ className, onCloseMobile }: SidebarProps) {
   const pathname = usePathname()
   const locale = useLocale()
   const t = useT()
+  const { user } = useAuthStore()
 
   const navigationConfig = baseNavigationConfig;
 
@@ -143,41 +163,46 @@ export function Sidebar({ className, onCloseMobile }: SidebarProps) {
 
       {/* Navigation - Shopify style flat menu */}
       <nav className="flex-1 px-2 py-2 space-y-0.5 overflow-y-auto">
-        {navigationConfig.map((item) => {
-          const localizedHref = getLocalizedHref(item.href)
-          // Prefix matching for active state - highlights parent when on child routes
-          const isActive = pathname === localizedHref || pathname.startsWith(localizedHref + '/')
-          const itemName = getText(item.nameKey, item.fallback)
+        {navigationConfig
+          .filter((item) => canAccessAnyPermission(user, item.requiredPermissions))
+          .map((item) => {
+            const href = item.href === '/system/health'
+              ? getSystemNavHref(user, locale)
+              : getLocalizedHref(item.href)
+            const localizedHref = href.startsWith(`/${locale}/`) ? href : getLocalizedHref(href)
+            // Prefix matching for active state - highlights parent when on child routes
+            const isActive = pathname === localizedHref || pathname.startsWith(localizedHref + '/')
+            const itemName = getText(item.nameKey, item.fallback)
 
-          return (
-            <Link
-              key={item.fallback}
-              href={localizedHref}
-              className={cn(
-                "group flex items-center px-2.5 py-2 text-sm font-medium rounded-md transition-colors",
-                isActive
-                  ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
-                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
-              )}
-              onClick={() => {
-                if (window.innerWidth < 1024) {
-                  onCloseMobile?.();
-                }
-              }}
-            >
-              <item.icon
+            return (
+              <Link
+                key={item.fallback}
+                href={localizedHref}
                 className={cn(
-                  "flex-shrink-0 w-5 h-5",
-                  isActive ? "text-gray-700 dark:text-gray-200" : "text-gray-400 group-hover:text-gray-500",
-                  isCollapsed ? "mx-auto" : "mr-2.5"
+                  "group flex items-center px-2.5 py-2 text-sm font-medium rounded-md transition-colors",
+                  isActive
+                    ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
                 )}
-              />
-              {!isCollapsed && (
-                <span className="truncate">{itemName}</span>
-              )}
-            </Link>
-          )
-        })}
+                onClick={() => {
+                  if (window.innerWidth < 1024) {
+                    onCloseMobile?.();
+                  }
+                }}
+              >
+                <item.icon
+                  className={cn(
+                    "flex-shrink-0 w-5 h-5",
+                    isActive ? "text-gray-700 dark:text-gray-200" : "text-gray-400 group-hover:text-gray-500",
+                    isCollapsed ? "mx-auto" : "mr-2.5"
+                  )}
+                />
+                {!isCollapsed && (
+                  <span className="truncate">{itemName}</span>
+                )}
+              </Link>
+            )
+          })}
       </nav>
     </div>
   )

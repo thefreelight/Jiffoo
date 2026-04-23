@@ -54,6 +54,13 @@ export interface ThemeConfig {
     /** Current locale */
     locale?: Locale;
   };
+  site?: {
+    headline?: string;
+    subheadline?: string;
+    primaryCtaLabel?: string;
+    secondaryCtaLabel?: string;
+    supportEmail?: string;
+  };
 }
 
 // ============================================================================
@@ -515,6 +522,12 @@ export interface HeaderProps extends ThemeI18nProps {
  */
 export interface FooterProps extends ThemeI18nProps {
   config?: ThemeConfig;
+  platformBranding?: {
+    mode?: 'oss' | 'managed';
+    showPoweredByJiffoo?: boolean;
+    poweredByHref?: string | null;
+    poweredByLabel?: string | null;
+  };
   onNavigate?: (path: string) => void;
   // Navigation callbacks
   onNavigateToProducts: () => void;

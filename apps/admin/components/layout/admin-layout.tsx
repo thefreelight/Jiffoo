@@ -45,6 +45,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       'products': { key: 'merchant.products.title', fallback: 'Products' },
       'orders': { key: 'merchant.orders.title', fallback: 'Orders' },
       'customers': { key: 'merchant.customers.title', fallback: 'Customers' },
+      'staff': { key: 'merchant.nav.staff', fallback: 'Staff' },
       'analytics': { key: 'common.labels.analytics', fallback: 'Analytics' },
       'finance': { key: 'common.labels.finance', fallback: 'Finance' },
       'plugins': { key: 'merchant.nav.plugins', fallback: 'Plugins' },

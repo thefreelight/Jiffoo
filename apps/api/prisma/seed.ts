@@ -208,6 +208,24 @@ async function main() {
     });
     console.log(`✅ Admin user created: ${admin.email}`);
 
+    await prisma.adminMembership.upsert({
+      where: { userId: admin.id },
+      update: {
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        isOwner: false,
+        extraPermissions: null,
+        revokedPermissions: null,
+      },
+      create: {
+        userId: admin.id,
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        isOwner: false,
+      },
+    });
+    console.log(`✅ Admin membership ensured: ${admin.email} -> ADMIN`);
+
     console.log('👤 Creating super admin user...');
     const superAdmin = await prisma.user.upsert({
       where: { email: 'superadmin@jiffoo.com' },
@@ -223,6 +241,24 @@ async function main() {
       },
     });
     console.log(`✅ Super admin user created: ${superAdmin.email}`);
+
+    await prisma.adminMembership.upsert({
+      where: { userId: superAdmin.id },
+      update: {
+        role: 'OWNER',
+        status: 'ACTIVE',
+        isOwner: true,
+        extraPermissions: null,
+        revokedPermissions: null,
+      },
+      create: {
+        userId: superAdmin.id,
+        role: 'OWNER',
+        status: 'ACTIVE',
+        isOwner: true,
+      },
+    });
+    console.log(`✅ Admin membership ensured: ${superAdmin.email} -> OWNER`);
 
     // Sample shopper user (for Shop UI)
     console.log('👤 Creating sample user...');

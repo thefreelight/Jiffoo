@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- introduces formal Admin staff RBAC with `AdminMembership`, per-staff permission overrides, staff audit logs, and staff invitation resend support
+- adds Admin staff management UI with list/detail screens, effective-permission visibility, and audit trail browsing
+- makes auth prefer `AdminMembership` over legacy `User.role` while keeping compatibility fallback during rollout
+- adds a storefront footer attribution toggle for paid/package themes while keeping builtin/free themes pinned to `Powered by Jiffoo`
 - makes `apps/shop` treat installed official theme runtimes as the canonical renderer source and removes silent fallback to same-slug embedded host copies for remote-only themes such as `modelsfind`
 - narrows embedded storefront renderer fallback to an explicit compatibility allowlist and logs fallback usage so rollout drift is observable
 - formalizes the single-source-of-truth runtime model across spec, PRD, executable PRD, and ADR docs

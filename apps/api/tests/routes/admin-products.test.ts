@@ -16,6 +16,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import {
   createUserWithToken,
   createAdminWithToken,
+  createStaffWithToken,
   deleteAllTestUsers,
 } from '../helpers/auth';
 import { createTestProduct, deleteAllTestProducts } from '../helpers/fixtures';
@@ -26,6 +27,7 @@ describe('Admin Products Endpoints', () => {
   let app: FastifyInstance;
   let userToken: string;
   let adminToken: string;
+  let supportAgentToken: string;
   let testProduct: Awaited<ReturnType<typeof createTestProduct>>;
 
   beforeAll(async () => {
@@ -33,9 +35,11 @@ describe('Admin Products Endpoints', () => {
 
     const { token: uToken } = await createUserWithToken();
     const { token: aToken } = await createAdminWithToken();
+    const { token: supportToken } = await createStaffWithToken('SUPPORT_AGENT');
 
     userToken = uToken;
     adminToken = aToken;
+    supportAgentToken = supportToken;
 
     testProduct = await createTestProduct({
       name: 'Admin Test Product',
@@ -69,6 +73,17 @@ describe('Admin Products Endpoints', () => {
       });
 
       expect(response.statusCode).toBe(403);
+    });
+
+    it('GET /api/admin/products/ should return 403 for support agent without products.read', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/admin/products/',
+        headers: { authorization: `Bearer ${supportAgentToken}` },
+      });
+
+      expect(response.statusCode).toBe(403);
+      expect(response.json()).toHaveProperty('error.code', 'FORBIDDEN');
     });
 
     it('GET /api/admin/products/ should return 200 for admin', async () => {

@@ -26,6 +26,7 @@ import systemSettingsRoutes from '@/core/admin/system-settings/routes';
 import platformConnectionRoutes from '@/core/admin/platform-connection/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
 import { adminCatalogImportRoutes } from '@/core/admin/catalog-import/routes';
+import { adminStaffRoutes } from '@/core/admin/staff-management/routes';
 
 // Extension installer routes
 import { extensionInstallerRoutes } from '@/core/admin/extension-installer/routes';
@@ -56,6 +57,7 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(systemSettingsRoutes, { prefix: '/admin' });
   await fastify.register(platformConnectionRoutes, { prefix: '/admin/platform/connection' });
   await fastify.register(adminCatalogImportRoutes, { prefix: '/admin/integrations/catalog-import' });
+  await fastify.register(adminStaffRoutes, { prefix: '/admin/staff' });
 
   // Dashboard routes
   await fastify.register(adminDashboardRoutes, { prefix: '/admin' });

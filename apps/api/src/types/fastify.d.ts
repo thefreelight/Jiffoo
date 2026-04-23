@@ -12,9 +12,20 @@ interface AuthenticatedUser {
   email: string;
   username: string;
   role: string;
+  adminRole?: string | null;
+  isOwner?: boolean;
   emailVerified?: boolean;
   permissions?: string[];
-  roles?: any[];
+  roles?: string[];
+  admin?: {
+    membershipId: string | null;
+    role: string;
+    status: 'ACTIVE' | 'SUSPENDED';
+    isOwner: boolean;
+    permissions: string[];
+    extraPermissions: string[];
+    revokedPermissions: string[];
+  };
   isServiceAccount?: boolean;
 }
 

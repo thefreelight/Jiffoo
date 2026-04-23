@@ -103,5 +103,18 @@ describe('Store Endpoints', () => {
         }
       }
     });
+
+    it('should expose powered by branding setting for storefront consumers', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/store/context',
+      });
+
+      if (response.statusCode === 200) {
+        const body = response.json();
+        expect(body.data).toHaveProperty('settings');
+        expect(body.data.settings).toHaveProperty('branding.powered_by_jiffoo_enabled');
+      }
+    });
   });
 });

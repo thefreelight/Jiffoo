@@ -10,6 +10,8 @@ export interface ThemeInfo {
   config?: ThemeConfig;
   version?: string;
   pluginSlug?: string;
+  source?: 'builtin' | 'installed' | 'local-zip' | 'official-market';
+  type?: 'pack' | 'app';
 }
 
 export interface StoreContext {

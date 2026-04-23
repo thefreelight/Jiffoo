@@ -10,6 +10,7 @@
 import { useShopTheme } from '@/lib/themes/provider';
 import { useAuthStore } from '@/store/auth';
 import { useCartStore } from '@/store/cart';
+import { useStoreContext } from '@/store/store';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useT, useLocale } from 'shared/src/i18n/react';
 
@@ -28,6 +29,7 @@ export function ThemedLayout({ children }: ThemedLayoutProps) {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
   const { isAuthenticated, user, logout } = useAuthStore();
   const { cart } = useCartStore();
+  const storeContext = useStoreContext();
   const { push } = useLocalizedNavigation();
   const t = useT();
   const locale = useLocale();
@@ -108,9 +110,22 @@ export function ThemedLayout({ children }: ThemedLayoutProps) {
     },
   };
 
+  const paidOrPackageTheme = storeContext?.theme?.source && storeContext.theme.source !== 'builtin';
+  const platformBranding = {
+    mode: 'oss' as const,
+    // Builtin/free themes always keep the attribution visible. Paid/package themes
+    // can opt out from Admin settings.
+    showPoweredByJiffoo: paidOrPackageTheme
+      ? storeContext?.settings?.['branding.powered_by_jiffoo_enabled'] !== false
+      : true,
+    poweredByHref: 'https://jiffoo.com',
+    poweredByLabel: 'Powered by Jiffoo',
+  };
+
   // Prepare Footer props with i18n support
   const footerProps = {
     config,
+    platformBranding,
     locale,
     t,
     onNavigate: (path: string) => {

@@ -12,6 +12,7 @@ import { useAuthStore } from '@/lib/store'
 import { Button } from '../ui/button'
 import { UserAvatar } from '../ui/user-avatar'
 import { useT, useLocale } from 'shared/src/i18n/react'
+import { ADMIN_ROLES } from 'shared'
 import {
   Menu,
   Search,
@@ -61,6 +62,25 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
     setIsDark(!isDark)
     // Add theme toggle logic here
   }
+
+  const roleLabel = (() => {
+    switch (user?.adminRole || user?.role) {
+      case ADMIN_ROLES.OWNER:
+        return getText('merchant.staff.owner', 'Owner')
+      case ADMIN_ROLES.ADMIN:
+        return getText('merchant.staff.admin', 'Admin')
+      case ADMIN_ROLES.CATALOG_MANAGER:
+        return getText('merchant.staff.catalogManager', 'Catalog Manager')
+      case ADMIN_ROLES.OPERATIONS_MANAGER:
+        return getText('merchant.staff.operationsManager', 'Operations Manager')
+      case ADMIN_ROLES.SUPPORT_AGENT:
+        return getText('merchant.staff.supportAgent', 'Support Agent')
+      case ADMIN_ROLES.ANALYST:
+        return getText('merchant.staff.analyst', 'Analyst')
+      default:
+        return getText('merchant.header.account', 'Team Member')
+    }
+  })()
 
   return (
     <header className="border-b border-gray-200 bg-white px-3 py-3 dark:border-gray-800 dark:bg-gray-950 sm:px-4 sm:py-4 md:px-6">
@@ -161,7 +181,7 @@ export function Header({ title = "Dashboard", onMenuClick }: HeaderProps) {
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
                     {user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || user.username : 'User'}
                   </p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{user?.email || ''}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{roleLabel}</p>
                 </div>
               </Button>
             </DropdownMenuTrigger>

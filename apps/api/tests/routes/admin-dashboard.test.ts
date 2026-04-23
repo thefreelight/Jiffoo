@@ -11,6 +11,7 @@ import { createTestApp } from '../helpers/create-test-app';
 import {
   createUserWithToken,
   createAdminWithToken,
+  createStaffWithToken,
   deleteAllTestUsers,
 } from '../helpers/auth';
 
@@ -18,14 +19,17 @@ describe('Admin Dashboard Endpoints', () => {
   let app: FastifyInstance;
   let userToken: string;
   let adminToken: string;
+  let analystToken: string;
 
   beforeAll(async () => {
     app = await createTestApp();
 
     const { token: uToken } = await createUserWithToken();
     const { token: aToken } = await createAdminWithToken();
+    const { token: analystAuthToken } = await createStaffWithToken('ANALYST');
     userToken = uToken;
     adminToken = aToken;
+    analystToken = analystAuthToken;
   });
 
   afterAll(async () => {
@@ -72,6 +76,17 @@ describe('Admin Dashboard Endpoints', () => {
     expect(body.data.metrics).toHaveProperty('totalUsersTrend');
     expect(body.data).toHaveProperty('ordersByStatus');
     expect(body.data).toHaveProperty('recentOrders');
+  });
+
+  it('GET /api/admin/dashboard should allow analyst role with dashboard.read permission', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: '/api/admin/dashboard',
+      headers: { authorization: `Bearer ${analystToken}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toHaveProperty('success', true);
   });
 
   it('GET /api/admin/dashboard?include=metrics,recentOrders should be accepted for admin', async () => {

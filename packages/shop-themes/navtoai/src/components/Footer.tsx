@@ -5,6 +5,7 @@ import { isExternalHref, resolveNavToAiSiteConfig } from '../site';
 
 export const Footer = React.memo(function Footer({
   config,
+  platformBranding,
   onNavigate,
   onNavigateToProducts,
   onNavigateToCategories,
@@ -18,6 +19,7 @@ export const Footer = React.memo(function Footer({
 }: FooterProps) {
   const site = resolveNavToAiSiteConfig(config);
   const year = new Date().getFullYear();
+  const showPoweredBy = platformBranding?.showPoweredByJiffoo !== false;
 
   const openHref = React.useCallback(
     (href: string) => {
@@ -107,7 +109,18 @@ export const Footer = React.memo(function Footer({
 
       <div className="mx-auto mt-12 flex max-w-[1280px] flex-col gap-3 border-t border-[var(--navtoai-line)] pt-5 text-sm text-[var(--navtoai-copy)] sm:flex-row sm:items-center sm:justify-between">
         <p>© {year} {site.brandName}. AI navigation storefront theme.</p>
-        <p>Built for editorial tool directories, clearer category signals, and commerce-ready evaluation flows.</p>
+        {showPoweredBy ? (
+          <a
+            href={platformBranding?.poweredByHref || 'https://jiffoo.com'}
+            target="_blank"
+            rel="noreferrer"
+            className="transition-colors hover:text-[var(--navtoai-ink)]"
+          >
+            {platformBranding?.poweredByLabel || 'Powered by Jiffoo'}
+          </a>
+        ) : (
+          <p>Built for editorial tool directories, clearer category signals, and commerce-ready evaluation flows.</p>
+        )}
       </div>
     </footer>
   );

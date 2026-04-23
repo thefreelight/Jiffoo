@@ -14,8 +14,11 @@ import {
   Wifi,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
+import { getBrandName, getSupportEmail } from '../lib/branding';
 
 export function Footer({
+  config,
+  platformBranding,
   onNavigate,
   onNavigateToProducts,
   onNavigateToHelp,
@@ -24,6 +27,10 @@ export function Footer({
   onNavigateToTerms,
 }: FooterProps) {
   const [email, setEmail] = useState('');
+  const brandName = getBrandName(config);
+  const brandMark = brandName.toUpperCase();
+  const supportEmail = getSupportEmail(config);
+  const showPoweredBy = platformBranding?.showPoweredByJiffoo !== false;
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,12 +49,19 @@ export function Footer({
               <div className="w-10 h-10 border border-border flex items-center justify-center text-foreground">
                 <Wifi className="w-5 h-5" />
               </div>
-              <span className="font-mono font-bold text-xl uppercase tracking-widest">YEVBI</span>
+              <span className="font-mono font-bold text-xl uppercase tracking-widest">{brandMark}</span>
             </div>
             <p className="text-muted-foreground font-mono text-sm leading-relaxed max-w-sm">
               Global eSIM plans for travelers.
               Stay connected in 150+ countries — no physical SIM required.
             </p>
+            <a
+              href={`mailto:${supportEmail}`}
+              className="inline-flex items-center gap-2 font-mono text-[10px] uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Send className="w-3 h-3" />
+              {supportEmail}
+            </a>
             <div className="font-mono text-xs flex gap-4 text-muted-foreground">
               <span className="flex items-center gap-1.5"><ShieldCheck className="w-3 h-3" /> Secure Checkout</span>
             </div>
@@ -107,13 +121,24 @@ export function Footer({
         {/* Legal Bar */}
         <div className="mt-24 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-8">
           <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
-            © {new Date().getFullYear()} YEVBI. ALL RIGHTS RESERVED.
+            © {new Date().getFullYear()} {brandMark}. ALL RIGHTS RESERVED.
           </p>
-          <div className="flex items-center gap-8">
-            <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2">
-              <ShieldCheck className="w-3 h-3" /> SSL Encrypted
-            </span>
-          </div>
+          {showPoweredBy ? (
+            <a
+              href={platformBranding?.poweredByHref || 'https://jiffoo.com'}
+              target="_blank"
+              rel="noreferrer"
+              className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest hover:text-foreground transition-colors"
+            >
+              {platformBranding?.poweredByLabel || 'Powered by Jiffoo'}
+            </a>
+          ) : (
+            <div className="flex items-center gap-8">
+              <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest flex items-center gap-2">
+                <ShieldCheck className="w-3 h-3" /> SSL Encrypted
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </footer>

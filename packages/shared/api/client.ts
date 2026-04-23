@@ -57,7 +57,19 @@ export interface UserProfile {
   preferredLanguage?: string;
   timezone?: string;
   role: string;
+  admin?: {
+    membershipId: string | null;
+    role: string;
+    status: 'ACTIVE' | 'SUSPENDED';
+    permissions: string[];
+    isOwner: boolean;
+    extraPermissions: string[];
+    revokedPermissions: string[];
+  };
+  adminRole?: string | null;
   permissions?: string[];
+  isOwner?: boolean;
+  adminStatus?: 'ACTIVE' | 'SUSPENDED';
   isActive: boolean;
   createdAt: string;
   updatedAt: string;

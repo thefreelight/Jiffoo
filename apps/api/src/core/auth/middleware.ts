@@ -1,7 +1,13 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
+import { hasAdminPermission, type AdminPermission } from 'shared';
 import { JwtUtils } from '@/utils/jwt';
 import { sendError } from '@/utils/response';
 import { findAuthIdentityById } from './user-compat';
+import {
+  hasAdminAccessRole,
+  isOwnerAdminRole,
+} from './admin-access';
+import { findResolvedAdminAccessForUser } from './admin-membership-compat';
 
 /**
  * Auth Middleware
@@ -39,9 +45,9 @@ export async function authMiddleware(
       return sendError(reply, 403, 'FORBIDDEN', 'Account is inactive');
     }
 
-    // Simplified permission system: Role based permissions
-    const permissions = user.role === 'ADMIN' ? ['*'] : [];
-    const roles = [user.role];
+    const adminAccess = await findResolvedAdminAccessForUser(user.id, user.role);
+    const permissions = adminAccess?.permissions ?? [];
+    const roles = adminAccess ? [adminAccess.role] : [user.role];
 
     request.user = {
       id: user.id,
@@ -49,9 +55,22 @@ export async function authMiddleware(
       email: user.email,
       username: user.username || user.email.split('@')[0],
       role: user.role,
+      adminRole: adminAccess?.role ?? null,
+      isOwner: adminAccess?.isOwner ?? isOwnerAdminRole(user.role),
       emailVerified: user.emailVerified,
       permissions,
       roles,
+      admin: adminAccess
+        ? {
+            membershipId: adminAccess.membershipId,
+            role: adminAccess.role,
+            status: adminAccess.status,
+            isOwner: adminAccess.isOwner,
+            permissions,
+            extraPermissions: adminAccess.extraPermissions,
+            revokedPermissions: adminAccess.revokedPermissions,
+          }
+        : undefined,
     };
 
   } catch {
@@ -80,15 +99,29 @@ export async function optionalAuthMiddleware(
     const user = await findAuthIdentityById(payload.userId);
 
     if (user && user.isActive) {
+      const adminAccess = await findResolvedAdminAccessForUser(user.id, user.role);
       request.user = {
         id: user.id,
         userId: user.id,
         email: user.email,
         username: user.username || user.email.split('@')[0],
         role: user.role,
+        adminRole: adminAccess?.role ?? null,
+        isOwner: adminAccess?.isOwner ?? isOwnerAdminRole(user.role),
         emailVerified: user.emailVerified,
-        permissions: user.role === 'ADMIN' ? ['*'] : [],
-        roles: [user.role],
+        permissions: adminAccess?.permissions ?? [],
+        roles: adminAccess ? [adminAccess.role] : [user.role],
+        admin: adminAccess
+          ? {
+              membershipId: adminAccess.membershipId,
+              role: adminAccess.role,
+              status: adminAccess.status,
+              isOwner: adminAccess.isOwner,
+              permissions: adminAccess.permissions,
+              extraPermissions: adminAccess.extraPermissions,
+              revokedPermissions: adminAccess.revokedPermissions,
+            }
+          : undefined,
       };
     }
   } catch {
@@ -99,7 +132,7 @@ export async function optionalAuthMiddleware(
 /**
  * Admin permission check middleware
  */
-export async function requireAdmin(
+export async function requireAdminAccess(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
@@ -107,9 +140,73 @@ export async function requireAdmin(
     return sendError(reply, 401, 'UNAUTHORIZED', 'Authentication required');
   }
 
-  // Allow only ADMIN role
-  if (request.user.role !== 'ADMIN') {
+  if (
+    !hasAdminAccessRole(request.user.adminRole ?? request.user.role)
+    || (request.user.admin && request.user.admin.status !== 'ACTIVE')
+  ) {
     return sendError(reply, 403, 'FORBIDDEN', 'Admin access required');
+  }
+}
+
+export async function requireAdmin(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  return requireAdminAccess(request, reply);
+}
+
+export function requirePermission(permission: AdminPermission) {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!request.user) {
+      return sendError(reply, 401, 'UNAUTHORIZED', 'Authentication required');
+    }
+
+    if (
+      !hasAdminAccessRole(request.user.adminRole ?? request.user.role)
+      || (request.user.admin && request.user.admin.status !== 'ACTIVE')
+    ) {
+      return sendError(reply, 403, 'FORBIDDEN', 'Admin access required');
+    }
+
+    if (!hasAdminPermission(request.user.permissions, permission)) {
+      return sendError(reply, 403, 'FORBIDDEN', `Missing permission: ${permission}`);
+    }
+  };
+}
+
+export function requireAnyPermission(permissions: readonly AdminPermission[]) {
+  return async (request: FastifyRequest, reply: FastifyReply) => {
+    if (!request.user) {
+      return sendError(reply, 401, 'UNAUTHORIZED', 'Authentication required');
+    }
+
+    if (
+      !hasAdminAccessRole(request.user.adminRole ?? request.user.role)
+      || (request.user.admin && request.user.admin.status !== 'ACTIVE')
+    ) {
+      return sendError(reply, 403, 'FORBIDDEN', 'Admin access required');
+    }
+
+    const allowed = permissions.some((permission) =>
+      hasAdminPermission(request.user?.permissions, permission)
+    );
+
+    if (!allowed) {
+      return sendError(reply, 403, 'FORBIDDEN', `Missing any of permissions: ${permissions.join(', ')}`);
+    }
+  };
+}
+
+export async function requireOwner(
+  request: FastifyRequest,
+  reply: FastifyReply
+) {
+  if (!request.user) {
+    return sendError(reply, 401, 'UNAUTHORIZED', 'Authentication required');
+  }
+
+  if (!request.user.isOwner && !isOwnerAdminRole(request.user.adminRole ?? request.user.role)) {
+    return sendError(reply, 403, 'FORBIDDEN', 'Owner access required');
   }
 }
 
@@ -166,7 +263,10 @@ export async function adminMiddleware(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  await authMiddleware(request, reply);
-  if (reply.sent) return;
-  await requireAdmin(request, reply);
+  if (!request.user) {
+    await authMiddleware(request, reply);
+    if (reply.sent) return;
+  }
+
+  await requireAdminAccess(request, reply);
 }

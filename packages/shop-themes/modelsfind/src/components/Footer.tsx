@@ -5,6 +5,7 @@ import { isExternalHref, resolveModelsfindSiteConfig } from '../site';
 
 export const Footer = React.memo(function Footer({
   config,
+  platformBranding,
   onNavigate,
   onNavigateToProducts,
   onNavigateToCategories,
@@ -16,6 +17,7 @@ export const Footer = React.memo(function Footer({
 }: FooterProps) {
   const site = resolveModelsfindSiteConfig(config);
   const year = new Date().getFullYear();
+  const showPoweredBy = platformBranding?.showPoweredByJiffoo !== false;
 
   const openHref = React.useCallback(
     (href: string) => {
@@ -42,6 +44,16 @@ export const Footer = React.memo(function Footer({
           <button type="button" onClick={onNavigateToPrivacy} className="transition-colors hover:text-[var(--modelsfind-ink)]">Privacy</button>
           <button type="button" onClick={onNavigateToTerms} className="transition-colors hover:text-[var(--modelsfind-ink)]">Terms</button>
           <button type="button" onClick={onNavigateToContact} className="transition-colors hover:text-[var(--modelsfind-ink)]">Contact</button>
+          {showPoweredBy ? (
+            <a
+              href={platformBranding?.poweredByHref || 'https://jiffoo.com'}
+              target="_blank"
+              rel="noreferrer"
+              className="transition-colors hover:text-[var(--modelsfind-ink)]"
+            >
+              {platformBranding?.poweredByLabel || 'Powered by Jiffoo'}
+            </a>
+          ) : null}
         </div>
 
         <button

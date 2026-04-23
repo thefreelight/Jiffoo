@@ -288,12 +288,13 @@ export class AuthClient extends ApiClient {
   // Check if user has specific role
   public async hasRole(roleName: string): Promise<boolean> {
     const user = await this.getCurrentUser();
-    return user?.role === roleName || false;
+    return user?.adminRole === roleName || user?.role === roleName || false;
   }
 
   // Check if user is an admin
   public async isAdmin(): Promise<boolean> {
-    return this.hasRole('ADMIN');
+    const user = await this.getCurrentUser();
+    return Boolean(user?.permissions && user.permissions.length > 0);
   }
 }
 
