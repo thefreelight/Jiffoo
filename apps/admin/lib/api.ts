@@ -13,6 +13,8 @@ import {
   type ListResult,
   type PageResult,
   type UserProfile,
+  type AdminPermission,
+  type AdminRole,
   // Import DTO types
   type AdminProductListItemDTO,
   type AdminProductDetailDTO,
@@ -251,6 +253,78 @@ export interface PaginationParams {
   role?: string;
 }
 
+export interface StaffMembership {
+  membershipId: string;
+  userId: string;
+  email: string;
+  username: string;
+  avatar?: string | null;
+  accountRole: string;
+  accountActive: boolean;
+  emailVerified: boolean;
+  adminRole: AdminRole;
+  status: 'ACTIVE' | 'SUSPENDED';
+  isOwner: boolean;
+  extraPermissions: string[];
+  revokedPermissions: string[];
+  effectivePermissions: string[];
+  createdAt: string;
+  updatedAt: string;
+  membershipCreatedByUserId?: string | null;
+  membershipUpdatedByUserId?: string | null;
+  accountCreatedAt: string;
+  accountUpdatedAt: string;
+}
+
+export interface StaffRoleDefinition {
+  role: AdminRole;
+  label: string;
+  permissions: string[];
+}
+
+export interface StaffPermissionCatalogGroup {
+  group: string;
+  label: string;
+  permissions: Array<{
+    key: AdminPermission;
+    label: string;
+    description: string;
+  }>;
+}
+
+export interface StaffAuditLogEntry {
+  id: string;
+  staffUserId: string;
+  staffEmail: string;
+  staffUsername?: string | null;
+  actorUserId?: string | null;
+  actorEmail?: string | null;
+  actorUsername?: string | null;
+  action: string;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface CreateStaffPayload {
+  userId?: string;
+  email?: string;
+  username?: string;
+  password?: string;
+  role: AdminRole;
+  status?: 'ACTIVE' | 'SUSPENDED';
+  isOwner?: boolean;
+  extraPermissions?: string[];
+  revokedPermissions?: string[];
+}
+
+export interface UpdateStaffPayload {
+  role: AdminRole;
+  status?: 'ACTIVE' | 'SUSPENDED';
+  isOwner?: boolean;
+  extraPermissions?: string[];
+  revokedPermissions?: string[];
+}
+
 export interface AccountProfile {
   id: string;
   email: string;
@@ -479,6 +553,37 @@ export const usersApi = {
 
   resetPassword: (id: string, newPassword: string): Promise<ApiResponse<{ message: string }>> =>
     apiClient.post(`/admin/users/${id}/reset-password`, { newPassword }),
+};
+
+export const staffApi = {
+  getAll: (params: PaginationParams = {}): Promise<ApiResponse<PageResult<StaffMembership>>> => {
+    const { page = 1, limit = 20, search, role, status } = params;
+    return apiClient.get('/admin/staff', { params: { page, limit, search, role, status } });
+  },
+
+  getByUserId: (userId: string): Promise<ApiResponse<StaffMembership>> =>
+    apiClient.get(`/admin/staff/${userId}`),
+
+  getAuditLogs: (userId: string, page = 1, limit = 20): Promise<ApiResponse<PageResult<StaffAuditLogEntry>>> =>
+    apiClient.get(`/admin/staff/${userId}/audit`, { params: { page, limit } }),
+
+  getRoles: (): Promise<ApiResponse<StaffRoleDefinition[]>> =>
+    apiClient.get('/admin/staff/roles'),
+
+  getPermissionCatalog: (): Promise<ApiResponse<StaffPermissionCatalogGroup[]>> =>
+    apiClient.get('/admin/staff/permissions'),
+
+  create: (data: CreateStaffPayload): Promise<ApiResponse<StaffMembership>> =>
+    apiClient.post('/admin/staff', data),
+
+  update: (userId: string, data: UpdateStaffPayload): Promise<ApiResponse<StaffMembership>> =>
+    apiClient.patch(`/admin/staff/${userId}`, data),
+
+  resendInvite: (userId: string): Promise<ApiResponse<{ userId: string; invited: boolean; invitedAt: string }>> =>
+    apiClient.post(`/admin/staff/${userId}/invite`),
+
+  remove: (userId: string): Promise<ApiResponse<{ userId: string; removed: boolean }>> =>
+    apiClient.delete(`/admin/staff/${userId}`),
 };
 
 // Dashboard API

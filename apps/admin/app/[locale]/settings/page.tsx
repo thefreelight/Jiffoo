@@ -13,6 +13,7 @@ import { useT } from 'shared/src/i18n/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import {
   Select,
@@ -36,6 +37,7 @@ type SettingField = {
 }
 
 const CHECKOUT_COUNTRIES_KEY = 'checkout.address.countries_require_state_postal'
+const POWERED_BY_JIFFOO_KEY = 'branding.powered_by_jiffoo_enabled'
 
 const BRANDING_FIELDS: SettingField[] = [
   {
@@ -136,6 +138,10 @@ function buildDraft(source: SystemSettingsMap, keys: string[]): SystemSettingsMa
         return
       }
     }
+    if (key === POWERED_BY_JIFFOO_KEY) {
+      next[key] = source[key] !== false
+      return
+    }
     next[key] = getString(source[key])
   })
   return next
@@ -211,7 +217,7 @@ function SettingsPageContent() {
   } | null>(null)
 
   const editableKeys = useMemo(
-    () => [...BRANDING_FIELDS, ...LOCALIZATION_FIELDS, { key: CHECKOUT_COUNTRIES_KEY }].map((field) => field.key),
+    () => [...BRANDING_FIELDS, ...LOCALIZATION_FIELDS, { key: CHECKOUT_COUNTRIES_KEY }, { key: POWERED_BY_JIFFOO_KEY }].map((field) => field.key),
     []
   )
 
@@ -304,6 +310,10 @@ function SettingsPageContent() {
   }, [versionInfo?.latestVersion])
 
   const updateField = (key: string, value: string) => {
+    setDraft((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const updateBooleanField = (key: string, value: boolean) => {
     setDraft((prev) => ({ ...prev, [key]: value }))
   }
 
@@ -426,6 +436,8 @@ function SettingsPageContent() {
       editableKeys.forEach((key) => {
         if (key === CHECKOUT_COUNTRIES_KEY) {
           updates[key] = parseCountryCodes(getString(draft[key]))
+        } else if (key === POWERED_BY_JIFFOO_KEY) {
+          updates[key] = draft[key] !== false
         } else {
           updates[key] = getString(draft[key]).trim()
         }
@@ -559,6 +571,23 @@ function SettingsPageContent() {
                 )}
               </div>
             ))}
+            <div className="md:col-span-2 rounded-2xl border border-gray-100 bg-gray-50/40 p-5">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor={POWERED_BY_JIFFOO_KEY} className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    Powered by Jiffoo Footer Link
+                  </Label>
+                  <p className="text-sm text-gray-600">
+                    Applies only to paid or package storefront themes. Built-in free themes keep the Powered by Jiffoo link visible.
+                  </p>
+                </div>
+                <Switch
+                  id={POWERED_BY_JIFFOO_KEY}
+                  checked={draft[POWERED_BY_JIFFOO_KEY] !== false}
+                  onCheckedChange={(checked) => updateBooleanField(POWERED_BY_JIFFOO_KEY, checked)}
+                />
+              </div>
+            </div>
           </div>
         </div>
 

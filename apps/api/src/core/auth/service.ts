@@ -11,6 +11,7 @@ import { JwtUtils } from '@/utils/jwt';
 import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { createAuthUser, findAuthUserByEmail, findAuthUserById } from './user-compat';
+import { findResolvedAdminAccessForUser } from './admin-membership-compat';
 
 const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
 const DEFAULT_DEMO_ADMIN_PASSWORD = 'admin123';
@@ -21,6 +22,19 @@ export interface AuthResponse {
     email: string;
     username: string;
     role: string;
+    admin?: {
+      membershipId: string | null;
+      role: string;
+      status: 'ACTIVE' | 'SUSPENDED';
+      permissions: string[];
+      isOwner: boolean;
+      extraPermissions: string[];
+      revokedPermissions: string[];
+    };
+    adminRole?: string | null;
+    permissions?: string[];
+    isOwner?: boolean;
+    adminStatus?: 'ACTIVE' | 'SUSPENDED';
     emailVerified?: boolean;
     avatar?: string | null;
   };
@@ -41,7 +55,48 @@ export interface LoginConfigResponse {
   } | null;
 }
 
+export interface AcceptStaffInviteRequest {
+  token: string;
+  password: string;
+}
+
 export class AuthService {
+  private static async buildAuthUserPayload(user: {
+    id: string;
+    email: string;
+    username: string;
+    role: string;
+    emailVerified: boolean;
+    avatar: string | null;
+  }) {
+    const adminAccess = await findResolvedAdminAccessForUser(user.id, user.role);
+    const permissions = adminAccess?.permissions ?? [];
+
+    return {
+      id: user.id,
+      email: user.email,
+      username: user.username,
+      role: user.role,
+      admin: adminAccess
+        ? {
+            membershipId: adminAccess.membershipId,
+            role: adminAccess.role,
+            status: adminAccess.status,
+            permissions,
+            isOwner: adminAccess.isOwner,
+            extraPermissions: adminAccess.extraPermissions,
+            revokedPermissions: adminAccess.revokedPermissions,
+          }
+        : undefined,
+      adminRole: adminAccess?.role ?? null,
+      permissions,
+      isOwner: adminAccess?.isOwner ?? false,
+      adminStatus: adminAccess?.status,
+      emailVerified: user.emailVerified,
+      avatar: user.avatar,
+    };
+  }
+
   private static isDemoModeEnabled(): boolean {
     return process.env.JIFFOO_DEMO_MODE === 'true';
   }
@@ -68,7 +123,7 @@ export class AuthService {
     const hashedPassword = await PasswordUtils.hash(credentials.password);
 
     if (!existingUser) {
-      await prisma.user.create({
+      const createdUser = await prisma.user.create({
         data: {
           email: credentials.email,
           username: credentials.email.split('@')[0] || 'admin',
@@ -76,6 +131,23 @@ export class AuthService {
           role: 'ADMIN',
           isActive: true,
           emailVerified: true,
+        },
+        select: { id: true },
+      });
+      await prisma.adminMembership.upsert({
+        where: { userId: createdUser.id },
+        update: {
+          role: 'ADMIN',
+          status: 'ACTIVE',
+          isOwner: false,
+          extraPermissions: null,
+          revokedPermissions: null,
+        },
+        create: {
+          userId: createdUser.id,
+          role: 'ADMIN',
+          status: 'ACTIVE',
+          isOwner: false,
         },
       });
       return;
@@ -98,6 +170,22 @@ export class AuthService {
         role: 'ADMIN',
         isActive: true,
         emailVerified: true,
+      },
+    });
+    await prisma.adminMembership.upsert({
+      where: { userId: existingUser.id },
+      update: {
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        isOwner: false,
+        extraPermissions: null,
+        revokedPermissions: null,
+      },
+      create: {
+        userId: existingUser.id,
+        role: 'ADMIN',
+        status: 'ACTIVE',
+        isOwner: false,
       },
     });
   }
@@ -171,14 +259,7 @@ export class AuthService {
     });
 
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        emailVerified: user.emailVerified,
-        avatar: user.avatar
-      },
+      user: await this.buildAuthUserPayload(user),
       // OAuth2 standard fields
       access_token: token,
       token_type: 'Bearer',
@@ -229,14 +310,7 @@ export class AuthService {
     });
 
     return {
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        emailVerified: user.emailVerified,
-        avatar: user.avatar
-      },
+      user: await this.buildAuthUserPayload(user),
       // OAuth2 standard fields
       access_token: token,
       token_type: 'Bearer',
@@ -244,6 +318,107 @@ export class AuthService {
       refresh_token: refreshToken,
       // Compatible with old fields
       token
+    };
+  }
+
+  static async acceptStaffInvite(data: AcceptStaffInviteRequest): Promise<AuthResponse> {
+    if (!data.token) {
+      throw new Error('Invitation token is required');
+    }
+
+    if (!data.password || data.password.length < 6) {
+      throw new Error('Password must be at least 6 characters');
+    }
+
+    const invitedUser = await prisma.user.findFirst({
+      where: { verificationToken: data.token },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        isActive: true,
+        avatar: true,
+        verificationTokenExpiry: true,
+        adminMembership: {
+          select: {
+            id: true,
+            role: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!invitedUser) {
+      throw new Error('Invalid staff invitation token');
+    }
+
+    if (!invitedUser.adminMembership) {
+      throw new Error('Staff invitation not found');
+    }
+
+    if (!invitedUser.verificationTokenExpiry || invitedUser.verificationTokenExpiry < new Date()) {
+      throw new Error('Staff invitation token has expired');
+    }
+
+    if (!invitedUser.isActive) {
+      throw new Error('Account is inactive');
+    }
+
+    const hashedPassword = await PasswordUtils.hash(data.password);
+    const user = await prisma.user.update({
+      where: { id: invitedUser.id },
+      data: {
+        password: hashedPassword,
+        emailVerified: true,
+        verificationToken: null,
+        verificationTokenExpiry: null,
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        emailVerified: true,
+        avatar: true,
+      },
+    });
+
+    await prisma.adminStaffAuditLog.create({
+      data: {
+        staffUserId: user.id,
+        staffEmail: user.email,
+        staffUsername: user.username,
+        actorUserId: user.id,
+        actorEmail: user.email,
+        actorUsername: user.username,
+        action: 'STAFF_INVITE_ACCEPTED',
+        metadata: {
+          adminMembershipId: invitedUser.adminMembership.id,
+          adminRole: invitedUser.adminMembership.role,
+          status: invitedUser.adminMembership.status,
+        },
+      },
+    });
+
+    const token = JwtUtils.sign({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    });
+
+    const refreshToken = JwtUtils.signRefresh({
+      userId: user.id,
+    });
+
+    return {
+      user: await this.buildAuthUserPayload(user),
+      access_token: token,
+      token_type: 'Bearer',
+      expires_in: 604800,
+      refresh_token: refreshToken,
+      token,
     };
   }
 
@@ -267,6 +442,7 @@ export class AuthService {
         role: true,
         isActive: true,
         avatar: true,
+        emailVerified: true,
         createdAt: true
       }
     });
@@ -278,7 +454,16 @@ export class AuthService {
       throw new Error('Account is inactive');
     }
 
-    return user;
+    const authPayload = await this.buildAuthUserPayload(user);
+
+    return {
+      ...user,
+      admin: authPayload.admin,
+      adminRole: authPayload.adminRole,
+      permissions: authPayload.permissions,
+      isOwner: authPayload.isOwner,
+      adminStatus: authPayload.adminStatus,
+    };
   }
 
   /**
@@ -346,16 +531,8 @@ export class AuthService {
       // Optional: Rotate refresh token? (Return new one, same expiry or extended)
       // For now, let's keep the same or issue a new one. OAuth2 usually issues a new one.
       const newRefreshToken = JwtUtils.signRefresh({ userId: user.id });
-
       return {
-        user: {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          role: user.role,
-          emailVerified: user.emailVerified,
-          avatar: user.avatar
-        },
+        user: await this.buildAuthUserPayload(user),
         access_token: accessToken,
         token_type: 'Bearer',
         expires_in: 604800,

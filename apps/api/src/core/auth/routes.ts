@@ -73,6 +73,30 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.post('/accept-staff-invite', {
+    schema: {
+      tags: ['auth'],
+      summary: 'Accept staff invitation and set password',
+      description: 'Activate an invited staff account by setting a password with a valid invitation token',
+      body: {
+        type: 'object',
+        required: ['token', 'password'],
+        properties: {
+          token: { type: 'string' },
+          password: { type: 'string', minLength: 6 },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    try {
+      const { token, password } = request.body as any;
+      const result = await AuthService.acceptStaffInvite({ token, password });
+      return sendSuccess(reply, result);
+    } catch (error: any) {
+      return sendError(reply, 400, 'ACCEPT_STAFF_INVITE_FAILED', error.message);
+    }
+  });
+
   // Get current user
   fastify.get('/me', {
     onRequest: [authMiddleware],
