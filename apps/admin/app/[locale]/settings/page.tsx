@@ -780,6 +780,19 @@ function SettingsPageContent() {
                       : getText('merchant.systemUpdates.updateNow', 'Update Now')}
                   </Button>
                 ) : null}
+                {versionInfo?.updateAvailable && (!versionInfo?.oneClickUpgradeSupported || versionInfo?.requiresManualIntervention) ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const runbook = 'https://github.com/thefreelight/Jiffoo/blob/main/docs/operations/admin-staff-rbac-release-runbook.md'
+                      window.open(runbook, '_blank', 'noopener,noreferrer')
+                    }}
+                    className="h-10 px-6 rounded-xl border-amber-200 bg-amber-50/60 text-amber-800 hover:bg-amber-100 font-semibold text-sm"
+                  >
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    {getText('merchant.systemUpdates.manualUpgradeSteps', 'Manual Upgrade Steps')}
+                  </Button>
+                ) : null}
                 <Button
                   variant="outline"
                   onClick={refreshVersion}

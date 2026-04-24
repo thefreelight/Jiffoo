@@ -119,35 +119,16 @@ jobs:
         env:
           GET_JIFFOO_SSH_HOST: ${{ secrets.GET_JIFFOO_SSH_HOST }}
           GET_JIFFOO_SSH_USER: ${{ secrets.GET_JIFFOO_SSH_USER }}
-          GET_JIFFOO_SSH_PRIVATE_KEY: ${{ secrets.GET_JIFFOO_SSH_PRIVATE_KEY }}
           GET_JIFFOO_SSH_PASSWORD: ${{ secrets.GET_JIFFOO_SSH_PASSWORD }}
         shell: bash
         run: |
           set -euo pipefail
-
-          if [ -z "${GET_JIFFOO_SSH_HOST:-}" ] || [ -z "${GET_JIFFOO_SSH_USER:-}" ]; then
-            echo "Missing GET_JIFFOO_SSH_HOST or GET_JIFFOO_SSH_USER secrets"
+          if [ -z "${GET_JIFFOO_SSH_HOST:-}" ] || [ -z "${GET_JIFFOO_SSH_USER:-}" ] || [ -z "${GET_JIFFOO_SSH_PASSWORD:-}" ]; then
+            echo "Missing GET_JIFFOO_SSH_* secrets"
             exit 1
           fi
 
-          common_opts=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
-          remote_target="${GET_JIFFOO_SSH_USER}@${GET_JIFFOO_SSH_HOST}"
-          if [ -n "${GET_JIFFOO_SSH_PRIVATE_KEY:-}" ]; then
-            install -d -m 700 ~/.ssh
-            printf '%s\n' "${GET_JIFFOO_SSH_PRIVATE_KEY}" > ~/.ssh/get_jiffoo_key
-            chmod 600 ~/.ssh/get_jiffoo_key
-            scp_base=(scp "${common_opts[@]}" -i ~/.ssh/get_jiffoo_key)
-            ssh_base=(ssh "${common_opts[@]}" -i ~/.ssh/get_jiffoo_key)
-          elif [ -n "${GET_JIFFOO_SSH_PASSWORD:-}" ]; then
-            export SSHPASS="${GET_JIFFOO_SSH_PASSWORD}"
-            scp_base=(sshpass -e scp "${common_opts[@]}")
-            ssh_base=(sshpass -e ssh "${common_opts[@]}")
-          else
-            echo "Missing GET_JIFFOO_SSH_PRIVATE_KEY or GET_JIFFOO_SSH_PASSWORD secret"
-            exit 1
-          fi
-
-          "${scp_base[@]}" \
+          sshpass -p "$GET_JIFFOO_SSH_PASSWORD" scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
             .release/self-hosted/install.sh \
             .release/self-hosted/docker-compose.yml \
             .release/self-hosted/.env.production.example \
@@ -155,10 +136,10 @@ jobs:
             .release/self-hosted/jiffoo-source.tar.gz.sha256 \
             .release/self-hosted/releases/core/manifest.json \
             .release/self-hosted/get-jiffoo.conf \
-            "${remote_target}:/tmp/"
+            "${GET_JIFFOO_SSH_USER}@${GET_JIFFOO_SSH_HOST}:/tmp/"
 
-          "${ssh_base[@]}" \
-            "${remote_target}" \
+          sshpass -p "$GET_JIFFOO_SSH_PASSWORD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            "${GET_JIFFOO_SSH_USER}@${GET_JIFFOO_SSH_HOST}" \
             "GET_JIFFOO_ROOT='${GET_JIFFOO_ROOT}' GET_JIFFOO_NGINX_PATH='${GET_JIFFOO_NGINX_PATH}' bash -s" <<'EOF'
           set -euo pipefail
           stamp=$(date +%Y%m%d%H%M%S)

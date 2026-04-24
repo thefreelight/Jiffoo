@@ -1,11 +1,12 @@
 import type { UpdateExecutionContext, UpdateExecutionResult, ExecutorAvailability } from './types';
 import { BaseUpdateExecutor } from './base';
+import { inferUpdaterBridgeUrl } from '../updater-bridge';
 
 export class DockerComposeUpdateExecutor extends BaseUpdateExecutor {
   readonly mode = 'docker-compose' as const;
 
   private resolveUpdaterUrl(): string | null {
-    return process.env.JIFFOO_UPDATER_URL || null;
+    return inferUpdaterBridgeUrl(this.mode);
   }
 
   private resolveComposeFile(): string | null {

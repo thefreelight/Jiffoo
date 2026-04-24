@@ -90,17 +90,22 @@ describe('upgrade executors', () => {
     expect(availability.guidance).toContain('JIFFOO_UPDATER_URL');
   });
 
-  it('reports k8s executor as available when updater and release metadata exist', async () => {
-    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jiffoo-updater-k8s-'));
-    const updaterBinary = createTempExecutable(tempDir, 'jiffoo-updater');
-    vi.stubEnv('JIFFOO_UPDATER_BIN', updaterBinary);
+  it('reports k8s executor as available when the inferred updater bridge is reachable', async () => {
+    vi.stubEnv('KUBERNETES_SERVICE_HOST', '10.96.0.1');
+    vi.stubEnv('POD_NAMESPACE', 'jiffoo-mall-prod');
     vi.stubEnv('JIFFOO_HELM_RELEASE_NAME', 'jiffoo-core');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        expect(String(input)).toBe('http://jiffoo-k8s-updater.jiffoo-mall-prod.svc.cluster.local:3015/health');
+        return { ok: true } as Response;
+      }) as typeof fetch,
+    );
 
     const executor = createUpdateExecutor('k8s');
     const availability = await executor.probe();
 
     expect(availability.available).toBe(true);
-    expect(availability.updaterBinary).toBe(updaterBinary);
   });
 
   it('reports k8s executor as available when cluster updater bridge is reachable', async () => {
@@ -111,6 +116,24 @@ describe('upgrade executors', () => {
       vi.fn(async () => ({
         ok: true,
       })) as typeof fetch,
+    );
+
+    const executor = createUpdateExecutor('k8s');
+    const availability = await executor.probe();
+
+    expect(availability.available).toBe(true);
+  });
+
+  it('infers the default k8s updater bridge URL when env override is absent', async () => {
+    vi.stubEnv('KUBERNETES_SERVICE_HOST', '10.96.0.1');
+    vi.stubEnv('POD_NAMESPACE', 'jiffoo-mall-prod');
+    vi.stubEnv('JIFFOO_HELM_RELEASE_NAME', 'jiffoo-core');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        expect(String(input)).toBe('http://jiffoo-k8s-updater.jiffoo-mall-prod.svc.cluster.local:3015/health');
+        return { ok: true } as Response;
+      }) as typeof fetch,
     );
 
     const executor = createUpdateExecutor('k8s');

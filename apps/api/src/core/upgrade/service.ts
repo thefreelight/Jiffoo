@@ -13,6 +13,7 @@ import {
   LEGACY_PUBLIC_CORE_UPDATE_MANIFEST_URL,
   PUBLIC_CORE_UPDATE_MANIFEST,
 } from 'shared';
+import { inferUpdaterBridgeUrl } from './updater-bridge';
 import type {
   BackupInfo,
   CoreUpdateManifest,
@@ -68,7 +69,7 @@ export class UpgradeService {
   private static updatedAt: string | null = null;
 
   private static supportsExternalUpdaterBridge(mode: DeploymentMode): boolean {
-    return Boolean(process.env.JIFFOO_UPDATER_URL) && (mode === 'docker-compose' || mode === 'k8s');
+    return Boolean(inferUpdaterBridgeUrl(mode)) && (mode === 'docker-compose' || mode === 'k8s');
   }
 
   private static async ensureSystemSettings() {
@@ -207,7 +208,12 @@ export class UpgradeService {
     const deployment = this.detectDeploymentMode();
     if (this.supportsExternalUpdaterBridge(deployment.mode)) {
       try {
-        const response = await fetch(`${process.env.JIFFOO_UPDATER_URL}/status`);
+        const updaterBridgeUrl = inferUpdaterBridgeUrl(deployment.mode);
+        if (!updaterBridgeUrl) {
+          throw new Error('Updater bridge URL unavailable');
+        }
+
+        const response = await fetch(`${updaterBridgeUrl}/status`);
         if (response.ok) {
           return await response.json() as UpgradeStatus;
         }
@@ -229,7 +235,12 @@ export class UpgradeService {
   static async resetUpgradeStatus(): Promise<UpgradeStatus> {
     const deployment = this.detectDeploymentMode();
     if (this.supportsExternalUpdaterBridge(deployment.mode)) {
-      const response = await fetch(`${process.env.JIFFOO_UPDATER_URL}/status/reset`, {
+      const updaterBridgeUrl = inferUpdaterBridgeUrl(deployment.mode);
+      if (!updaterBridgeUrl) {
+        throw new Error('Updater bridge URL unavailable');
+      }
+
+      const response = await fetch(`${updaterBridgeUrl}/status/reset`, {
         method: 'POST',
       });
 

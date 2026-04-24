@@ -1,11 +1,12 @@
 import type { UpdateExecutionContext, UpdateExecutionResult, ExecutorAvailability } from './types';
 import { BaseUpdateExecutor } from './base';
+import { inferUpdaterBridgeUrl } from '../updater-bridge';
 
 export class K8sUpdateExecutor extends BaseUpdateExecutor {
   readonly mode = 'k8s' as const;
 
   private resolveUpdaterUrl(): string | null {
-    return process.env.JIFFOO_UPDATER_URL || null;
+    return inferUpdaterBridgeUrl(this.mode);
   }
 
   private resolveReleaseName(): string | null {

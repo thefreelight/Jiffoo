@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- fixes Kubernetes self-hosted update detection so the Admin update center can surface upgrade actions again when the in-cluster updater bridge is available
+- rewrites platform connection verification links away from cluster-local service URLs so operators see a public platform URL instead of an internal `*.svc.cluster.local` address
+
 - introduces formal Admin staff RBAC with `AdminMembership`, per-staff permission overrides, staff audit logs, and staff invitation resend support
 - adds Admin staff management UI with list/detail screens, effective-permission visibility, and audit trail browsing
 - makes auth prefer `AdminMembership` over legacy `User.role` while keeping compatibility fallback during rollout
