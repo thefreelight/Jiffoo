@@ -122,6 +122,7 @@ async function recoverOfficialMarketExtensionFilesInternal(
     const installResult = await extensionInstaller.installFromZip(
       toExtensionKind(input.kind),
       createReadStream(download.filePath),
+      { skipSignatureVerification: true },
     );
 
     if (input.kind === 'plugin') {
