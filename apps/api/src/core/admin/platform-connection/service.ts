@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import { prisma } from '@/config/database';
 import { MarketClient } from '@/core/admin/market/market-client';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
+import { normalizePlatformVerifyUrl } from './url';
 import type {
   PlatformConnectionCompleteRequest,
   PlatformConnectionInstance,
@@ -43,7 +44,7 @@ function sanitizePending(value: unknown): PlatformConnectionStartResponse['pendi
   return {
     deviceCode: value.deviceCode,
     userCode: value.userCode,
-    verifyUrl: typeof value.verifyUrl === 'string' ? value.verifyUrl : '',
+    verifyUrl: normalizePlatformVerifyUrl(typeof value.verifyUrl === 'string' ? value.verifyUrl : ''),
     expiresAt: typeof value.expiresAt === 'string' ? value.expiresAt : new Date().toISOString(),
     intervalSeconds: typeof value.intervalSeconds === 'number' ? value.intervalSeconds : 5,
     startedAt: typeof value.startedAt === 'string' ? value.startedAt : new Date().toISOString(),
@@ -122,7 +123,7 @@ function normalizeState(value: unknown): StoredPlatformConnectionState {
 function toPublicStatus(state: StoredPlatformConnectionState): PlatformConnectionStatus {
   const instanceBound = Boolean(state.instance);
   const tenantBound = Boolean(state.tenantBinding);
-  const pending = state.pending || null;
+  const pending = sanitizePending(state.pending);
 
   return {
     status: tenantBound
@@ -176,8 +177,9 @@ export class PlatformConnectionService {
   }
 
   private async saveState(state: StoredPlatformConnectionState): Promise<void> {
+    const normalizedState = normalizeState(state);
     await systemSettingsService.setSetting(PLATFORM_CONNECTION_SETTINGS_KEY, {
-      ...state,
+      ...normalizedState,
       updatedAt: new Date().toISOString(),
     });
   }
