@@ -15,14 +15,39 @@ function isInternalPlatformHost(hostname: string): boolean {
   );
 }
 
+function parseHostname(value?: string | null): string | null {
+  if (!value || typeof value !== 'string') {
+    return null;
+  }
+
+  try {
+    return new URL(value).hostname;
+  } catch {
+    return null;
+  }
+}
+
+function isSelfHostedSurfaceHost(hostname: string): boolean {
+  const shopHost = parseHostname(process.env.NEXT_PUBLIC_SHOP_URL);
+  const adminHost = parseHostname(process.env.NEXT_PUBLIC_ADMIN_URL);
+  return hostname === shopHost || hostname === adminHost;
+}
+
 export function getPublicPlatformBaseUrl(): string {
   const explicit = process.env.MARKET_API_URL?.trim();
   if (explicit) {
-    return trimApiSuffix(trimTrailingSlash(explicit));
+    try {
+      const explicitUrl = new URL(trimTrailingSlash(explicit));
+      if (!isInternalPlatformHost(explicitUrl.hostname)) {
+        return trimApiSuffix(explicitUrl.toString());
+      }
+    } catch {
+      // ignore invalid explicit platform URL and fall back to public defaults
+    }
   }
 
   const apiDomain = process.env.PLATFORM_API_DOMAIN?.trim();
-  if (apiDomain) {
+  if (apiDomain && !isInternalPlatformHost(apiDomain) && !isSelfHostedSurfaceHost(apiDomain)) {
     return `https://${trimTrailingSlash(apiDomain)}`;
   }
 
