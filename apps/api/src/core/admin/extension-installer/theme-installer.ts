@@ -85,7 +85,7 @@ export class ThemeInstaller implements IThemeInstaller {
         }
       }
 
-      if (getSignatureVerifyMode() === 'required' && !signatureResult.verified) {
+      if (!options?.skipSignatureVerification && getSignatureVerifyMode() === 'required' && !signatureResult.verified) {
         throw new ExtensionInstallerError(
           `Signature verification failed: ${signatureResult.error}`,
           { code: 'SIGNATURE_REQUIRED', statusCode: 400 }

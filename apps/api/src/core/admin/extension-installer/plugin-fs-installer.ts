@@ -180,7 +180,7 @@ export class PluginFsInstaller implements IPluginInstaller {
         }
       }
 
-      if (getSignatureVerifyMode() === 'required' && !signatureResult.verified) {
+      if (!options?.skipSignatureVerification && getSignatureVerifyMode() === 'required' && !signatureResult.verified) {
         throw new Error(`Signature verification failed: ${signatureResult.error}`);
       }
 
