@@ -10,6 +10,7 @@ import { promises as fs } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import {
   IThemeInstaller,
+  InstallFromZipOptions,
   ThemeTarget,
   InstalledTheme,
   ThemeManifest,
@@ -29,7 +30,11 @@ import {
   calculateStreamHash,
   bufferToStream,
 } from './utils';
-import { verifyPackageFromFiles, getSignatureVerifyMode } from './signature-verifier';
+import {
+  verifyPackageFromFiles,
+  getSignatureVerifyMode,
+  type SignatureVerifyResult,
+} from './signature-verifier';
 
 /** Metadata filename for installed themes */
 const INSTALLED_META_FILE = '.installed.json';
@@ -41,7 +46,11 @@ export class ThemeInstaller implements IThemeInstaller {
   /**
    * Install theme from ZIP
    */
-  async install(target: ThemeTarget, zipStream: Readable): Promise<InstalledTheme> {
+  async install(
+    target: ThemeTarget,
+    zipStream: Readable,
+    options?: InstallFromZipOptions,
+  ): Promise<InstalledTheme> {
     let tempDir: string | null = null;
 
     try {
@@ -62,13 +71,18 @@ export class ThemeInstaller implements IThemeInstaller {
       validateThemeManifest(manifest, target);
 
       // 3b. Signature verification (Phase 5, Section 4.8)
-      const sigFilePath = path.join(rootDir, 'package.sig');
-      let signatureResult;
-      try {
-        await fs.access(sigFilePath);
-        signatureResult = await verifyPackageFromFiles(zipBuffer, sigFilePath);
-      } catch {
-        signatureResult = await verifyPackageFromFiles(zipBuffer);
+      let signatureResult: SignatureVerifyResult = {
+        verified: false,
+        mode: getSignatureVerifyMode(),
+      };
+      if (!options?.skipSignatureVerification) {
+        const sigFilePath = path.join(rootDir, 'package.sig');
+        try {
+          await fs.access(sigFilePath);
+          signatureResult = await verifyPackageFromFiles(zipBuffer, sigFilePath);
+        } catch {
+          signatureResult = await verifyPackageFromFiles(zipBuffer);
+        }
       }
 
       if (getSignatureVerifyMode() === 'required' && !signatureResult.verified) {
@@ -165,7 +179,7 @@ export class ThemeInstaller implements IThemeInstaller {
         authorUrl: manifest.authorUrl,
         installedAt: originalInstalledAt || now,
         updatedAt: now,
-        signatureVerified: signatureResult?.verified ?? false,
+        signatureVerified: options?.skipSignatureVerification ? true : signatureResult?.verified ?? false,
         signedBy: signatureResult?.signedBy,
       };
 

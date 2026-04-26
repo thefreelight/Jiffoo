@@ -60,7 +60,8 @@ RUN pnpm config set fetch-retries 5 && \
     pnpm config set registry ${NPM_REGISTRY} && \
     pnpm config set network-concurrency 1 && \
     pnpm config set child-concurrency 1 && \
-    pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile && \
+    mkdir -p /app/packages/shared/node_modules
 
 # Builder stage
 FROM base AS builder
