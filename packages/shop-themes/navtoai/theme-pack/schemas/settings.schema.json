@@ -16,6 +16,33 @@
         "secondaryColor": {
           "type": "string",
           "title": "Secondary Color"
+        },
+        "fontFamily": {
+          "type": "string",
+          "title": "Font Family"
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "maxWidth": {
+          "type": "string",
+          "title": "Max Width"
+        }
+      }
+    },
+    "i18n": {
+      "type": "object",
+      "properties": {
+        "locale": {
+          "type": "string",
+          "title": "Default Locale",
+          "enum": [
+            "en",
+            "zh-Hans",
+            "zh-Hant"
+          ]
         }
       }
     },
@@ -53,6 +80,14 @@
         "supportEmail": {
           "type": "string",
           "title": "Support Email"
+        },
+        "docsHref": {
+          "type": "string",
+          "title": "Documentation Link"
+        },
+        "demoHref": {
+          "type": "string",
+          "title": "Directory Link"
         }
       }
     }

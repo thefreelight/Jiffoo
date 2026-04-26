@@ -1,34 +1,32 @@
 :root {
-  --navtoai-bg: oklch(0.985 0.008 252);
-  --navtoai-surface: oklch(0.998 0.004 252);
-  --navtoai-surface-alt: oklch(0.968 0.012 247);
-  --navtoai-ink: oklch(0.23 0.03 252);
-  --navtoai-copy: oklch(0.4 0.018 248);
-  --navtoai-copy-soft: oklch(0.58 0.016 248);
-  --navtoai-line: oklch(0.9 0.012 246);
-  --navtoai-primary: oklch(0.58 0.17 258);
-  --navtoai-primary-strong: oklch(0.49 0.18 258);
-  --navtoai-primary-soft: oklch(0.94 0.03 253);
-  --navtoai-accent: oklch(0.79 0.11 156);
-  --navtoai-shadow: 0 24px 64px -38px rgba(27, 56, 112, 0.28);
-  --navtoai-radius-lg: 1.75rem;
-  --navtoai-radius-md: 1.1rem;
-  --navtoai-radius-sm: 0.85rem;
-  --navtoai-grid: linear-gradient(
-      to right,
-      color-mix(in oklab, var(--navtoai-line) 58%, transparent) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in oklab, var(--navtoai-line) 58%, transparent) 1px,
-      transparent 1px
-    );
+  --navtoai-bg: oklch(0.982 0.008 270);
+  --navtoai-bg-alt: oklch(0.965 0.012 274);
+  --navtoai-surface: oklch(0.998 0.003 274);
+  --navtoai-surface-strong: oklch(0.99 0.007 274);
+  --navtoai-ink: oklch(0.205 0.034 272);
+  --navtoai-copy: oklch(0.43 0.028 270);
+  --navtoai-copy-soft: oklch(0.61 0.022 270);
+  --navtoai-line: oklch(0.925 0.014 274);
+  --navtoai-primary: oklch(0.62 0.21 280);
+  --navtoai-primary-strong: oklch(0.54 0.23 280);
+  --navtoai-primary-soft: oklch(0.948 0.035 280);
+  --navtoai-secondary: oklch(0.7 0.16 248);
+  --navtoai-accent: oklch(0.79 0.15 75);
+  --navtoai-hero-ink: oklch(0.145 0.045 275);
+  --navtoai-shadow-xs: 0 8px 20px -16px rgba(32, 39, 76, 0.24);
+  --navtoai-shadow-sm: 0 14px 32px -24px rgba(32, 39, 76, 0.22);
+  --navtoai-shadow: 0 24px 58px -34px rgba(32, 39, 76, 0.24);
+  --navtoai-shadow-hero: 0 28px 74px -42px rgba(6, 11, 42, 0.64);
+  --navtoai-glow: 0 14px 34px rgba(101, 84, 255, 0.28);
+  --navtoai-radius-hero: 1.15rem;
+  --navtoai-radius-xl: 1rem;
+  --navtoai-radius-lg: 0.9rem;
+  --navtoai-radius-md: 0.75rem;
+  --navtoai-radius-sm: 0.55rem;
 
-  /* Alias the Digital Vault variables so reused components inherit the NavToAI palette. */
   --vault-bg: var(--navtoai-bg);
   --vault-surface: var(--navtoai-surface);
-  --vault-surface-alt: var(--navtoai-surface-alt);
+  --vault-surface-alt: var(--navtoai-bg-alt);
   --vault-ink: var(--navtoai-ink);
   --vault-copy: var(--navtoai-copy);
   --vault-copy-soft: var(--navtoai-copy-soft);
@@ -36,10 +34,19 @@
   --vault-primary: var(--navtoai-primary);
   --vault-primary-strong: var(--navtoai-primary-strong);
   --vault-primary-soft: var(--navtoai-primary-soft);
-  --vault-accent: var(--navtoai-accent);
+  --vault-accent: var(--navtoai-secondary);
   --vault-shadow: var(--navtoai-shadow);
   --vault-radius-lg: var(--navtoai-radius-lg);
   --vault-radius-md: var(--navtoai-radius-md);
   --vault-radius-sm: var(--navtoai-radius-sm);
-  --vault-grid: var(--navtoai-grid);
+  --vault-grid: linear-gradient(
+      to right,
+      color-mix(in oklab, var(--navtoai-line) 62%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--navtoai-line) 62%, transparent) 1px,
+      transparent 1px
+    );
 }
