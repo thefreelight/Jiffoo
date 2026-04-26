@@ -37,8 +37,12 @@ import {
   bufferToStream,
 } from './utils';
 import { ExtensionInstallerError } from './errors';
-import type { ThemeTarget, ExtensionSource } from './types';
-import { verifyPackageFromFiles, getSignatureVerifyMode } from './signature-verifier';
+import type { ThemeTarget, ExtensionSource, InstallFromZipOptions } from './types';
+import {
+  verifyPackageFromFiles,
+  getSignatureVerifyMode,
+  type SignatureVerifyResult,
+} from './signature-verifier';
 import {
   DEFAULT_THEME_APP_HEALTH_CHECK_PATH,
   THEME_APP_MANIFEST_FILE,
@@ -204,7 +208,11 @@ export class ThemeAppInstaller {
   /**
    * Install Theme App from ZIP
    */
-  async install(target: ThemeTarget, zipStream: Readable): Promise<InstalledThemeApp> {
+  async install(
+    target: ThemeTarget,
+    zipStream: Readable,
+    options?: InstallFromZipOptions,
+  ): Promise<InstalledThemeApp> {
     let tempDir: string | null = null;
 
     try {
@@ -236,16 +244,21 @@ export class ThemeAppInstaller {
       validateThemeAppManifest(manifest);
 
       // 3b. Signature verification (Phase 5, Section 4.8)
-      const sigFilePath = path.join(rootDir, 'package.sig');
-      let signatureResult;
-      try {
-        await fs.access(sigFilePath);
-        signatureResult = await verifyPackageFromFiles(zipBuffer, sigFilePath);
-      } catch {
-        signatureResult = await verifyPackageFromFiles(zipBuffer);
+      let signatureResult: SignatureVerifyResult = {
+        verified: false,
+        mode: getSignatureVerifyMode(),
+      };
+      if (!options?.skipSignatureVerification) {
+        const sigFilePath = path.join(rootDir, 'package.sig');
+        try {
+          await fs.access(sigFilePath);
+          signatureResult = await verifyPackageFromFiles(zipBuffer, sigFilePath);
+        } catch {
+          signatureResult = await verifyPackageFromFiles(zipBuffer);
+        }
       }
 
-      if (getSignatureVerifyMode() === 'required' && !signatureResult.verified) {
+      if (!options?.skipSignatureVerification && getSignatureVerifyMode() === 'required' && !signatureResult.verified) {
         throw new ExtensionInstallerError(
           `Signature verification failed: ${signatureResult.error}`,
           { code: 'SIGNATURE_REQUIRED', statusCode: 400 }
@@ -293,7 +306,7 @@ export class ThemeAppInstaller {
         screenshots: manifest.screenshots,
         tags: manifest.tags,
         installedAt: new Date().toISOString(),
-        signatureVerified: signatureResult?.verified ?? false,
+        signatureVerified: options?.skipSignatureVerification ? true : signatureResult?.verified ?? false,
         signedBy: signatureResult?.signedBy,
       };
 

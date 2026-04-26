@@ -19,6 +19,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '@/config/database';
 import {
   IPluginInstaller,
+  InstallFromZipOptions,
   InstalledPlugin,
   PluginManifest,
 } from './types';
@@ -99,7 +100,7 @@ export class PluginFsInstaller implements IPluginInstaller {
    * 6. Create/update database records (PluginInstall + default instance)
    * 7. Write local metadata file
    */
-  async install(zipStream: Readable): Promise<InstalledPlugin> {
+  async install(zipStream: Readable, options?: InstallFromZipOptions): Promise<InstalledPlugin> {
     let tempDir: string | null = null;
     let targetDir: string | null = null;
     let backupDir: string | null = null;
@@ -164,17 +165,22 @@ export class PluginFsInstaller implements IPluginInstaller {
       validatePluginManifest(manifest);
 
       // 5b. Signature verification (Phase 5, Section 4.8)
-      const sigFilePath = path.join(rootDir, 'package.sig');
-      let signatureResult: SignatureVerifyResult;
-      try {
-        await fs.access(sigFilePath);
-        signatureResult = await verifyPackageFromZipFile(zipFilePath, sigFilePath);
-      } catch {
-        // No .sig file found in the package
-        signatureResult = await verifyPackageFromZipFile(zipFilePath);
+      let signatureResult: SignatureVerifyResult = {
+        verified: false,
+        mode: getSignatureVerifyMode(),
+      };
+      if (!options?.skipSignatureVerification) {
+        const sigFilePath = path.join(rootDir, 'package.sig');
+        try {
+          await fs.access(sigFilePath);
+          signatureResult = await verifyPackageFromZipFile(zipFilePath, sigFilePath);
+        } catch {
+          // No .sig file found in the package
+          signatureResult = await verifyPackageFromZipFile(zipFilePath);
+        }
       }
 
-      if (getSignatureVerifyMode() === 'required' && !signatureResult.verified) {
+      if (!options?.skipSignatureVerification && getSignatureVerifyMode() === 'required' && !signatureResult.verified) {
         throw new Error(`Signature verification failed: ${signatureResult.error}`);
       }
 
@@ -314,8 +320,8 @@ export class PluginFsInstaller implements IPluginInstaller {
             permissions: manifest.permissions,
             author: manifest.author,
             authorUrl: manifest.authorUrl,
-            signatureVerified: signatureResult?.verified ?? false,
-            signedBy: signatureResult?.signedBy,
+          signatureVerified: options?.skipSignatureVerification ? true : signatureResult?.verified ?? false,
+          signedBy: signatureResult?.signedBy,
             installedAt: existingBySlug.installedAt,
             updatedAt: now,
             zipHash,
@@ -470,8 +476,8 @@ export class PluginFsInstaller implements IPluginInstaller {
             permissions: manifest.permissions,
             author: manifest.author,
             authorUrl: manifest.authorUrl,
-            signatureVerified: signatureResult?.verified ?? false,
-            signedBy: signatureResult?.signedBy,
+        signatureVerified: options?.skipSignatureVerification ? true : signatureResult?.verified ?? false,
+        signedBy: signatureResult?.signedBy,
             installedAt: pluginInstall.installedAt,
             updatedAt: now,
             zipHash,

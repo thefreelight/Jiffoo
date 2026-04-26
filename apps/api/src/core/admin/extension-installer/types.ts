@@ -55,6 +55,10 @@ export interface InstallResult {
   fsPath: string;
 }
 
+export interface InstallFromZipOptions {
+  skipSignatureVerification?: boolean;
+}
+
 /** Uninstallation result */
 export interface UninstallResult {
   kind: ExtensionKind;
@@ -218,7 +222,7 @@ export type PluginManifest = SharedPluginManifest;
 /** Unified Extension Installer Interface */
 export interface IExtensionInstaller {
   /** Install extension from ZIP */
-  installFromZip(kind: ExtensionKind, zipStream: Readable): Promise<InstallResult>;
+  installFromZip(kind: ExtensionKind, zipStream: Readable, options?: InstallFromZipOptions): Promise<InstallResult>;
   /** Uninstall extension */
   uninstall(kind: ExtensionKind, slug: string): Promise<UninstallResult>;
   /** List installed extensions */
@@ -229,7 +233,7 @@ export interface IExtensionInstaller {
 
 /** Theme Installer Interface */
 export interface IThemeInstaller {
-  install(target: ThemeTarget, zipStream: Readable): Promise<InstalledTheme>;
+  install(target: ThemeTarget, zipStream: Readable, options?: InstallFromZipOptions): Promise<InstalledTheme>;
   uninstall(target: ThemeTarget, slug: string): Promise<void>;
   list(target: ThemeTarget): Promise<InstalledTheme[]>;
   get(target: ThemeTarget, slug: string): Promise<InstalledTheme | null>;
@@ -237,7 +241,7 @@ export interface IThemeInstaller {
 
 /** Plugin Installer Interface */
 export interface IPluginInstaller {
-  install(zipStream: Readable): Promise<InstalledPlugin>;
+  install(zipStream: Readable, options?: InstallFromZipOptions): Promise<InstalledPlugin>;
   uninstall(slug: string): Promise<void>;
   list(): Promise<InstalledPlugin[]>;
   get(slug: string): Promise<InstalledPlugin | null>;

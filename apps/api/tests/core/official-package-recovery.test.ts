@@ -107,6 +107,11 @@ describe('ensureOfficialMarketExtensionFiles', () => {
       checksumUrl: 'https://market.example.com/plugins/stripe/1.0.0.jplugin.sha256',
       signatureUrl: 'https://market.example.com/plugins/stripe/1.0.0.jplugin.sig',
     });
+    expect(mocks.installFromZip).toHaveBeenCalledWith(
+      'plugin',
+      expect.anything(),
+      { skipSignatureVerification: true },
+    );
     expect(mocks.pluginInstallUpdate).toHaveBeenCalledWith({
       where: { slug: 'stripe' },
       data: { source: 'official-market' },

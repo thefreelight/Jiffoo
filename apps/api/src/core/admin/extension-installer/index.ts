@@ -15,6 +15,7 @@ import {
   UninstallResult,
   InstalledExtensionMeta,
   ThemeTarget,
+  InstallFromZipOptions,
 } from './types';
 import { themeInstaller } from './theme-installer';
 import { themeAppInstaller } from './theme-app-installer';
@@ -53,10 +54,14 @@ export class ExtensionInstaller implements IExtensionInstaller {
    * 2. Read and validate manifest - theme.json / theme-app.json / manifest.json
    * 3. Save metadata - .installed.json
    */
-  async installFromZip(kind: ExtensionKind, zipStream: Readable): Promise<InstallResult> {
+  async installFromZip(
+    kind: ExtensionKind,
+    zipStream: Readable,
+    options?: InstallFromZipOptions,
+  ): Promise<InstallResult> {
     switch (kind) {
       case 'theme-shop': {
-        const theme = await themeInstaller.install('shop', zipStream);
+        const theme = await themeInstaller.install('shop', zipStream, options);
         return {
           kind,
           slug: theme.slug,
@@ -66,7 +71,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
         };
       }
       case 'theme-admin': {
-        const theme = await themeInstaller.install('admin', zipStream);
+        const theme = await themeInstaller.install('admin', zipStream, options);
         return {
           kind,
           slug: theme.slug,
@@ -76,7 +81,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
         };
       }
       case 'theme-app-shop': {
-        const themeApp = await themeAppInstaller.install('shop', zipStream);
+        const themeApp = await themeAppInstaller.install('shop', zipStream, options);
         return {
           kind,
           slug: themeApp.slug,
@@ -86,7 +91,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
         };
       }
       case 'theme-app-admin': {
-        const themeApp = await themeAppInstaller.install('admin', zipStream);
+        const themeApp = await themeAppInstaller.install('admin', zipStream, options);
         return {
           kind,
           slug: themeApp.slug,
@@ -96,7 +101,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
         };
       }
       case 'plugin': {
-        const plugin = await pluginFsInstaller.install(zipStream);
+        const plugin = await pluginFsInstaller.install(zipStream, options);
         return {
           kind,
           slug: plugin.slug,
