@@ -6,8 +6,11 @@ import type {
   SearchPageProps,
 } from 'shared/src/types/theme';
 import { DirectoryCatalog } from './DirectoryCatalog';
+import { getNavCopy } from '../i18n';
 
 export const BestsellersPage = React.memo(function BestsellersPage(props: BestsellersPageProps) {
+  const copy = getNavCopy(props.locale);
+
   return (
     <DirectoryCatalog
       products={props.products}
@@ -17,9 +20,12 @@ export const BestsellersPage = React.memo(function BestsellersPage(props: Bestse
       totalPages={props.totalPages ?? 1}
       sortBy={props.sortBy}
       viewMode="grid"
-      title="Bestselling AI picks that operators keep coming back to."
-      description="A tighter shortlist of popular tools, packages, and workflow starters that already carry stronger buying intent."
-      eyebrow="Bestsellers"
+      locale={props.locale}
+      config={props.config}
+      activeNavId="rankings"
+      title={copy.catalog.bestsellersTitle}
+      description={copy.catalog.bestsellersDescription}
+      eyebrow={copy.catalog.bestsellersEyebrow}
       canSearch={false}
       onSortChange={props.onSortChange}
       onViewModeChange={() => undefined}
@@ -31,6 +37,8 @@ export const BestsellersPage = React.memo(function BestsellersPage(props: Bestse
 });
 
 export const NewArrivalsPage = React.memo(function NewArrivalsPage(props: NewArrivalsPageProps) {
+  const copy = getNavCopy(props.locale);
+
   return (
     <DirectoryCatalog
       products={props.products}
@@ -40,9 +48,12 @@ export const NewArrivalsPage = React.memo(function NewArrivalsPage(props: NewArr
       totalPages={props.totalPages ?? 1}
       sortBy={props.sortBy}
       viewMode="grid"
-      title="Fresh AI launches that are worth reviewing before the feed moves on."
-      description="New arrivals stay easier to scan when the storefront highlights category, fit, and the strongest signals instead of noise."
-      eyebrow="New arrivals"
+      locale={props.locale}
+      config={props.config}
+      activeNavId="news"
+      title={copy.catalog.newArrivalsTitle}
+      description={copy.catalog.newArrivalsDescription}
+      eyebrow={copy.catalog.newArrivalsEyebrow}
       canSearch={false}
       onSortChange={props.onSortChange}
       onViewModeChange={() => undefined}
@@ -54,6 +65,8 @@ export const NewArrivalsPage = React.memo(function NewArrivalsPage(props: NewArr
 });
 
 export const DealsPage = React.memo(function DealsPage(props: DealsPageProps) {
+  const copy = getNavCopy(props.locale);
+
   return (
     <DirectoryCatalog
       products={props.products}
@@ -63,9 +76,12 @@ export const DealsPage = React.memo(function DealsPage(props: DealsPageProps) {
       totalPages={1}
       sortBy="price"
       viewMode="grid"
-      title="Price-aware bundles and offers for teams building an AI stack with discipline."
-      description="Use deals when you want easier experimentation without losing the curated directory feel."
-      eyebrow="Deals"
+      locale={props.locale}
+      config={props.config}
+      activeNavId="collections"
+      title={copy.catalog.dealsTitle}
+      description={copy.catalog.dealsDescription}
+      eyebrow={copy.catalog.dealsEyebrow}
       canSearch={false}
       onSortChange={() => undefined}
       onViewModeChange={() => undefined}
@@ -77,6 +93,8 @@ export const DealsPage = React.memo(function DealsPage(props: DealsPageProps) {
 });
 
 export const SearchPage = React.memo(function SearchPage(props: SearchPageProps) {
+  const copy = getNavCopy(props.locale);
+
   return (
     <DirectoryCatalog
       products={props.products}
@@ -86,9 +104,12 @@ export const SearchPage = React.memo(function SearchPage(props: SearchPageProps)
       totalPages={1}
       sortBy={props.sortBy}
       viewMode={props.viewMode}
-      title="Search results tuned for faster AI tool comparison."
-      description="Keep the directory framing while narrowing the catalog to one model family, workflow, or operator need."
-      eyebrow="Search"
+      locale={props.locale}
+      config={props.config}
+      activeNavId="apps"
+      title={copy.catalog.searchTitle}
+      description={copy.catalog.searchDescription}
+      eyebrow={copy.sidebar.apps}
       searchQueryLabel={props.searchQuery}
       canSearch={false}
       onSortChange={props.onSortChange}

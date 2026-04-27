@@ -1,10 +1,12 @@
 import React from 'react';
-import { ArrowRight, Compass, ExternalLink, LifeBuoy, Sparkles } from 'lucide-react';
+import { ArrowRight, BookOpenText, Compass, Mail, Sparkles } from 'lucide-react';
 import type { FooterProps } from 'shared/src/types/theme';
+import { getNavCopy } from '../i18n';
 import { isExternalHref, resolveNavToAiSiteConfig } from '../site';
 
 export const Footer = React.memo(function Footer({
   config,
+  locale,
   onNavigate,
   onNavigateToProducts,
   onNavigateToCategories,
@@ -16,7 +18,8 @@ export const Footer = React.memo(function Footer({
   onNavigateToPrivacy,
   onNavigateToTerms,
 }: FooterProps) {
-  const site = resolveNavToAiSiteConfig(config);
+  const copy = getNavCopy(locale);
+  const site = resolveNavToAiSiteConfig(config, locale);
   const year = new Date().getFullYear();
 
   const openHref = React.useCallback(
@@ -26,78 +29,96 @@ export const Footer = React.memo(function Footer({
         return;
       }
 
-      onNavigate?.(href);
+      if (onNavigate) {
+        onNavigate(href);
+        return;
+      }
+
+      if (typeof window !== 'undefined') {
+        window.location.assign(href);
+      }
     },
-    [onNavigate]
+    [onNavigate],
   );
 
   return (
-    <footer className="border-t border-[var(--navtoai-line)] bg-[linear-gradient(180deg,var(--navtoai-surface),var(--navtoai-bg))] px-4 py-16 sm:px-6 lg:px-8">
-      <div className="mx-auto grid max-w-[1280px] gap-8 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-        <div className="space-y-6">
-          <div className="inline-flex items-center gap-3 rounded-full border border-[var(--navtoai-line)] bg-[var(--navtoai-surface)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-copy)]">
-            <Compass className="h-4 w-4 text-[var(--navtoai-primary)]" />
-            Direction over noise
+    <footer className="border-t border-[var(--navtoai-line)] bg-[linear-gradient(180deg,var(--navtoai-surface),var(--navtoai-bg))] px-4 py-14 sm:px-6 lg:px-8">
+      <div className="mx-auto grid max-w-[1440px] gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+        <div className="rounded-[var(--navtoai-radius-xl)] border border-[var(--navtoai-line)] bg-[color:color-mix(in_oklab,var(--navtoai-surface)_94%,white)] p-6 shadow-[var(--navtoai-shadow-sm)] sm:p-8">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[var(--navtoai-primary-soft)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-primary-strong)]">
+            <Compass className="h-4 w-4" />
+            {copy.footer.title}
           </div>
-
-          <div className="max-w-3xl">
-            <h2 className="text-[clamp(2.3rem,5vw,4.4rem)] font-black leading-[0.96] tracking-[-0.05em] text-[var(--navtoai-ink)]">
-              AI discovery works better when the storefront behaves like a map, not a maze.
-            </h2>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--navtoai-copy)]">
-              NavToAI is for operators who want a calmer directory surface, buyers who need sharper category cues, and teams who still need the underlying commerce rails to stay dependable.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-3 sm:flex-row">
+          <h2 className="mt-5 text-[clamp(2rem,4vw,3.5rem)] font-black leading-[0.98] tracking-[-0.05em] text-[var(--navtoai-ink)]">
+            {site.brandName}
+          </h2>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--navtoai-copy)]">
+            {copy.footer.body}
+          </p>
+          <div className="mt-6 flex flex-wrap gap-3">
             <button
               type="button"
-              onClick={() => openHref(site.primaryCtaHref)}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-[var(--navtoai-primary)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition-transform duration-300 hover:-translate-y-0.5"
+              onClick={onNavigateToProducts}
+              className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--navtoai-primary),var(--navtoai-primary-strong))] px-5 py-3 text-sm font-semibold text-white shadow-[var(--navtoai-glow)]"
             >
-              {site.primaryCtaLabel}
+              {copy.common.browseAll}
               <ArrowRight className="h-4 w-4" />
             </button>
             <button
               type="button"
               onClick={() => openHref(site.docsHref)}
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--navtoai-line)] bg-[var(--navtoai-surface)] px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--navtoai-ink)]"
+              className="inline-flex items-center gap-2 rounded-full border border-[var(--navtoai-line)] bg-[var(--navtoai-surface)] px-5 py-3 text-sm font-semibold text-[var(--navtoai-ink)]"
             >
-              Documentation
-              <ExternalLink className="h-4 w-4" />
+              <BookOpenText className="h-4 w-4 text-[var(--navtoai-primary)]" />
+              {copy.footer.docs}
             </button>
           </div>
         </div>
 
-        <div className="grid gap-8 sm:grid-cols-2">
-          <div>
-            <div className="mb-4 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-copy-soft)]">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-[var(--navtoai-radius-xl)] border border-[var(--navtoai-line)] bg-[var(--navtoai-surface)] p-6 shadow-[var(--navtoai-shadow-xs)]">
+            <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-copy-soft)]">
               <Sparkles className="h-4 w-4 text-[var(--navtoai-primary)]" />
-              Explore
+              {copy.footer.explore}
             </div>
-            <div className="grid gap-2 text-sm">
-              <button type="button" onClick={onNavigateToProducts} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">All tools</button>
-              <button type="button" onClick={onNavigateToCategories} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">Categories</button>
-              <button type="button" onClick={() => onNavigate?.('/search?q=chat')} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">Chat & search</button>
-              <button type="button" onClick={() => onNavigate?.('/search?q=image')} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">Image & design</button>
-              <button type="button" onClick={() => onNavigate?.('/search?q=agent')} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">Coding & agents</button>
-              <button type="button" onClick={onNavigateToDeals} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">Deals</button>
-              <button type="button" onClick={onNavigateToBestsellers} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">Bestsellers</button>
-              <button type="button" onClick={onNavigateToNewArrivals} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">New arrivals</button>
+            <div className="mt-4 grid gap-2 text-sm">
+              <button type="button" onClick={onNavigateToProducts} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
+                {copy.sidebar.tools}
+              </button>
+              <button type="button" onClick={onNavigateToCategories} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
+                {copy.sidebar.models}
+              </button>
+              <button type="button" onClick={onNavigateToDeals} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
+                {copy.sidebar.collections}
+              </button>
+              <button type="button" onClick={onNavigateToBestsellers} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
+                {copy.sidebar.rankings}
+              </button>
+              <button type="button" onClick={onNavigateToNewArrivals} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
+                {copy.sidebar.news}
+              </button>
             </div>
           </div>
 
-          <div>
-            <div className="mb-4 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-copy-soft)]">
-              <LifeBuoy className="h-4 w-4 text-[var(--navtoai-primary)]" />
-              Support
+          <div className="rounded-[var(--navtoai-radius-xl)] border border-[var(--navtoai-line)] bg-[var(--navtoai-surface)] p-6 shadow-[var(--navtoai-shadow-xs)]">
+            <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-copy-soft)]">
+              <Mail className="h-4 w-4 text-[var(--navtoai-primary)]" />
+              {copy.footer.support}
             </div>
-            <div className="grid gap-2 text-sm">
-              <button type="button" onClick={onNavigateToHelp} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">Buyer guide</button>
-              <button type="button" onClick={onNavigateToContact} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">Contact</button>
-              <button type="button" onClick={onNavigateToPrivacy} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">Privacy</button>
-              <button type="button" onClick={onNavigateToTerms} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">Terms</button>
-              <a href={`mailto:${site.supportEmail}`} className="text-[var(--navtoai-ink)] underline decoration-[var(--navtoai-line)] underline-offset-4">
+            <div className="mt-4 grid gap-2 text-sm">
+              <button type="button" onClick={onNavigateToHelp} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
+                {copy.sidebar.resources}
+              </button>
+              <button type="button" onClick={onNavigateToContact} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
+                {copy.footer.contact}
+              </button>
+              <button type="button" onClick={onNavigateToPrivacy} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
+                {copy.footer.privacy}
+              </button>
+              <button type="button" onClick={onNavigateToTerms} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
+                {copy.footer.terms}
+              </button>
+              <a href={`mailto:${site.supportEmail}`} className="pt-2 font-semibold text-[var(--navtoai-ink)]">
                 {site.supportEmail}
               </a>
             </div>
@@ -105,9 +126,11 @@ export const Footer = React.memo(function Footer({
         </div>
       </div>
 
-      <div className="mx-auto mt-12 flex max-w-[1280px] flex-col gap-3 border-t border-[var(--navtoai-line)] pt-5 text-sm text-[var(--navtoai-copy)] sm:flex-row sm:items-center sm:justify-between">
-        <p>© {year} {site.brandName}. AI navigation storefront theme.</p>
-        <p>Built for editorial tool directories, clearer category signals, and commerce-ready evaluation flows.</p>
+      <div className="mx-auto mt-10 flex max-w-[1440px] flex-col gap-2 border-t border-[var(--navtoai-line)] pt-5 text-sm text-[var(--navtoai-copy)] sm:flex-row sm:items-center sm:justify-between">
+        <p>
+          © {year} {site.brandName}. {copy.footer.copyright}
+        </p>
+        <p>{copy.footer.summary}</p>
       </div>
     </footer>
   );

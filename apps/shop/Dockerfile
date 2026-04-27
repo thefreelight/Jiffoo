@@ -37,6 +37,12 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/shop/package.json ./apps/shop/
 COPY packages/shared/package.json ./packages/shared/
 COPY packages/shop-themes/default/package.json ./packages/shop-themes/default/
+COPY packages/shop-themes/bokmoo/package.json ./packages/shop-themes/bokmoo/
+COPY packages/shop-themes/digital-vault/package.json ./packages/shop-themes/digital-vault/
+COPY packages/shop-themes/esim-mall/package.json ./packages/shop-themes/esim-mall/
+COPY packages/shop-themes/imagic-studio/package.json ./packages/shop-themes/imagic-studio/
+COPY packages/shop-themes/navtoai/package.json ./packages/shop-themes/navtoai/
+COPY packages/shop-themes/yevbi/package.json ./packages/shop-themes/yevbi/
 
 COPY packages/ui/package.json ./packages/ui/
 COPY packages/theme-api-sdk/package.json ./packages/theme-api-sdk/

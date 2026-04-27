@@ -182,7 +182,7 @@ export const BUILTIN_THEMES: ThemeRegistry = {
     meta: {
       slug: 'navtoai',
       name: 'NavToAI',
-      version: '0.1.0',
+      version: '0.2.2',
       description: 'AI navigation storefront theme with editorial directory layouts for modern tool catalogs.',
       category: 'ai',
       author: 'Jiffoo',

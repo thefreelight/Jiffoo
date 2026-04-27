@@ -2,14 +2,16 @@
   "schemaVersion": 1,
   "slug": "navtoai",
   "name": "NavToAI",
-  "version": "0.1.0",
+  "version": "0.2.2",
   "target": "shop",
-  "description": "Editorial AI navigation storefront theme for curated tool catalogs and workflow directories.",
+  "description": "Premium multilingual AI navigation storefront theme with curated discovery, ranking blocks, and paid project submission flows.",
   "author": "Jiffoo",
+  "thumbnail": "assets/thumbnail.svg",
   "category": "ai",
   "entry": {
     "tokensCSS": "tokens.css",
     "templatesDir": "templates",
+    "assetsDir": "assets",
     "settingsSchema": "schemas/settings.schema.json"
   },
   "compatibility": {
@@ -19,29 +21,24 @@
   "x-jiffoo-renderer-slug": "navtoai",
   "defaultConfig": {
     "brand": {
-      "name": "NavToAI",
-      "primaryColor": "#2f62f5",
-      "secondaryColor": "#15346d",
-      "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif"
+      "name": "NavtoAI",
+      "primaryColor": "#6a6cff",
+      "secondaryColor": "#7bc9ff",
+      "fontFamily": "\"Plus Jakarta Sans\", \"SF Pro Display\", \"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif"
     },
     "layout": {
       "headerSticky": true,
       "showFooterLinks": true,
-      "maxWidth": "1280px"
+      "maxWidth": "1440px"
     },
     "features": {
-      "showWishlist": false,
+      "showWishlist": true,
       "showRatings": true,
       "enableQuickView": false
     },
     "site": {
       "archetype": "product-site",
-      "eyebrow": "Curated AI stack directory",
-      "headline": "Find the AI tools that fit the workflow, not just the launch cycle.",
-      "subheadline": "NavToAI gives AI catalogs a calmer navigation-site structure with sharper categories, clearer signals, and storefront flows that still convert when a tool belongs in the stack.",
-      "primaryCtaLabel": "Browse the directory",
       "primaryCtaHref": "/products",
-      "secondaryCtaLabel": "Open buyer guide",
       "secondaryCtaHref": "/help",
       "docsHref": "/help",
       "demoHref": "/products",
@@ -54,6 +51,8 @@
     "workflow",
     "navigation",
     "tooling",
-    "light-theme"
+    "light-theme",
+    "multilingual",
+    "paid-submission"
   ]
 }

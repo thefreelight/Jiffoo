@@ -32,6 +32,26 @@ ALLOWED_PACKAGE_DIRS=(
   "ui"
 )
 
+ALLOWED_SHOP_THEME_DIRS=(
+  "default"
+  "bokmoo"
+  "digital-vault"
+  "esim-mall"
+  "imagic-studio"
+  "navtoai"
+  "yevbi"
+)
+
+is_allowed_shop_theme_dir() {
+  local theme_name="$1"
+  for allowed in "${ALLOWED_SHOP_THEME_DIRS[@]}"; do
+    if [ "${theme_name}" = "${allowed}" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
 contains_non_gitkeep_files() {
   local dir="$1"
   if [ ! -d "$dir" ]; then
@@ -172,16 +192,16 @@ else
   echo "  ✅ PASSED"
 fi
 
-# Check 6: Only the built-in default theme is allowed in opensource repo
+# Check 6: Only registered embedded shop theme runtime mirrors are allowed.
 echo ""
-echo "[6/10] Checking for official theme source trees..."
+echo "[6/10] Checking shop theme runtime mirrors..."
 THEME_ROOT="${OPENSOURCE_DIR}/packages/shop-themes"
 if [ -d "${THEME_ROOT}" ]; then
   THEME_ERRORS=0
   while IFS= read -r theme_dir; do
     theme_name="$(basename "${theme_dir}")"
-    if [ "${theme_name}" != "default" ]; then
-      echo "  ❌ FAILED: official theme source present: packages/shop-themes/${theme_name}"
+    if ! is_allowed_shop_theme_dir "${theme_name}"; then
+      echo "  ❌ FAILED: unexpected shop theme runtime mirror present: packages/shop-themes/${theme_name}"
       THEME_ERRORS=$((THEME_ERRORS + 1))
     fi
   done < <(find "${THEME_ROOT}" -mindepth 1 -maxdepth 1 -type d | sort)
