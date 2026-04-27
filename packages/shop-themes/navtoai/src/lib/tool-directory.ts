@@ -31,6 +31,18 @@ function humanizeText(input: string): string {
     .join(' ');
 }
 
+function getProductTags(product: Product): string[] {
+  return Array.isArray(product.tags) ? product.tags : [];
+}
+
+function getProductSpecifications(product: Product): Product['specifications'] {
+  return Array.isArray(product.specifications) ? product.specifications : [];
+}
+
+function getProductImages(product: Product): ProductImage[] {
+  return Array.isArray(product.images) ? product.images : [];
+}
+
 function getFirstImage(images?: ProductImage[]): string {
   if (!images?.length) return '/placeholder-product.svg';
   return images.find((item) => item.isMain)?.url || images[0]?.url || '/placeholder-product.svg';
@@ -74,10 +86,14 @@ function inferCategoryAccent(categoryLabel: string, locale?: string): string {
 function derivePrimarySpec(product: Product, locale?: string): string {
   const copy = getNavCopy(locale);
   const planMeta = getSubmissionPlanMeta(product, locale);
+  const specifications = getProductSpecifications(product);
+  const tags = getProductTags(product);
+
   if (planMeta) {
     return planMeta.audience;
   }
-  const rankedSpec = product.specifications.find((spec) =>
+
+  const rankedSpec = specifications.find((spec) =>
     /model|mode|use case|team|delivery|integration|platform|language|类型|场景|模型|语言/i.test(
       `${spec.group || ''} ${spec.name}`,
     ),
@@ -87,8 +103,8 @@ function derivePrimarySpec(product: Product, locale?: string): string {
     return `${humanizeText(rankedSpec.name)}: ${rankedSpec.value}`;
   }
 
-  if (product.tags.length > 0) {
-    const tag = humanizeText(product.tags[0]);
+  if (tags.length > 0) {
+    const tag = humanizeText(tags[0]);
     if (copy.locale === 'en') return `${tag} workflow`;
     if (copy.locale === 'zh-Hant') return `${tag} 工作流`;
     return `${tag} 工作流`;
@@ -201,13 +217,13 @@ export function getToolDirectoryPreview(
     planMeta?.kindLabel ||
     normalizeText(product.category?.name) ||
     (copy.locale === 'en' ? 'AI Tooling' : 'AI 工具');
-  const tagCandidates = product.tags
+  const tagCandidates = getProductTags(product)
     .map((tag) => humanizeText(tag))
     .filter((tag): tag is string => Boolean(tag));
   const dedupedTags: string[] = Array.from(new Set<string>(tagCandidates)).slice(0, 4);
 
   return {
-    imageUrl: getFirstImage(product.images),
+    imageUrl: getFirstImage(getProductImages(product)),
     categoryLabel,
     categoryAccent: inferCategoryAccent(categoryLabel, locale),
     pricingLabel: derivePricingLabel(product, locale),

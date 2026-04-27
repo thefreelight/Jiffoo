@@ -66,7 +66,8 @@ function tierFallbacks(name: string, locale?: string): string[] {
 }
 
 function extractBenefits(product: Product, locale?: string): string[] {
-  const benefits = product.specifications
+  const specifications = Array.isArray(product.specifications) ? product.specifications : [];
+  const benefits = specifications
     .filter((spec) =>
       /(benefit|feature|review|listing|homepage|support|language|曝光|审核|審核|推荐|推薦|支持|支援|語言|语言)/i.test(
         `${spec.group || ''} ${spec.name} ${spec.value}`,
@@ -86,11 +87,13 @@ export function isSubmissionPlanProduct(
 ): boolean {
   if (!product) return false;
 
+  const tags = Array.isArray(product.tags) ? product.tags : [];
+  const specifications = Array.isArray(product.specifications) ? product.specifications : [];
   const haystacks = [
     product.name || '',
     product.category?.name || '',
-    ...(product.tags || []),
-    ...(product.specifications || []).flatMap((spec) => [spec.group || '', spec.name || '', spec.value || '']),
+    ...tags,
+    ...specifications.flatMap((spec) => [spec.group || '', spec.name || '', spec.value || '']),
   ];
 
   return haystacks.some(containsSubmissionSignals);

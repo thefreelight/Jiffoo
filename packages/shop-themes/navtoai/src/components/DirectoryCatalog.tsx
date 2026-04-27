@@ -11,13 +11,13 @@ import { Rating, ToolLogo } from './design-primitives';
 type ActiveNavId = 'tools' | 'apps' | 'models' | 'rankings' | 'news' | 'collections';
 
 interface DirectoryCatalogProps {
-  products: Product[];
-  isLoading: boolean;
-  totalProducts: number;
-  currentPage: number;
-  totalPages: number;
-  sortBy: string;
-  viewMode: 'grid' | 'list';
+  products?: Product[];
+  isLoading?: boolean;
+  totalProducts?: number;
+  currentPage?: number;
+  totalPages?: number;
+  sortBy?: string;
+  viewMode?: 'grid' | 'list';
   title: string;
   description: string;
   locale?: string;
@@ -27,11 +27,11 @@ interface DirectoryCatalogProps {
   searchQueryLabel?: string;
   canSearch?: boolean;
   onNavigate?: (path: string) => void;
-  onSortChange: (sortBy: string) => void;
-  onViewModeChange: (mode: 'grid' | 'list') => void;
-  onPageChange: (page: number) => void;
-  onAddToCart: (productId: string) => Promise<void>;
-  onProductClick: (productId: string) => void;
+  onSortChange?: (sortBy: string) => void;
+  onViewModeChange?: (mode: 'grid' | 'list') => void;
+  onPageChange?: (page: number) => void;
+  onAddToCart?: (productId: string) => Promise<void>;
+  onProductClick?: (productId: string) => void;
   onSearch?: (query: string) => void;
 }
 
@@ -72,13 +72,13 @@ function getMobileCatalogCopy(locale?: string): {
 }
 
 export function DirectoryCatalog({
-  products,
-  isLoading,
-  totalProducts,
-  currentPage,
-  totalPages,
-  sortBy,
-  viewMode,
+  products = [],
+  isLoading = false,
+  totalProducts = products.length,
+  currentPage = 1,
+  totalPages = 1,
+  sortBy = 'createdAt',
+  viewMode = 'grid',
   title,
   description,
   locale,
@@ -88,11 +88,11 @@ export function DirectoryCatalog({
   searchQueryLabel,
   canSearch = true,
   onNavigate,
-  onSortChange,
-  onViewModeChange,
-  onPageChange,
-  onAddToCart,
-  onProductClick,
+  onSortChange = () => undefined,
+  onViewModeChange = () => undefined,
+  onPageChange = () => undefined,
+  onAddToCart = async () => undefined,
+  onProductClick = () => undefined,
   onSearch,
 }: DirectoryCatalogProps) {
   const copy = getNavCopy(locale);
