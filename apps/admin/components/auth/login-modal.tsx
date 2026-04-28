@@ -17,6 +17,7 @@ import { Eye, EyeOff, Lock, Mail, Loader2 } from 'lucide-react';
 import { useT } from 'shared/src/i18n/react';
 import { resolveApiErrorMessage } from '@/lib/error-utils';
 import { useManagedPackageBranding } from '@/lib/hooks/use-api';
+import { ADMIN_DEMO_EMAIL, ADMIN_DEMO_PASSWORD, isDemoCredentialsEnabled } from '@/lib/demo-credentials';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -25,8 +26,9 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
-  const [email, setEmail] = useState('admin@jiffoo.com');
-  const [password, setPassword] = useState('admin123');
+  const demoCredentialsEnabled = isDemoCredentialsEnabled();
+  const [email, setEmail] = useState(demoCredentialsEnabled ? ADMIN_DEMO_EMAIL : '');
+  const [password, setPassword] = useState(demoCredentialsEnabled ? ADMIN_DEMO_PASSWORD : '');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
 
@@ -111,14 +113,15 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
 
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Demo Credentials Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h4 className="text-sm font-semibold text-blue-800 mb-2">{getText('merchant.auth.demoCredentials', 'Demo Credentials')}</h4>
-              <div className="text-xs text-blue-700 space-y-1">
-                <div><strong>{getText('merchant.auth.email', 'Email')}:</strong> admin@jiffoo.com</div>
-                <div><strong>{getText('merchant.auth.password', 'Password')}:</strong> admin123</div>
+            {demoCredentialsEnabled ? (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="text-sm font-semibold text-blue-800 mb-2">{getText('merchant.auth.demoCredentials', 'Demo Credentials')}</h4>
+                <div className="text-xs text-blue-700 space-y-1">
+                  <div><strong>{getText('merchant.auth.email', 'Email')}:</strong> {ADMIN_DEMO_EMAIL}</div>
+                  <div><strong>{getText('merchant.auth.password', 'Password')}:</strong> {ADMIN_DEMO_PASSWORD}</div>
+                </div>
               </div>
-            </div>
+            ) : null}
 
             {/* Error Message */}
             {error && (

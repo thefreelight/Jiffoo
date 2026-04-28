@@ -11,6 +11,7 @@ import { sendSuccess, sendError } from '@/utils/response';
 import { createTypedReadResponses } from '@/types/common-dto';
 import { CacheService } from '@/core/cache/service';
 import { storeContextMiddleware } from '@/middleware/store-context';
+import { resolvePublicStoreName } from './branding';
 
 function setHttpCache(reply: FastifyReply, data: any, maxAge: number, swr: number) {
   const etag = `"${createHash('md5').update(JSON.stringify(data)).digest('hex')}"`;
@@ -84,7 +85,7 @@ export async function storeRoutes(fastify: FastifyInstance) {
 
             // Parallel fetch settings and theme
             const [platformName, activeTheme, currency, logo, defaultLocale] = await Promise.all([
-                systemSettingsService.getString('branding.platform_name', 'Jiffoo Store'),
+                systemSettingsService.getString('branding.platform_name', null),
                 ThemeManagementService.getActiveTheme('shop'),
                 systemSettingsService.getShopCurrency(),
                 systemSettingsService.getString('branding.logo', null),
@@ -93,7 +94,7 @@ export async function storeRoutes(fastify: FastifyInstance) {
 
             const contextData = {
                 storeId: '1', // Single merchant version
-                storeName: platformName as string,
+                storeName: resolvePublicStoreName(platformName as string | null, activeTheme),
                 logo: logo as string | null,
                 domain: null, // Single merchant version
                 status: 'active',

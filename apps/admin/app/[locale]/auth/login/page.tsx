@@ -11,6 +11,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/lib/store'
 import { useManagedPackageBranding } from '@/lib/hooks/use-api'
+import { ADMIN_DEMO_EMAIL, ADMIN_DEMO_PASSWORD, isDemoCredentialsEnabled } from '@/lib/demo-credentials'
 import { Sparkles, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
@@ -24,6 +25,7 @@ export default function AdminLoginPage() {
   const t = useT()
   const locale = useLocale()
   const brandingQuery = useManagedPackageBranding()
+  const demoCredentialsEnabled = isDemoCredentialsEnabled()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -91,8 +93,8 @@ export default function AdminLoginPage() {
   }
 
   const fillDemo = () => {
-    setEmail('admin@jiffoo.com')
-    setPassword('admin123')
+    setEmail(ADMIN_DEMO_EMAIL)
+    setPassword(ADMIN_DEMO_PASSWORD)
   }
 
   const isManagedBranding = brandingQuery.data?.mode === 'managed'
@@ -219,38 +221,39 @@ export default function AdminLoginPage() {
               </Button>
             </form>
 
-            {/* Demo Credentials */}
-            <div className="pt-6 border-t border-gray-50">
-              <div className="text-center space-y-3">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  {getText('merchant.auth.demoCredentials', 'DEMO CREDENTIALS')}
-                </p>
-                <div className="bg-gray-50/50 rounded-xl p-4 space-y-2 text-xs border border-gray-100">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
-                      {getText('merchant.auth.email', 'Email')}:
-                    </span>
-                    <span className="font-mono text-gray-900 font-bold">admin@jiffoo.com</span>
+            {demoCredentialsEnabled ? (
+              <div className="pt-6 border-t border-gray-50">
+                <div className="text-center space-y-3">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    {getText('merchant.auth.demoCredentials', 'DEMO CREDENTIALS')}
+                  </p>
+                  <div className="bg-gray-50/50 rounded-xl p-4 space-y-2 text-xs border border-gray-100">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
+                        {getText('merchant.auth.email', 'Email')}:
+                      </span>
+                      <span className="font-mono text-gray-900 font-bold">{ADMIN_DEMO_EMAIL}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
+                        {getText('merchant.auth.password', 'Password')}:
+                      </span>
+                      <span className="font-mono text-gray-900 font-bold">{ADMIN_DEMO_PASSWORD}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
-                      {getText('merchant.auth.password', 'Password')}:
-                    </span>
-                    <span className="font-mono text-gray-900 font-bold">admin123</span>
-                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={fillDemo}
+                    className="w-full rounded-xl border-gray-200 hover:bg-gray-50 font-semibold text-sm h-10"
+                    disabled={isLoading}
+                  >
+                    {getText('merchant.auth.useDemoCredentials', 'USE DEMO CREDENTIALS')}
+                  </Button>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={fillDemo}
-                  className="w-full rounded-xl border-gray-200 hover:bg-gray-50 font-semibold text-sm h-10"
-                  disabled={isLoading}
-                >
-                  {getText('merchant.auth.useDemoCredentials', 'USE DEMO CREDENTIALS')}
-                </Button>
               </div>
-            </div>
+            ) : null}
           </div>
         </div>
 
