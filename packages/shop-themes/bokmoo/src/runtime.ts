@@ -1,5 +1,7 @@
 import type { ThemePackage } from 'shared/src/types/theme';
 
+import './tokens.css';
+
 import { AuthCallbackPage } from '@shop-themes/default/src/components/AuthCallbackPage';
 import { LoginPage } from '@shop-themes/default/src/components/LoginPage';
 import { NotFound } from '@shop-themes/default/src/components/NotFound';
