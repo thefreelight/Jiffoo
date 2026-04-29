@@ -51,7 +51,7 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
             className="mt-6 rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-bg)]"
             type="button"
           >
-            Sign in
+            Log In
           </button>
         </div>
       </div>
@@ -77,38 +77,38 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
                 <UserRound className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
+                <p className="text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
                   Traveler profile
                 </p>
                 <h1 className="mt-2 text-3xl leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]">
-                  Keep your Bokmoo account ready for the next trip.
+                  Keep your BOKMOO account ready for the next trip.
                 </h1>
               </div>
             </div>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <label className="grid gap-2 sm:col-span-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Email</span>
+                <span className="text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Email</span>
                 <input value={user.email} readOnly className="h-12 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 text-sm text-[var(--bokmoo-copy)] outline-none" />
               </label>
               <label className="grid gap-2 sm:col-span-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Name</span>
+                <span className="text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Name</span>
                 <input value={profile.name} onChange={(event) => setProfile((prev) => ({ ...prev, name: event.target.value }))} className="h-12 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" />
               </label>
               <label className="grid gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Phone</span>
+                <span className="text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Phone</span>
                 <input value={profile.phone} onChange={(event) => setProfile((prev) => ({ ...prev, phone: event.target.value }))} className="h-12 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" />
               </label>
               <label className="grid gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Date of birth</span>
+                <span className="text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Date of birth</span>
                 <input value={profile.dateOfBirth} onChange={(event) => setProfile((prev) => ({ ...prev, dateOfBirth: event.target.value }))} className="h-12 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" />
               </label>
               <label className="grid gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Language</span>
+                <span className="text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Language</span>
                 <input value={profile.preferredLanguage} onChange={(event) => setProfile((prev) => ({ ...prev, preferredLanguage: event.target.value }))} className="h-12 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" />
               </label>
               <label className="grid gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Timezone</span>
+                <span className="text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Timezone</span>
                 <input value={profile.timezone} onChange={(event) => setProfile((prev) => ({ ...prev, timezone: event.target.value }))} className="h-12 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" />
               </label>
             </div>
@@ -137,7 +137,7 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
                 <LockKeyhole className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
+                <p className="text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
                   Password
                 </p>
                 <h2 className="mt-2 text-3xl leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]">
@@ -148,11 +148,11 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
 
             <div className="mt-6 grid gap-4">
               <label className="grid gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Current password</span>
+                <span className="text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Current password</span>
                 <input type="password" value={password.currentPassword} onChange={(event) => setPassword((prev) => ({ ...prev, currentPassword: event.target.value }))} className="h-12 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" />
               </label>
               <label className="grid gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">New password</span>
+                <span className="text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">New password</span>
                 <input type="password" value={password.newPassword} onChange={(event) => setPassword((prev) => ({ ...prev, newPassword: event.target.value }))} className="h-12 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" />
               </label>
             </div>

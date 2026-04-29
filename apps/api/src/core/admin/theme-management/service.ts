@@ -147,8 +147,10 @@ function getBuiltinThemes(target: ThemeTarget): ThemeMeta[] {
   return target === 'shop' ? BUILTIN_SHOP_THEMES : BUILTIN_ADMIN_THEMES;
 }
 
+const EMBEDDED_OFFICIAL_SHOP_THEME_SLUGS = new Set(['bokmoo', 'esim-mall', 'yevbi']);
+
 function isLegacyOfficialMarketThemeSlug(slug: string, target: ThemeTarget): boolean {
-  return target === 'shop' && (slug === 'esim-mall' || slug === 'yevbi');
+  return target === 'shop' && EMBEDDED_OFFICIAL_SHOP_THEME_SLUGS.has(slug);
 }
 
 function shouldNormalizeToBuiltinTheme(theme: ActiveTheme, target: ThemeTarget): boolean {
@@ -199,7 +201,12 @@ async function ensureOfficialThemePackFilesPresent(theme: ActiveTheme, target: T
     return;
   }
 
-  const themeJsonPath = path.join(getExtensionsDir(target), normalizeThemeSlug(theme.slug), 'theme.json');
+  const normalizedSlug = normalizeThemeSlug(theme.slug);
+  if (target === 'shop' && EMBEDDED_OFFICIAL_SHOP_THEME_SLUGS.has(normalizedSlug)) {
+    return;
+  }
+
+  const themeJsonPath = path.join(getExtensionsDir(target), normalizedSlug, 'theme.json');
   try {
     await fs.access(themeJsonPath);
     return;

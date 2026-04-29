@@ -2,12 +2,14 @@
   "schemaVersion": 1,
   "slug": "bokmoo",
   "name": "Bokmoo",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "target": "shop",
-  "description": "A premium black-and-gold storefront theme for Bokmoo travel eSIM products.",
+  "description": "BOKMOO 0.0.1 preview theme for global eSIM plans, eUICC cards, and premium travel connectivity storefronts.",
   "author": "Jiffoo",
+  "thumbnail": "assets/thumbnail.svg",
   "entry": {
     "tokensCSS": "tokens.css",
+    "assetsDir": "assets",
     "templatesDir": "templates"
   },
   "compatibility": {
@@ -15,17 +17,17 @@
   },
   "defaultConfig": {
     "colors": {
-      "primary": "#c9a85f",
-      "secondary": "#1f1d19",
-      "background": "#1f1d19",
-      "foreground": "#f4efe6",
-      "muted": "#2f2b24",
-      "border": "#5f584a",
+      "primary": "#d7b23d",
+      "secondary": "#11100d",
+      "background": "#11100d",
+      "foreground": "#f3efe6",
+      "muted": "#1b1914",
+      "border": "#66572a",
       "accent": "#d4d8df"
     },
     "typography": {
-      "fontFamily": "Inter, system-ui, sans-serif",
-      "headingFamily": "\"Iowan Old Style\", Georgia, serif",
+      "fontFamily": "\"Avenir Next\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+      "headingFamily": "\"Avenir Next\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
       "fontSize": "16px",
       "lineHeight": "1.5"
     },
@@ -39,5 +41,5 @@
   "x-jiffoo-renderer-mode": "embedded",
   "x-jiffoo-renderer-slug": "bokmoo",
   "category": "esim",
-  "tags": ["esim", "travel", "premium", "connectivity", "global"]
+  "tags": ["esim", "euicc", "travel", "connectivity", "global", "product-led"]
 }

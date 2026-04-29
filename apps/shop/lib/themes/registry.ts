@@ -8,6 +8,7 @@
  */
 
 import type { ThemePackage, ThemeMeta, ThemeRegistryEntry, ThemeRegistry } from 'shared/src/types/theme';
+import bokmooTheme from '@shop-themes/bokmoo/src/runtime';
 import esimMallTheme from '@shop-themes/esim-mall/src/runtime';
 import yevbiTheme from '@shop-themes/yevbi/src/runtime';
 
@@ -73,6 +74,19 @@ export const BUILTIN_THEMES: ThemeRegistry = {
   },
   // Migration-only compatibility bridges. Official themes that publish a
   // packaged runtime must resolve from the installed artifact instead.
+  'bokmoo': {
+    meta: {
+      slug: 'bokmoo',
+      name: 'Bokmoo',
+      version: '0.0.1',
+      description: 'Premium BOKMOO storefront theme for global eSIM plans and eUICC cards.',
+      category: 'esim',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['esim', 'euicc', 'travel', 'connectivity'],
+    },
+    load: async () => bokmooTheme,
+  },
   'esim-mall': {
     meta: {
       slug: 'esim-mall',

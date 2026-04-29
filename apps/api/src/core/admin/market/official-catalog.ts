@@ -104,6 +104,10 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
     category: 'ai',
     target: 'shop',
   },
+  bokmoo: {
+    category: 'esim',
+    target: 'shop',
+  },
   'esim-mall': {
     category: 'storefront',
     target: 'shop',

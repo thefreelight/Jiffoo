@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, ExternalLink, Globe2, ShieldCheck, Smartphone } from 'lucide-react';
+import { ArrowRight, Globe2, Home, LayoutGrid, LifeBuoy, ReceiptText, ShieldCheck, Smartphone } from 'lucide-react';
 import type { FooterProps } from 'shared/src/types/theme';
 import { isExternalHref, resolveBokmooSiteConfig } from '../site';
 
@@ -8,9 +8,6 @@ export const Footer = React.memo(function Footer({
   onNavigate,
   onNavigateToProducts,
   onNavigateToCategories,
-  onNavigateToDeals,
-  onNavigateToNewArrivals,
-  onNavigateToBestsellers,
   onNavigateToHelp,
   onNavigateToContact,
   onNavigateToPrivacy,
@@ -32,78 +29,121 @@ export const Footer = React.memo(function Footer({
 
   return (
     <footer className="border-t border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,var(--bokmoo-bg-elevated),var(--bokmoo-bg))] px-4 py-16 sm:px-6 lg:px-8">
-      <div className="mx-auto grid max-w-[1280px] gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <div className="space-y-6">
-          <div className="inline-flex items-center gap-3 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--bokmoo-copy)]">
-            <ShieldCheck className="h-4 w-4 text-[var(--bokmoo-gold)]" />
-            Travel-ready before boarding
-          </div>
+      <div className="mx-auto max-w-[1280px]">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,0.9fr)]">
+          <div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]">
+              <ShieldCheck className="h-4 w-4" />
+              Global eSIM Infrastructure
+            </div>
 
-          <div className="max-w-3xl">
-            <h2 className="text-[clamp(2.4rem,5vw,4.8rem)] leading-[0.96] tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-              Connectivity should arrive with the same confidence as the rest of your trip.
+            <h2 className="mt-6 text-[clamp(2.4rem,4vw,4.4rem)] font-semibold leading-[0.95] tracking-[-0.06em] text-[var(--bokmoo-ink)]">
+              Build your travel setup before departure, not after landing.
             </h2>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--bokmoo-copy)]">
-              Browse destination-ready plans, receive your QR code immediately, and leave with setup guidance that feels deliberate instead of improvised.
+
+            <p className="mt-4 max-w-2xl text-base leading-8 text-[var(--bokmoo-copy)]">
+              Explore destination-ready eSIM plans, activate profiles instantly, and manage your next trip from one premium control surface.
             </p>
+
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => openHref(site.primaryCtaHref)}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-6 text-sm font-semibold text-[var(--bokmoo-bg)]"
+                type="button"
+              >
+                {site.primaryCtaLabel}
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => openHref(site.secondaryCtaHref)}
+                className="inline-flex min-h-12 items-center justify-center rounded-[0.9rem] border border-[var(--bokmoo-line)] px-6 text-sm font-medium text-[var(--bokmoo-ink)]"
+                type="button"
+              >
+                {site.secondaryCtaLabel}
+              </button>
+            </div>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <button
-              onClick={() => openHref(site.primaryCtaHref)}
-              className="inline-flex items-center justify-center gap-2 rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-6 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-bg)] transition-transform duration-300 hover:-translate-y-0.5"
-              type="button"
-            >
-              {site.primaryCtaLabel}
-              <ArrowRight className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => openHref(site.secondaryCtaHref)}
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-6 py-3 text-sm font-medium uppercase tracking-[0.18em] text-[var(--bokmoo-ink)]"
-              type="button"
-            >
-              {site.secondaryCtaLabel}
-              <ExternalLink className="h-4 w-4" />
-            </button>
+          <div className="grid gap-8 sm:grid-cols-3">
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
+                <Globe2 className="h-4 w-4 text-[var(--bokmoo-gold)]" />
+                Product
+              </div>
+              <div className="grid gap-3 text-sm">
+                <button onClick={onNavigateToProducts} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
+                  eSIM Plans
+                </button>
+                <button onClick={onNavigateToCategories} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
+                  eUICC Cards
+                </button>
+                <button onClick={onNavigateToHelp} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
+                  How It Works
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-4 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
+                <Smartphone className="h-4 w-4 text-[var(--bokmoo-gold)]" />
+                Company
+              </div>
+              <div className="grid gap-3 text-sm">
+                <button onClick={onNavigateToContact} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
+                  Support
+                </button>
+                <button onClick={onNavigateToPrivacy} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
+                  Privacy
+                </button>
+                <button onClick={onNavigateToTerms} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
+                  Terms
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
+                Contact
+              </p>
+              <a
+                href={`mailto:${site.supportEmail}`}
+                className="text-sm text-[var(--bokmoo-ink)] underline decoration-[var(--bokmoo-line)] underline-offset-4"
+              >
+                {site.supportEmail}
+              </a>
+              <p className="mt-4 text-sm leading-7 text-[var(--bokmoo-copy)]">
+                24/7 global support for activation, compatibility, and travel profile management.
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="grid gap-8 sm:grid-cols-2">
-          <div>
-            <div className="mb-4 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--bokmoo-copy-soft)]">
-              <Globe2 className="h-4 w-4 text-[var(--bokmoo-gold)]" />
-              Explore
-            </div>
-            <div className="grid gap-2 text-sm">
-              <button onClick={onNavigateToProducts} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">All eSIM plans</button>
-              <button onClick={onNavigateToCategories} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">Destinations</button>
-              <button onClick={onNavigateToDeals} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">Travel deals</button>
-              <button onClick={onNavigateToBestsellers} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">Popular picks</button>
-              <button onClick={onNavigateToNewArrivals} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">New arrivals</button>
-            </div>
-          </div>
-
-          <div>
-            <div className="mb-4 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--bokmoo-copy-soft)]">
-              <Smartphone className="h-4 w-4 text-[var(--bokmoo-gold)]" />
-              Support
-            </div>
-            <div className="grid gap-2 text-sm">
-              <button onClick={onNavigateToHelp} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">Device support</button>
-              <button onClick={onNavigateToContact} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">Contact</button>
-              <button onClick={onNavigateToPrivacy} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">Privacy</button>
-              <button onClick={onNavigateToTerms} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">Terms</button>
-              <a href={`mailto:${site.supportEmail}`} className="text-[var(--bokmoo-ink)] underline decoration-[var(--bokmoo-line)] underline-offset-4">
-                {site.supportEmail}
-              </a>
-            </div>
-          </div>
+        <div className="mt-12 flex flex-col gap-3 border-t border-[var(--bokmoo-line)] pt-6 text-sm text-[var(--bokmoo-copy)] sm:flex-row sm:items-center sm:justify-between">
+          <p>© {year} {site.brandName.toUpperCase()}. Official global eSIM storefront.</p>
+          <p>Boundless connectivity, secure activation, and premium travel data management.</p>
         </div>
       </div>
 
-      <div className="mx-auto mt-12 flex max-w-[1280px] flex-col gap-3 border-t border-[var(--bokmoo-line)] pt-5 text-sm text-[var(--bokmoo-copy)] sm:flex-row sm:items-center sm:justify-between">
-        <p>© {year} {site.brandName}. Official Bokmoo storefront theme.</p>
-        <p>Instant QR delivery, destination-ready plans, and calmer pre-trip setup.</p>
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--bokmoo-line)] bg-[color:oklch(0.08_0.008_75_/_0.94)] px-3 py-2 backdrop-blur-xl sm:hidden">
+        <div className="mx-auto grid max-w-[420px] grid-cols-5 gap-1">
+          {[
+            { label: 'Home', icon: Home, onClick: () => onNavigate?.('/') },
+            { label: 'Store', icon: LayoutGrid, onClick: onNavigateToProducts },
+            { label: 'Orders', icon: ReceiptText, onClick: () => onNavigate?.('/orders') },
+            { label: 'Support', icon: LifeBuoy, onClick: onNavigateToHelp },
+            { label: 'Menu', icon: Smartphone, onClick: onNavigateToCategories },
+          ].map(({ label, icon: Icon, onClick }) => (
+            <button
+              key={label}
+              onClick={onClick}
+              className="flex flex-col items-center justify-center gap-1 rounded-[0.85rem] px-2 py-2 text-[11px] text-[var(--bokmoo-copy-soft)] transition-colors hover:text-[var(--bokmoo-gold)]"
+              type="button"
+            >
+              <Icon className="h-4 w-4" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </footer>
   );

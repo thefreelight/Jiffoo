@@ -130,7 +130,7 @@ function pickPlan(product: Product | null | undefined, source: string): string {
   return (
     findSpecificationValue(product, ['data', 'allowance', 'plan', 'package', 'bundle', '流量', '套餐']) ||
     extractByRegex(source, /\b(unlimited|\d+(?:\.\d+)?\s?(?:gb|mb|tb))\b/i) ||
-    'Flexible data bundles'
+    'Flexible data bundle'
   );
 }
 
@@ -147,32 +147,32 @@ function pickNetwork(product: Product | null | undefined, source: string): strin
   return (
     findSpecificationValue(product, ['network', 'speed', 'carrier', 'band', '网络', '速率']) ||
     (matchedSpeed ? `${matchedSpeed} local carrier access` : '') ||
-    'Local carrier priority access'
+    'Priority local carrier access'
   );
 }
 
 function pickActivation(product: Product | null | undefined, source: string): string {
   if (hasKeyword(source, ['qr', 'scan', '扫码', '激活'])) {
-    return 'Scan the QR code and install in minutes';
+    return 'Install in seconds via QR';
   }
 
   return (
     findSpecificationValue(product, ['activation', 'delivery', 'install', 'setup', '激活', '安装', '交付']) ||
-    'QR code issued instantly after payment'
+    'Instant eSIM delivery after payment'
   );
 }
 
 function pickCompatibility(product: Product | null | undefined): string {
   return (
     findSpecificationValue(product, ['compatibility', 'device', 'supported devices', '兼容', '设备']) ||
-    'Unlocked eSIM-compatible iPhone and Android devices'
+    'Unlocked iPhone and Android devices with eSIM support'
   );
 }
 
 function pickPlanBadge(planLabel: string): string {
-  if (/unlimited/i.test(planLabel)) return 'Unlimited data';
+  if (/unlimited|无限/i.test(planLabel)) return 'Unlimited';
   if (/\b\d+(?:\.\d+)?\s?(?:gb|mb|tb)\b/i.test(planLabel)) return planLabel;
-  return 'Travel-ready bundle';
+  return 'Travel bundle';
 }
 
 export function getBokmooTravelProfile(product: Product | null | undefined): BokmooTravelProfile {
@@ -183,9 +183,9 @@ export function getBokmooTravelProfile(product: Product | null | undefined): Bok
   const networkLabel = pickNetwork(product, source);
   const activationLabel = pickActivation(product, source);
   const compatibilityLabel = pickCompatibility(product);
-  const deliveryLabel = 'Instant QR delivery';
+  const deliveryLabel = 'Instant delivery via eSIM';
   const planBadge = pickPlanBadge(planLabel);
-  const cardEyebrow = /global|world/i.test(coverageLabel) ? 'Global pass' : 'Destination eSIM';
+  const cardEyebrow = /global|world|europe|asia|全球|欧洲|亚洲/i.test(coverageLabel) ? 'Global Plan' : 'Destination eSIM';
 
   const specRows = [
     { label: 'Coverage', value: coverageLabel },
@@ -209,9 +209,9 @@ export function getBokmooTravelProfile(product: Product | null | undefined): Bok
     summary: `${coverageLabel} · ${planLabel} · ${durationLabel}`,
     highlights: [planLabel, durationLabel, networkLabel],
     promises: [
-      'QR issued right after payment',
-      'Keep your physical SIM in place',
-      'Support available before departure',
+      'Instant QR or eSIM profile delivery',
+      'Keep your primary SIM in place',
+      'Check compatibility before departure',
     ],
     specRows,
   };

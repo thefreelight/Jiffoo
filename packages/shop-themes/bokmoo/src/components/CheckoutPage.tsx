@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, CreditCard, Mail, QrCode, ShieldCheck, Wallet } from 'lucide-react';
+import { ArrowLeft, CreditCard, Mail, ShieldCheck, Wallet } from 'lucide-react';
 import { cn } from '@jiffoo/ui';
 import type { CheckoutPageProps } from 'shared/src/types/theme';
 
@@ -69,7 +69,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
 
   const inputClassName = (field: string) =>
     cn(
-      'h-12 w-full rounded-[1rem] border bg-[var(--bokmoo-bg)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)]',
+      'h-12 w-full rounded-[0.95rem] border bg-[var(--bokmoo-bg)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)]',
       errors[field] ? 'border-[var(--bokmoo-danger)]' : 'border-[var(--bokmoo-line)]'
     );
 
@@ -96,7 +96,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
       if (!formData.addressLine1.trim()) nextErrors.addressLine1 = 'Address is required';
       if (!formData.city.trim()) nextErrors.city = 'City is required';
       if (!formData.country.trim()) nextErrors.country = 'Country is required';
-      if (!formData.phone.trim()) nextErrors.phone = 'Phone is required';
+      if (!formData.phone.trim()) nextErrors.phone = 'Phone number is required';
       if (statePostalRequired) {
         if (!formData.state.trim()) nextErrors.state = 'State is required';
         if (!formData.postalCode.trim()) nextErrors.postalCode = 'Postal code is required';
@@ -123,242 +123,189 @@ export const CheckoutPage = React.memo(function CheckoutPage({
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-16 pt-20 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-[1280px]">
+    <div className="min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-[980px]">
         <button
           onClick={onBack}
-          className="inline-flex items-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy)]"
+          className="inline-flex items-center gap-2 text-sm text-[var(--bokmoo-copy-soft)] hover:text-[var(--bokmoo-ink)]"
           type="button"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to cart
+          Back
         </button>
 
-        <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(22rem,0.72fr)]">
-          <form id="bokmoo-checkout-form" onSubmit={handleSubmit} className="space-y-6">
-            <section className="rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] text-[var(--bokmoo-gold)]">
-                  <Mail className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                    Traveler contact
-                  </p>
-                  <h1 className="mt-2 text-3xl leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]">
-                    Where should we deliver your travel setup?
-                  </h1>
-                  <p className="mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]">
-                    Your QR code and installation guidance are sent to the order archive and mirrored to the traveler email.
-                  </p>
-                </div>
+        <div className="mt-5 rounded-[1.55rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-4 shadow-[var(--bokmoo-shadow)] sm:p-5">
+          <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
+            <aside className="rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+              <p className="text-lg font-medium text-[var(--bokmoo-ink)]">Order Summary</p>
+              <div className="mt-4 space-y-3">
+                {cart.items.map((item) => (
+                  <div key={item.id} className="rounded-[0.95rem] border border-[var(--bokmoo-line)] p-3">
+                    <div className="flex items-start gap-3">
+                      <div className="h-14 w-16 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-[var(--bokmoo-ink)]">{item.productName}</p>
+                        <p className="mt-1 text-xs text-[var(--bokmoo-copy-soft)]">
+                          Qty {item.quantity}{item.variantName ? ` · ${item.variantName}` : ''}
+                        </p>
+                      </div>
+                      <span className="text-sm text-[var(--bokmoo-copy)]">${Number(item.subtotal || 0).toFixed(2)}</span>
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                    Email
-                  </label>
+              <div className="mt-5 space-y-3 border-t border-[var(--bokmoo-line)] pt-4 text-sm">
+                <div className="flex items-center justify-between text-[var(--bokmoo-copy)]">
+                  <span>Subtotal</span>
+                  <span>${Number(cart.subtotal || 0).toFixed(2)}</span>
+                </div>
+                <div className="flex items-center justify-between text-[var(--bokmoo-copy)]">
+                  <span>Total</span>
+                  <span className="font-semibold text-[var(--bokmoo-ink)]">${Number(cart.total || 0).toFixed(2)}</span>
+                </div>
+              </div>
+            </aside>
+
+            <form id="bokmoo-checkout-form" onSubmit={handleSubmit} className="space-y-4">
+              <div className="rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-[0.9rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] text-[var(--bokmoo-gold)]">
+                    <Mail className="h-5 w-5" />
+                  </div>
+                  <p className="text-lg font-medium text-[var(--bokmoo-ink)]">Contact Information</p>
+                </div>
+
+                <div className="mt-4 space-y-3">
                   <input
                     name="email"
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
                     className={inputClassName('email')}
-                    placeholder="traveler@example.com"
+                    placeholder="Enter your email"
                   />
-                  {errors.email ? <p className="mt-2 text-xs text-[var(--bokmoo-danger)]">{errors.email}</p> : null}
-                </div>
+                  {errors.email ? <p className="text-xs text-[var(--bokmoo-danger)]">{errors.email}</p> : null}
 
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                    First name{shouldCollectShipping ? ' *' : ''}
-                  </label>
-                  <input name="firstName" value={formData.firstName} onChange={handleChange} className={inputClassName('firstName')} />
-                  {errors.firstName ? <p className="mt-2 text-xs text-[var(--bokmoo-danger)]">{errors.firstName}</p> : null}
-                </div>
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                    Last name{shouldCollectShipping ? ' *' : ''}
-                  </label>
-                  <input name="lastName" value={formData.lastName} onChange={handleChange} className={inputClassName('lastName')} />
-                  {errors.lastName ? <p className="mt-2 text-xs text-[var(--bokmoo-danger)]">{errors.lastName}</p> : null}
-                </div>
-
-                <div className="sm:col-span-2">
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                    Phone{shouldCollectShipping ? ' *' : ''}
-                  </label>
-                  <input name="phone" value={formData.phone} onChange={handleChange} className={inputClassName('phone')} placeholder="+1 555 010 1234" />
-                  {errors.phone ? <p className="mt-2 text-xs text-[var(--bokmoo-danger)]">{errors.phone}</p> : null}
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] text-[var(--bokmoo-gold)]">
-                  <QrCode className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                    Optional billing fallback
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--bokmoo-copy)]">
-                    Physical address fields only matter for hybrid or manual support scenarios. For standard eSIM delivery, contact details above are usually enough.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <div className="sm:col-span-2">
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                    Address{shouldCollectShipping ? ' *' : ''}
-                  </label>
-                  <input name="addressLine1" value={formData.addressLine1} onChange={handleChange} className={inputClassName('addressLine1')} />
-                  {errors.addressLine1 ? <p className="mt-2 text-xs text-[var(--bokmoo-danger)]">{errors.addressLine1}</p> : null}
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                    City{shouldCollectShipping ? ' *' : ''}
-                  </label>
-                  <input name="city" value={formData.city} onChange={handleChange} className={inputClassName('city')} />
-                  {errors.city ? <p className="mt-2 text-xs text-[var(--bokmoo-danger)]">{errors.city}</p> : null}
-                </div>
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                    Country{shouldCollectShipping ? ' *' : ''}
-                  </label>
-                  <input name="country" value={formData.country} onChange={handleChange} className={inputClassName('country')} />
-                  {errors.country ? <p className="mt-2 text-xs text-[var(--bokmoo-danger)]">{errors.country}</p> : null}
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                    State{statePostalRequired ? ' *' : ''}
-                  </label>
-                  <input name="state" value={formData.state} onChange={handleChange} className={inputClassName('state')} />
-                  {errors.state ? <p className="mt-2 text-xs text-[var(--bokmoo-danger)]">{errors.state}</p> : null}
-                </div>
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                    Postal code{statePostalRequired ? ' *' : ''}
-                  </label>
-                  <input name="postalCode" value={formData.postalCode} onChange={handleChange} className={inputClassName('postalCode')} />
-                  {errors.postalCode ? <p className="mt-2 text-xs text-[var(--bokmoo-danger)]">{errors.postalCode}</p> : null}
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] text-[var(--bokmoo-gold)]">
-                  <CreditCard className="h-6 w-6" />
-                </div>
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                    Payment method
-                  </p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--bokmoo-copy)]">
-                    Confirm the payment rail that should unlock your QR issuance and order archive.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-5 grid gap-3">
-                {paymentMethods.map((method) => {
-                  const Icon = paymentIcon(method.name);
-                  const isSelected = formData.paymentMethod === method.name;
-                  return (
-                    <label
-                      key={method.name}
-                      className={cn(
-                        'flex cursor-pointer items-center justify-between rounded-[var(--bokmoo-radius-lg)] border px-4 py-4 transition-colors',
-                        isSelected
-                          ? 'border-[var(--bokmoo-line-strong)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)]'
-                          : 'border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)]'
-                      )}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Icon className="h-5 w-5 text-[var(--bokmoo-gold)]" />
-                        <div>
-                          <div className="text-sm font-medium text-[var(--bokmoo-ink)]">
-                            {method.displayName}
-                          </div>
-                          <div className="text-xs text-[var(--bokmoo-copy)]">{method.name}</div>
-                        </div>
-                      </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div>
                       <input
-                        type="radio"
-                        name="paymentMethod"
-                        value={method.name}
-                        checked={isSelected}
+                        name="firstName"
+                        value={formData.firstName}
                         onChange={handleChange}
+                        className={inputClassName('firstName')}
+                        placeholder="First name"
                       />
-                    </label>
-                  );
-                })}
-              </div>
-            </section>
-          </form>
-
-          <aside className="space-y-4">
-            <section className="rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                Order summary
-              </p>
-              <div className="mt-4 space-y-3">
-                {cart.items.map((item) => (
-                  <div key={item.id} className="rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-medium text-[var(--bokmoo-ink)]">{item.productName}</p>
-                        <p className="mt-1 text-xs text-[var(--bokmoo-copy)]">
-                          Qty {item.quantity}{item.variantName ? ` · ${item.variantName}` : ''}
-                        </p>
-                        <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--bokmoo-copy-soft)]">
-                          Instant travel delivery
-                        </p>
-                      </div>
-                      <span className="text-sm font-medium text-[var(--bokmoo-ink)]">
-                        ${Number(item.subtotal || 0).toFixed(2)}
-                      </span>
+                      {errors.firstName ? <p className="mt-2 text-xs text-[var(--bokmoo-danger)]">{errors.firstName}</p> : null}
+                    </div>
+                    <div>
+                      <input
+                        name="lastName"
+                        value={formData.lastName}
+                        onChange={handleChange}
+                        className={inputClassName('lastName')}
+                        placeholder="Last name"
+                      />
+                      {errors.lastName ? <p className="mt-2 text-xs text-[var(--bokmoo-danger)]">{errors.lastName}</p> : null}
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
 
-              <div className="mt-6 space-y-3 border-t border-[var(--bokmoo-line)] pt-4 text-sm">
-                <div className="flex items-center justify-between text-[var(--bokmoo-copy)]">
-                  <span>Subtotal</span>
-                  <span>${Number(cart.subtotal || 0).toFixed(2)}</span>
-                </div>
-                <div className="flex items-center justify-between text-[var(--bokmoo-copy)]">
-                  <span>Shipping</span>
-                  <span>{Number(cart.shipping || 0) > 0 ? `$${Number(cart.shipping).toFixed(2)}` : 'No shipment needed'}</span>
-                </div>
-                <div className="flex items-center justify-between text-[var(--bokmoo-copy)]">
-                  <span>Discount</span>
-                  <span>{Number(cart.discount || 0) > 0 ? `-$${Number(cart.discount).toFixed(2)}` : '$0.00'}</span>
-                </div>
-                <div className="flex items-center justify-between text-lg font-semibold tracking-[-0.03em] text-[var(--bokmoo-ink)]">
-                  <span>Total</span>
-                  <span>${Number(cart.total || 0).toFixed(2)}</span>
+              <div className="rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+                <p className="text-lg font-medium text-[var(--bokmoo-ink)]">Payment Method</p>
+                <div className="mt-4 grid gap-3">
+                  {paymentMethods.map((method) => {
+                    const Icon = paymentIcon(method.name);
+                    const isSelected = formData.paymentMethod === method.name;
+                    return (
+                      <label
+                        key={method.name}
+                        className={cn(
+                          'flex cursor-pointer items-center justify-between rounded-[0.95rem] border px-4 py-4 transition-colors',
+                          isSelected
+                            ? 'border-[var(--bokmoo-line-strong)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)]'
+                            : 'border-[var(--bokmoo-line)]'
+                        )}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] text-[var(--bokmoo-gold)]">
+                            <Icon className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <p className="text-sm text-[var(--bokmoo-ink)]">{method.displayName}</p>
+                            <p className="text-xs text-[var(--bokmoo-copy-soft)]">{method.name}</p>
+                          </div>
+                        </div>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value={method.name}
+                          checked={isSelected}
+                          onChange={handleChange}
+                        />
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
+
+              {shouldCollectShipping ? (
+                <div className="rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+                  <p className="text-lg font-medium text-[var(--bokmoo-ink)]">Billing Details</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="sm:col-span-2">
+                      <input
+                        name="addressLine1"
+                        value={formData.addressLine1}
+                        onChange={handleChange}
+                        className={inputClassName('addressLine1')}
+                        placeholder="Address"
+                      />
+                    </div>
+                    <input
+                      name="city"
+                      value={formData.city}
+                      onChange={handleChange}
+                      className={inputClassName('city')}
+                      placeholder="City"
+                    />
+                    <input
+                      name="country"
+                      value={formData.country}
+                      onChange={handleChange}
+                      className={inputClassName('country')}
+                      placeholder="Country"
+                    />
+                    <input
+                      name="state"
+                      value={formData.state}
+                      onChange={handleChange}
+                      className={inputClassName('state')}
+                      placeholder="State / Province"
+                    />
+                    <input
+                      name="postalCode"
+                      value={formData.postalCode}
+                      onChange={handleChange}
+                      className={inputClassName('postalCode')}
+                      placeholder="Postal code"
+                    />
+                  </div>
+                </div>
+              ) : null}
 
               <button
                 type="submit"
                 form="bokmoo-checkout-form"
                 disabled={isProcessing}
-                className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-5 text-sm font-semibold uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <ShieldCheck className="h-4 w-4" />
-                {isProcessing ? 'Processing...' : 'Confirm and issue eSIM'}
+                {isProcessing ? 'Processing...' : 'Continue to Payment'}
               </button>
-            </section>
-          </aside>
+            </form>
+          </div>
         </div>
       </div>
     </div>

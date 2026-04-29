@@ -1,10 +1,90 @@
 import React from 'react';
-import { ArrowRight, CheckCircle2, Globe2, ScanLine, Smartphone, Sparkles } from 'lucide-react';
+import {
+  ArrowRight,
+  CreditCard,
+  Globe2,
+  Headphones,
+  QrCode,
+  ShieldCheck,
+  Signal,
+  Smartphone,
+  Sparkles,
+  WalletCards,
+  Zap,
+} from 'lucide-react';
 import type { HomePageProps } from 'shared/src/types/theme';
 import { isExternalHref, resolveBokmooSiteConfig } from '../site';
 
+type PlanCategory = 'Popular' | 'Asia' | 'Europe' | 'North America' | 'Global';
+
+type HeroPillarProps = {
+  className: string;
+};
+
+type HomePlan = {
+  country: string;
+  allowance: string;
+  speed: string;
+  price: string;
+  badge?: string;
+  art: string;
+};
+
+function HeroPillar({ className }: HeroPillarProps) {
+  return (
+    <div
+      className={`absolute w-px bg-[linear-gradient(180deg,transparent,color-mix(in_oklab,var(--bokmoo-gold)_58%,transparent),transparent)] shadow-[0_0_28px_color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] ${className}`}
+    />
+  );
+}
+
+function PlanCard({
+  plan,
+  onClick,
+}: {
+  plan: HomePlan;
+  onClick: () => void;
+}) {
+  return (
+    <article className="group overflow-hidden rounded-[1.35rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] shadow-[var(--bokmoo-shadow)]">
+      <div className={`relative aspect-[1.18/0.82] overflow-hidden border-b border-[var(--bokmoo-line)] ${plan.art}`}>
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(6,6,7,0.12)_52%,rgba(6,6,7,0.72))]" />
+        {plan.badge ? (
+          <span className="absolute left-3 top-3 inline-flex rounded-full bg-[var(--bokmoo-gold)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-bg)]">
+            {plan.badge}
+          </span>
+        ) : null}
+        <div className="absolute inset-x-0 bottom-0 p-4">
+          <p className="text-2xl font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">{plan.country}</p>
+          <p className="mt-1 text-sm text-[color:color-mix(in_oklab,var(--bokmoo-copy)_88%,white)]">{plan.allowance}</p>
+          <p className="mt-1 text-xs uppercase tracking-[0.12em] text-[var(--bokmoo-copy-soft)]">{plan.speed}</p>
+        </div>
+      </div>
+
+      <div className="p-4">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-[1.85rem] font-semibold tracking-[-0.05em] text-[var(--bokmoo-gold)]">
+              {plan.price}
+            </p>
+            <p className="text-xs text-[var(--bokmoo-copy-soft)]">Best-value travel bundle</p>
+          </div>
+          <button
+            onClick={onClick}
+            className="inline-flex min-h-11 items-center justify-center rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_66%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] transition-transform duration-300 group-hover:-translate-y-0.5"
+            type="button"
+          >
+            Buy Now
+          </button>
+        </div>
+      </div>
+    </article>
+  );
+}
+
 export const HomePage = React.memo(function HomePage({ config, onNavigate }: HomePageProps) {
   const site = resolveBokmooSiteConfig(config);
+  const [activeCategory, setActiveCategory] = React.useState<PlanCategory>('Popular');
 
   const openHref = React.useCallback(
     (href: string) => {
@@ -17,209 +97,515 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate }: Hom
     [onNavigate]
   );
 
-  const rituals = [
+  const planDecks = React.useMemo<Record<PlanCategory, HomePlan[]>>(
+    () => ({
+      Popular: [
+        {
+          country: 'Japan',
+          allowance: '10GB / 7 Days',
+          speed: '4G/5G High Speed',
+          price: '$12.00',
+          badge: 'Hot',
+          art: 'bg-[linear-gradient(160deg,#93a4db_0%,#4d6d9f_45%,#11151e_100%)]',
+        },
+        {
+          country: 'United States',
+          allowance: '20GB / 15 Days',
+          speed: '4G/5G High Speed',
+          price: '$19.00',
+          art: 'bg-[linear-gradient(160deg,#5878a7_0%,#2e425b_48%,#0e1117_100%)]',
+        },
+        {
+          country: 'Europe',
+          allowance: '10GB / 15 Days',
+          speed: '4G/5G High Speed',
+          price: '$18.50',
+          art: 'bg-[linear-gradient(160deg,#d09c8c_0%,#7a5160_46%,#161116_100%)]',
+        },
+        {
+          country: 'Hong Kong',
+          allowance: '5GB / 7 Days',
+          speed: '4G/5G High Speed',
+          price: '$8.50',
+          art: 'bg-[linear-gradient(160deg,#355a80_0%,#1f3347_54%,#0c1018_100%)]',
+        },
+        {
+          country: 'Thailand',
+          allowance: '15GB / 10 Days',
+          speed: '4G/5G High Speed',
+          price: '$11.00',
+          art: 'bg-[linear-gradient(160deg,#8579b6_0%,#4e3953_56%,#110f16_100%)]',
+        },
+      ],
+      Asia: [
+        {
+          country: 'Singapore',
+          allowance: '8GB / 7 Days',
+          speed: '4G/5G High Speed',
+          price: '$9.50',
+          art: 'bg-[linear-gradient(160deg,#4d7485_0%,#233642_56%,#0d1114_100%)]',
+        },
+        {
+          country: 'Korea',
+          allowance: '12GB / 10 Days',
+          speed: '4G/5G High Speed',
+          price: '$10.50',
+          art: 'bg-[linear-gradient(160deg,#6c80b5_0%,#2d3451_56%,#110f14_100%)]',
+        },
+        {
+          country: 'Malaysia',
+          allowance: '10GB / 8 Days',
+          speed: '4G/5G High Speed',
+          price: '$8.00',
+          art: 'bg-[linear-gradient(160deg,#54705f_0%,#243129_56%,#0f1310_100%)]',
+        },
+      ],
+      Europe: [
+        {
+          country: 'Europe 33',
+          allowance: '20GB / 30 Days',
+          speed: '4G/5G High Speed',
+          price: '$24.00',
+          badge: 'Best',
+          art: 'bg-[linear-gradient(160deg,#cb977f_0%,#67484b_52%,#151013_100%)]',
+        },
+        {
+          country: 'United Kingdom',
+          allowance: '12GB / 14 Days',
+          speed: '4G/5G High Speed',
+          price: '$15.00',
+          art: 'bg-[linear-gradient(160deg,#7181a1_0%,#323947_54%,#131216_100%)]',
+        },
+        {
+          country: 'Italy',
+          allowance: '10GB / 10 Days',
+          speed: '4G/5G High Speed',
+          price: '$13.50',
+          art: 'bg-[linear-gradient(160deg,#9d6d59_0%,#49322e_54%,#140f10_100%)]',
+        },
+      ],
+      'North America': [
+        {
+          country: 'United States',
+          allowance: '20GB / 15 Days',
+          speed: '4G/5G High Speed',
+          price: '$19.00',
+          art: 'bg-[linear-gradient(160deg,#5878a7_0%,#2e425b_48%,#0e1117_100%)]',
+        },
+        {
+          country: 'Canada',
+          allowance: '12GB / 15 Days',
+          speed: '4G/5G High Speed',
+          price: '$16.00',
+          art: 'bg-[linear-gradient(160deg,#7c8ca7_0%,#353d4d_52%,#121419_100%)]',
+        },
+        {
+          country: 'Mexico',
+          allowance: '8GB / 7 Days',
+          speed: '4G/5G High Speed',
+          price: '$9.00',
+          art: 'bg-[linear-gradient(160deg,#7b6f59_0%,#42392a_54%,#15120f_100%)]',
+        },
+      ],
+      Global: [
+        {
+          country: 'Global Pass',
+          allowance: '25GB / 30 Days',
+          speed: 'Priority Multi-Network',
+          price: '$39.00',
+          badge: 'Pro',
+          art: 'bg-[linear-gradient(160deg,#6e5d3f_0%,#2a231a_48%,#0e0d0b_100%)]',
+        },
+        {
+          country: 'Business Global',
+          allowance: '50GB / 45 Days',
+          speed: 'Priority Multi-Network',
+          price: '$69.00',
+          art: 'bg-[linear-gradient(160deg,#4b3f6c_0%,#241d33_50%,#0f0d13_100%)]',
+        },
+      ],
+    }),
+    []
+  );
+
+  const reasonCards = [
     {
-      title: 'Insert or prepare',
-      body: 'Keep your existing number, prepare your device, and get ready to install before departure.',
-      icon: Smartphone,
-    },
-    {
-      title: 'Scan and install',
-      body: 'Receive the QR code immediately after payment and load your travel profile in minutes.',
-      icon: ScanLine,
-    },
-    {
-      title: 'Land already connected',
-      body: 'Choose a destination or regional plan that feels ready before you board.',
+      title: 'Global Coverage',
+      body: 'Access data in 200+ countries and regions with local rates.',
       icon: Globe2,
+    },
+    {
+      title: 'Instant Activation',
+      body: 'Install your eSIM profile in seconds, anytime, anywhere.',
+      icon: Zap,
+    },
+    {
+      title: 'Secure & Private',
+      body: 'Your data and privacy are protected with top-tier security.',
+      icon: ShieldCheck,
+    },
+    {
+      title: '24/7 Support',
+      body: 'Our global support team is here to help, anytime.',
+      icon: Headphones,
     },
   ];
 
-  const collections = [
+  const heroBadges = [
+    { icon: Globe2, title: '200+ Countries', body: 'Coverage' },
+    { icon: WalletCards, title: 'Instant Delivery', body: 'via eSIM' },
+    { icon: ShieldCheck, title: 'Secure & Trusted', body: 'Platform' },
+    { icon: Headphones, title: '24/7 Global', body: 'Support' },
+  ];
+
+  const steps = [
     {
-      label: 'Destination eSIM',
-      title: 'Single-country plans for focused itineraries.',
-      detail: 'Japan, Korea, Singapore, UAE, Europe, and more.',
-      href: '/products',
+      title: 'Get Your Card',
+      body: 'Purchase a BOKMOO eUICC card and receive it securely.',
+      icon: CreditCard,
     },
     {
-      label: 'Regional pass',
-      title: 'Move through multiple borders without changing strategy.',
-      detail: 'Built for Europe, Asia-Pacific, and multi-country trips.',
-      href: '/categories',
+      title: 'Install Profile',
+      body: 'Scan QR code or enter activation details to install your eSIM profile.',
+      icon: QrCode,
     },
     {
-      label: 'Departure guide',
-      title: 'Check compatibility, setup timing, and activation advice.',
-      detail: 'Made for travelers who prefer to sort connectivity before takeoff.',
-      href: '/help',
+      title: 'Stay Connected',
+      body: 'Enjoy fast, reliable data wherever you go.',
+      icon: Smartphone,
     },
   ];
+
+  const euiccFeatures = [
+    {
+      title: 'Multiple Profiles',
+      body: 'Manage multiple eSIM profiles on one card.',
+      icon: WalletCards,
+    },
+    {
+      title: 'Easy Switch',
+      body: 'Switch between profiles easily in our app.',
+      icon: Sparkles,
+    },
+    {
+      title: 'Wide Compatibility',
+      body: 'Works with most eSIM-compatible devices.',
+      icon: Signal,
+    },
+  ];
+
+  const metrics = [
+    { value: '200+', label: 'Countries & Regions' },
+    { value: '1M+', label: 'Happy Users' },
+    { value: '10M+', label: 'eSIM Profiles Delivered' },
+    { value: '99.9%', label: 'Uptime Guarantee' },
+  ];
+
+  const activePlans = planDecks[activeCategory];
 
   return (
     <div className="bg-[var(--bokmoo-bg)] text-[var(--bokmoo-ink)]">
-      <section className="relative overflow-hidden border-b border-[var(--bokmoo-line)] px-4 pb-16 pt-20 sm:px-6 sm:pb-20 sm:pt-24 lg:px-8 lg:pb-24">
-        <div className="pointer-events-none absolute inset-0 opacity-60 [background-image:var(--bokmoo-grid)] [background-size:72px_72px]" />
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top,rgba(201,168,95,0.18),transparent_55%)]" />
+      <section className="relative overflow-hidden border-b border-[var(--bokmoo-line)] px-4 pb-12 pt-10 sm:px-6 lg:px-8">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_38%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_26%),radial-gradient(circle_at_78%_18%,color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent),transparent_16%)]" />
+          <div className="absolute left-[52%] top-[10%] h-[66%] w-[40%] rounded-full bg-[var(--bokmoo-orbit-glow)] opacity-70 blur-3xl" />
+          <HeroPillar className="left-[62%] top-[16%] h-[46%]" />
+          <HeroPillar className="left-[68%] top-[10%] h-[58%]" />
+          <HeroPillar className="left-[74%] top-[14%] h-[54%]" />
+          <HeroPillar className="left-[81%] top-[18%] h-[44%]" />
+          <div className="absolute right-[8%] top-[18%] h-[44%] w-[42%] rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,transparent)] opacity-30 blur-[1px]" />
+          <div className="absolute bottom-[-6%] right-[12%] h-72 w-72 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,transparent)]" />
+          <div className="absolute bottom-[9%] right-[18%] h-48 w-48 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)]" />
+        </div>
 
-        <div className="mx-auto grid max-w-[1280px] gap-10 lg:grid-cols-[minmax(0,1.05fr)_minmax(22rem,0.95fr)] lg:items-center">
-          <div className="relative">
-            <div className="inline-flex items-center gap-3 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--bokmoo-copy)]">
-              <Sparkles className="h-4 w-4 text-[var(--bokmoo-gold)]" />
-              {site.eyebrow}
+        <div className="relative mx-auto max-w-[1280px]">
+          <div className="grid gap-12 lg:grid-cols-[minmax(0,0.94fr)_minmax(24rem,0.96fr)] lg:items-center">
+            <div className="max-w-[32rem] pt-8">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[color:oklch(0.11_0.01_75_/_0.72)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]">
+                <Sparkles className="h-4 w-4" />
+                {site.eyebrow}
+              </div>
+
+              <h1 className="mt-8 text-[clamp(3.5rem,7vw,6.4rem)] font-semibold leading-[0.94] tracking-[-0.07em] text-[var(--bokmoo-ink)]">
+                {site.headline.split('\n').map((line) => (
+                  <span key={line} className="block">
+                    {line}
+                  </span>
+                ))}
+              </h1>
+
+              <p className="mt-5 max-w-xl text-[clamp(1rem,1.8vw,1.25rem)] leading-8 text-[var(--bokmoo-copy)]">
+                {site.subheadline}
+              </p>
+
+              <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+                <button
+                  onClick={() => openHref(site.primaryCtaHref)}
+                  className="inline-flex min-h-14 items-center justify-center rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_84%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-8 text-sm font-semibold text-[var(--bokmoo-bg)] transition-transform duration-300 hover:-translate-y-0.5"
+                  type="button"
+                >
+                  {site.primaryCtaLabel}
+                </button>
+                <button
+                  onClick={() => openHref(site.secondaryCtaHref)}
+                  className="inline-flex min-h-14 items-center justify-center rounded-[0.9rem] border border-[var(--bokmoo-line-strong)] bg-[color:oklch(0.1_0.01_75_/_0.56)] px-8 text-sm font-medium text-[var(--bokmoo-ink)]"
+                  type="button"
+                >
+                  {site.secondaryCtaLabel}
+                </button>
+              </div>
+
+              <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                {heroBadges.map(({ icon: Icon, title, body }) => (
+                  <div key={title} className="flex items-start gap-3 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[color:oklch(0.11_0.01_75_/_0.55)] px-3 py-3">
+                    <div className="mt-0.5 flex h-9 w-9 items-center justify-center rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] text-[var(--bokmoo-gold)]">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-[var(--bokmoo-ink)]">{title}</p>
+                      <p className="text-xs text-[var(--bokmoo-copy-soft)]">{body}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <h1 className="mt-6 max-w-5xl text-[clamp(3rem,7vw,6.8rem)] leading-[0.94] tracking-[-0.06em] text-[var(--bokmoo-ink)]">
-              {site.headline}
-            </h1>
-            <p className="mt-6 max-w-2xl text-[clamp(1rem,1.8vw,1.2rem)] leading-8 text-[var(--bokmoo-copy)]">
-              {site.subheadline}
-            </p>
+            <div className="relative mx-auto h-[32rem] w-full max-w-[40rem] lg:h-[38rem]">
+              <div className="absolute bottom-[6%] left-[18%] right-[6%] h-14 rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--bokmoo-gold)_44%,transparent),transparent_70%)] blur-xl" />
+              <div className="absolute bottom-[6%] left-[16%] right-[6%] h-28 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_40%,transparent)]" />
+              <div className="absolute bottom-[3%] left-[10%] right-[1%] h-40 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)]" />
+              <div className="absolute right-[8%] top-[6%] h-[70%] w-[34%] rounded-[1.9rem] border border-[var(--bokmoo-line-strong)] bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.02))] shadow-[var(--bokmoo-shadow)]" />
+              <div className="absolute right-[12%] top-[9%] h-[62%] w-[28%] rounded-[1.7rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_26%,transparent)] bg-[linear-gradient(180deg,#161311,#090808)] shadow-[var(--bokmoo-shadow)]" />
+              <div className="absolute right-[19%] top-[18%] h-16 w-16 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
+              <div className="absolute right-[19%] top-[29%] h-16 w-16 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))]" />
 
-            <div className="mt-10 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
+              <div className="absolute bottom-[14%] left-[18%] z-10 h-[74%] w-[38%] -rotate-[8deg] rounded-[2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_42%,transparent)] bg-[linear-gradient(180deg,#1c1713,#070707)] shadow-[var(--bokmoo-shadow)]">
+                <div className="absolute left-8 top-8 flex items-center gap-3">
+                  <div className="grid grid-cols-2 gap-1">
+                    <span className="h-4 w-4 rounded-tl-[999px] rounded-tr-[999px] bg-[var(--bokmoo-gold)]" />
+                    <span className="h-4 w-4 rounded-tl-[999px] rounded-tr-[999px] bg-[var(--bokmoo-gold)]" />
+                    <span className="h-4 w-4 rounded-bl-[999px] rounded-br-[999px] bg-[var(--bokmoo-gold)]" />
+                    <span className="h-4 w-4 rounded-bl-[999px] rounded-br-[999px] bg-[var(--bokmoo-gold)]" />
+                  </div>
+                  <span className="text-sm font-semibold uppercase tracking-[0.16em] text-[var(--bokmoo-gold)]">
+                    BOKMOO
+                  </span>
+                </div>
+
+                <div className="absolute left-1/2 top-[34%] h-56 w-56 -translate-x-1/2 -translate-y-1/2 rounded-[1.9rem] border border-[var(--bokmoo-line-strong)] bg-[linear-gradient(180deg,#111111,#17130f)] shadow-[0_20px_50px_rgba(0,0,0,0.45)]">
+                  <div className="absolute inset-x-5 inset-y-6 rounded-[1.4rem] border border-[var(--bokmoo-line)]" />
+                  <div className="absolute left-1/2 top-1/2 h-20 w-28 -translate-x-1/2 -translate-y-1/2 rounded-[1rem] bg-[linear-gradient(145deg,#f0d38c,#b78534)] shadow-[0_12px_28px_rgba(215,178,61,0.18)]" />
+                </div>
+
+                <p className="absolute bottom-[23%] left-8 text-lg tracking-[0.06em] text-[var(--bokmoo-gold)]">
+                  YOUR GLOBAL PARTNER.
+                </p>
+                <p className="absolute bottom-8 left-8 text-xs tracking-[0.2em] text-[var(--bokmoo-copy-soft)]">
+                  BOKMOO.COM
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-12 rounded-[1.1rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_92%,white),var(--bokmoo-bg-elevated))] px-5 py-4 shadow-[var(--bokmoo-shadow)]">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-4 text-sm">
+                <span className="font-semibold text-[var(--bokmoo-gold)]">Notice</span>
+                <span className="text-[var(--bokmoo-copy)]">
+                  BOKMOO Pro eUICC Card is now available! Manage multiple eSIM profiles with ease.
+                </span>
+              </div>
               <button
-                onClick={() => openHref(site.primaryCtaHref)}
-                className="inline-flex min-h-14 items-center justify-center gap-3 rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-7 text-sm font-semibold uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] transition-transform duration-300 hover:-translate-y-0.5"
+                onClick={() => openHref('/products')}
+                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--bokmoo-gold)]"
                 type="button"
               >
-                {site.primaryCtaLabel}
+                Learn more
                 <ArrowRight className="h-4 w-4" />
               </button>
-              <button
-                onClick={() => openHref(site.secondaryCtaHref)}
-                className="inline-flex min-h-14 items-center justify-center gap-3 rounded-full border border-[var(--bokmoo-line-strong)] bg-[var(--bokmoo-bg-elevated)] px-7 text-sm font-medium uppercase tracking-[0.2em] text-[var(--bokmoo-ink)]"
-                type="button"
-              >
-                {site.secondaryCtaLabel}
-              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-[1280px] space-y-6">
+          <div id="how-it-works" className="rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8">
+            <div className="text-center">
+              <h2 className="text-[clamp(2.2rem,4vw,3.4rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">
+                Why Choose BOKMOO?
+              </h2>
+              <p className="mt-3 text-base text-[var(--bokmoo-copy)]">
+                The next generation eSIM platform that puts you in control.
+              </p>
             </div>
 
-            <div className="mt-10 grid gap-3 sm:grid-cols-3">
-              {[
-                ['200+', 'Countries & regions'],
-                ['Instant', 'QR delivery after payment'],
-                ['Local', 'Carrier-priority access'],
-              ].map(([value, label]) => (
-                <div
-                  key={label}
-                  className="rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[color:oklch(0.22_0.009_90_/_0.9)] p-4"
+            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {reasonCards.map(({ title, body, icon: Icon }) => (
+                <article
+                  key={title}
+                  className="rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] px-5 py-6"
                 >
-                  <p className="text-2xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-gold)]">{value}</p>
-                  <p className="mt-2 text-sm text-[var(--bokmoo-copy)]">{label}</p>
-                </div>
+                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_40%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] text-[var(--bokmoo-gold)]">
+                    <Icon className="h-6 w-6" />
+                  </div>
+                  <h3 className="mt-5 text-center text-xl font-medium text-[var(--bokmoo-ink)]">{title}</h3>
+                  <p className="mt-3 text-center text-sm leading-7 text-[var(--bokmoo-copy)]">{body}</p>
+                </article>
               ))}
             </div>
           </div>
 
-          <div className="relative mx-auto w-full max-w-[34rem]">
-            <div className="rounded-[2.4rem_2.4rem_1.75rem_1.75rem] border border-[var(--bokmoo-line-strong)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-soft)_72%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)]">
-              <div className="rounded-[2rem_2rem_1.2rem_1.2rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,var(--bokmoo-bg-soft),var(--bokmoo-bg))] px-6 pb-8 pt-12">
-                <p className="text-center text-lg font-semibold uppercase tracking-[0.28em] text-[var(--bokmoo-ink)]">
-                  Welcome
-                </p>
-
-                <div className="mt-8 grid grid-cols-[minmax(0,1fr)_4rem] items-center gap-4 rounded-[1.6rem] border border-[var(--bokmoo-line)] bg-[color:oklch(0.18_0.008_90_/_0.94)] p-5">
-                  <div className="rounded-[1.4rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(145deg,var(--bokmoo-bg-soft),var(--bokmoo-bg))] p-4">
-                    <div className="rounded-[1.1rem] border border-[var(--bokmoo-line-strong)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent)] p-4">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--bokmoo-gold)]">Bokmoo</span>
-                        <span className="rounded-full border border-[var(--bokmoo-line)] px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-[var(--bokmoo-copy)]">eSIM</span>
-                      </div>
-                      <div className="mt-6 h-16 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[color:oklch(0.24_0.01_90_/_0.9)]" />
-                      <p className="mt-6 text-sm uppercase tracking-[0.22em] text-[var(--bokmoo-copy)]">
-                        Your global partner.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex h-20 items-center justify-center rounded-[1.25rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] text-[var(--bokmoo-silver)]">
-                    <span className="text-xl">⌁</span>
-                  </div>
+          <div className="rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8">
+            <div className="flex flex-col gap-4 border-b border-[var(--bokmoo-line)] pb-5 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <h2 className="text-[clamp(2rem,3.4vw,3rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">
+                  eSIM Plans for Every Journey
+                </h2>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {(
+                    ['Popular', 'Asia', 'Europe', 'North America', 'Global'] as PlanCategory[]
+                  ).map((category) => (
+                    <button
+                      key={category}
+                      onClick={() => setActiveCategory(category)}
+                      className={`rounded-full px-4 py-2 text-sm transition-colors ${
+                        activeCategory === category
+                          ? 'bg-[var(--bokmoo-gold)] text-[var(--bokmoo-bg)]'
+                          : 'text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]'
+                      }`}
+                      type="button"
+                    >
+                      {category}
+                    </button>
+                  ))}
                 </div>
+              </div>
 
-                <div className="mt-6 rounded-[1.4rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-5">
-                  <p className="text-center text-sm font-medium uppercase tracking-[0.22em] text-[var(--bokmoo-ink)]">
-                    Setting up your Bokmoo
-                  </p>
-                  <div className="mt-4 grid gap-3">
-                    {rituals.map(({ title, body, icon: Icon }) => (
-                      <div key={title} className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] text-[var(--bokmoo-gold)]">
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-[var(--bokmoo-ink)]">{title}</p>
-                          <p className="mt-1 text-xs leading-5 text-[var(--bokmoo-copy)]">{body}</p>
-                        </div>
+              <button
+                onClick={() => openHref('/products')}
+                className="inline-flex items-center gap-2 text-sm font-medium text-[var(--bokmoo-gold)]"
+                type="button"
+              >
+                View all plans
+                <ArrowRight className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="mt-6 grid gap-4 xl:grid-cols-5">
+              {activePlans.map((plan) => (
+                <PlanCard key={`${activeCategory}-${plan.country}`} plan={plan} onClick={() => openHref('/products')} />
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">
+              <div>
+                <h2 className="text-[clamp(2rem,3.2vw,2.8rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">
+                  How It Works
+                </h2>
+                <div className="mt-6 grid gap-5 md:grid-cols-3">
+                  {steps.map(({ title, body, icon: Icon }) => (
+                    <div key={title} className="text-center">
+                      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[var(--bokmoo-line-strong)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] text-[var(--bokmoo-gold)]">
+                        <Icon className="h-7 w-7" />
                       </div>
-                    ))}
+                      <h3 className="mt-5 text-lg font-medium text-[var(--bokmoo-ink)]">{title}</h3>
+                      <p className="mt-3 text-sm leading-7 text-[var(--bokmoo-copy)]">{body}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="relative overflow-hidden rounded-[1.25rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(160deg,#7c6244_0%,#25211c_55%,#0d0d0d_100%)] p-5">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_18%,rgba(255,215,138,0.4),transparent_18%),linear-gradient(180deg,transparent,rgba(0,0,0,0.28))]" />
+                <div className="absolute left-10 top-12 h-5 w-5 rounded-full bg-[rgba(255,219,162,0.32)] blur-[1px]" />
+                <div className="absolute left-20 top-20 h-3 w-3 rounded-full bg-[rgba(255,219,162,0.24)] blur-[1px]" />
+                <div className="absolute left-[36%] top-16 h-6 w-6 rounded-full bg-[rgba(255,219,162,0.28)] blur-[1px]" />
+
+                <div className="relative ml-auto w-[11rem] rounded-[1.05rem] border border-[rgba(255,255,255,0.14)] bg-[rgba(12,12,14,0.7)] p-4 backdrop-blur-xl">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="grid grid-cols-2 gap-0.5">
+                        <span className="h-2.5 w-2.5 rounded-tl-[999px] rounded-tr-[999px] bg-[var(--bokmoo-gold)]" />
+                        <span className="h-2.5 w-2.5 rounded-tl-[999px] rounded-tr-[999px] bg-[var(--bokmoo-gold)]" />
+                        <span className="h-2.5 w-2.5 rounded-bl-[999px] rounded-br-[999px] bg-[var(--bokmoo-gold)]" />
+                        <span className="h-2.5 w-2.5 rounded-bl-[999px] rounded-br-[999px] bg-[var(--bokmoo-gold)]" />
+                      </div>
+                      <span className="text-xs font-semibold text-[var(--bokmoo-ink)]">BOKMOO Pro</span>
+                    </div>
+                    <span className="text-[10px] font-semibold text-emerald-300">Active</span>
+                  </div>
+
+                  <div className="mt-4">
+                    <p className="text-[11px] text-[var(--bokmoo-copy-soft)]">Data Usage</p>
+                    <p className="mt-1 text-2xl font-semibold text-[var(--bokmoo-ink)]">12.45 <span className="text-sm font-medium text-[var(--bokmoo-copy)]">GB / 20 GB</span></p>
+                    <div className="mt-3 h-2 rounded-full bg-[rgba(255,255,255,0.08)]">
+                      <div className="h-full w-[62%] rounded-full bg-[linear-gradient(90deg,var(--bokmoo-gold),color-mix(in_oklab,var(--bokmoo-gold)_72%,white))]" />
+                    </div>
+                    <p className="mt-4 text-[11px] text-[var(--bokmoo-copy-soft)]">Valid Until</p>
+                    <p className="mt-1 text-sm font-medium text-[var(--bokmoo-ink)]">2025-06-30</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <section className="px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-[1280px]">
-          <div className="max-w-2xl">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--bokmoo-copy-soft)]">
-              Choose your route
-            </p>
-            <h2 className="mt-4 text-[clamp(2.2rem,4vw,4.4rem)] leading-[0.97] tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-              Plans arranged like travel options, not commodity telecom tiles.
-            </h2>
-          </div>
+          <div className="overflow-hidden rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(135deg,#1b1610,#0c0b09_45%,#19130e)] shadow-[var(--bokmoo-shadow)]">
+            <div className="grid gap-8 px-6 py-8 lg:grid-cols-[minmax(0,0.86fr)_22rem] lg:px-8">
+              <div className="relative">
+                <div className="absolute -bottom-28 left-[28%] h-72 w-72 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] opacity-60" />
+                <div className="absolute -bottom-36 left-[24%] h-96 w-96 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] opacity-50" />
 
-          <div className="mt-8 grid gap-4 lg:grid-cols-3">
-            {collections.map((item) => (
-              <button
-                key={item.label}
-                onClick={() => onNavigate?.(item.href)}
-                className="group rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 text-left transition-transform duration-300 hover:-translate-y-1"
-                type="button"
-              >
-                <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--bokmoo-gold)]">
-                  {item.label}
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]">
+                  BOKMOO eUICC Card
                 </p>
-                <h3 className="mt-4 text-2xl leading-[1.02] tracking-[-0.04em] text-[var(--bokmoo-ink)]">
-                  {item.title}
-                </h3>
-                <p className="mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]">{item.detail}</p>
-                <span className="mt-6 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]">
-                  Open
-                  <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </section>
+                <h2 className="mt-3 text-[clamp(2.2rem,4vw,3.8rem)] font-semibold leading-[0.95] tracking-[-0.05em] text-[var(--bokmoo-ink)]">
+                  One Card. Unlimited Possibilities.
+                </h2>
+                <ul className="mt-6 space-y-3 text-base text-[var(--bokmoo-copy)]">
+                  <li>Store multiple eSIM profiles</li>
+                  <li>Easy management via BOKMOO App</li>
+                  <li>Compatible with iOS & Android</li>
+                </ul>
+                <button
+                  onClick={() => openHref(site.secondaryCtaHref)}
+                  className="mt-8 inline-flex min-h-12 items-center justify-center rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_84%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-7 text-sm font-semibold text-[var(--bokmoo-bg)]"
+                  type="button"
+                >
+                  Shop Now
+                </button>
+              </div>
 
-      <section className="border-t border-[var(--bokmoo-line)] px-4 py-16 sm:px-6 lg:px-8">
-        <div className="mx-auto grid max-w-[1280px] gap-8 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-          <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--bokmoo-copy-soft)]">
-              Why Bokmoo
-            </p>
-            <h2 className="mt-4 text-[clamp(2.2rem,4vw,4.2rem)] leading-[0.97] tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-              High-end doesn&apos;t mean louder. It means more prepared, more legible, and more reassuring.
-            </h2>
+              <div className="grid gap-4">
+                {euiccFeatures.map(({ title, body, icon: Icon }) => (
+                  <article
+                    key={title}
+                    className="rounded-[1.1rem] border border-[var(--bokmoo-line)] bg-[rgba(255,255,255,0.03)] px-4 py-4"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-[0.95rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] text-[var(--bokmoo-gold)]">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-medium text-[var(--bokmoo-ink)]">{title}</h3>
+                        <p className="mt-2 text-sm leading-7 text-[var(--bokmoo-copy)]">{body}</p>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
           </div>
 
-          <div className="grid gap-4">
-            {[
-              'The storefront leads with plan clarity before it asks for checkout.',
-              'Activation is framed as a three-step ritual that mirrors the physical welcome kit.',
-              'Product pages prioritize compatibility, coverage, and setup confidence over discount noise.',
-            ].map((item) => (
-              <div
-                key={item}
-                className="grid grid-cols-[1.5rem_minmax(0,1fr)] gap-4 rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-5"
-              >
-                <CheckCircle2 className="mt-0.5 h-5 w-5 text-[var(--bokmoo-gold)]" />
-                <p className="text-sm leading-7 text-[var(--bokmoo-copy)]">{item}</p>
+          <div className="grid gap-4 rounded-[1.35rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-5 shadow-[var(--bokmoo-shadow)] sm:grid-cols-2 xl:grid-cols-4">
+            {metrics.map((metric) => (
+              <div key={metric.label} className="border-b border-[var(--bokmoo-line)] pb-4 last:border-none sm:border-b-0 sm:border-r sm:pb-0 sm:pr-4 sm:last:border-r-0">
+                <p className="text-[clamp(2rem,3vw,2.8rem)] font-semibold tracking-[-0.06em] text-[var(--bokmoo-ink)]">
+                  {metric.value}
+                </p>
+                <p className="mt-1 text-sm text-[var(--bokmoo-copy-soft)]">{metric.label}</p>
               </div>
             ))}
           </div>

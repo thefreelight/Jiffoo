@@ -1,5 +1,5 @@
 import React from 'react';
-import { Globe2, Menu, Search, ShoppingBag, User, X } from 'lucide-react';
+import { ChevronDown, Globe2, Menu, ShoppingBag, X } from 'lucide-react';
 import type { HeaderProps } from 'shared/src/types/theme';
 import { isExternalHref, resolveBokmooSiteConfig } from '../site';
 
@@ -8,7 +8,6 @@ export const Header = React.memo(function Header({
   user,
   cartItemCount,
   config,
-  onSearch,
   onNavigate,
   onLogout,
   onNavigateToCart,
@@ -17,11 +16,8 @@ export const Header = React.memo(function Header({
   onNavigateToRegister,
   onNavigateToHome,
   onNavigateToProducts,
-  onNavigateToCategories,
-  onNavigateToDeals,
 }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  const [query, setQuery] = React.useState('');
   const site = resolveBokmooSiteConfig(config);
 
   const openHref = React.useCallback(
@@ -36,64 +32,78 @@ export const Header = React.memo(function Header({
   );
 
   const navItems = [
-    { label: 'All Plans', onClick: onNavigateToProducts },
-    { label: 'Destinations', onClick: onNavigateToCategories },
-    { label: 'Travel Deals', onClick: onNavigateToDeals },
-    { label: 'How It Works', onClick: () => onNavigate?.('/help') },
+    { label: 'Store', onClick: onNavigateToProducts },
+    { label: 'Coverage', onClick: onNavigateToProducts },
+    { label: 'How It Works', onClick: () => openHref('/#how-it-works') },
+    { label: 'About Us', onClick: () => openHref('/contact') },
+    { label: 'Support', onClick: () => openHref('/help') },
   ];
 
-  const submitSearch = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!query.trim()) return;
-    onSearch(query.trim());
-    setIsMenuOpen(false);
-  };
-
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--bokmoo-line)] bg-[color:oklch(0.18_0.008_90_/_0.82)] backdrop-blur-xl">
-      <div className="mx-auto flex max-w-[1280px] items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-        <button onClick={onNavigateToHome} className="group flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-[1rem] border border-[var(--bokmoo-line-strong)] bg-[linear-gradient(145deg,var(--bokmoo-bg-soft),var(--bokmoo-bg))] text-[var(--bokmoo-gold)] shadow-[var(--bokmoo-shadow)] transition-transform duration-300 group-hover:-translate-y-0.5">
-            <span className="text-sm font-black tracking-[0.18em]">BM</span>
+    <header className="sticky top-0 z-50 border-b border-[var(--bokmoo-line)] bg-[color:oklch(0.08_0.008_75_/_0.9)] backdrop-blur-xl">
+      <div className="mx-auto flex max-w-[1280px] items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
+        <button
+          onClick={onNavigateToHome}
+          className="flex items-center gap-3 text-left"
+          type="button"
+          aria-label={`${site.brandName} home`}
+        >
+          <div className="grid grid-cols-2 gap-0.5 rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_38%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] p-1.5">
+            <span className="h-3.5 w-3.5 rounded-tl-[999px] rounded-tr-[999px] bg-[var(--bokmoo-gold)]" />
+            <span className="h-3.5 w-3.5 rounded-tl-[999px] rounded-tr-[999px] bg-[var(--bokmoo-gold)]" />
+            <span className="h-3.5 w-3.5 rounded-bl-[999px] rounded-br-[999px] bg-[var(--bokmoo-gold)]" />
+            <span className="h-3.5 w-3.5 rounded-bl-[999px] rounded-br-[999px] bg-[var(--bokmoo-gold)]" />
           </div>
-          <div className="hidden min-w-0 sm:block">
-            <div className="text-sm font-semibold uppercase tracking-[0.28em] text-[var(--bokmoo-ink)]">
-              {site.brandName}
-            </div>
-            <div className="text-[11px] text-[var(--bokmoo-copy-soft)]">
-              Premium travel connectivity
-            </div>
-          </div>
+          <span className="text-xl font-semibold tracking-[0.08em] text-[var(--bokmoo-ink)]">
+            {site.brandName.toUpperCase()}
+          </span>
         </button>
 
-        <nav className="hidden items-center gap-1 lg:flex">
+        <nav className="ml-4 hidden items-center gap-3 xl:flex">
           {navItems.map((item) => (
             <button
               key={item.label}
-              onClick={item.onClick}
-              className="rounded-full px-4 py-2 text-[12px] font-medium uppercase tracking-[0.16em] text-[var(--bokmoo-copy)] transition-colors hover:bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] hover:text-[var(--bokmoo-ink)]"
+              onClick={() => {
+                item.onClick();
+                setIsMenuOpen(false);
+              }}
+              className="rounded-[0.8rem] px-4 py-2 text-sm font-medium text-[var(--bokmoo-copy)] transition-colors hover:text-[var(--bokmoo-gold)]"
+              type="button"
             >
               {item.label}
             </button>
           ))}
         </nav>
 
-        <form onSubmit={submitSearch} className="hidden flex-1 items-center justify-end lg:flex">
-          <div className="flex w-full max-w-[24rem] items-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[color:oklch(0.22_0.009_90_/_0.88)] px-4 py-2">
-            <Search className="h-4 w-4 text-[var(--bokmoo-copy-soft)]" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search countries or regional passes..."
-              className="w-full bg-transparent text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)]"
-            />
-          </div>
-        </form>
+        <div className="ml-auto hidden items-center gap-3 xl:flex">
+          <button
+            className="inline-flex items-center gap-2 rounded-[0.8rem] border border-[var(--bokmoo-line)] px-3 py-2 text-sm text-[var(--bokmoo-copy)]"
+            type="button"
+          >
+            <Globe2 className="h-4 w-4 text-[var(--bokmoo-gold)]" />
+            English
+            <ChevronDown className="h-4 w-4" />
+          </button>
 
-        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={isAuthenticated ? onNavigateToProfile : onNavigateToLogin}
+            className="inline-flex min-h-11 items-center justify-center rounded-[0.8rem] border border-[var(--bokmoo-line-strong)] px-5 text-sm font-medium text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)]"
+            type="button"
+          >
+            {isAuthenticated ? user?.firstName || 'Account' : 'Log In'}
+          </button>
+
+          <button
+            onClick={isAuthenticated ? onNavigateToProfile : onNavigateToRegister}
+            className="inline-flex min-h-11 items-center justify-center rounded-[0.8rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]"
+            type="button"
+          >
+            {isAuthenticated ? 'Dashboard' : 'Get Started'}
+          </button>
+
           <button
             onClick={onNavigateToCart}
-            className="relative flex h-11 w-11 items-center justify-center rounded-[1rem] border border-[var(--bokmoo-line)] bg-[color:oklch(0.22_0.009_90_/_0.88)] text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-line-strong)] hover:text-[var(--bokmoo-gold)]"
+            className="relative inline-flex h-11 w-11 items-center justify-center rounded-[0.8rem] border border-[var(--bokmoo-line)] text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)]"
             aria-label="Open cart"
             type="button"
           >
@@ -104,67 +114,20 @@ export const Header = React.memo(function Header({
               </span>
             ) : null}
           </button>
-
-          {isAuthenticated ? (
-            <button
-              onClick={onNavigateToProfile}
-              className="hidden h-11 items-center gap-2 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[color:oklch(0.22_0.009_90_/_0.88)] px-4 text-sm font-medium text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-line-strong)] sm:inline-flex"
-              type="button"
-            >
-              <User className="h-4 w-4 text-[var(--bokmoo-gold)]" />
-              {user?.firstName || 'Traveler'}
-            </button>
-          ) : (
-            <div className="hidden items-center gap-2 sm:flex">
-              <button
-                onClick={onNavigateToLogin}
-                className="rounded-full px-4 py-2 text-[12px] font-medium uppercase tracking-[0.16em] text-[var(--bokmoo-copy)] transition-colors hover:text-[var(--bokmoo-ink)]"
-                type="button"
-              >
-                Sign in
-              </button>
-              <button
-                onClick={onNavigateToRegister}
-                className="rounded-full border border-[var(--bokmoo-line-strong)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.16em] text-[var(--bokmoo-bg)] transition-transform duration-300 hover:-translate-y-0.5"
-                type="button"
-              >
-                Create account
-              </button>
-            </div>
-          )}
-
-          <button
-            onClick={() => setIsMenuOpen((value) => !value)}
-            className="flex h-11 w-11 items-center justify-center rounded-[1rem] border border-[var(--bokmoo-line)] bg-[color:oklch(0.22_0.009_90_/_0.88)] text-[var(--bokmoo-ink)] lg:hidden"
-            aria-label="Toggle menu"
-            type="button"
-          >
-            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
         </div>
+
+        <button
+          onClick={() => setIsMenuOpen((value) => !value)}
+          className="ml-auto flex h-11 w-11 items-center justify-center rounded-[0.8rem] border border-[var(--bokmoo-line)] text-[var(--bokmoo-ink)] xl:hidden"
+          aria-label="Toggle menu"
+          type="button"
+        >
+          {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
       </div>
 
       {isMenuOpen ? (
-        <div className="border-t border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 py-4 lg:hidden">
-          <form onSubmit={submitSearch} className="mb-4">
-            <div className="flex items-center gap-2 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3">
-              <Search className="h-4 w-4 text-[var(--bokmoo-copy-soft)]" />
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search countries or regional passes..."
-                className="w-full bg-transparent text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)]"
-              />
-            </div>
-          </form>
-
-          <div className="mb-4 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-sm text-[var(--bokmoo-copy)]">
-            <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]">
-              <Globe2 className="h-4 w-4" />
-              {site.eyebrow}
-            </div>
-          </div>
-
+        <div className="border-t border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 py-4 xl:hidden">
           <div className="grid gap-2">
             {navItems.map((item) => (
               <button
@@ -173,7 +136,7 @@ export const Header = React.memo(function Header({
                   item.onClick();
                   setIsMenuOpen(false);
                 }}
-                className="rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)]"
+                className="rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)]"
                 type="button"
               >
                 {item.label}
@@ -182,13 +145,13 @@ export const Header = React.memo(function Header({
 
             <button
               onClick={() => {
-                openHref(site.secondaryCtaHref);
+                onNavigateToCart();
                 setIsMenuOpen(false);
               }}
-              className="rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)]"
+              className="rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)]"
               type="button"
             >
-              {site.secondaryCtaLabel}
+              Cart
             </button>
 
             {isAuthenticated ? (
@@ -198,7 +161,7 @@ export const Header = React.memo(function Header({
                     onNavigateToProfile();
                     setIsMenuOpen(false);
                   }}
-                  className="rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)]"
+                  className="rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)]"
                   type="button"
                 >
                   Account
@@ -208,10 +171,10 @@ export const Header = React.memo(function Header({
                     onLogout();
                     setIsMenuOpen(false);
                   }}
-                  className="rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-copy)]"
+                  className="rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-copy)]"
                   type="button"
                 >
-                  Log out
+                  Log Out
                 </button>
               </>
             ) : (
@@ -221,20 +184,20 @@ export const Header = React.memo(function Header({
                     onNavigateToLogin();
                     setIsMenuOpen(false);
                   }}
-                  className="rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)]"
+                  className="rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)]"
                   type="button"
                 >
-                  Sign in
+                  Log In
                 </button>
                 <button
                   onClick={() => {
                     onNavigateToRegister();
                     setIsMenuOpen(false);
                   }}
-                  className="rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-4 py-3 text-left text-sm font-semibold text-[var(--bokmoo-bg)]"
+                  className="rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-4 py-3 text-left text-sm font-semibold text-[var(--bokmoo-bg)]"
                   type="button"
                 >
-                  Create account
+                  Get Started
                 </button>
               </>
             )}
