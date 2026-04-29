@@ -40,26 +40,26 @@ export const Header = React.memo(function Header({
   ];
 
   return (
-    <header className="sticky top-0 z-50 border-b border-[var(--bokmoo-line)] bg-[color:oklch(0.08_0.008_75_/_0.9)] backdrop-blur-xl">
-      <div className="mx-auto flex max-w-[1280px] items-center gap-4 px-4 py-3 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] bg-[color:oklch(0.055_0.006_75_/_0.94)] backdrop-blur-2xl">
+      <div className="mx-auto flex max-w-[1760px] items-center gap-5 px-5 py-3.5 sm:px-8 xl:px-10">
         <button
           onClick={onNavigateToHome}
-          className="flex items-center gap-3 text-left"
+          className="flex items-center gap-4 text-left"
           type="button"
           aria-label={`${site.brandName} home`}
         >
-          <div className="grid grid-cols-2 gap-0.5 rounded-[0.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_38%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] p-1.5">
-            <span className="h-3.5 w-3.5 rounded-tl-[999px] rounded-tr-[999px] bg-[var(--bokmoo-gold)]" />
-            <span className="h-3.5 w-3.5 rounded-tl-[999px] rounded-tr-[999px] bg-[var(--bokmoo-gold)]" />
-            <span className="h-3.5 w-3.5 rounded-bl-[999px] rounded-br-[999px] bg-[var(--bokmoo-gold)]" />
-            <span className="h-3.5 w-3.5 rounded-bl-[999px] rounded-br-[999px] bg-[var(--bokmoo-gold)]" />
+          <div className="grid h-12 w-12 grid-cols-2 gap-1 rounded-[0.68rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_44%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_11%,transparent)] p-2 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04),0_18px_46px_rgba(0,0,0,0.4)] sm:h-14 sm:w-14">
+            <span className="rounded-tl-[999px] rounded-tr-[999px] bg-[linear-gradient(145deg,var(--bokmoo-gold-strong),var(--bokmoo-gold))]" />
+            <span className="rounded-tl-[999px] rounded-tr-[999px] bg-[linear-gradient(145deg,var(--bokmoo-gold-strong),var(--bokmoo-gold))]" />
+            <span className="rounded-bl-[999px] rounded-br-[999px] bg-[linear-gradient(145deg,var(--bokmoo-gold-strong),var(--bokmoo-gold))]" />
+            <span className="rounded-bl-[999px] rounded-br-[999px] bg-[linear-gradient(145deg,var(--bokmoo-gold-strong),var(--bokmoo-gold))]" />
           </div>
-          <span className="text-xl font-semibold tracking-[0.08em] text-[var(--bokmoo-ink)]">
+          <span className="text-[1.35rem] font-semibold tracking-[0.16em] text-[var(--bokmoo-ink)] sm:text-[1.55rem]">
             {site.brandName.toUpperCase()}
           </span>
         </button>
 
-        <nav className="ml-4 hidden items-center gap-3 xl:flex">
+        <nav className="ml-10 hidden items-center gap-8 xl:flex 2xl:ml-16 2xl:gap-12">
           {navItems.map((item) => (
             <button
               key={item.label}
@@ -67,7 +67,7 @@ export const Header = React.memo(function Header({
                 item.onClick();
                 setIsMenuOpen(false);
               }}
-              className="rounded-[0.8rem] px-4 py-2 text-sm font-medium text-[var(--bokmoo-copy)] transition-colors hover:text-[var(--bokmoo-gold)]"
+              className="rounded-[0.8rem] px-1 py-2 text-[0.98rem] font-medium text-[var(--bokmoo-copy)] transition-colors hover:text-[var(--bokmoo-gold)]"
               type="button"
             >
               {item.label}
@@ -75,19 +75,19 @@ export const Header = React.memo(function Header({
           ))}
         </nav>
 
-        <div className="ml-auto hidden items-center gap-3 xl:flex">
+        <div className="ml-auto hidden items-center gap-4 xl:flex">
           <button
-            className="inline-flex items-center gap-2 rounded-[0.8rem] border border-[var(--bokmoo-line)] px-3 py-2 text-sm text-[var(--bokmoo-copy)]"
+            className="inline-flex min-h-12 items-center gap-2 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[rgba(3,3,3,0.24)] px-5 text-base text-[var(--bokmoo-copy)]"
             type="button"
           >
-            <Globe2 className="h-4 w-4 text-[var(--bokmoo-gold)]" />
+            <Globe2 className="h-[1.125rem] w-[1.125rem] text-[var(--bokmoo-gold)]" />
             English
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown className="h-[1.125rem] w-[1.125rem]" />
           </button>
 
           <button
             onClick={isAuthenticated ? onNavigateToProfile : onNavigateToLogin}
-            className="inline-flex min-h-11 items-center justify-center rounded-[0.8rem] border border-[var(--bokmoo-line-strong)] px-5 text-sm font-medium text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)]"
+            className="inline-flex min-h-12 items-center justify-center rounded-[1rem] border border-[var(--bokmoo-line-strong)] bg-[rgba(3,3,3,0.22)] px-6 text-base font-medium text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)]"
             type="button"
           >
             {isAuthenticated ? user?.firstName || 'Account' : 'Log In'}
@@ -95,7 +95,7 @@ export const Header = React.memo(function Header({
 
           <button
             onClick={isAuthenticated ? onNavigateToProfile : onNavigateToRegister}
-            className="inline-flex min-h-11 items-center justify-center rounded-[0.8rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]"
+            className="inline-flex min-h-12 items-center justify-center rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-8 text-base font-bold text-[var(--bokmoo-bg)] shadow-[0_16px_44px_color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)]"
             type="button"
           >
             {isAuthenticated ? 'Dashboard' : 'Get Started'}
@@ -103,7 +103,7 @@ export const Header = React.memo(function Header({
 
           <button
             onClick={onNavigateToCart}
-            className="relative inline-flex h-11 w-11 items-center justify-center rounded-[0.8rem] border border-[var(--bokmoo-line)] text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)]"
+            className="relative inline-flex h-12 w-12 items-center justify-center rounded-[1rem] border border-[var(--bokmoo-line)] bg-[rgba(3,3,3,0.22)] text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)]"
             aria-label="Open cart"
             type="button"
           >

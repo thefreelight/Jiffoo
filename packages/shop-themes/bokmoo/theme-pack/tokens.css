@@ -1,21 +1,21 @@
 :root,
 html.light,
 html.dark {
-  --bokmoo-bg: oklch(0.08 0.008 75);
-  --bokmoo-bg-elevated: oklch(0.115 0.01 75);
-  --bokmoo-bg-soft: oklch(0.15 0.012 75);
-  --bokmoo-panel: oklch(0.13 0.01 75 / 0.96);
-  --bokmoo-panel-strong: oklch(0.18 0.014 75 / 0.98);
+  --bokmoo-bg: oklch(0.055 0.006 75);
+  --bokmoo-bg-elevated: oklch(0.082 0.008 75);
+  --bokmoo-bg-soft: oklch(0.118 0.01 75);
+  --bokmoo-panel: oklch(0.095 0.009 75 / 0.96);
+  --bokmoo-panel-strong: oklch(0.14 0.013 75 / 0.98);
   --bokmoo-surface: var(--bokmoo-bg-elevated);
   --bokmoo-surface-alt: var(--bokmoo-bg-soft);
-  --bokmoo-ink: oklch(0.95 0.008 86);
-  --bokmoo-copy: oklch(0.8 0.012 82);
-  --bokmoo-copy-soft: oklch(0.63 0.01 82);
-  --bokmoo-line: oklch(0.34 0.02 78 / 0.38);
-  --bokmoo-line-strong: oklch(0.54 0.032 78 / 0.56);
-  --bokmoo-gold: oklch(0.78 0.11 80);
-  --bokmoo-gold-strong: oklch(0.84 0.11 82);
-  --bokmoo-gold-soft: oklch(0.24 0.046 79);
+  --bokmoo-ink: oklch(0.97 0.006 86);
+  --bokmoo-copy: oklch(0.78 0.011 82);
+  --bokmoo-copy-soft: oklch(0.57 0.01 82);
+  --bokmoo-line: oklch(0.29 0.019 78 / 0.34);
+  --bokmoo-line-strong: oklch(0.52 0.034 78 / 0.52);
+  --bokmoo-gold: oklch(0.76 0.105 80);
+  --bokmoo-gold-strong: oklch(0.86 0.11 82);
+  --bokmoo-gold-soft: oklch(0.2 0.042 79);
   --bokmoo-primary: var(--bokmoo-gold);
   --bokmoo-primary-strong: var(--bokmoo-gold-strong);
   --bokmoo-primary-soft: var(--bokmoo-gold-soft);
@@ -23,9 +23,9 @@ html.dark {
   --bokmoo-success: oklch(0.77 0.09 150);
   --bokmoo-warning: oklch(0.81 0.1 82);
   --bokmoo-danger: oklch(0.66 0.19 28);
-  --bokmoo-shadow: 0 28px 90px -44px rgba(0, 0, 0, 0.86);
-  --bokmoo-shadow-glow: 0 0 48px color-mix(in oklab, var(--bokmoo-gold) 26%, transparent);
-  --bokmoo-orbit-glow: radial-gradient(circle, color-mix(in oklab, var(--bokmoo-gold) 48%, transparent) 0%, transparent 68%);
+  --bokmoo-shadow: 0 34px 110px -48px rgba(0, 0, 0, 0.92);
+  --bokmoo-shadow-glow: 0 0 58px color-mix(in oklab, var(--bokmoo-gold) 30%, transparent);
+  --bokmoo-orbit-glow: radial-gradient(circle, color-mix(in oklab, var(--bokmoo-gold) 54%, transparent) 0%, transparent 68%);
   --bokmoo-radius-xl: 2rem;
   --bokmoo-radius-lg: 1.5rem;
   --bokmoo-radius-md: 1rem;
@@ -83,9 +83,9 @@ html.dark {
 html,
 body {
   background:
-    radial-gradient(circle at 82% 8%, color-mix(in oklab, var(--bokmoo-gold) 16%, transparent), transparent 18%),
-    radial-gradient(circle at 75% 28%, color-mix(in oklab, var(--bokmoo-gold) 9%, transparent), transparent 24%),
-    radial-gradient(circle at 20% 80%, color-mix(in oklab, var(--bokmoo-gold) 6%, transparent), transparent 22%),
+    radial-gradient(circle at 82% 8%, color-mix(in oklab, var(--bokmoo-gold) 13%, transparent), transparent 18%),
+    radial-gradient(circle at 75% 28%, color-mix(in oklab, var(--bokmoo-gold) 8%, transparent), transparent 24%),
+    radial-gradient(circle at 20% 80%, color-mix(in oklab, var(--bokmoo-gold) 4%, transparent), transparent 22%),
     var(--bokmoo-bg) !important;
   color: var(--bokmoo-ink) !important;
   font-family: var(--bokmoo-sans);
