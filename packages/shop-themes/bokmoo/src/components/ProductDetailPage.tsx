@@ -119,7 +119,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--bokmoo-gold)_9%,transparent),transparent_34%),var(--bokmoo-bg)] px-4 pb-24 pt-8 sm:px-6 sm:pt-10 lg:px-8">
       <div className="mx-auto max-w-[980px]">
         <button
           onClick={onBack}
@@ -130,25 +130,25 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
           Back to Store
         </button>
 
-        <div className="mt-5 rounded-[1.55rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-4 shadow-[var(--bokmoo-shadow)] sm:p-5">
+        <div className="mt-5 rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_80%,black),color-mix(in_oklab,var(--bokmoo-bg-elevated)_92%,black))] p-3 shadow-[var(--bokmoo-shadow)] sm:rounded-[1.55rem] sm:p-5">
           <div className="grid gap-6 lg:grid-cols-[minmax(0,0.96fr)_22rem]">
             <div>
-              <div className="overflow-hidden rounded-[1.2rem] border border-[var(--bokmoo-line)]">
+              <div className="overflow-hidden rounded-[1.05rem] border border-[var(--bokmoo-line)] sm:rounded-[1.2rem]">
                 {image ? (
-                  <img src={image} alt={normalizedProduct.name} className="aspect-[1.6/1] h-full w-full object-cover" />
+                  <img src={image} alt={normalizedProduct.name} className="aspect-[1.28/1] h-full w-full object-cover sm:aspect-[1.6/1]" />
                 ) : (
-                  <div className="aspect-[1.6/1] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" />
+                  <div className="aspect-[1.28/1] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)] sm:aspect-[1.6/1]" />
                 )}
               </div>
 
-              <div className="mt-5 flex items-start justify-between gap-4">
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                 <div>
                   <h1 className="text-[clamp(2.2rem,4vw,3.4rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">
                     {normalizedProduct.name}
                   </h1>
                   <p className="mt-2 text-lg text-[var(--bokmoo-copy)]">{profile.networkLabel}</p>
                 </div>
-                <div className="text-right">
+                <div className="sm:text-right">
                   <p className="text-[2.3rem] font-semibold tracking-[-0.05em] text-[var(--bokmoo-gold)]">
                     ${priceValue.toFixed(2)}
                   </p>
@@ -163,7 +163,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-4"
+                    className="rounded-[1rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 py-4"
                   >
                     <p className="text-[11px] uppercase tracking-[0.16em] text-[var(--bokmoo-copy-soft)]">{item.label}</p>
                     <p className="mt-2 text-sm font-medium text-[var(--bokmoo-ink)]">{item.value}</p>
@@ -184,7 +184,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 ))}
               </div>
 
-              <div className="mt-6 rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+              <div className="mt-6 rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-[var(--bokmoo-ink)]">Coverage</p>
@@ -198,7 +198,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
             </div>
 
             <aside className="space-y-4">
-              <div className="rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+              <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
                 <p className="text-sm font-medium text-[var(--bokmoo-ink)]">Quick Facts</p>
                 <div className="mt-4 grid gap-3">
                   {[
@@ -220,7 +220,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
               </div>
 
               {normalizedProduct.variants?.length ? (
-                <div className="rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+                <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
                   <p className="text-sm font-medium text-[var(--bokmoo-ink)]">Choose an option</p>
                   <div className="mt-4 flex flex-wrap gap-2">
                     {normalizedProduct.variants.map((variant) => {
@@ -245,9 +245,9 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 </div>
               ) : null}
 
-              <div className="rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+              <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
                 <p className="text-sm font-medium text-[var(--bokmoo-ink)]">Quantity</p>
-                <div className="mt-4 flex items-center justify-between rounded-[0.95rem] border border-[var(--bokmoo-line)] px-3 py-2">
+                <div className="mt-4 flex items-center justify-between rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-3 py-2">
                   <button
                     onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
                     className="flex h-9 w-9 items-center justify-center rounded-full text-[var(--bokmoo-copy)]"
@@ -276,7 +276,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 Add to Cart — ${priceValue.toFixed(2)}
               </button>
 
-              <div className="rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+              <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
                 <div className="flex items-center gap-2 text-sm text-[var(--bokmoo-copy)]">
                   <Star className="h-4 w-4 text-[var(--bokmoo-gold)]" />
                   4.9 average traveler satisfaction

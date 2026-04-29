@@ -24,6 +24,9 @@
   --bokmoo-shadow: 0 34px 110px -48px rgba(0, 0, 0, 0.92);
   --bokmoo-shadow-glow: 0 0 58px color-mix(in oklab, var(--bokmoo-gold) 30%, transparent);
   --bokmoo-orbit-glow: radial-gradient(circle, color-mix(in oklab, var(--bokmoo-gold) 54%, transparent) 0%, transparent 68%);
+  --bokmoo-hero-gold-field: color-mix(in oklab, var(--bokmoo-gold) 42%, transparent);
+  --bokmoo-card-edge: color-mix(in oklab, var(--bokmoo-gold) 52%, transparent);
+  --bokmoo-card-glow: 0 64px 180px rgba(0, 0, 0, 0.82), 0 0 90px color-mix(in oklab, var(--bokmoo-gold) 18%, transparent);
   --bokmoo-radius-xl: 2rem;
   --bokmoo-radius-lg: 1.5rem;
   --bokmoo-radius-md: 1rem;

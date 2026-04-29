@@ -163,9 +163,9 @@ export const ProductsPage = React.memo(function ProductsPage({
   const displayTotalPages = remoteProducts.length > 0 ? remoteTotalPages : totalPages;
 
   return (
-    <div className="min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-16 pt-20 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent),transparent_34%),var(--bokmoo-bg)] px-4 pb-24 pt-16 sm:px-6 sm:pt-20 lg:px-8">
       <div className="mx-auto max-w-[1280px]">
-        <section className="rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent),transparent_34%),var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8">
+        <section className="rounded-[1.45rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,var(--bokmoo-line))] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent),transparent_34%),color-mix(in_oklab,var(--bokmoo-bg-elevated)_76%,black)] p-5 shadow-[var(--bokmoo-shadow)] sm:rounded-[var(--bokmoo-radius-xl)] sm:p-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--bokmoo-copy)]">
@@ -180,28 +180,28 @@ export const ProductsPage = React.memo(function ProductsPage({
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-[minmax(16rem,1fr)_auto_auto]">
+            <div className="grid gap-3 sm:grid-cols-[minmax(16rem,1fr)_auto_auto] lg:min-w-[34rem]">
               <form onSubmit={submitSearch} className="relative">
                 <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--bokmoo-copy-soft)]" />
                 <input
                   value={searchQuery}
                   onChange={(event) => setSearchQuery(event.target.value)}
                   placeholder="Search destinations or bundles..."
-                  className="h-12 w-full rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] pl-11 pr-4 text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)]"
+                  className="h-12 w-full rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] pl-11 pr-4 text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)] sm:rounded-full"
                 />
               </form>
 
               <select
                 value={sortBy}
                 onChange={(event) => onSortChange(event.target.value)}
-                className="h-12 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none"
+                className="h-12 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 text-sm font-medium text-[var(--bokmoo-ink)] outline-none sm:rounded-full"
               >
                 <option value="createdAt">Newest</option>
                 <option value="price">Price</option>
                 <option value="name">Name</option>
               </select>
 
-              <div className="flex items-center rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-1">
+              <div className="flex items-center rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-1 sm:rounded-full">
                 <button
                   onClick={() => onViewModeChange('grid')}
                   className={cn(
@@ -239,8 +239,8 @@ export const ProductsPage = React.memo(function ProductsPage({
                   className={cn(
                     'rounded-[0.8rem] border px-4 py-2 text-[11px] font-semibold transition-colors',
                     selectedFilter === filter
-                      ? 'border-[var(--bokmoo-line-strong)] bg-[var(--bokmoo-gold)] text-[var(--bokmoo-bg)]'
-                      : 'border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] text-[var(--bokmoo-copy)]'
+                      ? 'border-[var(--bokmoo-line-strong)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] text-[var(--bokmoo-bg)]'
+                      : 'border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] text-[var(--bokmoo-copy)]'
                   )}
                   type="button"
                 >
@@ -249,10 +249,10 @@ export const ProductsPage = React.memo(function ProductsPage({
               ))}
             </div>
             <div className="flex flex-wrap gap-2">
-              <span className="rounded-[0.8rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-2 text-[11px] font-semibold text-[var(--bokmoo-copy)]">
+              <span className="rounded-[0.8rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--bokmoo-copy)]">
                 {displayTotal} plans
               </span>
-              <span className="rounded-[0.8rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-2 text-[11px] font-semibold text-[var(--bokmoo-copy)]">
+              <span className="rounded-[0.8rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 py-2 text-[11px] font-semibold text-[var(--bokmoo-copy)]">
                 Instant eSIM delivery
               </span>
             </div>
@@ -279,7 +279,7 @@ export const ProductsPage = React.memo(function ProductsPage({
           ) : (
             <div
               className={cn(
-                'grid gap-4',
+                'grid gap-3 sm:gap-4',
                 viewMode === 'grid' ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3' : 'grid-cols-1'
               )}
             >
@@ -290,8 +290,8 @@ export const ProductsPage = React.memo(function ProductsPage({
                   <article
                     key={product.id}
                     className={cn(
-                      'overflow-hidden rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] shadow-[var(--bokmoo-shadow)] transition-transform duration-300 hover:-translate-y-1',
-                      viewMode === 'list' && 'grid gap-5 p-5 md:grid-cols-[14rem_minmax(0,1fr)_12rem] md:items-center'
+                      'overflow-hidden rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg-elevated)_82%,black)] shadow-[var(--bokmoo-shadow)] transition-transform duration-300 hover:-translate-y-1 sm:rounded-[var(--bokmoo-radius-xl)]',
+                      viewMode === 'list' && 'grid gap-4 p-4 md:grid-cols-[14rem_minmax(0,1fr)_12rem] md:items-center md:gap-5 md:p-5'
                     )}
                   >
                     <button
@@ -303,8 +303,8 @@ export const ProductsPage = React.memo(function ProductsPage({
                         className={cn(
                           'overflow-hidden border-[var(--bokmoo-line)]',
                           viewMode === 'grid'
-                            ? 'aspect-[1.18/1] border-b'
-                            : 'h-full rounded-[var(--bokmoo-radius-lg)] border'
+                            ? 'aspect-[1.28/1] border-b sm:aspect-[1.18/1]'
+                            : 'aspect-[1.45/1] rounded-[1rem] border md:aspect-auto md:h-full md:rounded-[var(--bokmoo-radius-lg)]'
                         )}
                       >
                         <ProductMedia product={product} />
@@ -335,7 +335,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                           ].map(([label, value]) => (
                             <div
                               key={label}
-                              className="rounded-[var(--bokmoo-radius-md)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-3 py-3"
+                              className="rounded-[var(--bokmoo-radius-md)] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-3 py-3"
                             >
                               <p className="text-[10px] tracking-[0.16em] text-[var(--bokmoo-copy-soft)]">{label}</p>
                               <p className="mt-2 text-sm font-medium text-[var(--bokmoo-ink)]">{value}</p>
@@ -346,7 +346,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                     </button>
 
                     <div className={cn(viewMode === 'grid' ? 'px-5 pb-5' : 'md:w-[12rem]')}>
-                      <div className="rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+                      <div className="rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_90%,black)] p-4">
                         <p className="text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
                           Starting at
                         </p>

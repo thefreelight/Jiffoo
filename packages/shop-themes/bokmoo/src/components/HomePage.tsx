@@ -49,7 +49,7 @@ type DestinationSceneName =
 function HeroPillar({ className }: HeroPillarProps) {
   return (
     <div
-      className={`absolute w-px bg-[linear-gradient(180deg,transparent,color-mix(in_oklab,var(--bokmoo-gold)_58%,transparent),transparent)] shadow-[0_0_28px_color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)] ${className}`}
+      className={`absolute w-px bg-[linear-gradient(180deg,transparent,color-mix(in_oklab,var(--bokmoo-gold)_82%,transparent),transparent)] shadow-[0_0_52px_color-mix(in_oklab,var(--bokmoo-gold)_48%,transparent)] ${className}`}
     />
   );
 }
@@ -68,39 +68,39 @@ function WorldGlobe() {
   ];
 
   return (
-    <div className="absolute -right-[6%] top-[7%] hidden h-[43rem] w-[66rem] opacity-90 lg:block">
-      <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_52%_52%,color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent),transparent_60%)] blur-3xl" />
+    <div className="absolute -right-[24%] top-[-5%] hidden h-[58rem] w-[92rem] opacity-100 lg:block xl:-right-[21%] 2xl:-right-[16%] 2xl:top-[-8%]">
+      <div className="absolute inset-[-8%] rounded-full bg-[radial-gradient(circle_at_52%_52%,color-mix(in_oklab,var(--bokmoo-gold)_58%,transparent),transparent_58%)] blur-3xl" />
       <svg className="absolute inset-0 h-full w-full" viewBox="0 0 760 520" aria-hidden="true">
         <defs>
           <radialGradient id="bokmooGlobeGlow" cx="54%" cy="52%" r="48%">
-            <stop offset="0%" stopColor="rgba(226,188,94,0.32)" />
-            <stop offset="58%" stopColor="rgba(226,188,94,0.1)" />
+            <stop offset="0%" stopColor="rgba(226,188,94,0.58)" />
+            <stop offset="58%" stopColor="rgba(226,188,94,0.24)" />
             <stop offset="100%" stopColor="rgba(226,188,94,0)" />
           </radialGradient>
           <linearGradient id="bokmooGlobeLine" x1="0" x2="1" y1="0" y2="1">
             <stop offset="0%" stopColor="rgba(244,203,111,0)" />
-            <stop offset="48%" stopColor="rgba(244,203,111,0.46)" />
+            <stop offset="48%" stopColor="rgba(244,203,111,0.88)" />
             <stop offset="100%" stopColor="rgba(244,203,111,0)" />
           </linearGradient>
         </defs>
         <ellipse cx="430" cy="260" rx="310" ry="180" fill="url(#bokmooGlobeGlow)" />
-        <ellipse cx="430" cy="260" rx="318" ry="182" fill="none" stroke="rgba(226,188,94,0.22)" strokeWidth="1" />
-        <ellipse cx="430" cy="260" rx="245" ry="126" fill="none" stroke="rgba(226,188,94,0.16)" strokeWidth="1" />
-        <ellipse cx="430" cy="260" rx="150" ry="78" fill="none" stroke="rgba(226,188,94,0.13)" strokeWidth="1" />
-        <path d="M150 264 C270 210 410 208 548 248 C604 264 664 258 714 226" fill="none" stroke="url(#bokmooGlobeLine)" strokeWidth="2" />
-        <path d="M168 310 C286 260 390 286 498 322 C572 346 640 334 710 292" fill="none" stroke="rgba(226,188,94,0.2)" strokeWidth="1.2" />
-        <path d="M202 220 C316 178 468 172 612 214" fill="none" stroke="rgba(226,188,94,0.14)" strokeWidth="1" />
-        <path d="M300 120 C342 212 342 316 302 404" fill="none" stroke="rgba(226,188,94,0.13)" strokeWidth="1" />
-        <path d="M430 84 C410 198 412 322 456 432" fill="none" stroke="rgba(226,188,94,0.16)" strokeWidth="1" />
-        <path d="M570 128 C530 220 528 320 592 410" fill="none" stroke="rgba(226,188,94,0.12)" strokeWidth="1" />
+        <ellipse cx="430" cy="260" rx="318" ry="182" fill="none" stroke="rgba(226,188,94,0.52)" strokeWidth="1.6" />
+        <ellipse cx="430" cy="260" rx="245" ry="126" fill="none" stroke="rgba(226,188,94,0.36)" strokeWidth="1.2" />
+        <ellipse cx="430" cy="260" rx="150" ry="78" fill="none" stroke="rgba(226,188,94,0.28)" strokeWidth="1.1" />
+        <path d="M150 264 C270 210 410 208 548 248 C604 264 664 258 714 226" fill="none" stroke="url(#bokmooGlobeLine)" strokeWidth="2.6" />
+        <path d="M168 310 C286 260 390 286 498 322 C572 346 640 334 710 292" fill="none" stroke="rgba(226,188,94,0.46)" strokeWidth="1.7" />
+        <path d="M202 220 C316 178 468 172 612 214" fill="none" stroke="rgba(226,188,94,0.34)" strokeWidth="1.35" />
+        <path d="M300 120 C342 212 342 316 302 404" fill="none" stroke="rgba(226,188,94,0.34)" strokeWidth="1.2" />
+        <path d="M430 84 C410 198 412 322 456 432" fill="none" stroke="rgba(226,188,94,0.4)" strokeWidth="1.3" />
+        <path d="M570 128 C530 220 528 320 592 410" fill="none" stroke="rgba(226,188,94,0.32)" strokeWidth="1.2" />
         {dots.map(([x, y]) => (
           <circle
             key={`${x}-${y}`}
             cx={(x / 100) * 760}
             cy={(y / 100) * 520}
-            r="3.4"
-            fill="rgba(244,203,111,0.84)"
-            filter="drop-shadow(0 0 8px rgba(244,203,111,0.62))"
+            r="4.6"
+            fill="rgba(244,203,111,0.96)"
+            filter="drop-shadow(0 0 14px rgba(244,203,111,0.82))"
           />
         ))}
       </svg>
@@ -479,41 +479,43 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate }: Hom
   ];
 
   const activePlans = planDecks[activeCategory];
+  const heroTitleLines = ['One Card.', 'Global', 'Connection.'];
 
   return (
     <div className="bg-[var(--bokmoo-bg)] text-[var(--bokmoo-ink)]">
-      <section className="relative min-h-[calc(100vh-5.25rem)] overflow-hidden border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] px-5 pb-16 pt-16 sm:px-8 lg:px-10 xl:pb-20 xl:pt-24">
+      <section className="relative overflow-hidden border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] px-5 pb-12 pt-12 sm:px-8 lg:min-h-[calc(100vh-5.25rem)] lg:px-10 lg:pb-8 lg:pt-14 xl:min-h-[calc(100vh-6.75rem)] xl:pt-16 2xl:pt-[4.5rem]">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_76%_36%,color-mix(in_oklab,var(--bokmoo-gold)_25%,transparent),transparent_28%),radial-gradient(circle_at_86%_18%,color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent),transparent_18%),linear-gradient(90deg,var(--bokmoo-bg)_0%,var(--bokmoo-bg)_41%,color-mix(in_oklab,var(--bokmoo-gold)_7%,var(--bokmoo-bg))_70%,var(--bokmoo-bg)_100%)]" />
-          <div className="absolute left-[47%] top-[7%] h-[78%] w-[58%] rounded-full bg-[var(--bokmoo-orbit-glow)] opacity-80 blur-3xl" />
-          <div className="absolute right-0 top-0 h-full w-[52%] bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--bokmoo-gold)_13%,transparent)_44%,transparent)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_78%_32%,color-mix(in_oklab,var(--bokmoo-gold)_48%,transparent),transparent_36%),radial-gradient(circle_at_93%_12%,color-mix(in_oklab,var(--bokmoo-gold)_32%,transparent),transparent_24%),radial-gradient(circle_at_63%_86%,color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),transparent_25%),linear-gradient(90deg,var(--bokmoo-bg)_0%,var(--bokmoo-bg)_34%,color-mix(in_oklab,var(--bokmoo-gold)_12%,var(--bokmoo-bg))_69%,var(--bokmoo-bg)_100%)]" />
+          <div className="absolute left-[41%] top-[-6%] hidden h-[104%] w-[76%] rounded-full bg-[var(--bokmoo-orbit-glow)] opacity-100 blur-3xl lg:block" />
+          <div className="absolute right-[-18%] top-0 hidden h-full w-[82%] bg-[linear-gradient(90deg,transparent,color-mix(in_oklab,var(--bokmoo-gold)_27%,transparent)_44%,transparent)] lg:block" />
           <WorldGlobe />
-          <HeroPillar className="left-[61%] top-[10%] h-[62%]" />
-          <HeroPillar className="left-[68%] top-[3%] h-[70%]" />
-          <HeroPillar className="left-[76%] top-[11%] h-[64%]" />
-          <HeroPillar className="left-[86%] top-[16%] h-[50%]" />
-          <div className="absolute right-[-3%] top-[22%] h-[40%] w-[46%] rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_28%,transparent)] opacity-45 blur-[1px]" />
-          <div className="absolute bottom-[-11%] right-[4%] h-96 w-96 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,transparent)]" />
-          <div className="absolute bottom-[4%] right-[12%] h-64 w-64 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)]" />
+          <HeroPillar className="left-[55%] top-[5%] hidden h-[72%] lg:block" />
+          <HeroPillar className="left-[63%] top-[-4%] hidden h-[82%] lg:block" />
+          <HeroPillar className="left-[72%] top-[5%] hidden h-[78%] lg:block" />
+          <HeroPillar className="left-[82%] top-[10%] hidden h-[64%] lg:block" />
+          <HeroPillar className="left-[92%] top-[18%] hidden h-[48%] lg:block" />
+          <div className="absolute right-[-19%] top-[12%] hidden h-[58%] w-[72%] rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_54%,transparent)] opacity-70 blur-[1px] lg:block" />
+          <div className="absolute bottom-[-18%] right-[-4%] h-[34rem] w-[34rem] rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_50%,transparent)] lg:h-[42rem] lg:w-[42rem]" />
+          <div className="absolute bottom-[-1%] right-[6%] h-72 w-72 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_36%,transparent)] lg:h-96 lg:w-96" />
         </div>
 
-        <div className="relative mx-auto max-w-[1760px]">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,0.72fr)_minmax(42rem,1.28fr)] lg:items-center">
-            <div className="max-w-[52rem] pt-4 xl:pt-8">
+        <div className="relative mx-auto flex w-full max-w-[1880px] flex-col lg:min-h-[calc(100vh-13.25rem)] xl:min-h-[calc(100vh-14.75rem)]">
+          <div className="grid flex-1 gap-8 lg:grid-cols-[minmax(25rem,0.62fr)_minmax(32rem,1.38fr)] lg:items-center xl:grid-cols-[minmax(0,0.58fr)_minmax(44rem,1.42fr)] 2xl:grid-cols-[minmax(0,0.54fr)_minmax(52rem,1.46fr)]">
+            <div className="max-w-[62rem] pt-2 lg:-ml-1 xl:-ml-2">
               <div className="inline-flex items-center gap-3 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,transparent)] bg-[color:oklch(0.065_0.007_75_/_0.7)] px-5 py-2.5 text-[0.78rem] font-bold uppercase tracking-[0.28em] text-[var(--bokmoo-gold)] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.025)]">
                 <Sparkles className="h-4 w-4" />
                 {site.eyebrow}
               </div>
 
-              <h1 className="mt-10 text-[clamp(4.35rem,8.45vw,9.05rem)] font-black leading-[0.86] tracking-[-0.085em] text-[color:oklch(0.985_0.004_86)]">
-                {site.headline.split('\n').map((line) => (
-                  <span key={line} className="block">
+              <h1 className="mt-8 max-w-[9.7ch] text-[clamp(3.2rem,13.6vw,5.2rem)] font-black leading-[0.82] tracking-[-0.105em] text-[color:oklch(0.985_0.004_86)] sm:max-w-[10.4ch] lg:mt-9 lg:text-[clamp(5.55rem,7.5vw,8rem)] xl:text-[clamp(7.35rem,8.25vw,12.6rem)] 2xl:text-[clamp(8.35rem,7.7vw,13.25rem)]">
+                {heroTitleLines.map((line) => (
+                  <span key={line} className="block whitespace-nowrap">
                     {line}
                   </span>
                 ))}
               </h1>
 
-              <p className="mt-9 max-w-2xl text-[clamp(1.18rem,1.75vw,1.58rem)] leading-[1.55] text-[color:color-mix(in_oklab,var(--bokmoo-copy)_94%,white)]">
+              <p className="mt-7 max-w-[43rem] text-[clamp(1.08rem,1.35vw,1.42rem)] leading-[1.58] text-[color:color-mix(in_oklab,var(--bokmoo-copy)_94%,white)] lg:mt-8">
                 {site.subheadline}
               </p>
 
@@ -534,7 +536,7 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate }: Hom
                 </button>
               </div>
 
-              <div className="mt-12 grid max-w-[48rem] grid-cols-2 gap-4 xl:grid-cols-4">
+              <div className="mt-10 grid max-w-[48rem] grid-cols-2 gap-4 xl:grid-cols-4">
                 {heroBadges.map(({ icon: Icon, title, body }) => (
                   <div key={title} className="flex items-start gap-4 rounded-[1.1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] bg-[color:oklch(0.058_0.007_75_/_0.68)] px-4 py-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.018)]">
                     <div className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_17%,transparent)] text-[var(--bokmoo-gold)]">
@@ -549,54 +551,56 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate }: Hom
               </div>
             </div>
 
-            <div className="relative mx-auto h-[34rem] w-full max-w-[58rem] lg:h-[45rem] lg:max-w-[66rem] xl:h-[52rem] xl:-mr-[12rem] 2xl:-mr-[8rem]">
-              <div className="absolute bottom-[4%] left-[18%] right-[4%] h-20 rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--bokmoo-gold)_52%,transparent),transparent_68%)] blur-2xl" />
-              <div className="absolute bottom-[5%] left-[12%] right-[2%] h-36 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_48%,transparent)]" />
-              <div className="absolute bottom-[1%] left-[4%] right-[-2%] h-52 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,transparent)]" />
-              <div className="absolute right-[17%] top-[6%] h-[72%] w-[31%] rounded-[2.5rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_25%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.025))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.04),0_42px_120px_rgba(0,0,0,0.62)]" />
-              <div className="absolute right-[20.5%] top-[9.5%] h-[64%] w-[25%] rounded-[2.05rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,transparent)] bg-[linear-gradient(180deg,#171513_0%,#070707_78%)] shadow-[inset_0_18px_40px_rgba(255,255,255,0.025)]" />
-              <div className="absolute right-[28%] top-[20%] h-[5.2rem] w-[5.2rem] rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.025))] shadow-[inset_0_20px_30px_rgba(255,255,255,0.025)]" />
-              <div className="absolute right-[28%] top-[33%] h-[5.2rem] w-[5.2rem] rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.025))] shadow-[inset_0_20px_30px_rgba(255,255,255,0.025)]" />
+            <div className="relative mx-auto h-[32rem] w-full max-w-[36rem] sm:h-[38rem] sm:max-w-[48rem] lg:mx-0 lg:h-[39rem] lg:max-w-none lg:translate-x-16 lg:rotate-[5deg] lg:scale-[1.12] xl:h-[44rem] xl:-mr-[25rem] xl:translate-x-28 xl:scale-[1.28] 2xl:h-[48rem] 2xl:-mr-[34rem] 2xl:translate-x-40 2xl:scale-[1.34]">
+              <div className="absolute bottom-[1%] left-[2%] right-[-18%] h-32 rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--bokmoo-gold)_72%,transparent),transparent_68%)] blur-2xl lg:h-40" />
+              <div className="absolute bottom-[4%] left-[2%] right-[-18%] h-44 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_64%,transparent)] lg:h-56" />
+              <div className="absolute bottom-[-3%] left-[-8%] right-[-24%] h-64 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,transparent)] lg:h-80" />
+              <div className="absolute right-[3%] top-[4%] h-[78%] w-[34%] rotate-[5deg] rounded-[2.4rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_38%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.14),rgba(255,255,255,0.026))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.045),0_54px_160px_rgba(0,0,0,0.72)] sm:rounded-[2.8rem] xl:right-[8%]" />
+              <div className="absolute right-[7%] top-[8%] h-[69%] w-[28%] rotate-[5deg] rounded-[2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_31%,transparent)] bg-[linear-gradient(180deg,#1b1813_0%,#070707_78%)] shadow-[inset_0_22px_42px_rgba(255,255,255,0.03)] sm:rounded-[2.35rem] xl:right-[12%]" />
+              <div className="absolute right-[15%] top-[19%] h-[4.8rem] w-[4.8rem] rotate-[5deg] rounded-[1.15rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.13),rgba(255,255,255,0.03))] shadow-[inset_0_20px_30px_rgba(255,255,255,0.03),0_24px_54px_rgba(0,0,0,0.38)] sm:h-[5.8rem] sm:w-[5.8rem] xl:right-[20%] xl:h-[7rem] xl:w-[7rem]" />
+              <div className="absolute right-[16%] top-[34%] h-[4.8rem] w-[4.8rem] rotate-[5deg] rounded-[1.15rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.024))] shadow-[inset_0_20px_30px_rgba(255,255,255,0.026),0_24px_54px_rgba(0,0,0,0.34)] sm:h-[5.8rem] sm:w-[5.8rem] xl:right-[21%] xl:h-[7rem] xl:w-[7rem]" />
 
-              <div className="absolute bottom-[11%] left-[15%] z-10 h-[76%] w-[39%] -rotate-[8deg] rounded-[2.4rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_42%,transparent)] bg-[radial-gradient(circle_at_35%_14%,rgba(255,226,160,0.08),transparent_30%),linear-gradient(180deg,#1b1714_0%,#080706_78%)] shadow-[0_48px_140px_rgba(0,0,0,0.74),inset_0_0_0_1px_rgba(255,255,255,0.025)]">
-                <div className="absolute left-[11%] top-[9%] flex items-center gap-3">
+              <div className="absolute bottom-[8%] left-[11%] z-10 h-[84%] w-[58%] -rotate-[12deg] rounded-[2.25rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_56%,transparent)] bg-[radial-gradient(circle_at_35%_14%,rgba(255,226,160,0.16),transparent_31%),linear-gradient(180deg,#1d1814_0%,#080706_78%)] shadow-[0_64px_180px_rgba(0,0,0,0.82),inset_0_0_0_1px_rgba(255,255,255,0.035)] sm:left-[18%] sm:w-[48%] sm:rounded-[2.75rem] lg:left-[7%] lg:h-[88%] lg:w-[50%] xl:left-[5%]">
+                <div className="absolute left-[11%] top-[8.5%] flex items-center gap-3.5">
                   <div className="grid grid-cols-2 gap-1.5">
-                    <span className="h-5 w-5 rounded-tl-[999px] rounded-tr-[999px] bg-[var(--bokmoo-gold)]" />
-                    <span className="h-5 w-5 rounded-tl-[999px] rounded-tr-[999px] bg-[var(--bokmoo-gold)]" />
-                    <span className="h-5 w-5 rounded-bl-[999px] rounded-br-[999px] bg-[var(--bokmoo-gold)]" />
-                    <span className="h-5 w-5 rounded-bl-[999px] rounded-br-[999px] bg-[var(--bokmoo-gold)]" />
+                    <span className="h-5 w-5 rounded-tl-[999px] rounded-tr-[999px] bg-[var(--bokmoo-gold)] xl:h-6 xl:w-6" />
+                    <span className="h-5 w-5 rounded-tl-[999px] rounded-tr-[999px] bg-[var(--bokmoo-gold)] xl:h-6 xl:w-6" />
+                    <span className="h-5 w-5 rounded-bl-[999px] rounded-br-[999px] bg-[var(--bokmoo-gold)] xl:h-6 xl:w-6" />
+                    <span className="h-5 w-5 rounded-bl-[999px] rounded-br-[999px] bg-[var(--bokmoo-gold)] xl:h-6 xl:w-6" />
                   </div>
-                  <span className="text-base font-semibold uppercase tracking-[0.16em] text-[var(--bokmoo-gold)]">
+                  <span className="text-base font-semibold uppercase tracking-[0.16em] text-[var(--bokmoo-gold)] xl:text-lg">
                     BOKMOO
                   </span>
                 </div>
 
-                <div className="absolute left-1/2 top-[34%] h-[15.6rem] w-[15.6rem] -translate-x-1/2 -translate-y-1/2 rounded-[2.05rem] border border-[var(--bokmoo-line-strong)] bg-[radial-gradient(circle_at_50%_52%,rgba(220,172,76,0.13),transparent_36%),linear-gradient(180deg,#121110,#17120e)] shadow-[0_22px_58px_rgba(0,0,0,0.55)]">
-                  <div className="absolute inset-x-7 inset-y-8 rounded-[1.55rem] border border-[var(--bokmoo-line)]" />
-                  <div className="absolute left-1/2 top-1/2 h-24 w-36 -translate-x-1/2 -translate-y-1/2 rounded-[1.1rem] bg-[linear-gradient(145deg,#f2d990,#b98739)] shadow-[0_18px_36px_rgba(215,178,61,0.22)]" />
+                <div className="absolute left-1/2 top-[34%] h-[9.25rem] w-[9.25rem] -translate-x-1/2 -translate-y-1/2 rounded-[1.55rem] border border-[var(--bokmoo-line-strong)] bg-[radial-gradient(circle_at_50%_52%,rgba(220,172,76,0.18),transparent_36%),linear-gradient(180deg,#121110,#17120e)] shadow-[0_22px_58px_rgba(0,0,0,0.55)] sm:h-[13.4rem] sm:w-[13.4rem] sm:rounded-[1.9rem] xl:h-[19rem] xl:w-[19rem] xl:rounded-[2.5rem]">
+                  <div className="absolute inset-x-5 inset-y-6 rounded-[1.15rem] border border-[var(--bokmoo-line)] sm:inset-x-7 sm:inset-y-8 sm:rounded-[1.55rem] xl:inset-x-9 xl:inset-y-10 xl:rounded-[1.9rem]" />
+                  <div className="absolute left-1/2 top-1/2 h-16 w-24 -translate-x-1/2 -translate-y-1/2 rounded-[0.9rem] bg-[linear-gradient(145deg,#f2d990,#b98739)] shadow-[0_18px_36px_rgba(215,178,61,0.32)] sm:h-24 sm:w-36 sm:rounded-[1.1rem] xl:h-32 xl:w-48 xl:rounded-[1.35rem]" />
                 </div>
 
-                <p className="absolute bottom-[23%] left-[13%] max-w-[13rem] text-[1.55rem] leading-[1.22] tracking-[0.12em] text-[var(--bokmoo-gold)]">
+                <p className="absolute bottom-[22%] left-[13%] max-w-[10rem] text-[1.08rem] leading-[1.18] tracking-[0.12em] text-[var(--bokmoo-gold)] sm:max-w-[13rem] sm:text-[1.55rem] xl:max-w-[17rem] xl:text-[2.1rem]">
                   YOUR GLOBAL PARTNER.
                 </p>
-                <p className="absolute bottom-[7%] left-[13%] text-sm tracking-[0.28em] text-[var(--bokmoo-copy-soft)]">
+                <p className="absolute bottom-[7%] left-[13%] text-xs tracking-[0.26em] text-[var(--bokmoo-copy-soft)] sm:text-sm xl:text-base">
                   BOKMOO.COM
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="mt-12 rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.012))] px-7 py-5 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.018),var(--bokmoo-shadow)] xl:mt-14">
+          <div className="mt-10 overflow-hidden rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_20%,transparent)] bg-[linear-gradient(90deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] px-5 py-4 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.018),0_22px_70px_rgba(0,0,0,0.36)] sm:rounded-full sm:px-7 sm:py-3.5 lg:mt-auto">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-5 text-base">
-                <span className="font-bold text-[var(--bokmoo-gold)]">Notice</span>
+              <div className="flex items-start gap-4 text-sm sm:items-center sm:text-base">
+                <span className="shrink-0 rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]">
+                  Notice
+                </span>
                 <span className="text-[color:color-mix(in_oklab,var(--bokmoo-copy)_92%,white)]">
                   BOKMOO Pro eUICC Card is now available! Manage multiple eSIM profiles with ease.
                 </span>
               </div>
               <button
                 onClick={() => openHref('/products')}
-                className="inline-flex items-center gap-3 text-base font-medium text-[var(--bokmoo-gold)]"
+                className="inline-flex shrink-0 items-center gap-3 text-sm font-semibold text-[var(--bokmoo-gold)] sm:text-base"
                 type="button"
               >
                 Learn more

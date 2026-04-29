@@ -28,7 +28,7 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
   const orderId = order?.id || getOrderIdFromLocation() || '';
 
   const [installSession, setInstallSession] = React.useState<BokmooInstallSession | null>(null);
-  const [status, setStatus] = React.useState<'idle' | BokmooInstallSession['status']>(
+  const [status, setStatus] = React.useState<BokmooInstallSession['status'] | 'idle'>(
     isVerifying ? 'processing' : 'idle'
   );
   const [errorMessage, setErrorMessage] = React.useState<string>('');
@@ -78,13 +78,14 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
   }, [attempt, loadInstallSession, orderId, status]);
 
   const isReady = status === 'ready' || status === 'installed';
+  const isPendingPayment = status === 'pending_payment';
   const supportEmail = installSession?.support?.email || site.supportEmail;
   return (
     <div className="min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[520px]">
         <div className="rounded-[1.6rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 text-center shadow-[var(--bokmoo-shadow)] sm:p-8">
           <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_36%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] text-[var(--bokmoo-gold)]">
-            {status === 'failed' || status === 'expired' ? (
+            {status === 'failed' || status === 'expired' || isPendingPayment ? (
               <AlertTriangle className="h-11 w-11" />
             ) : status === 'processing' || isVerifying ? (
               <Loader2 className="h-11 w-11 animate-spin" />
@@ -96,6 +97,8 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
           <h1 className="mt-8 text-[clamp(2.2rem,4vw,3.6rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">
             {status === 'failed'
               ? 'Fulfillment Needs Attention'
+              : isPendingPayment
+                ? 'Payment Pending'
               : status === 'expired'
                 ? 'Activation Expired'
                 : status === 'processing' || isVerifying
@@ -106,6 +109,8 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
           <p className="mt-4 text-base leading-8 text-[var(--bokmoo-copy)]">
             {status === 'failed'
               ? errorMessage || 'We could not prepare your install session yet.'
+              : isPendingPayment
+                ? 'Complete payment to unlock your eSIM install details.'
               : status === 'expired'
                 ? 'Your activation session expired before installation completed.'
                 : status === 'processing' || isVerifying

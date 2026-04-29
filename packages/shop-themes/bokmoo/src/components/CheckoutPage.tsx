@@ -69,7 +69,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
 
   const inputClassName = (field: string) =>
     cn(
-      'h-12 w-full rounded-[0.95rem] border bg-[var(--bokmoo-bg)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)]',
+      'h-12 w-full rounded-[0.95rem] border bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)]',
       errors[field] ? 'border-[var(--bokmoo-danger)]' : 'border-[var(--bokmoo-line)]'
     );
 
@@ -123,7 +123,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--bokmoo-gold)_9%,transparent),transparent_34%),var(--bokmoo-bg)] px-4 pb-24 pt-8 sm:px-6 sm:pt-10 lg:px-8">
       <div className="mx-auto max-w-[980px]">
         <button
           onClick={onBack}
@@ -134,13 +134,13 @@ export const CheckoutPage = React.memo(function CheckoutPage({
           Back
         </button>
 
-        <div className="mt-5 rounded-[1.55rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-4 shadow-[var(--bokmoo-shadow)] sm:p-5">
+        <div className="mt-5 rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_80%,black),color-mix(in_oklab,var(--bokmoo-bg-elevated)_92%,black))] p-3 shadow-[var(--bokmoo-shadow)] sm:rounded-[1.55rem] sm:p-5">
           <div className="grid gap-6 lg:grid-cols-[18rem_minmax(0,1fr)]">
-            <aside className="rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+            <aside className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
               <p className="text-lg font-medium text-[var(--bokmoo-ink)]">Order Summary</p>
               <div className="mt-4 space-y-3">
                 {cart.items.map((item) => (
-                  <div key={item.id} className="rounded-[0.95rem] border border-[var(--bokmoo-line)] p-3">
+                  <div key={item.id} className="rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_84%,black)] p-3">
                     <div className="flex items-start gap-3">
                       <div className="h-14 w-16 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" />
                       <div className="min-w-0 flex-1">
@@ -168,7 +168,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
             </aside>
 
             <form id="bokmoo-checkout-form" onSubmit={handleSubmit} className="space-y-4">
-              <div className="rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+              <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-[0.9rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] text-[var(--bokmoo-gold)]">
                     <Mail className="h-5 w-5" />
@@ -212,7 +212,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                 </div>
               </div>
 
-              <div className="rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+              <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
                 <p className="text-lg font-medium text-[var(--bokmoo-ink)]">Payment Method</p>
                 <div className="mt-4 grid gap-3">
                   {paymentMethods.map((method) => {
@@ -225,7 +225,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                           'flex cursor-pointer items-center justify-between rounded-[0.95rem] border px-4 py-4 transition-colors',
                           isSelected
                             ? 'border-[var(--bokmoo-line-strong)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)]'
-                            : 'border-[var(--bokmoo-line)]'
+                            : 'border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)]'
                         )}
                       >
                         <div className="flex items-center gap-3">
@@ -251,7 +251,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
               </div>
 
               {shouldCollectShipping ? (
-                <div className="rounded-[1.2rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+                <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
                   <p className="text-lg font-medium text-[var(--bokmoo-ink)]">Billing Details</p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div className="sm:col-span-2">

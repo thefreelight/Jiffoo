@@ -35,9 +35,9 @@ export const HelpPage = React.memo(function HelpPage({ onNavigateToContact }: He
   );
 
   return (
-    <div className="min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,color-mix(in_oklab,var(--bokmoo-gold)_9%,transparent),transparent_34%),var(--bokmoo-bg)] px-4 pb-24 pt-8 sm:px-6 sm:pt-10 lg:px-8">
       <div className="mx-auto max-w-[980px]">
-        <div className="rounded-[1.6rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8">
+        <div className="rounded-[1.35rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,var(--bokmoo-line))] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_80%,black),color-mix(in_oklab,var(--bokmoo-bg-elevated)_92%,black))] p-5 shadow-[var(--bokmoo-shadow)] sm:rounded-[1.6rem] sm:p-8">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]">
@@ -54,7 +54,7 @@ export const HelpPage = React.memo(function HelpPage({ onNavigateToContact }: He
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Search for help..."
-              className="h-12 w-full rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)]"
+              className="h-12 w-full rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none placeholder:text-[var(--bokmoo-copy-soft)]"
             />
           </div>
 
@@ -66,7 +66,7 @@ export const HelpPage = React.memo(function HelpPage({ onNavigateToContact }: He
               {filtered.map(({ title, subtitle, icon: Icon }) => (
                 <button
                   key={title}
-                  className="flex items-center justify-between rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-4 text-left transition-colors hover:border-[var(--bokmoo-line-strong)]"
+                  className="flex items-center justify-between rounded-[1rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] px-4 py-4 text-left transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_32%,var(--bokmoo-line))] hover:bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_82%,black)]"
                   type="button"
                 >
                   <div className="flex items-center gap-3">

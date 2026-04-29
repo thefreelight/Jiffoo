@@ -28,11 +28,11 @@ export const Footer = React.memo(function Footer({
   );
 
   return (
-    <footer className="border-t border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,var(--bokmoo-bg-elevated),var(--bokmoo-bg))] px-4 py-16 sm:px-6 lg:px-8">
+    <footer className="border-t border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_72%,black),var(--bokmoo-bg))] px-4 pb-28 pt-14 sm:px-6 sm:pb-16 lg:px-8">
       <div className="mx-auto max-w-[1280px]">
-        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,0.9fr)]">
+        <div className="grid gap-9 rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_84%,black)] p-5 sm:p-7 lg:grid-cols-[minmax(0,1fr)_minmax(24rem,0.9fr)]">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_24%,var(--bokmoo-line))] bg-[var(--bokmoo-bg)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]">
               <ShieldCheck className="h-4 w-4" />
               Global eSIM Infrastructure
             </div>
@@ -64,20 +64,20 @@ export const Footer = React.memo(function Footer({
             </div>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-3">
             <div>
               <div className="mb-4 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
                 <Globe2 className="h-4 w-4 text-[var(--bokmoo-gold)]" />
                 Product
               </div>
-              <div className="grid gap-3 text-sm">
-                <button onClick={onNavigateToProducts} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
+              <div className="grid gap-2 text-sm">
+                <button onClick={onNavigateToProducts} className="rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
                   eSIM Plans
                 </button>
-                <button onClick={onNavigateToCategories} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
+                <button onClick={onNavigateToCategories} className="rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
                   eUICC Cards
                 </button>
-                <button onClick={onNavigateToHelp} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
+                <button onClick={onNavigateToHelp} className="rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
                   How It Works
                 </button>
               </div>
@@ -88,14 +88,14 @@ export const Footer = React.memo(function Footer({
                 <Smartphone className="h-4 w-4 text-[var(--bokmoo-gold)]" />
                 Company
               </div>
-              <div className="grid gap-3 text-sm">
-                <button onClick={onNavigateToContact} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
+              <div className="grid gap-2 text-sm">
+                <button onClick={onNavigateToContact} className="rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
                   Support
                 </button>
-                <button onClick={onNavigateToPrivacy} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
+                <button onClick={onNavigateToPrivacy} className="rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
                   Privacy
                 </button>
-                <button onClick={onNavigateToTerms} className="text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
+                <button onClick={onNavigateToTerms} className="rounded-[0.75rem] px-0 py-1 text-left text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]" type="button">
                   Terms
                 </button>
               </div>
@@ -118,13 +118,13 @@ export const Footer = React.memo(function Footer({
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col gap-3 border-t border-[var(--bokmoo-line)] pt-6 text-sm text-[var(--bokmoo-copy)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-8 flex flex-col gap-3 border-t border-[var(--bokmoo-line)] pt-6 text-sm text-[var(--bokmoo-copy)] sm:mt-12 sm:flex-row sm:items-center sm:justify-between">
           <p>© {year} {site.brandName.toUpperCase()}. Official global eSIM storefront.</p>
           <p>Boundless connectivity, secure activation, and premium travel data management.</p>
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--bokmoo-line)] bg-[color:oklch(0.08_0.008_75_/_0.94)] px-3 py-2 backdrop-blur-xl sm:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,var(--bokmoo-line))] bg-[color:oklch(0.07_0.01_75_/_0.96)] px-3 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-18px_50px_rgba(0,0,0,0.36)] backdrop-blur-xl sm:hidden">
         <div className="mx-auto grid max-w-[420px] grid-cols-5 gap-1">
           {[
             { label: 'Home', icon: Home, onClick: () => onNavigate?.('/') },
@@ -136,7 +136,7 @@ export const Footer = React.memo(function Footer({
             <button
               key={label}
               onClick={onClick}
-              className="flex flex-col items-center justify-center gap-1 rounded-[0.85rem] px-2 py-2 text-[11px] text-[var(--bokmoo-copy-soft)] transition-colors hover:text-[var(--bokmoo-gold)]"
+              className="flex flex-col items-center justify-center gap-1 rounded-[0.85rem] border border-transparent px-2 py-2 text-[11px] text-[var(--bokmoo-copy-soft)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] hover:bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_8%,transparent)] hover:text-[var(--bokmoo-gold)]"
               type="button"
             >
               <Icon className="h-4 w-4" />
