@@ -551,7 +551,7 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate }: Hom
               </div>
             </div>
 
-            <div className="relative mx-auto h-[32rem] w-full max-w-[36rem] sm:h-[38rem] sm:max-w-[48rem] lg:mx-0 lg:h-[39rem] lg:max-w-none lg:translate-x-20 lg:rotate-[4deg] lg:scale-[1.02] xl:h-[45rem] xl:-mr-[8rem] xl:translate-x-24 xl:scale-[1.08] 2xl:h-[50rem] 2xl:-mr-[12rem] 2xl:translate-x-32 2xl:scale-[1.12]">
+            <div className="relative mx-auto h-[32rem] w-full max-w-[36rem] sm:h-[38rem] sm:max-w-[48rem] lg:mx-0 lg:h-[39rem] lg:max-w-none lg:translate-x-28 lg:rotate-[4deg] lg:scale-[1.02] xl:h-[45rem] xl:-mr-[18rem] xl:translate-x-[18rem] xl:scale-[1.05] 2xl:h-[50rem] 2xl:-mr-[28rem] 2xl:translate-x-[26rem] 2xl:scale-[1.06]">
               <div className="absolute bottom-[1%] left-[2%] right-[-18%] h-32 rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--bokmoo-gold)_72%,transparent),transparent_68%)] blur-2xl lg:h-40" />
               <div className="absolute bottom-[4%] left-[2%] right-[-18%] h-44 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_64%,transparent)] lg:h-56" />
               <div className="absolute bottom-[-3%] left-[-8%] right-[-24%] h-64 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_34%,transparent)] lg:h-80" />
