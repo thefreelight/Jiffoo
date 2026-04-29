@@ -1,0 +1,202 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Bokmoo black and gold eUICC hero cards</title>
+  <desc id="desc">A premium black matte eUICC card with gold chip contacts, a translucent card behind it, and gold orbital light tracks.</desc>
+  <defs>
+    <filter id="soft-shadow" x="-30%" y="-30%" width="160%" height="170%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="46" stdDeviation="36" flood-color="#000000" flood-opacity="0.72"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="26" flood-color="#D8B653" flood-opacity="0.18"/>
+    </filter>
+
+    <filter id="matte-noise" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="0.72" numOctaves="4" seed="31" result="noise"/>
+      <feColorMatrix in="noise" type="matrix" values="0 0 0 0 0.93 0 0 0 0 0.82 0 0 0 0 0.56 0 0 0 0.12 0" result="goldNoise"/>
+      <feBlend in="SourceGraphic" in2="goldNoise" mode="soft-light"/>
+    </filter>
+
+    <filter id="fine-grain" x="0" y="0" width="100%" height="100%" color-interpolation-filters="sRGB">
+      <feTurbulence type="fractalNoise" baseFrequency="1.1" numOctaves="3" seed="11" result="grain"/>
+      <feColorMatrix in="grain" type="matrix" values="0 0 0 0 1 0 0 0 0 0.88 0 0 0 0 0.58 0 0 0 0.10 0"/>
+    </filter>
+
+    <filter id="gold-glow" x="-70%" y="-70%" width="240%" height="240%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="1 0 0 0 0.91 0 1 0 0 0.66 0 0 1 0 0.25 0 0 0 0.74 0" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="contact-shadow" x="-40%" y="-40%" width="180%" height="180%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="13" stdDeviation="11" flood-color="#000000" flood-opacity="0.45"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="10" flood-color="#F3CD72" flood-opacity="0.22"/>
+    </filter>
+
+    <linearGradient id="main-card-fill" x1="286" y1="136" x2="728" y2="792" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#262019"/>
+      <stop offset="0.28" stop-color="#16130F"/>
+      <stop offset="0.68" stop-color="#090807"/>
+      <stop offset="1" stop-color="#16100B"/>
+    </linearGradient>
+
+    <linearGradient id="main-card-edge" x1="300" y1="110" x2="760" y2="780" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F1D98D" stop-opacity="0.82"/>
+      <stop offset="0.18" stop-color="#A98234" stop-opacity="0.5"/>
+      <stop offset="0.48" stop-color="#3E3020" stop-opacity="0.5"/>
+      <stop offset="0.76" stop-color="#D4A844" stop-opacity="0.58"/>
+      <stop offset="1" stop-color="#FFE7A2" stop-opacity="0.74"/>
+    </linearGradient>
+
+    <linearGradient id="rear-card-fill" x1="752" y1="112" x2="1014" y2="678" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="0.25" stop-color="#D7B75A" stop-opacity="0.1"/>
+      <stop offset="0.64" stop-color="#101010" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#050505" stop-opacity="0.38"/>
+    </linearGradient>
+
+    <linearGradient id="rear-card-stroke" x1="786" y1="126" x2="1010" y2="650" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF3B8" stop-opacity="0.48"/>
+      <stop offset="0.42" stop-color="#D3A949" stop-opacity="0.2"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.11"/>
+    </linearGradient>
+
+    <linearGradient id="chip-body" x1="434" y1="292" x2="630" y2="489" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#17120B"/>
+      <stop offset="0.38" stop-color="#2A1F12"/>
+      <stop offset="1" stop-color="#0B0907"/>
+    </linearGradient>
+
+    <linearGradient id="chip-edge" x1="422" y1="278" x2="652" y2="506" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8DEA0"/>
+      <stop offset="0.18" stop-color="#B78A3B"/>
+      <stop offset="0.5" stop-color="#5C421E"/>
+      <stop offset="0.82" stop-color="#E0B757"/>
+      <stop offset="1" stop-color="#FFF0B9"/>
+    </linearGradient>
+
+    <linearGradient id="contact-fill" x1="466" y1="326" x2="600" y2="454" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFE7A4"/>
+      <stop offset="0.28" stop-color="#DDB75A"/>
+      <stop offset="0.55" stop-color="#9A6623"/>
+      <stop offset="0.78" stop-color="#E3BC62"/>
+      <stop offset="1" stop-color="#FFF5C6"/>
+    </linearGradient>
+
+    <linearGradient id="brand-mark" x1="334" y1="180" x2="452" y2="244" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF0BB"/>
+      <stop offset="0.55" stop-color="#D8B653"/>
+      <stop offset="1" stop-color="#9F6E25"/>
+    </linearGradient>
+
+    <linearGradient id="track-gold" x1="140" y1="704" x2="1090" y2="416" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#D8B653" stop-opacity="0"/>
+      <stop offset="0.18" stop-color="#D8B653" stop-opacity="0.5"/>
+      <stop offset="0.5" stop-color="#FFECA5" stop-opacity="0.9"/>
+      <stop offset="0.78" stop-color="#D8B653" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#D8B653" stop-opacity="0"/>
+    </linearGradient>
+
+    <radialGradient id="field-glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(742 414) rotate(82) scale(408 510)">
+      <stop stop-color="#F1CA63" stop-opacity="0.42"/>
+      <stop offset="0.42" stop-color="#D8B653" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#D8B653" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="card-hotspot" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(424 178) rotate(65) scale(202 224)">
+      <stop stop-color="#FFE39B" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#FFE39B" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="shadow-pad" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(626 806) rotate(0) scale(418 52)">
+      <stop stop-color="#D8B653" stop-opacity="0.34"/>
+      <stop offset="0.64" stop-color="#D8B653" stop-opacity="0.1"/>
+      <stop offset="1" stop-color="#D8B653" stop-opacity="0"/>
+    </radialGradient>
+
+    <clipPath id="main-card-clip">
+      <rect x="316" y="126" width="456" height="654" rx="54" transform="rotate(-9 316 126)"/>
+    </clipPath>
+
+    <clipPath id="rear-card-clip">
+      <rect x="768" y="112" width="284" height="562" rx="48" transform="rotate(8 768 112)"/>
+    </clipPath>
+  </defs>
+
+  <g opacity="0.98">
+    <path d="M141 694C291 593 414 552 554 590C720 636 789 595 891 448C965 340 1040 291 1112 297" stroke="url(#track-gold)" stroke-width="2.8" stroke-linecap="round"/>
+    <path d="M88 763C250 646 397 617 548 661C726 714 816 636 912 514C998 405 1063 384 1148 404" stroke="url(#track-gold)" stroke-width="1.6" stroke-linecap="round" opacity="0.54"/>
+    <path d="M214 568C354 462 506 421 640 466C779 513 850 456 931 344C1000 248 1068 208 1130 214" stroke="url(#track-gold)" stroke-width="1.3" stroke-linecap="round" opacity="0.46"/>
+    <ellipse cx="672" cy="730" rx="428" ry="74" fill="url(#shadow-pad)"/>
+    <ellipse cx="788" cy="444" rx="400" ry="496" fill="url(#field-glow)"/>
+  </g>
+
+  <g clip-path="url(#rear-card-clip)" filter="url(#soft-shadow)" opacity="0.8">
+    <rect x="768" y="112" width="284" height="562" rx="48" transform="rotate(8 768 112)" fill="url(#rear-card-fill)" stroke="url(#rear-card-stroke)" stroke-width="2"/>
+    <rect x="806" y="164" width="202" height="452" rx="32" transform="rotate(8 806 164)" stroke="#F4D886" stroke-opacity="0.18" stroke-width="1.4"/>
+    <path d="M805 452C876 439 950 465 1024 530" stroke="#F6D985" stroke-opacity="0.22" stroke-width="1.2"/>
+    <path d="M805 502C884 486 965 516 1042 590" stroke="#F6D985" stroke-opacity="0.15" stroke-width="1"/>
+    <g opacity="0.72">
+      <rect x="841" y="206" width="34" height="18" rx="9" transform="rotate(8 841 206)" fill="#D8B653" fill-opacity="0.4"/>
+      <rect x="881" y="212" width="34" height="18" rx="9" transform="rotate(8 881 212)" fill="#D8B653" fill-opacity="0.32"/>
+      <rect x="836" y="238" width="34" height="18" rx="9" transform="rotate(8 836 238)" fill="#D8B653" fill-opacity="0.26"/>
+      <rect x="876" y="244" width="34" height="18" rx="9" transform="rotate(8 876 244)" fill="#D8B653" fill-opacity="0.42"/>
+    </g>
+    <rect x="892" y="336" width="82" height="118" rx="18" transform="rotate(8 892 336)" fill="#090807" fill-opacity="0.44" stroke="#E9C767" stroke-opacity="0.2"/>
+  </g>
+
+  <g filter="url(#soft-shadow)">
+    <rect x="316" y="126" width="456" height="654" rx="54" transform="rotate(-9 316 126)" fill="url(#main-card-fill)" stroke="url(#main-card-edge)" stroke-width="2.4"/>
+    <g clip-path="url(#main-card-clip)">
+      <rect x="262" y="78" width="564" height="770" fill="url(#card-hotspot)"/>
+      <path d="M254 628C342 573 438 556 543 584C656 615 752 594 848 513" stroke="#E3BD62" stroke-opacity="0.12" stroke-width="1.1"/>
+      <path d="M282 678C404 617 500 628 589 653C686 681 766 647 839 590" stroke="#FFF0B5" stroke-opacity="0.08" stroke-width="1"/>
+      <rect x="306" y="126" width="474" height="664" rx="58" transform="rotate(-9 306 126)" fill="transparent" filter="url(#matte-noise)"/>
+      <rect x="250" y="76" width="580" height="790" fill="#D8B653" opacity="0.24" filter="url(#fine-grain)"/>
+      <rect x="314" y="122" width="456" height="654" rx="54" transform="rotate(-9 314 122)" fill="none" stroke="#FFFFFF" stroke-opacity="0.05"/>
+      <rect x="330" y="150" width="420" height="598" rx="42" transform="rotate(-9 330 150)" fill="none" stroke="#D8B653" stroke-opacity="0.12"/>
+    </g>
+  </g>
+
+  <g transform="rotate(-9 544 452)">
+    <g transform="translate(336 182)">
+      <rect x="0" y="0" width="34" height="20" rx="10" fill="url(#brand-mark)"/>
+      <rect x="42" y="0" width="34" height="20" rx="10" fill="url(#brand-mark)" opacity="0.92"/>
+      <rect x="0" y="28" width="34" height="20" rx="10" fill="url(#brand-mark)" opacity="0.92"/>
+      <rect x="42" y="28" width="34" height="20" rx="10" fill="url(#brand-mark)"/>
+      <text x="100" y="35" fill="#D8B653" font-family="Avenir Next, Montserrat, Arial, sans-serif" font-size="24" font-weight="700" letter-spacing="4">BOKMOO</text>
+    </g>
+
+    <g transform="translate(420 316)" filter="url(#contact-shadow)">
+      <rect x="0" y="0" width="216" height="222" rx="34" fill="url(#chip-body)" stroke="url(#chip-edge)" stroke-width="2"/>
+      <rect x="22" y="26" width="172" height="170" rx="24" fill="none" stroke="#E2BD62" stroke-opacity="0.28" stroke-width="1.5"/>
+      <rect x="48" y="56" width="120" height="98" rx="17" fill="url(#contact-fill)"/>
+      <path d="M108 56V154" stroke="#7B511E" stroke-opacity="0.62" stroke-width="2"/>
+      <path d="M48 88H168" stroke="#7B511E" stroke-opacity="0.62" stroke-width="2"/>
+      <path d="M48 122H168" stroke="#7B511E" stroke-opacity="0.52" stroke-width="2"/>
+      <path d="M70 56V88" stroke="#FFF4BD" stroke-opacity="0.34" stroke-width="1.4"/>
+      <path d="M146 122V154" stroke="#FFF4BD" stroke-opacity="0.3" stroke-width="1.4"/>
+      <path d="M48 56C48 56 77 56 77 88C77 122 48 122 48 122" stroke="#714A1B" stroke-opacity="0.55" stroke-width="2" fill="none"/>
+      <path d="M168 88C168 88 139 88 139 122C139 154 168 154 168 154" stroke="#714A1B" stroke-opacity="0.55" stroke-width="2" fill="none"/>
+      <circle cx="108" cy="105" r="4.5" fill="#FFF0AD" fill-opacity="0.68"/>
+    </g>
+
+    <text x="356" y="642" fill="#D8B653" font-family="Avenir Next, Montserrat, Arial, sans-serif" font-size="29" font-weight="700" letter-spacing="5">YOUR GLOBAL</text>
+    <text x="356" y="680" fill="#D8B653" font-family="Avenir Next, Montserrat, Arial, sans-serif" font-size="29" font-weight="700" letter-spacing="5">PARTNER.</text>
+    <text x="356" y="726" fill="#B7A070" font-family="Avenir Next, Montserrat, Arial, sans-serif" font-size="17" font-weight="600" letter-spacing="6">BOKMOO.COM</text>
+
+    <g opacity="0.76">
+      <path d="M686 216C676 242 675 278 686 308" stroke="#D8B653" stroke-opacity="0.36" stroke-width="1.2"/>
+      <path d="M704 228C697 252 697 276 704 300" stroke="#D8B653" stroke-opacity="0.24" stroke-width="1"/>
+      <circle cx="688" cy="214" r="3" fill="#F3D883" filter="url(#gold-glow)"/>
+      <circle cx="706" cy="302" r="2.5" fill="#F3D883" filter="url(#gold-glow)"/>
+    </g>
+  </g>
+
+  <g filter="url(#gold-glow)">
+    <circle cx="255" cy="694" r="3.4" fill="#FFE69E"/>
+    <circle cx="594" cy="642" r="4.2" fill="#FFE69E"/>
+    <circle cx="894" cy="484" r="3.6" fill="#FFE69E"/>
+    <circle cx="1032" cy="368" r="2.8" fill="#FFE69E"/>
+    <circle cx="768" cy="248" r="2.4" fill="#FFE69E" opacity="0.76"/>
+  </g>
+</svg>
