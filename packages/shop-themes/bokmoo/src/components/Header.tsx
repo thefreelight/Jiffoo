@@ -80,7 +80,7 @@ export const Header = React.memo(function Header({
 
   return (
     <header className="sticky top-0 z-50 border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] bg-[radial-gradient(circle_at_8%_-24%,color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent),transparent_34%),linear-gradient(180deg,oklch(0.055_0.007_75_/_0.98),oklch(0.028_0.004_75_/_0.96))] shadow-[0_18px_52px_rgba(0,0,0,0.3)] backdrop-blur-2xl">
-      <div className="mx-auto flex max-w-[1440px] items-center gap-4 px-4 py-2.5 sm:px-6 xl:min-h-[4.85rem] xl:gap-5 xl:px-8 2xl:px-10">
+      <div className="mx-auto flex max-w-[107rem] items-center gap-4 px-4 py-2.5 sm:px-6 xl:min-h-[4.85rem] xl:gap-5 xl:px-0">
         <button
           onClick={onNavigateToHome}
           className="group flex shrink-0 items-center gap-3 text-left sm:gap-3.5"
