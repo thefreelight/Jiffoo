@@ -13,7 +13,6 @@ import { usePathname } from 'next/navigation'
 import { Menu } from 'lucide-react'
 import { BlueMinimalSidebar } from './blue-minimal-sidebar'
 import ProtectedRoute from '../auth/ProtectedRoute'
-import { useT, useLocale } from 'shared/src/i18n/react'
 import { ManagedModeProvider, useManagedMode } from '@/lib/managed-mode'
 
 interface BlueMinimalLayoutProps {
@@ -23,18 +22,9 @@ interface BlueMinimalLayoutProps {
 export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const pathname = usePathname()
-  const locale = useLocale()
-  const t = useT()
-
-  // Helper function for translations with fallback
-  const getText = (key: string, fallback: string): string => {
-    if (!t) return fallback
-    const translated = t(key)
-    return translated === key ? fallback : translated
-  }
 
   // Public routes that don't need authentication
-  const publicRoutes = ['/auth/login', '/auth/register']
+  const publicRoutes = ['/auth/login', '/auth/register', '/install']
   const isPublicRoute = publicRoutes.some(route => pathname.includes(route))
 
   if (isPublicRoute) {

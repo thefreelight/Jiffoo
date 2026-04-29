@@ -43,6 +43,31 @@ export default function AdminLoginPage() {
   }, [checkAuth])
 
   useEffect(() => {
+    let cancelled = false
+
+    async function redirectFreshInstall() {
+      try {
+        const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/$/, '')
+        const response = await fetch(`${apiBaseUrl}/install/status`, { credentials: 'include' })
+        if (!response.ok) return
+
+        const status = await response.json()
+        if (!cancelled && status?.isInstalled === false) {
+          router.replace(`/${locale}/install`)
+        }
+      } catch {
+        // Login remains available if the installation status endpoint is unreachable.
+      }
+    }
+
+    redirectFreshInstall()
+
+    return () => {
+      cancelled = true
+    }
+  }, [locale, router])
+
+  useEffect(() => {
     const branding = brandingQuery.data
     document.title = branding?.mode === 'managed' && branding.displayBrandName
       ? `${branding.displayBrandName} Admin`
