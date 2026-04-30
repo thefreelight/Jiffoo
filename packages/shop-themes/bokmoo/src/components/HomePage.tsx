@@ -503,7 +503,7 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate }: Hom
         <img
           src={BOKMOO_HERO_CARDS_SRC}
           alt=""
-          className="pointer-events-none absolute right-[-79%] top-[26.5rem] z-0 block h-[32rem] w-[43rem] max-w-none select-none object-contain opacity-70 sm:right-[-42%] sm:top-[24rem] sm:h-[36rem] sm:w-[48rem] lg:hidden"
+          className="pointer-events-none absolute right-[-108%] top-[22.5rem] z-0 block h-[33rem] w-[44rem] max-w-none select-none object-contain opacity-55 sm:right-[-58%] sm:top-[21rem] sm:h-[36rem] sm:w-[48rem] lg:hidden"
           draggable={false}
           aria-hidden="true"
         />
