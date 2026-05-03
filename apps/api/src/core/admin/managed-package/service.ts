@@ -282,7 +282,7 @@ export class ManagedPackageService {
     });
 
     try {
-      await verifyOfficialArtifact({
+      const artifactVerification = await verifyOfficialArtifact({
         filePath: downloadResult.filePath,
         packageUrl: versionSummary.packageUrl,
         checksumUrl: `${versionSummary.packageUrl}.sha256`,
@@ -292,6 +292,7 @@ export class ManagedPackageService {
       await installOfficialMarketExtension({
         kind: 'theme-shop',
         artifactPath: downloadResult.filePath,
+        artifactVerification,
         activate: activateAfterInstall,
         requestedVersion,
         packageUrl: versionSummary.packageUrl,
@@ -334,7 +335,7 @@ export class ManagedPackageService {
     });
 
     try {
-      await verifyOfficialArtifact({
+      const artifactVerification = await verifyOfficialArtifact({
         filePath: downloadResult.filePath,
         packageUrl: versionSummary.packageUrl,
         checksumUrl: `${versionSummary.packageUrl}.sha256`,
@@ -344,6 +345,7 @@ export class ManagedPackageService {
       await installOfficialMarketExtension({
         kind: 'plugin',
         artifactPath: downloadResult.filePath,
+        artifactVerification,
         requestedVersion,
         packageUrl: versionSummary.packageUrl,
         listingDomain: detail.listingDomain,

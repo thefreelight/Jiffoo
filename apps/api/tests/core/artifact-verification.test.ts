@@ -33,7 +33,7 @@ describe('verifyOfficialArtifact', () => {
     vi.unstubAllGlobals();
   });
 
-  it('allows missing signatures for trusted official artifact hosts', async () => {
+  it('rejects missing signatures for trusted official artifact hosts in required mode', async () => {
     const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'artifact-verification-'));
     const artifactPath = path.join(tempDir, 'navtoai.jtheme');
     const artifactBuffer = Buffer.from('navtoai-official-artifact');
@@ -56,11 +56,7 @@ describe('verifyOfficialArtifact', () => {
         filePath: artifactPath,
         packageUrl: 'https://get.jiffoo.com/official-artifacts/themes/navtoai/0.2.1.jtheme',
       }),
-    ).resolves.toMatchObject({
-      sha256,
-      checksumVerified: true,
-      signatureVerified: false,
-    });
+    ).rejects.toThrow('Artifact metadata fetch failed (404)');
 
     expect(mocks.verifyPackageSignature).not.toHaveBeenCalled();
   });

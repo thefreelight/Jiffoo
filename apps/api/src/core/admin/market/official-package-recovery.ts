@@ -112,12 +112,16 @@ async function recoverOfficialMarketExtensionFilesInternal(
   });
 
   try {
-    await verifyOfficialArtifact({
+    const artifactVerification = await verifyOfficialArtifact({
       filePath: download.filePath,
       packageUrl: versionSummary.packageUrl,
       checksumUrl: `${versionSummary.packageUrl}.sha256`,
       signatureUrl: `${versionSummary.packageUrl}.sig`,
     });
+
+    if (!artifactVerification.signatureVerified) {
+      throw new Error('Official extension recovery requires a verified artifact signature');
+    }
 
     const installResult = await extensionInstaller.installFromZip(
       toExtensionKind(input.kind),

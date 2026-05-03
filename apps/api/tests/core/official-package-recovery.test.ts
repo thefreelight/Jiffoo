@@ -49,7 +49,8 @@ describe('ensureOfficialMarketExtensionFiles', () => {
     mocks.verifyOfficialArtifact.mockResolvedValue({
       sha256: 'x'.repeat(64),
       checksumVerified: true,
-      signatureVerified: false,
+      signatureVerified: true,
+      signedBy: 'test-key',
     });
     mocks.cleanupDownloadedArtifact.mockResolvedValue(undefined);
     mocks.pluginInstallUpdate.mockResolvedValue(undefined);

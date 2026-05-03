@@ -10,6 +10,7 @@ import {
   type InstallResult,
 } from '@/core/admin/extension-installer';
 import { evaluatePluginConfigReadiness } from '@/core/admin/extension-installer/config-readiness';
+import { getSignatureVerifyMode } from '@/core/admin/extension-installer/signature-verifier';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { ThemeManagementService, type ThemeTarget } from '@/core/admin/theme-management/service';
 import type { ActiveTheme, ThemeConfig } from '@/core/admin/theme-management/types';
@@ -38,6 +39,12 @@ export interface OfficialMarketInstallOptions {
   kind: ExtensionKind;
   zipBuffer?: Buffer;
   artifactPath?: string;
+  artifactVerification?: {
+    sha256: string;
+    checksumVerified: boolean;
+    signatureVerified: boolean;
+    signedBy?: string;
+  };
   activate?: boolean;
   themeConfig?: ThemeConfig;
   requestedVersion?: string;
@@ -250,6 +257,13 @@ async function buildThemeActivationState(
 export async function installOfficialMarketExtension(
   options: OfficialMarketInstallOptions
 ): Promise<OfficialMarketInstallResult> {
+  if (!options.artifactVerification?.checksumVerified) {
+    throw new Error('Official market install requires a verified checksum before handoff');
+  }
+  if (getSignatureVerifyMode() === 'required' && !options.artifactVerification.signatureVerified) {
+    throw new Error('Official market install requires a verified signature before handoff');
+  }
+
   const zipStream = options.artifactPath
     ? createReadStream(options.artifactPath)
     : options.zipBuffer
@@ -262,7 +276,8 @@ export async function installOfficialMarketExtension(
 
   const installResult = await extensionInstaller.installFromZip(
     options.kind,
-    zipStream
+    zipStream,
+    { skipSignatureVerification: true },
   );
 
   await markInstalledSource(options.kind, installResult.slug, installResult.fsPath, installResult, options);

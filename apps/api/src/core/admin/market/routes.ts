@@ -334,6 +334,7 @@ export async function marketRoutes(fastify: FastifyInstance) {
         const result = await installOfficialMarketExtension({
           kind,
           artifactPath: downloadResult.filePath,
+          artifactVerification: verification,
           activate,
           themeConfig,
           requestedVersion: authorization.version,

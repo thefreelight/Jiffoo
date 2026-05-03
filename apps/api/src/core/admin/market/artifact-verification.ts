@@ -19,12 +19,6 @@ export interface OfficialArtifactVerificationResult {
   signedBy?: string;
 }
 
-const TRUSTED_OFFICIAL_ARTIFACT_HOSTS = new Set([
-  'platform-api.jiffoo.com',
-  'market.jiffoo.com',
-  'get.jiffoo.com',
-]);
-
 function parseSha256Sidecar(raw: string): string {
   const trimmed = raw.trim();
   if (!trimmed) {
@@ -37,15 +31,6 @@ function parseSha256Sidecar(raw: string): string {
   }
 
   return checksum.toLowerCase();
-}
-
-function isTrustedOfficialArtifactUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url);
-    return TRUSTED_OFFICIAL_ARTIFACT_HOSTS.has(parsed.hostname);
-  } catch {
-    return false;
-  }
 }
 
 async function fetchText(url: string, { optional = false }: { optional?: boolean } = {}): Promise<string | null> {
@@ -74,8 +59,6 @@ export async function verifyOfficialArtifact(
   const signatureUrl = input.signatureUrl || `${input.packageUrl}.sig`;
   const artifactBuffer = await fs.readFile(input.filePath);
   const sha256 = createHash('sha256').update(artifactBuffer).digest('hex');
-  const allowMissingSignature = isTrustedOfficialArtifactUrl(input.packageUrl);
-
   const checksumRaw = await fetchText(checksumUrl);
   const expectedSha256 = parseSha256Sidecar(checksumRaw || '');
 
@@ -87,18 +70,11 @@ export async function verifyOfficialArtifact(
 
   const mode = getSignatureVerifyMode();
   const signatureRaw = await fetchText(signatureUrl, {
-    optional: mode !== 'required' || allowMissingSignature,
+    optional: mode !== 'required',
   });
 
   if (!signatureRaw) {
     if (mode === 'required') {
-      if (allowMissingSignature) {
-        return {
-          sha256,
-          checksumVerified: true,
-          signatureVerified: false,
-        };
-      }
       throw new Error('Official artifact signature is required but missing');
     }
 
