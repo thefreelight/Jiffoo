@@ -80,6 +80,8 @@ RUN pnpm --filter api prisma generate
 
 # Build api service
 RUN pnpm --filter api build && \
+    mkdir -p /app/apps/api/dist/core/admin/extension-installer/keys && \
+    cp -R /app/apps/api/src/core/admin/extension-installer/keys/. /app/apps/api/dist/core/admin/extension-installer/keys/ && \
     echo "=== Build output ===" && \
     ls -la /app/apps/api/dist/ && \
     test -f /app/apps/api/dist/server.js || (echo "ERROR: server.js not found!" && exit 1)
