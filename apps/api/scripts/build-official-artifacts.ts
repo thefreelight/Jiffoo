@@ -1,4 +1,5 @@
 import archiver from 'archiver';
+import * as esbuild from 'esbuild';
 import { spawn } from 'child_process';
 import { createHash, sign } from 'crypto';
 import { createWriteStream } from 'fs';
@@ -19,6 +20,16 @@ interface PluginSourceConfig {
 
 interface PreparedPluginSource {
   cleanup(): Promise<void>;
+}
+
+interface PluginPackageJson {
+  name?: string;
+  version?: string;
+  description?: string;
+  main?: string;
+  license?: string;
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
 }
 
 interface BuildOfficialArtifactsOptions {
@@ -50,6 +61,7 @@ interface ThemePackSourceManifest {
   target: 'shop' | 'admin';
   entry?: {
     tokensCSS?: string;
+    runtimeJS?: string;
     templatesDir?: string;
     assetsDir?: string;
     settingsSchema?: string;
@@ -198,6 +210,49 @@ async function copyIfExists(sourcePath: string, destPath: string): Promise<boole
   return true;
 }
 
+async function writeProductionPluginPackageJson(
+  pluginSlug: string,
+  sourcePackageJsonPath: string,
+  stagingPackageJsonPath: string,
+  hasPrismaSchema: boolean,
+): Promise<void> {
+  const packageJson = JSON.parse(await fs.readFile(sourcePackageJsonPath, 'utf-8')) as PluginPackageJson;
+  const dependencies = { ...(packageJson.dependencies || {}) };
+
+  if (hasPrismaSchema && packageJson.devDependencies?.prisma && !dependencies.prisma) {
+    dependencies.prisma = packageJson.devDependencies.prisma;
+  }
+
+  const productionPackageJson: PluginPackageJson = {
+    name: packageJson.name || `@jiffoo/official-plugin-${pluginSlug}`,
+    version: packageJson.version,
+    description: packageJson.description,
+    main: packageJson.main || 'dist/index.js',
+    dependencies,
+    license: packageJson.license,
+  };
+
+  await ensureDir(path.dirname(stagingPackageJsonPath));
+  await fs.writeFile(
+    stagingPackageJsonPath,
+    `${JSON.stringify(productionPackageJson, null, 2)}\n`,
+    'utf-8',
+  );
+}
+
+async function installPluginProductionDependencies(stagingDir: string): Promise<void> {
+  await runShellCommand('npm install --omit=dev --ignore-scripts --no-audit --no-fund', stagingDir);
+}
+
+async function generateStagedPluginPrismaClient(stagingDir: string): Promise<void> {
+  const prismaBinaryPath = path.join(stagingDir, 'node_modules', '.bin', 'prisma');
+  const prismaCommand = (await pathExists(prismaBinaryPath))
+    ? `${JSON.stringify(prismaBinaryPath)} generate --schema prisma/schema.prisma`
+    : 'npx prisma generate --schema prisma/schema.prisma';
+
+  await runShellCommand(prismaCommand, stagingDir);
+}
+
 async function gatherFiles(dir: string, prefix = ''): Promise<string[]> {
   const entries = await fs.readdir(dir, { withFileTypes: true });
   const files: string[] = [];
@@ -219,6 +274,10 @@ async function gatherFiles(dir: string, prefix = ''): Promise<string[]> {
 
 function shouldRemoveExecutableArtifactFile(relativePath: string): boolean {
   const normalized = relativePath.replace(/\\/g, '/').toLowerCase();
+  if (isAllowedBundledPluginRuntimeBinary(normalized)) {
+    return false;
+  }
+
   if (normalized.endsWith('.map')) {
     return true;
   }
@@ -259,14 +318,22 @@ function shouldRemoveExecutableArtifactFile(relativePath: string): boolean {
 
 function isAllowedBundledPluginRuntimeBinary(relativePath: string): boolean {
   const normalized = relativePath.replace(/\\/g, '/').toLowerCase();
-  if (!normalized.endsWith('.node')) {
-    return false;
-  }
+  const isNodeBinary = normalized.endsWith('.node');
+  const isSharpSharedLibrary =
+    normalized.includes('node_modules/@img/sharp-libvips-') &&
+    (normalized.endsWith('.dylib') ||
+      normalized.endsWith('.so') ||
+      normalized.includes('.so.') ||
+      normalized.endsWith('.dll'));
 
   return (
-    normalized.includes('node_modules/.prisma/client/') ||
-    normalized.includes('node_modules/@prisma/engines/') ||
-    normalized.includes('node_modules/prisma/')
+    (isNodeBinary &&
+      (/(^|\/)node_modules\/\.prisma\/(client|[^/]+-client)\//.test(normalized) ||
+        normalized.includes('node_modules/@prisma/engines/') ||
+        normalized.includes('node_modules/prisma/') ||
+        normalized.includes('node_modules/@img/sharp-') ||
+        normalized.includes('node_modules/sharp/'))) ||
+    isSharpSharedLibrary
   );
 }
 
@@ -460,6 +527,8 @@ async function stagePluginArtifact(entry: OfficialCatalogEntry, stagingDir: stri
   const packageJsonPath = path.join(sourceDir, 'package.json');
   const readmePath = path.join(sourceDir, 'README.md');
   const localLicensePath = path.join(sourceDir, 'LICENSE');
+  const prismaDir = path.join(sourceDir, 'prisma');
+  const prismaSchemaPath = path.join(prismaDir, 'schema.prisma');
   const config = OFFICIAL_PLUGIN_SOURCE_CONFIG[entry.slug] || {};
 
   if (!(await pathExists(manifestPath))) {
@@ -490,9 +559,17 @@ async function stagePluginArtifact(entry: OfficialCatalogEntry, stagingDir: stri
 
   try {
     await copyIfExists(manifestPath, path.join(stagingDir, 'manifest.json'));
-    await copyIfExists(packageJsonPath, path.join(stagingDir, 'package.json'));
+    if (await pathExists(packageJsonPath)) {
+      await writeProductionPluginPackageJson(
+        entry.slug,
+        packageJsonPath,
+        path.join(stagingDir, 'package.json'),
+        await pathExists(prismaSchemaPath),
+      );
+    }
     await copyIfExists(readmePath, path.join(stagingDir, 'README.md'));
     await copyIfExists(localLicensePath, path.join(stagingDir, 'LICENSE'));
+    await copyIfExists(prismaDir, path.join(stagingDir, 'prisma'));
 
     if (!(await pathExists(path.join(stagingDir, 'LICENSE')))) {
       await copyIfExists(ROOT_LICENSE_PATH, path.join(stagingDir, 'LICENSE'));
@@ -523,6 +600,14 @@ async function stagePluginArtifact(entry: OfficialCatalogEntry, stagingDir: stri
       });
     }
 
+    if (await pathExists(path.join(stagingDir, 'package.json'))) {
+      await installPluginProductionDependencies(stagingDir);
+    }
+
+    if (await pathExists(path.join(stagingDir, 'prisma', 'schema.prisma'))) {
+      await generateStagedPluginPrismaClient(stagingDir);
+    }
+
     await pruneExecutablePackageArtifacts(stagingDir);
     await writeChecksumsJson(stagingDir);
     return gatherFiles(stagingDir);
@@ -540,6 +625,156 @@ async function ensureThemePackPath(sourceDir: string, relativePath?: string): Pr
   if (!(await pathExists(absolutePath))) {
     throw new Error(`Theme Pack source is missing required path: ${relativePath}`);
   }
+}
+
+function getThemeRuntimeEntryCandidates(packageDir: string): string[] {
+  return [
+    path.join(packageDir, 'src', 'runtime.tsx'),
+    path.join(packageDir, 'src', 'runtime.ts'),
+    path.join(packageDir, 'runtime', 'index.tsx'),
+    path.join(packageDir, 'runtime', 'index.ts'),
+  ];
+}
+
+async function resolveThemeRuntimeEntry(packageDir: string, slug: string): Promise<string> {
+  for (const candidate of getThemeRuntimeEntryCandidates(packageDir)) {
+    if (await pathExists(candidate)) {
+      return candidate;
+    }
+  }
+
+  throw new Error(`Theme ${slug} declares a packaged runtime but no runtime entry file was found`);
+}
+
+function createThemeHostExternalPlugin(): esbuild.Plugin {
+  return {
+    name: 'theme-host-externals',
+    setup(build) {
+      build.onResolve({ filter: /^(react|react\/jsx-runtime|react\/jsx-dev-runtime|next\/image|next\/navigation|next-themes)$/ }, (args) => ({
+        path: args.path,
+        namespace: 'theme-host-external',
+      }));
+
+      build.onLoad({ filter: /.*/, namespace: 'theme-host-external' }, async (args) => {
+        const contentsByModule: Record<string, string> = {
+          react: `
+            const ReactNS = window.__JIFFOO_THEME_HOST__.React;
+            export default ReactNS;
+            export const Children = ReactNS.Children;
+            export const Component = ReactNS.Component;
+            export const Fragment = ReactNS.Fragment;
+            export const Profiler = ReactNS.Profiler;
+            export const PureComponent = ReactNS.PureComponent;
+            export const StrictMode = ReactNS.StrictMode;
+            export const Suspense = ReactNS.Suspense;
+            export const cloneElement = ReactNS.cloneElement;
+            export const createContext = ReactNS.createContext;
+            export const createElement = ReactNS.createElement;
+            export const createRef = ReactNS.createRef;
+            export const forwardRef = ReactNS.forwardRef;
+            export const isValidElement = ReactNS.isValidElement;
+            export const lazy = ReactNS.lazy;
+            export const memo = ReactNS.memo;
+            export const startTransition = ReactNS.startTransition;
+            export const use = ReactNS.use;
+            export const useActionState = ReactNS.useActionState;
+            export const useCallback = ReactNS.useCallback;
+            export const useContext = ReactNS.useContext;
+            export const useDebugValue = ReactNS.useDebugValue;
+            export const useDeferredValue = ReactNS.useDeferredValue;
+            export const useEffect = ReactNS.useEffect;
+            export const useId = ReactNS.useId;
+            export const useImperativeHandle = ReactNS.useImperativeHandle;
+            export const useInsertionEffect = ReactNS.useInsertionEffect;
+            export const useLayoutEffect = ReactNS.useLayoutEffect;
+            export const useMemo = ReactNS.useMemo;
+            export const useOptimistic = ReactNS.useOptimistic;
+            export const useReducer = ReactNS.useReducer;
+            export const useRef = ReactNS.useRef;
+            export const useState = ReactNS.useState;
+            export const useSyncExternalStore = ReactNS.useSyncExternalStore;
+            export const useTransition = ReactNS.useTransition;
+          `,
+          'react/jsx-runtime': `
+            const Runtime = window.__JIFFOO_THEME_HOST__.jsxRuntime;
+            export const Fragment = Runtime.Fragment;
+            export const jsx = Runtime.jsx;
+            export const jsxs = Runtime.jsxs;
+          `,
+          'react/jsx-dev-runtime': `
+            const Runtime = window.__JIFFOO_THEME_HOST__.jsxRuntime;
+            export const Fragment = Runtime.Fragment;
+            export const jsxDEV = Runtime.jsxDEV;
+          `,
+          'next/image': `
+            const Image = window.__JIFFOO_THEME_HOST__.nextImage;
+            export default Image;
+          `,
+          'next/navigation': `
+            const Navigation = window.__JIFFOO_THEME_HOST__.nextNavigation;
+            export const useParams = Navigation.useParams;
+            export const usePathname = Navigation.usePathname;
+            export const useRouter = Navigation.useRouter;
+            export const useSearchParams = Navigation.useSearchParams;
+          `,
+          'next-themes': `
+            const NextThemes = window.__JIFFOO_THEME_HOST__.nextThemes;
+            export const ThemeProvider = NextThemes.ThemeProvider;
+            export const useTheme = NextThemes.useTheme;
+          `,
+        };
+
+        const contents = contentsByModule[args.path];
+        if (!contents) {
+          throw new Error(`No host external shim configured for ${args.path}`);
+        }
+
+        return {
+          contents,
+          loader: 'js',
+        };
+      });
+    },
+  };
+}
+
+async function buildThemeRuntimeBundle(
+  entry: OfficialCatalogEntry,
+  packageDir: string,
+  stagingDir: string,
+  manifest: ThemePackSourceManifest,
+): Promise<string | null> {
+  const runtimePath = manifest.entry?.runtimeJS;
+  if (!runtimePath) {
+    return null;
+  }
+
+  const runtimeEntry = await resolveThemeRuntimeEntry(packageDir, entry.slug);
+  const runtimeOutputPath = path.join(stagingDir, runtimePath);
+  await ensureDir(path.dirname(runtimeOutputPath));
+
+  await esbuild.build({
+    stdin: {
+      contents: `
+        import theme from ${JSON.stringify(runtimeEntry)};
+        window.__JIFFOO_THEME_RUNTIME__ = theme;
+      `,
+      resolveDir: REPO_ROOT,
+      sourcefile: `${entry.slug}-theme-runtime-entry.ts`,
+      loader: 'ts',
+    },
+    outfile: runtimeOutputPath,
+    bundle: true,
+    format: 'iife',
+    platform: 'browser',
+    target: ['es2020'],
+    define: {
+      'process.env.NODE_ENV': JSON.stringify('production'),
+    },
+    plugins: [createThemeHostExternalPlugin()],
+  });
+
+  return runtimePath;
 }
 
 async function stageThemeArtifact(entry: OfficialCatalogEntry, stagingDir: string): Promise<string[]> {
@@ -596,13 +831,16 @@ async function stageThemeArtifact(entry: OfficialCatalogEntry, stagingDir: strin
     );
   }
 
-  const rendererMode = manifest['x-jiffoo-renderer-mode'];
-  const rendererSlug = manifest['x-jiffoo-renderer-slug'];
+  if (manifest.entry?.runtimeJS) {
+    if (manifest['x-jiffoo-renderer-mode'] !== 'embedded') {
+      throw new Error(`Theme Pack manifest for ${entry.slug} must declare x-jiffoo-renderer-mode=embedded`);
+    }
 
-  if (rendererMode === 'embedded' && rendererSlug !== entry.slug) {
-    throw new Error(
-      `Theme Pack manifest renderer slug ${rendererSlug} does not match official theme slug ${entry.slug}`,
-    );
+    if (manifest['x-jiffoo-renderer-slug'] !== entry.slug) {
+      throw new Error(
+        `Theme Pack manifest renderer slug ${manifest['x-jiffoo-renderer-slug']} does not match official theme slug ${entry.slug}`,
+      );
+    }
   }
 
   await ensureThemePackPath(sourceDir, manifest.entry?.tokensCSS || 'tokens.css');
@@ -612,6 +850,7 @@ async function stageThemeArtifact(entry: OfficialCatalogEntry, stagingDir: strin
   await ensureThemePackPath(sourceDir, manifest.entry?.presetsDir);
 
   await fs.cp(sourceDir, stagingDir, { recursive: true, force: true });
+  await buildThemeRuntimeBundle(entry, packageDir, stagingDir, manifest);
   await copyIfExists(packageRootReadmePath, path.join(stagingDir, 'README.md'));
   await copyIfExists(ROOT_LICENSE_PATH, path.join(stagingDir, 'LICENSE'));
 
