@@ -79,14 +79,20 @@ function isAllowedPluginRuntimeBinary(filename: string, kind?: string): boolean 
     }
 
     const normalized = filename.replace(/\\/g, '/').toLowerCase();
-    if (!normalized.endsWith('.node')) {
+    const isNativeOrWasm =
+        normalized.endsWith('.node') ||
+        normalized.endsWith('.wasm') ||
+        /\.so(\.\d+)*$/.test(normalized);
+    if (!isNativeOrWasm) {
         return false;
     }
 
     return (
-        normalized.includes('node_modules/.prisma/client/') ||
+        normalized.includes('node_modules/.prisma/') ||
         normalized.includes('node_modules/@prisma/engines/') ||
-        normalized.includes('node_modules/prisma/')
+        normalized.includes('node_modules/prisma/') ||
+        normalized.includes('node_modules/@img/sharp-linux-') ||
+        normalized.includes('node_modules/@img/sharp-libvips-')
     );
 }
 
