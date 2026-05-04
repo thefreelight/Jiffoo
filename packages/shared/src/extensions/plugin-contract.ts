@@ -162,6 +162,10 @@ function isUrl(value: string): boolean {
   }
 }
 
+function isInternalWebhookPath(value: string): boolean {
+  return /^\/(?!\/)[A-Za-z0-9._~!$&'()*+,;=:@/-]*$/.test(value);
+}
+
 function pushIssue(issues: PluginManifestIssue[], path: string, message: string, code: string): void {
   issues.push({ path, message, code });
 }
@@ -372,8 +376,8 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
       }
       if (typeof manifest.webhooks.url !== 'string' || !manifest.webhooks.url.trim()) {
         pushIssue(issues, 'webhooks.url', 'webhooks.url is required', 'INVALID_WEBHOOKS');
-      } else if (!isUrl(manifest.webhooks.url)) {
-        pushIssue(issues, 'webhooks.url', 'webhooks.url must be a valid http(s) URL', 'INVALID_WEBHOOKS');
+      } else if (!isUrl(manifest.webhooks.url) && !isInternalWebhookPath(manifest.webhooks.url)) {
+        pushIssue(issues, 'webhooks.url', 'webhooks.url must be a valid http(s) URL or internal absolute path', 'INVALID_WEBHOOKS');
       }
     }
   }
