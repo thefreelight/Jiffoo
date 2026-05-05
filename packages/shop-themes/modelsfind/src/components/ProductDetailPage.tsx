@@ -251,7 +251,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
             <div className="border-b border-[var(--modelsfind-line)] p-4 lg:border-b-0 lg:border-r lg:p-5">
               <div className="overflow-hidden rounded-[1.35rem] border border-[var(--modelsfind-line)] bg-[rgba(14,11,16,0.96)]">
                 <div className="relative aspect-[0.9] overflow-hidden">
-                  <img src={activeImage} alt={product.name} className="h-full w-full object-cover grayscale" />
+                  <img src={activeImage} alt={product.name} className="h-full w-full object-cover saturate-[1.08] contrast-[1.05]" />
                   <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(8,7,10,0.03),rgba(8,7,10,0.58))]" />
                   <div className="absolute left-4 top-4 rounded-full border border-[var(--modelsfind-line-strong)] bg-[rgba(17,14,20,0.8)] px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--modelsfind-primary)]">
                     Featured profile
@@ -272,7 +272,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                       ].join(' ')}
                     >
                       <div className="aspect-square">
-                        <img src={image} alt={product.name} className="h-full w-full object-cover grayscale" />
+                        <img src={image} alt={product.name} className="h-full w-full object-cover saturate-[1.08] contrast-[1.05]" />
                       </div>
                     </button>
                   ))}

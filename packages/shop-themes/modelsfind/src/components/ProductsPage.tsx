@@ -238,7 +238,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                           <img
                             src={getProductImage(product)}
                             alt={product.name}
-                            className="h-full w-full object-cover grayscale transition-transform duration-500 group-hover:scale-[1.03]"
+                            className="h-full w-full object-cover saturate-[1.08] contrast-[1.05] transition-transform duration-500 group-hover:scale-[1.03]"
                           />
                           <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(10,8,12,0.04),rgba(10,8,12,0.76))]" />
                           <div className="absolute left-3 right-3 top-3 flex items-center justify-between gap-2">

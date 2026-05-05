@@ -2,14 +2,11 @@ import React from 'react';
 import {
   Compass,
   Heart,
-  Search,
   Sparkles,
   WandSparkles,
 } from 'lucide-react';
 import type { HomePageProps } from 'shared/src/types/theme';
 import { heroRegions, isExternalHref, previewPortraits, resolveModelsfindSiteConfig } from '../site';
-
-const desktopNav = ['Collection', 'Boards', 'Services', 'Access'] as const;
 
 export const HomePage = React.memo(function HomePage({ config, onNavigate }: HomePageProps) {
   const site = resolveModelsfindSiteConfig(config);
@@ -33,57 +30,6 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate }: Hom
     <div className="modelsfind-shell min-h-screen px-4 pb-24 pt-20 [font-family:var(--modelsfind-body)] text-[var(--modelsfind-ink)] sm:px-6 sm:pt-24 lg:px-8">
       <div className="mx-auto max-w-[1040px]">
         <div className="modelsfind-frame overflow-hidden rounded-[2rem] border border-[var(--modelsfind-line-strong)] bg-[rgba(10,8,12,0.96)]">
-          <div className="hidden items-center gap-6 border-b border-[var(--modelsfind-line)] px-5 py-4 md:flex">
-            <button
-              type="button"
-              onClick={() => openHref('/')}
-              className="[font-family:var(--modelsfind-display)] text-[1.1rem] font-semibold tracking-[-0.03em] text-[var(--modelsfind-primary)]"
-            >
-              {site.brandName}
-            </button>
-
-            <nav className="flex items-center gap-5">
-              {desktopNav.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  onClick={() => openHref(item === 'Collection' ? '/products' : item === 'Access' ? '/auth/register' : '/')}
-                  className={[
-                    'text-[11px] uppercase tracking-[0.2em] transition-colors',
-                    item === 'Collection'
-                      ? 'text-[var(--modelsfind-primary)]'
-                      : 'text-[var(--modelsfind-copy-soft)] hover:text-[var(--modelsfind-copy)]',
-                  ].join(' ')}
-                >
-                  {item}
-                </button>
-              ))}
-            </nav>
-
-            <div className="ml-auto flex min-w-[17rem] items-center gap-2 rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.02)] px-4 py-2">
-              <Search className="h-4 w-4 text-[var(--modelsfind-copy-soft)]" />
-              <span className="text-xs text-[var(--modelsfind-copy-soft)]">Search models</span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between border-b border-[var(--modelsfind-line)] px-4 py-3 md:hidden">
-            <button
-              type="button"
-              onClick={() => openHref('/')}
-              className="[font-family:var(--modelsfind-display)] text-base font-semibold tracking-[-0.03em] text-[var(--modelsfind-primary)]"
-            >
-              {site.brandName}
-            </button>
-            <button
-              type="button"
-              onClick={() => openHref('/products')}
-              className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--modelsfind-copy)]"
-              aria-label="Search models"
-            >
-              <Search className="h-4 w-4" />
-            </button>
-          </div>
-
           <div className="grid md:grid-cols-[10.5rem_minmax(0,1fr)]">
             <aside className="hidden border-r border-[var(--modelsfind-line)] bg-[rgba(20,16,22,0.72)] px-4 py-5 md:block">
               <p className="text-[11px] uppercase tracking-[0.22em] text-[var(--modelsfind-copy-soft)]">Regions</p>
