@@ -47,6 +47,7 @@ export interface OfficialMarketInstallOptions {
   };
   activate?: boolean;
   themeConfig?: ThemeConfig;
+  requestedSlug?: string;
   requestedVersion?: string;
   packageUrl?: string;
   listingDomain?: string;
@@ -65,6 +66,29 @@ export interface OfficialMarketInstallOptions {
     expiresAt?: string | null;
     reason?: string | null;
   };
+}
+
+function assertOfficialInstallIdentity(
+  installResult: InstallResult,
+  options: OfficialMarketInstallOptions,
+): void {
+  if (installResult.kind !== options.kind) {
+    throw new Error(
+      `Official artifact kind mismatch: expected ${options.kind}, got ${installResult.kind}`,
+    );
+  }
+
+  if (options.requestedSlug && installResult.slug !== options.requestedSlug) {
+    throw new Error(
+      `Official artifact slug mismatch: expected ${options.requestedSlug}, got ${installResult.slug}`,
+    );
+  }
+
+  if (options.requestedVersion && installResult.version !== options.requestedVersion) {
+    throw new Error(
+      `Official artifact version mismatch: expected ${options.requestedVersion}, got ${installResult.version}`,
+    );
+  }
 }
 
 export interface OfficialMarketInstallResult extends InstallResult {
@@ -279,6 +303,7 @@ export async function installOfficialMarketExtension(
     zipStream,
     { skipSignatureVerification: true },
   );
+  assertOfficialInstallIdentity(installResult, options);
 
   await markInstalledSource(options.kind, installResult.slug, installResult.fsPath, installResult, options);
 

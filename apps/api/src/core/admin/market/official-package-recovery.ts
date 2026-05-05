@@ -128,6 +128,21 @@ async function recoverOfficialMarketExtensionFilesInternal(
       createReadStream(download.filePath),
       { skipSignatureVerification: true },
     );
+    if (installResult.kind !== toExtensionKind(input.kind)) {
+      throw new Error(
+        `Official extension recovery kind mismatch: expected ${toExtensionKind(input.kind)}, got ${installResult.kind}`,
+      );
+    }
+    if (installResult.slug !== input.slug) {
+      throw new Error(
+        `Official extension recovery slug mismatch: expected ${input.slug}, got ${installResult.slug}`,
+      );
+    }
+    if (installResult.version !== versionSummary.version) {
+      throw new Error(
+        `Official extension recovery version mismatch: expected ${versionSummary.version}, got ${installResult.version}`,
+      );
+    }
 
     if (input.kind === 'plugin') {
       await prisma.pluginInstall.update({

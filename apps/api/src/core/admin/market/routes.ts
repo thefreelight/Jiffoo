@@ -337,6 +337,7 @@ export async function marketRoutes(fastify: FastifyInstance) {
           artifactVerification: verification,
           activate,
           themeConfig,
+          requestedSlug: slug,
           requestedVersion: authorization.version,
           packageUrl: authorization.packageUrl,
           listingDomain: authorization.listingDomain,

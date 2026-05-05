@@ -193,6 +193,7 @@ export interface InternalDeliveryParams {
   eventId: string;
   eventType: string;
   payload: unknown;
+  aggregateId: string;
   installationId: string;
 }
 
@@ -204,7 +205,7 @@ export interface InternalDeliveryParams {
  * the route is not registered, the delivery is logged as failed.
  */
 export async function deliverInternalWebhook(params: InternalDeliveryParams): Promise<void> {
-  const { subscriptionId, eventId, eventType, payload, installationId } = params;
+  const { subscriptionId, eventId, eventType, payload, aggregateId, installationId } = params;
   const startTime = Date.now();
 
   try {
@@ -219,18 +220,20 @@ export async function deliverInternalWebhook(params: InternalDeliveryParams): Pr
       throw new Error(`Plugin installation ${installationId} is disabled`);
     }
 
-    // Internal delivery is currently a logged event.
-    // When the plugin runtime supports inject(), this will POST to the
-    // plugin's internal Fastify route: /__webhooks/{eventType}
-    LoggerService.logSystem('Internal webhook delivery', {
-      subscriptionId,
+    const { deliverInternalPluginWebhook } = await import('@/core/admin/extension-installer/plugin-runtime');
+    const delivery = await deliverInternalPluginWebhook({
+      installationId,
       eventId,
       eventType,
-      installationId,
-      pluginSlug: instance.pluginSlug,
+      aggregateId,
+      payload,
     });
 
-    const latencyMs = Date.now() - startTime;
+    if (delivery.statusCode < 200 || delivery.statusCode >= 300) {
+      throw new Error(
+        `Internal webhook HTTP ${delivery.statusCode}: ${delivery.payload.slice(0, 200)}`,
+      );
+    }
 
     await prisma.webhookDeliveryLog.create({
       data: {
@@ -238,7 +241,9 @@ export async function deliverInternalWebhook(params: InternalDeliveryParams): Pr
         eventId,
         attempt: 1,
         status: 'success',
-        latencyMs,
+        responseCode: delivery.statusCode,
+        responseBody: delivery.payload.slice(0, MAX_RESPONSE_BODY_LENGTH),
+        latencyMs: delivery.latencyMs,
       },
     });
 
@@ -247,7 +252,7 @@ export async function deliverInternalWebhook(params: InternalDeliveryParams): Pr
       eventId,
       eventType,
       installationId,
-      latencyMs,
+      latencyMs: delivery.latencyMs,
     });
   } catch (error: any) {
     const latencyMs = Date.now() - startTime;

@@ -536,12 +536,22 @@ async function stagePluginArtifact(entry: OfficialCatalogEntry, stagingDir: stri
   }
 
   const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf-8')) as {
+    slug?: string;
+    name?: string;
     version?: string;
     entryModule?: string;
   };
   const packageJson = (await pathExists(packageJsonPath))
     ? (JSON.parse(await fs.readFile(packageJsonPath, 'utf-8')) as { version?: string })
     : null;
+
+  if (manifest.slug !== entry.slug) {
+    throw new Error(`Plugin manifest slug ${manifest.slug} does not match official catalog slug ${entry.slug}`);
+  }
+
+  if (manifest.name !== entry.name) {
+    throw new Error(`Plugin manifest name ${manifest.name} does not match official catalog name ${entry.name}`);
+  }
 
   if (manifest.version && manifest.version !== entry.version) {
     throw new Error(

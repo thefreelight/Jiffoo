@@ -89,6 +89,7 @@ export class OutboxWorkerService {
             });
         } catch (error) {
             logger.error('Failed to dispatch webhook event:', error);
+            throw error;
         }
     }
 }

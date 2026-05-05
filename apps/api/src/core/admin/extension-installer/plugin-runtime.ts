@@ -352,6 +352,14 @@ function resolvePlatformApiBaseUrl(request: FastifyRequest): string {
   return `${protocol}://${host}/api`;
 }
 
+function hasTrustedPlatformIntegrationToken(request: FastifyRequest): boolean {
+  const expected = (process.env.CATALOG_IMPORT_TOKEN || '').trim();
+  if (!expected) return false;
+
+  const provided = getHeaderValue(request, 'x-platform-integration-token');
+  return provided.length > 0 && provided === expected;
+}
+
 /**
  * Inject platform headers into outgoing request
  * Per EXTENSIONS_IMPLEMENTATION.md minimal set:
@@ -417,6 +425,9 @@ function injectPlatformHeaders(
 function inferCaller(request: FastifyRequest): CallerType {
   // SECURITY FIX: Do NOT trust inbound x-caller header
   // It is stripped by sanitizeForwardHeaders and only re-injected with platform-inferred value
+  if (hasTrustedPlatformIntegrationToken(request)) {
+    return 'api-internal';
+  }
 
   // Fallback 1: Detect from Referer (most reliable for browser requests)
   const refererHeader = request.headers.referer || request.headers.referrer;
@@ -745,6 +756,96 @@ export async function dropInternalRuntime(installationId: string): Promise<boole
     return true;
   }
   return false;
+}
+
+export async function deliverInternalPluginWebhook(params: {
+  installationId: string;
+  eventId: string;
+  eventType: string;
+  aggregateId: string;
+  payload: unknown;
+}): Promise<{ statusCode: number; payload: string; latencyMs: number }> {
+  const instance = await PluginManagementService.getInstanceById(params.installationId);
+  if (!instance) {
+    throw new Error(`Plugin installation ${params.installationId} not found`);
+  }
+  if (!instance.enabled) {
+    throw new Error(`Plugin installation ${params.installationId} is disabled`);
+  }
+
+  const slug = instance.pluginSlug;
+  const manifest = await readPluginManifest(slug);
+  if (manifest.runtimeType !== 'internal-fastify') {
+    throw new Error(`Plugin "${slug}" is not an internal-fastify plugin`);
+  }
+
+  const ctx: GatewayContext = {
+    slug,
+    installationId: instance.id,
+    instanceKey: instance.instanceKey,
+    config: parseJsonObject(instance.configJson),
+  };
+  const runtime = await ensureInternalRuntime(slug, manifest, ctx);
+  const webhookUrl = manifest.webhooks?.url || `/__webhooks/${params.eventType}`;
+  const requestId = randomUUID();
+  const platformId = process.env.PLATFORM_ID || 'single-store';
+  const body = JSON.stringify({
+    id: params.eventId,
+    type: params.eventType,
+    aggregateId: params.aggregateId,
+    data: params.payload,
+    payload: params.payload,
+  });
+  const headers: Record<string, string> = {
+    'content-type': 'application/json',
+    'x-plugin-slug': slug,
+    'x-installation-id': ctx.installationId,
+    'x-installation-key': ctx.instanceKey,
+    'x-user-id': '',
+    'x-user-role': 'system',
+    'x-request-id': requestId,
+    'x-platform-id': platformId,
+    'x-platform-version': process.env.PLATFORM_VERSION || '1.0.0',
+    'x-platform-api-base-url': process.env.PLATFORM_API_BASE_URL || '',
+    'x-platform-integration-token': (process.env.CATALOG_IMPORT_TOKEN || '').trim(),
+    'x-caller': 'api-internal',
+    'x-plugin-config': Buffer.from(JSON.stringify(ctx.config || {}), 'utf-8').toString('base64url'),
+  };
+
+  const startTime = Date.now();
+  let timeoutId: NodeJS.Timeout | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new PluginGatewayError(
+        `Plugin "${slug}" webhook timeout (${REQUEST_TIMEOUT_MS}ms)`,
+        'PLUGIN_TIMEOUT',
+        504
+      ));
+    }, REQUEST_TIMEOUT_MS);
+  });
+
+  let res;
+  try {
+    res = await Promise.race([
+      runtime.app.inject({
+        method: 'POST',
+        url: webhookUrl,
+        headers,
+        payload: body,
+      }),
+      timeoutPromise,
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+
+  return {
+    statusCode: res.statusCode,
+    payload: res.payload,
+    latencyMs: Date.now() - startTime,
+  };
 }
 
 async function proxyToExternalHttp(

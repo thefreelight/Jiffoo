@@ -134,16 +134,30 @@ export const WebhookSubscriptionService = {
       }
 
       try {
-        const sub = await prisma.webhookSubscription.create({
-          data: {
+        const subscriptionData = {
             installationId,
             eventType: eventType.trim(),
             deliveryMode,
             endpointUrl: endpointUrl ?? null,
             secret: secret ?? null,
             active: true,
+        };
+        const existing = await prisma.webhookSubscription.findFirst({
+          where: {
+            installationId: subscriptionData.installationId,
+            eventType: subscriptionData.eventType,
+            deliveryMode: subscriptionData.deliveryMode,
+            endpointUrl: subscriptionData.endpointUrl,
+            active: true,
           },
         });
+
+        if (existing) {
+          created.push(existing);
+          continue;
+        }
+
+        const sub = await prisma.webhookSubscription.create({ data: subscriptionData });
         created.push(sub);
       } catch (error: any) {
         logger.warn(`Failed to create webhook subscription for event ${eventType}`, {

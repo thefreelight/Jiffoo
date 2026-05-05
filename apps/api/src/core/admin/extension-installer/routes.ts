@@ -6,7 +6,7 @@
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { Readable, PassThrough } from 'stream';
-import { authMiddleware, adminMiddleware } from '@/core/auth/middleware';
+import { authMiddleware, adminMiddleware, optionalAuthMiddleware } from '@/core/auth/middleware';
 import { extensionInstaller, type ExtensionKind } from './index';
 import { sendSuccess, sendError } from '@/utils/response';
 import { extensionInstallerSchemas } from './schemas';
@@ -155,6 +155,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    * Individual plugins should implement their own auth as needed.
    */
   fastify.all<{ Params: { slug: string } }>('/plugin/:slug/api', {
+    onRequest: [optionalAuthMiddleware],
     schema: {
       tags: ['plugin-gateway'],
       summary: 'Plugin Gateway (root)',
@@ -186,6 +187,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
   });
 
   fastify.all<{ Params: { slug: string; '*': string } }>('/plugin/:slug/api/*', {
+    onRequest: [optionalAuthMiddleware],
     schema: {
       tags: ['plugin-gateway'],
       summary: 'Plugin Gateway (wildcard)',

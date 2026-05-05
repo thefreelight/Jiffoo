@@ -10,7 +10,8 @@ import { PasswordUtils } from '@/utils/password';
 import { JwtUtils } from '@/utils/jwt';
 import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
-import { createAuthUser, findAuthUserByEmail, findAuthUserById } from './user-compat';
+import { createAuthUserWithClient, findAuthUserByEmail, findAuthUserById } from './user-compat';
+import { OutboxService } from '@/infra/outbox';
 
 export interface AuthResponse {
   user: {
@@ -57,11 +58,23 @@ export class AuthService {
     }
 
     const hashedPassword = await PasswordUtils.hash(data.password);
-    const user = await createAuthUser({
-      email: data.email,
-      username: data.username,
-      password: hashedPassword,
-      role: 'USER',
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await createAuthUserWithClient(tx as typeof prisma, {
+        email: data.email,
+        username: data.username,
+        password: hashedPassword,
+        role: 'USER',
+      });
+
+      await OutboxService.emit(tx, 'user.created', created.id, {
+        id: created.id,
+        email: created.email,
+        username: created.username,
+        role: created.role,
+        emailVerified: created.emailVerified,
+      });
+
+      return created;
     });
 
     if (!user.emailVerified) {

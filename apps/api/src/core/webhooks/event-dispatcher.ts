@@ -39,6 +39,8 @@ export async function dispatchWebhookEvent(event: {
     aggregateId: event.aggregateId,
   });
 
+  const internalFailures: Error[] = [];
+
   for (const sub of subscriptions) {
     try {
       if (sub.deliveryMode === 'external') {
@@ -66,28 +68,34 @@ export async function dispatchWebhookEvent(event: {
           });
         });
       } else {
-        // Internal delivery
-        deliverInternalWebhook({
+        // Internal delivery is part of the in-process runtime contract. Await it
+        // so the outbox event is not marked published when a plugin did not ack.
+        await deliverInternalWebhook({
           subscriptionId: sub.id,
           eventId: event.id,
           eventType: event.type,
           payload: event.payload,
+          aggregateId: event.aggregateId,
           installationId: sub.installationId,
-        }).catch((err) => {
-          LoggerService.logError(err instanceof Error ? err : new Error(String(err)), {
-            context: 'Internal webhook delivery',
-            subscriptionId: sub.id,
-            eventType: event.type,
-          });
         });
       }
     } catch (error: any) {
       // Guard against unexpected synchronous throws
-      LoggerService.logError(error instanceof Error ? error : new Error(String(error)), {
+      const normalized = error instanceof Error ? error : new Error(String(error));
+      LoggerService.logError(normalized, {
         context: 'Webhook dispatch loop',
         subscriptionId: sub.id,
         eventType: event.type,
       });
+      if (sub.deliveryMode !== 'external') {
+        internalFailures.push(normalized);
+      }
     }
+  }
+
+  if (internalFailures.length > 0) {
+    throw new Error(
+      `Failed to deliver ${internalFailures.length} internal webhook(s) for event ${event.type}`,
+    );
   }
 }

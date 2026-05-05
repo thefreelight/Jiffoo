@@ -138,9 +138,13 @@ export async function findAuthIdentityById(userId: string): Promise<AuthIdentity
 }
 
 export async function createAuthUser(data: RegisterAuthUserInput): Promise<AuthUser> {
+  return createAuthUserWithClient(prisma, data);
+}
+
+export async function createAuthUserWithClient(client: typeof prisma, data: RegisterAuthUserInput): Promise<AuthUser> {
   const user = await withEmailVerifiedCompatibility(
     () =>
-      prisma.user.create({
+      client.user.create({
         data: {
           ...data,
           emailVerified: false,
@@ -148,7 +152,7 @@ export async function createAuthUser(data: RegisterAuthUserInput): Promise<AuthU
         select: authUserSelect,
       }),
     () =>
-      prisma.user.create({
+      client.user.create({
         data,
         select: legacyAuthUserSelect,
       })

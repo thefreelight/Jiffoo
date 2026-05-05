@@ -35,6 +35,9 @@ export const PLUGIN_CAPABILITIES = [
   'customer.sync',
   'inventory.sync',
   'product.sync',
+  'ai.models',
+  'ai.chat',
+  'ai.image',
 ] as const;
 
 export const PLUGIN_LIFECYCLE_HOOKS = [
