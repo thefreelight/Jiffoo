@@ -102,15 +102,23 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         try {
           set({ isLoading: true, error: null });
 
-          // Generate username from firstName and lastName
-          const username = `${data.firstName.toLowerCase()}.${data.lastName.toLowerCase()}`.replace(/\s+/g, '');
+          const [emailPrefix = 'creator', emailDomain = 'imagic'] = data.email.split('@');
+          const displayParts = emailPrefix.replace(/[._-]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+          const firstName = data.firstName.trim() || displayParts[0] || 'Creator';
+          const lastName = data.lastName.trim() || displayParts.slice(1).join(' ') || 'Studio';
+          const username =
+            `${emailPrefix}.${emailDomain}`
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '.')
+              .replace(/^\.+|\.+$/g, '')
+              .slice(0, 64) || 'creator';
 
           const registerData = {
             email: data.email,
             password: data.password,
             username,
-            firstName: data.firstName,
-            lastName: data.lastName,
+            firstName,
+            lastName,
           };
 
           const response = await authApi.register(registerData);

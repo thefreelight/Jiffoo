@@ -6,6 +6,7 @@
 - OSS-scope feature authoring belongs here by default.
 - `jiffoo-mall-core` is the closed commercial overlay repository.
 - `jiffoo-extensions-official` is the canonical official extension repository.
+- Architectural intent should stay aligned with `docs/jiffoo-positioning-statement.md`.
 
 ## Canonical Local Paths
 
@@ -55,6 +56,13 @@ Canonical repos:
 - If a feature belongs to official theme/plugin authoring, move it to `jiffoo-extensions-official`.
 - Do not treat `Jiffoo` as a passive sync mirror.
 
+## Commit and Release Summary Discipline
+
+- Commit each completed small change promptly instead of letting unrelated fixes accumulate in one large working tree diff.
+- Keep commits scoped to the smallest coherent behavior or release-management change.
+- Before preparing the next OSS/runtime version release, read the commit history since the previous published version and use those commits as the source for the release summary/changelog.
+- The release summary should group user-visible changes, runtime compatibility changes, verification notes, and known follow-ups instead of relying on memory from the chat.
+
 ## Cross-Repo Boundary
 
 - `jiffoo-mall-core` may temporarily contain overlapping OSS files during migration, but `Jiffoo` remains canonical for OSS scope.
@@ -78,6 +86,8 @@ If you are changing client-specific storefront support in another repository, th
 - `切主题 != 切核心 commerce API`
 - Theme switches may change presentation, renderer selection, and adapter selection only.
 - Theme switches must not fork product, cart, order, payment, or auth semantics.
+- Official storefront runtime for an installed theme must resolve from the active theme package version or an explicit migration fallback, never from an untracked stale host copy.
+- Host auth layout must remain neutral when the active theme provides its own auth surface.
 - Clients must resolve store and active theme through `/api/store/context` and `/api/themes/active`.
 - Do not add client-private commerce endpoints. If a new storefront contract is required, propose it in core first.
 - Plugin-backed features must continue to go through the existing extension/plugin gateway model.
