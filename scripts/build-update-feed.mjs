@@ -14,6 +14,8 @@ const DEFAULT_MINIMUM_COMPATIBLE_VERSION = '1.0.0';
 const DEFAULT_MINIMUM_AUTO_UPGRADABLE_VERSION = '1.0.0';
 const DEFAULT_RUNTIME_IMAGE_REGISTRY = 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com';
 const DEFAULT_RUNTIME_IMAGE_NAMESPACE = 'jiffoo-oss';
+const RUNTIME_SERVICES = ['api', 'admin', 'shop', 'updater'];
+const DELIVERY_MODES = new Set(['image-first', 'source-archive']);
 
 function parseArgs(argv) {
   const args = {};
@@ -89,8 +91,37 @@ function buildRuntimeImageRef(registry, namespace, service, tag) {
   return `${registry}/${namespace}/${service}:${tag}`;
 }
 
-function buildRuntimeImages(args, coreVersion) {
-  const deliveryMode = args['delivery-mode'] || 'image-first';
+function assertDeliveryMode(deliveryMode, args) {
+  if (!DELIVERY_MODES.has(deliveryMode)) {
+    throw new Error(
+      `Invalid delivery mode "${deliveryMode}". Expected "image-first" or "source-archive".`,
+    );
+  }
+
+  if (deliveryMode === 'source-archive' && args['allow-source-archive-release'] !== 'true') {
+    throw new Error(
+      'source-archive public releases are disabled by default; use --allow-source-archive-release only for an intentional recovery publication.',
+    );
+  }
+}
+
+function assertRuntimeImages(runtimeImages, coreVersion) {
+  if (!runtimeImages || typeof runtimeImages !== 'object') {
+    throw new Error('image-first releases must include runtime image metadata.');
+  }
+
+  for (const service of RUNTIME_SERVICES) {
+    const image = runtimeImages[service];
+    if (typeof image !== 'string' || image.trim().length === 0) {
+      throw new Error(`image-first release is missing a runtime image for ${service}.`);
+    }
+    if (!image.includes(`:${coreVersion}`)) {
+      throw new Error(`Runtime image for ${service} must be tagged with ${coreVersion}: ${image}`);
+    }
+  }
+}
+
+function buildRuntimeImages(args, coreVersion, deliveryMode) {
   if (deliveryMode !== 'image-first') {
     return null;
   }
@@ -118,9 +149,31 @@ function run(command, args, options = {}) {
   }
 }
 
-function createArchive(rootDir, archivePath) {
+function runCaptureBuffer(command, args, options = {}) {
+  const result = spawnSync(command, args, {
+    stdio: ['ignore', 'pipe', 'inherit'],
+    ...options,
+  });
+
+  if (result.status !== 0) {
+    throw new Error(`${command} ${args.join(' ')} failed with exit code ${result.status ?? 1}`);
+  }
+
+  return result.stdout;
+}
+
+function createArchive(rootDir, archivePath, archiveRef) {
   ensureDirectory(path.dirname(archivePath));
-  run('git', ['-C', rootDir, 'archive', '--format=tar.gz', `--output=${archivePath}`, 'HEAD']);
+  run('git', ['-C', rootDir, 'archive', '--format=tar.gz', `--output=${archivePath}`, archiveRef]);
+}
+
+async function copyFileFromGitRef(rootDir, ref, repoPath, outputPath, mode) {
+  const content = runCaptureBuffer('git', ['-C', rootDir, 'show', `${ref}:${repoPath}`]);
+  await fsp.mkdir(path.dirname(outputPath), { recursive: true });
+  await fsp.writeFile(outputPath, content);
+  if (mode) {
+    await fsp.chmod(outputPath, mode);
+  }
 }
 
 function sha256File(filePath) {
@@ -139,17 +192,16 @@ async function writeChecksumFile(checksumPath, checksum, archiveName) {
   await fsp.writeFile(checksumPath, `${checksum}  ${archiveName}\n`, 'utf8');
 }
 
-async function copyRuntimeInstallFiles(rootDir, outputDir) {
+async function copyRuntimeInstallFiles(rootDir, outputDir, archiveRef) {
   const files = [
-    { from: path.join(rootDir, 'install.sh'), to: path.join(outputDir, 'install.sh') },
-    { from: path.join(rootDir, 'docker-compose.prod.yml'), to: path.join(outputDir, 'docker-compose.yml') },
-    { from: path.join(rootDir, '.env.production.example'), to: path.join(outputDir, '.env.production.example') },
-    { from: path.join(rootDir, 'nginx', 'get-jiffoo.conf'), to: path.join(outputDir, 'get-jiffoo.conf') },
+    { from: 'install.sh', to: path.join(outputDir, 'install.sh'), mode: 0o755 },
+    { from: 'docker-compose.prod.yml', to: path.join(outputDir, 'docker-compose.yml'), mode: 0o644 },
+    { from: '.env.production.example', to: path.join(outputDir, '.env.production.example'), mode: 0o644 },
+    { from: 'nginx/get-jiffoo.conf', to: path.join(outputDir, 'get-jiffoo.conf'), mode: 0o644 },
   ];
 
   for (const file of files) {
-    await fsp.mkdir(path.dirname(file.to), { recursive: true });
-    await fsp.copyFile(file.from, file.to);
+    await copyFileFromGitRef(rootDir, archiveRef, file.from, file.to, file.mode);
   }
 }
 
@@ -177,8 +229,13 @@ async function main() {
   const sourceArchiveName = args['source-archive-name'] || DEFAULT_SOURCE_ARCHIVE_NAME;
   const sourceArchiveUrl = args['source-archive-url'] || DEFAULT_SOURCE_ARCHIVE_URL;
   const checksumUrl = args['checksum-url'] || `${sourceArchiveUrl}.sha256`;
+  const archiveRef = args['archive-ref'] || 'HEAD';
   const deliveryMode = args['delivery-mode'] || 'image-first';
-  const runtimeImages = buildRuntimeImages(args, coreVersion);
+  assertDeliveryMode(deliveryMode, args);
+  const runtimeImages = buildRuntimeImages(args, coreVersion, deliveryMode);
+  if (deliveryMode === 'image-first') {
+    assertRuntimeImages(runtimeImages, coreVersion);
+  }
   const manifestPath = path.join(outputDir, DEFAULT_RELEASES_DIR, 'manifest.json');
   const releaseAssetManifestPath = path.join(outputDir, 'core-update-manifest.json');
   const archivePath = path.join(outputDir, sourceArchiveName);
@@ -193,7 +250,7 @@ async function main() {
   );
 
   ensureDirectory(outputDir);
-  createArchive(rootDir, archivePath);
+  createArchive(rootDir, archivePath, archiveRef);
   const checksum = sha256File(archivePath);
 
   const manifest = {
@@ -220,7 +277,7 @@ async function main() {
   await writeManifestFile(manifestPath, manifest);
   await writeManifestFile(releaseAssetManifestPath, manifest);
   await writeChecksumFile(checksumPath, checksum, sourceArchiveName);
-  await copyRuntimeInstallFiles(rootDir, outputDir);
+  await copyRuntimeInstallFiles(rootDir, outputDir, archiveRef);
   await writeMetadataFile(outputDir, {
     releaseTag,
     coreVersion,
@@ -231,6 +288,7 @@ async function main() {
     releaseUrl,
     sourceArchiveName,
     sourceArchiveUrl,
+    archiveRef,
     checksum,
     checksumUrl,
     manifestPath: path.relative(rootDir, manifestPath),
@@ -245,6 +303,7 @@ async function main() {
     releaseAssetManifestPath,
     archivePath,
     checksumPath,
+    archiveRef,
     sourceArchiveUrl,
     checksumUrl,
   }, null, 2));
