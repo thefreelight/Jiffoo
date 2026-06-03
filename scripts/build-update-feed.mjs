@@ -192,6 +192,30 @@ async function writeChecksumFile(checksumPath, checksum, archiveName) {
   await fsp.writeFile(checksumPath, `${checksum}  ${archiveName}\n`, 'utf8');
 }
 
+function withContentCacheKey(rawUrl, checksum) {
+  try {
+    const url = new URL(rawUrl);
+    url.searchParams.set('sha256', checksum);
+    return url.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
+function deriveChecksumUrl(rawSourceArchiveUrl) {
+  try {
+    const url = new URL(rawSourceArchiveUrl);
+    if (url.pathname.endsWith('.tar.gz')) {
+      url.pathname = `${url.pathname}.sha256`;
+      return url.toString();
+    }
+  } catch {
+    // Keep the legacy append behavior for non-URL values.
+  }
+
+  return `${rawSourceArchiveUrl}.sha256`;
+}
+
 async function copyRuntimeInstallFiles(rootDir, outputDir, archiveRef) {
   const files = [
     { from: 'install.sh', to: path.join(outputDir, 'install.sh'), mode: 0o755 },
@@ -227,8 +251,7 @@ async function main() {
   const repository = args.repository || process.env.GITHUB_REPOSITORY || 'thefreelight/Jiffoo';
   const releaseUrl = args['release-url'] || `${DEFAULT_CHANGELOG_URL}/tag/${releaseTag}`;
   const sourceArchiveName = args['source-archive-name'] || DEFAULT_SOURCE_ARCHIVE_NAME;
-  const sourceArchiveUrl = args['source-archive-url'] || DEFAULT_SOURCE_ARCHIVE_URL;
-  const checksumUrl = args['checksum-url'] || `${sourceArchiveUrl}.sha256`;
+  const sourceArchiveUrlBase = args['source-archive-url'] || DEFAULT_SOURCE_ARCHIVE_URL;
   const archiveRef = args['archive-ref'] || 'HEAD';
   const deliveryMode = args['delivery-mode'] || 'image-first';
   assertDeliveryMode(deliveryMode, args);
@@ -252,6 +275,10 @@ async function main() {
   ensureDirectory(outputDir);
   createArchive(rootDir, archivePath, archiveRef);
   const checksum = sha256File(archivePath);
+  const sourceArchiveUrl = args['source-archive-url']
+    ? sourceArchiveUrlBase
+    : withContentCacheKey(sourceArchiveUrlBase, checksum);
+  const checksumUrl = args['checksum-url'] || deriveChecksumUrl(sourceArchiveUrl);
 
   const manifest = {
     latestVersion: coreVersion,

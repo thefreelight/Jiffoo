@@ -19,6 +19,10 @@ on:
         description: Mark the GitHub release as prerelease with blocked notes if publication fails
         required: false
         default: 'false'
+      allow_prerelease_publication:
+        description: Allow publishing a prerelease feed only from the primary release image workflow while it is quarantined.
+        required: false
+        default: 'false'
 
 permissions:
   contents: write
@@ -44,6 +48,7 @@ jobs:
       RELEASE_DATE: ${{ github.event.release.published_at || inputs.release_date }}
       RELEASE_BODY: ${{ github.event.release.body || '' }}
       QUARANTINE_ON_FAILURE: ${{ inputs.quarantine_on_failure || 'false' }}
+      ALLOW_PRERELEASE_PUBLICATION: ${{ inputs.allow_prerelease_publication || 'false' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -94,6 +99,34 @@ jobs:
 
           release_sha="$(git rev-parse "${RELEASE_TAG}^{commit}")"
           echo "Source archive will be generated from ${RELEASE_TAG} (${release_sha})."
+
+      - name: Verify GitHub release is publishable
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_json="$(gh release view "$RELEASE_TAG" --repo "${{ github.repository }}" --json tagName,isDraft,isPrerelease)"
+          tag_name="$(printf '%s' "$release_json" | node -e "let input=''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => console.log(JSON.parse(input).tagName || ''));")"
+          is_draft="$(printf '%s' "$release_json" | node -e "let input=''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => console.log(String(Boolean(JSON.parse(input).isDraft))));")"
+          is_prerelease="$(printf '%s' "$release_json" | node -e "let input=''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => console.log(String(Boolean(JSON.parse(input).isPrerelease))));")"
+
+          if [ "$tag_name" != "$RELEASE_TAG" ]; then
+            echo "GitHub release tag mismatch: expected ${RELEASE_TAG}, found ${tag_name:-<missing>}" >&2
+            exit 1
+          fi
+
+          if [ "$is_draft" = "true" ]; then
+            echo "Refusing to publish draft release ${RELEASE_TAG} to get.jiffoo.com." >&2
+            exit 1
+          fi
+
+          if [ "$is_prerelease" = "true" ] && [ "${ALLOW_PRERELEASE_PUBLICATION}" != "true" ]; then
+            echo "Refusing to publish prerelease/quarantined release ${RELEASE_TAG} to the stable self-hosted feed." >&2
+            echo "Only the primary release image workflow may set allow_prerelease_publication=true while it verifies image/feed convergence." >&2
+            exit 1
+          fi
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -184,12 +217,18 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          stable_args=()
+          if [ "${ALLOW_PRERELEASE_PUBLICATION}" != "true" ]; then
+            stable_args+=(--require-stable-release)
+          fi
+
           node scripts/verify-self-hosted-update-feed.mjs \
             --output-dir .release/self-hosted \
             --release-tag "$RELEASE_TAG" \
             --github-release "$RELEASE_TAG" \
             --repo "${{ github.repository }}" \
-            --verify-images
+            --verify-images \
+            "${stable_args[@]}"
 
       - name: Install sshpass
         run: sudo apt-get update && sudo apt-get install -y sshpass
@@ -292,6 +331,14 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          stable_args=()
+          public_convergence_args=()
+          if [ "${ALLOW_PRERELEASE_PUBLICATION}" = "true" ]; then
+            public_convergence_args+=(--allow-prerelease)
+          else
+            stable_args+=(--require-stable-release)
+          fi
+
           node scripts/verify-self-hosted-update-feed.mjs \
             --output-dir .release/self-hosted \
             --release-tag "$RELEASE_TAG" \
@@ -299,12 +346,13 @@ jobs:
             --public-url https://get.jiffoo.com/releases/core/manifest.json \
             --repo "${{ github.repository }}" \
             --verify-images \
-            --verify-public-assets
+            --verify-public-assets \
+            "${stable_args[@]}"
           node scripts/verify-public-release-convergence.mjs \
             --release-tag "$RELEASE_TAG" \
             --public-url https://get.jiffoo.com/releases/core/manifest.json \
             --verify-images \
-            --allow-prerelease
+            "${public_convergence_args[@]}"
           curl -fsSI https://get.jiffoo.com/jiffoo-source.tar.gz
 
       - name: Quarantine failed published release
