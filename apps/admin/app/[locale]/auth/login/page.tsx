@@ -6,18 +6,19 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/lib/store'
 import { useManagedPackageBranding } from '@/lib/hooks/use-api'
+import { authApi } from '@/lib/api'
 import { Sparkles, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
+import type { AuthBootstrapStatus } from 'shared/src/types/auth'
 import { ZodError } from 'zod'
 // Validation using shared Zod schema
 import { loginSchema } from 'shared'
-import { authApi, unwrapApiResponse } from '@/lib/api'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -29,7 +30,8 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
-  const [demoCredentials, setDemoCredentials] = useState<{ email: string; password: string } | null>(null)
+  const [bootstrapStatus, setBootstrapStatus] = useState<AuthBootstrapStatus | null>(null)
+  const [isLoadingBootstrap, setIsLoadingBootstrap] = useState(true)
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -75,31 +77,40 @@ export default function AdminLoginPage() {
   }, [brandingQuery.data])
 
   useEffect(() => {
-    let cancelled = false
+    let mounted = true
 
-    async function loadLoginConfig() {
+    async function loadBootstrapStatus() {
       try {
-        const response = await authApi.getLoginConfig()
-        const data = unwrapApiResponse(response)
-        if (!cancelled) {
-          setDemoCredentials(data.demoModeEnabled ? data.demoCredentials : null)
+        const response = await authApi.bootstrapStatus()
+        if (!mounted) return
+        if (response.success && response.data) {
+          setBootstrapStatus(response.data)
+        } else {
+          setBootstrapStatus(null)
         }
       } catch {
-        if (!cancelled) {
-          setDemoCredentials(null)
+        if (mounted) {
+          setBootstrapStatus(null)
+        }
+      } finally {
+        if (mounted) {
+          setIsLoadingBootstrap(false)
         }
       }
     }
 
-    loadLoginConfig()
-
+    loadBootstrapStatus()
     return () => {
-      cancelled = true
+      mounted = false
     }
   }, [])
 
   useEffect(() => {
     if (isAuthenticated) {
+      if (useAuthStore.getState().user?.requiresPasswordRotation) {
+        router.push(`/${locale}/profile`)
+        return
+      }
       // Check if there's a saved redirect path
       const redirectPath = sessionStorage.getItem('redirectPath')
       if (redirectPath && redirectPath !== `/${locale}/auth/login`) {
@@ -142,11 +153,16 @@ export default function AdminLoginPage() {
   }
 
   const fillDemo = () => {
-    if (!demoCredentials) return
-    setEmail(demoCredentials.email)
-    setPassword(demoCredentials.password)
+    const credentials = bootstrapStatus?.credentials
+    if (!credentials) return
+    setEmail(credentials.email)
+    setPassword(credentials.password)
   }
 
+  const shouldShowDemoCredentials = Boolean(bootstrapStatus?.showDemoCredentials && bootstrapStatus?.credentials)
+  const bootstrapHint = bootstrapStatus?.requiresPasswordRotation
+    ? getText('merchant.auth.bootstrapPasswordRotationHint', 'Change the initial admin password after sign-in to hide these bootstrap credentials.')
+    : getText('merchant.auth.demoCredentialsHint', 'These credentials are visible because this instance is still in bootstrap or demo mode.')
   const isManagedBranding = brandingQuery.data?.mode === 'managed'
   const brandedTitle = isManagedBranding
     ? brandingQuery.data?.displayBrandName || 'Store Admin'
@@ -271,7 +287,14 @@ export default function AdminLoginPage() {
               </Button>
             </form>
 
-            {demoCredentials ? (
+            {isLoadingBootstrap ? (
+              <div className="pt-6 border-t border-gray-50">
+                <div className="flex items-center justify-center gap-2 rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-xs text-gray-500">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  {getText('common.loading', 'Loading...')}
+                </div>
+              </div>
+            ) : shouldShowDemoCredentials ? (
               <div className="pt-6 border-t border-gray-50">
                 <div className="text-center space-y-3">
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
@@ -282,15 +305,16 @@ export default function AdminLoginPage() {
                       <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
                         {getText('merchant.auth.email', 'Email')}:
                       </span>
-                      <span className="font-mono text-gray-900 font-bold">{demoCredentials.email}</span>
+                      <span className="font-mono text-gray-900 font-bold">{bootstrapStatus?.credentials?.email}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
                         {getText('merchant.auth.password', 'Password')}:
                       </span>
-                      <span className="font-mono text-gray-900 font-bold">{demoCredentials.password}</span>
+                      <span className="font-mono text-gray-900 font-bold">{bootstrapStatus?.credentials?.password}</span>
                     </div>
                   </div>
+                  <p className="text-xs text-gray-500">{bootstrapHint}</p>
                   <Button
                     type="button"
                     variant="outline"

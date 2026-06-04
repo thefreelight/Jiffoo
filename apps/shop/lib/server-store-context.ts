@@ -8,6 +8,12 @@ export interface ServerStoreContext {
   storeId: string;
   storeName: string;
   logo: string | null;
+  platformBranding?: {
+    mode: 'oss' | 'managed';
+    showPoweredByJiffoo: boolean;
+    poweredByHref: string | null;
+    poweredByLabel: string;
+  };
   theme: {
     slug: string;
     config?: Record<string, any>;
@@ -37,10 +43,13 @@ export async function getServerStoreContext(
 ): Promise<ServerStoreContext | null> {
   try {
     const url = await buildServerApiUrl('/store/context');
-    const shouldBypassCache = options.cache === 'no-store';
+    const cache = options.cache ?? 'no-store';
+    const shouldBypassCache = cache === 'no-store';
 
     const response = await fetch(url, {
-      cache: shouldBypassCache ? 'no-store' : (options.cache ?? 'force-cache'),
+      // Theme / branding activation must reflect immediately after Admin changes.
+      // The API already owns short-lived caching and invalidation via store-context versioning.
+      cache,
       ...(shouldBypassCache
         ? {}
         : {

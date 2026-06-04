@@ -6,6 +6,7 @@ import { isExternalHref, resolveSiteConfig } from '../site';
 
 export const Footer = React.memo(function Footer({
   config,
+  platformBranding,
   t,
   onNavigate,
   onNavigateToProducts,
@@ -20,6 +21,7 @@ export const Footer = React.memo(function Footer({
 }: FooterProps) {
   const site = resolveSiteConfig(config);
   const currentYear = new Date().getFullYear();
+  const showPoweredByJiffoo = platformBranding?.showPoweredByJiffoo !== false;
 
   const getText = (key: string, fallback: string): string => {
     if (!t) return fallback;
@@ -249,12 +251,37 @@ export const Footer = React.memo(function Footer({
               : `© ${currentYear} ${site.brandName}. All rights reserved.`
             }
           </p>
-          <p className="max-w-2xl">
-            {getText(
-              'shop.footer.note',
-              'Built as a reusable default for storefronts, launch pages, and SaaS sites that need commerce close by.'
-            )}
-          </p>
+          <div className="flex flex-col items-start gap-3 sm:items-end">
+            {showPoweredByJiffoo ? (
+              <button
+                type="button"
+                onClick={() => openHref(platformBranding?.poweredByHref || 'https://jiffoo.com')}
+                className="group inline-flex items-center gap-3 rounded-full border border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_12%,transparent)] bg-[color:color-mix(in_oklab,white_88%,oklch(0.93_0.05_190))] px-4 py-2 text-left shadow-[0_12px_30px_-24px_rgba(15,23,42,0.45)] transition-transform duration-300 hover:-translate-y-0.5"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,oklch(0.58_0.13_235),oklch(0.64_0.11_180))] text-[oklch(0.99_0.01_84)] shadow-[0_12px_30px_-18px_rgba(37,99,235,0.55)]">
+                  <Orbit className="h-4.5 w-4.5" />
+                </span>
+                <span className="flex flex-col">
+                  <span className="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-[oklch(0.49_0.04_245)]">
+                    {getText('shop.footer.poweredBy', 'Powered by')}
+                  </span>
+                  <span className="text-sm font-semibold tracking-[-0.02em] text-[oklch(0.22_0.03_255)]">
+                    {platformBranding?.poweredByLabel || 'Jiffoo'}
+                  </span>
+                </span>
+                <span className="flex items-center gap-2 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[oklch(0.36_0.04_245)]">
+                  {getText('shop.footer.poweredByDescription', 'Open-source commerce stack')}
+                  <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
+                </span>
+              </button>
+            ) : null}
+            <p className="max-w-2xl">
+              {getText(
+                'shop.footer.note',
+                'Built as a reusable default for storefronts, launch pages, and SaaS sites that need commerce close by.'
+              )}
+            </p>
+          </div>
         </div>
       </div>
     </footer>

@@ -59,6 +59,7 @@ export interface UserProfile {
   role: string;
   permissions?: string[];
   isActive: boolean;
+  requiresPasswordRotation?: boolean;
   createdAt: string;
   updatedAt: string;
   lastLoginAt?: string | null;

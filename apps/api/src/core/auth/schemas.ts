@@ -24,6 +24,7 @@ const userProfileSchema = {
     avatar: { type: 'string', description: 'Avatar URL', nullable: true },
     role: { type: 'string', description: 'User role (admin, customer, etc.)' },
     emailVerified: { type: 'boolean', description: 'Whether email has been verified' },
+    requiresPasswordRotation: { type: 'boolean', description: 'Whether this user must rotate an initial bootstrap password before normal admin use' },
   },
   required: ['id', 'email', 'username', 'role'],
 } as const;
@@ -80,6 +81,24 @@ const loginConfigSchema = {
   required: ['demoModeEnabled', 'demoCredentials'],
 } as const;
 
+const bootstrapStatusSchema = {
+  type: 'object',
+  properties: {
+    mode: { type: 'string', enum: ['bootstrap', 'demo', 'normal'] },
+    showDemoCredentials: { type: 'boolean' },
+    requiresPasswordRotation: { type: 'boolean' },
+    credentials: {
+      type: ['object', 'null'],
+      properties: {
+        email: { type: 'string', format: 'email' },
+        password: { type: 'string' },
+      },
+      required: ['email', 'password'],
+    },
+  },
+  required: ['mode', 'showDemoCredentials', 'requiresPasswordRotation'],
+} as const;
+
 // ============================================================================
 // Endpoint Schemas
 // ============================================================================
@@ -121,6 +140,11 @@ export const authSchemas = {
   // GET /api/auth/me
   me: {
     response: createTypedReadResponses(userProfileSchema),
+  },
+
+  // GET /api/auth/bootstrap-status
+  bootstrapStatus: {
+    response: createTypedReadResponses(bootstrapStatusSchema),
   },
 
   // POST /api/auth/refresh

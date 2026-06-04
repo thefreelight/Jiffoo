@@ -28,6 +28,7 @@ export interface UserProfile {
   avatar?: string;
   role: UserRole | string;
   isActive?: boolean;
+  requiresPasswordRotation?: boolean;
   emailVerified?: boolean;
   phone?: string;
   dateOfBirth?: string;

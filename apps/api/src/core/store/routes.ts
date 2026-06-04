@@ -7,6 +7,7 @@ import { createHash } from 'crypto';
 import { FastifyInstance, FastifyReply } from 'fastify';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { ThemeManagementService } from '@/core/admin/theme-management/service';
+import { managedPackageService } from '@/core/admin/managed-package/service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { createTypedReadResponses } from '@/types/common-dto';
 import { CacheService } from '@/core/cache/service';
@@ -26,6 +27,17 @@ const storeContextSchema = {
         storeName: { type: 'string' },
         logo: { type: ['string', 'null'] },
         domain: { type: ['string', 'null'] },
+        platformBranding: {
+            type: 'object',
+            properties: {
+                mode: { type: 'string', enum: ['oss', 'managed'] },
+                showPoweredByJiffoo: { type: 'boolean' },
+                poweredByHref: { type: ['string', 'null'] },
+                poweredByLabel: { type: 'string' }
+            },
+            required: ['mode', 'showPoweredByJiffoo', 'poweredByHref', 'poweredByLabel'],
+            additionalProperties: false
+        },
         status: { type: 'string' },
         currency: { type: 'string' },
         defaultLocale: { type: 'string' },
@@ -47,6 +59,7 @@ const storeContextSchema = {
         'storeName',
         'logo',
         'domain',
+        'platformBranding',
         'status',
         'currency',
         'defaultLocale',
@@ -83,12 +96,13 @@ export async function storeRoutes(fastify: FastifyInstance) {
             }
 
             // Parallel fetch settings and theme
-            const [platformName, activeTheme, currency, logo, defaultLocale] = await Promise.all([
+            const [platformName, activeTheme, currency, logo, defaultLocale, managedStatus] = await Promise.all([
                 systemSettingsService.getString('branding.platform_name', 'Jiffoo Store'),
                 ThemeManagementService.getActiveTheme('shop'),
                 systemSettingsService.getShopCurrency(),
                 systemSettingsService.getString('branding.logo', null),
                 systemSettingsService.getShopLocale(),
+                managedPackageService.getStatus().catch(() => ({ mode: 'oss' as const, package: null })),
             ]);
 
             const contextData = {
@@ -96,6 +110,12 @@ export async function storeRoutes(fastify: FastifyInstance) {
                 storeName: platformName as string,
                 logo: logo as string | null,
                 domain: null, // Single merchant version
+                platformBranding: {
+                    mode: managedStatus.mode,
+                    showPoweredByJiffoo: managedStatus.mode !== 'managed',
+                    poweredByHref: managedStatus.mode === 'managed' ? null : 'https://jiffoo.com',
+                    poweredByLabel: 'Jiffoo',
+                },
                 status: 'active',
                 currency,
                 defaultLocale,

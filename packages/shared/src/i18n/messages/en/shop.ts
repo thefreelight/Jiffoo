@@ -332,6 +332,8 @@ export const shop = {
     termsOfService: 'Terms of Service',
     cookiePolicy: 'Cookie Policy',
     copyright: '© {year} {brand}. All rights reserved.',
+    poweredBy: 'Powered by',
+    poweredByDescription: 'Open-source commerce stack',
     companyDescription: 'Your trusted e-commerce store for quality products and exceptional service.',
     newsletter: {
       title: 'Subscribe to Newsletter',
@@ -395,4 +397,3 @@ export const shop = {
     },
   },
 };
-

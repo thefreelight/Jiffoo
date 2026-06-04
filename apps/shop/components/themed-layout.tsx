@@ -10,6 +10,7 @@
 import { useShopTheme } from '@/lib/themes/provider';
 import { useAuthStore } from '@/store/auth';
 import { useCartStore } from '@/store/cart';
+import { useStoreContext } from '@/store/store';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useT, useLocale } from 'shared/src/i18n/react';
 
@@ -28,6 +29,7 @@ export function ThemedLayout({ children }: ThemedLayoutProps) {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
   const { isAuthenticated, user, logout } = useAuthStore();
   const { cart } = useCartStore();
+  const storeContext = useStoreContext();
   const { push } = useLocalizedNavigation();
   const t = useT();
   const locale = useLocale();
@@ -111,6 +113,7 @@ export function ThemedLayout({ children }: ThemedLayoutProps) {
   // Prepare Footer props with i18n support
   const footerProps = {
     config,
+    platformBranding: storeContext?.platformBranding,
     locale,
     t,
     onNavigate: (path: string) => {

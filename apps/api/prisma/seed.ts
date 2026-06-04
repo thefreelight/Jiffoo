@@ -170,6 +170,13 @@ async function main() {
       'localization.currency': 'USD',
       'localization.locale': 'en',
       'localization.timezone': 'UTC',
+      'auth.bootstrap.admin': {
+        mode: process.env.AUTH_BOOTSTRAP_MODE === 'demo' ? 'demo' : (process.env.AUTH_BOOTSTRAP_MODE === 'normal' ? 'normal' : 'bootstrap'),
+        showDemoCredentials: process.env.AUTH_BOOTSTRAP_MODE === 'normal' ? false : true,
+        requiresPasswordRotation: process.env.AUTH_BOOTSTRAP_MODE === 'demo' ? false : (process.env.AUTH_BOOTSTRAP_MODE === 'normal' ? false : true),
+        email: process.env.AUTH_BOOTSTRAP_ADMIN_EMAIL || 'admin@jiffoo.com',
+        updatedAt: new Date().toISOString(),
+      },
     };
     await prisma.systemSettings.upsert({
       where: { id: 'system' },

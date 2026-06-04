@@ -17,6 +17,12 @@ export interface StoreContext {
   storeName: string;
   logo: string | null;
   theme: ThemeInfo | null;
+  platformBranding?: {
+    mode: 'oss' | 'managed';
+    showPoweredByJiffoo: boolean;
+    poweredByHref: string | null;
+    poweredByLabel: string;
+  };
   settings: Record<string, unknown> | null;
   status: string;
   defaultLocale: string;
@@ -34,6 +40,12 @@ export const DEFAULT_STORE_CONTEXT: StoreContext = {
   storeName: 'Jiffoo Store',
   logo: null,
   theme: { slug: 'default', config: undefined },
+  platformBranding: {
+    mode: 'oss',
+    showPoweredByJiffoo: true,
+    poweredByHref: 'https://jiffoo.com',
+    poweredByLabel: 'Jiffoo',
+  },
   settings: {},
   status: 'active',
   defaultLocale: 'en',
