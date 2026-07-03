@@ -6,8 +6,9 @@ const withPWA = require('@ducanh2912/next-pwa').default;
 const nextConfig = createNextConfig({
   appName: 'Frontend',
   port: 3003,
-  // The shop runtime embeds the default theme plus the official full-renderer
-  // themes that can be activated through the marketplace/package flow.
+  outputFileTracingRoot: process.env.CF_PAGES === '1' ? undefined : path.resolve(__dirname, '../..'),
+  // The shop runtime embeds the default theme, the generic esim-mall official
+  // renderer, and legacy renderer packages needed for migration fallback.
   transpilePackages: [
     'shared',
     '@shop-themes/default',
@@ -20,6 +21,10 @@ const nextConfig = createNextConfig({
     '@jiffoo/theme-api-sdk',
   ],
   images: {
+    // Cloudflare Pages: _next/image optimization is limited on Workers.
+    // Disable it on Pages and rely on CDN/R2 for image delivery.
+    unoptimized: process.env.CF_PAGES === '1',
+
     // Image optimization formats - prefer modern formats with fallback
     formats: ['image/avif', 'image/webp'],
 
@@ -69,6 +74,7 @@ const nextConfig = createNextConfig({
   },
   // Turbopack configuration (Next.js 16+)
   turbopack: {
+    root: path.resolve(__dirname, '../..'),
     resolveAlias: {
       '@shop-themes': path.resolve(__dirname, '../../packages/shop-themes'),
     },
@@ -99,7 +105,8 @@ const nextConfig = createNextConfig({
 // Wrap with PWA configuration
 module.exports = withPWA({
   dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
+  // Disable PWA on Cloudflare Pages (SSR via next-on-pages has friction with SW generation)
+  disable: process.env.NODE_ENV === 'development' || process.env.CF_PAGES === '1',
   register: true,
   skipWaiting: true,
   // Custom worker configuration for push notifications

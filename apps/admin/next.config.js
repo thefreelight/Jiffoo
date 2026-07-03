@@ -5,6 +5,8 @@ const nextConfig = createNextConfig({
   appName: 'Admin',
   port: 3002,
   images: {
+    // Cloudflare Pages: disable _next/image optimization (limited on Workers)
+    unoptimized: process.env.CF_PAGES === '1',
     remotePatterns: [
       {
         protocol: 'https',

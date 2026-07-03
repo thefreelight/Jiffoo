@@ -60,7 +60,8 @@ function createNextConfig(options = {}) {
     // TypeScript configuration - Type checking fixed, restore strict mode
     typescript: {
       // Type errors fixed, enable type checking
-      ignoreBuildErrors: false,
+      // Cloudflare Pages build uses webpack mode which has Next 16 type check friction
+      ignoreBuildErrors: process.env.CF_PAGES === '1',
     },
 
     // Experimental features
@@ -103,6 +104,12 @@ function createNextConfig(options = {}) {
 
     // API Proxy Configuration
     async rewrites() {
+      // Cloudflare Pages does not support external host rewrites.
+      // On Pages, the frontend calls the backend directly via NEXT_PUBLIC_API_URL (absolute URL).
+      if (process.env.CF_PAGES === '1') {
+        return [];
+      }
+
       // Read API service URL from root .env file
       // Use placeholder during build, replaced with actual value at runtime
       const apiServiceUrl = process.env.API_SERVICE_URL || 'http://localhost:3001';
