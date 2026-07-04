@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
-pnpm install --no-frozen-lockfile
 pnpm --filter shared build
 pnpm --filter @jiffoo/ui build
 pnpm --filter @jiffoo/core-api-sdk build
