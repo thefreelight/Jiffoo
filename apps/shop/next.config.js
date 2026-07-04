@@ -58,7 +58,6 @@ const nextConfig = createNextConfig({
     minimumCacheTTL: 60 * 60 * 24 * 365, // 1 year
   },
   // Turbopack configuration (Next.js 16+)
-  outputFileTracingRoot: path.resolve(__dirname, '../..'),
   turbopack: {
     root: path.resolve(__dirname, '../..'),
     resolveAlias: {
