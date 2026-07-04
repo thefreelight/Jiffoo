@@ -5,5 +5,4 @@ pnpm --filter @jiffoo/ui build
 pnpm --filter @jiffoo/core-api-sdk build
 pnpm --filter @jiffoo/theme-api-sdk build
 cd apps/admin
-export NEXT_TURBOPACK=0
-npx @cloudflare/next-on-pages --experimental-build-mode=compile
+npx @cloudflare/next-on-pages
