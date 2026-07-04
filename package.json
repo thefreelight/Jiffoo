@@ -77,7 +77,8 @@
     "javascript-obfuscator": "^4.1.1",
     "lint-staged": "^16.2.7",
     "turbo": "^2.5.5",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "@opennextjs/cloudflare": "latest"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
