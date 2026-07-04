@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imagic-shop
+  labels:
+    app: imagic-shop
+  annotations:
+    kubernetes.io/change-cause: "Deploy imagic-studio v0.2.2 MVP auth credits pricing v9"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: imagic-shop
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+  template:
+    metadata:
+      labels:
+        app: imagic-shop
+    spec:
+      containers:
+        - name: shop
+          image: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:imagic-0.2.2-mvp-auth-credits-amd64-v9
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3001
+              protocol: TCP
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3001"
+            - name: API_SERVICE_URL
+              value: http://imagic-api:80
+            - name: NEXT_PUBLIC_API_URL
+              value: /api
+            - name: NEXT_PUBLIC_SHOP_URL
+              value: https://imagic.art
+            - name: API_URL
+              value: http://imagic-api:80

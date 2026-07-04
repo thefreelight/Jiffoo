@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "slug": "stripe",
+  "name": "Stripe Payment Gateway",
+  "version": "1.0.1",
+  "description": "Official Stripe payment integration for Jiffoo stores. Supports credit/debit card payments, refunds, and webhook-based status tracking.",
+  "author": "Jiffoo Team",
+  "category": "payment",
+  "runtimeType": "internal-fastify",
+  "entryModule": "dist/index.js",
+  "capabilities": [
+    "payment.process",
+    "payment.refund",
+    "webhook.receive",
+    "admin.panel",
+    "api.read",
+    "api.write"
+  ],
+  "permissions": [
+    "payments:read",
+    "payments:write",
+    "orders:read"
+  ],
+  "supportedCurrencies": ["usd"],
+  "configSchema": {
+    "secretKey": {
+      "type": "string",
+      "required": true,
+      "sensitive": true,
+      "label": "Stripe Secret Key",
+      "description": "Starts with sk_live_ or sk_test_. Found in Stripe Dashboard > Developers > API keys."
+    },
+    "publishableKey": {
+      "type": "string",
+      "required": true,
+      "label": "Stripe Publishable Key",
+      "description": "Starts with pk_live_ or pk_test_. Found in Stripe Dashboard > Developers > API keys."
+    },
+    "webhookSecret": {
+      "type": "string",
+      "required": false,
+      "sensitive": true,
+      "label": "Webhook Signing Secret",
+      "description": "Starts with whsec_. Found in Stripe Dashboard > Developers > Webhooks > Signing secret."
+    }
+  },
+  "adminUi": {
+    "entryPath": "/admin",
+    "label": "Stripe Console",
+    "icon": "credit-card"
+  },
+  "webhooks": {
+    "events": ["order.created", "order.canceled"],
+    "url": "/webhook/stripe"
+  },
+  "lifecycle": {
+    "onInstall": true,
+    "onEnable": true,
+    "onDisable": true,
+    "onUninstall": true
+  }
+}

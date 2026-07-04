@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "tiers": ["stable", "experimental", "internal"],
+  "contracts": [
+    {
+      "id": "store-context",
+      "tier": "stable",
+      "owner": "core",
+      "surface": "storefront-client",
+      "path": "/api/store/context",
+      "consumers": ["web", "mobile", "desktop", "custom-client"],
+      "notes": "Resolves store identity, active theme reference, locale defaults, storefront settings, and baseline checkout hints."
+    },
+    {
+      "id": "active-theme",
+      "tier": "stable",
+      "owner": "core",
+      "surface": "storefront-client",
+      "path": "/api/themes/active",
+      "consumers": ["web", "mobile", "desktop", "custom-client"],
+      "notes": "Resolves active theme metadata and runtime mode selection for storefront clients."
+    },
+    {
+      "id": "installed-themes",
+      "tier": "experimental",
+      "owner": "core",
+      "surface": "storefront-client",
+      "path": "/api/themes/installed",
+      "consumers": ["web", "mobile", "desktop", "custom-client"],
+      "notes": "Discovery-oriented list of installed themes. Useful for previews, diagnostics, and compatibility tooling."
+    },
+    {
+      "id": "commerce-catalog",
+      "tier": "stable",
+      "owner": "core-commerce",
+      "surface": "storefront-client",
+      "paths": [
+        "/api/products",
+        "/api/products/:id",
+        "/api/products/categories",
+        "/api/products/search"
+      ],
+      "consumers": ["web", "mobile", "desktop", "custom-client"],
+      "notes": "Core catalog semantics must remain independent from theme selection."
+    },
+    {
+      "id": "commerce-cart",
+      "tier": "stable",
+      "owner": "core-commerce",
+      "surface": "storefront-client",
+      "paths": [
+        "/api/cart",
+        "/api/cart/items",
+        "/api/cart/items/:id"
+      ],
+      "consumers": ["web", "mobile", "desktop", "custom-client"],
+      "notes": "Cart semantics must not fork per theme. Client-specific UX adapters are allowed; cart behavior forks are not."
+    },
+    {
+      "id": "commerce-orders",
+      "tier": "stable",
+      "owner": "core-commerce",
+      "surface": "storefront-client",
+      "paths": [
+        "/api/orders",
+        "/api/orders/:id",
+        "/api/orders/:id/cancel"
+      ],
+      "consumers": ["web", "mobile", "desktop", "custom-client"],
+      "notes": "Order creation, retrieval, and cancellation remain core storefront contracts across client families."
+    },
+    {
+      "id": "commerce-payments",
+      "tier": "stable",
+      "owner": "core-payments",
+      "surface": "storefront-client",
+      "paths": [
+        "/api/payments/available-methods",
+        "/api/payments/create-session",
+        "/api/payments/verify/:sessionId"
+      ],
+      "consumers": ["web", "mobile", "desktop", "custom-client"],
+      "notes": "Payment semantics remain core-owned. Themes may change payment presentation, but not the underlying payment contract."
+    },
+    {
+      "id": "theme-pack-manifest",
+      "tier": "experimental",
+      "owner": "core-theme-pack",
+      "surface": "theme-presentation",
+      "path": "/extensions/themes/{target}/{slug}/theme.json",
+      "consumers": ["web", "mobile", "desktop", "custom-client"],
+      "notes": "Manifest-driven theme presentation contract for downloaded theme packs."
+    },
+    {
+      "id": "theme-pack-resources",
+      "tier": "experimental",
+      "owner": "core-theme-pack",
+      "surface": "theme-presentation",
+      "path": "/extensions/themes/{target}/{slug}/{entry}",
+      "consumers": ["web", "mobile", "desktop", "custom-client"],
+      "notes": "Covers tokens.css, templates, assets, settings schema, and other manifest-declared resources."
+    },
+    {
+      "id": "theme-renderer-hints",
+      "tier": "experimental",
+      "owner": "core-theme-pack",
+      "surface": "theme-presentation",
+      "artifact": "theme.json#x-jiffoo-renderer-mode and theme.json#x-jiffoo-renderer-slug",
+      "consumers": ["web", "mobile", "desktop", "custom-client"],
+      "notes": "Hints help clients resolve embedded renderers without redefining commerce semantics."
+    },
+    {
+      "id": "theme-app-gateway",
+      "tier": "experimental",
+      "owner": "core-theme-app",
+      "surface": "theme-presentation",
+      "path": "/theme-app/{target}/{slug}/...",
+      "consumers": ["web", "mobile", "desktop", "custom-client"],
+      "notes": "Reverse proxy contract for executable theme apps. Non-web clients should treat this as experimental until official adapters are published."
+    },
+    {
+      "id": "plugin-storefront-gateway",
+      "tier": "experimental",
+      "owner": "core-plugin-runtime",
+      "surface": "storefront-extension",
+      "path": "/api/extensions/plugin/{slug}/api/...",
+      "consumers": ["web", "mobile", "desktop", "custom-client"],
+      "notes": "Theme-owned plugin features should go through the existing plugin gateway instead of inventing theme-private endpoints."
+    },
+    {
+      "id": "theme-api-sdk-surface",
+      "tier": "experimental",
+      "owner": "core-sdk",
+      "surface": "client-sdk",
+      "artifact": "packages/theme-api-sdk/src/client.ts",
+      "consumers": ["web", "mobile", "desktop", "custom-client"],
+      "notes": "Theme-facing SDK surface for clients that want a typed wrapper over the core storefront contract."
+    }
+  ]
+}

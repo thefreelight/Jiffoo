@@ -1,0 +1,49 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="130" y1="64" x2="1004" y2="842" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF"/>
+      <stop offset="1" stop-color="#F3F5FB"/>
+    </linearGradient>
+    <linearGradient id="violet" x1="270" y1="268" x2="632" y2="596" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8870FF"/>
+      <stop offset="1" stop-color="#5B46FF"/>
+    </linearGradient>
+    <filter id="shadow" x="-80" y="-80" width="1360" height="1060" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="24" stdDeviation="34" flood-color="#27324D" flood-opacity=".12"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="900" rx="56" fill="url(#bg)"/>
+  <circle cx="238" cy="270" r="196" fill="#8068FF" fill-opacity=".08"/>
+  <circle cx="966" cy="132" r="172" fill="#DAA7FF" fill-opacity=".12"/>
+  <g filter="url(#shadow)">
+    <rect x="72" y="58" width="1056" height="784" rx="34" fill="white"/>
+    <rect x="72" y="58" width="1056" height="784" rx="34" stroke="#E5E8F0"/>
+    <text x="114" y="114" fill="#11151D" font-family="Avenir Next, Inter, sans-serif" font-size="28" font-weight="800">imagic.art</text>
+    <text x="486" y="112" fill="#11151D" font-family="Inter, sans-serif" font-size="16">Home</text>
+    <text x="560" y="112" fill="#667085" font-family="Inter, sans-serif" font-size="16">Create</text>
+    <text x="642" y="112" fill="#667085" font-family="Inter, sans-serif" font-size="16">Explore</text>
+    <rect x="920" y="82" width="120" height="44" rx="12" fill="#080D13"/>
+    <text x="948" y="110" fill="white" font-family="Inter, sans-serif" font-size="14" font-weight="700">New project</text>
+    <text x="162" y="248" fill="#7761FF" font-family="Inter, sans-serif" font-size="12" font-weight="800" letter-spacing="3">AI IMAGE PLATFORM</text>
+    <text x="162" y="330" fill="#070A11" font-family="Avenir Next, Inter, sans-serif" font-size="58" font-weight="800" letter-spacing="-4">Create visuals</text>
+    <text x="162" y="394" fill="#070A11" font-family="Avenir Next, Inter, sans-serif" font-size="58" font-weight="800" letter-spacing="-4">that bring ideas to</text>
+    <text x="578" y="394" fill="url(#violet)" font-family="Avenir Next, Inter, sans-serif" font-size="58" font-weight="800" letter-spacing="-4">life.</text>
+    <text x="162" y="448" fill="#667085" font-family="Inter, sans-serif" font-size="18">Design, render, and generate stunning images in seconds.</text>
+    <rect x="162" y="500" width="384" height="72" rx="18" fill="white" stroke="#E3E7EF"/>
+    <text x="186" y="542" fill="#98A2B3" font-family="Inter, sans-serif" font-size="16">Describe what you want to create...</text>
+    <rect x="446" y="518" width="82" height="38" rx="12" fill="#070D13"/>
+    <text x="462" y="542" fill="white" font-family="Inter, sans-serif" font-size="13" font-weight="700">Generate</text>
+    <rect x="648" y="198" width="154" height="244" rx="16" fill="#08111F"/>
+    <rect x="824" y="198" width="150" height="84" rx="14" fill="#ECE7DF"/>
+    <rect x="824" y="322" width="150" height="120" rx="14" fill="#0F5D49"/>
+    <rect x="994" y="198" width="94" height="244" rx="14" fill="#F5F3F0"/>
+    <circle cx="1042" cy="318" r="44" fill="url(#violet)" fill-opacity=".62"/>
+    <rect x="162" y="660" width="96" height="112" rx="12" fill="#F5F3F0"/>
+    <circle cx="210" cy="718" r="28" fill="#111827" fill-opacity=".22"/>
+    <rect x="286" y="660" width="132" height="112" rx="12" fill="#D7C4AD"/>
+    <rect x="446" y="660" width="132" height="112" rx="12" fill="#121254"/>
+    <rect x="606" y="660" width="132" height="112" rx="12" fill="#F8F9FD"/>
+    <rect x="766" y="660" width="132" height="112" rx="12" fill="#B39370"/>
+    <rect x="926" y="660" width="132" height="112" rx="12" fill="#556643"/>
+  </g>
+</svg>

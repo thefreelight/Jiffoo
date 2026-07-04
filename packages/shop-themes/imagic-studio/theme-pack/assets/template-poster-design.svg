@@ -1,0 +1,12 @@
+<svg width="720" height="860" viewBox="0 0 720 860" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="720" height="860" rx="46" fill="#0C3328"/>
+  <rect x="74" y="80" width="572" height="700" rx="38" fill="#0F5D49"/>
+  <circle cx="542" cy="300" r="142" fill="#79AE7E" fill-opacity=".4"/>
+  <text x="116" y="190" fill="#FF7A2E" font-family="Impact, sans-serif" font-size="90" letter-spacing="6">SUM</text>
+  <text x="116" y="292" fill="#FF7A2E" font-family="Impact, sans-serif" font-size="90" letter-spacing="6">MER</text>
+  <rect x="334" y="488" width="238" height="58" rx="26" fill="#E2E0D7"/>
+  <rect x="390" y="406" width="170" height="128" rx="46" fill="#EFEDE4"/>
+  <path d="M386 546L330 708" stroke="#11271F" stroke-width="18" stroke-linecap="round"/>
+  <path d="M524 546L574 708" stroke="#11271F" stroke-width="18" stroke-linecap="round"/>
+  <text x="606" y="164" fill="#C9E0D4" font-family="Inter, sans-serif" font-size="22" transform="rotate(90 606 164)">4:5 AI</text>
+</svg>

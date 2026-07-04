@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "brand": {
+      "type": "object",
+      "title": "Brand",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Brand Name",
+          "default": "Bokmoo"
+        },
+        "primaryColor": {
+          "type": "string",
+          "title": "Primary Color",
+          "format": "color",
+          "default": "#d7b23d"
+        },
+        "secondaryColor": {
+          "type": "string",
+          "title": "Secondary Color",
+          "format": "color",
+          "default": "#11100d"
+        },
+        "fontFamily": {
+          "type": "string",
+          "title": "Body Font",
+          "default": "\"Avenir Next\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif"
+        }
+      }
+    },
+    "site": {
+      "type": "object",
+      "title": "Site",
+      "properties": {
+        "eyebrow": {
+          "type": "string",
+          "title": "Hero Eyebrow",
+          "default": "BOKMOO eSIM Card"
+        },
+        "headline": {
+          "type": "string",
+          "title": "Hero Headline",
+          "default": "One Card.\nGlobal Connection."
+        },
+        "subheadline": {
+          "type": "string",
+          "title": "Hero Description",
+          "default": "Use multiple eSIM profiles on your BOKMOO card. Stay connected in 200+ countries."
+        },
+        "primaryCtaLabel": {
+          "type": "string",
+          "title": "Primary CTA Label",
+          "default": "Shop eSIM Plans"
+        },
+        "primaryCtaHref": {
+          "type": "string",
+          "title": "Primary CTA Link",
+          "default": "/products"
+        },
+        "secondaryCtaLabel": {
+          "type": "string",
+          "title": "Secondary CTA Label",
+          "default": "How it works"
+        },
+        "secondaryCtaHref": {
+          "type": "string",
+          "title": "Secondary CTA Link",
+          "default": "/#how-it-works"
+        },
+        "apiBaseUrl": {
+          "type": "string",
+          "title": "Bokmoo API Base URL",
+          "default": "https://api.bokmoo.com"
+        },
+        "supportEmail": {
+          "type": "string",
+          "title": "Support Email",
+          "default": "support@bokmoo.com"
+        }
+      }
+    }
+  }
+}

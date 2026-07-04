@@ -1,0 +1,20 @@
+{
+  "releaseTag": "v1.0.25-opensource",
+  "coreVersion": "1.0.25",
+  "releaseChannel": "stable",
+  "deliveryMode": "image-first",
+  "runtimeImages": {
+    "api": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.25",
+    "admin": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.25",
+    "shop": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.25",
+    "updater": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.25"
+  },
+  "releaseDate": "2026-04-18T09:30:00.000Z",
+  "releaseUrl": "https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.25-opensource",
+  "sourceArchiveName": "jiffoo-source.tar.gz",
+  "sourceArchiveUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz",
+  "checksum": "5d88a7275ec48d059e6b3b978952d2d8d8375f4b2475467d34ef71ffd31462f7",
+  "checksumUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz.sha256",
+  "manifestPath": ".release/self-hosted/releases/core/manifest.json",
+  "releaseAssetManifestPath": ".release/self-hosted/core-update-manifest.json"
+}

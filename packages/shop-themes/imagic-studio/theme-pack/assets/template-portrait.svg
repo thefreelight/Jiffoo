@@ -1,0 +1,15 @@
+<svg width="640" height="720" viewBox="0 0 640 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="hair" x1="212" y1="156" x2="492" y2="362" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FF8AD8"/>
+      <stop offset="1" stop-color="#905DFF"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="720" rx="36" fill="#0E0D15"/>
+  <ellipse cx="320" cy="628" rx="142" ry="36" fill="#000000" fill-opacity="0.3"/>
+  <ellipse cx="320" cy="394" rx="118" ry="162" fill="#F1D4D9"/>
+  <path d="M212 388C212 272 262 200 320 200C378 200 428 272 428 388V486C428 574 378 624 320 624C262 624 212 574 212 486V388Z" fill="#F5DDD8"/>
+  <path d="M212 362C220 248 278 156 364 156C430 156 484 214 492 292C474 266 446 246 418 238C370 224 338 234 286 216C256 206 228 188 214 170C182 228 174 308 212 362Z" fill="url(#hair)"/>
+  <ellipse cx="280" cy="396" rx="14" ry="8" fill="#5A4256"/>
+  <ellipse cx="360" cy="396" rx="14" ry="8" fill="#5A4256"/>
+</svg>

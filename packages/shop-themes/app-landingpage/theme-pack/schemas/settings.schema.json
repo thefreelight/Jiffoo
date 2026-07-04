@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "title": "App Landing Page Theme Settings",
+  "properties": {
+    "brand": {
+      "type": "object",
+      "title": "Brand",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Brand Name",
+          "default": "EASYEUICC"
+        },
+        "logoUrl": {
+          "type": "string",
+          "title": "Logo URL",
+          "format": "uri"
+        },
+        "primaryColor": {
+          "type": "string",
+          "title": "Primary Color",
+          "format": "color",
+          "default": "#176bff"
+        },
+        "secondaryColor": {
+          "type": "string",
+          "title": "Secondary Color",
+          "format": "color",
+          "default": "#0b4edb"
+        },
+        "fontFamily": {
+          "type": "string",
+          "title": "Font Family",
+          "default": "\"Manrope\", \"Aptos\", sans-serif"
+        }
+      }
+    },
+    "site": {
+      "type": "object",
+      "title": "Homepage Copy",
+      "properties": {
+        "eyebrow": {
+          "type": "string",
+          "title": "Eyebrow",
+          "default": "EasyEUICC for Android"
+        },
+        "archetype": {
+          "type": "string",
+          "title": "Homepage Type",
+          "enum": [
+            "storefront",
+            "landing-commerce",
+            "product-site",
+            "app-download"
+          ],
+          "default": "app-download"
+        },
+        "headline": {
+          "type": "string",
+          "title": "Headline",
+          "default": "Download EasyEUICC"
+        },
+        "subheadline": {
+          "type": "string",
+          "title": "Subheadline",
+          "default": "A focused Android eUICC manager for installing, switching, and maintaining your eSIM profiles."
+        },
+        "primaryCtaLabel": {
+          "type": "string",
+          "title": "Primary CTA",
+          "default": "Download APK"
+        },
+        "primaryCtaHref": {
+          "type": "string",
+          "title": "Primary CTA URL",
+          "default": "https://easyeuicc.cc/downloads/EasyEUICC-v1.6.2.apk"
+        },
+        "supportEmail": {
+          "type": "string",
+          "title": "Support Email",
+          "format": "email",
+          "default": "support@easyeuicc.cc"
+        },
+        "appVersion": {
+          "type": "string",
+          "title": "App Version",
+          "default": "v1.6.2-unpriv"
+        },
+        "androidDownloadUrl": {
+          "type": "string",
+          "title": "Android APK Download URL",
+          "format": "uri",
+          "default": "https://easyeuicc.cc/downloads/EasyEUICC-v1.6.2.apk"
+        },
+        "downloadChecksum": {
+          "type": "string",
+          "title": "Download SHA-256",
+          "default": ""
+        },
+        "downloadQrUrl": {
+          "type": "string",
+          "title": "Download QR Image URL"
+        },
+        "appScreenshotUrl": {
+          "type": "string",
+          "title": "App Screenshot URL",
+          "default": "/extensions/themes/shop/app-landingpage/assets/app/easyeuicc-real-empty.png"
+        }
+      }
+    },
+    "colors": {
+      "type": "object",
+      "title": "Color Tokens",
+      "properties": {
+        "primary": {
+          "type": "string",
+          "title": "Primary Color",
+          "format": "color",
+          "default": "#176bff"
+        },
+        "secondary": {
+          "type": "string",
+          "title": "Secondary Color",
+          "format": "color",
+          "default": "#0b4edb"
+        },
+        "background": {
+          "type": "string",
+          "title": "Background Color",
+          "format": "color",
+          "default": "#f7faff"
+        },
+        "foreground": {
+          "type": "string",
+          "title": "Foreground Color",
+          "format": "color",
+          "default": "#0b1220"
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "title": "Layout",
+      "properties": {
+        "containerWidth": {
+          "type": "string",
+          "title": "Container Width",
+          "default": "1200px"
+        },
+        "headerHeight": {
+          "type": "string",
+          "title": "Header Height",
+          "default": "80px"
+        },
+        "radius": {
+          "type": "string",
+          "title": "Border Radius",
+          "default": "1rem"
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "title": "Features",
+      "properties": {
+        "showWishlist": {
+          "type": "boolean",
+          "title": "Show Wishlist",
+          "default": false
+        },
+        "showRatings": {
+          "type": "boolean",
+          "title": "Show Ratings",
+          "default": false
+        },
+        "enableQuickView": {
+          "type": "boolean",
+          "title": "Enable Quick View",
+          "default": false
+        }
+      }
+    }
+  }
+}

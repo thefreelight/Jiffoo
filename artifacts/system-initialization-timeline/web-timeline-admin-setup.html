@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jiffoo Web Timeline Setup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;450;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --surface: #ffffff;
+      --ink: #0f172a;
+      --muted: #667085;
+      --soft: #98a2b3;
+      --line: #e5eaf2;
+      --line-strong: #d7dfeb;
+      --blue: #2563eb;
+      --blue-2: #3b82f6;
+      --blue-soft: #edf5ff;
+      --green: #16a34a;
+      --green-soft: #effdf4;
+      --shadow: 0 34px 90px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      width: 1600px;
+      height: 900px;
+      overflow: hidden;
+      font-family: Outfit, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 18% 17%, rgba(37, 99, 235, 0.12), transparent 32%),
+        radial-gradient(circle at 85% 12%, rgba(15, 23, 42, 0.045), transparent 28%),
+        linear-gradient(180deg, #fbfdff 0%, var(--bg) 100%);
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: "liga" 1, "calt" 1;
+    }
+
+    .stage {
+      position: relative;
+      width: 1600px;
+      height: 900px;
+      padding: 42px 74px;
+    }
+
+    .grid {
+      position: absolute;
+      inset: 0;
+      opacity: 0.26;
+      background-image:
+        linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(180deg, black 0%, transparent 82%);
+      pointer-events: none;
+    }
+
+    .topbar {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 44px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      font-size: 22px;
+      font-weight: 760;
+      letter-spacing: -0.03em;
+    }
+
+    .mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 800;
+      background:
+        radial-gradient(circle at 34% 25%, rgba(255,255,255,0.72), transparent 29%),
+        linear-gradient(145deg, #3b82f6, #1d4ed8 72%);
+      box-shadow: 0 16px 30px rgba(37, 99, 235, 0.2);
+    }
+
+    .page-label {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 1;
+      margin: 46px auto 0;
+      width: 1270px;
+      min-height: 640px;
+      border: 1px solid var(--line-strong);
+      border-radius: 34px;
+      background: rgba(255,255,255,0.82);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+    }
+
+    .header {
+      padding: 42px 56px 28px;
+      border-bottom: 1px solid var(--line);
+      background:
+        radial-gradient(circle at 15% 4%, rgba(37, 99, 235, 0.08), transparent 32%),
+        linear-gradient(180deg, rgba(248, 250, 252, 0.75), rgba(255,255,255,0.58));
+    }
+
+    .header-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 30px;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 46px;
+      line-height: 1;
+      letter-spacing: -0.055em;
+      font-weight: 780;
+    }
+
+    .lead {
+      margin: 14px 0 0;
+      max-width: 620px;
+      color: #475467;
+      font-size: 18px;
+      line-height: 1.48;
+      letter-spacing: -0.018em;
+    }
+
+    .status {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      height: 36px;
+      padding: 0 14px;
+      border: 1px solid rgba(22, 163, 74, 0.16);
+      border-radius: 999px;
+      color: #15803d;
+      background: rgba(240, 253, 244, 0.78);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 6px rgba(22, 163, 74, 0.1);
+    }
+
+    .timeline {
+      position: relative;
+      margin-top: 34px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 34px;
+      right: 34px;
+      top: 26px;
+      height: 2px;
+      background: var(--line-strong);
+    }
+
+    .timeline::after {
+      content: "";
+      position: absolute;
+      left: 34px;
+      top: 26px;
+      width: calc((100% - 68px) / 3);
+      height: 2px;
+      background: linear-gradient(90deg, var(--green), var(--blue));
+    }
+
+    .step {
+      position: relative;
+      display: grid;
+      grid-template-columns: 58px 1fr;
+      gap: 14px;
+      align-items: start;
+      min-width: 0;
+    }
+
+    .node {
+      position: relative;
+      z-index: 2;
+      width: 54px;
+      height: 54px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-size: 17px;
+      font-weight: 800;
+      color: #64748b;
+      background: #f1f5f9;
+      border: 1px solid var(--line-strong);
+      box-shadow: 0 0 0 8px rgba(255,255,255,0.74);
+    }
+
+    .step.done .node {
+      color: white;
+      background: var(--green);
+      border-color: rgba(22, 163, 74, 0.22);
+    }
+
+    .step.active .node {
+      color: white;
+      background: var(--blue);
+      border-color: rgba(37, 99, 235, 0.22);
+      box-shadow: 0 0 0 8px rgba(237, 245, 255, 0.9), 0 18px 34px rgba(37, 99, 235, 0.22);
+    }
+
+    .step strong {
+      display: block;
+      margin-top: 2px;
+      color: var(--ink);
+      font-size: 16px;
+      letter-spacing: -0.015em;
+    }
+
+    .step span {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.38;
+    }
+
+    .body {
+      display: grid;
+      grid-template-columns: 0.84fr 1.16fr;
+      gap: 0;
+      min-height: 396px;
+    }
+
+    .context {
+      padding: 38px 56px 42px;
+      border-right: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(248,250,252,0.54), rgba(255,255,255,0.54));
+    }
+
+    .current-kicker {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.11em;
+    }
+
+    .context h2 {
+      margin: 17px 0 0;
+      max-width: 420px;
+      font-size: 38px;
+      line-height: 1.04;
+      letter-spacing: -0.052em;
+      font-weight: 780;
+    }
+
+    .context p {
+      margin: 17px 0 0;
+      max-width: 420px;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.52;
+    }
+
+    .check-card {
+      margin-top: 34px;
+      padding: 18px 18px 18px;
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      border: 1px solid rgba(22, 163, 74, 0.18);
+      border-radius: 22px;
+      background: rgba(240, 253, 244, 0.72);
+    }
+
+    .check-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      flex: none;
+      color: white;
+      background: var(--green);
+      font-weight: 900;
+    }
+
+    .check-card b {
+      display: block;
+      color: #14532d;
+      font-size: 14px;
+      letter-spacing: -0.01em;
+    }
+
+    .check-card span {
+      display: block;
+      margin-top: 5px;
+      color: #3f6f53;
+      font-size: 13px;
+      line-height: 1.42;
+    }
+
+    .form-panel {
+      padding: 38px 56px 42px;
+      background: #fff;
+    }
+
+    .form-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .form-title h3 {
+      margin: 0;
+      font-size: 26px;
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+    }
+
+    .pill {
+      height: 31px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 12px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: #334155;
+      background: #f8fafc;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .form {
+      margin-top: 27px;
+      display: grid;
+      gap: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #344054;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .input {
+      height: 56px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
+      color: #0f172a;
+      background: #fbfcff;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.015em;
+    }
+
+    .input.muted {
+      color: #98a2b3;
+      font-weight: 600;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .action-row {
+      margin-top: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .button {
+      height: 50px;
+      min-width: 154px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      background: #0f172a;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      box-shadow: 0 18px 38px rgba(15, 23, 42, 0.18);
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div class="grid"></div>
+    <header class="topbar">
+      <div class="brand"><div class="mark">J</div><span>Jiffoo</span></div>
+      <div class="page-label">Web — Initial Setup</div>
+    </header>
+
+    <section class="shell">
+      <div class="header">
+        <div class="header-row">
+          <div>
+            <h1>System initialization</h1>
+            <p class="lead">A guided first-run timeline for bringing a fresh Jiffoo instance online. Stay on one page, complete the active step, continue.</p>
+          </div>
+          <div class="status"><span class="dot"></span> Runtime reachable</div>
+        </div>
+
+        <div class="timeline" aria-label="Initialization timeline">
+          <div class="step done"><div class="node">✓</div><div><strong>Database check</strong><span>Schema verified</span></div></div>
+          <div class="step active"><div class="node">2</div><div><strong>Admin account</strong><span>Create Root identity</span></div></div>
+          <div class="step"><div class="node">3</div><div><strong>Runtime mode</strong><span>Choose defaults</span></div></div>
+          <div class="step"><div class="node">4</div><div><strong>Finish setup</strong><span>Enter console</span></div></div>
+        </div>
+      </div>
+
+      <div class="body">
+        <aside class="context">
+          <div class="current-kicker">Current step / 02</div>
+          <h2>Create the first administrator.</h2>
+          <p>This account becomes the Root administrator and unlocks the Jiffoo admin console after initialization.</p>
+          <div class="check-card">
+            <div class="check-icon">✓</div>
+            <div><b>Previous step completed</b><span>Database connection and schema state are healthy. No drift detected.</span></div>
+          </div>
+        </aside>
+
+        <section class="form-panel">
+          <div class="form-title">
+            <h3>Administrator account</h3>
+            <div class="pill">Step 2 of 4</div>
+          </div>
+
+          <div class="form">
+            <div>
+              <label>Admin email</label>
+              <div class="input">admin@jiffoo.local</div>
+            </div>
+            <div class="row">
+              <div>
+                <label>Password</label>
+                <div class="input muted">••••••••••••</div>
+              </div>
+              <div>
+                <label>Confirm password</label>
+                <div class="input muted">••••••••••••</div>
+              </div>
+            </div>
+            <div>
+              <label>Instance name</label>
+              <div class="input">Jiffoo Commerce Core</div>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <div class="note">Next: choose the default runtime mode. You can change store settings later.</div>
+            <div class="button">Continue</div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

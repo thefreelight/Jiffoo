@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jiffoo Web System Initialize</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;450;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f7f9fd;
+      --paper: #fbfdff;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --soft: #94a3b8;
+      --line: rgba(148, 163, 184, 0.24);
+      --line-strong: rgba(30, 41, 59, 0.12);
+      --blue: #2563eb;
+      --blue-2: #3b82f6;
+      --blue-soft: #eff6ff;
+      --green: #16a34a;
+      --amber: #d97706;
+      --radius: 28px;
+      --shadow: 0 38px 90px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      width: 1600px;
+      height: 1000px;
+      overflow: hidden;
+      font-family: Outfit, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 22% 12%, rgba(59, 130, 246, 0.16), transparent 28%),
+        radial-gradient(circle at 82% 18%, rgba(15, 23, 42, 0.06), transparent 28%),
+        linear-gradient(180deg, #fbfdff 0%, var(--bg) 72%, #f2f6fc 100%);
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: "liga" 1, "calt" 1;
+    }
+
+    .canvas {
+      position: relative;
+      width: 1600px;
+      height: 1000px;
+      padding: 48px 64px;
+    }
+
+    .grain {
+      position: absolute;
+      inset: 0;
+      opacity: 0.34;
+      background-image:
+        linear-gradient(rgba(15, 23, 42, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15, 23, 42, 0.025) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(180deg, black 0%, transparent 84%);
+      pointer-events: none;
+    }
+
+    .nav {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 62px;
+      padding: 0 4px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      font-size: 22px;
+    }
+
+    .mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 800;
+      background:
+        radial-gradient(circle at 32% 24%, rgba(255,255,255,0.72), transparent 28%),
+        linear-gradient(145deg, #3b82f6, #1d4ed8 72%);
+      box-shadow: 0 16px 30px rgba(37, 99, 235, 0.22);
+    }
+
+    .navlinks {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.62);
+      backdrop-filter: blur(18px);
+      box-shadow: 0 10px 40px rgba(15, 23, 42, 0.03);
+    }
+
+    .navlinks span {
+      padding: 8px 14px;
+      border-radius: 999px;
+      color: #475569;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .navlinks span.active {
+      color: var(--ink);
+      background: white;
+      box-shadow: 0 1px 0 rgba(15, 23, 42, 0.05), inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+    }
+
+    .account {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #475569;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(22, 163, 74, 0.1);
+    }
+
+    .main {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 0.86fr 1.14fr;
+      gap: 72px;
+      padding-top: 86px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+      height: 32px;
+      padding: 0 12px;
+      border-radius: 999px;
+      color: #1d4ed8;
+      background: rgba(239, 246, 255, 0.82);
+      border: 1px solid rgba(147, 197, 253, 0.42);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+
+    .hero h1 {
+      margin: 34px 0 0;
+      max-width: 560px;
+      font-size: 82px;
+      line-height: 0.93;
+      letter-spacing: -0.065em;
+      font-weight: 760;
+    }
+
+    .hero p {
+      margin: 28px 0 0;
+      max-width: 520px;
+      font-size: 22px;
+      line-height: 1.45;
+      letter-spacing: -0.02em;
+      color: #475569;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-top: 44px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      height: 46px;
+      padding: 0 18px;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 650;
+      letter-spacing: -0.01em;
+      border: 1px solid transparent;
+    }
+
+    .btn.primary {
+      color: white;
+      background: #0f172a;
+      box-shadow: 0 18px 38px rgba(15, 23, 42, 0.16);
+    }
+
+    .btn.secondary {
+      color: #334155;
+      background: rgba(255, 255, 255, 0.68);
+      border-color: var(--line);
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.04);
+    }
+
+    .proof {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+      margin-top: 78px;
+      max-width: 560px;
+    }
+
+    .proof-item {
+      padding-top: 18px;
+      border-top: 1px solid rgba(15, 23, 42, 0.12);
+    }
+
+    .proof-item strong {
+      display: block;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+    }
+
+    .proof-item span {
+      display: block;
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .workspace {
+      position: relative;
+      min-height: 710px;
+    }
+
+    .halo {
+      position: absolute;
+      inset: 54px 34px auto auto;
+      width: 520px;
+      height: 520px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.14), transparent 66%);
+      filter: blur(20px);
+    }
+
+    .panel {
+      position: relative;
+      margin-left: auto;
+      width: 792px;
+      border-radius: 34px;
+      background: rgba(255, 255, 255, 0.74);
+      border: 1px solid rgba(226, 232, 240, 0.88);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(24px);
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 28px 30px 22px;
+      border-bottom: 1px solid rgba(226, 232, 240, 0.72);
+    }
+
+    .page-name {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--blue);
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 30px;
+      padding: 0 11px;
+      border-radius: 999px;
+      color: #334155;
+      background: #f8fafc;
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .panel-body {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 604px;
+    }
+
+    .steps {
+      padding: 30px;
+      border-right: 1px solid rgba(226, 232, 240, 0.72);
+      background: linear-gradient(180deg, rgba(248, 250, 252, 0.72), rgba(255, 255, 255, 0));
+    }
+
+    .steps h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.08;
+      letter-spacing: -0.04em;
+    }
+
+    .steps small {
+      display: block;
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .step-list {
+      margin-top: 34px;
+      display: grid;
+      gap: 22px;
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 13px;
+      position: relative;
+    }
+
+    .step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      left: 15px;
+      top: 38px;
+      width: 1px;
+      height: 28px;
+      background: rgba(148, 163, 184, 0.28);
+    }
+
+    .step .num {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #64748b;
+      background: #f1f5f9;
+      border: 1px solid rgba(148, 163, 184, 0.24);
+    }
+
+    .step.done .num {
+      color: white;
+      background: #0f172a;
+      border-color: #0f172a;
+    }
+
+    .step.active .num {
+      color: var(--blue);
+      background: var(--blue-soft);
+      border-color: rgba(59, 130, 246, 0.28);
+      box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.08);
+    }
+
+    .step strong {
+      display: block;
+      font-size: 14px;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+    }
+
+    .step span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .content {
+      padding: 30px;
+    }
+
+    .status-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+    }
+
+    .status-card {
+      min-height: 106px;
+      padding: 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .status-card .icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      color: var(--blue);
+      background: var(--blue-soft);
+      margin-bottom: 15px;
+    }
+
+    .status-card strong {
+      display: block;
+      font-size: 13px;
+      letter-spacing: -0.01em;
+    }
+
+    .status-card span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .check-card {
+      margin-top: 18px;
+      border-radius: 24px;
+      background: #0f172a;
+      color: white;
+      overflow: hidden;
+      box-shadow: 0 24px 54px rgba(15, 23, 42, 0.18);
+    }
+
+    .check-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 26px 26px 22px;
+      background:
+        radial-gradient(circle at 88% 18%, rgba(59, 130, 246, 0.38), transparent 32%),
+        linear-gradient(135deg, #0f172a, #111827);
+    }
+
+    .check-top h3 {
+      margin: 0;
+      font-size: 27px;
+      line-height: 1.04;
+      letter-spacing: -0.045em;
+    }
+
+    .check-top p {
+      margin: 11px 0 0;
+      max-width: 330px;
+      color: rgba(226, 232, 240, 0.78);
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .ok-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      height: 31px;
+      padding: 0 11px;
+      border-radius: 999px;
+      color: #dcfce7;
+      background: rgba(22, 163, 74, 0.14);
+      border: 1px solid rgba(34, 197, 94, 0.22);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .check-list {
+      padding: 20px 24px 24px;
+      display: grid;
+      gap: 12px;
+      background: rgba(2, 6, 23, 0.22);
+    }
+
+    .check-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-height: 42px;
+      padding: 0 0 12px;
+      border-bottom: 1px solid rgba(226, 232, 240, 0.09);
+    }
+
+    .check-line:last-child { border-bottom: 0; padding-bottom: 0; }
+
+    .check-line span:first-child {
+      color: rgba(248, 250, 252, 0.88);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .check-line span:last-child {
+      color: rgba(203, 213, 225, 0.74);
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .form-area {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      padding: 15px 16px;
+      border-radius: 18px;
+      background: #f8fafc;
+      border: 1px solid rgba(226, 232, 240, 0.9);
+    }
+
+    .field label {
+      display: block;
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    .field div {
+      margin-top: 8px;
+      color: #1e293b;
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .footer-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 22px;
+      padding-right: 266px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .footer-line .next {
+      color: white;
+      background: var(--blue);
+      height: 40px;
+      padding: 0 16px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 700;
+      box-shadow: 0 18px 32px rgba(37, 99, 235, 0.22);
+    }
+
+    .floating-note {
+      position: absolute;
+      right: 22px;
+      bottom: -4px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 250px;
+      padding: 15px;
+      border-radius: 22px;
+      background: rgba(255,255,255,0.82);
+      border: 1px solid rgba(226,232,240,0.78);
+      box-shadow: 0 26px 62px rgba(15, 23, 42, 0.09);
+      backdrop-filter: blur(20px);
+    }
+
+    .mini-chart {
+      display: flex;
+      align-items: end;
+      gap: 3px;
+      height: 34px;
+      width: 48px;
+    }
+
+    .mini-chart i {
+      display: block;
+      width: 6px;
+      border-radius: 99px;
+      background: color-mix(in srgb, var(--blue) 72%, white);
+    }
+
+    .mini-chart i:nth-child(1) { height: 15px; opacity: 0.48; }
+    .mini-chart i:nth-child(2) { height: 24px; opacity: 0.74; }
+    .mini-chart i:nth-child(3) { height: 19px; opacity: 0.58; }
+    .mini-chart i:nth-child(4) { height: 31px; opacity: 0.92; }
+    .mini-chart i:nth-child(5) { height: 27px; opacity: 0.78; }
+
+    .floating-note strong {
+      display: block;
+      font-size: 13px;
+      letter-spacing: -0.01em;
+    }
+
+    .floating-note span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+  </style>
+</head>
+<body>
+  <div class="canvas">
+    <div class="grain"></div>
+    <header class="nav">
+      <div class="brand"><div class="mark">J</div><span>Jiffoo</span></div>
+      <nav class="navlinks" aria-label="Main navigation">
+        <span class="active">Initialize</span>
+        <span>Runtime</span>
+        <span>Extensions</span>
+        <span>Docs</span>
+      </nav>
+      <div class="account"><span class="dot"></span><span>Local runtime healthy</span></div>
+    </header>
+
+    <main class="main">
+      <section class="hero">
+        <div class="eyebrow">Open-source commerce runtime</div>
+        <h1>Bring your commerce core online.</h1>
+        <p>A calmer first-run setup for self-hosted teams. Verify the runtime, create the first operator, choose a storefront mode, and launch with confidence.</p>
+        <div class="hero-actions">
+          <div class="btn primary">Continue setup</div>
+          <div class="btn secondary">View install notes</div>
+        </div>
+        <div class="proof">
+          <div class="proof-item"><strong>Explicit contracts</strong><span>Theme and plugin boundaries are checked before launch.</span></div>
+          <div class="proof-item"><strong>Predictable ops</strong><span>Runtime, updater, queue, cache, and database status in one quiet pass.</span></div>
+          <div class="proof-item"><strong>OSS defaults</strong><span>A strong default storefront without framework sprawl.</span></div>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <div class="halo"></div>
+        <div class="panel">
+          <div class="panel-head">
+            <div class="page-name">Web — System Initialize</div>
+            <div class="meta-pill"><span class="dot"></span> Step 1 of 4</div>
+          </div>
+          <div class="panel-body">
+            <aside class="steps">
+              <h2>Initialization</h2>
+              <small>Start with health checks. No workspace opens until the core runtime is aligned.</small>
+              <div class="step-list">
+                <div class="step active">
+                  <div class="num">1</div>
+                  <div><strong>Runtime check</strong><span>Database, cache, storage</span></div>
+                </div>
+                <div class="step">
+                  <div class="num">2</div>
+                  <div><strong>Admin identity</strong><span>First operator account</span></div>
+                </div>
+                <div class="step">
+                  <div class="num">3</div>
+                  <div><strong>Storefront mode</strong><span>Default theme or custom</span></div>
+                </div>
+                <div class="step">
+                  <div class="num">4</div>
+                  <div><strong>Launch checks</strong><span>Ready for production</span></div>
+                </div>
+              </div>
+            </aside>
+
+            <section class="content">
+              <div class="status-row">
+                <div class="status-card"><div class="icon">✓</div><strong>PostgreSQL</strong><span>Connected · 18 ms</span></div>
+                <div class="status-card"><div class="icon">↻</div><strong>Redis cache</strong><span>Available · stable</span></div>
+                <div class="status-card"><div class="icon">◇</div><strong>Storage</strong><span>Local volume ready</span></div>
+              </div>
+
+              <div class="check-card">
+                <div class="check-top">
+                  <div>
+                    <h3>Core runtime is aligned.</h3>
+                    <p>Jiffoo verified the database connection, schema state, extension registry, and update channel before continuing.</p>
+                  </div>
+                  <div class="ok-pill">No drift</div>
+                </div>
+                <div class="check-list">
+                  <div class="check-line"><span>Database schema</span><span>No drift detected</span></div>
+                  <div class="check-line"><span>Migration ledger</span><span>20260423_admin_staff applied</span></div>
+                  <div class="check-line"><span>Extension contract</span><span>Theme API v1 compatible</span></div>
+                  <div class="check-line"><span>Update channel</span><span>stable · source archive verified</span></div>
+                </div>
+              </div>
+
+              <div class="form-area">
+                <div class="field"><label>Runtime URL</label><div>admin.jiffoo.local</div></div>
+                <div class="field"><label>Deployment</label><div>Docker Compose</div></div>
+              </div>
+
+              <div class="footer-line">
+                <span>Checks run locally. No telemetry is sent during setup.</span>
+                <span class="next">Continue</span>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <div class="floating-note">
+          <div class="mini-chart"><i></i><i></i><i></i><i></i><i></i></div>
+          <div><strong>Quiet operational signal</strong><span>Show readiness, not noise. Keep setup sparse and decisive.</span></div>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
