@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-pnpm install --no-frozen-lockfile
+# CF Pages already runs pnpm install, so just build workspace deps
 pnpm --filter shared build
 pnpm --filter @jiffoo/ui build
 pnpm --filter @jiffoo/core-api-sdk build
