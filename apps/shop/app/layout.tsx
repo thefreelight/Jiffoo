@@ -171,3 +171,6 @@ export default async function RootLayout({
     </html>
   );
 }
+
+// Required for Cloudflare Pages (next-on-pages)
+export const runtime = 'edge';
