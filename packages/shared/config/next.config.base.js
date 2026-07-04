@@ -65,6 +65,8 @@ function createNextConfig(options = {}) {
 
     // Experimental features
     experimental: {
+      // Force edge runtime for CF Pages (next-on-pages requires it)
+      runtime: process.env.CF_PAGES === '1' ? 'edge' : undefined,
       optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
       // Allow large request bodies to be proxied through Next (proxy.ts) without being truncated to 10MB
       // (Used by Admin/Shop dev server when posting ZIPs to /api/extensions/* which rewrites to Core API)
