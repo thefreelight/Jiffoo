@@ -128,3 +128,5 @@ imagerAI/
 .worktrees/
 .security-key
 logs/security/
+.codex-worktrees/
+tmp/
