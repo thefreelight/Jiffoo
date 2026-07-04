@@ -130,3 +130,5 @@ export async function HEAD(
 ): Promise<Response> {
   return proxyPluginAdminUi(request, context);
 }
+
+export const runtime = 'edge';
