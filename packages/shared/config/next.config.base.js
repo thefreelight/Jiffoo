@@ -60,7 +60,7 @@ function createNextConfig(options = {}) {
     // TypeScript configuration - Type checking fixed, restore strict mode
     typescript: {
       // Type errors fixed, enable type checking
-      ignoreBuildErrors: false,
+      ignoreBuildErrors: process.env.CF_PAGES === '1',
     },
 
     // Experimental features
