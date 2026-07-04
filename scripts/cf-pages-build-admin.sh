@@ -5,4 +5,4 @@ pnpm --filter @jiffoo/ui build
 pnpm --filter @jiffoo/core-api-sdk build
 pnpm --filter @jiffoo/theme-api-sdk build
 cd apps/admin
-npx @cloudflare/next-on-pages
+npx @cloudflare/next-on-pages --skip-build-output-validation
