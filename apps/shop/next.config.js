@@ -59,6 +59,7 @@ const nextConfig = createNextConfig({
   },
   // Turbopack configuration (Next.js 16+)
   turbopack: {
+    root: path.resolve(__dirname, '../..'),
     resolveAlias: {
       '@shop-themes': path.resolve(__dirname, '../../packages/shop-themes'),
     },
