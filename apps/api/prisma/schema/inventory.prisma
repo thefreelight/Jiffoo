@@ -1,0 +1,143 @@
+// inventory.prisma — Warehouse, WarehouseInventory, StockAlert,
+//                    InventoryAdjustment, InventoryTransfer
+
+// ============================================================
+// WAREHOUSE
+// ============================================================
+model Warehouse {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  address   String?
+  isActive  Boolean  @default(true)
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  warehouseInventories   WarehouseInventory[]
+  inventoryAdjustments   InventoryAdjustment[]
+  inventoryTransfersFrom InventoryTransfer[]   @relation("TransfersFrom")
+  inventoryTransfersTo   InventoryTransfer[]   @relation("TransfersTo")
+  stockAlerts            StockAlert[]
+
+  @@index([code])
+  @@index([isActive])
+  @@index([isDefault])
+  @@map("warehouses")
+  @@schema("public")
+}
+
+// ============================================================
+// WAREHOUSE INVENTORY
+// ============================================================
+model WarehouseInventory {
+  id          String   @id @default(cuid())
+  warehouseId String
+  variantId   String
+  quantity    Int      @default(0)
+  reserved    Int      @default(0)
+  available   Int      @default(0)
+  lowStock    Int      @default(10)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  warehouse Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@unique([warehouseId, variantId])
+  @@index([warehouseId])
+  @@index([variantId])
+  @@index([quantity])
+  @@index([available])
+  @@map("warehouse_inventories")
+  @@schema("public")
+}
+
+// ============================================================
+// STOCK ALERT
+// ============================================================
+model StockAlert {
+  id          String           @id @default(cuid())
+  warehouseId String
+  variantId   String
+  alertType   StockAlertType   @default(LOW_STOCK)
+  threshold   Int
+  quantity    Int
+  status      StockAlertStatus @default(ACTIVE)
+  resolvedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  warehouse Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([warehouseId])
+  @@index([variantId])
+  @@index([alertType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("stock_alerts")
+  @@schema("public")
+}
+
+// ============================================================
+// INVENTORY ADJUSTMENT
+// ============================================================
+model InventoryAdjustment {
+  id          String   @id @default(cuid())
+  warehouseId String
+  variantId   String
+  type        String
+  quantity    Int
+  reason      String?
+  notes       String?
+  userId      String?
+  referenceId String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  warehouse Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([warehouseId])
+  @@index([variantId])
+  @@index([type])
+  @@index([createdAt])
+  @@index([userId])
+  @@map("inventory_adjustments")
+  @@schema("public")
+}
+
+// ============================================================
+// INVENTORY TRANSFER
+// ============================================================
+model InventoryTransfer {
+  id              String    @id @default(cuid())
+  fromWarehouseId String
+  toWarehouseId   String
+  variantId       String
+  quantity        Int
+  status          String    @default("PENDING")
+  reason          String?
+  notes           String?
+  userId          String?
+  referenceId     String?
+  metadata        Json?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  fromWarehouse Warehouse      @relation("TransfersFrom", fields: [fromWarehouseId], references: [id], onDelete: Cascade)
+  toWarehouse   Warehouse      @relation("TransfersTo", fields: [toWarehouseId], references: [id], onDelete: Cascade)
+  variant       ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
+
+  @@index([fromWarehouseId])
+  @@index([toWarehouseId])
+  @@index([variantId])
+  @@index([status])
+  @@index([createdAt])
+  @@index([userId])
+  @@map("inventory_transfers")
+  @@schema("public")
+}

@@ -129,6 +129,41 @@ packages/
 └── shop-themes/   # Theme packages
 ```
 
+## 🗄️ Prisma Schema Management
+
+The Prisma schema is split across multiple files in `apps/api/prisma/schema/`:
+
+```
+apps/api/prisma/schema/
+├── _base.prisma         # datasource + generator + shared enums
+├── commerce.prisma      # Store, Product, Variant, Category, Cart, Order, Discount, Recommendation*
+├── inventory.prisma     # Warehouse, WarehouseInventory, StockAlert, Transfer, Adjustment
+├── payment.prisma       # Payment, Refund, PaymentLedger
+├── extension.prisma     # PluginInstall*, Webhook*, PluginThemeExtension
+├── platform-links.prisma# External*Link, OutboxEvent, PushSubscription
+├── system.prisma        # User, SystemSettings, ErrorLog, SeoRedirect
+└── _dormant.prisma      # Frozen models (zero code references)
+```
+
+### Rules
+
+1. **Never reference dormant models** — Models in `_dormant.prisma` have `// DORMANT` comments. Do not use `prisma.<model>` for any of them. The CI check `node scripts/check-dormant-models.cjs` will fail if you do.
+
+2. **Add new models to the correct domain file** — Don't create new `.prisma` files without team discussion. Use the existing domain files.
+
+3. **Always create a migration** — After changing any schema file, run:
+   ```bash
+   cd apps/api && pnpm db:migrate --name descriptive_name
+   ```
+
+4. **Schema drift is blocked by CI** — The CI pipeline runs `prisma validate` and `check-dormant-models.cjs`. Any schema that doesn't validate or references dormant models will fail.
+
+5. **Reactivating a dormant model** — If you need to use a dormant model:
+   - Move the model definition from `_dormant.prisma` to the appropriate domain file
+   - Remove the `// DORMANT` comment
+   - Create a migration (if table structure changed)
+   - The model will automatically pass the dormant check on next CI run
+
 ## ⛔ Prohibited Practices
 
 The following are **strictly prohibited**:

@@ -18,10 +18,13 @@ In the long-term deployment model, this repository is the source of the public/o
 ## Features
 
 - Complete commerce flows for catalog, cart, checkout, orders, and payments
+- **Digital Commerce** — First-class support for virtual goods: eSIM QR delivery, redemption codes, software licenses, and downloadable products with automated fulfillment
+- **Agentic Commerce (MCP)** — Official MCP server enables AI agents to browse products, manage carts, and create orders programmatically
 - Theme packs and plugin-based extensibility
 - Fastify API with Prisma-backed data access
 - Next.js shop and admin applications
 - Shared SDKs for frontend, theme, and plugin integrations
+- Vertical templates: `create-jiffoo-app --template digital-goods` or `--template esim` for purpose-built storefronts
 
 ## Quick Start
 
@@ -42,6 +45,21 @@ cp apps/api/.env.example .env
 pnpm --filter api db:migrate
 pnpm dev
 ```
+
+### One-Command Scaffolding with Vertical Templates
+
+```bash
+# General-purpose storefront
+npx create-jiffoo-app my-store
+
+# Digital goods store (gift cards, codes, licenses, downloads)
+npx create-jiffoo-app my-store --template digital-goods
+
+# eSIM marketplace (travel data plans, QR code delivery)
+npx create-jiffoo-app my-esim-shop --template esim
+```
+
+See the [Digital Commerce guide](docs/digital-commerce.md) for details on virtual goods fulfillment and how Jiffoo differs from Medusa/Saleor for digital-first commerce.
 
 ### One-Command Server Install
 
@@ -148,6 +166,8 @@ Jiffoo/
 │   └── shop/
 ├── packages/
 │   ├── core-api-sdk/
+│   ├── create-jiffoo-app/
+│   ├── mcp-server/
 │   ├── plugin-sdk/
 │   ├── shared/
 │   ├── shop-themes/
@@ -158,6 +178,8 @@ Jiffoo/
 
 ## Documentation
 
+- [Digital Commerce Guide](docs/digital-commerce.md) — Virtual goods fulfillment, eSIM delivery, and vertical templates
+- [Agentic Commerce Guide](docs/agentic-commerce.md) — MCP server for AI agents (Claude Desktop / Code integration)
 - [Create App CLI](packages/create-jiffoo-app/README.md)
 - [Core API SDK](packages/core-api-sdk/README.md)
 - [Plugin SDK](packages/plugin-sdk/README.md)
@@ -176,3 +198,7 @@ Jiffoo/
 ## License
 
 Jiffoo is licensed under the [GNU General Public License v2.0 or later](LICENSE).
+
+The SDK packages (`@jiffoo/plugin-sdk`, `@jiffoo/theme-api-sdk`, `@jiffoo/core-api-sdk`, `@jiffoo/ui`, `create-jiffoo-app`) are licensed under MIT, enabling commercial plugin and theme development without copyleft obligations.
+
+See [LICENSE-EXCEPTIONS.md](LICENSE-EXCEPTIONS.md) for the full three-layer license boundary statement (GPL core / MIT SDKs / external-http independent works).

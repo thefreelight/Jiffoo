@@ -1,0 +1,92 @@
+// payment.prisma — Payment, Refund, PaymentLedger
+
+// ============================================================
+// PAYMENT
+// ============================================================
+model Payment {
+  id              String               @id @default(cuid())
+  orderId         String
+  attemptNumber   Int                  @default(1)
+  expiresAt       DateTime?
+  failureReason   String?
+  paymentMethod   String
+  paymentIntentId String?
+  sessionId       String?
+  sessionUrl      String?
+  amount          Decimal              @db.Decimal(18, 2)
+  currency        String               @default("USD")
+  status          PaymentAttemptStatus @default(PENDING)
+  idempotencyKey  String?
+  providerEventId String?
+  metadata        Json?
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
+
+  order         Order           @relation(fields: [orderId], references: [id])
+  refunds       Refund[]
+  ledger        PaymentLedger[]
+  refundLedgers RefundLedger[]
+
+  @@unique([idempotencyKey])
+  @@unique([providerEventId])
+  @@unique([paymentIntentId])
+  @@unique([sessionId])
+  @@unique([orderId, attemptNumber])
+  @@map("payments")
+  @@schema("public")
+}
+
+// ============================================================
+// REFUND
+// ============================================================
+model Refund {
+  id               String       @id @default(cuid())
+  paymentId        String
+  orderId          String
+  amount           Decimal      @db.Decimal(18, 2)
+  currency         String       @default("USD")
+  status           RefundStatus @default(PENDING)
+  reason           String?
+  provider         String?
+  providerRefundId String?      @unique
+  idempotencyKey   String       @unique
+  metadata         Json?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  payment Payment        @relation(fields: [paymentId], references: [id])
+  order   Order          @relation(fields: [orderId], references: [id])
+  ledger  RefundLedger[]
+
+  @@index([paymentId])
+  @@index([orderId])
+  @@map("refunds")
+  @@schema("public")
+}
+
+// ============================================================
+// PAYMENT LEDGER (audit + reconciliation)
+// ============================================================
+model PaymentLedger {
+  id              String                 @id @default(cuid())
+  paymentId       String
+  orderId         String
+  eventType       PaymentLedgerEventType
+  amount          Decimal                @db.Decimal(18, 2)
+  currency        String
+  provider        String?
+  providerEventId String?
+  idempotencyKey  String?
+  metadata        Json?
+  createdAt       DateTime               @default(now())
+
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([providerEventId])
+  @@unique([idempotencyKey])
+  @@index([paymentId])
+  @@index([orderId])
+  @@map("payment_ledger")
+  @@schema("public")
+}

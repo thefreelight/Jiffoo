@@ -1,0 +1,205 @@
+// platform-links.prisma — External*Link, OutboxEvent, PushSubscription
+
+// ============================================================
+// EXTERNAL CATEGORY LINK
+// storeId: plugin-protocol routing metadata, not multi-tenancy
+// ============================================================
+model ExternalCategoryLink {
+  id String @id @default(cuid())
+
+  provider       String
+  installationId String
+  storeId        String
+
+  externalCode     String
+  externalName     String?
+  externalHash     String?
+  coreCategoryId   String
+  coreCategorySlug String?
+  syncStatus       String    @default("ACTIVE")
+  lastSyncedAt     DateTime?
+  sourceUpdatedAt  DateTime?
+  lastError        String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([provider, installationId, storeId, externalCode], map: "ext_cat_links_uq_src_store_code")
+  @@index([provider, installationId], map: "ext_cat_links_idx_src")
+  @@index([coreCategoryId], map: "ext_cat_links_idx_core_cat")
+  @@index([syncStatus], map: "ext_cat_links_idx_status")
+  @@map("external_category_links")
+  @@schema("public")
+}
+
+// ============================================================
+// EXTERNAL PRODUCT LINK
+// storeId: plugin-protocol routing metadata, not multi-tenancy
+// ============================================================
+model ExternalProductLink {
+  id String @id @default(cuid())
+
+  provider       String
+  installationId String
+  storeId        String
+
+  externalProductCode  String
+  externalName         String?
+  externalHash         String?
+  coreProductId        String
+  coreProductSlug      String?
+  syncStatus           String    @default("ACTIVE")
+  lastSyncedAt         DateTime?
+  sourceUpdatedAt      DateTime?
+  lastError            String?
+  sourceName           String?
+  sourceDescription    String?
+  sourceCategoryCode   String?
+  sourceIsActive       Boolean?
+  sourcePayloadJson    Json?
+  sourcePayloadHash    String?
+  hasPendingChange     Boolean   @default(false)
+  pendingChangeSummary Json?
+  lastComparedAt       DateTime?
+  lastApprovedAt       DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([provider, installationId, storeId, externalProductCode], map: "ext_prod_links_uq_src_store_code")
+  @@index([provider, installationId], map: "ext_prod_links_idx_src")
+  @@index([coreProductId], map: "ext_prod_links_idx_core_prod")
+  @@index([syncStatus], map: "ext_prod_links_idx_status")
+  @@map("external_product_links")
+  @@schema("public")
+}
+
+// ============================================================
+// EXTERNAL VARIANT LINK
+// storeId: plugin-protocol routing metadata, not multi-tenancy
+// ============================================================
+model ExternalVariantLink {
+  id String @id @default(cuid())
+
+  provider       String
+  installationId String
+  storeId        String
+
+  externalProductCode  String
+  externalVariantCode  String
+  externalHash         String?
+  coreProductId        String
+  coreVariantId        String
+  coreSkuCode          String?
+  syncStatus           String    @default("ACTIVE")
+  lastSyncedAt         DateTime?
+  sourceUpdatedAt      DateTime?
+  lastError            String?
+  sourceVariantName    String?
+  sourceSkuCode        String?
+  sourceCostPrice      Decimal?  @db.Decimal(18, 2)
+  sourceIsActive       Boolean?
+  sourceAttributesJson Json?
+  sourcePayloadHash    String?
+  hasPendingChange     Boolean   @default(false)
+  pendingChangeSummary Json?
+  lastComparedAt       DateTime?
+  lastApprovedAt       DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@unique([provider, installationId, storeId, externalVariantCode], map: "ext_var_links_uq_src_store_var")
+  @@index([provider, installationId, externalProductCode], map: "ext_var_links_idx_src_prod")
+  @@index([coreProductId], map: "ext_var_links_idx_core_prod")
+  @@index([coreVariantId], map: "ext_var_links_idx_core_var")
+  @@index([syncStatus], map: "ext_var_links_idx_status")
+  @@map("external_variant_links")
+  @@schema("public")
+}
+
+// ============================================================
+// EXTERNAL ORDER LINK
+// storeId: plugin-protocol routing metadata, not multi-tenancy
+// ============================================================
+model ExternalOrderLink {
+  id String @id @default(cuid())
+
+  provider       String
+  installationId String
+  storeId        String
+
+  coreOrderId     String
+  coreOrderItemId String
+
+  externalOrderRef  String
+  externalOrderName String?
+  externalStatus    String?
+  syncStatus        String    @default("PENDING")
+  requestPayload    String?
+  responsePayload   String?
+  lastSyncedAt      DateTime?
+  lastError         String?
+  attemptCount      Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  order     Order     @relation(fields: [coreOrderId], references: [id], onDelete: Cascade)
+  orderItem OrderItem @relation(fields: [coreOrderItemId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, installationId, storeId, coreOrderItemId], map: "ext_order_links_uq_src_store_item")
+  @@unique([provider, installationId, storeId, externalOrderRef], map: "ext_order_links_uq_src_store_ref")
+  @@index([coreOrderId], map: "ext_order_links_idx_core_order")
+  @@index([coreOrderItemId], map: "ext_order_links_idx_core_item")
+  @@index([syncStatus], map: "ext_order_links_idx_status")
+  @@map("external_order_links")
+  @@schema("public")
+}
+
+// ============================================================
+// OUTBOX EVENT (transactional outbox pattern)
+// ============================================================
+model OutboxEvent {
+  id          String @id @default(uuid())
+  type        String
+  aggregateId String
+  payload     Json
+
+  version    String   @default("v1")
+  occurredAt DateTime @default(now())
+
+  published   Boolean   @default(false)
+  publishedAt DateTime?
+  retryCount  Int       @default(0)
+  lastError   String?
+
+  traceId String?
+  actorId String?
+
+  @@index([published, occurredAt])
+  @@index([aggregateId])
+  @@map("outbox_events")
+  @@schema("public")
+}
+
+// ============================================================
+// PUSH SUBSCRIPTION (web push notifications)
+// ============================================================
+model PushSubscription {
+  id       String @id @default(cuid())
+  userId   String
+  endpoint String
+
+  p256dh String
+  auth   String
+
+  userAgent String?
+  platform  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, endpoint])
+  @@index([userId])
+  @@map("push_subscriptions")
+  @@schema("public")
+}
