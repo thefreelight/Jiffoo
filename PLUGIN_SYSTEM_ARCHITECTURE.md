@@ -315,3 +315,110 @@ Fastify Application (apps/backend/src/server.ts)
   - 为后续演进提供约束与扩展空间（如 serverless 插件、外部主题插件等）。
 
 ---
+
+## 8. 插件信任模型与网关防护（Platform Evolution 2026 H2）
+
+> 本节描述 M1 R2 引入的两级信任模型、Ed25519 签名校验、网关防护基础设施及审计指标。
+
+### 8.1 两级信任模型
+
+插件按信任等级分为三类：
+
+| 信任等级 | 说明 | 允许的运行时 |
+|---|---|---|
+| `builtin` | 随平台分发包内置 | `internal-fastify` |
+| `official` | 由可信 Ed25519 密钥签名 | `internal-fastify` |
+| `third-party` | 未签名或签名不可信 | 仅 `external-http` |
+
+**核心规则：** `internal-fastify` 插件运行在平台同进程内，因此必须为 `builtin` 或 `official` 信任等级。`third-party` 插件只能使用 `external-http` 运行时，以独立进程运行，通过 HTTP 代理接入。
+
+**宽限期模式：** 已安装的 `third-party` + `internal-fastify` 插件不会立即被禁用，而是在启动时输出警告日志，Admin 插件中心显示黄色横幅。强制执行版本为 `INTERNAL_PLUGIN_ENFORCEMENT_VERSION`（当前为 `1.2.0`）。
+
+相关代码：
+- `apps/api/src/core/admin/extension-installer/trust-level.ts` — 信任等级推导与校验
+- `packages/shared/src/extensions/plugin-contract.ts` — manifest 校验逻辑
+
+### 8.2 Ed25519 签名校验
+
+**签名包格式（manifest-level）：**
+
+ZIP 包内包含：
+- `manifest.json` — 签名清单，包含文件哈希列表
+- `manifest.sig` — `manifest.json` 的 base64 编码 Ed25519 分离签名
+
+**验证流程：**
+1. 解析 `manifest.json`，校验 `schemaVersion`
+2. 从 base64 解码 `manifest.sig`
+3. 依次尝试所有可信公钥进行验签
+4. 验签通过后，逐文件校验 SHA-256 哈希
+
+**可信密钥来源：**
+- 内置官方密钥：`apps/api/src/core/admin/extension-installer/keys/official.pub`
+- 环境变量扩展：`JIFFOO_EXTRA_TRUSTED_KEYS`（换行分隔的 PEM 公钥列表）
+
+相关代码：
+- `apps/api/src/core/admin/extension-installer/signature.ts` — manifest 级签名验证
+- `apps/api/src/core/admin/extension-installer/signature-verifier.ts` — ZIP 级签名验证（兼容旧格式）
+
+### 8.3 网关防护
+
+对外部 HTTP 插件代理请求，网关层提供以下防护：
+
+| 防护措施 | 默认值 | 可配置 |
+|---|---|---|
+| 请求超时 | 10 秒 | 插件实例配置 `timeoutMs`（上限 60s） |
+| 响应大小上限 | 5 MB | 否 |
+| 熔断器 | 60s 窗口内 ≥10 样本且失败率 ≥50% → 开启 30s | 否 |
+| 限流 | 60 req/min per plugin | 否 |
+| SSRF 防护 | 阻止私有 IP / localhost | 否 |
+
+**熔断器状态机：**
+- `closed` → 正常放行
+- `open` → 拒绝所有请求，返回 `503 PLUGIN_GATEWAY_CIRCUIT_OPEN`
+- `half-open` → 允许单个探针请求，成功→`closed`，失败→`open`
+
+**结构化错误响应：**
+```json
+{
+  "error": {
+    "code": "PLUGIN_GATEWAY_TIMEOUT",
+    "pluginSlug": "my-plugin",
+    "category": "timeout",
+    "traceId": "uuid-v4",
+    "message": "Plugin \"my-plugin\" request timeout (10000ms)"
+  }
+}
+```
+
+相关代码：`apps/api/src/core/admin/extension-installer/gateway-protection.ts`
+
+### 8.4 审计日志与指标
+
+**审计日志：** 每次插件网关调用都会记录结构化审计日志，包含以下字段：
+
+| 字段 | 说明 |
+|---|---|
+| `timestamp` | ISO 8601 时间戳 |
+| `pluginSlug` | 插件标识 |
+| `installationId` | 安装实例 ID |
+| `instanceKey` | 实例键 |
+| `path` | 请求路径 |
+| `method` | HTTP 方法 |
+| `statusCode` | HTTP 状态码 |
+| `latencyMs` | 请求耗时（毫秒） |
+| `caller` | 调用方（shop / admin / theme-app / api-internal） |
+| `requestId` | UUID v4 请求 ID |
+| `trustLevel` | 插件信任等级 |
+| `error` | 错误信息（仅 ≥400 时） |
+
+**Prometheus 指标：**
+
+| 指标名 | 类型 | 标签 | 说明 |
+|---|---|---|---|
+| `plugin_gateway_requests_total` | counter | `slug`, `status` | 请求总数 |
+| `plugin_gateway_duration_seconds` | histogram | `slug` | 请求耗时分布 |
+| `plugin_gateway_breaker_state` | gauge | `slug` | 熔断器状态（0=closed, 1=open, 2=half-open） |
+
+相关代码：`apps/api/src/core/admin/extension-installer/gateway-metrics.ts`
+
+---

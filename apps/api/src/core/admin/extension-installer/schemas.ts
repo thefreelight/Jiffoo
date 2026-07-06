@@ -26,6 +26,7 @@ const extensionMetaSchema = {
     author: { type: 'string', nullable: true, description: 'Extension author' },
     category: { type: 'string', nullable: true, description: 'Extension category' },
     runtimeType: { type: 'string', nullable: true, description: 'Extension runtime type' },
+    trustLevel: { type: 'string', nullable: true, description: 'Plugin trust level (builtin | official | third-party)' },
     source: { type: 'string', nullable: true, description: 'Extension source' },
     manifestJson: {
       description: 'Raw or parsed manifest JSON payload',

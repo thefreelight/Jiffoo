@@ -18,7 +18,7 @@ import {
   PluginManifest,
 } from './types';
 import { ExtensionInstallerError } from './errors';
-import { validateVersionFormat } from './version-utils';
+import { validateVersionFormat, validateVersionRange } from './version-utils';
 import { getPluginManifestIssues } from '@jiffoo/shared';
 
 // ============================================================================
@@ -424,6 +424,41 @@ export function validateThemeManifest(manifest: ThemeManifest, expectedTarget?: 
         'Invalid theme manifest: entry.presetsDir must be a string',
         { code: 'INVALID_ENTRY', statusCode: 400 }
       );
+    }
+  }
+
+  // Validate engines field (Task 6.2.1)
+  if (manifest.engines) {
+    const { 'jiffoo-theme-sdk': sdkRange, jiffoo: coreRange, node: nodeRange } = manifest.engines;
+
+    if (sdkRange !== undefined) {
+      if (typeof sdkRange !== 'string') {
+        throw new ExtensionInstallerError(
+          'Invalid theme manifest: engines["jiffoo-theme-sdk"] must be a string',
+          { code: 'INVALID_ENGINES', statusCode: 400 }
+        );
+      }
+      validateVersionRange(sdkRange);
+    }
+
+    if (coreRange !== undefined) {
+      if (typeof coreRange !== 'string') {
+        throw new ExtensionInstallerError(
+          'Invalid theme manifest: engines.jiffoo must be a string',
+          { code: 'INVALID_ENGINES', statusCode: 400 }
+        );
+      }
+      validateVersionRange(coreRange);
+    }
+
+    if (nodeRange !== undefined) {
+      if (typeof nodeRange !== 'string') {
+        throw new ExtensionInstallerError(
+          'Invalid theme manifest: engines.node must be a string',
+          { code: 'INVALID_ENGINES', statusCode: 400 }
+        );
+      }
+      validateVersionRange(nodeRange);
     }
   }
 }

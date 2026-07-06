@@ -84,7 +84,24 @@
   - 插件网关（`plugin-gateway`）；
   - 商业化支持（`commercial-support`）；
   - 插件安装/License 管理（`plugin-installer` 等）
- 进行安装与调用控制。
+  进行安装与调用控制。
+
+### 3.1.1 插件信任等级与运行时（2026 H2）
+
+自 Platform Evolution 2026 H2 起，插件引入两级信任模型：
+
+| 信任等级 | 说明 | 允许的运行时 |
+|---|---|---|
+| `builtin` | 随平台分发包内置 | `internal-fastify` |
+| `official` | 由可信 Ed25519 密钥签名 | `internal-fastify` |
+| `third-party` | 未签名或签名不可信 | 仅 `external-http` |
+
+- `internal-fastify` 插件运行在 Jiffoo API 同进程内，必须为 `builtin` 或 `official` 信任等级。
+- `third-party` 插件只能使用 `external-http` 运行时（独立 HTTP 服务，通过网关代理接入）。
+- 已安装的存量第三方 internal-fastify 插件处于宽限期（warn 日志 + Admin 黄条提示），`v1.2.0` 起强制禁用。
+- external-http 插件代理受网关防护：10s 超时、5MB 响应上限、熔断器（60s 窗口 / 失败率 ≥50% / 开启 30s）、限流（60 req/min）。
+
+详见 [PLUGIN_SYSTEM_ARCHITECTURE.md](PLUGIN_SYSTEM_ARCHITECTURE.md) §8。
 
 ### 3.2 Agent 插件定位
 

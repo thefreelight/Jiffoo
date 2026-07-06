@@ -34,6 +34,14 @@ import type { PluginManifest } from './types';
 import { getPluginDir } from './utils';
 import { loadPluginEntryModule } from './plugin-module-loader';
 import { validatePluginCompatibility, PluginLoaderError } from '@/plugins/loader';
+import {
+  isBreakerAllowed,
+  recordBreakerResult,
+  isRateLimitAllowed,
+  sendGatewayError,
+  getPluginTimeoutMs,
+  MAX_RESPONSE_SIZE_BYTES,
+} from './gateway-protection';
 
 // ============================================================================
 // Constants
@@ -168,6 +176,8 @@ interface GatewayAuditLog {
   caller: CallerType;
   /** Unique request ID (UUID v4) */
   requestId: string;
+  /** Plugin trust level (Task 2.6.1) */
+  trustLevel?: string;
   /** Error message (only present if statusCode >= 400) */
   error?: string;
 }
@@ -258,6 +268,19 @@ function logAudit(entry: GatewayAuditLog, fastify?: FastifyInstance): void {
     type: 'plugin_gateway_audit',
     ...entry,
   };
+
+  // Record metrics (Task 2.6.2)
+  try {
+    const { gatewayMetrics } = require('./gateway-metrics');
+    gatewayMetrics.recordRequest(
+      entry.pluginSlug,
+      entry.statusCode,
+      entry.latencyMs,
+      entry.trustLevel,
+    );
+  } catch {
+    // Metrics recording is best-effort — don't fail the request
+  }
 
   if (fastify?.log) {
     fastify.log.info(logData);
@@ -769,6 +792,20 @@ async function proxyToExternalHttp(
   // SSRF validation
   validateExternalUrl(baseUrl);
 
+  // ── Gateway Protection: Circuit Breaker (Task 2.5) ──
+  if (!isBreakerAllowed(slug)) {
+    sendGatewayError(reply, 503, slug, 'circuit_open', requestId,
+      `Circuit breaker open for plugin "${slug}"`);
+    return;
+  }
+
+  // ── Gateway Protection: Rate Limiting (Task 2.5.3) ──
+  if (!isRateLimitAllowed(slug)) {
+    sendGatewayError(reply, 429, slug, 'rate_limited', requestId,
+      `Rate limit exceeded for plugin "${slug}"`);
+    return;
+  }
+
   const query = getQueryStringFromRawUrl(request.raw.url);
   const targetUrl = new URL(toForwardUrl(forwardPath, query), baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`).toString();
 
@@ -806,11 +843,22 @@ async function proxyToExternalHttp(
     );
   }
 
-  // Create abort controller for timeout
+  // ── Gateway Protection: Timeout (Task 2.4.1) ──
+  const effectiveTimeoutMs = getPluginTimeoutMs(ctx?.instance?.config as Record<string, unknown> | undefined);
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), effectiveTimeoutMs);
 
   try {
+    // ── Gateway Protection: Response Size Pre-check (Task 2.4.2) ──
+    const contentLength = request.headers['content-length'];
+    if (contentLength && parseInt(contentLength, 10) > MAX_RESPONSE_SIZE_BYTES) {
+      clearTimeout(timeoutId);
+      recordBreakerResult(slug, false);
+      sendGatewayError(reply, 502, slug, 'too_large', requestId,
+        `Response too large for plugin "${slug}" (limit: ${MAX_RESPONSE_SIZE_BYTES} bytes)`);
+      return;
+    }
+
     const res = await fetch(targetUrl, {
       method: request.method,
       headers: headers as any,
@@ -820,29 +868,48 @@ async function proxyToExternalHttp(
 
     clearTimeout(timeoutId);
 
+    // ── Gateway Protection: Response Size Post-check (Task 2.4.2) ──
+    const resContentLength = res.headers.get('content-length');
+    if (resContentLength && parseInt(resContentLength, 10) > MAX_RESPONSE_SIZE_BYTES) {
+      recordBreakerResult(slug, false);
+      sendGatewayError(reply, 502, slug, 'too_large', requestId,
+        `Upstream response too large for plugin "${slug}" (limit: ${MAX_RESPONSE_SIZE_BYTES} bytes)`);
+      return;
+    }
+
+    const buf = Buffer.from(await res.arrayBuffer());
+
+    // Streaming truncation: check actual buffer size
+    if (buf.length > MAX_RESPONSE_SIZE_BYTES) {
+      recordBreakerResult(slug, false);
+      sendGatewayError(reply, 502, slug, 'too_large', requestId,
+        `Response body exceeded size limit for plugin "${slug}"`);
+      return;
+    }
+
+    // Success — record for circuit breaker
+    recordBreakerResult(slug, true);
+
     reply.code(res.status);
     res.headers.forEach((value, key) => {
       if (key.toLowerCase() === 'transfer-encoding') return;
       reply.header(key, value);
     });
-    const buf = Buffer.from(await res.arrayBuffer());
     reply.send(buf);
   } catch (error: any) {
     clearTimeout(timeoutId);
 
+    // Record failure for circuit breaker
+    recordBreakerResult(slug, false);
+
     if (error.name === 'AbortError') {
-      throw new PluginGatewayError(
-        `Plugin "${slug}" request timeout (${REQUEST_TIMEOUT_MS}ms)`,
-        'PLUGIN_TIMEOUT',
-        504
-      );
+      sendGatewayError(reply, 504, slug, 'timeout', requestId,
+        `Plugin "${slug}" request timeout (${effectiveTimeoutMs}ms)`);
+      return;
     }
 
-    throw new PluginGatewayError(
-      `Plugin proxy error for "${slug}": ${error?.message || 'Unknown error'}`,
-      'PLUGIN_PROXY_FAILED',
-      502
-    );
+    sendGatewayError(reply, 502, slug, 'upstream_error', requestId,
+      `Plugin proxy error for "${slug}": ${error?.message || 'Unknown error'}`);
   }
 }
 

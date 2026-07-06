@@ -10,6 +10,7 @@ import type { InstalledThemeApp } from './theme-app-installer';
 import type {
   PluginManifest as SharedPluginManifest,
   PluginRuntimeType as SharedPluginRuntimeType,
+  PluginTrustLevel as SharedPluginTrustLevel,
 } from '@jiffoo/shared';
 
 // ============================================================================
@@ -41,6 +42,9 @@ export type ExtensionSource = 'local-zip' | 'official-market' | 'builtin';
 
 /** Plugin runtime type */
 export type PluginRuntimeType = SharedPluginRuntimeType;
+
+/** Plugin trust level (derived from signature verification at install time) */
+export type PluginTrustLevel = SharedPluginTrustLevel;
 
 // ============================================================================
 // Installation Results
@@ -95,6 +99,8 @@ export interface InstalledPlugin {
   description: string;
   category: string;
   runtimeType: PluginRuntimeType;
+  /** Trust level assigned at install time (builtin | official | third-party) */
+  trustLevel?: PluginTrustLevel;
   entryModule?: string;        // For internal-fastify, e.g. 'server/index.js'
   externalBaseUrl?: string;    // For external-http
   source: ExtensionSource;
@@ -172,6 +178,20 @@ export interface ThemeCompatibility {
   minCoreVersion?: string;
 }
 
+/**
+ * Theme engines field (theme.json engines)
+ * Declares which SDK versions the theme is compatible with.
+ * Uses semver range syntax (e.g., "^0.2.0", ">=1.0.0 <2.0.0").
+ */
+export interface ThemeEngines {
+  /** Compatible @jiffoo/theme-api-sdk version range */
+  'jiffoo-theme-sdk'?: string;
+  /** Minimum Jiffoo core version (alias for compatibility.minCoreVersion) */
+  jiffoo?: string;
+  /** Node.js version range */
+  node?: string;
+}
+
 /** Theme manifest (theme.json) - Theme Pack v1 specification */
 export interface ThemeManifest {
   /** Schema version, must be 1 for v1 */
@@ -200,6 +220,8 @@ export interface ThemeManifest {
   entry?: ThemePackEntry;
   /** Compatibility requirements */
   compatibility?: ThemeCompatibility;
+  /** Engine version requirements (semver ranges) */
+  engines?: ThemeEngines;
   /** Default configuration for the theme */
   defaultConfig?: Record<string, unknown>;
   /** Tags for categorization */
