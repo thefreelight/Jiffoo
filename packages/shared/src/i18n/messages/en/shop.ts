@@ -26,13 +26,26 @@ export const shop = {
 
   // Home page
   home: {
+    viewAll: 'View all',
     hero: {
-      badge: 'WELCOME TO JIFFOO',
+      badge: 'Welcome to Jiffoo',
       title: 'Quality Products,',
-      titleLine2: 'Delivered Fast',
-      subtitle: 'DISCOVER OUR CAREFULLY CURATED SELECTION',
-      shopNow: 'SHOP NOW',
+      titleLine2: 'Delivered',
+      titleAccent: 'Fast',
+      subtitle: 'Carefully curated products that elevate your everyday life.',
+      shopNow: 'Shop Now',
+      explore: 'Explore',
       startShopping: 'Start Shopping',
+    },
+    // Serene built-in theme hero variant
+    heroSerene: {
+      badge: 'New arrivals are here',
+      subtitle: 'Carefully curated products for modern living. Premium quality you can trust.',
+      explore: 'Explore Products',
+      watchVideo: 'Watch Video',
+      trustedBy: 'Trusted by 10,000+ customers',
+      fastDelivery: 'Fast Delivery',
+      deliveryTime: '1-3 business days',
     },
     featured: {
       title: 'Featured Products',
@@ -40,7 +53,37 @@ export const shop = {
     },
     categories: {
       badge: 'SHOP BY CATEGORY',
-      title: 'Browse Collections',
+      title: 'Shop by Category',
+      explore: 'Explore',
+      homeLiving: 'Home & Living',
+      bags: 'Bags & Accessories',
+      watches: 'Watches',
+      lifestyle: 'Lifestyle',
+    },
+    newArrivals: {
+      title: 'New Arrivals',
+      badge: 'New',
+    },
+    products: {
+      candle: 'Scented Candle',
+      vase: 'Minimalist Vase',
+      cardholder: 'Leather Cardholder',
+      watch: 'Classic Blue Watch',
+    },
+    banner: {
+      title: 'Designed for modern living',
+      subtitle: 'Thoughtful details. Premium quality. Timeless design.',
+      watch: 'Watch video',
+    },
+    newsletter: {
+      title: 'Join the Jiffoo community',
+      subtitle: 'Get exclusive offers and early access to new arrivals.',
+      sereneTitle: 'Join the Jiffoo Community',
+      sereneSubtitle: 'Be the first to know about new arrivals and exclusive offers.',
+      placeholder: 'Enter your email',
+      subscribe: 'Subscribe',
+      subscribed: 'Subscribed',
+      subscribers: '10k+ subscribers',
     },
     whyChooseUs: {
       badge: 'WHY SHOP WITH US',
@@ -68,18 +111,36 @@ export const shop = {
       subtitle: 'PREMIUM SHOPPING EXPERIENCE',
       shipping: {
         badge: 'RAPID SHIPPING',
-        title: 'Fast Delivery',
+        title: 'Free Shipping',
+        subtitle: 'On orders over $100',
         description: 'Free shipping on orders over $50. Most orders arrive within 2-3 business days.',
       },
       secure: {
         badge: 'PROTECTED TRANSACTIONS',
         title: 'Secure Payment',
+        subtitle: '100% secure checkout',
         description: 'Your payment information is encrypted and secure. Shop with confidence.',
+      },
+      returns: {
+        title: 'Easy Returns',
+        subtitle: '30-day return policy',
       },
       quality: {
         badge: 'QUALITY ASSURED',
         title: 'Premium Quality',
+        subtitle: 'Carefully selected',
         description: 'Every product is carefully selected and verified for authenticity and quality.',
+      },
+      support: {
+        title: '24/7 Support',
+        subtitle: "We're here to help",
+      },
+    },
+    // Serene built-in theme feature-strip variant (only the shipping item differs)
+    featuresSerene: {
+      shipping: {
+        title: 'Fast Shipping',
+        subtitle: '1-3 business days',
       },
     },
     cta: {

@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Jiffoo Template Seed Dataset",
+  "description": "Schema for template-specific seed data files used by create-jiffoo-app",
+  "type": "object",
+  "required": ["profile", "description", "categories", "products"],
+  "properties": {
+    "profile": {
+      "type": "string",
+      "description": "Seed profile identifier consumed by the seed script via JIFFOO_SEED_PROFILE env var"
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of the dataset"
+    },
+    "categories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "slug"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "slug": { "type": "string" }
+        }
+      }
+    },
+    "products": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "sku", "price", "categoryId", "type", "description"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "sku": { "type": "string" },
+          "price": { "type": "number", "minimum": 0 },
+          "categoryId": { "type": "string" },
+          "type": {
+            "type": "string",
+            "enum": ["esim", "card", "data", "physical"],
+            "description": "Product type determines fulfillment path"
+          },
+          "description": { "type": "string" },
+          "fulfillmentType": {
+            "type": "string",
+            "enum": ["esim", "card", "download", "shipping"],
+            "description": "How the product is delivered to the customer"
+          },
+          "deliveryMethod": {
+            "type": "string",
+            "enum": ["email", "dashboard", "api"],
+            "description": "Primary delivery channel"
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

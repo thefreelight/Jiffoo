@@ -5,6 +5,33 @@ This changelog records high-signal product, architecture, and delivery changes t
 ## Unreleased
 
 ### Added
+- Added the Platform Evolution 2026 H2 spec (`platform-evolution-2026h2/`) covering:
+  - a license-boundary model (GPL core + interface exceptions + MIT-licensed SDKs) for third-party commercial plugins
+  - a two-tier plugin runtime trust model (allowlisted internal-fastify vs. external-http for all third parties) with gateway timeout/circuit-breaker/rate-limit protection
+  - Prisma schema domain split with dormant-model freezing and a CI drift gate
+  - a unified outbox-driven async job layer (BullMQ) for webhooks, email, stock alerts, and fulfillment
+  - production observability (OpenTelemetry, Prometheus metrics, default alert rules, an observability compose profile)
+  - theme SDK surface contracts, `theme.json` engine-compatibility declarations, and a CI theme compatibility matrix
+  - a digital-commerce vertical distribution (`create-jiffoo-app` templates for digital goods and eSIM)
+  - an official MCP server package (`@jiffoo/mcp-server`) for agentic commerce
+  - open-core hosted-funnel mount points (`platformOffers` runtime state, Cloudflare deploy onboarding)
+- Added M3 (契约与差异化) deliverables:
+  - Theme SDK API surface snapshotting with semver range enforcement and CI compatibility matrix (R6)
+  - Digital goods fulfillment audit, voucher display, delivery email templates, and E2E tests (R7.1)
+  - `create-jiffoo-app` vertical template registry with `--template digital-goods` and `--template esim` (R7.2)
+  - Digital Commerce positioning docs and B2B × digital goods proposal (R7.3, R7.4)
+  - Scoped API token system with `dualAuthMiddleware` supporting both JWT and `jiffoo_`-prefixed API tokens (R8.1)
+  - Admin API token CRUD routes (`/api/v1/admin/api-tokens`) and settings page UI panel (R8.1.2)
+  - MCP server with stdio + HTTP transports, 6 tools (search, product detail, categories, cart, checkout), and integration tests (R8.2–R8.4)
+  - Agentic Commerce guide with Claude Desktop / Claude Code configuration examples (R8.4.2)
+- Added M4 (发布) deliverables:
+  - `platformOffers` runtime state service with public `/api/v1/platform-offers` endpoint; `JIFFOO_DISABLE_PLATFORM_OFFERS=true` forces empty; 7 unit tests (R9.1)
+  - Admin dashboard `PlatformOffersCards` component (display-only, renders nothing when empty) (R9.1.2)
+  - Shop `/setup` onboarding page for instances without API configuration (connect self-hosted API or hosted option) (R9.2.1)
+  - Cloudflare Pages deployment guide (`docs/cloudflare-pages.md`) (R9.2.2)
+  - Admin dashboard `InstanceHealthCard` showing current version, update availability, deployment mode, and update feed status (display-only, data from existing upgrade API) (R9.3)
+- Added the 2026 H2 execution PRD (`PRD_EXECUTABLE_2026H2.md`) with milestones, per-requirement acceptance criteria, and a phase Release Gate.
+
 - Added marketplace domain modeling for `app_marketplace`, `goods_marketplace`, and `merchant_store`.
 - Added formal binding concepts for self-hosted deployments:
   - `instance binding`
@@ -46,6 +73,8 @@ This changelog records high-signal product, architecture, and delivery changes t
 - Added a dedicated ADR for Admin bootstrap/demo credential display state.
 
 ### Changed
+- Changed `PRD_EXECUTABLE.md` (Alpha) status to delivered/archived while keeping its Hard Requirements in force; the active execution PRD is now `PRD_EXECUTABLE_2026H2.md`.
+- Changed `PRD.md` to add a fifth roadmap phase (Platform Evolution, 2026 H2) and index the new spec.
 - Changed the marketplace taxonomy so `Extensions` now means only installable app capabilities:
   - `Themes`
   - `Plugins`

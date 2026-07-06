@@ -85,6 +85,8 @@
     "../../packages/shop-themes/modelsfind/src/**/*.tsx",
     "../../packages/shop-themes/yevbi/src/**/*.ts",
     "../../packages/shop-themes/yevbi/src/**/*.tsx",
+    "../../packages/shop-themes/serene/src/**/*.ts",
+    "../../packages/shop-themes/serene/src/**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     ".next/dev/dev/types/**/*.ts"

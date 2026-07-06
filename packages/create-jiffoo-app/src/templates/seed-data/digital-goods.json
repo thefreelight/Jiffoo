@@ -1,0 +1,109 @@
+{
+  "$schema": "./seed-data.schema.json",
+  "profile": "digital-goods",
+  "description": "Sample digital products: gift cards, game codes, software licenses, e-books",
+  "categories": [
+    { "id": "cat-gift-cards", "name": "Gift Cards", "slug": "gift-cards" },
+    { "id": "cat-game-codes", "name": "Game Codes", "slug": "game-codes" },
+    { "id": "cat-software", "name": "Software Licenses", "slug": "software-licenses" },
+    { "id": "cat-ebooks", "name": "E-Books", "slug": "ebooks" }
+  ],
+  "products": [
+    {
+      "id": "dg-001",
+      "name": "$50 Amazon Gift Card",
+      "sku": "GC-AMZ-50",
+      "price": 50.00,
+      "categoryId": "cat-gift-cards",
+      "type": "card",
+      "description": "Redeemable on Amazon.com for millions of items. Delivered as a digital claim code.",
+      "fulfillmentType": "card",
+      "deliveryMethod": "email",
+      "tags": ["gift-card", "amazon", "digital"]
+    },
+    {
+      "id": "dg-002",
+      "name": "$100 Apple Gift Card",
+      "sku": "GC-APL-100",
+      "price": 100.00,
+      "categoryId": "cat-gift-cards",
+      "type": "card",
+      "description": "Use toward App Store, Apple Music, iCloud+, Apple TV+, Apple Arcade, and more.",
+      "fulfillmentType": "card",
+      "deliveryMethod": "email",
+      "tags": ["gift-card", "apple", "digital"]
+    },
+    {
+      "id": "dg-003",
+      "name": "Steam Wallet $20 Code",
+      "sku": "GM-STeam-20",
+      "price": 20.00,
+      "categoryId": "cat-game-codes",
+      "type": "card",
+      "description": "Add $20 to your Steam Wallet. Instant delivery of redemption code.",
+      "fulfillmentType": "card",
+      "deliveryMethod": "email",
+      "tags": ["steam", "game-code", "digital"]
+    },
+    {
+      "id": "dg-004",
+      "name": "Minecraft Java Edition License",
+      "sku": "SW-MC-JAVA",
+      "price": 29.95,
+      "categoryId": "cat-game-codes",
+      "type": "card",
+      "description": "Full Minecraft Java Edition license key. Delivered instantly after purchase.",
+      "fulfillmentType": "card",
+      "deliveryMethod": "email",
+      "tags": ["minecraft", "game", "license-key"]
+    },
+    {
+      "id": "dg-005",
+      "name": "Microsoft Office 365 Personal (1-Year)",
+      "sku": "SW-MS-O365-1Y",
+      "price": 69.99,
+      "categoryId": "cat-software",
+      "type": "card",
+      "description": "12-month subscription for 1 person. Includes Word, Excel, PowerPoint, Outlook, 1TB OneDrive.",
+      "fulfillmentType": "card",
+      "deliveryMethod": "email",
+      "tags": ["microsoft", "office", "subscription", "license"]
+    },
+    {
+      "id": "dg-006",
+      "name": "Adobe Creative Cloud Photography Plan (1-Year)",
+      "sku": "SW-ADBE-PHOTO-1Y",
+      "price": 119.88,
+      "categoryId": "cat-software",
+      "type": "card",
+      "description": "Lightroom, Lightroom Classic, Photoshop, and 20GB cloud storage. Annual license.",
+      "fulfillmentType": "card",
+      "deliveryMethod": "email",
+      "tags": ["adobe", "photography", "subscription", "license"]
+    },
+    {
+      "id": "dg-007",
+      "name": "The Pragmatic Programmer (Digital Edition)",
+      "sku": "EB-PRAG-PROG",
+      "price": 24.99,
+      "categoryId": "cat-ebooks",
+      "type": "data",
+      "description": "PDF + EPUB download. Instant access link delivered after purchase.",
+      "fulfillmentType": "download",
+      "deliveryMethod": "email",
+      "tags": ["ebook", "programming", "pdf", "download"]
+    },
+    {
+      "id": "dg-008",
+      "name": "Clean Code (Digital Edition)",
+      "sku": "EB-CLEAN-CODE",
+      "price": 19.99,
+      "categoryId": "cat-ebooks",
+      "type": "data",
+      "description": "PDF + EPUB download link. Robert C. Martin's classic on writing clean code.",
+      "fulfillmentType": "download",
+      "deliveryMethod": "email",
+      "tags": ["ebook", "programming", "pdf", "download"]
+    }
+  ]
+}

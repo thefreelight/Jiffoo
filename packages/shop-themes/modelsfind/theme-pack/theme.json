@@ -55,5 +55,9 @@
     "luxury",
     "dark-theme",
     "model-directory"
-  ]
+  ],
+  "engines": {
+    "jiffoo-theme-sdk": "^0.2.0",
+    "jiffoo": ">=0.2.0"
+  }
 }

@@ -440,10 +440,18 @@ jobs:
       - run: pnpm install --frozen-lockfile --prefer-offline
       
       - name: 🔍 Lint
-        run: pnpm lint || echo "⚠️ Lint skipped"
-      
+        run: pnpm lint
+
       - name: 🧪 Test
-        run: pnpm test || echo "⚠️ Test skipped"
+        run: pnpm test
+
+      - name: 🎨 Theme Compatibility Matrix
+        run: |
+          pnpm theme-matrix
+          pnpm theme-matrix:ssr
+
+      - name: 📐 SDK Surface Snapshot
+        run: pnpm surface:check
 
   # 🔒 Security Scan（并行运行）
   security-scan:

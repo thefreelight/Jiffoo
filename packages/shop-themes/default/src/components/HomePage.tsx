@@ -119,11 +119,11 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate, t }: 
                   : getText('shop.home.hero.modeLanding', 'Landing-commerce archetype enabled')}
             </p>
 
-            <h1 className="max-w-5xl text-[clamp(3.35rem,7vw,7rem)] font-black leading-[0.94] tracking-[-0.06em] text-[oklch(0.22_0.03_255)]">
+            <h1 className="max-w-5xl text-[clamp(2.5rem,4.5vw,4.5rem)] font-bold leading-[1.05] tracking-[-0.03em] text-[oklch(0.22_0.03_255)]">
               {site.headline}
             </h1>
 
-            <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1fr)_13rem] lg:items-start">
+            <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1fr)_13rem] lg:items-stretch">
               <p className="max-w-2xl text-[clamp(1.05rem,1.6vw,1.25rem)] leading-8 text-[oklch(0.35_0.03_250)]">
                 {site.subheadline}
               </p>
@@ -232,7 +232,7 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate, t }: 
             <p className="text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-[oklch(0.46_0.04_245)]">
               {getText('shop.home.story.label', 'Why this default exists')}
             </p>
-            <h2 className="mt-4 text-[clamp(2.2rem,4vw,4rem)] font-black leading-[0.97] tracking-[-0.05em] text-[oklch(0.22_0.03_255)]">
+            <h2 className="mt-4 text-[clamp(1.9rem,3vw,2.75rem)] font-black leading-[1.05] tracking-[-0.03em] text-[oklch(0.22_0.03_255)]">
               {isProductSite
                 ? getText('shop.home.story.titleProduct', 'The official site should prove the theme system can sell a product, not only list products.')
                 : getText('shop.home.story.titleLanding', 'A strong default should introduce the offer before asking for the cart.')}
@@ -269,7 +269,7 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate, t }: 
               <p className="text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-[oklch(0.46_0.04_245)]">
                 {getText('shop.home.deploy.label', 'Go-live lanes')}
               </p>
-              <h2 className="mt-4 text-[clamp(2rem,3.3vw,3.35rem)] font-black leading-[0.98] tracking-[-0.05em] text-[oklch(0.22_0.03_255)]">
+              <h2 className="mt-4 text-[clamp(1.75rem,2.6vw,2.5rem)] font-black leading-[1.05] tracking-[-0.03em] text-[oklch(0.22_0.03_255)]">
                 {getText('shop.home.deploy.title', 'Use the same default theme whether the site is installation-led or commerce-led.')}
               </h2>
             </div>
@@ -306,7 +306,7 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate, t }: 
             <p className="text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-[oklch(0.46_0.04_245)]">
               {getText('shop.home.routes.label', 'What stays one click away')}
             </p>
-            <h2 className="mt-4 text-[clamp(2rem,3vw,3.2rem)] font-black leading-[0.98] tracking-[-0.05em] text-[oklch(0.22_0.03_255)]">
+            <h2 className="mt-4 text-[clamp(1.75rem,2.6vw,2.5rem)] font-black leading-[1.05] tracking-[-0.03em] text-[oklch(0.22_0.03_255)]">
               {getText('shop.home.routes.title', 'Landing content leads. Commerce routes stay alive behind it.')}
             </h2>
           </div>

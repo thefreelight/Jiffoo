@@ -1,0 +1,84 @@
+{
+  "$schema": "./seed-data.schema.json",
+  "profile": "esim",
+  "description": "Sample eSIM data plans: regional, global, and country-specific packages",
+  "categories": [
+    { "id": "cat-global", "name": "Global Plans", "slug": "global-plans" },
+    { "id": "cat-regional", "name": "Regional Plans", "slug": "regional-plans" },
+    { "id": "cat-country", "name": "Country-Specific", "slug": "country-specific" }
+  ],
+  "products": [
+    {
+      "id": "esim-001",
+      "name": "Global eSIM — 5GB / 7 Days",
+      "sku": "ESIM-GLB-5GB-7D",
+      "price": 19.99,
+      "categoryId": "cat-global",
+      "type": "esim",
+      "description": "Covers 130+ countries. 5GB data, valid for 7 days. 4G/LTE speeds. QR code delivery.",
+      "fulfillmentType": "esim",
+      "deliveryMethod": "email",
+      "tags": ["esim", "global", "travel", "data"]
+    },
+    {
+      "id": "esim-002",
+      "name": "Global eSIM — 10GB / 15 Days",
+      "sku": "ESIM-GLB-10GB-15D",
+      "price": 34.99,
+      "categoryId": "cat-global",
+      "type": "esim",
+      "description": "Covers 130+ countries. 10GB data, valid for 15 days. 4G/LTE speeds.",
+      "fulfillmentType": "esim",
+      "deliveryMethod": "email",
+      "tags": ["esim", "global", "travel", "data"]
+    },
+    {
+      "id": "esim-003",
+      "name": "Europe eSIM — 5GB / 15 Days",
+      "sku": "ESIM-EU-5GB-15D",
+      "price": 14.99,
+      "categoryId": "cat-regional",
+      "type": "esim",
+      "description": "Covers 35 European countries. 5GB data, valid for 15 days. Perfect for Euro trips.",
+      "fulfillmentType": "esim",
+      "deliveryMethod": "email",
+      "tags": ["esim", "europe", "travel", "data"]
+    },
+    {
+      "id": "esim-004",
+      "name": "Asia eSIM — 6GB / 10 Days",
+      "sku": "ESIM-ASIA-6GB-10D",
+      "price": 17.99,
+      "categoryId": "cat-regional",
+      "type": "esim",
+      "description": "Covers 20+ Asian countries including Japan, Korea, Thailand, Singapore. 6GB / 10 days.",
+      "fulfillmentType": "esim",
+      "deliveryMethod": "email",
+      "tags": ["esim", "asia", "travel", "data"]
+    },
+    {
+      "id": "esim-005",
+      "name": "Japan eSIM — 10GB / 14 Days",
+      "sku": "ESIM-JP-10GB-14D",
+      "price": 21.99,
+      "categoryId": "cat-country",
+      "type": "esim",
+      "description": "Japan-only eSIM. 10GB data, 14-day validity. NTT Docomo 4G network. Instant QR delivery.",
+      "fulfillmentType": "esim",
+      "deliveryMethod": "email",
+      "tags": ["esim", "japan", "travel", "data"]
+    },
+    {
+      "id": "esim-006",
+      "name": "USA eSIM — 15GB / 30 Days",
+      "sku": "ESIM-US-15GB-30D",
+      "price": 29.99,
+      "categoryId": "cat-country",
+      "type": "esim",
+      "description": "USA-only eSIM on T-Mobile/Verizon. 15GB data, 30-day validity. Great for longer US stays.",
+      "fulfillmentType": "esim",
+      "deliveryMethod": "email",
+      "tags": ["esim", "usa", "travel", "data"]
+    }
+  ]
+}

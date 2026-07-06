@@ -7,7 +7,7 @@ import './tokens.css';
 import type { ThemePackage } from 'shared/src/types/theme';
 
 // Import page components
-import { HomePage } from './components/HomePage';
+import { HomePage } from './components/AdaptiveHomePage';
 import { ProductsPage } from './components/ProductsPage';
 import { ProductDetailPage } from './components/ProductDetailPage';
 import { CartPage } from './components/CartPage';
@@ -36,6 +36,9 @@ import { Footer } from './components/Footer';
 // UI component exports
 export { Toast, ToastContainer } from './ui/Toast';
 export type { ToastProps, ToastType } from './ui/Toast';
+
+// Shared illustration exports (reused by sibling built-in themes)
+export * from './ui/illustrations';
 
 /**
  * Default theme package
@@ -81,14 +84,13 @@ export const theme: ThemePackage = {
       enableQuickView: false,
     },
     site: {
-      archetype: 'product-site',
-      eyebrow: 'Open-source commerce operating system',
-      headline: 'Install storefront, Admin, themes, plugins, and launch pages from one coherent stack.',
-      subheadline:
-        'The default Jiffoo theme is now a product-site starter that still keeps commerce routes, cart, checkout, and theme extensibility close by.',
-      primaryCtaLabel: 'One-click install',
-      primaryCtaHref: 'https://get.jiffoo.com',
-      secondaryCtaLabel: 'Explore the storefront',
+      archetype: 'storefront',
+      eyebrow: 'Curated commerce storefront',
+      headline: 'Quality products, delivered fast.',
+      subheadline: 'A polished default storefront for browsing categories, new arrivals, and trusted checkout flows.',
+      primaryCtaLabel: 'Shop now',
+      primaryCtaHref: '/products',
+      secondaryCtaLabel: 'Explore categories',
       secondaryCtaHref: '/products',
       installCommand: 'curl -fsSL https://get.jiffoo.com | bash',
       docsHref: '/help',

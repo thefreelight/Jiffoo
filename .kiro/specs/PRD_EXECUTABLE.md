@@ -2,12 +2,14 @@
 
 > 配套战略概览：[`.kiro/specs/PRD.md`](./PRD.md)  
 > 本文档回答：**这一阶段到底做什么、做到什么算完成、怎么验收**。面向研发/测试/运维/产品协同。
+>
+> ⚠️ **阶段交接（2026-07-05）**：本文档覆盖的 Alpha 阶段已交付（当前开源版本 v1.0.3）。当前执行阶段为 **2026 H2 平台演进**，见 [`PRD_EXECUTABLE_2026H2.md`](./PRD_EXECUTABLE_2026H2.md)。本文档保留作为 Alpha 口径的历史依据；其中的 Hard Requirement（单租户语义、开源商业化边界、英文代码规范、官方扩展双仓口径等）在后续阶段继续有效。
 
 ---
 
 ## 0. 文档信息
 
-- **状态**：✅ Active（执行中）
+- **状态**：📦 已交付/归档（Hard Requirement 持续有效；当前阶段见 [`PRD_EXECUTABLE_2026H2.md`](./PRD_EXECUTABLE_2026H2.md)）
 - **适用阶段**：Alpha v0.1.0（2025 Q1）
 - **适用范围**：开源核心（单商户单店部署 / Single Store）能力闭环；不包含任何平台化运营能力（`apps/super-admin`、`apps/developer-portal`、`apps/platform-api` 等）
 - **交付形态**：

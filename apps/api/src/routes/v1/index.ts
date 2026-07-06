@@ -9,6 +9,7 @@ import { FastifyInstance } from 'fastify';
 
 // Core routes
 import { authRoutes } from '@/core/auth/routes';
+import { apiTokenRoutes } from '@/core/auth/api-token-routes';
 import { accountRoutes } from '@/core/account/routes';
 import { productRoutes } from '@/core/product/routes';
 import { cartRoutes } from '@/core/cart/routes';
@@ -26,6 +27,7 @@ import systemSettingsRoutes from '@/core/admin/system-settings/routes';
 import platformConnectionRoutes from '@/core/admin/platform-connection/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
 import { adminCatalogImportRoutes } from '@/core/admin/catalog-import/routes';
+import { platformOffersRoutes } from '@/core/admin/platform-offers/routes';
 
 // Extension installer routes
 import { extensionInstallerRoutes } from '@/core/admin/extension-installer/routes';
@@ -57,6 +59,9 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(platformConnectionRoutes, { prefix: '/admin/platform/connection' });
   await fastify.register(adminCatalogImportRoutes, { prefix: '/admin/integrations/catalog-import' });
 
+  // API Token management (admin only)
+  await fastify.register(apiTokenRoutes, { prefix: '/admin/api-tokens' });
+
   // Dashboard routes
   await fastify.register(adminDashboardRoutes, { prefix: '/admin' });
 
@@ -69,6 +74,9 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(orderRoutes, { prefix: '/orders' });
   await fastify.register(paymentRoutes, { prefix: '/payments' });
   await fastify.register(publicThemeRoutes, { prefix: '/themes' });
+
+  // Platform offers (public, display-only)
+  await fastify.register(platformOffersRoutes, { prefix: '/platform-offers' });
 
   // Extension installer routes
   await fastify.register(extensionInstallerRoutes, { prefix: '/extensions' });

@@ -25,7 +25,7 @@ const DEFAULT_DOCKER_COMMAND =
 
 export function resolveSiteConfig(config?: ThemeConfig): ResolvedSiteConfig {
   const brandName = config?.brand?.name?.trim() || 'Jiffoo';
-  const archetype = config?.site?.archetype || 'landing-commerce';
+  const archetype = config?.site?.archetype || 'storefront';
   const docsHref = config?.site?.docsHref?.trim() || '/help';
   const demoHref = config?.site?.demoHref?.trim() || '/products';
   const primaryCtaHref = config?.site?.primaryCtaHref?.trim() || 'https://get.jiffoo.com';

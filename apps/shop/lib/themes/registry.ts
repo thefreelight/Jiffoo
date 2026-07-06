@@ -25,6 +25,11 @@ const BUILTIN_DEFAULT_SLUG = 'builtin-default';
  */
 const LEGACY_DEFAULT_SLUG = 'default';
 
+/**
+ * Second built-in base theme slug
+ */
+const BUILTIN_SERENE_SLUG = 'builtin-serene';
+
 // ============================================================================
 // Built-in Theme Registry (Static)
 // ============================================================================
@@ -37,17 +42,17 @@ const LEGACY_DEFAULT_SLUG = 'default';
  * The canonical slug is 'builtin-default' as per PRD_FINAL_BLUEPRINT.md.
  */
 export const BUILTIN_THEMES: ThemeRegistry = {
-  // Canonical builtin-default entry
+  // Canonical builtin-default entry — "Aurora" glass design
   [BUILTIN_DEFAULT_SLUG]: {
     meta: {
       slug: BUILTIN_DEFAULT_SLUG,
-      name: 'Default Theme',
-      version: '1.0.0',
-      description: 'The default Jiffoo Mall theme, modern and clean e-commerce style.',
+      name: 'Aurora (Default)',
+      version: '0.0.1',
+      description: 'The default Jiffoo Mall theme — airy light-blue storefront with a glassmorphism hero.',
       category: 'general',
       author: 'Jiffoo',
       target: 'shop',
-      tags: ['modern', 'clean', 'responsive'],
+      tags: ['modern', 'glassmorphism', 'responsive'],
     },
     load: async () => {
       const module = await import('@shop-themes/default');
@@ -58,13 +63,13 @@ export const BUILTIN_THEMES: ThemeRegistry = {
   [LEGACY_DEFAULT_SLUG]: {
     meta: {
       slug: LEGACY_DEFAULT_SLUG,
-      name: 'Default Theme',
-      version: '1.0.0',
-      description: 'The default Jiffoo Mall theme, modern and clean e-commerce style.',
+      name: 'Aurora (Default)',
+      version: '0.0.1',
+      description: 'The default Jiffoo Mall theme — airy light-blue storefront with a glassmorphism hero.',
       category: 'general',
       author: 'Jiffoo',
       target: 'shop',
-      tags: ['modern', 'clean', 'responsive'],
+      tags: ['modern', 'glassmorphism', 'responsive'],
     },
     load: async () => {
       const module = await import('@shop-themes/default');
@@ -77,7 +82,7 @@ export const BUILTIN_THEMES: ThemeRegistry = {
     meta: {
       slug: 'esim-mall',
       name: 'eSIM Mall Theme',
-      version: '1.0.0',
+      version: '0.0.1',
       description: 'eSIM marketplace theme with modern travel-focused design for eSIM businesses.',
       category: 'esim',
       author: 'Jiffoo',
@@ -98,6 +103,23 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       tags: ['travel', 'modern', 'responsive'],
     },
     load: async () => yevbiTheme,
+  },
+  // Second built-in base theme — "Serene" calm indigo design
+  [BUILTIN_SERENE_SLUG]: {
+    meta: {
+      slug: BUILTIN_SERENE_SLUG,
+      name: 'Serene',
+      version: '1.0.0',
+      description: 'Calm indigo Jiffoo Mall theme with a botanical hero and editorial layout.',
+      category: 'general',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['calm', 'editorial', 'responsive'],
+    },
+    load: async () => {
+      const module = await import('@shop-themes/serene');
+      return module.default || module.theme;
+    },
   },
 };
 

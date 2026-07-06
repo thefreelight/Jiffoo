@@ -95,6 +95,29 @@
     },
     "db:seed": {
       "cache": false
+    },
+    "theme-matrix": {
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!**/*.tsbuildinfo"
+      ],
+      "outputs": [
+        "dist/**"
+      ],
+      "outputLogs": "new-only"
+    },
+    "theme-matrix:type-check": {
+      "dependsOn": [
+        "^build"
+      ],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "!**/*.tsbuildinfo"
+      ],
+      "outputLogs": "new-only"
     }
   }
 }

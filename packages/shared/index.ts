@@ -225,22 +225,6 @@ export type {
   ESimVariant,
 } from './src/types/esim-schema';
 
-// Digital Goods Schema Types - Platform standard for instant virtual fulfillment
-export type {
-  DigitalGoodsKind,
-  DigitalDeliveryMethod,
-  DigitalArtifactKind,
-  DigitalDeliveryStatus,
-  DigitalGoodsArtifactDefinition,
-  DigitalGoodsTypeData,
-  DigitalGoodsDeliveredArtifact,
-  DigitalGoodsFulfillmentData,
-} from './src/types/digital-goods-schema';
-export {
-  parseDigitalGoodsTypeData,
-  parseDigitalGoodsFulfillmentData,
-} from './src/types/digital-goods-schema';
-
 export {
   isESimProduct,
   parseESimProductTypeData,

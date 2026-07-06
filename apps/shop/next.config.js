@@ -6,7 +6,7 @@ const withPWA = require('@ducanh2912/next-pwa').default;
 const nextConfig = createNextConfig({
   appName: 'Frontend',
   port: 3003,
-  outputFileTracingRoot: process.env.CF_PAGES === '1' ? undefined : path.resolve(__dirname, '../..'),
+  outputFileTracingRoot: path.resolve(__dirname, '../..'),
   // The shop runtime embeds the default theme, the generic esim-mall official
   // renderer, and legacy renderer packages needed for migration fallback.
   transpilePackages: [
@@ -16,6 +16,7 @@ const nextConfig = createNextConfig({
     '@shop-themes/esim-mall',
     '@shop-themes/imagic-studio',
     '@shop-themes/modelsfind',
+    '@shop-themes/serene',
     '@shop-themes/yevbi',
     '@jiffoo/core-api-sdk',
     '@jiffoo/theme-api-sdk',
@@ -88,13 +89,18 @@ const nextConfig = createNextConfig({
     return config;
   },
   async headers() {
+    // react-scan (dev-only perf overlay) loads from unpkg and spawns a blob:
+    // worker; allow both only in development — prod CSP stays strict.
+    const isDevCsp = process.env.NODE_ENV === 'development';
+    const devScriptSrc = isDevCsp ? ' https://unpkg.com' : '';
+    const devWorkerSrc = isDevCsp ? " worker-src 'self' blob:;" : '';
     return [
       {
         source: '/:path*',
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http:; frame-src 'self' https://js.stripe.com https://hooks.stripe.com; frame-ancestors 'none';",
+            value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com${devScriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http:; frame-src 'self' https://js.stripe.com https://hooks.stripe.com;${devWorkerSrc} frame-ancestors 'none';`,
           },
         ],
       },

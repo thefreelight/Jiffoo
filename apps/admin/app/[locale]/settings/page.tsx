@@ -27,6 +27,7 @@ import { clearUpdateCheckCache } from '@/hooks/use-update-check'
 import { cn } from '@/lib/utils'
 import CurrencySettings from '@/components/settings/currency-settings'
 import { ManagedLicensePanel } from '@/components/settings/ManagedLicensePanel'
+import { ApiTokenPanel } from '@/components/settings/ApiTokenPanel'
 
 type SettingField = {
   key: string
@@ -856,6 +857,9 @@ function SettingsPageContent() {
             <ManagedLicensePanel />
           </div>
         </div>
+
+        {/* API Tokens */}
+        <ApiTokenPanel />
       </div>
     </div>
   )

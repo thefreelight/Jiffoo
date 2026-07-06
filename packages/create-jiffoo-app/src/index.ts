@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 /**
  * create-jiffoo-app
- * 
+ *
  * Create a new Jiffoo e-commerce application with one command.
  * Similar to create-medusa-app, this tool clones the Jiffoo starter template
  * and guides users through the setup process.
- * 
+ *
  * Usage:
  *   npx create-jiffoo-app my-store
+ *   npx create-jiffoo-app my-store --template digital-goods
+ *   npx create-jiffoo-app my-store --template esim --seed
  *   npx create-jiffoo-app my-store --skip-install
  */
 
@@ -18,10 +20,18 @@ import ora from 'ora';
 import fs from 'fs-extra';
 import path from 'node:path';
 import { execa } from 'execa';
+import {
+    TEMPLATES,
+    getTemplate,
+    getStableTemplates,
+    DEFAULT_TEMPLATE,
+    type TemplateConfig,
+} from './templates/registry.js';
+import { applyTemplate } from './templates/applier.js';
 
 const { prompt } = enquirer as { prompt: typeof enquirer.prompt };
 
-const VERSION = '0.1.2';
+const VERSION = '0.2.0';
 const REPO_URL = 'https://github.com/thefreelight/Jiffoo.git';
 const DEFAULT_BRANCH = 'main';
 
@@ -30,6 +40,7 @@ interface CreateOptions {
     skipDb?: boolean;
     seed?: boolean;
     branch?: string;
+    template?: string;
 }
 
 /**
@@ -301,10 +312,18 @@ async function seedDatabase(targetDir: string): Promise<void> {
 /**
  * Show completion message
  */
-function showComplete(projectName: string): void {
+function showComplete(projectName: string, template?: TemplateConfig): void {
     console.log(chalk.green.bold('\n✅ Your Jiffoo store is ready!\n'));
     console.log(chalk.gray('─'.repeat(50)));
     console.log();
+
+    if (template && template.name !== 'default') {
+        console.log(chalk.bold(`🎨 Template: ${template.displayName}`));
+        console.log(chalk.gray(`   ${template.description}`));
+        console.log(chalk.gray(`   Theme: ${template.theme.slug} (${template.theme.packageName})`));
+        console.log();
+    }
+
     console.log(chalk.bold('📋 Next Steps:'));
     console.log();
     console.log(`   ${chalk.cyan('1.')} Navigate to your project:`);
@@ -330,6 +349,52 @@ function showComplete(projectName: string): void {
 }
 
 /**
+ * Prompt the user to select a template.
+ * Skipped if --template flag is provided.
+ */
+async function selectTemplate(
+    flagValue?: string,
+): Promise<TemplateConfig> {
+    // If provided via flag, validate and return
+    if (flagValue) {
+        const template = getTemplate(flagValue);
+        if (!template) {
+            console.log(chalk.red(`\n✗ Unknown template: "${flagValue}"`));
+            console.log(chalk.gray('Available templates:'));
+            TEMPLATES.forEach((t) => {
+                console.log(chalk.gray(`   • ${t.name} — ${t.displayName}`));
+            });
+            console.log();
+            process.exit(1);
+        }
+        console.log(chalk.green(`✓ Using template: ${template.displayName}\n`));
+        return template;
+    }
+
+    // Interactive selection
+    console.log(chalk.bold('🎨 Select a template\n'));
+
+    const stableTemplates = getStableTemplates();
+    const choices = stableTemplates.map((t) => ({
+        name: t.name,
+        message: `${t.displayName}  ${chalk.gray('— ' + t.description)}`,
+        value: t.name,
+    }));
+
+    const { selected } = await prompt<{ selected: string }>({
+        type: 'select',
+        name: 'selected',
+        message: 'Choose a storefront template',
+        choices,
+        initial: 0,
+    });
+
+    const template = getTemplate(selected)!;
+    console.log(chalk.green(`\n✓ Selected: ${template.displayName}\n`));
+    return template;
+}
+
+/**
  * Main create function
  */
 async function create(
@@ -344,13 +409,16 @@ async function create(
         process.exit(1);
     }
 
+    // Select template (from flag or interactive prompt)
+    const template = await selectTemplate(options.template);
+
     // Get project name if not provided
     if (!projectName) {
         const { name } = await prompt<{ name: string }>({
             type: 'input',
             name: 'name',
             message: 'What is your project name?',
-            initial: 'my-jiffoo-store',
+            initial: `my-${template.name}-store`,
             validate: (value: string) => {
                 if (!value.trim()) {
                     return 'Project name is required';
@@ -373,6 +441,23 @@ async function create(
     // Setup environment
     await setupEnvironment(targetDir);
 
+    // Apply template configuration (env presets, theme activation, seed data)
+    const applySpinner = ora(`Applying template: ${template.displayName}...`).start();
+    try {
+        const result = await applyTemplate(targetDir, template);
+        applySpinner.succeed(`Template applied: ${template.displayName}`);
+        if (result.envKeysWritten.length > 0) {
+            console.log(chalk.gray(`   Env presets: ${result.envKeysWritten.join(', ')}`));
+        }
+        if (result.seedDataPath) {
+            console.log(chalk.gray(`   Seed data: ${path.relative(targetDir, result.seedDataPath)}`));
+        }
+        console.log();
+    } catch (error) {
+        applySpinner.fail('Failed to apply template configuration');
+        console.log(chalk.yellow('You can configure the template manually after setup.'));
+    }
+
     if (!options.skipInstall) {
         // Get database configuration
         const dbConfig = await getProjectConfig();
@@ -388,14 +473,17 @@ async function create(
             await runMigrations(targetDir);
 
             // Seed database if requested
-            if (options.seed) {
+            // If a non-default template is selected and --seed is not explicitly
+            // set, auto-seed since the template includes tailored sample data.
+            const shouldSeed = options.seed || (template.name !== DEFAULT_TEMPLATE);
+            if (shouldSeed) {
                 await seedDatabase(targetDir);
             }
         }
     }
 
     // Show completion message
-    showComplete(projectName!);
+    showComplete(projectName!, template);
 }
 
 // Create CLI program
@@ -410,6 +498,10 @@ program
     .option('--skip-db', 'Skip database setup')
     .option('--seed', 'Seed database with sample data')
     .option('--branch <branch>', 'Branch to clone from', DEFAULT_BRANCH)
+    .option(
+        '--template <name>',
+        `Storefront template (default, digital-goods, esim)`,
+    )
     .action(create);
 
 program.parse();

@@ -26,13 +26,26 @@ export const shop = {
 
   // Home page
   home: {
+    viewAll: '查看全部',
     hero: {
-      badge: '歡迎來到 JIFFOO',
+      badge: '歡迎來到 Jiffoo',
       title: '優質商品，',
-      titleLine2: '快速送達',
-      subtitle: '探索我們精心挑選的商品系列',
+      titleLine2: '快速',
+      titleAccent: '送達',
+      subtitle: '精心策劃的商品，提升您的日常生活品質。',
       shopNow: '立即選購',
+      explore: '探索',
       startShopping: '開始購物',
+    },
+    // Serene 內建主題的 Hero 變體
+    heroSerene: {
+      badge: '新品上市',
+      subtitle: '為現代生活精心策劃的商品，值得信賴的卓越品質。',
+      explore: '探索商品',
+      watchVideo: '觀看影片',
+      trustedBy: '深受 10,000+ 顧客信賴',
+      fastDelivery: '快速配送',
+      deliveryTime: '1-3 個工作天',
     },
     featured: {
       title: '精選商品',
@@ -40,7 +53,37 @@ export const shop = {
     },
     categories: {
       badge: '依分類選購',
-      title: '瀏覽商品系列',
+      title: '依分類選購',
+      explore: '探索',
+      homeLiving: '家居生活',
+      bags: '包袋配飾',
+      watches: '腕錶',
+      lifestyle: '生活風格',
+    },
+    newArrivals: {
+      title: '新品上架',
+      badge: '新品',
+    },
+    products: {
+      candle: '香氛蠟燭',
+      vase: '極簡花瓶',
+      cardholder: '真皮卡夾',
+      watch: '經典藍錶',
+    },
+    banner: {
+      title: '為現代生活而設計',
+      subtitle: '注重細節。卓越品質。雋永設計。',
+      watch: '觀看影片',
+    },
+    newsletter: {
+      title: '加入 Jiffoo 社群',
+      subtitle: '獲取專屬優惠，搶先體驗新品。',
+      sereneTitle: '加入 Jiffoo 社群',
+      sereneSubtitle: '第一時間掌握新品與專屬優惠。',
+      placeholder: '輸入您的電子郵件',
+      subscribe: '訂閱',
+      subscribed: '已訂閱',
+      subscribers: '10k+ 訂閱者',
     },
     whyChooseUs: {
       badge: '為什麼選擇我們',
@@ -68,18 +111,36 @@ export const shop = {
       subtitle: '優質購物體驗',
       shipping: {
         badge: '快速配送',
-        title: '快速配送',
+        title: '免費配送',
+        subtitle: '訂單滿 $100 免運',
         description: '訂單滿 $50 免運費。大多數訂單在 2-3 個工作天內送達。',
       },
       secure: {
         badge: '交易安全',
         title: '安全支付',
+        subtitle: '100% 安全結帳',
         description: '您的付款資訊經過加密保護。安心購物。',
+      },
+      returns: {
+        title: '輕鬆退貨',
+        subtitle: '30 天退貨保障',
       },
       quality: {
         badge: '品質保證',
-        title: '優質商品',
+        title: '優質品質',
+        subtitle: '嚴選商品',
         description: '每件商品都經過精心挑選，並驗證其真實性和品質。',
+      },
+      support: {
+        title: '24/7 客服',
+        subtitle: '隨時為您服務',
+      },
+    },
+    // Serene 內建主題的特色欄變體（僅配送項目不同）
+    featuresSerene: {
+      shipping: {
+        title: '快速配送',
+        subtitle: '1-3 個工作天',
       },
     },
     cta: {

@@ -39,5 +39,15 @@
   "x-jiffoo-renderer-mode": "embedded",
   "x-jiffoo-renderer-slug": "bokmoo",
   "category": "esim",
-  "tags": ["esim", "travel", "premium", "connectivity", "global"]
+  "tags": [
+    "esim",
+    "travel",
+    "premium",
+    "connectivity",
+    "global"
+  ],
+  "engines": {
+    "jiffoo-theme-sdk": "^0.2.0",
+    "jiffoo": ">=0.2.0"
+  }
 }

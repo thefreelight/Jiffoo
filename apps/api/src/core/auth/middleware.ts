@@ -2,6 +2,7 @@ import { FastifyRequest, FastifyReply } from 'fastify';
 import { JwtUtils } from '@/utils/jwt';
 import { sendError } from '@/utils/response';
 import { findAuthIdentityById } from './user-compat';
+import { ApiTokenService, type ApiTokenScope } from './api-token';
 
 /**
  * Auth Middleware
@@ -150,6 +151,71 @@ export function requireRole(...allowedRoles: string[]) {
     if (!allowedRoles.includes(request.user.role)) {
       return sendError(reply, 403, 'FORBIDDEN', `Required role: ${allowedRoles.join(' or ')}`);
     }
+  };
+}
+
+/**
+ * Dual auth middleware — supports both JWT and API tokens.
+ *
+ * If the Bearer token starts with `jiffoo_`, it is treated as an API token
+ * and validated via ApiTokenService. Otherwise, standard JWT auth is used.
+ *
+ * When authenticated via API token, a synthetic user object is attached to
+ * `request.user` so that downstream services (cart, order) can use
+ * `request.user.id` without changes.
+ *
+ * @param requiredScopes - If provided, the API token must have all these scopes.
+ *                         JWT-authenticated users bypass scope checks.
+ */
+export function dualAuthMiddleware(...requiredScopes: ApiTokenScope[]) {
+  return async (request: FastifyRequest, reply: FastifyReply): Promise<void> => {
+    const authHeader = request.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      sendError(reply, 401, 'UNAUTHORIZED', 'Missing or invalid authorization header');
+      return;
+    }
+
+    const token = authHeader.substring(7);
+
+    // API token path
+    if (token.startsWith('jiffoo_')) {
+      const identity = await ApiTokenService.validateToken(token);
+      if (!identity) {
+        sendError(reply, 401, 'INVALID_TOKEN', 'API token is invalid or revoked');
+        return;
+      }
+
+      // Check scopes
+      for (const scope of requiredScopes) {
+        const granted = identity.scopes;
+        if (!granted.includes('*') && !granted.includes(scope)) {
+          sendError(
+            reply,
+            403,
+            'INSUFFICIENT_SCOPE',
+            `Token lacks required scope: ${scope}. Granted scopes: ${granted.join(', ')}`,
+          );
+          return;
+        }
+      }
+
+      // Attach synthetic user so cart/order services work unchanged
+      (request as any).apiToken = identity;
+      request.user = {
+        id: `api:${identity.tokenId}`,
+        userId: `api:${identity.tokenId}`,
+        email: `${identity.label.replace(/\s+/g, '-').toLowerCase()}@api-token.local`,
+        username: identity.label,
+        role: 'CUSTOMER',
+        emailVerified: true,
+        permissions: [],
+        roles: ['CUSTOMER'],
+      };
+      return;
+    }
+
+    // JWT path — delegate to standard authMiddleware
+    await authMiddleware(request, reply);
   };
 }
 

@@ -6,6 +6,8 @@
 
 > **可执行 PRD（Alpha）**：见 [`.kiro/specs/PRD_EXECUTABLE.md`](./PRD_EXECUTABLE.md)（定义 Alpha 范围、验收口径与 Release Gate）。
 >
+> **可执行 PRD（2026 H2 平台演进，当前阶段）**：见 [`.kiro/specs/PRD_EXECUTABLE_2026H2.md`](./PRD_EXECUTABLE_2026H2.md)（许可证生态边界、插件运行时收敛、工程健康、数字商品与 Agentic Commerce 差异化）；详细需求/设计/任务见 [`.kiro/specs/platform-evolution-2026h2/`](./platform-evolution-2026h2/requirements.md)。
+>
 > **官方扩展首发（闭源专项）**：见 [`.kiro/specs/official-extensions-go-live/requirements.md`](./official-extensions-go-live/requirements.md)（定义 `esim-mall`、`yevbi`、`digital-vault`、`stripe`、`i18n`、`odoo` 的首发范围，以及 `Marketplace Control Plane + Artifact Registry + Entitlement Service + Admin Installer + Event-Activated Runtime` 的闭环）。
 >
 > **官方扩展源码仓库**：`jiffoo-extensions-official`（私有 GitLab 仓库）是官方主题/插件源码的权威仓库；`jiffoo-mall-core` 负责运行时、Marketplace 控制平面集成、默认 fallback 主题以及签名包构建/安装能力。若主仓库中仍保留过渡期兼容副本，它们也不应再被当作官方扩展的 source of truth。
@@ -1283,6 +1285,14 @@ type RuntimeSnapshot = {
 | unified-theme-architecture | 统一主题架构 | 🟢 开源 | [📁](./unified-theme-architecture/) | 进行中 |
 | documentation-management | 文档管理 | 🔴 闭源 | [📁](./documentation-management/) | 进行中 |
 
+### 🚀 平台演进（2026 H2，当前阶段）
+
+| 模块 | 说明 | 开源/闭源 | Spec 目录 | 状态 |
+|------|------|:---------:|-----------|------|
+| platform-evolution-2026h2 | 许可证生态边界、插件运行时收敛、schema 治理、统一任务层、可观测性、主题契约、数字商品发行版、MCP Server、托管漏斗挂载点 | 🟢 开源为主（闭源联动项只定义挂载点） | [📁](./platform-evolution-2026h2/) | ⚠️ 工程完成，门禁未达标 |
+
+> 执行口径与 Release Gate 见 [`PRD_EXECUTABLE_2026H2.md`](./PRD_EXECUTABLE_2026H2.md)；细化任务清单见 [`platform-evolution-2026h2/tasks.md`](./platform-evolution-2026h2/tasks.md)。
+
 ### 📦 其他
 
 | 模块 | 说明 | 开源/闭源 | Spec 目录 | 状态 |
@@ -1395,6 +1405,35 @@ type RuntimeSnapshot = {
 **Non-goals（本阶段不做）**：
 - ❌ 托管 SaaS 服务（移至 2026 Q1）
 - ❌ 多店/多商户架构
+
+### 第五阶段：平台演进（v1.1.x ~ v1.3.x）- 2026 H2（当前阶段）
+
+**版本号**：`v1.1.0` ~ `v1.3.0`
+**目标**：解决商业模式与技术架构的结构性矛盾，建立差异化能力
+**依据**：2026-07 项目评估结论；执行口径见 [`PRD_EXECUTABLE_2026H2.md`](./PRD_EXECUTABLE_2026H2.md)
+
+**最小可交付闭环 (Minimum Viable Closure)**：
+- ✅ 第三方开发者有法律安全的闭源付费插件路径（LICENSE-EXCEPTIONS + MIT SDK + external-http 强制边界）
+- ✅ 第三方插件无法进入 Core API 进程（白名单验签 + 网关超时/熔断/限流）
+- ✅ 生产实例开箱即得 trace/指标/告警（OTel + observability profile）
+- ✅ `pnpm create jiffoo-app --template esim` 五分钟得到可运行的数字商品店
+- ✅ AI agent 可通过 `@jiffoo/mcp-server` 浏览商品并创建 checkout
+
+**交付物**：
+- 🔒 许可证边界声明 + 4 个 SDK 包 MIT 化（P0）
+- 🔌 插件运行时两级信任模型（P0）
+- 📊 生产可观测性基线（P0）
+- 🗄 Prisma schema 按域拆分 + dormant 模型冻结 + CI drift 门禁（P1）
+- ⚙️ 统一异步任务层（BullMQ + Outbox）（P1）
+- 🎨 主题 SDK 版本契约 + CI 主题兼容矩阵（P1）
+- 💾 数字商品垂直发行版（P2）
+- 🤖 Agentic Commerce MCP Server v0.1（P2）
+- ☁️ 托管 SaaS 漏斗挂载点（P2）
+
+**Non-goals（本阶段不做）**：
+- ❌ Marketplace 交易闭环（闭源侧单独跟踪）
+- ❌ 多租户/多店架构（开源核心 Hard Requirement 不变）
+- ❌ AI 建站 / Wasm 插件运行时（技术评估备忘，后续 spec）
 
 ---
 

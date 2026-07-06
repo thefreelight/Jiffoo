@@ -14,6 +14,10 @@ import { THEME_APP_MANIFEST_FILE } from '../theme-app-runtime/contract';
 import { getThemeAppRuntimePolicy } from '../theme-app-runtime/policy';
 import { isAllowedExtensionSource, isOfficialMarketOnly } from '@/core/admin/extension-installer/official-only';
 import { ensureOfficialMarketExtensionFiles } from '@/core/admin/market/official-package-recovery';
+import { satisfiesRange } from '@/core/admin/extension-installer/version-utils';
+
+// Current @jiffoo/theme-api-sdk version (single source of truth)
+const THEME_API_SDK_VERSION = '0.2.0';
 
 // Target type
 export type ThemeTarget = 'shop' | 'admin';
@@ -389,6 +393,34 @@ export async function activateTheme(slug: string, target: ThemeTarget = 'shop', 
   if (isOfficialMarketOnly() && !isAllowedExtensionSource(theme.source)) {
     throw new Error(`Theme "${normalizedSlug}" is not allowed in official-market-only mode`);
   }
+
+  // ── Task 6.2.2: SDK version compatibility check ──────────────────────
+  // For installed (non-builtin) themes, read theme.json and validate
+  // engines["jiffoo-theme-sdk"] against the actual SDK version.
+  if (theme.source !== 'builtin') {
+    try {
+      const themeJsonPath = path.join(extensionsDir, normalizedSlug, 'theme.json');
+      const data = await fs.readFile(themeJsonPath, 'utf-8');
+      const themeMeta = JSON.parse(data);
+      const sdkRange = themeMeta?.engines?.['jiffoo-theme-sdk'];
+      if (sdkRange && typeof sdkRange === 'string') {
+        if (!satisfiesRange(THEME_API_SDK_VERSION, sdkRange)) {
+          throw new Error(
+            `Theme "${normalizedSlug}" requires @jiffoo/theme-api-sdk "${sdkRange}" but current version is "${THEME_API_SDK_VERSION}". ` +
+            `Please update the theme or the SDK.`
+          );
+        }
+      }
+    } catch (err: any) {
+      // If the error is from the version check itself, rethrow it
+      if (err.message?.includes('requires @jiffoo/theme-api-sdk')) {
+        throw err;
+      }
+      // If theme.json doesn't exist or can't be parsed, skip version check
+      // (the theme might be a theme-app with its own manifest)
+    }
+  }
+  // ── End SDK version compatibility check ──────────────────────────────
 
   // Get current theme to set as previous
   const currentTheme = await getActiveTheme(target);

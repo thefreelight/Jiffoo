@@ -12,6 +12,8 @@ import { useRouter } from 'next/navigation'
 import { StatsCard } from '@/components/dashboard/stats-card'
 import { SalesChannelChart, RealTimeOrdersChart } from '@/components/dashboard/charts'
 import { ErrorStatsWidget } from '@/components/error-stats'
+import { PlatformOffersCards } from '@/components/dashboard/PlatformOffersCards'
+import { InstanceHealthCard } from '@/components/dashboard/InstanceHealthCard'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, cn } from '@/lib/utils'
 import { useAdminDashboard } from '@/lib/hooks/use-api'
@@ -204,6 +206,12 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
+
+        {/* Platform Offers (rendered only when offers exist) */}
+        <PlatformOffersCards />
+
+        {/* Instance Health & Version */}
+        <InstanceHealthCard />
       </div>
     </div>
   )

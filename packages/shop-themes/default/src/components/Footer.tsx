@@ -1,10 +1,10 @@
 import React from 'react';
-import { ArrowRight, Command, LifeBuoy, Mail, Orbit, ShoppingBag } from 'lucide-react';
-import { cn } from '@jiffoo/ui';
+import { ArrowRight, Mail, ShieldCheck, ShoppingBag } from 'lucide-react';
 import type { FooterProps } from '../../../../shared/src/types/theme';
 import { isExternalHref, resolveSiteConfig } from '../site';
+import { ProductSiteFooter } from './ProductSiteFooter';
 
-export const Footer = React.memo(function Footer({
+function StorefrontFooter({
   config,
   platformBranding,
   t,
@@ -30,7 +30,8 @@ export const Footer = React.memo(function Footer({
   };
 
   const openHref = React.useCallback(
-    (href: string) => {
+    (href?: string | null) => {
+      if (!href) return;
       if (isExternalHref(href)) {
         window.open(href, '_blank', 'noopener,noreferrer');
         return;
@@ -40,250 +41,138 @@ export const Footer = React.memo(function Footer({
     [onNavigate]
   );
 
-  const launchLinks = [
-    {
-      label: getText('shop.footer.launch.install', 'Install'),
-      value: site.primaryCtaLabel,
-      onClick: () => openHref(site.primaryCtaHref),
-    },
-    {
-      label: getText('shop.footer.launch.docs', 'Docs'),
-      value: getText('shop.footer.launch.docsValue', 'Read the setup guide'),
-      onClick: () => openHref(site.docsHref),
-    },
-    {
-      label: getText('shop.footer.launch.demo', 'Demo'),
-      value: getText('shop.footer.launch.demoValue', 'Explore the live storefront'),
-      onClick: () => openHref(site.demoHref),
-    },
+  const shopLinks = [
+    { label: getText('shop.nav.products', 'Products'), onClick: onNavigateToProducts },
+    { label: getText('shop.nav.categories', 'Categories'), onClick: onNavigateToCategories },
+    { label: getText('shop.nav.newArrivals', 'New Arrivals'), onClick: onNavigateToNewArrivals },
+    { label: getText('shop.nav.bestsellers', 'Bestsellers'), onClick: onNavigateToBestsellers },
   ];
 
-  const commerceLinks = [
-    {
-      label: getText('shop.footer.commerce.products', 'Products'),
-      onClick: onNavigateToProducts,
-    },
-    {
-      label: getText('shop.footer.commerce.categories', 'Categories'),
-      onClick: onNavigateToCategories,
-    },
-    {
-      label: getText('shop.footer.commerce.newArrivals', 'New arrivals'),
-      onClick: onNavigateToNewArrivals,
-    },
-    {
-      label: getText('shop.footer.commerce.bestsellers', 'Bestsellers'),
-      onClick: onNavigateToBestsellers,
-    },
-    {
-      label: getText('shop.footer.commerce.deals', 'Deals'),
-      onClick: onNavigateToDeals,
-    },
+  const companyLinks = [
+    { label: getText('shop.nav.contact', 'Contact'), onClick: onNavigateToContact },
+    { label: getText('shop.nav.help', 'Help'), onClick: onNavigateToHelp },
+    { label: getText('shop.footer.commerce.deals', 'Deals'), onClick: onNavigateToDeals },
   ];
 
   const supportLinks = [
-    {
-      label: getText('shop.footer.support.help', 'Help'),
-      onClick: onNavigateToHelp,
-    },
-    {
-      label: getText('shop.footer.support.contact', 'Contact'),
-      onClick: onNavigateToContact,
-    },
-    {
-      label: getText('shop.footer.support.privacy', 'Privacy'),
-      onClick: onNavigateToPrivacy,
-    },
-    {
-      label: getText('shop.footer.support.terms', 'Terms'),
-      onClick: onNavigateToTerms,
-    },
+    { label: getText('shop.footer.support.privacy', 'Privacy'), onClick: onNavigateToPrivacy },
+    { label: getText('shop.footer.support.terms', 'Terms'), onClick: onNavigateToTerms },
+    { label: getText('shop.footer.support.help', 'Help Center'), onClick: onNavigateToHelp },
   ];
 
   return (
-    <footer className="relative overflow-hidden border-t border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_12%,transparent)] bg-[linear-gradient(180deg,oklch(0.975_0.012_84),oklch(0.948_0.015_84))] px-4 py-16 sm:px-6 sm:py-20 lg:px-10">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,oklch(0.93_0.04_65),transparent_24%),radial-gradient(circle_at_bottom_right,oklch(0.93_0.05_190),transparent_24%)] opacity-80" />
-
-      <div className="relative mx-auto grid max-w-7xl gap-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-3 border border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_12%,transparent)] bg-[color:color-mix(in_oklab,oklch(0.985_0.012_84)_90%,white)] px-4 py-2 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-[oklch(0.46_0.04_245)]">
-            <Orbit className="h-3.5 w-3.5 text-[oklch(0.56_0.09_170)]" />
-            {site.archetype.replace('-', ' ')}
-          </div>
-
-          <h2 className="mt-6 max-w-4xl text-[clamp(2.5rem,4vw,4.8rem)] font-black leading-[0.94] tracking-[-0.06em] text-[oklch(0.22_0.03_255)]">
-            {getText(
-              'shop.footer.title',
-              `${site.brandName} now ships as a launch-ready SaaS, product-site, and commerce starter.`
-            )}
-          </h2>
-
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-[oklch(0.35_0.03_248)]">
-            {getText(
-              'shop.footer.body',
-              'Use the same base theme to explain the product, install the stack, open docs, and route buyers into the catalog. The template is intentionally useful beyond one storefront.'
-            )}
-          </p>
-
-          <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:flex-wrap">
+    <footer className="border-t border-slate-100 bg-white px-4 py-12 dark:border-slate-800 dark:bg-slate-950 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="grid gap-10 lg:grid-cols-[1.1fr_1.4fr] lg:items-start">
+          <div>
             <button
               type="button"
-              onClick={() => openHref(site.primaryCtaHref)}
-              className="inline-flex min-h-14 items-center justify-center gap-3 rounded-full bg-[oklch(0.24_0.03_255)] px-7 text-sm font-semibold uppercase tracking-[0.22em] text-[oklch(0.98_0.01_84)] transition-transform duration-300 hover:-translate-y-0.5"
+              onClick={onNavigateToProducts}
+              className="inline-flex items-center gap-4 text-left"
             >
-              {site.primaryCtaLabel}
-              <ArrowRight className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => openHref(site.docsHref)}
-              className="inline-flex min-h-14 items-center justify-center gap-3 rounded-full border border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_16%,transparent)] px-7 text-sm font-semibold uppercase tracking-[0.22em] text-[oklch(0.3_0.03_248)] transition-colors duration-300 hover:bg-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_4%,transparent)]"
-            >
-              {getText('shop.footer.cta.docs', 'Open docs')}
-            </button>
-          </div>
-
-          <div className="mt-10 grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.75fr)]">
-            <div className="border border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_12%,transparent)] bg-[oklch(0.25_0.03_255)] p-5 text-[oklch(0.95_0.01_84)]">
-              <div className="flex items-center gap-3 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-[oklch(0.78_0.02_235)]">
-                <Command className="h-4 w-4" />
-                {getText('shop.footer.command.label', 'Installer command')}
-              </div>
-              <div className="mt-4 overflow-x-auto text-sm leading-7">
-                <code>{site.installCommand}</code>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => window.location.href = `mailto:${site.supportEmail}`}
-              className="group border border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_12%,transparent)] bg-[color:color-mix(in_oklab,oklch(0.985_0.012_84)_90%,white)] p-5 text-left transition-transform duration-300 hover:-translate-y-1"
-            >
-              <div className="flex items-center gap-3 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-[oklch(0.47_0.04_245)]">
-                <Mail className="h-4 w-4 text-[oklch(0.56_0.09_170)]" />
-                {getText('shop.footer.contact.label', 'Need a rollout hand?')}
-              </div>
-              <p className="mt-4 text-lg font-bold tracking-[-0.03em] text-[oklch(0.23_0.03_255)]">
-                {site.supportEmail}
-              </p>
-              <span className="mt-4 inline-flex items-center gap-2 text-[0.74rem] font-semibold uppercase tracking-[0.22em] text-[oklch(0.33_0.04_245)]">
-                {getText('shop.footer.contact.action', 'Email the team')}
-                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+              <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600 text-sm font-bold text-white shadow-lg shadow-blue-600/25">
+                {(site.brandName || 'J').charAt(0).toUpperCase()}
+              </span>
+              <span>
+                <span className="block text-2xl font-bold tracking-[-0.04em] text-slate-950 dark:text-white">
+                  {site.brandName}
+                </span>
+                <span className="block text-sm text-slate-500 dark:text-slate-400">
+                  {getText('shop.footer.storefrontTagline', 'Quality products for a better lifestyle.')}
+                </span>
               </span>
             </button>
-          </div>
-        </div>
 
-        <div className="grid gap-8 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
-          <div>
-            <div className="mb-4 inline-flex items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-[oklch(0.47_0.04_245)]">
-              <Command className="h-4 w-4 text-[oklch(0.56_0.09_170)]" />
-              {getText('shop.footer.columns.launch', 'Launch')}
-            </div>
-            <div className="grid gap-3">
-              {launchLinks.map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={item.onClick}
-                  className="group text-left"
-                >
-                  <p className="text-sm font-semibold text-[oklch(0.23_0.03_255)] transition-colors group-hover:text-[oklch(0.56_0.09_170)]">
-                    {item.label}
+            <div className="mt-7 grid max-w-lg gap-3 sm:grid-cols-2">
+              <div className="flex items-start gap-3 rounded-2xl bg-blue-50/70 p-4 dark:bg-blue-950/30">
+                <ShoppingBag className="mt-0.5 h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div>
+                  <p className="text-sm font-bold text-slate-950 dark:text-white">
+                    {getText('shop.home.features.shipping.title', 'Free Shipping')}
                   </p>
-                  <p className="mt-1 text-sm leading-6 text-[oklch(0.37_0.03_248)]">{item.value}</p>
-                </button>
-              ))}
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {getText('shop.home.features.shipping.subtitle', 'On orders over $100')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+                <ShieldCheck className="mt-0.5 h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <div>
+                  <p className="text-sm font-bold text-slate-950 dark:text-white">
+                    {getText('shop.home.features.secure.title', 'Secure Payment')}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    {getText('shop.home.features.secure.subtitle', '100% secure checkout')}
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div>
-            <div className="mb-4 inline-flex items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-[oklch(0.47_0.04_245)]">
-              <ShoppingBag className="h-4 w-4 text-[oklch(0.56_0.09_170)]" />
-              {getText('shop.footer.columns.commerce', 'Commerce')}
-            </div>
-            <div className="grid gap-2">
-              {commerceLinks.map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={item.onClick}
-                  className={cn(
-                    'text-left text-sm leading-6 text-[oklch(0.37_0.03_248)] transition-colors',
-                    'hover:text-[oklch(0.23_0.03_255)]'
-                  )}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <div className="mb-4 inline-flex items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-[0.26em] text-[oklch(0.47_0.04_245)]">
-              <LifeBuoy className="h-4 w-4 text-[oklch(0.56_0.09_170)]" />
-              {getText('shop.footer.columns.support', 'Support')}
-            </div>
-            <div className="grid gap-2">
-              {supportLinks.map((item) => (
-                <button
-                  key={item.label}
-                  type="button"
-                  onClick={item.onClick}
-                  className={cn(
-                    'text-left text-sm leading-6 text-[oklch(0.37_0.03_248)] transition-colors',
-                    'hover:text-[oklch(0.23_0.03_255)]'
-                  )}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
+          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+            {[
+              { title: getText('shop.footer.columns.commerce', 'Shop'), links: shopLinks },
+              { title: getText('shop.footer.columns.company', 'Company'), links: companyLinks },
+              { title: getText('shop.footer.columns.support', 'Support'), links: supportLinks },
+            ].map((group) => (
+              <div key={group.title}>
+                <h3 className="text-sm font-bold text-slate-950 dark:text-white">{group.title}</h3>
+                <div className="mt-4 grid gap-2">
+                  {group.links.map((item) => (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={item.onClick}
+                      className="text-left text-sm text-slate-500 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      </div>
 
-      <div className="relative mx-auto mt-12 max-w-7xl border-t border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_12%,transparent)] pt-6">
-        <div className="flex flex-col gap-3 text-sm text-[oklch(0.39_0.03_248)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-10 flex flex-col gap-4 border-t border-slate-100 pt-6 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
           <p>
             {t
               ? t('shop.footer.copyright', { year: String(currentYear), brand: site.brandName })
               : `© ${currentYear} ${site.brandName}. All rights reserved.`
             }
           </p>
-          <div className="flex flex-col items-start gap-3 sm:items-end">
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={() => window.location.href = `mailto:${site.supportEmail}`}
+              className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-200 hover:text-blue-600 dark:border-slate-800 dark:text-slate-200 dark:hover:text-blue-400"
+            >
+              <Mail className="h-4 w-4" />
+              {site.supportEmail}
+            </button>
             {showPoweredByJiffoo ? (
               <button
                 type="button"
                 onClick={() => openHref(platformBranding?.poweredByHref || 'https://jiffoo.com')}
-                className="group inline-flex items-center gap-3 rounded-full border border-[color:color-mix(in_oklab,oklch(0.22_0.03_255)_12%,transparent)] bg-[color:color-mix(in_oklab,white_88%,oklch(0.93_0.05_190))] px-4 py-2 text-left shadow-[0_12px_30px_-24px_rgba(15,23,42,0.45)] transition-transform duration-300 hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
               >
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,oklch(0.58_0.13_235),oklch(0.64_0.11_180))] text-[oklch(0.99_0.01_84)] shadow-[0_12px_30px_-18px_rgba(37,99,235,0.55)]">
-                  <Orbit className="h-4.5 w-4.5" />
-                </span>
-                <span className="flex flex-col">
-                  <span className="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-[oklch(0.49_0.04_245)]">
-                    {getText('shop.footer.poweredBy', 'Powered by')}
-                  </span>
-                  <span className="text-sm font-semibold tracking-[-0.02em] text-[oklch(0.22_0.03_255)]">
-                    {platformBranding?.poweredByLabel || 'Jiffoo'}
-                  </span>
-                </span>
-                <span className="flex items-center gap-2 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-[oklch(0.36_0.04_245)]">
-                  {getText('shop.footer.poweredByDescription', 'Open-source commerce stack')}
-                  <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-0.5" />
-                </span>
+                {getText('shop.footer.poweredBy', 'Powered by')} {platformBranding?.poweredByLabel || 'Jiffoo'}
+                <ArrowRight className="h-3.5 w-3.5" />
               </button>
             ) : null}
-            <p className="max-w-2xl">
-              {getText(
-                'shop.footer.note',
-                'Built as a reusable default for storefronts, launch pages, and SaaS sites that need commerce close by.'
-              )}
-            </p>
           </div>
         </div>
       </div>
     </footer>
   );
+}
+
+export const Footer = React.memo(function Footer(props: FooterProps) {
+  const site = resolveSiteConfig(props.config);
+
+  if (site.archetype !== 'storefront') {
+    return <ProductSiteFooter {...props} />;
+  }
+
+  return <StorefrontFooter {...props} />;
 });
