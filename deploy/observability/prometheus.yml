@@ -1,0 +1,31 @@
+# Prometheus configuration for Jiffoo API
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alert rules
+rule_files:
+  - alerts.yml
+
+# Alertmanager (optional — configure if running alertmanager)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+scrape_configs:
+  # Scrape Jiffoo API Prometheus exporter (port 9464)
+  - job_name: 'jiffoo-api'
+    static_configs:
+      - targets:
+          - 'host.docker.internal:9464'
+        labels:
+          service: 'jiffoo-api'
+    metrics_path: /metrics
+
+  # Scrape OTel Collector's own metrics
+  - job_name: 'otel-collector'
+    static_configs:
+      - targets:
+          - 'otel-collector:8889'

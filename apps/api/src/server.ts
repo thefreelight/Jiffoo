@@ -20,6 +20,9 @@
 // Register module aliases for production runtime (must be first import)
 import 'module-alias/register';
 
+// Initialize telemetry before anything else (R5)
+import { initTelemetry, shutdownTelemetry, businessMetrics } from '@/infra/telemetry';
+
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 // @ts-ignore - optional dependency
@@ -227,6 +230,23 @@ async function buildApp() {
     // Add middleware
     fastify.addHook('onRequest', accessLogMiddleware);
     fastify.addHook('onError', errorLogMiddleware);
+
+    // R5: x-trace-id response header + HTTP metrics
+    fastify.addHook('onResponse', async (request, reply) => {
+      // Propagate trace ID to frontend for error correlation
+      const traceId = request.id;
+      reply.header('x-trace-id', traceId);
+
+      // Record HTTP metrics
+      const durationSeconds = reply.elapsedTime / 1000;
+      const route = request.routeOptions?.url || request.url || 'unknown';
+      businessMetrics.recordHttpRequest(
+        request.method,
+        route,
+        reply.statusCode,
+        durationSeconds
+      );
+    });
 
     // Global error handler to standardize all error responses
     fastify.setErrorHandler((error: any, request, reply) => {
@@ -439,6 +459,9 @@ async function start() {
   try {
     const app = await buildApp();
 
+    // Initialize telemetry (R5) — must be before DB connect for instrumentation
+    await initTelemetry();
+
     await prisma.$connect();
     app.log.info('Database connected successfully');
 
@@ -489,10 +512,12 @@ async function start() {
       LoggerService.logError(restoreError as Error, { context: 'Theme App restore' });
     }
 
-    // Start Outbox Worker for event projection (Optional)
-    if (process.env.ENABLE_OUTBOX_WORKER === 'true') {
-      const { OutboxWorkerService } = await import('@/infra/outbox');
-      OutboxWorkerService.start();
+    // Start unified job infrastructure (BullMQ + Outbox poller)
+    // Replaces the old OutboxWorkerService with the unified async task layer.
+    // WORKER_MODE controls behavior: embedded (default), standalone, off
+    if (process.env.ENABLE_OUTBOX_WORKER !== 'false') {
+      const { startJobInfrastructure } = await import('@/infra/jobs');
+      await startJobInfrastructure();
     }
 
     // Start Forecasting Worker for automated inventory forecasting (Optional)
@@ -623,6 +648,10 @@ const gracefulShutdown = async (signal: string) => {
     }
     await redisCache.disconnect();
     await prisma.$disconnect();
+
+    // Shutdown telemetry
+    await shutdownTelemetry();
+
     LoggerService.logSystem('Server shutdown completed');
     process.exit(0);
   } catch (error) {

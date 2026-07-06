@@ -91,6 +91,9 @@ const envSchema = z.object({
 
   // External catalog import (integration projector)
   CATALOG_IMPORT_TOKEN: z.string().optional(),
+
+  // Worker deployment mode: embedded (default), standalone, off
+  WORKER_MODE: z.enum(['embedded', 'standalone', 'off']).default('embedded'),
 });
 
 export const env = envSchema.parse(process.env);

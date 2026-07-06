@@ -1,10 +1,11 @@
 import { PrismaClient } from '@prisma/client';
 import { env } from './env';
 import { QueryAnalyzer } from '@/core/performance/query-analyzer';
+import { slowQueryExtension } from '@/infra/prisma-slow-query-extension';
 
 /**
  * Base Prisma Client
- * Configured with environment-specific logging
+ * Configured with environment-specific logging and slow query detection (R5.5)
  */
 const prisma = new PrismaClient({
   log:
@@ -13,7 +14,7 @@ const prisma = new PrismaClient({
         ? ['query', 'info', 'warn', 'error']
         : ['info', 'warn', 'error']
       : ['error'],
-});
+}).$extends(slowQueryExtension);
 
 console.log('[DatabaseConfig] Prisma client created:', !!prisma);
 

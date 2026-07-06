@@ -1,0 +1,43 @@
+{
+  "annotations": { "list": [] },
+  "title": "Job Queue Overview",
+  "uid": "job-queue-overview",
+  "schemaVersion": 27,
+  "version": 1,
+  "refresh": "10s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Queue Depth",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "jobs_queue_depth", "legendFormat": "{{queue}}" }],
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 0 }
+    },
+    {
+      "id": 2,
+      "title": "Failed Jobs Total",
+      "type": "stat",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(rate(jobs_failed_total[5m])) by (queue)", "legendFormat": "{{queue}}" }],
+      "gridPos": { "h": 8, "w": 6, "x": 6, "y": 0 }
+    },
+    {
+      "id": 3,
+      "title": "Job Duration (p95)",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "histogram_quantile(0.95, sum(rate(jobs_duration_seconds_bucket[5m])) by (le, queue))", "legendFormat": "{{queue}} p95" }],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "id": 4,
+      "title": "Queue Depth Over Time",
+      "type": "timeseries",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "jobs_queue_depth", "legendFormat": "{{queue}}" }],
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 }
+    }
+  ]
+}
