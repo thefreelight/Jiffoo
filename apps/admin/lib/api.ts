@@ -818,6 +818,9 @@ export const managedPackageApi = {
 
   activate: (data: ActivateManagedPackageRequest): Promise<ApiResponse<ManagedPackageStatusResponse>> =>
     apiClient.post('/admin/commercial-package/activate', data),
+
+  provision: (): Promise<ApiResponse<ManagedPackageStatusResponse>> =>
+    apiClient.post('/admin/commercial-package/provision', {}, { timeout: 120000 }),
 };
 
 export const platformConnectionApi = {

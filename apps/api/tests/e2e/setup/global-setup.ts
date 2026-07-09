@@ -49,6 +49,7 @@ async function ensureAdminUser(prisma: PrismaClient) {
       password: hashedPassword,
       role: 'ADMIN',
       isActive: true,
+      emailVerified: true,
     },
     create: {
       email: E2E_ADMIN_EMAIL,
@@ -56,6 +57,7 @@ async function ensureAdminUser(prisma: PrismaClient) {
       password: hashedPassword,
       role: 'ADMIN',
       isActive: true,
+      emailVerified: true,
     },
   });
 }
@@ -70,6 +72,7 @@ async function ensureShopUser(prisma: PrismaClient) {
       password: hashedPassword,
       role: 'USER',
       isActive: true,
+      emailVerified: true,
     },
     create: {
       email: E2E_SHOP_EMAIL,
@@ -77,6 +80,7 @@ async function ensureShopUser(prisma: PrismaClient) {
       password: hashedPassword,
       role: 'USER',
       isActive: true,
+      emailVerified: true,
     },
   });
 }

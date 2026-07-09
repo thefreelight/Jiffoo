@@ -34,7 +34,7 @@ export default defineConfig({
     {
       command: 'pnpm --filter api dev',
       url: `${apiBaseUrl}/health`,
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
       timeout: 180_000,
       cwd: repoRoot,
       env: {
@@ -47,9 +47,19 @@ export default defineConfig({
     {
       command: 'pnpm --filter admin dev',
       url: adminBaseUrl,
-      reuseExistingServer: false,
+      reuseExistingServer: !process.env.CI,
       timeout: 240_000,
       cwd: repoRoot,
+      env: {
+        ...process.env,
+        // Ensure the admin frontend proxies API calls to the API server
+        // instead of trying to reach it directly (which fails inside Docker
+        // or causes CORS issues when NEXT_PUBLIC_API_URL points to an
+        // absolute URL).
+        NEXT_PUBLIC_API_URL: '/api',
+        API_SERVICE_URL: apiBaseUrl,
+        PORT: '3002',
+      },
     },
   ],
   projects: [

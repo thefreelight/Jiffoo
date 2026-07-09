@@ -882,6 +882,28 @@ export function useActivateManagedPackage() {
   });
 }
 
+export function useProvisionManagedPackage() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await managedPackageApi.provision();
+      return unwrapApiResponse(response);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
+      toast.success('Included assets provisioned successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'merchant.extensions.managedPackageProvisionFailed', 'Failed to provision included assets'));
+    },
+  });
+}
+
 export function usePlatformConnectionStatus() {
   return useQuery({
     queryKey: platformConnectionQueryKeys.status,
