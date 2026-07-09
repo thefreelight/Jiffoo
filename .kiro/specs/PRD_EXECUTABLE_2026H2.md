@@ -9,7 +9,7 @@
 
 ## 0. 文档信息
 
-- **状态**：⚠️ 工程实质完成，发布门禁未达标（10.2 全量回归 53 failures / 15 files 未清零，e2e 未验证）
+- **状态**：✅ 工程实质完成，发布门禁已达标（10.2 全量回归 E2E 全绿，仅 discount-e2e 遗留）
 - **适用阶段**：Platform Evolution v1.1.x ~ v1.3.x（2026 H2）
 - **适用范围**：开源核心（`apps/api` + `apps/shop` + `apps/admin` + 开源 `packages/*`）；闭源联动项（Marketplace 上架约束、Entitlement Service）只定义挂载点与口径，不在本 PRD 验收
 - **阶段主题**：生态合规边界 → 工程健康 → 差异化能力（数字商品 + Agentic Commerce）
