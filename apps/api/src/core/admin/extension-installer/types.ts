@@ -240,7 +240,7 @@ export type PluginManifest = SharedPluginManifest;
 /** Unified Extension Installer Interface */
 export interface IExtensionInstaller {
   /** Install extension from ZIP */
-  installFromZip(kind: ExtensionKind, zipStream: Readable): Promise<InstallResult>;
+  installFromZip(kind: ExtensionKind, zipStream: Readable, options?: { source?: string }): Promise<InstallResult>;
   /** Uninstall extension */
   uninstall(kind: ExtensionKind, slug: string): Promise<UninstallResult>;
   /** List installed extensions */
@@ -259,7 +259,7 @@ export interface IThemeInstaller {
 
 /** Plugin Installer Interface */
 export interface IPluginInstaller {
-  install(zipStream: Readable): Promise<InstalledPlugin>;
+  install(zipStream: Readable, options?: { source?: string }): Promise<InstalledPlugin>;
   uninstall(slug: string): Promise<void>;
   list(): Promise<InstalledPlugin[]>;
   get(slug: string): Promise<InstalledPlugin | null>;

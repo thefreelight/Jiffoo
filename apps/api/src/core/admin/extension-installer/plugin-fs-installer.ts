@@ -104,7 +104,7 @@ export class PluginFsInstaller implements IPluginInstaller {
    * 6. Create/update database records (PluginInstall + default instance)
    * 7. Write local metadata file
    */
-  async install(zipStream: Readable): Promise<InstalledPlugin> {
+  async install(zipStream: Readable, options?: { source?: string }): Promise<InstalledPlugin> {
     let tempDir: string | null = null;
     let targetDir: string | null = null;
     let backupDir: string | null = null;
@@ -187,7 +187,7 @@ export class PluginFsInstaller implements IPluginInstaller {
       // Derive trust level from source + signature result, then check if
       // installation is allowed under the two-tier trust model.
       const trustLevel = deriveTrustLevel(
-        'local-zip',
+        options?.source || 'local-zip',
         manifest.runtimeType,
         signatureResult,
         manifest.trustLevel,

@@ -563,10 +563,15 @@ describe('SEO Management Integration', () => {
   describe('Redirect Management', () => {
     let testRedirectId: string;
 
+    // Clean up any leftover redirects from previous test runs to avoid 409 conflicts
+    beforeAll(async () => {
+      await app.prisma.seoRedirect.deleteMany({ where: { fromPath: { startsWith: '/old-url' } } });
+    });
+
     describe('POST /api/seo/redirects', () => {
       it('should create a 301 redirect', async () => {
         const redirectData = {
-          fromPath: '/old-url',
+          fromPath: '/old-url-' + Date.now(),
           toPath: '/new-url',
           statusCode: 301,
           isActive: true

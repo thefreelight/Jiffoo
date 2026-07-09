@@ -11,6 +11,7 @@ import { JwtUtils } from '@/utils/jwt';
 import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { shouldRequirePasswordRotation } from './bootstrap';
+import { findAuthUserByEmail, findAuthUserById } from './user-compat';
 
 const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
 const DEFAULT_DEMO_ADMIN_PASSWORD = 'admin123';
@@ -215,10 +216,7 @@ export class AuthService {
    * @throws Error if the email does not exist or password is incorrect
    */
   static async login(data: LoginRequest): Promise<AuthResponse> {
-    const user = await prisma.user.findUnique({
-      where: { email: data.email },
-      select: authUserSelect,
-    });
+    const user = await findAuthUserByEmail(data.email);
 
     if (!user) {
       throw new Error('Invalid email or password');
@@ -355,10 +353,7 @@ export class AuthService {
         throw new Error('Invalid refresh token');
       }
 
-      const user = await prisma.user.findUnique({
-        where: { id: payload.userId },
-        select: authUserSelect,
-      });
+      const user = await findAuthUserById(payload.userId);
 
       if (!user) {
         throw new Error('User not found');

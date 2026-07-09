@@ -142,6 +142,10 @@ describe('Versioning Middleware', () => {
     });
 
     it('should return 400 for invalid version format', async () => {
+      // Mock extractVersionFromPath to return an invalid version string
+      const { extractVersionFromPath } = await import('@jiffoo/shared/versioning');
+      (extractVersionFromPath as any).mockReturnValueOnce('invalid');
+
       mockRequest.url = '/api/invalid/products';
 
       await versioningMiddleware(

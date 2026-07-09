@@ -262,7 +262,8 @@ export async function installOfficialMarketExtension(
 
   const installResult = await extensionInstaller.installFromZip(
     options.kind,
-    zipStream
+    zipStream,
+    { source: 'official-market' }
   );
 
   await markInstalledSource(options.kind, installResult.slug, installResult.fsPath, installResult, options);

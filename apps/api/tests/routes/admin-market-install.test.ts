@@ -10,6 +10,52 @@ import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { createTestApp } from '../helpers/create-test-app';
 
+// Mock official-catalog to make 'stripe' non-free so it goes through authorizeInstall
+// (which returns allowed: false for entitlement denial tests)
+vi.mock('@/core/admin/market/official-catalog', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/core/admin/market/official-catalog')>();
+  return {
+    ...actual,
+    getOfficialCatalogEntry: (slug: string) => {
+      const entry = actual.getOfficialCatalogEntry(slug);
+      if (entry && slug === 'stripe') {
+        return { ...entry, defaultPricingModel: 'subscription' as const };
+      }
+      return entry;
+    },
+  };
+});
+
+// Mock platform-connection to provide a bound context for non-free install tests
+vi.mock('@/core/admin/platform-connection/service', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/core/admin/platform-connection/service')>();
+  return {
+    ...actual,
+    platformConnectionService: {
+      ...actual.platformConnectionService,
+      getMarketplaceBindingContext: async () => ({
+        status: {
+          status: 'bound',
+          instanceBound: true,
+          tenantBound: true,
+          marketplaceReady: true,
+          requiresPlatformBinding: false,
+          instance: { id: 'test-instance' },
+          tenantBinding: { id: 'test-tenant' },
+          pending: null,
+        },
+        context: {
+          instanceId: 'test-instance',
+          instanceToken: 'test-token',
+          platformAccountId: 'test-account',
+          tenantBindingId: 'test-tenant-binding',
+          localStoreId: 'test-store',
+        },
+      }),
+    },
+  };
+});
+
 async function createZipBuffer(files: Record<string, string>): Promise<Buffer> {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'official-market-zip-'));
   const zipPath = path.join(tempDir, 'artifact.zip');
@@ -122,7 +168,18 @@ describe('Admin Market Install Flow', () => {
   let themeZips: Record<string, Buffer> = {};
 
   beforeAll(async () => {
+    // Clean up any leftover data from previous test runs
+    await prisma.pluginInstallation.deleteMany({ where: { pluginSlug } });
+    await prisma.pluginInstall.deleteMany({ where: { slug: pluginSlug } });
+    await prisma.installedTheme.deleteMany({ where: { slug: { in: themeSlugs as string[] }, target: 'shop' } });
+
     extensionsRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'official-market-ext-'));
+
+    // Also clean up theme directories from filesystem
+    for (const slug of themeSlugs) {
+      const themeDir = path.join(extensionsRoot, 'themes', 'shop', slug);
+      await fs.rm(themeDir, { recursive: true, force: true });
+    }
     pluginRoot = path.join(extensionsRoot, 'plugins', pluginSlug);
     themeRoots = Object.fromEntries(
       themeSlugs.map((slug) => [slug, path.join(extensionsRoot, 'themes', 'shop', slug)]),
@@ -139,6 +196,7 @@ describe('Admin Market Install Flow', () => {
           author: 'Jiffoo',
           category: 'integration',
           runtimeType: 'internal-fastify',
+          trustLevel: 'official',
           entryModule: 'server/index.js',
           permissions: ['catalog.read'],
           configSchema: {
@@ -231,6 +289,7 @@ module.exports = plugin;
       disableFileSystem: false,
       env: {
         EXTENSIONS_PATH: extensionsRoot,
+        MARKET_DOWNLOAD_DIR: path.join(extensionsRoot, 'downloads'),
       },
     });
 
@@ -441,6 +500,60 @@ module.exports = plugin;
         return new Response(null, { status: 404 });
       }
 
+      // Official artifacts index
+      if (url.includes('/artifacts/index.json') && method === 'GET') {
+        return jsonResponse({
+          items: [],
+        });
+      }
+
+      // Official catalog detail endpoint (GET /marketplace/official/catalog/{slug})
+      const detailMatch = url.match(/\/marketplace\/official\/catalog\/([^/?]+)$/);
+      if (detailMatch && method === 'GET') {
+        const detailSlug = detailMatch[1];
+        const seed = [pluginSlug, ...themeSlugs].includes(detailSlug);
+        return jsonResponse({
+          success: true,
+          data: {
+            item: {
+              slug: detailSlug,
+              kind: themeSlugs.includes(detailSlug) ? 'theme' : 'plugin',
+              name: detailSlug,
+              listingDomain: 'app_marketplace',
+              listingKind: themeSlugs.includes(detailSlug) ? 'theme' : 'plugin',
+              providerType: 'platform',
+              deliveryMode: 'package-managed',
+              paymentMode: 'platform_collect',
+              settlementTargetType: 'platform',
+              pricingModel: 'free',
+              price: null,
+              currency: 'USD',
+              currentVersion: '1.0.0',
+              sellableVersion: '1.0.0',
+              versions: [
+                {
+                  version: '1.0.0',
+                  packageUrl: themeSlugs.includes(detailSlug)
+                    ? themeFixtures[detailSlug as keyof typeof themeFixtures]?.artifactUrl
+                    : pluginArtifactUrl,
+                  isCurrent: true,
+                  isSellable: true,
+                  createdAt: new Date(0).toISOString(),
+                },
+              ],
+              installState: 'not_installed',
+              installCount: 0,
+              entitlementCount: 0,
+              activeEntitlementCount: 0,
+              publishState: 'published',
+              installable: true,
+              featured: false,
+              recommended: false,
+            },
+          },
+        });
+      }
+
       if (url.includes('/marketplace/official/catalog') && method === 'GET') {
         return jsonResponse({
           success: true,
@@ -470,12 +583,20 @@ module.exports = plugin;
 
   afterAll(async () => {
     global.fetch = originalFetch as typeof fetch;
+    // Restore the default theme before cleaning up
     await app.inject({
       method: 'POST',
       url: '/api/admin/themes/shop/builtin-default/activate',
       headers: {
         authorization: `Bearer ${adminToken}`,
       },
+    }).catch(() => undefined);
+    // Also directly reset the active theme in the database as a fallback
+    await prisma.systemSettings.deleteMany({
+      where: { key: { startsWith: 'theme.active' } },
+    }).catch(() => undefined);
+    await prisma.systemSettings.deleteMany({
+      where: { key: { startsWith: 'theme.previous' } },
     }).catch(() => undefined);
     await prisma.pluginInstallation.deleteMany({ where: { pluginSlug } });
     await prisma.pluginInstall.deleteMany({ where: { slug: pluginSlug } });
@@ -606,6 +727,11 @@ module.exports = plugin;
   });
 
   it.each(themeSlugs)('installs and activates official-market theme %s through the real theme-management flow', async (themeSlug) => {
+    // Clean up any leftover theme data for this specific slug
+    await prisma.installedTheme.deleteMany({ where: { slug: themeSlug, target: 'shop' } });
+    const themeDir = path.join(extensionsRoot, 'themes', 'shop', themeSlug);
+    await fs.rm(themeDir, { recursive: true, force: true });
+
     const response = await app.inject({
       method: 'POST',
       url: `/api/admin/market/extensions/${themeSlug}/install`,

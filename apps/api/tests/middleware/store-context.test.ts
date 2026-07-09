@@ -21,18 +21,31 @@ vi.mock('@/core/logger/unified-logger', () => ({
   },
 }));
 
+vi.mock('@/utils/prisma-errors', () => ({
+  isMissingDatabaseObjectError: vi.fn(() => true),
+}));
+
+vi.mock('@/utils/response', () => ({
+  sendError: vi.fn(),
+}));
+
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import { LoggerService } from '@/core/logger/unified-logger';
-import { storeContextMiddleware } from '@/middleware/store-context';
+
+// Use dynamic import so we can reset modules between tests
+let storeContextMiddleware: any;
+
+beforeEach(async () => {
+  vi.resetModules();
+  vi.clearAllMocks();
+  (CacheService.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+  (CacheService.set as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+  const mod = await import('@/middleware/store-context');
+  storeContextMiddleware = mod.storeContextMiddleware;
+});
 
 describe('storeContextMiddleware', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    (CacheService.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-    (CacheService.set as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
-  });
-
   it('falls back when the default store table is unavailable', async () => {
     (prisma.store.findUnique as ReturnType<typeof vi.fn>).mockRejectedValue(
       new Error('The table `public.stores` does not exist in the current database.')
