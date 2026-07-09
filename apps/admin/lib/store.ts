@@ -43,7 +43,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
 
       const token = loginData.access_token;
-      const extendedUserData = userData as UserProfile & { requiresPasswordRotation?: boolean }
       const tokenPayload = (() => {
         try {
           const parts = token.split('.');
@@ -61,6 +60,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       const profileResponse = await authClient.getProfile();
       const userData = unwrapApiResponse(profileResponse);
+      const extendedUserData = userData as UserProfile & { requiresPasswordRotation?: boolean }
 
       const userProfile = {
         id: userData.id,

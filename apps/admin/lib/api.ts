@@ -19,6 +19,10 @@ import {
   type AdminOrderListItemDTO,
   type AdminOrderDetailDTO,
 } from 'shared';
+import type {
+  OfficialCatalogSolutionOffer,
+  OfficialCatalogSolutionPackageMeta,
+} from 'shared/src/extensions/official-catalog';
 import type { AuthBootstrapStatus } from 'shared/src/types/auth';
 import type {
   PlatformConnectionPollRequest,
@@ -588,6 +592,8 @@ export interface OfficialCatalogItem {
   configRequired?: boolean;
   configReady?: boolean;
   missingConfigFields?: string[];
+  solutionOffer?: OfficialCatalogSolutionOffer | null;
+  solutionPackage?: OfficialCatalogSolutionPackageMeta | null;
 }
 
 export interface OfficialCatalogResponse {

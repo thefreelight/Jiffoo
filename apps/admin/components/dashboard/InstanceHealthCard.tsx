@@ -14,6 +14,7 @@
 
 import { useEffect, useState } from 'react'
 import { ArrowUpCircle, CheckCircle2, Server, Activity } from 'lucide-react'
+import { useT } from 'shared/src/i18n/react'
 import { cn } from '@/lib/utils'
 import { upgradeApi, unwrapApiResponse } from '@/lib/api'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
@@ -42,6 +43,7 @@ function formatChannel(channel: string): string {
 }
 
 export function InstanceHealthCard() {
+  const t = useT()
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -59,7 +61,7 @@ export function InstanceHealthCard() {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(resolveApiErrorMessage(err))
+          setError(resolveApiErrorMessage(err, t))
         }
       } finally {
         if (!cancelled) setLoading(false)
