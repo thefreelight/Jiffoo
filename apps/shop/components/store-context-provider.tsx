@@ -12,6 +12,9 @@ import { useThemePackOptional } from '@/lib/theme-pack';
 import type { ThemeConfig } from 'shared/src/types/theme';
 import { resolveThemeRendererSlug } from '@/lib/theme-pack/rendering-mode';
 
+/** Minimum gap between focus/visibility-triggered store context refreshes. */
+const FOCUS_REVALIDATE_MIN_INTERVAL_MS = 30_000;
+
 /**
  * Store Context Provider
  * Initializes store context when the app starts
@@ -152,10 +155,20 @@ export function StoreContextProvider({
     loadContext();
   }, [applyContext, initialContext, setStoreLoading, setStoreError]);
 
+  // Throttle focus-driven refreshes: focus + visibilitychange both fire on a
+  // tab switch, and rapid alt-tabbing would otherwise hammer the backend.
+  const lastFocusRevalidateAtRef = React.useRef(0);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
     const revalidateContext = async () => {
+      const now = Date.now();
+      if (now - lastFocusRevalidateAtRef.current < FOCUS_REVALIDATE_MIN_INTERVAL_MS) {
+        return;
+      }
+      lastFocusRevalidateAtRef.current = now;
+
       try {
         const latestContext = await initializeStoreContext();
         applyContext(latestContext);

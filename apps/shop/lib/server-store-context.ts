@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { buildServerApiUrl } from './server-api-url';
 
 /**
@@ -37,8 +38,27 @@ export interface ServerStoreContextOptions {
 /**
  * Fetch store context from backend API (server-side)
  * Used in server components or for SSR optimization
+ *
+ * The no-store variant is wrapped in React cache(): generateViewport,
+ * generateMetadata and RootLayout all request the context during a single
+ * render pass, and cache() collapses those into one backend roundtrip per
+ * request without introducing cross-request staleness.
  */
 export async function getServerStoreContext(
+  options: ServerStoreContextOptions = {},
+): Promise<ServerStoreContext | null> {
+  const cacheMode = options.cache ?? 'no-store';
+  if (cacheMode === 'no-store') {
+    return getServerStoreContextNoStoreDeduped();
+  }
+  return fetchServerStoreContext(options);
+}
+
+const getServerStoreContextNoStoreDeduped = cache(
+  (): Promise<ServerStoreContext | null> => fetchServerStoreContext({ cache: 'no-store' }),
+);
+
+async function fetchServerStoreContext(
   options: ServerStoreContextOptions = {},
 ): Promise<ServerStoreContext | null> {
   try {

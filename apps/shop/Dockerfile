@@ -40,6 +40,7 @@ COPY packages/shared/package.json ./packages/shared/
 COPY packages/shop-themes/default/package.json ./packages/shop-themes/default/
 COPY packages/shop-themes/bokmoo/package.json ./packages/shop-themes/bokmoo/
 COPY packages/shop-themes/esim-mall/package.json ./packages/shop-themes/esim-mall/
+COPY packages/shop-themes/app-landingpage/package.json ./packages/shop-themes/app-landingpage/
 COPY packages/shop-themes/imagic-studio/package.json ./packages/shop-themes/imagic-studio/
 COPY packages/shop-themes/modelsfind/package.json ./packages/shop-themes/modelsfind/
 COPY packages/shop-themes/yevbi/package.json ./packages/shop-themes/yevbi/

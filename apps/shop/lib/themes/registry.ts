@@ -10,6 +10,7 @@
 import type { ThemePackage, ThemeMeta, ThemeRegistryEntry, ThemeRegistry } from 'shared/src/types/theme';
 import esimMallTheme from '@shop-themes/esim-mall/src/runtime';
 import yevbiTheme from '@shop-themes/yevbi/src/runtime';
+import appLandingpageTheme from '@shop-themes/app-landingpage/src/runtime';
 
 // ============================================================================
 // Built-in Theme Constants
@@ -103,6 +104,22 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       tags: ['travel', 'modern', 'responsive'],
     },
     load: async () => yevbiTheme,
+  },
+  // App download landing page theme (EasyEUICC) — embedded compatibility bridge
+  // so the storefront can render the download page without relying solely on the
+  // packaged theme-pack manifest being served by the API.
+  'app-landingpage': {
+    meta: {
+      slug: 'app-landingpage',
+      name: 'App Landing Page',
+      version: '0.1.0',
+      description: 'High-conversion Android app download landing page theme with QR download, APK verification, and app screenshots.',
+      category: 'app-download',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['app-download', 'landing', 'easyeuicc', 'responsive'],
+    },
+    load: async () => appLandingpageTheme,
   },
   // Second built-in base theme — "Serene" calm indigo design
   [BUILTIN_SERENE_SLUG]: {

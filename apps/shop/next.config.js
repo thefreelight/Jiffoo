@@ -14,6 +14,7 @@ const nextConfig = createNextConfig({
     '@shop-themes/default',
     '@shop-themes/bokmoo',
     '@shop-themes/esim-mall',
+    '@shop-themes/app-landingpage',
     '@shop-themes/imagic-studio',
     '@shop-themes/modelsfind',
     '@shop-themes/serene',
@@ -101,6 +102,26 @@ const nextConfig = createNextConfig({
           {
             key: 'Content-Security-Policy',
             value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com${devScriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http:; frame-src 'self' https://js.stripe.com https://hooks.stripe.com;${devWorkerSrc} frame-ancestors 'none';`,
+          },
+        ],
+      },
+      // Theme imagery is served from public/ with stable (non-hashed) names:
+      // cache hard for a day, then serve stale while revalidating for a week.
+      {
+        source: '/theme-assets/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
+      {
+        source: '/imagic-assets/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
           },
         ],
       },

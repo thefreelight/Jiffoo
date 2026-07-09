@@ -19,6 +19,7 @@ import React, {
   useState,
   useCallback,
   useMemo,
+  useRef,
   ReactNode,
 } from 'react';
 import type {
@@ -207,16 +208,31 @@ export function ThemePackProvider({
     setReloadToken((prev) => prev + 1);
   }, [effectiveSlug]);
 
+  // Throttle focus-driven reloads: focus + visibilitychange both fire on a tab
+  // switch, and each reload clears the theme cache and refetches the active
+  // theme — rapid alt-tabbing would otherwise hammer the backend.
+  const lastFocusReloadAtRef = useRef(0);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const handleFocus = () => {
+    const FOCUS_RELOAD_MIN_INTERVAL_MS = 30_000;
+    const reloadIfStale = () => {
+      const now = Date.now();
+      if (now - lastFocusReloadAtRef.current < FOCUS_RELOAD_MIN_INTERVAL_MS) {
+        return;
+      }
+      lastFocusReloadAtRef.current = now;
       void reloadTheme();
+    };
+
+    const handleFocus = () => {
+      reloadIfStale();
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        void reloadTheme();
+        reloadIfStale();
       }
     };
 
