@@ -2,7 +2,7 @@ import type { ThemeConfig } from 'shared/src/types/theme';
 
 export interface ModelsfindSiteConfig {
   brandName: string;
-  archetype: 'storefront' | 'landing-commerce' | 'product-site';
+  archetype: 'storefront' | 'landing-commerce' | 'product-site' | 'app-download';
   eyebrow: string;
   headline: string;
   subheadline: string;

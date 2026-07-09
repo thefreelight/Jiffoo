@@ -198,7 +198,7 @@ export interface ThemeConfig {
     locale?: Locale;
   };
   site?: {
-    archetype?: 'storefront' | 'landing-commerce' | 'product-site';
+    archetype?: 'storefront' | 'landing-commerce' | 'product-site' | 'app-download';
     eyebrow?: string;
     headline?: string;
     subheadline?: string;
@@ -210,6 +210,11 @@ export interface ThemeConfig {
     docsHref?: string;
     demoHref?: string;
     supportEmail?: string;
+    appVersion?: string;
+    androidDownloadUrl?: string;
+    downloadChecksum?: string;
+    downloadQrUrl?: string;
+    appScreenshotUrl?: string;
   };
 }
 

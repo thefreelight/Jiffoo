@@ -1,0 +1,74 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="softShadow" x="44" y="58" width="1112" height="790" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="34" stdDeviation="42" flood-color="#0F172A" flood-opacity="0.14"/>
+    </filter>
+    <filter id="phoneShadow" x="682" y="108" width="286" height="654" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="28" stdDeviation="28" flood-color="#0F172A" flood-opacity="0.22"/>
+    </filter>
+  </defs>
+  <rect width="1200" height="900" rx="56" fill="#F5F8FC"/>
+  <g filter="url(#softShadow)">
+    <rect x="92" y="112" width="1016" height="666" rx="46" fill="white" stroke="#DBE7F7" stroke-width="2"/>
+  </g>
+
+  <rect x="142" y="158" width="916" height="62" rx="31" fill="#FFFFFF" stroke="#DBE7F7"/>
+  <rect x="164" y="170" width="38" height="38" rx="14" fill="#176BFF"/>
+  <text x="177" y="197" fill="#FFFFFF" font-size="22" font-family="Arial, sans-serif" font-weight="900">E</text>
+  <text x="220" y="196" fill="#176BFF" font-size="26" font-family="Arial, sans-serif" font-weight="900">EASYEUICC</text>
+  <text x="566" y="193" fill="#334155" font-size="15" font-family="Arial, sans-serif" font-weight="800">Features</text>
+  <text x="676" y="193" fill="#334155" font-size="15" font-family="Arial, sans-serif" font-weight="800">Security</text>
+  <text x="784" y="193" fill="#334155" font-size="15" font-family="Arial, sans-serif" font-weight="800">Download</text>
+  <rect x="928" y="169" width="112" height="40" rx="20" fill="#176BFF"/>
+  <text x="952" y="194" fill="#FFFFFF" font-size="15" font-family="Arial, sans-serif" font-weight="900">APK</text>
+
+  <rect x="144" y="284" width="210" height="42" rx="21" fill="#E8F1FF" stroke="#CFE0FF"/>
+  <text x="166" y="311" fill="#1156D9" font-size="17" font-family="Arial, sans-serif" font-weight="900">v1.6.2-unpriv</text>
+  <text x="144" y="404" fill="#101827" font-size="78" font-family="Arial, sans-serif" font-weight="900">Download</text>
+  <text x="144" y="486" fill="#101827" font-size="78" font-family="Arial, sans-serif" font-weight="900">EasyEUICC</text>
+  <text x="148" y="548" fill="#64748B" font-size="24" font-family="Arial, sans-serif" font-weight="700">Android eUICC profile management, direct APK download.</text>
+
+  <rect x="146" y="608" width="212" height="58" rx="18" fill="#176BFF"/>
+  <text x="187" y="644" fill="#FFFFFF" font-size="18" font-family="Arial, sans-serif" font-weight="900">Download APK</text>
+
+  <rect x="146" y="692" width="292" height="72" rx="22" fill="#F8FBFF" stroke="#DBE7F7"/>
+  <rect x="166" y="710" width="36" height="36" rx="10" fill="#E8F1FF"/>
+  <path d="M177 728H191M184 721V735" stroke="#176BFF" stroke-width="4" stroke-linecap="round"/>
+  <text x="220" y="724" fill="#101827" font-size="15" font-family="Arial, sans-serif" font-weight="900">Android 9+</text>
+  <text x="220" y="748" fill="#64748B" font-size="13" font-family="Arial, sans-serif" font-weight="700">Package im.angry.easyeuicc</text>
+
+  <g transform="translate(492 620)">
+    <rect width="122" height="122" rx="18" fill="#FFFFFF" stroke="#DBE7F7"/>
+    <rect x="22" y="22" width="14" height="14" fill="#101827"/>
+    <rect x="36" y="22" width="14" height="14" fill="#101827"/>
+    <rect x="78" y="22" width="22" height="22" fill="#101827"/>
+    <rect x="22" y="50" width="28" height="14" fill="#101827"/>
+    <rect x="64" y="50" width="14" height="14" fill="#101827"/>
+    <rect x="92" y="50" width="8" height="28" fill="#101827"/>
+    <rect x="22" y="78" width="14" height="22" fill="#101827"/>
+    <rect x="50" y="78" width="14" height="14" fill="#101827"/>
+    <rect x="78" y="86" width="22" height="14" fill="#101827"/>
+  </g>
+
+  <g filter="url(#phoneShadow)">
+    <rect x="744" y="150" width="224" height="552" rx="44" fill="#101827"/>
+    <rect x="756" y="162" width="200" height="528" rx="34" fill="#F2F2F2"/>
+    <text x="776" y="210" fill="#101827" font-size="20" font-family="Arial, sans-serif" font-weight="900">EPA</text>
+    <path d="M786 256H924" stroke="#E5E7EB" stroke-width="8" stroke-linecap="round"/>
+    <path d="M786 284H884" stroke="#E5E7EB" stroke-width="8" stroke-linecap="round"/>
+    <path d="M786 312H908" stroke="#E5E7EB" stroke-width="8" stroke-linecap="round"/>
+    <path d="M788 520C812 486 864 482 892 520" stroke="#737373" stroke-width="12" stroke-linecap="round"/>
+    <rect x="804" y="526" width="70" height="86" rx="14" stroke="#737373" stroke-width="12"/>
+    <rect x="832" y="500" width="70" height="110" rx="14" stroke="#737373" stroke-width="12"/>
+    <circle cx="848" cy="572" r="28" stroke="#737373" stroke-width="12"/>
+    <path d="M868 594L904 630" stroke="#737373" stroke-width="16" stroke-linecap="round"/>
+  </g>
+
+  <rect x="902" y="300" width="154" height="66" rx="22" fill="#101827"/>
+  <text x="930" y="326" fill="#93C5FD" font-size="13" font-family="Arial, sans-serif" font-weight="800">Latest</text>
+  <text x="930" y="350" fill="#FFFFFF" font-size="20" font-family="Arial, sans-serif" font-weight="900">772</text>
+  <rect x="890" y="472" width="176" height="120" rx="28" fill="#FFFFFF" stroke="#DBE7F7"/>
+  <text x="918" y="510" fill="#101827" font-size="18" font-family="Arial, sans-serif" font-weight="900">Scan code</text>
+  <text x="918" y="540" fill="#64748B" font-size="14" font-family="Arial, sans-serif" font-weight="700">Add profile quickly</text>
+  <circle cx="1030" cy="524" r="14" fill="#176BFF"/>
+</svg>

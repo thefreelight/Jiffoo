@@ -264,7 +264,7 @@ function DigitalDeliveryCard({ item }: { item: FulfillmentItem }) {
       </div>
 
       {/* eSIM QR Code */}
-      {isEsim && data.qrCodeContent && (
+      {isEsim && Boolean(data.qrCodeContent) && (
         <div className="mt-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-600">
           <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">QR CODE</p>
           <div className="flex items-center gap-3">
@@ -273,7 +273,7 @@ function DigitalDeliveryCard({ item }: { item: FulfillmentItem }) {
             </div>
             <div className="flex-1">
               <p className="text-xs text-gray-600 dark:text-gray-400 mb-1">Scan this QR code to activate your eSIM</p>
-              {data.planId && (
+              {Boolean(data.planId) && (
                 <p className="text-[10px] font-mono text-gray-500 dark:text-gray-500">Plan: {String(data.planId)}</p>
               )}
             </div>
@@ -282,7 +282,7 @@ function DigitalDeliveryCard({ item }: { item: FulfillmentItem }) {
       )}
 
       {/* Redemption Code / Card UID */}
-      {isCard && data.cardUid && (
+      {isCard && Boolean(data.cardUid) && (
         <div className="mt-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-600">
           <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">REDEMPTION CODE</p>
           <div className="flex items-center justify-between gap-2">
@@ -295,7 +295,7 @@ function DigitalDeliveryCard({ item }: { item: FulfillmentItem }) {
       )}
 
       {/* Download Link */}
-      {isDownload && data.downloadUrl && (
+      {isDownload && Boolean(data.downloadUrl) && (
         <div className="mt-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-600">
           <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">DOWNLOAD</p>
           <a
@@ -310,7 +310,7 @@ function DigitalDeliveryCard({ item }: { item: FulfillmentItem }) {
       )}
 
       {/* Product Code (generic) */}
-      {!isEsim && !isCard && !isDownload && data.productCode && (
+      {!isEsim && !isCard && !isDownload && Boolean(data.productCode) && (
         <div className="mt-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-600">
           <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">PRODUCT CODE</p>
           <code className="text-sm font-mono font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-700 px-3 py-2 rounded-lg block break-all">

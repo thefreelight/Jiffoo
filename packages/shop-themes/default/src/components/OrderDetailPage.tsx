@@ -167,8 +167,8 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                               {item.fulfillmentStatus}
                             </span>
                           )}
-                          {/* eSIM QR Code */}
-                          {item.fulfillmentData.qrCodeContent && (
+                          {/* eSIM QR Code block */}
+                          {Boolean(item.fulfillmentData.qrCodeContent) && (
                             <div className="p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600">
                               <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">QR CODE</p>
                               <div className="flex items-center gap-3">
@@ -177,7 +177,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                                 </div>
                                 <div className="flex-1">
                                   <p className="text-xs text-gray-600 dark:text-gray-400">Scan to activate your eSIM</p>
-                                  {item.fulfillmentData.planId && (
+                                  {Boolean(item.fulfillmentData.planId) && (
                                     <p className="text-[10px] font-mono text-gray-500 mt-1">Plan: {String(item.fulfillmentData.planId)}</p>
                                   )}
                                 </div>
@@ -185,7 +185,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                             </div>
                           )}
                           {/* Redemption Code */}
-                          {item.fulfillmentData.cardUid && (
+                          {Boolean(item.fulfillmentData.cardUid) && (
                             <div className="p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600">
                               <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">REDEMPTION CODE</p>
                               <code className="text-sm font-mono font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-800 px-3 py-2 rounded-lg block break-all">
@@ -194,7 +194,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                             </div>
                           )}
                           {/* Download Link */}
-                          {item.fulfillmentData.downloadUrl && (
+                          {Boolean(item.fulfillmentData.downloadUrl) && (
                             <div className="p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600">
                               <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">DOWNLOAD</p>
                               <a
@@ -208,7 +208,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                             </div>
                           )}
                           {/* Generic Product Code */}
-                          {!item.fulfillmentData.qrCodeContent && !item.fulfillmentData.cardUid && !item.fulfillmentData.downloadUrl && item.fulfillmentData.productCode && (
+                          {!item.fulfillmentData.qrCodeContent && !item.fulfillmentData.cardUid && !item.fulfillmentData.downloadUrl && Boolean(item.fulfillmentData.productCode) && (
                             <div className="p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600">
                               <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">PRODUCT CODE</p>
                               <code className="text-sm font-mono font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-800 px-3 py-2 rounded-lg block break-all">

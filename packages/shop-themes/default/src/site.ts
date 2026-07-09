@@ -62,6 +62,14 @@ export function resolveSiteConfig(config?: ThemeConfig): ResolvedSiteConfig {
       primaryCtaLabel: 'One-click install',
       secondaryCtaLabel: 'Open docs',
     },
+    'app-download': {
+      eyebrow: 'App landing starter',
+      headline: `${brandName} can pitch the app, show it off, and hand out the download in one scroll.`,
+      subheadline:
+        'Introduce the app, walk through the highlights, and keep store badges and direct downloads above the fold.',
+      primaryCtaLabel: 'Download the app',
+      secondaryCtaLabel: 'See features',
+    },
   };
 
   const defaults = defaultsByArchetype[archetype];

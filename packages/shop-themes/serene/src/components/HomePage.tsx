@@ -43,18 +43,22 @@ function ProductImage({
   alt,
   className = '',
   imageClassName = 'object-contain',
+  priority = false,
 }: {
   src: string;
   alt: string;
   className?: string;
   imageClassName?: string;
+  /** Above-the-fold images: load eagerly with high fetch priority (LCP). */
+  priority?: boolean;
 }) {
   return (
     <div className={`overflow-hidden ${className}`}>
       <img
         src={src}
         alt={alt}
-        loading="lazy"
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : 'auto'}
         decoding="async"
         className={`h-full w-full ${imageClassName}`}
       />
@@ -214,6 +218,7 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate, t }: 
                 alt=""
                 className="absolute inset-x-0 top-0 mx-auto h-full"
                 imageClassName="object-contain"
+                priority
               />
               {/* floating delivery card */}
               <div className="absolute top-24 -right-2 xl:right-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur rounded-2xl shadow-xl shadow-indigo-900/10 border border-slate-100 dark:border-slate-700 px-5 py-4 w-52">

@@ -37,18 +37,22 @@ function ProductImage({
   alt,
   className = '',
   imageClassName = 'object-contain',
+  priority = false,
 }: {
   src: string;
   alt: string;
   className?: string;
   imageClassName?: string;
+  /** Above-the-fold images: load eagerly with high fetch priority (LCP). */
+  priority?: boolean;
 }) {
   return (
     <div className={`overflow-hidden ${className}`}>
       <img
         src={src}
         alt={alt}
-        loading="lazy"
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : 'auto'}
         decoding="async"
         className={`h-full w-full ${imageClassName}`}
       />
@@ -187,6 +191,7 @@ export const StorefrontHomePage = React.memo(function StorefrontHomePage({ confi
                 alt=""
                 className="absolute inset-0"
                 imageClassName="object-contain object-center"
+                priority
               />
             </div>
           </div>

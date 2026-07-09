@@ -1,0 +1,123 @@
+/**
+ * Yevbi blue-white eSIM design tokens.
+ * Keep this file mirrored with src/tokens.css for local previews.
+ */
+
+:root {
+  --esim-ink: #0b1220;
+  --esim-ink-soft: #334155;
+  --esim-muted: #64748b;
+  --esim-surface: #f7faff;
+  --esim-surface-raised: #ffffff;
+  --esim-surface-cool: #f2f7ff;
+  --esim-line: #e2e8f0;
+  --esim-line-strong: #cbd5e1;
+  --esim-primary: #176bff;
+  --esim-primary-dark: #0b4edb;
+  --esim-primary-soft: #e8f1ff;
+  --esim-secondary: #0b4edb;
+  --esim-accent: #176bff;
+  --esim-danger: #dc2626;
+  --esim-success: #16a34a;
+  --esim-container: 1200px;
+  --esim-header-height: 80px;
+  --esim-radius-sm: 0.75rem;
+  --esim-radius-md: 1.25rem;
+  --esim-radius-lg: 2rem;
+  --esim-radius-xl: 2.75rem;
+  --esim-heading-font: "Manrope", "Aptos", "Helvetica Neue", sans-serif;
+  --esim-body-font: "Manrope", "Aptos", "Helvetica Neue", sans-serif;
+  --esim-shadow-soft: 0 28px 80px rgb(15 55 110 / 0.13);
+  --esim-shadow-tight: 0 16px 42px rgb(15 55 110 / 0.10);
+
+  /* Host aliases used by theme-pack renderers. */
+  --theme-primary: var(--esim-primary);
+  --theme-secondary: var(--esim-secondary);
+  --theme-accent: var(--esim-accent);
+  --theme-background: var(--esim-surface);
+  --theme-foreground: var(--esim-ink);
+  --theme-muted: var(--esim-muted);
+  --theme-border: var(--esim-line);
+  --theme-radius: var(--esim-radius-md);
+  --theme-font-family: var(--esim-body-font);
+  --theme-heading-family: var(--esim-heading-font);
+}
+
+.esim-display {
+  font-family: var(--esim-heading-font);
+  letter-spacing: -0.06em;
+}
+
+.esim-kicker {
+  color: var(--esim-primary);
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.esim-shell {
+  background:
+    radial-gradient(circle at 8% 0%, rgb(23 107 255 / 0.10), transparent 28rem),
+    radial-gradient(circle at 92% 6%, rgb(23 107 255 / 0.13), transparent 27rem),
+    linear-gradient(180deg, #f8fcff 0%, var(--esim-surface) 46%, #ffffff 100%);
+  color: var(--esim-ink);
+}
+
+.esim-card-shell {
+  background: var(--esim-surface-raised);
+  border: 1px solid var(--esim-line);
+  border-radius: var(--esim-radius-lg);
+  box-shadow: var(--esim-shadow-tight);
+}
+
+.esim-button-primary {
+  align-items: center;
+  background: var(--esim-primary);
+  border: 1px solid var(--esim-primary);
+  border-radius: 999px;
+  box-shadow: 0 16px 34px rgb(21 107 255 / 0.22);
+  color: #ffffff;
+  display: inline-flex;
+  font-weight: 900;
+  gap: 0.625rem;
+  justify-content: center;
+  padding: 0.9rem 1.25rem;
+  transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.esim-button-primary:hover {
+  background: var(--esim-primary-dark);
+  border-color: var(--esim-primary-dark);
+  box-shadow: 0 18px 38px rgb(10 70 182 / 0.24);
+  transform: translateY(-1px);
+}
+
+.esim-button-secondary {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--esim-line-strong);
+  border-radius: 999px;
+  color: var(--esim-ink);
+  display: inline-flex;
+  font-weight: 900;
+  gap: 0.625rem;
+  justify-content: center;
+  padding: 0.9rem 1.25rem;
+  transition: transform 180ms ease, border-color 180ms ease, color 180ms ease, background-color 180ms ease;
+}
+
+.esim-button-secondary:hover {
+  background: var(--esim-primary-soft);
+  border-color: var(--esim-primary);
+  color: var(--esim-primary-dark);
+  transform: translateY(-1px);
+}
+
+.esim-map-cluster {
+  background-image: radial-gradient(circle, rgb(23 107 255 / 0.78) 1.4px, transparent 1.7px);
+  background-size: 12px 12px;
+  opacity: 0.72;
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 62%, transparent 70%);
+  mask-image: radial-gradient(ellipse at center, #000 62%, transparent 70%);
+}
