@@ -567,6 +567,8 @@ export interface LoginPageProps extends ThemeI18nProps {
   config?: ThemeConfig;
   onSubmit: (email: string, password: string) => Promise<void>;
   onOAuthClick: (provider: 'google') => Promise<void>;
+  /** Optional Apple Sign-In entry point (themes render the button only when provided) */
+  onAppleOAuthClick?: () => Promise<void>;
   onNavigateToRegister: () => void;
   onNavigateToForgotPassword: () => void;
 }
@@ -586,6 +588,8 @@ export interface RegisterPageProps extends ThemeI18nProps {
     lastName: string;
   }) => Promise<void>;
   onOAuthClick: (provider: 'google') => Promise<void>;
+  /** Optional Apple Sign-In entry point (themes render the button only when provided) */
+  onAppleOAuthClick?: () => Promise<void>;
   onNavigateToLogin: () => void;
 }
 
