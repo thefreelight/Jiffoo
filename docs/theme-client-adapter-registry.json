@@ -1,0 +1,185 @@
+{
+  "version": 1,
+  "defaults": {
+    "coreRepository": "Jiffoo",
+    "contractDocument": "docs/theme-client-platform-contract.md",
+    "apiCatalog": "docs/theme-client-api-catalog.json",
+    "compatibilityMatrix": "docs/theme-client-compatibility-matrix.md"
+  },
+  "entries": [
+    {
+      "entryType": "theme",
+      "themeSlug": "builtin-default",
+      "matrixLabel": "builtin-default",
+      "source": "builtin",
+      "notes": "Baseline OSS-safe storefront theme for official clients.",
+      "targets": {
+        "web": {
+          "status": "implemented",
+          "clientId": "shop-web",
+          "rendererMode": "embedded",
+          "minimumCoreVersion": "0.1.0"
+        },
+        "mobile": {
+          "status": "planned",
+          "clientId": "reference-mobile",
+          "profilePath": "jiffoo-mall-mobile/packages/docs/architecture/storefront-client-profile.json",
+          "rendererMode": "native-adapter",
+          "minimumCoreVersion": "0.1.0"
+        },
+        "desktop": {
+          "status": "planned",
+          "clientId": "reference-desktop",
+          "profilePath": "jiffoo-mall-desktop/profiles/examples/reference-desktop/storefront-client-profile.json",
+          "rendererMode": "native-adapter",
+          "minimumCoreVersion": "0.1.0"
+        }
+      }
+    },
+    {
+      "entryType": "theme",
+      "themeSlug": "quiet-curator",
+      "matrixLabel": "quiet-curator",
+      "source": "official-theme-pack",
+      "notes": "First-wave official theme-pack adapter target with lower coupling risk.",
+      "targets": {
+        "web": {
+          "status": "implemented",
+          "clientId": "shop-web",
+          "rendererMode": "pack-or-embedded-hint",
+          "minimumCoreVersion": "0.1.0"
+        },
+        "mobile": {
+          "status": "planned",
+          "clientId": "reference-mobile",
+          "profilePath": "jiffoo-mall-mobile/packages/docs/architecture/storefront-client-profile.json",
+          "rendererMode": "pack-native-adapter",
+          "minimumCoreVersion": "0.1.0"
+        },
+        "desktop": {
+          "status": "planned",
+          "clientId": "reference-desktop",
+          "profilePath": "jiffoo-mall-desktop/profiles/examples/reference-desktop/storefront-client-profile.json",
+          "rendererMode": "pack-native-adapter",
+          "minimumCoreVersion": "0.1.0"
+        }
+      }
+    },
+    {
+      "entryType": "theme",
+      "themeSlug": "stellar-midnight",
+      "matrixLabel": "stellar-midnight",
+      "source": "official-theme-pack",
+      "notes": "First-wave official SaaS storefront theme-pack adapter target.",
+      "targets": {
+        "web": {
+          "status": "implemented",
+          "clientId": "shop-web",
+          "rendererMode": "pack-or-embedded-hint",
+          "minimumCoreVersion": "0.1.0"
+        },
+        "mobile": {
+          "status": "planned",
+          "clientId": "reference-mobile",
+          "profilePath": "jiffoo-mall-mobile/packages/docs/architecture/storefront-client-profile.json",
+          "rendererMode": "pack-native-adapter",
+          "minimumCoreVersion": "0.1.0"
+        },
+        "desktop": {
+          "status": "planned",
+          "clientId": "reference-desktop",
+          "profilePath": "jiffoo-mall-desktop/profiles/examples/reference-desktop/storefront-client-profile.json",
+          "rendererMode": "pack-native-adapter",
+          "minimumCoreVersion": "0.1.0"
+        }
+      }
+    },
+    {
+      "entryType": "mode-template",
+      "themeMode": "downloaded-theme-pack",
+      "matrixLabel": "Downloaded theme pack",
+      "notes": "Template for official clients before a specific theme receives a dedicated mobile or desktop adapter.",
+      "targets": {
+        "web": {
+          "status": "implemented",
+          "rendererMode": "pack-or-embedded-hint"
+        },
+        "mobile": {
+          "status": "planned",
+          "rendererMode": "adapter-required",
+          "fallbackPolicy": "fallback-to-baseline-adapter-or-declare-unsupported"
+        },
+        "desktop": {
+          "status": "planned",
+          "rendererMode": "adapter-required",
+          "fallbackPolicy": "fallback-to-baseline-adapter-or-declare-unsupported"
+        }
+      }
+    },
+    {
+      "entryType": "mode-template",
+      "themeMode": "embedded-renderer-hint",
+      "matrixLabel": "Embedded renderer hint in theme.json",
+      "notes": "Clients may map a known embedded renderer slug to a local adapter without forking commerce semantics.",
+      "targets": {
+        "web": {
+          "status": "implemented",
+          "rendererMode": "embedded"
+        },
+        "mobile": {
+          "status": "planned",
+          "rendererMode": "embedded"
+        },
+        "desktop": {
+          "status": "planned",
+          "rendererMode": "embedded"
+        }
+      }
+    },
+    {
+      "entryType": "mode-template",
+      "themeMode": "theme-app",
+      "matrixLabel": "Executable theme-app via gateway",
+      "notes": "Executable theme apps remain experimental for non-web clients until official adapters and shell bridges are published.",
+      "targets": {
+        "web": {
+          "status": "experimental",
+          "rendererMode": "theme-app-gateway"
+        },
+        "mobile": {
+          "status": "experimental",
+          "rendererMode": "theme-app-gateway-or-webview-wrapper",
+          "requires": ["deep-link", "auth-session-bridge"]
+        },
+        "desktop": {
+          "status": "experimental",
+          "rendererMode": "theme-app-gateway-or-shell-wrapper",
+          "requires": ["window", "storage", "network-monitor"]
+        }
+      }
+    },
+    {
+      "entryType": "mode-template",
+      "themeMode": "plugin-backed-storefront-extensions",
+      "matrixLabel": "Plugin-backed app_block / app_embed storefront extensions",
+      "notes": "Theme-owned storefront extensions should reuse the shared app_block and app_embed model across clients.",
+      "targets": {
+        "web": {
+          "status": "implemented",
+          "rendererMode": "extension-runtime",
+          "requiresExtensions": ["app_block", "app_embed"]
+        },
+        "mobile": {
+          "status": "experimental",
+          "rendererMode": "extension-runtime",
+          "requiresExtensions": ["app_block", "app_embed"]
+        },
+        "desktop": {
+          "status": "experimental",
+          "rendererMode": "extension-runtime",
+          "requiresExtensions": ["app_block", "app_embed"]
+        }
+      }
+    }
+  ]
+}

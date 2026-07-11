@@ -5,6 +5,10 @@
 [![Next.js](https://img.shields.io/badge/Next.js-black.svg)](https://nextjs.org/)
 [![Fastify](https://img.shields.io/badge/Fastify-5-green.svg)](https://www.fastify.io/)
 
+> **Deploy shop frontend to Cloudflare Pages with one click:**
+>
+> [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/thefreelight/Jiffoo/tree/main/apps/shop)
+
 Jiffoo is a TypeScript commerce core for self-hosted storefronts, admin tooling, and extension-driven customization.
 
 The public runtime surface owned by this repository is:

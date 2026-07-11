@@ -70,15 +70,74 @@ function primeThemeHostGlobals() {
   };
 }
 
+export interface ThemeRuntimeIdentity {
+  slug: string;
+  version: string;
+  target: string;
+}
+
+function readRuntimeMeta(pkg: ThemePackage): Partial<ThemeRuntimeIdentity> | undefined {
+  return (pkg as { meta?: Partial<ThemeRuntimeIdentity> }).meta;
+}
+
+function assertRuntimeIdentity(pkg: ThemePackage, expected: ThemeRuntimeIdentity, cacheKey: string): void {
+  const meta = readRuntimeMeta(pkg);
+  if (!meta) {
+    throw new Error(`Theme runtime bundle is missing identity metadata for ${cacheKey}`);
+  }
+
+  if (meta.slug !== expected.slug) {
+    throw new Error(`Theme runtime slug mismatch: expected "${expected.slug}", got "${meta.slug}"`);
+  }
+
+  if (meta.target !== expected.target) {
+    throw new Error(`Theme runtime target mismatch: expected "${expected.target}", got "${meta.target}"`);
+  }
+
+  if (meta.version !== expected.version) {
+    throw new Error(`Theme runtime version mismatch: expected "${expected.version}", got "${meta.version}"`);
+  }
+}
+
+function matchesRuntimeIdentity(pkg: ThemePackage, expected: ThemeRuntimeIdentity): boolean {
+  const meta = readRuntimeMeta(pkg);
+  return Boolean(
+    meta
+    && meta.slug === expected.slug
+    && meta.target === expected.target
+    && meta.version === expected.version,
+  );
+}
+
 export async function loadRemoteThemeRuntime(options: {
   cacheKey: string;
   url: string;
+  /**
+   * Installed-theme identity the bundle must match. When provided, cached
+   * runtimes are revalidated (a stale cache entry is evicted and reloaded)
+   * and a bundle whose embedded meta disagrees is rejected.
+   */
+  expectedIdentity?: ThemeRuntimeIdentity;
 }): Promise<ThemePackage> {
   const existing = remoteThemeCache.get(options.cacheKey);
   if (existing) {
-    return existing;
+    if (!options.expectedIdentity) {
+      return existing;
+    }
+
+    try {
+      const cached = await existing;
+      if (matchesRuntimeIdentity(cached, options.expectedIdentity)) {
+        return cached;
+      }
+    } catch {
+      // Fall through: evict and reload below.
+    }
+
+    remoteThemeCache.delete(options.cacheKey);
   }
 
+  const expectedIdentity = options.expectedIdentity;
   const promise = new Promise<ThemePackage>((resolve, reject) => {
     if (typeof window === 'undefined') {
       reject(new Error('Remote theme runtime loading only works in the browser'));
@@ -102,6 +161,9 @@ export async function loadRemoteThemeRuntime(options: {
       try {
         const runtime = normalizeThemePackage(window.__JIFFOO_THEME_RUNTIME__, options.cacheKey);
         window.__JIFFOO_THEME_RUNTIME__ = undefined;
+        if (expectedIdentity) {
+          assertRuntimeIdentity(runtime, expectedIdentity, options.cacheKey);
+        }
         resolve(runtime);
       } catch (error) {
         reject(error instanceof Error ? error : new Error(String(error)));

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jiffoo Web Initial Setup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;450;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --surface: #ffffff;
+      --ink: #0f172a;
+      --muted: #667085;
+      --soft: #94a3b8;
+      --line: #e5eaf2;
+      --line-strong: #d8e0ec;
+      --blue: #2563eb;
+      --blue-soft: #edf5ff;
+      --green: #16a34a;
+      --shadow: 0 34px 90px rgba(15, 23, 42, 0.08);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      width: 1600px;
+      height: 900px;
+      overflow: hidden;
+      font-family: Outfit, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 17% 22%, rgba(37, 99, 235, 0.12), transparent 30%),
+        linear-gradient(180deg, #fbfdff 0%, var(--bg) 100%);
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: "liga" 1, "calt" 1;
+    }
+
+    .stage {
+      position: relative;
+      width: 1600px;
+      height: 900px;
+      padding: 54px 72px;
+    }
+
+    .grid {
+      position: absolute;
+      inset: 0;
+      opacity: 0.28;
+      background-image:
+        linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(180deg, black 0%, transparent 82%);
+      pointer-events: none;
+    }
+
+    .topbar {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 44px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      font-size: 22px;
+      font-weight: 760;
+      letter-spacing: -0.03em;
+    }
+
+    .mark {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 800;
+      background:
+        radial-gradient(circle at 34% 25%, rgba(255,255,255,0.72), transparent 29%),
+        linear-gradient(145deg, #3b82f6, #1d4ed8 72%);
+      box-shadow: 0 16px 30px rgba(37, 99, 235, 0.2);
+    }
+
+    .page-label {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .shell {
+      position: relative;
+      z-index: 1;
+      margin: 74px auto 0;
+      width: 1260px;
+      height: 626px;
+      display: grid;
+      grid-template-columns: 0.92fr 1.08fr;
+      border: 1px solid var(--line-strong);
+      border-radius: 34px;
+      background: rgba(255,255,255,0.78);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+    }
+
+    .intro {
+      padding: 72px 70px;
+      border-right: 1px solid var(--line);
+      background:
+        radial-gradient(circle at 14% 18%, rgba(37, 99, 235, 0.12), transparent 35%),
+        linear-gradient(180deg, rgba(248,250,252,0.8), rgba(255,255,255,0.62));
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      height: 34px;
+      padding: 0 13px;
+      border: 1px solid rgba(22, 163, 74, 0.16);
+      border-radius: 999px;
+      color: #15803d;
+      background: rgba(240, 253, 244, 0.72);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 6px rgba(22, 163, 74, 0.1);
+    }
+
+    h1 {
+      margin: 34px 0 0;
+      max-width: 470px;
+      font-size: 64px;
+      line-height: 0.98;
+      letter-spacing: -0.06em;
+      font-weight: 780;
+    }
+
+    .lead {
+      margin: 24px 0 0;
+      max-width: 450px;
+      color: #475467;
+      font-size: 20px;
+      line-height: 1.45;
+      letter-spacing: -0.02em;
+    }
+
+    .principles {
+      margin-top: 72px;
+      display: grid;
+      gap: 18px;
+      max-width: 450px;
+    }
+
+    .principle {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding-top: 18px;
+      border-top: 1px solid rgba(15, 23, 42, 0.1);
+    }
+
+    .principle b {
+      display: block;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+    }
+
+    .principle span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .tick {
+      width: 26px;
+      height: 26px;
+      flex: none;
+      border-radius: 9px;
+      display: grid;
+      place-items: center;
+      color: var(--blue);
+      background: var(--blue-soft);
+      font-weight: 800;
+      font-size: 14px;
+    }
+
+    .setup {
+      padding: 66px 82px;
+      background: var(--surface);
+    }
+
+    .form-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .form-head h2 {
+      margin: 0;
+      font-size: 33px;
+      line-height: 1.05;
+      letter-spacing: -0.045em;
+    }
+
+    .form-head p {
+      margin: 11px 0 0;
+      max-width: 430px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.55;
+    }
+
+    .small-pill {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      height: 32px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: #334155;
+      background: #f8fafc;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .form {
+      margin-top: 40px;
+      display: grid;
+      gap: 16px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 9px;
+      color: #334155;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .input {
+      height: 58px;
+      display: flex;
+      align-items: center;
+      padding: 0 17px;
+      border: 1px solid var(--line-strong);
+      border-radius: 16px;
+      color: #0f172a;
+      background: #fbfcff;
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+    }
+
+    .input.muted {
+      color: #98a2b3;
+      font-weight: 500;
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .hint {
+      margin-top: 2px;
+      color: var(--soft);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .action-row {
+      margin-top: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .button {
+      height: 52px;
+      min-width: 176px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      background: #0f172a;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      box-shadow: 0 18px 38px rgba(15, 23, 42, 0.18);
+    }
+  </style>
+</head>
+<body>
+  <main class="stage">
+    <div class="grid"></div>
+    <header class="topbar">
+      <div class="brand"><div class="mark">J</div><span>Jiffoo</span></div>
+      <div class="page-label">WEB / INITIAL SETUP</div>
+    </header>
+
+    <section class="shell">
+      <aside class="intro">
+        <div class="status"><span class="dot"></span> Runtime ready</div>
+        <h1>Create the first admin.</h1>
+        <p class="lead">One guided page for a fresh Jiffoo install. Set the owner account, finish initialization, and enter the admin console.</p>
+
+        <div class="principles">
+          <div class="principle"><div class="tick">1</div><div><b>No page switching</b><span>The first-run flow stays on one screen until the account is created.</span></div></div>
+          <div class="principle"><div class="tick">2</div><div><b>Safe by default</b><span>Only the initial owner can unlock the workspace and continue setup.</span></div></div>
+        </div>
+      </aside>
+
+      <section class="setup">
+        <div class="form-head">
+          <div>
+            <h2>Administrator account</h2>
+            <p>This account becomes the Root administrator for this Jiffoo instance.</p>
+          </div>
+          <div class="small-pill">Fresh install</div>
+        </div>
+
+        <div class="form">
+          <div>
+            <label>Admin email</label>
+            <div class="input">admin@jiffoo.local</div>
+          </div>
+          <div class="row">
+            <div>
+              <label>Password</label>
+              <div class="input muted">••••••••••••</div>
+              <div class="hint">Use at least 8 characters.</div>
+            </div>
+            <div>
+              <label>Confirm password</label>
+              <div class="input muted">••••••••••••</div>
+              <div class="hint">Must match the password.</div>
+            </div>
+          </div>
+          <div>
+            <label>Instance name</label>
+            <div class="input">Jiffoo Commerce Core</div>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <div class="note">You can configure themes, plugins, and store settings after entering the console.</div>
+          <div class="button">Finish setup</div>
+        </div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

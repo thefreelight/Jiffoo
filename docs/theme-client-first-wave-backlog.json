@@ -1,0 +1,188 @@
+{
+  "version": 1,
+  "wave": "first-wave",
+  "allowedStatuses": ["todo", "in-progress", "done", "blocked"],
+  "themes": [
+    {
+      "slug": "builtin-default",
+      "rolloutPriority": "first-wave",
+      "adapterStrategy": "embedded-native-adapter"
+    },
+    {
+      "slug": "quiet-curator",
+      "rolloutPriority": "first-wave",
+      "adapterStrategy": "pack-native-adapter"
+    },
+    {
+      "slug": "stellar-midnight",
+      "rolloutPriority": "first-wave",
+      "adapterStrategy": "pack-native-adapter"
+    }
+  ],
+  "workItems": [
+    {
+      "id": "TCW1-CORE-001",
+      "repo": "Jiffoo",
+      "themeSlug": "builtin-default",
+      "client": "shared",
+      "status": "done",
+      "milestone": "baseline-contract-lock",
+      "title": "Publish baseline adapter registry, support inventory, and rollout artifacts",
+      "deliverables": [
+        "docs/theme-client-adapter-registry.json",
+        "docs/theme-client-official-theme-support.json",
+        "docs/theme-client-first-wave-rollout.md",
+        "docs/theme-client-first-wave-backlog.json"
+      ],
+      "acceptance": [
+        "first-wave themes are declared explicitly",
+        "support labels are machine-readable",
+        "verification passes"
+      ]
+    },
+    {
+      "id": "TCW1-CORE-002",
+      "repo": "Jiffoo",
+      "themeSlug": "quiet-curator",
+      "client": "shared",
+      "status": "todo",
+      "milestone": "theme-pack-adapter-pipeline",
+      "title": "Publish first-wave theme-pack fixture inputs and smoke cases",
+      "deliverables": [
+        "fixture inputs for quiet-curator theme pack",
+        "fixture inputs for stellar-midnight theme pack",
+        "compatibility smoke checklist"
+      ],
+      "acceptance": [
+        "quiet-curator manifest and resource loading are covered",
+        "stellar-midnight manifest and resource loading are covered"
+      ]
+    },
+    {
+      "id": "TCW1-MOBILE-001",
+      "repo": "jiffoo-mall-mobile",
+      "themeSlug": "builtin-default",
+      "client": "mobile",
+      "status": "todo",
+      "milestone": "baseline-native-adapter",
+      "title": "Implement builtin-default mobile native adapter",
+      "deliverables": [
+        "adapter selection from active theme slug",
+        "baseline catalog, product detail, cart, checkout, and account presentation",
+        "fallback to unsupported-theme state"
+      ],
+      "acceptance": [
+        "builtin-default can render without web fallback",
+        "theme switch fallback behavior is explicit"
+      ]
+    },
+    {
+      "id": "TCW1-MOBILE-002",
+      "repo": "jiffoo-mall-mobile",
+      "themeSlug": "quiet-curator",
+      "client": "mobile",
+      "status": "todo",
+      "milestone": "theme-pack-adapter-pipeline",
+      "title": "Add pack-resource loader and quiet-curator mobile adapter",
+      "deliverables": [
+        "theme-pack token loader",
+        "quiet-curator mobile adapter",
+        "adapter fallback behavior"
+      ],
+      "acceptance": [
+        "quiet-curator is no longer plan-only",
+        "theme-pack resources drive mobile presentation safely"
+      ]
+    },
+    {
+      "id": "TCW1-MOBILE-003",
+      "repo": "jiffoo-mall-mobile",
+      "themeSlug": "stellar-midnight",
+      "client": "mobile",
+      "status": "todo",
+      "milestone": "theme-pack-adapter-pipeline",
+      "title": "Implement stellar-midnight mobile adapter",
+      "deliverables": [
+        "stellar-midnight mobile adapter",
+        "adapter selection wiring",
+        "smoke coverage"
+      ],
+      "acceptance": [
+        "stellar-midnight renders through the shared pack adapter pipeline",
+        "no client-private commerce endpoints are introduced"
+      ]
+    },
+    {
+      "id": "TCW1-DESKTOP-001",
+      "repo": "jiffoo-mall-desktop",
+      "themeSlug": "builtin-default",
+      "client": "desktop",
+      "status": "todo",
+      "milestone": "baseline-native-adapter",
+      "title": "Implement builtin-default desktop adapter",
+      "deliverables": [
+        "desktop adapter selection from active theme slug",
+        "baseline storefront rendering path",
+        "unsupported-theme fallback behavior"
+      ],
+      "acceptance": [
+        "builtin-default can render through desktop-native presentation",
+        "fallback behavior is explicit and testable"
+      ]
+    },
+    {
+      "id": "TCW1-DESKTOP-002",
+      "repo": "jiffoo-mall-desktop",
+      "themeSlug": "quiet-curator",
+      "client": "desktop",
+      "status": "todo",
+      "milestone": "theme-pack-adapter-pipeline",
+      "title": "Add pack-resource loader and quiet-curator desktop adapter",
+      "deliverables": [
+        "desktop theme-pack loader",
+        "quiet-curator desktop adapter",
+        "adapter fallback behavior"
+      ],
+      "acceptance": [
+        "quiet-curator is no longer plan-only",
+        "desktop consumes first-wave theme-pack resources without a contract fork"
+      ]
+    },
+    {
+      "id": "TCW1-DESKTOP-003",
+      "repo": "jiffoo-mall-desktop",
+      "themeSlug": "stellar-midnight",
+      "client": "desktop",
+      "status": "todo",
+      "milestone": "theme-pack-adapter-pipeline",
+      "title": "Implement stellar-midnight desktop adapter",
+      "deliverables": [
+        "stellar-midnight desktop adapter",
+        "adapter selection wiring",
+        "smoke coverage"
+      ],
+      "acceptance": [
+        "stellar-midnight renders through the shared pack adapter pipeline",
+        "no desktop-private commerce endpoints are introduced"
+      ]
+    },
+    {
+      "id": "TCW1-VERIFY-001",
+      "repo": "Jiffoo",
+      "themeSlug": "builtin-default",
+      "client": "shared",
+      "status": "todo",
+      "milestone": "cross-repo-verification",
+      "title": "Run first-wave compatibility lab across core, mobile, and desktop",
+      "deliverables": [
+        "baseline smoke report",
+        "first-wave theme smoke report",
+        "release-note checklist"
+      ],
+      "acceptance": [
+        "builtin-default, quiet-curator, and stellar-midnight have explicit verification results",
+        "support labels are updated only after verification"
+      ]
+    }
+  ]
+}

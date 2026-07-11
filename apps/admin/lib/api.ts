@@ -1468,4 +1468,111 @@ export const errorsApi = {
     apiClient.get('/api/admin/errors/trends', { params: { timeRange } }),
 };
 
+// ============================================================
+// Staff Management (Admin RBAC)
+// ============================================================
+
+export interface StaffMembership {
+  membershipId: string;
+  userId: string;
+  email: string;
+  username: string;
+  avatar?: string | null;
+  accountRole: string;
+  accountActive: boolean;
+  emailVerified: boolean;
+  adminRole: string;
+  status: 'ACTIVE' | 'SUSPENDED';
+  isOwner: boolean;
+  extraPermissions: string[];
+  revokedPermissions: string[];
+  effectivePermissions: string[];
+  createdAt: string;
+  updatedAt: string;
+  membershipCreatedByUserId?: string | null;
+  membershipUpdatedByUserId?: string | null;
+  accountCreatedAt: string;
+  accountUpdatedAt: string;
+}
+
+export interface StaffRoleDefinition {
+  role: string;
+  label: string;
+  permissions: string[];
+}
+
+export interface StaffPermissionCatalogGroup {
+  group: string;
+  label: string;
+  permissions: Array<{
+    key: string;
+    label: string;
+    description: string;
+  }>;
+}
+
+export interface StaffAuditLogEntry {
+  id: string;
+  staffUserId: string;
+  staffEmail: string;
+  staffUsername?: string | null;
+  actorUserId?: string | null;
+  actorEmail?: string | null;
+  actorUsername?: string | null;
+  action: string;
+  metadata?: Record<string, unknown> | null;
+  createdAt: string;
+}
+
+export interface StaffMutationPayload {
+  role: string;
+  status?: 'ACTIVE' | 'SUSPENDED';
+  isOwner?: boolean;
+  extraPermissions?: string[];
+  revokedPermissions?: string[];
+}
+
+export interface StaffCreatePayload extends StaffMutationPayload {
+  email: string;
+  username: string;
+  password?: string;
+}
+
+export const staffApi = {
+  getAll: (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    role?: string;
+    status?: string;
+  } = {}): Promise<ApiResponse<PageResult<StaffMembership>>> => {
+    const { page = 1, limit = 20, ...filters } = params;
+    return apiClient.get('/admin/staff', { params: { page, limit, ...filters } });
+  },
+
+  getRoles: (): Promise<ApiResponse<StaffRoleDefinition[]>> =>
+    apiClient.get('/admin/staff/roles'),
+
+  getPermissions: (): Promise<ApiResponse<StaffPermissionCatalogGroup[]>> =>
+    apiClient.get('/admin/staff/permissions'),
+
+  getByUserId: (userId: string): Promise<ApiResponse<StaffMembership>> =>
+    apiClient.get(`/admin/staff/${userId}`),
+
+  getAuditLogs: (userId: string, page = 1, limit = 20): Promise<ApiResponse<PageResult<StaffAuditLogEntry>>> =>
+    apiClient.get(`/admin/staff/${userId}/audit`, { params: { page, limit } }),
+
+  create: (data: StaffCreatePayload): Promise<ApiResponse<StaffMembership>> =>
+    apiClient.post('/admin/staff', data),
+
+  update: (userId: string, data: StaffMutationPayload): Promise<ApiResponse<StaffMembership>> =>
+    apiClient.patch(`/admin/staff/${userId}`, data),
+
+  remove: (userId: string): Promise<ApiResponse<void>> =>
+    apiClient.delete(`/admin/staff/${userId}`),
+
+  resendInvite: (userId: string): Promise<ApiResponse<{ success: boolean }>> =>
+    apiClient.post(`/admin/staff/${userId}/invite`, {}),
+};
+
 export default apiClient;

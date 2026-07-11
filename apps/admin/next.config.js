@@ -4,6 +4,9 @@ const { createNextConfig } = require('../../packages/shared/config/next.config.b
 const nextConfig = createNextConfig({
   appName: 'Admin',
   port: 3002,
+  turbopack: {
+    root: require('path').resolve(__dirname, '../..'),
+  },
   images: {
     // Cloudflare Pages: disable _next/image optimization (limited on Workers)
     unoptimized: process.env.CF_PAGES === '1',

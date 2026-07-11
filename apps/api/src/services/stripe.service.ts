@@ -227,4 +227,69 @@ export class StripeService {
 
     return client.webhooks.constructEvent(payload, signature, webhookSecret);
   }
+
+  /**
+   * Confirm a native wallet payment (Apple Pay / Google Pay).
+   *
+   * Accepts either an existing paymentIntentId (retrieve + confirm if still
+   * confirmable) or a paymentMethodId (create a new intent confirmed
+   * immediately, without redirects — wallet flows cannot follow them).
+   */
+  static async confirmNativePayment(input: {
+    orderId: string;
+    amount: number;
+    currency: string;
+    paymentMethodId?: string | null;
+    paymentIntentId?: string | null;
+    provider?: string;
+    metadata?: Record<string, string>;
+  }): Promise<{
+    id: string;
+    status: string;
+    amount: number;
+    currency: string;
+    metadata: Record<string, string>;
+  }> {
+    const client = await this.getClient();
+    if (!client) {
+      throw new Error('Stripe is not configured');
+    }
+
+    const normalize = (intent: Stripe.PaymentIntent) => ({
+      id: intent.id,
+      status: intent.status,
+      amount: intent.amount,
+      currency: intent.currency,
+      metadata: (intent.metadata ?? {}) as Record<string, string>,
+    });
+
+    if (input.paymentIntentId) {
+      let intent = await client.paymentIntents.retrieve(input.paymentIntentId);
+      if (intent.status === 'requires_confirmation' || intent.status === 'requires_payment_method') {
+        intent = await client.paymentIntents.confirm(
+          input.paymentIntentId,
+          input.paymentMethodId ? { payment_method: input.paymentMethodId } : undefined,
+        );
+      }
+      return normalize(intent);
+    }
+
+    if (!input.paymentMethodId) {
+      throw new Error('Stripe native payment confirmation requires a payment method or payment intent');
+    }
+
+    const intent = await client.paymentIntents.create({
+      amount: Math.max(0, Math.trunc(input.amount)),
+      currency: input.currency,
+      payment_method: input.paymentMethodId,
+      confirm: true,
+      automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+      metadata: {
+        orderId: input.orderId,
+        ...(input.metadata || {}),
+      },
+    });
+
+    return normalize(intent);
+  }
 }

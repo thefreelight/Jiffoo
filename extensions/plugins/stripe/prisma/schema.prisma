@@ -1,0 +1,68 @@
+generator client {
+  provider      = "prisma-client-js"
+  output        = "../node_modules/.prisma/stripe-client"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("STRIPE_DATABASE_URL")
+}
+
+model PaymentRecord {
+  id                    String    @id @default(uuid())
+  installationId        String    @default("default")
+  orderId               String
+  stripePaymentIntentId String?   @unique
+  stripeSessionId       String?   @unique
+  stripeSessionUrl      String?
+  sessionExpiresAt      DateTime?
+  amount                Int       // in smallest currency unit (cents)
+  currency              String    @default("usd")
+  status                String    @default("pending") // pending, processing, succeeded, failed, canceled, refunded, partially_refunded
+  customerEmail         String?
+  metadata              Json?
+  errorMessage          String?
+  paidAt                DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  refunds RefundRecord[]
+
+  @@unique([installationId, orderId])
+  @@index([installationId, status, createdAt])
+  @@index([stripePaymentIntentId])
+  @@index([stripeSessionId])
+}
+
+model RefundRecord {
+  id              String   @id @default(uuid())
+  installationId  String   @default("default")
+  paymentRecordId String
+  stripeRefundId  String?  @unique
+  amount          Int      // in smallest currency unit (cents)
+  reason          String?  // duplicate, fraudulent, requested_by_customer
+  status          String   @default("pending") // pending, succeeded, failed, canceled
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  payment PaymentRecord @relation(fields: [paymentRecordId], references: [id], onDelete: Cascade)
+
+  @@index([installationId, createdAt])
+  @@index([stripeRefundId])
+}
+
+model WebhookEvent {
+  id              String   @id @default(uuid())
+  installationId  String   @default("default")
+  stripeEventId   String   @unique
+  eventType       String
+  processed       Boolean  @default(false)
+  payload         Json
+  errorMessage    String?
+  createdAt       DateTime @default(now())
+
+  @@index([installationId, eventType, createdAt])
+  @@index([stripeEventId])
+}

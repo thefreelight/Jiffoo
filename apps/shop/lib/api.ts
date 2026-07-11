@@ -83,7 +83,8 @@ export const authApi = {
   changePassword: (data: { currentPassword: string; newPassword: string }): Promise<ApiResponse<any>> =>
     apiClient.changePassword(data),
 
-  // Email verification APIs removed for Alpha Gate (Direct Registration only)
+  verifyEmail: (token: string): Promise<ApiResponse<any>> =>
+    apiClient.get('/auth/verify-email', { params: { token } }),
 };
 
 // Auth Gateway API REMOVED - Legacy

@@ -1,3 +1,8 @@
+<<<<<<<< HEAD:.gitlab/oss/shop.yml
+========
+# Child pipeline: build + gitops
+# GitOps 完成后由 ArgoCD 负责同步部署到 K8s
+>>>>>>>> origin/main:apps/shop/.gitlab-ci.yml
 include:
   - project: 'ops/cicd-template'
     ref: main

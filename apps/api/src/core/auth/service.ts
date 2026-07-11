@@ -11,7 +11,7 @@ import { JwtUtils } from '@/utils/jwt';
 import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { shouldRequirePasswordRotation } from './bootstrap';
-import { findAuthUserByEmail, findAuthUserById } from './user-compat';
+import { createAuthUser, findAuthUserByEmail, findAuthUserById } from './user-compat';
 
 const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
 const DEFAULT_DEMO_ADMIN_PASSWORD = 'admin123';
@@ -158,15 +158,12 @@ export class AuthService {
     }
 
     const hashedPassword = await PasswordUtils.hash(data.password);
-    const user = await prisma.user.create({
-      data: {
-        email: data.email,
-        username: data.username,
-        password: hashedPassword,
-        role: 'USER',
-        emailVerified: false
-      },
-      select: authUserSelect,
+    // createAuthUser tolerates legacy databases without the emailVerified column
+    const user = await createAuthUser({
+      email: data.email,
+      username: data.username,
+      password: hashedPassword,
+      role: 'USER',
     });
 
     // Send verification email

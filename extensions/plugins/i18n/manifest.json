@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "slug": "i18n",
+  "name": "Store Localization",
+  "version": "1.0.0",
+  "description": "Official internationalization plugin. Manages content translations, UI text overrides, and language configuration.",
+  "author": "Jiffoo",
+  "category": "other",
+  "runtimeType": "internal-fastify",
+  "entryModule": "dist/index.js",
+  "permissions": [
+    "settings:read",
+    "settings:write",
+    "store:read",
+    "store:write"
+  ],
+  "capabilities": [
+    "admin.panel",
+    "api.read",
+    "api.write"
+  ],
+  "adminUi": {
+    "entryPath": "/admin",
+    "label": "Localization",
+    "icon": "languages"
+  },
+  "lifecycle": {
+    "onEnable": true
+  }
+}

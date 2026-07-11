@@ -28,6 +28,10 @@ env:
     value: "info"
   - name: API_SERVICE_URL
     value: "http://api:80"
+<<<<<<<< HEAD:.gitlab/oss/shop/pipeline/values.yaml
+========
+
+>>>>>>>> origin/main:apps/shop/pipeline/values.yaml
 resources: {}
 livenessProbe: {}
 readinessProbe: {}

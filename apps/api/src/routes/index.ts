@@ -24,6 +24,7 @@ import { upgradeRoutes } from '@/core/upgrade/routes';
 
 // Admin routes
 import { adminUserRoutes } from '@/core/admin/user-management/routes';
+import { adminStaffRoutes } from '@/core/admin/staff-management/routes';
 import { adminProductRoutes } from '@/core/admin/product-management/routes';
 import { adminOrderRoutes } from '@/core/admin/order-management/routes';
 import { adminThemeRoutes, publicThemeRoutes } from '@/core/admin/theme-management/routes';
@@ -79,6 +80,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // Admin routes
   await fastify.register(adminUserRoutes, { prefix: '/api/admin/users' });
+  await fastify.register(adminStaffRoutes, { prefix: '/api/admin/staff' });
   await fastify.register(adminProductRoutes, { prefix: '/api/admin/products' });
   await fastify.register(adminOrderRoutes, { prefix: '/api/admin/orders' });
   await fastify.register(adminThemeRoutes, { prefix: '/api/admin/themes' });

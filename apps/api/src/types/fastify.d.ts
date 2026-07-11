@@ -16,6 +16,14 @@ interface AuthenticatedUser {
   permissions?: string[];
   roles?: any[];
   isServiceAccount?: boolean;
+  // Resolved admin identity (stamped by requirePermission / admin guards)
+  adminRole?: string | null;
+  isOwner?: boolean;
+  admin?: {
+    role: string;
+    status: string;
+    isOwner: boolean;
+  } | null;
 }
 
 // ============================================

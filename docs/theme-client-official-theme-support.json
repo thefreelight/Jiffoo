@@ -1,0 +1,166 @@
+{
+  "version": 1,
+  "allowedStatuses": [
+    "implemented",
+    "planned",
+    "limited",
+    "experimental",
+    "unsupported"
+  ],
+  "themes": [
+    {
+      "slug": "ai-gateway",
+      "packagePath": "packages/shop-themes/ai-gateway",
+      "packaging": "theme-pack-only",
+      "apiCoupling": "plugin-runtime-companion",
+      "web": { "status": "experimental" },
+      "mobile": { "status": "experimental" },
+      "desktop": { "status": "experimental" },
+      "rolloutPriority": "later",
+      "notes": "Solution-oriented storefront with a companion runtime plugin rather than a simple standalone storefront adapter."
+    },
+    {
+      "slug": "app-landingpage",
+      "packageSlug": "app-landingpage",
+      "packagePath": "packages/shop-themes/app-landingpage",
+      "packaging": "embedded+theme-pack",
+      "apiCoupling": "theme-local-api-client",
+      "web": { "status": "implemented" },
+      "mobile": { "status": "limited" },
+      "desktop": { "status": "limited" },
+      "rolloutPriority": "later",
+      "notes": "App-download landing page with local auth/cart/API code and brand-specific download assets, so non-web clients need explicit adapter review."
+    },
+    {
+      "slug": "bokmoo",
+      "packagePath": "packages/shop-themes/bokmoo",
+      "packaging": "embedded+theme-pack",
+      "apiCoupling": "none-observed",
+      "web": { "status": "implemented" },
+      "mobile": { "status": "planned" },
+      "desktop": { "status": "planned" },
+      "rolloutPriority": "second-wave",
+      "notes": "Official embedded storefront theme and a good candidate after the baseline adapters are proven."
+    },
+    {
+      "slug": "builtin-default",
+      "packageSlug": "default",
+      "packagePath": "packages/shop-themes/default",
+      "packaging": "embedded-only",
+      "apiCoupling": "none-observed",
+      "web": { "status": "implemented" },
+      "mobile": { "status": "planned" },
+      "desktop": { "status": "planned" },
+      "rolloutPriority": "first-wave",
+      "notes": "Baseline OSS-safe storefront theme and the best first official cross-client adapter target."
+    },
+    {
+      "slug": "digital-vault",
+      "packageSlug": "digital-vault",
+      "packagePath": "packages/shop-themes/digital-vault",
+      "packaging": "embedded+theme-pack",
+      "apiCoupling": "plugin-ready-domain",
+      "web": { "status": "implemented" },
+      "mobile": { "status": "planned" },
+      "desktop": { "status": "planned" },
+      "rolloutPriority": "second-wave",
+      "notes": "Digital-goods storefront where reusable business logic is expected to live outside the theme."
+    },
+    {
+      "slug": "esim-mall",
+      "packageSlug": "esim-mall",
+      "packagePath": "packages/shop-themes/esim-mall",
+      "packaging": "embedded+theme-pack",
+      "apiCoupling": "theme-local-api-client",
+      "web": { "status": "implemented" },
+      "mobile": { "status": "limited" },
+      "desktop": { "status": "limited" },
+      "rolloutPriority": "later",
+      "notes": "Theme owns a local storefront API client today, so non-web clients should not claim clean support yet."
+    },
+    {
+      "slug": "fire",
+      "packageSlug": "fire",
+      "packagePath": "packages/shop-themes/fire",
+      "packaging": "theme-pack-only",
+      "apiCoupling": "runtime-host-block",
+      "web": { "status": "experimental" },
+      "mobile": { "status": "experimental" },
+      "desktop": { "status": "experimental" },
+      "rolloutPriority": "later",
+      "notes": "Finance storefront depends on runtime-host block behavior that still needs explicit cross-client hardening."
+    },
+    {
+      "slug": "imagic-studio",
+      "packageSlug": "imagic-studio",
+      "packagePath": "packages/shop-themes/imagic-studio",
+      "packaging": "embedded+theme-pack",
+      "apiCoupling": "plugin-gateway-heavy",
+      "web": { "status": "implemented" },
+      "mobile": { "status": "experimental" },
+      "desktop": { "status": "experimental" },
+      "rolloutPriority": "later",
+      "notes": "Creative workflow theme with direct plugin API calls and async generation flows."
+    },
+    {
+      "slug": "modelsfind",
+      "packageSlug": "modelsfind",
+      "packagePath": "packages/shop-themes/modelsfind",
+      "packaging": "embedded+theme-pack",
+      "apiCoupling": "custom-endpoint",
+      "web": { "status": "limited" },
+      "mobile": { "status": "unsupported" },
+      "desktop": { "status": "unsupported" },
+      "rolloutPriority": "later",
+      "notes": "Contains direct custom booking endpoint coupling and has no current official non-web adapter plan."
+    },
+    {
+      "slug": "navtoai",
+      "packageSlug": "navtoai",
+      "packagePath": "packages/shop-themes/navtoai",
+      "packaging": "embedded+theme-pack",
+      "apiCoupling": "none-observed",
+      "web": { "status": "implemented" },
+      "mobile": { "status": "planned" },
+      "desktop": { "status": "planned" },
+      "rolloutPriority": "second-wave",
+      "notes": "Embedded directory storefront with lower current coupling risk."
+    },
+    {
+      "slug": "quiet-curator",
+      "packageSlug": "quiet-curator",
+      "packagePath": "packages/shop-themes/quiet-curator",
+      "packaging": "theme-pack-only",
+      "apiCoupling": "none-observed",
+      "web": { "status": "implemented" },
+      "mobile": { "status": "planned" },
+      "desktop": { "status": "planned" },
+      "rolloutPriority": "first-wave",
+      "notes": "Official downloadable theme-pack with a clean presentation-first story."
+    },
+    {
+      "slug": "stellar-midnight",
+      "packageSlug": "stellar-midnight",
+      "packagePath": "packages/shop-themes/stellar-midnight",
+      "packaging": "theme-pack-only",
+      "apiCoupling": "none-observed",
+      "web": { "status": "implemented" },
+      "mobile": { "status": "planned" },
+      "desktop": { "status": "planned" },
+      "rolloutPriority": "first-wave",
+      "notes": "Official downloadable theme-pack and a strong candidate for early cross-client adapter support."
+    },
+    {
+      "slug": "yevbi",
+      "packageSlug": "yevbi",
+      "packagePath": "packages/shop-themes/yevbi",
+      "packaging": "embedded+theme-pack",
+      "apiCoupling": "theme-sdk-and-plugin-fetch",
+      "web": { "status": "implemented" },
+      "mobile": { "status": "limited" },
+      "desktop": { "status": "limited" },
+      "rolloutPriority": "later",
+      "notes": "Uses the theme SDK plus plugin-backed storefront fetches, which increases adapter complexity."
+    }
+  ]
+}

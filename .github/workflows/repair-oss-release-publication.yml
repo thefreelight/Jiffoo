@@ -1,0 +1,191 @@
+name: Repair OSS Release Publication
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Repair the existing release publication or quarantine a bad release.
+        required: true
+        type: choice
+        options:
+          - quarantine
+          - repair
+      version:
+        description: Core version without v/-opensource. Quarantine may use comma-separated versions, e.g. 1.0.32,1.0.33.
+        required: true
+      notes:
+        description: Release repair notes or quarantine reason.
+        required: false
+      publication_tooling_ref:
+        description: Ref containing hardened publication tooling. Defaults to the workflow ref.
+        required: false
+      public_feed_timeout_minutes:
+        description: Minutes to wait for public feed convergence during repair.
+        required: false
+        default: '60'
+
+permissions:
+  actions: write
+  contents: write
+
+concurrency:
+  group: repair-oss-release-publication-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  repair-or-quarantine:
+    runs-on: ubuntu-latest
+    env:
+      ACTION: ${{ inputs.action }}
+      VERSION: ${{ inputs.version }}
+      REGISTRY: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com
+      IMAGE_NAMESPACE: jiffoo-oss
+      RELEASE_NOTES: ${{ inputs.notes || '' }}
+      PUBLICATION_TOOLING_REF: ${{ inputs.publication_tooling_ref || github.ref_name }}
+      PUBLIC_FEED_TIMEOUT_MINUTES: ${{ inputs.public_feed_timeout_minutes || '60' }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      JIFFOO_RELEASE_LIVE_API_URL: ${{ vars.JIFFOO_RELEASE_LIVE_API_URL || secrets.JIFFOO_RELEASE_LIVE_API_URL }}
+      JIFFOO_RELEASE_BRANDED_STOREFRONT_URL: ${{ vars.JIFFOO_RELEASE_BRANDED_STOREFRONT_URL || secrets.JIFFOO_RELEASE_BRANDED_STOREFRONT_URL }}
+      JIFFOO_RELEASE_BRANDED_THEME_SLUG: ${{ vars.JIFFOO_RELEASE_BRANDED_THEME_SLUG || secrets.JIFFOO_RELEASE_BRANDED_THEME_SLUG }}
+      JIFFOO_RELEASE_BRANDED_THEME_VERSION: ${{ vars.JIFFOO_RELEASE_BRANDED_THEME_VERSION || secrets.JIFFOO_RELEASE_BRANDED_THEME_VERSION }}
+      JIFFOO_RELEASE_BRANDED_RUNTIME_PATHS: ${{ vars.JIFFOO_RELEASE_BRANDED_RUNTIME_PATHS || secrets.JIFFOO_RELEASE_BRANDED_RUNTIME_PATHS }}
+    steps:
+      - name: Checkout publication tooling ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.publication_tooling_ref || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.0.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify repair tooling
+        run: |
+          set -euo pipefail
+
+          pnpm test:release-helper-quarantine
+          pnpm test:release-history-availability-verifier
+          node scripts/run-release-quality-gates.mjs --dry-run
+          pnpm verify:release-publication-gate
+
+      - name: Set up Docker Buildx for release history image audit
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ACR for release history image audit
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Repair or quarantine release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p .release
+          if [ -n "${RELEASE_NOTES:-}" ]; then
+            printf '%s\n' "$RELEASE_NOTES" > .release/manual-release-publication-notes.md
+          elif [ "$ACTION" = "quarantine" ]; then
+            printf '%s\n' "Existing release failed the self-hosted publication contract and is not self-hosted-detectable." > .release/manual-release-publication-notes.md
+          else
+            printf '%s\n' "Repair self-hosted release publication." > .release/manual-release-publication-notes.md
+          fi
+
+          mapfile -t versions < <(printf '%s\n' "$VERSION" | tr ',' '\n' | tr ' ' '\n' | sed '/^$/d')
+          if [ "${#versions[@]}" -eq 0 ]; then
+            echo "At least one release version is required." >&2
+            exit 1
+          fi
+
+          declare -A seen_versions=()
+          for release_version in "${versions[@]}"; do
+            if [[ ! "$release_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+              echo "Invalid release version '${release_version}'. Use core SemVer without v/-opensource, for example 1.0.32." >&2
+              exit 1
+            fi
+            if [ -n "${seen_versions[$release_version]:-}" ]; then
+              echo "Duplicate release version '${release_version}'." >&2
+              exit 1
+            fi
+            seen_versions[$release_version]=1
+          done
+
+          if [ "$ACTION" = "repair" ] && [ "${#versions[@]}" -ne 1 ]; then
+            echo "Repair action accepts exactly one version; use quarantine for batch isolation." >&2
+            exit 1
+          fi
+
+          case "$ACTION" in
+            quarantine)
+              versions_value="$(IFS=,; printf '%s' "${versions[*]}")"
+              node scripts/release-oss-patch.mjs \
+                --version "$versions_value" \
+                --publish \
+                --quarantine-existing-release \
+                --defer-release-history-availability \
+                --notes-file .release/manual-release-publication-notes.md \
+                --repo "${GITHUB_REPOSITORY}"
+
+              for release_version in "${versions[@]}"; do
+                node scripts/verify-release-history-availability.mjs \
+                  --release-tag "v${release_version}-opensource" \
+                  --expect-quarantined \
+                  --repo "${GITHUB_REPOSITORY}"
+              done
+              ;;
+            repair)
+              release_version="${versions[0]}"
+              missing=()
+              for name in \
+                JIFFOO_RELEASE_LIVE_API_URL \
+                JIFFOO_RELEASE_BRANDED_STOREFRONT_URL \
+                JIFFOO_RELEASE_BRANDED_THEME_SLUG \
+                JIFFOO_RELEASE_BRANDED_THEME_VERSION; do
+                if [ -z "${!name:-}" ]; then
+                  missing+=("$name")
+                fi
+              done
+
+              if [ "${#missing[@]}" -gt 0 ]; then
+                echo "Repairing an existing release requires live runtime verification configuration:" >&2
+                printf ' - %s\n' "${missing[@]}" >&2
+                exit 1
+              fi
+
+              node scripts/release-oss-patch.mjs \
+                --version "$release_version" \
+                --publish \
+                --repair-existing-release \
+                --publication-tooling-ref "$PUBLICATION_TOOLING_REF" \
+                --notes-file .release/manual-release-publication-notes.md \
+                --repo "${GITHUB_REPOSITORY}" \
+                --public-feed-timeout-minutes "$PUBLIC_FEED_TIMEOUT_MINUTES" \
+                --live-api-url "$JIFFOO_RELEASE_LIVE_API_URL" \
+                --branded-storefront-url "$JIFFOO_RELEASE_BRANDED_STOREFRONT_URL" \
+                --branded-theme-slug "$JIFFOO_RELEASE_BRANDED_THEME_SLUG" \
+                --branded-theme-version "$JIFFOO_RELEASE_BRANDED_THEME_VERSION" \
+                --branded-runtime-paths "$JIFFOO_RELEASE_BRANDED_RUNTIME_PATHS"
+              ;;
+            *)
+              echo "Unsupported release publication action: $ACTION" >&2
+              exit 1
+              ;;
+          esac
+
+      - name: Verify release history after repair
+        run: node scripts/verify-release-history-availability.mjs --verify-images

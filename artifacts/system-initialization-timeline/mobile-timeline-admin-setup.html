@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jiffoo Mobile Timeline Setup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;450;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f7f9fc;
+      --surface: #ffffff;
+      --ink: #0f172a;
+      --muted: #667085;
+      --soft: #98a2b3;
+      --line: #e5eaf2;
+      --line-strong: #d7dfeb;
+      --blue: #2563eb;
+      --blue-soft: #edf5ff;
+      --green: #16a34a;
+      --green-soft: #effdf4;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      width: 430px;
+      height: 932px;
+      overflow: hidden;
+      font-family: Outfit, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 70% 2%, rgba(37, 99, 235, 0.14), transparent 34%),
+        linear-gradient(180deg, #fbfdff 0%, var(--bg) 100%);
+      -webkit-font-smoothing: antialiased;
+      font-feature-settings: "liga" 1, "calt" 1;
+    }
+
+    .phone {
+      position: relative;
+      width: 430px;
+      height: 932px;
+      padding: 18px 22px 104px;
+      overflow: hidden;
+    }
+
+    .phone::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      opacity: 0.26;
+      background-image:
+        linear-gradient(rgba(15,23,42,0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15,23,42,0.035) 1px, transparent 1px);
+      background-size: 34px 34px;
+      mask-image: linear-gradient(180deg, black 0%, transparent 78%);
+      pointer-events: none;
+    }
+
+    .island {
+      position: absolute;
+      left: 50%;
+      top: 12px;
+      transform: translateX(-50%);
+      width: 118px;
+      height: 32px;
+      border-radius: 999px;
+      background: #0b1220;
+      z-index: 5;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+    }
+
+    .topbar {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 48px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 760;
+      letter-spacing: -0.03em;
+    }
+
+    .mark {
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 800;
+      background:
+        radial-gradient(circle at 34% 25%, rgba(255,255,255,0.72), transparent 29%),
+        linear-gradient(145deg, #3b82f6, #1d4ed8 72%);
+      box-shadow: 0 14px 28px rgba(37, 99, 235, 0.2);
+    }
+
+    .page-label {
+      position: relative;
+      z-index: 2;
+      margin-top: 20px;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    h1 {
+      position: relative;
+      z-index: 2;
+      margin: 10px 0 0;
+      width: 360px;
+      font-size: 30px;
+      line-height: 1;
+      letter-spacing: -0.055em;
+      font-weight: 780;
+    }
+
+    .lead {
+      position: relative;
+      z-index: 2;
+      margin: 8px 0 0;
+      width: 355px;
+      color: #475467;
+      font-size: 13px;
+      line-height: 1.4;
+      letter-spacing: -0.01em;
+    }
+
+    .timeline-card {
+      position: relative;
+      z-index: 2;
+      margin-top: 15px;
+      padding: 16px 17px 15px;
+      border: 1px solid var(--line-strong);
+      border-radius: 28px;
+      background: rgba(255,255,255,0.82);
+      box-shadow: 0 28px 68px rgba(15, 23, 42, 0.09);
+      backdrop-filter: blur(20px);
+    }
+
+    .timeline-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 13px;
+    }
+
+    .timeline-title b {
+      font-size: 17px;
+      letter-spacing: -0.025em;
+    }
+
+    .pill {
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 10px;
+      border-radius: 999px;
+      color: var(--blue);
+      background: var(--blue-soft);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 0;
+    }
+
+    .step {
+      position: relative;
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      gap: 11px;
+      min-height: 42px;
+    }
+
+    .step:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      left: 14px;
+      top: 30px;
+      bottom: 0;
+      width: 2px;
+      background: var(--line-strong);
+    }
+
+    .step.done::after {
+      background: linear-gradient(180deg, var(--green), var(--blue));
+    }
+
+    .node {
+      position: relative;
+      z-index: 2;
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      color: #64748b;
+      background: #f1f5f9;
+      border: 1px solid var(--line-strong);
+      font-size: 11px;
+      font-weight: 900;
+    }
+
+    .step.done .node {
+      color: white;
+      background: var(--green);
+      border-color: rgba(22, 163, 74, 0.24);
+    }
+
+    .step.active .node {
+      color: white;
+      background: var(--blue);
+      border-color: rgba(37, 99, 235, 0.24);
+      box-shadow: 0 0 0 6px rgba(237,245,255,0.92);
+    }
+
+    .step strong {
+      display: block;
+      padding-top: 1px;
+      font-size: 12px;
+      letter-spacing: -0.01em;
+    }
+
+    .step span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 11px;
+      line-height: 1.28;
+    }
+
+    .form-card {
+      position: relative;
+      z-index: 2;
+      margin-top: 12px;
+      padding: 17px 17px 18px;
+      border: 1px solid var(--line-strong);
+      border-radius: 28px;
+      background: rgba(255,255,255,0.9);
+      box-shadow: 0 26px 62px rgba(15, 23, 42, 0.08);
+    }
+
+    .form-card h2 {
+      margin: 0;
+      font-size: 21px;
+      line-height: 1.05;
+      letter-spacing: -0.045em;
+    }
+
+    .form-card p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.42;
+    }
+
+    .form {
+      margin-top: 14px;
+      display: grid;
+      gap: 10px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      color: #344054;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .input {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      padding: 0 14px;
+      border: 1px solid var(--line-strong);
+      border-radius: 15px;
+      color: #0f172a;
+      background: #fbfcff;
+      font-size: 14px;
+      font-weight: 750;
+      letter-spacing: -0.01em;
+    }
+
+    .input.muted {
+      color: #98a2b3;
+      font-weight: 650;
+    }
+
+    .bottom {
+      position: absolute;
+      z-index: 4;
+      left: 22px;
+      right: 22px;
+      bottom: 24px;
+      padding: 9px;
+      display: grid;
+      grid-template-columns: 0.34fr 0.66fr;
+      gap: 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.84);
+      box-shadow: 0 22px 54px rgba(15, 23, 42, 0.13);
+      backdrop-filter: blur(18px);
+    }
+
+    .secondary,
+    .primary {
+      height: 46px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .secondary { color: #475467; }
+    .primary { color: white; background: #0f172a; }
+
+    .home-indicator {
+      position: absolute;
+      z-index: 5;
+      left: 50%;
+      bottom: 7px;
+      transform: translateX(-50%);
+      width: 132px;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.74);
+    }
+  </style>
+</head>
+<body>
+  <main class="phone">
+    <div class="island"></div>
+    <header class="topbar">
+      <div class="brand"><div class="mark">J</div><span>Jiffoo</span></div>
+    </header>
+
+    <div class="page-label">Mobile — Initial Setup</div>
+    <h1>System initialization</h1>
+    <p class="lead">Complete the active timeline step to bring this instance online.</p>
+
+    <section class="timeline-card">
+      <div class="timeline-title"><b>Setup timeline</b><span class="pill">Step 2 of 4</span></div>
+      <div class="timeline">
+        <div class="step done"><div class="node">✓</div><div><strong>Database check</strong><span>Schema verified · no drift</span></div></div>
+        <div class="step active"><div class="node">2</div><div><strong>Admin account</strong><span>Create Root identity</span></div></div>
+        <div class="step"><div class="node">3</div><div><strong>Runtime mode</strong><span>Choose defaults</span></div></div>
+        <div class="step"><div class="node">4</div><div><strong>Finish setup</strong><span>Enter console</span></div></div>
+      </div>
+    </section>
+
+    <section class="form-card">
+      <h2>Administrator account</h2>
+      <p>This account unlocks the admin console after initialization.</p>
+      <div class="form">
+        <div>
+          <label>Admin email</label>
+          <div class="input">admin@jiffoo.local</div>
+        </div>
+        <div>
+          <label>Password</label>
+          <div class="input muted">••••••••••••</div>
+        </div>
+        <div>
+          <label>Confirm password</label>
+          <div class="input muted">••••••••••••</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="bottom"><div class="secondary">Back</div><div class="primary">Continue</div></div>
+    <div class="home-indicator"></div>
+  </main>
+</body>
+</html>
