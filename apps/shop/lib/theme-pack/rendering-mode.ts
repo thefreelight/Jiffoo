@@ -75,11 +75,31 @@ export function resolveThemeRendererSlug(options: {
     return embeddedRendererSlug;
   }
 
-  if (options.activeThemeSlug) {
+  // A raw embedded-renderer declaration (even for a renderer that is not an
+  // official bridge) is still a renderer contract — preserve the declared
+  // slug so the provider can resolve it downstream.
+  const declaredRendererSlug =
+    options.manifest?.['x-jiffoo-renderer-mode'] === 'embedded'
+    && typeof options.manifest?.['x-jiffoo-renderer-slug'] === 'string'
+    && options.manifest['x-jiffoo-renderer-slug'].trim().length > 0
+      ? options.manifest['x-jiffoo-renderer-slug'].trim()
+      : null;
+
+  if (declaredRendererSlug) {
+    return options.activeThemeSlug || declaredRendererSlug;
+  }
+
+  // While the manifest has not loaded yet, preserve the raw slugs so the
+  // provider can wait for a packaged runtime. Once the manifest is loaded and
+  // offers neither a packaged runtime nor an embedded renderer contract, an
+  // unknown slug cannot render — fall back to a registry-valid slug instead.
+  const manifestLoaded = Boolean(options.manifest);
+
+  if (options.activeThemeSlug && (!manifestLoaded || isValidThemeSlug(options.activeThemeSlug))) {
     return options.activeThemeSlug;
   }
 
-  if (options.serverThemeSlug) {
+  if (options.serverThemeSlug && (!manifestLoaded || isValidThemeSlug(options.serverThemeSlug))) {
     return options.serverThemeSlug;
   }
 

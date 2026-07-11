@@ -10,7 +10,8 @@
     "tokensCSS": "tokens.css",
     "templatesDir": "templates",
     "assetsDir": "assets",
-    "settingsSchema": "schemas/settings.schema.json"
+    "settingsSchema": "schemas/settings.schema.json",
+    "runtimeJS": "runtime/theme-runtime.js"
   },
   "compatibility": {
     "minCoreVersion": "0.2.0"

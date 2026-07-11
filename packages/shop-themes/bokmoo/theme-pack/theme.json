@@ -8,7 +8,8 @@
   "author": "Jiffoo",
   "entry": {
     "tokensCSS": "tokens.css",
-    "templatesDir": "templates"
+    "templatesDir": "templates",
+    "runtimeJS": "runtime/theme-runtime.js"
   },
   "compatibility": {
     "minCoreVersion": "0.2.0"

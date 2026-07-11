@@ -30,7 +30,8 @@ function getConfigSchema(manifestJson: unknown): GenericObject {
 function getSecretFields(manifestJson: unknown): string[] {
   const configSchema = getConfigSchema(manifestJson);
   return Object.entries(configSchema)
-    .filter(([, descriptor]) => isPlainObject(descriptor) && descriptor.type === 'secret')
+    .filter(([, descriptor]) => isPlainObject(descriptor)
+      && (descriptor.type === 'secret' || descriptor.sensitive === true))
     .map(([field]) => field);
 }
 

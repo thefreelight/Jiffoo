@@ -1,15 +1,15 @@
 import type { ThemePackage } from 'shared/src/types/theme';
 
-import { AuthCallbackPage } from '@shop-themes/default/src/components/AuthCallbackPage';
-import { ContactPage } from '@shop-themes/default/src/components/ContactPage';
-import { HelpPage } from '@shop-themes/default/src/components/HelpPage';
-import { LoginPage } from '@shop-themes/default/src/components/LoginPage';
+import { AuthCallbackPage } from './components/AuthCallbackPage';
+import { ContactPage } from './components/ContactPage';
+import { HelpPage } from './components/HelpPage';
+import { LoginPage } from './components/LoginPage';
 import { NotFound } from '@shop-themes/default/src/components/NotFound';
 import { OrderCancelledPage } from '@shop-themes/default/src/components/OrderCancelledPage';
-import { PrivacyPage } from '@shop-themes/default/src/components/PrivacyPage';
+import { PrivacyPage } from './components/PrivacyPage';
 import { ProfilePage } from '@shop-themes/default/src/components/ProfilePage';
-import { RegisterPage } from '@shop-themes/default/src/components/RegisterPage';
-import { TermsPage } from '@shop-themes/default/src/components/TermsPage';
+import { RegisterPage } from './components/RegisterPage';
+import { TermsPage } from './components/TermsPage';
 
 import { CartPage } from './components/CartPage';
 import { CategoriesPage } from './components/CategoriesPage';

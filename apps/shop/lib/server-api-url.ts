@@ -45,14 +45,16 @@ export async function resolvePublicOrigin(): Promise<string> {
 }
 
 export async function resolveServerApiOrigin(): Promise<string> {
-  const requestOrigin = await readRequestOrigin();
-  if (requestOrigin) {
-    return requestOrigin;
-  }
-
+  // The internal API service URL wins over the incoming request origin:
+  // server-side fetches must not round-trip through the public host.
   const apiServiceUrl = process.env.API_SERVICE_URL;
   if (apiServiceUrl) {
     return stripTrailingSlash(apiServiceUrl);
+  }
+
+  const requestOrigin = await readRequestOrigin();
+  if (requestOrigin) {
+    return requestOrigin;
   }
 
   throw new Error('Unable to resolve server API origin');

@@ -66,14 +66,13 @@ function getVersionedThemeBaseUrl(slug: string, version: string): string {
 }
 
 function getThemeBaseUrlCandidates(slug: string, version?: string): string[] {
+  // Versioned requests are pinned to the versioned path: silently serving
+  // legacy same-slug assets would break the installed-version source of truth.
   if (!version) {
     return [getLegacyThemeBaseUrl(slug)];
   }
 
-  return [
-    getVersionedThemeBaseUrl(slug, version),
-    getLegacyThemeBaseUrl(slug),
-  ];
+  return [getVersionedThemeBaseUrl(slug, version)];
 }
 
 function setResolvedThemeBaseUrl(slug: string, baseUrl: string, version?: string): void {
@@ -134,6 +133,22 @@ export async function fetchThemeManifest(slug: string, version?: string): Promis
         continue;
       }
       const manifest = await response.json();
+
+      // Enforce the installed-theme identity: a manifest claiming a different
+      // slug or version must not be used (and must not poison the cache).
+      if (manifest?.slug && manifest.slug !== slug) {
+        console.warn(
+          `[ThemePack] Ignoring manifest slug mismatch for ${slug}: manifest declares "${manifest.slug}"`,
+        );
+        continue;
+      }
+      if (version && manifest?.version && manifest.version !== version) {
+        console.warn(
+          `[ThemePack] Ignoring manifest version mismatch for ${slug}: expected ${version}, got ${manifest.version}`,
+        );
+        continue;
+      }
+
       resourceCache.set(cacheKey, manifest);
       setResolvedThemeBaseUrl(slug, baseUrl, version);
       return manifest;

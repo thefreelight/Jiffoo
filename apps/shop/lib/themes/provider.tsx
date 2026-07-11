@@ -206,6 +206,11 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
           const remoteTheme = await loadRemoteThemeRuntime({
             cacheKey,
             url: remoteRuntime.url,
+            expectedIdentity: {
+              slug: remoteRuntime.slug,
+              version: remoteRuntime.version ?? '',
+              target: 'shop',
+            },
           });
 
           assertThemeComponents(remoteTheme, remoteRuntime.slug);
@@ -258,6 +263,15 @@ export function ThemeProvider({ slug, config = {}, children }: ThemeProviderProp
         console.error('Failed to load theme:', err);
 
         if (mounted) {
+          // Fail closed for installed marketplace runtimes: silently swapping
+          // in a host-bundled renderer would break the installed-version
+          // source of truth. The error UI offers a retry instead.
+          if (canLoadRemoteRuntime) {
+            setTheme(null);
+            setError(error);
+            return;
+          }
+
           if (!hasImmediateTheme) {
             setError(error);
           }

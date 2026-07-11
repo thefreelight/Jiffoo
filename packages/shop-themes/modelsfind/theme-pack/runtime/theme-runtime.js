@@ -1,0 +1,15382 @@
+(() => {
+  var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+    get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+  }) : x)(function(x) {
+    if (typeof require !== "undefined") return require.apply(this, arguments);
+    throw Error('Dynamic require of "' + x + '" is not supported');
+  });
+
+  // theme-host:react
+  var React = globalThis.__JIFFOO_THEME_HOST__?.React;
+  if (!React) {
+    throw new Error("Theme runtime host bridge is missing React");
+  }
+  var react_default = React;
+  var Children = React.Children;
+  var Component = React.Component;
+  var Fragment = React.Fragment;
+  var Suspense = React.Suspense;
+  var cloneElement = React.cloneElement;
+  var createContext = React.createContext;
+  var createElement = React.createElement;
+  var createRef = React.createRef;
+  var forwardRef = React.forwardRef;
+  var isValidElement = React.isValidElement;
+  var lazy = React.lazy;
+  var memo = React.memo;
+  var startTransition = React.startTransition;
+  var useCallback = React.useCallback;
+  var useContext = React.useContext;
+  var useDeferredValue = React.useDeferredValue;
+  var useEffect = React.useEffect;
+  var useId = React.useId;
+  var useImperativeHandle = React.useImperativeHandle;
+  var useInsertionEffect = React.useInsertionEffect || React.useLayoutEffect;
+  var useLayoutEffect = React.useLayoutEffect;
+  var useMemo = React.useMemo;
+  var useReducer = React.useReducer;
+  var useRef = React.useRef;
+  var useState = React.useState;
+  var useTransition = React.useTransition;
+
+  // node_modules/lucide-react/dist/esm/shared/src/utils.js
+  var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+  var mergeClasses = (...classes) => classes.filter((className, index, array) => {
+    return Boolean(className) && className.trim() !== "" && array.indexOf(className) === index;
+  }).join(" ").trim();
+
+  // node_modules/lucide-react/dist/esm/defaultAttributes.js
+  var defaultAttributes = {
+    xmlns: "http://www.w3.org/2000/svg",
+    width: 24,
+    height: 24,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: "currentColor",
+    strokeWidth: 2,
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  };
+
+  // node_modules/lucide-react/dist/esm/Icon.js
+  var Icon = forwardRef(
+    ({
+      color: color2 = "currentColor",
+      size = 24,
+      strokeWidth = 2,
+      absoluteStrokeWidth,
+      className = "",
+      children,
+      iconNode,
+      ...rest
+    }, ref) => {
+      return createElement(
+        "svg",
+        {
+          ref,
+          ...defaultAttributes,
+          width: size,
+          height: size,
+          stroke: color2,
+          strokeWidth: absoluteStrokeWidth ? Number(strokeWidth) * 24 / Number(size) : strokeWidth,
+          className: mergeClasses("lucide", className),
+          ...rest
+        },
+        [
+          ...iconNode.map(([tag, attrs]) => createElement(tag, attrs)),
+          ...Array.isArray(children) ? children : [children]
+        ]
+      );
+    }
+  );
+
+  // node_modules/lucide-react/dist/esm/createLucideIcon.js
+  var createLucideIcon = (iconName, iconNode) => {
+    const Component2 = forwardRef(
+      ({ className, ...props }, ref) => createElement(Icon, {
+        ref,
+        iconNode,
+        className: mergeClasses(`lucide-${toKebabCase(iconName)}`, className),
+        ...props
+      })
+    );
+    Component2.displayName = `${iconName}`;
+    return Component2;
+  };
+
+  // node_modules/lucide-react/dist/esm/icons/arrow-left.js
+  var ArrowLeft = createLucideIcon("ArrowLeft", [
+    ["path", { d: "m12 19-7-7 7-7", key: "1l729n" }],
+    ["path", { d: "M19 12H5", key: "x3x0zl" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/arrow-right.js
+  var ArrowRight = createLucideIcon("ArrowRight", [
+    ["path", { d: "M5 12h14", key: "1ays0h" }],
+    ["path", { d: "m12 5 7 7-7 7", key: "xquz4c" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/check.js
+  var Check = createLucideIcon("Check", [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]]);
+
+  // node_modules/lucide-react/dist/esm/icons/chevron-right.js
+  var ChevronRight = createLucideIcon("ChevronRight", [
+    ["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/circle-alert.js
+  var CircleAlert = createLucideIcon("CircleAlert", [
+    ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+    ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+    ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/circle-check-big.js
+  var CircleCheckBig = createLucideIcon("CircleCheckBig", [
+    ["path", { d: "M21.801 10A10 10 0 1 1 17 3.335", key: "yps3ct" }],
+    ["path", { d: "m9 11 3 3L22 4", key: "1pflzl" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/circle-check.js
+  var CircleCheck = createLucideIcon("CircleCheck", [
+    ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+    ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/circle-help.js
+  var CircleHelp = createLucideIcon("CircleHelp", [
+    ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+    ["path", { d: "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3", key: "1u773s" }],
+    ["path", { d: "M12 17h.01", key: "p32p05" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/circle-x.js
+  var CircleX = createLucideIcon("CircleX", [
+    ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+    ["path", { d: "m15 9-6 6", key: "1uzhvr" }],
+    ["path", { d: "m9 9 6 6", key: "z0biqf" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/clock.js
+  var Clock = createLucideIcon("Clock", [
+    ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+    ["polyline", { points: "12 6 12 12 16 14", key: "68esgv" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/compass.js
+  var Compass = createLucideIcon("Compass", [
+    [
+      "path",
+      {
+        d: "m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z",
+        key: "9ktpf1"
+      }
+    ],
+    ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/credit-card.js
+  var CreditCard = createLucideIcon("CreditCard", [
+    ["rect", { width: "20", height: "14", x: "2", y: "5", rx: "2", key: "ynyp8z" }],
+    ["line", { x1: "2", x2: "22", y1: "10", y2: "10", key: "1b3vmo" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/download.js
+  var Download = createLucideIcon("Download", [
+    ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", key: "ih7n3h" }],
+    ["polyline", { points: "7 10 12 15 17 10", key: "2ggqvy" }],
+    ["line", { x1: "12", x2: "12", y1: "15", y2: "3", key: "1vk2je" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/eye-off.js
+  var EyeOff = createLucideIcon("EyeOff", [
+    [
+      "path",
+      {
+        d: "M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49",
+        key: "ct8e1f"
+      }
+    ],
+    ["path", { d: "M14.084 14.158a3 3 0 0 1-4.242-4.242", key: "151rxh" }],
+    [
+      "path",
+      {
+        d: "M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143",
+        key: "13bj9a"
+      }
+    ],
+    ["path", { d: "m2 2 20 20", key: "1ooewy" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/eye.js
+  var Eye = createLucideIcon("Eye", [
+    [
+      "path",
+      {
+        d: "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0",
+        key: "1nclc0"
+      }
+    ],
+    ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/file-text.js
+  var FileText = createLucideIcon("FileText", [
+    ["path", { d: "M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z", key: "1rqfz7" }],
+    ["path", { d: "M14 2v4a2 2 0 0 0 2 2h4", key: "tnqrlb" }],
+    ["path", { d: "M10 9H8", key: "b1mrlr" }],
+    ["path", { d: "M16 13H8", key: "t4e002" }],
+    ["path", { d: "M16 17H8", key: "z1uh3a" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/folder-heart.js
+  var FolderHeart = createLucideIcon("FolderHeart", [
+    [
+      "path",
+      {
+        d: "M11 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v1.5",
+        key: "6hud8k"
+      }
+    ],
+    [
+      "path",
+      {
+        d: "M13.9 17.45c-1.2-1.2-1.14-2.8-.2-3.73a2.43 2.43 0 0 1 3.44 0l.36.34.34-.34a2.43 2.43 0 0 1 3.45-.01c.95.95 1 2.53-.2 3.74L17.5 21Z",
+        key: "wpff58"
+      }
+    ]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/grid-3x3.js
+  var Grid3x3 = createLucideIcon("Grid3x3", [
+    ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
+    ["path", { d: "M3 9h18", key: "1pudct" }],
+    ["path", { d: "M3 15h18", key: "5xshup" }],
+    ["path", { d: "M9 3v18", key: "fh3hqa" }],
+    ["path", { d: "M15 3v18", key: "14nvp0" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/heart.js
+  var Heart = createLucideIcon("Heart", [
+    [
+      "path",
+      {
+        d: "M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z",
+        key: "c3ymky"
+      }
+    ]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/house.js
+  var House = createLucideIcon("House", [
+    ["path", { d: "M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8", key: "5wwlr5" }],
+    [
+      "path",
+      {
+        d: "M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z",
+        key: "1d0kgt"
+      }
+    ]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/info.js
+  var Info = createLucideIcon("Info", [
+    ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+    ["path", { d: "M12 16v-4", key: "1dtifu" }],
+    ["path", { d: "M12 8h.01", key: "e9boi3" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/key.js
+  var Key = createLucideIcon("Key", [
+    ["path", { d: "m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4", key: "g0fldk" }],
+    ["path", { d: "m21 2-9.6 9.6", key: "1j0ho8" }],
+    ["circle", { cx: "7.5", cy: "15.5", r: "5.5", key: "yqb3hr" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/list.js
+  var List = createLucideIcon("List", [
+    ["path", { d: "M3 12h.01", key: "nlz23k" }],
+    ["path", { d: "M3 18h.01", key: "1tta3j" }],
+    ["path", { d: "M3 6h.01", key: "1rqtza" }],
+    ["path", { d: "M8 12h13", key: "1za7za" }],
+    ["path", { d: "M8 18h13", key: "1lx6n3" }],
+    ["path", { d: "M8 6h13", key: "ik3vkj" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/loader-circle.js
+  var LoaderCircle = createLucideIcon("LoaderCircle", [
+    ["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/lock-keyhole.js
+  var LockKeyhole = createLucideIcon("LockKeyhole", [
+    ["circle", { cx: "12", cy: "16", r: "1", key: "1au0dj" }],
+    ["rect", { x: "3", y: "10", width: "18", height: "12", rx: "2", key: "6s8ecr" }],
+    ["path", { d: "M7 10V7a5 5 0 0 1 10 0v3", key: "1pqi11" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/lock.js
+  var Lock = createLucideIcon("Lock", [
+    ["rect", { width: "18", height: "11", x: "3", y: "11", rx: "2", ry: "2", key: "1w4ew1" }],
+    ["path", { d: "M7 11V7a5 5 0 0 1 10 0v4", key: "fwvmzm" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/mail.js
+  var Mail = createLucideIcon("Mail", [
+    ["rect", { width: "20", height: "16", x: "2", y: "4", rx: "2", key: "18n3k1" }],
+    ["path", { d: "m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7", key: "1ocrg3" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/map-pin.js
+  var MapPin = createLucideIcon("MapPin", [
+    [
+      "path",
+      {
+        d: "M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0",
+        key: "1r0f0z"
+      }
+    ],
+    ["circle", { cx: "12", cy: "10", r: "3", key: "ilqhr7" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/menu.js
+  var Menu = createLucideIcon("Menu", [
+    ["line", { x1: "4", x2: "20", y1: "12", y2: "12", key: "1e0a9i" }],
+    ["line", { x1: "4", x2: "20", y1: "6", y2: "6", key: "1owob3" }],
+    ["line", { x1: "4", x2: "20", y1: "18", y2: "18", key: "yk5zj1" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/message-circle.js
+  var MessageCircle = createLucideIcon("MessageCircle", [
+    ["path", { d: "M7.9 20A9 9 0 1 0 4 16.1L2 22Z", key: "vv11sd" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/minus.js
+  var Minus = createLucideIcon("Minus", [["path", { d: "M5 12h14", key: "1ays0h" }]]);
+
+  // node_modules/lucide-react/dist/esm/icons/package.js
+  var Package = createLucideIcon("Package", [
+    [
+      "path",
+      {
+        d: "M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z",
+        key: "1a0edw"
+      }
+    ],
+    ["path", { d: "M12 22V12", key: "d0xqtd" }],
+    ["path", { d: "m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7", key: "yx3hmr" }],
+    ["path", { d: "m7.5 4.27 9 5.15", key: "1c824w" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/phone.js
+  var Phone = createLucideIcon("Phone", [
+    [
+      "path",
+      {
+        d: "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z",
+        key: "foiqr5"
+      }
+    ]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/plus.js
+  var Plus = createLucideIcon("Plus", [
+    ["path", { d: "M5 12h14", key: "1ays0h" }],
+    ["path", { d: "M12 5v14", key: "s699le" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/qr-code.js
+  var QrCode = createLucideIcon("QrCode", [
+    ["rect", { width: "5", height: "5", x: "3", y: "3", rx: "1", key: "1tu5fj" }],
+    ["rect", { width: "5", height: "5", x: "16", y: "3", rx: "1", key: "1v8r4q" }],
+    ["rect", { width: "5", height: "5", x: "3", y: "16", rx: "1", key: "1x03jg" }],
+    ["path", { d: "M21 16h-3a2 2 0 0 0-2 2v3", key: "177gqh" }],
+    ["path", { d: "M21 21v.01", key: "ents32" }],
+    ["path", { d: "M12 7v3a2 2 0 0 1-2 2H7", key: "8crl2c" }],
+    ["path", { d: "M3 12h.01", key: "nlz23k" }],
+    ["path", { d: "M12 3h.01", key: "n36tog" }],
+    ["path", { d: "M12 16v.01", key: "133mhm" }],
+    ["path", { d: "M16 12h1", key: "1slzba" }],
+    ["path", { d: "M21 12v.01", key: "1lwtk9" }],
+    ["path", { d: "M12 21v-1", key: "1880an" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/rotate-ccw.js
+  var RotateCcw = createLucideIcon("RotateCcw", [
+    ["path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" }],
+    ["path", { d: "M3 3v5h5", key: "1xhq8a" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/save.js
+  var Save = createLucideIcon("Save", [
+    [
+      "path",
+      {
+        d: "M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z",
+        key: "1c8476"
+      }
+    ],
+    ["path", { d: "M17 21v-7a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1v7", key: "1ydtos" }],
+    ["path", { d: "M7 3v4a1 1 0 0 0 1 1h7", key: "t51u73" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/search.js
+  var Search = createLucideIcon("Search", [
+    ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }],
+    ["path", { d: "m21 21-4.3-4.3", key: "1qie3q" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/send.js
+  var Send = createLucideIcon("Send", [
+    [
+      "path",
+      {
+        d: "M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z",
+        key: "1ffxy3"
+      }
+    ],
+    ["path", { d: "m21.854 2.147-10.94 10.939", key: "12cjpa" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/settings.js
+  var Settings = createLucideIcon("Settings", [
+    [
+      "path",
+      {
+        d: "M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z",
+        key: "1qme2f"
+      }
+    ],
+    ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/shield-check.js
+  var ShieldCheck = createLucideIcon("ShieldCheck", [
+    [
+      "path",
+      {
+        d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
+        key: "oel41y"
+      }
+    ],
+    ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/shield.js
+  var Shield = createLucideIcon("Shield", [
+    [
+      "path",
+      {
+        d: "M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z",
+        key: "oel41y"
+      }
+    ]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/shopping-bag.js
+  var ShoppingBag = createLucideIcon("ShoppingBag", [
+    ["path", { d: "M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z", key: "hou9p0" }],
+    ["path", { d: "M3 6h18", key: "d0wm0j" }],
+    ["path", { d: "M16 10a4 4 0 0 1-8 0", key: "1ltviw" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/shopping-cart.js
+  var ShoppingCart = createLucideIcon("ShoppingCart", [
+    ["circle", { cx: "8", cy: "21", r: "1", key: "jimo8o" }],
+    ["circle", { cx: "19", cy: "21", r: "1", key: "13723u" }],
+    [
+      "path",
+      {
+        d: "M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12",
+        key: "9zh506"
+      }
+    ]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/sliders-horizontal.js
+  var SlidersHorizontal = createLucideIcon("SlidersHorizontal", [
+    ["line", { x1: "21", x2: "14", y1: "4", y2: "4", key: "obuewd" }],
+    ["line", { x1: "10", x2: "3", y1: "4", y2: "4", key: "1q6298" }],
+    ["line", { x1: "21", x2: "12", y1: "12", y2: "12", key: "1iu8h1" }],
+    ["line", { x1: "8", x2: "3", y1: "12", y2: "12", key: "ntss68" }],
+    ["line", { x1: "21", x2: "16", y1: "20", y2: "20", key: "14d8ph" }],
+    ["line", { x1: "12", x2: "3", y1: "20", y2: "20", key: "m0wm8r" }],
+    ["line", { x1: "14", x2: "14", y1: "2", y2: "6", key: "14e1ph" }],
+    ["line", { x1: "8", x2: "8", y1: "10", y2: "14", key: "1i6ji0" }],
+    ["line", { x1: "16", x2: "16", y1: "18", y2: "22", key: "1lctlv" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/sparkles.js
+  var Sparkles = createLucideIcon("Sparkles", [
+    [
+      "path",
+      {
+        d: "M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z",
+        key: "4pj2yx"
+      }
+    ],
+    ["path", { d: "M20 3v4", key: "1olli1" }],
+    ["path", { d: "M22 5h-4", key: "1gvqau" }],
+    ["path", { d: "M4 17v2", key: "vumght" }],
+    ["path", { d: "M5 18H3", key: "zchphs" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/trash-2.js
+  var Trash2 = createLucideIcon("Trash2", [
+    ["path", { d: "M3 6h18", key: "d0wm0j" }],
+    ["path", { d: "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6", key: "4alrt4" }],
+    ["path", { d: "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2", key: "v07s0e" }],
+    ["line", { x1: "10", x2: "10", y1: "11", y2: "17", key: "1uufr5" }],
+    ["line", { x1: "14", x2: "14", y1: "11", y2: "17", key: "xtxkd" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/truck.js
+  var Truck = createLucideIcon("Truck", [
+    ["path", { d: "M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2", key: "wrbu53" }],
+    ["path", { d: "M15 18H9", key: "1lyqi6" }],
+    [
+      "path",
+      {
+        d: "M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14",
+        key: "lysw3i"
+      }
+    ],
+    ["circle", { cx: "17", cy: "18", r: "2", key: "332jqn" }],
+    ["circle", { cx: "7", cy: "18", r: "2", key: "19iecd" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/user-round.js
+  var UserRound = createLucideIcon("UserRound", [
+    ["circle", { cx: "12", cy: "8", r: "5", key: "1hypcn" }],
+    ["path", { d: "M20 21a8 8 0 0 0-16 0", key: "rfgkzh" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/user.js
+  var User = createLucideIcon("User", [
+    ["path", { d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2", key: "975kel" }],
+    ["circle", { cx: "12", cy: "7", r: "4", key: "17ys0d" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/users.js
+  var Users = createLucideIcon("Users", [
+    ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
+    ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }],
+    ["path", { d: "M22 21v-2a4 4 0 0 0-3-3.87", key: "kshegd" }],
+    ["path", { d: "M16 3.13a4 4 0 0 1 0 7.75", key: "1da9ce" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/wallet.js
+  var Wallet = createLucideIcon("Wallet", [
+    [
+      "path",
+      {
+        d: "M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1",
+        key: "18etb6"
+      }
+    ],
+    ["path", { d: "M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4", key: "xoc0q4" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/wand-sparkles.js
+  var WandSparkles = createLucideIcon("WandSparkles", [
+    [
+      "path",
+      {
+        d: "m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72",
+        key: "ul74o6"
+      }
+    ],
+    ["path", { d: "m14 7 3 3", key: "1r5n42" }],
+    ["path", { d: "M5 6v4", key: "ilb8ba" }],
+    ["path", { d: "M19 14v4", key: "blhpug" }],
+    ["path", { d: "M10 2v2", key: "7u0qdc" }],
+    ["path", { d: "M7 8H3", key: "zfb6yr" }],
+    ["path", { d: "M21 16h-4", key: "1cnmox" }],
+    ["path", { d: "M11 3H9", key: "1obp7u" }]
+  ]);
+
+  // node_modules/lucide-react/dist/esm/icons/x.js
+  var X = createLucideIcon("X", [
+    ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
+    ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
+  ]);
+
+  // theme-host:react/jsx-runtime
+  var runtime = globalThis.__JIFFOO_THEME_HOST__?.jsxRuntime;
+  if (!runtime) {
+    throw new Error("Theme runtime host bridge is missing react/jsx-runtime");
+  }
+  var Fragment2 = runtime.Fragment;
+  var jsx = runtime.jsx;
+  var jsxs = runtime.jsxs;
+  var jsxDEV = runtime.jsxDEV;
+
+  // node_modules/framer-motion/dist/es/context/LayoutGroupContext.mjs
+  var LayoutGroupContext = createContext({});
+
+  // node_modules/framer-motion/dist/es/utils/use-constant.mjs
+  function useConstant(init) {
+    const ref = useRef(null);
+    if (ref.current === null) {
+      ref.current = init();
+    }
+    return ref.current;
+  }
+
+  // node_modules/framer-motion/dist/es/context/PresenceContext.mjs
+  var PresenceContext = createContext(null);
+
+  // node_modules/framer-motion/dist/es/context/MotionConfigContext.mjs
+  var MotionConfigContext = createContext({
+    transformPagePoint: (p) => p,
+    isStatic: false,
+    reducedMotion: "never"
+  });
+
+  // node_modules/framer-motion/dist/es/components/AnimatePresence/PopChild.mjs
+  var PopChildMeasure = class extends Component {
+    getSnapshotBeforeUpdate(prevProps) {
+      const element = this.props.childRef.current;
+      if (element && prevProps.isPresent && !this.props.isPresent) {
+        const size = this.props.sizeRef.current;
+        size.height = element.offsetHeight || 0;
+        size.width = element.offsetWidth || 0;
+        size.top = element.offsetTop;
+        size.left = element.offsetLeft;
+      }
+      return null;
+    }
+    /**
+     * Required with getSnapshotBeforeUpdate to stop React complaining.
+     */
+    componentDidUpdate() {
+    }
+    render() {
+      return this.props.children;
+    }
+  };
+  function PopChild({ children, isPresent }) {
+    const id3 = useId();
+    const ref = useRef(null);
+    const size = useRef({
+      width: 0,
+      height: 0,
+      top: 0,
+      left: 0
+    });
+    const { nonce } = useContext(MotionConfigContext);
+    useInsertionEffect(() => {
+      const { width, height, top, left } = size.current;
+      if (isPresent || !ref.current || !width || !height)
+        return;
+      ref.current.dataset.motionPopId = id3;
+      const style = document.createElement("style");
+      if (nonce)
+        style.nonce = nonce;
+      document.head.appendChild(style);
+      if (style.sheet) {
+        style.sheet.insertRule(`
+          [data-motion-pop-id="${id3}"] {
+            position: absolute !important;
+            width: ${width}px !important;
+            height: ${height}px !important;
+            top: ${top}px !important;
+            left: ${left}px !important;
+          }
+        `);
+      }
+      return () => {
+        document.head.removeChild(style);
+      };
+    }, [isPresent]);
+    return jsx(PopChildMeasure, { isPresent, childRef: ref, sizeRef: size, children: cloneElement(children, { ref }) });
+  }
+
+  // node_modules/framer-motion/dist/es/components/AnimatePresence/PresenceChild.mjs
+  var PresenceChild = ({ children, initial, isPresent, onExitComplete, custom, presenceAffectsLayout, mode }) => {
+    const presenceChildren = useConstant(newChildrenMap);
+    const id3 = useId();
+    const memoizedOnExitComplete = useCallback((childId) => {
+      presenceChildren.set(childId, true);
+      for (const isComplete of presenceChildren.values()) {
+        if (!isComplete)
+          return;
+      }
+      onExitComplete && onExitComplete();
+    }, [presenceChildren, onExitComplete]);
+    const context = useMemo(
+      () => ({
+        id: id3,
+        initial,
+        isPresent,
+        custom,
+        onExitComplete: memoizedOnExitComplete,
+        register: (childId) => {
+          presenceChildren.set(childId, false);
+          return () => presenceChildren.delete(childId);
+        }
+      }),
+      /**
+       * If the presence of a child affects the layout of the components around it,
+       * we want to make a new context value to ensure they get re-rendered
+       * so they can detect that layout change.
+       */
+      presenceAffectsLayout ? [Math.random(), memoizedOnExitComplete] : [isPresent, memoizedOnExitComplete]
+    );
+    useMemo(() => {
+      presenceChildren.forEach((_, key) => presenceChildren.set(key, false));
+    }, [isPresent]);
+    useEffect(() => {
+      !isPresent && !presenceChildren.size && onExitComplete && onExitComplete();
+    }, [isPresent]);
+    if (mode === "popLayout") {
+      children = jsx(PopChild, { isPresent, children });
+    }
+    return jsx(PresenceContext.Provider, { value: context, children });
+  };
+  function newChildrenMap() {
+    return /* @__PURE__ */ new Map();
+  }
+
+  // node_modules/framer-motion/dist/es/components/AnimatePresence/use-presence.mjs
+  function usePresence(subscribe = true) {
+    const context = useContext(PresenceContext);
+    if (context === null)
+      return [true, null];
+    const { isPresent, onExitComplete, register } = context;
+    const id3 = useId();
+    useEffect(() => {
+      if (subscribe)
+        register(id3);
+    }, [subscribe]);
+    const safeToRemove = useCallback(() => subscribe && onExitComplete && onExitComplete(id3), [id3, onExitComplete, subscribe]);
+    return !isPresent && onExitComplete ? [false, safeToRemove] : [true];
+  }
+
+  // node_modules/framer-motion/dist/es/components/AnimatePresence/utils.mjs
+  var getChildKey = (child) => child.key || "";
+  function onlyElements(children) {
+    const filtered = [];
+    Children.forEach(children, (child) => {
+      if (isValidElement(child))
+        filtered.push(child);
+    });
+    return filtered;
+  }
+
+  // node_modules/framer-motion/dist/es/utils/is-browser.mjs
+  var isBrowser = typeof window !== "undefined";
+
+  // node_modules/framer-motion/dist/es/utils/use-isomorphic-effect.mjs
+  var useIsomorphicLayoutEffect = isBrowser ? useLayoutEffect : useEffect;
+
+  // node_modules/framer-motion/dist/es/components/AnimatePresence/index.mjs
+  var AnimatePresence = ({ children, custom, initial = true, onExitComplete, presenceAffectsLayout = true, mode = "sync", propagate = false }) => {
+    const [isParentPresent, safeToRemove] = usePresence(propagate);
+    const presentChildren = useMemo(() => onlyElements(children), [children]);
+    const presentKeys = propagate && !isParentPresent ? [] : presentChildren.map(getChildKey);
+    const isInitialRender = useRef(true);
+    const pendingPresentChildren = useRef(presentChildren);
+    const exitComplete = useConstant(() => /* @__PURE__ */ new Map());
+    const [diffedChildren, setDiffedChildren] = useState(presentChildren);
+    const [renderedChildren, setRenderedChildren] = useState(presentChildren);
+    useIsomorphicLayoutEffect(() => {
+      isInitialRender.current = false;
+      pendingPresentChildren.current = presentChildren;
+      for (let i = 0; i < renderedChildren.length; i++) {
+        const key = getChildKey(renderedChildren[i]);
+        if (!presentKeys.includes(key)) {
+          if (exitComplete.get(key) !== true) {
+            exitComplete.set(key, false);
+          }
+        } else {
+          exitComplete.delete(key);
+        }
+      }
+    }, [renderedChildren, presentKeys.length, presentKeys.join("-")]);
+    const exitingChildren = [];
+    if (presentChildren !== diffedChildren) {
+      let nextChildren = [...presentChildren];
+      for (let i = 0; i < renderedChildren.length; i++) {
+        const child = renderedChildren[i];
+        const key = getChildKey(child);
+        if (!presentKeys.includes(key)) {
+          nextChildren.splice(i, 0, child);
+          exitingChildren.push(child);
+        }
+      }
+      if (mode === "wait" && exitingChildren.length) {
+        nextChildren = exitingChildren;
+      }
+      setRenderedChildren(onlyElements(nextChildren));
+      setDiffedChildren(presentChildren);
+      return;
+    }
+    if (mode === "wait" && renderedChildren.length > 1) {
+      console.warn(`You're attempting to animate multiple children within AnimatePresence, but its mode is set to "wait". This will lead to odd visual behaviour.`);
+    }
+    const { forceRender } = useContext(LayoutGroupContext);
+    return jsx(Fragment2, { children: renderedChildren.map((child) => {
+      const key = getChildKey(child);
+      const isPresent = propagate && !isParentPresent ? false : presentChildren === renderedChildren || presentKeys.includes(key);
+      const onExit = () => {
+        if (exitComplete.has(key)) {
+          exitComplete.set(key, true);
+        } else {
+          return;
+        }
+        let isEveryExitComplete = true;
+        exitComplete.forEach((isExitComplete) => {
+          if (!isExitComplete)
+            isEveryExitComplete = false;
+        });
+        if (isEveryExitComplete) {
+          forceRender === null || forceRender === void 0 ? void 0 : forceRender();
+          setRenderedChildren(pendingPresentChildren.current);
+          propagate && (safeToRemove === null || safeToRemove === void 0 ? void 0 : safeToRemove());
+          onExitComplete && onExitComplete();
+        }
+      };
+      return jsx(PresenceChild, { isPresent, initial: !isInitialRender.current || initial ? void 0 : false, custom: isPresent ? void 0 : custom, presenceAffectsLayout, mode, onExitComplete: isPresent ? void 0 : onExit, children: child }, key);
+    }) });
+  };
+
+  // node_modules/motion-utils/dist/es/noop.mjs
+  var noop = /* @__NO_SIDE_EFFECTS__ */ (any) => any;
+
+  // node_modules/motion-utils/dist/es/errors.mjs
+  var warning = noop;
+  var invariant = noop;
+  if (true) {
+    warning = (check, message) => {
+      if (!check && typeof console !== "undefined") {
+        console.warn(message);
+      }
+    };
+    invariant = (check, message) => {
+      if (!check) {
+        throw new Error(message);
+      }
+    };
+  }
+
+  // node_modules/motion-utils/dist/es/memo.mjs
+  // @__NO_SIDE_EFFECTS__
+  function memo2(callback) {
+    let result;
+    return () => {
+      if (result === void 0)
+        result = callback();
+      return result;
+    };
+  }
+
+  // node_modules/motion-utils/dist/es/progress.mjs
+  var progress = /* @__NO_SIDE_EFFECTS__ */ (from, to, value) => {
+    const toFromDifference = to - from;
+    return toFromDifference === 0 ? 1 : (value - from) / toFromDifference;
+  };
+
+  // node_modules/motion-utils/dist/es/time-conversion.mjs
+  var secondsToMilliseconds = /* @__NO_SIDE_EFFECTS__ */ (seconds) => seconds * 1e3;
+  var millisecondsToSeconds = /* @__NO_SIDE_EFFECTS__ */ (milliseconds) => milliseconds / 1e3;
+
+  // node_modules/framer-motion/dist/es/utils/GlobalConfig.mjs
+  var MotionGlobalConfig = {
+    skipAnimations: false,
+    useManualTiming: false
+  };
+
+  // node_modules/framer-motion/dist/es/frameloop/render-step.mjs
+  function createRenderStep(runNextFrame) {
+    let thisFrame = /* @__PURE__ */ new Set();
+    let nextFrame = /* @__PURE__ */ new Set();
+    let isProcessing = false;
+    let flushNextFrame = false;
+    const toKeepAlive = /* @__PURE__ */ new WeakSet();
+    let latestFrameData = {
+      delta: 0,
+      timestamp: 0,
+      isProcessing: false
+    };
+    function triggerCallback(callback) {
+      if (toKeepAlive.has(callback)) {
+        step.schedule(callback);
+        runNextFrame();
+      }
+      callback(latestFrameData);
+    }
+    const step = {
+      /**
+       * Schedule a process to run on the next frame.
+       */
+      schedule: (callback, keepAlive = false, immediate = false) => {
+        const addToCurrentFrame = immediate && isProcessing;
+        const queue = addToCurrentFrame ? thisFrame : nextFrame;
+        if (keepAlive)
+          toKeepAlive.add(callback);
+        if (!queue.has(callback))
+          queue.add(callback);
+        return callback;
+      },
+      /**
+       * Cancel the provided callback from running on the next frame.
+       */
+      cancel: (callback) => {
+        nextFrame.delete(callback);
+        toKeepAlive.delete(callback);
+      },
+      /**
+       * Execute all schedule callbacks.
+       */
+      process: (frameData2) => {
+        latestFrameData = frameData2;
+        if (isProcessing) {
+          flushNextFrame = true;
+          return;
+        }
+        isProcessing = true;
+        [thisFrame, nextFrame] = [nextFrame, thisFrame];
+        thisFrame.forEach(triggerCallback);
+        thisFrame.clear();
+        isProcessing = false;
+        if (flushNextFrame) {
+          flushNextFrame = false;
+          step.process(frameData2);
+        }
+      }
+    };
+    return step;
+  }
+
+  // node_modules/framer-motion/dist/es/frameloop/batcher.mjs
+  var stepsOrder = [
+    "read",
+    // Read
+    "resolveKeyframes",
+    // Write/Read/Write/Read
+    "update",
+    // Compute
+    "preRender",
+    // Compute
+    "render",
+    // Write
+    "postRender"
+    // Compute
+  ];
+  var maxElapsed = 40;
+  function createRenderBatcher(scheduleNextBatch, allowKeepAlive) {
+    let runNextFrame = false;
+    let useDefaultElapsed = true;
+    const state = {
+      delta: 0,
+      timestamp: 0,
+      isProcessing: false
+    };
+    const flagRunNextFrame = () => runNextFrame = true;
+    const steps = stepsOrder.reduce((acc, key) => {
+      acc[key] = createRenderStep(flagRunNextFrame);
+      return acc;
+    }, {});
+    const { read, resolveKeyframes, update, preRender, render, postRender } = steps;
+    const processBatch = () => {
+      const timestamp = MotionGlobalConfig.useManualTiming ? state.timestamp : performance.now();
+      runNextFrame = false;
+      state.delta = useDefaultElapsed ? 1e3 / 60 : Math.max(Math.min(timestamp - state.timestamp, maxElapsed), 1);
+      state.timestamp = timestamp;
+      state.isProcessing = true;
+      read.process(state);
+      resolveKeyframes.process(state);
+      update.process(state);
+      preRender.process(state);
+      render.process(state);
+      postRender.process(state);
+      state.isProcessing = false;
+      if (runNextFrame && allowKeepAlive) {
+        useDefaultElapsed = false;
+        scheduleNextBatch(processBatch);
+      }
+    };
+    const wake = () => {
+      runNextFrame = true;
+      useDefaultElapsed = true;
+      if (!state.isProcessing) {
+        scheduleNextBatch(processBatch);
+      }
+    };
+    const schedule = stepsOrder.reduce((acc, key) => {
+      const step = steps[key];
+      acc[key] = (process2, keepAlive = false, immediate = false) => {
+        if (!runNextFrame)
+          wake();
+        return step.schedule(process2, keepAlive, immediate);
+      };
+      return acc;
+    }, {});
+    const cancel = (process2) => {
+      for (let i = 0; i < stepsOrder.length; i++) {
+        steps[stepsOrder[i]].cancel(process2);
+      }
+    };
+    return { schedule, cancel, state, steps };
+  }
+
+  // node_modules/framer-motion/dist/es/frameloop/frame.mjs
+  var { schedule: frame, cancel: cancelFrame, state: frameData, steps: frameSteps } = createRenderBatcher(typeof requestAnimationFrame !== "undefined" ? requestAnimationFrame : noop, true);
+
+  // node_modules/framer-motion/dist/es/context/LazyContext.mjs
+  var LazyContext = createContext({ strict: false });
+
+  // node_modules/framer-motion/dist/es/motion/features/definitions.mjs
+  var featureProps = {
+    animation: [
+      "animate",
+      "variants",
+      "whileHover",
+      "whileTap",
+      "exit",
+      "whileInView",
+      "whileFocus",
+      "whileDrag"
+    ],
+    exit: ["exit"],
+    drag: ["drag", "dragControls"],
+    focus: ["whileFocus"],
+    hover: ["whileHover", "onHoverStart", "onHoverEnd"],
+    tap: ["whileTap", "onTap", "onTapStart", "onTapCancel"],
+    pan: ["onPan", "onPanStart", "onPanSessionStart", "onPanEnd"],
+    inView: ["whileInView", "onViewportEnter", "onViewportLeave"],
+    layout: ["layout", "layoutId"]
+  };
+  var featureDefinitions = {};
+  for (const key in featureProps) {
+    featureDefinitions[key] = {
+      isEnabled: (props) => featureProps[key].some((name) => !!props[name])
+    };
+  }
+
+  // node_modules/framer-motion/dist/es/motion/features/load-features.mjs
+  function loadFeatures(features) {
+    for (const key in features) {
+      featureDefinitions[key] = {
+        ...featureDefinitions[key],
+        ...features[key]
+      };
+    }
+  }
+
+  // node_modules/framer-motion/dist/es/motion/utils/valid-prop.mjs
+  var validMotionProps = /* @__PURE__ */ new Set([
+    "animate",
+    "exit",
+    "variants",
+    "initial",
+    "style",
+    "values",
+    "variants",
+    "transition",
+    "transformTemplate",
+    "custom",
+    "inherit",
+    "onBeforeLayoutMeasure",
+    "onAnimationStart",
+    "onAnimationComplete",
+    "onUpdate",
+    "onDragStart",
+    "onDrag",
+    "onDragEnd",
+    "onMeasureDragConstraints",
+    "onDirectionLock",
+    "onDragTransitionEnd",
+    "_dragX",
+    "_dragY",
+    "onHoverStart",
+    "onHoverEnd",
+    "onViewportEnter",
+    "onViewportLeave",
+    "globalTapTarget",
+    "ignoreStrict",
+    "viewport"
+  ]);
+  function isValidMotionProp(key) {
+    return key.startsWith("while") || key.startsWith("drag") && key !== "draggable" || key.startsWith("layout") || key.startsWith("onTap") || key.startsWith("onPan") || key.startsWith("onLayout") || validMotionProps.has(key);
+  }
+
+  // node_modules/framer-motion/dist/es/render/dom/utils/filter-props.mjs
+  var shouldForward = (key) => !isValidMotionProp(key);
+  function loadExternalIsValidProp(isValidProp) {
+    if (!isValidProp)
+      return;
+    shouldForward = (key) => key.startsWith("on") ? !isValidMotionProp(key) : isValidProp(key);
+  }
+  try {
+    loadExternalIsValidProp(__require("@emotion/is-prop-valid").default);
+  } catch (_a) {
+  }
+  function filterProps(props, isDom, forwardMotionProps) {
+    const filteredProps = {};
+    for (const key in props) {
+      if (key === "values" && typeof props.values === "object")
+        continue;
+      if (shouldForward(key) || forwardMotionProps === true && isValidMotionProp(key) || !isDom && !isValidMotionProp(key) || // If trying to use native HTML drag events, forward drag listeners
+      props["draggable"] && key.startsWith("onDrag")) {
+        filteredProps[key] = props[key];
+      }
+    }
+    return filteredProps;
+  }
+
+  // node_modules/framer-motion/dist/es/utils/warn-once.mjs
+  var warned = /* @__PURE__ */ new Set();
+  function warnOnce(condition, message, element) {
+    if (condition || warned.has(message))
+      return;
+    console.warn(message);
+    if (element)
+      console.warn(element);
+    warned.add(message);
+  }
+
+  // node_modules/framer-motion/dist/es/render/components/create-proxy.mjs
+  function createDOMMotionComponentProxy(componentFactory) {
+    if (typeof Proxy === "undefined") {
+      return componentFactory;
+    }
+    const componentCache = /* @__PURE__ */ new Map();
+    const deprecatedFactoryFunction = (...args) => {
+      if (true) {
+        warnOnce(false, "motion() is deprecated. Use motion.create() instead.");
+      }
+      return componentFactory(...args);
+    };
+    return new Proxy(deprecatedFactoryFunction, {
+      /**
+       * Called when `motion` is referenced with a prop: `motion.div`, `motion.input` etc.
+       * The prop name is passed through as `key` and we can use that to generate a `motion`
+       * DOM component with that name.
+       */
+      get: (_target, key) => {
+        if (key === "create")
+          return componentFactory;
+        if (!componentCache.has(key)) {
+          componentCache.set(key, componentFactory(key));
+        }
+        return componentCache.get(key);
+      }
+    });
+  }
+
+  // node_modules/framer-motion/dist/es/context/MotionContext/index.mjs
+  var MotionContext = createContext({});
+
+  // node_modules/framer-motion/dist/es/render/utils/is-variant-label.mjs
+  function isVariantLabel(v) {
+    return typeof v === "string" || Array.isArray(v);
+  }
+
+  // node_modules/framer-motion/dist/es/animation/utils/is-animation-controls.mjs
+  function isAnimationControls(v) {
+    return v !== null && typeof v === "object" && typeof v.start === "function";
+  }
+
+  // node_modules/framer-motion/dist/es/render/utils/variant-props.mjs
+  var variantPriorityOrder = [
+    "animate",
+    "whileInView",
+    "whileFocus",
+    "whileHover",
+    "whileTap",
+    "whileDrag",
+    "exit"
+  ];
+  var variantProps = ["initial", ...variantPriorityOrder];
+
+  // node_modules/framer-motion/dist/es/render/utils/is-controlling-variants.mjs
+  function isControllingVariants(props) {
+    return isAnimationControls(props.animate) || variantProps.some((name) => isVariantLabel(props[name]));
+  }
+  function isVariantNode(props) {
+    return Boolean(isControllingVariants(props) || props.variants);
+  }
+
+  // node_modules/framer-motion/dist/es/context/MotionContext/utils.mjs
+  function getCurrentTreeVariants(props, context) {
+    if (isControllingVariants(props)) {
+      const { initial, animate } = props;
+      return {
+        initial: initial === false || isVariantLabel(initial) ? initial : void 0,
+        animate: isVariantLabel(animate) ? animate : void 0
+      };
+    }
+    return props.inherit !== false ? context : {};
+  }
+
+  // node_modules/framer-motion/dist/es/context/MotionContext/create.mjs
+  function useCreateMotionContext(props) {
+    const { initial, animate } = getCurrentTreeVariants(props, useContext(MotionContext));
+    return useMemo(() => ({ initial, animate }), [variantLabelsAsDependency(initial), variantLabelsAsDependency(animate)]);
+  }
+  function variantLabelsAsDependency(prop) {
+    return Array.isArray(prop) ? prop.join(" ") : prop;
+  }
+
+  // node_modules/framer-motion/dist/es/motion/utils/symbol.mjs
+  var motionComponentSymbol = /* @__PURE__ */ Symbol.for("motionComponentSymbol");
+
+  // node_modules/framer-motion/dist/es/utils/is-ref-object.mjs
+  function isRefObject(ref) {
+    return ref && typeof ref === "object" && Object.prototype.hasOwnProperty.call(ref, "current");
+  }
+
+  // node_modules/framer-motion/dist/es/motion/utils/use-motion-ref.mjs
+  function useMotionRef(visualState, visualElement, externalRef) {
+    return useCallback(
+      (instance) => {
+        if (instance) {
+          visualState.onMount && visualState.onMount(instance);
+        }
+        if (visualElement) {
+          if (instance) {
+            visualElement.mount(instance);
+          } else {
+            visualElement.unmount();
+          }
+        }
+        if (externalRef) {
+          if (typeof externalRef === "function") {
+            externalRef(instance);
+          } else if (isRefObject(externalRef)) {
+            externalRef.current = instance;
+          }
+        }
+      },
+      /**
+       * Only pass a new ref callback to React if we've received a visual element
+       * factory. Otherwise we'll be mounting/remounting every time externalRef
+       * or other dependencies change.
+       */
+      [visualElement]
+    );
+  }
+
+  // node_modules/framer-motion/dist/es/render/dom/utils/camel-to-dash.mjs
+  var camelToDash = (str) => str.replace(/([a-z])([A-Z])/gu, "$1-$2").toLowerCase();
+
+  // node_modules/framer-motion/dist/es/animation/optimized-appear/data-id.mjs
+  var optimizedAppearDataId = "framerAppearId";
+  var optimizedAppearDataAttribute = "data-" + camelToDash(optimizedAppearDataId);
+
+  // node_modules/framer-motion/dist/es/frameloop/microtask.mjs
+  var { schedule: microtask, cancel: cancelMicrotask } = createRenderBatcher(queueMicrotask, false);
+
+  // node_modules/framer-motion/dist/es/context/SwitchLayoutGroupContext.mjs
+  var SwitchLayoutGroupContext = createContext({});
+
+  // node_modules/framer-motion/dist/es/motion/utils/use-visual-element.mjs
+  function useVisualElement(Component2, visualState, props, createVisualElement, ProjectionNodeConstructor) {
+    var _a, _b;
+    const { visualElement: parent } = useContext(MotionContext);
+    const lazyContext = useContext(LazyContext);
+    const presenceContext = useContext(PresenceContext);
+    const reducedMotionConfig = useContext(MotionConfigContext).reducedMotion;
+    const visualElementRef = useRef(null);
+    createVisualElement = createVisualElement || lazyContext.renderer;
+    if (!visualElementRef.current && createVisualElement) {
+      visualElementRef.current = createVisualElement(Component2, {
+        visualState,
+        parent,
+        props,
+        presenceContext,
+        blockInitialAnimation: presenceContext ? presenceContext.initial === false : false,
+        reducedMotionConfig
+      });
+    }
+    const visualElement = visualElementRef.current;
+    const initialLayoutGroupConfig = useContext(SwitchLayoutGroupContext);
+    if (visualElement && !visualElement.projection && ProjectionNodeConstructor && (visualElement.type === "html" || visualElement.type === "svg")) {
+      createProjectionNode(visualElementRef.current, props, ProjectionNodeConstructor, initialLayoutGroupConfig);
+    }
+    const isMounted = useRef(false);
+    useInsertionEffect(() => {
+      if (visualElement && isMounted.current) {
+        visualElement.update(props, presenceContext);
+      }
+    });
+    const optimisedAppearId = props[optimizedAppearDataAttribute];
+    const wantsHandoff = useRef(Boolean(optimisedAppearId) && !((_a = window.MotionHandoffIsComplete) === null || _a === void 0 ? void 0 : _a.call(window, optimisedAppearId)) && ((_b = window.MotionHasOptimisedAnimation) === null || _b === void 0 ? void 0 : _b.call(window, optimisedAppearId)));
+    useIsomorphicLayoutEffect(() => {
+      if (!visualElement)
+        return;
+      isMounted.current = true;
+      window.MotionIsMounted = true;
+      visualElement.updateFeatures();
+      microtask.render(visualElement.render);
+      if (wantsHandoff.current && visualElement.animationState) {
+        visualElement.animationState.animateChanges();
+      }
+    });
+    useEffect(() => {
+      if (!visualElement)
+        return;
+      if (!wantsHandoff.current && visualElement.animationState) {
+        visualElement.animationState.animateChanges();
+      }
+      if (wantsHandoff.current) {
+        queueMicrotask(() => {
+          var _a2;
+          (_a2 = window.MotionHandoffMarkAsComplete) === null || _a2 === void 0 ? void 0 : _a2.call(window, optimisedAppearId);
+        });
+        wantsHandoff.current = false;
+      }
+    });
+    return visualElement;
+  }
+  function createProjectionNode(visualElement, props, ProjectionNodeConstructor, initialPromotionConfig) {
+    const { layoutId, layout: layout2, drag: drag2, dragConstraints, layoutScroll, layoutRoot } = props;
+    visualElement.projection = new ProjectionNodeConstructor(visualElement.latestValues, props["data-framer-portal-id"] ? void 0 : getClosestProjectingNode(visualElement.parent));
+    visualElement.projection.setOptions({
+      layoutId,
+      layout: layout2,
+      alwaysMeasureLayout: Boolean(drag2) || dragConstraints && isRefObject(dragConstraints),
+      visualElement,
+      /**
+       * TODO: Update options in an effect. This could be tricky as it'll be too late
+       * to update by the time layout animations run.
+       * We also need to fix this safeToRemove by linking it up to the one returned by usePresence,
+       * ensuring it gets called if there's no potential layout animations.
+       *
+       */
+      animationType: typeof layout2 === "string" ? layout2 : "both",
+      initialPromotionConfig,
+      layoutScroll,
+      layoutRoot
+    });
+  }
+  function getClosestProjectingNode(visualElement) {
+    if (!visualElement)
+      return void 0;
+    return visualElement.options.allowProjection !== false ? visualElement.projection : getClosestProjectingNode(visualElement.parent);
+  }
+
+  // node_modules/framer-motion/dist/es/motion/index.mjs
+  function createRendererMotionComponent({ preloadedFeatures, createVisualElement, useRender, useVisualState, Component: Component2 }) {
+    var _a, _b;
+    preloadedFeatures && loadFeatures(preloadedFeatures);
+    function MotionComponent(props, externalRef) {
+      let MeasureLayout2;
+      const configAndProps = {
+        ...useContext(MotionConfigContext),
+        ...props,
+        layoutId: useLayoutId(props)
+      };
+      const { isStatic } = configAndProps;
+      const context = useCreateMotionContext(props);
+      const visualState = useVisualState(props, isStatic);
+      if (!isStatic && isBrowser) {
+        useStrictMode(configAndProps, preloadedFeatures);
+        const layoutProjection = getProjectionFunctionality(configAndProps);
+        MeasureLayout2 = layoutProjection.MeasureLayout;
+        context.visualElement = useVisualElement(Component2, visualState, configAndProps, createVisualElement, layoutProjection.ProjectionNode);
+      }
+      return jsxs(MotionContext.Provider, { value: context, children: [MeasureLayout2 && context.visualElement ? jsx(MeasureLayout2, { visualElement: context.visualElement, ...configAndProps }) : null, useRender(Component2, props, useMotionRef(visualState, context.visualElement, externalRef), visualState, isStatic, context.visualElement)] });
+    }
+    MotionComponent.displayName = `motion.${typeof Component2 === "string" ? Component2 : `create(${(_b = (_a = Component2.displayName) !== null && _a !== void 0 ? _a : Component2.name) !== null && _b !== void 0 ? _b : ""})`}`;
+    const ForwardRefMotionComponent = forwardRef(MotionComponent);
+    ForwardRefMotionComponent[motionComponentSymbol] = Component2;
+    return ForwardRefMotionComponent;
+  }
+  function useLayoutId({ layoutId }) {
+    const layoutGroupId = useContext(LayoutGroupContext).id;
+    return layoutGroupId && layoutId !== void 0 ? layoutGroupId + "-" + layoutId : layoutId;
+  }
+  function useStrictMode(configAndProps, preloadedFeatures) {
+    const isStrict = useContext(LazyContext).strict;
+    if (preloadedFeatures && isStrict) {
+      const strictMessage = "You have rendered a `motion` component within a `LazyMotion` component. This will break tree shaking. Import and render a `m` component instead.";
+      configAndProps.ignoreStrict ? warning(false, strictMessage) : invariant(false, strictMessage);
+    }
+  }
+  function getProjectionFunctionality(props) {
+    const { drag: drag2, layout: layout2 } = featureDefinitions;
+    if (!drag2 && !layout2)
+      return {};
+    const combined = { ...drag2, ...layout2 };
+    return {
+      MeasureLayout: (drag2 === null || drag2 === void 0 ? void 0 : drag2.isEnabled(props)) || (layout2 === null || layout2 === void 0 ? void 0 : layout2.isEnabled(props)) ? combined.MeasureLayout : void 0,
+      ProjectionNode: combined.ProjectionNode
+    };
+  }
+
+  // node_modules/framer-motion/dist/es/render/svg/lowercase-elements.mjs
+  var lowercaseSVGElements = [
+    "animate",
+    "circle",
+    "defs",
+    "desc",
+    "ellipse",
+    "g",
+    "image",
+    "line",
+    "filter",
+    "marker",
+    "mask",
+    "metadata",
+    "path",
+    "pattern",
+    "polygon",
+    "polyline",
+    "rect",
+    "stop",
+    "switch",
+    "symbol",
+    "svg",
+    "text",
+    "tspan",
+    "use",
+    "view"
+  ];
+
+  // node_modules/framer-motion/dist/es/render/dom/utils/is-svg-component.mjs
+  function isSVGComponent(Component2) {
+    if (
+      /**
+       * If it's not a string, it's a custom React component. Currently we only support
+       * HTML custom React components.
+       */
+      typeof Component2 !== "string" || /**
+       * If it contains a dash, the element is a custom HTML webcomponent.
+       */
+      Component2.includes("-")
+    ) {
+      return false;
+    } else if (
+      /**
+       * If it's in our list of lowercase SVG tags, it's an SVG component
+       */
+      lowercaseSVGElements.indexOf(Component2) > -1 || /**
+       * If it contains a capital letter, it's an SVG component
+       */
+      /[A-Z]/u.test(Component2)
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  // node_modules/framer-motion/dist/es/render/utils/resolve-variants.mjs
+  function getValueState(visualElement) {
+    const state = [{}, {}];
+    visualElement === null || visualElement === void 0 ? void 0 : visualElement.values.forEach((value, key) => {
+      state[0][key] = value.get();
+      state[1][key] = value.getVelocity();
+    });
+    return state;
+  }
+  function resolveVariantFromProps(props, definition, custom, visualElement) {
+    if (typeof definition === "function") {
+      const [current, velocity] = getValueState(visualElement);
+      definition = definition(custom !== void 0 ? custom : props.custom, current, velocity);
+    }
+    if (typeof definition === "string") {
+      definition = props.variants && props.variants[definition];
+    }
+    if (typeof definition === "function") {
+      const [current, velocity] = getValueState(visualElement);
+      definition = definition(custom !== void 0 ? custom : props.custom, current, velocity);
+    }
+    return definition;
+  }
+
+  // node_modules/framer-motion/dist/es/animation/utils/is-keyframes-target.mjs
+  var isKeyframesTarget = (v) => {
+    return Array.isArray(v);
+  };
+
+  // node_modules/framer-motion/dist/es/utils/resolve-value.mjs
+  var isCustomValue = (v) => {
+    return Boolean(v && typeof v === "object" && v.mix && v.toValue);
+  };
+  var resolveFinalValueInKeyframes = (v) => {
+    return isKeyframesTarget(v) ? v[v.length - 1] || 0 : v;
+  };
+
+  // node_modules/framer-motion/dist/es/value/utils/is-motion-value.mjs
+  var isMotionValue = (value) => Boolean(value && value.getVelocity);
+
+  // node_modules/framer-motion/dist/es/value/utils/resolve-motion-value.mjs
+  function resolveMotionValue(value) {
+    const unwrappedValue = isMotionValue(value) ? value.get() : value;
+    return isCustomValue(unwrappedValue) ? unwrappedValue.toValue() : unwrappedValue;
+  }
+
+  // node_modules/framer-motion/dist/es/motion/utils/use-visual-state.mjs
+  function makeState({ scrapeMotionValuesFromProps: scrapeMotionValuesFromProps3, createRenderState, onUpdate }, props, context, presenceContext) {
+    const state = {
+      latestValues: makeLatestValues(props, context, presenceContext, scrapeMotionValuesFromProps3),
+      renderState: createRenderState()
+    };
+    if (onUpdate) {
+      state.onMount = (instance) => onUpdate({ props, current: instance, ...state });
+      state.onUpdate = (visualElement) => onUpdate(visualElement);
+    }
+    return state;
+  }
+  var makeUseVisualState = (config) => (props, isStatic) => {
+    const context = useContext(MotionContext);
+    const presenceContext = useContext(PresenceContext);
+    const make = () => makeState(config, props, context, presenceContext);
+    return isStatic ? make() : useConstant(make);
+  };
+  function makeLatestValues(props, context, presenceContext, scrapeMotionValues) {
+    const values = {};
+    const motionValues = scrapeMotionValues(props, {});
+    for (const key in motionValues) {
+      values[key] = resolveMotionValue(motionValues[key]);
+    }
+    let { initial, animate } = props;
+    const isControllingVariants$1 = isControllingVariants(props);
+    const isVariantNode$1 = isVariantNode(props);
+    if (context && isVariantNode$1 && !isControllingVariants$1 && props.inherit !== false) {
+      if (initial === void 0)
+        initial = context.initial;
+      if (animate === void 0)
+        animate = context.animate;
+    }
+    let isInitialAnimationBlocked = presenceContext ? presenceContext.initial === false : false;
+    isInitialAnimationBlocked = isInitialAnimationBlocked || initial === false;
+    const variantToSet = isInitialAnimationBlocked ? animate : initial;
+    if (variantToSet && typeof variantToSet !== "boolean" && !isAnimationControls(variantToSet)) {
+      const list = Array.isArray(variantToSet) ? variantToSet : [variantToSet];
+      for (let i = 0; i < list.length; i++) {
+        const resolved = resolveVariantFromProps(props, list[i]);
+        if (resolved) {
+          const { transitionEnd, transition, ...target } = resolved;
+          for (const key in target) {
+            let valueTarget = target[key];
+            if (Array.isArray(valueTarget)) {
+              const index = isInitialAnimationBlocked ? valueTarget.length - 1 : 0;
+              valueTarget = valueTarget[index];
+            }
+            if (valueTarget !== null) {
+              values[key] = valueTarget;
+            }
+          }
+          for (const key in transitionEnd) {
+            values[key] = transitionEnd[key];
+          }
+        }
+      }
+    }
+    return values;
+  }
+
+  // node_modules/framer-motion/dist/es/render/html/utils/keys-transform.mjs
+  var transformPropOrder = [
+    "transformPerspective",
+    "x",
+    "y",
+    "z",
+    "translateX",
+    "translateY",
+    "translateZ",
+    "scale",
+    "scaleX",
+    "scaleY",
+    "rotate",
+    "rotateX",
+    "rotateY",
+    "rotateZ",
+    "skew",
+    "skewX",
+    "skewY"
+  ];
+  var transformProps = new Set(transformPropOrder);
+
+  // node_modules/framer-motion/dist/es/render/dom/utils/is-css-variable.mjs
+  var checkStringStartsWith = (token) => (key) => typeof key === "string" && key.startsWith(token);
+  var isCSSVariableName = /* @__PURE__ */ checkStringStartsWith("--");
+  var startsAsVariableToken = /* @__PURE__ */ checkStringStartsWith("var(--");
+  var isCSSVariableToken = (value) => {
+    const startsWithToken = startsAsVariableToken(value);
+    if (!startsWithToken)
+      return false;
+    return singleCssVariableRegex.test(value.split("/*")[0].trim());
+  };
+  var singleCssVariableRegex = /var\(--(?:[\w-]+\s*|[\w-]+\s*,(?:\s*[^)(\s]|\s*\((?:[^)(]|\([^)(]*\))*\))+\s*)\)$/iu;
+
+  // node_modules/framer-motion/dist/es/render/dom/value-types/get-as-type.mjs
+  var getValueAsType = (value, type) => {
+    return type && typeof value === "number" ? type.transform(value) : value;
+  };
+
+  // node_modules/framer-motion/dist/es/utils/clamp.mjs
+  var clamp = (min, max, v) => {
+    if (v > max)
+      return max;
+    if (v < min)
+      return min;
+    return v;
+  };
+
+  // node_modules/framer-motion/dist/es/value/types/numbers/index.mjs
+  var number = {
+    test: (v) => typeof v === "number",
+    parse: parseFloat,
+    transform: (v) => v
+  };
+  var alpha = {
+    ...number,
+    transform: (v) => clamp(0, 1, v)
+  };
+  var scale = {
+    ...number,
+    default: 1
+  };
+
+  // node_modules/framer-motion/dist/es/value/types/numbers/units.mjs
+  var createUnitType = (unit) => ({
+    test: (v) => typeof v === "string" && v.endsWith(unit) && v.split(" ").length === 1,
+    parse: parseFloat,
+    transform: (v) => `${v}${unit}`
+  });
+  var degrees = /* @__PURE__ */ createUnitType("deg");
+  var percent = /* @__PURE__ */ createUnitType("%");
+  var px = /* @__PURE__ */ createUnitType("px");
+  var vh = /* @__PURE__ */ createUnitType("vh");
+  var vw = /* @__PURE__ */ createUnitType("vw");
+  var progressPercentage = {
+    ...percent,
+    parse: (v) => percent.parse(v) / 100,
+    transform: (v) => percent.transform(v * 100)
+  };
+
+  // node_modules/framer-motion/dist/es/render/dom/value-types/number-browser.mjs
+  var browserNumberValueTypes = {
+    // Border props
+    borderWidth: px,
+    borderTopWidth: px,
+    borderRightWidth: px,
+    borderBottomWidth: px,
+    borderLeftWidth: px,
+    borderRadius: px,
+    radius: px,
+    borderTopLeftRadius: px,
+    borderTopRightRadius: px,
+    borderBottomRightRadius: px,
+    borderBottomLeftRadius: px,
+    // Positioning props
+    width: px,
+    maxWidth: px,
+    height: px,
+    maxHeight: px,
+    top: px,
+    right: px,
+    bottom: px,
+    left: px,
+    // Spacing props
+    padding: px,
+    paddingTop: px,
+    paddingRight: px,
+    paddingBottom: px,
+    paddingLeft: px,
+    margin: px,
+    marginTop: px,
+    marginRight: px,
+    marginBottom: px,
+    marginLeft: px,
+    // Misc
+    backgroundPositionX: px,
+    backgroundPositionY: px
+  };
+
+  // node_modules/framer-motion/dist/es/render/dom/value-types/transform.mjs
+  var transformValueTypes = {
+    rotate: degrees,
+    rotateX: degrees,
+    rotateY: degrees,
+    rotateZ: degrees,
+    scale,
+    scaleX: scale,
+    scaleY: scale,
+    scaleZ: scale,
+    skew: degrees,
+    skewX: degrees,
+    skewY: degrees,
+    distance: px,
+    translateX: px,
+    translateY: px,
+    translateZ: px,
+    x: px,
+    y: px,
+    z: px,
+    perspective: px,
+    transformPerspective: px,
+    opacity: alpha,
+    originX: progressPercentage,
+    originY: progressPercentage,
+    originZ: px
+  };
+
+  // node_modules/framer-motion/dist/es/render/dom/value-types/type-int.mjs
+  var int = {
+    ...number,
+    transform: Math.round
+  };
+
+  // node_modules/framer-motion/dist/es/render/dom/value-types/number.mjs
+  var numberValueTypes = {
+    ...browserNumberValueTypes,
+    ...transformValueTypes,
+    zIndex: int,
+    size: px,
+    // SVG
+    fillOpacity: alpha,
+    strokeOpacity: alpha,
+    numOctaves: int
+  };
+
+  // node_modules/framer-motion/dist/es/render/html/utils/build-transform.mjs
+  var translateAlias = {
+    x: "translateX",
+    y: "translateY",
+    z: "translateZ",
+    transformPerspective: "perspective"
+  };
+  var numTransforms = transformPropOrder.length;
+  function buildTransform(latestValues, transform, transformTemplate) {
+    let transformString = "";
+    let transformIsDefault = true;
+    for (let i = 0; i < numTransforms; i++) {
+      const key = transformPropOrder[i];
+      const value = latestValues[key];
+      if (value === void 0)
+        continue;
+      let valueIsDefault = true;
+      if (typeof value === "number") {
+        valueIsDefault = value === (key.startsWith("scale") ? 1 : 0);
+      } else {
+        valueIsDefault = parseFloat(value) === 0;
+      }
+      if (!valueIsDefault || transformTemplate) {
+        const valueAsType = getValueAsType(value, numberValueTypes[key]);
+        if (!valueIsDefault) {
+          transformIsDefault = false;
+          const transformName = translateAlias[key] || key;
+          transformString += `${transformName}(${valueAsType}) `;
+        }
+        if (transformTemplate) {
+          transform[key] = valueAsType;
+        }
+      }
+    }
+    transformString = transformString.trim();
+    if (transformTemplate) {
+      transformString = transformTemplate(transform, transformIsDefault ? "" : transformString);
+    } else if (transformIsDefault) {
+      transformString = "none";
+    }
+    return transformString;
+  }
+
+  // node_modules/framer-motion/dist/es/render/html/utils/build-styles.mjs
+  function buildHTMLStyles(state, latestValues, transformTemplate) {
+    const { style, vars, transformOrigin } = state;
+    let hasTransform2 = false;
+    let hasTransformOrigin = false;
+    for (const key in latestValues) {
+      const value = latestValues[key];
+      if (transformProps.has(key)) {
+        hasTransform2 = true;
+        continue;
+      } else if (isCSSVariableName(key)) {
+        vars[key] = value;
+        continue;
+      } else {
+        const valueAsType = getValueAsType(value, numberValueTypes[key]);
+        if (key.startsWith("origin")) {
+          hasTransformOrigin = true;
+          transformOrigin[key] = valueAsType;
+        } else {
+          style[key] = valueAsType;
+        }
+      }
+    }
+    if (!latestValues.transform) {
+      if (hasTransform2 || transformTemplate) {
+        style.transform = buildTransform(latestValues, state.transform, transformTemplate);
+      } else if (style.transform) {
+        style.transform = "none";
+      }
+    }
+    if (hasTransformOrigin) {
+      const { originX = "50%", originY = "50%", originZ = 0 } = transformOrigin;
+      style.transformOrigin = `${originX} ${originY} ${originZ}`;
+    }
+  }
+
+  // node_modules/framer-motion/dist/es/render/svg/utils/path.mjs
+  var dashKeys = {
+    offset: "stroke-dashoffset",
+    array: "stroke-dasharray"
+  };
+  var camelKeys = {
+    offset: "strokeDashoffset",
+    array: "strokeDasharray"
+  };
+  function buildSVGPath(attrs, length, spacing2 = 1, offset = 0, useDashCase = true) {
+    attrs.pathLength = 1;
+    const keys = useDashCase ? dashKeys : camelKeys;
+    attrs[keys.offset] = px.transform(-offset);
+    const pathLength = px.transform(length);
+    const pathSpacing = px.transform(spacing2);
+    attrs[keys.array] = `${pathLength} ${pathSpacing}`;
+  }
+
+  // node_modules/framer-motion/dist/es/render/svg/utils/transform-origin.mjs
+  function calcOrigin(origin, offset, size) {
+    return typeof origin === "string" ? origin : px.transform(offset + size * origin);
+  }
+  function calcSVGTransformOrigin(dimensions, originX, originY) {
+    const pxOriginX = calcOrigin(originX, dimensions.x, dimensions.width);
+    const pxOriginY = calcOrigin(originY, dimensions.y, dimensions.height);
+    return `${pxOriginX} ${pxOriginY}`;
+  }
+
+  // node_modules/framer-motion/dist/es/render/svg/utils/build-attrs.mjs
+  function buildSVGAttrs(state, {
+    attrX,
+    attrY,
+    attrScale,
+    originX,
+    originY,
+    pathLength,
+    pathSpacing = 1,
+    pathOffset = 0,
+    // This is object creation, which we try to avoid per-frame.
+    ...latest
+  }, isSVGTag2, transformTemplate) {
+    buildHTMLStyles(state, latest, transformTemplate);
+    if (isSVGTag2) {
+      if (state.style.viewBox) {
+        state.attrs.viewBox = state.style.viewBox;
+      }
+      return;
+    }
+    state.attrs = state.style;
+    state.style = {};
+    const { attrs, style, dimensions } = state;
+    if (attrs.transform) {
+      if (dimensions)
+        style.transform = attrs.transform;
+      delete attrs.transform;
+    }
+    if (dimensions && (originX !== void 0 || originY !== void 0 || style.transform)) {
+      style.transformOrigin = calcSVGTransformOrigin(dimensions, originX !== void 0 ? originX : 0.5, originY !== void 0 ? originY : 0.5);
+    }
+    if (attrX !== void 0)
+      attrs.x = attrX;
+    if (attrY !== void 0)
+      attrs.y = attrY;
+    if (attrScale !== void 0)
+      attrs.scale = attrScale;
+    if (pathLength !== void 0) {
+      buildSVGPath(attrs, pathLength, pathSpacing, pathOffset, false);
+    }
+  }
+
+  // node_modules/framer-motion/dist/es/render/html/utils/create-render-state.mjs
+  var createHtmlRenderState = () => ({
+    style: {},
+    transform: {},
+    transformOrigin: {},
+    vars: {}
+  });
+
+  // node_modules/framer-motion/dist/es/render/svg/utils/create-render-state.mjs
+  var createSvgRenderState = () => ({
+    ...createHtmlRenderState(),
+    attrs: {}
+  });
+
+  // node_modules/framer-motion/dist/es/render/svg/utils/is-svg-tag.mjs
+  var isSVGTag = (tag) => typeof tag === "string" && tag.toLowerCase() === "svg";
+
+  // node_modules/framer-motion/dist/es/render/html/utils/render.mjs
+  function renderHTML(element, { style, vars }, styleProp, projection) {
+    Object.assign(element.style, style, projection && projection.getProjectionStyles(styleProp));
+    for (const key in vars) {
+      element.style.setProperty(key, vars[key]);
+    }
+  }
+
+  // node_modules/framer-motion/dist/es/render/svg/utils/camel-case-attrs.mjs
+  var camelCaseAttributes = /* @__PURE__ */ new Set([
+    "baseFrequency",
+    "diffuseConstant",
+    "kernelMatrix",
+    "kernelUnitLength",
+    "keySplines",
+    "keyTimes",
+    "limitingConeAngle",
+    "markerHeight",
+    "markerWidth",
+    "numOctaves",
+    "targetX",
+    "targetY",
+    "surfaceScale",
+    "specularConstant",
+    "specularExponent",
+    "stdDeviation",
+    "tableValues",
+    "viewBox",
+    "gradientTransform",
+    "pathLength",
+    "startOffset",
+    "textLength",
+    "lengthAdjust"
+  ]);
+
+  // node_modules/framer-motion/dist/es/render/svg/utils/render.mjs
+  function renderSVG(element, renderState, _styleProp, projection) {
+    renderHTML(element, renderState, void 0, projection);
+    for (const key in renderState.attrs) {
+      element.setAttribute(!camelCaseAttributes.has(key) ? camelToDash(key) : key, renderState.attrs[key]);
+    }
+  }
+
+  // node_modules/framer-motion/dist/es/projection/styles/scale-correction.mjs
+  var scaleCorrectors = {};
+  function addScaleCorrector(correctors) {
+    Object.assign(scaleCorrectors, correctors);
+  }
+
+  // node_modules/framer-motion/dist/es/motion/utils/is-forced-motion-value.mjs
+  function isForcedMotionValue(key, { layout: layout2, layoutId }) {
+    return transformProps.has(key) || key.startsWith("origin") || (layout2 || layoutId !== void 0) && (!!scaleCorrectors[key] || key === "opacity");
+  }
+
+  // node_modules/framer-motion/dist/es/render/html/utils/scrape-motion-values.mjs
+  function scrapeMotionValuesFromProps(props, prevProps, visualElement) {
+    var _a;
+    const { style } = props;
+    const newValues = {};
+    for (const key in style) {
+      if (isMotionValue(style[key]) || prevProps.style && isMotionValue(prevProps.style[key]) || isForcedMotionValue(key, props) || ((_a = visualElement === null || visualElement === void 0 ? void 0 : visualElement.getValue(key)) === null || _a === void 0 ? void 0 : _a.liveStyle) !== void 0) {
+        newValues[key] = style[key];
+      }
+    }
+    return newValues;
+  }
+
+  // node_modules/framer-motion/dist/es/render/svg/utils/scrape-motion-values.mjs
+  function scrapeMotionValuesFromProps2(props, prevProps, visualElement) {
+    const newValues = scrapeMotionValuesFromProps(props, prevProps, visualElement);
+    for (const key in props) {
+      if (isMotionValue(props[key]) || isMotionValue(prevProps[key])) {
+        const targetKey = transformPropOrder.indexOf(key) !== -1 ? "attr" + key.charAt(0).toUpperCase() + key.substring(1) : key;
+        newValues[targetKey] = props[key];
+      }
+    }
+    return newValues;
+  }
+
+  // node_modules/framer-motion/dist/es/render/svg/config-motion.mjs
+  function updateSVGDimensions(instance, renderState) {
+    try {
+      renderState.dimensions = typeof instance.getBBox === "function" ? instance.getBBox() : instance.getBoundingClientRect();
+    } catch (e) {
+      renderState.dimensions = {
+        x: 0,
+        y: 0,
+        width: 0,
+        height: 0
+      };
+    }
+  }
+  var layoutProps = ["x", "y", "width", "height", "cx", "cy", "r"];
+  var svgMotionConfig = {
+    useVisualState: makeUseVisualState({
+      scrapeMotionValuesFromProps: scrapeMotionValuesFromProps2,
+      createRenderState: createSvgRenderState,
+      onUpdate: ({ props, prevProps, current, renderState, latestValues }) => {
+        if (!current)
+          return;
+        let hasTransform2 = !!props.drag;
+        if (!hasTransform2) {
+          for (const key in latestValues) {
+            if (transformProps.has(key)) {
+              hasTransform2 = true;
+              break;
+            }
+          }
+        }
+        if (!hasTransform2)
+          return;
+        let needsMeasure = !prevProps;
+        if (prevProps) {
+          for (let i = 0; i < layoutProps.length; i++) {
+            const key = layoutProps[i];
+            if (props[key] !== prevProps[key]) {
+              needsMeasure = true;
+            }
+          }
+        }
+        if (!needsMeasure)
+          return;
+        frame.read(() => {
+          updateSVGDimensions(current, renderState);
+          frame.render(() => {
+            buildSVGAttrs(renderState, latestValues, isSVGTag(current.tagName), props.transformTemplate);
+            renderSVG(current, renderState);
+          });
+        });
+      }
+    })
+  };
+
+  // node_modules/framer-motion/dist/es/render/html/config-motion.mjs
+  var htmlMotionConfig = {
+    useVisualState: makeUseVisualState({
+      scrapeMotionValuesFromProps,
+      createRenderState: createHtmlRenderState
+    })
+  };
+
+  // node_modules/framer-motion/dist/es/render/html/use-props.mjs
+  function copyRawValuesOnly(target, source, props) {
+    for (const key in source) {
+      if (!isMotionValue(source[key]) && !isForcedMotionValue(key, props)) {
+        target[key] = source[key];
+      }
+    }
+  }
+  function useInitialMotionValues({ transformTemplate }, visualState) {
+    return useMemo(() => {
+      const state = createHtmlRenderState();
+      buildHTMLStyles(state, visualState, transformTemplate);
+      return Object.assign({}, state.vars, state.style);
+    }, [visualState]);
+  }
+  function useStyle(props, visualState) {
+    const styleProp = props.style || {};
+    const style = {};
+    copyRawValuesOnly(style, styleProp, props);
+    Object.assign(style, useInitialMotionValues(props, visualState));
+    return style;
+  }
+  function useHTMLProps(props, visualState) {
+    const htmlProps = {};
+    const style = useStyle(props, visualState);
+    if (props.drag && props.dragListener !== false) {
+      htmlProps.draggable = false;
+      style.userSelect = style.WebkitUserSelect = style.WebkitTouchCallout = "none";
+      style.touchAction = props.drag === true ? "none" : `pan-${props.drag === "x" ? "y" : "x"}`;
+    }
+    if (props.tabIndex === void 0 && (props.onTap || props.onTapStart || props.whileTap)) {
+      htmlProps.tabIndex = 0;
+    }
+    htmlProps.style = style;
+    return htmlProps;
+  }
+
+  // node_modules/framer-motion/dist/es/render/svg/use-props.mjs
+  function useSVGProps(props, visualState, _isStatic, Component2) {
+    const visualProps = useMemo(() => {
+      const state = createSvgRenderState();
+      buildSVGAttrs(state, visualState, isSVGTag(Component2), props.transformTemplate);
+      return {
+        ...state.attrs,
+        style: { ...state.style }
+      };
+    }, [visualState]);
+    if (props.style) {
+      const rawStyles = {};
+      copyRawValuesOnly(rawStyles, props.style, props);
+      visualProps.style = { ...rawStyles, ...visualProps.style };
+    }
+    return visualProps;
+  }
+
+  // node_modules/framer-motion/dist/es/render/dom/use-render.mjs
+  function createUseRender(forwardMotionProps = false) {
+    const useRender = (Component2, props, ref, { latestValues }, isStatic) => {
+      const useVisualProps = isSVGComponent(Component2) ? useSVGProps : useHTMLProps;
+      const visualProps = useVisualProps(props, latestValues, isStatic, Component2);
+      const filteredProps = filterProps(props, typeof Component2 === "string", forwardMotionProps);
+      const elementProps = Component2 !== Fragment ? { ...filteredProps, ...visualProps, ref } : {};
+      const { children } = props;
+      const renderedChildren = useMemo(() => isMotionValue(children) ? children.get() : children, [children]);
+      return createElement(Component2, {
+        ...elementProps,
+        children: renderedChildren
+      });
+    };
+    return useRender;
+  }
+
+  // node_modules/framer-motion/dist/es/render/components/create-factory.mjs
+  function createMotionComponentFactory(preloadedFeatures, createVisualElement) {
+    return function createMotionComponent2(Component2, { forwardMotionProps } = { forwardMotionProps: false }) {
+      const baseConfig = isSVGComponent(Component2) ? svgMotionConfig : htmlMotionConfig;
+      const config = {
+        ...baseConfig,
+        preloadedFeatures,
+        useRender: createUseRender(forwardMotionProps),
+        createVisualElement,
+        Component: Component2
+      };
+      return createRendererMotionComponent(config);
+    };
+  }
+
+  // node_modules/framer-motion/dist/es/utils/shallow-compare.mjs
+  function shallowCompare(next, prev) {
+    if (!Array.isArray(prev))
+      return false;
+    const prevLength = prev.length;
+    if (prevLength !== next.length)
+      return false;
+    for (let i = 0; i < prevLength; i++) {
+      if (prev[i] !== next[i])
+        return false;
+    }
+    return true;
+  }
+
+  // node_modules/framer-motion/dist/es/render/utils/resolve-dynamic-variants.mjs
+  function resolveVariant(visualElement, definition, custom) {
+    const props = visualElement.getProps();
+    return resolveVariantFromProps(props, definition, custom !== void 0 ? custom : props.custom, visualElement);
+  }
+
+  // node_modules/motion-dom/dist/es/utils/supports/scroll-timeline.mjs
+  var supportsScrollTimeline = memo2(() => window.ScrollTimeline !== void 0);
+
+  // node_modules/motion-dom/dist/es/animation/controls/BaseGroup.mjs
+  var BaseGroupPlaybackControls = class {
+    constructor(animations2) {
+      this.stop = () => this.runAll("stop");
+      this.animations = animations2.filter(Boolean);
+    }
+    get finished() {
+      return Promise.all(this.animations.map((animation2) => "finished" in animation2 ? animation2.finished : animation2));
+    }
+    /**
+     * TODO: Filter out cancelled or stopped animations before returning
+     */
+    getAll(propName) {
+      return this.animations[0][propName];
+    }
+    setAll(propName, newValue) {
+      for (let i = 0; i < this.animations.length; i++) {
+        this.animations[i][propName] = newValue;
+      }
+    }
+    attachTimeline(timeline, fallback) {
+      const subscriptions = this.animations.map((animation2) => {
+        if (supportsScrollTimeline() && animation2.attachTimeline) {
+          return animation2.attachTimeline(timeline);
+        } else if (typeof fallback === "function") {
+          return fallback(animation2);
+        }
+      });
+      return () => {
+        subscriptions.forEach((cancel, i) => {
+          cancel && cancel();
+          this.animations[i].stop();
+        });
+      };
+    }
+    get time() {
+      return this.getAll("time");
+    }
+    set time(time2) {
+      this.setAll("time", time2);
+    }
+    get speed() {
+      return this.getAll("speed");
+    }
+    set speed(speed) {
+      this.setAll("speed", speed);
+    }
+    get startTime() {
+      return this.getAll("startTime");
+    }
+    get duration() {
+      let max = 0;
+      for (let i = 0; i < this.animations.length; i++) {
+        max = Math.max(max, this.animations[i].duration);
+      }
+      return max;
+    }
+    runAll(methodName) {
+      this.animations.forEach((controls) => controls[methodName]());
+    }
+    flatten() {
+      this.runAll("flatten");
+    }
+    play() {
+      this.runAll("play");
+    }
+    pause() {
+      this.runAll("pause");
+    }
+    cancel() {
+      this.runAll("cancel");
+    }
+    complete() {
+      this.runAll("complete");
+    }
+  };
+
+  // node_modules/motion-dom/dist/es/animation/controls/Group.mjs
+  var GroupPlaybackControls = class extends BaseGroupPlaybackControls {
+    then(onResolve, onReject) {
+      return Promise.all(this.animations).then(onResolve).catch(onReject);
+    }
+  };
+
+  // node_modules/motion-dom/dist/es/animation/utils/get-value-transition.mjs
+  function getValueTransition(transition, key) {
+    return transition ? transition[key] || transition["default"] || transition : void 0;
+  }
+
+  // node_modules/motion-dom/dist/es/animation/generators/utils/calc-duration.mjs
+  var maxGeneratorDuration = 2e4;
+  function calcGeneratorDuration(generator) {
+    let duration = 0;
+    const timeStep = 50;
+    let state = generator.next(duration);
+    while (!state.done && duration < maxGeneratorDuration) {
+      duration += timeStep;
+      state = generator.next(duration);
+    }
+    return duration >= maxGeneratorDuration ? Infinity : duration;
+  }
+
+  // node_modules/motion-dom/dist/es/animation/generators/utils/is-generator.mjs
+  function isGenerator(type) {
+    return typeof type === "function";
+  }
+
+  // node_modules/motion-dom/dist/es/animation/waapi/utils/attach-timeline.mjs
+  function attachTimeline(animation2, timeline) {
+    animation2.timeline = timeline;
+    animation2.onfinish = null;
+  }
+
+  // node_modules/motion-dom/dist/es/utils/is-bezier-definition.mjs
+  var isBezierDefinition = (easing) => Array.isArray(easing) && typeof easing[0] === "number";
+
+  // node_modules/motion-dom/dist/es/utils/supports/flags.mjs
+  var supportsFlags = {
+    linearEasing: void 0
+  };
+
+  // node_modules/motion-dom/dist/es/utils/supports/memo.mjs
+  function memoSupports(callback, supportsFlag) {
+    const memoized = memo2(callback);
+    return () => {
+      var _a;
+      return (_a = supportsFlags[supportsFlag]) !== null && _a !== void 0 ? _a : memoized();
+    };
+  }
+
+  // node_modules/motion-dom/dist/es/utils/supports/linear-easing.mjs
+  var supportsLinearEasing = /* @__PURE__ */ memoSupports(() => {
+    try {
+      document.createElement("div").animate({ opacity: 0 }, { easing: "linear(0, 1)" });
+    } catch (e) {
+      return false;
+    }
+    return true;
+  }, "linearEasing");
+
+  // node_modules/motion-dom/dist/es/animation/waapi/utils/linear.mjs
+  var generateLinearEasing = (easing, duration, resolution = 10) => {
+    let points = "";
+    const numPoints = Math.max(Math.round(duration / resolution), 2);
+    for (let i = 0; i < numPoints; i++) {
+      points += easing(progress(0, numPoints - 1, i)) + ", ";
+    }
+    return `linear(${points.substring(0, points.length - 2)})`;
+  };
+
+  // node_modules/motion-dom/dist/es/animation/waapi/utils/easing.mjs
+  function isWaapiSupportedEasing(easing) {
+    return Boolean(typeof easing === "function" && supportsLinearEasing() || !easing || typeof easing === "string" && (easing in supportedWaapiEasing || supportsLinearEasing()) || isBezierDefinition(easing) || Array.isArray(easing) && easing.every(isWaapiSupportedEasing));
+  }
+  var cubicBezierAsString = ([a, b, c, d]) => `cubic-bezier(${a}, ${b}, ${c}, ${d})`;
+  var supportedWaapiEasing = {
+    linear: "linear",
+    ease: "ease",
+    easeIn: "ease-in",
+    easeOut: "ease-out",
+    easeInOut: "ease-in-out",
+    circIn: /* @__PURE__ */ cubicBezierAsString([0, 0.65, 0.55, 1]),
+    circOut: /* @__PURE__ */ cubicBezierAsString([0.55, 0, 1, 0.45]),
+    backIn: /* @__PURE__ */ cubicBezierAsString([0.31, 0.01, 0.66, -0.59]),
+    backOut: /* @__PURE__ */ cubicBezierAsString([0.33, 1.53, 0.69, 0.99])
+  };
+  function mapEasingToNativeEasing(easing, duration) {
+    if (!easing) {
+      return void 0;
+    } else if (typeof easing === "function" && supportsLinearEasing()) {
+      return generateLinearEasing(easing, duration);
+    } else if (isBezierDefinition(easing)) {
+      return cubicBezierAsString(easing);
+    } else if (Array.isArray(easing)) {
+      return easing.map((segmentEasing) => mapEasingToNativeEasing(segmentEasing, duration) || supportedWaapiEasing.easeOut);
+    } else {
+      return supportedWaapiEasing[easing];
+    }
+  }
+
+  // node_modules/motion-dom/dist/es/gestures/drag/state/is-active.mjs
+  var isDragging = {
+    x: false,
+    y: false
+  };
+  function isDragActive() {
+    return isDragging.x || isDragging.y;
+  }
+
+  // node_modules/motion-dom/dist/es/utils/resolve-elements.mjs
+  function resolveElements(elementOrSelector, scope, selectorCache) {
+    var _a;
+    if (elementOrSelector instanceof Element) {
+      return [elementOrSelector];
+    } else if (typeof elementOrSelector === "string") {
+      let root = document;
+      if (scope) {
+        root = scope.current;
+      }
+      const elements = (_a = selectorCache === null || selectorCache === void 0 ? void 0 : selectorCache[elementOrSelector]) !== null && _a !== void 0 ? _a : root.querySelectorAll(elementOrSelector);
+      return elements ? Array.from(elements) : [];
+    }
+    return Array.from(elementOrSelector);
+  }
+
+  // node_modules/motion-dom/dist/es/gestures/utils/setup.mjs
+  function setupGesture(elementOrSelector, options) {
+    const elements = resolveElements(elementOrSelector);
+    const gestureAbortController = new AbortController();
+    const eventOptions = {
+      passive: true,
+      ...options,
+      signal: gestureAbortController.signal
+    };
+    const cancel = () => gestureAbortController.abort();
+    return [elements, eventOptions, cancel];
+  }
+
+  // node_modules/motion-dom/dist/es/gestures/hover.mjs
+  function filterEvents(callback) {
+    return (event) => {
+      if (event.pointerType === "touch" || isDragActive())
+        return;
+      callback(event);
+    };
+  }
+  function hover(elementOrSelector, onHoverStart, options = {}) {
+    const [elements, eventOptions, cancel] = setupGesture(elementOrSelector, options);
+    const onPointerEnter = filterEvents((enterEvent) => {
+      const { target } = enterEvent;
+      const onHoverEnd = onHoverStart(enterEvent);
+      if (typeof onHoverEnd !== "function" || !target)
+        return;
+      const onPointerLeave = filterEvents((leaveEvent) => {
+        onHoverEnd(leaveEvent);
+        target.removeEventListener("pointerleave", onPointerLeave);
+      });
+      target.addEventListener("pointerleave", onPointerLeave, eventOptions);
+    });
+    elements.forEach((element) => {
+      element.addEventListener("pointerenter", onPointerEnter, eventOptions);
+    });
+    return cancel;
+  }
+
+  // node_modules/motion-dom/dist/es/gestures/utils/is-node-or-child.mjs
+  var isNodeOrChild = (parent, child) => {
+    if (!child) {
+      return false;
+    } else if (parent === child) {
+      return true;
+    } else {
+      return isNodeOrChild(parent, child.parentElement);
+    }
+  };
+
+  // node_modules/motion-dom/dist/es/gestures/utils/is-primary-pointer.mjs
+  var isPrimaryPointer = (event) => {
+    if (event.pointerType === "mouse") {
+      return typeof event.button !== "number" || event.button <= 0;
+    } else {
+      return event.isPrimary !== false;
+    }
+  };
+
+  // node_modules/motion-dom/dist/es/gestures/press/utils/is-keyboard-accessible.mjs
+  var focusableElements = /* @__PURE__ */ new Set([
+    "BUTTON",
+    "INPUT",
+    "SELECT",
+    "TEXTAREA",
+    "A"
+  ]);
+  function isElementKeyboardAccessible(element) {
+    return focusableElements.has(element.tagName) || element.tabIndex !== -1;
+  }
+
+  // node_modules/motion-dom/dist/es/gestures/press/utils/state.mjs
+  var isPressing = /* @__PURE__ */ new WeakSet();
+
+  // node_modules/motion-dom/dist/es/gestures/press/utils/keyboard.mjs
+  function filterEvents2(callback) {
+    return (event) => {
+      if (event.key !== "Enter")
+        return;
+      callback(event);
+    };
+  }
+  function firePointerEvent(target, type) {
+    target.dispatchEvent(new PointerEvent("pointer" + type, { isPrimary: true, bubbles: true }));
+  }
+  var enableKeyboardPress = (focusEvent, eventOptions) => {
+    const element = focusEvent.currentTarget;
+    if (!element)
+      return;
+    const handleKeydown = filterEvents2(() => {
+      if (isPressing.has(element))
+        return;
+      firePointerEvent(element, "down");
+      const handleKeyup = filterEvents2(() => {
+        firePointerEvent(element, "up");
+      });
+      const handleBlur = () => firePointerEvent(element, "cancel");
+      element.addEventListener("keyup", handleKeyup, eventOptions);
+      element.addEventListener("blur", handleBlur, eventOptions);
+    });
+    element.addEventListener("keydown", handleKeydown, eventOptions);
+    element.addEventListener("blur", () => element.removeEventListener("keydown", handleKeydown), eventOptions);
+  };
+
+  // node_modules/motion-dom/dist/es/gestures/press/index.mjs
+  function isValidPressEvent(event) {
+    return isPrimaryPointer(event) && !isDragActive();
+  }
+  function press(elementOrSelector, onPressStart, options = {}) {
+    const [elements, eventOptions, cancelEvents] = setupGesture(elementOrSelector, options);
+    const startPress = (startEvent) => {
+      const element = startEvent.currentTarget;
+      if (!isValidPressEvent(startEvent) || isPressing.has(element))
+        return;
+      isPressing.add(element);
+      const onPressEnd = onPressStart(startEvent);
+      const onPointerEnd = (endEvent, success) => {
+        window.removeEventListener("pointerup", onPointerUp);
+        window.removeEventListener("pointercancel", onPointerCancel);
+        if (!isValidPressEvent(endEvent) || !isPressing.has(element)) {
+          return;
+        }
+        isPressing.delete(element);
+        if (typeof onPressEnd === "function") {
+          onPressEnd(endEvent, { success });
+        }
+      };
+      const onPointerUp = (upEvent) => {
+        onPointerEnd(upEvent, options.useGlobalTarget || isNodeOrChild(element, upEvent.target));
+      };
+      const onPointerCancel = (cancelEvent) => {
+        onPointerEnd(cancelEvent, false);
+      };
+      window.addEventListener("pointerup", onPointerUp, eventOptions);
+      window.addEventListener("pointercancel", onPointerCancel, eventOptions);
+    };
+    elements.forEach((element) => {
+      if (!isElementKeyboardAccessible(element) && element.getAttribute("tabindex") === null) {
+        element.tabIndex = 0;
+      }
+      const target = options.useGlobalTarget ? window : element;
+      target.addEventListener("pointerdown", startPress, eventOptions);
+      element.addEventListener("focus", (event) => enableKeyboardPress(event, eventOptions), eventOptions);
+    });
+    return cancelEvents;
+  }
+
+  // node_modules/motion-dom/dist/es/gestures/drag/state/set-active.mjs
+  function setDragLock(axis) {
+    if (axis === "x" || axis === "y") {
+      if (isDragging[axis]) {
+        return null;
+      } else {
+        isDragging[axis] = true;
+        return () => {
+          isDragging[axis] = false;
+        };
+      }
+    } else {
+      if (isDragging.x || isDragging.y) {
+        return null;
+      } else {
+        isDragging.x = isDragging.y = true;
+        return () => {
+          isDragging.x = isDragging.y = false;
+        };
+      }
+    }
+  }
+
+  // node_modules/framer-motion/dist/es/render/html/utils/keys-position.mjs
+  var positionalKeys = /* @__PURE__ */ new Set([
+    "width",
+    "height",
+    "top",
+    "left",
+    "right",
+    "bottom",
+    ...transformPropOrder
+  ]);
+
+  // node_modules/framer-motion/dist/es/frameloop/sync-time.mjs
+  var now;
+  function clearTime() {
+    now = void 0;
+  }
+  var time = {
+    now: () => {
+      if (now === void 0) {
+        time.set(frameData.isProcessing || MotionGlobalConfig.useManualTiming ? frameData.timestamp : performance.now());
+      }
+      return now;
+    },
+    set: (newTime) => {
+      now = newTime;
+      queueMicrotask(clearTime);
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/utils/array.mjs
+  function addUniqueItem(arr, item) {
+    if (arr.indexOf(item) === -1)
+      arr.push(item);
+  }
+  function removeItem(arr, item) {
+    const index = arr.indexOf(item);
+    if (index > -1)
+      arr.splice(index, 1);
+  }
+
+  // node_modules/framer-motion/dist/es/utils/subscription-manager.mjs
+  var SubscriptionManager = class {
+    constructor() {
+      this.subscriptions = [];
+    }
+    add(handler) {
+      addUniqueItem(this.subscriptions, handler);
+      return () => removeItem(this.subscriptions, handler);
+    }
+    notify(a, b, c) {
+      const numSubscriptions = this.subscriptions.length;
+      if (!numSubscriptions)
+        return;
+      if (numSubscriptions === 1) {
+        this.subscriptions[0](a, b, c);
+      } else {
+        for (let i = 0; i < numSubscriptions; i++) {
+          const handler = this.subscriptions[i];
+          handler && handler(a, b, c);
+        }
+      }
+    }
+    getSize() {
+      return this.subscriptions.length;
+    }
+    clear() {
+      this.subscriptions.length = 0;
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/utils/velocity-per-second.mjs
+  function velocityPerSecond(velocity, frameDuration) {
+    return frameDuration ? velocity * (1e3 / frameDuration) : 0;
+  }
+
+  // node_modules/framer-motion/dist/es/value/index.mjs
+  var MAX_VELOCITY_DELTA = 30;
+  var isFloat = (value) => {
+    return !isNaN(parseFloat(value));
+  };
+  var collectMotionValues = {
+    current: void 0
+  };
+  var MotionValue = class {
+    /**
+     * @param init - The initiating value
+     * @param config - Optional configuration options
+     *
+     * -  `transformer`: A function to transform incoming values with.
+     *
+     * @internal
+     */
+    constructor(init, options = {}) {
+      this.version = "11.18.2";
+      this.canTrackVelocity = null;
+      this.events = {};
+      this.updateAndNotify = (v, render = true) => {
+        const currentTime = time.now();
+        if (this.updatedAt !== currentTime) {
+          this.setPrevFrameValue();
+        }
+        this.prev = this.current;
+        this.setCurrent(v);
+        if (this.current !== this.prev && this.events.change) {
+          this.events.change.notify(this.current);
+        }
+        if (render && this.events.renderRequest) {
+          this.events.renderRequest.notify(this.current);
+        }
+      };
+      this.hasAnimated = false;
+      this.setCurrent(init);
+      this.owner = options.owner;
+    }
+    setCurrent(current) {
+      this.current = current;
+      this.updatedAt = time.now();
+      if (this.canTrackVelocity === null && current !== void 0) {
+        this.canTrackVelocity = isFloat(this.current);
+      }
+    }
+    setPrevFrameValue(prevFrameValue = this.current) {
+      this.prevFrameValue = prevFrameValue;
+      this.prevUpdatedAt = this.updatedAt;
+    }
+    /**
+     * Adds a function that will be notified when the `MotionValue` is updated.
+     *
+     * It returns a function that, when called, will cancel the subscription.
+     *
+     * When calling `onChange` inside a React component, it should be wrapped with the
+     * `useEffect` hook. As it returns an unsubscribe function, this should be returned
+     * from the `useEffect` function to ensure you don't add duplicate subscribers..
+     *
+     * ```jsx
+     * export const MyComponent = () => {
+     *   const x = useMotionValue(0)
+     *   const y = useMotionValue(0)
+     *   const opacity = useMotionValue(1)
+     *
+     *   useEffect(() => {
+     *     function updateOpacity() {
+     *       const maxXY = Math.max(x.get(), y.get())
+     *       const newOpacity = transform(maxXY, [0, 100], [1, 0])
+     *       opacity.set(newOpacity)
+     *     }
+     *
+     *     const unsubscribeX = x.on("change", updateOpacity)
+     *     const unsubscribeY = y.on("change", updateOpacity)
+     *
+     *     return () => {
+     *       unsubscribeX()
+     *       unsubscribeY()
+     *     }
+     *   }, [])
+     *
+     *   return <motion.div style={{ x }} />
+     * }
+     * ```
+     *
+     * @param subscriber - A function that receives the latest value.
+     * @returns A function that, when called, will cancel this subscription.
+     *
+     * @deprecated
+     */
+    onChange(subscription) {
+      if (true) {
+        warnOnce(false, `value.onChange(callback) is deprecated. Switch to value.on("change", callback).`);
+      }
+      return this.on("change", subscription);
+    }
+    on(eventName, callback) {
+      if (!this.events[eventName]) {
+        this.events[eventName] = new SubscriptionManager();
+      }
+      const unsubscribe = this.events[eventName].add(callback);
+      if (eventName === "change") {
+        return () => {
+          unsubscribe();
+          frame.read(() => {
+            if (!this.events.change.getSize()) {
+              this.stop();
+            }
+          });
+        };
+      }
+      return unsubscribe;
+    }
+    clearListeners() {
+      for (const eventManagers in this.events) {
+        this.events[eventManagers].clear();
+      }
+    }
+    /**
+     * Attaches a passive effect to the `MotionValue`.
+     *
+     * @internal
+     */
+    attach(passiveEffect, stopPassiveEffect) {
+      this.passiveEffect = passiveEffect;
+      this.stopPassiveEffect = stopPassiveEffect;
+    }
+    /**
+     * Sets the state of the `MotionValue`.
+     *
+     * @remarks
+     *
+     * ```jsx
+     * const x = useMotionValue(0)
+     * x.set(10)
+     * ```
+     *
+     * @param latest - Latest value to set.
+     * @param render - Whether to notify render subscribers. Defaults to `true`
+     *
+     * @public
+     */
+    set(v, render = true) {
+      if (!render || !this.passiveEffect) {
+        this.updateAndNotify(v, render);
+      } else {
+        this.passiveEffect(v, this.updateAndNotify);
+      }
+    }
+    setWithVelocity(prev, current, delta) {
+      this.set(current);
+      this.prev = void 0;
+      this.prevFrameValue = prev;
+      this.prevUpdatedAt = this.updatedAt - delta;
+    }
+    /**
+     * Set the state of the `MotionValue`, stopping any active animations,
+     * effects, and resets velocity to `0`.
+     */
+    jump(v, endAnimation = true) {
+      this.updateAndNotify(v);
+      this.prev = v;
+      this.prevUpdatedAt = this.prevFrameValue = void 0;
+      endAnimation && this.stop();
+      if (this.stopPassiveEffect)
+        this.stopPassiveEffect();
+    }
+    /**
+     * Returns the latest state of `MotionValue`
+     *
+     * @returns - The latest state of `MotionValue`
+     *
+     * @public
+     */
+    get() {
+      if (collectMotionValues.current) {
+        collectMotionValues.current.push(this);
+      }
+      return this.current;
+    }
+    /**
+     * @public
+     */
+    getPrevious() {
+      return this.prev;
+    }
+    /**
+     * Returns the latest velocity of `MotionValue`
+     *
+     * @returns - The latest velocity of `MotionValue`. Returns `0` if the state is non-numerical.
+     *
+     * @public
+     */
+    getVelocity() {
+      const currentTime = time.now();
+      if (!this.canTrackVelocity || this.prevFrameValue === void 0 || currentTime - this.updatedAt > MAX_VELOCITY_DELTA) {
+        return 0;
+      }
+      const delta = Math.min(this.updatedAt - this.prevUpdatedAt, MAX_VELOCITY_DELTA);
+      return velocityPerSecond(parseFloat(this.current) - parseFloat(this.prevFrameValue), delta);
+    }
+    /**
+     * Registers a new animation to control this `MotionValue`. Only one
+     * animation can drive a `MotionValue` at one time.
+     *
+     * ```jsx
+     * value.start()
+     * ```
+     *
+     * @param animation - A function that starts the provided animation
+     *
+     * @internal
+     */
+    start(startAnimation) {
+      this.stop();
+      return new Promise((resolve) => {
+        this.hasAnimated = true;
+        this.animation = startAnimation(resolve);
+        if (this.events.animationStart) {
+          this.events.animationStart.notify();
+        }
+      }).then(() => {
+        if (this.events.animationComplete) {
+          this.events.animationComplete.notify();
+        }
+        this.clearAnimation();
+      });
+    }
+    /**
+     * Stop the currently active animation.
+     *
+     * @public
+     */
+    stop() {
+      if (this.animation) {
+        this.animation.stop();
+        if (this.events.animationCancel) {
+          this.events.animationCancel.notify();
+        }
+      }
+      this.clearAnimation();
+    }
+    /**
+     * Returns `true` if this value is currently animating.
+     *
+     * @public
+     */
+    isAnimating() {
+      return !!this.animation;
+    }
+    clearAnimation() {
+      delete this.animation;
+    }
+    /**
+     * Destroy and clean up subscribers to this `MotionValue`.
+     *
+     * The `MotionValue` hooks like `useMotionValue` and `useTransform` automatically
+     * handle the lifecycle of the returned `MotionValue`, so this method is only necessary if you've manually
+     * created a `MotionValue` via the `motionValue` function.
+     *
+     * @public
+     */
+    destroy() {
+      this.clearListeners();
+      this.stop();
+      if (this.stopPassiveEffect) {
+        this.stopPassiveEffect();
+      }
+    }
+  };
+  function motionValue(init, options) {
+    return new MotionValue(init, options);
+  }
+
+  // node_modules/framer-motion/dist/es/render/utils/setters.mjs
+  function setMotionValue(visualElement, key, value) {
+    if (visualElement.hasValue(key)) {
+      visualElement.getValue(key).set(value);
+    } else {
+      visualElement.addValue(key, motionValue(value));
+    }
+  }
+  function setTarget(visualElement, definition) {
+    const resolved = resolveVariant(visualElement, definition);
+    let { transitionEnd = {}, transition = {}, ...target } = resolved || {};
+    target = { ...target, ...transitionEnd };
+    for (const key in target) {
+      const value = resolveFinalValueInKeyframes(target[key]);
+      setMotionValue(visualElement, key, value);
+    }
+  }
+
+  // node_modules/framer-motion/dist/es/value/use-will-change/is.mjs
+  function isWillChangeMotionValue(value) {
+    return Boolean(isMotionValue(value) && value.add);
+  }
+
+  // node_modules/framer-motion/dist/es/value/use-will-change/add-will-change.mjs
+  function addValueToWillChange(visualElement, key) {
+    const willChange = visualElement.getValue("willChange");
+    if (isWillChangeMotionValue(willChange)) {
+      return willChange.add(key);
+    }
+  }
+
+  // node_modules/framer-motion/dist/es/animation/optimized-appear/get-appear-id.mjs
+  function getOptimisedAppearId(visualElement) {
+    return visualElement.props[optimizedAppearDataAttribute];
+  }
+
+  // node_modules/framer-motion/dist/es/utils/use-instant-transition-state.mjs
+  var instantAnimationState = {
+    current: false
+  };
+
+  // node_modules/framer-motion/dist/es/easing/cubic-bezier.mjs
+  var calcBezier = (t, a1, a2) => (((1 - 3 * a2 + 3 * a1) * t + (3 * a2 - 6 * a1)) * t + 3 * a1) * t;
+  var subdivisionPrecision = 1e-7;
+  var subdivisionMaxIterations = 12;
+  function binarySubdivide(x, lowerBound, upperBound, mX1, mX2) {
+    let currentX;
+    let currentT;
+    let i = 0;
+    do {
+      currentT = lowerBound + (upperBound - lowerBound) / 2;
+      currentX = calcBezier(currentT, mX1, mX2) - x;
+      if (currentX > 0) {
+        upperBound = currentT;
+      } else {
+        lowerBound = currentT;
+      }
+    } while (Math.abs(currentX) > subdivisionPrecision && ++i < subdivisionMaxIterations);
+    return currentT;
+  }
+  function cubicBezier(mX1, mY1, mX2, mY2) {
+    if (mX1 === mY1 && mX2 === mY2)
+      return noop;
+    const getTForX = (aX) => binarySubdivide(aX, 0, 1, mX1, mX2);
+    return (t) => t === 0 || t === 1 ? t : calcBezier(getTForX(t), mY1, mY2);
+  }
+
+  // node_modules/framer-motion/dist/es/easing/modifiers/mirror.mjs
+  var mirrorEasing = (easing) => (p) => p <= 0.5 ? easing(2 * p) / 2 : (2 - easing(2 * (1 - p))) / 2;
+
+  // node_modules/framer-motion/dist/es/easing/modifiers/reverse.mjs
+  var reverseEasing = (easing) => (p) => 1 - easing(1 - p);
+
+  // node_modules/framer-motion/dist/es/easing/back.mjs
+  var backOut = /* @__PURE__ */ cubicBezier(0.33, 1.53, 0.69, 0.99);
+  var backIn = /* @__PURE__ */ reverseEasing(backOut);
+  var backInOut = /* @__PURE__ */ mirrorEasing(backIn);
+
+  // node_modules/framer-motion/dist/es/easing/anticipate.mjs
+  var anticipate = (p) => (p *= 2) < 1 ? 0.5 * backIn(p) : 0.5 * (2 - Math.pow(2, -10 * (p - 1)));
+
+  // node_modules/framer-motion/dist/es/easing/circ.mjs
+  var circIn = (p) => 1 - Math.sin(Math.acos(p));
+  var circOut = reverseEasing(circIn);
+  var circInOut = mirrorEasing(circIn);
+
+  // node_modules/framer-motion/dist/es/utils/is-zero-value-string.mjs
+  var isZeroValueString = (v) => /^0[^.\s]+$/u.test(v);
+
+  // node_modules/framer-motion/dist/es/animation/utils/is-none.mjs
+  function isNone(value) {
+    if (typeof value === "number") {
+      return value === 0;
+    } else if (value !== null) {
+      return value === "none" || value === "0" || isZeroValueString(value);
+    } else {
+      return true;
+    }
+  }
+
+  // node_modules/framer-motion/dist/es/value/types/utils/sanitize.mjs
+  var sanitize = (v) => Math.round(v * 1e5) / 1e5;
+
+  // node_modules/framer-motion/dist/es/value/types/utils/float-regex.mjs
+  var floatRegex = /-?(?:\d+(?:\.\d+)?|\.\d+)/gu;
+
+  // node_modules/framer-motion/dist/es/value/types/utils/is-nullish.mjs
+  function isNullish(v) {
+    return v == null;
+  }
+
+  // node_modules/framer-motion/dist/es/value/types/utils/single-color-regex.mjs
+  var singleColorRegex = /^(?:#[\da-f]{3,8}|(?:rgb|hsl)a?\((?:-?[\d.]+%?[,\s]+){2}-?[\d.]+%?\s*(?:[,/]\s*)?(?:\b\d+(?:\.\d+)?|\.\d+)?%?\))$/iu;
+
+  // node_modules/framer-motion/dist/es/value/types/color/utils.mjs
+  var isColorString = (type, testProp) => (v) => {
+    return Boolean(typeof v === "string" && singleColorRegex.test(v) && v.startsWith(type) || testProp && !isNullish(v) && Object.prototype.hasOwnProperty.call(v, testProp));
+  };
+  var splitColor = (aName, bName, cName) => (v) => {
+    if (typeof v !== "string")
+      return v;
+    const [a, b, c, alpha2] = v.match(floatRegex);
+    return {
+      [aName]: parseFloat(a),
+      [bName]: parseFloat(b),
+      [cName]: parseFloat(c),
+      alpha: alpha2 !== void 0 ? parseFloat(alpha2) : 1
+    };
+  };
+
+  // node_modules/framer-motion/dist/es/value/types/color/rgba.mjs
+  var clampRgbUnit = (v) => clamp(0, 255, v);
+  var rgbUnit = {
+    ...number,
+    transform: (v) => Math.round(clampRgbUnit(v))
+  };
+  var rgba = {
+    test: /* @__PURE__ */ isColorString("rgb", "red"),
+    parse: /* @__PURE__ */ splitColor("red", "green", "blue"),
+    transform: ({ red, green, blue, alpha: alpha$1 = 1 }) => "rgba(" + rgbUnit.transform(red) + ", " + rgbUnit.transform(green) + ", " + rgbUnit.transform(blue) + ", " + sanitize(alpha.transform(alpha$1)) + ")"
+  };
+
+  // node_modules/framer-motion/dist/es/value/types/color/hex.mjs
+  function parseHex(v) {
+    let r2 = "";
+    let g = "";
+    let b = "";
+    let a = "";
+    if (v.length > 5) {
+      r2 = v.substring(1, 3);
+      g = v.substring(3, 5);
+      b = v.substring(5, 7);
+      a = v.substring(7, 9);
+    } else {
+      r2 = v.substring(1, 2);
+      g = v.substring(2, 3);
+      b = v.substring(3, 4);
+      a = v.substring(4, 5);
+      r2 += r2;
+      g += g;
+      b += b;
+      a += a;
+    }
+    return {
+      red: parseInt(r2, 16),
+      green: parseInt(g, 16),
+      blue: parseInt(b, 16),
+      alpha: a ? parseInt(a, 16) / 255 : 1
+    };
+  }
+  var hex = {
+    test: /* @__PURE__ */ isColorString("#"),
+    parse: parseHex,
+    transform: rgba.transform
+  };
+
+  // node_modules/framer-motion/dist/es/value/types/color/hsla.mjs
+  var hsla = {
+    test: /* @__PURE__ */ isColorString("hsl", "hue"),
+    parse: /* @__PURE__ */ splitColor("hue", "saturation", "lightness"),
+    transform: ({ hue, saturation, lightness, alpha: alpha$1 = 1 }) => {
+      return "hsla(" + Math.round(hue) + ", " + percent.transform(sanitize(saturation)) + ", " + percent.transform(sanitize(lightness)) + ", " + sanitize(alpha.transform(alpha$1)) + ")";
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/value/types/color/index.mjs
+  var color = {
+    test: (v) => rgba.test(v) || hex.test(v) || hsla.test(v),
+    parse: (v) => {
+      if (rgba.test(v)) {
+        return rgba.parse(v);
+      } else if (hsla.test(v)) {
+        return hsla.parse(v);
+      } else {
+        return hex.parse(v);
+      }
+    },
+    transform: (v) => {
+      return typeof v === "string" ? v : v.hasOwnProperty("red") ? rgba.transform(v) : hsla.transform(v);
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/value/types/utils/color-regex.mjs
+  var colorRegex = /(?:#[\da-f]{3,8}|(?:rgb|hsl)a?\((?:-?[\d.]+%?[,\s]+){2}-?[\d.]+%?\s*(?:[,/]\s*)?(?:\b\d+(?:\.\d+)?|\.\d+)?%?\))/giu;
+
+  // node_modules/framer-motion/dist/es/value/types/complex/index.mjs
+  function test(v) {
+    var _a, _b;
+    return isNaN(v) && typeof v === "string" && (((_a = v.match(floatRegex)) === null || _a === void 0 ? void 0 : _a.length) || 0) + (((_b = v.match(colorRegex)) === null || _b === void 0 ? void 0 : _b.length) || 0) > 0;
+  }
+  var NUMBER_TOKEN = "number";
+  var COLOR_TOKEN = "color";
+  var VAR_TOKEN = "var";
+  var VAR_FUNCTION_TOKEN = "var(";
+  var SPLIT_TOKEN = "${}";
+  var complexRegex = /var\s*\(\s*--(?:[\w-]+\s*|[\w-]+\s*,(?:\s*[^)(\s]|\s*\((?:[^)(]|\([^)(]*\))*\))+\s*)\)|#[\da-f]{3,8}|(?:rgb|hsl)a?\((?:-?[\d.]+%?[,\s]+){2}-?[\d.]+%?\s*(?:[,/]\s*)?(?:\b\d+(?:\.\d+)?|\.\d+)?%?\)|-?(?:\d+(?:\.\d+)?|\.\d+)/giu;
+  function analyseComplexValue(value) {
+    const originalValue = value.toString();
+    const values = [];
+    const indexes = {
+      color: [],
+      number: [],
+      var: []
+    };
+    const types = [];
+    let i = 0;
+    const tokenised = originalValue.replace(complexRegex, (parsedValue) => {
+      if (color.test(parsedValue)) {
+        indexes.color.push(i);
+        types.push(COLOR_TOKEN);
+        values.push(color.parse(parsedValue));
+      } else if (parsedValue.startsWith(VAR_FUNCTION_TOKEN)) {
+        indexes.var.push(i);
+        types.push(VAR_TOKEN);
+        values.push(parsedValue);
+      } else {
+        indexes.number.push(i);
+        types.push(NUMBER_TOKEN);
+        values.push(parseFloat(parsedValue));
+      }
+      ++i;
+      return SPLIT_TOKEN;
+    });
+    const split = tokenised.split(SPLIT_TOKEN);
+    return { values, split, indexes, types };
+  }
+  function parseComplexValue(v) {
+    return analyseComplexValue(v).values;
+  }
+  function createTransformer(source) {
+    const { split, types } = analyseComplexValue(source);
+    const numSections = split.length;
+    return (v) => {
+      let output = "";
+      for (let i = 0; i < numSections; i++) {
+        output += split[i];
+        if (v[i] !== void 0) {
+          const type = types[i];
+          if (type === NUMBER_TOKEN) {
+            output += sanitize(v[i]);
+          } else if (type === COLOR_TOKEN) {
+            output += color.transform(v[i]);
+          } else {
+            output += v[i];
+          }
+        }
+      }
+      return output;
+    };
+  }
+  var convertNumbersToZero = (v) => typeof v === "number" ? 0 : v;
+  function getAnimatableNone(v) {
+    const parsed = parseComplexValue(v);
+    const transformer = createTransformer(v);
+    return transformer(parsed.map(convertNumbersToZero));
+  }
+  var complex = {
+    test,
+    parse: parseComplexValue,
+    createTransformer,
+    getAnimatableNone
+  };
+
+  // node_modules/framer-motion/dist/es/value/types/complex/filter.mjs
+  var maxDefaults = /* @__PURE__ */ new Set(["brightness", "contrast", "saturate", "opacity"]);
+  function applyDefaultFilter(v) {
+    const [name, value] = v.slice(0, -1).split("(");
+    if (name === "drop-shadow")
+      return v;
+    const [number2] = value.match(floatRegex) || [];
+    if (!number2)
+      return v;
+    const unit = value.replace(number2, "");
+    let defaultValue = maxDefaults.has(name) ? 1 : 0;
+    if (number2 !== value)
+      defaultValue *= 100;
+    return name + "(" + defaultValue + unit + ")";
+  }
+  var functionRegex = /\b([a-z-]*)\(.*?\)/gu;
+  var filter = {
+    ...complex,
+    getAnimatableNone: (v) => {
+      const functions = v.match(functionRegex);
+      return functions ? functions.map(applyDefaultFilter).join(" ") : v;
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/render/dom/value-types/defaults.mjs
+  var defaultValueTypes = {
+    ...numberValueTypes,
+    // Color props
+    color,
+    backgroundColor: color,
+    outlineColor: color,
+    fill: color,
+    stroke: color,
+    // Border props
+    borderColor: color,
+    borderTopColor: color,
+    borderRightColor: color,
+    borderBottomColor: color,
+    borderLeftColor: color,
+    filter,
+    WebkitFilter: filter
+  };
+  var getDefaultValueType = (key) => defaultValueTypes[key];
+
+  // node_modules/framer-motion/dist/es/render/dom/value-types/animatable-none.mjs
+  function getAnimatableNone2(key, value) {
+    let defaultValueType = getDefaultValueType(key);
+    if (defaultValueType !== filter)
+      defaultValueType = complex;
+    return defaultValueType.getAnimatableNone ? defaultValueType.getAnimatableNone(value) : void 0;
+  }
+
+  // node_modules/framer-motion/dist/es/render/html/utils/make-none-animatable.mjs
+  var invalidTemplates = /* @__PURE__ */ new Set(["auto", "none", "0"]);
+  function makeNoneKeyframesAnimatable(unresolvedKeyframes, noneKeyframeIndexes, name) {
+    let i = 0;
+    let animatableTemplate = void 0;
+    while (i < unresolvedKeyframes.length && !animatableTemplate) {
+      const keyframe = unresolvedKeyframes[i];
+      if (typeof keyframe === "string" && !invalidTemplates.has(keyframe) && analyseComplexValue(keyframe).values.length) {
+        animatableTemplate = unresolvedKeyframes[i];
+      }
+      i++;
+    }
+    if (animatableTemplate && name) {
+      for (const noneIndex of noneKeyframeIndexes) {
+        unresolvedKeyframes[noneIndex] = getAnimatableNone2(name, animatableTemplate);
+      }
+    }
+  }
+
+  // node_modules/framer-motion/dist/es/render/dom/utils/unit-conversion.mjs
+  var isNumOrPxType = (v) => v === number || v === px;
+  var getPosFromMatrix = (matrix, pos) => parseFloat(matrix.split(", ")[pos]);
+  var getTranslateFromMatrix = (pos2, pos3) => (_bbox, { transform }) => {
+    if (transform === "none" || !transform)
+      return 0;
+    const matrix3d = transform.match(/^matrix3d\((.+)\)$/u);
+    if (matrix3d) {
+      return getPosFromMatrix(matrix3d[1], pos3);
+    } else {
+      const matrix = transform.match(/^matrix\((.+)\)$/u);
+      if (matrix) {
+        return getPosFromMatrix(matrix[1], pos2);
+      } else {
+        return 0;
+      }
+    }
+  };
+  var transformKeys = /* @__PURE__ */ new Set(["x", "y", "z"]);
+  var nonTranslationalTransformKeys = transformPropOrder.filter((key) => !transformKeys.has(key));
+  function removeNonTranslationalTransform(visualElement) {
+    const removedTransforms = [];
+    nonTranslationalTransformKeys.forEach((key) => {
+      const value = visualElement.getValue(key);
+      if (value !== void 0) {
+        removedTransforms.push([key, value.get()]);
+        value.set(key.startsWith("scale") ? 1 : 0);
+      }
+    });
+    return removedTransforms;
+  }
+  var positionalValues = {
+    // Dimensions
+    width: ({ x }, { paddingLeft = "0", paddingRight = "0" }) => x.max - x.min - parseFloat(paddingLeft) - parseFloat(paddingRight),
+    height: ({ y }, { paddingTop = "0", paddingBottom = "0" }) => y.max - y.min - parseFloat(paddingTop) - parseFloat(paddingBottom),
+    top: (_bbox, { top }) => parseFloat(top),
+    left: (_bbox, { left }) => parseFloat(left),
+    bottom: ({ y }, { top }) => parseFloat(top) + (y.max - y.min),
+    right: ({ x }, { left }) => parseFloat(left) + (x.max - x.min),
+    // Transform
+    x: getTranslateFromMatrix(4, 13),
+    y: getTranslateFromMatrix(5, 14)
+  };
+  positionalValues.translateX = positionalValues.x;
+  positionalValues.translateY = positionalValues.y;
+
+  // node_modules/framer-motion/dist/es/render/utils/KeyframesResolver.mjs
+  var toResolve = /* @__PURE__ */ new Set();
+  var isScheduled = false;
+  var anyNeedsMeasurement = false;
+  function measureAllKeyframes() {
+    if (anyNeedsMeasurement) {
+      const resolversToMeasure = Array.from(toResolve).filter((resolver) => resolver.needsMeasurement);
+      const elementsToMeasure = new Set(resolversToMeasure.map((resolver) => resolver.element));
+      const transformsToRestore = /* @__PURE__ */ new Map();
+      elementsToMeasure.forEach((element) => {
+        const removedTransforms = removeNonTranslationalTransform(element);
+        if (!removedTransforms.length)
+          return;
+        transformsToRestore.set(element, removedTransforms);
+        element.render();
+      });
+      resolversToMeasure.forEach((resolver) => resolver.measureInitialState());
+      elementsToMeasure.forEach((element) => {
+        element.render();
+        const restore = transformsToRestore.get(element);
+        if (restore) {
+          restore.forEach(([key, value]) => {
+            var _a;
+            (_a = element.getValue(key)) === null || _a === void 0 ? void 0 : _a.set(value);
+          });
+        }
+      });
+      resolversToMeasure.forEach((resolver) => resolver.measureEndState());
+      resolversToMeasure.forEach((resolver) => {
+        if (resolver.suspendedScrollY !== void 0) {
+          window.scrollTo(0, resolver.suspendedScrollY);
+        }
+      });
+    }
+    anyNeedsMeasurement = false;
+    isScheduled = false;
+    toResolve.forEach((resolver) => resolver.complete());
+    toResolve.clear();
+  }
+  function readAllKeyframes() {
+    toResolve.forEach((resolver) => {
+      resolver.readKeyframes();
+      if (resolver.needsMeasurement) {
+        anyNeedsMeasurement = true;
+      }
+    });
+  }
+  function flushKeyframeResolvers() {
+    readAllKeyframes();
+    measureAllKeyframes();
+  }
+  var KeyframeResolver = class {
+    constructor(unresolvedKeyframes, onComplete, name, motionValue2, element, isAsync = false) {
+      this.isComplete = false;
+      this.isAsync = false;
+      this.needsMeasurement = false;
+      this.isScheduled = false;
+      this.unresolvedKeyframes = [...unresolvedKeyframes];
+      this.onComplete = onComplete;
+      this.name = name;
+      this.motionValue = motionValue2;
+      this.element = element;
+      this.isAsync = isAsync;
+    }
+    scheduleResolve() {
+      this.isScheduled = true;
+      if (this.isAsync) {
+        toResolve.add(this);
+        if (!isScheduled) {
+          isScheduled = true;
+          frame.read(readAllKeyframes);
+          frame.resolveKeyframes(measureAllKeyframes);
+        }
+      } else {
+        this.readKeyframes();
+        this.complete();
+      }
+    }
+    readKeyframes() {
+      const { unresolvedKeyframes, name, element, motionValue: motionValue2 } = this;
+      for (let i = 0; i < unresolvedKeyframes.length; i++) {
+        if (unresolvedKeyframes[i] === null) {
+          if (i === 0) {
+            const currentValue = motionValue2 === null || motionValue2 === void 0 ? void 0 : motionValue2.get();
+            const finalKeyframe = unresolvedKeyframes[unresolvedKeyframes.length - 1];
+            if (currentValue !== void 0) {
+              unresolvedKeyframes[0] = currentValue;
+            } else if (element && name) {
+              const valueAsRead = element.readValue(name, finalKeyframe);
+              if (valueAsRead !== void 0 && valueAsRead !== null) {
+                unresolvedKeyframes[0] = valueAsRead;
+              }
+            }
+            if (unresolvedKeyframes[0] === void 0) {
+              unresolvedKeyframes[0] = finalKeyframe;
+            }
+            if (motionValue2 && currentValue === void 0) {
+              motionValue2.set(unresolvedKeyframes[0]);
+            }
+          } else {
+            unresolvedKeyframes[i] = unresolvedKeyframes[i - 1];
+          }
+        }
+      }
+    }
+    setFinalKeyframe() {
+    }
+    measureInitialState() {
+    }
+    renderEndStyles() {
+    }
+    measureEndState() {
+    }
+    complete() {
+      this.isComplete = true;
+      this.onComplete(this.unresolvedKeyframes, this.finalKeyframe);
+      toResolve.delete(this);
+    }
+    cancel() {
+      if (!this.isComplete) {
+        this.isScheduled = false;
+        toResolve.delete(this);
+      }
+    }
+    resume() {
+      if (!this.isComplete)
+        this.scheduleResolve();
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/utils/is-numerical-string.mjs
+  var isNumericalString = (v) => /^-?(?:\d+(?:\.\d+)?|\.\d+)$/u.test(v);
+
+  // node_modules/framer-motion/dist/es/render/dom/utils/css-variables-conversion.mjs
+  var splitCSSVariableRegex = (
+    // eslint-disable-next-line redos-detector/no-unsafe-regex -- false positive, as it can match a lot of words
+    /^var\(--(?:([\w-]+)|([\w-]+), ?([a-zA-Z\d ()%#.,-]+))\)/u
+  );
+  function parseCSSVariable(current) {
+    const match = splitCSSVariableRegex.exec(current);
+    if (!match)
+      return [,];
+    const [, token1, token2, fallback] = match;
+    return [`--${token1 !== null && token1 !== void 0 ? token1 : token2}`, fallback];
+  }
+  var maxDepth = 4;
+  function getVariableValue(current, element, depth = 1) {
+    invariant(depth <= maxDepth, `Max CSS variable fallback depth detected in property "${current}". This may indicate a circular fallback dependency.`);
+    const [token, fallback] = parseCSSVariable(current);
+    if (!token)
+      return;
+    const resolved = window.getComputedStyle(element).getPropertyValue(token);
+    if (resolved) {
+      const trimmed = resolved.trim();
+      return isNumericalString(trimmed) ? parseFloat(trimmed) : trimmed;
+    }
+    return isCSSVariableToken(fallback) ? getVariableValue(fallback, element, depth + 1) : fallback;
+  }
+
+  // node_modules/framer-motion/dist/es/render/dom/value-types/test.mjs
+  var testValueType = (v) => (type) => type.test(v);
+
+  // node_modules/framer-motion/dist/es/render/dom/value-types/type-auto.mjs
+  var auto = {
+    test: (v) => v === "auto",
+    parse: (v) => v
+  };
+
+  // node_modules/framer-motion/dist/es/render/dom/value-types/dimensions.mjs
+  var dimensionValueTypes = [number, px, percent, degrees, vw, vh, auto];
+  var findDimensionValueType = (v) => dimensionValueTypes.find(testValueType(v));
+
+  // node_modules/framer-motion/dist/es/render/dom/DOMKeyframesResolver.mjs
+  var DOMKeyframesResolver = class extends KeyframeResolver {
+    constructor(unresolvedKeyframes, onComplete, name, motionValue2, element) {
+      super(unresolvedKeyframes, onComplete, name, motionValue2, element, true);
+    }
+    readKeyframes() {
+      const { unresolvedKeyframes, element, name } = this;
+      if (!element || !element.current)
+        return;
+      super.readKeyframes();
+      for (let i = 0; i < unresolvedKeyframes.length; i++) {
+        let keyframe = unresolvedKeyframes[i];
+        if (typeof keyframe === "string") {
+          keyframe = keyframe.trim();
+          if (isCSSVariableToken(keyframe)) {
+            const resolved = getVariableValue(keyframe, element.current);
+            if (resolved !== void 0) {
+              unresolvedKeyframes[i] = resolved;
+            }
+            if (i === unresolvedKeyframes.length - 1) {
+              this.finalKeyframe = keyframe;
+            }
+          }
+        }
+      }
+      this.resolveNoneKeyframes();
+      if (!positionalKeys.has(name) || unresolvedKeyframes.length !== 2) {
+        return;
+      }
+      const [origin, target] = unresolvedKeyframes;
+      const originType = findDimensionValueType(origin);
+      const targetType = findDimensionValueType(target);
+      if (originType === targetType)
+        return;
+      if (isNumOrPxType(originType) && isNumOrPxType(targetType)) {
+        for (let i = 0; i < unresolvedKeyframes.length; i++) {
+          const value = unresolvedKeyframes[i];
+          if (typeof value === "string") {
+            unresolvedKeyframes[i] = parseFloat(value);
+          }
+        }
+      } else {
+        this.needsMeasurement = true;
+      }
+    }
+    resolveNoneKeyframes() {
+      const { unresolvedKeyframes, name } = this;
+      const noneKeyframeIndexes = [];
+      for (let i = 0; i < unresolvedKeyframes.length; i++) {
+        if (isNone(unresolvedKeyframes[i])) {
+          noneKeyframeIndexes.push(i);
+        }
+      }
+      if (noneKeyframeIndexes.length) {
+        makeNoneKeyframesAnimatable(unresolvedKeyframes, noneKeyframeIndexes, name);
+      }
+    }
+    measureInitialState() {
+      const { element, unresolvedKeyframes, name } = this;
+      if (!element || !element.current)
+        return;
+      if (name === "height") {
+        this.suspendedScrollY = window.pageYOffset;
+      }
+      this.measuredOrigin = positionalValues[name](element.measureViewportBox(), window.getComputedStyle(element.current));
+      unresolvedKeyframes[0] = this.measuredOrigin;
+      const measureKeyframe = unresolvedKeyframes[unresolvedKeyframes.length - 1];
+      if (measureKeyframe !== void 0) {
+        element.getValue(name, measureKeyframe).jump(measureKeyframe, false);
+      }
+    }
+    measureEndState() {
+      var _a;
+      const { element, name, unresolvedKeyframes } = this;
+      if (!element || !element.current)
+        return;
+      const value = element.getValue(name);
+      value && value.jump(this.measuredOrigin, false);
+      const finalKeyframeIndex = unresolvedKeyframes.length - 1;
+      const finalKeyframe = unresolvedKeyframes[finalKeyframeIndex];
+      unresolvedKeyframes[finalKeyframeIndex] = positionalValues[name](element.measureViewportBox(), window.getComputedStyle(element.current));
+      if (finalKeyframe !== null && this.finalKeyframe === void 0) {
+        this.finalKeyframe = finalKeyframe;
+      }
+      if ((_a = this.removedTransforms) === null || _a === void 0 ? void 0 : _a.length) {
+        this.removedTransforms.forEach(([unsetTransformName, unsetTransformValue]) => {
+          element.getValue(unsetTransformName).set(unsetTransformValue);
+        });
+      }
+      this.resolveNoneKeyframes();
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/animation/utils/is-animatable.mjs
+  var isAnimatable = (value, name) => {
+    if (name === "zIndex")
+      return false;
+    if (typeof value === "number" || Array.isArray(value))
+      return true;
+    if (typeof value === "string" && // It's animatable if we have a string
+    (complex.test(value) || value === "0") && // And it contains numbers and/or colors
+    !value.startsWith("url(")) {
+      return true;
+    }
+    return false;
+  };
+
+  // node_modules/framer-motion/dist/es/animation/animators/utils/can-animate.mjs
+  function hasKeyframesChanged(keyframes2) {
+    const current = keyframes2[0];
+    if (keyframes2.length === 1)
+      return true;
+    for (let i = 0; i < keyframes2.length; i++) {
+      if (keyframes2[i] !== current)
+        return true;
+    }
+  }
+  function canAnimate(keyframes2, name, type, velocity) {
+    const originKeyframe = keyframes2[0];
+    if (originKeyframe === null)
+      return false;
+    if (name === "display" || name === "visibility")
+      return true;
+    const targetKeyframe = keyframes2[keyframes2.length - 1];
+    const isOriginAnimatable = isAnimatable(originKeyframe, name);
+    const isTargetAnimatable = isAnimatable(targetKeyframe, name);
+    warning(isOriginAnimatable === isTargetAnimatable, `You are trying to animate ${name} from "${originKeyframe}" to "${targetKeyframe}". ${originKeyframe} is not an animatable value - to enable this animation set ${originKeyframe} to a value animatable to ${targetKeyframe} via the \`style\` property.`);
+    if (!isOriginAnimatable || !isTargetAnimatable) {
+      return false;
+    }
+    return hasKeyframesChanged(keyframes2) || (type === "spring" || isGenerator(type)) && velocity;
+  }
+
+  // node_modules/framer-motion/dist/es/animation/animators/waapi/utils/get-final-keyframe.mjs
+  var isNotNull = (value) => value !== null;
+  function getFinalKeyframe(keyframes2, { repeat, repeatType = "loop" }, finalKeyframe) {
+    const resolvedKeyframes = keyframes2.filter(isNotNull);
+    const index = repeat && repeatType !== "loop" && repeat % 2 === 1 ? 0 : resolvedKeyframes.length - 1;
+    return !index || finalKeyframe === void 0 ? resolvedKeyframes[index] : finalKeyframe;
+  }
+
+  // node_modules/framer-motion/dist/es/animation/animators/BaseAnimation.mjs
+  var MAX_RESOLVE_DELAY = 40;
+  var BaseAnimation = class {
+    constructor({ autoplay = true, delay: delay2 = 0, type = "keyframes", repeat = 0, repeatDelay = 0, repeatType = "loop", ...options }) {
+      this.isStopped = false;
+      this.hasAttemptedResolve = false;
+      this.createdAt = time.now();
+      this.options = {
+        autoplay,
+        delay: delay2,
+        type,
+        repeat,
+        repeatDelay,
+        repeatType,
+        ...options
+      };
+      this.updateFinishedPromise();
+    }
+    /**
+     * This method uses the createdAt and resolvedAt to calculate the
+     * animation startTime. *Ideally*, we would use the createdAt time as t=0
+     * as the following frame would then be the first frame of the animation in
+     * progress, which would feel snappier.
+     *
+     * However, if there's a delay (main thread work) between the creation of
+     * the animation and the first commited frame, we prefer to use resolvedAt
+     * to avoid a sudden jump into the animation.
+     */
+    calcStartTime() {
+      if (!this.resolvedAt)
+        return this.createdAt;
+      return this.resolvedAt - this.createdAt > MAX_RESOLVE_DELAY ? this.resolvedAt : this.createdAt;
+    }
+    /**
+     * A getter for resolved data. If keyframes are not yet resolved, accessing
+     * this.resolved will synchronously flush all pending keyframe resolvers.
+     * This is a deoptimisation, but at its worst still batches read/writes.
+     */
+    get resolved() {
+      if (!this._resolved && !this.hasAttemptedResolve) {
+        flushKeyframeResolvers();
+      }
+      return this._resolved;
+    }
+    /**
+     * A method to be called when the keyframes resolver completes. This method
+     * will check if its possible to run the animation and, if not, skip it.
+     * Otherwise, it will call initPlayback on the implementing class.
+     */
+    onKeyframesResolved(keyframes2, finalKeyframe) {
+      this.resolvedAt = time.now();
+      this.hasAttemptedResolve = true;
+      const { name, type, velocity, delay: delay2, onComplete, onUpdate, isGenerator: isGenerator2 } = this.options;
+      if (!isGenerator2 && !canAnimate(keyframes2, name, type, velocity)) {
+        if (instantAnimationState.current || !delay2) {
+          onUpdate && onUpdate(getFinalKeyframe(keyframes2, this.options, finalKeyframe));
+          onComplete && onComplete();
+          this.resolveFinishedPromise();
+          return;
+        } else {
+          this.options.duration = 0;
+        }
+      }
+      const resolvedAnimation = this.initPlayback(keyframes2, finalKeyframe);
+      if (resolvedAnimation === false)
+        return;
+      this._resolved = {
+        keyframes: keyframes2,
+        finalKeyframe,
+        ...resolvedAnimation
+      };
+      this.onPostResolved();
+    }
+    onPostResolved() {
+    }
+    /**
+     * Allows the returned animation to be awaited or promise-chained. Currently
+     * resolves when the animation finishes at all but in a future update could/should
+     * reject if its cancels.
+     */
+    then(resolve, reject) {
+      return this.currentFinishedPromise.then(resolve, reject);
+    }
+    flatten() {
+      this.options.type = "keyframes";
+      this.options.ease = "linear";
+    }
+    updateFinishedPromise() {
+      this.currentFinishedPromise = new Promise((resolve) => {
+        this.resolveFinishedPromise = resolve;
+      });
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/utils/mix/number.mjs
+  var mixNumber = (from, to, progress2) => {
+    return from + (to - from) * progress2;
+  };
+
+  // node_modules/framer-motion/dist/es/utils/hsla-to-rgba.mjs
+  function hueToRgb(p, q, t) {
+    if (t < 0)
+      t += 1;
+    if (t > 1)
+      t -= 1;
+    if (t < 1 / 6)
+      return p + (q - p) * 6 * t;
+    if (t < 1 / 2)
+      return q;
+    if (t < 2 / 3)
+      return p + (q - p) * (2 / 3 - t) * 6;
+    return p;
+  }
+  function hslaToRgba({ hue, saturation, lightness, alpha: alpha2 }) {
+    hue /= 360;
+    saturation /= 100;
+    lightness /= 100;
+    let red = 0;
+    let green = 0;
+    let blue = 0;
+    if (!saturation) {
+      red = green = blue = lightness;
+    } else {
+      const q = lightness < 0.5 ? lightness * (1 + saturation) : lightness + saturation - lightness * saturation;
+      const p = 2 * lightness - q;
+      red = hueToRgb(p, q, hue + 1 / 3);
+      green = hueToRgb(p, q, hue);
+      blue = hueToRgb(p, q, hue - 1 / 3);
+    }
+    return {
+      red: Math.round(red * 255),
+      green: Math.round(green * 255),
+      blue: Math.round(blue * 255),
+      alpha: alpha2
+    };
+  }
+
+  // node_modules/framer-motion/dist/es/utils/mix/immediate.mjs
+  function mixImmediate(a, b) {
+    return (p) => p > 0 ? b : a;
+  }
+
+  // node_modules/framer-motion/dist/es/utils/mix/color.mjs
+  var mixLinearColor = (from, to, v) => {
+    const fromExpo = from * from;
+    const expo = v * (to * to - fromExpo) + fromExpo;
+    return expo < 0 ? 0 : Math.sqrt(expo);
+  };
+  var colorTypes = [hex, rgba, hsla];
+  var getColorType = (v) => colorTypes.find((type) => type.test(v));
+  function asRGBA(color2) {
+    const type = getColorType(color2);
+    warning(Boolean(type), `'${color2}' is not an animatable color. Use the equivalent color code instead.`);
+    if (!Boolean(type))
+      return false;
+    let model = type.parse(color2);
+    if (type === hsla) {
+      model = hslaToRgba(model);
+    }
+    return model;
+  }
+  var mixColor = (from, to) => {
+    const fromRGBA = asRGBA(from);
+    const toRGBA = asRGBA(to);
+    if (!fromRGBA || !toRGBA) {
+      return mixImmediate(from, to);
+    }
+    const blended = { ...fromRGBA };
+    return (v) => {
+      blended.red = mixLinearColor(fromRGBA.red, toRGBA.red, v);
+      blended.green = mixLinearColor(fromRGBA.green, toRGBA.green, v);
+      blended.blue = mixLinearColor(fromRGBA.blue, toRGBA.blue, v);
+      blended.alpha = mixNumber(fromRGBA.alpha, toRGBA.alpha, v);
+      return rgba.transform(blended);
+    };
+  };
+
+  // node_modules/framer-motion/dist/es/utils/pipe.mjs
+  var combineFunctions = (a, b) => (v) => b(a(v));
+  var pipe = (...transformers) => transformers.reduce(combineFunctions);
+
+  // node_modules/framer-motion/dist/es/utils/mix/visibility.mjs
+  var invisibleValues = /* @__PURE__ */ new Set(["none", "hidden"]);
+  function mixVisibility(origin, target) {
+    if (invisibleValues.has(origin)) {
+      return (p) => p <= 0 ? origin : target;
+    } else {
+      return (p) => p >= 1 ? target : origin;
+    }
+  }
+
+  // node_modules/framer-motion/dist/es/utils/mix/complex.mjs
+  function mixNumber2(a, b) {
+    return (p) => mixNumber(a, b, p);
+  }
+  function getMixer(a) {
+    if (typeof a === "number") {
+      return mixNumber2;
+    } else if (typeof a === "string") {
+      return isCSSVariableToken(a) ? mixImmediate : color.test(a) ? mixColor : mixComplex;
+    } else if (Array.isArray(a)) {
+      return mixArray;
+    } else if (typeof a === "object") {
+      return color.test(a) ? mixColor : mixObject;
+    }
+    return mixImmediate;
+  }
+  function mixArray(a, b) {
+    const output = [...a];
+    const numValues = output.length;
+    const blendValue = a.map((v, i) => getMixer(v)(v, b[i]));
+    return (p) => {
+      for (let i = 0; i < numValues; i++) {
+        output[i] = blendValue[i](p);
+      }
+      return output;
+    };
+  }
+  function mixObject(a, b) {
+    const output = { ...a, ...b };
+    const blendValue = {};
+    for (const key in output) {
+      if (a[key] !== void 0 && b[key] !== void 0) {
+        blendValue[key] = getMixer(a[key])(a[key], b[key]);
+      }
+    }
+    return (v) => {
+      for (const key in blendValue) {
+        output[key] = blendValue[key](v);
+      }
+      return output;
+    };
+  }
+  function matchOrder(origin, target) {
+    var _a;
+    const orderedOrigin = [];
+    const pointers = { color: 0, var: 0, number: 0 };
+    for (let i = 0; i < target.values.length; i++) {
+      const type = target.types[i];
+      const originIndex = origin.indexes[type][pointers[type]];
+      const originValue = (_a = origin.values[originIndex]) !== null && _a !== void 0 ? _a : 0;
+      orderedOrigin[i] = originValue;
+      pointers[type]++;
+    }
+    return orderedOrigin;
+  }
+  var mixComplex = (origin, target) => {
+    const template = complex.createTransformer(target);
+    const originStats = analyseComplexValue(origin);
+    const targetStats = analyseComplexValue(target);
+    const canInterpolate = originStats.indexes.var.length === targetStats.indexes.var.length && originStats.indexes.color.length === targetStats.indexes.color.length && originStats.indexes.number.length >= targetStats.indexes.number.length;
+    if (canInterpolate) {
+      if (invisibleValues.has(origin) && !targetStats.values.length || invisibleValues.has(target) && !originStats.values.length) {
+        return mixVisibility(origin, target);
+      }
+      return pipe(mixArray(matchOrder(originStats, targetStats), targetStats.values), template);
+    } else {
+      warning(true, `Complex values '${origin}' and '${target}' too different to mix. Ensure all colors are of the same type, and that each contains the same quantity of number and color values. Falling back to instant transition.`);
+      return mixImmediate(origin, target);
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/utils/mix/index.mjs
+  function mix(from, to, p) {
+    if (typeof from === "number" && typeof to === "number" && typeof p === "number") {
+      return mixNumber(from, to, p);
+    }
+    const mixer = getMixer(from);
+    return mixer(from, to);
+  }
+
+  // node_modules/framer-motion/dist/es/animation/generators/utils/velocity.mjs
+  var velocitySampleDuration = 5;
+  function calcGeneratorVelocity(resolveValue, t, current) {
+    const prevT = Math.max(t - velocitySampleDuration, 0);
+    return velocityPerSecond(current - resolveValue(prevT), t - prevT);
+  }
+
+  // node_modules/framer-motion/dist/es/animation/generators/spring/defaults.mjs
+  var springDefaults = {
+    // Default spring physics
+    stiffness: 100,
+    damping: 10,
+    mass: 1,
+    velocity: 0,
+    // Default duration/bounce-based options
+    duration: 800,
+    // in ms
+    bounce: 0.3,
+    visualDuration: 0.3,
+    // in seconds
+    // Rest thresholds
+    restSpeed: {
+      granular: 0.01,
+      default: 2
+    },
+    restDelta: {
+      granular: 5e-3,
+      default: 0.5
+    },
+    // Limits
+    minDuration: 0.01,
+    // in seconds
+    maxDuration: 10,
+    // in seconds
+    minDamping: 0.05,
+    maxDamping: 1
+  };
+
+  // node_modules/framer-motion/dist/es/animation/generators/spring/find.mjs
+  var safeMin = 1e-3;
+  function findSpring({ duration = springDefaults.duration, bounce = springDefaults.bounce, velocity = springDefaults.velocity, mass = springDefaults.mass }) {
+    let envelope;
+    let derivative;
+    warning(duration <= secondsToMilliseconds(springDefaults.maxDuration), "Spring duration must be 10 seconds or less");
+    let dampingRatio = 1 - bounce;
+    dampingRatio = clamp(springDefaults.minDamping, springDefaults.maxDamping, dampingRatio);
+    duration = clamp(springDefaults.minDuration, springDefaults.maxDuration, millisecondsToSeconds(duration));
+    if (dampingRatio < 1) {
+      envelope = (undampedFreq2) => {
+        const exponentialDecay = undampedFreq2 * dampingRatio;
+        const delta = exponentialDecay * duration;
+        const a = exponentialDecay - velocity;
+        const b = calcAngularFreq(undampedFreq2, dampingRatio);
+        const c = Math.exp(-delta);
+        return safeMin - a / b * c;
+      };
+      derivative = (undampedFreq2) => {
+        const exponentialDecay = undampedFreq2 * dampingRatio;
+        const delta = exponentialDecay * duration;
+        const d = delta * velocity + velocity;
+        const e = Math.pow(dampingRatio, 2) * Math.pow(undampedFreq2, 2) * duration;
+        const f = Math.exp(-delta);
+        const g = calcAngularFreq(Math.pow(undampedFreq2, 2), dampingRatio);
+        const factor = -envelope(undampedFreq2) + safeMin > 0 ? -1 : 1;
+        return factor * ((d - e) * f) / g;
+      };
+    } else {
+      envelope = (undampedFreq2) => {
+        const a = Math.exp(-undampedFreq2 * duration);
+        const b = (undampedFreq2 - velocity) * duration + 1;
+        return -safeMin + a * b;
+      };
+      derivative = (undampedFreq2) => {
+        const a = Math.exp(-undampedFreq2 * duration);
+        const b = (velocity - undampedFreq2) * (duration * duration);
+        return a * b;
+      };
+    }
+    const initialGuess = 5 / duration;
+    const undampedFreq = approximateRoot(envelope, derivative, initialGuess);
+    duration = secondsToMilliseconds(duration);
+    if (isNaN(undampedFreq)) {
+      return {
+        stiffness: springDefaults.stiffness,
+        damping: springDefaults.damping,
+        duration
+      };
+    } else {
+      const stiffness = Math.pow(undampedFreq, 2) * mass;
+      return {
+        stiffness,
+        damping: dampingRatio * 2 * Math.sqrt(mass * stiffness),
+        duration
+      };
+    }
+  }
+  var rootIterations = 12;
+  function approximateRoot(envelope, derivative, initialGuess) {
+    let result = initialGuess;
+    for (let i = 1; i < rootIterations; i++) {
+      result = result - envelope(result) / derivative(result);
+    }
+    return result;
+  }
+  function calcAngularFreq(undampedFreq, dampingRatio) {
+    return undampedFreq * Math.sqrt(1 - dampingRatio * dampingRatio);
+  }
+
+  // node_modules/framer-motion/dist/es/animation/generators/spring/index.mjs
+  var durationKeys = ["duration", "bounce"];
+  var physicsKeys = ["stiffness", "damping", "mass"];
+  function isSpringType(options, keys) {
+    return keys.some((key) => options[key] !== void 0);
+  }
+  function getSpringOptions(options) {
+    let springOptions = {
+      velocity: springDefaults.velocity,
+      stiffness: springDefaults.stiffness,
+      damping: springDefaults.damping,
+      mass: springDefaults.mass,
+      isResolvedFromDuration: false,
+      ...options
+    };
+    if (!isSpringType(options, physicsKeys) && isSpringType(options, durationKeys)) {
+      if (options.visualDuration) {
+        const visualDuration = options.visualDuration;
+        const root = 2 * Math.PI / (visualDuration * 1.2);
+        const stiffness = root * root;
+        const damping = 2 * clamp(0.05, 1, 1 - (options.bounce || 0)) * Math.sqrt(stiffness);
+        springOptions = {
+          ...springOptions,
+          mass: springDefaults.mass,
+          stiffness,
+          damping
+        };
+      } else {
+        const derived = findSpring(options);
+        springOptions = {
+          ...springOptions,
+          ...derived,
+          mass: springDefaults.mass
+        };
+        springOptions.isResolvedFromDuration = true;
+      }
+    }
+    return springOptions;
+  }
+  function spring(optionsOrVisualDuration = springDefaults.visualDuration, bounce = springDefaults.bounce) {
+    const options = typeof optionsOrVisualDuration !== "object" ? {
+      visualDuration: optionsOrVisualDuration,
+      keyframes: [0, 1],
+      bounce
+    } : optionsOrVisualDuration;
+    let { restSpeed, restDelta } = options;
+    const origin = options.keyframes[0];
+    const target = options.keyframes[options.keyframes.length - 1];
+    const state = { done: false, value: origin };
+    const { stiffness, damping, mass, duration, velocity, isResolvedFromDuration } = getSpringOptions({
+      ...options,
+      velocity: -millisecondsToSeconds(options.velocity || 0)
+    });
+    const initialVelocity = velocity || 0;
+    const dampingRatio = damping / (2 * Math.sqrt(stiffness * mass));
+    const initialDelta = target - origin;
+    const undampedAngularFreq = millisecondsToSeconds(Math.sqrt(stiffness / mass));
+    const isGranularScale = Math.abs(initialDelta) < 5;
+    restSpeed || (restSpeed = isGranularScale ? springDefaults.restSpeed.granular : springDefaults.restSpeed.default);
+    restDelta || (restDelta = isGranularScale ? springDefaults.restDelta.granular : springDefaults.restDelta.default);
+    let resolveSpring;
+    if (dampingRatio < 1) {
+      const angularFreq = calcAngularFreq(undampedAngularFreq, dampingRatio);
+      resolveSpring = (t) => {
+        const envelope = Math.exp(-dampingRatio * undampedAngularFreq * t);
+        return target - envelope * ((initialVelocity + dampingRatio * undampedAngularFreq * initialDelta) / angularFreq * Math.sin(angularFreq * t) + initialDelta * Math.cos(angularFreq * t));
+      };
+    } else if (dampingRatio === 1) {
+      resolveSpring = (t) => target - Math.exp(-undampedAngularFreq * t) * (initialDelta + (initialVelocity + undampedAngularFreq * initialDelta) * t);
+    } else {
+      const dampedAngularFreq = undampedAngularFreq * Math.sqrt(dampingRatio * dampingRatio - 1);
+      resolveSpring = (t) => {
+        const envelope = Math.exp(-dampingRatio * undampedAngularFreq * t);
+        const freqForT = Math.min(dampedAngularFreq * t, 300);
+        return target - envelope * ((initialVelocity + dampingRatio * undampedAngularFreq * initialDelta) * Math.sinh(freqForT) + dampedAngularFreq * initialDelta * Math.cosh(freqForT)) / dampedAngularFreq;
+      };
+    }
+    const generator = {
+      calculatedDuration: isResolvedFromDuration ? duration || null : null,
+      next: (t) => {
+        const current = resolveSpring(t);
+        if (!isResolvedFromDuration) {
+          let currentVelocity = 0;
+          if (dampingRatio < 1) {
+            currentVelocity = t === 0 ? secondsToMilliseconds(initialVelocity) : calcGeneratorVelocity(resolveSpring, t, current);
+          }
+          const isBelowVelocityThreshold = Math.abs(currentVelocity) <= restSpeed;
+          const isBelowDisplacementThreshold = Math.abs(target - current) <= restDelta;
+          state.done = isBelowVelocityThreshold && isBelowDisplacementThreshold;
+        } else {
+          state.done = t >= duration;
+        }
+        state.value = state.done ? target : current;
+        return state;
+      },
+      toString: () => {
+        const calculatedDuration = Math.min(calcGeneratorDuration(generator), maxGeneratorDuration);
+        const easing = generateLinearEasing((progress2) => generator.next(calculatedDuration * progress2).value, calculatedDuration, 30);
+        return calculatedDuration + "ms " + easing;
+      }
+    };
+    return generator;
+  }
+
+  // node_modules/framer-motion/dist/es/animation/generators/inertia.mjs
+  function inertia({ keyframes: keyframes2, velocity = 0, power = 0.8, timeConstant = 325, bounceDamping = 10, bounceStiffness = 500, modifyTarget, min, max, restDelta = 0.5, restSpeed }) {
+    const origin = keyframes2[0];
+    const state = {
+      done: false,
+      value: origin
+    };
+    const isOutOfBounds = (v) => min !== void 0 && v < min || max !== void 0 && v > max;
+    const nearestBoundary = (v) => {
+      if (min === void 0)
+        return max;
+      if (max === void 0)
+        return min;
+      return Math.abs(min - v) < Math.abs(max - v) ? min : max;
+    };
+    let amplitude = power * velocity;
+    const ideal = origin + amplitude;
+    const target = modifyTarget === void 0 ? ideal : modifyTarget(ideal);
+    if (target !== ideal)
+      amplitude = target - origin;
+    const calcDelta = (t) => -amplitude * Math.exp(-t / timeConstant);
+    const calcLatest = (t) => target + calcDelta(t);
+    const applyFriction = (t) => {
+      const delta = calcDelta(t);
+      const latest = calcLatest(t);
+      state.done = Math.abs(delta) <= restDelta;
+      state.value = state.done ? target : latest;
+    };
+    let timeReachedBoundary;
+    let spring$1;
+    const checkCatchBoundary = (t) => {
+      if (!isOutOfBounds(state.value))
+        return;
+      timeReachedBoundary = t;
+      spring$1 = spring({
+        keyframes: [state.value, nearestBoundary(state.value)],
+        velocity: calcGeneratorVelocity(calcLatest, t, state.value),
+        // TODO: This should be passing * 1000
+        damping: bounceDamping,
+        stiffness: bounceStiffness,
+        restDelta,
+        restSpeed
+      });
+    };
+    checkCatchBoundary(0);
+    return {
+      calculatedDuration: null,
+      next: (t) => {
+        let hasUpdatedFrame = false;
+        if (!spring$1 && timeReachedBoundary === void 0) {
+          hasUpdatedFrame = true;
+          applyFriction(t);
+          checkCatchBoundary(t);
+        }
+        if (timeReachedBoundary !== void 0 && t >= timeReachedBoundary) {
+          return spring$1.next(t - timeReachedBoundary);
+        } else {
+          !hasUpdatedFrame && applyFriction(t);
+          return state;
+        }
+      }
+    };
+  }
+
+  // node_modules/framer-motion/dist/es/easing/ease.mjs
+  var easeIn = /* @__PURE__ */ cubicBezier(0.42, 0, 1, 1);
+  var easeOut = /* @__PURE__ */ cubicBezier(0, 0, 0.58, 1);
+  var easeInOut = /* @__PURE__ */ cubicBezier(0.42, 0, 0.58, 1);
+
+  // node_modules/framer-motion/dist/es/easing/utils/is-easing-array.mjs
+  var isEasingArray = (ease2) => {
+    return Array.isArray(ease2) && typeof ease2[0] !== "number";
+  };
+
+  // node_modules/framer-motion/dist/es/easing/utils/map.mjs
+  var easingLookup = {
+    linear: noop,
+    easeIn,
+    easeInOut,
+    easeOut,
+    circIn,
+    circInOut,
+    circOut,
+    backIn,
+    backInOut,
+    backOut,
+    anticipate
+  };
+  var easingDefinitionToFunction = (definition) => {
+    if (isBezierDefinition(definition)) {
+      invariant(definition.length === 4, `Cubic bezier arrays must contain four numerical values.`);
+      const [x1, y1, x2, y2] = definition;
+      return cubicBezier(x1, y1, x2, y2);
+    } else if (typeof definition === "string") {
+      invariant(easingLookup[definition] !== void 0, `Invalid easing type '${definition}'`);
+      return easingLookup[definition];
+    }
+    return definition;
+  };
+
+  // node_modules/framer-motion/dist/es/utils/interpolate.mjs
+  function createMixers(output, ease2, customMixer) {
+    const mixers = [];
+    const mixerFactory = customMixer || mix;
+    const numMixers = output.length - 1;
+    for (let i = 0; i < numMixers; i++) {
+      let mixer = mixerFactory(output[i], output[i + 1]);
+      if (ease2) {
+        const easingFunction = Array.isArray(ease2) ? ease2[i] || noop : ease2;
+        mixer = pipe(easingFunction, mixer);
+      }
+      mixers.push(mixer);
+    }
+    return mixers;
+  }
+  function interpolate(input, output, { clamp: isClamp = true, ease: ease2, mixer } = {}) {
+    const inputLength = input.length;
+    invariant(inputLength === output.length, "Both input and output ranges must be the same length");
+    if (inputLength === 1)
+      return () => output[0];
+    if (inputLength === 2 && output[0] === output[1])
+      return () => output[1];
+    const isZeroDeltaRange = input[0] === input[1];
+    if (input[0] > input[inputLength - 1]) {
+      input = [...input].reverse();
+      output = [...output].reverse();
+    }
+    const mixers = createMixers(output, ease2, mixer);
+    const numMixers = mixers.length;
+    const interpolator = (v) => {
+      if (isZeroDeltaRange && v < input[0])
+        return output[0];
+      let i = 0;
+      if (numMixers > 1) {
+        for (; i < input.length - 2; i++) {
+          if (v < input[i + 1])
+            break;
+        }
+      }
+      const progressInRange = progress(input[i], input[i + 1], v);
+      return mixers[i](progressInRange);
+    };
+    return isClamp ? (v) => interpolator(clamp(input[0], input[inputLength - 1], v)) : interpolator;
+  }
+
+  // node_modules/framer-motion/dist/es/utils/offsets/fill.mjs
+  function fillOffset(offset, remaining) {
+    const min = offset[offset.length - 1];
+    for (let i = 1; i <= remaining; i++) {
+      const offsetProgress = progress(0, remaining, i);
+      offset.push(mixNumber(min, 1, offsetProgress));
+    }
+  }
+
+  // node_modules/framer-motion/dist/es/utils/offsets/default.mjs
+  function defaultOffset(arr) {
+    const offset = [0];
+    fillOffset(offset, arr.length - 1);
+    return offset;
+  }
+
+  // node_modules/framer-motion/dist/es/utils/offsets/time.mjs
+  function convertOffsetToTimes(offset, duration) {
+    return offset.map((o) => o * duration);
+  }
+
+  // node_modules/framer-motion/dist/es/animation/generators/keyframes.mjs
+  function defaultEasing(values, easing) {
+    return values.map(() => easing || easeInOut).splice(0, values.length - 1);
+  }
+  function keyframes({ duration = 300, keyframes: keyframeValues, times, ease: ease2 = "easeInOut" }) {
+    const easingFunctions = isEasingArray(ease2) ? ease2.map(easingDefinitionToFunction) : easingDefinitionToFunction(ease2);
+    const state = {
+      done: false,
+      value: keyframeValues[0]
+    };
+    const absoluteTimes = convertOffsetToTimes(
+      // Only use the provided offsets if they're the correct length
+      // TODO Maybe we should warn here if there's a length mismatch
+      times && times.length === keyframeValues.length ? times : defaultOffset(keyframeValues),
+      duration
+    );
+    const mapTimeToKeyframe = interpolate(absoluteTimes, keyframeValues, {
+      ease: Array.isArray(easingFunctions) ? easingFunctions : defaultEasing(keyframeValues, easingFunctions)
+    });
+    return {
+      calculatedDuration: duration,
+      next: (t) => {
+        state.value = mapTimeToKeyframe(t);
+        state.done = t >= duration;
+        return state;
+      }
+    };
+  }
+
+  // node_modules/framer-motion/dist/es/animation/animators/drivers/driver-frameloop.mjs
+  var frameloopDriver = (update) => {
+    const passTimestamp = ({ timestamp }) => update(timestamp);
+    return {
+      start: () => frame.update(passTimestamp, true),
+      stop: () => cancelFrame(passTimestamp),
+      /**
+       * If we're processing this frame we can use the
+       * framelocked timestamp to keep things in sync.
+       */
+      now: () => frameData.isProcessing ? frameData.timestamp : time.now()
+    };
+  };
+
+  // node_modules/framer-motion/dist/es/animation/animators/MainThreadAnimation.mjs
+  var generators = {
+    decay: inertia,
+    inertia,
+    tween: keyframes,
+    keyframes,
+    spring
+  };
+  var percentToProgress = (percent2) => percent2 / 100;
+  var MainThreadAnimation = class extends BaseAnimation {
+    constructor(options) {
+      super(options);
+      this.holdTime = null;
+      this.cancelTime = null;
+      this.currentTime = 0;
+      this.playbackSpeed = 1;
+      this.pendingPlayState = "running";
+      this.startTime = null;
+      this.state = "idle";
+      this.stop = () => {
+        this.resolver.cancel();
+        this.isStopped = true;
+        if (this.state === "idle")
+          return;
+        this.teardown();
+        const { onStop } = this.options;
+        onStop && onStop();
+      };
+      const { name, motionValue: motionValue2, element, keyframes: keyframes2 } = this.options;
+      const KeyframeResolver$1 = (element === null || element === void 0 ? void 0 : element.KeyframeResolver) || KeyframeResolver;
+      const onResolved = (resolvedKeyframes, finalKeyframe) => this.onKeyframesResolved(resolvedKeyframes, finalKeyframe);
+      this.resolver = new KeyframeResolver$1(keyframes2, onResolved, name, motionValue2, element);
+      this.resolver.scheduleResolve();
+    }
+    flatten() {
+      super.flatten();
+      if (this._resolved) {
+        Object.assign(this._resolved, this.initPlayback(this._resolved.keyframes));
+      }
+    }
+    initPlayback(keyframes$1) {
+      const { type = "keyframes", repeat = 0, repeatDelay = 0, repeatType, velocity = 0 } = this.options;
+      const generatorFactory = isGenerator(type) ? type : generators[type] || keyframes;
+      let mapPercentToKeyframes;
+      let mirroredGenerator;
+      if (generatorFactory !== keyframes && typeof keyframes$1[0] !== "number") {
+        if (true) {
+          invariant(keyframes$1.length === 2, `Only two keyframes currently supported with spring and inertia animations. Trying to animate ${keyframes$1}`);
+        }
+        mapPercentToKeyframes = pipe(percentToProgress, mix(keyframes$1[0], keyframes$1[1]));
+        keyframes$1 = [0, 100];
+      }
+      const generator = generatorFactory({ ...this.options, keyframes: keyframes$1 });
+      if (repeatType === "mirror") {
+        mirroredGenerator = generatorFactory({
+          ...this.options,
+          keyframes: [...keyframes$1].reverse(),
+          velocity: -velocity
+        });
+      }
+      if (generator.calculatedDuration === null) {
+        generator.calculatedDuration = calcGeneratorDuration(generator);
+      }
+      const { calculatedDuration } = generator;
+      const resolvedDuration = calculatedDuration + repeatDelay;
+      const totalDuration = resolvedDuration * (repeat + 1) - repeatDelay;
+      return {
+        generator,
+        mirroredGenerator,
+        mapPercentToKeyframes,
+        calculatedDuration,
+        resolvedDuration,
+        totalDuration
+      };
+    }
+    onPostResolved() {
+      const { autoplay = true } = this.options;
+      this.play();
+      if (this.pendingPlayState === "paused" || !autoplay) {
+        this.pause();
+      } else {
+        this.state = this.pendingPlayState;
+      }
+    }
+    tick(timestamp, sample = false) {
+      const { resolved } = this;
+      if (!resolved) {
+        const { keyframes: keyframes3 } = this.options;
+        return { done: true, value: keyframes3[keyframes3.length - 1] };
+      }
+      const { finalKeyframe, generator, mirroredGenerator, mapPercentToKeyframes, keyframes: keyframes2, calculatedDuration, totalDuration, resolvedDuration } = resolved;
+      if (this.startTime === null)
+        return generator.next(0);
+      const { delay: delay2, repeat, repeatType, repeatDelay, onUpdate } = this.options;
+      if (this.speed > 0) {
+        this.startTime = Math.min(this.startTime, timestamp);
+      } else if (this.speed < 0) {
+        this.startTime = Math.min(timestamp - totalDuration / this.speed, this.startTime);
+      }
+      if (sample) {
+        this.currentTime = timestamp;
+      } else if (this.holdTime !== null) {
+        this.currentTime = this.holdTime;
+      } else {
+        this.currentTime = Math.round(timestamp - this.startTime) * this.speed;
+      }
+      const timeWithoutDelay = this.currentTime - delay2 * (this.speed >= 0 ? 1 : -1);
+      const isInDelayPhase = this.speed >= 0 ? timeWithoutDelay < 0 : timeWithoutDelay > totalDuration;
+      this.currentTime = Math.max(timeWithoutDelay, 0);
+      if (this.state === "finished" && this.holdTime === null) {
+        this.currentTime = totalDuration;
+      }
+      let elapsed = this.currentTime;
+      let frameGenerator = generator;
+      if (repeat) {
+        const progress2 = Math.min(this.currentTime, totalDuration) / resolvedDuration;
+        let currentIteration = Math.floor(progress2);
+        let iterationProgress = progress2 % 1;
+        if (!iterationProgress && progress2 >= 1) {
+          iterationProgress = 1;
+        }
+        iterationProgress === 1 && currentIteration--;
+        currentIteration = Math.min(currentIteration, repeat + 1);
+        const isOddIteration = Boolean(currentIteration % 2);
+        if (isOddIteration) {
+          if (repeatType === "reverse") {
+            iterationProgress = 1 - iterationProgress;
+            if (repeatDelay) {
+              iterationProgress -= repeatDelay / resolvedDuration;
+            }
+          } else if (repeatType === "mirror") {
+            frameGenerator = mirroredGenerator;
+          }
+        }
+        elapsed = clamp(0, 1, iterationProgress) * resolvedDuration;
+      }
+      const state = isInDelayPhase ? { done: false, value: keyframes2[0] } : frameGenerator.next(elapsed);
+      if (mapPercentToKeyframes) {
+        state.value = mapPercentToKeyframes(state.value);
+      }
+      let { done } = state;
+      if (!isInDelayPhase && calculatedDuration !== null) {
+        done = this.speed >= 0 ? this.currentTime >= totalDuration : this.currentTime <= 0;
+      }
+      const isAnimationFinished = this.holdTime === null && (this.state === "finished" || this.state === "running" && done);
+      if (isAnimationFinished && finalKeyframe !== void 0) {
+        state.value = getFinalKeyframe(keyframes2, this.options, finalKeyframe);
+      }
+      if (onUpdate) {
+        onUpdate(state.value);
+      }
+      if (isAnimationFinished) {
+        this.finish();
+      }
+      return state;
+    }
+    get duration() {
+      const { resolved } = this;
+      return resolved ? millisecondsToSeconds(resolved.calculatedDuration) : 0;
+    }
+    get time() {
+      return millisecondsToSeconds(this.currentTime);
+    }
+    set time(newTime) {
+      newTime = secondsToMilliseconds(newTime);
+      this.currentTime = newTime;
+      if (this.holdTime !== null || this.speed === 0) {
+        this.holdTime = newTime;
+      } else if (this.driver) {
+        this.startTime = this.driver.now() - newTime / this.speed;
+      }
+    }
+    get speed() {
+      return this.playbackSpeed;
+    }
+    set speed(newSpeed) {
+      const hasChanged = this.playbackSpeed !== newSpeed;
+      this.playbackSpeed = newSpeed;
+      if (hasChanged) {
+        this.time = millisecondsToSeconds(this.currentTime);
+      }
+    }
+    play() {
+      if (!this.resolver.isScheduled) {
+        this.resolver.resume();
+      }
+      if (!this._resolved) {
+        this.pendingPlayState = "running";
+        return;
+      }
+      if (this.isStopped)
+        return;
+      const { driver = frameloopDriver, onPlay, startTime } = this.options;
+      if (!this.driver) {
+        this.driver = driver((timestamp) => this.tick(timestamp));
+      }
+      onPlay && onPlay();
+      const now2 = this.driver.now();
+      if (this.holdTime !== null) {
+        this.startTime = now2 - this.holdTime;
+      } else if (!this.startTime) {
+        this.startTime = startTime !== null && startTime !== void 0 ? startTime : this.calcStartTime();
+      } else if (this.state === "finished") {
+        this.startTime = now2;
+      }
+      if (this.state === "finished") {
+        this.updateFinishedPromise();
+      }
+      this.cancelTime = this.startTime;
+      this.holdTime = null;
+      this.state = "running";
+      this.driver.start();
+    }
+    pause() {
+      var _a;
+      if (!this._resolved) {
+        this.pendingPlayState = "paused";
+        return;
+      }
+      this.state = "paused";
+      this.holdTime = (_a = this.currentTime) !== null && _a !== void 0 ? _a : 0;
+    }
+    complete() {
+      if (this.state !== "running") {
+        this.play();
+      }
+      this.pendingPlayState = this.state = "finished";
+      this.holdTime = null;
+    }
+    finish() {
+      this.teardown();
+      this.state = "finished";
+      const { onComplete } = this.options;
+      onComplete && onComplete();
+    }
+    cancel() {
+      if (this.cancelTime !== null) {
+        this.tick(this.cancelTime);
+      }
+      this.teardown();
+      this.updateFinishedPromise();
+    }
+    teardown() {
+      this.state = "idle";
+      this.stopDriver();
+      this.resolveFinishedPromise();
+      this.updateFinishedPromise();
+      this.startTime = this.cancelTime = null;
+      this.resolver.cancel();
+    }
+    stopDriver() {
+      if (!this.driver)
+        return;
+      this.driver.stop();
+      this.driver = void 0;
+    }
+    sample(time2) {
+      this.startTime = 0;
+      return this.tick(time2, true);
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/animation/animators/utils/accelerated-values.mjs
+  var acceleratedValues = /* @__PURE__ */ new Set([
+    "opacity",
+    "clipPath",
+    "filter",
+    "transform"
+    // TODO: Can be accelerated but currently disabled until https://issues.chromium.org/issues/41491098 is resolved
+    // or until we implement support for linear() easing.
+    // "background-color"
+  ]);
+
+  // node_modules/framer-motion/dist/es/animation/animators/waapi/index.mjs
+  function startWaapiAnimation(element, valueName, keyframes2, { delay: delay2 = 0, duration = 300, repeat = 0, repeatType = "loop", ease: ease2 = "easeInOut", times } = {}) {
+    const keyframeOptions = { [valueName]: keyframes2 };
+    if (times)
+      keyframeOptions.offset = times;
+    const easing = mapEasingToNativeEasing(ease2, duration);
+    if (Array.isArray(easing))
+      keyframeOptions.easing = easing;
+    return element.animate(keyframeOptions, {
+      delay: delay2,
+      duration,
+      easing: !Array.isArray(easing) ? easing : "linear",
+      fill: "both",
+      iterations: repeat + 1,
+      direction: repeatType === "reverse" ? "alternate" : "normal"
+    });
+  }
+
+  // node_modules/framer-motion/dist/es/animation/animators/waapi/utils/supports-waapi.mjs
+  var supportsWaapi = /* @__PURE__ */ memo2(() => Object.hasOwnProperty.call(Element.prototype, "animate"));
+
+  // node_modules/framer-motion/dist/es/animation/animators/AcceleratedAnimation.mjs
+  var sampleDelta = 10;
+  var maxDuration = 2e4;
+  function requiresPregeneratedKeyframes(options) {
+    return isGenerator(options.type) || options.type === "spring" || !isWaapiSupportedEasing(options.ease);
+  }
+  function pregenerateKeyframes(keyframes2, options) {
+    const sampleAnimation = new MainThreadAnimation({
+      ...options,
+      keyframes: keyframes2,
+      repeat: 0,
+      delay: 0,
+      isGenerator: true
+    });
+    let state = { done: false, value: keyframes2[0] };
+    const pregeneratedKeyframes = [];
+    let t = 0;
+    while (!state.done && t < maxDuration) {
+      state = sampleAnimation.sample(t);
+      pregeneratedKeyframes.push(state.value);
+      t += sampleDelta;
+    }
+    return {
+      times: void 0,
+      keyframes: pregeneratedKeyframes,
+      duration: t - sampleDelta,
+      ease: "linear"
+    };
+  }
+  var unsupportedEasingFunctions = {
+    anticipate,
+    backInOut,
+    circInOut
+  };
+  function isUnsupportedEase(key) {
+    return key in unsupportedEasingFunctions;
+  }
+  var AcceleratedAnimation = class extends BaseAnimation {
+    constructor(options) {
+      super(options);
+      const { name, motionValue: motionValue2, element, keyframes: keyframes2 } = this.options;
+      this.resolver = new DOMKeyframesResolver(keyframes2, (resolvedKeyframes, finalKeyframe) => this.onKeyframesResolved(resolvedKeyframes, finalKeyframe), name, motionValue2, element);
+      this.resolver.scheduleResolve();
+    }
+    initPlayback(keyframes2, finalKeyframe) {
+      let { duration = 300, times, ease: ease2, type, motionValue: motionValue2, name, startTime } = this.options;
+      if (!motionValue2.owner || !motionValue2.owner.current) {
+        return false;
+      }
+      if (typeof ease2 === "string" && supportsLinearEasing() && isUnsupportedEase(ease2)) {
+        ease2 = unsupportedEasingFunctions[ease2];
+      }
+      if (requiresPregeneratedKeyframes(this.options)) {
+        const { onComplete, onUpdate, motionValue: motionValue3, element, ...options } = this.options;
+        const pregeneratedAnimation = pregenerateKeyframes(keyframes2, options);
+        keyframes2 = pregeneratedAnimation.keyframes;
+        if (keyframes2.length === 1) {
+          keyframes2[1] = keyframes2[0];
+        }
+        duration = pregeneratedAnimation.duration;
+        times = pregeneratedAnimation.times;
+        ease2 = pregeneratedAnimation.ease;
+        type = "keyframes";
+      }
+      const animation2 = startWaapiAnimation(motionValue2.owner.current, name, keyframes2, { ...this.options, duration, times, ease: ease2 });
+      animation2.startTime = startTime !== null && startTime !== void 0 ? startTime : this.calcStartTime();
+      if (this.pendingTimeline) {
+        attachTimeline(animation2, this.pendingTimeline);
+        this.pendingTimeline = void 0;
+      } else {
+        animation2.onfinish = () => {
+          const { onComplete } = this.options;
+          motionValue2.set(getFinalKeyframe(keyframes2, this.options, finalKeyframe));
+          onComplete && onComplete();
+          this.cancel();
+          this.resolveFinishedPromise();
+        };
+      }
+      return {
+        animation: animation2,
+        duration,
+        times,
+        type,
+        ease: ease2,
+        keyframes: keyframes2
+      };
+    }
+    get duration() {
+      const { resolved } = this;
+      if (!resolved)
+        return 0;
+      const { duration } = resolved;
+      return millisecondsToSeconds(duration);
+    }
+    get time() {
+      const { resolved } = this;
+      if (!resolved)
+        return 0;
+      const { animation: animation2 } = resolved;
+      return millisecondsToSeconds(animation2.currentTime || 0);
+    }
+    set time(newTime) {
+      const { resolved } = this;
+      if (!resolved)
+        return;
+      const { animation: animation2 } = resolved;
+      animation2.currentTime = secondsToMilliseconds(newTime);
+    }
+    get speed() {
+      const { resolved } = this;
+      if (!resolved)
+        return 1;
+      const { animation: animation2 } = resolved;
+      return animation2.playbackRate;
+    }
+    set speed(newSpeed) {
+      const { resolved } = this;
+      if (!resolved)
+        return;
+      const { animation: animation2 } = resolved;
+      animation2.playbackRate = newSpeed;
+    }
+    get state() {
+      const { resolved } = this;
+      if (!resolved)
+        return "idle";
+      const { animation: animation2 } = resolved;
+      return animation2.playState;
+    }
+    get startTime() {
+      const { resolved } = this;
+      if (!resolved)
+        return null;
+      const { animation: animation2 } = resolved;
+      return animation2.startTime;
+    }
+    /**
+     * Replace the default DocumentTimeline with another AnimationTimeline.
+     * Currently used for scroll animations.
+     */
+    attachTimeline(timeline) {
+      if (!this._resolved) {
+        this.pendingTimeline = timeline;
+      } else {
+        const { resolved } = this;
+        if (!resolved)
+          return noop;
+        const { animation: animation2 } = resolved;
+        attachTimeline(animation2, timeline);
+      }
+      return noop;
+    }
+    play() {
+      if (this.isStopped)
+        return;
+      const { resolved } = this;
+      if (!resolved)
+        return;
+      const { animation: animation2 } = resolved;
+      if (animation2.playState === "finished") {
+        this.updateFinishedPromise();
+      }
+      animation2.play();
+    }
+    pause() {
+      const { resolved } = this;
+      if (!resolved)
+        return;
+      const { animation: animation2 } = resolved;
+      animation2.pause();
+    }
+    stop() {
+      this.resolver.cancel();
+      this.isStopped = true;
+      if (this.state === "idle")
+        return;
+      this.resolveFinishedPromise();
+      this.updateFinishedPromise();
+      const { resolved } = this;
+      if (!resolved)
+        return;
+      const { animation: animation2, keyframes: keyframes2, duration, type, ease: ease2, times } = resolved;
+      if (animation2.playState === "idle" || animation2.playState === "finished") {
+        return;
+      }
+      if (this.time) {
+        const { motionValue: motionValue2, onUpdate, onComplete, element, ...options } = this.options;
+        const sampleAnimation = new MainThreadAnimation({
+          ...options,
+          keyframes: keyframes2,
+          duration,
+          type,
+          ease: ease2,
+          times,
+          isGenerator: true
+        });
+        const sampleTime = secondsToMilliseconds(this.time);
+        motionValue2.setWithVelocity(sampleAnimation.sample(sampleTime - sampleDelta).value, sampleAnimation.sample(sampleTime).value, sampleDelta);
+      }
+      const { onStop } = this.options;
+      onStop && onStop();
+      this.cancel();
+    }
+    complete() {
+      const { resolved } = this;
+      if (!resolved)
+        return;
+      resolved.animation.finish();
+    }
+    cancel() {
+      const { resolved } = this;
+      if (!resolved)
+        return;
+      resolved.animation.cancel();
+    }
+    static supports(options) {
+      const { motionValue: motionValue2, name, repeatDelay, repeatType, damping, type } = options;
+      if (!motionValue2 || !motionValue2.owner || !(motionValue2.owner.current instanceof HTMLElement)) {
+        return false;
+      }
+      const { onUpdate, transformTemplate } = motionValue2.owner.getProps();
+      return supportsWaapi() && name && acceleratedValues.has(name) && /**
+       * If we're outputting values to onUpdate then we can't use WAAPI as there's
+       * no way to read the value from WAAPI every frame.
+       */
+      !onUpdate && !transformTemplate && !repeatDelay && repeatType !== "mirror" && damping !== 0 && type !== "inertia";
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/animation/utils/default-transitions.mjs
+  var underDampedSpring = {
+    type: "spring",
+    stiffness: 500,
+    damping: 25,
+    restSpeed: 10
+  };
+  var criticallyDampedSpring = (target) => ({
+    type: "spring",
+    stiffness: 550,
+    damping: target === 0 ? 2 * Math.sqrt(550) : 30,
+    restSpeed: 10
+  });
+  var keyframesTransition = {
+    type: "keyframes",
+    duration: 0.8
+  };
+  var ease = {
+    type: "keyframes",
+    ease: [0.25, 0.1, 0.35, 1],
+    duration: 0.3
+  };
+  var getDefaultTransition = (valueKey, { keyframes: keyframes2 }) => {
+    if (keyframes2.length > 2) {
+      return keyframesTransition;
+    } else if (transformProps.has(valueKey)) {
+      return valueKey.startsWith("scale") ? criticallyDampedSpring(keyframes2[1]) : underDampedSpring;
+    }
+    return ease;
+  };
+
+  // node_modules/framer-motion/dist/es/animation/utils/is-transition-defined.mjs
+  function isTransitionDefined({ when, delay: _delay, delayChildren, staggerChildren, staggerDirection, repeat, repeatType, repeatDelay, from, elapsed, ...transition }) {
+    return !!Object.keys(transition).length;
+  }
+
+  // node_modules/framer-motion/dist/es/animation/interfaces/motion-value.mjs
+  var animateMotionValue = (name, value, target, transition = {}, element, isHandoff) => (onComplete) => {
+    const valueTransition = getValueTransition(transition, name) || {};
+    const delay2 = valueTransition.delay || transition.delay || 0;
+    let { elapsed = 0 } = transition;
+    elapsed = elapsed - secondsToMilliseconds(delay2);
+    let options = {
+      keyframes: Array.isArray(target) ? target : [null, target],
+      ease: "easeOut",
+      velocity: value.getVelocity(),
+      ...valueTransition,
+      delay: -elapsed,
+      onUpdate: (v) => {
+        value.set(v);
+        valueTransition.onUpdate && valueTransition.onUpdate(v);
+      },
+      onComplete: () => {
+        onComplete();
+        valueTransition.onComplete && valueTransition.onComplete();
+      },
+      name,
+      motionValue: value,
+      element: isHandoff ? void 0 : element
+    };
+    if (!isTransitionDefined(valueTransition)) {
+      options = {
+        ...options,
+        ...getDefaultTransition(name, options)
+      };
+    }
+    if (options.duration) {
+      options.duration = secondsToMilliseconds(options.duration);
+    }
+    if (options.repeatDelay) {
+      options.repeatDelay = secondsToMilliseconds(options.repeatDelay);
+    }
+    if (options.from !== void 0) {
+      options.keyframes[0] = options.from;
+    }
+    let shouldSkip = false;
+    if (options.type === false || options.duration === 0 && !options.repeatDelay) {
+      options.duration = 0;
+      if (options.delay === 0) {
+        shouldSkip = true;
+      }
+    }
+    if (instantAnimationState.current || MotionGlobalConfig.skipAnimations) {
+      shouldSkip = true;
+      options.duration = 0;
+      options.delay = 0;
+    }
+    if (shouldSkip && !isHandoff && value.get() !== void 0) {
+      const finalKeyframe = getFinalKeyframe(options.keyframes, valueTransition);
+      if (finalKeyframe !== void 0) {
+        frame.update(() => {
+          options.onUpdate(finalKeyframe);
+          options.onComplete();
+        });
+        return new GroupPlaybackControls([]);
+      }
+    }
+    if (!isHandoff && AcceleratedAnimation.supports(options)) {
+      return new AcceleratedAnimation(options);
+    } else {
+      return new MainThreadAnimation(options);
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/animation/interfaces/visual-element-target.mjs
+  function shouldBlockAnimation({ protectedKeys, needsAnimating }, key) {
+    const shouldBlock = protectedKeys.hasOwnProperty(key) && needsAnimating[key] !== true;
+    needsAnimating[key] = false;
+    return shouldBlock;
+  }
+  function animateTarget(visualElement, targetAndTransition, { delay: delay2 = 0, transitionOverride, type } = {}) {
+    var _a;
+    let { transition = visualElement.getDefaultTransition(), transitionEnd, ...target } = targetAndTransition;
+    if (transitionOverride)
+      transition = transitionOverride;
+    const animations2 = [];
+    const animationTypeState = type && visualElement.animationState && visualElement.animationState.getState()[type];
+    for (const key in target) {
+      const value = visualElement.getValue(key, (_a = visualElement.latestValues[key]) !== null && _a !== void 0 ? _a : null);
+      const valueTarget = target[key];
+      if (valueTarget === void 0 || animationTypeState && shouldBlockAnimation(animationTypeState, key)) {
+        continue;
+      }
+      const valueTransition = {
+        delay: delay2,
+        ...getValueTransition(transition || {}, key)
+      };
+      let isHandoff = false;
+      if (window.MotionHandoffAnimation) {
+        const appearId = getOptimisedAppearId(visualElement);
+        if (appearId) {
+          const startTime = window.MotionHandoffAnimation(appearId, key, frame);
+          if (startTime !== null) {
+            valueTransition.startTime = startTime;
+            isHandoff = true;
+          }
+        }
+      }
+      addValueToWillChange(visualElement, key);
+      value.start(animateMotionValue(key, value, valueTarget, visualElement.shouldReduceMotion && positionalKeys.has(key) ? { type: false } : valueTransition, visualElement, isHandoff));
+      const animation2 = value.animation;
+      if (animation2) {
+        animations2.push(animation2);
+      }
+    }
+    if (transitionEnd) {
+      Promise.all(animations2).then(() => {
+        frame.update(() => {
+          transitionEnd && setTarget(visualElement, transitionEnd);
+        });
+      });
+    }
+    return animations2;
+  }
+
+  // node_modules/framer-motion/dist/es/animation/interfaces/visual-element-variant.mjs
+  function animateVariant(visualElement, variant, options = {}) {
+    var _a;
+    const resolved = resolveVariant(visualElement, variant, options.type === "exit" ? (_a = visualElement.presenceContext) === null || _a === void 0 ? void 0 : _a.custom : void 0);
+    let { transition = visualElement.getDefaultTransition() || {} } = resolved || {};
+    if (options.transitionOverride) {
+      transition = options.transitionOverride;
+    }
+    const getAnimation = resolved ? () => Promise.all(animateTarget(visualElement, resolved, options)) : () => Promise.resolve();
+    const getChildAnimations = visualElement.variantChildren && visualElement.variantChildren.size ? (forwardDelay = 0) => {
+      const { delayChildren = 0, staggerChildren, staggerDirection } = transition;
+      return animateChildren(visualElement, variant, delayChildren + forwardDelay, staggerChildren, staggerDirection, options);
+    } : () => Promise.resolve();
+    const { when } = transition;
+    if (when) {
+      const [first, last] = when === "beforeChildren" ? [getAnimation, getChildAnimations] : [getChildAnimations, getAnimation];
+      return first().then(() => last());
+    } else {
+      return Promise.all([getAnimation(), getChildAnimations(options.delay)]);
+    }
+  }
+  function animateChildren(visualElement, variant, delayChildren = 0, staggerChildren = 0, staggerDirection = 1, options) {
+    const animations2 = [];
+    const maxStaggerDuration = (visualElement.variantChildren.size - 1) * staggerChildren;
+    const generateStaggerDuration = staggerDirection === 1 ? (i = 0) => i * staggerChildren : (i = 0) => maxStaggerDuration - i * staggerChildren;
+    Array.from(visualElement.variantChildren).sort(sortByTreeOrder).forEach((child, i) => {
+      child.notify("AnimationStart", variant);
+      animations2.push(animateVariant(child, variant, {
+        ...options,
+        delay: delayChildren + generateStaggerDuration(i)
+      }).then(() => child.notify("AnimationComplete", variant)));
+    });
+    return Promise.all(animations2);
+  }
+  function sortByTreeOrder(a, b) {
+    return a.sortNodePosition(b);
+  }
+
+  // node_modules/framer-motion/dist/es/animation/interfaces/visual-element.mjs
+  function animateVisualElement(visualElement, definition, options = {}) {
+    visualElement.notify("AnimationStart", definition);
+    let animation2;
+    if (Array.isArray(definition)) {
+      const animations2 = definition.map((variant) => animateVariant(visualElement, variant, options));
+      animation2 = Promise.all(animations2);
+    } else if (typeof definition === "string") {
+      animation2 = animateVariant(visualElement, definition, options);
+    } else {
+      const resolvedDefinition = typeof definition === "function" ? resolveVariant(visualElement, definition, options.custom) : definition;
+      animation2 = Promise.all(animateTarget(visualElement, resolvedDefinition, options));
+    }
+    return animation2.then(() => {
+      visualElement.notify("AnimationComplete", definition);
+    });
+  }
+
+  // node_modules/framer-motion/dist/es/render/utils/get-variant-context.mjs
+  var numVariantProps = variantProps.length;
+  function getVariantContext(visualElement) {
+    if (!visualElement)
+      return void 0;
+    if (!visualElement.isControllingVariants) {
+      const context2 = visualElement.parent ? getVariantContext(visualElement.parent) || {} : {};
+      if (visualElement.props.initial !== void 0) {
+        context2.initial = visualElement.props.initial;
+      }
+      return context2;
+    }
+    const context = {};
+    for (let i = 0; i < numVariantProps; i++) {
+      const name = variantProps[i];
+      const prop = visualElement.props[name];
+      if (isVariantLabel(prop) || prop === false) {
+        context[name] = prop;
+      }
+    }
+    return context;
+  }
+
+  // node_modules/framer-motion/dist/es/render/utils/animation-state.mjs
+  var reversePriorityOrder = [...variantPriorityOrder].reverse();
+  var numAnimationTypes = variantPriorityOrder.length;
+  function animateList(visualElement) {
+    return (animations2) => Promise.all(animations2.map(({ animation: animation2, options }) => animateVisualElement(visualElement, animation2, options)));
+  }
+  function createAnimationState(visualElement) {
+    let animate = animateList(visualElement);
+    let state = createState();
+    let isInitialRender = true;
+    const buildResolvedTypeValues = (type) => (acc, definition) => {
+      var _a;
+      const resolved = resolveVariant(visualElement, definition, type === "exit" ? (_a = visualElement.presenceContext) === null || _a === void 0 ? void 0 : _a.custom : void 0);
+      if (resolved) {
+        const { transition, transitionEnd, ...target } = resolved;
+        acc = { ...acc, ...target, ...transitionEnd };
+      }
+      return acc;
+    };
+    function setAnimateFunction(makeAnimator) {
+      animate = makeAnimator(visualElement);
+    }
+    function animateChanges(changedActiveType) {
+      const { props } = visualElement;
+      const context = getVariantContext(visualElement.parent) || {};
+      const animations2 = [];
+      const removedKeys = /* @__PURE__ */ new Set();
+      let encounteredKeys = {};
+      let removedVariantIndex = Infinity;
+      for (let i = 0; i < numAnimationTypes; i++) {
+        const type = reversePriorityOrder[i];
+        const typeState = state[type];
+        const prop = props[type] !== void 0 ? props[type] : context[type];
+        const propIsVariant = isVariantLabel(prop);
+        const activeDelta = type === changedActiveType ? typeState.isActive : null;
+        if (activeDelta === false)
+          removedVariantIndex = i;
+        let isInherited = prop === context[type] && prop !== props[type] && propIsVariant;
+        if (isInherited && isInitialRender && visualElement.manuallyAnimateOnMount) {
+          isInherited = false;
+        }
+        typeState.protectedKeys = { ...encounteredKeys };
+        if (
+          // If it isn't active and hasn't *just* been set as inactive
+          !typeState.isActive && activeDelta === null || // If we didn't and don't have any defined prop for this animation type
+          !prop && !typeState.prevProp || // Or if the prop doesn't define an animation
+          isAnimationControls(prop) || typeof prop === "boolean"
+        ) {
+          continue;
+        }
+        const variantDidChange = checkVariantsDidChange(typeState.prevProp, prop);
+        let shouldAnimateType = variantDidChange || // If we're making this variant active, we want to always make it active
+        type === changedActiveType && typeState.isActive && !isInherited && propIsVariant || // If we removed a higher-priority variant (i is in reverse order)
+        i > removedVariantIndex && propIsVariant;
+        let handledRemovedValues = false;
+        const definitionList = Array.isArray(prop) ? prop : [prop];
+        let resolvedValues = definitionList.reduce(buildResolvedTypeValues(type), {});
+        if (activeDelta === false)
+          resolvedValues = {};
+        const { prevResolvedValues = {} } = typeState;
+        const allKeys = {
+          ...prevResolvedValues,
+          ...resolvedValues
+        };
+        const markToAnimate = (key) => {
+          shouldAnimateType = true;
+          if (removedKeys.has(key)) {
+            handledRemovedValues = true;
+            removedKeys.delete(key);
+          }
+          typeState.needsAnimating[key] = true;
+          const motionValue2 = visualElement.getValue(key);
+          if (motionValue2)
+            motionValue2.liveStyle = false;
+        };
+        for (const key in allKeys) {
+          const next = resolvedValues[key];
+          const prev = prevResolvedValues[key];
+          if (encounteredKeys.hasOwnProperty(key))
+            continue;
+          let valueHasChanged = false;
+          if (isKeyframesTarget(next) && isKeyframesTarget(prev)) {
+            valueHasChanged = !shallowCompare(next, prev);
+          } else {
+            valueHasChanged = next !== prev;
+          }
+          if (valueHasChanged) {
+            if (next !== void 0 && next !== null) {
+              markToAnimate(key);
+            } else {
+              removedKeys.add(key);
+            }
+          } else if (next !== void 0 && removedKeys.has(key)) {
+            markToAnimate(key);
+          } else {
+            typeState.protectedKeys[key] = true;
+          }
+        }
+        typeState.prevProp = prop;
+        typeState.prevResolvedValues = resolvedValues;
+        if (typeState.isActive) {
+          encounteredKeys = { ...encounteredKeys, ...resolvedValues };
+        }
+        if (isInitialRender && visualElement.blockInitialAnimation) {
+          shouldAnimateType = false;
+        }
+        const willAnimateViaParent = isInherited && variantDidChange;
+        const needsAnimating = !willAnimateViaParent || handledRemovedValues;
+        if (shouldAnimateType && needsAnimating) {
+          animations2.push(...definitionList.map((animation2) => ({
+            animation: animation2,
+            options: { type }
+          })));
+        }
+      }
+      if (removedKeys.size) {
+        const fallbackAnimation = {};
+        removedKeys.forEach((key) => {
+          const fallbackTarget = visualElement.getBaseTarget(key);
+          const motionValue2 = visualElement.getValue(key);
+          if (motionValue2)
+            motionValue2.liveStyle = true;
+          fallbackAnimation[key] = fallbackTarget !== null && fallbackTarget !== void 0 ? fallbackTarget : null;
+        });
+        animations2.push({ animation: fallbackAnimation });
+      }
+      let shouldAnimate = Boolean(animations2.length);
+      if (isInitialRender && (props.initial === false || props.initial === props.animate) && !visualElement.manuallyAnimateOnMount) {
+        shouldAnimate = false;
+      }
+      isInitialRender = false;
+      return shouldAnimate ? animate(animations2) : Promise.resolve();
+    }
+    function setActive(type, isActive) {
+      var _a;
+      if (state[type].isActive === isActive)
+        return Promise.resolve();
+      (_a = visualElement.variantChildren) === null || _a === void 0 ? void 0 : _a.forEach((child) => {
+        var _a2;
+        return (_a2 = child.animationState) === null || _a2 === void 0 ? void 0 : _a2.setActive(type, isActive);
+      });
+      state[type].isActive = isActive;
+      const animations2 = animateChanges(type);
+      for (const key in state) {
+        state[key].protectedKeys = {};
+      }
+      return animations2;
+    }
+    return {
+      animateChanges,
+      setActive,
+      setAnimateFunction,
+      getState: () => state,
+      reset: () => {
+        state = createState();
+        isInitialRender = true;
+      }
+    };
+  }
+  function checkVariantsDidChange(prev, next) {
+    if (typeof next === "string") {
+      return next !== prev;
+    } else if (Array.isArray(next)) {
+      return !shallowCompare(next, prev);
+    }
+    return false;
+  }
+  function createTypeState(isActive = false) {
+    return {
+      isActive,
+      protectedKeys: {},
+      needsAnimating: {},
+      prevResolvedValues: {}
+    };
+  }
+  function createState() {
+    return {
+      animate: createTypeState(true),
+      whileInView: createTypeState(),
+      whileHover: createTypeState(),
+      whileTap: createTypeState(),
+      whileDrag: createTypeState(),
+      whileFocus: createTypeState(),
+      exit: createTypeState()
+    };
+  }
+
+  // node_modules/framer-motion/dist/es/motion/features/Feature.mjs
+  var Feature = class {
+    constructor(node) {
+      this.isMounted = false;
+      this.node = node;
+    }
+    update() {
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/motion/features/animation/index.mjs
+  var AnimationFeature = class extends Feature {
+    /**
+     * We dynamically generate the AnimationState manager as it contains a reference
+     * to the underlying animation library. We only want to load that if we load this,
+     * so people can optionally code split it out using the `m` component.
+     */
+    constructor(node) {
+      super(node);
+      node.animationState || (node.animationState = createAnimationState(node));
+    }
+    updateAnimationControlsSubscription() {
+      const { animate } = this.node.getProps();
+      if (isAnimationControls(animate)) {
+        this.unmountControls = animate.subscribe(this.node);
+      }
+    }
+    /**
+     * Subscribe any provided AnimationControls to the component's VisualElement
+     */
+    mount() {
+      this.updateAnimationControlsSubscription();
+    }
+    update() {
+      const { animate } = this.node.getProps();
+      const { animate: prevAnimate } = this.node.prevProps || {};
+      if (animate !== prevAnimate) {
+        this.updateAnimationControlsSubscription();
+      }
+    }
+    unmount() {
+      var _a;
+      this.node.animationState.reset();
+      (_a = this.unmountControls) === null || _a === void 0 ? void 0 : _a.call(this);
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/motion/features/animation/exit.mjs
+  var id = 0;
+  var ExitAnimationFeature = class extends Feature {
+    constructor() {
+      super(...arguments);
+      this.id = id++;
+    }
+    update() {
+      if (!this.node.presenceContext)
+        return;
+      const { isPresent, onExitComplete } = this.node.presenceContext;
+      const { isPresent: prevIsPresent } = this.node.prevPresenceContext || {};
+      if (!this.node.animationState || isPresent === prevIsPresent) {
+        return;
+      }
+      const exitAnimation = this.node.animationState.setActive("exit", !isPresent);
+      if (onExitComplete && !isPresent) {
+        exitAnimation.then(() => onExitComplete(this.id));
+      }
+    }
+    mount() {
+      const { register } = this.node.presenceContext || {};
+      if (register) {
+        this.unmount = register(this.id);
+      }
+    }
+    unmount() {
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/motion/features/animations.mjs
+  var animations = {
+    animation: {
+      Feature: AnimationFeature
+    },
+    exit: {
+      Feature: ExitAnimationFeature
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/events/add-dom-event.mjs
+  function addDomEvent(target, eventName, handler, options = { passive: true }) {
+    target.addEventListener(eventName, handler, options);
+    return () => target.removeEventListener(eventName, handler);
+  }
+
+  // node_modules/framer-motion/dist/es/events/event-info.mjs
+  function extractEventInfo(event) {
+    return {
+      point: {
+        x: event.pageX,
+        y: event.pageY
+      }
+    };
+  }
+  var addPointerInfo = (handler) => {
+    return (event) => isPrimaryPointer(event) && handler(event, extractEventInfo(event));
+  };
+
+  // node_modules/framer-motion/dist/es/events/add-pointer-event.mjs
+  function addPointerEvent(target, eventName, handler, options) {
+    return addDomEvent(target, eventName, addPointerInfo(handler), options);
+  }
+
+  // node_modules/framer-motion/dist/es/utils/distance.mjs
+  var distance = (a, b) => Math.abs(a - b);
+  function distance2D(a, b) {
+    const xDelta = distance(a.x, b.x);
+    const yDelta = distance(a.y, b.y);
+    return Math.sqrt(xDelta ** 2 + yDelta ** 2);
+  }
+
+  // node_modules/framer-motion/dist/es/gestures/pan/PanSession.mjs
+  var PanSession = class {
+    constructor(event, handlers, { transformPagePoint, contextWindow, dragSnapToOrigin = false } = {}) {
+      this.startEvent = null;
+      this.lastMoveEvent = null;
+      this.lastMoveEventInfo = null;
+      this.handlers = {};
+      this.contextWindow = window;
+      this.updatePoint = () => {
+        if (!(this.lastMoveEvent && this.lastMoveEventInfo))
+          return;
+        const info2 = getPanInfo(this.lastMoveEventInfo, this.history);
+        const isPanStarted = this.startEvent !== null;
+        const isDistancePastThreshold = distance2D(info2.offset, { x: 0, y: 0 }) >= 3;
+        if (!isPanStarted && !isDistancePastThreshold)
+          return;
+        const { point: point2 } = info2;
+        const { timestamp: timestamp2 } = frameData;
+        this.history.push({ ...point2, timestamp: timestamp2 });
+        const { onStart, onMove } = this.handlers;
+        if (!isPanStarted) {
+          onStart && onStart(this.lastMoveEvent, info2);
+          this.startEvent = this.lastMoveEvent;
+        }
+        onMove && onMove(this.lastMoveEvent, info2);
+      };
+      this.handlePointerMove = (event2, info2) => {
+        this.lastMoveEvent = event2;
+        this.lastMoveEventInfo = transformPoint(info2, this.transformPagePoint);
+        frame.update(this.updatePoint, true);
+      };
+      this.handlePointerUp = (event2, info2) => {
+        this.end();
+        const { onEnd, onSessionEnd, resumeAnimation } = this.handlers;
+        if (this.dragSnapToOrigin)
+          resumeAnimation && resumeAnimation();
+        if (!(this.lastMoveEvent && this.lastMoveEventInfo))
+          return;
+        const panInfo = getPanInfo(event2.type === "pointercancel" ? this.lastMoveEventInfo : transformPoint(info2, this.transformPagePoint), this.history);
+        if (this.startEvent && onEnd) {
+          onEnd(event2, panInfo);
+        }
+        onSessionEnd && onSessionEnd(event2, panInfo);
+      };
+      if (!isPrimaryPointer(event))
+        return;
+      this.dragSnapToOrigin = dragSnapToOrigin;
+      this.handlers = handlers;
+      this.transformPagePoint = transformPagePoint;
+      this.contextWindow = contextWindow || window;
+      const info = extractEventInfo(event);
+      const initialInfo = transformPoint(info, this.transformPagePoint);
+      const { point } = initialInfo;
+      const { timestamp } = frameData;
+      this.history = [{ ...point, timestamp }];
+      const { onSessionStart } = handlers;
+      onSessionStart && onSessionStart(event, getPanInfo(initialInfo, this.history));
+      this.removeListeners = pipe(addPointerEvent(this.contextWindow, "pointermove", this.handlePointerMove), addPointerEvent(this.contextWindow, "pointerup", this.handlePointerUp), addPointerEvent(this.contextWindow, "pointercancel", this.handlePointerUp));
+    }
+    updateHandlers(handlers) {
+      this.handlers = handlers;
+    }
+    end() {
+      this.removeListeners && this.removeListeners();
+      cancelFrame(this.updatePoint);
+    }
+  };
+  function transformPoint(info, transformPagePoint) {
+    return transformPagePoint ? { point: transformPagePoint(info.point) } : info;
+  }
+  function subtractPoint(a, b) {
+    return { x: a.x - b.x, y: a.y - b.y };
+  }
+  function getPanInfo({ point }, history) {
+    return {
+      point,
+      delta: subtractPoint(point, lastDevicePoint(history)),
+      offset: subtractPoint(point, startDevicePoint(history)),
+      velocity: getVelocity(history, 0.1)
+    };
+  }
+  function startDevicePoint(history) {
+    return history[0];
+  }
+  function lastDevicePoint(history) {
+    return history[history.length - 1];
+  }
+  function getVelocity(history, timeDelta) {
+    if (history.length < 2) {
+      return { x: 0, y: 0 };
+    }
+    let i = history.length - 1;
+    let timestampedPoint = null;
+    const lastPoint = lastDevicePoint(history);
+    while (i >= 0) {
+      timestampedPoint = history[i];
+      if (lastPoint.timestamp - timestampedPoint.timestamp > secondsToMilliseconds(timeDelta)) {
+        break;
+      }
+      i--;
+    }
+    if (!timestampedPoint) {
+      return { x: 0, y: 0 };
+    }
+    const time2 = millisecondsToSeconds(lastPoint.timestamp - timestampedPoint.timestamp);
+    if (time2 === 0) {
+      return { x: 0, y: 0 };
+    }
+    const currentVelocity = {
+      x: (lastPoint.x - timestampedPoint.x) / time2,
+      y: (lastPoint.y - timestampedPoint.y) / time2
+    };
+    if (currentVelocity.x === Infinity) {
+      currentVelocity.x = 0;
+    }
+    if (currentVelocity.y === Infinity) {
+      currentVelocity.y = 0;
+    }
+    return currentVelocity;
+  }
+
+  // node_modules/framer-motion/dist/es/projection/geometry/delta-calc.mjs
+  var SCALE_PRECISION = 1e-4;
+  var SCALE_MIN = 1 - SCALE_PRECISION;
+  var SCALE_MAX = 1 + SCALE_PRECISION;
+  var TRANSLATE_PRECISION = 0.01;
+  var TRANSLATE_MIN = 0 - TRANSLATE_PRECISION;
+  var TRANSLATE_MAX = 0 + TRANSLATE_PRECISION;
+  function calcLength(axis) {
+    return axis.max - axis.min;
+  }
+  function isNear(value, target, maxDistance) {
+    return Math.abs(value - target) <= maxDistance;
+  }
+  function calcAxisDelta(delta, source, target, origin = 0.5) {
+    delta.origin = origin;
+    delta.originPoint = mixNumber(source.min, source.max, delta.origin);
+    delta.scale = calcLength(target) / calcLength(source);
+    delta.translate = mixNumber(target.min, target.max, delta.origin) - delta.originPoint;
+    if (delta.scale >= SCALE_MIN && delta.scale <= SCALE_MAX || isNaN(delta.scale)) {
+      delta.scale = 1;
+    }
+    if (delta.translate >= TRANSLATE_MIN && delta.translate <= TRANSLATE_MAX || isNaN(delta.translate)) {
+      delta.translate = 0;
+    }
+  }
+  function calcBoxDelta(delta, source, target, origin) {
+    calcAxisDelta(delta.x, source.x, target.x, origin ? origin.originX : void 0);
+    calcAxisDelta(delta.y, source.y, target.y, origin ? origin.originY : void 0);
+  }
+  function calcRelativeAxis(target, relative, parent) {
+    target.min = parent.min + relative.min;
+    target.max = target.min + calcLength(relative);
+  }
+  function calcRelativeBox(target, relative, parent) {
+    calcRelativeAxis(target.x, relative.x, parent.x);
+    calcRelativeAxis(target.y, relative.y, parent.y);
+  }
+  function calcRelativeAxisPosition(target, layout2, parent) {
+    target.min = layout2.min - parent.min;
+    target.max = target.min + calcLength(layout2);
+  }
+  function calcRelativePosition(target, layout2, parent) {
+    calcRelativeAxisPosition(target.x, layout2.x, parent.x);
+    calcRelativeAxisPosition(target.y, layout2.y, parent.y);
+  }
+
+  // node_modules/framer-motion/dist/es/gestures/drag/utils/constraints.mjs
+  function applyConstraints(point, { min, max }, elastic) {
+    if (min !== void 0 && point < min) {
+      point = elastic ? mixNumber(min, point, elastic.min) : Math.max(point, min);
+    } else if (max !== void 0 && point > max) {
+      point = elastic ? mixNumber(max, point, elastic.max) : Math.min(point, max);
+    }
+    return point;
+  }
+  function calcRelativeAxisConstraints(axis, min, max) {
+    return {
+      min: min !== void 0 ? axis.min + min : void 0,
+      max: max !== void 0 ? axis.max + max - (axis.max - axis.min) : void 0
+    };
+  }
+  function calcRelativeConstraints(layoutBox, { top, left, bottom, right }) {
+    return {
+      x: calcRelativeAxisConstraints(layoutBox.x, left, right),
+      y: calcRelativeAxisConstraints(layoutBox.y, top, bottom)
+    };
+  }
+  function calcViewportAxisConstraints(layoutAxis, constraintsAxis) {
+    let min = constraintsAxis.min - layoutAxis.min;
+    let max = constraintsAxis.max - layoutAxis.max;
+    if (constraintsAxis.max - constraintsAxis.min < layoutAxis.max - layoutAxis.min) {
+      [min, max] = [max, min];
+    }
+    return { min, max };
+  }
+  function calcViewportConstraints(layoutBox, constraintsBox) {
+    return {
+      x: calcViewportAxisConstraints(layoutBox.x, constraintsBox.x),
+      y: calcViewportAxisConstraints(layoutBox.y, constraintsBox.y)
+    };
+  }
+  function calcOrigin2(source, target) {
+    let origin = 0.5;
+    const sourceLength = calcLength(source);
+    const targetLength = calcLength(target);
+    if (targetLength > sourceLength) {
+      origin = progress(target.min, target.max - sourceLength, source.min);
+    } else if (sourceLength > targetLength) {
+      origin = progress(source.min, source.max - targetLength, target.min);
+    }
+    return clamp(0, 1, origin);
+  }
+  function rebaseAxisConstraints(layout2, constraints) {
+    const relativeConstraints = {};
+    if (constraints.min !== void 0) {
+      relativeConstraints.min = constraints.min - layout2.min;
+    }
+    if (constraints.max !== void 0) {
+      relativeConstraints.max = constraints.max - layout2.min;
+    }
+    return relativeConstraints;
+  }
+  var defaultElastic = 0.35;
+  function resolveDragElastic(dragElastic = defaultElastic) {
+    if (dragElastic === false) {
+      dragElastic = 0;
+    } else if (dragElastic === true) {
+      dragElastic = defaultElastic;
+    }
+    return {
+      x: resolveAxisElastic(dragElastic, "left", "right"),
+      y: resolveAxisElastic(dragElastic, "top", "bottom")
+    };
+  }
+  function resolveAxisElastic(dragElastic, minLabel, maxLabel) {
+    return {
+      min: resolvePointElastic(dragElastic, minLabel),
+      max: resolvePointElastic(dragElastic, maxLabel)
+    };
+  }
+  function resolvePointElastic(dragElastic, label) {
+    return typeof dragElastic === "number" ? dragElastic : dragElastic[label] || 0;
+  }
+
+  // node_modules/framer-motion/dist/es/projection/geometry/models.mjs
+  var createAxisDelta = () => ({
+    translate: 0,
+    scale: 1,
+    origin: 0,
+    originPoint: 0
+  });
+  var createDelta = () => ({
+    x: createAxisDelta(),
+    y: createAxisDelta()
+  });
+  var createAxis = () => ({ min: 0, max: 0 });
+  var createBox = () => ({
+    x: createAxis(),
+    y: createAxis()
+  });
+
+  // node_modules/framer-motion/dist/es/projection/utils/each-axis.mjs
+  function eachAxis(callback) {
+    return [callback("x"), callback("y")];
+  }
+
+  // node_modules/framer-motion/dist/es/projection/geometry/conversion.mjs
+  function convertBoundingBoxToBox({ top, left, right, bottom }) {
+    return {
+      x: { min: left, max: right },
+      y: { min: top, max: bottom }
+    };
+  }
+  function convertBoxToBoundingBox({ x, y }) {
+    return { top: y.min, right: x.max, bottom: y.max, left: x.min };
+  }
+  function transformBoxPoints(point, transformPoint2) {
+    if (!transformPoint2)
+      return point;
+    const topLeft = transformPoint2({ x: point.left, y: point.top });
+    const bottomRight = transformPoint2({ x: point.right, y: point.bottom });
+    return {
+      top: topLeft.y,
+      left: topLeft.x,
+      bottom: bottomRight.y,
+      right: bottomRight.x
+    };
+  }
+
+  // node_modules/framer-motion/dist/es/projection/utils/has-transform.mjs
+  function isIdentityScale(scale2) {
+    return scale2 === void 0 || scale2 === 1;
+  }
+  function hasScale({ scale: scale2, scaleX, scaleY }) {
+    return !isIdentityScale(scale2) || !isIdentityScale(scaleX) || !isIdentityScale(scaleY);
+  }
+  function hasTransform(values) {
+    return hasScale(values) || has2DTranslate(values) || values.z || values.rotate || values.rotateX || values.rotateY || values.skewX || values.skewY;
+  }
+  function has2DTranslate(values) {
+    return is2DTranslate(values.x) || is2DTranslate(values.y);
+  }
+  function is2DTranslate(value) {
+    return value && value !== "0%";
+  }
+
+  // node_modules/framer-motion/dist/es/projection/geometry/delta-apply.mjs
+  function scalePoint(point, scale2, originPoint) {
+    const distanceFromOrigin = point - originPoint;
+    const scaled = scale2 * distanceFromOrigin;
+    return originPoint + scaled;
+  }
+  function applyPointDelta(point, translate, scale2, originPoint, boxScale) {
+    if (boxScale !== void 0) {
+      point = scalePoint(point, boxScale, originPoint);
+    }
+    return scalePoint(point, scale2, originPoint) + translate;
+  }
+  function applyAxisDelta(axis, translate = 0, scale2 = 1, originPoint, boxScale) {
+    axis.min = applyPointDelta(axis.min, translate, scale2, originPoint, boxScale);
+    axis.max = applyPointDelta(axis.max, translate, scale2, originPoint, boxScale);
+  }
+  function applyBoxDelta(box, { x, y }) {
+    applyAxisDelta(box.x, x.translate, x.scale, x.originPoint);
+    applyAxisDelta(box.y, y.translate, y.scale, y.originPoint);
+  }
+  var TREE_SCALE_SNAP_MIN = 0.999999999999;
+  var TREE_SCALE_SNAP_MAX = 1.0000000000001;
+  function applyTreeDeltas(box, treeScale, treePath, isSharedTransition = false) {
+    const treeLength = treePath.length;
+    if (!treeLength)
+      return;
+    treeScale.x = treeScale.y = 1;
+    let node;
+    let delta;
+    for (let i = 0; i < treeLength; i++) {
+      node = treePath[i];
+      delta = node.projectionDelta;
+      const { visualElement } = node.options;
+      if (visualElement && visualElement.props.style && visualElement.props.style.display === "contents") {
+        continue;
+      }
+      if (isSharedTransition && node.options.layoutScroll && node.scroll && node !== node.root) {
+        transformBox(box, {
+          x: -node.scroll.offset.x,
+          y: -node.scroll.offset.y
+        });
+      }
+      if (delta) {
+        treeScale.x *= delta.x.scale;
+        treeScale.y *= delta.y.scale;
+        applyBoxDelta(box, delta);
+      }
+      if (isSharedTransition && hasTransform(node.latestValues)) {
+        transformBox(box, node.latestValues);
+      }
+    }
+    if (treeScale.x < TREE_SCALE_SNAP_MAX && treeScale.x > TREE_SCALE_SNAP_MIN) {
+      treeScale.x = 1;
+    }
+    if (treeScale.y < TREE_SCALE_SNAP_MAX && treeScale.y > TREE_SCALE_SNAP_MIN) {
+      treeScale.y = 1;
+    }
+  }
+  function translateAxis(axis, distance2) {
+    axis.min = axis.min + distance2;
+    axis.max = axis.max + distance2;
+  }
+  function transformAxis(axis, axisTranslate, axisScale, boxScale, axisOrigin = 0.5) {
+    const originPoint = mixNumber(axis.min, axis.max, axisOrigin);
+    applyAxisDelta(axis, axisTranslate, axisScale, originPoint, boxScale);
+  }
+  function transformBox(box, transform) {
+    transformAxis(box.x, transform.x, transform.scaleX, transform.scale, transform.originX);
+    transformAxis(box.y, transform.y, transform.scaleY, transform.scale, transform.originY);
+  }
+
+  // node_modules/framer-motion/dist/es/projection/utils/measure.mjs
+  function measureViewportBox(instance, transformPoint2) {
+    return convertBoundingBoxToBox(transformBoxPoints(instance.getBoundingClientRect(), transformPoint2));
+  }
+  function measurePageBox(element, rootProjectionNode2, transformPagePoint) {
+    const viewportBox = measureViewportBox(element, transformPagePoint);
+    const { scroll } = rootProjectionNode2;
+    if (scroll) {
+      translateAxis(viewportBox.x, scroll.offset.x);
+      translateAxis(viewportBox.y, scroll.offset.y);
+    }
+    return viewportBox;
+  }
+
+  // node_modules/framer-motion/dist/es/utils/get-context-window.mjs
+  var getContextWindow = ({ current }) => {
+    return current ? current.ownerDocument.defaultView : null;
+  };
+
+  // node_modules/framer-motion/dist/es/gestures/drag/VisualElementDragControls.mjs
+  var elementDragControls = /* @__PURE__ */ new WeakMap();
+  var VisualElementDragControls = class {
+    constructor(visualElement) {
+      this.openDragLock = null;
+      this.isDragging = false;
+      this.currentDirection = null;
+      this.originPoint = { x: 0, y: 0 };
+      this.constraints = false;
+      this.hasMutatedConstraints = false;
+      this.elastic = createBox();
+      this.visualElement = visualElement;
+    }
+    start(originEvent, { snapToCursor = false } = {}) {
+      const { presenceContext } = this.visualElement;
+      if (presenceContext && presenceContext.isPresent === false)
+        return;
+      const onSessionStart = (event) => {
+        const { dragSnapToOrigin: dragSnapToOrigin2 } = this.getProps();
+        dragSnapToOrigin2 ? this.pauseAnimation() : this.stopAnimation();
+        if (snapToCursor) {
+          this.snapToCursor(extractEventInfo(event).point);
+        }
+      };
+      const onStart = (event, info) => {
+        const { drag: drag2, dragPropagation, onDragStart } = this.getProps();
+        if (drag2 && !dragPropagation) {
+          if (this.openDragLock)
+            this.openDragLock();
+          this.openDragLock = setDragLock(drag2);
+          if (!this.openDragLock)
+            return;
+        }
+        this.isDragging = true;
+        this.currentDirection = null;
+        this.resolveConstraints();
+        if (this.visualElement.projection) {
+          this.visualElement.projection.isAnimationBlocked = true;
+          this.visualElement.projection.target = void 0;
+        }
+        eachAxis((axis) => {
+          let current = this.getAxisMotionValue(axis).get() || 0;
+          if (percent.test(current)) {
+            const { projection } = this.visualElement;
+            if (projection && projection.layout) {
+              const measuredAxis = projection.layout.layoutBox[axis];
+              if (measuredAxis) {
+                const length = calcLength(measuredAxis);
+                current = length * (parseFloat(current) / 100);
+              }
+            }
+          }
+          this.originPoint[axis] = current;
+        });
+        if (onDragStart) {
+          frame.postRender(() => onDragStart(event, info));
+        }
+        addValueToWillChange(this.visualElement, "transform");
+        const { animationState } = this.visualElement;
+        animationState && animationState.setActive("whileDrag", true);
+      };
+      const onMove = (event, info) => {
+        const { dragPropagation, dragDirectionLock, onDirectionLock, onDrag } = this.getProps();
+        if (!dragPropagation && !this.openDragLock)
+          return;
+        const { offset } = info;
+        if (dragDirectionLock && this.currentDirection === null) {
+          this.currentDirection = getCurrentDirection(offset);
+          if (this.currentDirection !== null) {
+            onDirectionLock && onDirectionLock(this.currentDirection);
+          }
+          return;
+        }
+        this.updateAxis("x", info.point, offset);
+        this.updateAxis("y", info.point, offset);
+        this.visualElement.render();
+        onDrag && onDrag(event, info);
+      };
+      const onSessionEnd = (event, info) => this.stop(event, info);
+      const resumeAnimation = () => eachAxis((axis) => {
+        var _a;
+        return this.getAnimationState(axis) === "paused" && ((_a = this.getAxisMotionValue(axis).animation) === null || _a === void 0 ? void 0 : _a.play());
+      });
+      const { dragSnapToOrigin } = this.getProps();
+      this.panSession = new PanSession(originEvent, {
+        onSessionStart,
+        onStart,
+        onMove,
+        onSessionEnd,
+        resumeAnimation
+      }, {
+        transformPagePoint: this.visualElement.getTransformPagePoint(),
+        dragSnapToOrigin,
+        contextWindow: getContextWindow(this.visualElement)
+      });
+    }
+    stop(event, info) {
+      const isDragging2 = this.isDragging;
+      this.cancel();
+      if (!isDragging2)
+        return;
+      const { velocity } = info;
+      this.startAnimation(velocity);
+      const { onDragEnd } = this.getProps();
+      if (onDragEnd) {
+        frame.postRender(() => onDragEnd(event, info));
+      }
+    }
+    cancel() {
+      this.isDragging = false;
+      const { projection, animationState } = this.visualElement;
+      if (projection) {
+        projection.isAnimationBlocked = false;
+      }
+      this.panSession && this.panSession.end();
+      this.panSession = void 0;
+      const { dragPropagation } = this.getProps();
+      if (!dragPropagation && this.openDragLock) {
+        this.openDragLock();
+        this.openDragLock = null;
+      }
+      animationState && animationState.setActive("whileDrag", false);
+    }
+    updateAxis(axis, _point, offset) {
+      const { drag: drag2 } = this.getProps();
+      if (!offset || !shouldDrag(axis, drag2, this.currentDirection))
+        return;
+      const axisValue = this.getAxisMotionValue(axis);
+      let next = this.originPoint[axis] + offset[axis];
+      if (this.constraints && this.constraints[axis]) {
+        next = applyConstraints(next, this.constraints[axis], this.elastic[axis]);
+      }
+      axisValue.set(next);
+    }
+    resolveConstraints() {
+      var _a;
+      const { dragConstraints, dragElastic } = this.getProps();
+      const layout2 = this.visualElement.projection && !this.visualElement.projection.layout ? this.visualElement.projection.measure(false) : (_a = this.visualElement.projection) === null || _a === void 0 ? void 0 : _a.layout;
+      const prevConstraints = this.constraints;
+      if (dragConstraints && isRefObject(dragConstraints)) {
+        if (!this.constraints) {
+          this.constraints = this.resolveRefConstraints();
+        }
+      } else {
+        if (dragConstraints && layout2) {
+          this.constraints = calcRelativeConstraints(layout2.layoutBox, dragConstraints);
+        } else {
+          this.constraints = false;
+        }
+      }
+      this.elastic = resolveDragElastic(dragElastic);
+      if (prevConstraints !== this.constraints && layout2 && this.constraints && !this.hasMutatedConstraints) {
+        eachAxis((axis) => {
+          if (this.constraints !== false && this.getAxisMotionValue(axis)) {
+            this.constraints[axis] = rebaseAxisConstraints(layout2.layoutBox[axis], this.constraints[axis]);
+          }
+        });
+      }
+    }
+    resolveRefConstraints() {
+      const { dragConstraints: constraints, onMeasureDragConstraints } = this.getProps();
+      if (!constraints || !isRefObject(constraints))
+        return false;
+      const constraintsElement = constraints.current;
+      invariant(constraintsElement !== null, "If `dragConstraints` is set as a React ref, that ref must be passed to another component's `ref` prop.");
+      const { projection } = this.visualElement;
+      if (!projection || !projection.layout)
+        return false;
+      const constraintsBox = measurePageBox(constraintsElement, projection.root, this.visualElement.getTransformPagePoint());
+      let measuredConstraints = calcViewportConstraints(projection.layout.layoutBox, constraintsBox);
+      if (onMeasureDragConstraints) {
+        const userConstraints = onMeasureDragConstraints(convertBoxToBoundingBox(measuredConstraints));
+        this.hasMutatedConstraints = !!userConstraints;
+        if (userConstraints) {
+          measuredConstraints = convertBoundingBoxToBox(userConstraints);
+        }
+      }
+      return measuredConstraints;
+    }
+    startAnimation(velocity) {
+      const { drag: drag2, dragMomentum, dragElastic, dragTransition, dragSnapToOrigin, onDragTransitionEnd } = this.getProps();
+      const constraints = this.constraints || {};
+      const momentumAnimations = eachAxis((axis) => {
+        if (!shouldDrag(axis, drag2, this.currentDirection)) {
+          return;
+        }
+        let transition = constraints && constraints[axis] || {};
+        if (dragSnapToOrigin)
+          transition = { min: 0, max: 0 };
+        const bounceStiffness = dragElastic ? 200 : 1e6;
+        const bounceDamping = dragElastic ? 40 : 1e7;
+        const inertia2 = {
+          type: "inertia",
+          velocity: dragMomentum ? velocity[axis] : 0,
+          bounceStiffness,
+          bounceDamping,
+          timeConstant: 750,
+          restDelta: 1,
+          restSpeed: 10,
+          ...dragTransition,
+          ...transition
+        };
+        return this.startAxisValueAnimation(axis, inertia2);
+      });
+      return Promise.all(momentumAnimations).then(onDragTransitionEnd);
+    }
+    startAxisValueAnimation(axis, transition) {
+      const axisValue = this.getAxisMotionValue(axis);
+      addValueToWillChange(this.visualElement, axis);
+      return axisValue.start(animateMotionValue(axis, axisValue, 0, transition, this.visualElement, false));
+    }
+    stopAnimation() {
+      eachAxis((axis) => this.getAxisMotionValue(axis).stop());
+    }
+    pauseAnimation() {
+      eachAxis((axis) => {
+        var _a;
+        return (_a = this.getAxisMotionValue(axis).animation) === null || _a === void 0 ? void 0 : _a.pause();
+      });
+    }
+    getAnimationState(axis) {
+      var _a;
+      return (_a = this.getAxisMotionValue(axis).animation) === null || _a === void 0 ? void 0 : _a.state;
+    }
+    /**
+     * Drag works differently depending on which props are provided.
+     *
+     * - If _dragX and _dragY are provided, we output the gesture delta directly to those motion values.
+     * - Otherwise, we apply the delta to the x/y motion values.
+     */
+    getAxisMotionValue(axis) {
+      const dragKey = `_drag${axis.toUpperCase()}`;
+      const props = this.visualElement.getProps();
+      const externalMotionValue = props[dragKey];
+      return externalMotionValue ? externalMotionValue : this.visualElement.getValue(axis, (props.initial ? props.initial[axis] : void 0) || 0);
+    }
+    snapToCursor(point) {
+      eachAxis((axis) => {
+        const { drag: drag2 } = this.getProps();
+        if (!shouldDrag(axis, drag2, this.currentDirection))
+          return;
+        const { projection } = this.visualElement;
+        const axisValue = this.getAxisMotionValue(axis);
+        if (projection && projection.layout) {
+          const { min, max } = projection.layout.layoutBox[axis];
+          axisValue.set(point[axis] - mixNumber(min, max, 0.5));
+        }
+      });
+    }
+    /**
+     * When the viewport resizes we want to check if the measured constraints
+     * have changed and, if so, reposition the element within those new constraints
+     * relative to where it was before the resize.
+     */
+    scalePositionWithinConstraints() {
+      if (!this.visualElement.current)
+        return;
+      const { drag: drag2, dragConstraints } = this.getProps();
+      const { projection } = this.visualElement;
+      if (!isRefObject(dragConstraints) || !projection || !this.constraints)
+        return;
+      this.stopAnimation();
+      const boxProgress = { x: 0, y: 0 };
+      eachAxis((axis) => {
+        const axisValue = this.getAxisMotionValue(axis);
+        if (axisValue && this.constraints !== false) {
+          const latest = axisValue.get();
+          boxProgress[axis] = calcOrigin2({ min: latest, max: latest }, this.constraints[axis]);
+        }
+      });
+      const { transformTemplate } = this.visualElement.getProps();
+      this.visualElement.current.style.transform = transformTemplate ? transformTemplate({}, "") : "none";
+      projection.root && projection.root.updateScroll();
+      projection.updateLayout();
+      this.resolveConstraints();
+      eachAxis((axis) => {
+        if (!shouldDrag(axis, drag2, null))
+          return;
+        const axisValue = this.getAxisMotionValue(axis);
+        const { min, max } = this.constraints[axis];
+        axisValue.set(mixNumber(min, max, boxProgress[axis]));
+      });
+    }
+    addListeners() {
+      if (!this.visualElement.current)
+        return;
+      elementDragControls.set(this.visualElement, this);
+      const element = this.visualElement.current;
+      const stopPointerListener = addPointerEvent(element, "pointerdown", (event) => {
+        const { drag: drag2, dragListener = true } = this.getProps();
+        drag2 && dragListener && this.start(event);
+      });
+      const measureDragConstraints = () => {
+        const { dragConstraints } = this.getProps();
+        if (isRefObject(dragConstraints) && dragConstraints.current) {
+          this.constraints = this.resolveRefConstraints();
+        }
+      };
+      const { projection } = this.visualElement;
+      const stopMeasureLayoutListener = projection.addEventListener("measure", measureDragConstraints);
+      if (projection && !projection.layout) {
+        projection.root && projection.root.updateScroll();
+        projection.updateLayout();
+      }
+      frame.read(measureDragConstraints);
+      const stopResizeListener = addDomEvent(window, "resize", () => this.scalePositionWithinConstraints());
+      const stopLayoutUpdateListener = projection.addEventListener("didUpdate", (({ delta, hasLayoutChanged }) => {
+        if (this.isDragging && hasLayoutChanged) {
+          eachAxis((axis) => {
+            const motionValue2 = this.getAxisMotionValue(axis);
+            if (!motionValue2)
+              return;
+            this.originPoint[axis] += delta[axis].translate;
+            motionValue2.set(motionValue2.get() + delta[axis].translate);
+          });
+          this.visualElement.render();
+        }
+      }));
+      return () => {
+        stopResizeListener();
+        stopPointerListener();
+        stopMeasureLayoutListener();
+        stopLayoutUpdateListener && stopLayoutUpdateListener();
+      };
+    }
+    getProps() {
+      const props = this.visualElement.getProps();
+      const { drag: drag2 = false, dragDirectionLock = false, dragPropagation = false, dragConstraints = false, dragElastic = defaultElastic, dragMomentum = true } = props;
+      return {
+        ...props,
+        drag: drag2,
+        dragDirectionLock,
+        dragPropagation,
+        dragConstraints,
+        dragElastic,
+        dragMomentum
+      };
+    }
+  };
+  function shouldDrag(direction, drag2, currentDirection) {
+    return (drag2 === true || drag2 === direction) && (currentDirection === null || currentDirection === direction);
+  }
+  function getCurrentDirection(offset, lockThreshold = 10) {
+    let direction = null;
+    if (Math.abs(offset.y) > lockThreshold) {
+      direction = "y";
+    } else if (Math.abs(offset.x) > lockThreshold) {
+      direction = "x";
+    }
+    return direction;
+  }
+
+  // node_modules/framer-motion/dist/es/gestures/drag/index.mjs
+  var DragGesture = class extends Feature {
+    constructor(node) {
+      super(node);
+      this.removeGroupControls = noop;
+      this.removeListeners = noop;
+      this.controls = new VisualElementDragControls(node);
+    }
+    mount() {
+      const { dragControls } = this.node.getProps();
+      if (dragControls) {
+        this.removeGroupControls = dragControls.subscribe(this.controls);
+      }
+      this.removeListeners = this.controls.addListeners() || noop;
+    }
+    unmount() {
+      this.removeGroupControls();
+      this.removeListeners();
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/gestures/pan/index.mjs
+  var asyncHandler = (handler) => (event, info) => {
+    if (handler) {
+      frame.postRender(() => handler(event, info));
+    }
+  };
+  var PanGesture = class extends Feature {
+    constructor() {
+      super(...arguments);
+      this.removePointerDownListener = noop;
+    }
+    onPointerDown(pointerDownEvent) {
+      this.session = new PanSession(pointerDownEvent, this.createPanHandlers(), {
+        transformPagePoint: this.node.getTransformPagePoint(),
+        contextWindow: getContextWindow(this.node)
+      });
+    }
+    createPanHandlers() {
+      const { onPanSessionStart, onPanStart, onPan, onPanEnd } = this.node.getProps();
+      return {
+        onSessionStart: asyncHandler(onPanSessionStart),
+        onStart: asyncHandler(onPanStart),
+        onMove: onPan,
+        onEnd: (event, info) => {
+          delete this.session;
+          if (onPanEnd) {
+            frame.postRender(() => onPanEnd(event, info));
+          }
+        }
+      };
+    }
+    mount() {
+      this.removePointerDownListener = addPointerEvent(this.node.current, "pointerdown", (event) => this.onPointerDown(event));
+    }
+    update() {
+      this.session && this.session.updateHandlers(this.createPanHandlers());
+    }
+    unmount() {
+      this.removePointerDownListener();
+      this.session && this.session.end();
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/projection/node/state.mjs
+  var globalProjectionState = {
+    /**
+     * Global flag as to whether the tree has animated since the last time
+     * we resized the window
+     */
+    hasAnimatedSinceResize: true,
+    /**
+     * We set this to true once, on the first update. Any nodes added to the tree beyond that
+     * update will be given a `data-projection-id` attribute.
+     */
+    hasEverUpdated: false
+  };
+
+  // node_modules/framer-motion/dist/es/projection/styles/scale-border-radius.mjs
+  function pixelsToPercent(pixels, axis) {
+    if (axis.max === axis.min)
+      return 0;
+    return pixels / (axis.max - axis.min) * 100;
+  }
+  var correctBorderRadius = {
+    correct: (latest, node) => {
+      if (!node.target)
+        return latest;
+      if (typeof latest === "string") {
+        if (px.test(latest)) {
+          latest = parseFloat(latest);
+        } else {
+          return latest;
+        }
+      }
+      const x = pixelsToPercent(latest, node.target.x);
+      const y = pixelsToPercent(latest, node.target.y);
+      return `${x}% ${y}%`;
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/projection/styles/scale-box-shadow.mjs
+  var correctBoxShadow = {
+    correct: (latest, { treeScale, projectionDelta }) => {
+      const original = latest;
+      const shadow = complex.parse(latest);
+      if (shadow.length > 5)
+        return original;
+      const template = complex.createTransformer(latest);
+      const offset = typeof shadow[0] !== "number" ? 1 : 0;
+      const xScale = projectionDelta.x.scale * treeScale.x;
+      const yScale = projectionDelta.y.scale * treeScale.y;
+      shadow[0 + offset] /= xScale;
+      shadow[1 + offset] /= yScale;
+      const averageScale = mixNumber(xScale, yScale, 0.5);
+      if (typeof shadow[2 + offset] === "number")
+        shadow[2 + offset] /= averageScale;
+      if (typeof shadow[3 + offset] === "number")
+        shadow[3 + offset] /= averageScale;
+      return template(shadow);
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/motion/features/layout/MeasureLayout.mjs
+  var MeasureLayoutWithContext = class extends Component {
+    /**
+     * This only mounts projection nodes for components that
+     * need measuring, we might want to do it for all components
+     * in order to incorporate transforms
+     */
+    componentDidMount() {
+      const { visualElement, layoutGroup, switchLayoutGroup, layoutId } = this.props;
+      const { projection } = visualElement;
+      addScaleCorrector(defaultScaleCorrectors);
+      if (projection) {
+        if (layoutGroup.group)
+          layoutGroup.group.add(projection);
+        if (switchLayoutGroup && switchLayoutGroup.register && layoutId) {
+          switchLayoutGroup.register(projection);
+        }
+        projection.root.didUpdate();
+        projection.addEventListener("animationComplete", () => {
+          this.safeToRemove();
+        });
+        projection.setOptions({
+          ...projection.options,
+          onExitComplete: () => this.safeToRemove()
+        });
+      }
+      globalProjectionState.hasEverUpdated = true;
+    }
+    getSnapshotBeforeUpdate(prevProps) {
+      const { layoutDependency, visualElement, drag: drag2, isPresent } = this.props;
+      const projection = visualElement.projection;
+      if (!projection)
+        return null;
+      projection.isPresent = isPresent;
+      if (drag2 || prevProps.layoutDependency !== layoutDependency || layoutDependency === void 0) {
+        projection.willUpdate();
+      } else {
+        this.safeToRemove();
+      }
+      if (prevProps.isPresent !== isPresent) {
+        if (isPresent) {
+          projection.promote();
+        } else if (!projection.relegate()) {
+          frame.postRender(() => {
+            const stack = projection.getStack();
+            if (!stack || !stack.members.length) {
+              this.safeToRemove();
+            }
+          });
+        }
+      }
+      return null;
+    }
+    componentDidUpdate() {
+      const { projection } = this.props.visualElement;
+      if (projection) {
+        projection.root.didUpdate();
+        microtask.postRender(() => {
+          if (!projection.currentAnimation && projection.isLead()) {
+            this.safeToRemove();
+          }
+        });
+      }
+    }
+    componentWillUnmount() {
+      const { visualElement, layoutGroup, switchLayoutGroup: promoteContext } = this.props;
+      const { projection } = visualElement;
+      if (projection) {
+        projection.scheduleCheckAfterUnmount();
+        if (layoutGroup && layoutGroup.group)
+          layoutGroup.group.remove(projection);
+        if (promoteContext && promoteContext.deregister)
+          promoteContext.deregister(projection);
+      }
+    }
+    safeToRemove() {
+      const { safeToRemove } = this.props;
+      safeToRemove && safeToRemove();
+    }
+    render() {
+      return null;
+    }
+  };
+  function MeasureLayout(props) {
+    const [isPresent, safeToRemove] = usePresence();
+    const layoutGroup = useContext(LayoutGroupContext);
+    return jsx(MeasureLayoutWithContext, { ...props, layoutGroup, switchLayoutGroup: useContext(SwitchLayoutGroupContext), isPresent, safeToRemove });
+  }
+  var defaultScaleCorrectors = {
+    borderRadius: {
+      ...correctBorderRadius,
+      applyTo: [
+        "borderTopLeftRadius",
+        "borderTopRightRadius",
+        "borderBottomLeftRadius",
+        "borderBottomRightRadius"
+      ]
+    },
+    borderTopLeftRadius: correctBorderRadius,
+    borderTopRightRadius: correctBorderRadius,
+    borderBottomLeftRadius: correctBorderRadius,
+    borderBottomRightRadius: correctBorderRadius,
+    boxShadow: correctBoxShadow
+  };
+
+  // node_modules/framer-motion/dist/es/animation/animate/single-value.mjs
+  function animateSingleValue(value, keyframes2, options) {
+    const motionValue$1 = isMotionValue(value) ? value : motionValue(value);
+    motionValue$1.start(animateMotionValue("", motionValue$1, keyframes2, options));
+    return motionValue$1.animation;
+  }
+
+  // node_modules/framer-motion/dist/es/render/dom/utils/is-svg-element.mjs
+  function isSVGElement(element) {
+    return element instanceof SVGElement && element.tagName !== "svg";
+  }
+
+  // node_modules/framer-motion/dist/es/render/utils/compare-by-depth.mjs
+  var compareByDepth = (a, b) => a.depth - b.depth;
+
+  // node_modules/framer-motion/dist/es/render/utils/flat-tree.mjs
+  var FlatTree = class {
+    constructor() {
+      this.children = [];
+      this.isDirty = false;
+    }
+    add(child) {
+      addUniqueItem(this.children, child);
+      this.isDirty = true;
+    }
+    remove(child) {
+      removeItem(this.children, child);
+      this.isDirty = true;
+    }
+    forEach(callback) {
+      this.isDirty && this.children.sort(compareByDepth);
+      this.isDirty = false;
+      this.children.forEach(callback);
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/utils/delay.mjs
+  function delay(callback, timeout) {
+    const start = time.now();
+    const checkElapsed = ({ timestamp }) => {
+      const elapsed = timestamp - start;
+      if (elapsed >= timeout) {
+        cancelFrame(checkElapsed);
+        callback(elapsed - timeout);
+      }
+    };
+    frame.read(checkElapsed, true);
+    return () => cancelFrame(checkElapsed);
+  }
+
+  // node_modules/framer-motion/dist/es/projection/animation/mix-values.mjs
+  var borders = ["TopLeft", "TopRight", "BottomLeft", "BottomRight"];
+  var numBorders = borders.length;
+  var asNumber = (value) => typeof value === "string" ? parseFloat(value) : value;
+  var isPx = (value) => typeof value === "number" || px.test(value);
+  function mixValues(target, follow, lead, progress2, shouldCrossfadeOpacity, isOnlyMember) {
+    if (shouldCrossfadeOpacity) {
+      target.opacity = mixNumber(
+        0,
+        // TODO Reinstate this if only child
+        lead.opacity !== void 0 ? lead.opacity : 1,
+        easeCrossfadeIn(progress2)
+      );
+      target.opacityExit = mixNumber(follow.opacity !== void 0 ? follow.opacity : 1, 0, easeCrossfadeOut(progress2));
+    } else if (isOnlyMember) {
+      target.opacity = mixNumber(follow.opacity !== void 0 ? follow.opacity : 1, lead.opacity !== void 0 ? lead.opacity : 1, progress2);
+    }
+    for (let i = 0; i < numBorders; i++) {
+      const borderLabel = `border${borders[i]}Radius`;
+      let followRadius = getRadius(follow, borderLabel);
+      let leadRadius = getRadius(lead, borderLabel);
+      if (followRadius === void 0 && leadRadius === void 0)
+        continue;
+      followRadius || (followRadius = 0);
+      leadRadius || (leadRadius = 0);
+      const canMix = followRadius === 0 || leadRadius === 0 || isPx(followRadius) === isPx(leadRadius);
+      if (canMix) {
+        target[borderLabel] = Math.max(mixNumber(asNumber(followRadius), asNumber(leadRadius), progress2), 0);
+        if (percent.test(leadRadius) || percent.test(followRadius)) {
+          target[borderLabel] += "%";
+        }
+      } else {
+        target[borderLabel] = leadRadius;
+      }
+    }
+    if (follow.rotate || lead.rotate) {
+      target.rotate = mixNumber(follow.rotate || 0, lead.rotate || 0, progress2);
+    }
+  }
+  function getRadius(values, radiusName) {
+    return values[radiusName] !== void 0 ? values[radiusName] : values.borderRadius;
+  }
+  var easeCrossfadeIn = /* @__PURE__ */ compress(0, 0.5, circOut);
+  var easeCrossfadeOut = /* @__PURE__ */ compress(0.5, 0.95, noop);
+  function compress(min, max, easing) {
+    return (p) => {
+      if (p < min)
+        return 0;
+      if (p > max)
+        return 1;
+      return easing(progress(min, max, p));
+    };
+  }
+
+  // node_modules/framer-motion/dist/es/projection/geometry/copy.mjs
+  function copyAxisInto(axis, originAxis) {
+    axis.min = originAxis.min;
+    axis.max = originAxis.max;
+  }
+  function copyBoxInto(box, originBox) {
+    copyAxisInto(box.x, originBox.x);
+    copyAxisInto(box.y, originBox.y);
+  }
+  function copyAxisDeltaInto(delta, originDelta) {
+    delta.translate = originDelta.translate;
+    delta.scale = originDelta.scale;
+    delta.originPoint = originDelta.originPoint;
+    delta.origin = originDelta.origin;
+  }
+
+  // node_modules/framer-motion/dist/es/projection/geometry/delta-remove.mjs
+  function removePointDelta(point, translate, scale2, originPoint, boxScale) {
+    point -= translate;
+    point = scalePoint(point, 1 / scale2, originPoint);
+    if (boxScale !== void 0) {
+      point = scalePoint(point, 1 / boxScale, originPoint);
+    }
+    return point;
+  }
+  function removeAxisDelta(axis, translate = 0, scale2 = 1, origin = 0.5, boxScale, originAxis = axis, sourceAxis = axis) {
+    if (percent.test(translate)) {
+      translate = parseFloat(translate);
+      const relativeProgress = mixNumber(sourceAxis.min, sourceAxis.max, translate / 100);
+      translate = relativeProgress - sourceAxis.min;
+    }
+    if (typeof translate !== "number")
+      return;
+    let originPoint = mixNumber(originAxis.min, originAxis.max, origin);
+    if (axis === originAxis)
+      originPoint -= translate;
+    axis.min = removePointDelta(axis.min, translate, scale2, originPoint, boxScale);
+    axis.max = removePointDelta(axis.max, translate, scale2, originPoint, boxScale);
+  }
+  function removeAxisTransforms(axis, transforms, [key, scaleKey, originKey], origin, sourceAxis) {
+    removeAxisDelta(axis, transforms[key], transforms[scaleKey], transforms[originKey], transforms.scale, origin, sourceAxis);
+  }
+  var xKeys = ["x", "scaleX", "originX"];
+  var yKeys = ["y", "scaleY", "originY"];
+  function removeBoxTransforms(box, transforms, originBox, sourceBox) {
+    removeAxisTransforms(box.x, transforms, xKeys, originBox ? originBox.x : void 0, sourceBox ? sourceBox.x : void 0);
+    removeAxisTransforms(box.y, transforms, yKeys, originBox ? originBox.y : void 0, sourceBox ? sourceBox.y : void 0);
+  }
+
+  // node_modules/framer-motion/dist/es/projection/geometry/utils.mjs
+  function isAxisDeltaZero(delta) {
+    return delta.translate === 0 && delta.scale === 1;
+  }
+  function isDeltaZero(delta) {
+    return isAxisDeltaZero(delta.x) && isAxisDeltaZero(delta.y);
+  }
+  function axisEquals(a, b) {
+    return a.min === b.min && a.max === b.max;
+  }
+  function boxEquals(a, b) {
+    return axisEquals(a.x, b.x) && axisEquals(a.y, b.y);
+  }
+  function axisEqualsRounded(a, b) {
+    return Math.round(a.min) === Math.round(b.min) && Math.round(a.max) === Math.round(b.max);
+  }
+  function boxEqualsRounded(a, b) {
+    return axisEqualsRounded(a.x, b.x) && axisEqualsRounded(a.y, b.y);
+  }
+  function aspectRatio(box) {
+    return calcLength(box.x) / calcLength(box.y);
+  }
+  function axisDeltaEquals(a, b) {
+    return a.translate === b.translate && a.scale === b.scale && a.originPoint === b.originPoint;
+  }
+
+  // node_modules/framer-motion/dist/es/projection/shared/stack.mjs
+  var NodeStack = class {
+    constructor() {
+      this.members = [];
+    }
+    add(node) {
+      addUniqueItem(this.members, node);
+      node.scheduleRender();
+    }
+    remove(node) {
+      removeItem(this.members, node);
+      if (node === this.prevLead) {
+        this.prevLead = void 0;
+      }
+      if (node === this.lead) {
+        const prevLead = this.members[this.members.length - 1];
+        if (prevLead) {
+          this.promote(prevLead);
+        }
+      }
+    }
+    relegate(node) {
+      const indexOfNode = this.members.findIndex((member) => node === member);
+      if (indexOfNode === 0)
+        return false;
+      let prevLead;
+      for (let i = indexOfNode; i >= 0; i--) {
+        const member = this.members[i];
+        if (member.isPresent !== false) {
+          prevLead = member;
+          break;
+        }
+      }
+      if (prevLead) {
+        this.promote(prevLead);
+        return true;
+      } else {
+        return false;
+      }
+    }
+    promote(node, preserveFollowOpacity) {
+      const prevLead = this.lead;
+      if (node === prevLead)
+        return;
+      this.prevLead = prevLead;
+      this.lead = node;
+      node.show();
+      if (prevLead) {
+        prevLead.instance && prevLead.scheduleRender();
+        node.scheduleRender();
+        node.resumeFrom = prevLead;
+        if (preserveFollowOpacity) {
+          node.resumeFrom.preserveOpacity = true;
+        }
+        if (prevLead.snapshot) {
+          node.snapshot = prevLead.snapshot;
+          node.snapshot.latestValues = prevLead.animationValues || prevLead.latestValues;
+        }
+        if (node.root && node.root.isUpdating) {
+          node.isLayoutDirty = true;
+        }
+        const { crossfade } = node.options;
+        if (crossfade === false) {
+          prevLead.hide();
+        }
+      }
+    }
+    exitAnimationComplete() {
+      this.members.forEach((node) => {
+        const { options, resumingFrom } = node;
+        options.onExitComplete && options.onExitComplete();
+        if (resumingFrom) {
+          resumingFrom.options.onExitComplete && resumingFrom.options.onExitComplete();
+        }
+      });
+    }
+    scheduleRender() {
+      this.members.forEach((node) => {
+        node.instance && node.scheduleRender(false);
+      });
+    }
+    /**
+     * Clear any leads that have been removed this render to prevent them from being
+     * used in future animations and to prevent memory leaks
+     */
+    removeLeadSnapshot() {
+      if (this.lead && this.lead.snapshot) {
+        this.lead.snapshot = void 0;
+      }
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/projection/styles/transform.mjs
+  function buildProjectionTransform(delta, treeScale, latestTransform) {
+    let transform = "";
+    const xTranslate = delta.x.translate / treeScale.x;
+    const yTranslate = delta.y.translate / treeScale.y;
+    const zTranslate = (latestTransform === null || latestTransform === void 0 ? void 0 : latestTransform.z) || 0;
+    if (xTranslate || yTranslate || zTranslate) {
+      transform = `translate3d(${xTranslate}px, ${yTranslate}px, ${zTranslate}px) `;
+    }
+    if (treeScale.x !== 1 || treeScale.y !== 1) {
+      transform += `scale(${1 / treeScale.x}, ${1 / treeScale.y}) `;
+    }
+    if (latestTransform) {
+      const { transformPerspective, rotate, rotateX, rotateY, skewX, skewY } = latestTransform;
+      if (transformPerspective)
+        transform = `perspective(${transformPerspective}px) ${transform}`;
+      if (rotate)
+        transform += `rotate(${rotate}deg) `;
+      if (rotateX)
+        transform += `rotateX(${rotateX}deg) `;
+      if (rotateY)
+        transform += `rotateY(${rotateY}deg) `;
+      if (skewX)
+        transform += `skewX(${skewX}deg) `;
+      if (skewY)
+        transform += `skewY(${skewY}deg) `;
+    }
+    const elementScaleX = delta.x.scale * treeScale.x;
+    const elementScaleY = delta.y.scale * treeScale.y;
+    if (elementScaleX !== 1 || elementScaleY !== 1) {
+      transform += `scale(${elementScaleX}, ${elementScaleY})`;
+    }
+    return transform || "none";
+  }
+
+  // node_modules/framer-motion/dist/es/projection/node/create-projection-node.mjs
+  var metrics = {
+    type: "projectionFrame",
+    totalNodes: 0,
+    resolvedTargetDeltas: 0,
+    recalculatedProjection: 0
+  };
+  var isDebug = typeof window !== "undefined" && window.MotionDebug !== void 0;
+  var transformAxes = ["", "X", "Y", "Z"];
+  var hiddenVisibility = { visibility: "hidden" };
+  var animationTarget = 1e3;
+  var id2 = 0;
+  function resetDistortingTransform(key, visualElement, values, sharedAnimationValues) {
+    const { latestValues } = visualElement;
+    if (latestValues[key]) {
+      values[key] = latestValues[key];
+      visualElement.setStaticValue(key, 0);
+      if (sharedAnimationValues) {
+        sharedAnimationValues[key] = 0;
+      }
+    }
+  }
+  function cancelTreeOptimisedTransformAnimations(projectionNode) {
+    projectionNode.hasCheckedOptimisedAppear = true;
+    if (projectionNode.root === projectionNode)
+      return;
+    const { visualElement } = projectionNode.options;
+    if (!visualElement)
+      return;
+    const appearId = getOptimisedAppearId(visualElement);
+    if (window.MotionHasOptimisedAnimation(appearId, "transform")) {
+      const { layout: layout2, layoutId } = projectionNode.options;
+      window.MotionCancelOptimisedAnimation(appearId, "transform", frame, !(layout2 || layoutId));
+    }
+    const { parent } = projectionNode;
+    if (parent && !parent.hasCheckedOptimisedAppear) {
+      cancelTreeOptimisedTransformAnimations(parent);
+    }
+  }
+  function createProjectionNode2({ attachResizeListener, defaultParent, measureScroll, checkIsScrollRoot, resetTransform }) {
+    return class ProjectionNode {
+      constructor(latestValues = {}, parent = defaultParent === null || defaultParent === void 0 ? void 0 : defaultParent()) {
+        this.id = id2++;
+        this.animationId = 0;
+        this.children = /* @__PURE__ */ new Set();
+        this.options = {};
+        this.isTreeAnimating = false;
+        this.isAnimationBlocked = false;
+        this.isLayoutDirty = false;
+        this.isProjectionDirty = false;
+        this.isSharedProjectionDirty = false;
+        this.isTransformDirty = false;
+        this.updateManuallyBlocked = false;
+        this.updateBlockedByResize = false;
+        this.isUpdating = false;
+        this.isSVG = false;
+        this.needsReset = false;
+        this.shouldResetTransform = false;
+        this.hasCheckedOptimisedAppear = false;
+        this.treeScale = { x: 1, y: 1 };
+        this.eventHandlers = /* @__PURE__ */ new Map();
+        this.hasTreeAnimated = false;
+        this.updateScheduled = false;
+        this.scheduleUpdate = () => this.update();
+        this.projectionUpdateScheduled = false;
+        this.checkUpdateFailed = () => {
+          if (this.isUpdating) {
+            this.isUpdating = false;
+            this.clearAllSnapshots();
+          }
+        };
+        this.updateProjection = () => {
+          this.projectionUpdateScheduled = false;
+          if (isDebug) {
+            metrics.totalNodes = metrics.resolvedTargetDeltas = metrics.recalculatedProjection = 0;
+          }
+          this.nodes.forEach(propagateDirtyNodes);
+          this.nodes.forEach(resolveTargetDelta);
+          this.nodes.forEach(calcProjection);
+          this.nodes.forEach(cleanDirtyNodes);
+          if (isDebug) {
+            window.MotionDebug.record(metrics);
+          }
+        };
+        this.resolvedRelativeTargetAt = 0;
+        this.hasProjected = false;
+        this.isVisible = true;
+        this.animationProgress = 0;
+        this.sharedNodes = /* @__PURE__ */ new Map();
+        this.latestValues = latestValues;
+        this.root = parent ? parent.root || parent : this;
+        this.path = parent ? [...parent.path, parent] : [];
+        this.parent = parent;
+        this.depth = parent ? parent.depth + 1 : 0;
+        for (let i = 0; i < this.path.length; i++) {
+          this.path[i].shouldResetTransform = true;
+        }
+        if (this.root === this)
+          this.nodes = new FlatTree();
+      }
+      addEventListener(name, handler) {
+        if (!this.eventHandlers.has(name)) {
+          this.eventHandlers.set(name, new SubscriptionManager());
+        }
+        return this.eventHandlers.get(name).add(handler);
+      }
+      notifyListeners(name, ...args) {
+        const subscriptionManager = this.eventHandlers.get(name);
+        subscriptionManager && subscriptionManager.notify(...args);
+      }
+      hasListeners(name) {
+        return this.eventHandlers.has(name);
+      }
+      /**
+       * Lifecycles
+       */
+      mount(instance, isLayoutDirty = this.root.hasTreeAnimated) {
+        if (this.instance)
+          return;
+        this.isSVG = isSVGElement(instance);
+        this.instance = instance;
+        const { layoutId, layout: layout2, visualElement } = this.options;
+        if (visualElement && !visualElement.current) {
+          visualElement.mount(instance);
+        }
+        this.root.nodes.add(this);
+        this.parent && this.parent.children.add(this);
+        if (isLayoutDirty && (layout2 || layoutId)) {
+          this.isLayoutDirty = true;
+        }
+        if (attachResizeListener) {
+          let cancelDelay;
+          const resizeUnblockUpdate = () => this.root.updateBlockedByResize = false;
+          attachResizeListener(instance, () => {
+            this.root.updateBlockedByResize = true;
+            cancelDelay && cancelDelay();
+            cancelDelay = delay(resizeUnblockUpdate, 250);
+            if (globalProjectionState.hasAnimatedSinceResize) {
+              globalProjectionState.hasAnimatedSinceResize = false;
+              this.nodes.forEach(finishAnimation);
+            }
+          });
+        }
+        if (layoutId) {
+          this.root.registerSharedNode(layoutId, this);
+        }
+        if (this.options.animate !== false && visualElement && (layoutId || layout2)) {
+          this.addEventListener("didUpdate", ({ delta, hasLayoutChanged, hasRelativeTargetChanged, layout: newLayout }) => {
+            if (this.isTreeAnimationBlocked()) {
+              this.target = void 0;
+              this.relativeTarget = void 0;
+              return;
+            }
+            const layoutTransition = this.options.transition || visualElement.getDefaultTransition() || defaultLayoutTransition;
+            const { onLayoutAnimationStart, onLayoutAnimationComplete } = visualElement.getProps();
+            const targetChanged = !this.targetLayout || !boxEqualsRounded(this.targetLayout, newLayout) || hasRelativeTargetChanged;
+            const hasOnlyRelativeTargetChanged = !hasLayoutChanged && hasRelativeTargetChanged;
+            if (this.options.layoutRoot || this.resumeFrom && this.resumeFrom.instance || hasOnlyRelativeTargetChanged || hasLayoutChanged && (targetChanged || !this.currentAnimation)) {
+              if (this.resumeFrom) {
+                this.resumingFrom = this.resumeFrom;
+                this.resumingFrom.resumingFrom = void 0;
+              }
+              this.setAnimationOrigin(delta, hasOnlyRelativeTargetChanged);
+              const animationOptions = {
+                ...getValueTransition(layoutTransition, "layout"),
+                onPlay: onLayoutAnimationStart,
+                onComplete: onLayoutAnimationComplete
+              };
+              if (visualElement.shouldReduceMotion || this.options.layoutRoot) {
+                animationOptions.delay = 0;
+                animationOptions.type = false;
+              }
+              this.startAnimation(animationOptions);
+            } else {
+              if (!hasLayoutChanged) {
+                finishAnimation(this);
+              }
+              if (this.isLead() && this.options.onExitComplete) {
+                this.options.onExitComplete();
+              }
+            }
+            this.targetLayout = newLayout;
+          });
+        }
+      }
+      unmount() {
+        this.options.layoutId && this.willUpdate();
+        this.root.nodes.remove(this);
+        const stack = this.getStack();
+        stack && stack.remove(this);
+        this.parent && this.parent.children.delete(this);
+        this.instance = void 0;
+        cancelFrame(this.updateProjection);
+      }
+      // only on the root
+      blockUpdate() {
+        this.updateManuallyBlocked = true;
+      }
+      unblockUpdate() {
+        this.updateManuallyBlocked = false;
+      }
+      isUpdateBlocked() {
+        return this.updateManuallyBlocked || this.updateBlockedByResize;
+      }
+      isTreeAnimationBlocked() {
+        return this.isAnimationBlocked || this.parent && this.parent.isTreeAnimationBlocked() || false;
+      }
+      // Note: currently only running on root node
+      startUpdate() {
+        if (this.isUpdateBlocked())
+          return;
+        this.isUpdating = true;
+        this.nodes && this.nodes.forEach(resetSkewAndRotation);
+        this.animationId++;
+      }
+      getTransformTemplate() {
+        const { visualElement } = this.options;
+        return visualElement && visualElement.getProps().transformTemplate;
+      }
+      willUpdate(shouldNotifyListeners = true) {
+        this.root.hasTreeAnimated = true;
+        if (this.root.isUpdateBlocked()) {
+          this.options.onExitComplete && this.options.onExitComplete();
+          return;
+        }
+        if (window.MotionCancelOptimisedAnimation && !this.hasCheckedOptimisedAppear) {
+          cancelTreeOptimisedTransformAnimations(this);
+        }
+        !this.root.isUpdating && this.root.startUpdate();
+        if (this.isLayoutDirty)
+          return;
+        this.isLayoutDirty = true;
+        for (let i = 0; i < this.path.length; i++) {
+          const node = this.path[i];
+          node.shouldResetTransform = true;
+          node.updateScroll("snapshot");
+          if (node.options.layoutRoot) {
+            node.willUpdate(false);
+          }
+        }
+        const { layoutId, layout: layout2 } = this.options;
+        if (layoutId === void 0 && !layout2)
+          return;
+        const transformTemplate = this.getTransformTemplate();
+        this.prevTransformTemplateValue = transformTemplate ? transformTemplate(this.latestValues, "") : void 0;
+        this.updateSnapshot();
+        shouldNotifyListeners && this.notifyListeners("willUpdate");
+      }
+      update() {
+        this.updateScheduled = false;
+        const updateWasBlocked = this.isUpdateBlocked();
+        if (updateWasBlocked) {
+          this.unblockUpdate();
+          this.clearAllSnapshots();
+          this.nodes.forEach(clearMeasurements);
+          return;
+        }
+        if (!this.isUpdating) {
+          this.nodes.forEach(clearIsLayoutDirty);
+        }
+        this.isUpdating = false;
+        this.nodes.forEach(resetTransformStyle);
+        this.nodes.forEach(updateLayout);
+        this.nodes.forEach(notifyLayoutUpdate);
+        this.clearAllSnapshots();
+        const now2 = time.now();
+        frameData.delta = clamp(0, 1e3 / 60, now2 - frameData.timestamp);
+        frameData.timestamp = now2;
+        frameData.isProcessing = true;
+        frameSteps.update.process(frameData);
+        frameSteps.preRender.process(frameData);
+        frameSteps.render.process(frameData);
+        frameData.isProcessing = false;
+      }
+      didUpdate() {
+        if (!this.updateScheduled) {
+          this.updateScheduled = true;
+          microtask.read(this.scheduleUpdate);
+        }
+      }
+      clearAllSnapshots() {
+        this.nodes.forEach(clearSnapshot);
+        this.sharedNodes.forEach(removeLeadSnapshots);
+      }
+      scheduleUpdateProjection() {
+        if (!this.projectionUpdateScheduled) {
+          this.projectionUpdateScheduled = true;
+          frame.preRender(this.updateProjection, false, true);
+        }
+      }
+      scheduleCheckAfterUnmount() {
+        frame.postRender(() => {
+          if (this.isLayoutDirty) {
+            this.root.didUpdate();
+          } else {
+            this.root.checkUpdateFailed();
+          }
+        });
+      }
+      /**
+       * Update measurements
+       */
+      updateSnapshot() {
+        if (this.snapshot || !this.instance)
+          return;
+        this.snapshot = this.measure();
+      }
+      updateLayout() {
+        if (!this.instance)
+          return;
+        this.updateScroll();
+        if (!(this.options.alwaysMeasureLayout && this.isLead()) && !this.isLayoutDirty) {
+          return;
+        }
+        if (this.resumeFrom && !this.resumeFrom.instance) {
+          for (let i = 0; i < this.path.length; i++) {
+            const node = this.path[i];
+            node.updateScroll();
+          }
+        }
+        const prevLayout = this.layout;
+        this.layout = this.measure(false);
+        this.layoutCorrected = createBox();
+        this.isLayoutDirty = false;
+        this.projectionDelta = void 0;
+        this.notifyListeners("measure", this.layout.layoutBox);
+        const { visualElement } = this.options;
+        visualElement && visualElement.notify("LayoutMeasure", this.layout.layoutBox, prevLayout ? prevLayout.layoutBox : void 0);
+      }
+      updateScroll(phase = "measure") {
+        let needsMeasurement = Boolean(this.options.layoutScroll && this.instance);
+        if (this.scroll && this.scroll.animationId === this.root.animationId && this.scroll.phase === phase) {
+          needsMeasurement = false;
+        }
+        if (needsMeasurement) {
+          const isRoot = checkIsScrollRoot(this.instance);
+          this.scroll = {
+            animationId: this.root.animationId,
+            phase,
+            isRoot,
+            offset: measureScroll(this.instance),
+            wasRoot: this.scroll ? this.scroll.isRoot : isRoot
+          };
+        }
+      }
+      resetTransform() {
+        if (!resetTransform)
+          return;
+        const isResetRequested = this.isLayoutDirty || this.shouldResetTransform || this.options.alwaysMeasureLayout;
+        const hasProjection = this.projectionDelta && !isDeltaZero(this.projectionDelta);
+        const transformTemplate = this.getTransformTemplate();
+        const transformTemplateValue = transformTemplate ? transformTemplate(this.latestValues, "") : void 0;
+        const transformTemplateHasChanged = transformTemplateValue !== this.prevTransformTemplateValue;
+        if (isResetRequested && (hasProjection || hasTransform(this.latestValues) || transformTemplateHasChanged)) {
+          resetTransform(this.instance, transformTemplateValue);
+          this.shouldResetTransform = false;
+          this.scheduleRender();
+        }
+      }
+      measure(removeTransform = true) {
+        const pageBox = this.measurePageBox();
+        let layoutBox = this.removeElementScroll(pageBox);
+        if (removeTransform) {
+          layoutBox = this.removeTransform(layoutBox);
+        }
+        roundBox(layoutBox);
+        return {
+          animationId: this.root.animationId,
+          measuredBox: pageBox,
+          layoutBox,
+          latestValues: {},
+          source: this.id
+        };
+      }
+      measurePageBox() {
+        var _a;
+        const { visualElement } = this.options;
+        if (!visualElement)
+          return createBox();
+        const box = visualElement.measureViewportBox();
+        const wasInScrollRoot = ((_a = this.scroll) === null || _a === void 0 ? void 0 : _a.wasRoot) || this.path.some(checkNodeWasScrollRoot);
+        if (!wasInScrollRoot) {
+          const { scroll } = this.root;
+          if (scroll) {
+            translateAxis(box.x, scroll.offset.x);
+            translateAxis(box.y, scroll.offset.y);
+          }
+        }
+        return box;
+      }
+      removeElementScroll(box) {
+        var _a;
+        const boxWithoutScroll = createBox();
+        copyBoxInto(boxWithoutScroll, box);
+        if ((_a = this.scroll) === null || _a === void 0 ? void 0 : _a.wasRoot) {
+          return boxWithoutScroll;
+        }
+        for (let i = 0; i < this.path.length; i++) {
+          const node = this.path[i];
+          const { scroll, options } = node;
+          if (node !== this.root && scroll && options.layoutScroll) {
+            if (scroll.wasRoot) {
+              copyBoxInto(boxWithoutScroll, box);
+            }
+            translateAxis(boxWithoutScroll.x, scroll.offset.x);
+            translateAxis(boxWithoutScroll.y, scroll.offset.y);
+          }
+        }
+        return boxWithoutScroll;
+      }
+      applyTransform(box, transformOnly = false) {
+        const withTransforms = createBox();
+        copyBoxInto(withTransforms, box);
+        for (let i = 0; i < this.path.length; i++) {
+          const node = this.path[i];
+          if (!transformOnly && node.options.layoutScroll && node.scroll && node !== node.root) {
+            transformBox(withTransforms, {
+              x: -node.scroll.offset.x,
+              y: -node.scroll.offset.y
+            });
+          }
+          if (!hasTransform(node.latestValues))
+            continue;
+          transformBox(withTransforms, node.latestValues);
+        }
+        if (hasTransform(this.latestValues)) {
+          transformBox(withTransforms, this.latestValues);
+        }
+        return withTransforms;
+      }
+      removeTransform(box) {
+        const boxWithoutTransform = createBox();
+        copyBoxInto(boxWithoutTransform, box);
+        for (let i = 0; i < this.path.length; i++) {
+          const node = this.path[i];
+          if (!node.instance)
+            continue;
+          if (!hasTransform(node.latestValues))
+            continue;
+          hasScale(node.latestValues) && node.updateSnapshot();
+          const sourceBox = createBox();
+          const nodeBox = node.measurePageBox();
+          copyBoxInto(sourceBox, nodeBox);
+          removeBoxTransforms(boxWithoutTransform, node.latestValues, node.snapshot ? node.snapshot.layoutBox : void 0, sourceBox);
+        }
+        if (hasTransform(this.latestValues)) {
+          removeBoxTransforms(boxWithoutTransform, this.latestValues);
+        }
+        return boxWithoutTransform;
+      }
+      setTargetDelta(delta) {
+        this.targetDelta = delta;
+        this.root.scheduleUpdateProjection();
+        this.isProjectionDirty = true;
+      }
+      setOptions(options) {
+        this.options = {
+          ...this.options,
+          ...options,
+          crossfade: options.crossfade !== void 0 ? options.crossfade : true
+        };
+      }
+      clearMeasurements() {
+        this.scroll = void 0;
+        this.layout = void 0;
+        this.snapshot = void 0;
+        this.prevTransformTemplateValue = void 0;
+        this.targetDelta = void 0;
+        this.target = void 0;
+        this.isLayoutDirty = false;
+      }
+      forceRelativeParentToResolveTarget() {
+        if (!this.relativeParent)
+          return;
+        if (this.relativeParent.resolvedRelativeTargetAt !== frameData.timestamp) {
+          this.relativeParent.resolveTargetDelta(true);
+        }
+      }
+      resolveTargetDelta(forceRecalculation = false) {
+        var _a;
+        const lead = this.getLead();
+        this.isProjectionDirty || (this.isProjectionDirty = lead.isProjectionDirty);
+        this.isTransformDirty || (this.isTransformDirty = lead.isTransformDirty);
+        this.isSharedProjectionDirty || (this.isSharedProjectionDirty = lead.isSharedProjectionDirty);
+        const isShared = Boolean(this.resumingFrom) || this !== lead;
+        const canSkip = !(forceRecalculation || isShared && this.isSharedProjectionDirty || this.isProjectionDirty || ((_a = this.parent) === null || _a === void 0 ? void 0 : _a.isProjectionDirty) || this.attemptToResolveRelativeTarget || this.root.updateBlockedByResize);
+        if (canSkip)
+          return;
+        const { layout: layout2, layoutId } = this.options;
+        if (!this.layout || !(layout2 || layoutId))
+          return;
+        this.resolvedRelativeTargetAt = frameData.timestamp;
+        if (!this.targetDelta && !this.relativeTarget) {
+          const relativeParent = this.getClosestProjectingParent();
+          if (relativeParent && relativeParent.layout && this.animationProgress !== 1) {
+            this.relativeParent = relativeParent;
+            this.forceRelativeParentToResolveTarget();
+            this.relativeTarget = createBox();
+            this.relativeTargetOrigin = createBox();
+            calcRelativePosition(this.relativeTargetOrigin, this.layout.layoutBox, relativeParent.layout.layoutBox);
+            copyBoxInto(this.relativeTarget, this.relativeTargetOrigin);
+          } else {
+            this.relativeParent = this.relativeTarget = void 0;
+          }
+        }
+        if (!this.relativeTarget && !this.targetDelta)
+          return;
+        if (!this.target) {
+          this.target = createBox();
+          this.targetWithTransforms = createBox();
+        }
+        if (this.relativeTarget && this.relativeTargetOrigin && this.relativeParent && this.relativeParent.target) {
+          this.forceRelativeParentToResolveTarget();
+          calcRelativeBox(this.target, this.relativeTarget, this.relativeParent.target);
+        } else if (this.targetDelta) {
+          if (Boolean(this.resumingFrom)) {
+            this.target = this.applyTransform(this.layout.layoutBox);
+          } else {
+            copyBoxInto(this.target, this.layout.layoutBox);
+          }
+          applyBoxDelta(this.target, this.targetDelta);
+        } else {
+          copyBoxInto(this.target, this.layout.layoutBox);
+        }
+        if (this.attemptToResolveRelativeTarget) {
+          this.attemptToResolveRelativeTarget = false;
+          const relativeParent = this.getClosestProjectingParent();
+          if (relativeParent && Boolean(relativeParent.resumingFrom) === Boolean(this.resumingFrom) && !relativeParent.options.layoutScroll && relativeParent.target && this.animationProgress !== 1) {
+            this.relativeParent = relativeParent;
+            this.forceRelativeParentToResolveTarget();
+            this.relativeTarget = createBox();
+            this.relativeTargetOrigin = createBox();
+            calcRelativePosition(this.relativeTargetOrigin, this.target, relativeParent.target);
+            copyBoxInto(this.relativeTarget, this.relativeTargetOrigin);
+          } else {
+            this.relativeParent = this.relativeTarget = void 0;
+          }
+        }
+        if (isDebug) {
+          metrics.resolvedTargetDeltas++;
+        }
+      }
+      getClosestProjectingParent() {
+        if (!this.parent || hasScale(this.parent.latestValues) || has2DTranslate(this.parent.latestValues)) {
+          return void 0;
+        }
+        if (this.parent.isProjecting()) {
+          return this.parent;
+        } else {
+          return this.parent.getClosestProjectingParent();
+        }
+      }
+      isProjecting() {
+        return Boolean((this.relativeTarget || this.targetDelta || this.options.layoutRoot) && this.layout);
+      }
+      calcProjection() {
+        var _a;
+        const lead = this.getLead();
+        const isShared = Boolean(this.resumingFrom) || this !== lead;
+        let canSkip = true;
+        if (this.isProjectionDirty || ((_a = this.parent) === null || _a === void 0 ? void 0 : _a.isProjectionDirty)) {
+          canSkip = false;
+        }
+        if (isShared && (this.isSharedProjectionDirty || this.isTransformDirty)) {
+          canSkip = false;
+        }
+        if (this.resolvedRelativeTargetAt === frameData.timestamp) {
+          canSkip = false;
+        }
+        if (canSkip)
+          return;
+        const { layout: layout2, layoutId } = this.options;
+        this.isTreeAnimating = Boolean(this.parent && this.parent.isTreeAnimating || this.currentAnimation || this.pendingAnimation);
+        if (!this.isTreeAnimating) {
+          this.targetDelta = this.relativeTarget = void 0;
+        }
+        if (!this.layout || !(layout2 || layoutId))
+          return;
+        copyBoxInto(this.layoutCorrected, this.layout.layoutBox);
+        const prevTreeScaleX = this.treeScale.x;
+        const prevTreeScaleY = this.treeScale.y;
+        applyTreeDeltas(this.layoutCorrected, this.treeScale, this.path, isShared);
+        if (lead.layout && !lead.target && (this.treeScale.x !== 1 || this.treeScale.y !== 1)) {
+          lead.target = lead.layout.layoutBox;
+          lead.targetWithTransforms = createBox();
+        }
+        const { target } = lead;
+        if (!target) {
+          if (this.prevProjectionDelta) {
+            this.createProjectionDeltas();
+            this.scheduleRender();
+          }
+          return;
+        }
+        if (!this.projectionDelta || !this.prevProjectionDelta) {
+          this.createProjectionDeltas();
+        } else {
+          copyAxisDeltaInto(this.prevProjectionDelta.x, this.projectionDelta.x);
+          copyAxisDeltaInto(this.prevProjectionDelta.y, this.projectionDelta.y);
+        }
+        calcBoxDelta(this.projectionDelta, this.layoutCorrected, target, this.latestValues);
+        if (this.treeScale.x !== prevTreeScaleX || this.treeScale.y !== prevTreeScaleY || !axisDeltaEquals(this.projectionDelta.x, this.prevProjectionDelta.x) || !axisDeltaEquals(this.projectionDelta.y, this.prevProjectionDelta.y)) {
+          this.hasProjected = true;
+          this.scheduleRender();
+          this.notifyListeners("projectionUpdate", target);
+        }
+        if (isDebug) {
+          metrics.recalculatedProjection++;
+        }
+      }
+      hide() {
+        this.isVisible = false;
+      }
+      show() {
+        this.isVisible = true;
+      }
+      scheduleRender(notifyAll = true) {
+        var _a;
+        (_a = this.options.visualElement) === null || _a === void 0 ? void 0 : _a.scheduleRender();
+        if (notifyAll) {
+          const stack = this.getStack();
+          stack && stack.scheduleRender();
+        }
+        if (this.resumingFrom && !this.resumingFrom.instance) {
+          this.resumingFrom = void 0;
+        }
+      }
+      createProjectionDeltas() {
+        this.prevProjectionDelta = createDelta();
+        this.projectionDelta = createDelta();
+        this.projectionDeltaWithTransform = createDelta();
+      }
+      setAnimationOrigin(delta, hasOnlyRelativeTargetChanged = false) {
+        const snapshot = this.snapshot;
+        const snapshotLatestValues = snapshot ? snapshot.latestValues : {};
+        const mixedValues = { ...this.latestValues };
+        const targetDelta = createDelta();
+        if (!this.relativeParent || !this.relativeParent.options.layoutRoot) {
+          this.relativeTarget = this.relativeTargetOrigin = void 0;
+        }
+        this.attemptToResolveRelativeTarget = !hasOnlyRelativeTargetChanged;
+        const relativeLayout = createBox();
+        const snapshotSource = snapshot ? snapshot.source : void 0;
+        const layoutSource = this.layout ? this.layout.source : void 0;
+        const isSharedLayoutAnimation = snapshotSource !== layoutSource;
+        const stack = this.getStack();
+        const isOnlyMember = !stack || stack.members.length <= 1;
+        const shouldCrossfadeOpacity = Boolean(isSharedLayoutAnimation && !isOnlyMember && this.options.crossfade === true && !this.path.some(hasOpacityCrossfade));
+        this.animationProgress = 0;
+        let prevRelativeTarget;
+        this.mixTargetDelta = (latest) => {
+          const progress2 = latest / 1e3;
+          mixAxisDelta(targetDelta.x, delta.x, progress2);
+          mixAxisDelta(targetDelta.y, delta.y, progress2);
+          this.setTargetDelta(targetDelta);
+          if (this.relativeTarget && this.relativeTargetOrigin && this.layout && this.relativeParent && this.relativeParent.layout) {
+            calcRelativePosition(relativeLayout, this.layout.layoutBox, this.relativeParent.layout.layoutBox);
+            mixBox(this.relativeTarget, this.relativeTargetOrigin, relativeLayout, progress2);
+            if (prevRelativeTarget && boxEquals(this.relativeTarget, prevRelativeTarget)) {
+              this.isProjectionDirty = false;
+            }
+            if (!prevRelativeTarget)
+              prevRelativeTarget = createBox();
+            copyBoxInto(prevRelativeTarget, this.relativeTarget);
+          }
+          if (isSharedLayoutAnimation) {
+            this.animationValues = mixedValues;
+            mixValues(mixedValues, snapshotLatestValues, this.latestValues, progress2, shouldCrossfadeOpacity, isOnlyMember);
+          }
+          this.root.scheduleUpdateProjection();
+          this.scheduleRender();
+          this.animationProgress = progress2;
+        };
+        this.mixTargetDelta(this.options.layoutRoot ? 1e3 : 0);
+      }
+      startAnimation(options) {
+        this.notifyListeners("animationStart");
+        this.currentAnimation && this.currentAnimation.stop();
+        if (this.resumingFrom && this.resumingFrom.currentAnimation) {
+          this.resumingFrom.currentAnimation.stop();
+        }
+        if (this.pendingAnimation) {
+          cancelFrame(this.pendingAnimation);
+          this.pendingAnimation = void 0;
+        }
+        this.pendingAnimation = frame.update(() => {
+          globalProjectionState.hasAnimatedSinceResize = true;
+          this.currentAnimation = animateSingleValue(0, animationTarget, {
+            ...options,
+            onUpdate: (latest) => {
+              this.mixTargetDelta(latest);
+              options.onUpdate && options.onUpdate(latest);
+            },
+            onComplete: () => {
+              options.onComplete && options.onComplete();
+              this.completeAnimation();
+            }
+          });
+          if (this.resumingFrom) {
+            this.resumingFrom.currentAnimation = this.currentAnimation;
+          }
+          this.pendingAnimation = void 0;
+        });
+      }
+      completeAnimation() {
+        if (this.resumingFrom) {
+          this.resumingFrom.currentAnimation = void 0;
+          this.resumingFrom.preserveOpacity = void 0;
+        }
+        const stack = this.getStack();
+        stack && stack.exitAnimationComplete();
+        this.resumingFrom = this.currentAnimation = this.animationValues = void 0;
+        this.notifyListeners("animationComplete");
+      }
+      finishAnimation() {
+        if (this.currentAnimation) {
+          this.mixTargetDelta && this.mixTargetDelta(animationTarget);
+          this.currentAnimation.stop();
+        }
+        this.completeAnimation();
+      }
+      applyTransformsToTarget() {
+        const lead = this.getLead();
+        let { targetWithTransforms, target, layout: layout2, latestValues } = lead;
+        if (!targetWithTransforms || !target || !layout2)
+          return;
+        if (this !== lead && this.layout && layout2 && shouldAnimatePositionOnly(this.options.animationType, this.layout.layoutBox, layout2.layoutBox)) {
+          target = this.target || createBox();
+          const xLength = calcLength(this.layout.layoutBox.x);
+          target.x.min = lead.target.x.min;
+          target.x.max = target.x.min + xLength;
+          const yLength = calcLength(this.layout.layoutBox.y);
+          target.y.min = lead.target.y.min;
+          target.y.max = target.y.min + yLength;
+        }
+        copyBoxInto(targetWithTransforms, target);
+        transformBox(targetWithTransforms, latestValues);
+        calcBoxDelta(this.projectionDeltaWithTransform, this.layoutCorrected, targetWithTransforms, latestValues);
+      }
+      registerSharedNode(layoutId, node) {
+        if (!this.sharedNodes.has(layoutId)) {
+          this.sharedNodes.set(layoutId, new NodeStack());
+        }
+        const stack = this.sharedNodes.get(layoutId);
+        stack.add(node);
+        const config = node.options.initialPromotionConfig;
+        node.promote({
+          transition: config ? config.transition : void 0,
+          preserveFollowOpacity: config && config.shouldPreserveFollowOpacity ? config.shouldPreserveFollowOpacity(node) : void 0
+        });
+      }
+      isLead() {
+        const stack = this.getStack();
+        return stack ? stack.lead === this : true;
+      }
+      getLead() {
+        var _a;
+        const { layoutId } = this.options;
+        return layoutId ? ((_a = this.getStack()) === null || _a === void 0 ? void 0 : _a.lead) || this : this;
+      }
+      getPrevLead() {
+        var _a;
+        const { layoutId } = this.options;
+        return layoutId ? (_a = this.getStack()) === null || _a === void 0 ? void 0 : _a.prevLead : void 0;
+      }
+      getStack() {
+        const { layoutId } = this.options;
+        if (layoutId)
+          return this.root.sharedNodes.get(layoutId);
+      }
+      promote({ needsReset, transition, preserveFollowOpacity } = {}) {
+        const stack = this.getStack();
+        if (stack)
+          stack.promote(this, preserveFollowOpacity);
+        if (needsReset) {
+          this.projectionDelta = void 0;
+          this.needsReset = true;
+        }
+        if (transition)
+          this.setOptions({ transition });
+      }
+      relegate() {
+        const stack = this.getStack();
+        if (stack) {
+          return stack.relegate(this);
+        } else {
+          return false;
+        }
+      }
+      resetSkewAndRotation() {
+        const { visualElement } = this.options;
+        if (!visualElement)
+          return;
+        let hasDistortingTransform = false;
+        const { latestValues } = visualElement;
+        if (latestValues.z || latestValues.rotate || latestValues.rotateX || latestValues.rotateY || latestValues.rotateZ || latestValues.skewX || latestValues.skewY) {
+          hasDistortingTransform = true;
+        }
+        if (!hasDistortingTransform)
+          return;
+        const resetValues = {};
+        if (latestValues.z) {
+          resetDistortingTransform("z", visualElement, resetValues, this.animationValues);
+        }
+        for (let i = 0; i < transformAxes.length; i++) {
+          resetDistortingTransform(`rotate${transformAxes[i]}`, visualElement, resetValues, this.animationValues);
+          resetDistortingTransform(`skew${transformAxes[i]}`, visualElement, resetValues, this.animationValues);
+        }
+        visualElement.render();
+        for (const key in resetValues) {
+          visualElement.setStaticValue(key, resetValues[key]);
+          if (this.animationValues) {
+            this.animationValues[key] = resetValues[key];
+          }
+        }
+        visualElement.scheduleRender();
+      }
+      getProjectionStyles(styleProp) {
+        var _a, _b;
+        if (!this.instance || this.isSVG)
+          return void 0;
+        if (!this.isVisible) {
+          return hiddenVisibility;
+        }
+        const styles = {
+          visibility: ""
+        };
+        const transformTemplate = this.getTransformTemplate();
+        if (this.needsReset) {
+          this.needsReset = false;
+          styles.opacity = "";
+          styles.pointerEvents = resolveMotionValue(styleProp === null || styleProp === void 0 ? void 0 : styleProp.pointerEvents) || "";
+          styles.transform = transformTemplate ? transformTemplate(this.latestValues, "") : "none";
+          return styles;
+        }
+        const lead = this.getLead();
+        if (!this.projectionDelta || !this.layout || !lead.target) {
+          const emptyStyles = {};
+          if (this.options.layoutId) {
+            emptyStyles.opacity = this.latestValues.opacity !== void 0 ? this.latestValues.opacity : 1;
+            emptyStyles.pointerEvents = resolveMotionValue(styleProp === null || styleProp === void 0 ? void 0 : styleProp.pointerEvents) || "";
+          }
+          if (this.hasProjected && !hasTransform(this.latestValues)) {
+            emptyStyles.transform = transformTemplate ? transformTemplate({}, "") : "none";
+            this.hasProjected = false;
+          }
+          return emptyStyles;
+        }
+        const valuesToRender = lead.animationValues || lead.latestValues;
+        this.applyTransformsToTarget();
+        styles.transform = buildProjectionTransform(this.projectionDeltaWithTransform, this.treeScale, valuesToRender);
+        if (transformTemplate) {
+          styles.transform = transformTemplate(valuesToRender, styles.transform);
+        }
+        const { x, y } = this.projectionDelta;
+        styles.transformOrigin = `${x.origin * 100}% ${y.origin * 100}% 0`;
+        if (lead.animationValues) {
+          styles.opacity = lead === this ? (_b = (_a = valuesToRender.opacity) !== null && _a !== void 0 ? _a : this.latestValues.opacity) !== null && _b !== void 0 ? _b : 1 : this.preserveOpacity ? this.latestValues.opacity : valuesToRender.opacityExit;
+        } else {
+          styles.opacity = lead === this ? valuesToRender.opacity !== void 0 ? valuesToRender.opacity : "" : valuesToRender.opacityExit !== void 0 ? valuesToRender.opacityExit : 0;
+        }
+        for (const key in scaleCorrectors) {
+          if (valuesToRender[key] === void 0)
+            continue;
+          const { correct, applyTo } = scaleCorrectors[key];
+          const corrected = styles.transform === "none" ? valuesToRender[key] : correct(valuesToRender[key], lead);
+          if (applyTo) {
+            const num = applyTo.length;
+            for (let i = 0; i < num; i++) {
+              styles[applyTo[i]] = corrected;
+            }
+          } else {
+            styles[key] = corrected;
+          }
+        }
+        if (this.options.layoutId) {
+          styles.pointerEvents = lead === this ? resolveMotionValue(styleProp === null || styleProp === void 0 ? void 0 : styleProp.pointerEvents) || "" : "none";
+        }
+        return styles;
+      }
+      clearSnapshot() {
+        this.resumeFrom = this.snapshot = void 0;
+      }
+      // Only run on root
+      resetTree() {
+        this.root.nodes.forEach((node) => {
+          var _a;
+          return (_a = node.currentAnimation) === null || _a === void 0 ? void 0 : _a.stop();
+        });
+        this.root.nodes.forEach(clearMeasurements);
+        this.root.sharedNodes.clear();
+      }
+    };
+  }
+  function updateLayout(node) {
+    node.updateLayout();
+  }
+  function notifyLayoutUpdate(node) {
+    var _a;
+    const snapshot = ((_a = node.resumeFrom) === null || _a === void 0 ? void 0 : _a.snapshot) || node.snapshot;
+    if (node.isLead() && node.layout && snapshot && node.hasListeners("didUpdate")) {
+      const { layoutBox: layout2, measuredBox: measuredLayout } = node.layout;
+      const { animationType } = node.options;
+      const isShared = snapshot.source !== node.layout.source;
+      if (animationType === "size") {
+        eachAxis((axis) => {
+          const axisSnapshot = isShared ? snapshot.measuredBox[axis] : snapshot.layoutBox[axis];
+          const length = calcLength(axisSnapshot);
+          axisSnapshot.min = layout2[axis].min;
+          axisSnapshot.max = axisSnapshot.min + length;
+        });
+      } else if (shouldAnimatePositionOnly(animationType, snapshot.layoutBox, layout2)) {
+        eachAxis((axis) => {
+          const axisSnapshot = isShared ? snapshot.measuredBox[axis] : snapshot.layoutBox[axis];
+          const length = calcLength(layout2[axis]);
+          axisSnapshot.max = axisSnapshot.min + length;
+          if (node.relativeTarget && !node.currentAnimation) {
+            node.isProjectionDirty = true;
+            node.relativeTarget[axis].max = node.relativeTarget[axis].min + length;
+          }
+        });
+      }
+      const layoutDelta = createDelta();
+      calcBoxDelta(layoutDelta, layout2, snapshot.layoutBox);
+      const visualDelta = createDelta();
+      if (isShared) {
+        calcBoxDelta(visualDelta, node.applyTransform(measuredLayout, true), snapshot.measuredBox);
+      } else {
+        calcBoxDelta(visualDelta, layout2, snapshot.layoutBox);
+      }
+      const hasLayoutChanged = !isDeltaZero(layoutDelta);
+      let hasRelativeTargetChanged = false;
+      if (!node.resumeFrom) {
+        const relativeParent = node.getClosestProjectingParent();
+        if (relativeParent && !relativeParent.resumeFrom) {
+          const { snapshot: parentSnapshot, layout: parentLayout } = relativeParent;
+          if (parentSnapshot && parentLayout) {
+            const relativeSnapshot = createBox();
+            calcRelativePosition(relativeSnapshot, snapshot.layoutBox, parentSnapshot.layoutBox);
+            const relativeLayout = createBox();
+            calcRelativePosition(relativeLayout, layout2, parentLayout.layoutBox);
+            if (!boxEqualsRounded(relativeSnapshot, relativeLayout)) {
+              hasRelativeTargetChanged = true;
+            }
+            if (relativeParent.options.layoutRoot) {
+              node.relativeTarget = relativeLayout;
+              node.relativeTargetOrigin = relativeSnapshot;
+              node.relativeParent = relativeParent;
+            }
+          }
+        }
+      }
+      node.notifyListeners("didUpdate", {
+        layout: layout2,
+        snapshot,
+        delta: visualDelta,
+        layoutDelta,
+        hasLayoutChanged,
+        hasRelativeTargetChanged
+      });
+    } else if (node.isLead()) {
+      const { onExitComplete } = node.options;
+      onExitComplete && onExitComplete();
+    }
+    node.options.transition = void 0;
+  }
+  function propagateDirtyNodes(node) {
+    if (isDebug) {
+      metrics.totalNodes++;
+    }
+    if (!node.parent)
+      return;
+    if (!node.isProjecting()) {
+      node.isProjectionDirty = node.parent.isProjectionDirty;
+    }
+    node.isSharedProjectionDirty || (node.isSharedProjectionDirty = Boolean(node.isProjectionDirty || node.parent.isProjectionDirty || node.parent.isSharedProjectionDirty));
+    node.isTransformDirty || (node.isTransformDirty = node.parent.isTransformDirty);
+  }
+  function cleanDirtyNodes(node) {
+    node.isProjectionDirty = node.isSharedProjectionDirty = node.isTransformDirty = false;
+  }
+  function clearSnapshot(node) {
+    node.clearSnapshot();
+  }
+  function clearMeasurements(node) {
+    node.clearMeasurements();
+  }
+  function clearIsLayoutDirty(node) {
+    node.isLayoutDirty = false;
+  }
+  function resetTransformStyle(node) {
+    const { visualElement } = node.options;
+    if (visualElement && visualElement.getProps().onBeforeLayoutMeasure) {
+      visualElement.notify("BeforeLayoutMeasure");
+    }
+    node.resetTransform();
+  }
+  function finishAnimation(node) {
+    node.finishAnimation();
+    node.targetDelta = node.relativeTarget = node.target = void 0;
+    node.isProjectionDirty = true;
+  }
+  function resolveTargetDelta(node) {
+    node.resolveTargetDelta();
+  }
+  function calcProjection(node) {
+    node.calcProjection();
+  }
+  function resetSkewAndRotation(node) {
+    node.resetSkewAndRotation();
+  }
+  function removeLeadSnapshots(stack) {
+    stack.removeLeadSnapshot();
+  }
+  function mixAxisDelta(output, delta, p) {
+    output.translate = mixNumber(delta.translate, 0, p);
+    output.scale = mixNumber(delta.scale, 1, p);
+    output.origin = delta.origin;
+    output.originPoint = delta.originPoint;
+  }
+  function mixAxis(output, from, to, p) {
+    output.min = mixNumber(from.min, to.min, p);
+    output.max = mixNumber(from.max, to.max, p);
+  }
+  function mixBox(output, from, to, p) {
+    mixAxis(output.x, from.x, to.x, p);
+    mixAxis(output.y, from.y, to.y, p);
+  }
+  function hasOpacityCrossfade(node) {
+    return node.animationValues && node.animationValues.opacityExit !== void 0;
+  }
+  var defaultLayoutTransition = {
+    duration: 0.45,
+    ease: [0.4, 0, 0.1, 1]
+  };
+  var userAgentContains = (string) => typeof navigator !== "undefined" && navigator.userAgent && navigator.userAgent.toLowerCase().includes(string);
+  var roundPoint = userAgentContains("applewebkit/") && !userAgentContains("chrome/") ? Math.round : noop;
+  function roundAxis(axis) {
+    axis.min = roundPoint(axis.min);
+    axis.max = roundPoint(axis.max);
+  }
+  function roundBox(box) {
+    roundAxis(box.x);
+    roundAxis(box.y);
+  }
+  function shouldAnimatePositionOnly(animationType, snapshot, layout2) {
+    return animationType === "position" || animationType === "preserve-aspect" && !isNear(aspectRatio(snapshot), aspectRatio(layout2), 0.2);
+  }
+  function checkNodeWasScrollRoot(node) {
+    var _a;
+    return node !== node.root && ((_a = node.scroll) === null || _a === void 0 ? void 0 : _a.wasRoot);
+  }
+
+  // node_modules/framer-motion/dist/es/projection/node/DocumentProjectionNode.mjs
+  var DocumentProjectionNode = createProjectionNode2({
+    attachResizeListener: (ref, notify) => addDomEvent(ref, "resize", notify),
+    measureScroll: () => ({
+      x: document.documentElement.scrollLeft || document.body.scrollLeft,
+      y: document.documentElement.scrollTop || document.body.scrollTop
+    }),
+    checkIsScrollRoot: () => true
+  });
+
+  // node_modules/framer-motion/dist/es/projection/node/HTMLProjectionNode.mjs
+  var rootProjectionNode = {
+    current: void 0
+  };
+  var HTMLProjectionNode = createProjectionNode2({
+    measureScroll: (instance) => ({
+      x: instance.scrollLeft,
+      y: instance.scrollTop
+    }),
+    defaultParent: () => {
+      if (!rootProjectionNode.current) {
+        const documentNode = new DocumentProjectionNode({});
+        documentNode.mount(window);
+        documentNode.setOptions({ layoutScroll: true });
+        rootProjectionNode.current = documentNode;
+      }
+      return rootProjectionNode.current;
+    },
+    resetTransform: (instance, value) => {
+      instance.style.transform = value !== void 0 ? value : "none";
+    },
+    checkIsScrollRoot: (instance) => Boolean(window.getComputedStyle(instance).position === "fixed")
+  });
+
+  // node_modules/framer-motion/dist/es/motion/features/drag.mjs
+  var drag = {
+    pan: {
+      Feature: PanGesture
+    },
+    drag: {
+      Feature: DragGesture,
+      ProjectionNode: HTMLProjectionNode,
+      MeasureLayout
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/gestures/hover.mjs
+  function handleHoverEvent(node, event, lifecycle) {
+    const { props } = node;
+    if (node.animationState && props.whileHover) {
+      node.animationState.setActive("whileHover", lifecycle === "Start");
+    }
+    const eventName = "onHover" + lifecycle;
+    const callback = props[eventName];
+    if (callback) {
+      frame.postRender(() => callback(event, extractEventInfo(event)));
+    }
+  }
+  var HoverGesture = class extends Feature {
+    mount() {
+      const { current } = this.node;
+      if (!current)
+        return;
+      this.unmount = hover(current, (startEvent) => {
+        handleHoverEvent(this.node, startEvent, "Start");
+        return (endEvent) => handleHoverEvent(this.node, endEvent, "End");
+      });
+    }
+    unmount() {
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/gestures/focus.mjs
+  var FocusGesture = class extends Feature {
+    constructor() {
+      super(...arguments);
+      this.isActive = false;
+    }
+    onFocus() {
+      let isFocusVisible = false;
+      try {
+        isFocusVisible = this.node.current.matches(":focus-visible");
+      } catch (e) {
+        isFocusVisible = true;
+      }
+      if (!isFocusVisible || !this.node.animationState)
+        return;
+      this.node.animationState.setActive("whileFocus", true);
+      this.isActive = true;
+    }
+    onBlur() {
+      if (!this.isActive || !this.node.animationState)
+        return;
+      this.node.animationState.setActive("whileFocus", false);
+      this.isActive = false;
+    }
+    mount() {
+      this.unmount = pipe(addDomEvent(this.node.current, "focus", () => this.onFocus()), addDomEvent(this.node.current, "blur", () => this.onBlur()));
+    }
+    unmount() {
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/gestures/press.mjs
+  function handlePressEvent(node, event, lifecycle) {
+    const { props } = node;
+    if (node.animationState && props.whileTap) {
+      node.animationState.setActive("whileTap", lifecycle === "Start");
+    }
+    const eventName = "onTap" + (lifecycle === "End" ? "" : lifecycle);
+    const callback = props[eventName];
+    if (callback) {
+      frame.postRender(() => callback(event, extractEventInfo(event)));
+    }
+  }
+  var PressGesture = class extends Feature {
+    mount() {
+      const { current } = this.node;
+      if (!current)
+        return;
+      this.unmount = press(current, (startEvent) => {
+        handlePressEvent(this.node, startEvent, "Start");
+        return (endEvent, { success }) => handlePressEvent(this.node, endEvent, success ? "End" : "Cancel");
+      }, { useGlobalTarget: this.node.props.globalTapTarget });
+    }
+    unmount() {
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/motion/features/viewport/observers.mjs
+  var observerCallbacks = /* @__PURE__ */ new WeakMap();
+  var observers = /* @__PURE__ */ new WeakMap();
+  var fireObserverCallback = (entry) => {
+    const callback = observerCallbacks.get(entry.target);
+    callback && callback(entry);
+  };
+  var fireAllObserverCallbacks = (entries) => {
+    entries.forEach(fireObserverCallback);
+  };
+  function initIntersectionObserver({ root, ...options }) {
+    const lookupRoot = root || document;
+    if (!observers.has(lookupRoot)) {
+      observers.set(lookupRoot, {});
+    }
+    const rootObservers = observers.get(lookupRoot);
+    const key = JSON.stringify(options);
+    if (!rootObservers[key]) {
+      rootObservers[key] = new IntersectionObserver(fireAllObserverCallbacks, { root, ...options });
+    }
+    return rootObservers[key];
+  }
+  function observeIntersection(element, options, callback) {
+    const rootInteresectionObserver = initIntersectionObserver(options);
+    observerCallbacks.set(element, callback);
+    rootInteresectionObserver.observe(element);
+    return () => {
+      observerCallbacks.delete(element);
+      rootInteresectionObserver.unobserve(element);
+    };
+  }
+
+  // node_modules/framer-motion/dist/es/motion/features/viewport/index.mjs
+  var thresholdNames = {
+    some: 0,
+    all: 1
+  };
+  var InViewFeature = class extends Feature {
+    constructor() {
+      super(...arguments);
+      this.hasEnteredView = false;
+      this.isInView = false;
+    }
+    startObserver() {
+      this.unmount();
+      const { viewport = {} } = this.node.getProps();
+      const { root, margin: rootMargin, amount = "some", once } = viewport;
+      const options = {
+        root: root ? root.current : void 0,
+        rootMargin,
+        threshold: typeof amount === "number" ? amount : thresholdNames[amount]
+      };
+      const onIntersectionUpdate = (entry) => {
+        const { isIntersecting } = entry;
+        if (this.isInView === isIntersecting)
+          return;
+        this.isInView = isIntersecting;
+        if (once && !isIntersecting && this.hasEnteredView) {
+          return;
+        } else if (isIntersecting) {
+          this.hasEnteredView = true;
+        }
+        if (this.node.animationState) {
+          this.node.animationState.setActive("whileInView", isIntersecting);
+        }
+        const { onViewportEnter, onViewportLeave } = this.node.getProps();
+        const callback = isIntersecting ? onViewportEnter : onViewportLeave;
+        callback && callback(entry);
+      };
+      return observeIntersection(this.node.current, options, onIntersectionUpdate);
+    }
+    mount() {
+      this.startObserver();
+    }
+    update() {
+      if (typeof IntersectionObserver === "undefined")
+        return;
+      const { props, prevProps } = this.node;
+      const hasOptionsChanged = ["amount", "margin", "root"].some(hasViewportOptionChanged(props, prevProps));
+      if (hasOptionsChanged) {
+        this.startObserver();
+      }
+    }
+    unmount() {
+    }
+  };
+  function hasViewportOptionChanged({ viewport = {} }, { viewport: prevViewport = {} } = {}) {
+    return (name) => viewport[name] !== prevViewport[name];
+  }
+
+  // node_modules/framer-motion/dist/es/motion/features/gestures.mjs
+  var gestureAnimations = {
+    inView: {
+      Feature: InViewFeature
+    },
+    tap: {
+      Feature: PressGesture
+    },
+    focus: {
+      Feature: FocusGesture
+    },
+    hover: {
+      Feature: HoverGesture
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/motion/features/layout.mjs
+  var layout = {
+    layout: {
+      ProjectionNode: HTMLProjectionNode,
+      MeasureLayout
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/utils/reduced-motion/state.mjs
+  var prefersReducedMotion = { current: null };
+  var hasReducedMotionListener = { current: false };
+
+  // node_modules/framer-motion/dist/es/utils/reduced-motion/index.mjs
+  function initPrefersReducedMotion() {
+    hasReducedMotionListener.current = true;
+    if (!isBrowser)
+      return;
+    if (window.matchMedia) {
+      const motionMediaQuery = window.matchMedia("(prefers-reduced-motion)");
+      const setReducedMotionPreferences = () => prefersReducedMotion.current = motionMediaQuery.matches;
+      motionMediaQuery.addListener(setReducedMotionPreferences);
+      setReducedMotionPreferences();
+    } else {
+      prefersReducedMotion.current = false;
+    }
+  }
+
+  // node_modules/framer-motion/dist/es/render/dom/value-types/find.mjs
+  var valueTypes = [...dimensionValueTypes, color, complex];
+  var findValueType = (v) => valueTypes.find(testValueType(v));
+
+  // node_modules/framer-motion/dist/es/render/store.mjs
+  var visualElementStore = /* @__PURE__ */ new WeakMap();
+
+  // node_modules/framer-motion/dist/es/render/utils/motion-values.mjs
+  function updateMotionValuesFromProps(element, next, prev) {
+    for (const key in next) {
+      const nextValue = next[key];
+      const prevValue = prev[key];
+      if (isMotionValue(nextValue)) {
+        element.addValue(key, nextValue);
+        if (true) {
+          warnOnce(nextValue.version === "11.18.2", `Attempting to mix Motion versions ${nextValue.version} with 11.18.2 may not work as expected.`);
+        }
+      } else if (isMotionValue(prevValue)) {
+        element.addValue(key, motionValue(nextValue, { owner: element }));
+      } else if (prevValue !== nextValue) {
+        if (element.hasValue(key)) {
+          const existingValue = element.getValue(key);
+          if (existingValue.liveStyle === true) {
+            existingValue.jump(nextValue);
+          } else if (!existingValue.hasAnimated) {
+            existingValue.set(nextValue);
+          }
+        } else {
+          const latestValue = element.getStaticValue(key);
+          element.addValue(key, motionValue(latestValue !== void 0 ? latestValue : nextValue, { owner: element }));
+        }
+      }
+    }
+    for (const key in prev) {
+      if (next[key] === void 0)
+        element.removeValue(key);
+    }
+    return next;
+  }
+
+  // node_modules/framer-motion/dist/es/render/VisualElement.mjs
+  var propEventHandlers = [
+    "AnimationStart",
+    "AnimationComplete",
+    "Update",
+    "BeforeLayoutMeasure",
+    "LayoutMeasure",
+    "LayoutAnimationStart",
+    "LayoutAnimationComplete"
+  ];
+  var VisualElement = class {
+    /**
+     * This method takes React props and returns found MotionValues. For example, HTML
+     * MotionValues will be found within the style prop, whereas for Three.js within attribute arrays.
+     *
+     * This isn't an abstract method as it needs calling in the constructor, but it is
+     * intended to be one.
+     */
+    scrapeMotionValuesFromProps(_props, _prevProps, _visualElement) {
+      return {};
+    }
+    constructor({ parent, props, presenceContext, reducedMotionConfig, blockInitialAnimation, visualState }, options = {}) {
+      this.current = null;
+      this.children = /* @__PURE__ */ new Set();
+      this.isVariantNode = false;
+      this.isControllingVariants = false;
+      this.shouldReduceMotion = null;
+      this.values = /* @__PURE__ */ new Map();
+      this.KeyframeResolver = KeyframeResolver;
+      this.features = {};
+      this.valueSubscriptions = /* @__PURE__ */ new Map();
+      this.prevMotionValues = {};
+      this.events = {};
+      this.propEventSubscriptions = {};
+      this.notifyUpdate = () => this.notify("Update", this.latestValues);
+      this.render = () => {
+        if (!this.current)
+          return;
+        this.triggerBuild();
+        this.renderInstance(this.current, this.renderState, this.props.style, this.projection);
+      };
+      this.renderScheduledAt = 0;
+      this.scheduleRender = () => {
+        const now2 = time.now();
+        if (this.renderScheduledAt < now2) {
+          this.renderScheduledAt = now2;
+          frame.render(this.render, false, true);
+        }
+      };
+      const { latestValues, renderState, onUpdate } = visualState;
+      this.onUpdate = onUpdate;
+      this.latestValues = latestValues;
+      this.baseTarget = { ...latestValues };
+      this.initialValues = props.initial ? { ...latestValues } : {};
+      this.renderState = renderState;
+      this.parent = parent;
+      this.props = props;
+      this.presenceContext = presenceContext;
+      this.depth = parent ? parent.depth + 1 : 0;
+      this.reducedMotionConfig = reducedMotionConfig;
+      this.options = options;
+      this.blockInitialAnimation = Boolean(blockInitialAnimation);
+      this.isControllingVariants = isControllingVariants(props);
+      this.isVariantNode = isVariantNode(props);
+      if (this.isVariantNode) {
+        this.variantChildren = /* @__PURE__ */ new Set();
+      }
+      this.manuallyAnimateOnMount = Boolean(parent && parent.current);
+      const { willChange, ...initialMotionValues } = this.scrapeMotionValuesFromProps(props, {}, this);
+      for (const key in initialMotionValues) {
+        const value = initialMotionValues[key];
+        if (latestValues[key] !== void 0 && isMotionValue(value)) {
+          value.set(latestValues[key], false);
+        }
+      }
+    }
+    mount(instance) {
+      this.current = instance;
+      visualElementStore.set(instance, this);
+      if (this.projection && !this.projection.instance) {
+        this.projection.mount(instance);
+      }
+      if (this.parent && this.isVariantNode && !this.isControllingVariants) {
+        this.removeFromVariantTree = this.parent.addVariantChild(this);
+      }
+      this.values.forEach((value, key) => this.bindToMotionValue(key, value));
+      if (!hasReducedMotionListener.current) {
+        initPrefersReducedMotion();
+      }
+      this.shouldReduceMotion = this.reducedMotionConfig === "never" ? false : this.reducedMotionConfig === "always" ? true : prefersReducedMotion.current;
+      if (true) {
+        warnOnce(this.shouldReduceMotion !== true, "You have Reduced Motion enabled on your device. Animations may not appear as expected.");
+      }
+      if (this.parent)
+        this.parent.children.add(this);
+      this.update(this.props, this.presenceContext);
+    }
+    unmount() {
+      visualElementStore.delete(this.current);
+      this.projection && this.projection.unmount();
+      cancelFrame(this.notifyUpdate);
+      cancelFrame(this.render);
+      this.valueSubscriptions.forEach((remove) => remove());
+      this.valueSubscriptions.clear();
+      this.removeFromVariantTree && this.removeFromVariantTree();
+      this.parent && this.parent.children.delete(this);
+      for (const key in this.events) {
+        this.events[key].clear();
+      }
+      for (const key in this.features) {
+        const feature = this.features[key];
+        if (feature) {
+          feature.unmount();
+          feature.isMounted = false;
+        }
+      }
+      this.current = null;
+    }
+    bindToMotionValue(key, value) {
+      if (this.valueSubscriptions.has(key)) {
+        this.valueSubscriptions.get(key)();
+      }
+      const valueIsTransform = transformProps.has(key);
+      const removeOnChange = value.on("change", (latestValue) => {
+        this.latestValues[key] = latestValue;
+        this.props.onUpdate && frame.preRender(this.notifyUpdate);
+        if (valueIsTransform && this.projection) {
+          this.projection.isTransformDirty = true;
+        }
+      });
+      const removeOnRenderRequest = value.on("renderRequest", this.scheduleRender);
+      let removeSyncCheck;
+      if (window.MotionCheckAppearSync) {
+        removeSyncCheck = window.MotionCheckAppearSync(this, key, value);
+      }
+      this.valueSubscriptions.set(key, () => {
+        removeOnChange();
+        removeOnRenderRequest();
+        if (removeSyncCheck)
+          removeSyncCheck();
+        if (value.owner)
+          value.stop();
+      });
+    }
+    sortNodePosition(other) {
+      if (!this.current || !this.sortInstanceNodePosition || this.type !== other.type) {
+        return 0;
+      }
+      return this.sortInstanceNodePosition(this.current, other.current);
+    }
+    updateFeatures() {
+      let key = "animation";
+      for (key in featureDefinitions) {
+        const featureDefinition = featureDefinitions[key];
+        if (!featureDefinition)
+          continue;
+        const { isEnabled, Feature: FeatureConstructor } = featureDefinition;
+        if (!this.features[key] && FeatureConstructor && isEnabled(this.props)) {
+          this.features[key] = new FeatureConstructor(this);
+        }
+        if (this.features[key]) {
+          const feature = this.features[key];
+          if (feature.isMounted) {
+            feature.update();
+          } else {
+            feature.mount();
+            feature.isMounted = true;
+          }
+        }
+      }
+    }
+    triggerBuild() {
+      this.build(this.renderState, this.latestValues, this.props);
+    }
+    /**
+     * Measure the current viewport box with or without transforms.
+     * Only measures axis-aligned boxes, rotate and skew must be manually
+     * removed with a re-render to work.
+     */
+    measureViewportBox() {
+      return this.current ? this.measureInstanceViewportBox(this.current, this.props) : createBox();
+    }
+    getStaticValue(key) {
+      return this.latestValues[key];
+    }
+    setStaticValue(key, value) {
+      this.latestValues[key] = value;
+    }
+    /**
+     * Update the provided props. Ensure any newly-added motion values are
+     * added to our map, old ones removed, and listeners updated.
+     */
+    update(props, presenceContext) {
+      if (props.transformTemplate || this.props.transformTemplate) {
+        this.scheduleRender();
+      }
+      this.prevProps = this.props;
+      this.props = props;
+      this.prevPresenceContext = this.presenceContext;
+      this.presenceContext = presenceContext;
+      for (let i = 0; i < propEventHandlers.length; i++) {
+        const key = propEventHandlers[i];
+        if (this.propEventSubscriptions[key]) {
+          this.propEventSubscriptions[key]();
+          delete this.propEventSubscriptions[key];
+        }
+        const listenerName = "on" + key;
+        const listener = props[listenerName];
+        if (listener) {
+          this.propEventSubscriptions[key] = this.on(key, listener);
+        }
+      }
+      this.prevMotionValues = updateMotionValuesFromProps(this, this.scrapeMotionValuesFromProps(props, this.prevProps, this), this.prevMotionValues);
+      if (this.handleChildMotionValue) {
+        this.handleChildMotionValue();
+      }
+      this.onUpdate && this.onUpdate(this);
+    }
+    getProps() {
+      return this.props;
+    }
+    /**
+     * Returns the variant definition with a given name.
+     */
+    getVariant(name) {
+      return this.props.variants ? this.props.variants[name] : void 0;
+    }
+    /**
+     * Returns the defined default transition on this component.
+     */
+    getDefaultTransition() {
+      return this.props.transition;
+    }
+    getTransformPagePoint() {
+      return this.props.transformPagePoint;
+    }
+    getClosestVariantNode() {
+      return this.isVariantNode ? this : this.parent ? this.parent.getClosestVariantNode() : void 0;
+    }
+    /**
+     * Add a child visual element to our set of children.
+     */
+    addVariantChild(child) {
+      const closestVariantNode = this.getClosestVariantNode();
+      if (closestVariantNode) {
+        closestVariantNode.variantChildren && closestVariantNode.variantChildren.add(child);
+        return () => closestVariantNode.variantChildren.delete(child);
+      }
+    }
+    /**
+     * Add a motion value and bind it to this visual element.
+     */
+    addValue(key, value) {
+      const existingValue = this.values.get(key);
+      if (value !== existingValue) {
+        if (existingValue)
+          this.removeValue(key);
+        this.bindToMotionValue(key, value);
+        this.values.set(key, value);
+        this.latestValues[key] = value.get();
+      }
+    }
+    /**
+     * Remove a motion value and unbind any active subscriptions.
+     */
+    removeValue(key) {
+      this.values.delete(key);
+      const unsubscribe = this.valueSubscriptions.get(key);
+      if (unsubscribe) {
+        unsubscribe();
+        this.valueSubscriptions.delete(key);
+      }
+      delete this.latestValues[key];
+      this.removeValueFromRenderState(key, this.renderState);
+    }
+    /**
+     * Check whether we have a motion value for this key
+     */
+    hasValue(key) {
+      return this.values.has(key);
+    }
+    getValue(key, defaultValue) {
+      if (this.props.values && this.props.values[key]) {
+        return this.props.values[key];
+      }
+      let value = this.values.get(key);
+      if (value === void 0 && defaultValue !== void 0) {
+        value = motionValue(defaultValue === null ? void 0 : defaultValue, { owner: this });
+        this.addValue(key, value);
+      }
+      return value;
+    }
+    /**
+     * If we're trying to animate to a previously unencountered value,
+     * we need to check for it in our state and as a last resort read it
+     * directly from the instance (which might have performance implications).
+     */
+    readValue(key, target) {
+      var _a;
+      let value = this.latestValues[key] !== void 0 || !this.current ? this.latestValues[key] : (_a = this.getBaseTargetFromProps(this.props, key)) !== null && _a !== void 0 ? _a : this.readValueFromInstance(this.current, key, this.options);
+      if (value !== void 0 && value !== null) {
+        if (typeof value === "string" && (isNumericalString(value) || isZeroValueString(value))) {
+          value = parseFloat(value);
+        } else if (!findValueType(value) && complex.test(target)) {
+          value = getAnimatableNone2(key, target);
+        }
+        this.setBaseTarget(key, isMotionValue(value) ? value.get() : value);
+      }
+      return isMotionValue(value) ? value.get() : value;
+    }
+    /**
+     * Set the base target to later animate back to. This is currently
+     * only hydrated on creation and when we first read a value.
+     */
+    setBaseTarget(key, value) {
+      this.baseTarget[key] = value;
+    }
+    /**
+     * Find the base target for a value thats been removed from all animation
+     * props.
+     */
+    getBaseTarget(key) {
+      var _a;
+      const { initial } = this.props;
+      let valueFromInitial;
+      if (typeof initial === "string" || typeof initial === "object") {
+        const variant = resolveVariantFromProps(this.props, initial, (_a = this.presenceContext) === null || _a === void 0 ? void 0 : _a.custom);
+        if (variant) {
+          valueFromInitial = variant[key];
+        }
+      }
+      if (initial && valueFromInitial !== void 0) {
+        return valueFromInitial;
+      }
+      const target = this.getBaseTargetFromProps(this.props, key);
+      if (target !== void 0 && !isMotionValue(target))
+        return target;
+      return this.initialValues[key] !== void 0 && valueFromInitial === void 0 ? void 0 : this.baseTarget[key];
+    }
+    on(eventName, callback) {
+      if (!this.events[eventName]) {
+        this.events[eventName] = new SubscriptionManager();
+      }
+      return this.events[eventName].add(callback);
+    }
+    notify(eventName, ...args) {
+      if (this.events[eventName]) {
+        this.events[eventName].notify(...args);
+      }
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/render/dom/DOMVisualElement.mjs
+  var DOMVisualElement = class extends VisualElement {
+    constructor() {
+      super(...arguments);
+      this.KeyframeResolver = DOMKeyframesResolver;
+    }
+    sortInstanceNodePosition(a, b) {
+      return a.compareDocumentPosition(b) & 2 ? 1 : -1;
+    }
+    getBaseTargetFromProps(props, key) {
+      return props.style ? props.style[key] : void 0;
+    }
+    removeValueFromRenderState(key, { vars, style }) {
+      delete vars[key];
+      delete style[key];
+    }
+    handleChildMotionValue() {
+      if (this.childSubscription) {
+        this.childSubscription();
+        delete this.childSubscription;
+      }
+      const { children } = this.props;
+      if (isMotionValue(children)) {
+        this.childSubscription = children.on("change", (latest) => {
+          if (this.current) {
+            this.current.textContent = `${latest}`;
+          }
+        });
+      }
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/render/html/HTMLVisualElement.mjs
+  function getComputedStyle(element) {
+    return window.getComputedStyle(element);
+  }
+  var HTMLVisualElement = class extends DOMVisualElement {
+    constructor() {
+      super(...arguments);
+      this.type = "html";
+      this.renderInstance = renderHTML;
+    }
+    readValueFromInstance(instance, key) {
+      if (transformProps.has(key)) {
+        const defaultType = getDefaultValueType(key);
+        return defaultType ? defaultType.default || 0 : 0;
+      } else {
+        const computedStyle = getComputedStyle(instance);
+        const value = (isCSSVariableName(key) ? computedStyle.getPropertyValue(key) : computedStyle[key]) || 0;
+        return typeof value === "string" ? value.trim() : value;
+      }
+    }
+    measureInstanceViewportBox(instance, { transformPagePoint }) {
+      return measureViewportBox(instance, transformPagePoint);
+    }
+    build(renderState, latestValues, props) {
+      buildHTMLStyles(renderState, latestValues, props.transformTemplate);
+    }
+    scrapeMotionValuesFromProps(props, prevProps, visualElement) {
+      return scrapeMotionValuesFromProps(props, prevProps, visualElement);
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/render/svg/SVGVisualElement.mjs
+  var SVGVisualElement = class extends DOMVisualElement {
+    constructor() {
+      super(...arguments);
+      this.type = "svg";
+      this.isSVGTag = false;
+      this.measureInstanceViewportBox = createBox;
+    }
+    getBaseTargetFromProps(props, key) {
+      return props[key];
+    }
+    readValueFromInstance(instance, key) {
+      if (transformProps.has(key)) {
+        const defaultType = getDefaultValueType(key);
+        return defaultType ? defaultType.default || 0 : 0;
+      }
+      key = !camelCaseAttributes.has(key) ? camelToDash(key) : key;
+      return instance.getAttribute(key);
+    }
+    scrapeMotionValuesFromProps(props, prevProps, visualElement) {
+      return scrapeMotionValuesFromProps2(props, prevProps, visualElement);
+    }
+    build(renderState, latestValues, props) {
+      buildSVGAttrs(renderState, latestValues, this.isSVGTag, props.transformTemplate);
+    }
+    renderInstance(instance, renderState, styleProp, projection) {
+      renderSVG(instance, renderState, styleProp, projection);
+    }
+    mount(instance) {
+      this.isSVGTag = isSVGTag(instance.tagName);
+      super.mount(instance);
+    }
+  };
+
+  // node_modules/framer-motion/dist/es/render/dom/create-visual-element.mjs
+  var createDomVisualElement = (Component2, options) => {
+    return isSVGComponent(Component2) ? new SVGVisualElement(options) : new HTMLVisualElement(options, {
+      allowProjection: Component2 !== Fragment
+    });
+  };
+
+  // node_modules/framer-motion/dist/es/render/components/motion/create.mjs
+  var createMotionComponent = /* @__PURE__ */ createMotionComponentFactory({
+    ...animations,
+    ...gestureAnimations,
+    ...drag,
+    ...layout
+  }, createDomVisualElement);
+
+  // node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs
+  var motion = /* @__PURE__ */ createDOMMotionComponentProxy(createMotionComponent);
+
+  // node_modules/clsx/dist/clsx.mjs
+  function r(e) {
+    var t, f, n = "";
+    if ("string" == typeof e || "number" == typeof e) n += e;
+    else if ("object" == typeof e) if (Array.isArray(e)) {
+      var o = e.length;
+      for (t = 0; t < o; t++) e[t] && (f = r(e[t])) && (n && (n += " "), n += f);
+    } else for (f in e) e[f] && (n && (n += " "), n += f);
+    return n;
+  }
+  function clsx() {
+    for (var e, t, f = 0, n = "", o = arguments.length; f < o; f++) (e = arguments[f]) && (t = r(e)) && (n && (n += " "), n += t);
+    return n;
+  }
+
+  // node_modules/tailwind-merge/dist/bundle-mjs.mjs
+  var CLASS_PART_SEPARATOR = "-";
+  var createClassGroupUtils = (config) => {
+    const classMap = createClassMap(config);
+    const {
+      conflictingClassGroups,
+      conflictingClassGroupModifiers
+    } = config;
+    const getClassGroupId = (className) => {
+      const classParts = className.split(CLASS_PART_SEPARATOR);
+      if (classParts[0] === "" && classParts.length !== 1) {
+        classParts.shift();
+      }
+      return getGroupRecursive(classParts, classMap) || getGroupIdForArbitraryProperty(className);
+    };
+    const getConflictingClassGroupIds = (classGroupId, hasPostfixModifier) => {
+      const conflicts = conflictingClassGroups[classGroupId] || [];
+      if (hasPostfixModifier && conflictingClassGroupModifiers[classGroupId]) {
+        return [...conflicts, ...conflictingClassGroupModifiers[classGroupId]];
+      }
+      return conflicts;
+    };
+    return {
+      getClassGroupId,
+      getConflictingClassGroupIds
+    };
+  };
+  var getGroupRecursive = (classParts, classPartObject) => {
+    if (classParts.length === 0) {
+      return classPartObject.classGroupId;
+    }
+    const currentClassPart = classParts[0];
+    const nextClassPartObject = classPartObject.nextPart.get(currentClassPart);
+    const classGroupFromNextClassPart = nextClassPartObject ? getGroupRecursive(classParts.slice(1), nextClassPartObject) : void 0;
+    if (classGroupFromNextClassPart) {
+      return classGroupFromNextClassPart;
+    }
+    if (classPartObject.validators.length === 0) {
+      return void 0;
+    }
+    const classRest = classParts.join(CLASS_PART_SEPARATOR);
+    return classPartObject.validators.find(({
+      validator
+    }) => validator(classRest))?.classGroupId;
+  };
+  var arbitraryPropertyRegex = /^\[(.+)\]$/;
+  var getGroupIdForArbitraryProperty = (className) => {
+    if (arbitraryPropertyRegex.test(className)) {
+      const arbitraryPropertyClassName = arbitraryPropertyRegex.exec(className)[1];
+      const property = arbitraryPropertyClassName?.substring(0, arbitraryPropertyClassName.indexOf(":"));
+      if (property) {
+        return "arbitrary.." + property;
+      }
+    }
+  };
+  var createClassMap = (config) => {
+    const {
+      theme: theme2,
+      prefix
+    } = config;
+    const classMap = {
+      nextPart: /* @__PURE__ */ new Map(),
+      validators: []
+    };
+    const prefixedClassGroupEntries = getPrefixedClassGroupEntries(Object.entries(config.classGroups), prefix);
+    prefixedClassGroupEntries.forEach(([classGroupId, classGroup]) => {
+      processClassesRecursively(classGroup, classMap, classGroupId, theme2);
+    });
+    return classMap;
+  };
+  var processClassesRecursively = (classGroup, classPartObject, classGroupId, theme2) => {
+    classGroup.forEach((classDefinition) => {
+      if (typeof classDefinition === "string") {
+        const classPartObjectToEdit = classDefinition === "" ? classPartObject : getPart(classPartObject, classDefinition);
+        classPartObjectToEdit.classGroupId = classGroupId;
+        return;
+      }
+      if (typeof classDefinition === "function") {
+        if (isThemeGetter(classDefinition)) {
+          processClassesRecursively(classDefinition(theme2), classPartObject, classGroupId, theme2);
+          return;
+        }
+        classPartObject.validators.push({
+          validator: classDefinition,
+          classGroupId
+        });
+        return;
+      }
+      Object.entries(classDefinition).forEach(([key, classGroup2]) => {
+        processClassesRecursively(classGroup2, getPart(classPartObject, key), classGroupId, theme2);
+      });
+    });
+  };
+  var getPart = (classPartObject, path) => {
+    let currentClassPartObject = classPartObject;
+    path.split(CLASS_PART_SEPARATOR).forEach((pathPart) => {
+      if (!currentClassPartObject.nextPart.has(pathPart)) {
+        currentClassPartObject.nextPart.set(pathPart, {
+          nextPart: /* @__PURE__ */ new Map(),
+          validators: []
+        });
+      }
+      currentClassPartObject = currentClassPartObject.nextPart.get(pathPart);
+    });
+    return currentClassPartObject;
+  };
+  var isThemeGetter = (func) => func.isThemeGetter;
+  var getPrefixedClassGroupEntries = (classGroupEntries, prefix) => {
+    if (!prefix) {
+      return classGroupEntries;
+    }
+    return classGroupEntries.map(([classGroupId, classGroup]) => {
+      const prefixedClassGroup = classGroup.map((classDefinition) => {
+        if (typeof classDefinition === "string") {
+          return prefix + classDefinition;
+        }
+        if (typeof classDefinition === "object") {
+          return Object.fromEntries(Object.entries(classDefinition).map(([key, value]) => [prefix + key, value]));
+        }
+        return classDefinition;
+      });
+      return [classGroupId, prefixedClassGroup];
+    });
+  };
+  var createLruCache = (maxCacheSize) => {
+    if (maxCacheSize < 1) {
+      return {
+        get: () => void 0,
+        set: () => {
+        }
+      };
+    }
+    let cacheSize = 0;
+    let cache = /* @__PURE__ */ new Map();
+    let previousCache = /* @__PURE__ */ new Map();
+    const update = (key, value) => {
+      cache.set(key, value);
+      cacheSize++;
+      if (cacheSize > maxCacheSize) {
+        cacheSize = 0;
+        previousCache = cache;
+        cache = /* @__PURE__ */ new Map();
+      }
+    };
+    return {
+      get(key) {
+        let value = cache.get(key);
+        if (value !== void 0) {
+          return value;
+        }
+        if ((value = previousCache.get(key)) !== void 0) {
+          update(key, value);
+          return value;
+        }
+      },
+      set(key, value) {
+        if (cache.has(key)) {
+          cache.set(key, value);
+        } else {
+          update(key, value);
+        }
+      }
+    };
+  };
+  var IMPORTANT_MODIFIER = "!";
+  var createParseClassName = (config) => {
+    const {
+      separator,
+      experimentalParseClassName
+    } = config;
+    const isSeparatorSingleCharacter = separator.length === 1;
+    const firstSeparatorCharacter = separator[0];
+    const separatorLength = separator.length;
+    const parseClassName = (className) => {
+      const modifiers = [];
+      let bracketDepth = 0;
+      let modifierStart = 0;
+      let postfixModifierPosition;
+      for (let index = 0; index < className.length; index++) {
+        let currentCharacter = className[index];
+        if (bracketDepth === 0) {
+          if (currentCharacter === firstSeparatorCharacter && (isSeparatorSingleCharacter || className.slice(index, index + separatorLength) === separator)) {
+            modifiers.push(className.slice(modifierStart, index));
+            modifierStart = index + separatorLength;
+            continue;
+          }
+          if (currentCharacter === "/") {
+            postfixModifierPosition = index;
+            continue;
+          }
+        }
+        if (currentCharacter === "[") {
+          bracketDepth++;
+        } else if (currentCharacter === "]") {
+          bracketDepth--;
+        }
+      }
+      const baseClassNameWithImportantModifier = modifiers.length === 0 ? className : className.substring(modifierStart);
+      const hasImportantModifier = baseClassNameWithImportantModifier.startsWith(IMPORTANT_MODIFIER);
+      const baseClassName = hasImportantModifier ? baseClassNameWithImportantModifier.substring(1) : baseClassNameWithImportantModifier;
+      const maybePostfixModifierPosition = postfixModifierPosition && postfixModifierPosition > modifierStart ? postfixModifierPosition - modifierStart : void 0;
+      return {
+        modifiers,
+        hasImportantModifier,
+        baseClassName,
+        maybePostfixModifierPosition
+      };
+    };
+    if (experimentalParseClassName) {
+      return (className) => experimentalParseClassName({
+        className,
+        parseClassName
+      });
+    }
+    return parseClassName;
+  };
+  var sortModifiers = (modifiers) => {
+    if (modifiers.length <= 1) {
+      return modifiers;
+    }
+    const sortedModifiers = [];
+    let unsortedModifiers = [];
+    modifiers.forEach((modifier) => {
+      const isArbitraryVariant = modifier[0] === "[";
+      if (isArbitraryVariant) {
+        sortedModifiers.push(...unsortedModifiers.sort(), modifier);
+        unsortedModifiers = [];
+      } else {
+        unsortedModifiers.push(modifier);
+      }
+    });
+    sortedModifiers.push(...unsortedModifiers.sort());
+    return sortedModifiers;
+  };
+  var createConfigUtils = (config) => ({
+    cache: createLruCache(config.cacheSize),
+    parseClassName: createParseClassName(config),
+    ...createClassGroupUtils(config)
+  });
+  var SPLIT_CLASSES_REGEX = /\s+/;
+  var mergeClassList = (classList, configUtils) => {
+    const {
+      parseClassName,
+      getClassGroupId,
+      getConflictingClassGroupIds
+    } = configUtils;
+    const classGroupsInConflict = [];
+    const classNames = classList.trim().split(SPLIT_CLASSES_REGEX);
+    let result = "";
+    for (let index = classNames.length - 1; index >= 0; index -= 1) {
+      const originalClassName = classNames[index];
+      const {
+        modifiers,
+        hasImportantModifier,
+        baseClassName,
+        maybePostfixModifierPosition
+      } = parseClassName(originalClassName);
+      let hasPostfixModifier = Boolean(maybePostfixModifierPosition);
+      let classGroupId = getClassGroupId(hasPostfixModifier ? baseClassName.substring(0, maybePostfixModifierPosition) : baseClassName);
+      if (!classGroupId) {
+        if (!hasPostfixModifier) {
+          result = originalClassName + (result.length > 0 ? " " + result : result);
+          continue;
+        }
+        classGroupId = getClassGroupId(baseClassName);
+        if (!classGroupId) {
+          result = originalClassName + (result.length > 0 ? " " + result : result);
+          continue;
+        }
+        hasPostfixModifier = false;
+      }
+      const variantModifier = sortModifiers(modifiers).join(":");
+      const modifierId = hasImportantModifier ? variantModifier + IMPORTANT_MODIFIER : variantModifier;
+      const classId = modifierId + classGroupId;
+      if (classGroupsInConflict.includes(classId)) {
+        continue;
+      }
+      classGroupsInConflict.push(classId);
+      const conflictGroups = getConflictingClassGroupIds(classGroupId, hasPostfixModifier);
+      for (let i = 0; i < conflictGroups.length; ++i) {
+        const group = conflictGroups[i];
+        classGroupsInConflict.push(modifierId + group);
+      }
+      result = originalClassName + (result.length > 0 ? " " + result : result);
+    }
+    return result;
+  };
+  function twJoin() {
+    let index = 0;
+    let argument;
+    let resolvedValue;
+    let string = "";
+    while (index < arguments.length) {
+      if (argument = arguments[index++]) {
+        if (resolvedValue = toValue(argument)) {
+          string && (string += " ");
+          string += resolvedValue;
+        }
+      }
+    }
+    return string;
+  }
+  var toValue = (mix2) => {
+    if (typeof mix2 === "string") {
+      return mix2;
+    }
+    let resolvedValue;
+    let string = "";
+    for (let k = 0; k < mix2.length; k++) {
+      if (mix2[k]) {
+        if (resolvedValue = toValue(mix2[k])) {
+          string && (string += " ");
+          string += resolvedValue;
+        }
+      }
+    }
+    return string;
+  };
+  function createTailwindMerge(createConfigFirst, ...createConfigRest) {
+    let configUtils;
+    let cacheGet;
+    let cacheSet;
+    let functionToCall = initTailwindMerge;
+    function initTailwindMerge(classList) {
+      const config = createConfigRest.reduce((previousConfig, createConfigCurrent) => createConfigCurrent(previousConfig), createConfigFirst());
+      configUtils = createConfigUtils(config);
+      cacheGet = configUtils.cache.get;
+      cacheSet = configUtils.cache.set;
+      functionToCall = tailwindMerge;
+      return tailwindMerge(classList);
+    }
+    function tailwindMerge(classList) {
+      const cachedResult = cacheGet(classList);
+      if (cachedResult) {
+        return cachedResult;
+      }
+      const result = mergeClassList(classList, configUtils);
+      cacheSet(classList, result);
+      return result;
+    }
+    return function callTailwindMerge() {
+      return functionToCall(twJoin.apply(null, arguments));
+    };
+  }
+  var fromTheme = (key) => {
+    const themeGetter = (theme2) => theme2[key] || [];
+    themeGetter.isThemeGetter = true;
+    return themeGetter;
+  };
+  var arbitraryValueRegex = /^\[(?:([a-z-]+):)?(.+)\]$/i;
+  var fractionRegex = /^\d+\/\d+$/;
+  var stringLengths = /* @__PURE__ */ new Set(["px", "full", "screen"]);
+  var tshirtUnitRegex = /^(\d+(\.\d+)?)?(xs|sm|md|lg|xl)$/;
+  var lengthUnitRegex = /\d+(%|px|r?em|[sdl]?v([hwib]|min|max)|pt|pc|in|cm|mm|cap|ch|ex|r?lh|cq(w|h|i|b|min|max))|\b(calc|min|max|clamp)\(.+\)|^0$/;
+  var colorFunctionRegex = /^(rgba?|hsla?|hwb|(ok)?(lab|lch))\(.+\)$/;
+  var shadowRegex = /^(inset_)?-?((\d+)?\.?(\d+)[a-z]+|0)_-?((\d+)?\.?(\d+)[a-z]+|0)/;
+  var imageRegex = /^(url|image|image-set|cross-fade|element|(repeating-)?(linear|radial|conic)-gradient)\(.+\)$/;
+  var isLength = (value) => isNumber(value) || stringLengths.has(value) || fractionRegex.test(value);
+  var isArbitraryLength = (value) => getIsArbitraryValue(value, "length", isLengthOnly);
+  var isNumber = (value) => Boolean(value) && !Number.isNaN(Number(value));
+  var isArbitraryNumber = (value) => getIsArbitraryValue(value, "number", isNumber);
+  var isInteger = (value) => Boolean(value) && Number.isInteger(Number(value));
+  var isPercent = (value) => value.endsWith("%") && isNumber(value.slice(0, -1));
+  var isArbitraryValue = (value) => arbitraryValueRegex.test(value);
+  var isTshirtSize = (value) => tshirtUnitRegex.test(value);
+  var sizeLabels = /* @__PURE__ */ new Set(["length", "size", "percentage"]);
+  var isArbitrarySize = (value) => getIsArbitraryValue(value, sizeLabels, isNever);
+  var isArbitraryPosition = (value) => getIsArbitraryValue(value, "position", isNever);
+  var imageLabels = /* @__PURE__ */ new Set(["image", "url"]);
+  var isArbitraryImage = (value) => getIsArbitraryValue(value, imageLabels, isImage);
+  var isArbitraryShadow = (value) => getIsArbitraryValue(value, "", isShadow);
+  var isAny = () => true;
+  var getIsArbitraryValue = (value, label, testValue) => {
+    const result = arbitraryValueRegex.exec(value);
+    if (result) {
+      if (result[1]) {
+        return typeof label === "string" ? result[1] === label : label.has(result[1]);
+      }
+      return testValue(result[2]);
+    }
+    return false;
+  };
+  var isLengthOnly = (value) => (
+    // `colorFunctionRegex` check is necessary because color functions can have percentages in them which which would be incorrectly classified as lengths.
+    // For example, `hsl(0 0% 0%)` would be classified as a length without this check.
+    // I could also use lookbehind assertion in `lengthUnitRegex` but that isn't supported widely enough.
+    lengthUnitRegex.test(value) && !colorFunctionRegex.test(value)
+  );
+  var isNever = () => false;
+  var isShadow = (value) => shadowRegex.test(value);
+  var isImage = (value) => imageRegex.test(value);
+  var getDefaultConfig = () => {
+    const colors2 = fromTheme("colors");
+    const spacing2 = fromTheme("spacing");
+    const blur = fromTheme("blur");
+    const brightness = fromTheme("brightness");
+    const borderColor = fromTheme("borderColor");
+    const borderRadius2 = fromTheme("borderRadius");
+    const borderSpacing = fromTheme("borderSpacing");
+    const borderWidth = fromTheme("borderWidth");
+    const contrast = fromTheme("contrast");
+    const grayscale = fromTheme("grayscale");
+    const hueRotate = fromTheme("hueRotate");
+    const invert = fromTheme("invert");
+    const gap = fromTheme("gap");
+    const gradientColorStops = fromTheme("gradientColorStops");
+    const gradientColorStopPositions = fromTheme("gradientColorStopPositions");
+    const inset = fromTheme("inset");
+    const margin = fromTheme("margin");
+    const opacity = fromTheme("opacity");
+    const padding = fromTheme("padding");
+    const saturate = fromTheme("saturate");
+    const scale2 = fromTheme("scale");
+    const sepia = fromTheme("sepia");
+    const skew = fromTheme("skew");
+    const space = fromTheme("space");
+    const translate = fromTheme("translate");
+    const getOverscroll = () => ["auto", "contain", "none"];
+    const getOverflow = () => ["auto", "hidden", "clip", "visible", "scroll"];
+    const getSpacingWithAutoAndArbitrary = () => ["auto", isArbitraryValue, spacing2];
+    const getSpacingWithArbitrary = () => [isArbitraryValue, spacing2];
+    const getLengthWithEmptyAndArbitrary = () => ["", isLength, isArbitraryLength];
+    const getNumberWithAutoAndArbitrary = () => ["auto", isNumber, isArbitraryValue];
+    const getPositions = () => ["bottom", "center", "left", "left-bottom", "left-top", "right", "right-bottom", "right-top", "top"];
+    const getLineStyles = () => ["solid", "dashed", "dotted", "double", "none"];
+    const getBlendModes = () => ["normal", "multiply", "screen", "overlay", "darken", "lighten", "color-dodge", "color-burn", "hard-light", "soft-light", "difference", "exclusion", "hue", "saturation", "color", "luminosity"];
+    const getAlign = () => ["start", "end", "center", "between", "around", "evenly", "stretch"];
+    const getZeroAndEmpty = () => ["", "0", isArbitraryValue];
+    const getBreaks = () => ["auto", "avoid", "all", "avoid-page", "page", "left", "right", "column"];
+    const getNumberAndArbitrary = () => [isNumber, isArbitraryValue];
+    return {
+      cacheSize: 500,
+      separator: ":",
+      theme: {
+        colors: [isAny],
+        spacing: [isLength, isArbitraryLength],
+        blur: ["none", "", isTshirtSize, isArbitraryValue],
+        brightness: getNumberAndArbitrary(),
+        borderColor: [colors2],
+        borderRadius: ["none", "", "full", isTshirtSize, isArbitraryValue],
+        borderSpacing: getSpacingWithArbitrary(),
+        borderWidth: getLengthWithEmptyAndArbitrary(),
+        contrast: getNumberAndArbitrary(),
+        grayscale: getZeroAndEmpty(),
+        hueRotate: getNumberAndArbitrary(),
+        invert: getZeroAndEmpty(),
+        gap: getSpacingWithArbitrary(),
+        gradientColorStops: [colors2],
+        gradientColorStopPositions: [isPercent, isArbitraryLength],
+        inset: getSpacingWithAutoAndArbitrary(),
+        margin: getSpacingWithAutoAndArbitrary(),
+        opacity: getNumberAndArbitrary(),
+        padding: getSpacingWithArbitrary(),
+        saturate: getNumberAndArbitrary(),
+        scale: getNumberAndArbitrary(),
+        sepia: getZeroAndEmpty(),
+        skew: getNumberAndArbitrary(),
+        space: getSpacingWithArbitrary(),
+        translate: getSpacingWithArbitrary()
+      },
+      classGroups: {
+        // Layout
+        /**
+         * Aspect Ratio
+         * @see https://tailwindcss.com/docs/aspect-ratio
+         */
+        aspect: [{
+          aspect: ["auto", "square", "video", isArbitraryValue]
+        }],
+        /**
+         * Container
+         * @see https://tailwindcss.com/docs/container
+         */
+        container: ["container"],
+        /**
+         * Columns
+         * @see https://tailwindcss.com/docs/columns
+         */
+        columns: [{
+          columns: [isTshirtSize]
+        }],
+        /**
+         * Break After
+         * @see https://tailwindcss.com/docs/break-after
+         */
+        "break-after": [{
+          "break-after": getBreaks()
+        }],
+        /**
+         * Break Before
+         * @see https://tailwindcss.com/docs/break-before
+         */
+        "break-before": [{
+          "break-before": getBreaks()
+        }],
+        /**
+         * Break Inside
+         * @see https://tailwindcss.com/docs/break-inside
+         */
+        "break-inside": [{
+          "break-inside": ["auto", "avoid", "avoid-page", "avoid-column"]
+        }],
+        /**
+         * Box Decoration Break
+         * @see https://tailwindcss.com/docs/box-decoration-break
+         */
+        "box-decoration": [{
+          "box-decoration": ["slice", "clone"]
+        }],
+        /**
+         * Box Sizing
+         * @see https://tailwindcss.com/docs/box-sizing
+         */
+        box: [{
+          box: ["border", "content"]
+        }],
+        /**
+         * Display
+         * @see https://tailwindcss.com/docs/display
+         */
+        display: ["block", "inline-block", "inline", "flex", "inline-flex", "table", "inline-table", "table-caption", "table-cell", "table-column", "table-column-group", "table-footer-group", "table-header-group", "table-row-group", "table-row", "flow-root", "grid", "inline-grid", "contents", "list-item", "hidden"],
+        /**
+         * Floats
+         * @see https://tailwindcss.com/docs/float
+         */
+        float: [{
+          float: ["right", "left", "none", "start", "end"]
+        }],
+        /**
+         * Clear
+         * @see https://tailwindcss.com/docs/clear
+         */
+        clear: [{
+          clear: ["left", "right", "both", "none", "start", "end"]
+        }],
+        /**
+         * Isolation
+         * @see https://tailwindcss.com/docs/isolation
+         */
+        isolation: ["isolate", "isolation-auto"],
+        /**
+         * Object Fit
+         * @see https://tailwindcss.com/docs/object-fit
+         */
+        "object-fit": [{
+          object: ["contain", "cover", "fill", "none", "scale-down"]
+        }],
+        /**
+         * Object Position
+         * @see https://tailwindcss.com/docs/object-position
+         */
+        "object-position": [{
+          object: [...getPositions(), isArbitraryValue]
+        }],
+        /**
+         * Overflow
+         * @see https://tailwindcss.com/docs/overflow
+         */
+        overflow: [{
+          overflow: getOverflow()
+        }],
+        /**
+         * Overflow X
+         * @see https://tailwindcss.com/docs/overflow
+         */
+        "overflow-x": [{
+          "overflow-x": getOverflow()
+        }],
+        /**
+         * Overflow Y
+         * @see https://tailwindcss.com/docs/overflow
+         */
+        "overflow-y": [{
+          "overflow-y": getOverflow()
+        }],
+        /**
+         * Overscroll Behavior
+         * @see https://tailwindcss.com/docs/overscroll-behavior
+         */
+        overscroll: [{
+          overscroll: getOverscroll()
+        }],
+        /**
+         * Overscroll Behavior X
+         * @see https://tailwindcss.com/docs/overscroll-behavior
+         */
+        "overscroll-x": [{
+          "overscroll-x": getOverscroll()
+        }],
+        /**
+         * Overscroll Behavior Y
+         * @see https://tailwindcss.com/docs/overscroll-behavior
+         */
+        "overscroll-y": [{
+          "overscroll-y": getOverscroll()
+        }],
+        /**
+         * Position
+         * @see https://tailwindcss.com/docs/position
+         */
+        position: ["static", "fixed", "absolute", "relative", "sticky"],
+        /**
+         * Top / Right / Bottom / Left
+         * @see https://tailwindcss.com/docs/top-right-bottom-left
+         */
+        inset: [{
+          inset: [inset]
+        }],
+        /**
+         * Right / Left
+         * @see https://tailwindcss.com/docs/top-right-bottom-left
+         */
+        "inset-x": [{
+          "inset-x": [inset]
+        }],
+        /**
+         * Top / Bottom
+         * @see https://tailwindcss.com/docs/top-right-bottom-left
+         */
+        "inset-y": [{
+          "inset-y": [inset]
+        }],
+        /**
+         * Start
+         * @see https://tailwindcss.com/docs/top-right-bottom-left
+         */
+        start: [{
+          start: [inset]
+        }],
+        /**
+         * End
+         * @see https://tailwindcss.com/docs/top-right-bottom-left
+         */
+        end: [{
+          end: [inset]
+        }],
+        /**
+         * Top
+         * @see https://tailwindcss.com/docs/top-right-bottom-left
+         */
+        top: [{
+          top: [inset]
+        }],
+        /**
+         * Right
+         * @see https://tailwindcss.com/docs/top-right-bottom-left
+         */
+        right: [{
+          right: [inset]
+        }],
+        /**
+         * Bottom
+         * @see https://tailwindcss.com/docs/top-right-bottom-left
+         */
+        bottom: [{
+          bottom: [inset]
+        }],
+        /**
+         * Left
+         * @see https://tailwindcss.com/docs/top-right-bottom-left
+         */
+        left: [{
+          left: [inset]
+        }],
+        /**
+         * Visibility
+         * @see https://tailwindcss.com/docs/visibility
+         */
+        visibility: ["visible", "invisible", "collapse"],
+        /**
+         * Z-Index
+         * @see https://tailwindcss.com/docs/z-index
+         */
+        z: [{
+          z: ["auto", isInteger, isArbitraryValue]
+        }],
+        // Flexbox and Grid
+        /**
+         * Flex Basis
+         * @see https://tailwindcss.com/docs/flex-basis
+         */
+        basis: [{
+          basis: getSpacingWithAutoAndArbitrary()
+        }],
+        /**
+         * Flex Direction
+         * @see https://tailwindcss.com/docs/flex-direction
+         */
+        "flex-direction": [{
+          flex: ["row", "row-reverse", "col", "col-reverse"]
+        }],
+        /**
+         * Flex Wrap
+         * @see https://tailwindcss.com/docs/flex-wrap
+         */
+        "flex-wrap": [{
+          flex: ["wrap", "wrap-reverse", "nowrap"]
+        }],
+        /**
+         * Flex
+         * @see https://tailwindcss.com/docs/flex
+         */
+        flex: [{
+          flex: ["1", "auto", "initial", "none", isArbitraryValue]
+        }],
+        /**
+         * Flex Grow
+         * @see https://tailwindcss.com/docs/flex-grow
+         */
+        grow: [{
+          grow: getZeroAndEmpty()
+        }],
+        /**
+         * Flex Shrink
+         * @see https://tailwindcss.com/docs/flex-shrink
+         */
+        shrink: [{
+          shrink: getZeroAndEmpty()
+        }],
+        /**
+         * Order
+         * @see https://tailwindcss.com/docs/order
+         */
+        order: [{
+          order: ["first", "last", "none", isInteger, isArbitraryValue]
+        }],
+        /**
+         * Grid Template Columns
+         * @see https://tailwindcss.com/docs/grid-template-columns
+         */
+        "grid-cols": [{
+          "grid-cols": [isAny]
+        }],
+        /**
+         * Grid Column Start / End
+         * @see https://tailwindcss.com/docs/grid-column
+         */
+        "col-start-end": [{
+          col: ["auto", {
+            span: ["full", isInteger, isArbitraryValue]
+          }, isArbitraryValue]
+        }],
+        /**
+         * Grid Column Start
+         * @see https://tailwindcss.com/docs/grid-column
+         */
+        "col-start": [{
+          "col-start": getNumberWithAutoAndArbitrary()
+        }],
+        /**
+         * Grid Column End
+         * @see https://tailwindcss.com/docs/grid-column
+         */
+        "col-end": [{
+          "col-end": getNumberWithAutoAndArbitrary()
+        }],
+        /**
+         * Grid Template Rows
+         * @see https://tailwindcss.com/docs/grid-template-rows
+         */
+        "grid-rows": [{
+          "grid-rows": [isAny]
+        }],
+        /**
+         * Grid Row Start / End
+         * @see https://tailwindcss.com/docs/grid-row
+         */
+        "row-start-end": [{
+          row: ["auto", {
+            span: [isInteger, isArbitraryValue]
+          }, isArbitraryValue]
+        }],
+        /**
+         * Grid Row Start
+         * @see https://tailwindcss.com/docs/grid-row
+         */
+        "row-start": [{
+          "row-start": getNumberWithAutoAndArbitrary()
+        }],
+        /**
+         * Grid Row End
+         * @see https://tailwindcss.com/docs/grid-row
+         */
+        "row-end": [{
+          "row-end": getNumberWithAutoAndArbitrary()
+        }],
+        /**
+         * Grid Auto Flow
+         * @see https://tailwindcss.com/docs/grid-auto-flow
+         */
+        "grid-flow": [{
+          "grid-flow": ["row", "col", "dense", "row-dense", "col-dense"]
+        }],
+        /**
+         * Grid Auto Columns
+         * @see https://tailwindcss.com/docs/grid-auto-columns
+         */
+        "auto-cols": [{
+          "auto-cols": ["auto", "min", "max", "fr", isArbitraryValue]
+        }],
+        /**
+         * Grid Auto Rows
+         * @see https://tailwindcss.com/docs/grid-auto-rows
+         */
+        "auto-rows": [{
+          "auto-rows": ["auto", "min", "max", "fr", isArbitraryValue]
+        }],
+        /**
+         * Gap
+         * @see https://tailwindcss.com/docs/gap
+         */
+        gap: [{
+          gap: [gap]
+        }],
+        /**
+         * Gap X
+         * @see https://tailwindcss.com/docs/gap
+         */
+        "gap-x": [{
+          "gap-x": [gap]
+        }],
+        /**
+         * Gap Y
+         * @see https://tailwindcss.com/docs/gap
+         */
+        "gap-y": [{
+          "gap-y": [gap]
+        }],
+        /**
+         * Justify Content
+         * @see https://tailwindcss.com/docs/justify-content
+         */
+        "justify-content": [{
+          justify: ["normal", ...getAlign()]
+        }],
+        /**
+         * Justify Items
+         * @see https://tailwindcss.com/docs/justify-items
+         */
+        "justify-items": [{
+          "justify-items": ["start", "end", "center", "stretch"]
+        }],
+        /**
+         * Justify Self
+         * @see https://tailwindcss.com/docs/justify-self
+         */
+        "justify-self": [{
+          "justify-self": ["auto", "start", "end", "center", "stretch"]
+        }],
+        /**
+         * Align Content
+         * @see https://tailwindcss.com/docs/align-content
+         */
+        "align-content": [{
+          content: ["normal", ...getAlign(), "baseline"]
+        }],
+        /**
+         * Align Items
+         * @see https://tailwindcss.com/docs/align-items
+         */
+        "align-items": [{
+          items: ["start", "end", "center", "baseline", "stretch"]
+        }],
+        /**
+         * Align Self
+         * @see https://tailwindcss.com/docs/align-self
+         */
+        "align-self": [{
+          self: ["auto", "start", "end", "center", "stretch", "baseline"]
+        }],
+        /**
+         * Place Content
+         * @see https://tailwindcss.com/docs/place-content
+         */
+        "place-content": [{
+          "place-content": [...getAlign(), "baseline"]
+        }],
+        /**
+         * Place Items
+         * @see https://tailwindcss.com/docs/place-items
+         */
+        "place-items": [{
+          "place-items": ["start", "end", "center", "baseline", "stretch"]
+        }],
+        /**
+         * Place Self
+         * @see https://tailwindcss.com/docs/place-self
+         */
+        "place-self": [{
+          "place-self": ["auto", "start", "end", "center", "stretch"]
+        }],
+        // Spacing
+        /**
+         * Padding
+         * @see https://tailwindcss.com/docs/padding
+         */
+        p: [{
+          p: [padding]
+        }],
+        /**
+         * Padding X
+         * @see https://tailwindcss.com/docs/padding
+         */
+        px: [{
+          px: [padding]
+        }],
+        /**
+         * Padding Y
+         * @see https://tailwindcss.com/docs/padding
+         */
+        py: [{
+          py: [padding]
+        }],
+        /**
+         * Padding Start
+         * @see https://tailwindcss.com/docs/padding
+         */
+        ps: [{
+          ps: [padding]
+        }],
+        /**
+         * Padding End
+         * @see https://tailwindcss.com/docs/padding
+         */
+        pe: [{
+          pe: [padding]
+        }],
+        /**
+         * Padding Top
+         * @see https://tailwindcss.com/docs/padding
+         */
+        pt: [{
+          pt: [padding]
+        }],
+        /**
+         * Padding Right
+         * @see https://tailwindcss.com/docs/padding
+         */
+        pr: [{
+          pr: [padding]
+        }],
+        /**
+         * Padding Bottom
+         * @see https://tailwindcss.com/docs/padding
+         */
+        pb: [{
+          pb: [padding]
+        }],
+        /**
+         * Padding Left
+         * @see https://tailwindcss.com/docs/padding
+         */
+        pl: [{
+          pl: [padding]
+        }],
+        /**
+         * Margin
+         * @see https://tailwindcss.com/docs/margin
+         */
+        m: [{
+          m: [margin]
+        }],
+        /**
+         * Margin X
+         * @see https://tailwindcss.com/docs/margin
+         */
+        mx: [{
+          mx: [margin]
+        }],
+        /**
+         * Margin Y
+         * @see https://tailwindcss.com/docs/margin
+         */
+        my: [{
+          my: [margin]
+        }],
+        /**
+         * Margin Start
+         * @see https://tailwindcss.com/docs/margin
+         */
+        ms: [{
+          ms: [margin]
+        }],
+        /**
+         * Margin End
+         * @see https://tailwindcss.com/docs/margin
+         */
+        me: [{
+          me: [margin]
+        }],
+        /**
+         * Margin Top
+         * @see https://tailwindcss.com/docs/margin
+         */
+        mt: [{
+          mt: [margin]
+        }],
+        /**
+         * Margin Right
+         * @see https://tailwindcss.com/docs/margin
+         */
+        mr: [{
+          mr: [margin]
+        }],
+        /**
+         * Margin Bottom
+         * @see https://tailwindcss.com/docs/margin
+         */
+        mb: [{
+          mb: [margin]
+        }],
+        /**
+         * Margin Left
+         * @see https://tailwindcss.com/docs/margin
+         */
+        ml: [{
+          ml: [margin]
+        }],
+        /**
+         * Space Between X
+         * @see https://tailwindcss.com/docs/space
+         */
+        "space-x": [{
+          "space-x": [space]
+        }],
+        /**
+         * Space Between X Reverse
+         * @see https://tailwindcss.com/docs/space
+         */
+        "space-x-reverse": ["space-x-reverse"],
+        /**
+         * Space Between Y
+         * @see https://tailwindcss.com/docs/space
+         */
+        "space-y": [{
+          "space-y": [space]
+        }],
+        /**
+         * Space Between Y Reverse
+         * @see https://tailwindcss.com/docs/space
+         */
+        "space-y-reverse": ["space-y-reverse"],
+        // Sizing
+        /**
+         * Width
+         * @see https://tailwindcss.com/docs/width
+         */
+        w: [{
+          w: ["auto", "min", "max", "fit", "svw", "lvw", "dvw", isArbitraryValue, spacing2]
+        }],
+        /**
+         * Min-Width
+         * @see https://tailwindcss.com/docs/min-width
+         */
+        "min-w": [{
+          "min-w": [isArbitraryValue, spacing2, "min", "max", "fit"]
+        }],
+        /**
+         * Max-Width
+         * @see https://tailwindcss.com/docs/max-width
+         */
+        "max-w": [{
+          "max-w": [isArbitraryValue, spacing2, "none", "full", "min", "max", "fit", "prose", {
+            screen: [isTshirtSize]
+          }, isTshirtSize]
+        }],
+        /**
+         * Height
+         * @see https://tailwindcss.com/docs/height
+         */
+        h: [{
+          h: [isArbitraryValue, spacing2, "auto", "min", "max", "fit", "svh", "lvh", "dvh"]
+        }],
+        /**
+         * Min-Height
+         * @see https://tailwindcss.com/docs/min-height
+         */
+        "min-h": [{
+          "min-h": [isArbitraryValue, spacing2, "min", "max", "fit", "svh", "lvh", "dvh"]
+        }],
+        /**
+         * Max-Height
+         * @see https://tailwindcss.com/docs/max-height
+         */
+        "max-h": [{
+          "max-h": [isArbitraryValue, spacing2, "min", "max", "fit", "svh", "lvh", "dvh"]
+        }],
+        /**
+         * Size
+         * @see https://tailwindcss.com/docs/size
+         */
+        size: [{
+          size: [isArbitraryValue, spacing2, "auto", "min", "max", "fit"]
+        }],
+        // Typography
+        /**
+         * Font Size
+         * @see https://tailwindcss.com/docs/font-size
+         */
+        "font-size": [{
+          text: ["base", isTshirtSize, isArbitraryLength]
+        }],
+        /**
+         * Font Smoothing
+         * @see https://tailwindcss.com/docs/font-smoothing
+         */
+        "font-smoothing": ["antialiased", "subpixel-antialiased"],
+        /**
+         * Font Style
+         * @see https://tailwindcss.com/docs/font-style
+         */
+        "font-style": ["italic", "not-italic"],
+        /**
+         * Font Weight
+         * @see https://tailwindcss.com/docs/font-weight
+         */
+        "font-weight": [{
+          font: ["thin", "extralight", "light", "normal", "medium", "semibold", "bold", "extrabold", "black", isArbitraryNumber]
+        }],
+        /**
+         * Font Family
+         * @see https://tailwindcss.com/docs/font-family
+         */
+        "font-family": [{
+          font: [isAny]
+        }],
+        /**
+         * Font Variant Numeric
+         * @see https://tailwindcss.com/docs/font-variant-numeric
+         */
+        "fvn-normal": ["normal-nums"],
+        /**
+         * Font Variant Numeric
+         * @see https://tailwindcss.com/docs/font-variant-numeric
+         */
+        "fvn-ordinal": ["ordinal"],
+        /**
+         * Font Variant Numeric
+         * @see https://tailwindcss.com/docs/font-variant-numeric
+         */
+        "fvn-slashed-zero": ["slashed-zero"],
+        /**
+         * Font Variant Numeric
+         * @see https://tailwindcss.com/docs/font-variant-numeric
+         */
+        "fvn-figure": ["lining-nums", "oldstyle-nums"],
+        /**
+         * Font Variant Numeric
+         * @see https://tailwindcss.com/docs/font-variant-numeric
+         */
+        "fvn-spacing": ["proportional-nums", "tabular-nums"],
+        /**
+         * Font Variant Numeric
+         * @see https://tailwindcss.com/docs/font-variant-numeric
+         */
+        "fvn-fraction": ["diagonal-fractions", "stacked-fractions"],
+        /**
+         * Letter Spacing
+         * @see https://tailwindcss.com/docs/letter-spacing
+         */
+        tracking: [{
+          tracking: ["tighter", "tight", "normal", "wide", "wider", "widest", isArbitraryValue]
+        }],
+        /**
+         * Line Clamp
+         * @see https://tailwindcss.com/docs/line-clamp
+         */
+        "line-clamp": [{
+          "line-clamp": ["none", isNumber, isArbitraryNumber]
+        }],
+        /**
+         * Line Height
+         * @see https://tailwindcss.com/docs/line-height
+         */
+        leading: [{
+          leading: ["none", "tight", "snug", "normal", "relaxed", "loose", isLength, isArbitraryValue]
+        }],
+        /**
+         * List Style Image
+         * @see https://tailwindcss.com/docs/list-style-image
+         */
+        "list-image": [{
+          "list-image": ["none", isArbitraryValue]
+        }],
+        /**
+         * List Style Type
+         * @see https://tailwindcss.com/docs/list-style-type
+         */
+        "list-style-type": [{
+          list: ["none", "disc", "decimal", isArbitraryValue]
+        }],
+        /**
+         * List Style Position
+         * @see https://tailwindcss.com/docs/list-style-position
+         */
+        "list-style-position": [{
+          list: ["inside", "outside"]
+        }],
+        /**
+         * Placeholder Color
+         * @deprecated since Tailwind CSS v3.0.0
+         * @see https://tailwindcss.com/docs/placeholder-color
+         */
+        "placeholder-color": [{
+          placeholder: [colors2]
+        }],
+        /**
+         * Placeholder Opacity
+         * @see https://tailwindcss.com/docs/placeholder-opacity
+         */
+        "placeholder-opacity": [{
+          "placeholder-opacity": [opacity]
+        }],
+        /**
+         * Text Alignment
+         * @see https://tailwindcss.com/docs/text-align
+         */
+        "text-alignment": [{
+          text: ["left", "center", "right", "justify", "start", "end"]
+        }],
+        /**
+         * Text Color
+         * @see https://tailwindcss.com/docs/text-color
+         */
+        "text-color": [{
+          text: [colors2]
+        }],
+        /**
+         * Text Opacity
+         * @see https://tailwindcss.com/docs/text-opacity
+         */
+        "text-opacity": [{
+          "text-opacity": [opacity]
+        }],
+        /**
+         * Text Decoration
+         * @see https://tailwindcss.com/docs/text-decoration
+         */
+        "text-decoration": ["underline", "overline", "line-through", "no-underline"],
+        /**
+         * Text Decoration Style
+         * @see https://tailwindcss.com/docs/text-decoration-style
+         */
+        "text-decoration-style": [{
+          decoration: [...getLineStyles(), "wavy"]
+        }],
+        /**
+         * Text Decoration Thickness
+         * @see https://tailwindcss.com/docs/text-decoration-thickness
+         */
+        "text-decoration-thickness": [{
+          decoration: ["auto", "from-font", isLength, isArbitraryLength]
+        }],
+        /**
+         * Text Underline Offset
+         * @see https://tailwindcss.com/docs/text-underline-offset
+         */
+        "underline-offset": [{
+          "underline-offset": ["auto", isLength, isArbitraryValue]
+        }],
+        /**
+         * Text Decoration Color
+         * @see https://tailwindcss.com/docs/text-decoration-color
+         */
+        "text-decoration-color": [{
+          decoration: [colors2]
+        }],
+        /**
+         * Text Transform
+         * @see https://tailwindcss.com/docs/text-transform
+         */
+        "text-transform": ["uppercase", "lowercase", "capitalize", "normal-case"],
+        /**
+         * Text Overflow
+         * @see https://tailwindcss.com/docs/text-overflow
+         */
+        "text-overflow": ["truncate", "text-ellipsis", "text-clip"],
+        /**
+         * Text Wrap
+         * @see https://tailwindcss.com/docs/text-wrap
+         */
+        "text-wrap": [{
+          text: ["wrap", "nowrap", "balance", "pretty"]
+        }],
+        /**
+         * Text Indent
+         * @see https://tailwindcss.com/docs/text-indent
+         */
+        indent: [{
+          indent: getSpacingWithArbitrary()
+        }],
+        /**
+         * Vertical Alignment
+         * @see https://tailwindcss.com/docs/vertical-align
+         */
+        "vertical-align": [{
+          align: ["baseline", "top", "middle", "bottom", "text-top", "text-bottom", "sub", "super", isArbitraryValue]
+        }],
+        /**
+         * Whitespace
+         * @see https://tailwindcss.com/docs/whitespace
+         */
+        whitespace: [{
+          whitespace: ["normal", "nowrap", "pre", "pre-line", "pre-wrap", "break-spaces"]
+        }],
+        /**
+         * Word Break
+         * @see https://tailwindcss.com/docs/word-break
+         */
+        break: [{
+          break: ["normal", "words", "all", "keep"]
+        }],
+        /**
+         * Hyphens
+         * @see https://tailwindcss.com/docs/hyphens
+         */
+        hyphens: [{
+          hyphens: ["none", "manual", "auto"]
+        }],
+        /**
+         * Content
+         * @see https://tailwindcss.com/docs/content
+         */
+        content: [{
+          content: ["none", isArbitraryValue]
+        }],
+        // Backgrounds
+        /**
+         * Background Attachment
+         * @see https://tailwindcss.com/docs/background-attachment
+         */
+        "bg-attachment": [{
+          bg: ["fixed", "local", "scroll"]
+        }],
+        /**
+         * Background Clip
+         * @see https://tailwindcss.com/docs/background-clip
+         */
+        "bg-clip": [{
+          "bg-clip": ["border", "padding", "content", "text"]
+        }],
+        /**
+         * Background Opacity
+         * @deprecated since Tailwind CSS v3.0.0
+         * @see https://tailwindcss.com/docs/background-opacity
+         */
+        "bg-opacity": [{
+          "bg-opacity": [opacity]
+        }],
+        /**
+         * Background Origin
+         * @see https://tailwindcss.com/docs/background-origin
+         */
+        "bg-origin": [{
+          "bg-origin": ["border", "padding", "content"]
+        }],
+        /**
+         * Background Position
+         * @see https://tailwindcss.com/docs/background-position
+         */
+        "bg-position": [{
+          bg: [...getPositions(), isArbitraryPosition]
+        }],
+        /**
+         * Background Repeat
+         * @see https://tailwindcss.com/docs/background-repeat
+         */
+        "bg-repeat": [{
+          bg: ["no-repeat", {
+            repeat: ["", "x", "y", "round", "space"]
+          }]
+        }],
+        /**
+         * Background Size
+         * @see https://tailwindcss.com/docs/background-size
+         */
+        "bg-size": [{
+          bg: ["auto", "cover", "contain", isArbitrarySize]
+        }],
+        /**
+         * Background Image
+         * @see https://tailwindcss.com/docs/background-image
+         */
+        "bg-image": [{
+          bg: ["none", {
+            "gradient-to": ["t", "tr", "r", "br", "b", "bl", "l", "tl"]
+          }, isArbitraryImage]
+        }],
+        /**
+         * Background Color
+         * @see https://tailwindcss.com/docs/background-color
+         */
+        "bg-color": [{
+          bg: [colors2]
+        }],
+        /**
+         * Gradient Color Stops From Position
+         * @see https://tailwindcss.com/docs/gradient-color-stops
+         */
+        "gradient-from-pos": [{
+          from: [gradientColorStopPositions]
+        }],
+        /**
+         * Gradient Color Stops Via Position
+         * @see https://tailwindcss.com/docs/gradient-color-stops
+         */
+        "gradient-via-pos": [{
+          via: [gradientColorStopPositions]
+        }],
+        /**
+         * Gradient Color Stops To Position
+         * @see https://tailwindcss.com/docs/gradient-color-stops
+         */
+        "gradient-to-pos": [{
+          to: [gradientColorStopPositions]
+        }],
+        /**
+         * Gradient Color Stops From
+         * @see https://tailwindcss.com/docs/gradient-color-stops
+         */
+        "gradient-from": [{
+          from: [gradientColorStops]
+        }],
+        /**
+         * Gradient Color Stops Via
+         * @see https://tailwindcss.com/docs/gradient-color-stops
+         */
+        "gradient-via": [{
+          via: [gradientColorStops]
+        }],
+        /**
+         * Gradient Color Stops To
+         * @see https://tailwindcss.com/docs/gradient-color-stops
+         */
+        "gradient-to": [{
+          to: [gradientColorStops]
+        }],
+        // Borders
+        /**
+         * Border Radius
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        rounded: [{
+          rounded: [borderRadius2]
+        }],
+        /**
+         * Border Radius Start
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        "rounded-s": [{
+          "rounded-s": [borderRadius2]
+        }],
+        /**
+         * Border Radius End
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        "rounded-e": [{
+          "rounded-e": [borderRadius2]
+        }],
+        /**
+         * Border Radius Top
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        "rounded-t": [{
+          "rounded-t": [borderRadius2]
+        }],
+        /**
+         * Border Radius Right
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        "rounded-r": [{
+          "rounded-r": [borderRadius2]
+        }],
+        /**
+         * Border Radius Bottom
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        "rounded-b": [{
+          "rounded-b": [borderRadius2]
+        }],
+        /**
+         * Border Radius Left
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        "rounded-l": [{
+          "rounded-l": [borderRadius2]
+        }],
+        /**
+         * Border Radius Start Start
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        "rounded-ss": [{
+          "rounded-ss": [borderRadius2]
+        }],
+        /**
+         * Border Radius Start End
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        "rounded-se": [{
+          "rounded-se": [borderRadius2]
+        }],
+        /**
+         * Border Radius End End
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        "rounded-ee": [{
+          "rounded-ee": [borderRadius2]
+        }],
+        /**
+         * Border Radius End Start
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        "rounded-es": [{
+          "rounded-es": [borderRadius2]
+        }],
+        /**
+         * Border Radius Top Left
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        "rounded-tl": [{
+          "rounded-tl": [borderRadius2]
+        }],
+        /**
+         * Border Radius Top Right
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        "rounded-tr": [{
+          "rounded-tr": [borderRadius2]
+        }],
+        /**
+         * Border Radius Bottom Right
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        "rounded-br": [{
+          "rounded-br": [borderRadius2]
+        }],
+        /**
+         * Border Radius Bottom Left
+         * @see https://tailwindcss.com/docs/border-radius
+         */
+        "rounded-bl": [{
+          "rounded-bl": [borderRadius2]
+        }],
+        /**
+         * Border Width
+         * @see https://tailwindcss.com/docs/border-width
+         */
+        "border-w": [{
+          border: [borderWidth]
+        }],
+        /**
+         * Border Width X
+         * @see https://tailwindcss.com/docs/border-width
+         */
+        "border-w-x": [{
+          "border-x": [borderWidth]
+        }],
+        /**
+         * Border Width Y
+         * @see https://tailwindcss.com/docs/border-width
+         */
+        "border-w-y": [{
+          "border-y": [borderWidth]
+        }],
+        /**
+         * Border Width Start
+         * @see https://tailwindcss.com/docs/border-width
+         */
+        "border-w-s": [{
+          "border-s": [borderWidth]
+        }],
+        /**
+         * Border Width End
+         * @see https://tailwindcss.com/docs/border-width
+         */
+        "border-w-e": [{
+          "border-e": [borderWidth]
+        }],
+        /**
+         * Border Width Top
+         * @see https://tailwindcss.com/docs/border-width
+         */
+        "border-w-t": [{
+          "border-t": [borderWidth]
+        }],
+        /**
+         * Border Width Right
+         * @see https://tailwindcss.com/docs/border-width
+         */
+        "border-w-r": [{
+          "border-r": [borderWidth]
+        }],
+        /**
+         * Border Width Bottom
+         * @see https://tailwindcss.com/docs/border-width
+         */
+        "border-w-b": [{
+          "border-b": [borderWidth]
+        }],
+        /**
+         * Border Width Left
+         * @see https://tailwindcss.com/docs/border-width
+         */
+        "border-w-l": [{
+          "border-l": [borderWidth]
+        }],
+        /**
+         * Border Opacity
+         * @see https://tailwindcss.com/docs/border-opacity
+         */
+        "border-opacity": [{
+          "border-opacity": [opacity]
+        }],
+        /**
+         * Border Style
+         * @see https://tailwindcss.com/docs/border-style
+         */
+        "border-style": [{
+          border: [...getLineStyles(), "hidden"]
+        }],
+        /**
+         * Divide Width X
+         * @see https://tailwindcss.com/docs/divide-width
+         */
+        "divide-x": [{
+          "divide-x": [borderWidth]
+        }],
+        /**
+         * Divide Width X Reverse
+         * @see https://tailwindcss.com/docs/divide-width
+         */
+        "divide-x-reverse": ["divide-x-reverse"],
+        /**
+         * Divide Width Y
+         * @see https://tailwindcss.com/docs/divide-width
+         */
+        "divide-y": [{
+          "divide-y": [borderWidth]
+        }],
+        /**
+         * Divide Width Y Reverse
+         * @see https://tailwindcss.com/docs/divide-width
+         */
+        "divide-y-reverse": ["divide-y-reverse"],
+        /**
+         * Divide Opacity
+         * @see https://tailwindcss.com/docs/divide-opacity
+         */
+        "divide-opacity": [{
+          "divide-opacity": [opacity]
+        }],
+        /**
+         * Divide Style
+         * @see https://tailwindcss.com/docs/divide-style
+         */
+        "divide-style": [{
+          divide: getLineStyles()
+        }],
+        /**
+         * Border Color
+         * @see https://tailwindcss.com/docs/border-color
+         */
+        "border-color": [{
+          border: [borderColor]
+        }],
+        /**
+         * Border Color X
+         * @see https://tailwindcss.com/docs/border-color
+         */
+        "border-color-x": [{
+          "border-x": [borderColor]
+        }],
+        /**
+         * Border Color Y
+         * @see https://tailwindcss.com/docs/border-color
+         */
+        "border-color-y": [{
+          "border-y": [borderColor]
+        }],
+        /**
+         * Border Color S
+         * @see https://tailwindcss.com/docs/border-color
+         */
+        "border-color-s": [{
+          "border-s": [borderColor]
+        }],
+        /**
+         * Border Color E
+         * @see https://tailwindcss.com/docs/border-color
+         */
+        "border-color-e": [{
+          "border-e": [borderColor]
+        }],
+        /**
+         * Border Color Top
+         * @see https://tailwindcss.com/docs/border-color
+         */
+        "border-color-t": [{
+          "border-t": [borderColor]
+        }],
+        /**
+         * Border Color Right
+         * @see https://tailwindcss.com/docs/border-color
+         */
+        "border-color-r": [{
+          "border-r": [borderColor]
+        }],
+        /**
+         * Border Color Bottom
+         * @see https://tailwindcss.com/docs/border-color
+         */
+        "border-color-b": [{
+          "border-b": [borderColor]
+        }],
+        /**
+         * Border Color Left
+         * @see https://tailwindcss.com/docs/border-color
+         */
+        "border-color-l": [{
+          "border-l": [borderColor]
+        }],
+        /**
+         * Divide Color
+         * @see https://tailwindcss.com/docs/divide-color
+         */
+        "divide-color": [{
+          divide: [borderColor]
+        }],
+        /**
+         * Outline Style
+         * @see https://tailwindcss.com/docs/outline-style
+         */
+        "outline-style": [{
+          outline: ["", ...getLineStyles()]
+        }],
+        /**
+         * Outline Offset
+         * @see https://tailwindcss.com/docs/outline-offset
+         */
+        "outline-offset": [{
+          "outline-offset": [isLength, isArbitraryValue]
+        }],
+        /**
+         * Outline Width
+         * @see https://tailwindcss.com/docs/outline-width
+         */
+        "outline-w": [{
+          outline: [isLength, isArbitraryLength]
+        }],
+        /**
+         * Outline Color
+         * @see https://tailwindcss.com/docs/outline-color
+         */
+        "outline-color": [{
+          outline: [colors2]
+        }],
+        /**
+         * Ring Width
+         * @see https://tailwindcss.com/docs/ring-width
+         */
+        "ring-w": [{
+          ring: getLengthWithEmptyAndArbitrary()
+        }],
+        /**
+         * Ring Width Inset
+         * @see https://tailwindcss.com/docs/ring-width
+         */
+        "ring-w-inset": ["ring-inset"],
+        /**
+         * Ring Color
+         * @see https://tailwindcss.com/docs/ring-color
+         */
+        "ring-color": [{
+          ring: [colors2]
+        }],
+        /**
+         * Ring Opacity
+         * @see https://tailwindcss.com/docs/ring-opacity
+         */
+        "ring-opacity": [{
+          "ring-opacity": [opacity]
+        }],
+        /**
+         * Ring Offset Width
+         * @see https://tailwindcss.com/docs/ring-offset-width
+         */
+        "ring-offset-w": [{
+          "ring-offset": [isLength, isArbitraryLength]
+        }],
+        /**
+         * Ring Offset Color
+         * @see https://tailwindcss.com/docs/ring-offset-color
+         */
+        "ring-offset-color": [{
+          "ring-offset": [colors2]
+        }],
+        // Effects
+        /**
+         * Box Shadow
+         * @see https://tailwindcss.com/docs/box-shadow
+         */
+        shadow: [{
+          shadow: ["", "inner", "none", isTshirtSize, isArbitraryShadow]
+        }],
+        /**
+         * Box Shadow Color
+         * @see https://tailwindcss.com/docs/box-shadow-color
+         */
+        "shadow-color": [{
+          shadow: [isAny]
+        }],
+        /**
+         * Opacity
+         * @see https://tailwindcss.com/docs/opacity
+         */
+        opacity: [{
+          opacity: [opacity]
+        }],
+        /**
+         * Mix Blend Mode
+         * @see https://tailwindcss.com/docs/mix-blend-mode
+         */
+        "mix-blend": [{
+          "mix-blend": [...getBlendModes(), "plus-lighter", "plus-darker"]
+        }],
+        /**
+         * Background Blend Mode
+         * @see https://tailwindcss.com/docs/background-blend-mode
+         */
+        "bg-blend": [{
+          "bg-blend": getBlendModes()
+        }],
+        // Filters
+        /**
+         * Filter
+         * @deprecated since Tailwind CSS v3.0.0
+         * @see https://tailwindcss.com/docs/filter
+         */
+        filter: [{
+          filter: ["", "none"]
+        }],
+        /**
+         * Blur
+         * @see https://tailwindcss.com/docs/blur
+         */
+        blur: [{
+          blur: [blur]
+        }],
+        /**
+         * Brightness
+         * @see https://tailwindcss.com/docs/brightness
+         */
+        brightness: [{
+          brightness: [brightness]
+        }],
+        /**
+         * Contrast
+         * @see https://tailwindcss.com/docs/contrast
+         */
+        contrast: [{
+          contrast: [contrast]
+        }],
+        /**
+         * Drop Shadow
+         * @see https://tailwindcss.com/docs/drop-shadow
+         */
+        "drop-shadow": [{
+          "drop-shadow": ["", "none", isTshirtSize, isArbitraryValue]
+        }],
+        /**
+         * Grayscale
+         * @see https://tailwindcss.com/docs/grayscale
+         */
+        grayscale: [{
+          grayscale: [grayscale]
+        }],
+        /**
+         * Hue Rotate
+         * @see https://tailwindcss.com/docs/hue-rotate
+         */
+        "hue-rotate": [{
+          "hue-rotate": [hueRotate]
+        }],
+        /**
+         * Invert
+         * @see https://tailwindcss.com/docs/invert
+         */
+        invert: [{
+          invert: [invert]
+        }],
+        /**
+         * Saturate
+         * @see https://tailwindcss.com/docs/saturate
+         */
+        saturate: [{
+          saturate: [saturate]
+        }],
+        /**
+         * Sepia
+         * @see https://tailwindcss.com/docs/sepia
+         */
+        sepia: [{
+          sepia: [sepia]
+        }],
+        /**
+         * Backdrop Filter
+         * @deprecated since Tailwind CSS v3.0.0
+         * @see https://tailwindcss.com/docs/backdrop-filter
+         */
+        "backdrop-filter": [{
+          "backdrop-filter": ["", "none"]
+        }],
+        /**
+         * Backdrop Blur
+         * @see https://tailwindcss.com/docs/backdrop-blur
+         */
+        "backdrop-blur": [{
+          "backdrop-blur": [blur]
+        }],
+        /**
+         * Backdrop Brightness
+         * @see https://tailwindcss.com/docs/backdrop-brightness
+         */
+        "backdrop-brightness": [{
+          "backdrop-brightness": [brightness]
+        }],
+        /**
+         * Backdrop Contrast
+         * @see https://tailwindcss.com/docs/backdrop-contrast
+         */
+        "backdrop-contrast": [{
+          "backdrop-contrast": [contrast]
+        }],
+        /**
+         * Backdrop Grayscale
+         * @see https://tailwindcss.com/docs/backdrop-grayscale
+         */
+        "backdrop-grayscale": [{
+          "backdrop-grayscale": [grayscale]
+        }],
+        /**
+         * Backdrop Hue Rotate
+         * @see https://tailwindcss.com/docs/backdrop-hue-rotate
+         */
+        "backdrop-hue-rotate": [{
+          "backdrop-hue-rotate": [hueRotate]
+        }],
+        /**
+         * Backdrop Invert
+         * @see https://tailwindcss.com/docs/backdrop-invert
+         */
+        "backdrop-invert": [{
+          "backdrop-invert": [invert]
+        }],
+        /**
+         * Backdrop Opacity
+         * @see https://tailwindcss.com/docs/backdrop-opacity
+         */
+        "backdrop-opacity": [{
+          "backdrop-opacity": [opacity]
+        }],
+        /**
+         * Backdrop Saturate
+         * @see https://tailwindcss.com/docs/backdrop-saturate
+         */
+        "backdrop-saturate": [{
+          "backdrop-saturate": [saturate]
+        }],
+        /**
+         * Backdrop Sepia
+         * @see https://tailwindcss.com/docs/backdrop-sepia
+         */
+        "backdrop-sepia": [{
+          "backdrop-sepia": [sepia]
+        }],
+        // Tables
+        /**
+         * Border Collapse
+         * @see https://tailwindcss.com/docs/border-collapse
+         */
+        "border-collapse": [{
+          border: ["collapse", "separate"]
+        }],
+        /**
+         * Border Spacing
+         * @see https://tailwindcss.com/docs/border-spacing
+         */
+        "border-spacing": [{
+          "border-spacing": [borderSpacing]
+        }],
+        /**
+         * Border Spacing X
+         * @see https://tailwindcss.com/docs/border-spacing
+         */
+        "border-spacing-x": [{
+          "border-spacing-x": [borderSpacing]
+        }],
+        /**
+         * Border Spacing Y
+         * @see https://tailwindcss.com/docs/border-spacing
+         */
+        "border-spacing-y": [{
+          "border-spacing-y": [borderSpacing]
+        }],
+        /**
+         * Table Layout
+         * @see https://tailwindcss.com/docs/table-layout
+         */
+        "table-layout": [{
+          table: ["auto", "fixed"]
+        }],
+        /**
+         * Caption Side
+         * @see https://tailwindcss.com/docs/caption-side
+         */
+        caption: [{
+          caption: ["top", "bottom"]
+        }],
+        // Transitions and Animation
+        /**
+         * Tranisition Property
+         * @see https://tailwindcss.com/docs/transition-property
+         */
+        transition: [{
+          transition: ["none", "all", "", "colors", "opacity", "shadow", "transform", isArbitraryValue]
+        }],
+        /**
+         * Transition Duration
+         * @see https://tailwindcss.com/docs/transition-duration
+         */
+        duration: [{
+          duration: getNumberAndArbitrary()
+        }],
+        /**
+         * Transition Timing Function
+         * @see https://tailwindcss.com/docs/transition-timing-function
+         */
+        ease: [{
+          ease: ["linear", "in", "out", "in-out", isArbitraryValue]
+        }],
+        /**
+         * Transition Delay
+         * @see https://tailwindcss.com/docs/transition-delay
+         */
+        delay: [{
+          delay: getNumberAndArbitrary()
+        }],
+        /**
+         * Animation
+         * @see https://tailwindcss.com/docs/animation
+         */
+        animate: [{
+          animate: ["none", "spin", "ping", "pulse", "bounce", isArbitraryValue]
+        }],
+        // Transforms
+        /**
+         * Transform
+         * @see https://tailwindcss.com/docs/transform
+         */
+        transform: [{
+          transform: ["", "gpu", "none"]
+        }],
+        /**
+         * Scale
+         * @see https://tailwindcss.com/docs/scale
+         */
+        scale: [{
+          scale: [scale2]
+        }],
+        /**
+         * Scale X
+         * @see https://tailwindcss.com/docs/scale
+         */
+        "scale-x": [{
+          "scale-x": [scale2]
+        }],
+        /**
+         * Scale Y
+         * @see https://tailwindcss.com/docs/scale
+         */
+        "scale-y": [{
+          "scale-y": [scale2]
+        }],
+        /**
+         * Rotate
+         * @see https://tailwindcss.com/docs/rotate
+         */
+        rotate: [{
+          rotate: [isInteger, isArbitraryValue]
+        }],
+        /**
+         * Translate X
+         * @see https://tailwindcss.com/docs/translate
+         */
+        "translate-x": [{
+          "translate-x": [translate]
+        }],
+        /**
+         * Translate Y
+         * @see https://tailwindcss.com/docs/translate
+         */
+        "translate-y": [{
+          "translate-y": [translate]
+        }],
+        /**
+         * Skew X
+         * @see https://tailwindcss.com/docs/skew
+         */
+        "skew-x": [{
+          "skew-x": [skew]
+        }],
+        /**
+         * Skew Y
+         * @see https://tailwindcss.com/docs/skew
+         */
+        "skew-y": [{
+          "skew-y": [skew]
+        }],
+        /**
+         * Transform Origin
+         * @see https://tailwindcss.com/docs/transform-origin
+         */
+        "transform-origin": [{
+          origin: ["center", "top", "top-right", "right", "bottom-right", "bottom", "bottom-left", "left", "top-left", isArbitraryValue]
+        }],
+        // Interactivity
+        /**
+         * Accent Color
+         * @see https://tailwindcss.com/docs/accent-color
+         */
+        accent: [{
+          accent: ["auto", colors2]
+        }],
+        /**
+         * Appearance
+         * @see https://tailwindcss.com/docs/appearance
+         */
+        appearance: [{
+          appearance: ["none", "auto"]
+        }],
+        /**
+         * Cursor
+         * @see https://tailwindcss.com/docs/cursor
+         */
+        cursor: [{
+          cursor: ["auto", "default", "pointer", "wait", "text", "move", "help", "not-allowed", "none", "context-menu", "progress", "cell", "crosshair", "vertical-text", "alias", "copy", "no-drop", "grab", "grabbing", "all-scroll", "col-resize", "row-resize", "n-resize", "e-resize", "s-resize", "w-resize", "ne-resize", "nw-resize", "se-resize", "sw-resize", "ew-resize", "ns-resize", "nesw-resize", "nwse-resize", "zoom-in", "zoom-out", isArbitraryValue]
+        }],
+        /**
+         * Caret Color
+         * @see https://tailwindcss.com/docs/just-in-time-mode#caret-color-utilities
+         */
+        "caret-color": [{
+          caret: [colors2]
+        }],
+        /**
+         * Pointer Events
+         * @see https://tailwindcss.com/docs/pointer-events
+         */
+        "pointer-events": [{
+          "pointer-events": ["none", "auto"]
+        }],
+        /**
+         * Resize
+         * @see https://tailwindcss.com/docs/resize
+         */
+        resize: [{
+          resize: ["none", "y", "x", ""]
+        }],
+        /**
+         * Scroll Behavior
+         * @see https://tailwindcss.com/docs/scroll-behavior
+         */
+        "scroll-behavior": [{
+          scroll: ["auto", "smooth"]
+        }],
+        /**
+         * Scroll Margin
+         * @see https://tailwindcss.com/docs/scroll-margin
+         */
+        "scroll-m": [{
+          "scroll-m": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Margin X
+         * @see https://tailwindcss.com/docs/scroll-margin
+         */
+        "scroll-mx": [{
+          "scroll-mx": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Margin Y
+         * @see https://tailwindcss.com/docs/scroll-margin
+         */
+        "scroll-my": [{
+          "scroll-my": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Margin Start
+         * @see https://tailwindcss.com/docs/scroll-margin
+         */
+        "scroll-ms": [{
+          "scroll-ms": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Margin End
+         * @see https://tailwindcss.com/docs/scroll-margin
+         */
+        "scroll-me": [{
+          "scroll-me": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Margin Top
+         * @see https://tailwindcss.com/docs/scroll-margin
+         */
+        "scroll-mt": [{
+          "scroll-mt": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Margin Right
+         * @see https://tailwindcss.com/docs/scroll-margin
+         */
+        "scroll-mr": [{
+          "scroll-mr": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Margin Bottom
+         * @see https://tailwindcss.com/docs/scroll-margin
+         */
+        "scroll-mb": [{
+          "scroll-mb": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Margin Left
+         * @see https://tailwindcss.com/docs/scroll-margin
+         */
+        "scroll-ml": [{
+          "scroll-ml": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Padding
+         * @see https://tailwindcss.com/docs/scroll-padding
+         */
+        "scroll-p": [{
+          "scroll-p": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Padding X
+         * @see https://tailwindcss.com/docs/scroll-padding
+         */
+        "scroll-px": [{
+          "scroll-px": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Padding Y
+         * @see https://tailwindcss.com/docs/scroll-padding
+         */
+        "scroll-py": [{
+          "scroll-py": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Padding Start
+         * @see https://tailwindcss.com/docs/scroll-padding
+         */
+        "scroll-ps": [{
+          "scroll-ps": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Padding End
+         * @see https://tailwindcss.com/docs/scroll-padding
+         */
+        "scroll-pe": [{
+          "scroll-pe": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Padding Top
+         * @see https://tailwindcss.com/docs/scroll-padding
+         */
+        "scroll-pt": [{
+          "scroll-pt": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Padding Right
+         * @see https://tailwindcss.com/docs/scroll-padding
+         */
+        "scroll-pr": [{
+          "scroll-pr": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Padding Bottom
+         * @see https://tailwindcss.com/docs/scroll-padding
+         */
+        "scroll-pb": [{
+          "scroll-pb": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Padding Left
+         * @see https://tailwindcss.com/docs/scroll-padding
+         */
+        "scroll-pl": [{
+          "scroll-pl": getSpacingWithArbitrary()
+        }],
+        /**
+         * Scroll Snap Align
+         * @see https://tailwindcss.com/docs/scroll-snap-align
+         */
+        "snap-align": [{
+          snap: ["start", "end", "center", "align-none"]
+        }],
+        /**
+         * Scroll Snap Stop
+         * @see https://tailwindcss.com/docs/scroll-snap-stop
+         */
+        "snap-stop": [{
+          snap: ["normal", "always"]
+        }],
+        /**
+         * Scroll Snap Type
+         * @see https://tailwindcss.com/docs/scroll-snap-type
+         */
+        "snap-type": [{
+          snap: ["none", "x", "y", "both"]
+        }],
+        /**
+         * Scroll Snap Type Strictness
+         * @see https://tailwindcss.com/docs/scroll-snap-type
+         */
+        "snap-strictness": [{
+          snap: ["mandatory", "proximity"]
+        }],
+        /**
+         * Touch Action
+         * @see https://tailwindcss.com/docs/touch-action
+         */
+        touch: [{
+          touch: ["auto", "none", "manipulation"]
+        }],
+        /**
+         * Touch Action X
+         * @see https://tailwindcss.com/docs/touch-action
+         */
+        "touch-x": [{
+          "touch-pan": ["x", "left", "right"]
+        }],
+        /**
+         * Touch Action Y
+         * @see https://tailwindcss.com/docs/touch-action
+         */
+        "touch-y": [{
+          "touch-pan": ["y", "up", "down"]
+        }],
+        /**
+         * Touch Action Pinch Zoom
+         * @see https://tailwindcss.com/docs/touch-action
+         */
+        "touch-pz": ["touch-pinch-zoom"],
+        /**
+         * User Select
+         * @see https://tailwindcss.com/docs/user-select
+         */
+        select: [{
+          select: ["none", "text", "all", "auto"]
+        }],
+        /**
+         * Will Change
+         * @see https://tailwindcss.com/docs/will-change
+         */
+        "will-change": [{
+          "will-change": ["auto", "scroll", "contents", "transform", isArbitraryValue]
+        }],
+        // SVG
+        /**
+         * Fill
+         * @see https://tailwindcss.com/docs/fill
+         */
+        fill: [{
+          fill: [colors2, "none"]
+        }],
+        /**
+         * Stroke Width
+         * @see https://tailwindcss.com/docs/stroke-width
+         */
+        "stroke-w": [{
+          stroke: [isLength, isArbitraryLength, isArbitraryNumber]
+        }],
+        /**
+         * Stroke
+         * @see https://tailwindcss.com/docs/stroke
+         */
+        stroke: [{
+          stroke: [colors2, "none"]
+        }],
+        // Accessibility
+        /**
+         * Screen Readers
+         * @see https://tailwindcss.com/docs/screen-readers
+         */
+        sr: ["sr-only", "not-sr-only"],
+        /**
+         * Forced Color Adjust
+         * @see https://tailwindcss.com/docs/forced-color-adjust
+         */
+        "forced-color-adjust": [{
+          "forced-color-adjust": ["auto", "none"]
+        }]
+      },
+      conflictingClassGroups: {
+        overflow: ["overflow-x", "overflow-y"],
+        overscroll: ["overscroll-x", "overscroll-y"],
+        inset: ["inset-x", "inset-y", "start", "end", "top", "right", "bottom", "left"],
+        "inset-x": ["right", "left"],
+        "inset-y": ["top", "bottom"],
+        flex: ["basis", "grow", "shrink"],
+        gap: ["gap-x", "gap-y"],
+        p: ["px", "py", "ps", "pe", "pt", "pr", "pb", "pl"],
+        px: ["pr", "pl"],
+        py: ["pt", "pb"],
+        m: ["mx", "my", "ms", "me", "mt", "mr", "mb", "ml"],
+        mx: ["mr", "ml"],
+        my: ["mt", "mb"],
+        size: ["w", "h"],
+        "font-size": ["leading"],
+        "fvn-normal": ["fvn-ordinal", "fvn-slashed-zero", "fvn-figure", "fvn-spacing", "fvn-fraction"],
+        "fvn-ordinal": ["fvn-normal"],
+        "fvn-slashed-zero": ["fvn-normal"],
+        "fvn-figure": ["fvn-normal"],
+        "fvn-spacing": ["fvn-normal"],
+        "fvn-fraction": ["fvn-normal"],
+        "line-clamp": ["display", "overflow"],
+        rounded: ["rounded-s", "rounded-e", "rounded-t", "rounded-r", "rounded-b", "rounded-l", "rounded-ss", "rounded-se", "rounded-ee", "rounded-es", "rounded-tl", "rounded-tr", "rounded-br", "rounded-bl"],
+        "rounded-s": ["rounded-ss", "rounded-es"],
+        "rounded-e": ["rounded-se", "rounded-ee"],
+        "rounded-t": ["rounded-tl", "rounded-tr"],
+        "rounded-r": ["rounded-tr", "rounded-br"],
+        "rounded-b": ["rounded-br", "rounded-bl"],
+        "rounded-l": ["rounded-tl", "rounded-bl"],
+        "border-spacing": ["border-spacing-x", "border-spacing-y"],
+        "border-w": ["border-w-s", "border-w-e", "border-w-t", "border-w-r", "border-w-b", "border-w-l"],
+        "border-w-x": ["border-w-r", "border-w-l"],
+        "border-w-y": ["border-w-t", "border-w-b"],
+        "border-color": ["border-color-s", "border-color-e", "border-color-t", "border-color-r", "border-color-b", "border-color-l"],
+        "border-color-x": ["border-color-r", "border-color-l"],
+        "border-color-y": ["border-color-t", "border-color-b"],
+        "scroll-m": ["scroll-mx", "scroll-my", "scroll-ms", "scroll-me", "scroll-mt", "scroll-mr", "scroll-mb", "scroll-ml"],
+        "scroll-mx": ["scroll-mr", "scroll-ml"],
+        "scroll-my": ["scroll-mt", "scroll-mb"],
+        "scroll-p": ["scroll-px", "scroll-py", "scroll-ps", "scroll-pe", "scroll-pt", "scroll-pr", "scroll-pb", "scroll-pl"],
+        "scroll-px": ["scroll-pr", "scroll-pl"],
+        "scroll-py": ["scroll-pt", "scroll-pb"],
+        touch: ["touch-x", "touch-y", "touch-pz"],
+        "touch-x": ["touch"],
+        "touch-y": ["touch"],
+        "touch-pz": ["touch"]
+      },
+      conflictingClassGroupModifiers: {
+        "font-size": ["leading"]
+      }
+    };
+  };
+  var twMerge = /* @__PURE__ */ createTailwindMerge(getDefaultConfig);
+
+  // packages/ui/dist/index.js
+  function cn(...inputs) {
+    return twMerge(clsx(inputs));
+  }
+  function prefersReducedMotion2() {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+  var variantStyles = {
+    primary: "bg-blue-600 text-white hover:bg-blue-700 shadow-brand-sm hover:shadow-brand-md",
+    secondary: "bg-slate-100 text-slate-900 hover:bg-slate-200",
+    outline: "border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-blue-200 hover:text-blue-600",
+    ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+    destructive: "bg-red-600 text-white hover:bg-red-700"
+  };
+  var sizeStyles = {
+    sm: "h-8 px-3 text-sm",
+    md: "h-10 px-4 text-base",
+    lg: "h-12 px-6 text-lg"
+  };
+  var Spinner = () => /* @__PURE__ */ jsxs(
+    "svg",
+    {
+      className: "animate-spin -ml-1 mr-2 h-4 w-4",
+      fill: "none",
+      viewBox: "0 0 24 24",
+      "aria-hidden": "true",
+      children: [
+        /* @__PURE__ */ jsx(
+          "circle",
+          {
+            className: "opacity-25",
+            cx: "12",
+            cy: "12",
+            r: "10",
+            stroke: "currentColor",
+            strokeWidth: "4"
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "path",
+          {
+            className: "opacity-75",
+            fill: "currentColor",
+            d: "M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+          }
+        )
+      ]
+    }
+  );
+  var Button = forwardRef(
+    ({
+      variant = "primary",
+      size = "md",
+      loading = false,
+      className,
+      children,
+      disabled,
+      ...props
+    }, ref) => {
+      const reducedMotion = prefersReducedMotion2();
+      return /* @__PURE__ */ jsxs(
+        motion.button,
+        {
+          ref,
+          whileHover: reducedMotion ? void 0 : { scale: 1.02 },
+          whileTap: reducedMotion ? void 0 : { scale: 0.98 },
+          transition: { duration: 0.15 },
+          className: cn(
+            // Base styles
+            "inline-flex items-center justify-center font-medium rounded-full",
+            "transition-all duration-fast",
+            // Focus styles
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2",
+            // Disabled styles
+            "disabled:opacity-50 disabled:pointer-events-none",
+            // Variant styles
+            variantStyles[variant],
+            // Size styles
+            sizeStyles[size],
+            className
+          ),
+          disabled: disabled || loading,
+          "aria-busy": loading,
+          ...props,
+          children: [
+            loading && /* @__PURE__ */ jsx(Spinner, {}),
+            children
+          ]
+        }
+      );
+    }
+  );
+  Button.displayName = "Button";
+  var aspectRatioStyles = {
+    square: "aspect-square",
+    portrait: "aspect-[4/5]",
+    landscape: "aspect-video"
+  };
+  var badgeStyles = {
+    NEW: "bg-blue-50 text-blue-600",
+    SALE: "bg-red-50 text-red-600",
+    HOT: "bg-orange-50 text-orange-600"
+  };
+  var ProductCard = forwardRef(
+    ({
+      image,
+      title,
+      description,
+      price,
+      originalPrice,
+      badge,
+      aspectRatio: aspectRatio2 = "portrait",
+      currency = "\xA5",
+      onAddToCart,
+      className,
+      ...props
+    }, ref) => {
+      const reducedMotion = prefersReducedMotion2();
+      return /* @__PURE__ */ jsxs(
+        motion.div,
+        {
+          ref,
+          initial: reducedMotion ? void 0 : { opacity: 0, y: 20 },
+          whileInView: reducedMotion ? void 0 : { opacity: 1, y: 0 },
+          viewport: { once: true },
+          whileHover: reducedMotion ? void 0 : { y: -8 },
+          transition: { duration: 0.3, ease: [0, 0, 0.2, 1] },
+          className: cn("group cursor-pointer", className),
+          ...props,
+          children: [
+            /* @__PURE__ */ jsxs(
+              "div",
+              {
+                className: cn(
+                  "bg-slate-50 rounded-2xl mb-4 overflow-hidden relative",
+                  "shadow-sm transition-all duration-normal",
+                  "group-hover:shadow-card-hover",
+                  "border border-transparent group-hover:border-blue-100",
+                  aspectRatioStyles[aspectRatio2]
+                ),
+                children: [
+                  image ? /* @__PURE__ */ jsx(
+                    "img",
+                    {
+                      src: image,
+                      alt: title,
+                      className: "w-full h-full object-cover transition-transform duration-slow group-hover:scale-105"
+                    }
+                  ) : /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-gradient-to-tr from-slate-100 to-white" }),
+                  badge && /* @__PURE__ */ jsx(
+                    "div",
+                    {
+                      className: cn(
+                        "absolute top-3 right-3",
+                        "bg-white/90 backdrop-blur px-2.5 py-1 rounded-full",
+                        "text-xs font-bold shadow-sm",
+                        badgeStyles[badge]
+                      ),
+                      children: badge
+                    }
+                  ),
+                  /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-blue-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-normal" })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsx("h3", { className: "text-base font-semibold text-slate-900 mb-1 group-hover:text-blue-600 transition-colors line-clamp-2", children: title }),
+            description && /* @__PURE__ */ jsx("p", { className: "text-slate-500 text-sm mb-2 line-clamp-2", children: description }),
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between mt-2", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
+                /* @__PURE__ */ jsxs("span", { className: "text-lg font-bold text-slate-900", children: [
+                  currency,
+                  price.toLocaleString()
+                ] }),
+                originalPrice && /* @__PURE__ */ jsxs("span", { className: "text-sm text-slate-400 line-through", children: [
+                  currency,
+                  originalPrice.toLocaleString()
+                ] })
+              ] }),
+              onAddToCart && /* @__PURE__ */ jsx(
+                "button",
+                {
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    onAddToCart();
+                  },
+                  className: cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center",
+                    "bg-blue-50 text-blue-600",
+                    "hover:bg-blue-600 hover:text-white",
+                    "transition-all duration-fast shadow-sm hover:shadow-brand-sm",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+                  ),
+                  "aria-label": `Add ${title} to cart`,
+                  children: /* @__PURE__ */ jsx("svg", { className: "w-4 h-4", fill: "none", viewBox: "0 0 24 24", stroke: "currentColor", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M12 4v16m8-8H4" }) })
+                }
+              )
+            ] })
+          ]
+        }
+      );
+    }
+  );
+  ProductCard.displayName = "ProductCard";
+  var Input = forwardRef(
+    ({
+      label,
+      error,
+      hint,
+      prefixIcon,
+      suffixIcon,
+      className,
+      id: id3,
+      disabled,
+      ...props
+    }, ref) => {
+      const generatedId = useId();
+      const inputId = id3 || generatedId;
+      const errorId = `${inputId}-error`;
+      const hintId = `${inputId}-hint`;
+      const hasError = !!error;
+      return /* @__PURE__ */ jsxs("div", { className: "w-full", children: [
+        label && /* @__PURE__ */ jsx(
+          "label",
+          {
+            htmlFor: inputId,
+            className: "block text-sm font-medium text-slate-700 mb-1.5",
+            children: label
+          }
+        ),
+        /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+          prefixIcon && /* @__PURE__ */ jsx("div", { className: "absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none", children: prefixIcon }),
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              ref,
+              id: inputId,
+              className: cn(
+                // Base styles
+                "w-full h-10 px-4 rounded-lg border bg-white",
+                "text-slate-900 placeholder:text-slate-400",
+                "transition-all duration-fast",
+                // Focus styles
+                "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent",
+                // Error styles
+                hasError ? "border-red-500 focus:ring-red-500" : "border-slate-200 hover:border-slate-300",
+                // Disabled styles
+                disabled && "bg-slate-50 text-slate-500 cursor-not-allowed",
+                // Icon padding
+                prefixIcon && "pl-10",
+                suffixIcon && "pr-10",
+                className
+              ),
+              disabled,
+              "aria-invalid": hasError ? "true" : void 0,
+              "aria-describedby": hasError ? errorId : hint ? hintId : void 0,
+              ...props
+            }
+          ),
+          suffixIcon && /* @__PURE__ */ jsx("div", { className: "absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none", children: suffixIcon })
+        ] }),
+        hasError && /* @__PURE__ */ jsxs(
+          "p",
+          {
+            id: errorId,
+            className: "mt-1.5 text-sm text-red-600 flex items-center gap-1",
+            role: "alert",
+            children: [
+              /* @__PURE__ */ jsx("svg", { className: "w-4 h-4 flex-shrink-0", fill: "currentColor", viewBox: "0 0 20 20", children: /* @__PURE__ */ jsx(
+                "path",
+                {
+                  fillRule: "evenodd",
+                  d: "M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z",
+                  clipRule: "evenodd"
+                }
+              ) }),
+              error
+            ]
+          }
+        ),
+        hint && !hasError && /* @__PURE__ */ jsx("p", { id: hintId, className: "mt-1.5 text-sm text-slate-500", children: hint })
+      ] });
+    }
+  );
+  Input.displayName = "Input";
+  function Navigation({ logo, items, actions, className }) {
+    const [scrolled, setScrolled] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const reducedMotion = prefersReducedMotion2();
+    useEffect(() => {
+      const handleScroll = () => setScrolled(window.scrollY > 0);
+      window.addEventListener("scroll", handleScroll, { passive: true });
+      return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+    useEffect(() => {
+      const handleResize = () => {
+        if (window.innerWidth >= 768) {
+          setMobileMenuOpen(false);
+        }
+      };
+      window.addEventListener("resize", handleResize);
+      return () => window.removeEventListener("resize", handleResize);
+    }, []);
+    return /* @__PURE__ */ jsxs(
+      "nav",
+      {
+        className: cn(
+          "sticky top-0 z-50 h-16 bg-white/90 backdrop-blur-md transition-all duration-normal",
+          scrolled && "border-b border-slate-100 shadow-sm",
+          className
+        ),
+        children: [
+          /* @__PURE__ */ jsxs("div", { className: "max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between", children: [
+            /* @__PURE__ */ jsx("div", { className: "flex-shrink-0", children: logo }),
+            /* @__PURE__ */ jsx("div", { className: "hidden md:flex gap-8 text-sm font-medium", children: items.map((item) => /* @__PURE__ */ jsx(
+              "a",
+              {
+                href: item.href,
+                className: cn(
+                  "transition-colors duration-fast",
+                  item.active ? "text-blue-600 font-semibold" : "text-slate-500 hover:text-blue-600"
+                ),
+                "aria-current": item.active ? "page" : void 0,
+                children: item.label
+              },
+              item.href
+            )) }),
+            /* @__PURE__ */ jsx("div", { className: "hidden md:flex items-center gap-4", children: actions }),
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                className: cn(
+                  "md:hidden p-2 -mr-2 rounded-lg",
+                  "text-slate-600 hover:bg-slate-100",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+                ),
+                onClick: () => setMobileMenuOpen(!mobileMenuOpen),
+                "aria-label": mobileMenuOpen ? "Close menu" : "Open menu",
+                "aria-expanded": mobileMenuOpen,
+                "aria-controls": "mobile-menu",
+                children: /* @__PURE__ */ jsx("svg", { className: "w-6 h-6", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: mobileMenuOpen ? /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M6 18L18 6M6 6l12 12" }) : /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: "2", d: "M4 6h16M4 12h16M4 18h16" }) })
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsx(AnimatePresence, { children: mobileMenuOpen && /* @__PURE__ */ jsx(
+            motion.div,
+            {
+              id: "mobile-menu",
+              initial: reducedMotion ? { opacity: 1 } : { opacity: 0, height: 0 },
+              animate: reducedMotion ? { opacity: 1 } : { opacity: 1, height: "auto" },
+              exit: reducedMotion ? { opacity: 0 } : { opacity: 0, height: 0 },
+              transition: { duration: 0.2 },
+              className: "md:hidden bg-white border-t border-slate-100 overflow-hidden",
+              children: /* @__PURE__ */ jsxs("div", { className: "py-4 px-4 sm:px-6 space-y-1", children: [
+                items.map((item) => /* @__PURE__ */ jsx(
+                  "a",
+                  {
+                    href: item.href,
+                    className: cn(
+                      "block py-2.5 px-3 rounded-lg text-base transition-colors",
+                      item.active ? "text-blue-600 font-semibold bg-blue-50" : "text-slate-600 hover:bg-slate-50"
+                    ),
+                    onClick: () => setMobileMenuOpen(false),
+                    children: item.label
+                  },
+                  item.href
+                )),
+                actions && /* @__PURE__ */ jsx("div", { className: "mt-4 pt-4 border-t border-slate-100", children: actions })
+              ] })
+            }
+          ) })
+        ]
+      }
+    );
+  }
+  Navigation.displayName = "Navigation";
+  var gapStyles = {
+    sm: "gap-4",
+    md: "gap-6",
+    lg: "gap-8"
+  };
+  function ProductGrid({
+    children,
+    columns = { sm: 2, md: 3, lg: 4 },
+    gap = "md",
+    className
+  }) {
+    const columnClasses = cn(
+      "grid-cols-1",
+      columns.sm && `sm:grid-cols-${columns.sm}`,
+      columns.md && `md:grid-cols-${columns.md}`,
+      columns.lg && `lg:grid-cols-${columns.lg}`,
+      columns.xl && `xl:grid-cols-${columns.xl}`
+    );
+    return /* @__PURE__ */ jsx(
+      "div",
+      {
+        className: cn(
+          "grid",
+          columnClasses,
+          gapStyles[gap],
+          className
+        ),
+        children
+      }
+    );
+  }
+  ProductGrid.displayName = "ProductGrid";
+
+  // packages/shop-themes/default/src/components/AuthCallbackPage.tsx
+  function AuthCallbackPage({ isLoading, error, config }) {
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gradient-to-br from-brand-50 via-white to-purple-50 flex items-center justify-center px-4", children: /* @__PURE__ */ jsx("div", { className: "w-full max-w-md", children: /* @__PURE__ */ jsx("div", { className: "bg-white rounded-2xl shadow-brand-md border border-neutral-100 p-8 space-y-6", children: error ? /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
+      /* @__PURE__ */ jsx("div", { className: "inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-error-50 mb-4", children: /* @__PURE__ */ jsx("svg", { className: "h-8 w-8 text-error-600", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M6 18L18 6M6 6l12 12" }) }) }),
+      /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold text-neutral-900 mb-2", children: "Authentication Failed" }),
+      /* @__PURE__ */ jsx("p", { className: "text-neutral-500 mb-6", children: error }),
+      /* @__PURE__ */ jsx("a", { href: "/auth/login", children: /* @__PURE__ */ jsx(Button, { children: "Back to Login" }) })
+    ] }) : /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
+      /* @__PURE__ */ jsx("div", { className: "inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-brand-50 mb-4", children: /* @__PURE__ */ jsx(LoaderCircle, { className: "h-8 w-8 text-brand-600 animate-spin" }) }),
+      /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold text-neutral-900 mb-2", children: "Completing Sign In" }),
+      /* @__PURE__ */ jsx("p", { className: "text-neutral-500", children: "Please wait while we complete your authentication..." })
+    ] }) }) }) });
+  }
+
+  // packages/shop-themes/default/src/components/CartPage.tsx
+  var CartPage = react_default.memo(function CartPage2({
+    cart,
+    isLoading,
+    config,
+    onUpdateQuantity,
+    onRemoveItem,
+    onCheckout,
+    onCheckoutSelected,
+    selectedItemIds,
+    selectedItemCount,
+    onToggleItemSelection,
+    onSelectAllItems,
+    onDeselectAllItems,
+    onContinueShopping,
+    t
+  }) {
+    const getText = (key, fallback) => {
+      return t ? t(key) : fallback;
+    };
+    const supportsSelection = Boolean(
+      onCheckoutSelected && onToggleItemSelection && onSelectAllItems && onDeselectAllItems
+    );
+    const effectiveSelectedIds = supportsSelection ? selectedItemIds || [] : cart.items.map((item) => item.id);
+    const selectedIdSet = new Set(effectiveSelectedIds);
+    const selectedItems = supportsSelection ? cart.items.filter((item) => selectedIdSet.has(item.id)) : cart.items;
+    const selectedSubtotal = selectedItems.reduce((sum, item) => sum + item.subtotal, 0);
+    const ratio = cart.subtotal > 0 ? selectedSubtotal / cart.subtotal : 0;
+    const selectedTax = Number(((cart.tax || 0) * ratio).toFixed(2));
+    const selectedShipping = Number(((cart.shipping || 0) * ratio).toFixed(2));
+    const selectedDiscount = Number(((cart.discount || 0) * ratio).toFixed(2));
+    const selectedTotal = Number((selectedSubtotal + selectedTax + selectedShipping - selectedDiscount).toFixed(2));
+    const selectedQuantity = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+    const allSelected = cart.items.length > 0 && effectiveSelectedIds.length === cart.items.length;
+    const hasSelection = effectiveSelectedIds.length > 0;
+    if (cart.items.length === 0) {
+      return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 pt-20", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 py-8 sm:py-12", children: /* @__PURE__ */ jsxs("div", { className: "max-w-4xl mx-auto", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-6 sm:mb-8", children: [
+          /* @__PURE__ */ jsx("div", { className: "h-4 w-1 bg-blue-600 dark:bg-blue-400 rounded-full" }),
+          /* @__PURE__ */ jsx("h1", { className: "text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: getText("shop.cart.title", "SHOPPING CART") })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "text-center py-16 sm:py-20 bg-white dark:bg-slate-800 rounded-2xl sm:rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 rounded-2xl bg-gray-50 dark:bg-slate-900 flex items-center justify-center", children: /* @__PURE__ */ jsx(ShoppingBag, { className: "h-10 w-10 sm:h-12 sm:w-12 text-gray-300 dark:text-gray-600" }) }),
+          /* @__PURE__ */ jsx("h2", { className: "text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2 sm:mb-3", children: getText("shop.cart.empty", "Your cart is empty") }),
+          /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-6 sm:mb-8", children: getText("shop.cart.emptyDescription", "ADD ITEMS TO GET STARTED") }),
+          /* @__PURE__ */ jsxs(
+            "button",
+            {
+              onClick: onContinueShopping,
+              className: "h-10 sm:h-11 px-5 sm:px-6 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 dark:shadow-blue-900/30 bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white inline-flex items-center gap-2",
+              children: [
+                /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
+                getText("shop.cart.continueShopping", "CONTINUE SHOPPING")
+              ]
+            }
+          )
+        ] })
+      ] }) }) });
+    }
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 pt-20", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 py-8 sm:py-12", children: /* @__PURE__ */ jsxs("div", { className: "max-w-7xl mx-auto", children: [
+      /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 sm:gap-4 mb-6 sm:mb-8", children: [
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: onContinueShopping,
+            className: "w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-700 transition-all shadow-sm",
+            children: /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" })
+          }
+        ),
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 dark:bg-blue-400 rounded-full" }),
+            /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "CHECKOUT" })
+          ] }),
+          /* @__PURE__ */ jsx("h1", { className: "text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight", children: getText("shop.cart.title", "Shopping Cart") }),
+          /* @__PURE__ */ jsxs("span", { className: "text-xs text-gray-500 dark:text-gray-400 font-medium", children: [
+            supportsSelection ? selectedQuantity : cart.itemCount,
+            " ",
+            getText("shop.cart.items", "items")
+          ] })
+        ] })
+      ] }),
+      supportsSelection && /* @__PURE__ */ jsxs("div", { className: "mb-4 sm:mb-5 flex items-center justify-between rounded-xl sm:rounded-2xl border border-gray-100 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 sm:p-4 shadow-sm", children: [
+        /* @__PURE__ */ jsxs(
+          "button",
+          {
+            type: "button",
+            onClick: () => {
+              if (allSelected) {
+                onDeselectAllItems?.();
+                return;
+              }
+              onSelectAllItems?.();
+            },
+            className: "inline-flex items-center gap-2 text-sm font-semibold text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400",
+            children: [
+              /* @__PURE__ */ jsx(
+                "span",
+                {
+                  className: cn(
+                    "flex h-5 w-5 items-center justify-center rounded-md border",
+                    allSelected ? "border-blue-600 dark:border-blue-400 bg-blue-600 dark:bg-blue-500 text-white" : "border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-transparent"
+                  ),
+                  children: /* @__PURE__ */ jsx(Check, { className: "h-3.5 w-3.5" })
+                }
+              ),
+              allSelected ? getText("shop.cart.deselectAll", "Deselect all") : getText("shop.cart.selectAll", "Select all")
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxs("span", { className: "text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400", children: [
+          selectedItemCount ?? effectiveSelectedIds.length,
+          " ",
+          getText("shop.cart.selected", "selected")
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8", children: [
+        /* @__PURE__ */ jsx("div", { className: "lg:col-span-2 space-y-3 sm:space-y-4", children: cart.items.map((item) => /* @__PURE__ */ jsx("div", { className: "bg-white dark:bg-slate-800 rounded-2xl sm:rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm hover:shadow-md dark:hover:shadow-slate-900/50 transition-shadow p-4 sm:p-6", children: /* @__PURE__ */ jsxs("div", { className: "flex gap-3 sm:gap-5", children: [
+          supportsSelection && /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => onToggleItemSelection?.(item.id),
+              className: cn(
+                "mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border transition-colors",
+                selectedIdSet.has(item.id) ? "border-blue-600 dark:border-blue-400 bg-blue-600 dark:bg-blue-500 text-white" : "border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-transparent"
+              ),
+              "aria-label": selectedIdSet.has(item.id) ? "Deselect item" : "Select item",
+              children: /* @__PURE__ */ jsx(Check, { className: "h-3.5 w-3.5" })
+            }
+          ),
+          /* @__PURE__ */ jsx("div", { className: "relative w-20 h-20 sm:w-28 sm:h-28 flex-shrink-0 rounded-xl sm:rounded-2xl overflow-hidden bg-gray-50 dark:bg-slate-900 border border-gray-100 dark:border-slate-700", children: /* @__PURE__ */ jsx(
+            "img",
+            {
+              src: item.productImage || "/placeholder-product.svg",
+              alt: item.productName,
+              className: "w-full h-full object-cover"
+            }
+          ) }),
+          /* @__PURE__ */ jsxs("div", { className: "flex-1 min-w-0", children: [
+            /* @__PURE__ */ jsx("h3", { className: "font-bold text-base sm:text-lg text-gray-900 dark:text-white mb-1 truncate", children: item.productName }),
+            item.variantName && /* @__PURE__ */ jsxs("p", { className: "text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium uppercase tracking-wider", children: [
+              getText("shop.cart.variant", "VARIANT"),
+              ": ",
+              item.variantName
+            ] }),
+            /* @__PURE__ */ jsxs("p", { className: "text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400", children: [
+              "$",
+              item.price
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-end gap-3 sm:gap-4", children: [
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                onClick: () => onRemoveItem(item.id),
+                disabled: isLoading,
+                className: "w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gray-50 dark:bg-slate-900 flex items-center justify-center text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all disabled:opacity-50 border border-gray-100 dark:border-slate-700",
+                title: getText("shop.cart.remove", "Remove"),
+                children: /* @__PURE__ */ jsx(Trash2, { className: "h-4 w-4" })
+              }
+            ),
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center rounded-xl overflow-hidden border border-gray-100 dark:border-slate-700 bg-gray-50/50 dark:bg-slate-900/50", children: [
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  onClick: () => onUpdateQuantity(item.id, item.quantity - 1),
+                  disabled: isLoading || item.quantity <= 1,
+                  className: "p-2 sm:p-2.5 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors",
+                  children: /* @__PURE__ */ jsx(Minus, { className: "h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-600 dark:text-gray-400" })
+                }
+              ),
+              /* @__PURE__ */ jsx("span", { className: "px-3 sm:px-4 py-2 min-w-[2.5rem] sm:min-w-[3rem] text-center font-bold text-gray-900 dark:text-white text-sm sm:text-base", children: item.quantity }),
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  onClick: () => onUpdateQuantity(item.id, item.quantity + 1),
+                  disabled: isLoading || item.quantity >= item.maxQuantity,
+                  className: "p-2 sm:p-2.5 hover:bg-gray-100 dark:hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors",
+                  children: /* @__PURE__ */ jsx(Plus, { className: "h-3.5 w-3.5 sm:h-4 sm:w-4 text-gray-600 dark:text-gray-400" })
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxs("p", { className: "text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider", children: [
+              getText("shop.cart.subtotal", "SUBTOTAL"),
+              ": ",
+              /* @__PURE__ */ jsxs("span", { className: "font-bold text-gray-900 dark:text-white", children: [
+                "$",
+                item.subtotal.toFixed(2)
+              ] })
+            ] })
+          ] })
+        ] }) }, item.id)) }),
+        /* @__PURE__ */ jsx("div", { className: "lg:col-span-1", children: /* @__PURE__ */ jsxs("div", { className: "sticky top-8 bg-white rounded-3xl border border-gray-100 shadow-sm p-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-6", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+            /* @__PURE__ */ jsx("h2", { className: "text-xs font-bold text-gray-400 uppercase tracking-widest", children: getText("shop.cart.orderSummary", "ORDER SUMMARY") })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "space-y-4 mb-6", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-gray-500 font-medium", children: getText("shop.cart.subtotal", "Subtotal") }),
+              /* @__PURE__ */ jsxs("span", { className: "text-gray-900 font-bold", children: [
+                "$",
+                selectedSubtotal.toFixed(2)
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-gray-500 font-medium", children: getText("shop.cart.tax", "Tax") }),
+              /* @__PURE__ */ jsxs("span", { className: "text-gray-900 font-bold", children: [
+                "$",
+                selectedTax.toFixed(2)
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-gray-500 font-medium", children: getText("shop.cart.shipping", "Shipping") }),
+              /* @__PURE__ */ jsx("span", { className: selectedShipping === 0 ? "text-green-600 font-bold" : "text-gray-900 font-bold", children: selectedShipping === 0 ? getText("shop.cart.shippingFree", "FREE") : `$${selectedShipping.toFixed(2)}` })
+            ] }),
+            selectedDiscount > 0 && /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm text-green-600", children: [
+              /* @__PURE__ */ jsx("span", { className: "font-medium", children: getText("shop.cart.discount", "Discount") }),
+              /* @__PURE__ */ jsxs("span", { className: "font-bold", children: [
+                "-$",
+                selectedDiscount.toFixed(2)
+              ] })
+            ] }),
+            /* @__PURE__ */ jsx("div", { className: "border-t border-gray-100 pt-4", children: /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-lg", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-gray-900 font-bold", children: getText("shop.cart.total", "Total") }),
+              /* @__PURE__ */ jsxs("span", { className: "text-blue-600 font-bold", children: [
+                "$",
+                selectedTotal.toFixed(2)
+              ] })
+            ] }) })
+          ] }),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              onClick: () => {
+                if (supportsSelection && onCheckoutSelected) {
+                  onCheckoutSelected(effectiveSelectedIds);
+                  return;
+                }
+                onCheckout();
+              },
+              disabled: isLoading || supportsSelection && !hasSelection,
+              className: "w-full h-12 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 transition-all bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 mb-3",
+              children: getText("shop.cart.checkout", "PROCEED TO CHECKOUT")
+            }
+          ),
+          /* @__PURE__ */ jsxs(
+            "button",
+            {
+              onClick: onContinueShopping,
+              className: "w-full h-11 rounded-xl border border-gray-200 hover:bg-gray-50 font-semibold text-sm text-gray-700 transition-all flex items-center justify-center gap-2",
+              children: [
+                /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
+                getText("shop.cart.continueShopping", "CONTINUE SHOPPING")
+              ]
+            }
+          )
+        ] }) })
+      ] })
+    ] }) }) });
+  });
+
+  // packages/shop-themes/default/src/components/CheckoutPage.tsx
+  var CheckoutPage = react_default.memo(function CheckoutPage2({
+    cart,
+    isLoading,
+    isProcessing,
+    config,
+    requireShippingAddress,
+    countriesRequireStatePostal,
+    currentUserEmail,
+    availablePaymentMethods,
+    onSubmit,
+    onBack,
+    t
+  }) {
+    const countriesRequireStatePostalSet = react_default.useMemo(() => {
+      const source = countriesRequireStatePostal && countriesRequireStatePostal.length > 0 ? countriesRequireStatePostal : ["US", "CA", "AU", "CN", "GB"];
+      return new Set(
+        source.map((item) => item.trim().toUpperCase()).map((item) => item === "UK" ? "GB" : item)
+      );
+    }, [countriesRequireStatePostal]);
+    const paymentMethods = react_default.useMemo(
+      () => availablePaymentMethods || [],
+      [availablePaymentMethods]
+    );
+    const getText = (key, fallback) => {
+      return t ? t(key) : fallback;
+    };
+    const [formData, setFormData] = react_default.useState({
+      email: "",
+      firstName: "",
+      lastName: "",
+      addressLine1: "",
+      city: "",
+      state: "",
+      postalCode: "",
+      country: "",
+      phone: "",
+      paymentMethod: paymentMethods[0]?.name || ""
+    });
+    const [errors, setErrors] = react_default.useState({});
+    const hasShippingInput = react_default.useMemo(
+      () => [
+        formData.firstName,
+        formData.lastName,
+        formData.phone,
+        formData.addressLine1,
+        formData.city,
+        formData.state,
+        formData.postalCode,
+        formData.country
+      ].some((value) => value.trim().length > 0),
+      [formData]
+    );
+    const shouldEnforceShippingAddress = Boolean(requireShippingAddress || hasShippingInput);
+    const countryCode = formData.country.trim().toUpperCase();
+    const normalizedCountryCode = countryCode === "UK" ? "GB" : countryCode;
+    const statePostalRequired = shouldEnforceShippingAddress && countriesRequireStatePostalSet.has(normalizedCountryCode);
+    react_default.useEffect(() => {
+      if (paymentMethods.length === 0) return;
+      if (!paymentMethods.some((method) => method.name === formData.paymentMethod)) {
+        setFormData((prev) => ({
+          ...prev,
+          paymentMethod: paymentMethods[0].name
+        }));
+      }
+    }, [formData.paymentMethod, paymentMethods]);
+    react_default.useEffect(() => {
+      if (!currentUserEmail) return;
+      setFormData((prev) => {
+        if (prev.email === currentUserEmail) return prev;
+        if (prev.email.trim().length > 0) return prev;
+        return {
+          ...prev,
+          email: currentUserEmail
+        };
+      });
+    }, [currentUserEmail]);
+    const getPaymentIcon = (methodName) => {
+      const normalized = methodName.toLowerCase();
+      if (normalized === "stripe" || normalized === "card") {
+        return CreditCard;
+      }
+      return Wallet;
+    };
+    const handleChange = (e) => {
+      const { name, value } = e.target;
+      setFormData((prev) => ({ ...prev, [name]: value }));
+      if (errors[name]) {
+        setErrors((prev) => {
+          const newErrors = { ...prev };
+          delete newErrors[name];
+          return newErrors;
+        });
+      }
+    };
+    const validateForm = () => {
+      const newErrors = {};
+      if (shouldEnforceShippingAddress) {
+        if (!formData.firstName.trim()) newErrors.firstName = "First name is required";
+        if (!formData.lastName.trim()) newErrors.lastName = "Last name is required";
+        if (!formData.phone.trim()) newErrors.phone = "Phone number is required";
+        if (!formData.addressLine1.trim()) newErrors.addressLine1 = "Address is required";
+        if (!formData.city.trim()) newErrors.city = "City is required";
+        if (!formData.country.trim()) newErrors.country = "Country is required";
+        if (statePostalRequired) {
+          if (!formData.state.trim()) newErrors.state = "State is required for the selected country";
+          if (!formData.postalCode.trim()) newErrors.postalCode = "Postal code is required for the selected country";
+        }
+      }
+      if (formData.email && !/\S+@\S+\.\S+/.test(formData.email)) {
+        newErrors.email = "Invalid email format";
+      }
+      setErrors(newErrors);
+      return Object.keys(newErrors).length === 0;
+    };
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      if (!validateForm()) return;
+      await onSubmit(formData);
+    };
+    const inputStyles2 = cn(
+      "w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-slate-700",
+      "bg-gray-50/50 dark:bg-slate-800 text-sm font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
+      "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400",
+      "transition-all duration-150"
+    );
+    const errorInputStyles = "border-red-300 dark:border-red-700 focus:ring-red-500/20 focus:border-red-500";
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 pt-20", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 py-8", children: /* @__PURE__ */ jsxs("div", { className: "max-w-7xl mx-auto", children: [
+      /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4 mb-8", children: [
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: onBack,
+            className: "w-10 h-10 rounded-xl bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-200 dark:hover:border-blue-700 transition-all shadow-sm",
+            children: /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" })
+          }
+        ),
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+            /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "SECURE CHECKOUT" })
+          ] }),
+          /* @__PURE__ */ jsx("h1", { className: "text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight", children: "Checkout" })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8", children: [
+        /* @__PURE__ */ jsx("div", { className: "lg:col-span-2 space-y-6", children: /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "space-y-6", children: [
+          /* @__PURE__ */ jsx("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm", children: /* @__PURE__ */ jsxs("div", { className: "p-6 sm:p-8", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 mb-6", children: [
+              /* @__PURE__ */ jsx("div", { className: "w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center", children: /* @__PURE__ */ jsx(Truck, { className: "h-5 w-5 text-blue-600 dark:text-blue-400" }) }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
+                  /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+                  /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "STEP 1" })
+                ] }),
+                /* @__PURE__ */ jsx("h2", { className: "text-lg sm:text-xl font-bold text-gray-900 dark:text-white", children: "Shipping Information" })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "space-y-4", children: [
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("label", { htmlFor: "email", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2", children: "EMAIL" }),
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "email",
+                    id: "email",
+                    name: "email",
+                    value: formData.email,
+                    onChange: handleChange,
+                    className: cn(inputStyles2, errors.email && errorInputStyles),
+                    placeholder: "your@email.com"
+                  }
+                ),
+                errors.email && /* @__PURE__ */ jsx("p", { className: "text-red-600 dark:text-red-400 text-xs mt-1 font-medium", children: errors.email })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4", children: [
+                /* @__PURE__ */ jsxs("div", { children: [
+                  /* @__PURE__ */ jsxs("label", { htmlFor: "firstName", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2", children: [
+                    "FIRST NAME",
+                    shouldEnforceShippingAddress ? " *" : ""
+                  ] }),
+                  /* @__PURE__ */ jsx(
+                    "input",
+                    {
+                      type: "text",
+                      id: "firstName",
+                      name: "firstName",
+                      value: formData.firstName,
+                      onChange: handleChange,
+                      className: cn(inputStyles2, errors.firstName && errorInputStyles)
+                    }
+                  ),
+                  errors.firstName && /* @__PURE__ */ jsx("p", { className: "text-red-600 dark:text-red-400 text-xs mt-1 font-medium", children: errors.firstName })
+                ] }),
+                /* @__PURE__ */ jsxs("div", { children: [
+                  /* @__PURE__ */ jsxs("label", { htmlFor: "lastName", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2", children: [
+                    "LAST NAME",
+                    shouldEnforceShippingAddress ? " *" : ""
+                  ] }),
+                  /* @__PURE__ */ jsx(
+                    "input",
+                    {
+                      type: "text",
+                      id: "lastName",
+                      name: "lastName",
+                      value: formData.lastName,
+                      onChange: handleChange,
+                      className: cn(inputStyles2, errors.lastName && errorInputStyles)
+                    }
+                  ),
+                  errors.lastName && /* @__PURE__ */ jsx("p", { className: "text-red-600 dark:text-red-400 text-xs mt-1 font-medium", children: errors.lastName })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsxs("label", { htmlFor: "addressLine1", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2", children: [
+                  "ADDRESS",
+                  shouldEnforceShippingAddress ? " *" : ""
+                ] }),
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "text",
+                    id: "addressLine1",
+                    name: "addressLine1",
+                    value: formData.addressLine1,
+                    onChange: handleChange,
+                    className: cn(inputStyles2, errors.addressLine1 && errorInputStyles),
+                    placeholder: "Street address"
+                  }
+                ),
+                errors.addressLine1 && /* @__PURE__ */ jsx("p", { className: "text-red-600 dark:text-red-400 text-xs mt-1 font-medium", children: errors.addressLine1 })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4", children: [
+                /* @__PURE__ */ jsxs("div", { children: [
+                  /* @__PURE__ */ jsxs("label", { htmlFor: "city", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2", children: [
+                    "CITY",
+                    shouldEnforceShippingAddress ? " *" : ""
+                  ] }),
+                  /* @__PURE__ */ jsx(
+                    "input",
+                    {
+                      type: "text",
+                      id: "city",
+                      name: "city",
+                      value: formData.city,
+                      onChange: handleChange,
+                      className: cn(inputStyles2, errors.city && errorInputStyles)
+                    }
+                  ),
+                  errors.city && /* @__PURE__ */ jsx("p", { className: "text-red-600 dark:text-red-400 text-xs mt-1 font-medium", children: errors.city })
+                ] }),
+                /* @__PURE__ */ jsxs("div", { children: [
+                  /* @__PURE__ */ jsxs("label", { htmlFor: "state", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2", children: [
+                    "STATE",
+                    statePostalRequired ? " *" : ""
+                  ] }),
+                  /* @__PURE__ */ jsx(
+                    "input",
+                    {
+                      type: "text",
+                      id: "state",
+                      name: "state",
+                      value: formData.state,
+                      onChange: handleChange,
+                      className: cn(inputStyles2, errors.state && errorInputStyles),
+                      placeholder: "e.g., CA, NY"
+                    }
+                  ),
+                  errors.state && /* @__PURE__ */ jsx("p", { className: "text-red-600 dark:text-red-400 text-xs mt-1 font-medium", children: errors.state })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4", children: [
+                /* @__PURE__ */ jsxs("div", { children: [
+                  /* @__PURE__ */ jsxs("label", { htmlFor: "postalCode", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2", children: [
+                    "POSTAL CODE",
+                    statePostalRequired ? " *" : ""
+                  ] }),
+                  /* @__PURE__ */ jsx(
+                    "input",
+                    {
+                      type: "text",
+                      id: "postalCode",
+                      name: "postalCode",
+                      value: formData.postalCode,
+                      onChange: handleChange,
+                      className: cn(inputStyles2, errors.postalCode && errorInputStyles)
+                    }
+                  ),
+                  errors.postalCode && /* @__PURE__ */ jsx("p", { className: "text-red-600 dark:text-red-400 text-xs mt-1 font-medium", children: errors.postalCode })
+                ] }),
+                /* @__PURE__ */ jsxs("div", { children: [
+                  /* @__PURE__ */ jsxs("label", { htmlFor: "country", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2", children: [
+                    "COUNTRY",
+                    shouldEnforceShippingAddress ? " *" : ""
+                  ] }),
+                  /* @__PURE__ */ jsx(
+                    "input",
+                    {
+                      type: "text",
+                      id: "country",
+                      name: "country",
+                      value: formData.country,
+                      onChange: handleChange,
+                      className: cn(inputStyles2, errors.country && errorInputStyles),
+                      placeholder: "Country / Region"
+                    }
+                  ),
+                  errors.country && /* @__PURE__ */ jsx("p", { className: "text-red-600 dark:text-red-400 text-xs mt-1 font-medium", children: errors.country })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsxs("label", { htmlFor: "phone", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2", children: [
+                  "PHONE NUMBER",
+                  shouldEnforceShippingAddress ? " *" : ""
+                ] }),
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "tel",
+                    id: "phone",
+                    name: "phone",
+                    value: formData.phone,
+                    onChange: handleChange,
+                    className: cn(inputStyles2, errors.phone && errorInputStyles)
+                  }
+                ),
+                errors.phone && /* @__PURE__ */ jsx("p", { className: "text-red-600 dark:text-red-400 text-xs mt-1 font-medium", children: errors.phone })
+              ] })
+            ] })
+          ] }) }),
+          /* @__PURE__ */ jsx("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm", children: /* @__PURE__ */ jsxs("div", { className: "p-6 sm:p-8", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 mb-6", children: [
+              /* @__PURE__ */ jsx("div", { className: "w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center", children: /* @__PURE__ */ jsx(CreditCard, { className: "h-5 w-5 text-blue-600 dark:text-blue-400" }) }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
+                  /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+                  /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "STEP 2" })
+                ] }),
+                /* @__PURE__ */ jsx("h2", { className: "text-lg sm:text-xl font-bold text-gray-900 dark:text-white", children: "Payment Method" })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsx("div", { className: "space-y-3", children: paymentMethods.length === 0 ? /* @__PURE__ */ jsxs("div", { className: "p-8 text-center bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-100 dark:border-yellow-800 rounded-2xl", children: [
+              /* @__PURE__ */ jsx("div", { className: "w-16 h-16 mx-auto mb-4 rounded-2xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center", children: /* @__PURE__ */ jsx(CreditCard, { className: "h-8 w-8 text-yellow-600 dark:text-yellow-400" }) }),
+              /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold text-gray-900 dark:text-white mb-2", children: getText("shop.checkout.noPaymentMethods", "No Payment Methods Available") }),
+              /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 mb-4", children: getText("shop.checkout.installPaymentPlugin", "Please install a payment plugin to enable checkout functionality.") }),
+              /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-500 dark:text-gray-500", children: getText("shop.checkout.contactAdmin", "Contact your administrator to configure payment methods.") })
+            ] }) : paymentMethods.map((method) => {
+              const Icon2 = getPaymentIcon(method.name);
+              return /* @__PURE__ */ jsxs(
+                "label",
+                {
+                  className: cn(
+                    "flex items-center gap-4 p-4 border rounded-2xl cursor-pointer transition-all",
+                    formData.paymentMethod === method.name ? "border-blue-500 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-900/20 ring-2 ring-blue-500/20" : "border-gray-100 dark:border-slate-700 hover:border-gray-200 dark:hover:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700/50"
+                  ),
+                  children: [
+                    /* @__PURE__ */ jsx(
+                      "input",
+                      {
+                        type: "radio",
+                        name: "paymentMethod",
+                        value: method.name,
+                        checked: formData.paymentMethod === method.name,
+                        onChange: handleChange,
+                        className: "w-4 h-4 text-blue-600"
+                      }
+                    ),
+                    /* @__PURE__ */ jsx(Icon2, { className: "h-5 w-5 text-gray-600 dark:text-gray-400" }),
+                    /* @__PURE__ */ jsx("span", { className: "font-bold text-sm text-gray-900 dark:text-white", children: method.displayName.toUpperCase() })
+                  ]
+                },
+                method.name
+              );
+            }) })
+          ] }) }),
+          /* @__PURE__ */ jsxs(
+            "button",
+            {
+              type: "submit",
+              disabled: isLoading || isProcessing || paymentMethods.length === 0,
+              className: "w-full h-12 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 transition-all bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2",
+              children: [
+                /* @__PURE__ */ jsx(Lock, { className: "h-4 w-4" }),
+                isProcessing ? getText("shop.checkout.processing", "PROCESSING...") : getText("shop.checkout.placeOrder", "PLACE ORDER")
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-500 text-center font-medium", children: getText("shop.checkout.termsNotice", 'By clicking "Place Order", you agree to our Terms of Service and Privacy Policy') })
+        ] }) }),
+        /* @__PURE__ */ jsx("div", { className: "lg:col-span-1", children: /* @__PURE__ */ jsx("div", { className: "bg-white rounded-3xl border border-gray-100 shadow-sm sticky top-8", children: /* @__PURE__ */ jsxs("div", { className: "p-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-6", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+            /* @__PURE__ */ jsx("h2", { className: "text-xs font-bold text-gray-400 uppercase tracking-widest", children: "ORDER SUMMARY" })
+          ] }),
+          /* @__PURE__ */ jsx("div", { className: "space-y-4 mb-6 max-h-64 overflow-y-auto", children: cart.items.map((item) => /* @__PURE__ */ jsxs("div", { className: "flex gap-3", children: [
+            /* @__PURE__ */ jsx("div", { className: "relative w-16 h-16 flex-shrink-0 rounded-xl overflow-hidden bg-gray-50 border border-gray-100", children: /* @__PURE__ */ jsx(
+              "img",
+              {
+                src: item.productImage || "/placeholder-product.svg",
+                alt: item.productName,
+                className: "w-full h-full object-cover"
+              }
+            ) }),
+            /* @__PURE__ */ jsxs("div", { className: "flex-1 min-w-0", children: [
+              /* @__PURE__ */ jsx("p", { className: "font-bold text-sm truncate text-gray-900", children: item.productName }),
+              item.variantName && /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-500 uppercase tracking-wider", children: item.variantName }),
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between mt-1", children: [
+                /* @__PURE__ */ jsxs("p", { className: "text-xs text-gray-500 font-medium", children: [
+                  "x",
+                  item.quantity
+                ] }),
+                /* @__PURE__ */ jsxs("p", { className: "text-sm font-bold text-blue-600", children: [
+                  "$",
+                  item.subtotal.toFixed(2)
+                ] })
+              ] })
+            ] })
+          ] }, item.id)) }),
+          /* @__PURE__ */ jsxs("div", { className: "space-y-3 mb-6 border-t border-gray-100 pt-4", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-gray-500 font-medium", children: "Subtotal" }),
+              /* @__PURE__ */ jsxs("span", { className: "text-gray-900 font-bold", children: [
+                "$",
+                cart.subtotal.toFixed(2)
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-gray-500 font-medium", children: "Shipping" }),
+              /* @__PURE__ */ jsx("span", { className: cart.shipping === 0 ? "text-green-600 font-bold" : "text-gray-900 font-bold", children: cart.shipping === 0 ? "FREE" : `$${cart.shipping.toFixed(2)}` })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-gray-500 font-medium", children: "Tax" }),
+              /* @__PURE__ */ jsxs("span", { className: "text-gray-900 font-bold", children: [
+                "$",
+                cart.tax.toFixed(2)
+              ] })
+            ] }),
+            ((cart.discount || 0) > 0 || cart?.discountAmount > 0) && /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-sm text-green-600", children: [
+              /* @__PURE__ */ jsxs("span", { className: "flex items-center gap-2 font-medium", children: [
+                "Discount",
+                cart?.appliedDiscountCodes && cart.appliedDiscountCodes.length > 0 && /* @__PURE__ */ jsxs("span", { className: "text-xs text-gray-500", children: [
+                  "(",
+                  cart.appliedDiscountCodes.join(", "),
+                  ")"
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("span", { className: "font-bold", children: [
+                "-$",
+                (cart?.discountAmount || cart.discount || 0).toFixed(2)
+              ] })
+            ] }),
+            /* @__PURE__ */ jsx("div", { className: "border-t border-gray-100 pt-3", children: /* @__PURE__ */ jsxs("div", { className: "flex justify-between text-lg", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-gray-900 font-bold", children: "Total" }),
+              /* @__PURE__ */ jsxs("span", { className: "text-blue-600 font-bold", children: [
+                "$",
+                cart.total.toFixed(2)
+              ] })
+            ] }) })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3 p-4 bg-green-50 rounded-2xl border border-green-100", children: [
+            /* @__PURE__ */ jsx(Lock, { className: "h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" }),
+            /* @__PURE__ */ jsx("p", { className: "text-xs text-green-700 font-medium leading-relaxed", children: "Your payment information is encrypted and secure. We do not store your credit card details." })
+          ] })
+        ] }) }) })
+      ] })
+    ] }) }) });
+  });
+
+  // packages/shop-themes/default/src/components/ContactPage.tsx
+  var inputStyles = cn(
+    "w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-slate-700",
+    "bg-gray-50/50 dark:bg-slate-800 text-sm font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
+    "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400",
+    "transition-all duration-150"
+  );
+  function ContactPage({ config, onSubmitForm }) {
+    const [formData, setFormData] = useState({
+      name: "",
+      email: "",
+      subject: "",
+      message: ""
+    });
+    const [isLoading, setIsLoading] = useState(false);
+    const validateEmail = (email) => {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return emailRegex.test(email);
+    };
+    const handleInputChange = (field, value) => {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    };
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      if (!formData.name.trim() || !formData.email || !validateEmail(formData.email) || !formData.subject.trim() || !formData.message.trim()) {
+        return;
+      }
+      try {
+        setIsLoading(true);
+        await onSubmitForm(formData);
+        setFormData({ name: "", email: "", subject: "", message: "" });
+      } catch (error) {
+        console.error("Failed to submit contact form:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    return /* @__PURE__ */ jsxs("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900", children: [
+      /* @__PURE__ */ jsx("section", { className: "py-16 sm:py-20 bg-white dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4", children: /* @__PURE__ */ jsxs("div", { className: "text-center max-w-3xl mx-auto", children: [
+        /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-full mb-6", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse" }),
+          /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest", children: "CONTACT US" })
+        ] }),
+        /* @__PURE__ */ jsx("h1", { className: "text-3xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight", children: "Get in Touch" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider", children: "WE'D LOVE TO HEAR FROM YOU" })
+      ] }) }) }),
+      /* @__PURE__ */ jsx("section", { className: "py-12 sm:py-16", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4", children: /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 max-w-7xl mx-auto", children: [
+        /* @__PURE__ */ jsxs("div", { className: "space-y-4 sm:space-y-6", children: [
+          /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 flex items-start space-x-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(Mail, { className: "w-5 h-5 text-blue-600 dark:text-blue-400" }) }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "EMAIL" }),
+              /* @__PURE__ */ jsx("p", { className: "text-sm font-bold text-gray-900 dark:text-white", children: "support@jiffoomall.com" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 flex items-start space-x-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-12 h-12 bg-green-50 dark:bg-green-900/20 rounded-2xl flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(Phone, { className: "w-5 h-5 text-green-600 dark:text-green-400" }) }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "PHONE" }),
+              /* @__PURE__ */ jsx("p", { className: "text-sm font-bold text-gray-900 dark:text-white", children: "+1 (555) 123-4567" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 flex items-start space-x-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-12 h-12 bg-purple-50 dark:bg-purple-900/20 rounded-2xl flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(MapPin, { className: "w-5 h-5 text-purple-600 dark:text-purple-400" }) }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "ADDRESS" }),
+              /* @__PURE__ */ jsx("p", { className: "text-sm font-bold text-gray-900 dark:text-white", children: "123 Commerce Street, Business City, BC 12345" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 flex items-start space-x-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-12 h-12 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(Clock, { className: "w-5 h-5 text-yellow-600 dark:text-yellow-400" }) }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "BUSINESS HOURS" }),
+              /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "Monday - Friday: 9:00 AM - 6:00 PM" }),
+              /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "Saturday - Sunday: 10:00 AM - 4:00 PM" })
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx("div", { className: "lg:col-span-2", children: /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 sm:p-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-6 sm:mb-8", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-4 w-1 bg-blue-600 rounded-full" }),
+            /* @__PURE__ */ jsx("h2", { className: "text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "SEND MESSAGE" })
+          ] }),
+          /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "space-y-6", children: [
+            /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-6", children: [
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("label", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2", children: "NAME" }),
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "text",
+                    value: formData.name,
+                    onChange: (e) => handleInputChange("name", e.target.value),
+                    placeholder: "Your name",
+                    className: inputStyles,
+                    required: true
+                  }
+                )
+              ] }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("label", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2", children: "EMAIL" }),
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "email",
+                    value: formData.email,
+                    onChange: (e) => handleInputChange("email", e.target.value),
+                    placeholder: "your@email.com",
+                    className: inputStyles,
+                    required: true
+                  }
+                )
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("label", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2", children: "SUBJECT" }),
+              /* @__PURE__ */ jsx(
+                "input",
+                {
+                  type: "text",
+                  value: formData.subject,
+                  onChange: (e) => handleInputChange("subject", e.target.value),
+                  placeholder: "What is this about?",
+                  className: inputStyles,
+                  required: true
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("label", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block mb-2", children: "MESSAGE" }),
+              /* @__PURE__ */ jsx(
+                "textarea",
+                {
+                  value: formData.message,
+                  onChange: (e) => handleInputChange("message", e.target.value),
+                  placeholder: "Tell us more about your inquiry...",
+                  rows: 6,
+                  className: cn(inputStyles, "resize-none"),
+                  required: true
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxs(
+              "button",
+              {
+                type: "submit",
+                disabled: isLoading,
+                className: "w-full h-12 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 dark:shadow-none bg-blue-600 hover:bg-blue-700 text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2",
+                children: [
+                  isLoading ? "SENDING..." : "SEND MESSAGE",
+                  /* @__PURE__ */ jsx(Send, { className: "w-4 h-4" })
+                ]
+              }
+            )
+          ] })
+        ] }) })
+      ] }) }) })
+    ] });
+  }
+
+  // packages/shop-themes/default/src/components/HelpPage.tsx
+  var helpCategories = [
+    { id: "orders", icon: Package, iconStyles: "bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400", title: "Orders & Shipping", description: "Track orders, shipping info, and delivery questions", articles: 12 },
+    { id: "returns", icon: RotateCcw, iconStyles: "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400", title: "Returns & Refunds", description: "Return policy, refund process, and exchanges", articles: 8 },
+    { id: "account", icon: UserRound, iconStyles: "bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400", title: "Account & Profile", description: "Manage your account, password, and personal info", articles: 6 },
+    { id: "payment", icon: CreditCard, iconStyles: "bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400", title: "Payment & Billing", description: "Payment methods, billing issues, and invoices", articles: 10 },
+    { id: "products", icon: ShoppingBag, iconStyles: "bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400", title: "Products & Catalog", description: "Product information, availability, and specifications", articles: 15 },
+    { id: "technical", icon: Settings, iconStyles: "bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300", title: "Technical Support", description: "Website issues, app problems, and technical help", articles: 9 }
+  ];
+  function HelpPage({ config, onNavigateToCategory, onNavigateToContact }) {
+    const [searchQuery, setSearchQuery] = useState("");
+    const filteredCategories = helpCategories.filter(
+      (cat) => cat.title.toLowerCase().includes(searchQuery.toLowerCase()) || cat.description.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+    return /* @__PURE__ */ jsxs("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900", children: [
+      /* @__PURE__ */ jsx("section", { className: "py-16 sm:py-20 bg-white dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4", children: /* @__PURE__ */ jsxs("div", { className: "text-center max-w-3xl mx-auto", children: [
+        /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-full mb-6", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-2 h-2 bg-blue-600 dark:bg-blue-400 rounded-full animate-pulse" }),
+          /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest", children: "SUPPORT CENTER" })
+        ] }),
+        /* @__PURE__ */ jsx("h1", { className: "text-3xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight", children: "Help Center" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-8", children: "FIND ANSWERS TO COMMON QUESTIONS" }),
+        /* @__PURE__ */ jsxs("div", { className: "max-w-2xl mx-auto relative", children: [
+          /* @__PURE__ */ jsx(Search, { className: "absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500 w-5 h-5" }),
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              type: "text",
+              placeholder: "Search help articles...",
+              value: searchQuery,
+              onChange: (e) => setSearchQuery(e.target.value),
+              className: cn(
+                "w-full pl-12 pr-4 py-4 rounded-2xl border border-gray-100 dark:border-slate-700",
+                "bg-gray-50/50 dark:bg-slate-800 text-sm font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
+                "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400",
+                "transition-all duration-150 shadow-sm"
+              )
+            }
+          )
+        ] })
+      ] }) }) }),
+      /* @__PURE__ */ jsx("section", { className: "py-12 sm:py-16", children: /* @__PURE__ */ jsxs("div", { className: "container mx-auto px-4", children: [
+        /* @__PURE__ */ jsx("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 max-w-7xl mx-auto", children: filteredCategories.map((category) => /* @__PURE__ */ jsx(
+          "div",
+          {
+            onClick: () => onNavigateToCategory?.(category.id),
+            className: "group cursor-pointer",
+            children: /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-3xl p-6 sm:p-8 hover:shadow-md hover:border-blue-200 dark:hover:border-blue-700 transition-all duration-300 h-full", children: [
+              /* @__PURE__ */ jsx("div", { className: cn("w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center mb-4 sm:mb-6", category.iconStyles), children: /* @__PURE__ */ jsx(category.icon, { className: "w-6 h-6 sm:w-7 sm:h-7" }) }),
+              /* @__PURE__ */ jsxs("div", { className: "space-y-3", children: [
+                /* @__PURE__ */ jsx("h3", { className: "text-base sm:text-lg font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors tracking-tight", children: category.title }),
+                /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400 leading-relaxed", children: category.description }),
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between text-xs pt-2", children: [
+                  /* @__PURE__ */ jsxs("span", { className: "text-gray-400 dark:text-gray-500 font-bold uppercase tracking-wider", children: [
+                    category.articles,
+                    " ARTICLES"
+                  ] }),
+                  /* @__PURE__ */ jsx(ChevronRight, { className: "w-4 h-4 text-gray-400 dark:text-gray-500 group-hover:translate-x-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-all" })
+                ] })
+              ] })
+            ] })
+          },
+          category.id
+        )) }),
+        filteredCategories.length === 0 && /* @__PURE__ */ jsxs("div", { className: "text-center py-12 bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm max-w-2xl mx-auto", children: [
+          /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-500 dark:text-gray-400 mb-4", children: "No help articles found matching your search." }),
+          /* @__PURE__ */ jsx("button", { onClick: () => setSearchQuery(""), className: "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-bold text-sm uppercase tracking-wider", children: "CLEAR SEARCH" })
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsx("section", { className: "py-12 sm:py-16 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4", children: /* @__PURE__ */ jsxs("div", { className: "text-center max-w-4xl mx-auto", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-6 justify-center", children: [
+          /* @__PURE__ */ jsx("div", { className: "h-4 w-1 bg-blue-600 rounded-full" }),
+          /* @__PURE__ */ jsx("h2", { className: "text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "NEED MORE HELP" })
+        ] }),
+        /* @__PURE__ */ jsx("h3", { className: "text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight", children: "Didn't find what you're looking for?" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-8 sm:mb-12", children: "OUR SUPPORT TEAM IS HERE TO HELP" }),
+        /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "bg-gray-50 dark:bg-slate-700/50 rounded-3xl p-6 sm:p-8 border border-gray-100 dark:border-slate-600", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center mx-auto mb-4", children: /* @__PURE__ */ jsx(MessageCircle, { className: "w-7 h-7 text-blue-600 dark:text-blue-400" }) }),
+            /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "LIVE CHAT" }),
+            /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "Chat with our support team" })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "bg-gray-50 dark:bg-slate-700/50 rounded-3xl p-6 sm:p-8 border border-gray-100 dark:border-slate-600", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-14 h-14 rounded-2xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center mx-auto mb-4", children: /* @__PURE__ */ jsx(Mail, { className: "w-7 h-7 text-green-600 dark:text-green-400" }) }),
+            /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "EMAIL" }),
+            /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "support@jiffoomall.com" })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "bg-gray-50 dark:bg-slate-700/50 rounded-3xl p-6 sm:p-8 border border-gray-100 dark:border-slate-600", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-14 h-14 rounded-2xl bg-purple-50 dark:bg-purple-900/20 flex items-center justify-center mx-auto mb-4", children: /* @__PURE__ */ jsx(Phone, { className: "w-7 h-7 text-purple-600 dark:text-purple-400" }) }),
+            /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "PHONE" }),
+            /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "+1 (555) 123-4567" })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: () => onNavigateToContact?.(),
+            className: "h-12 px-8 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 dark:shadow-none bg-blue-600 hover:bg-blue-700 text-white transition-all uppercase tracking-wider w-full sm:w-auto",
+            children: "CONTACT SUPPORT"
+          }
+        )
+      ] }) }) })
+    ] });
+  }
+
+  // packages/shop-themes/default/src/components/LoginPage.tsx
+  function LoginPage({
+    isLoading,
+    error,
+    config,
+    onSubmit,
+    onOAuthClick,
+    onNavigateToRegister,
+    onNavigateToForgotPassword
+  }) {
+    const [email, setEmail] = react_default.useState("");
+    const [password, setPassword] = react_default.useState("");
+    const [showPassword, setShowPassword] = react_default.useState(false);
+    const emailRef = react_default.useRef(null);
+    const passwordRef = react_default.useRef(null);
+    const handleAutofill = (setter) => (e) => {
+      if (e.animationName === "onAutoFillStart") {
+        setter(e.currentTarget.value);
+      }
+    };
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      const emailVal = emailRef.current?.value || email;
+      const passwordVal = passwordRef.current?.value || password;
+      if (!emailVal || !passwordVal) {
+        return;
+      }
+      try {
+        await onSubmit(emailVal, passwordVal);
+      } catch (error2) {
+        console.error("Login failed:", error2);
+      }
+    };
+    const inputStyles2 = cn(
+      "w-full pl-11 pr-4 py-3 rounded-xl border border-gray-100 dark:border-slate-700",
+      "bg-gray-50/50 dark:bg-slate-900/50 text-sm font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
+      "focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:focus:ring-blue-400/20 focus:border-blue-500 dark:focus:border-blue-400",
+      "transition-all duration-150",
+      "disabled:bg-gray-50 dark:disabled:bg-slate-900 disabled:cursor-not-allowed"
+    );
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center px-4 py-8 sm:py-12", children: /* @__PURE__ */ jsxs("div", { className: "w-full max-w-md", children: [
+      /* @__PURE__ */ jsxs("div", { className: "text-center mb-5 sm:mb-6", children: [
+        /* @__PURE__ */ jsx("div", { className: "w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-3 sm:mb-4 rounded-2xl bg-blue-600 dark:bg-blue-500 flex items-center justify-center shadow-sm", children: /* @__PURE__ */ jsx("span", { className: "text-white font-bold text-xl sm:text-2xl", children: "J" }) }),
+        /* @__PURE__ */ jsx("h1", { className: "text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight mb-2", children: "Welcome Back" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "AUTHENTICATION INTERFACE" })
+      ] }),
+      /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "bg-white dark:bg-slate-800 rounded-2xl sm:rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 space-y-5 sm:space-y-6", children: [
+        /* @__PURE__ */ jsxs("div", { className: "space-y-2", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-4 w-1 bg-blue-600 dark:bg-blue-400 rounded-full" }),
+            /* @__PURE__ */ jsx("h2", { className: "text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "SYSTEM ACCESS" })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-300 dark:text-gray-600 uppercase tracking-wider pl-3", children: "ENTER CREDENTIALS TO PROCEED" })
+        ] }),
+        error && /* @__PURE__ */ jsx("div", { className: "bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl p-4", children: /* @__PURE__ */ jsx("p", { className: "text-sm text-red-700 dark:text-red-400", children: error }) }),
+        /* @__PURE__ */ jsxs("div", { className: "space-y-3", children: [
+          /* @__PURE__ */ jsx("label", { htmlFor: "login-email", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block", children: "EMAIL INTERFACE" }),
+          /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+            /* @__PURE__ */ jsx(Mail, { className: "absolute left-4 top-3.5 h-5 w-5 text-gray-400 dark:text-gray-500" }),
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                id: "login-email",
+                ref: emailRef,
+                type: "email",
+                value: email,
+                onChange: (e) => setEmail(e.target.value),
+                onAnimationStart: handleAutofill(setEmail),
+                placeholder: "you@example.com",
+                className: inputStyles2,
+                disabled: isLoading,
+                autoComplete: "email"
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "space-y-3", children: [
+          /* @__PURE__ */ jsx("label", { htmlFor: "login-password", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block", children: "SECURITY KEY" }),
+          /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+            /* @__PURE__ */ jsx(Lock, { className: "absolute left-4 top-3.5 h-5 w-5 text-gray-400 dark:text-gray-500" }),
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                id: "login-password",
+                ref: passwordRef,
+                type: showPassword ? "text" : "password",
+                value: password,
+                onChange: (e) => setPassword(e.target.value),
+                onAnimationStart: handleAutofill(setPassword),
+                placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
+                className: cn(inputStyles2, "pr-11"),
+                disabled: isLoading,
+                autoComplete: "current-password"
+              }
+            ),
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => setShowPassword(!showPassword),
+                className: "absolute right-4 top-3.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors",
+                disabled: isLoading,
+                "aria-label": showPassword ? "Hide password" : "Show password",
+                children: showPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-5 w-5" }) : /* @__PURE__ */ jsx(Eye, { className: "h-5 w-5" })
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "submit",
+            disabled: isLoading,
+            className: "w-full h-10 sm:h-11 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 dark:shadow-blue-900/30 transition-all bg-blue-600 dark:bg-blue-500 hover:bg-blue-700 dark:hover:bg-blue-600 text-white disabled:opacity-50 disabled:cursor-not-allowed mt-5 sm:mt-6 flex items-center justify-center gap-2",
+            children: isLoading ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+              /* @__PURE__ */ jsx(LoaderCircle, { className: "h-4 w-4 animate-spin" }),
+              "AUTHENTICATING..."
+            ] }) : "AUTHENTICATE"
+          }
+        ),
+        /* @__PURE__ */ jsxs("div", { className: "text-center pt-5 sm:pt-6 border-t border-gray-50 dark:border-slate-700 mt-5 sm:mt-6", children: [
+          /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3", children: "DON'T HAVE AN ACCOUNT?" }),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: onNavigateToRegister,
+              className: "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold text-sm transition-colors",
+              disabled: isLoading,
+              children: "CREATE NEW ACCOUNT"
+            }
+          )
+        ] })
+      ] })
+    ] }) });
+  }
+
+  // packages/shop-themes/default/src/components/NotFound.tsx
+  function NotFound({ route, message, onGoHome }) {
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen flex items-center justify-center bg-gray-50 dark:bg-slate-900 px-4", children: /* @__PURE__ */ jsxs("div", { className: "text-center max-w-md w-full", children: [
+      /* @__PURE__ */ jsx("div", { className: "mb-8", children: /* @__PURE__ */ jsx("h1", { className: "text-7xl sm:text-9xl font-bold text-gray-200 dark:text-slate-700", children: "404" }) }),
+      /* @__PURE__ */ jsx("h2", { className: "text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4", children: "Page Not Found" }),
+      /* @__PURE__ */ jsx("p", { className: "text-gray-500 dark:text-gray-400 mb-8 text-sm sm:text-base", children: message || `Sorry, we couldn't find the page${route ? ` "${route}"` : ""} you're looking for.` }),
+      /* @__PURE__ */ jsxs(Button, { onClick: onGoHome, size: "lg", className: "w-full sm:w-auto", children: [
+        /* @__PURE__ */ jsx(House, { className: "h-5 w-5 mr-2" }),
+        "Back to Home"
+      ] }),
+      /* @__PURE__ */ jsx("p", { className: "mt-8 text-sm text-gray-400 dark:text-gray-500", children: "If you believe this is an error, please contact our support team." })
+    ] }) });
+  }
+
+  // packages/shop-themes/default/src/components/OrderCancelledPage.tsx
+  function OrderCancelledPage({
+    config,
+    onReturnToCart,
+    onContinueShopping,
+    onContactSupport
+  }) {
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 py-12 sm:py-16", children: /* @__PURE__ */ jsxs("div", { className: "max-w-3xl mx-auto text-center", children: [
+      /* @__PURE__ */ jsx("div", { className: "mb-8", children: /* @__PURE__ */ jsx("div", { className: "w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-100 dark:border-yellow-800 flex items-center justify-center mx-auto shadow-sm", children: /* @__PURE__ */ jsx(CircleX, { className: "h-12 w-12 sm:h-14 sm:w-14 text-yellow-600 dark:text-yellow-400" }) }) }),
+      /* @__PURE__ */ jsxs("div", { className: "mb-8 sm:mb-12", children: [
+        /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 px-4 py-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-full mb-4", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-2 h-2 bg-yellow-600 dark:bg-yellow-400 rounded-full" }),
+          /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-widest", children: "PAYMENT CANCELLED" })
+        ] }),
+        /* @__PURE__ */ jsx("h1", { className: "text-3xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight", children: "Payment Cancelled" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider", children: "NO CHARGES WERE MADE TO YOUR ACCOUNT" })
+      ] }),
+      /* @__PURE__ */ jsx("div", { className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 mb-6 sm:mb-8", children: /* @__PURE__ */ jsxs("div", { className: "space-y-4 text-left", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(ShoppingCart, { className: "h-5 w-5 text-blue-600 dark:text-blue-400" }) }),
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("p", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1", children: "CART SAVED" }),
+            /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "All items remain in your cart and you can complete your purchase anytime" })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-2xl border border-purple-100 dark:border-purple-800", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(CircleHelp, { className: "h-5 w-5 text-purple-600 dark:text-purple-400" }) }),
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("p", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1", children: "NEED HELP?" }),
+            /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "If you encountered any issues during checkout, please contact our support team" })
+          ] })
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 mb-6 sm:mb-8", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-6 justify-center", children: [
+          /* @__PURE__ */ jsx("div", { className: "h-4 w-1 bg-blue-600 rounded-full" }),
+          /* @__PURE__ */ jsx("h2", { className: "text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "WHAT HAPPENED" })
+        ] }),
+        /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 text-left mb-4", children: "You cancelled the payment process before completing your order. This could happen if you:" }),
+        /* @__PURE__ */ jsxs("ul", { className: "text-left text-sm text-gray-600 dark:text-gray-400 space-y-2", children: [
+          /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-2", children: [
+            /* @__PURE__ */ jsx("span", { className: "text-blue-600 dark:text-blue-400 mt-1", children: "\u2022" }),
+            /* @__PURE__ */ jsx("span", { children: "Clicked the back button during checkout" })
+          ] }),
+          /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-2", children: [
+            /* @__PURE__ */ jsx("span", { className: "text-blue-600 dark:text-blue-400 mt-1", children: "\u2022" }),
+            /* @__PURE__ */ jsx("span", { children: "Closed the payment window" })
+          ] }),
+          /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-2", children: [
+            /* @__PURE__ */ jsx("span", { className: "text-blue-600 dark:text-blue-400 mt-1", children: "\u2022" }),
+            /* @__PURE__ */ jsx("span", { children: "Decided to review your order again" })
+          ] }),
+          /* @__PURE__ */ jsxs("li", { className: "flex items-start gap-2", children: [
+            /* @__PURE__ */ jsx("span", { className: "text-blue-600 dark:text-blue-400 mt-1", children: "\u2022" }),
+            /* @__PURE__ */ jsx("span", { children: "Encountered a technical issue" })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "flex flex-col sm:flex-row gap-4 justify-center mb-6 sm:mb-8", children: [
+        /* @__PURE__ */ jsxs(
+          "button",
+          {
+            onClick: onReturnToCart,
+            className: "h-12 px-8 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 dark:shadow-none bg-blue-600 hover:bg-blue-700 text-white transition-all flex items-center justify-center gap-2",
+            children: [
+              /* @__PURE__ */ jsx(ShoppingCart, { className: "h-4 w-4" }),
+              "RETURN TO CART"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxs(
+          "button",
+          {
+            onClick: onContinueShopping,
+            className: "h-12 px-8 rounded-xl border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 font-semibold text-sm text-gray-700 dark:text-gray-300 transition-all flex items-center justify-center gap-2 uppercase tracking-wider",
+            children: [
+              /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
+              "CONTINUE SHOPPING"
+            ]
+          }
+        )
+      ] }),
+      onContactSupport && /* @__PURE__ */ jsx("div", { className: "text-xs text-gray-500 dark:text-gray-400", children: /* @__PURE__ */ jsxs("p", { children: [
+        "NEED ASSISTANCE?",
+        " ",
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: onContactSupport,
+            className: "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-bold uppercase tracking-wider",
+            children: "CONTACT SUPPORT"
+          }
+        )
+      ] }) })
+    ] }) }) });
+  }
+
+  // packages/shop-themes/default/src/components/OrderDetailPage.tsx
+  function hasDigitalFulfillment(data) {
+    if (!data) return false;
+    return Boolean(
+      data.qrCodeContent || data.cardUid || data.planId || data.downloadUrl || data.redemptionCode || data.productCode
+    );
+  }
+  var OrderDetailPage = react_default.memo(function OrderDetailPage2({
+    order,
+    isLoading,
+    config,
+    onBack,
+    onBackToOrders,
+    onCancelOrder
+  }) {
+    const handleBack = onBack || onBackToOrders;
+    const getStatusColor = (status) => {
+      switch (status.toLowerCase()) {
+        case "pending":
+          return "bg-yellow-50 text-yellow-700 border-yellow-100";
+        case "processing":
+          return "bg-blue-50 text-blue-700 border-blue-100";
+        case "shipped":
+          return "bg-purple-50 text-purple-700 border-purple-100";
+        case "delivered":
+          return "bg-green-50 text-green-700 border-green-100";
+        case "cancelled":
+          return "bg-red-50 text-red-700 border-red-100";
+        default:
+          return "bg-gray-50 text-gray-700 border-gray-100";
+      }
+    };
+    const formatDate = (dateString) => {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    };
+    if (isLoading) {
+      return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 pt-24 pb-8", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4", children: /* @__PURE__ */ jsx("div", { className: "flex justify-center items-center py-12", children: /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
+        /* @__PURE__ */ jsx(LoaderCircle, { className: "h-12 w-12 animate-spin mx-auto mb-4 text-blue-600 dark:text-blue-400" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "LOADING ORDER..." })
+      ] }) }) }) });
+    }
+    if (!order) {
+      return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 pt-24 pb-8", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4", children: /* @__PURE__ */ jsxs("div", { className: "max-w-2xl mx-auto", children: [
+        handleBack && /* @__PURE__ */ jsxs(
+          "button",
+          {
+            onClick: handleBack,
+            className: "mb-6 h-10 px-6 rounded-xl border border-gray-200 dark:border-slate-600 hover:bg-white dark:hover:bg-slate-700 font-semibold text-sm text-gray-700 dark:text-gray-300 transition-all flex items-center gap-2",
+            children: [
+              /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
+              "BACK TO ORDERS"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-8 sm:p-12 text-center", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-20 h-20 rounded-2xl bg-red-50 dark:bg-red-900/20 flex items-center justify-center mx-auto mb-6", children: /* @__PURE__ */ jsx(CircleAlert, { className: "h-10 w-10 text-red-500 dark:text-red-400" }) }),
+          /* @__PURE__ */ jsx("h2", { className: "text-2xl font-bold text-gray-900 dark:text-white mb-2", children: "Order Not Found" }),
+          /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider", children: "THE ORDER YOU'RE LOOKING FOR DOESN'T EXIST" })
+        ] })
+      ] }) }) });
+    }
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 pt-24 pb-8", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4", children: /* @__PURE__ */ jsxs("div", { className: "max-w-4xl mx-auto", children: [
+      /* @__PURE__ */ jsx("div", { className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 mb-6", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col sm:flex-row items-start justify-between gap-4 mb-4", children: [
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-2", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+            /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "ORDER DETAILS" })
+          ] }),
+          /* @__PURE__ */ jsxs("h1", { className: "text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight", children: [
+            "ORDER #",
+            order.id.slice(-8).toUpperCase()
+          ] }),
+          /* @__PURE__ */ jsxs("p", { className: "text-xs text-gray-500 dark:text-gray-400 mt-2 font-medium uppercase tracking-wider", children: [
+            "PLACED ON ",
+            formatDate(order.createdAt)
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-start sm:items-end gap-3 w-full sm:w-auto", children: [
+          handleBack && /* @__PURE__ */ jsxs(
+            "button",
+            {
+              onClick: handleBack,
+              className: "h-10 px-4 rounded-xl border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 font-semibold text-xs text-gray-700 dark:text-gray-300 transition-all flex items-center gap-2 uppercase tracking-wider",
+              children: [
+                /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
+                "BACK TO ORDERS"
+              ]
+            }
+          ),
+          /* @__PURE__ */ jsx("span", { className: `inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border ${getStatusColor(order.status)}`, children: order.status })
+        ] })
+      ] }) }),
+      /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-3 gap-6", children: [
+        /* @__PURE__ */ jsxs("div", { className: "lg:col-span-2 space-y-6", children: [
+          /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 mb-6", children: [
+              /* @__PURE__ */ jsx("div", { className: "w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center", children: /* @__PURE__ */ jsx(Package, { className: "h-5 w-5 text-blue-600 dark:text-blue-400" }) }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
+                  /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+                  /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "ITEMS" })
+                ] }),
+                /* @__PURE__ */ jsx("h2", { className: "text-lg sm:text-xl font-bold text-gray-900 dark:text-white", children: "Order Items" })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsx("div", { className: "space-y-4", children: order.items?.map((item) => /* @__PURE__ */ jsxs("div", { className: "pb-4 border-b border-gray-100 dark:border-slate-700 last:border-0", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex-1", children: [
+                  /* @__PURE__ */ jsx("p", { className: "font-bold text-gray-900 dark:text-white", children: item.productName }),
+                  /* @__PURE__ */ jsxs("p", { className: "text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1", children: [
+                    "QTY: ",
+                    item.quantity,
+                    " \xD7 $",
+                    item.unitPrice.toFixed(2)
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxs("p", { className: "text-base sm:text-lg font-bold text-gray-900 dark:text-white", children: [
+                  "$",
+                  item.totalPrice.toFixed(2)
+                ] })
+              ] }),
+              item.fulfillmentData && hasDigitalFulfillment(item.fulfillmentData) && /* @__PURE__ */ jsxs("div", { className: "mt-3 space-y-2", children: [
+                item.fulfillmentStatus && /* @__PURE__ */ jsx("span", { className: `inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${item.fulfillmentStatus === "delivered" ? "bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400" : "bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400"}`, children: item.fulfillmentStatus }),
+                Boolean(item.fulfillmentData.qrCodeContent) && /* @__PURE__ */ jsxs("div", { className: "p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600", children: [
+                  /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "QR CODE" }),
+                  /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
+                    /* @__PURE__ */ jsx("div", { className: "w-16 h-16 bg-white border border-gray-200 rounded-lg flex items-center justify-center", children: /* @__PURE__ */ jsx(QrCode, { className: "h-8 w-8 text-gray-400" }) }),
+                    /* @__PURE__ */ jsxs("div", { className: "flex-1", children: [
+                      /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "Scan to activate your eSIM" }),
+                      Boolean(item.fulfillmentData.planId) && /* @__PURE__ */ jsxs("p", { className: "text-[10px] font-mono text-gray-500 mt-1", children: [
+                        "Plan: ",
+                        String(item.fulfillmentData.planId)
+                      ] })
+                    ] })
+                  ] })
+                ] }),
+                Boolean(item.fulfillmentData.cardUid) && /* @__PURE__ */ jsxs("div", { className: "p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600", children: [
+                  /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "REDEMPTION CODE" }),
+                  /* @__PURE__ */ jsx("code", { className: "text-sm font-mono font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-800 px-3 py-2 rounded-lg block break-all", children: String(item.fulfillmentData.cardUid) })
+                ] }),
+                Boolean(item.fulfillmentData.downloadUrl) && /* @__PURE__ */ jsxs("div", { className: "p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600", children: [
+                  /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "DOWNLOAD" }),
+                  /* @__PURE__ */ jsxs(
+                    "a",
+                    {
+                      href: String(item.fulfillmentData.downloadUrl),
+                      download: true,
+                      className: "inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all",
+                      children: [
+                        /* @__PURE__ */ jsx(Download, { className: "h-4 w-4" }),
+                        "Download File"
+                      ]
+                    }
+                  )
+                ] }),
+                !item.fulfillmentData.qrCodeContent && !item.fulfillmentData.cardUid && !item.fulfillmentData.downloadUrl && Boolean(item.fulfillmentData.productCode) && /* @__PURE__ */ jsxs("div", { className: "p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600", children: [
+                  /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "PRODUCT CODE" }),
+                  /* @__PURE__ */ jsx("code", { className: "text-sm font-mono font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-800 px-3 py-2 rounded-lg block break-all", children: String(item.fulfillmentData.productCode) })
+                ] })
+              ] })
+            ] }, item.id)) }),
+            /* @__PURE__ */ jsx("div", { className: "mt-6 pt-6 border-t border-gray-100 dark:border-slate-700", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-base sm:text-lg font-bold text-gray-900 dark:text-white", children: "TOTAL AMOUNT" }),
+              /* @__PURE__ */ jsxs("span", { className: "text-2xl sm:text-3xl font-bold text-blue-600 dark:text-blue-400", children: [
+                "$",
+                order.totalAmount.toFixed(2)
+              ] })
+            ] }) })
+          ] }),
+          order.status.toLowerCase() === "pending" && onCancelOrder && /* @__PURE__ */ jsx(
+            "button",
+            {
+              onClick: () => onCancelOrder(),
+              className: "w-full h-12 rounded-xl border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 font-semibold text-sm text-red-600 dark:text-red-400 transition-all uppercase tracking-wider",
+              children: "CANCEL ORDER"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsx("div", { className: "lg:col-span-1", children: /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 sticky top-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 mb-6", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-12 h-12 rounded-2xl bg-green-50 dark:bg-green-900/20 flex items-center justify-center", children: /* @__PURE__ */ jsx(Clock, { className: "h-5 w-5 text-green-600 dark:text-green-400" }) }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
+                /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+                /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "TIMELINE" })
+              ] }),
+              /* @__PURE__ */ jsx("h2", { className: "text-base sm:text-lg font-bold text-gray-900 dark:text-white", children: "Order Status" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "space-y-6", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4", children: [
+              /* @__PURE__ */ jsx("div", { className: "w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(CircleCheck, { className: "w-5 h-5 text-green-600 dark:text-green-400" }) }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("p", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider", children: "ORDER PLACED" }),
+                /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400 mt-1", children: formatDate(order.createdAt) })
+              ] })
+            ] }),
+            order.status.toLowerCase() !== "pending" && /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4", children: [
+              /* @__PURE__ */ jsx("div", { className: "w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(Package, { className: "w-5 h-5 text-blue-600 dark:text-blue-400" }) }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("p", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider", children: "PROCESSING" }),
+                /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400 mt-1", children: "Order is being prepared" })
+              ] })
+            ] }),
+            (order.status.toLowerCase() === "shipped" || order.status.toLowerCase() === "delivered") && /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4", children: [
+              /* @__PURE__ */ jsx("div", { className: "w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(Truck, { className: "w-5 h-5 text-purple-600 dark:text-purple-400" }) }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("p", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider", children: "SHIPPED" }),
+                /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400 mt-1", children: "Order is on the way" })
+              ] })
+            ] }),
+            order.status.toLowerCase() === "delivered" && /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4", children: [
+              /* @__PURE__ */ jsx("div", { className: "w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(CircleCheck, { className: "w-5 h-5 text-green-600 dark:text-green-400" }) }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("p", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider", children: "DELIVERED" }),
+                /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400 mt-1", children: "Order has been delivered" })
+              ] })
+            ] })
+          ] })
+        ] }) })
+      ] })
+    ] }) }) });
+  });
+
+  // packages/shop-themes/default/src/components/OrdersPage.tsx
+  var OrdersPage = react_default.memo(function OrdersPage2({
+    orders,
+    isLoading,
+    error,
+    currentPage,
+    totalPages,
+    config,
+    onPageChange,
+    onOrderClick,
+    onCancelOrder,
+    t
+  }) {
+    const getText = (key, fallback) => {
+      if (!t) return fallback;
+      const translated = t(key);
+      return translated === key ? fallback : translated;
+    };
+    const getStatusColor = (status) => {
+      switch (status.toLowerCase()) {
+        case "pending":
+          return "bg-yellow-50 text-yellow-700 border-yellow-100";
+        case "processing":
+          return "bg-blue-50 text-blue-700 border-blue-100";
+        case "shipped":
+          return "bg-purple-50 text-purple-700 border-purple-100";
+        case "delivered":
+          return "bg-green-50 text-green-700 border-green-100";
+        case "cancelled":
+          return "bg-red-50 text-red-700 border-red-100";
+        default:
+          return "bg-gray-50 text-gray-700 border-gray-100";
+      }
+    };
+    const formatDate = (dateString) => {
+      return new Date(dateString).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    };
+    if (isLoading) {
+      return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 pt-24 pb-8", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4", children: /* @__PURE__ */ jsx("div", { className: "flex justify-center items-center py-12", children: /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
+        /* @__PURE__ */ jsx(LoaderCircle, { className: "h-12 w-12 animate-spin mx-auto mb-4 text-blue-600 dark:text-blue-400" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "LOADING ORDERS..." })
+      ] }) }) }) });
+    }
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 pt-24 pb-8", children: /* @__PURE__ */ jsxs("div", { className: "container mx-auto px-4", children: [
+      /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-3", children: [
+          /* @__PURE__ */ jsx("div", { className: "h-4 w-1 bg-blue-600 rounded-full" }),
+          /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "ORDER MANAGEMENT" })
+        ] }),
+        /* @__PURE__ */ jsx("h1", { className: "text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white tracking-tight", children: "Order History" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-300 dark:text-gray-600 uppercase tracking-wider mt-2", children: "TRACK AND MANAGE YOUR ORDERS" })
+      ] }),
+      error && /* @__PURE__ */ jsx("div", { className: "mb-6 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-3xl p-6", children: /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
+        /* @__PURE__ */ jsx(CircleAlert, { className: "h-5 w-5 text-red-600 dark:text-red-400 mt-0.5" }),
+        /* @__PURE__ */ jsx("p", { className: "text-sm text-red-700 dark:text-red-400 font-medium", children: error })
+      ] }) }),
+      orders.length === 0 ? /* @__PURE__ */ jsxs("div", { className: "text-center py-20 bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm", children: [
+        /* @__PURE__ */ jsx("div", { className: "w-20 h-20 rounded-2xl bg-gray-50 dark:bg-slate-700 flex items-center justify-center mx-auto mb-6", children: /* @__PURE__ */ jsx(Package, { className: "h-10 w-10 text-gray-300 dark:text-gray-600" }) }),
+        /* @__PURE__ */ jsx("h3", { className: "text-xl font-bold text-gray-900 dark:text-white mb-2", children: "No orders yet" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider", children: "START SHOPPING TO SEE YOUR ORDERS HERE" })
+      ] }) : /* @__PURE__ */ jsx("div", { className: "space-y-4", children: orders.map((order) => /* @__PURE__ */ jsxs(
+        "div",
+        {
+          className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 overflow-hidden hover:shadow-md transition-shadow",
+          children: [
+            /* @__PURE__ */ jsx("div", { className: "px-6 sm:px-8 py-6 border-b border-gray-100 dark:border-slate-700", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4", children: [
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 mb-2", children: [
+                  /* @__PURE__ */ jsx("div", { className: "h-2 w-2 bg-blue-600 rounded-full" }),
+                  /* @__PURE__ */ jsxs("h3", { className: "text-base sm:text-lg font-bold text-gray-900 dark:text-white tracking-tight", children: [
+                    "ORDER #",
+                    order.id.slice(-8).toUpperCase()
+                  ] })
+                ] }),
+                /* @__PURE__ */ jsxs("p", { className: "text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider", children: [
+                  "PLACED ON ",
+                  formatDate(order.createdAt)
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center space-x-4 w-full sm:w-auto", children: [
+                /* @__PURE__ */ jsx("span", { className: `inline-flex items-center px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider border ${getStatusColor(order.status)}`, children: order.status }),
+                /* @__PURE__ */ jsxs("p", { className: "text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400", children: [
+                  "$",
+                  order.totalAmount.toFixed(2)
+                ] })
+              ] })
+            ] }) }),
+            /* @__PURE__ */ jsx("div", { className: "px-6 sm:px-8 py-6", children: /* @__PURE__ */ jsx("div", { className: "space-y-3", children: order.items?.map((item) => /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between py-2", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex-1", children: [
+                /* @__PURE__ */ jsx("p", { className: "text-sm font-bold text-gray-900 dark:text-white", children: item.productName }),
+                /* @__PURE__ */ jsxs("p", { className: "text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider", children: [
+                  "QTY: ",
+                  item.quantity
+                ] })
+              ] }),
+              /* @__PURE__ */ jsxs("p", { className: "text-sm font-bold text-gray-900 dark:text-white", children: [
+                "$",
+                item.totalPrice.toFixed(2)
+              ] })
+            ] }, item.id)) }) }),
+            /* @__PURE__ */ jsx("div", { className: "px-6 sm:px-8 py-4 bg-gray-50 dark:bg-slate-700/50 border-t border-gray-100 dark:border-slate-700", children: /* @__PURE__ */ jsxs("div", { className: "flex justify-end items-center gap-3 flex-wrap", children: [
+              order.status.toLowerCase() === "pending" && /* @__PURE__ */ jsx(
+                "button",
+                {
+                  onClick: () => onCancelOrder(order.id),
+                  className: "h-10 px-6 rounded-xl border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20 font-semibold text-sm text-red-600 dark:text-red-400 transition-all uppercase tracking-wider",
+                  children: "CANCEL"
+                }
+              ),
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  onClick: () => onOrderClick(order.id),
+                  className: "h-10 px-6 rounded-xl border border-gray-200 dark:border-slate-600 hover:bg-white dark:hover:bg-slate-700 font-semibold text-sm text-gray-700 dark:text-gray-300 transition-all uppercase tracking-wider",
+                  children: "VIEW DETAILS"
+                }
+              )
+            ] }) })
+          ]
+        },
+        order.id
+      )) }),
+      totalPages > 1 && /* @__PURE__ */ jsx("div", { className: "mt-8 flex justify-center", children: /* @__PURE__ */ jsx("nav", { "aria-label": getText("shop.orders.pagination.label", "Pagination"), children: /* @__PURE__ */ jsxs("div", { className: "flex gap-2 bg-white rounded-2xl p-2 border border-gray-100 shadow-sm", children: [
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: () => onPageChange(Math.max(1, currentPage - 1)),
+            disabled: currentPage === 1,
+            className: "px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider",
+            "aria-label": getText("shop.orders.pagination.previousPage", "Go to previous page"),
+            children: "PREV"
+          }
+        ),
+        Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: () => onPageChange(pageNum),
+            className: `min-w-[40px] h-10 rounded-xl text-xs font-bold transition-all uppercase tracking-wider ${currentPage === pageNum ? "bg-blue-600 text-white shadow-md shadow-blue-100" : "text-gray-700 hover:bg-gray-50"}`,
+            "aria-label": getText("shop.orders.pagination.page", `Page ${pageNum}`),
+            "aria-current": currentPage === pageNum ? "page" : void 0,
+            children: pageNum
+          },
+          pageNum
+        )),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: () => onPageChange(Math.min(totalPages, currentPage + 1)),
+            disabled: currentPage === totalPages,
+            className: "px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-50 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wider",
+            "aria-label": getText("shop.orders.pagination.nextPage", "Go to next page"),
+            children: "NEXT"
+          }
+        )
+      ] }) }) })
+    ] }) });
+  });
+
+  // packages/shop-themes/default/src/components/OrderSuccessPage.tsx
+  function getDigitalItems(items) {
+    if (!items) return [];
+    return items.filter((item) => {
+      if (!item.fulfillmentData) return false;
+      const data = item.fulfillmentData;
+      return Boolean(
+        data.qrCodeContent || data.cardUid || data.planId || data.downloadUrl || data.redemptionCode || data.productCode
+      );
+    });
+  }
+  function OrderSuccessPage({
+    orderNumber,
+    order,
+    config,
+    onContinueShopping,
+    onViewOrders
+  }) {
+    const digitalItems = getDigitalItems(order?.items);
+    const hasDigital = digitalItems.length > 0;
+    const hasPhysical = !hasDigital;
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 py-12 sm:py-16", children: /* @__PURE__ */ jsxs("div", { className: "max-w-3xl mx-auto text-center", children: [
+      /* @__PURE__ */ jsx("div", { className: "mb-8", children: /* @__PURE__ */ jsx("div", { className: "w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800 flex items-center justify-center mx-auto shadow-sm", children: /* @__PURE__ */ jsx(CircleCheckBig, { className: "h-12 w-12 sm:h-14 sm:w-14 text-green-600 dark:text-green-400" }) }) }),
+      /* @__PURE__ */ jsxs("div", { className: "mb-8 sm:mb-12", children: [
+        /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 px-4 py-2 bg-green-50 dark:bg-green-900/20 rounded-full mb-4", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-2 h-2 bg-green-600 dark:text-green-400 rounded-full animate-pulse" }),
+          /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-widest", children: "ORDER CONFIRMED" })
+        ] }),
+        /* @__PURE__ */ jsx("h1", { className: "text-3xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight", children: hasDigital ? "Your Digital Purchases Are Ready" : "Order Successful!" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider", children: hasDigital ? "ACCESS YOUR DELIVERY BELOW" : "THANK YOU FOR YOUR PURCHASE" })
+      ] }),
+      hasDigital && /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-green-100 dark:border-green-800 p-6 sm:p-8 mb-6 sm:mb-8 text-left", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-6", children: [
+          /* @__PURE__ */ jsx("div", { className: "h-4 w-1 bg-green-600 rounded-full" }),
+          /* @__PURE__ */ jsx("h2", { className: "text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "DIGITAL DELIVERY" })
+        ] }),
+        /* @__PURE__ */ jsx("div", { className: "space-y-4", children: digitalItems.map((item, index) => /* @__PURE__ */ jsx(DigitalDeliveryCard, { item }, index)) }),
+        /* @__PURE__ */ jsx("div", { className: "mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800", children: /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
+          /* @__PURE__ */ jsx(Mail, { className: "h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" }),
+          /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "A delivery confirmation with your access details has been sent to your email. You can also access your purchases anytime from the Orders page." })
+        ] }) })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 mb-6 sm:mb-8", children: [
+        /* @__PURE__ */ jsxs("div", { className: "text-center mb-6 sm:mb-8", children: [
+          /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3", children: "ORDER NUMBER" }),
+          /* @__PURE__ */ jsx("p", { className: "text-2xl sm:text-3xl font-bold font-mono text-gray-900 dark:text-white", children: orderNumber })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "space-y-4 text-left", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 p-4 bg-green-50 dark:bg-green-900/20 rounded-2xl border border-green-100 dark:border-green-800", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(CircleCheckBig, { className: "h-5 w-5 text-green-600 dark:text-green-400" }) }),
+            /* @__PURE__ */ jsxs("div", { className: "flex-1", children: [
+              /* @__PURE__ */ jsx("p", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1", children: "PAYMENT PROCESSED" }),
+              /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "Your payment has been successfully processed" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(Mail, { className: "h-5 w-5 text-blue-600 dark:text-blue-400" }) }),
+            /* @__PURE__ */ jsxs("div", { className: "flex-1", children: [
+              /* @__PURE__ */ jsx("p", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1", children: "CONFIRMATION SENT" }),
+              /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: hasDigital ? "Delivery details sent to your email" : "Order confirmation email sent to your inbox" })
+            ] })
+          ] }),
+          hasPhysical && /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-2xl border border-yellow-100 dark:border-yellow-800", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-10 h-10 rounded-xl bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(Package, { className: "h-5 w-5 text-yellow-600 dark:text-yellow-400" }) }),
+            /* @__PURE__ */ jsxs("div", { className: "flex-1", children: [
+              /* @__PURE__ */ jsx("p", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1", children: "TRACKING INFO" }),
+              /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400", children: "Tracking information will be sent to your email" })
+            ] })
+          ] })
+        ] }),
+        hasPhysical && /* @__PURE__ */ jsx("div", { className: "mt-6 sm:mt-8 p-4 sm:p-6 bg-gray-50 dark:bg-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600", children: /* @__PURE__ */ jsxs("div", { className: "flex justify-between items-center", children: [
+          /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "ESTIMATED DELIVERY" }),
+          /* @__PURE__ */ jsx("span", { className: "text-blue-600 dark:text-blue-400 font-bold text-sm", children: "3-5 BUSINESS DAYS" })
+        ] }) })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 mb-6 sm:mb-8", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-6 sm:mb-8 justify-center", children: [
+          /* @__PURE__ */ jsx("div", { className: "h-4 w-1 bg-blue-600 rounded-full" }),
+          /* @__PURE__ */ jsx("h2", { className: "text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "WHAT'S NEXT" })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "space-y-6", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 text-left", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx("span", { className: "text-white font-bold text-sm", children: "1" }) }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("h3", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1", children: "ORDER CONFIRMATION" }),
+              /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400", children: "You'll receive an email confirmation shortly" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 text-left", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-10 h-10 bg-yellow-600 rounded-xl flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx("span", { className: "text-white font-bold text-sm", children: "2" }) }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("h3", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1", children: hasDigital ? "ACCESS YOUR PURCHASE" : "PROCESSING" }),
+              /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400", children: hasDigital ? "Your digital delivery is available above and in your email" : "We'll prepare your order for shipment" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4 text-left", children: [
+            /* @__PURE__ */ jsx("div", { className: "w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx("span", { className: "text-white font-bold text-sm", children: "3" }) }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("h3", { className: "font-bold text-sm text-gray-900 dark:text-white uppercase tracking-wider mb-1", children: hasDigital ? "ENJOY" : "SHIPPING" }),
+              /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-500 dark:text-gray-400", children: hasDigital ? "Your purchase is ready to use \u2014 check your email for details" : "Your order will be shipped and you'll get tracking info" })
+            ] })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "flex flex-col sm:flex-row gap-4 justify-center", children: [
+        /* @__PURE__ */ jsxs(
+          "button",
+          {
+            onClick: onContinueShopping,
+            className: "h-12 px-8 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 dark:shadow-none bg-blue-600 hover:bg-blue-700 text-white transition-all flex items-center justify-center gap-2",
+            children: [
+              "CONTINUE SHOPPING",
+              /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: onViewOrders,
+            className: "h-12 px-8 rounded-xl border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 font-semibold text-sm text-gray-700 dark:text-gray-300 transition-all uppercase tracking-wider",
+            children: "VIEW ORDERS"
+          }
+        )
+      ] })
+    ] }) }) });
+  }
+  function DigitalDeliveryCard({ item }) {
+    const data = item.fulfillmentData || {};
+    const productClass = data.productClass || "";
+    const isEsim = productClass === "esim" || Boolean(data.qrCodeContent);
+    const isCard = productClass === "card" || Boolean(data.cardUid);
+    const isDownload = Boolean(data.downloadUrl);
+    return /* @__PURE__ */ jsxs("div", { className: "p-4 bg-gray-50 dark:bg-slate-700/50 rounded-2xl border border-gray-100 dark:border-slate-600", children: [
+      /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 mb-3", children: [
+        /* @__PURE__ */ jsx("div", { className: "w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center flex-shrink-0", children: isEsim ? /* @__PURE__ */ jsx(QrCode, { className: "h-5 w-5 text-green-600 dark:text-green-400" }) : isCard ? /* @__PURE__ */ jsx(Key, { className: "h-5 w-5 text-green-600 dark:text-green-400" }) : isDownload ? /* @__PURE__ */ jsx(Download, { className: "h-5 w-5 text-green-600 dark:text-green-400" }) : /* @__PURE__ */ jsx(Package, { className: "h-5 w-5 text-green-600 dark:text-green-400" }) }),
+        /* @__PURE__ */ jsxs("div", { className: "flex-1 text-left", children: [
+          /* @__PURE__ */ jsx("p", { className: "font-bold text-sm text-gray-900 dark:text-white", children: item.productName }),
+          /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider", children: item.fulfillmentStatus === "delivered" ? "DELIVERED" : "PROCESSING" })
+        ] })
+      ] }),
+      isEsim && Boolean(data.qrCodeContent) && /* @__PURE__ */ jsxs("div", { className: "mt-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-600", children: [
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "QR CODE" }),
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-20 h-20 bg-white border border-gray-200 rounded-lg flex items-center justify-center p-1", children: /* @__PURE__ */ jsx(QrCodeDisplay, { content: data.qrCodeContent }) }),
+          /* @__PURE__ */ jsxs("div", { className: "flex-1", children: [
+            /* @__PURE__ */ jsx("p", { className: "text-xs text-gray-600 dark:text-gray-400 mb-1", children: "Scan this QR code to activate your eSIM" }),
+            Boolean(data.planId) && /* @__PURE__ */ jsxs("p", { className: "text-[10px] font-mono text-gray-500 dark:text-gray-500", children: [
+              "Plan: ",
+              String(data.planId)
+            ] })
+          ] })
+        ] })
+      ] }),
+      isCard && Boolean(data.cardUid) && /* @__PURE__ */ jsxs("div", { className: "mt-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-600", children: [
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "REDEMPTION CODE" }),
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-2", children: [
+          /* @__PURE__ */ jsx("code", { className: "text-sm font-mono font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-700 px-3 py-2 rounded-lg flex-1 break-all", children: String(data.cardUid) }),
+          /* @__PURE__ */ jsx(CopyButton, { text: String(data.cardUid) })
+        ] })
+      ] }),
+      isDownload && Boolean(data.downloadUrl) && /* @__PURE__ */ jsxs("div", { className: "mt-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-600", children: [
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "DOWNLOAD" }),
+        /* @__PURE__ */ jsxs(
+          "a",
+          {
+            href: String(data.downloadUrl),
+            download: true,
+            className: "flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all w-fit",
+            children: [
+              /* @__PURE__ */ jsx(Download, { className: "h-4 w-4" }),
+              "Download File"
+            ]
+          }
+        )
+      ] }),
+      !isEsim && !isCard && !isDownload && Boolean(data.productCode) && /* @__PURE__ */ jsxs("div", { className: "mt-3 p-3 bg-white dark:bg-slate-800 rounded-xl border border-gray-100 dark:border-slate-600", children: [
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "PRODUCT CODE" }),
+        /* @__PURE__ */ jsx("code", { className: "text-sm font-mono font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-700 px-3 py-2 rounded-lg block break-all", children: String(data.productCode) })
+      ] })
+    ] });
+  }
+  function QrCodeDisplay({ content }) {
+    return /* @__PURE__ */ jsx("div", { className: "w-full h-full flex items-center justify-center text-[8px] text-gray-400 text-center break-all", children: "QR" });
+  }
+  function CopyButton({ text }) {
+    const [copied, setCopied] = react_default.useState(false);
+    return /* @__PURE__ */ jsx(
+      "button",
+      {
+        onClick: () => {
+          if (typeof navigator !== "undefined" && navigator.clipboard) {
+            navigator.clipboard.writeText(text);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2e3);
+          }
+        },
+        className: "px-3 py-2 bg-gray-100 dark:bg-slate-700 hover:bg-gray-200 dark:hover:bg-slate-600 rounded-lg text-xs font-semibold text-gray-700 dark:text-gray-300 transition-all flex-shrink-0",
+        children: copied ? "COPIED!" : "COPY"
+      }
+    );
+  }
+
+  // packages/shop-themes/default/src/components/PrivacyPage.tsx
+  function PrivacyPage({ config }) {
+    const sections = [
+      { id: "information-collect", icon: FileText, title: "Information We Collect", content: "We collect information you provide directly to us, such as when you create an account, make a purchase, or contact us." },
+      { id: "how-we-use", icon: Eye, title: "How We Use Your Information", content: "We use the information we collect to provide, maintain, and improve our services, process transactions, and communicate with you." },
+      { id: "information-sharing", icon: Users, title: "Information Sharing", content: "We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, except as described in this policy." },
+      { id: "data-security", icon: Lock, title: "Data Security", content: "We implement appropriate security measures to protect your personal information against unauthorized access, alteration, disclosure, or destruction." },
+      { id: "your-rights", icon: Shield, title: "Your Rights", content: "You have the right to access, update, or delete your personal information. You may also opt out of certain communications from us." },
+      { id: "contact", icon: FileText, title: "Contact Us", content: "If you have any questions about this Privacy Policy, please contact us at privacy@jiffoomall.com." }
+    ];
+    return /* @__PURE__ */ jsxs("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900", children: [
+      /* @__PURE__ */ jsx("section", { className: "py-16 sm:py-20 bg-white dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4", children: /* @__PURE__ */ jsxs("div", { className: "text-center max-w-3xl mx-auto", children: [
+        /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-full mb-6", children: [
+          /* @__PURE__ */ jsx(Shield, { className: "w-3 h-3 text-blue-600 dark:text-blue-400" }),
+          /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest", children: "PRIVACY POLICY" })
+        ] }),
+        /* @__PURE__ */ jsx("h1", { className: "text-3xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight", children: "Privacy Policy" }),
+        /* @__PURE__ */ jsxs("p", { className: "text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider", children: [
+          "LAST UPDATED: ",
+          (/* @__PURE__ */ new Date()).toLocaleDateString()
+        ] })
+      ] }) }) }),
+      /* @__PURE__ */ jsx("section", { className: "py-8 sm:py-12", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 max-w-4xl", children: /* @__PURE__ */ jsx("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 sm:p-8", children: /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 leading-relaxed", children: "At Jiffoo Mall, we are committed to protecting your privacy. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you visit our website and use our services." }) }) }) }),
+      /* @__PURE__ */ jsx("section", { className: "py-8", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 max-w-4xl", children: /* @__PURE__ */ jsx("div", { className: "space-y-4 sm:space-y-6", children: sections.map((section) => {
+        const IconComponent = section.icon;
+        return /* @__PURE__ */ jsx(
+          "div",
+          {
+            className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 sm:p-8",
+            children: /* @__PURE__ */ jsxs("div", { className: "flex items-start space-x-4", children: [
+              /* @__PURE__ */ jsx("div", { className: "w-12 h-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl flex items-center justify-center flex-shrink-0", children: /* @__PURE__ */ jsx(IconComponent, { className: "w-5 h-5 text-blue-600 dark:text-blue-400" }) }),
+              /* @__PURE__ */ jsxs("div", { className: "flex-1", children: [
+                /* @__PURE__ */ jsx("h3", { className: "text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 tracking-tight", children: section.title }),
+                /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 leading-relaxed", children: section.content })
+              ] })
+            ] })
+          },
+          section.id
+        );
+      }) }) }) }),
+      /* @__PURE__ */ jsx("section", { className: "py-12 sm:py-16 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 max-w-4xl", children: /* @__PURE__ */ jsxs("div", { className: "space-y-4 sm:space-y-6", children: [
+        /* @__PURE__ */ jsxs("div", { className: "bg-gray-50 dark:bg-slate-700/50 rounded-3xl border border-gray-100 dark:border-slate-600 p-6 sm:p-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+            /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "COOKIES & TRACKING" })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 leading-relaxed", children: "We use cookies and similar tracking technologies to track activity on our website and hold certain information. You can instruct your browser to refuse all cookies or to indicate when a cookie is being sent." })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "bg-gray-50 dark:bg-slate-700/50 rounded-3xl border border-gray-100 dark:border-slate-600 p-6 sm:p-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+            /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "THIRD-PARTY LINKS" })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 leading-relaxed", children: "Our website may contain links to third-party websites. We are not responsible for the privacy practices of these external sites. We encourage you to review their privacy policies before providing any personal information." })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "bg-gray-50 dark:bg-slate-700/50 rounded-3xl border border-gray-100 dark:border-slate-600 p-6 sm:p-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+            /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "CHILDREN'S PRIVACY" })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 leading-relaxed", children: "Our website is not intended for children under the age of 13. We do not knowingly collect personal information from children under 13. If we become aware that we have collected personal information from a child under 13, we will take steps to delete such information." })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "bg-gray-50 dark:bg-slate-700/50 rounded-3xl border border-gray-100 dark:border-slate-600 p-6 sm:p-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+            /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "POLICY CHANGES" })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 leading-relaxed", children: "We may update this Privacy Policy from time to time to reflect changes in our practices or for other operational, legal, or regulatory reasons. We will notify you of any material changes by posting the updated policy on our website." })
+        ] })
+      ] }) }) })
+    ] });
+  }
+
+  // packages/shop-themes/default/src/components/ProfilePage.tsx
+  var ProfilePage = react_default.memo(function ProfilePage2({
+    user,
+    isLoading,
+    isAuthenticated,
+    config,
+    onNavigateToSettings,
+    onNavigateToOrders,
+    onNavigateToLogin
+  }) {
+    if (!isAuthenticated || !user) {
+      return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center px-4", children: /* @__PURE__ */ jsx("div", { className: "w-full max-w-md", children: /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-8 sm:p-12 text-center", children: [
+        /* @__PURE__ */ jsx("div", { className: "w-20 h-20 mx-auto mb-6 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center", children: /* @__PURE__ */ jsx(User, { className: "w-10 h-10 text-blue-600 dark:text-blue-400" }) }),
+        /* @__PURE__ */ jsxs("div", { className: "space-y-3 mb-8", children: [
+          /* @__PURE__ */ jsx("h2", { className: "text-2xl font-bold text-gray-900 dark:text-white", children: "Access Denied" }),
+          /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider", children: "PLEASE LOG IN TO VIEW YOUR PROFILE" })
+        ] }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: onNavigateToLogin,
+            className: "w-full h-12 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 dark:shadow-none bg-blue-600 hover:bg-blue-700 text-white transition-all",
+            children: "GO TO LOGIN"
+          }
+        )
+      ] }) }) });
+    }
+    if (isLoading) {
+      return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center", children: /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
+        /* @__PURE__ */ jsx("div", { className: "w-12 h-12 border-4 border-gray-100 dark:border-slate-700 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "LOADING PROFILE..." })
+      ] }) });
+    }
+    const userInitial = user.name?.charAt(0).toUpperCase() || "U";
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 py-8 sm:py-12", children: /* @__PURE__ */ jsxs("div", { className: "max-w-5xl mx-auto space-y-6 sm:space-y-8", children: [
+      /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden", children: [
+        /* @__PURE__ */ jsx("div", { className: "h-24 sm:h-32 bg-gray-50 dark:bg-slate-700 border-b border-gray-100 dark:border-slate-600" }),
+        /* @__PURE__ */ jsxs("div", { className: "px-6 sm:px-8 pb-6 sm:pb-8 flex flex-col sm:flex-row items-end gap-6 sm:gap-8 -mt-12 sm:-mt-16 relative z-10", children: [
+          /* @__PURE__ */ jsx("div", { className: "w-24 h-24 sm:w-32 sm:h-32 rounded-2xl bg-white dark:bg-slate-800 p-1 shadow-xl ring-1 ring-gray-100 dark:ring-slate-700 flex-shrink-0", children: user.avatar ? /* @__PURE__ */ jsx(
+            "img",
+            {
+              src: user.avatar,
+              alt: user.name,
+              className: "w-full h-full object-cover rounded-xl"
+            }
+          ) : /* @__PURE__ */ jsx("div", { className: "w-full h-full bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400", children: userInitial }) }),
+          /* @__PURE__ */ jsxs("div", { className: "flex-1 pb-2 space-y-3 text-center sm:text-left", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 flex-wrap justify-center sm:justify-start", children: [
+              /* @__PURE__ */ jsx("h1", { className: "text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight leading-none", children: user.name }),
+              /* @__PURE__ */ jsx("span", { className: "bg-gray-900 dark:bg-slate-700 text-white text-[10px] font-bold uppercase tracking-widest h-5 px-3 rounded-full flex items-center", children: "MEMBER" })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-4 sm:gap-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest justify-center sm:justify-start", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
+                /* @__PURE__ */ jsx("div", { className: "w-1 h-1 bg-blue-500 rounded-full" }),
+                user.email
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
+                /* @__PURE__ */ jsx("div", { className: "w-1 h-1 bg-blue-500 rounded-full" }),
+                "JOINED ",
+                new Date(user.createdAt).toLocaleDateString()
+              ] })
+            ] })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsx("div", { className: "grid grid-cols-1 gap-6", children: /* @__PURE__ */ jsxs(
+        "div",
+        {
+          onClick: onNavigateToOrders,
+          className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 sm:p-8 cursor-pointer hover:shadow-md transition-all",
+          children: [
+            /* @__PURE__ */ jsx("div", { className: "flex items-center justify-between mb-6", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
+              /* @__PURE__ */ jsx("div", { className: "w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center", children: /* @__PURE__ */ jsx(ShoppingBag, { className: "w-6 h-6 text-blue-600 dark:text-blue-400" }) }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
+                  /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+                  /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "ORDERS" })
+                ] }),
+                /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold text-gray-900 dark:text-white", children: "Order History" })
+              ] })
+            ] }) }),
+            /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed", children: "View and manage your orders" }),
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                onClick: (e) => {
+                  e.stopPropagation();
+                  onNavigateToOrders();
+                },
+                className: "w-full h-11 rounded-xl border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 font-semibold text-sm text-gray-700 dark:text-gray-300 transition-all uppercase tracking-wider",
+                children: "VIEW ORDERS"
+              }
+            )
+          ]
+        }
+      ) }),
+      /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 sm:p-8", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-6", children: [
+          /* @__PURE__ */ jsx("div", { className: "h-4 w-1 bg-blue-600 rounded-full" }),
+          /* @__PURE__ */ jsx("h3", { className: "text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "ACCOUNT INFORMATION" })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8", children: [
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "EMAIL ADDRESS" }),
+            /* @__PURE__ */ jsx("p", { className: "font-bold text-gray-900 dark:text-white", children: user.email })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "MEMBER SINCE" }),
+            /* @__PURE__ */ jsx("p", { className: "font-bold text-gray-900 dark:text-white", children: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A" })
+          ] })
+        ] })
+      ] })
+    ] }) }) });
+  });
+
+  // packages/shop-themes/default/src/components/RegisterPage.tsx
+  function RegisterPage({
+    isLoading,
+    error,
+    config,
+    onSubmit,
+    onOAuthClick,
+    onNavigateToLogin
+  }) {
+    const [formData, setFormData] = react_default.useState({
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      confirmPassword: ""
+    });
+    const [showPassword, setShowPassword] = react_default.useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = react_default.useState(false);
+    const [acceptTerms, setAcceptTerms] = react_default.useState(false);
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+      if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.confirmPassword) {
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        return;
+      }
+      if (!acceptTerms) {
+        return;
+      }
+      try {
+        await onSubmit(formData);
+      } catch (error2) {
+        console.error("Registration failed:", error2);
+      }
+    };
+    const passwordsMatch = formData.password === formData.confirmPassword;
+    const isFormValid = formData.firstName && formData.lastName && formData.email && formData.password && formData.confirmPassword && passwordsMatch && acceptTerms;
+    const inputStyles2 = cn(
+      "w-full pl-11 pr-4 py-3 rounded-xl border border-gray-100 dark:border-slate-700",
+      "bg-gray-50/50 dark:bg-slate-800 text-sm font-bold text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-500",
+      "focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400",
+      "transition-all duration-150",
+      "disabled:bg-gray-50 dark:disabled:bg-slate-800 disabled:cursor-not-allowed"
+    );
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center px-4 py-12 sm:py-16", children: /* @__PURE__ */ jsxs("div", { className: "w-full max-w-md", children: [
+      /* @__PURE__ */ jsxs("div", { className: "text-center mb-6", children: [
+        /* @__PURE__ */ jsx("div", { className: "w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-600 flex items-center justify-center shadow-sm", children: /* @__PURE__ */ jsx("span", { className: "text-white font-bold text-2xl", children: "J" }) }),
+        /* @__PURE__ */ jsx("h1", { className: "text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white tracking-tight mb-2", children: "Create Account" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "NEW USER REGISTRATION" })
+      ] }),
+      /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-gray-100 dark:border-slate-700 p-6 sm:p-8 space-y-5", children: [
+        /* @__PURE__ */ jsxs("div", { className: "space-y-2", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-4 w-1 bg-blue-600 rounded-full" }),
+            /* @__PURE__ */ jsx("h2", { className: "text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "ACCOUNT CREATION" })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-300 dark:text-gray-600 uppercase tracking-wider pl-3", children: "FILL IN YOUR DETAILS" })
+        ] }),
+        error && /* @__PURE__ */ jsx("div", { className: "bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl p-4", children: /* @__PURE__ */ jsx("p", { className: "text-sm text-red-700 dark:text-red-400", children: error }) }),
+        /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4", children: [
+          /* @__PURE__ */ jsxs("div", { className: "space-y-3", children: [
+            /* @__PURE__ */ jsx("label", { htmlFor: "register-firstName", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block", children: "FIRST NAME" }),
+            /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+              /* @__PURE__ */ jsx(User, { className: "absolute left-4 top-3.5 h-4 w-4 text-gray-400 dark:text-gray-500" }),
+              /* @__PURE__ */ jsx(
+                "input",
+                {
+                  id: "register-firstName",
+                  type: "text",
+                  value: formData.firstName,
+                  onChange: (e) => setFormData({ ...formData, firstName: e.target.value }),
+                  placeholder: "John",
+                  className: inputStyles2,
+                  disabled: isLoading,
+                  autoComplete: "given-name"
+                }
+              )
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "space-y-3", children: [
+            /* @__PURE__ */ jsx("label", { htmlFor: "register-lastName", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block", children: "LAST NAME" }),
+            /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+              /* @__PURE__ */ jsx(User, { className: "absolute left-4 top-3.5 h-4 w-4 text-gray-400 dark:text-gray-500" }),
+              /* @__PURE__ */ jsx(
+                "input",
+                {
+                  id: "register-lastName",
+                  type: "text",
+                  value: formData.lastName,
+                  onChange: (e) => setFormData({ ...formData, lastName: e.target.value }),
+                  placeholder: "Doe",
+                  className: inputStyles2,
+                  disabled: isLoading,
+                  autoComplete: "family-name"
+                }
+              )
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "space-y-3", children: [
+          /* @__PURE__ */ jsx("label", { htmlFor: "register-email", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block", children: "EMAIL INTERFACE" }),
+          /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+            /* @__PURE__ */ jsx(Mail, { className: "absolute left-4 top-3.5 h-4 w-4 text-gray-400 dark:text-gray-500" }),
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                id: "register-email",
+                type: "email",
+                value: formData.email,
+                onChange: (e) => setFormData({ ...formData, email: e.target.value }),
+                placeholder: "you@example.com",
+                className: inputStyles2,
+                disabled: isLoading,
+                autoComplete: "email"
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "space-y-3", children: [
+          /* @__PURE__ */ jsx("label", { htmlFor: "register-password", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block", children: "SECURITY KEY" }),
+          /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+            /* @__PURE__ */ jsx(Lock, { className: "absolute left-4 top-3.5 h-4 w-4 text-gray-400 dark:text-gray-500" }),
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                id: "register-password",
+                type: showPassword ? "text" : "password",
+                value: formData.password,
+                onChange: (e) => setFormData({ ...formData, password: e.target.value }),
+                placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
+                className: cn(inputStyles2, "pr-11"),
+                disabled: isLoading,
+                autoComplete: "new-password"
+              }
+            ),
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => setShowPassword(!showPassword),
+                className: "absolute right-4 top-3.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors",
+                disabled: isLoading,
+                "aria-label": showPassword ? "Hide password" : "Show password",
+                children: showPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "space-y-3", children: [
+          /* @__PURE__ */ jsx("label", { htmlFor: "register-confirmPassword", className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block", children: "CONFIRM KEY" }),
+          /* @__PURE__ */ jsxs("div", { className: "relative", children: [
+            /* @__PURE__ */ jsx(Lock, { className: "absolute left-4 top-3.5 h-4 w-4 text-gray-400 dark:text-gray-500" }),
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                id: "register-confirmPassword",
+                type: showConfirmPassword ? "text" : "password",
+                value: formData.confirmPassword,
+                onChange: (e) => setFormData({ ...formData, confirmPassword: e.target.value }),
+                placeholder: "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022",
+                className: cn(
+                  inputStyles2,
+                  "pr-11",
+                  formData.confirmPassword && !passwordsMatch && "border-red-300 dark:border-red-700 focus:ring-red-500/20 focus:border-red-500"
+                ),
+                disabled: isLoading,
+                autoComplete: "new-password"
+              }
+            ),
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => setShowConfirmPassword(!showConfirmPassword),
+                className: "absolute right-4 top-3.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors",
+                disabled: isLoading,
+                "aria-label": showConfirmPassword ? "Hide password" : "Show password",
+                children: showConfirmPassword ? /* @__PURE__ */ jsx(EyeOff, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Eye, { className: "h-4 w-4" })
+              }
+            )
+          ] }),
+          formData.confirmPassword && !passwordsMatch && /* @__PURE__ */ jsx("p", { className: "text-xs text-red-600 dark:text-red-400 pl-3", children: "PASSWORDS DO NOT MATCH" })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3 pt-2", children: [
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              type: "checkbox",
+              id: "terms",
+              checked: acceptTerms,
+              onChange: (e) => setAcceptTerms(e.target.checked),
+              className: "mt-1 h-4 w-4 rounded border-gray-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500",
+              disabled: isLoading
+            }
+          ),
+          /* @__PURE__ */ jsxs("label", { htmlFor: "terms", className: "text-xs text-gray-500 dark:text-gray-400", children: [
+            "I agree to the",
+            " ",
+            /* @__PURE__ */ jsx("a", { href: "/terms", className: "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium", children: "Terms of Service" }),
+            " ",
+            "and",
+            " ",
+            /* @__PURE__ */ jsx("a", { href: "/privacy", className: "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium", children: "Privacy Policy" })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "submit",
+            disabled: isLoading || !isFormValid,
+            className: "w-full h-11 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 dark:shadow-none transition-all bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed mt-6 flex items-center justify-center gap-2",
+            children: isLoading ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+              /* @__PURE__ */ jsx(LoaderCircle, { className: "h-4 w-4 animate-spin" }),
+              "CREATING ACCOUNT..."
+            ] }) : "CREATE ACCOUNT"
+          }
+        ),
+        /* @__PURE__ */ jsxs("div", { className: "text-center pt-6 border-t border-gray-50 dark:border-slate-700 mt-6", children: [
+          /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-3", children: "ALREADY HAVE AN ACCOUNT?" }),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: onNavigateToLogin,
+              className: "text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-semibold text-sm transition-colors",
+              disabled: isLoading,
+              children: "SIGN IN"
+            }
+          )
+        ] })
+      ] })
+    ] }) });
+  }
+
+  // packages/shop-themes/default/src/components/TermsPage.tsx
+  function TermsPage({ config }) {
+    const sections = [
+      { id: "acceptance", icon: CircleCheckBig, iconColor: "bg-green-50", iconTextColor: "text-green-600", title: "Acceptance of Terms", content: "By accessing and using this website, you accept and agree to be bound by the terms and provision of this agreement. If you do not agree to abide by the above, please do not use this service." },
+      { id: "use-license", icon: Info, iconColor: "bg-blue-50", iconTextColor: "text-blue-600", title: "Use License", content: "Permission is granted to temporarily download one copy of the materials (information or software) on Jiffoo Mall for personal, non-commercial transitory viewing only. This is the grant of a license, not a transfer of title." },
+      { id: "disclaimer", icon: CircleAlert, iconColor: "bg-yellow-50", iconTextColor: "text-yellow-600", title: "Disclaimer", content: 'The materials on Jiffoo Mall are provided on an "as is" basis. Jiffoo Mall makes no warranties, expressed or implied, and hereby disclaims and negates all other warranties.' },
+      { id: "limitations", icon: CircleX, iconColor: "bg-red-50", iconTextColor: "text-red-600", title: "Limitations", content: "In no event shall Jiffoo Mall or its suppliers be liable for any damages arising out of the use or inability to use the materials on Jiffoo Mall." },
+      { id: "accuracy", icon: Info, iconColor: "bg-purple-50", iconTextColor: "text-purple-600", title: "Accuracy of Materials", content: "The materials appearing on Jiffoo Mall could include technical, typographical, or photographic errors. Jiffoo Mall does not warrant that any of the materials on its website are accurate, complete, or current." },
+      { id: "links", icon: Info, iconColor: "bg-blue-50", iconTextColor: "text-blue-600", title: "Links", content: "Jiffoo Mall has not reviewed all of the sites linked to its website and is not responsible for the contents of any such linked site." }
+    ];
+    return /* @__PURE__ */ jsxs("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900", children: [
+      /* @__PURE__ */ jsx("section", { className: "py-16 sm:py-20 bg-white dark:bg-slate-800 border-b border-gray-100 dark:border-slate-700", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4", children: /* @__PURE__ */ jsxs("div", { className: "text-center max-w-3xl mx-auto", children: [
+        /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-full mb-6", children: [
+          /* @__PURE__ */ jsx(CircleCheckBig, { className: "w-3 h-3 text-blue-600 dark:text-blue-400" }),
+          /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest", children: "TERMS OF SERVICE" })
+        ] }),
+        /* @__PURE__ */ jsx("h1", { className: "text-3xl sm:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight", children: "Terms of Service" }),
+        /* @__PURE__ */ jsxs("p", { className: "text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider", children: [
+          "LAST UPDATED: ",
+          (/* @__PURE__ */ new Date()).toLocaleDateString()
+        ] })
+      ] }) }) }),
+      /* @__PURE__ */ jsx("section", { className: "py-8 sm:py-12", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 max-w-4xl", children: /* @__PURE__ */ jsx("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 sm:p-8", children: /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 leading-relaxed", children: "Welcome to Jiffoo Mall. These terms and conditions outline the rules and regulations for the use of our website and services. By accessing this website, we assume you accept these terms and conditions." }) }) }) }),
+      /* @__PURE__ */ jsx("section", { className: "py-8", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 max-w-4xl", children: /* @__PURE__ */ jsx("div", { className: "space-y-4 sm:space-y-6", children: sections.map((section) => {
+        const IconComponent = section.icon;
+        return /* @__PURE__ */ jsx(
+          "div",
+          {
+            className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 sm:p-8",
+            children: /* @__PURE__ */ jsxs("div", { className: "flex items-start space-x-4", children: [
+              /* @__PURE__ */ jsx("div", { className: `w-12 h-12 ${section.iconColor} dark:opacity-80 rounded-2xl flex items-center justify-center flex-shrink-0`, children: /* @__PURE__ */ jsx(IconComponent, { className: `w-5 h-5 ${section.iconTextColor}` }) }),
+              /* @__PURE__ */ jsxs("div", { className: "flex-1", children: [
+                /* @__PURE__ */ jsx("h3", { className: "text-base sm:text-lg font-bold text-gray-900 dark:text-white mb-3 tracking-tight", children: section.title }),
+                /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 leading-relaxed", children: section.content })
+              ] })
+            ] })
+          },
+          section.id
+        );
+      }) }) }) }),
+      /* @__PURE__ */ jsx("section", { className: "py-12 sm:py-16 bg-white dark:bg-slate-800 border-t border-gray-100 dark:border-slate-700", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 max-w-4xl", children: /* @__PURE__ */ jsxs("div", { className: "space-y-4 sm:space-y-6", children: [
+        /* @__PURE__ */ jsxs("div", { className: "bg-gray-50 dark:bg-slate-700/50 rounded-3xl border border-gray-100 dark:border-slate-600 p-6 sm:p-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+            /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "MODIFICATIONS TO TERMS" })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 leading-relaxed", children: "Jiffoo Mall may revise these terms of service for its website at any time without notice. By using this website, you are agreeing to be bound by the then current version of these terms of service." })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "bg-gray-50 dark:bg-slate-700/50 rounded-3xl border border-gray-100 dark:border-slate-600 p-6 sm:p-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+            /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "GOVERNING LAW" })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 leading-relaxed", children: "These terms and conditions are governed by and construed in accordance with the laws of the jurisdiction in which Jiffoo Mall operates." })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "bg-gray-50 dark:bg-slate-700/50 rounded-3xl border border-gray-100 dark:border-slate-600 p-6 sm:p-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+            /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "USER RESPONSIBILITIES" })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 leading-relaxed", children: "You agree not to use this website for any unlawful purpose or in any way that could damage, disable, or impair the website." })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "bg-gray-50 dark:bg-slate-700/50 rounded-3xl border border-gray-100 dark:border-slate-600 p-6 sm:p-8", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
+            /* @__PURE__ */ jsx("h3", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "INTELLECTUAL PROPERTY" })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-600 dark:text-gray-400 leading-relaxed", children: "Unless otherwise stated, Jiffoo Mall and/or its licensors own the intellectual property rights for all material on this website. All intellectual property rights are reserved." })
+        ] })
+      ] }) }) })
+    ] });
+  }
+
+  // packages/shop-themes/modelsfind/src/components/CategoriesPage.tsx
+  var CategoriesPage = react_default.memo(function CategoriesPage2({
+    categories,
+    isLoading,
+    error,
+    onCategoryClick,
+    onNavigateToHome
+  }) {
+    if (isLoading) {
+      return /* @__PURE__ */ jsx("div", { className: "modelsfind-shell min-h-screen" });
+    }
+    return /* @__PURE__ */ jsx("div", { className: "modelsfind-shell min-h-screen px-4 pb-24 pt-20 [font-family:var(--modelsfind-body)] text-[var(--modelsfind-ink)] sm:px-6 sm:pt-24 lg:px-8", children: /* @__PURE__ */ jsx("div", { className: "mx-auto max-w-[1040px]", children: /* @__PURE__ */ jsxs("div", { className: "modelsfind-frame overflow-hidden rounded-[2rem] border border-[var(--modelsfind-line-strong)] bg-[rgba(10,8,12,0.96)]", children: [
+      /* @__PURE__ */ jsxs("section", { className: "border-b border-[var(--modelsfind-line)] px-5 py-6", children: [
+        /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-[var(--modelsfind-copy)]", children: [
+          /* @__PURE__ */ jsx(Compass, { className: "h-4 w-4 text-[var(--modelsfind-primary)]" }),
+          "Regions"
+        ] }),
+        /* @__PURE__ */ jsx("h1", { className: "mt-4 [font-family:var(--modelsfind-display)] text-[clamp(2.4rem,5vw,4.4rem)] leading-[0.92] tracking-[-0.05em] text-[var(--modelsfind-ink)]", children: "Browse the archive by region, curation lane, and visual mood." }),
+        /* @__PURE__ */ jsx("p", { className: "mt-3 max-w-2xl text-sm leading-7 text-[var(--modelsfind-copy)]", children: "Use regions as the fastest way to narrow a large portrait archive before moving into individual profile boards." })
+      ] }),
+      error ? /* @__PURE__ */ jsx("div", { className: "border-b border-[var(--modelsfind-line)] px-5 py-4 text-sm text-[var(--modelsfind-copy)]", children: error }) : null,
+      /* @__PURE__ */ jsx("section", { className: "px-5 py-5", children: categories.length === 0 ? /* @__PURE__ */ jsx("div", { className: "rounded-[1.2rem] border border-dashed border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.02)] p-16 text-center text-[var(--modelsfind-copy)]", children: "No regions available yet." }) : /* @__PURE__ */ jsx("div", { className: "grid gap-3 md:grid-cols-2 xl:grid-cols-3", children: categories.map((category) => /* @__PURE__ */ jsxs(
+        "button",
+        {
+          type: "button",
+          onClick: () => onCategoryClick(category.id),
+          className: "group rounded-[1.2rem] border border-[var(--modelsfind-line)] bg-[rgba(19,15,22,0.92)] p-5 text-left transition-transform duration-300 hover:-translate-y-1",
+          children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+              /* @__PURE__ */ jsxs("p", { className: "text-[10px] uppercase tracking-[0.2em] text-[var(--modelsfind-primary)]", children: [
+                category.productCount,
+                " profiles"
+              ] }),
+              /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4 text-[var(--modelsfind-copy-soft)] transition-transform duration-300 group-hover:translate-x-1" })
+            ] }),
+            /* @__PURE__ */ jsx("h2", { className: "mt-3 [font-family:var(--modelsfind-display)] text-[2rem] leading-none tracking-[-0.04em] text-[var(--modelsfind-ink)]", children: category.name }),
+            /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-7 text-[var(--modelsfind-copy)]", children: category.description || "Browse a tighter lane of the portrait archive with cleaner editorial grouping." })
+          ]
+        },
+        category.id
+      )) }) }),
+      onNavigateToHome ? /* @__PURE__ */ jsx("div", { className: "border-t border-[var(--modelsfind-line)] px-5 py-4", children: /* @__PURE__ */ jsx(
+        "button",
+        {
+          type: "button",
+          onClick: onNavigateToHome,
+          className: "rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-5 py-3 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--modelsfind-copy)]",
+          children: "Back home"
+        }
+      ) }) : null
+    ] }) }) });
+  });
+
+  // packages/shop-themes/modelsfind/src/components/CollectionPages.tsx
+  function getProductImage(product) {
+    const mainImage = product.images?.find((image) => image.isMain) || product.images?.[0];
+    return mainImage?.url || "/placeholder-product.svg";
+  }
+  function ArchiveCollection({
+    products,
+    isLoading,
+    title,
+    description,
+    eyebrow,
+    onProductClick
+  }) {
+    if (isLoading) {
+      return /* @__PURE__ */ jsx("div", { className: "modelsfind-shell min-h-screen" });
+    }
+    return /* @__PURE__ */ jsx("div", { className: "modelsfind-shell min-h-screen px-4 pb-24 pt-20 [font-family:var(--modelsfind-body)] text-[var(--modelsfind-ink)] sm:px-6 sm:pt-24 lg:px-8", children: /* @__PURE__ */ jsx("div", { className: "mx-auto max-w-[1040px]", children: /* @__PURE__ */ jsxs("div", { className: "modelsfind-frame overflow-hidden rounded-[2rem] border border-[var(--modelsfind-line-strong)] bg-[rgba(10,8,12,0.96)]", children: [
+      /* @__PURE__ */ jsxs("section", { className: "border-b border-[var(--modelsfind-line)] px-5 py-6", children: [
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] uppercase tracking-[0.24em] text-[var(--modelsfind-primary)]", children: eyebrow }),
+        /* @__PURE__ */ jsx("h1", { className: "mt-3 [font-family:var(--modelsfind-display)] text-[clamp(2.4rem,5vw,4.4rem)] leading-[0.92] tracking-[-0.05em] text-[var(--modelsfind-ink)]", children: title }),
+        /* @__PURE__ */ jsx("p", { className: "mt-3 max-w-2xl text-sm leading-7 text-[var(--modelsfind-copy)]", children: description })
+      ] }),
+      /* @__PURE__ */ jsx("section", { className: "px-5 py-5", children: /* @__PURE__ */ jsx("div", { className: "grid gap-3 grid-cols-2 md:grid-cols-3", children: products.map((product) => /* @__PURE__ */ jsxs(
+        "article",
+        {
+          className: "group overflow-hidden rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(19,15,22,0.92)]",
+          children: [
+            /* @__PURE__ */ jsx("button", { type: "button", onClick: () => onProductClick(product.id), className: "block w-full text-left", children: /* @__PURE__ */ jsxs("div", { className: "relative aspect-[0.78] overflow-hidden", children: [
+              /* @__PURE__ */ jsx(
+                "img",
+                {
+                  src: getProductImage(product),
+                  alt: product.name,
+                  className: "h-full w-full object-cover grayscale transition-transform duration-500 group-hover:scale-[1.03]"
+                }
+              ),
+              /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(180deg,rgba(10,8,12,0.04),rgba(10,8,12,0.76))]" })
+            ] }) }),
+            /* @__PURE__ */ jsxs("div", { className: "p-3", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-2", children: [
+                /* @__PURE__ */ jsxs("div", { children: [
+                  /* @__PURE__ */ jsx("h2", { className: "[font-family:var(--modelsfind-display)] text-[1.25rem] leading-none tracking-[-0.04em] text-[var(--modelsfind-ink)]", children: product.name }),
+                  /* @__PURE__ */ jsx("p", { className: "mt-1 text-[11px] text-[var(--modelsfind-copy-soft)]", children: product.tags?.slice(0, 2).join(" \u2022 ") || product.description })
+                ] }),
+                /* @__PURE__ */ jsx(Heart, { className: "mt-0.5 h-3.5 w-3.5 text-[var(--modelsfind-primary)]" })
+              ] }),
+              /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => onProductClick(product.id),
+                  className: "mt-3 inline-flex min-h-8 w-full items-center justify-center gap-2 rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.02)] px-3 text-[9px] font-semibold uppercase tracking-[0.24em] text-[var(--modelsfind-copy)] transition-colors hover:border-[var(--modelsfind-primary)] hover:text-[var(--modelsfind-ink)]",
+                  children: [
+                    "View profile",
+                    /* @__PURE__ */ jsx(ArrowRight, { className: "h-3.5 w-3.5" })
+                  ]
+                }
+              )
+            ] })
+          ]
+        },
+        product.id
+      )) }) })
+    ] }) }) });
+  }
+  var BestsellersPage = react_default.memo(function BestsellersPage2(props) {
+    return /* @__PURE__ */ jsx(
+      ArchiveCollection,
+      {
+        products: props.products,
+        isLoading: props.isLoading,
+        title: "Most-saved portrait profiles in the current private archive.",
+        description: "This lane surfaces the editorial sets operators shortlist most often when curating featured boards.",
+        eyebrow: "Editor picks",
+        onProductClick: props.onProductClick
+      }
+    );
+  });
+  var NewArrivalsPage = react_default.memo(function NewArrivalsPage2(props) {
+    return /* @__PURE__ */ jsx(
+      ArchiveCollection,
+      {
+        products: props.products,
+        isLoading: props.isLoading,
+        title: "Fresh arrivals added to the archive this cycle.",
+        description: "Use new arrivals to review recently added portrait sets before they are grouped into broader curated boards.",
+        eyebrow: "New arrivals",
+        onProductClick: props.onProductClick
+      }
+    );
+  });
+  var DealsPage = react_default.memo(function DealsPage2(props) {
+    return /* @__PURE__ */ jsx(
+      ArchiveCollection,
+      {
+        products: props.products,
+        isLoading: props.isLoading,
+        title: "Private bundles, highlighted boards, and limited-access offers.",
+        description: "Use this view when the archive needs a promotional lane without breaking the darker editorial mood.",
+        eyebrow: "Featured offers",
+        onProductClick: props.onProductClick
+      }
+    );
+  });
+  var SearchPage = react_default.memo(function SearchPage2(props) {
+    return /* @__PURE__ */ jsx(
+      ArchiveCollection,
+      {
+        products: props.products,
+        isLoading: props.isLoading,
+        title: `Results for \u201C${props.searchQuery || "archive search"}\u201D`,
+        description: "Search stays framed like an editorial directory so operators can narrow results without losing category context.",
+        eyebrow: "Search",
+        onProductClick: props.onProductClick
+      }
+    );
+  });
+
+  // packages/shop-themes/modelsfind/src/site.ts
+  var DEFAULT_SITE_CONFIG = {
+    brandName: "modelsfind",
+    archetype: "product-site",
+    eyebrow: "Curated model directory",
+    headline: "Editorial model profiles, instant availability cues, and premium booking requests in one refined destination.",
+    subheadline: "Built for operators presenting premium model portfolios. Filter by region, look, and access tier while keeping the storefront polished, discreet, and booking-ready.",
+    primaryCtaLabel: "Explore collection",
+    primaryCtaHref: "/products",
+    secondaryCtaLabel: "Request access",
+    secondaryCtaHref: "/auth/register",
+    docsHref: "/help",
+    demoHref: "/products",
+    supportEmail: "hello@modelsfind.com",
+    installCommand: "pnpm theme:add modelsfind"
+  };
+  function resolveModelsfindSiteConfig(config) {
+    return {
+      ...DEFAULT_SITE_CONFIG,
+      brandName: DEFAULT_SITE_CONFIG.brandName,
+      archetype: config?.site?.archetype || DEFAULT_SITE_CONFIG.archetype,
+      eyebrow: config?.site?.eyebrow || DEFAULT_SITE_CONFIG.eyebrow,
+      headline: config?.site?.headline || DEFAULT_SITE_CONFIG.headline,
+      subheadline: config?.site?.subheadline || DEFAULT_SITE_CONFIG.subheadline,
+      primaryCtaLabel: config?.site?.primaryCtaLabel || DEFAULT_SITE_CONFIG.primaryCtaLabel,
+      primaryCtaHref: config?.site?.primaryCtaHref || DEFAULT_SITE_CONFIG.primaryCtaHref,
+      secondaryCtaLabel: config?.site?.secondaryCtaLabel || DEFAULT_SITE_CONFIG.secondaryCtaLabel,
+      secondaryCtaHref: config?.site?.secondaryCtaHref || DEFAULT_SITE_CONFIG.secondaryCtaHref,
+      docsHref: config?.site?.docsHref || DEFAULT_SITE_CONFIG.docsHref,
+      demoHref: config?.site?.demoHref || DEFAULT_SITE_CONFIG.demoHref,
+      supportEmail: config?.site?.supportEmail || DEFAULT_SITE_CONFIG.supportEmail
+    };
+  }
+  function isExternalHref(href) {
+    return Boolean(href && /^(https?:)?\/\//.test(href));
+  }
+  var heroRegions = ["China", "Japan", "Korea", "Europe"];
+  var previewPortraits = [
+    {
+      name: "Selene",
+      region: "China",
+      mood: "Private suite glow",
+      image: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=80"
+    },
+    {
+      name: "Bianca",
+      region: "Japan",
+      mood: "Bare-shoulder spotlight",
+      image: "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=1200&q=80"
+    },
+    {
+      name: "Aria",
+      region: "Korea",
+      mood: "After-hours allure",
+      image: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80"
+    },
+    {
+      name: "Sienna",
+      region: "China",
+      mood: "Heatwave editorial",
+      image: "https://images.unsplash.com/photo-1496747611176-843222e1e57c?auto=format&fit=crop&w=1200&q=80"
+    },
+    {
+      name: "Mila",
+      region: "Korea",
+      mood: "Velvet close-up",
+      image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=80"
+    },
+    {
+      name: "Dalia",
+      region: "Europe",
+      mood: "Runway after-dark",
+      image: "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=1200&q=80"
+    }
+  ];
+
+  // packages/shop-themes/modelsfind/src/components/Footer.tsx
+  var Footer = react_default.memo(function Footer2({
+    config,
+    onNavigate,
+    onNavigateToProducts,
+    onNavigateToCategories,
+    onNavigateToDeals,
+    onNavigateToHelp,
+    onNavigateToContact,
+    onNavigateToPrivacy,
+    onNavigateToTerms
+  }) {
+    const site = resolveModelsfindSiteConfig(config);
+    const year = (/* @__PURE__ */ new Date()).getFullYear();
+    const openHref = react_default.useCallback(
+      (href) => {
+        if (isExternalHref(href)) {
+          window.open(href, "_blank", "noopener,noreferrer");
+          return;
+        }
+        onNavigate?.(href);
+      },
+      [onNavigate]
+    );
+    return /* @__PURE__ */ jsxs("footer", { className: "relative border-t border-[var(--modelsfind-line)] bg-[rgba(8,7,10,0.96)] px-4 py-8 [font-family:var(--modelsfind-body)] text-[var(--modelsfind-ink)] sm:px-6 lg:px-8", children: [
+      /* @__PURE__ */ jsxs("div", { className: "mx-auto hidden max-w-[1040px] items-center justify-between gap-6 text-[10px] uppercase tracking-[0.2em] text-[var(--modelsfind-copy-soft)] md:flex", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
+          /* @__PURE__ */ jsx(ShieldCheck, { className: "h-3.5 w-3.5 text-[var(--modelsfind-primary)]" }),
+          /* @__PURE__ */ jsxs("span", { children: [
+            year,
+            " ",
+            site.brandName,
+            ". Private model directory."
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-5", children: [
+          /* @__PURE__ */ jsx("button", { type: "button", onClick: onNavigateToHelp, className: "transition-colors hover:text-[var(--modelsfind-ink)]", children: "Help" }),
+          /* @__PURE__ */ jsx("button", { type: "button", onClick: onNavigateToPrivacy, className: "transition-colors hover:text-[var(--modelsfind-ink)]", children: "Privacy" }),
+          /* @__PURE__ */ jsx("button", { type: "button", onClick: onNavigateToTerms, className: "transition-colors hover:text-[var(--modelsfind-ink)]", children: "Terms" }),
+          /* @__PURE__ */ jsx("button", { type: "button", onClick: onNavigateToContact, className: "transition-colors hover:text-[var(--modelsfind-ink)]", children: "Contact" })
+        ] }),
+        /* @__PURE__ */ jsxs(
+          "button",
+          {
+            type: "button",
+            onClick: () => {
+              window.location.href = `mailto:${site.supportEmail}`;
+            },
+            className: "inline-flex items-center gap-2 transition-colors hover:text-[var(--modelsfind-ink)]",
+            children: [
+              /* @__PURE__ */ jsx(Mail, { className: "h-3.5 w-3.5 text-[var(--modelsfind-primary)]" }),
+              site.supportEmail
+            ]
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "fixed bottom-3 left-1/2 z-40 flex w-[calc(100%-1.5rem)] max-w-[24rem] -translate-x-1/2 items-center justify-between rounded-[1.2rem] border border-[var(--modelsfind-line)] bg-[rgba(14,11,16,0.96)] px-4 py-3 shadow-[var(--modelsfind-card-shadow)] md:hidden", children: [
+        /* @__PURE__ */ jsxs("button", { type: "button", onClick: onNavigateToProducts, className: "flex flex-col items-center gap-1 text-[9px] uppercase tracking-[0.18em] text-[var(--modelsfind-primary)]", children: [
+          /* @__PURE__ */ jsx(Sparkles, { className: "h-4 w-4" }),
+          "Explore"
+        ] }),
+        /* @__PURE__ */ jsxs("button", { type: "button", onClick: onNavigateToCategories, className: "flex flex-col items-center gap-1 text-[9px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: [
+          /* @__PURE__ */ jsx(Compass, { className: "h-4 w-4" }),
+          "Regions"
+        ] }),
+        /* @__PURE__ */ jsxs(
+          "button",
+          {
+            type: "button",
+            onClick: () => openHref(site.docsHref),
+            className: "flex flex-col items-center gap-1 text-[9px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]",
+            children: [
+              /* @__PURE__ */ jsx(WandSparkles, { className: "h-4 w-4" }),
+              "Concierge"
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsxs("button", { type: "button", onClick: onNavigateToDeals, className: "flex flex-col items-center gap-1 text-[9px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: [
+          /* @__PURE__ */ jsx(ShieldCheck, { className: "h-4 w-4" }),
+          "Boards"
+        ] }),
+        /* @__PURE__ */ jsxs("button", { type: "button", onClick: onNavigateToProducts, className: "flex flex-col items-center gap-1 text-[9px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: [
+          /* @__PURE__ */ jsx(User, { className: "h-4 w-4" }),
+          "Profile"
+        ] })
+      ] })
+    ] });
+  });
+
+  // packages/shop-themes/modelsfind/src/components/Header.tsx
+  var Header = react_default.memo(function Header2({
+    isAuthenticated,
+    user,
+    config,
+    onSearch,
+    onLogout,
+    onNavigateToProfile,
+    onNavigateToLogin,
+    onNavigateToRegister,
+    onNavigateToHome,
+    onNavigateToProducts,
+    onNavigateToDeals
+  }) {
+    const site = resolveModelsfindSiteConfig(config);
+    const [isMenuOpen, setIsMenuOpen] = react_default.useState(false);
+    const [searchQuery, setSearchQuery] = react_default.useState("");
+    const [userMenuOpen, setUserMenuOpen] = react_default.useState(false);
+    const navItems = [
+      { label: "Models", action: onNavigateToProducts },
+      { label: "Services", action: onNavigateToDeals },
+      { label: "Access", action: isAuthenticated ? onNavigateToProfile : onNavigateToRegister }
+    ];
+    const submitSearch = (event) => {
+      event.preventDefault();
+      onSearch(searchQuery.trim());
+    };
+    return /* @__PURE__ */ jsxs("header", { className: "fixed inset-x-0 top-0 z-50 border-b border-[var(--modelsfind-line)] bg-[rgba(8,7,10,0.92)] backdrop-blur-xl [font-family:var(--modelsfind-body)] text-[var(--modelsfind-ink)]", children: [
+      /* @__PURE__ */ jsxs("div", { className: "mx-auto flex h-[3.6rem] max-w-[1320px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8", children: [
+        /* @__PURE__ */ jsx("button", { type: "button", onClick: onNavigateToHome, className: "text-left", children: /* @__PURE__ */ jsx("div", { className: "[font-family:var(--modelsfind-display)] text-[1.2rem] font-semibold leading-none tracking-[-0.04em] text-[var(--modelsfind-primary)]", children: site.brandName }) }),
+        /* @__PURE__ */ jsx("nav", { className: "hidden items-center gap-5 lg:flex", children: navItems.map((item) => /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            onClick: item.action,
+            className: "text-[11px] uppercase tracking-[0.2em] text-[var(--modelsfind-copy-soft)] transition-colors hover:text-[var(--modelsfind-ink)]",
+            children: item.label
+          },
+          item.label
+        )) }),
+        /* @__PURE__ */ jsx("div", { className: "hidden flex-1 justify-end px-6 lg:flex", children: /* @__PURE__ */ jsxs("form", { onSubmit: submitSearch, className: "relative w-full max-w-[18rem] xl:max-w-[22rem]", children: [
+          /* @__PURE__ */ jsx(Search, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--modelsfind-copy-soft)]" }),
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              type: "search",
+              value: searchQuery,
+              onChange: (event) => setSearchQuery(event.target.value),
+              placeholder: "Search models",
+              className: "h-9 w-full rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] pl-11 pr-4 text-xs text-[var(--modelsfind-ink)] outline-none placeholder:text-[var(--modelsfind-copy-soft)] focus:border-[var(--modelsfind-primary)]"
+            }
+          )
+        ] }) }),
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-1 sm:gap-2", children: [
+          isAuthenticated ? /* @__PURE__ */ jsxs("div", { className: "relative hidden sm:block", children: [
+            /* @__PURE__ */ jsxs(
+              "button",
+              {
+                type: "button",
+                onClick: () => setUserMenuOpen((open) => !open),
+                className: "inline-flex h-9 items-center gap-2 rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-xs uppercase tracking-[0.16em] text-[var(--modelsfind-copy)] transition-colors hover:border-[var(--modelsfind-line-strong)] hover:text-[var(--modelsfind-ink)]",
+                children: [
+                  /* @__PURE__ */ jsx(User, { className: "h-4 w-4 text-[var(--modelsfind-primary)]" }),
+                  user?.firstName || "Profile"
+                ]
+              }
+            ),
+            userMenuOpen ? /* @__PURE__ */ jsxs("div", { className: "absolute right-0 top-full mt-2 min-w-[13rem] rounded-[1.2rem] border border-[var(--modelsfind-line)] bg-[rgba(17,14,20,0.98)] p-2 shadow-[var(--modelsfind-card-shadow)]", children: [
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => {
+                    setUserMenuOpen(false);
+                    onNavigateToProfile();
+                  },
+                  className: "w-full rounded-[0.9rem] px-4 py-3 text-left text-sm text-[var(--modelsfind-ink)] transition-colors hover:bg-[rgba(255,255,255,0.04)]",
+                  children: "Profile settings"
+                }
+              ),
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => {
+                    setUserMenuOpen(false);
+                    onLogout();
+                  },
+                  className: "mt-1 w-full rounded-[0.9rem] px-4 py-3 text-left text-sm text-[var(--modelsfind-copy)] transition-colors hover:bg-[rgba(255,255,255,0.04)] hover:text-[var(--modelsfind-ink)]",
+                  children: "Sign out"
+                }
+              )
+            ] }) : null
+          ] }) : /* @__PURE__ */ jsx("div", { className: "hidden items-center gap-2 sm:flex", children: /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: onNavigateToRegister,
+              className: "rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--modelsfind-primary)_78%,white),color-mix(in_oklab,var(--modelsfind-primary)_72%,black))] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white transition-transform duration-300 hover:-translate-y-0.5",
+              children: "Request access"
+            }
+          ) }),
+          /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => setIsMenuOpen((open) => !open),
+              className: "flex h-9 w-9 items-center justify-center rounded-full text-[var(--modelsfind-ink)] lg:hidden",
+              "aria-label": "Menu",
+              children: isMenuOpen ? /* @__PURE__ */ jsx(X, { className: "h-5 w-5" }) : /* @__PURE__ */ jsx(Menu, { className: "h-5 w-5" })
+            }
+          )
+        ] })
+      ] }),
+      isMenuOpen ? /* @__PURE__ */ jsxs("div", { className: "border-t border-[var(--modelsfind-line)] bg-[rgba(12,9,14,0.96)] px-4 py-4 lg:hidden", children: [
+        /* @__PURE__ */ jsxs("form", { onSubmit: submitSearch, className: "relative", children: [
+          /* @__PURE__ */ jsx(Search, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--modelsfind-copy-soft)]" }),
+          /* @__PURE__ */ jsx(
+            "input",
+            {
+              type: "search",
+              value: searchQuery,
+              onChange: (event) => setSearchQuery(event.target.value),
+              placeholder: "Search models",
+              className: "h-12 w-full rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] pl-11 pr-4 text-sm text-[var(--modelsfind-ink)] outline-none placeholder:text-[var(--modelsfind-copy-soft)]"
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "mt-4 grid gap-2", children: [
+          navItems.map((item) => /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => {
+                setIsMenuOpen(false);
+                item.action();
+              },
+              className: "rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 py-3 text-left text-sm text-[var(--modelsfind-ink)]",
+              children: item.label
+            },
+            item.label
+          )),
+          isAuthenticated ? /* @__PURE__ */ jsxs(Fragment2, { children: [
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => {
+                  setIsMenuOpen(false);
+                  onNavigateToProfile();
+                },
+                className: "rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 py-3 text-left text-sm text-[var(--modelsfind-ink)]",
+                children: "Profile settings"
+              }
+            ),
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => {
+                  setIsMenuOpen(false);
+                  onLogout();
+                },
+                className: "rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 py-3 text-left text-sm text-[var(--modelsfind-copy)]",
+                children: "Sign out"
+              }
+            )
+          ] }) : /* @__PURE__ */ jsx(Fragment2, { children: /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => {
+                setIsMenuOpen(false);
+                onNavigateToRegister();
+              },
+              className: "rounded-[1rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--modelsfind-primary)_78%,white),color-mix(in_oklab,var(--modelsfind-primary)_72%,black))] px-4 py-3 text-left text-sm font-semibold text-white",
+              children: "Request access"
+            }
+          ) })
+        ] })
+      ] }) : null
+    ] });
+  });
+
+  // packages/shop-themes/modelsfind/src/components/HomePage.tsx
+  var desktopNav = ["Collection", "Boards", "Services", "Access"];
+  var HomePage = react_default.memo(function HomePage2({ config, onNavigate }) {
+    const site = resolveModelsfindSiteConfig(config);
+    const openHref = react_default.useCallback(
+      (href) => {
+        if (isExternalHref(href)) {
+          window.open(href, "_blank", "noopener,noreferrer");
+          return;
+        }
+        onNavigate?.(href);
+      },
+      [onNavigate]
+    );
+    const heroPortrait = previewPortraits[0];
+    const featuredGrid = previewPortraits.slice(0, 6);
+    return /* @__PURE__ */ jsx("div", { className: "modelsfind-shell min-h-screen px-4 pb-24 pt-20 [font-family:var(--modelsfind-body)] text-[var(--modelsfind-ink)] sm:px-6 sm:pt-24 lg:px-8", children: /* @__PURE__ */ jsx("div", { className: "mx-auto max-w-[1040px]", children: /* @__PURE__ */ jsxs("div", { className: "modelsfind-frame overflow-hidden rounded-[2rem] border border-[var(--modelsfind-line-strong)] bg-[rgba(10,8,12,0.96)]", children: [
+      /* @__PURE__ */ jsxs("div", { className: "hidden items-center gap-6 border-b border-[var(--modelsfind-line)] px-5 py-4 md:flex", children: [
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            onClick: () => openHref("/"),
+            className: "[font-family:var(--modelsfind-display)] text-[1.1rem] font-semibold tracking-[-0.03em] text-[var(--modelsfind-primary)]",
+            children: site.brandName
+          }
+        ),
+        /* @__PURE__ */ jsx("nav", { className: "flex items-center gap-5", children: desktopNav.map((item) => /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            onClick: () => openHref(item === "Collection" ? "/products" : item === "Access" ? "/auth/register" : "/"),
+            className: [
+              "text-[11px] uppercase tracking-[0.2em] transition-colors",
+              item === "Collection" ? "text-[var(--modelsfind-primary)]" : "text-[var(--modelsfind-copy-soft)] hover:text-[var(--modelsfind-copy)]"
+            ].join(" "),
+            children: item
+          },
+          item
+        )) }),
+        /* @__PURE__ */ jsxs("div", { className: "ml-auto flex min-w-[17rem] items-center gap-2 rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.02)] px-4 py-2", children: [
+          /* @__PURE__ */ jsx(Search, { className: "h-4 w-4 text-[var(--modelsfind-copy-soft)]" }),
+          /* @__PURE__ */ jsx("span", { className: "text-xs text-[var(--modelsfind-copy-soft)]", children: "Search models" })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between border-b border-[var(--modelsfind-line)] px-4 py-3 md:hidden", children: [
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            onClick: () => openHref("/"),
+            className: "[font-family:var(--modelsfind-display)] text-base font-semibold tracking-[-0.03em] text-[var(--modelsfind-primary)]",
+            children: site.brandName
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            onClick: () => openHref("/products"),
+            className: "flex h-8 w-8 items-center justify-center rounded-full text-[var(--modelsfind-copy)]",
+            "aria-label": "Search models",
+            children: /* @__PURE__ */ jsx(Search, { className: "h-4 w-4" })
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "grid md:grid-cols-[10.5rem_minmax(0,1fr)]", children: [
+        /* @__PURE__ */ jsxs("aside", { className: "hidden border-r border-[var(--modelsfind-line)] bg-[rgba(20,16,22,0.72)] px-4 py-5 md:block", children: [
+          /* @__PURE__ */ jsx("p", { className: "text-[11px] uppercase tracking-[0.22em] text-[var(--modelsfind-copy-soft)]", children: "Regions" }),
+          /* @__PURE__ */ jsx("div", { className: "mt-4 grid gap-2", children: heroRegions.map((region, index) => /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => openHref(`/products?region=${encodeURIComponent(region)}`),
+              className: [
+                "rounded-[0.9rem] border px-3 py-3 text-left text-[11px] uppercase tracking-[0.18em] transition-colors",
+                index === 0 ? "border-[var(--modelsfind-primary)] bg-[var(--modelsfind-primary-soft)] text-[var(--modelsfind-ink)]" : "border-[var(--modelsfind-line)] text-[var(--modelsfind-copy-soft)] hover:text-[var(--modelsfind-copy)]"
+              ].join(" "),
+              children: region
+            },
+            region
+          )) })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "p-4 md:p-5", children: [
+          /* @__PURE__ */ jsxs("div", { className: "modelsfind-portrait relative min-h-[26rem] overflow-hidden rounded-[1.45rem] border border-[var(--modelsfind-line)] bg-[rgba(12,10,14,0.94)] md:min-h-[22rem]", children: [
+            /* @__PURE__ */ jsx(
+              "img",
+              {
+                src: heroPortrait.image,
+                alt: heroPortrait.name,
+                className: "absolute inset-0 h-full w-full object-cover object-center saturate-[1.08] contrast-[1.06]"
+              }
+            ),
+            /* @__PURE__ */ jsxs("div", { className: "relative z-10 flex h-full flex-col justify-end px-5 pb-5 pt-8 sm:px-7 sm:pb-7", children: [
+              /* @__PURE__ */ jsx("p", { className: "text-[10px] uppercase tracking-[0.32em] text-[var(--modelsfind-copy-soft)]", children: "Est. 2026" }),
+              /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-[18rem] [font-family:var(--modelsfind-display)] text-[clamp(3rem,7vw,5.2rem)] font-semibold leading-[0.9] tracking-[-0.05em] text-[var(--modelsfind-ink)]", children: site.brandName }),
+              /* @__PURE__ */ jsx("p", { className: "mt-2 max-w-[26rem] text-sm leading-6 text-[var(--modelsfind-copy)]", children: "Defining a refined home for curated model profiles and premium appointment requests." }),
+              /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-col gap-3 sm:flex-row sm:items-center", children: [
+                /* @__PURE__ */ jsx(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => openHref("/products"),
+                    className: "inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--modelsfind-primary)_82%,white),color-mix(in_oklab,var(--modelsfind-primary)_72%,black))] px-5 text-[11px] font-semibold uppercase tracking-[0.22em] text-white",
+                    children: "Explore collection"
+                  }
+                ),
+                /* @__PURE__ */ jsx(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => openHref("/auth/register"),
+                    className: "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--modelsfind-line-strong)] bg-[rgba(20,16,22,0.68)] px-5 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--modelsfind-ink)]",
+                    children: "Request access"
+                  }
+                )
+              ] })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "mt-6 md:hidden", children: [
+            /* @__PURE__ */ jsx("p", { className: "text-[10px] uppercase tracking-[0.24em] text-[var(--modelsfind-copy-soft)]", children: "Selected regions" }),
+            /* @__PURE__ */ jsx("div", { className: "mt-3 flex gap-2 overflow-x-auto pb-1", children: heroRegions.map((region, index) => /* @__PURE__ */ jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => openHref(`/products?region=${encodeURIComponent(region)}`),
+                className: [
+                  "whitespace-nowrap rounded-full border px-3 py-2 text-[10px] uppercase tracking-[0.18em]",
+                  index === 0 ? "border-[var(--modelsfind-primary)] bg-[var(--modelsfind-primary-soft)] text-[var(--modelsfind-ink)]" : "border-[var(--modelsfind-line)] text-[var(--modelsfind-copy)]"
+                ].join(" "),
+                children: region
+              },
+              region
+            )) })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "mt-6 flex flex-col gap-3 md:flex-row md:items-end md:justify-between", children: [
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("h2", { className: "[font-family:var(--modelsfind-display)] text-[2rem] leading-none tracking-[-0.04em] text-[var(--modelsfind-ink)] md:text-[2.35rem]", children: "Featured Models" }),
+              /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs text-[var(--modelsfind-copy-soft)]", children: "Showing 72 elite editorials across China" })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "hidden items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-[var(--modelsfind-copy-soft)] md:flex", children: [
+              /* @__PURE__ */ jsx(Compass, { className: "h-3.5 w-3.5 text-[var(--modelsfind-primary)]" }),
+              "Curated nightly"
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx("div", { className: "mt-4 grid grid-cols-2 gap-3 md:grid-cols-3", children: featuredGrid.map((portrait, index) => /* @__PURE__ */ jsxs(
+            "article",
+            {
+              className: "group overflow-hidden rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(19,15,22,0.92)]",
+              children: [
+                /* @__PURE__ */ jsx(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => openHref("/products"),
+                    className: "block w-full text-left",
+                    children: /* @__PURE__ */ jsxs("div", { className: "relative aspect-[0.78] overflow-hidden", children: [
+                      /* @__PURE__ */ jsx(
+                        "img",
+                        {
+                          src: portrait.image,
+                          alt: portrait.name,
+                          className: "h-full w-full object-cover saturate-[1.08] contrast-[1.05] transition-transform duration-500 group-hover:scale-[1.03]"
+                        }
+                      ),
+                      /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(180deg,rgba(10,8,12,0.04),rgba(10,8,12,0.72))]" }),
+                      index === 2 ? /* @__PURE__ */ jsx("div", { className: "absolute right-2 top-2 rounded-full bg-[rgba(30,24,34,0.92)] px-2 py-1 text-[9px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy)]", children: "Private match" }) : null
+                    ] })
+                  }
+                ),
+                /* @__PURE__ */ jsxs("div", { className: "p-3", children: [
+                  /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-2", children: [
+                    /* @__PURE__ */ jsxs("div", { children: [
+                      /* @__PURE__ */ jsx("h3", { className: "[font-family:var(--modelsfind-display)] text-[1.25rem] leading-none tracking-[-0.04em] text-[var(--modelsfind-ink)]", children: portrait.name }),
+                      /* @__PURE__ */ jsx("p", { className: "mt-1 text-[11px] text-[var(--modelsfind-copy-soft)]", children: portrait.mood })
+                    ] }),
+                    /* @__PURE__ */ jsx(Heart, { className: "mt-0.5 h-3.5 w-3.5 text-[var(--modelsfind-primary)]" })
+                  ] }),
+                  /* @__PURE__ */ jsx(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => openHref("/products"),
+                      className: "mt-3 inline-flex min-h-8 w-full items-center justify-center rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.02)] px-3 text-[9px] font-semibold uppercase tracking-[0.24em] text-[var(--modelsfind-copy)] transition-colors hover:border-[var(--modelsfind-primary)] hover:text-[var(--modelsfind-ink)]",
+                      children: "Reserve"
+                    }
+                  )
+                ] })
+              ]
+            },
+            portrait.name
+          )) }),
+          /* @__PURE__ */ jsxs("div", { className: "mt-5 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(31,23,34,0.82)] p-4 md:max-w-[18rem]", children: [
+            /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-[var(--modelsfind-primary)]", children: [
+              /* @__PURE__ */ jsx(WandSparkles, { className: "h-3.5 w-3.5" }),
+              "AI concierge"
+            ] }),
+            /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm italic leading-6 text-[var(--modelsfind-ink)]", children: "Ask AI for your ideal board" })
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "hidden border-t border-[var(--modelsfind-line)] px-5 py-4 text-center text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)] md:block", children: [
+        "Privacy policy",
+        /* @__PURE__ */ jsx("span", { className: "mx-3 text-[var(--modelsfind-line-strong)]", children: "\u2022" }),
+        "Terms of service",
+        /* @__PURE__ */ jsx("span", { className: "mx-3 text-[var(--modelsfind-line-strong)]", children: "\u2022" }),
+        "Contact",
+        /* @__PURE__ */ jsx("span", { className: "mx-3 text-[var(--modelsfind-line-strong)]", children: "\u2022" }),
+        "Membership"
+      ] })
+    ] }) }) });
+  });
+
+  // packages/shop-themes/modelsfind/src/components/ProductDetailPage.tsx
+  function getProductImages(product) {
+    if (!product?.images?.length) {
+      return ["/placeholder-product.svg"];
+    }
+    return product.images.map((image) => image.url || "/placeholder-product.svg");
+  }
+  function formatPrice(value) {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0
+    }).format(value || 0);
+  }
+  var ProductDetailPage = react_default.memo(function ProductDetailPage2({
+    product,
+    isLoading,
+    selectedVariant,
+    quantity,
+    onVariantChange,
+    onQuantityChange,
+    onBack
+  }) {
+    const images = react_default.useMemo(() => getProductImages(product), [product]);
+    const [activeImage, setActiveImage] = react_default.useState(images[0]);
+    const [telegramSession, setTelegramSession] = react_default.useState(null);
+    const [bookingForm, setBookingForm] = react_default.useState({
+      scheduledAt: "",
+      location: "",
+      roomOrUnit: "",
+      contactName: "",
+      contactPhone: "",
+      notes: ""
+    });
+    const [bookingState, setBookingState] = react_default.useState({
+      submitting: false,
+      successMessage: "",
+      errorMessage: ""
+    });
+    react_default.useEffect(() => {
+      setActiveImage(images[0]);
+    }, [images]);
+    react_default.useEffect(() => {
+      if (typeof window === "undefined") {
+        return;
+      }
+      const applyVerifiedSession = () => {
+        try {
+          const raw = sessionStorage.getItem("telegram.webapp.verified");
+          if (!raw) {
+            setTelegramSession(null);
+            return;
+          }
+          setTelegramSession(JSON.parse(raw));
+        } catch {
+          setTelegramSession(null);
+        }
+      };
+      applyVerifiedSession();
+      const onVerified = (event) => {
+        const customEvent = event;
+        if (customEvent.detail) {
+          setTelegramSession(customEvent.detail);
+        } else {
+          applyVerifiedSession();
+        }
+      };
+      window.addEventListener("telegram:webapp-verified", onVerified);
+      return () => {
+        window.removeEventListener("telegram:webapp-verified", onVerified);
+      };
+    }, []);
+    const currentVariant = react_default.useMemo(
+      () => product?.variants?.find((variant) => variant.id === selectedVariant) || product?.variants?.[0],
+      [product, selectedVariant]
+    );
+    const stockValue = currentVariant?.inventory ?? product?.inventory?.available ?? 0;
+    const maxQuantity = Math.max(1, Math.min(stockValue || 1, 12));
+    if (isLoading) {
+      return /* @__PURE__ */ jsx("div", { className: "modelsfind-shell flex min-h-screen items-center justify-center [font-family:var(--modelsfind-body)] text-[var(--modelsfind-ink)]", children: /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
+        /* @__PURE__ */ jsx(Sparkles, { className: "mx-auto h-12 w-12 animate-pulse text-[var(--modelsfind-primary)]" }),
+        /* @__PURE__ */ jsx("p", { className: "mt-4 text-[11px] uppercase tracking-[0.28em] text-[var(--modelsfind-copy-soft)]", children: "Opening profile" })
+      ] }) });
+    }
+    if (!product) {
+      return /* @__PURE__ */ jsx("div", { className: "modelsfind-shell flex min-h-screen items-center justify-center px-4 [font-family:var(--modelsfind-body)] text-[var(--modelsfind-ink)]", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[2rem] border border-[var(--modelsfind-line)] bg-[rgba(18,14,20,0.92)] p-10 text-center shadow-[var(--modelsfind-card-shadow)]", children: [
+        /* @__PURE__ */ jsx("p", { className: "text-[11px] uppercase tracking-[0.24em] text-[var(--modelsfind-copy-soft)]", children: "Missing profile" }),
+        /* @__PURE__ */ jsx("h1", { className: "mt-4 [font-family:var(--modelsfind-display)] text-5xl tracking-[-0.05em]", children: "Profile not found" }),
+        /* @__PURE__ */ jsxs(
+          "button",
+          {
+            type: "button",
+            onClick: onBack,
+            className: "mt-6 inline-flex min-h-12 items-center gap-2 rounded-full border border-[var(--modelsfind-line)] px-5 text-xs font-semibold uppercase tracking-[0.22em] text-[var(--modelsfind-copy)]",
+            children: [
+              /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
+              "Back to collection"
+            ]
+          }
+        )
+      ] }) });
+    }
+    const specifications = product.specifications?.length ? product.specifications : [
+      { name: "Region", value: product.category?.name || "Model directory" },
+      { name: "Access", value: currentVariant?.name || "Private release" },
+      { name: "Tags", value: product.tags?.slice(0, 3).join(", ") || "Editorial, monochrome, beauty" },
+      { name: "Updated", value: new Date(product.updatedAt).toLocaleDateString("en-US") }
+    ];
+    const handleBookingField = (key, value) => {
+      setBookingForm((prev) => ({ ...prev, [key]: value }));
+    };
+    const handleSubmitBooking = async () => {
+      if (!telegramSession?.raw) {
+        setBookingState({
+          submitting: false,
+          successMessage: "",
+          errorMessage: "Open this page from the Telegram bot to submit an appointment request."
+        });
+        return;
+      }
+      if (!bookingForm.scheduledAt || !bookingForm.location) {
+        setBookingState({
+          submitting: false,
+          successMessage: "",
+          errorMessage: "Please provide the appointment time and location before sending the request."
+        });
+        return;
+      }
+      setBookingState({
+        submitting: true,
+        successMessage: "",
+        errorMessage: ""
+      });
+      try {
+        const response = await fetch("/api/telegram/bookings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            initData: telegramSession.raw,
+            productId: product.id,
+            productVariantId: currentVariant?.id,
+            productName: product.name,
+            packageName: currentVariant?.name || currentVariant?.value || "Standard session",
+            scheduledAt: bookingForm.scheduledAt,
+            location: bookingForm.location,
+            roomOrUnit: bookingForm.roomOrUnit,
+            contactName: bookingForm.contactName,
+            contactPhone: bookingForm.contactPhone,
+            notes: bookingForm.notes
+          })
+        });
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.success) {
+          throw new Error(payload?.error?.message || "Failed to submit appointment request");
+        }
+        setBookingState({
+          submitting: false,
+          successMessage: "Appointment request sent to Telegram. A confirmation message should arrive in your Telegram chat shortly.",
+          errorMessage: ""
+        });
+      } catch (error) {
+        setBookingState({
+          submitting: false,
+          successMessage: "",
+          errorMessage: error instanceof Error ? error.message : "Failed to submit appointment request"
+        });
+      }
+    };
+    const telegramUserLabel = telegramSession?.user ? [telegramSession.user.first_name, telegramSession.user.last_name].filter(Boolean).join(" ") || telegramSession.user.username || `User #${telegramSession.user.id}` : null;
+    return /* @__PURE__ */ jsx("div", { className: "modelsfind-shell min-h-screen px-4 pb-24 pt-20 [font-family:var(--modelsfind-body)] text-[var(--modelsfind-ink)] sm:px-6 sm:pt-24 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1040px]", children: [
+      /* @__PURE__ */ jsxs(
+        "button",
+        {
+          type: "button",
+          onClick: onBack,
+          className: "inline-flex min-h-10 items-center gap-2 rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--modelsfind-copy)]",
+          children: [
+            /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
+            "Back to profiles"
+          ]
+        }
+      ),
+      /* @__PURE__ */ jsx("div", { className: "mt-4 modelsfind-frame overflow-hidden rounded-[2rem] border border-[var(--modelsfind-line-strong)] bg-[rgba(10,8,12,0.96)]", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-0 lg:grid-cols-[minmax(0,0.92fr)_minmax(22rem,1.08fr)]", children: [
+        /* @__PURE__ */ jsxs("div", { className: "border-b border-[var(--modelsfind-line)] p-4 lg:border-b-0 lg:border-r lg:p-5", children: [
+          /* @__PURE__ */ jsx("div", { className: "overflow-hidden rounded-[1.35rem] border border-[var(--modelsfind-line)] bg-[rgba(14,11,16,0.96)]", children: /* @__PURE__ */ jsxs("div", { className: "relative aspect-[0.9] overflow-hidden", children: [
+            /* @__PURE__ */ jsx("img", { src: activeImage, alt: product.name, className: "h-full w-full object-cover grayscale" }),
+            /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(180deg,rgba(8,7,10,0.03),rgba(8,7,10,0.58))]" }),
+            /* @__PURE__ */ jsx("div", { className: "absolute left-4 top-4 rounded-full border border-[var(--modelsfind-line-strong)] bg-[rgba(17,14,20,0.8)] px-3 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--modelsfind-primary)]", children: "Featured profile" })
+          ] }) }),
+          images.length > 1 ? /* @__PURE__ */ jsx("div", { className: "mt-3 grid grid-cols-4 gap-3", children: images.slice(0, 4).map((image) => /* @__PURE__ */ jsx(
+            "button",
+            {
+              type: "button",
+              onClick: () => setActiveImage(image),
+              className: [
+                "overflow-hidden rounded-[0.9rem] border bg-[rgba(16,12,18,0.9)]",
+                activeImage === image ? "border-[var(--modelsfind-primary)]" : "border-[var(--modelsfind-line)]"
+              ].join(" "),
+              children: /* @__PURE__ */ jsx("div", { className: "aspect-square", children: /* @__PURE__ */ jsx("img", { src: image, alt: product.name, className: "h-full w-full object-cover grayscale" }) })
+            },
+            image
+          )) }) : null
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "p-4 lg:p-5", children: [
+          /* @__PURE__ */ jsxs("div", { className: "rounded-[1.35rem] border border-[var(--modelsfind-line)] bg-[rgba(17,14,20,0.92)] p-5", children: [
+            /* @__PURE__ */ jsx("div", { className: "flex flex-wrap items-center gap-2", children: (product.tags || []).slice(0, 4).map((tag) => /* @__PURE__ */ jsx(
+              "span",
+              {
+                className: "rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-3 py-1 text-[9px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]",
+                children: tag
+              },
+              tag
+            )) }),
+            /* @__PURE__ */ jsx("p", { className: "mt-4 text-[10px] uppercase tracking-[0.28em] text-[var(--modelsfind-copy-soft)]", children: "Featured model profile" }),
+            /* @__PURE__ */ jsx("h1", { className: "mt-2 [font-family:var(--modelsfind-display)] text-[clamp(2.7rem,5vw,4.8rem)] leading-[0.9] tracking-[-0.05em] text-[var(--modelsfind-ink)]", children: product.name }),
+            /* @__PURE__ */ jsx("p", { className: "mt-3 max-w-2xl text-sm leading-7 text-[var(--modelsfind-copy)]", children: product.description }),
+            /* @__PURE__ */ jsx("div", { className: "mt-5 grid gap-3 sm:grid-cols-3", children: [
+              { label: "Region", value: product.category?.name || "Model directory" },
+              { label: "Available slots", value: `${product.inventory?.available ?? 0}` },
+              { label: "Reviews", value: `${product.reviewCount || 0}` }
+            ].map((metric) => /* @__PURE__ */ jsxs(
+              "div",
+              {
+                className: "rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] p-4",
+                children: [
+                  /* @__PURE__ */ jsx("p", { className: "text-[9px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: metric.label }),
+                  /* @__PURE__ */ jsx("p", { className: "mt-2 [font-family:var(--modelsfind-display)] text-[1.85rem] leading-none text-[var(--modelsfind-ink)]", children: metric.value })
+                ]
+              },
+              metric.label
+            )) })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "mt-4 grid gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(19rem,1.08fr)]", children: [
+            /* @__PURE__ */ jsxs("div", { className: "rounded-[1.35rem] border border-[var(--modelsfind-line)] bg-[rgba(17,14,20,0.92)] p-5", children: [
+              /* @__PURE__ */ jsx("p", { className: "text-[10px] uppercase tracking-[0.24em] text-[var(--modelsfind-primary)]", children: "Metadata" }),
+              /* @__PURE__ */ jsx("div", { className: "mt-4 grid gap-3", children: specifications.slice(0, 6).map((spec) => /* @__PURE__ */ jsxs(
+                "div",
+                {
+                  className: "flex items-start justify-between gap-4 rounded-[0.95rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 py-3",
+                  children: [
+                    /* @__PURE__ */ jsx("span", { className: "text-sm text-[var(--modelsfind-copy)]", children: spec.name }),
+                    /* @__PURE__ */ jsx("span", { className: "text-right text-sm font-medium text-[var(--modelsfind-ink)]", children: spec.value })
+                  ]
+                },
+                `${spec.name}-${spec.value}`
+              )) }),
+              /* @__PURE__ */ jsxs("div", { className: "mt-4 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.02)] p-4", children: [
+                /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 text-[9px] uppercase tracking-[0.18em] text-[var(--modelsfind-primary)]", children: [
+                  /* @__PURE__ */ jsx(Shield, { className: "h-3.5 w-3.5" }),
+                  "Curator note"
+                ] }),
+                /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-7 text-[var(--modelsfind-copy)]", children: "This profile keeps editorial presentation on the surface and structured booking data underneath, so operators can shortlist quickly without flattening the visual mood." })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "rounded-[1.35rem] border border-[var(--modelsfind-line)] bg-[rgba(17,14,20,0.92)] p-5", children: [
+              /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-[var(--modelsfind-primary)]", children: [
+                /* @__PURE__ */ jsx(FolderHeart, { className: "h-4 w-4" }),
+                "Private release"
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "mt-4 flex items-end gap-3", children: [
+                /* @__PURE__ */ jsx("p", { className: "[font-family:var(--modelsfind-display)] text-5xl leading-none tracking-[-0.05em] text-[var(--modelsfind-ink)]", children: formatPrice(currentVariant?.price || product.price) }),
+                product.originalPrice && product.originalPrice > product.price ? /* @__PURE__ */ jsx("p", { className: "pb-2 text-lg text-[var(--modelsfind-copy-soft)] line-through", children: formatPrice(product.originalPrice) }) : null
+              ] }),
+              product.variants?.length ? /* @__PURE__ */ jsxs("div", { className: "mt-5", children: [
+                /* @__PURE__ */ jsx("p", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Access tier" }),
+                /* @__PURE__ */ jsx("div", { className: "mt-3 flex flex-wrap gap-2", children: product.variants.map((variant) => /* @__PURE__ */ jsx(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: () => onVariantChange(variant.id),
+                    className: [
+                      "rounded-full border px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors",
+                      currentVariant?.id === variant.id ? "border-[var(--modelsfind-primary)] bg-[var(--modelsfind-primary-soft)] text-[var(--modelsfind-ink)]" : "border-[var(--modelsfind-line)] text-[var(--modelsfind-copy)] hover:border-[var(--modelsfind-line-strong)] hover:text-[var(--modelsfind-ink)]"
+                    ].join(" "),
+                    children: variant.name || variant.value
+                  },
+                  variant.id
+                )) })
+              ] }) : null,
+              /* @__PURE__ */ jsxs("div", { className: "mt-5", children: [
+                /* @__PURE__ */ jsx("p", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Request quantity" }),
+                /* @__PURE__ */ jsxs("div", { className: "mt-3 inline-flex items-center rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] p-1", children: [
+                  /* @__PURE__ */ jsx(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => onQuantityChange(Math.max(1, quantity - 1)),
+                      className: "flex h-10 w-10 items-center justify-center rounded-full text-[var(--modelsfind-copy)]",
+                      children: /* @__PURE__ */ jsx(Minus, { className: "h-4 w-4" })
+                    }
+                  ),
+                  /* @__PURE__ */ jsx("span", { className: "min-w-[3rem] text-center text-lg font-semibold text-[var(--modelsfind-ink)]", children: quantity }),
+                  /* @__PURE__ */ jsx(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => onQuantityChange(Math.min(maxQuantity, quantity + 1)),
+                      className: "flex h-10 w-10 items-center justify-center rounded-full text-[var(--modelsfind-copy)]",
+                      children: /* @__PURE__ */ jsx(Plus, { className: "h-4 w-4" })
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ jsxs("p", { className: "mt-2 text-xs text-[var(--modelsfind-copy-soft)]", children: [
+                  stockValue,
+                  " booking slots available in this tier."
+                ] })
+              ] }),
+              /* @__PURE__ */ jsx("div", { className: "mt-5 grid gap-3", children: [
+                "Protected release links for member-only boards.",
+                "Fast operator review with structured metadata.",
+                "Luxury presentation across desktop and mobile."
+              ].map((item) => /* @__PURE__ */ jsxs(
+                "div",
+                {
+                  className: "grid grid-cols-[1.25rem_minmax(0,1fr)_1rem] items-start gap-3 rounded-[0.95rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 py-3",
+                  children: [
+                    /* @__PURE__ */ jsx(Check, { className: "mt-0.5 h-4 w-4 text-[var(--modelsfind-primary)]" }),
+                    /* @__PURE__ */ jsx("p", { className: "text-sm leading-6 text-[var(--modelsfind-copy)]", children: item }),
+                    /* @__PURE__ */ jsx(ChevronRight, { className: "mt-0.5 h-4 w-4 text-[var(--modelsfind-copy-soft)]" })
+                  ]
+                },
+                item
+              )) })
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxs("section", { className: "rounded-[1.35rem] border border-[var(--modelsfind-line)] bg-[rgba(17,14,20,0.92)] p-5", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-3 border-b border-[var(--modelsfind-line)] pb-4 sm:flex-row sm:items-end sm:justify-between", children: [
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("p", { className: "text-[10px] uppercase tracking-[0.24em] text-[var(--modelsfind-primary)]", children: "Telegram appointment request" }),
+              /* @__PURE__ */ jsx("h2", { className: "[font-family:var(--modelsfind-display)] text-[2rem] leading-none tracking-[-0.04em] text-[var(--modelsfind-ink)]", children: "Send the booking to manager chat" })
+            ] }),
+            /* @__PURE__ */ jsx("div", { className: "text-xs text-[var(--modelsfind-copy-soft)]", children: telegramUserLabel ? `Connected as ${telegramUserLabel}` : "Open inside Telegram to verify your session" })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "mt-5 grid gap-4 md:grid-cols-2", children: [
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Appointment time" }),
+              /* @__PURE__ */ jsx(
+                "input",
+                {
+                  type: "datetime-local",
+                  value: bookingForm.scheduledAt,
+                  onChange: (event) => handleBookingField("scheduledAt", event.target.value),
+                  className: "h-12 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-[var(--modelsfind-ink)] outline-none"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Package" }),
+              /* @__PURE__ */ jsx(
+                "input",
+                {
+                  type: "text",
+                  value: currentVariant?.name || currentVariant?.value || "Standard session",
+                  readOnly: true,
+                  className: "h-12 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-[var(--modelsfind-copy)] outline-none"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2 md:col-span-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Location" }),
+              /* @__PURE__ */ jsx(
+                "input",
+                {
+                  type: "text",
+                  value: bookingForm.location,
+                  onChange: (event) => handleBookingField("location", event.target.value),
+                  placeholder: "Hotel, studio, apartment, or meeting address",
+                  className: "h-12 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-[var(--modelsfind-ink)] outline-none placeholder:text-[var(--modelsfind-copy-soft)]"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Room / Unit" }),
+              /* @__PURE__ */ jsx(
+                "input",
+                {
+                  type: "text",
+                  value: bookingForm.roomOrUnit,
+                  onChange: (event) => handleBookingField("roomOrUnit", event.target.value),
+                  placeholder: "Optional",
+                  className: "h-12 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-[var(--modelsfind-ink)] outline-none placeholder:text-[var(--modelsfind-copy-soft)]"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Contact name" }),
+              /* @__PURE__ */ jsx(
+                "input",
+                {
+                  type: "text",
+                  value: bookingForm.contactName,
+                  onChange: (event) => handleBookingField("contactName", event.target.value),
+                  placeholder: "Your name",
+                  className: "h-12 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-[var(--modelsfind-ink)] outline-none placeholder:text-[var(--modelsfind-copy-soft)]"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Contact phone" }),
+              /* @__PURE__ */ jsx(
+                "input",
+                {
+                  type: "text",
+                  value: bookingForm.contactPhone,
+                  onChange: (event) => handleBookingField("contactPhone", event.target.value),
+                  placeholder: "Optional",
+                  className: "h-12 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-[var(--modelsfind-ink)] outline-none placeholder:text-[var(--modelsfind-copy-soft)]"
+                }
+              )
+            ] }),
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2 md:col-span-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Notes" }),
+              /* @__PURE__ */ jsx(
+                "textarea",
+                {
+                  value: bookingForm.notes,
+                  onChange: (event) => handleBookingField("notes", event.target.value),
+                  placeholder: "Arrival notes, lobby instructions, or other request details",
+                  className: "min-h-[110px] rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 py-3 text-sm text-[var(--modelsfind-ink)] outline-none placeholder:text-[var(--modelsfind-copy-soft)]"
+                }
+              )
+            ] })
+          ] }),
+          bookingState.errorMessage ? /* @__PURE__ */ jsx("div", { className: "mt-4 rounded-[1rem] border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-200", children: bookingState.errorMessage }) : null,
+          bookingState.successMessage ? /* @__PURE__ */ jsx("div", { className: "mt-4 rounded-[1rem] border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-200", children: bookingState.successMessage }) : null,
+          /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between", children: [
+            /* @__PURE__ */ jsx("p", { className: "max-w-xl text-xs leading-6 text-[var(--modelsfind-copy-soft)]", children: "Telegram MVP flow: verify Telegram WebApp session, send this appointment request to the configured manager chat, and send the requester a Telegram confirmation message." }),
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                type: "button",
+                onClick: () => {
+                  void handleSubmitBooking();
+                },
+                disabled: bookingState.submitting,
+                className: "inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--modelsfind-primary)_78%,white),color-mix(in_oklab,var(--modelsfind-primary)_72%,black))] px-5 text-[11px] font-semibold uppercase tracking-[0.22em] text-white disabled:opacity-60",
+                children: bookingState.submitting ? "Sending request..." : "Send appointment request"
+              }
+            )
+          ] })
+        ] })
+      ] }) })
+    ] }) });
+  });
+
+  // packages/shop-themes/modelsfind/src/components/ProfileSettingsPage.tsx
+  var ProfileSettingsPage = react_default.memo(function ProfileSettingsPage2({
+    user,
+    isLoading,
+    isAuthenticated,
+    onSaveProfile,
+    onChangePassword,
+    onNavigateBack,
+    onNavigateToLogin
+  }) {
+    const [profile, setProfile] = react_default.useState({
+      name: user?.name || "",
+      phone: user?.phone || "",
+      dateOfBirth: user?.dateOfBirth || "",
+      gender: user?.gender || "OTHER",
+      preferredLanguage: user?.preferredLanguage || "en",
+      timezone: user?.timezone || "UTC"
+    });
+    const [password, setPassword] = react_default.useState({
+      currentPassword: "",
+      newPassword: ""
+    });
+    const [savingProfile, setSavingProfile] = react_default.useState(false);
+    const [savingPassword, setSavingPassword] = react_default.useState(false);
+    react_default.useEffect(() => {
+      setProfile({
+        name: user?.name || "",
+        phone: user?.phone || "",
+        dateOfBirth: user?.dateOfBirth || "",
+        gender: user?.gender || "OTHER",
+        preferredLanguage: user?.preferredLanguage || "en",
+        timezone: user?.timezone || "UTC"
+      });
+    }, [user]);
+    if (isLoading) {
+      return /* @__PURE__ */ jsx("div", { className: "modelsfind-shell min-h-screen" });
+    }
+    if (!isAuthenticated || !user) {
+      return /* @__PURE__ */ jsx("div", { className: "modelsfind-shell flex min-h-screen items-center justify-center px-4 [font-family:var(--modelsfind-body)] text-[var(--modelsfind-ink)]", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[2rem] border border-[var(--modelsfind-line)] bg-[rgba(18,14,20,0.92)] p-10 text-center shadow-[var(--modelsfind-card-shadow)]", children: [
+        /* @__PURE__ */ jsx("h1", { className: "[font-family:var(--modelsfind-display)] text-4xl tracking-[-0.05em] text-[var(--modelsfind-ink)]", children: "Sign in to manage your private archive account" }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            onClick: onNavigateToLogin,
+            className: "mt-6 rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--modelsfind-primary)_78%,white),color-mix(in_oklab,var(--modelsfind-primary)_72%,black))] px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white",
+            children: "Sign in"
+          }
+        )
+      ] }) });
+    }
+    return /* @__PURE__ */ jsx("div", { className: "modelsfind-shell min-h-screen px-4 pb-24 pt-20 [font-family:var(--modelsfind-body)] text-[var(--modelsfind-ink)] sm:px-6 sm:pt-24 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1040px]", children: [
+      /* @__PURE__ */ jsxs(
+        "button",
+        {
+          type: "button",
+          onClick: onNavigateBack,
+          className: "inline-flex items-center gap-2 rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--modelsfind-copy)]",
+          children: [
+            /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
+            "Back"
+          ]
+        }
+      ),
+      /* @__PURE__ */ jsx("div", { className: "mt-4 modelsfind-frame overflow-hidden rounded-[2rem] border border-[var(--modelsfind-line-strong)] bg-[rgba(10,8,12,0.96)]", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-0 lg:grid-cols-2", children: [
+        /* @__PURE__ */ jsxs("section", { className: "border-b border-[var(--modelsfind-line)] p-5 lg:border-b-0 lg:border-r", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "flex h-12 w-12 items-center justify-center rounded-[1rem] bg-[var(--modelsfind-primary-soft)] text-[var(--modelsfind-primary)]", children: /* @__PURE__ */ jsx(UserRound, { className: "h-6 w-6" }) }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("p", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Profile" }),
+              /* @__PURE__ */ jsx("h1", { className: "mt-2 [font-family:var(--modelsfind-display)] text-[2.4rem] leading-[0.94] tracking-[-0.05em] text-[var(--modelsfind-ink)]", children: "Keep your archive workspace ready for the next shortlist." })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "mt-6 grid gap-4 sm:grid-cols-2", children: [
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2 sm:col-span-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Email" }),
+              /* @__PURE__ */ jsx("input", { value: user.email, readOnly: true, className: "h-12 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-[var(--modelsfind-copy)] outline-none" })
+            ] }),
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2 sm:col-span-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Name" }),
+              /* @__PURE__ */ jsx("input", { value: profile.name, onChange: (event) => setProfile((prev) => ({ ...prev, name: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-[var(--modelsfind-ink)] outline-none" })
+            ] }),
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Phone" }),
+              /* @__PURE__ */ jsx("input", { value: profile.phone, onChange: (event) => setProfile((prev) => ({ ...prev, phone: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-[var(--modelsfind-ink)] outline-none" })
+            ] }),
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Date of birth" }),
+              /* @__PURE__ */ jsx("input", { value: profile.dateOfBirth, onChange: (event) => setProfile((prev) => ({ ...prev, dateOfBirth: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-[var(--modelsfind-ink)] outline-none" })
+            ] }),
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Language" }),
+              /* @__PURE__ */ jsx("input", { value: profile.preferredLanguage, onChange: (event) => setProfile((prev) => ({ ...prev, preferredLanguage: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-[var(--modelsfind-ink)] outline-none" })
+            ] }),
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Timezone" }),
+              /* @__PURE__ */ jsx("input", { value: profile.timezone, onChange: (event) => setProfile((prev) => ({ ...prev, timezone: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-[var(--modelsfind-ink)] outline-none" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs(
+            "button",
+            {
+              type: "button",
+              onClick: async () => {
+                setSavingProfile(true);
+                try {
+                  await onSaveProfile(profile);
+                } finally {
+                  setSavingProfile(false);
+                }
+              },
+              className: "mt-6 inline-flex min-h-11 items-center gap-2 rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--modelsfind-primary)_78%,white),color-mix(in_oklab,var(--modelsfind-primary)_72%,black))] px-5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white",
+              disabled: savingProfile,
+              children: [
+                /* @__PURE__ */ jsx(Save, { className: "h-4 w-4" }),
+                savingProfile ? "Saving..." : "Save profile"
+              ]
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxs("section", { className: "p-5", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-4", children: [
+            /* @__PURE__ */ jsx("div", { className: "flex h-12 w-12 items-center justify-center rounded-[1rem] bg-[var(--modelsfind-primary-soft)] text-[var(--modelsfind-primary)]", children: /* @__PURE__ */ jsx(LockKeyhole, { className: "h-6 w-6" }) }),
+            /* @__PURE__ */ jsxs("div", { children: [
+              /* @__PURE__ */ jsx("p", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Security" }),
+              /* @__PURE__ */ jsx("h2", { className: "mt-2 [font-family:var(--modelsfind-display)] text-[2.2rem] leading-[0.96] tracking-[-0.05em] text-[var(--modelsfind-ink)]", children: "Keep archive access secure for your team and boards." })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "mt-6 grid gap-4", children: [
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Current password" }),
+              /* @__PURE__ */ jsx("input", { type: "password", value: password.currentPassword, onChange: (event) => setPassword((prev) => ({ ...prev, currentPassword: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-[var(--modelsfind-ink)] outline-none" })
+            ] }),
+            /* @__PURE__ */ jsxs("label", { className: "grid gap-2", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "New password" }),
+              /* @__PURE__ */ jsx("input", { type: "password", value: password.newPassword, onChange: (event) => setPassword((prev) => ({ ...prev, newPassword: event.target.value })), className: "h-12 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-sm text-[var(--modelsfind-ink)] outline-none" })
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs(
+            "button",
+            {
+              type: "button",
+              onClick: async () => {
+                setSavingPassword(true);
+                try {
+                  await onChangePassword(password.currentPassword, password.newPassword);
+                  setPassword({ currentPassword: "", newPassword: "" });
+                } finally {
+                  setSavingPassword(false);
+                }
+              },
+              className: "mt-6 inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--modelsfind-ink)]",
+              disabled: savingPassword,
+              children: [
+                /* @__PURE__ */ jsx(LockKeyhole, { className: "h-4 w-4 text-[var(--modelsfind-primary)]" }),
+                savingPassword ? "Updating..." : "Change password"
+              ]
+            }
+          )
+        ] })
+      ] }) })
+    ] }) });
+  });
+
+  // packages/shop-themes/modelsfind/src/components/ProductsPage.tsx
+  function getProductImage2(product) {
+    const mainImage = product.images?.find((image) => image.isMain) || product.images?.[0];
+    return mainImage?.url || "/placeholder-product.svg";
+  }
+  function getProductRegion(product) {
+    const regionTag = product.tags?.find((tag) => heroRegions.some((region) => tag.toLowerCase().includes(region.toLowerCase())));
+    return regionTag || product.category?.name || "Model directory";
+  }
+  function getProductSubtitle(product) {
+    return product.tags?.slice(0, 2).join(" \u2022 ") || product.description || "Curated model profile";
+  }
+  function formatPrice2(value) {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0
+    }).format(value || 0);
+  }
+  var ProductsPage = react_default.memo(function ProductsPage2({
+    products,
+    isLoading,
+    totalProducts,
+    currentPage,
+    totalPages,
+    sortBy,
+    viewMode,
+    onSortChange,
+    onViewModeChange,
+    onPageChange,
+    onProductClick,
+    onSearch
+  }) {
+    const [searchQuery, setSearchQuery] = react_default.useState("");
+    const [activeRegion, setActiveRegion] = react_default.useState("China");
+    const regionOptions = react_default.useMemo(() => heroRegions, []);
+    const handleSearchSubmit = (event) => {
+      event.preventDefault();
+      onSearch?.(searchQuery.trim());
+    };
+    const handleRegionClick = (region) => {
+      setActiveRegion(region);
+      onSearch?.(region);
+    };
+    if (isLoading) {
+      return /* @__PURE__ */ jsx("div", { className: "modelsfind-shell flex min-h-screen items-center justify-center [font-family:var(--modelsfind-body)] text-[var(--modelsfind-ink)]", children: /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
+        /* @__PURE__ */ jsx(LoaderCircle, { className: "mx-auto h-12 w-12 animate-spin text-[var(--modelsfind-primary)]" }),
+        /* @__PURE__ */ jsx("p", { className: "mt-4 text-[11px] uppercase tracking-[0.28em] text-[var(--modelsfind-copy-soft)]", children: "Loading profiles" })
+      ] }) });
+    }
+    return /* @__PURE__ */ jsx("div", { className: "modelsfind-shell min-h-screen px-4 pb-24 pt-20 [font-family:var(--modelsfind-body)] text-[var(--modelsfind-ink)] sm:px-6 sm:pt-24 lg:px-8", children: /* @__PURE__ */ jsx("div", { className: "mx-auto max-w-[1040px]", children: /* @__PURE__ */ jsx("div", { className: "modelsfind-frame overflow-hidden rounded-[2rem] border border-[var(--modelsfind-line-strong)] bg-[rgba(10,8,12,0.96)]", children: /* @__PURE__ */ jsxs("div", { className: "grid md:grid-cols-[10.5rem_minmax(0,1fr)]", children: [
+      /* @__PURE__ */ jsxs("aside", { className: "hidden border-r border-[var(--modelsfind-line)] bg-[rgba(20,16,22,0.72)] px-4 py-5 md:block", children: [
+        /* @__PURE__ */ jsx("p", { className: "text-[11px] uppercase tracking-[0.22em] text-[var(--modelsfind-copy-soft)]", children: "Regions" }),
+        /* @__PURE__ */ jsx("div", { className: "mt-4 grid gap-2", children: regionOptions.map((region) => /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            onClick: () => handleRegionClick(region),
+            className: [
+              "rounded-[0.9rem] border px-3 py-3 text-left text-[11px] uppercase tracking-[0.18em] transition-colors",
+              activeRegion === region ? "border-[var(--modelsfind-primary)] bg-[var(--modelsfind-primary-soft)] text-[var(--modelsfind-ink)]" : "border-[var(--modelsfind-line)] text-[var(--modelsfind-copy-soft)] hover:text-[var(--modelsfind-copy)]"
+            ].join(" "),
+            children: region
+          },
+          region
+        )) }),
+        /* @__PURE__ */ jsxs("div", { className: "mt-6 rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.02)] p-4", children: [
+          /* @__PURE__ */ jsx("p", { className: "text-[10px] uppercase tracking-[0.22em] text-[var(--modelsfind-copy-soft)]", children: "Directory" }),
+          /* @__PURE__ */ jsx("p", { className: "mt-3 [font-family:var(--modelsfind-display)] text-[2rem] leading-none text-[var(--modelsfind-ink)]", children: totalProducts }),
+          /* @__PURE__ */ jsx("p", { className: "mt-1 text-[10px] uppercase tracking-[0.18em] text-[var(--modelsfind-copy-soft)]", children: "Profiles indexed" })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "p-4 md:p-5", children: [
+        /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-4 border-b border-[var(--modelsfind-line)] pb-4", children: [
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("p", { className: "text-[10px] uppercase tracking-[0.26em] text-[var(--modelsfind-copy-soft)]", children: "The Collection" }),
+            /* @__PURE__ */ jsx("h1", { className: "mt-2 [font-family:var(--modelsfind-display)] text-[2.3rem] leading-none tracking-[-0.04em] text-[var(--modelsfind-ink)] md:text-[2.8rem]", children: "Featured directory" }),
+            /* @__PURE__ */ jsxs("p", { className: "mt-2 text-xs text-[var(--modelsfind-copy-soft)]", children: [
+              "Showing ",
+              totalProducts,
+              " private editorials in ",
+              activeRegion
+            ] })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "hidden items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-[var(--modelsfind-copy-soft)] md:flex", children: [
+            /* @__PURE__ */ jsx(Compass, { className: "h-3.5 w-3.5 text-[var(--modelsfind-primary)]" }),
+            "Curated nightly"
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx("div", { className: "mt-4 flex flex-col gap-3 md:hidden", children: /* @__PURE__ */ jsx("div", { className: "flex gap-2 overflow-x-auto pb-1", children: regionOptions.map((region) => /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "button",
+            onClick: () => handleRegionClick(region),
+            className: [
+              "whitespace-nowrap rounded-full border px-3 py-2 text-[10px] uppercase tracking-[0.18em]",
+              activeRegion === region ? "border-[var(--modelsfind-primary)] bg-[var(--modelsfind-primary-soft)] text-[var(--modelsfind-ink)]" : "border-[var(--modelsfind-line)] text-[var(--modelsfind-copy)]"
+            ].join(" "),
+            children: region
+          },
+          region
+        )) }) }),
+        /* @__PURE__ */ jsx("div", { className: "mt-4 rounded-[1.2rem] border border-[var(--modelsfind-line)] bg-[rgba(17,14,20,0.86)] p-3 shadow-[var(--modelsfind-card-shadow)]", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between", children: [
+          /* @__PURE__ */ jsxs("form", { onSubmit: handleSearchSubmit, className: "relative flex-1", children: [
+            /* @__PURE__ */ jsx(Search, { className: "pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--modelsfind-copy-soft)]" }),
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                type: "search",
+                value: searchQuery,
+                onChange: (event) => setSearchQuery(event.target.value),
+                placeholder: "Search by mood, name, region, or album",
+                className: "h-11 w-full rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] pl-11 pr-4 text-sm text-[var(--modelsfind-ink)] outline-none placeholder:text-[var(--modelsfind-copy-soft)] focus:border-[var(--modelsfind-primary)]"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
+            /* @__PURE__ */ jsxs("div", { className: "inline-flex h-11 items-center gap-2 rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-[10px] uppercase tracking-[0.22em] text-[var(--modelsfind-copy)]", children: [
+              /* @__PURE__ */ jsx(SlidersHorizontal, { className: "h-4 w-4 text-[var(--modelsfind-primary)]" }),
+              totalProducts,
+              " indexed"
+            ] }),
+            /* @__PURE__ */ jsxs(
+              "select",
+              {
+                value: sortBy,
+                onChange: (event) => onSortChange(event.target.value),
+                className: "h-11 rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] px-4 text-xs uppercase tracking-[0.16em] text-[var(--modelsfind-ink)] outline-none",
+                children: [
+                  /* @__PURE__ */ jsx("option", { value: "createdAt", children: "Newest" }),
+                  /* @__PURE__ */ jsx("option", { value: "name", children: "Name" }),
+                  /* @__PURE__ */ jsx("option", { value: "price", children: "Price" })
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center rounded-full border border-[var(--modelsfind-line)] bg-[rgba(255,255,255,0.03)] p-1", children: [
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => onViewModeChange("grid"),
+                  className: [
+                    "flex h-9 w-9 items-center justify-center rounded-full transition-colors",
+                    viewMode === "grid" ? "bg-[var(--modelsfind-primary)] text-white" : "text-[var(--modelsfind-copy)] hover:text-[var(--modelsfind-ink)]"
+                  ].join(" "),
+                  "aria-label": "Grid view",
+                  children: /* @__PURE__ */ jsx(Grid3x3, { className: "h-4 w-4" })
+                }
+              ),
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  type: "button",
+                  onClick: () => onViewModeChange("list"),
+                  className: [
+                    "flex h-9 w-9 items-center justify-center rounded-full transition-colors",
+                    viewMode === "list" ? "bg-[var(--modelsfind-primary)] text-white" : "text-[var(--modelsfind-copy)] hover:text-[var(--modelsfind-ink)]"
+                  ].join(" "),
+                  "aria-label": "List view",
+                  children: /* @__PURE__ */ jsx(List, { className: "h-4 w-4" })
+                }
+              )
+            ] })
+          ] })
+        ] }) }),
+        products.length === 0 ? /* @__PURE__ */ jsxs("div", { className: "rounded-[1.6rem] border border-[var(--modelsfind-line)] bg-[rgba(16,13,18,0.9)] px-6 py-20 text-center shadow-[var(--modelsfind-card-shadow)] mt-4", children: [
+          /* @__PURE__ */ jsx("p", { className: "text-[11px] uppercase tracking-[0.26em] text-[var(--modelsfind-copy-soft)]", children: "No results" }),
+          /* @__PURE__ */ jsx("h2", { className: "mt-4 [font-family:var(--modelsfind-display)] text-4xl text-[var(--modelsfind-ink)]", children: "No profiles match right now." }),
+          /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--modelsfind-copy)]", children: "Try another keyword, region, or sort order." })
+        ] }) : /* @__PURE__ */ jsx(
+          "div",
+          {
+            className: [
+              "mt-4 grid gap-3",
+              viewMode === "grid" ? "grid-cols-2 md:grid-cols-3" : "grid-cols-1"
+            ].join(" "),
+            children: products.map((product) => /* @__PURE__ */ jsxs(
+              "article",
+              {
+                className: [
+                  "group overflow-hidden rounded-[1rem] border border-[var(--modelsfind-line)] bg-[rgba(19,15,22,0.92)] transition-transform duration-300 hover:-translate-y-1",
+                  viewMode === "list" ? "grid gap-0 md:grid-cols-[12rem_minmax(0,1fr)]" : ""
+                ].join(" "),
+                children: [
+                  /* @__PURE__ */ jsx(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => onProductClick(product.id),
+                      className: "block w-full text-left",
+                      children: /* @__PURE__ */ jsxs("div", { className: viewMode === "list" ? "h-full min-h-[14rem] relative overflow-hidden" : "relative aspect-[0.78] overflow-hidden", children: [
+                        /* @__PURE__ */ jsx(
+                          "img",
+                          {
+                            src: getProductImage2(product),
+                            alt: product.name,
+                            className: "h-full w-full object-cover grayscale transition-transform duration-500 group-hover:scale-[1.03]"
+                          }
+                        ),
+                        /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(180deg,rgba(10,8,12,0.04),rgba(10,8,12,0.76))]" }),
+                        /* @__PURE__ */ jsxs("div", { className: "absolute left-3 right-3 top-3 flex items-center justify-between gap-2", children: [
+                          /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--modelsfind-line-strong)] bg-[rgba(18,14,20,0.74)] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-[var(--modelsfind-primary)]", children: getProductRegion(product) }),
+                          /* @__PURE__ */ jsx(Heart, { className: "h-3.5 w-3.5 text-[var(--modelsfind-primary)]" })
+                        ] })
+                      ] })
+                    }
+                  ),
+                  /* @__PURE__ */ jsxs("div", { className: "flex flex-col justify-between p-3 md:p-4", children: [
+                    /* @__PURE__ */ jsxs("div", { children: [
+                      /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-3", children: [
+                        /* @__PURE__ */ jsxs("div", { children: [
+                          /* @__PURE__ */ jsx("h3", { className: "[font-family:var(--modelsfind-display)] text-[1.25rem] leading-none tracking-[-0.04em] text-[var(--modelsfind-ink)] md:text-[1.5rem]", children: product.name }),
+                          /* @__PURE__ */ jsx("p", { className: "mt-1 text-[11px] leading-5 text-[var(--modelsfind-copy-soft)]", children: getProductSubtitle(product) })
+                        ] }),
+                        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--modelsfind-copy)]", children: formatPrice2(product.price) })
+                      ] }),
+                      viewMode === "list" ? /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--modelsfind-copy)]", children: product.description }) : null
+                    ] }),
+                    /* @__PURE__ */ jsx("div", { className: "mt-4 flex gap-2", children: /* @__PURE__ */ jsx(
+                      "button",
+                      {
+                        type: "button",
+                        onClick: () => onProductClick(product.id),
+                        className: "inline-flex min-h-9 w-full items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--modelsfind-primary)_78%,white),color-mix(in_oklab,var(--modelsfind-primary)_72%,black))] text-[9px] font-semibold uppercase tracking-[0.22em] text-white",
+                        children: "View profile"
+                      }
+                    ) })
+                  ] })
+                ]
+              },
+              product.id
+            ))
+          }
+        ),
+        totalPages > 1 ? /* @__PURE__ */ jsxs("div", { className: "mt-4 flex flex-col items-center justify-between gap-4 rounded-[1.2rem] border border-[var(--modelsfind-line)] bg-[rgba(17,14,20,0.88)] px-5 py-4 sm:flex-row", children: [
+          /* @__PURE__ */ jsxs("p", { className: "text-[10px] uppercase tracking-[0.22em] text-[var(--modelsfind-copy-soft)]", children: [
+            "Page ",
+            currentPage,
+            " of ",
+            totalPages
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsxs(
+              "button",
+              {
+                type: "button",
+                onClick: () => onPageChange(Math.max(1, currentPage - 1)),
+                disabled: currentPage === 1,
+                className: "inline-flex h-10 items-center gap-2 rounded-full border border-[var(--modelsfind-line)] px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--modelsfind-copy)] disabled:cursor-not-allowed disabled:opacity-40",
+                children: [
+                  /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }),
+                  "Prev"
+                ]
+              }
+            ),
+            /* @__PURE__ */ jsxs(
+              "button",
+              {
+                type: "button",
+                onClick: () => onPageChange(Math.min(totalPages, currentPage + 1)),
+                disabled: currentPage === totalPages,
+                className: "inline-flex h-10 items-center gap-2 rounded-full border border-[var(--modelsfind-line)] px-4 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--modelsfind-copy)] disabled:cursor-not-allowed disabled:opacity-40",
+                children: [
+                  "Next",
+                  /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
+                ]
+              }
+            )
+          ] })
+        ] }) : null
+      ] })
+    ] }) }) }) });
+  });
+
+  // packages/shop-themes/modelsfind/src/runtime.ts
+  var theme = {
+    components: {
+      HomePage,
+      ProductsPage,
+      ProductDetailPage,
+      CartPage,
+      CheckoutPage,
+      NotFound,
+      BestsellersPage,
+      NewArrivalsPage,
+      CategoriesPage,
+      SearchPage,
+      OrdersPage,
+      OrderDetailPage,
+      OrderSuccessPage,
+      OrderCancelledPage,
+      ProfilePage,
+      ProfileSettingsPage,
+      ContactPage,
+      HelpPage,
+      PrivacyPage,
+      TermsPage,
+      DealsPage,
+      LoginPage,
+      RegisterPage,
+      AuthCallbackPage,
+      Header,
+      Footer
+    },
+    defaultConfig: {
+      brand: {
+        name: "modelsfind",
+        primaryColor: "#d25ad3",
+        secondaryColor: "#f4b5ea",
+        fontFamily: '"Cormorant Garamond", "Iowan Old Style", serif'
+      },
+      layout: {
+        headerSticky: true,
+        showFooterLinks: true,
+        maxWidth: "1320px"
+      },
+      features: {
+        showWishlist: true,
+        showRatings: false,
+        enableQuickView: false
+      },
+      site: {
+        archetype: "product-site",
+        eyebrow: "Curated model directory",
+        headline: "Editorial model profiles, instant availability cues, and premium booking requests in one refined destination.",
+        subheadline: "Built for operators presenting premium model portfolios. Filter by region, look, and access tier while keeping the storefront polished, discreet, and booking-ready.",
+        primaryCtaLabel: "Explore collection",
+        primaryCtaHref: "/products",
+        secondaryCtaLabel: "Request access",
+        secondaryCtaHref: "/auth/register",
+        docsHref: "/help",
+        demoHref: "/products",
+        supportEmail: "hello@modelsfind.com"
+      }
+    }
+  };
+  var runtime_default = theme;
+
+  // packages/shop-themes/modelsfind/modelsfind-theme-runtime-entry.ts
+  var existingMeta = runtime_default && typeof runtime_default === "object" && runtime_default.meta && typeof runtime_default.meta === "object" ? runtime_default.meta : {};
+  window.__JIFFOO_THEME_RUNTIME__ = {
+    ...runtime_default,
+    meta: {
+      ...existingMeta,
+      slug: "modelsfind",
+      version: "0.1.0",
+      target: "shop"
+    }
+  };
+})();

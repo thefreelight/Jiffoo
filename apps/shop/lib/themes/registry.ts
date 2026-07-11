@@ -10,6 +10,7 @@
 import type { ThemePackage, ThemeMeta, ThemeRegistryEntry, ThemeRegistry } from 'shared/src/types/theme';
 import esimMallTheme from '@shop-themes/esim-mall/src/runtime';
 import yevbiTheme from '@shop-themes/yevbi/src/runtime';
+import imagicStudioTheme from '@shop-themes/imagic-studio/src/runtime';
 import appLandingpageTheme from '@shop-themes/app-landingpage/src/runtime';
 
 // ============================================================================
@@ -83,7 +84,7 @@ export const BUILTIN_THEMES: ThemeRegistry = {
     meta: {
       slug: 'esim-mall',
       name: 'eSIM Mall Theme',
-      version: '0.0.1',
+      version: '1.0.0',
       description: 'eSIM marketplace theme with modern travel-focused design for eSIM businesses.',
       category: 'esim',
       author: 'Jiffoo',
@@ -104,6 +105,19 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       tags: ['travel', 'modern', 'responsive'],
     },
     load: async () => yevbiTheme,
+  },
+  'imagic-studio': {
+    meta: {
+      slug: 'imagic-studio',
+      name: 'Imagic Studio',
+      version: '0.1.0',
+      description: 'AI image studio storefront theme for generative art businesses.',
+      category: 'ai',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['ai', 'studio', 'creative', 'modern'],
+    },
+    load: async () => imagicStudioTheme,
   },
   // App download landing page theme (EasyEUICC) — embedded compatibility bridge
   // so the storefront can render the download page without relying solely on the
