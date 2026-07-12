@@ -46,3 +46,38 @@
   3. `InstanceHealthCard`: `resolveApiErrorMessage(err)` missing required `t` arg.
 - After fixes: `pnpm --filter admin type-check` 0 errors (also cleared stale local `.next` that referenced deleted staff pages — gitignored artifact).
 - Admin E2E full run deferred to 1.7.2 pre-merge regression.
+
+## 1.7 合回主线 — merge `origin/main` (`85dbc7ce`) + 回归修复 (`d7b014a6`, 后续)
+
+### 1.7.1 策略评估（rebase → merge）
+
+- `git merge origin/main` 首次尝试产生 **199 个冲突文件**，远超 10 文件阈值 → 停下评估。
+- 评估结论：main 自 3 月被私有仓 squash 覆盖（`6be327aa`），7 月 4 日 CF Pages 调试期间 `d4149440`（提交信息 "remove open-next.config.ts"）误将本地机器全部工作暂存提交（685 文件 +125k 行），内含真实业务工作（staff RBAC + 3 个迁移、bokmoo API、native 支付确认、i18n/stripe 插件全量实现）与垃圾（`.vercel` 产物、13MB APK、`pw_token*.js`、npm tgz、提交进 git 的 node_modules 符号链接）。
+- 经 owner 确认采用「全部保留，完整合并」。冲突解决原则：双方都改的平台代码取 WIP（更新、测试背书）；main 独有业务工作全部保留并补齐集成；垃圾从树中移除（main 历史仍可找回）。
+- rebase 放弃原因：分支含 merge commit（origin/dev），rebase 线性化会改写 tasks.md 引用的 5 个逻辑提交哈希。
+
+### 合并集成工作（见 merge commit `85dbc7ce` 提交信息明细）
+
+- Schema：AdminMembership / AdminStaffAuditLog / User.phone 移植进拆分 schema（`system.prisma`），与 main 带来的 3 个迁移零 drift——**这同时修复了 main 自身的 schema drift**（main 的 schema.prisma 从未包含这些迁移对应的模型）。
+- Dump 引用但从未提交的支撑件全部补实现：`requirePermission` 中间件、`AuthenticatedUser` admin 字段、`sendStaffInvitationEmail`、`StripeService.confirmNativePayment`、admin staffApi + 9 个 react-query hooks、shop `verifyEmail`、`UserProfile` admin 身份字段、主题 Login/Register `onAppleOAuthClick`。
+- Edge runtime 策略：仓库源码保持 Node 兼容（自托管部署需要 fs 主题加载），`export const runtime = 'edge'` 改为 CF Pages 构建脚本注入（与脚本中既有的 `rm proxy.ts` 同模式）。**CF Pages 部署需在合并后实际部署验证一次**。
+- 孤儿处置（实现两边都不存在，仅移除测试/页面，可从 main 历史找回）：social-auth 测试 ×3、bokmoo-auth-compat 测试（手机号注册兼容层无实现）、shop accept-invite / oauth-callback 页面、B2B 全套（api/admin/shop，WIP schema 无 B2B 模型，属刻意移除，见 b2b-digital-goods-proposal.md）。
+
+### 1.7.2 全量回归
+
+| 门禁 | 结果 |
+|---|---|
+| `pnpm theme-matrix:validate` | 73/73 ✅ |
+| `pnpm theme-matrix:type-check` | 2/2 ✅ |
+| `pnpm surface:check` | 快照一致 ✅（onAppleOAuthClick 为有意的表面新增，快照已随 `1622...` 刷新） |
+| `pnpm --filter shop type-check` | 0 错误 ✅ |
+| `pnpm --filter admin type-check` | 0 错误 ✅ |
+| shop vitest | **47/47 ✅**（含修复合并前遗留失败 "falls back to the server theme slug"：已加载 manifest 无渲染契约时不再透传不可渲染 slug） |
+| admin vitest | 27/27 ✅ |
+| api vitest 全量 | 1168+ passed；剩余失败均为已备案存量：openapi-contract 空套件 ×2、benchmarks 空套件、sendgrid 缺模块、official-launch-plugins 缺 zip（任务 3.1）；discount-e2e / orders / forecasting / payments 为状态泄漏抖动——单文件跑全绿，全量跑随执行顺序偶发（任务 3.2 范畴扩大：不止 discount-e2e 一处泄漏源） |
+| `pnpm --filter api db:check-drift` | 零 drift ✅（一次性库 jiffoo_drift_check） |
+| `pnpm test:e2e:shop` | 见下 |
+| `pnpm test:e2e:admin` | 见下 |
+
+- 发现并修复（回归揭示的真实 bug）：`resolveServerApiOrigin` / `getActiveThemeInfo` 曾优先请求来源而非内网 `API_SERVICE_URL`（SSR 回绕公网域名）；主题 loader 版本化请求会静默回退 legacy 路径；`deliverInternalWebhook` 是仅记日志的 stub。
+- API 全量 tsc 存量类型债（≈20 错误：BullMQ/OTel/prisma-$extends 依赖类型不匹配）在合并前即存在，归任务 2.1.2/3.1。

@@ -40,7 +40,7 @@
   - [x] 1.6.3 提交后 `git status --porcelain` 为空
 
 - [ ] 1.7 合回主线 (R1.3)
-  - [ ] 1.7.1 `git fetch origin && git rebase origin/main`（或 merge，冲突超过 10 个文件时停下评估策略）
+  - [x] 1.7.1 `git fetch origin && git rebase origin/main`（或 merge，冲突超过 10 个文件时停下评估策略）_(实际走 merge：199 个冲突远超阈值，停下评估后确认 main 含 3 月私有仓 squash + 7 月误提交 dump（d4149440，+125k 行），经 owner 确认采用「全部保留，完整合并」策略 → merge commit `85dbc7ce`；细节见 wip-split-log 1.7 节)_
   - [ ] 1.7.2 全量回归：`cd apps/api && npx vitest run tests/` + `pnpm test:e2e:shop` + `pnpm test:e2e:admin` + `pnpm theme-matrix` + `pnpm surface:check` + `pnpm --filter api db:check-drift`，结果全部追加到 `wip-split-log.md`
   - [ ] 1.7.3 发 PR 到 `main`，PR 描述引用本 spec；合并方式用 merge commit（保留 5 个逻辑提交，便于 revert）
 
