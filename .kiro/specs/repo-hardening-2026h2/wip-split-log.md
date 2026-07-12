@@ -76,8 +76,8 @@
 | admin vitest | 27/27 ✅ |
 | api vitest 全量 | 1168+ passed；剩余失败均为已备案存量：openapi-contract 空套件 ×2、benchmarks 空套件、sendgrid 缺模块、official-launch-plugins 缺 zip（任务 3.1）；discount-e2e / orders / forecasting / payments 为状态泄漏抖动——单文件跑全绿，全量跑随执行顺序偶发（任务 3.2 范畴扩大：不止 discount-e2e 一处泄漏源） |
 | `pnpm --filter api db:check-drift` | 零 drift ✅（一次性库 jiffoo_drift_check） |
-| `pnpm test:e2e:shop` | 见下 |
-| `pnpm test:e2e:admin` | 见下 |
+| `pnpm test:e2e:shop` | 6/6 ✅（修复两处共享测试环境问题后：① vitest 助手遗留的 TEST 仓抢占默认仓且无 e2e 库存——global-setup 现在先降级非 E2E 仓；② Redis db15 持久缓存 `warehouse:default`——global-setup 现在清 `warehouse:*` 键） |
+| `pnpm test:e2e:admin` | 26 passed / 1 skipped ✅（修复：中间件默认店 id `store-default` 在测试库不存在导致 STORE_REQUIRED——两个 playwright 配置注入 `STORE_DEFAULT_ID=e2e-default-store`） |
 
 - 发现并修复（回归揭示的真实 bug）：`resolveServerApiOrigin` / `getActiveThemeInfo` 曾优先请求来源而非内网 `API_SERVICE_URL`（SSR 回绕公网域名）；主题 loader 版本化请求会静默回退 legacy 路径；`deliverInternalWebhook` 是仅记日志的 stub。
 - API 全量 tsc 存量类型债（≈20 错误：BullMQ/OTel/prisma-$extends 依赖类型不匹配）在合并前即存在，归任务 2.1.2/3.1。
