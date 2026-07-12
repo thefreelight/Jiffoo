@@ -42,7 +42,7 @@
 - [ ] 1.7 合回主线 (R1.3)
   - [x] 1.7.1 `git fetch origin && git rebase origin/main`（或 merge，冲突超过 10 个文件时停下评估策略）_(实际走 merge：199 个冲突远超阈值，停下评估后确认 main 含 3 月私有仓 squash + 7 月误提交 dump（d4149440，+125k 行），经 owner 确认采用「全部保留，完整合并」策略 → merge commit `85dbc7ce`；细节见 wip-split-log 1.7 节)_
   - [x] 1.7.2 全量回归：`cd apps/api && npx vitest run tests/` + `pnpm test:e2e:shop` + `pnpm test:e2e:admin` + `pnpm theme-matrix` + `pnpm surface:check` + `pnpm --filter api db:check-drift`，结果全部追加到 `wip-split-log.md` _(theme-matrix 73/73 + 2/2；surface 一致；shop vitest 47/47（含清掉合并前遗留失败）；admin vitest 27/27；shop e2e 6/6；admin e2e 26 passed/1 skipped；零 drift；api vitest 剩余失败均为 3.1/3.2 已备案存量——状态泄漏源不止 discount-e2e（orders/forecasting/payments 单跑全绿全量偶挂），3.2 范围需扩大；结果明细见 wip-split-log 1.7 节)_
-  - [ ] 1.7.3 发 PR 到 `main`，PR 描述引用本 spec；合并方式用 merge commit（保留 5 个逻辑提交，便于 revert）
+  - [x] 1.7.3 发 PR 到 `main`，PR 描述引用本 spec；合并方式用 merge commit（保留 5 个逻辑提交，便于 revert）_(PR #13 已创建：https://github.com/thefreelight/Jiffoo/pull/13 ；合并动作留给 owner 执行（用 merge commit），合并后再做 1.8 收尾)_
 
 - [ ] 1.8 收尾
   - [ ] 1.8.1 合并后删除 `codex/runtime-single-source-truth-wip`（本地 + 远程）
