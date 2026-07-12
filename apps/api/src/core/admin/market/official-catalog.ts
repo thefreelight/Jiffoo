@@ -120,6 +120,10 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
     category: 'storefront',
     target: 'shop',
   },
+  bokmoo: {
+    category: 'storefront',
+    target: 'shop',
+  },
   'imagic-core': {
     category: 'ai',
   },
@@ -134,6 +138,12 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
   },
   i18n: {
     category: 'localization',
+  },
+  'google-auth': {
+    category: 'security',
+  },
+  'apple-auth': {
+    category: 'security',
   },
   odoo: {
     category: 'integration',
