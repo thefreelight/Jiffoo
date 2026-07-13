@@ -98,8 +98,8 @@
 > 现状：本地 79 个分支，大量 `codex/*` recovery/backup/fresh 变体，最老的活跃时间 2026-03。
 
 - [ ] 4.1 分支审计
-  - [ ] 4.1.1 写一次性审计脚本（TypeScript，`scripts/audit-branches.ts`，用 `git for-each-ref` + `git cherry main`）：输出每分支「名称 / 最后提交日期 / 是否已合并 main / 领先 main 的提交数」，本地 + 远程都扫
-  - [ ] 4.1.2 审计结果落盘本 spec 目录 `branch-audit.md`，每分支标注处置决策：`delete-merged` / `archive-then-delete` / `keep(原因)`
+  - [x] 4.1.1 写一次性审计脚本（TypeScript，`scripts/audit-branches.ts`，用 `git for-each-ref` + `git cherry main`）：输出每分支「名称 / 最后提交日期 / 是否已合并 main / 领先 main 的提交数」，本地 + 远程都扫
+  - [x] 4.1.2 审计结果落盘本 spec 目录 `branch-audit.md`，每分支标注处置决策：`delete-merged` / `archive-then-delete` / `keep(原因)` _(129 个分支已审计；Disposition 列留空待 owner 裁决——删除属破坏性动作，4.2 执行前需人工确认)_
 
 - [ ] 4.2 执行清理
   - [ ] 4.2.1 `delete-merged` 类：`git branch -d`（小写 d，拒绝删除即说明未真正合并，改判）+ 远程 `git push origin --delete`
