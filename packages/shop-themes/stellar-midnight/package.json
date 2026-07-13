@@ -4,7 +4,5 @@
   "description": "Official Stellar Midnight SaaS storefront theme pack",
   "private": true,
   "type": "module",
-  "scripts": {
-    "type-check": "echo \"theme-pack only\""
-  }
+  "scripts": {}
 }

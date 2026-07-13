@@ -238,7 +238,7 @@ async function sendDigitalDeliveryEmail(orderId: string, eventPayload: unknown):
 
     // Map order items to email template items
     const emailItems = order.items.map(item => ({
-      productName: item.product?.name || item.productName || 'Unknown Product',
+      productName: item.product?.name || 'Unknown Product',
       quantity: item.quantity,
       fulfillmentStatus: item.fulfillmentStatus,
       fulfillmentData: item.fulfillmentData as Record<string, unknown> | null,

@@ -4,9 +4,7 @@
   "description": "AI Gateway Theme for Jiffoo Mall",
   "private": true,
   "type": "module",
-  "scripts": {
-    "type-check": "tsc --noEmit"
-  },
+  "scripts": {},
   "devDependencies": {
     "typescript": "^5.8.3"
   }

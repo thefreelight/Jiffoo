@@ -1,5 +1,4 @@
-// @ts-nocheck
-import type { Prisma, OrderPaymentStatus, OrderStatus } from '@prisma/client';
+import type { OrderPaymentStatus, OrderStatus } from '@prisma/client';
 
 export type OrderStatusHistoryInput = {
   orderId: string;
@@ -13,8 +12,18 @@ export type OrderStatusHistoryInput = {
   metadata?: Record<string, unknown> | null;
 };
 
+/**
+ * Structural client type: callers pass transaction clients from both the base
+ * PrismaClient and the $extends'd client, whose nominal types are incompatible.
+ */
+export type OrderStatusHistoryWriter = {
+  orderStatusHistory: {
+    create(args: { data: unknown }): Promise<unknown>;
+  };
+};
+
 export async function recordOrderStatusHistory(
-  tx: Prisma.TransactionClient,
+  tx: OrderStatusHistoryWriter,
   input: OrderStatusHistoryInput
 ): Promise<void> {
   await tx.orderStatusHistory.create({

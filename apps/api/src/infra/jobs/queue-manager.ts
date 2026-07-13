@@ -6,7 +6,7 @@
  * for enqueuing jobs.
  */
 
-import { Queue, QueueEvents } from 'bullmq';
+import { Queue, QueueEvents, type ConnectionOptions } from 'bullmq';
 import IORedis from 'ioredis';
 import { env } from '@/config/env';
 import { winstonLogger } from '@/core/logger/unified-logger';
@@ -96,14 +96,16 @@ class QueueManager {
 
       // Create queues
       for (const queueName of Object.values(QUEUE_NAMES)) {
+        // bullmq bundles its own ioredis type declarations; the runtime
+        // client is structurally identical, so bridge the nominal mismatch.
         const queue = new Queue(queueName, {
-          connection: this.connection,
+          connection: this.connection as unknown as ConnectionOptions,
           defaultJobOptions: DEFAULT_JOB_OPTIONS,
         });
         this.queues.set(queueName, queue);
 
         const events = new QueueEvents(queueName, {
-          connection: this.connection.duplicate(),
+          connection: this.connection.duplicate() as unknown as ConnectionOptions,
         });
         this.queueEvents.set(queueName, events);
       }

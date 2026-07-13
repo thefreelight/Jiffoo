@@ -844,7 +844,7 @@ async function proxyToExternalHttp(
   }
 
   // ── Gateway Protection: Timeout (Task 2.4.1) ──
-  const effectiveTimeoutMs = getPluginTimeoutMs(ctx?.instance?.config as Record<string, unknown> | undefined);
+  const effectiveTimeoutMs = getPluginTimeoutMs(ctx.config);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), effectiveTimeoutMs);
 

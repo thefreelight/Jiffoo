@@ -100,14 +100,16 @@ export async function initTelemetry(): Promise<void> {
     resource,
     traceExporter,
     sampler,
-    metricReader: metricReader.length > 0 ? metricReader : undefined,
+    // NodeSDK takes a single reader; only the Prometheus reader is used today
+    metricReader: metricReader.length > 0 ? metricReader[0] : undefined,
     instrumentations: [
       getNodeAutoInstrumentations({
         // Disable instrumentations that add overhead without value
         '@opentelemetry/instrumentation-fs': { enabled: false },
         '@opentelemetry/instrumentation-dns': { enabled: false },
         // Enable key instrumentations
-        '@opentelemetry/instrumentation-fastify': { enabled: true },
+        // (fastify instrumentation moved out of auto-instrumentations; http
+        // still covers inbound request spans)
         '@opentelemetry/instrumentation-http': { enabled: true },
         '@opentelemetry/instrumentation-ioredis': { enabled: true },
         '@opentelemetry/instrumentation-pg': { enabled: true },

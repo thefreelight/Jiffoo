@@ -90,7 +90,7 @@ export async function loadTrustedKeys(): Promise<TrustedKey[]> {
     const officialKey = await fs.readFile(path.join(KEYS_DIR, 'official.pub'));
     keys.push({ id: 'jiffoo-official', pem: officialKey });
   } catch {
-    LoggerService.logWarn('Official public key not found at keys/official.pub', {
+    LoggerService.log('warn', 'Official public key not found at keys/official.pub', {
       context: 'signature.loadTrustedKeys',
     });
   }

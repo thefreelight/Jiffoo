@@ -9,7 +9,7 @@
  * When Redis is unavailable, the OutboxPoller falls back to inline execution.
  */
 
-import { Worker, Job } from 'bullmq';
+import { Worker, Job, type ConnectionOptions } from 'bullmq';
 import IORedis from 'ioredis';
 import { env } from '@/config/env';
 import { winstonLogger } from '@/core/logger/unified-logger';
@@ -98,7 +98,9 @@ class WorkerManager {
           return this.processJob(job);
         },
         {
-          connection: connection.duplicate(),
+          // bullmq bundles its own ioredis type declarations; the runtime
+          // client is structurally identical, so bridge the nominal mismatch.
+          connection: connection.duplicate() as unknown as ConnectionOptions,
           concurrency: 5,
         }
       );

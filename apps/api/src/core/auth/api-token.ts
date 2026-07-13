@@ -121,7 +121,7 @@ async function saveTokenRecords(records: ApiTokenRecord[]): Promise<void> {
   });
 
   // Invalidate cache
-  await CacheService.del(CACHE_KEY);
+  await CacheService.delete(CACHE_KEY);
 }
 
 // ---------------------------------------------------------------------------
