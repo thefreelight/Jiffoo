@@ -1,0 +1,61 @@
+{
+    "url": "https://api.github.com/repos/thefreelight/Jiffoo/branches/main/protection",
+    "required_status_checks": {
+        "url": "https://api.github.com/repos/thefreelight/Jiffoo/branches/main/protection/required_status_checks",
+        "strict": false,
+        "contexts": [
+            "static-checks",
+            "api-tests",
+            "drift-gate",
+            "theme-gate"
+        ],
+        "contexts_url": "https://api.github.com/repos/thefreelight/Jiffoo/branches/main/protection/required_status_checks/contexts",
+        "checks": [
+            {
+                "context": "static-checks",
+                "app_id": 15368
+            },
+            {
+                "context": "api-tests",
+                "app_id": 15368
+            },
+            {
+                "context": "drift-gate",
+                "app_id": 15368
+            },
+            {
+                "context": "theme-gate",
+                "app_id": 15368
+            }
+        ]
+    },
+    "required_signatures": {
+        "url": "https://api.github.com/repos/thefreelight/Jiffoo/branches/main/protection/required_signatures",
+        "enabled": false
+    },
+    "enforce_admins": {
+        "url": "https://api.github.com/repos/thefreelight/Jiffoo/branches/main/protection/enforce_admins",
+        "enabled": false
+    },
+    "required_linear_history": {
+        "enabled": false
+    },
+    "allow_force_pushes": {
+        "enabled": false
+    },
+    "allow_deletions": {
+        "enabled": false
+    },
+    "block_creations": {
+        "enabled": false
+    },
+    "required_conversation_resolution": {
+        "enabled": false
+    },
+    "lock_branch": {
+        "enabled": false
+    },
+    "allow_fork_syncing": {
+        "enabled": false
+    }
+}

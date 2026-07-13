@@ -44,9 +44,9 @@
   - [x] 1.7.2 全量回归：`cd apps/api && npx vitest run tests/` + `pnpm test:e2e:shop` + `pnpm test:e2e:admin` + `pnpm theme-matrix` + `pnpm surface:check` + `pnpm --filter api db:check-drift`，结果全部追加到 `wip-split-log.md` _(theme-matrix 73/73 + 2/2；surface 一致；shop vitest 47/47（含清掉合并前遗留失败）；admin vitest 27/27；shop e2e 6/6；admin e2e 26 passed/1 skipped；零 drift；api vitest 剩余失败均为 3.1/3.2 已备案存量——状态泄漏源不止 discount-e2e（orders/forecasting/payments 单跑全绿全量偶挂），3.2 范围需扩大；结果明细见 wip-split-log 1.7 节)_
   - [x] 1.7.3 发 PR 到 `main`，PR 描述引用本 spec；合并方式用 merge commit（保留 5 个逻辑提交，便于 revert）_(PR #13 已创建：https://github.com/thefreelight/Jiffoo/pull/13 ；合并动作留给 owner 执行（用 merge commit），合并后再做 1.8 收尾)_
 
-- [ ] 1.8 收尾
-  - [ ] 1.8.1 合并后删除 `codex/runtime-single-source-truth-wip`（本地 + 远程）
-  - [ ] 1.8.2 丢弃 1.1.1 的安全 stash：`git stash drop`
+- [x] 1.8 收尾
+  - [x] 1.8.1 合并后删除 `codex/runtime-single-source-truth-wip`（本地 + 远程）_(PR #13 merge commit `9b32161a`，2026-07-13)_
+  - [x] 1.8.2 丢弃 1.1.1 的安全 stash：`git stash drop` _(只丢 pre-split-snapshot；3 个历史遗留 stash 保留未动)_
 
 ## 2. [P0] PR 级 CI 质量门禁 (R2)
 
@@ -66,9 +66,9 @@
   - [x] 2.2.1 `oss-agile-build-push.yml` 的 `push.branches: [codex/local-recovery-20260411]` 是过时恢复分支：查 Actions 运行历史确认该 workflow 当前真实用途，改为 `workflow_dispatch`-only 或指向真实的发布分支，决策写入 workflow 顶部注释 _(实际运行史近 3 次均为手动触发；已改 dispatch-only，符合 owner 的发版保守要求)_
   - [x] 2.2.2 核对另外两个 workflow（`publish-oss-release-images.yml`、`publish-self-hosted-update-feed.yml`）触发条件与当前发布流程一致，不一致处修正 _(前者 release published + dispatch、后者 dispatch-only，与手动发版流程一致，无需修改；`repair-oss-release-publication.yml` 亦为 dispatch-only)_
 
-- [ ] 2.3 branch protection (R2.3)
-  - [ ] 2.3.1 用 `gh api repos/{owner}/{repo}/branches/main/protection` 配置：必需检查 = 2.1 的 4 个 job；禁止 force-push；review 数先设 0（单人仓，先只锁 CI）
-  - [ ] 2.3.2 配置结果（JSON）落盘本 spec 目录 `branch-protection.json` 备查
+- [x] 2.3 branch protection (R2.3)
+  - [x] 2.3.1 用 `gh api repos/{owner}/{repo}/branches/main/protection` 配置：必需检查 = 2.1 的 4 个 job；禁止 force-push；review 数先设 0（单人仓，先只锁 CI）_(enforce_admins=false：owner 直推可绕过，锁的是 CI 而非人)_
+  - [x] 2.3.2 配置结果（JSON）落盘本 spec 目录 `branch-protection.json` 备查
 
 - [x] 2.4 文档同步
   - [x] 2.4.1 CONTRIBUTING.md 增加「CI Quality Gates」小节：4 个 job 各查什么、本地等价命令（`pnpm type-check` / `npx vitest run` / `pnpm --filter api db:check-drift` / `pnpm theme-matrix`）、失败时的排查入口 _(含 drift 一次性库警告与 lint 未入门禁说明)_
@@ -121,8 +121,8 @@
 
 ## Release Gate 核对清单（对应 requirements.md）
 
-- [ ] G1 `git status --porcelain` 为空；WIP 分支已合入 `main` 并删除
-- [ ] G2 对 `main` 的 PR 自动触发 4 个门禁 job，branch protection 生效
+- [ ] G1 `git status --porcelain` 为空；WIP 分支已合入 `main` 并删除 _(分支已合并删除✓；工作区尚有另一会话的 25 个未提交文件（CF/bokmoo 迁移工作），非本 spec 范畴)_
+- [x] G2 对 `main` 的 PR 自动触发 4 个门禁 job，branch protection 生效 _(PR #13 实测触发+全绿；protection 已配置)_
 - [x] G3 API 全量套件连续 3 次 0 failed（含 discount-e2e）_(本地→CI→本地 3 连绿，2026-07-13)_
 - [ ] G4 活跃分支 ≤ 10，`branch-audit.md` 落盘
 - [x] G5 根目录无过时评估报告，CI 文档描述与实际 workflow 一致 _(报告已归档；CONTRIBUTING/scripts/README 与 4 job workflow 一致)_
