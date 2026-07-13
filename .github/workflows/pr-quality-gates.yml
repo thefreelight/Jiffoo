@@ -95,6 +95,17 @@ jobs:
         run: pnpm --filter api exec prisma generate
       - name: Apply migrations
         run: pnpm --filter api exec prisma migrate deploy
+      - name: Build official plugin fixtures
+        # extensions/plugins are standalone npm packages (dist is gitignored);
+        # the official-launch-plugins install test needs their built output
+        # plus runtime deps.
+        run: |
+          for plugin in stripe i18n; do
+            (cd "extensions/plugins/$plugin" \
+              && npm ci --no-audit --no-fund \
+              && npm run build \
+              && npm prune --omit=dev --no-audit --no-fund)
+          done
       - name: Export OpenAPI spec (contract tests)
         run: pnpm --filter api export:openapi
       - name: Run API test suite
