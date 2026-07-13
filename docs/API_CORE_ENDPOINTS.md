@@ -161,6 +161,7 @@ This document lists the **Core API** HTTP endpoints available in the open-source
 ## Store Context
 
 - `GET /api/mall/context` — Get store context (theme + locale + currency).
+- `GET /api/store/context` — Get storefront runtime context (active theme + store identity), the runtime single source of truth.
 
 ## Cache (Admin)
 
