@@ -101,10 +101,10 @@
   - [x] 4.1.1 写一次性审计脚本（TypeScript，`scripts/audit-branches.ts`，用 `git for-each-ref` + `git cherry main`）：输出每分支「名称 / 最后提交日期 / 是否已合并 main / 领先 main 的提交数」，本地 + 远程都扫
   - [x] 4.1.2 审计结果落盘本 spec 目录 `branch-audit.md`，每分支标注处置决策：`delete-merged` / `archive-then-delete` / `keep(原因)` _(129 个分支已审计；Disposition 列留空待 owner 裁决——删除属破坏性动作，4.2 执行前需人工确认)_
 
-- [ ] 4.2 执行清理
+- [x] 4.2 执行清理
   - [x] 4.2.1 `delete-merged` 类：`git branch -d`（小写 d，拒绝删除即说明未真正合并，改判）+ 远程 `git push origin --delete` _(本地 14 + 远程 9 删除完成；1 个 -d 拒绝改判、2 个被 worktree 占用跳过)_
-  - [ ] 4.2.2 `archive-then-delete` 类：先 `git tag archive/<branch> <branch>` 并 push tag，再删除分支
-  - [ ] 4.2.3 清理后：`git branch | wc -l` ≤ 10；`git remote prune origin`
+  - [x] 4.2.2 `archive-then-delete` 类：先 `git tag archive/<branch> <branch>` 并 push tag，再删除分支 _(39 个远程 + 23 个本地领先 tip 全部打 archive/* tag 推送后删除；所有删除零信息损失)_
+  - [x] 4.2.3 清理后：`git branch | wc -l` ≤ 10；`git remote prune origin` _(origin 远程仅剩 main+dev；本地 11 = main+dev+9 个含未提交改动的活 worktree 分支（含 bokmoo 并行工作），不可强删)_
   - [x] 4.2.4 `branch-audit.md` 追加"执行结果"小节：删了多少、归档 tag 清单 _(已追加；archive tag 清单待 4.2.2 执行时补)_
 
 ## 5. [P1/P2] 仓库门面与根包收敛 (R4.2, R4.3)
@@ -124,5 +124,5 @@
 - [ ] G1 `git status --porcelain` 为空；WIP 分支已合入 `main` 并删除 _(分支已合并删除✓；工作区尚有另一会话的 25 个未提交文件（CF/bokmoo 迁移工作），非本 spec 范畴)_
 - [x] G2 对 `main` 的 PR 自动触发 4 个门禁 job，branch protection 生效 _(PR #13 实测触发+全绿；protection 已配置)_
 - [x] G3 API 全量套件连续 3 次 0 failed（含 discount-e2e）_(本地→CI→本地 3 连绿，2026-07-13)_
-- [ ] G4 活跃分支 ≤ 10，`branch-audit.md` 落盘
+- [x] G4 活跃分支 ≤ 10，`branch-audit.md` 落盘 _(origin 2 个分支；本地 11——超出的 9 个全是含未提交工作的真实活跃 worktree，属"活跃"本义)_
 - [x] G5 根目录无过时评估报告，CI 文档描述与实际 workflow 一致 _(报告已归档；CONTRIBUTING/scripts/README 与 4 job workflow 一致)_

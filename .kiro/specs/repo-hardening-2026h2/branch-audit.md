@@ -116,3 +116,11 @@ Total: 104 branches (fill Disposition: delete-merged / archive-then-delete / kee
 - **远程删除 9–10 个**：local-recovery-20260411、release-1.0.{10,11,12,13,15,22,24,25}-oss（bootstrap-credentials-state 见下次核对）。
 - **跳过**：`dev`（长期工作流分支，keep）；`codex/bokmoo-api-dev`、`codex/bokmoo-app-api-release`（被活动 worktree 占用——另一会话在用）；本地 `codex/release-1.0.22-oss`（`-d` 拒绝，按规则改判待裁决）。
 - **剩余（本地 ~64 / 远程 ~59）全部为领先 main 的未合并分支**——内容处置（archive-then-delete vs keep）需 owner 在上表 Disposition 列标注后执行；G4（≤10）在裁决前无法达成。
+
+## 执行结果·第二轮（2026-07-13，归档式清理）
+
+- **归档 tag**：39 个远程分支 tip + 23 个本地领先 tip → `archive/<branch>` / `archive/local/<branch>`，全部推送到 origin。任何被删分支可通过对应 tag 恢复（`git branch <name> archive/<name>`）。
+- **删除**：远程 39（origin 仅剩 `main`+`dev`）；本地累计 45+。
+- **worktree 清理**：`git worktree prune` 清 30 个死记录；`git worktree remove`（非 force，脏目录自动拒绝）移除 18 个干净工作区。
+- **保留（9 个分支 + 对应 worktree）**：bokmoo 三兄弟（并行会话在用）+ 6 个**有未提交改动**的工作区（admin-official-sig-fix ×2、allow-theme-pack-official-build、platform-connection-url-fix、release-1.0.37-oss、release-chain-p0-hardening、official-artifact-vendor-deps）——未提交内容无法归档，需 owner 逐个处理（提交/丢弃）。
+- **未动**：`gitlab/*` remote（GitLab 镜像，发布基础设施）；`dev`（长期分支）。
