@@ -438,8 +438,10 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
       }
       if (typeof manifest.webhooks.url !== 'string' || !manifest.webhooks.url.trim()) {
         pushIssue(issues, 'webhooks.url', 'webhooks.url is required', 'INVALID_WEBHOOKS');
-      } else if (!isUrl(manifest.webhooks.url)) {
-        pushIssue(issues, 'webhooks.url', 'webhooks.url must be a valid http(s) URL', 'INVALID_WEBHOOKS');
+      } else if (!isUrl(manifest.webhooks.url) && !manifest.webhooks.url.startsWith('/')) {
+        // A leading-slash path is delivered through the plugin runtime gateway
+        // (/api/extensions/plugin/{slug}/api{path}); absolute URLs go external.
+        pushIssue(issues, 'webhooks.url', 'webhooks.url must be a valid http(s) URL or a gateway path starting with "/"', 'INVALID_WEBHOOKS');
       }
     }
   }

@@ -14,6 +14,7 @@ unified-release-report-*.md
 dist/
 build/
 .next/
+.open-next/
 .turbo/
 .docusaurus/
 
@@ -101,6 +102,7 @@ e2e/visual/baselines/*.png
 
 # Vercel local project metadata
 .vercel/
+.wrangler/
 
 # App binaries belong in release storage, not the source repo
 packages/shop-themes/*/public/downloads/
@@ -145,3 +147,4 @@ packages/shop-themes/*/diff_*.txt
 .codex-worktrees/
 tmp/
 .env.bak
+apps/api/openapi.json

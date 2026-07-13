@@ -1,0 +1,141 @@
+# PR Quality Gates (repo-hardening-2026h2 §2.1)
+#
+# Four parallel jobs gate every PR into main:
+#   static-checks  — repo-wide type-check (lint is pending the ESLint 9
+#                    flat-config migration; tracked in the spec, not gated yet)
+#   api-tests      — full API vitest suite against postgres + redis services
+#   drift-gate     — Prisma schema vs migrations (reuses check-drift.sh)
+#   theme-gate     — theme matrix type-check/validate + theme API surface check
+name: PR Quality Gates
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: pr-quality-gates-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  static-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm --filter api exec prisma generate
+      - name: Type-check (all packages)
+        run: pnpm type-check
+
+  api-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: jiffoo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI: 'true'
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/jiffoo_test?schema=public
+      DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/jiffoo_test?schema=public
+      REDIS_URL: redis://localhost:6379/15
+      JWT_SECRET: ci-test-secret
+      STORE_DEFAULT_ID: test-store
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generate Prisma client
+        run: pnpm --filter api exec prisma generate
+      - name: Apply migrations
+        run: pnpm --filter api exec prisma migrate deploy
+      - name: Export OpenAPI spec (contract tests)
+        run: pnpm --filter api export:openapi
+      - name: Run API test suite
+        working-directory: apps/api
+        run: npx vitest run tests/
+
+  drift-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: jiffoo_drift
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Check schema drift
+        env:
+          # check-drift.sh uses this as a throwaway shadow database
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/jiffoo_drift
+        run: bash apps/api/scripts/check-drift.sh
+
+  theme-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build shared packages
+        run: pnpm --filter shared build && pnpm --filter @jiffoo/theme-api-sdk build
+      - name: Theme matrix type-check
+        run: pnpm theme-matrix:type-check
+      - name: Theme matrix validate
+        run: pnpm theme-matrix:validate
+      - name: Theme API surface check
+        run: pnpm surface:check

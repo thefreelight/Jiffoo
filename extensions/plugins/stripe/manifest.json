@@ -3,6 +3,7 @@
   "slug": "stripe",
   "name": "Stripe Payment Gateway",
   "version": "1.0.1",
+  "trustLevel": "official",
   "description": "Official Stripe payment integration for Jiffoo stores. Supports credit/debit card payments, refunds, and webhook-based status tracking.",
   "author": "Jiffoo Team",
   "category": "payment",
@@ -21,7 +22,9 @@
     "payments:write",
     "orders:read"
   ],
-  "supportedCurrencies": ["usd"],
+  "supportedCurrencies": [
+    "usd"
+  ],
   "configSchema": {
     "secretKey": {
       "type": "string",
@@ -50,7 +53,10 @@
     "icon": "credit-card"
   },
   "webhooks": {
-    "events": ["order.created", "order.canceled"],
+    "events": [
+      "order.created",
+      "order.canceled"
+    ],
     "url": "/webhook/stripe"
   },
   "lifecycle": {

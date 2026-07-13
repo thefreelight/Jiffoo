@@ -84,7 +84,9 @@ function isAllowedPluginRuntimeBinary(filename: string, kind?: string): boolean 
     }
 
     return (
-        normalized.includes('node_modules/.prisma/client/') ||
+        // Generated Prisma clients may use a custom output dir under .prisma/
+        // (e.g. .prisma/i18n-client), all containing the same query engines.
+        normalized.includes('node_modules/.prisma/') ||
         normalized.includes('node_modules/@prisma/engines/') ||
         normalized.includes('node_modules/prisma/')
     );

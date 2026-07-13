@@ -46,7 +46,9 @@ async function buildFreeInstallAuthorization(
     : null;
   const resolvedVersion = requestedVersion ?? artifactItem?.version ?? detail?.sellableVersion ?? detail?.currentVersion;
   const versionSummary = detail?.versions.find((item) => item.version === resolvedVersion);
-  const packageUrl = artifactItem?.version === resolvedVersion
+  // Guard artifactItem explicitly: when both sides are undefined the
+  // loose comparison would match and dereference undefined.
+  const packageUrl = artifactItem && artifactItem.version === resolvedVersion
     ? artifactItem.packageUrl
     : versionSummary?.packageUrl;
 

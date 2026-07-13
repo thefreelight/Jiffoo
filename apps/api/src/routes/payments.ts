@@ -37,7 +37,9 @@ export const paymentsRoutes: FastifyPluginAsync = async (fastify) => {
      * Generates a Stripe PaymentIntent for the given order and returns the clientSecret.
      */
     fastify.post('/create-intent', {
-        preHandler: authMiddleware,
+        // onRequest so auth runs before body validation: an unauthenticated
+        // request must get 401, not a 400 schema error.
+        onRequest: authMiddleware,
         schema: {
             tags: ['payments'],
             summary: 'Create Stripe Payment Intent',

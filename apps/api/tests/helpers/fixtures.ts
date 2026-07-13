@@ -93,6 +93,14 @@ export async function createTestProduct(options: CreateProductOptions = {}) {
     }
   });
 
+  // Order stock checks read the single default warehouse; the playwright E2E
+  // suites share this database and claim their own default (E2E), so demote
+  // every other warehouse before claiming the flag.
+  await prisma.warehouse.updateMany({
+    where: { code: { not: 'TEST' } },
+    data: { isDefault: false },
+  });
+
   const defaultWarehouse = await prisma.warehouse.upsert({
     where: { code: 'TEST' },
     update: { isDefault: true },

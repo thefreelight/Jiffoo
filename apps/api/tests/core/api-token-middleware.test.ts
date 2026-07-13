@@ -27,7 +27,7 @@ vi.mock('@/core/cache/service', () => ({
   CacheService: {
     get: vi.fn().mockResolvedValue(null),
     set: vi.fn().mockResolvedValue(undefined),
-    del: vi.fn().mockResolvedValue(undefined),
+    delete: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -59,7 +59,7 @@ const mockPrismaSettings = prisma.systemSettings as {
 const mockCache = CacheService as {
   get: ReturnType<typeof vi.fn>;
   set: ReturnType<typeof vi.fn>;
-  del: ReturnType<typeof vi.fn>;
+  delete: ReturnType<typeof vi.fn>;
 };
 
 function makeMockReply() {

@@ -1,9 +1,10 @@
+# Manual-only (repo-hardening-2026h2 §2.2): the old push trigger pointed at
+# codex/local-recovery-20260411, a recovery branch dead since 2026-04-14, and
+# every run since has been a workflow_dispatch anyway. Image builds/publishes
+# stay deliberate — trigger by hand with an explicit target_ref.
 name: OSS Agile Build And Push
 
 on:
-  push:
-    branches:
-      - codex/local-recovery-20260411
   workflow_dispatch:
     inputs:
       target_ref:

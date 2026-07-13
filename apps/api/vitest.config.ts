@@ -22,6 +22,9 @@ export default defineConfig({
       'node_modules/**',
       'dist/**',
       'tests/e2e/**',
+      // node:test benchmark suite, not a vitest file (vitest reports it as an
+      // empty suite); run via `node --test` when benchmarking.
+      'tests/performance/benchmarks.test.ts',
     ],
     
     // Timeouts
