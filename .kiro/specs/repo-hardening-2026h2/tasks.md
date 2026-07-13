@@ -123,6 +123,6 @@
 
 - [ ] G1 `git status --porcelain` 为空；WIP 分支已合入 `main` 并删除
 - [ ] G2 对 `main` 的 PR 自动触发 4 个门禁 job，branch protection 生效
-- [ ] G3 API 全量套件连续 3 次 0 failed（含 discount-e2e）
+- [x] G3 API 全量套件连续 3 次 0 failed（含 discount-e2e）_(本地→CI→本地 3 连绿，2026-07-13)_
 - [ ] G4 活跃分支 ≤ 10，`branch-audit.md` 落盘
-- [ ] G5 根目录无过时评估报告，CI 文档描述与实际 workflow 一致
+- [x] G5 根目录无过时评估报告，CI 文档描述与实际 workflow 一致 _(报告已归档；CONTRIBUTING/scripts/README 与 4 job workflow 一致)_
