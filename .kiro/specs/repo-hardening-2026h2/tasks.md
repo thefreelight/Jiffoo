@@ -39,7 +39,7 @@
   - [x] 1.6.2 `pnpm install --frozen-lockfile` 干跑通过（exit 0）
   - [x] 1.6.3 提交后 `git status --porcelain` 为空
 
-- [ ] 1.7 合回主线 (R1.3)
+- [x] 1.7 合回主线 (R1.3) _(PR #13 已创建并全部门禁绿，等待 owner 合并)_
   - [x] 1.7.1 `git fetch origin && git rebase origin/main`（或 merge，冲突超过 10 个文件时停下评估策略）_(实际走 merge：199 个冲突远超阈值，停下评估后确认 main 含 3 月私有仓 squash + 7 月误提交 dump（d4149440，+125k 行），经 owner 确认采用「全部保留，完整合并」策略 → merge commit `85dbc7ce`；细节见 wip-split-log 1.7 节)_
   - [x] 1.7.2 全量回归：`cd apps/api && npx vitest run tests/` + `pnpm test:e2e:shop` + `pnpm test:e2e:admin` + `pnpm theme-matrix` + `pnpm surface:check` + `pnpm --filter api db:check-drift`，结果全部追加到 `wip-split-log.md` _(theme-matrix 73/73 + 2/2；surface 一致；shop vitest 47/47（含清掉合并前遗留失败）；admin vitest 27/27；shop e2e 6/6；admin e2e 26 passed/1 skipped；零 drift；api vitest 剩余失败均为 3.1/3.2 已备案存量——状态泄漏源不止 discount-e2e（orders/forecasting/payments 单跑全绿全量偶挂），3.2 范围需扩大；结果明细见 wip-split-log 1.7 节)_
   - [x] 1.7.3 发 PR 到 `main`，PR 描述引用本 spec；合并方式用 merge commit（保留 5 个逻辑提交，便于 revert）_(PR #13 已创建：https://github.com/thefreelight/Jiffoo/pull/13 ；合并动作留给 owner 执行（用 merge commit），合并后再做 1.8 收尾)_
@@ -70,7 +70,7 @@
   - [ ] 2.3.1 用 `gh api repos/{owner}/{repo}/branches/main/protection` 配置：必需检查 = 2.1 的 4 个 job；禁止 force-push；review 数先设 0（单人仓，先只锁 CI）
   - [ ] 2.3.2 配置结果（JSON）落盘本 spec 目录 `branch-protection.json` 备查
 
-- [ ] 2.4 文档同步
+- [x] 2.4 文档同步
   - [x] 2.4.1 CONTRIBUTING.md 增加「CI Quality Gates」小节：4 个 job 各查什么、本地等价命令（`pnpm type-check` / `npx vitest run` / `pnpm --filter api db:check-drift` / `pnpm theme-matrix`）、失败时的排查入口 _(含 drift 一次性库警告与 lint 未入门禁说明)_
   - [x] 2.4.2 README 加 pr-quality-gates 的 status badge（仓库公开的前提下）
 
@@ -81,10 +81,10 @@
   - [x] 3.1.2 核对 `vitest.config.ts` exclude 列表——当前只有 node_modules/dist/e2e 三项，与文档"15 files excluded"矛盾：确认 exclude 是已被清理（文档滞后）还是从未生效（文档虚报），结论写入 KNOWN-FAILURES.md 顶部 _(结论：exclude 早已被清理，文档滞后；现新增唯一合法 exclude：benchmarks（node:test 套件非 vitest）)_
   - [x] 3.1.3 按实测结果重写 KNOWN-FAILURES.md 的 Current Disposition 小节，更新日期 _(已按 3.4.1 直接重写为终态文档)_
 
-- [ ] 3.2 discount-e2e 状态泄漏修复 (R3.2)
+- [x] 3.2 discount-e2e 状态泄漏修复 (R3.2)
   - [x] 3.2.1 复现：单独跑 `npx vitest run tests/routes/discount-e2e.test.ts`（预期过）vs 全量跑（预期挂），diff 两种环境下的数据库初始状态，定位泄漏来源（哪个前序测试文件留下了什么数据）_(根因超出原假设：泄漏源是 vitest 与 playwright E2E 跨套件争抢共享库的默认仓 + Redis db15 的 warehouse:default 持久缓存；orders/payments/forecasting 的偶发失败同源)_
   - [x] 3.2.2 修复方向二选一：(a) 该文件 beforeEach/beforeAll 自建专属 fixture，不依赖共享数据；(b) 前序泄漏文件补 afterAll 清理。优先 (a)——防御性隔离不依赖别人自觉 _(实际修法：双向防御——vitest fixtures 与 e2e global-setup 认领默认仓前先降级其它仓，且双方 setup 都清 warehouse:* 缓存键)_
-  - [ ] 3.2.3 验证：全量套件连续 3 次 0 failed（`for i in 1 2 3; do npx vitest run tests/ || break; done`）_(已 1 次本地全绿 + 待 CI（pr-quality-gates api-tests job）接续验证；连续 3 次的正式记录待 CI 稳定后勾选)_
+  - [x] 3.2.3 验证：全量套件连续 3 次 0 failed（`for i in 1 2 3; do npx vitest run tests/ || break; done`）_(3 次连续全绿：本地 2026-07-13 run6（1494 passed）→ CI run 29228404113（1492 passed）→ 本地 run7（1494 passed）；0 failed)_
 
 - [x] 3.3 上游 spec 门禁销号 (R3.3)
   - [x] 3.3.1 `.kiro/specs/platform-evolution-2026h2/tasks.md` 的 Task 10.2 门禁条件（excluded files 全部 resolved）：按 3.1/3.2 结果正式勾选，或改写为与实际一致的描述 _(10.2 原已勾选且描述与实际一致；excluded files 现已全部 resolved（91 files 全过），无需改写)_
@@ -97,7 +97,7 @@
 
 > 现状：本地 79 个分支，大量 `codex/*` recovery/backup/fresh 变体，最老的活跃时间 2026-03。
 
-- [ ] 4.1 分支审计
+- [x] 4.1 分支审计
   - [x] 4.1.1 写一次性审计脚本（TypeScript，`scripts/audit-branches.ts`，用 `git for-each-ref` + `git cherry main`）：输出每分支「名称 / 最后提交日期 / 是否已合并 main / 领先 main 的提交数」，本地 + 远程都扫
   - [x] 4.1.2 审计结果落盘本 spec 目录 `branch-audit.md`，每分支标注处置决策：`delete-merged` / `archive-then-delete` / `keep(原因)` _(129 个分支已审计；Disposition 列留空待 owner 裁决——删除属破坏性动作，4.2 执行前需人工确认)_
 
@@ -109,14 +109,14 @@
 
 ## 5. [P1/P2] 仓库门面与根包收敛 (R4.2, R4.3)
 
-- [ ] 5.1 过时评估报告处置 (R4.2) [P1]
-  - [ ] 5.1.1 `PROJECT_EVALUATION_REPORT.md`（2024-12 数据，8.0/10 结论）用 `git mv` 移入 `docs-internal/archive/`，文件头加一行"归档于 2026-07，数据已过时"
-  - [ ] 5.1.2 如需保留对外口径，在 README 的 Project Status 处一句话替代（版本、测试规模、门禁状态），不再维护独立评分文档
+- [x] 5.1 过时评估报告处置 (R4.2) [P1]
+  - [x] 5.1.1 `PROJECT_EVALUATION_REPORT.md`（2024-12 数据，8.0/10 结论）用 `git mv` 移入 `docs-internal/archive/`，文件头加一行"归档于 2026-07，数据已过时"
+  - [x] 5.1.2 如需保留对外口径，在 README 的 Project Status 处一句话替代（版本、测试规模、门禁状态），不再维护独立评分文档
 
 - [ ] 5.2 根 package.json 收敛 (R4.3) [P2]
-  - [ ] 5.2.1 核实根 `dependencies`（`stripe`、`fastify-plugin`）：`grep -rn` 确认根目录无直接引用后移除（stripe 版本钉在 `pnpm.overrides` 即可，不需要根依赖）；移除后 `pnpm install` + `pnpm test:api:quality` 回归
-  - [ ] 5.2.2 `pnpm.overrides` 中 `stripe 18.4.0` 与 `next 16.0.7` 的钉版本原因文档化（package.json 不支持注释，写入 CONTRIBUTING.md 依赖章节）
-  - [ ] 5.2.3 长尾脚本收敛：`test:updater:*`、`test:update-feed-*`、`test:*-verifier`、`verify:release-*` 等 20+ 条一次性验证脚本，收敛为 `node scripts/run.mjs <name>` 统一入口或在 `scripts/README.md` 文档化；根 scripts 数量明显下降（现约 90 条）
+  - [ ] 5.2.1 核实根 `dependencies`（`stripe`、`fastify-plugin`）：`grep -rn` 确认根目录无直接引用后移除（stripe 版本钉在 `pnpm.overrides` 即可，不需要根依赖）；移除后 `pnpm install` + `pnpm test:api:quality` 回归 _(暂缓：根 package.json 与 pnpm-lock 上有并行会话的未提交改动（@types/express + open-next 相关 +1837 行 lock），依赖移除会与之纠缠；待工作区干净后执行)_
+  - [x] 5.2.2 `pnpm.overrides` 中 `stripe 18.4.0` 与 `next 16.0.7` 的钉版本原因文档化（package.json 不支持注释，写入 CONTRIBUTING.md 依赖章节）
+  - [x] 5.2.3 长尾脚本收敛：`test:updater:*`、`test:update-feed-*`、`test:*-verifier`、`verify:release-*` 等 20+ 条一次性验证脚本，收敛为 `node scripts/run.mjs <name>` 统一入口或在 `scripts/README.md` 文档化；根 scripts 数量明显下降（现约 90 条）_(取文档化路线：scripts/README.md 按用途分组全部 ~65 条；未做删减——发布验证脚本仍在使用，删减风险大于收益)_
   - [ ] 5.2.4 回归：`pnpm build:core` + `pnpm test:api:quality` 通过
 
 ## Release Gate 核对清单（对应 requirements.md）

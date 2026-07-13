@@ -12,6 +12,8 @@
 
 Jiffoo is a TypeScript commerce core for self-hosted storefronts, admin tooling, and extension-driven customization.
 
+**Project status**: actively developed; every PR into `main` passes four CI quality gates (type-check, ~1,500 API tests against postgres/redis, Prisma drift check, theme matrix + API surface check) plus end-to-end Playwright suites for shop and admin.
+
 The public runtime surface owned by this repository is:
 
 - `shop`
