@@ -32,6 +32,12 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Build shared packages
+        run: |
+          pnpm --filter shared build
+          pnpm --filter @jiffoo/ui build
+          pnpm --filter @jiffoo/core-api-sdk build
+          pnpm --filter @jiffoo/theme-api-sdk build
       - name: Generate Prisma client
         run: pnpm --filter api exec prisma generate
       - name: Type-check (all packages)
@@ -132,7 +138,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Build shared packages
-        run: pnpm --filter shared build && pnpm --filter @jiffoo/theme-api-sdk build
+        run: |
+          pnpm --filter shared build
+          pnpm --filter @jiffoo/ui build
+          pnpm --filter @jiffoo/core-api-sdk build
+          pnpm --filter @jiffoo/theme-api-sdk build
       - name: Theme matrix type-check
         run: pnpm theme-matrix:type-check
       - name: Theme matrix validate
