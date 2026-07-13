@@ -3,17 +3,17 @@
  */
 
 import React, { useState } from 'react';
-import { Search, MessageCircle, Phone, Mail, ChevronRight } from 'lucide-react';
+import { Search, MessageCircle, Phone, Mail, ChevronRight, Package, RotateCcw, UserRound, CreditCard, ShoppingBag, Settings } from 'lucide-react';
 import type { HelpPageProps } from '../../../../shared/src/types/theme';
 import { cn } from '@jiffoo/ui';
 
 const helpCategories = [
-  { id: 'orders', icon: '📦', title: 'Orders & Shipping', description: 'Track orders, shipping info, and delivery questions', articles: 12 },
-  { id: 'returns', icon: '↩️', title: 'Returns & Refunds', description: 'Return policy, refund process, and exchanges', articles: 8 },
-  { id: 'account', icon: '👤', title: 'Account & Profile', description: 'Manage your account, password, and personal info', articles: 6 },
-  { id: 'payment', icon: '💳', title: 'Payment & Billing', description: 'Payment methods, billing issues, and invoices', articles: 10 },
-  { id: 'products', icon: '🛍️', title: 'Products & Catalog', description: 'Product information, availability, and specifications', articles: 15 },
-  { id: 'technical', icon: '⚙️', title: 'Technical Support', description: 'Website issues, app problems, and technical help', articles: 9 },
+  { id: 'orders', icon: Package, iconStyles: 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400', title: 'Orders & Shipping', description: 'Track orders, shipping info, and delivery questions', articles: 12 },
+  { id: 'returns', icon: RotateCcw, iconStyles: 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400', title: 'Returns & Refunds', description: 'Return policy, refund process, and exchanges', articles: 8 },
+  { id: 'account', icon: UserRound, iconStyles: 'bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400', title: 'Account & Profile', description: 'Manage your account, password, and personal info', articles: 6 },
+  { id: 'payment', icon: CreditCard, iconStyles: 'bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400', title: 'Payment & Billing', description: 'Payment methods, billing issues, and invoices', articles: 10 },
+  { id: 'products', icon: ShoppingBag, iconStyles: 'bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400', title: 'Products & Catalog', description: 'Product information, availability, and specifications', articles: 15 },
+  { id: 'technical', icon: Settings, iconStyles: 'bg-slate-100 text-slate-600 dark:bg-slate-700/50 dark:text-slate-300', title: 'Technical Support', description: 'Website issues, app problems, and technical help', articles: 9 },
 ];
 
 export function HelpPage({ config, onNavigateToCategory, onNavigateToContact }: HelpPageProps) {
@@ -70,7 +70,9 @@ export function HelpPage({ config, onNavigateToCategory, onNavigateToContact }: 
                 className="group cursor-pointer"
               >
                 <div className="bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-3xl p-6 sm:p-8 hover:shadow-md hover:border-blue-200 dark:hover:border-blue-700 transition-all duration-300 h-full">
-                  <div className="text-4xl sm:text-5xl mb-4 sm:mb-6">{category.icon}</div>
+                  <div className={cn('w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center mb-4 sm:mb-6', category.iconStyles)}>
+                    <category.icon className="w-6 h-6 sm:w-7 sm:h-7" />
+                  </div>
                   <div className="space-y-3">
                     <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors tracking-tight">
                       {category.title}

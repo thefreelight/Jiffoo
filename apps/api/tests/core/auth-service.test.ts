@@ -45,6 +45,17 @@ vi.mock('@/services/email-verification.service', () => ({
   },
 }));
 
+vi.mock('@/core/auth/bootstrap', () => ({
+  shouldRequirePasswordRotation: vi.fn().mockResolvedValue(false),
+  getAuthBootstrapState: vi.fn().mockResolvedValue({
+    mode: 'normal',
+    showDemoCredentials: false,
+    requiresPasswordRotation: false,
+    email: 'admin@jiffoo.com',
+    updatedAt: new Date().toISOString(),
+  }),
+}));
+
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
@@ -202,6 +213,7 @@ describe('AuthService', () => {
           role: createdUser.role,
           emailVerified: false,
           avatar: null,
+          requiresPasswordRotation: false,
         },
         access_token: ACCESS_TOKEN,
         token_type: 'Bearer',
@@ -265,6 +277,7 @@ describe('AuthService', () => {
           role: TEST_USER.role,
           emailVerified: TEST_USER.emailVerified,
           avatar: TEST_USER.avatar,
+          requiresPasswordRotation: false,
         },
         access_token: ACCESS_TOKEN,
         token_type: 'Bearer',
@@ -395,7 +408,10 @@ describe('AuthService', () => {
           createdAt: true,
         },
       });
-      expect(result).toEqual(userProfile);
+      expect(result).toEqual({
+        ...userProfile,
+        requiresPasswordRotation: false,
+      });
     });
 
     it('should throw when the user is not found', async () => {

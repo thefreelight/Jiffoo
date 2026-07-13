@@ -43,6 +43,11 @@ import {
   type SignatureVerifyResult,
 } from './signature-verifier';
 import {
+  deriveTrustLevel,
+  checkInstallationAllowed,
+  INTERNAL_PLUGIN_ENFORCEMENT_VERSION,
+} from './trust-level';
+import {
   executeLifecycleHook,
   hasLifecycleHook,
 } from '@/core/admin/plugin-management/lifecycle-hooks';
@@ -99,7 +104,7 @@ export class PluginFsInstaller implements IPluginInstaller {
    * 6. Create/update database records (PluginInstall + default instance)
    * 7. Write local metadata file
    */
-  async install(zipStream: Readable): Promise<InstalledPlugin> {
+  async install(zipStream: Readable, options?: { source?: string }): Promise<InstalledPlugin> {
     let tempDir: string | null = null;
     let targetDir: string | null = null;
     let backupDir: string | null = null;
@@ -176,6 +181,24 @@ export class PluginFsInstaller implements IPluginInstaller {
 
       if (getSignatureVerifyMode() === 'required' && !signatureResult.verified) {
         throw new Error(`Signature verification failed: ${signatureResult.error}`);
+      }
+
+      // 5c. Trust level enforcement (Task 2.3.1–2.3.2)
+      // Derive trust level from source + signature result, then check if
+      // installation is allowed under the two-tier trust model.
+      const trustLevel = deriveTrustLevel(
+        options?.source || 'local-zip',
+        manifest.runtimeType,
+        signatureResult,
+        manifest.trustLevel,
+      );
+
+      const enforcementError = checkInstallationAllowed(manifest.runtimeType, trustLevel);
+      if (enforcementError) {
+        throw new Error(
+          `[${enforcementError.code}] ${enforcementError.message} ` +
+          `(enforcement version: v${INTERNAL_PLUGIN_ENFORCEMENT_VERSION})`
+        );
       }
 
       // 6. Determine target directory
@@ -307,6 +330,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             description: manifest.description || '',
             category: manifest.category || 'general',
             runtimeType: manifest.runtimeType,
+            trustLevel: trustLevel,
             entryModule: manifest.entryModule,
             externalBaseUrl: manifest.externalBaseUrl,
             source: 'local-zip',
@@ -463,6 +487,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             description: manifest.description || '',
             category: manifest.category || 'general',
             runtimeType: manifest.runtimeType,
+            trustLevel: trustLevel,
             entryModule: manifest.entryModule,
             externalBaseUrl: manifest.externalBaseUrl,
             source: 'local-zip',

@@ -10,6 +10,7 @@ import { z } from 'zod';
  */
 const BrandConfigSchema = z.object({
   logoUrl: z.string().url().max(500).optional(),
+  name: z.string().max(120).optional(),
   primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color').optional(),
   secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/, 'Invalid hex color').optional(),
   fontFamily: z.string().max(100).optional(),
@@ -34,12 +35,31 @@ const FeaturesConfigSchema = z.object({
 }).optional();
 
 /**
+ * Site Config Schema
+ */
+const SiteConfigSchema = z.object({
+  archetype: z.enum(['storefront', 'landing-commerce', 'product-site']).optional(),
+  eyebrow: z.string().max(120).optional(),
+  headline: z.string().max(240).optional(),
+  subheadline: z.string().max(400).optional(),
+  primaryCtaLabel: z.string().max(80).optional(),
+  primaryCtaHref: z.string().max(500).optional(),
+  secondaryCtaLabel: z.string().max(80).optional(),
+  secondaryCtaHref: z.string().max(500).optional(),
+  installCommand: z.string().max(240).optional(),
+  docsHref: z.string().max(500).optional(),
+  demoHref: z.string().max(500).optional(),
+  supportEmail: z.string().email().max(160).optional(),
+}).optional();
+
+/**
  * Theme Config Schema
  */
 export const ThemeConfigSchema = z.object({
   brand: BrandConfigSchema,
   layout: LayoutConfigSchema,
   features: FeaturesConfigSchema,
+  site: SiteConfigSchema,
 });
 
 /**

@@ -1,0 +1,10 @@
+/**
+ * Serene theme tokens (CSS variables)
+ * Calm indigo palette; can be overridden by ThemeProvider configuration.
+ */
+
+:root {
+  --theme-primary: var(--theme-color-primary, #4f46e5);
+  --theme-secondary: var(--theme-color-secondary, #7c3aed);
+  --theme-font: var(--theme-typography-font-family, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+}

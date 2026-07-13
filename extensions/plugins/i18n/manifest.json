@@ -3,6 +3,7 @@
   "slug": "i18n",
   "name": "Store Localization",
   "version": "1.0.0",
+  "trustLevel": "official",
   "description": "Official internationalization plugin. Manages content translations, UI text overrides, and language configuration.",
   "author": "Jiffoo",
   "category": "other",

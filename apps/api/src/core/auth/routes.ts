@@ -12,8 +12,26 @@ import { PasswordUtils } from '@/utils/password';
 import { sendSuccess, sendError } from '@/utils/response';
 import { authSchemas } from './schemas';
 import { EmailVerificationService } from '@/services/email-verification.service';
+import { completeBootstrapPasswordRotation, getPublicAuthBootstrapStatus } from './bootstrap';
 
 export async function authRoutes(fastify: FastifyInstance) {
+  // Public login configuration
+  fastify.get('/login-config', {
+    schema: {
+      tags: ['auth'],
+      summary: 'Get public login configuration',
+      description: 'Returns unauthenticated login-page configuration such as demo-mode visibility',
+      ...authSchemas.loginConfig,
+    }
+  }, async (_request, reply) => {
+    try {
+      const result = await AuthService.getLoginConfig();
+      return sendSuccess(reply, result);
+    } catch (error: any) {
+      return sendError(reply, 500, 'LOGIN_CONFIG_FAILED', error.message || 'Failed to load login configuration');
+    }
+  });
+
   // Register
   fastify.post('/register', {
     schema: {
@@ -53,6 +71,22 @@ export async function authRoutes(fastify: FastifyInstance) {
         return sendError(reply, 400, 'EMAIL_NOT_VERIFIED', error.message);
       }
       return sendError(reply, 401, 'LOGIN_FAILED', error.message);
+    }
+  });
+
+  fastify.get('/bootstrap-status', {
+    schema: {
+      tags: ['auth'],
+      summary: 'Get bootstrap credential status',
+      description: 'Returns whether bootstrap/demo credentials should be shown on the login page.',
+      ...authSchemas.bootstrapStatus,
+    }
+  }, async (_request, reply) => {
+    try {
+      const status = await getPublicAuthBootstrapStatus();
+      return sendSuccess(reply, status);
+    } catch (error: any) {
+      return sendError(reply, 500, 'BOOTSTRAP_STATUS_ERROR', error.message || 'Failed to load bootstrap status');
     }
   });
 
@@ -252,6 +286,8 @@ export async function authRoutes(fastify: FastifyInstance) {
         where: { id: user.id },
         data: { password: hashedPassword }
       });
+
+      await completeBootstrapPasswordRotation(user.email);
 
       return sendSuccess(reply, {
         passwordChanged: true,

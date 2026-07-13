@@ -4,14 +4,14 @@
 
 import { FastifyInstance } from 'fastify';
 import { OrderService } from './service';
-import { authMiddleware } from '@/core/auth/middleware';
+import { dualAuthMiddleware } from '@/core/auth/middleware';
 import { storeContextMiddleware } from '@/middleware/store-context';
 import { sendSuccess, sendError } from '@/utils/response';
 import { orderSchemas } from './schemas';
 
 export async function orderRoutes(fastify: FastifyInstance) {
-  // Apply auth and store context middleware to all order routes (before schema validation)
-  fastify.addHook('onRequest', authMiddleware);
+  // Apply dual auth (JWT or API token with checkout:create scope) and store context
+  fastify.addHook('onRequest', dualAuthMiddleware('checkout:create'));
   fastify.addHook('onRequest', storeContextMiddleware);
 
   // Create order

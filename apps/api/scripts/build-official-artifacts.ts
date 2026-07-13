@@ -718,6 +718,19 @@ export async function buildOfficialArtifacts(
 }
 
 async function main() {
+  // --- Deprecation notice (R1.6) ---
+  // The javascript-obfuscator-based artifact protection is deprecated.
+  // Commercial capability protection is migrating to server-side Entitlement
+  // Service validation. See ADR: 2026-07-commercial-protection-server-side.md
+  console.warn(
+    '[DEPRECATION] build:official-artifacts: Code obfuscation as a commercial ' +
+      'protection mechanism is deprecated as of Jiffoo v1.1.x. ' +
+      'Commercial capability protection is migrating to server-side Entitlement ' +
+      'Service validation (closed-source Platform API). ' +
+      'See .kiro/specs/architecture-decisions/2026-07-commercial-protection-server-side.md ' +
+      'for the full decision record and migration guidance.'
+  );
+
   const options = parseArgs(process.argv.slice(2));
   const result = await buildOfficialArtifacts(options);
 

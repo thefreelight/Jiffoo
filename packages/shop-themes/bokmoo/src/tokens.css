@@ -1,0 +1,75 @@
+:root {
+  --bokmoo-bg: oklch(0.18 0.008 90);
+  --bokmoo-bg-elevated: oklch(0.22 0.009 90);
+  --bokmoo-bg-soft: oklch(0.27 0.01 90);
+  --bokmoo-panel: oklch(0.24 0.01 90 / 0.92);
+  --bokmoo-panel-strong: oklch(0.3 0.012 90 / 0.95);
+  --bokmoo-ink: oklch(0.95 0.008 90);
+  --bokmoo-copy: oklch(0.81 0.012 90);
+  --bokmoo-copy-soft: oklch(0.65 0.012 90);
+  --bokmoo-line: oklch(0.47 0.013 90 / 0.35);
+  --bokmoo-line-strong: oklch(0.62 0.016 90 / 0.5);
+  --bokmoo-gold: oklch(0.77 0.1 85);
+  --bokmoo-gold-strong: oklch(0.84 0.11 86);
+  --bokmoo-gold-soft: oklch(0.34 0.045 84);
+  --bokmoo-silver: oklch(0.84 0.012 250);
+  --bokmoo-success: oklch(0.77 0.09 150);
+  --bokmoo-warning: oklch(0.81 0.1 82);
+  --bokmoo-danger: oklch(0.66 0.19 28);
+  --bokmoo-shadow: 0 32px 90px -48px rgba(0, 0, 0, 0.78);
+  --bokmoo-radius-xl: 2rem;
+  --bokmoo-radius-lg: 1.5rem;
+  --bokmoo-radius-md: 1rem;
+  --bokmoo-radius-sm: 0.75rem;
+  --bokmoo-display: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --bokmoo-sans: Inter, "Segoe UI", sans-serif;
+  --bokmoo-grid: linear-gradient(
+      to right,
+      color-mix(in oklab, var(--bokmoo-line) 78%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--bokmoo-line) 78%, transparent) 1px,
+      transparent 1px
+    );
+
+  /* Compatibility aliases for reused shared components */
+  --vault-bg: var(--bokmoo-bg);
+  --vault-surface: var(--bokmoo-bg-elevated);
+  --vault-surface-alt: var(--bokmoo-bg-soft);
+  --vault-ink: var(--bokmoo-ink);
+  --vault-copy: var(--bokmoo-copy);
+  --vault-copy-soft: var(--bokmoo-copy-soft);
+  --vault-line: var(--bokmoo-line);
+  --vault-primary: var(--bokmoo-gold);
+  --vault-primary-strong: var(--bokmoo-gold-strong);
+  --vault-primary-soft: var(--bokmoo-gold-soft);
+  --vault-accent: var(--bokmoo-silver);
+  --vault-success: var(--bokmoo-success);
+  --vault-warning: var(--bokmoo-warning);
+  --vault-danger: var(--bokmoo-danger);
+  --vault-shadow: var(--bokmoo-shadow);
+  --vault-radius-lg: var(--bokmoo-radius-lg);
+  --vault-radius-md: var(--bokmoo-radius-md);
+  --vault-radius-sm: var(--bokmoo-radius-sm);
+  --vault-grid: var(--bokmoo-grid);
+}
+
+body {
+  background:
+    radial-gradient(circle at top right, color-mix(in oklab, var(--bokmoo-gold) 10%, transparent), transparent 28%),
+    radial-gradient(circle at bottom left, color-mix(in oklab, var(--bokmoo-silver) 8%, transparent), transparent 22%),
+    var(--bokmoo-bg);
+  color: var(--bokmoo-ink);
+  font-family: var(--bokmoo-sans);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--bokmoo-display);
+}

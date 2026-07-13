@@ -33,6 +33,3 @@ export async function GET() {
     return new Response('Install script unavailable\n', { status: 404 });
   }
 }
-
-// Required for Cloudflare Pages
-export const runtime = 'edge';

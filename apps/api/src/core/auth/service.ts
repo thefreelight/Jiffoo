@@ -10,7 +10,11 @@ import { PasswordUtils } from '@/utils/password';
 import { JwtUtils } from '@/utils/jwt';
 import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
+import { shouldRequirePasswordRotation } from './bootstrap';
 import { createAuthUser, findAuthUserByEmail, findAuthUserById } from './user-compat';
+
+const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
+const DEFAULT_DEMO_ADMIN_PASSWORD = 'admin123';
 
 export interface AuthResponse {
   user: {
@@ -20,6 +24,7 @@ export interface AuthResponse {
     role: string;
     emailVerified?: boolean;
     avatar?: string | null;
+    requiresPasswordRotation?: boolean;
   };
   // OAuth2 standard fields
   access_token: string;
@@ -30,7 +35,103 @@ export interface AuthResponse {
   token: string;
 }
 
+export interface LoginConfigResponse {
+  demoModeEnabled: boolean;
+  demoCredentials: {
+    email: string;
+    password: string;
+  } | null;
+}
+
+const authUserSelect = {
+  id: true,
+  email: true,
+  username: true,
+  password: true,
+  role: true,
+  isActive: true,
+  emailVerified: true,
+  avatar: true,
+} as const;
+
 export class AuthService {
+  private static isDemoModeEnabled(): boolean {
+    return process.env.JIFFOO_DEMO_MODE === 'true';
+  }
+
+  private static resolveDemoCredentials() {
+    return {
+      email: process.env.JIFFOO_DEMO_ADMIN_EMAIL?.trim() || DEFAULT_DEMO_ADMIN_EMAIL,
+      password: process.env.JIFFOO_DEMO_ADMIN_PASSWORD || DEFAULT_DEMO_ADMIN_PASSWORD,
+    };
+  }
+
+  private static async ensureDemoModeAdminCredentials(credentials: { email: string; password: string }): Promise<void> {
+    const existingUser = await prisma.user.findUnique({
+      where: { email: credentials.email },
+      select: {
+        id: true,
+        password: true,
+        role: true,
+        isActive: true,
+        emailVerified: true,
+      },
+    });
+
+    const hashedPassword = await PasswordUtils.hash(credentials.password);
+
+    if (!existingUser) {
+      await prisma.user.create({
+        data: {
+          email: credentials.email,
+          username: credentials.email.split('@')[0] || 'admin',
+          password: hashedPassword,
+          role: 'ADMIN',
+          isActive: true,
+          emailVerified: true,
+        },
+      });
+      return;
+    }
+
+    const passwordMatches = await PasswordUtils.verify(credentials.password, existingUser.password);
+    if (
+      passwordMatches &&
+      existingUser.role === 'ADMIN' &&
+      existingUser.isActive &&
+      existingUser.emailVerified
+    ) {
+      return;
+    }
+
+    await prisma.user.update({
+      where: { id: existingUser.id },
+      data: {
+        password: hashedPassword,
+        role: 'ADMIN',
+        isActive: true,
+        emailVerified: true,
+      },
+    });
+  }
+
+  static async getLoginConfig(): Promise<LoginConfigResponse> {
+    if (!this.isDemoModeEnabled()) {
+      return {
+        demoModeEnabled: false,
+        demoCredentials: null,
+      };
+    }
+
+    const credentials = this.resolveDemoCredentials();
+    await this.ensureDemoModeAdminCredentials(credentials);
+
+    return {
+      demoModeEnabled: true,
+      demoCredentials: credentials,
+    };
+  }
+
   /**
    * Register a new user account
    *
@@ -57,6 +158,7 @@ export class AuthService {
     }
 
     const hashedPassword = await PasswordUtils.hash(data.password);
+    // createAuthUser tolerates legacy databases without the emailVerified column
     const user = await createAuthUser({
       email: data.email,
       username: data.username,
@@ -64,13 +166,12 @@ export class AuthService {
       role: 'USER',
     });
 
-    if (!user.emailVerified) {
-      await EmailVerificationService.sendVerificationEmail(
-        user.id,
-        user.email,
-        user.username
-      );
-    }
+    // Send verification email
+    await EmailVerificationService.sendVerificationEmail(
+      user.id,
+      user.email,
+      user.username
+    );
 
     const token = JwtUtils.sign({
       userId: user.id,
@@ -89,7 +190,8 @@ export class AuthService {
         username: user.username,
         role: user.role,
         emailVerified: user.emailVerified,
-        avatar: user.avatar
+        avatar: user.avatar,
+        requiresPasswordRotation: false,
       },
       // OAuth2 standard fields
       access_token: token,
@@ -109,7 +211,7 @@ export class AuthService {
    * @param data Login credentials containing email and password
    * @returns Authentication response with user details and OAuth2-compliant tokens
    * @throws Error if the email does not exist or password is incorrect
-  */
+   */
   static async login(data: LoginRequest): Promise<AuthResponse> {
     const user = await findAuthUserByEmail(data.email);
 
@@ -130,6 +232,8 @@ export class AuthService {
       throw new Error('Email not verified. Please check your email for verification link.');
     }
 
+    const requiresPasswordRotation = await shouldRequirePasswordRotation(user.email);
+
     const token = JwtUtils.sign({
       userId: user.id,
       email: user.email,
@@ -147,7 +251,8 @@ export class AuthService {
         username: user.username,
         role: user.role,
         emailVerified: user.emailVerified,
-        avatar: user.avatar
+        avatar: user.avatar,
+        requiresPasswordRotation,
       },
       // OAuth2 standard fields
       access_token: token,
@@ -190,7 +295,10 @@ export class AuthService {
       throw new Error('Account is inactive');
     }
 
-    return user;
+    return {
+      ...user,
+      requiresPasswordRotation: await shouldRequirePasswordRotation(user.email),
+    };
   }
 
   /**
@@ -204,7 +312,10 @@ export class AuthService {
    * @throws Error if the user is not found
    */
   static async refreshToken(userId: string): Promise<{ token: string }> {
-    const user = await findAuthUserById(userId);
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: authUserSelect,
+    });
 
     if (!user) {
       throw new Error('User not found');

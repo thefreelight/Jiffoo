@@ -26,6 +26,7 @@ const extensionMetaSchema = {
     author: { type: 'string', nullable: true, description: 'Extension author' },
     category: { type: 'string', nullable: true, description: 'Extension category' },
     runtimeType: { type: 'string', nullable: true, description: 'Extension runtime type' },
+    trustLevel: { type: 'string', nullable: true, description: 'Plugin trust level (builtin | official | third-party)' },
     source: { type: 'string', nullable: true, description: 'Extension source' },
     manifestJson: {
       description: 'Raw or parsed manifest JSON payload',
@@ -52,6 +53,12 @@ const pluginInstanceSchema = {
     instanceKey: { type: 'string', description: 'Instance key (unique per plugin)' },
     enabled: { type: 'boolean', description: 'Whether instance is enabled' },
     config: { type: 'object', additionalProperties: true, description: 'Instance configuration' },
+    configMeta: {
+      type: 'object',
+      nullable: true,
+      additionalProperties: true,
+      description: 'Metadata describing write-only configuration fields',
+    },
     grantedPermissions: {
       type: 'array',
       items: { type: 'string' },

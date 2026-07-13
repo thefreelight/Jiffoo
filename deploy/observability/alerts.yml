@@ -1,0 +1,118 @@
+# Alert Rules for Jiffoo API (R5.3)
+#
+# Each alert includes a runbook link for troubleshooting.
+# Deploy with: prometheus --config.file=alerts.yml (or include in alertmanager)
+
+groups:
+  - name: jiffoo-api
+    interval: 30s
+    rules:
+      # ============================================================
+      # Availability
+      # ============================================================
+      - alert: ApiDown
+        expr: up{job="jiffoo-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          runbook: "https://docs.jiffoo.com/ops/runbooks/api-down"
+        annotations:
+          summary: "API is down"
+          description: "Jiffoo API has been down for more than 2 minutes."
+
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{job="jiffoo-api",status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total{job="jiffoo-api"}[5m]))
+          > 0.01
+        for: 5m
+        labels:
+          severity: warning
+          runbook: "https://docs.jiffoo.com/ops/runbooks/high-error-rate"
+        annotations:
+          summary: "API 5xx error rate > 1%"
+          description: "5xx error rate is {{ $value | humanizePercentage }} over the last 5 minutes."
+
+      - alert: HighLatency
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket{job="jiffoo-api"}[5m])) by (le)
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          runbook: "https://docs.jiffoo.com/ops/runbooks/high-latency"
+        annotations:
+          summary: "API p95 latency > 2s"
+          description: "95th percentile latency is {{ $value }}s."
+
+      # ============================================================
+      # Payment
+      # ============================================================
+      - alert: HighPaymentFailureRate
+        expr: |
+          sum(rate(payments_failed_total[5m]))
+          /
+          (sum(rate(payments_succeeded_total[5m])) + sum(rate(payments_failed_total[5m])))
+          > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          runbook: "https://docs.jiffoo.com/ops/runbooks/payment-failures"
+        annotations:
+          summary: "Payment failure rate > 5%"
+          description: "Payment failure rate is {{ $value | humanizePercentage }} over the last 10 minutes."
+
+      # ============================================================
+      # Job Queue
+      # ============================================================
+      - alert: QueueBacklog
+        expr: jobs_queue_depth > 1000
+        for: 5m
+        labels:
+          severity: warning
+          runbook: "https://docs.jiffoo.com/ops/runbooks/queue-backlog"
+        annotations:
+          summary: "Job queue backlog > 1000"
+          description: "Queue {{ $labels.queue }} has {{ $value }} pending jobs."
+
+      - alert: JobFailureSpike
+        expr: rate(jobs_failed_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          runbook: "https://docs.jiffoo.com/ops/runbooks/job-failures"
+        annotations:
+          summary: "Job failure rate high"
+          description: "Queue {{ $labels.queue }} is failing at {{ $value }} jobs/sec."
+
+      # ============================================================
+      # Plugin Gateway
+      # ============================================================
+      - alert: PluginBreakerOpen
+        expr: plugin_gateway_breaker_state == 1
+        for: 1m
+        labels:
+          severity: warning
+          runbook: "https://docs.jiffoo.com/ops/runbooks/plugin-breaker"
+        annotations:
+          summary: "Plugin circuit breaker open"
+          description: "Circuit breaker for plugin {{ $labels.slug }} is open."
+
+      # ============================================================
+      # Database
+      # ============================================================
+      - alert: DbConnectionPoolExhaustion
+        expr: |
+          (sum(rate(http_request_duration_seconds_count{job="jiffoo-api"}[5m])) by (instance))
+          > 0
+          and on(instance)
+          (node_db_connections_in_use / node_db_connections_max) > 0.9
+        for: 5m
+        labels:
+          severity: critical
+          runbook: "https://docs.jiffoo.com/ops/runbooks/db-pool-exhaustion"
+        annotations:
+          summary: "DB connection pool > 90%"
+          description: "Database connection pool utilization is {{ $value | humanizePercentage }}."

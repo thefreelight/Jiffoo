@@ -36,7 +36,17 @@ vi.mock('@/core/admin/market/market-client', () => ({
     checkConnectivity: vi.fn(),
     browse: vi.fn(),
     search: vi.fn(),
-    getOfficialDetail: vi.fn(),
+    getOfficialDetail: vi.fn().mockResolvedValue({
+      slug: 'stripe',
+      kind: 'plugin',
+      sellableVersion: '1.0.0',
+      currentVersion: '1.0.0',
+      versions: [{ version: '1.0.0', packageUrl: 'https://example.com/stripe-1.0.0.jplugin' }],
+      pricingModel: 'free',
+      deliveryMode: 'package-managed',
+      paymentMode: 'platform_collect',
+      settlementTargetType: 'platform',
+    }),
   },
   getMarketBaseUrl: () => 'http://platform-api:80/api',
 }));
@@ -44,6 +54,11 @@ vi.mock('@/core/admin/market/market-client', () => ({
 vi.mock('@/core/admin/market/resumable-downloader', () => ({
   downloadArtifactWithResume: vi.fn(),
   cleanupDownloadedArtifact: vi.fn(),
+}));
+
+vi.mock('@/core/admin/market/official-artifacts-client', () => ({
+  fetchOfficialArtifactsIndex: vi.fn().mockResolvedValue([]),
+  buildOfficialArtifactMap: vi.fn().mockReturnValue(new Map()),
 }));
 
 vi.mock('@/core/admin/market/artifact-verification', () => ({
@@ -116,5 +131,54 @@ describe('market install binding guard', () => {
       },
     });
     expect(mocks.authorizeInstall).not.toHaveBeenCalled();
+  });
+
+  it('allows free official installs to continue without a platform binding', async () => {
+    mocks.getOfficialCatalogEntry.mockReturnValue({
+      slug: 'stripe',
+      kind: 'plugin',
+      defaultPricingModel: 'free',
+    });
+    mocks.authorizeInstall.mockResolvedValue({
+      allowed: true,
+      slug: 'stripe',
+      kind: 'plugin',
+      deliveryMode: 'package-managed',
+      paymentMode: 'platform_collect',
+      settlementTargetType: 'platform',
+      artifactKind: 'plugin-package',
+      version: '1.0.0',
+      packageUrl: 'https://platform.example.com/plugins/stripe/1.0.0.jplugin',
+      checksumUrl: 'https://platform.example.com/plugins/stripe/1.0.0.jplugin.sha256',
+      signatureUrl: 'https://platform.example.com/plugins/stripe/1.0.0.jplugin.sig',
+      pricingModel: 'free',
+      price: null,
+      currency: 'USD',
+      entitlement: {
+        required: false,
+        status: 'not_required',
+        pricingModel: 'free',
+      },
+    });
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/extensions/stripe/install',
+      payload: {
+        kind: 'plugin',
+      },
+    });
+
+    expect(response.statusCode).not.toBe(403);
+    // For free installs, the route uses buildFreeInstallAuthorization,
+    // not MarketClient.authorizeInstall. The key assertion is that the
+    // request is not blocked by the platform binding guard (no 403 with
+    // PLATFORM_CONNECTION_REQUIRED). The install itself may fail for
+    // other reasons (e.g. missing artifacts), which is acceptable for
+    // this binding guard test.
+    if (response.statusCode === 403) {
+      const body = response.json();
+      expect(body.error?.code).not.toBe('PLATFORM_CONNECTION_REQUIRED');
+    }
   });
 });

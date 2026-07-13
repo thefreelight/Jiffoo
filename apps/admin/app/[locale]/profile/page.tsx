@@ -4,12 +4,14 @@ import { useEffect, useState } from 'react'
 import { useT } from 'shared/src/i18n/react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useAuthStore } from '@/lib/store'
 import { useAccountProfile, useChangePassword, useUpdateAccountEmail, useUpdateAccountProfile, useUploadAvatar } from '@/lib/hooks/use-api'
-import { Mail, Save, ShieldCheck, Upload } from 'lucide-react'
+import { AlertTriangle, Mail, Save, ShieldCheck, Upload } from 'lucide-react'
 import { ProfileSecurityCard } from '@/components/profile/ProfileSecurityCard'
 
 export default function ProfilePage() {
   const t = useT()
+  const user = useAuthStore((state) => state.user)
   const { data: profile, isLoading } = useAccountProfile()
   const updateProfile = useUpdateAccountProfile()
   const updateEmail = useUpdateAccountEmail()
@@ -57,6 +59,25 @@ export default function ProfilePage() {
       </div>
 
       <div className="w-full px-10 py-10 space-y-8 max-w-[1200px] mx-auto">
+        {user?.requiresPasswordRotation ? (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-amber-900 shadow-sm">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+              <div className="space-y-1">
+                <p className="text-sm font-semibold">
+                  {getText('merchant.profile.bootstrapPasswordTitle', 'Change the initial admin password')}
+                </p>
+                <p className="text-sm leading-6">
+                  {getText(
+                    'merchant.profile.bootstrapPasswordDescription',
+                    'This account is still using the initial bootstrap password. Update it now to hide the example credentials from the login screen and secure the admin workspace.'
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : null}
+
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="h-24 bg-gray-50 border-b border-gray-100" />
           <div className="px-8 pb-8 flex flex-col sm:flex-row items-end gap-6 -mt-12 relative z-10">

@@ -157,11 +157,6 @@ export interface PluginMetaWithState {
   configRequired?: boolean
   configReady?: boolean
   missingConfigFields?: string[]
-  adminUi?: {
-    entryPath?: string
-    label?: string
-    icon?: string
-  }
 }
 
 export interface PluginState {
@@ -169,6 +164,7 @@ export interface PluginState {
   enabled: boolean
   hidden?: boolean
   config: Record<string, any>
+  configMeta?: PluginConfigMeta
   name?: string
   version?: string
   description?: string
@@ -180,13 +176,14 @@ export interface PluginState {
   configReady?: boolean
   missingConfigFields?: string[]
   runtimeType?: 'internal-fastify' | 'external-http'
-  adminUi?: {
-    entryPath?: string
-    label?: string
-    icon?: string
-  }
   enabledAt?: string
   disabledAt?: string
+}
+
+export interface PluginConfigMeta {
+  secretFields?: Record<string, {
+    configured: boolean
+  }>
 }
 
 

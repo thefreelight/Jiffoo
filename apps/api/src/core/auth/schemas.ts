@@ -24,6 +24,7 @@ const userProfileSchema = {
     avatar: { type: 'string', description: 'Avatar URL', nullable: true },
     role: { type: 'string', description: 'User role (admin, customer, etc.)' },
     emailVerified: { type: 'boolean', description: 'Whether email has been verified' },
+    requiresPasswordRotation: { type: 'boolean', description: 'Whether this user must rotate an initial bootstrap password before normal admin use' },
   },
   required: ['id', 'email', 'username', 'role'],
 } as const;
@@ -63,6 +64,41 @@ const changePasswordResultSchema = {
   required: ['passwordChanged', 'changedAt'],
 } as const;
 
+const loginConfigSchema = {
+  type: 'object',
+  properties: {
+    demoModeEnabled: { type: 'boolean', description: 'Whether demo mode is enabled for this instance' },
+    demoCredentials: {
+      type: 'object',
+      nullable: true,
+      properties: {
+        email: { type: 'string', format: 'email', description: 'Demo admin email' },
+        password: { type: 'string', description: 'Demo admin password' },
+      },
+      required: ['email', 'password'],
+    },
+  },
+  required: ['demoModeEnabled', 'demoCredentials'],
+} as const;
+
+const bootstrapStatusSchema = {
+  type: 'object',
+  properties: {
+    mode: { type: 'string', enum: ['bootstrap', 'demo', 'normal'] },
+    showDemoCredentials: { type: 'boolean' },
+    requiresPasswordRotation: { type: 'boolean' },
+    credentials: {
+      type: ['object', 'null'],
+      properties: {
+        email: { type: 'string', format: 'email' },
+        password: { type: 'string' },
+      },
+      required: ['email', 'password'],
+    },
+  },
+  required: ['mode', 'showDemoCredentials', 'requiresPasswordRotation'],
+} as const;
+
 // ============================================================================
 // Endpoint Schemas
 // ============================================================================
@@ -96,9 +132,19 @@ export const authSchemas = {
     response: createTypedCrudResponses(authResponseSchema),
   },
 
+  // GET /api/auth/login-config
+  loginConfig: {
+    response: createTypedReadResponses(loginConfigSchema),
+  },
+
   // GET /api/auth/me
   me: {
     response: createTypedReadResponses(userProfileSchema),
+  },
+
+  // GET /api/auth/bootstrap-status
+  bootstrapStatus: {
+    response: createTypedReadResponses(bootstrapStatusSchema),
   },
 
   // POST /api/auth/refresh

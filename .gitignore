@@ -1,5 +1,6 @@
 # Dependencies
 node_modules/
+**/node_modules
 .pnpm-store/
 npm-debug.log*
 yarn-debug.log*
@@ -13,6 +14,7 @@ unified-release-report-*.md
 dist/
 build/
 .next/
+.open-next/
 .turbo/
 .docusaurus/
 
@@ -95,7 +97,16 @@ test-results/
 playwright/.cache/
 apps/api/tests/e2e/.auth/
 apps/api/tests/e2e/playwright-report/
+apps/api/tests/e2e/playwright-report-*/
 e2e/visual/baselines/*.png
+
+# Vercel local project metadata
+.vercel/
+.wrangler/
+
+# App binaries belong in release storage, not the source repo
+packages/shop-themes/*/public/downloads/
+*.apk
 
 # nyc test coverage
 .nyc_output
@@ -126,7 +137,14 @@ imagerAI/
 .auto-claude-status
 .claude_settings.json
 .worktrees/
+.tools/
+.release/
 .security-key
 logs/security/
+
+# Theme package scratch files
+packages/shop-themes/*/diff_*.txt
 .codex-worktrees/
 tmp/
+.env.bak
+apps/api/openapi.json

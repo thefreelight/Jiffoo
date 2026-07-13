@@ -1,0 +1,11 @@
+{
+  "name": "@shop-themes/ai-gateway",
+  "version": "0.1.0",
+  "description": "AI Gateway Theme for Jiffoo Mall",
+  "private": true,
+  "type": "module",
+  "scripts": {},
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

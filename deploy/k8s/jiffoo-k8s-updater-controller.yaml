@@ -1,0 +1,80 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jiffoo-k8s-updater
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jiffoo-k8s-updater
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "patch", "update"]
+  - apiGroups: ["batch"]
+    resources: ["jobs"]
+    verbs: ["create", "get", "list", "watch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: jiffoo-k8s-updater
+subjects:
+  - kind: ServiceAccount
+    name: jiffoo-k8s-updater
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: jiffoo-k8s-updater
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jiffoo-k8s-updater
+spec:
+  selector:
+    app: jiffoo-k8s-updater
+  ports:
+    - name: http
+      port: 3015
+      targetPort: 3015
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jiffoo-k8s-updater
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: jiffoo-k8s-updater
+  template:
+    metadata:
+      labels:
+        app: jiffoo-k8s-updater
+    spec:
+      serviceAccountName: jiffoo-k8s-updater
+      containers:
+        - name: updater
+          image: REPLACE_WITH_API_IMAGE
+          imagePullPolicy: IfNotPresent
+          command:
+            - node
+            - /app/scripts/jiffoo-k8s-updater-agent.mjs
+          ports:
+            - containerPort: 3015
+              name: http
+          env:
+            - name: JIFFOO_UPDATER_AGENT_PORT
+              value: "3015"
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: JIFFOO_K8S_UPDATER_SERVICES
+              value: "api,admin,shop"
+            - name: JIFFOO_K8S_IMAGE_TAG_TEMPLATE
+              value: "{version}"

@@ -66,3 +66,17 @@ export {
   type InputValidatorConfig,
 } from './input-validator';
 
+// Admin RBAC catalog
+export {
+  ADMIN_ROLES,
+  ADMIN_PERMISSIONS,
+  ADMIN_PERMISSION_GROUPS,
+  DEFAULT_ADMIN_ROLE_PERMISSIONS,
+  getDefaultPermissionsForAdminRole,
+  hasAdminPermission,
+  hasAnyAdminPermission,
+  hasAllAdminPermissions,
+  type AdminRole,
+  type AdminPermission,
+  type AdminAccessProfile,
+} from './admin-rbac';

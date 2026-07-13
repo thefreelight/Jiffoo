@@ -118,6 +118,8 @@ module.exports = {
   plugins: [
     require('@tailwindcss/typography'),
     require('@tailwindcss/forms'),
-    require('@tailwindcss/aspect-ratio'),
+    // NOTE: @tailwindcss/aspect-ratio removed — it overrides theme.aspectRatio
+    // and silently kills the core aspect-square/aspect-video utilities.
+    // No code uses its legacy aspect-w-*/aspect-h-* classes.
   ],
 };

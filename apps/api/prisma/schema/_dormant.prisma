@@ -1,0 +1,305 @@
+// _dormant.prisma — Frozen models (zero code references as of 2026-07 audit)
+// DORMANT since 2026-07: no code references, do not use
+// These models are kept in schema to avoid breaking deployed instances,
+// but no new code should reference them via prisma.<model>.
+
+// ============================================================
+// DORMANT: INSTALLED THEME
+// Superseded by file-system-based theme registry
+// ============================================================
+// DORMANT since 2026-07: no code references, do not use
+model InstalledTheme {
+  id String @id @default(cuid())
+
+  slug   String
+  target String
+
+  name        String
+  version     String
+  author      String?
+  description String?
+
+  source      String @default("local-zip")
+  installPath String
+
+  isActive Boolean @default(false)
+
+  config Json?
+
+  installedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([slug, target])
+  @@index([target])
+  @@index([isActive])
+  @@map("installed_themes")
+  @@schema("public")
+}
+
+// ============================================================
+// DORMANT: ORDER SHIPPING ADDRESS
+// Superseded by embedded JSON in Order model
+// ============================================================
+// DORMANT since 2026-07: no code references, do not use
+model OrderShippingAddress {
+  id           String   @id @default(cuid())
+  orderId      String   @unique
+  firstName    String
+  lastName     String
+  phone        String?
+  email        String?
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String?
+  country      String
+  postalCode   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_shipping_addresses")
+  @@schema("public")
+}
+
+// ============================================================
+// DORMANT: ORDER STATUS HISTORY
+// Placeholder — status history tracked via Order.status + audit logs
+// ============================================================
+// DORMANT since 2026-07: no code references, do not use
+model OrderStatusHistory {
+  id                String              @id @default(cuid())
+  orderId           String
+  fromStatus        OrderStatus?
+  toStatus          OrderStatus
+  fromPaymentStatus OrderPaymentStatus?
+  toPaymentStatus   OrderPaymentStatus?
+  reason            String?
+  actorType         String?
+  actorId           String?
+  metadata          Json?
+  createdAt         DateTime            @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("order_status_history")
+  @@schema("public")
+}
+
+// ============================================================
+// DORMANT: SHIPMENT
+// Superseded by Order.shipmentStatus enum
+// ============================================================
+// DORMANT since 2026-07: no code references, do not use
+model Shipment {
+  id             String         @id @default(cuid())
+  orderId        String
+  carrier        String?
+  trackingNumber String?
+  status         ShipmentStatus @default(PENDING)
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  order Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items ShipmentItem[]
+
+  @@index([orderId])
+  @@index([trackingNumber])
+  @@index([status])
+  @@map("shipments")
+  @@schema("public")
+}
+
+// ============================================================
+// DORMANT: SHIPMENT ITEM
+// Superseded by embedded OrderItem fields
+// ============================================================
+// DORMANT since 2026-07: no code references, do not use
+model ShipmentItem {
+  id          String   @id @default(cuid())
+  shipmentId  String
+  orderItemId String
+  quantity    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  shipment  Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([orderItemId])
+  @@map("shipment_items")
+  @@schema("public")
+}
+
+// ============================================================
+// DORMANT: INVENTORY RESERVATION
+// Placeholder — reservation logic uses WarehouseInventory atomic updates
+// ============================================================
+// DORMANT since 2026-07: no code references, do not use
+model InventoryReservation {
+  id        String                     @id @default(cuid())
+  orderId   String
+  productId String
+  variantId String
+  quantity  Int
+  expiresAt DateTime
+  status    InventoryReservationStatus @default(ACTIVE)
+  createdAt DateTime                   @default(now())
+  updatedAt DateTime                   @updatedAt
+
+  order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product        @relation(fields: [productId], references: [id])
+  variant ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@unique([orderId, productId, variantId])
+  @@index([expiresAt, status])
+  @@index([productId, status])
+  @@index([variantId, status])
+  @@map("inventory_reservations")
+  @@schema("public")
+}
+
+// ============================================================
+// DORMANT: INVENTORY FORECAST
+// Referenced in type names only, not wired to DB
+// ============================================================
+// DORMANT since 2026-07: no code references, do not use
+model InventoryForecast {
+  id              String   @id @default(cuid())
+  productId       String
+  variantId       String
+  forecastDate    DateTime
+  predictedDemand Float
+  confidence      Float
+  seasonalFactors String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  accuracyRecords ForecastAccuracy[]
+
+  @@index([productId])
+  @@index([variantId])
+  @@index([forecastDate])
+  @@map("inventory_forecasts")
+  @@schema("public")
+}
+
+// ============================================================
+// DORMANT: FORECAST ACCURACY
+// Referenced in interface name only, not the Prisma model
+// ============================================================
+// DORMANT since 2026-07: no code references, do not use
+model ForecastAccuracy {
+  id              String   @id @default(cuid())
+  forecastId      String
+  actualDemand    Float
+  predictedDemand Float
+  mae             Float?
+  mape            Float?
+  rmse            Float?
+  evaluationDate  DateTime
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  forecast InventoryForecast @relation(fields: [forecastId], references: [id], onDelete: Cascade)
+
+  @@index([forecastId])
+  @@index([evaluationDate])
+  @@map("forecast_accuracy")
+  @@schema("public")
+}
+
+// ============================================================
+// DORMANT: REORDER ALERT
+// Superseded by StockAlert model
+// ============================================================
+// DORMANT since 2026-07: no code references, do not use
+model ReorderAlert {
+  id               String    @id @default(cuid())
+  productId        String
+  variantId        String
+  alertType        String
+  severity         String
+  message          String
+  threshold        Float?
+  currentStock     Int
+  recommendedOrder Int?
+  status           String    @default("ACTIVE")
+  resolvedAt       DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([productId])
+  @@index([variantId])
+  @@index([alertType])
+  @@index([status])
+  @@index([createdAt])
+  @@map("reorder_alerts")
+  @@schema("public")
+}
+
+// ============================================================
+// DORMANT: PRODUCT AFFINITY
+// Placeholder for collaborative filtering, never implemented
+// ============================================================
+// DORMANT since 2026-07: no code references, do not use
+model ProductAffinity {
+  id              String   @id @default(cuid())
+  productAId      String
+  productBId      String
+  affinityScore   Float
+  coOccurrences   Int      @default(0)
+  confidenceScore Float?
+  affinityType    String
+  lastCalculated  DateTime
+  metadata        Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  productA Product @relation("ProductAffinityA", fields: [productAId], references: [id])
+  productB Product @relation("ProductAffinityB", fields: [productBId], references: [id])
+
+  @@unique([productAId, productBId, affinityType])
+  @@map("product_affinities")
+  @@schema("public")
+}
+
+// ============================================================
+// DORMANT: REFUND LEDGER
+// Placeholder for double-entry ledger, never wired
+// ============================================================
+// DORMANT since 2026-07: no code references, do not use
+model RefundLedger {
+  id               String                @id @default(cuid())
+  refundId         String
+  paymentId        String
+  orderId          String
+  eventType        RefundLedgerEventType
+  amount           Decimal               @db.Decimal(18, 2)
+  currency         String
+  provider         String?
+  providerRefundId String?
+  idempotencyKey   String?
+  metadata         Json?
+  createdAt        DateTime              @default(now())
+
+  refund  Refund  @relation(fields: [refundId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([providerRefundId])
+  @@unique([idempotencyKey])
+  @@index([refundId])
+  @@index([paymentId])
+  @@index([orderId])
+  @@map("refund_ledger")
+  @@schema("public")
+}

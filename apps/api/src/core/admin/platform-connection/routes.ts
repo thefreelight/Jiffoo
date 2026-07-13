@@ -7,7 +7,13 @@ const platformConnectionRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.addHook('onRequest', authMiddleware);
   fastify.addHook('onRequest', requireAdmin);
 
-  fastify.get('/status', async (_request, reply) => {
+  fastify.get('/status', {
+    schema: {
+      tags: ['admin-platform-connection'],
+      summary: 'Get platform connection status',
+      security: [{ bearerAuth: [] }],
+    },
+  }, async (_request, reply) => {
     try {
       const status = await platformConnectionService.getStatus();
       return sendSuccess(reply, status);

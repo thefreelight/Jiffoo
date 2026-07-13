@@ -159,6 +159,98 @@ export class EmailVerificationService {
     }
   }
 
+  /**
+   * Send a staff invitation email.
+   *
+   * Reuses the email-verification token flow: verifying the link both
+   * confirms the address and activates the staff account. Best-effort like
+   * sendVerificationEmail — succeeds silently when no provider is configured.
+   */
+  static async sendStaffInvitationEmail(
+    userId: string,
+    email: string,
+    username: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const token = this.generateToken();
+      const expiry = this.getTokenExpiry();
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          verificationToken: token,
+          verificationTokenExpiry: expiry,
+        },
+      });
+
+      const verificationUrl = `${env.NEXT_PUBLIC_SHOP_URL}/verify-email?token=${token}`;
+
+      if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
+        if (env.NODE_ENV !== 'test') {
+          console.warn('Email provider not configured; skipping staff invitation email send.');
+        }
+        return { success: true };
+      }
+
+      const { Resend } = await import('resend');
+      const resend = new Resend(env.RESEND_API_KEY);
+      const fromName = env.EMAIL_FROM_NAME || 'Jiffoo';
+      const fromAddress = `${fromName} <${env.EMAIL_FROM}>`;
+
+      const result = await resend.emails.send({
+        from: fromAddress,
+        to: email,
+        subject: 'You have been invited to the Jiffoo admin team',
+        html: this.getStaffInvitationEmailHtml(username, verificationUrl),
+        text: this.getStaffInvitationEmailText(username, verificationUrl),
+      });
+
+      if (!result.data) {
+        return {
+          success: false,
+          error: result.error?.message || 'Failed to send staff invitation email',
+        };
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message || 'Failed to send staff invitation email',
+      };
+    }
+  }
+
+  private static getStaffInvitationEmailHtml(name: string, verificationUrl: string): string {
+    return `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Admin Team Invitation</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h1 style="color: #111;">You're invited</h1>
+          <p>Hi ${name},</p>
+          <p>You have been granted staff access to the Jiffoo admin dashboard. Verify your email address to activate your account.</p>
+          <p style="margin: 24px 0;">
+            <a href="${verificationUrl}" style="background-color: #111; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 4px;">
+              Activate Account
+            </a>
+          </p>
+          <p>If the button does not work, copy and paste this link into your browser:</p>
+          <p style="word-break: break-all;">${verificationUrl}</p>
+          <p>This link expires in 24 hours.</p>
+        </body>
+      </html>
+    `;
+  }
+
+  private static getStaffInvitationEmailText(name: string, verificationUrl: string): string {
+    return `Hi ${name},\n\nYou have been granted staff access to the Jiffoo admin dashboard. Activate your account:\n${verificationUrl}\n\nThis link expires in 24 hours.`;
+  }
+
   private static getVerificationEmailHtml(name: string, verificationUrl: string): string {
     return `
       <!DOCTYPE html>

@@ -24,6 +24,7 @@ export async function versioningMiddleware(request: FastifyRequest, reply: Fasti
     if (extractedVersion) {
       // Validate the extracted version format
       if (!isValidVersion(extractedVersion)) {
+        reply.header('X-API-Version', extractedVersion);
         return reply.status(400).send({
           error: 'Invalid API version format',
           message: `The version "${extractedVersion}" is not in a valid format. Expected format: v1, v2, etc.`,
@@ -33,6 +34,7 @@ export async function versioningMiddleware(request: FastifyRequest, reply: Fasti
 
       // Check if the version is supported
       if (!isSupportedVersion(extractedVersion)) {
+        reply.header('X-API-Version', extractedVersion);
         return reply.status(404).send({
           error: 'Unsupported API version',
           message: `API version "${extractedVersion}" is not supported.`,

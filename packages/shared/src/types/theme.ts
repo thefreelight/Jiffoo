@@ -169,6 +169,25 @@ export interface ThemeConfig {
     /** Current locale */
     locale?: Locale;
   };
+  site?: {
+    archetype?: 'storefront' | 'landing-commerce' | 'product-site' | 'app-download';
+    eyebrow?: string;
+    headline?: string;
+    subheadline?: string;
+    primaryCtaLabel?: string;
+    primaryCtaHref?: string;
+    secondaryCtaLabel?: string;
+    secondaryCtaHref?: string;
+    installCommand?: string;
+    docsHref?: string;
+    demoHref?: string;
+    supportEmail?: string;
+    appVersion?: string;
+    androidDownloadUrl?: string;
+    downloadChecksum?: string;
+    downloadQrUrl?: string;
+    appScreenshotUrl?: string;
+  };
 }
 
 /**
@@ -389,6 +408,7 @@ export interface OrderDetailPageProps extends ThemeI18nProps {
  */
 export interface OrderSuccessPageProps extends ThemeI18nProps {
   orderNumber: string;
+  order?: ShopOrderDetailDTO | null;
   isVerifying?: boolean;
   config?: ThemeConfig;
   onContinueShopping: () => void;
@@ -519,6 +539,8 @@ export interface LoginPageProps extends ThemeI18nProps {
   config?: ThemeConfig;
   onSubmit: (email: string, password: string) => Promise<void>;
   onOAuthClick: (provider: 'google') => Promise<void>;
+  /** Optional Apple Sign-In entry point (themes render the button only when provided) */
+  onAppleOAuthClick?: () => Promise<void>;
   onNavigateToRegister: () => void;
   onNavigateToForgotPassword: () => void;
 }
@@ -538,6 +560,8 @@ export interface RegisterPageProps extends ThemeI18nProps {
     lastName: string;
   }) => Promise<void>;
   onOAuthClick: (provider: 'google') => Promise<void>;
+  /** Optional Apple Sign-In entry point (themes render the button only when provided) */
+  onAppleOAuthClick?: () => Promise<void>;
   onNavigateToLogin: () => void;
 }
 
@@ -586,6 +610,12 @@ export interface HeaderProps extends ThemeI18nProps {
  */
 export interface FooterProps extends ThemeI18nProps {
   config?: ThemeConfig;
+  platformBranding?: {
+    mode?: 'oss' | 'managed';
+    showPoweredByJiffoo?: boolean;
+    poweredByHref?: string | null;
+    poweredByLabel?: string | null;
+  };
   onNavigate?: (path: string) => void;
   // Navigation callbacks
   onNavigateToProducts: () => void;

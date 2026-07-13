@@ -25,6 +25,7 @@ What happens on web, mobile, and desktop when the active theme changes?
 | Theme Or Mode | Web | Mobile | Desktop | Notes |
 | --- | --- | --- | --- | --- |
 | `builtin-default` | Implemented | Planned | Planned | Baseline OSS-safe theme. This should become the first official cross-client adapter target. |
+| `serene` | Implemented | Planned | Planned | Second built-in base theme (calm indigo design), embedded in the shop registry. |
 | `quiet-curator` | Implemented | Planned | Planned | Official downloadable theme-pack with a clean presentation-first story and lower coupling risk. |
 | `stellar-midnight` | Implemented | Planned | Planned | Official downloadable theme-pack and a strong early SaaS-style adapter target. |
 | Downloaded theme pack | Implemented | Planned | Planned | Mobile and desktop should not claim support until an adapter or fallback policy is declared. |

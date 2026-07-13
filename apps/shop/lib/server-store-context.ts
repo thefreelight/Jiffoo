@@ -1,3 +1,6 @@
+import { cache } from 'react';
+import { buildServerApiUrl } from './server-api-url';
+
 /**
  * Server-side Store Context Helper (Single Store)
  */
@@ -6,6 +9,12 @@ export interface ServerStoreContext {
   storeId: string;
   storeName: string;
   logo: string | null;
+  platformBranding?: {
+    mode: 'oss' | 'managed';
+    showPoweredByJiffoo: boolean;
+    poweredByHref: string | null;
+    poweredByLabel: string;
+  };
   theme: {
     slug: string;
     config?: Record<string, any>;
@@ -21,18 +30,53 @@ export interface ServerStoreContext {
   };
 }
 
+export interface ServerStoreContextOptions {
+  cache?: RequestCache;
+  revalidate?: number | false;
+}
+
 /**
  * Fetch store context from backend API (server-side)
  * Used in server components or for SSR optimization
+ *
+ * The no-store variant is wrapped in React cache(): generateViewport,
+ * generateMetadata and RootLayout all request the context during a single
+ * render pass, and cache() collapses those into one backend roundtrip per
+ * request without introducing cross-request staleness.
  */
-export async function getServerStoreContext(): Promise<ServerStoreContext | null> {
+export async function getServerStoreContext(
+  options: ServerStoreContextOptions = {},
+): Promise<ServerStoreContext | null> {
+  const cacheMode = options.cache ?? 'no-store';
+  if (cacheMode === 'no-store') {
+    return getServerStoreContextNoStoreDeduped();
+  }
+  return fetchServerStoreContext(options);
+}
+
+const getServerStoreContextNoStoreDeduped = cache(
+  (): Promise<ServerStoreContext | null> => fetchServerStoreContext({ cache: 'no-store' }),
+);
+
+async function fetchServerStoreContext(
+  options: ServerStoreContextOptions = {},
+): Promise<ServerStoreContext | null> {
   try {
-    const apiServiceUrl = process.env.API_SERVICE_URL || 'http://localhost:3001';
-    const url = `${apiServiceUrl}/api/store/context`;
+    const url = await buildServerApiUrl('/store/context');
+    const cache = options.cache ?? 'no-store';
+    const shouldBypassCache = cache === 'no-store';
 
     const response = await fetch(url, {
-      cache: 'force-cache',
-      next: { revalidate: 3600 }, // Cache for 1 hour
+      // Theme / branding activation must reflect immediately after Admin changes.
+      // The API already owns short-lived caching and invalidation via store-context versioning.
+      cache,
+      ...(shouldBypassCache
+        ? {}
+        : {
+            next: {
+              revalidate: options.revalidate === false ? 0 : (options.revalidate ?? 3600),
+            },
+          }),
       headers: {
         'Content-Type': 'application/json',
       },

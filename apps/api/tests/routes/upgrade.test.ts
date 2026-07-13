@@ -11,10 +11,15 @@
  * All upgrade endpoints require admin authentication.
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
+import { PUBLIC_CORE_UPDATE_MANIFEST } from 'shared';
+
+const PUBLIC_MANIFEST_URL = 'https://get.jiffoo.com/releases/core/manifest.json';
+const PUBLIC_MANIFEST = PUBLIC_CORE_UPDATE_MANIFEST;
+const TEST_LATEST_VERSION = PUBLIC_MANIFEST.latestVersion;
 
 describe('Upgrade Endpoints', () => {
   let app: FastifyInstance;
@@ -34,11 +39,30 @@ describe('Upgrade Endpoints', () => {
     await app.close();
   });
 
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  describe('GET /api/upgrade/manifest.json', () => {
+    it('should return the public manifest without authentication', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/upgrade/manifest.json',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-type']).toContain('application/json');
+      expect(response.json()).toEqual(PUBLIC_MANIFEST);
+    });
+  });
+
   describe('Security - 401 without token', () => {
     const endpoints = [
       { method: 'GET', url: '/api/upgrade/version' },
       { method: 'POST', url: '/api/upgrade/check', body: { targetVersion: '1.0.0' } },
       { method: 'GET', url: '/api/upgrade/status' },
+      { method: 'POST', url: '/api/upgrade/status/reset' },
       { method: 'POST', url: '/api/upgrade/backup' },
       { method: 'POST', url: '/api/upgrade/perform', body: { targetVersion: '1.0.0' } },
     ];
@@ -59,6 +83,7 @@ describe('Upgrade Endpoints', () => {
       { method: 'GET', url: '/api/upgrade/version' },
       { method: 'POST', url: '/api/upgrade/check', body: { targetVersion: '1.0.0' } },
       { method: 'GET', url: '/api/upgrade/status' },
+      { method: 'POST', url: '/api/upgrade/status/reset' },
       { method: 'POST', url: '/api/upgrade/backup' },
       { method: 'POST', url: '/api/upgrade/perform', body: { targetVersion: '1.0.0' } },
     ];
@@ -88,8 +113,115 @@ describe('Upgrade Endpoints', () => {
       expect(body).toHaveProperty('success', true);
       expect(body).toHaveProperty('data');
       expect(body.data).toHaveProperty('deploymentMode');
+      expect(body.data).toHaveProperty('deploymentModeSource');
       expect(body.data).toHaveProperty('oneClickUpgradeSupported');
+      expect(body.data).toHaveProperty('releaseChannel');
+      expect(body.data).toHaveProperty('manifestStatus');
+      expect(body.data).toHaveProperty('deliveryMode');
+      expect(body.data).toHaveProperty('runtimeImages');
       expect(body.data).toHaveProperty('recoveryMode', 'automatic-recovery');
+    });
+
+    it('should prefer the public manifest when one is configured and reachable', async () => {
+      vi.stubEnv('JIFFOO_CORE_UPDATE_MANIFEST_URL', 'https://updates.example.com/releases/core/manifest.json');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => ({
+          ok: true,
+          json: async () => ({
+            latestVersion: TEST_LATEST_VERSION,
+            latestStableVersion: TEST_LATEST_VERSION,
+            latestPrereleaseVersion: null,
+            channel: 'stable',
+            deliveryMode: 'image-first',
+            images: {
+              api: `registry.example.com/jiffoo-oss/api:${TEST_LATEST_VERSION}`,
+              admin: `registry.example.com/jiffoo-oss/admin:${TEST_LATEST_VERSION}`,
+              shop: `registry.example.com/jiffoo-oss/shop:${TEST_LATEST_VERSION}`,
+              updater: `registry.example.com/jiffoo-oss/updater:${TEST_LATEST_VERSION}`,
+            },
+            releaseDate: '2026-04-11T00:00:00.000Z',
+            changelogUrl: `https://example.com/changelog/${TEST_LATEST_VERSION}`,
+            minimumCompatibleVersion: '1.0.0',
+            minimumAutoUpgradableVersion: '1.0.0',
+            requiresManualIntervention: false,
+            releaseNotes: 'Test release manifest',
+          }),
+        })) as typeof fetch,
+      );
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/upgrade/version',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.data.latestVersion).toBe(TEST_LATEST_VERSION);
+      expect(body.data.updateSource).toBe('env-manifest');
+      expect(body.data.manifestStatus).toBe('available');
+      expect(body.data.manifestUrl).toBe('https://updates.example.com/releases/core/manifest.json');
+      expect(body.data.releaseChannel).toBe('stable');
+      expect(body.data.deliveryMode).toBe('image-first');
+      expect(body.data.runtimeImages).toEqual({
+        api: `registry.example.com/jiffoo-oss/api:${TEST_LATEST_VERSION}`,
+        admin: `registry.example.com/jiffoo-oss/admin:${TEST_LATEST_VERSION}`,
+        shop: `registry.example.com/jiffoo-oss/shop:${TEST_LATEST_VERSION}`,
+        updater: `registry.example.com/jiffoo-oss/updater:${TEST_LATEST_VERSION}`,
+      });
+    });
+
+    it('should transparently remap the legacy api.jiffoo.com manifest URL', async () => {
+      vi.stubEnv('JIFFOO_CORE_UPDATE_MANIFEST_URL', 'https://api.jiffoo.com/api/upgrade/manifest.json');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async (input: RequestInfo | URL) => ({
+          ok: true,
+          json: async () => PUBLIC_MANIFEST,
+        })) as typeof fetch,
+      );
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/upgrade/version',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.data.manifestUrl).toBe(PUBLIC_MANIFEST_URL);
+      expect(body.data.updateSource).toBe('default-public-manifest');
+      expect(fetch).toHaveBeenCalledWith(
+        PUBLIC_MANIFEST_URL,
+        expect.objectContaining({
+          method: 'GET',
+          headers: { accept: 'application/json' },
+        }),
+      );
+    });
+
+    it('should normalize -opensource runtime versions before comparing against the public feed', async () => {
+      vi.stubEnv('JIFFOO_DEPLOYMENT_MODE', 'docker-compose');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => ({
+          ok: true,
+          json: async () => PUBLIC_MANIFEST,
+        })) as typeof fetch,
+      );
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/upgrade/version',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body.data.currentVersion).toBe(TEST_LATEST_VERSION);
+      expect(body.data.latestVersion).toBe(TEST_LATEST_VERSION);
+      expect(body.data.updateAvailable).toBe(false);
     });
   });
 
@@ -129,6 +261,51 @@ describe('Upgrade Endpoints', () => {
       const body = response.json();
       expect(body).toHaveProperty('success', true);
       expect(body).toHaveProperty('data');
+    });
+  });
+
+  describe('POST /api/upgrade/status/reset', () => {
+    it('should reset upgrade status for admin through the updater bridge', async () => {
+      vi.stubEnv('JIFFOO_DEPLOYMENT_MODE', 'docker-compose');
+      vi.stubEnv('JIFFOO_UPDATER_URL', 'http://updater:3015');
+      vi.stubGlobal(
+        'fetch',
+        vi.fn(async () => ({
+          ok: true,
+          json: async () => ({
+            status: 'idle',
+            progress: 0,
+            currentStep: null,
+            error: null,
+            targetVersion: null,
+            updatedAt: '2026-04-18T09:25:00.000Z',
+          }),
+        })) as typeof fetch,
+      );
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/upgrade/status/reset',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect(response.statusCode).toBe(200);
+      const body = response.json();
+      expect(body).toHaveProperty('success', true);
+      expect(body.data).toEqual({
+        status: 'idle',
+        progress: 0,
+        currentStep: null,
+        error: null,
+        targetVersion: null,
+        updatedAt: '2026-04-18T09:25:00.000Z',
+      });
+      expect(fetch).toHaveBeenCalledWith(
+        'http://updater:3015/status/reset',
+        expect.objectContaining({
+          method: 'POST',
+        }),
+      );
     });
   });
 

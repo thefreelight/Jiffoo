@@ -1,0 +1,56 @@
+:root {
+  --modelsfind-bg: oklch(0.15 0.02 310);
+  --modelsfind-bg-soft: oklch(0.18 0.024 310);
+  --modelsfind-surface: oklch(0.2 0.02 310);
+  --modelsfind-surface-strong: oklch(0.24 0.025 310);
+  --modelsfind-rail: oklch(0.17 0.018 310);
+  --modelsfind-ink: oklch(0.94 0.01 340);
+  --modelsfind-copy: oklch(0.74 0.018 320);
+  --modelsfind-copy-soft: oklch(0.58 0.014 320);
+  --modelsfind-line: color-mix(in srgb, oklch(0.8 0.05 330) 18%, transparent);
+  --modelsfind-line-strong: color-mix(in srgb, oklch(0.82 0.11 335) 30%, transparent);
+  --modelsfind-primary: oklch(0.68 0.2 335);
+  --modelsfind-primary-soft: color-mix(in srgb, var(--modelsfind-primary) 18%, transparent);
+  --modelsfind-accent: oklch(0.78 0.09 314);
+  --modelsfind-gold: oklch(0.83 0.06 78);
+  --modelsfind-shadow: 0 28px 80px rgba(0, 0, 0, 0.35);
+  --modelsfind-card-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  --modelsfind-display: "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype", serif;
+  --modelsfind-body: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+}
+
+.modelsfind-shell {
+  background:
+    radial-gradient(circle at top center, color-mix(in srgb, var(--modelsfind-primary) 12%, transparent), transparent 32%),
+    radial-gradient(circle at 82% 12%, color-mix(in srgb, var(--modelsfind-accent) 12%, transparent), transparent 22%),
+    linear-gradient(180deg, var(--modelsfind-bg-soft), var(--modelsfind-bg));
+}
+
+.modelsfind-noise {
+  position: relative;
+}
+
+.modelsfind-noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 12% 16%, color-mix(in srgb, var(--modelsfind-primary) 12%, transparent) 0, transparent 22%),
+    radial-gradient(circle at 86% 14%, color-mix(in srgb, var(--modelsfind-accent) 14%, transparent) 0, transparent 22%),
+    radial-gradient(circle at 60% 78%, rgba(255, 255, 255, 0.035) 0, transparent 26%);
+  opacity: 0.9;
+}
+
+.modelsfind-frame {
+  box-shadow: var(--modelsfind-shadow);
+}
+
+.modelsfind-portrait::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(17, 10, 18, 0.08) 0%, rgba(17, 10, 18, 0.62) 100%),
+    radial-gradient(circle at top center, rgba(231, 89, 195, 0.18), transparent 38%);
+}

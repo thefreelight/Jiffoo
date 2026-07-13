@@ -11,79 +11,149 @@ import { Providers } from './providers';
 import { DevTools } from '@/components/dev-tools';
 import { ServiceWorkerRegister } from '@/components/service-worker-register';
 import { PwaInstallBanner } from '@/components/pwa-install-banner';
+import { getServerStoreContext } from '@/lib/server-store-context';
 import { AppEmbedInjector } from '@/lib/theme-pack/app-embed-injector';
+import { resolvePublicOrigin } from '@/lib/server-api-url';
+import { generateThemeStyles } from '@/lib/theme-runtime';
 
 /**
  * Viewport configuration for PWA support
  * Separated from metadata as per Next.js 14 best practices
  */
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
-  themeColor: '#3b82f6', // Matches manifest.json theme_color
+type MetadataThemeConfig = {
+  brand?: {
+    name?: string;
+    primaryColor?: string;
+  };
+  site?: {
+    eyebrow?: string;
+    headline?: string;
+    subheadline?: string;
+  };
 };
 
-export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SHOP_URL || 'http://localhost:3003'),
-  title: {
-    default: 'Jiffoo Mall - Modern E-commerce System',
-    template: '%s | Jiffoo Mall',
-  },
-  description: 'A modern, fast, and beautiful e-commerce system built with Next.js and TypeScript.',
-  keywords: ['e-commerce', 'shopping', 'online store', 'modern', 'fast', 'beautiful'],
-  authors: [{ name: 'Jiffoo Team' }],
-  creator: 'Jiffoo Team',
-  openGraph: {
-    type: 'website',
-    locale: 'en_US',
-    url: 'https://jiffoo-mall.com',
-    title: 'Jiffoo Mall - Modern E-commerce System',
-    description: 'A modern, fast, and beautiful e-commerce system built with Next.js and TypeScript.',
-    siteName: 'Jiffoo Mall',
-    images: [
-      {
-        url: '/og-image.jpg',
-        width: 1200,
-        height: 630,
-        alt: 'Jiffoo Mall',
-      },
-    ],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Jiffoo Mall - Modern E-commerce System',
-    description: 'A modern, fast, and beautiful e-commerce system built with Next.js and TypeScript.',
-    images: ['/og-image.jpg'],
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+function resolveThemeConfig(
+  context: Awaited<ReturnType<typeof getServerStoreContext>>,
+): MetadataThemeConfig | null {
+  if (!context?.theme?.config || typeof context.theme.config !== 'object') {
+    return null;
+  }
+
+  return context.theme.config as MetadataThemeConfig;
+}
+
+function resolveBrandName(
+  context: Awaited<ReturnType<typeof getServerStoreContext>>,
+  themeConfig: MetadataThemeConfig | null,
+): string {
+  const brandName = themeConfig?.brand?.name?.trim();
+  if (brandName) {
+    return brandName;
+  }
+
+  const storeName = context?.storeName?.trim();
+  if (storeName) {
+    return storeName;
+  }
+
+  return 'Jiffoo Mall';
+}
+
+function resolveMetadataDescription(
+  brandName: string,
+  themeConfig: MetadataThemeConfig | null,
+): string {
+  return (
+    themeConfig?.site?.subheadline?.trim() ||
+    themeConfig?.site?.headline?.trim() ||
+    themeConfig?.site?.eyebrow?.trim() ||
+    `A self-hosted commerce storefront for ${brandName}.`
+  );
+}
+
+function resolveThemeColor(themeConfig: MetadataThemeConfig | null): string {
+  return themeConfig?.brand?.primaryColor?.trim() || '#3b82f6';
+}
+
+export async function generateViewport(): Promise<Viewport> {
+  const context = await getServerStoreContext({ cache: 'no-store' });
+  const themeConfig = resolveThemeConfig(context);
+
+  return {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 5,
+    userScalable: true,
+    themeColor: resolveThemeColor(themeConfig),
+  };
+}
+
+export async function generateMetadata(): Promise<Metadata> {
+  const context = await getServerStoreContext({ cache: 'no-store' });
+  const themeConfig = resolveThemeConfig(context);
+  const brandName = resolveBrandName(context, themeConfig);
+  const description = resolveMetadataDescription(brandName, themeConfig);
+  const publicOrigin = await resolvePublicOrigin();
+  const metadataBase = new URL(publicOrigin);
+  const socialImageUrl = new URL('/icon-512x512.png', metadataBase).toString();
+
+  return {
+    metadataBase,
+    title: {
+      default: brandName,
+      template: `%s | ${brandName}`,
+    },
+    description,
+    keywords: ['e-commerce', 'shopping', 'online store', 'modern', 'fast', 'beautiful'],
+    authors: [{ name: 'Jiffoo Team' }],
+    creator: 'Jiffoo Team',
+    openGraph: {
+      type: 'website',
+      locale: 'en_US',
+      url: publicOrigin,
+      title: brandName,
+      description,
+      siteName: brandName,
+      images: [
+        {
+          url: socialImageUrl,
+          width: 512,
+          height: 512,
+          alt: brandName,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: brandName,
+      description,
+      images: [socialImageUrl],
+    },
+    robots: {
       index: true,
       follow: true,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
     },
-  },
-  manifest: '/manifest.json',
-  icons: {
-    icon: '/favicon.ico',
-    shortcut: '/favicon-16x16.png',
-    apple: '/apple-touch-icon.png',
-  },
-  other: {
-    'apple-mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-status-bar-style': 'black-translucent',
-    'mobile-web-app-capable': 'yes',
-    'apple-mobile-web-app-title': 'Jiffoo Mall',
-  },
-};
-
-import { getServerStoreContext } from '@/lib/server-store-context';
-import { generateThemeStyles } from '@/lib/theme-runtime';
+    manifest: '/manifest.json',
+    icons: {
+      icon: '/favicon.ico',
+      shortcut: '/favicon-16x16.png',
+      apple: '/apple-touch-icon.png',
+    },
+    other: {
+      'apple-mobile-web-app-capable': 'yes',
+      'apple-mobile-web-app-status-bar-style': 'black-translucent',
+      'mobile-web-app-capable': 'yes',
+      'apple-mobile-web-app-title': brandName,
+    },
+  };
+}
 
 /**
  * Runtime assertion to verify CSS doesn't contain dangerous patterns
@@ -171,6 +241,3 @@ export default async function RootLayout({
     </html>
   );
 }
-
-// Required for Cloudflare Pages (next-on-pages)
-export const runtime = 'edge';

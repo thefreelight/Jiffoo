@@ -1,0 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@500;700;800&display=swap');
+
+:root {
+  --qc-background: #f9f9f9;
+  --qc-surface: #ffffff;
+  --qc-surface-soft: #f2f4f4;
+  --qc-surface-deep: #dde4e5;
+  --qc-border: rgba(172, 179, 180, 0.38);
+  --qc-text: #2d3435;
+  --qc-muted: #596061;
+  --qc-primary: #4e6073;
+  --qc-primary-deep: #425467;
+  --qc-tertiary: #4a6552;
+  --qc-highlight: rgba(78, 96, 115, 0.09);
+  --qc-shadow: 0 28px 80px rgba(45, 52, 53, 0.08);
+}
+

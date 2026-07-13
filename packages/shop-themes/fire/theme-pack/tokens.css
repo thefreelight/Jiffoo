@@ -1,0 +1,20 @@
+:root {
+  --theme-color-primary: #325dff;
+  --theme-color-secondary: #0f1d3a;
+  --theme-color-accent: #c45d22;
+  --theme-color-background: #f5f7fb;
+  --theme-color-foreground: #10182c;
+  --theme-color-muted: #60708c;
+  --theme-color-border: #d8dfeb;
+
+  --fire-bg: #f5f7fb;
+  --fire-panel: rgba(255, 255, 255, 0.9);
+  --fire-border: rgba(16, 24, 44, 0.11);
+  --fire-grid: rgba(50, 93, 255, 0.08);
+  --fire-shadow: 0 20px 42px rgba(23, 43, 99, 0.08);
+  --fire-primary: #325dff;
+  --fire-copper: #c45d22;
+  --fire-ink: #10182c;
+  --fire-ink-soft: #21355f;
+  --fire-muted: #60708c;
+}

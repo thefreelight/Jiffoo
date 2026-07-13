@@ -11,8 +11,8 @@ import { DevTools } from '@/components/dev-tools';
 import { AdminThemePackWrapper } from '@/components/admin-theme-pack-wrapper';
 
 export const metadata: Metadata = {
-  title: 'Jiffoo Admin - Management Dashboard',
-  description: 'Modern admin dashboard for Jiffoo e-commerce system',
+  title: 'Commerce Admin - Management Dashboard',
+  description: 'Operational admin workspace for commerce teams',
 };
 
 export default function RootLayout({
@@ -31,6 +31,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-// Required for Cloudflare Pages (next-on-pages)
-export const runtime = 'edge';

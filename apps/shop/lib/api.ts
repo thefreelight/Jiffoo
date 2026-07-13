@@ -83,7 +83,8 @@ export const authApi = {
   changePassword: (data: { currentPassword: string; newPassword: string }): Promise<ApiResponse<any>> =>
     apiClient.changePassword(data),
 
-  // Email verification APIs removed for Alpha Gate (Direct Registration only)
+  verifyEmail: (token: string): Promise<ApiResponse<any>> =>
+    apiClient.get('/auth/verify-email', { params: { token } }),
 };
 
 // Auth Gateway API REMOVED - Legacy
@@ -215,6 +216,12 @@ export const storeContextApi = {
     storeName: string;
     domain: string | null;
     logo: string | null;
+    platformBranding?: {
+      mode: 'oss' | 'managed';
+      showPoweredByJiffoo: boolean;
+      poweredByHref: string | null;
+      poweredByLabel: string;
+    };
     theme: Record<string, unknown> | null;
     settings: Record<string, unknown> | null;
     status: string;
@@ -237,6 +244,9 @@ export const paymentApi = {
     displayName: string;
     icon: string;
     supportedCurrencies: string[];
+    clientConfig?: {
+      publishableKey?: string;
+    } | null;
   }>>> => apiClient.get('/payments/available-methods'),
 
   /**
@@ -264,10 +274,35 @@ export const paymentApi = {
   /**
    * Create Stripe Payment Intent directly
    */
-  createIntent: (data: { orderId: string; }): Promise<ApiResponse<{
+  createIntent: async (data: { orderId: string; }): Promise<ApiResponse<{
     clientSecret: string;
     paymentIntentId: string;
-  }>> => apiClient.post('/payments/create-intent', data),
+  }>> => {
+    const response = await apiClient.post('/payments/create-intent', data) as ApiResponse<{
+      clientSecret: string;
+      paymentIntentId: string;
+    }> & {
+      clientSecret?: string;
+      paymentIntentId?: string;
+    };
+
+    if (
+      response?.success &&
+      !response.data &&
+      typeof response.clientSecret === 'string' &&
+      response.clientSecret.length > 0
+    ) {
+      return {
+        ...response,
+        data: {
+          clientSecret: response.clientSecret,
+          paymentIntentId: response.paymentIntentId || '',
+        },
+      };
+    }
+
+    return response;
+  },
 };
 
 // Themes API
@@ -277,165 +312,6 @@ export const themesApi = {
    */
   getActiveTheme: (): Promise<ApiResponse<any>> =>
     apiClient.get('/themes/active'),
-};
-
-// B2B API - Company and user management for B2B customers
-export const b2bApi = {
-  // Get user's company information
-  getUserCompanies: (): Promise<ApiResponse<Array<{
-    id: string;
-    companyId: string;
-    userId: string;
-    role: string;
-    permissions: string[];
-    approvalLimit: number | null;
-    isActive: boolean;
-    company: {
-      id: string;
-      name: string;
-      email: string;
-      phone: string | null;
-      taxId: string | null;
-      accountType: string;
-      paymentTerms: string;
-      creditLimit: number | null;
-      isActive: boolean;
-    };
-  }>>> => apiClient.get('/b2b/companies/my-companies'),
-
-  // Get company details by ID
-  getCompany: (companyId: string): Promise<ApiResponse<{
-    id: string;
-    name: string;
-    email: string;
-    phone: string | null;
-    taxId: string | null;
-    accountType: string;
-    paymentTerms: string;
-    creditLimit: number | null;
-    currentBalance: number;
-    taxExempt: boolean;
-    isActive: boolean;
-    customerGroupId: string | null;
-    createdAt: string;
-    updatedAt: string;
-  }>> => apiClient.get(`/b2b/companies/${companyId}`),
-
-  // Get company users
-  getCompanyUsers: (companyId: string, params?: {
-    page?: number;
-    limit?: number;
-    role?: string;
-  }): Promise<ApiResponse<PageResult<{
-    id: string;
-    companyId: string;
-    userId: string;
-    role: string;
-    permissions: string[];
-    approvalLimit: number | null;
-    isActive: boolean;
-    user: {
-      id: string;
-      email: string;
-      username: string | null;
-      firstName: string | null;
-      lastName: string | null;
-    };
-  }>>> => apiClient.get(`/b2b/companies/${companyId}/users`, { params }),
-
-  // Add user to company (admin action)
-  addUserToCompany: (companyId: string, data: {
-    userId: string;
-    role: 'ADMIN' | 'BUYER' | 'APPROVER' | 'VIEWER';
-    permissions?: string[];
-    approvalLimit?: number;
-  }): Promise<ApiResponse<{
-    id: string;
-    companyId: string;
-    userId: string;
-    role: string;
-    permissions: string[];
-    approvalLimit: number | null;
-    isActive: boolean;
-  }>> => apiClient.post(`/b2b/companies/${companyId}/users`, data),
-
-  // Update company user role/permissions
-  updateCompanyUser: (companyId: string, companyUserId: string, data: {
-    role?: 'ADMIN' | 'BUYER' | 'APPROVER' | 'VIEWER';
-    permissions?: string[];
-    approvalLimit?: number;
-    isActive?: boolean;
-  }): Promise<ApiResponse<{
-    id: string;
-    companyId: string;
-    userId: string;
-    role: string;
-    permissions: string[];
-    approvalLimit: number | null;
-    isActive: boolean;
-  }>> => apiClient.put(`/b2b/companies/${companyId}/users/${companyUserId}`, data),
-
-  // Remove user from company
-  removeUserFromCompany: (companyId: string, companyUserId: string): Promise<ApiResponse<void>> =>
-    apiClient.delete(`/b2b/companies/${companyId}/users/${companyUserId}`),
-
-  // Quote management
-  getQuotes: (params?: {
-    page?: number;
-    limit?: number;
-    status?: string;
-    companyId?: string;
-  }): Promise<ApiResponse<PageResult<any>>> =>
-    apiClient.get('/b2b/quotes', { params }),
-
-  getQuote: (quoteId: string): Promise<ApiResponse<any>> =>
-    apiClient.get(`/b2b/quotes/${quoteId}`),
-
-  createQuote: (data: {
-    companyId: string;
-    items: Array<{
-      productId: string;
-      variantId: string;
-      quantity: number;
-      unitPrice?: number;
-      discount?: number;
-      taxRate?: number;
-      notes?: string;
-    }>;
-    notes?: string;
-    customerNotes?: string;
-    contactName?: string;
-    contactEmail?: string;
-    contactPhone?: string;
-  }): Promise<ApiResponse<any>> =>
-    apiClient.post('/b2b/quotes', data),
-
-  updateQuote: (quoteId: string, data: {
-    status?: string;
-    notes?: string;
-    customerNotes?: string;
-  }): Promise<ApiResponse<any>> =>
-    apiClient.put(`/b2b/quotes/${quoteId}`, data),
-
-  deleteQuote: (quoteId: string): Promise<ApiResponse<void>> =>
-    apiClient.delete(`/b2b/quotes/${quoteId}`),
-
-  // Tiered pricing
-  getTieredPricing: (variantId: string, params?: {
-    productId?: string;
-    categoryId?: string;
-    customerGroupId?: string;
-    companyId?: string;
-  }): Promise<ApiResponse<Array<{
-    minQuantity: number;
-    maxQuantity?: number | null;
-    pricePerUnit: number;
-    discount: number;
-    discountType: string;
-    totalSavings: number;
-    ruleId: string;
-    ruleName: string;
-  }>>> => apiClient.get(`/b2b/pricing/tiered/${variantId}`, { params }),
 };
 
 // Export convenience functions

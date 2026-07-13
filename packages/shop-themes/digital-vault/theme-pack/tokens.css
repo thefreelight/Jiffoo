@@ -1,0 +1,9 @@
+:root {
+  --theme-color-primary: #3563f6;
+  --theme-color-secondary: #0f2942;
+  --theme-color-background: #f7f9fd;
+  --theme-color-foreground: #15223a;
+  --theme-color-muted: #ebf0fa;
+  --theme-color-border: #dfe6f3;
+  --theme-color-accent: #f4c971;
+}

@@ -1,0 +1,52 @@
+{
+  "name": "@jiffoo/mcp-server",
+  "version": "0.1.0",
+  "description": "MCP Server for Jiffoo e-commerce — enables AI agents to browse products and place orders",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "bin": {
+    "jiffoo-mcp-server": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --target node18 --dts",
+    "dev": "tsx src/index.ts",
+    "start": "node dist/index.js",
+    "test": "node --test --import tsx src/**/*.test.ts"
+  },
+  "keywords": [
+    "jiffoo",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "agent",
+    "ecommerce",
+    "claude"
+  ],
+  "author": "Jiffoo Team",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/thefreelight/Jiffoo"
+  },
+  "homepage": "https://jiffoo.com",
+  "bugs": {
+    "url": "https://github.com/thefreelight/Jiffoo/issues"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "zod": "^3.23.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsup": "^8.0.2",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

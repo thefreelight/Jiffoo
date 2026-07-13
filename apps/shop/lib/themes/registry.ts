@@ -8,6 +8,10 @@
  */
 
 import type { ThemePackage, ThemeMeta, ThemeRegistryEntry, ThemeRegistry } from 'shared/src/types/theme';
+import esimMallTheme from '@shop-themes/esim-mall/src/runtime';
+import yevbiTheme from '@shop-themes/yevbi/src/runtime';
+import imagicStudioTheme from '@shop-themes/imagic-studio/src/runtime';
+import appLandingpageTheme from '@shop-themes/app-landingpage/src/runtime';
 
 // ============================================================================
 // Built-in Theme Constants
@@ -23,6 +27,11 @@ const BUILTIN_DEFAULT_SLUG = 'builtin-default';
  */
 const LEGACY_DEFAULT_SLUG = 'default';
 
+/**
+ * Second built-in base theme slug
+ */
+const BUILTIN_SERENE_SLUG = 'builtin-serene';
+
 // ============================================================================
 // Built-in Theme Registry (Static)
 // ============================================================================
@@ -35,17 +44,17 @@ const LEGACY_DEFAULT_SLUG = 'default';
  * The canonical slug is 'builtin-default' as per PRD_FINAL_BLUEPRINT.md.
  */
 export const BUILTIN_THEMES: ThemeRegistry = {
-  // Canonical builtin-default entry
+  // Canonical builtin-default entry — "Aurora" glass design
   [BUILTIN_DEFAULT_SLUG]: {
     meta: {
       slug: BUILTIN_DEFAULT_SLUG,
-      name: 'Default Theme',
-      version: '1.0.0',
-      description: 'The default Jiffoo Mall theme, modern and clean e-commerce style.',
+      name: 'Aurora (Default)',
+      version: '0.0.1',
+      description: 'The default Jiffoo Mall theme — airy light-blue storefront with a glassmorphism hero.',
       category: 'general',
       author: 'Jiffoo',
       target: 'shop',
-      tags: ['modern', 'clean', 'responsive'],
+      tags: ['modern', 'glassmorphism', 'responsive'],
     },
     load: async () => {
       const module = await import('@shop-themes/default');
@@ -56,21 +65,93 @@ export const BUILTIN_THEMES: ThemeRegistry = {
   [LEGACY_DEFAULT_SLUG]: {
     meta: {
       slug: LEGACY_DEFAULT_SLUG,
-      name: 'Default Theme',
-      version: '1.0.0',
-      description: 'The default Jiffoo Mall theme, modern and clean e-commerce style.',
+      name: 'Aurora (Default)',
+      version: '0.0.1',
+      description: 'The default Jiffoo Mall theme — airy light-blue storefront with a glassmorphism hero.',
       category: 'general',
       author: 'Jiffoo',
       target: 'shop',
-      tags: ['modern', 'clean', 'responsive'],
+      tags: ['modern', 'glassmorphism', 'responsive'],
     },
     load: async () => {
       const module = await import('@shop-themes/default');
       return module.default || module.theme;
     },
   },
-  // NOTE: The open-source core only embeds the default theme.
-  // Official marketplace themes are downloaded after deployment as Theme Packs.
+  // Migration-only compatibility bridges. Official themes that publish a
+  // packaged runtime must resolve from the installed artifact instead.
+  'esim-mall': {
+    meta: {
+      slug: 'esim-mall',
+      name: 'eSIM Mall Theme',
+      version: '1.0.0',
+      description: 'eSIM marketplace theme with modern travel-focused design for eSIM businesses.',
+      category: 'esim',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['esim', 'travel', 'connectivity', 'modern'],
+    },
+    load: async () => esimMallTheme,
+  },
+  'yevbi': {
+    meta: {
+      slug: 'yevbi',
+      name: 'Yevbi Theme',
+      version: '1.0.0',
+      description: 'Travel-focused e-commerce theme with modern design.',
+      category: 'travel',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['travel', 'modern', 'responsive'],
+    },
+    load: async () => yevbiTheme,
+  },
+  'imagic-studio': {
+    meta: {
+      slug: 'imagic-studio',
+      name: 'Imagic Studio',
+      version: '0.1.0',
+      description: 'AI image studio storefront theme for generative art businesses.',
+      category: 'ai',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['ai', 'studio', 'creative', 'modern'],
+    },
+    load: async () => imagicStudioTheme,
+  },
+  // App download landing page theme (EasyEUICC) — embedded compatibility bridge
+  // so the storefront can render the download page without relying solely on the
+  // packaged theme-pack manifest being served by the API.
+  'app-landingpage': {
+    meta: {
+      slug: 'app-landingpage',
+      name: 'App Landing Page',
+      version: '0.1.0',
+      description: 'High-conversion Android app download landing page theme with QR download, APK verification, and app screenshots.',
+      category: 'app-download',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['app-download', 'landing', 'easyeuicc', 'responsive'],
+    },
+    load: async () => appLandingpageTheme,
+  },
+  // Second built-in base theme — "Serene" calm indigo design
+  [BUILTIN_SERENE_SLUG]: {
+    meta: {
+      slug: BUILTIN_SERENE_SLUG,
+      name: 'Serene',
+      version: '1.0.0',
+      description: 'Calm indigo Jiffoo Mall theme with a botanical hero and editorial layout.',
+      category: 'general',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['calm', 'editorial', 'responsive'],
+    },
+    load: async () => {
+      const module = await import('@shop-themes/serene');
+      return module.default || module.theme;
+    },
+  },
 };
 
 // ============================================================================

@@ -1,0 +1,19 @@
+#!/bin/sh
+
+echo "🔍 Pre-push: Checking Prisma schema drift..."
+
+# Only run drift check if DATABASE_URL is set and prisma schema exists
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "⚠️  DATABASE_URL not set — skipping drift check"
+  echo "   Set DATABASE_URL to enable pre-push drift verification"
+  exit 0
+fi
+
+cd apps/api && bash scripts/check-drift.sh
+if [ $? -ne 0 ]; then
+  echo "❌ Schema drift detected — push blocked"
+  echo "   Run 'pnpm --filter api db:migrate --name <descriptive-name>' to create a migration"
+  exit 1
+fi
+
+echo "✅ No schema drift — push allowed"

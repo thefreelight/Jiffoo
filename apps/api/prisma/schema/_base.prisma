@@ -1,0 +1,125 @@
+// _base.prisma — datasource + generator + shared enums
+// Do not add models here; models belong in their domain-specific files.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["public"]
+}
+
+// ============================================================
+// ENUMS: ORDER STATUS
+// ============================================================
+enum OrderStatus {
+  PENDING
+  PAID
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+
+  @@schema("public")
+}
+
+enum OrderPaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+
+  @@schema("public")
+}
+
+enum OrderItemFulfillmentStatus {
+  pending
+  processing
+  shipped
+  delivered
+  failed
+
+  @@schema("public")
+}
+
+enum ShipmentStatus {
+  PENDING
+  SHIPPED
+  DELIVERED
+  FAILED
+  CANCELLED
+
+  @@schema("public")
+}
+
+enum InventoryReservationStatus {
+  ACTIVE
+  RELEASED
+  CONSUMED
+  EXPIRED
+  CANCELLED
+
+  @@schema("public")
+}
+
+// ============================================================
+// ENUMS: PAYMENT
+// ============================================================
+enum PaymentAttemptStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  EXPIRED
+
+  @@schema("public")
+}
+
+enum RefundStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  CANCELLED
+
+  @@schema("public")
+}
+
+enum PaymentLedgerEventType {
+  CREATED
+  SUCCEEDED
+  FAILED
+  REFUNDED
+
+  @@schema("public")
+}
+
+enum RefundLedgerEventType {
+  CREATED
+  SUCCEEDED
+  FAILED
+
+  @@schema("public")
+}
+
+// ============================================================
+// ENUMS: INVENTORY / STOCK ALERT
+// ============================================================
+enum StockAlertType {
+  LOW_STOCK
+  OUT_OF_STOCK
+  RESTOCK_NEEDED
+
+  @@schema("public")
+}
+
+enum StockAlertStatus {
+  ACTIVE
+  RESOLVED
+  DISMISSED
+
+  @@schema("public")
+}

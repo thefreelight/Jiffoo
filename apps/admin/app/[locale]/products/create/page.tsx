@@ -131,7 +131,7 @@ export default function CreateProductPage() {
   return (
     <div className="w-full bg-[#fcfdfe] min-h-screen">
       {/* Header Bar */}
-      <div className="border-b border-gray-100 pl-20 pr-8 lg:px-8 py-4 sticky top-0 bg-white/80 backdrop-blur-md z-50 flex items-center justify-between">
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-gray-100 bg-white/80 py-4 pl-4 pr-4 backdrop-blur-md sm:pl-20 sm:pr-8 lg:px-8">
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-gray-100 rounded-xl w-10 h-10">
             <ArrowLeft className="w-5 h-5 text-gray-900" />
@@ -157,7 +157,7 @@ export default function CreateProductPage() {
         </div>
       </div>
 
-      <div className="w-full px-10 py-10">
+      <div className="w-full px-4 py-6 sm:px-10 sm:py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
           {/* Main Info */}
           <div className="lg:col-span-2 space-y-8">

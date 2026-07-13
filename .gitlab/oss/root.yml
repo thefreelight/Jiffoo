@@ -4,8 +4,10 @@
 #   - admin
 #   - shop
 #
-# Deployment target:
-#   - dev branch -> jiffoo-oss-dev namespace (OSS test env)
+# Deployment ownership:
+#   - `Jiffoo` owns the open-source runtime surface: shop + api + admin
+#   - long-term production target namespace: `jiffoo-prod`
+#   - dev branch currently targets `jiffoo-oss-dev` as the OSS test env
 
 stages:
   - trigger

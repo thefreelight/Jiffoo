@@ -5,7 +5,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev -p 3003",
-    "build": "next build --webpack",
+    "build": "next build",
+    "pages:build": "npx @cloudflare/next-on-pages",
     "start": "next start -p 3003",
     "lint": "next lint",
     "type-check": "tsc --noEmit",

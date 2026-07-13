@@ -1,0 +1,36 @@
+{
+  "type": "object",
+  "title": "Fire Theme Settings",
+  "properties": {
+    "colors": {
+      "type": "object",
+      "properties": {
+        "primary": {
+          "type": "string",
+          "title": "Primary Color"
+        },
+        "accent": {
+          "type": "string",
+          "title": "Accent Color"
+        }
+      }
+    },
+    "fire": {
+      "type": "object",
+      "properties": {
+        "goalAmount": {
+          "type": "number",
+          "title": "FIRE Goal Amount"
+        },
+        "goalLabel": {
+          "type": "string",
+          "title": "Goal Label"
+        },
+        "assistantName": {
+          "type": "string",
+          "title": "Assistant Name"
+        }
+      }
+    }
+  }
+}

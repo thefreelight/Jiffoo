@@ -1,311 +1,300 @@
-/**
- * Header Component - Jiffoo Admin Style Design
- *
- * Main navigation header with search, cart, and user menu.
- * Supports i18n through the t() translation function prop.
- * Uses Jiffoo Admin Style design system with dark mode support.
- */
-
 import React from 'react';
-import { Search, ShoppingCart, User, Menu, X, Moon, Sun } from 'lucide-react';
-import { Button, cn } from '@jiffoo/ui';
+import { Menu, Moon, Search, ShoppingBag, Sun, User, X } from 'lucide-react';
+import { cn } from '@jiffoo/ui';
 import { useTheme } from 'next-themes';
 import type { HeaderProps } from '../../../../shared/src/types/theme';
+import { resolveSiteConfig } from '../site';
+import { ProductSiteHeader } from './ProductSiteHeader';
 
-export const Header = React.memo(function Header({
+function StorefrontHeader({
   cartItemCount = 0,
   isAuthenticated = false,
+  user,
   config,
   t,
-  onSearch,
   onNavigate,
+  onSearch,
+  onLogout,
   onNavigateToCart,
   onNavigateToProfile,
   onNavigateToLogin,
   onNavigateToRegister,
-  onLogout,
   onNavigateToHome,
   onNavigateToProducts,
   onNavigateToCategories,
   onNavigateToDeals,
 }: HeaderProps) {
-  const [searchQuery, setSearchQuery] = React.useState('');
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  const [isScrolled, setIsScrolled] = React.useState(false);
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
-  const { theme, setTheme } = useTheme();
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [isScrolled, setIsScrolled] = React.useState(false);
   const [mounted, setMounted] = React.useState(false);
+  const { theme, setTheme } = useTheme();
+  const site = resolveSiteConfig(config);
 
-  // Track scroll for header shadow
   React.useEffect(() => {
     setMounted(true);
-    const handleScroll = () => setIsScrolled(window.scrollY > 0);
+    const handleScroll = () => setIsScrolled(window.scrollY > 8);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Helper function to get translated text with fallback
   const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback;
+    if (!t) return fallback;
+    const translated = t(key);
+    return translated === key ? fallback : translated;
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      onSearch(searchQuery.trim());
-      setSearchQuery('');
-    }
+  const navItems = [
+    { label: getText('shop.nav.products', 'Products'), onClick: onNavigateToProducts },
+    { label: getText('shop.nav.categories', 'Categories'), onClick: onNavigateToCategories },
+    { label: getText('shop.nav.deals', 'Deals'), onClick: onNavigateToDeals },
+    { label: getText('shop.nav.about', 'About'), onClick: () => onNavigate?.('/help') },
+    { label: getText('shop.nav.contact', 'Contact'), onClick: () => onNavigate?.('/contact') },
+  ];
+
+  const submitSearch = (event: React.FormEvent) => {
+    event.preventDefault();
+    const query = searchQuery.trim();
+    if (!query) return;
+    onSearch(query);
+    setIsSearchOpen(false);
+    setIsMenuOpen(false);
   };
 
   const toggleTheme = () => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
   };
 
+  const userLabel =
+    user?.firstName || user?.lastName
+      ? [user.firstName, user.lastName].filter(Boolean).join(' ')
+      : user?.email || getText('shop.header.account', 'Account');
+
   return (
     <header
       className={cn(
-        'fixed top-0 left-0 right-0 z-[1000] transition-all duration-200',
-        'bg-white/98 dark:bg-slate-900/98 backdrop-blur-xl',
-        'border-b border-gray-200 dark:border-slate-700',
-        isScrolled && 'shadow-sm'
+        'fixed inset-x-0 top-0 z-[1000] transition-all duration-300',
+        isScrolled
+          ? 'border-b border-blue-100/80 bg-white/88 shadow-[0_18px_50px_-36px_rgba(37,99,235,0.45)] backdrop-blur-xl dark:border-slate-800 dark:bg-slate-950/88'
+          : 'border-b border-transparent bg-white/72 backdrop-blur-md dark:bg-slate-950/72'
       )}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16 sm:h-18 lg:h-20">
-          {/* Logo */}
-          <button
-            onClick={onNavigateToHome}
-            className="flex items-center gap-2 sm:gap-3 flex-shrink-0 hover:opacity-80 transition-opacity"
-          >
-            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
-              <span className="text-white font-extrabold text-base sm:text-lg">J</span>
-            </div>
-            <span className="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white tracking-tight">
-              Jiffoo
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3 px-4 sm:h-20 sm:px-6 lg:px-8">
+        <button
+          type="button"
+          onClick={onNavigateToHome}
+          className="flex min-w-0 items-center gap-3 text-left"
+          aria-label={getText('shop.header.home', 'Go home')}
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-sm font-bold text-white shadow-lg shadow-blue-600/25">
+            {(site.brandName || 'J').charAt(0).toUpperCase()}
+          </span>
+          <span className="min-w-0">
+            <span className="block truncate text-xl font-bold tracking-[-0.03em] text-slate-950 dark:text-white">
+              {site.brandName}
             </span>
+            <span className="hidden text-[0.66rem] font-bold uppercase tracking-[0.2em] text-blue-600 dark:text-blue-400 sm:block">
+              {getText('shop.header.storefront', 'Storefront')}
+            </span>
+          </span>
+        </button>
+
+        <nav className="hidden items-center gap-8 lg:flex">
+          {navItems.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={item.onClick}
+              className="text-sm font-semibold text-slate-800 transition-colors hover:text-blue-600 dark:text-slate-200 dark:hover:text-blue-400"
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-2">
+          <form
+            onSubmit={submitSearch}
+            className={cn(
+              'hidden h-11 items-center overflow-hidden rounded-full border border-slate-200 bg-white/80 transition-all focus-within:border-blue-300 dark:border-slate-800 dark:bg-slate-900/80 md:flex',
+              isSearchOpen ? 'w-56 pl-4 pr-2' : 'w-11 justify-center'
+            )}
+          >
+            {isSearchOpen ? (
+              <input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder={getText('shop.header.searchPlaceholder', 'Search products')}
+                className="min-w-0 flex-1 border-0 p-0 bg-transparent text-sm text-slate-950 outline-none placeholder:text-slate-400 focus:ring-0 dark:text-white"
+              />
+            ) : null}
+            <button
+              type={isSearchOpen ? 'submit' : 'button'}
+              onClick={() => {
+                if (!isSearchOpen) setIsSearchOpen(true);
+              }}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-blue-50 hover:text-blue-600 dark:text-slate-200 dark:hover:bg-slate-800 dark:hover:text-blue-400"
+              aria-label={getText('shop.header.search', 'Search')}
+            >
+              <Search className="h-4 w-4" />
+            </button>
+          </form>
+
+          {mounted ? (
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="hidden h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white/78 text-slate-700 transition-colors hover:border-blue-200 hover:text-blue-600 dark:border-slate-800 dark:bg-slate-900/78 dark:text-slate-200 dark:hover:text-blue-400 sm:flex"
+              aria-label={getText('shop.header.toggleTheme', 'Toggle theme')}
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+          ) : null}
+
+          <button
+            type="button"
+            onClick={onNavigateToCart}
+            className="relative flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white/78 text-slate-800 transition-colors hover:border-blue-200 hover:text-blue-600 dark:border-slate-800 dark:bg-slate-900/78 dark:text-slate-100 dark:hover:text-blue-400"
+            aria-label={getText('shop.header.cart', 'Cart')}
+          >
+            <ShoppingBag className="h-4 w-4" />
+            {cartItemCount > 0 ? (
+              <span className="absolute -right-1 -top-1 flex min-h-[1.15rem] min-w-[1.15rem] items-center justify-center rounded-full bg-blue-600 px-1 text-[0.62rem] font-bold text-white">
+                {cartItemCount > 99 ? '99+' : cartItemCount}
+              </span>
+            ) : null}
           </button>
 
-          {/* Desktop Navigation - Centered */}
-          <nav className="hidden lg:flex absolute left-1/2 -translate-x-1/2 items-center gap-1">
-            {[
-              { label: getText('shop.nav.products', 'Products'), onClick: onNavigateToProducts },
-              { label: getText('shop.nav.contact', 'Contact'), onClick: () => onNavigate?.('/contact') },
-              { label: getText('shop.nav.help', 'Help'), onClick: () => onNavigate?.('/help') },
-            ].map((item) => (
+          {isAuthenticated ? (
+            <div className="relative hidden sm:block">
+              <button
+                type="button"
+                onClick={() => setIsUserMenuOpen((value) => !value)}
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-950 text-white transition-transform hover:-translate-y-0.5 dark:bg-white dark:text-slate-950"
+                aria-label={getText('shop.header.account', 'Account')}
+              >
+                <User className="h-4 w-4" />
+              </button>
+              {isUserMenuOpen ? (
+                <div className="absolute right-0 top-full mt-3 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-xl shadow-slate-900/10 dark:border-slate-800 dark:bg-slate-900">
+                  <div className="px-3 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    {userLabel}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onNavigateToProfile();
+                      setIsUserMenuOpen(false);
+                    }}
+                    className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-800"
+                  >
+                    {getText('shop.header.profile', 'Profile')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onLogout();
+                      setIsUserMenuOpen(false);
+                    }}
+                    className="mt-1 w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-slate-800 hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-800"
+                  >
+                    {getText('shop.header.logout', 'Logout')}
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <div className="hidden items-center gap-2 sm:flex">
+              <button
+                type="button"
+                onClick={onNavigateToLogin}
+                className="px-4 py-2 text-sm font-semibold text-slate-800 transition-colors hover:text-blue-600 dark:text-slate-100 dark:hover:text-blue-400"
+              >
+                {getText('shop.header.login', 'Login')}
+              </button>
+              <button
+                type="button"
+                onClick={onNavigateToRegister}
+                className="inline-flex h-11 items-center rounded-full bg-slate-950 px-5 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition-transform hover:-translate-y-0.5 dark:bg-white dark:text-slate-950"
+              >
+                {getText('shop.header.signUp', 'Sign Up')}
+              </button>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((value) => !value)}
+            className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white/78 text-slate-800 dark:border-slate-800 dark:bg-slate-900/78 dark:text-slate-100 lg:hidden"
+            aria-label={getText('shop.header.menu', 'Menu')}
+          >
+            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
+      </div>
+
+      {isMenuOpen ? (
+        <div className="border-t border-slate-100 bg-white px-4 py-4 shadow-xl shadow-slate-900/5 dark:border-slate-800 dark:bg-slate-950 lg:hidden">
+          <form onSubmit={submitSearch} className="mb-4 flex h-11 items-center rounded-full border border-slate-200 px-4 dark:border-slate-800">
+            <input
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder={getText('shop.header.searchPlaceholder', 'Search products')}
+              className="min-w-0 flex-1 border-0 p-0 bg-transparent text-sm text-slate-950 outline-none placeholder:text-slate-400 focus:ring-0 dark:text-white"
+            />
+            <button type="submit" aria-label={getText('shop.header.search', 'Search')}>
+              <Search className="h-4 w-4 text-slate-500" />
+            </button>
+          </form>
+
+          <div className="grid gap-1">
+            {navItems.map((item) => (
               <button
                 key={item.label}
-                onClick={item.onClick}
-                className={cn(
-                  'px-4 py-2 text-sm font-semibold rounded-xl transition-all',
-                  'text-gray-600 dark:text-gray-300',
-                  'hover:text-blue-600 dark:hover:text-blue-400',
-                  'hover:bg-blue-50 dark:hover:bg-slate-800'
-                )}
+                type="button"
+                onClick={() => {
+                  item.onClick();
+                  setIsMenuOpen(false);
+                }}
+                className="rounded-xl px-3 py-3 text-left text-sm font-semibold text-slate-800 hover:bg-blue-50 dark:text-slate-100 dark:hover:bg-slate-900"
               >
                 {item.label}
               </button>
             ))}
-          </nav>
+          </div>
 
-          {/* Actions */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            {/* Action Group */}
-            <div className="flex items-center gap-1 bg-gray-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl p-1">
-              {/* Theme Toggle */}
-              {mounted && (
-                <button
-                  onClick={toggleTheme}
-                  className={cn(
-                    'flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl',
-                    'text-gray-600 dark:text-gray-300 transition-all',
-                    'hover:bg-white dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400'
-                  )}
-                  aria-label="Toggle theme"
-                >
-                  {theme === 'dark' ? (
-                    <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
-                  ) : (
-                    <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
-                  )}
-                </button>
-              )}
-
-              {/* Cart Button */}
+          {!isAuthenticated ? (
+            <div className="mt-4 grid grid-cols-2 gap-2">
               <button
-                onClick={onNavigateToCart}
-                className={cn(
-                  'relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl',
-                  'text-gray-600 dark:text-gray-300 transition-all',
-                  'hover:bg-white dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400'
-                )}
-                aria-label="Cart"
+                type="button"
+                onClick={onNavigateToLogin}
+                className="rounded-full border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-800 dark:border-slate-800 dark:text-slate-100"
               >
-                <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
-                {cartItemCount > 0 && (
-                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center shadow-lg">
-                    {cartItemCount > 99 ? '99+' : cartItemCount}
-                  </span>
-                )}
+                {getText('shop.header.login', 'Login')}
               </button>
-
-              {/* User Menu */}
-              {isAuthenticated && (
-                <div className="relative">
-                  <button
-                    onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
-                    className={cn(
-                      'flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl transition-all',
-                      isUserMenuOpen
-                        ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400'
-                        : 'text-gray-600 dark:text-gray-300 hover:bg-white dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400'
-                    )}
-                  >
-                    <User className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </button>
-                  {isUserMenuOpen && (
-                    <div className="absolute top-full right-0 mt-2 min-w-[200px] bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-2xl shadow-xl p-2 z-50">
-                      <button
-                        onClick={() => { onNavigateToProfile(); setIsUserMenuOpen(false); }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700 hover:text-blue-600 dark:hover:text-blue-400 transition-all"
-                      >
-                        {getText('shop.header.profile', 'Profile')}
-                      </button>
-                      <button
-                        onClick={() => { onLogout(); setIsUserMenuOpen(false); }}
-                        className="w-full text-left px-3 py-2 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-all"
-                      >
-                        {getText('shop.header.logout', 'Logout')}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
+              <button
+                type="button"
+                onClick={onNavigateToRegister}
+                className="rounded-full bg-slate-950 px-4 py-3 text-sm font-semibold text-white dark:bg-white dark:text-slate-950"
+              >
+                {getText('shop.header.signUp', 'Sign Up')}
+              </button>
             </div>
-
-            {/* Auth Buttons - Desktop */}
-            {!isAuthenticated && (
-              <div className="hidden sm:flex items-center gap-2">
-                <button
-                  onClick={onNavigateToLogin}
-                  className={cn(
-                    'px-4 py-2 text-sm font-semibold rounded-xl transition-all',
-                    'border border-gray-200 dark:border-slate-700',
-                    'text-gray-700 dark:text-gray-300',
-                    'hover:border-blue-600 dark:hover:border-blue-400',
-                    'hover:text-blue-600 dark:hover:text-blue-400',
-                    'hover:bg-blue-50 dark:hover:bg-slate-800'
-                  )}
-                >
-                  {getText('shop.header.login', 'Login')}
-                </button>
-                <button
-                  onClick={onNavigateToRegister}
-                  className={cn(
-                    'px-4 py-2 text-sm font-bold rounded-xl transition-all',
-                    'bg-gradient-to-r from-blue-600 to-blue-500 text-white',
-                    'hover:shadow-lg hover:shadow-blue-500/30 hover:-translate-y-0.5'
-                  )}
-                >
-                  {getText('shop.header.signUp', 'Sign Up')}
-                </button>
-              </div>
-            )}
-
-            {/* Mobile Menu Button */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className={cn(
-                'lg:hidden flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-xl',
-                'text-gray-600 dark:text-gray-300 transition-all',
-                'hover:bg-gray-100 dark:hover:bg-slate-800'
-              )}
-              aria-label="Menu"
-            >
-              {isMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
+          ) : null}
         </div>
-
-        {/* Mobile Menu */}
-        {isMenuOpen && (
-          <div className="lg:hidden border-t border-gray-200 dark:border-slate-700 py-4 animate-in slide-in-from-top-2 duration-200">
-            <nav className="flex flex-col space-y-1">
-              {[
-                { label: getText('shop.nav.products', 'Products'), onClick: onNavigateToProducts },
-                { label: getText('shop.nav.contact', 'Contact'), onClick: () => onNavigate?.('/contact') },
-                { label: getText('shop.nav.help', 'Help'), onClick: () => onNavigate?.('/help') },
-              ].map((item) => (
-                <button
-                  key={item.label}
-                  onClick={() => {
-                    item.onClick();
-                    setIsMenuOpen(false);
-                  }}
-                  className={cn(
-                    'px-4 py-3 text-base font-medium rounded-xl text-left transition-all',
-                    'text-gray-700 dark:text-gray-300',
-                    'hover:bg-gray-100 dark:hover:bg-slate-800',
-                    'active:bg-gray-200 dark:active:bg-slate-700'
-                  )}
-                >
-                  {item.label}
-                </button>
-              ))}
-
-              <div className="flex flex-col space-y-2 pt-4 mt-4 border-t border-gray-200 dark:border-slate-700">
-                {isAuthenticated ? (
-                  <>
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        onNavigateToProfile();
-                        setIsMenuOpen(false);
-                      }}
-                      className="justify-start w-full"
-                    >
-                      <User className="h-4 w-4 mr-2" />
-                      {getText('shop.header.profile', 'Profile')}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => {
-                        onLogout();
-                        setIsMenuOpen(false);
-                      }}
-                      className="justify-start w-full text-error-600 hover:text-error-700 hover:bg-error-50"
-                    >
-                      {getText('shop.header.logout', 'Logout')}
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        onNavigateToLogin();
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full"
-                    >
-                      {getText('shop.header.login', 'Login')}
-                    </Button>
-                    <Button
-                      variant="primary"
-                      onClick={() => {
-                        onNavigateToRegister();
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full"
-                    >
-                      {getText('shop.header.signUp', 'Sign Up')}
-                    </Button>
-                  </>
-                )}
-              </div>
-            </nav>
-          </div>
-        )}
-      </div>
+      ) : null}
     </header>
   );
+}
+
+export const Header = React.memo(function Header(props: HeaderProps) {
+  const site = resolveSiteConfig(props.config);
+
+  if (site.archetype !== 'storefront') {
+    return <ProductSiteHeader {...props} />;
+  }
+
+  return <StorefrontHeader {...props} />;
 });

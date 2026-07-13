@@ -28,7 +28,18 @@ export interface UserProfile {
   avatar?: string;
   role: UserRole | string;
   isActive?: boolean;
+  requiresPasswordRotation?: boolean;
   emailVerified?: boolean;
+  // Resolved admin identity (present for staff/admin accounts)
+  permissions?: string[];
+  adminRole?: string | null;
+  adminStatus?: string | null;
+  isOwner?: boolean;
+  admin?: {
+    role: string;
+    status: string;
+    isOwner?: boolean;
+  } | null;
   phone?: string;
   dateOfBirth?: string;
   gender?: 'MALE' | 'FEMALE' | 'OTHER';

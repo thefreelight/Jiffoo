@@ -8,10 +8,12 @@ export * from './types/cart';
 export * from './types/common';
 export * from './types/theme';
 export * from './extensions/plugin-contract';
+export * from './extensions/commercial-package';
 export * from './extensions/official-catalog';
 export * from './extensions/platform-connection';
 
 export * from './events/core-events';
+export * from './core-update/public-manifest';
 
 
 // Validation Schemas
@@ -19,6 +21,7 @@ export * from './schemas/auth';
 export * from './schemas/product';
 export * from './schemas/order';
 export * from './schemas/theme-config';
+export * from './security/admin-rbac';
 
 // Utilities
 export * from './utils/constants';

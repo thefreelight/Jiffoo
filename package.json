@@ -1,6 +1,6 @@
 {
   "name": "jiffoo-mall-core",
-  "version": "1.0.3-opensource",
+  "version": "1.0.25-opensource",
   "description": "Jiffoo open-source core for self-hosted commerce deployments",
   "_moduleAliases": {
     "@shared/security": "packages/shared/dist/shared/src/security",
@@ -25,6 +25,11 @@
     "dev:packages": "turbo run dev --filter='./packages/**' --concurrency=8",
     "build": "turbo run build",
     "build:core": "turbo run build --filter=api --filter=shop --filter=admin",
+    "pages:build:shop": "pnpm --filter shop pages:build",
+    "pages:build:admin": "pnpm --filter admin pages:build",
+    "pages:build:all": "pnpm pages:build:shop && pnpm pages:build:admin",
+    "pages:preview:shop": "pnpm --filter shop exec npx wrangler pages dev .vercel/output/static --port 3003",
+    "pages:preview:admin": "pnpm --filter admin exec npx wrangler pages dev .vercel/output/static --port 3002",
     "start": "turbo run start",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
@@ -45,9 +50,39 @@
     "test:e2e:all": "pnpm test:e2e",
     "test:e2e:ui": "playwright test -c apps/api/tests/e2e/playwright.shop.config.ts --ui",
     "test:e2e:report": "playwright show-report apps/api/tests/e2e/playwright-report",
+    "smoke:admin-staff-rbac": "node scripts/smoke-admin-staff-rbac.mjs",
+    "test:official-artifacts": "pnpm --filter api test -- tests/core/official-artifact-builder.test.ts",
+    "test:self-hosted-detection": "pnpm --filter api test -- tests/routes/upgrade.test.ts tests/core/upgrade-executors.test.ts",
+    "test:shop-runtime-truth": "pnpm --filter shop test -- tests/themes/theme-pack-rendering-mode.test.ts tests/themes/theme-pack-loader.test.ts tests/themes/theme-provider-remote-runtime.test.tsx tests/themes/store-context-provider.test.tsx tests/themes/storefront-runtime-source-of-truth.test.ts tests/themes/esim-mall-runtime-registry.test.ts",
+    "test:updater:docker-compose": "node scripts/rehearse-docker-compose-updater.mjs",
+    "test:update-feed-builder": "node scripts/test-build-update-feed.mjs",
+    "test:update-feed-verifier": "node scripts/test-verify-self-hosted-update-feed.mjs",
+    "test:public-release-convergence-verifier": "node scripts/test-verify-public-release-convergence.mjs",
+    "test:release-history-availability-verifier": "node scripts/test-verify-release-history-availability.mjs",
+    "test:release-helper-quarantine": "node scripts/test-release-oss-patch-quarantine.mjs",
+    "test:live-runtime-verifier": "node scripts/test-verify-live-runtime-version.mjs",
+    "test:branded-storefront-runtime-verifier": "node scripts/test-verify-branded-storefront-runtime.mjs",
+    "test:admin-market-theme-upgrade": "pnpm --filter api test -- tests/routes/admin-staff.test.ts tests/routes/admin-market-install.test.ts tests/routes/market-install-binding.test.ts tests/core/official-catalog.test.ts tests/core/market-update-checker.test.ts tests/core/theme-installer-upgrade.test.ts tests/core/theme-management-service.test.ts tests/routes/upgrade.test.ts tests/core/upgrade-executors.test.ts",
+    "verify:release-quality-gates": "node scripts/run-release-quality-gates.mjs",
+    "verify:release-publication-gate": "node scripts/verify-release-publication-gate.mjs",
+    "verify:release-history-availability": "node scripts/verify-release-history-availability.mjs --verify-images",
+    "verify:public-release-convergence": "node scripts/verify-public-release-convergence.mjs",
+    "verify:admin-quality-gate": "node scripts/verify-admin-quality-gate.mjs",
+    "verify:live-runtime": "node scripts/verify-live-runtime-version.mjs",
+    "verify:branded-storefront-runtime": "node scripts/verify-branded-storefront-runtime.mjs",
+    "verify:theme-clients": "node scripts/verify-theme-client-contracts.mjs",
+    "verify:theme-clients:strict": "node scripts/verify-theme-client-contracts.mjs --strict-cross-repo",
+    "release:update-feed:build": "node scripts/build-update-feed.mjs --output-dir .release/self-hosted",
+    "release:oss:patch": "node scripts/release-oss-patch.mjs",
     "changeset": "changeset",
     "version:bump": "changeset version",
-    "release": "pnpm version:bump && pnpm build"
+    "release": "pnpm version:bump && pnpm build",
+    "theme-matrix": "node scripts/theme-matrix.mjs",
+    "theme-matrix:type-check": "node scripts/theme-matrix.mjs --type-check",
+    "theme-matrix:validate": "node scripts/theme-matrix.mjs --validate",
+    "theme-matrix:ssr": "node scripts/theme-ssr-smoke.mjs",
+    "surface:generate": "pnpm --filter @jiffoo/theme-api-sdk surface:generate",
+    "surface:check": "pnpm --filter @jiffoo/theme-api-sdk surface:check"
   },
   "lint-staged": {
     "apps/api/src/**/*.ts": [
@@ -70,6 +105,7 @@
   "license": "GPL-2.0-or-later",
   "devDependencies": {
     "@changesets/cli": "^2.29.8",
+    "@cloudflare/next-on-pages": "^1.13.16",
     "@playwright/test": "^1.57.0",
     "@types/node": "^22.9.0",
     "dotenv-cli": "^10.0.0",
@@ -77,7 +113,8 @@
     "javascript-obfuscator": "^4.1.1",
     "lint-staged": "^16.2.7",
     "turbo": "^2.5.5",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "wrangler": "^4.107.0"
   },
   "packageManager": "pnpm@9.0.0",
   "engines": {
@@ -86,7 +123,8 @@
   },
   "pnpm": {
     "overrides": {
-      "stripe": "18.4.0"
+      "stripe": "18.4.0",
+      "next": "16.0.7"
     }
   },
   "dependencies": {

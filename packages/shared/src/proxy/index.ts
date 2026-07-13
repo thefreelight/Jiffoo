@@ -111,10 +111,18 @@ export function shouldSkipLocaleHandling(pathname: string): boolean {
 // Theme App Proxy
 // ============================================================================
 
+function stripTrailingSlashes(value: string): string {
+  return value.replace(/\/+$/, '');
+}
+
 /**
  * Fetch active theme info from Core API
  *
- * @param request - The incoming request (used for origin)
+ * Prefers the internal API service URL (API_SERVICE_URL) — server-side
+ * fetches must not round-trip through the public host. Falls back to the
+ * incoming request origin when no internal URL is configured.
+ *
+ * @param request - The incoming request (origin fallback)
  * @param target - 'shop' or 'admin'
  * @returns Active theme info or null if unavailable
  */
@@ -123,11 +131,11 @@ export async function getActiveThemeInfo(
   target: ProxyTarget
 ): Promise<ActiveThemeInfo | null> {
   try {
-    // Build API URL using request origin
-    const apiUrl = new URL(
-      `/api/themes/active?target=${target}`,
-      request.nextUrl.origin
-    );
+    const apiServiceUrl = process.env.API_SERVICE_URL;
+    const apiOrigin = apiServiceUrl
+      ? stripTrailingSlashes(apiServiceUrl)
+      : request.nextUrl.origin;
+    const apiUrl = new URL(`/api/themes/active?target=${target}`, apiOrigin);
 
     const response = await fetch(apiUrl.toString(), {
       method: 'GET',

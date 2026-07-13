@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "page": "products",
+  "blocks": [
+    {
+      "type": "banner",
+      "settings": {
+        "title": "Digital goods catalog",
+        "subtitle": "Browse gift cards, redeem codes, accounts, and downloads.",
+        "backgroundColor": "#111827",
+        "textColor": "#ffffff",
+        "height": "small"
+      }
+    },
+    {
+      "type": "product-grid",
+      "settings": {
+        "title": "All products",
+        "limit": 12,
+        "columns": 4,
+        "showTitle": false,
+        "sortBy": "newest",
+        "showViewAll": false
+      }
+    }
+  ]
+}

@@ -7,7 +7,7 @@ import './tokens.css';
 import type { ThemePackage } from 'shared/src/types/theme';
 
 // Import page components
-import { HomePage } from './components/HomePage';
+import { HomePage } from './components/AdaptiveHomePage';
 import { ProductsPage } from './components/ProductsPage';
 import { ProductDetailPage } from './components/ProductDetailPage';
 import { CartPage } from './components/CartPage';
@@ -37,6 +37,9 @@ import { Footer } from './components/Footer';
 export { Toast, ToastContainer } from './ui/Toast';
 export type { ToastProps, ToastType } from './ui/Toast';
 
+// Shared illustration exports (reused by sibling built-in themes)
+export * from './ui/illustrations';
+
 /**
  * Default theme package
  */
@@ -65,8 +68,10 @@ export const theme: ThemePackage = {
   },
   defaultConfig: {
     brand: {
+      name: 'Jiffoo',
       primaryColor: '#2563eb',
-      secondaryColor: '#7c3aed',
+      secondaryColor: '#0f766e',
+      fontFamily: 'Outfit, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif',
     },
     layout: {
       headerSticky: true,
@@ -77,6 +82,20 @@ export const theme: ThemePackage = {
       showWishlist: true,
       showRatings: true,
       enableQuickView: false,
+    },
+    site: {
+      archetype: 'storefront',
+      eyebrow: 'Curated commerce storefront',
+      headline: 'Quality products, delivered fast.',
+      subheadline: 'A polished default storefront for browsing categories, new arrivals, and trusted checkout flows.',
+      primaryCtaLabel: 'Shop now',
+      primaryCtaHref: '/products',
+      secondaryCtaLabel: 'Explore categories',
+      secondaryCtaHref: '/products',
+      installCommand: 'curl -fsSL https://get.jiffoo.com | bash',
+      docsHref: '/help',
+      demoHref: '/products',
+      supportEmail: 'hello@jiffoo.com',
     },
   },
 };

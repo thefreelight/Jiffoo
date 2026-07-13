@@ -39,6 +39,12 @@ export interface CreateTestAppOptions {
   enableCors?: boolean;
 
   /**
+   * Whether to enable the versioning middleware
+   * @default false
+   */
+  enableVersioning?: boolean;
+
+  /**
    * Custom environment variables for this test app
    */
   env?: Record<string, string>;
@@ -181,6 +187,7 @@ export async function createTestApp(options: CreateTestAppOptions = {}): Promise
     disableDynamicPlugins = true,
     disableFileSystem = true,
     enableCors = false,
+    enableVersioning = false,
     env = {},
   } = options;
 
@@ -297,6 +304,12 @@ export async function createTestApp(options: CreateTestAppOptions = {}): Promise
       request.headers['x-request-id'] = request.headers['x-request-id'] ||
         `test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     });
+
+    // Register versioning middleware (optional, opt-in per test)
+    if (enableVersioning) {
+      const { versioningMiddleware } = await import('../../src/middleware/versioning');
+      fastify.addHook('onRequest', versioningMiddleware);
+    }
 
     // Import and register routes
     const { registerRoutes } = await import('../../src/routes');

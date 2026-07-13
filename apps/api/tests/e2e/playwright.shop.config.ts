@@ -42,6 +42,9 @@ export default defineConfig({
         DATABASE_URL_TEST: testDatabaseUrl,
         DATABASE_URL: testDatabaseUrl,
         DISABLE_RATE_LIMITER: 'true',
+        // Admin/store routes resolve the default store by this id; the e2e
+        // seed owns e2e-default-store (vitest helpers own test-store).
+        STORE_DEFAULT_ID: 'e2e-default-store',
       },
     },
     {

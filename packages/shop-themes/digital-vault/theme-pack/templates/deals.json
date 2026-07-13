@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "page": "deals",
+  "blocks": [
+    {
+      "type": "product-grid",
+      "settings": {
+        "title": "Deals",
+        "limit": 8,
+        "columns": 4,
+        "showTitle": true,
+        "sortBy": "price-asc",
+        "showViewAll": false
+      }
+    }
+  ]
+}

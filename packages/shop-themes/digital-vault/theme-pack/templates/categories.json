@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "page": "categories",
+  "blocks": [
+    {
+      "type": "featured-categories",
+      "settings": {
+        "title": "All categories",
+        "limit": 12,
+        "columns": 3,
+        "showTitle": true
+      }
+    }
+  ]
+}

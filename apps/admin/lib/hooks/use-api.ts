@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, companiesApi, pricingApi, quotesApi, purchaseOrdersApi, promotionsApi, redirectsApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type Company, type PriceRule, type Quote, type PurchaseOrder, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData } from '../api';
+import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
@@ -39,7 +39,7 @@ export interface PaginatedApiResponse<T> {
 // Re-export types for convenience
 export type { DashboardStats, Product, Order, OrderDetail, User, OrderItem, OrderDetailItem } from '../types';
 export type { ErrorLog, ErrorListParams } from '../types';
-export type { Company, PriceRule, Quote, PurchaseOrder, SeoRedirect, Promotion, PromotionForm } from '../api';
+export type { SeoRedirect, Promotion, PromotionForm } from '../api';
 
 // Query keys
 export const queryKeys = {
@@ -52,6 +52,11 @@ export const queryKeys = {
   users: ['users'] as const,
   user: (id: string) => ['users', id] as const,
   userStats: ['user-stats'] as const,
+  staff: ['staff'] as const,
+  staffMember: (userId: string) => ['staff', userId] as const,
+  staffRoles: ['staff-roles'] as const,
+  staffPermissions: ['staff-permissions'] as const,
+  staffAuditLogs: (userId: string, page: number, limit: number) => ['staff', userId, 'audit', page, limit] as const,
   dashboardStats: ['dashboard-stats'] as const,
   salesStats: (period: string) => ['sales-stats', period] as const,
   productStats: ['product-stats'] as const,
@@ -87,7 +92,7 @@ export function useProducts(params: PaginationParams = {}) {
   return useQuery({
     queryKey: [...queryKeys.products, params],
     queryFn: async () => {
-      const response = await productsApi.getAll(params.page, params.limit, params.search);
+      const response = await productsApi.getAll(params.page, params.limit, params.search, (params as any).productType);
       const data = unwrapApiResponse(response);
 
       // Adapt PageResult to frontend pagination structure
@@ -306,6 +311,36 @@ export function useOrder(id: string) {
   });
 }
 
+export function useUpdateOrderItemFulfillment() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      itemId,
+      data,
+    }: {
+      id: string;
+      itemId: string;
+      data: { fulfillmentStatus?: string; fulfillmentData?: Record<string, unknown> | null };
+    }) => {
+      const response = await ordersApi.updateItemFulfillment(id, itemId, data);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.order(id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders });
+      queryClient.invalidateQueries({ queryKey: queryKeys.orderStats });
+      queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
+      toast.success('Fulfillment payload updated successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
 export function useUpdateOrderStatus() {
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
@@ -511,6 +546,167 @@ export function useUpdateUser() {
   });
 }
 
+// ============================================================
+// Staff management hooks (Admin RBAC)
+// ============================================================
+
+export function useStaff(params: {
+  page?: number;
+  limit?: number;
+  search?: string;
+  role?: string;
+  status?: string;
+} = {}) {
+  return useQuery({
+    queryKey: [...queryKeys.staff, params],
+    queryFn: async () => {
+      const response = await staffApi.getAll(params);
+      const data = unwrapApiResponse(response);
+      return {
+        data: data.items || [],
+        pagination: {
+          page: data.page || 1,
+          limit: data.limit || 20,
+          total: data.total || 0,
+          totalPages: data.totalPages || 0,
+        },
+      };
+    },
+    staleTime: 60 * 1000,
+  });
+}
+
+export function useStaffMember(userId: string) {
+  return useQuery({
+    queryKey: queryKeys.staffMember(userId),
+    queryFn: async () => {
+      const response = await staffApi.getByUserId(userId);
+      return unwrapApiResponse(response);
+    },
+    enabled: Boolean(userId),
+  });
+}
+
+export function useStaffRoles() {
+  return useQuery({
+    queryKey: queryKeys.staffRoles,
+    queryFn: async () => {
+      const response = await staffApi.getRoles();
+      return unwrapApiResponse(response);
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+export function useStaffPermissions() {
+  return useQuery({
+    queryKey: queryKeys.staffPermissions,
+    queryFn: async () => {
+      const response = await staffApi.getPermissions();
+      return unwrapApiResponse(response);
+    },
+    staleTime: 10 * 60 * 1000,
+  });
+}
+
+export function useStaffAuditLogs(userId: string, page = 1, limit = 20) {
+  return useQuery({
+    queryKey: queryKeys.staffAuditLogs(userId, page, limit),
+    queryFn: async () => {
+      const response = await staffApi.getAuditLogs(userId, page, limit);
+      const data = unwrapApiResponse(response);
+      return {
+        data: data.items || [],
+        pagination: {
+          page: data.page || 1,
+          limit: data.limit || 20,
+          total: data.total || 0,
+          totalPages: data.totalPages || 0,
+        },
+      };
+    },
+    enabled: Boolean(userId),
+  });
+}
+
+export function useCreateStaff() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async (data: StaffCreatePayload) => {
+      const response = await staffApi.create(data);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
+      toast.success('Staff member created successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useUpdateStaff() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({ userId, data }: { userId: string; data: StaffMutationPayload }) => {
+      const response = await staffApi.update(userId, data);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, { userId }) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
+      queryClient.invalidateQueries({ queryKey: queryKeys.staffMember(userId) });
+      toast.success('Staff member updated successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useRemoveStaff() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await staffApi.remove(userId);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, userId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.staff, exact: false });
+      queryClient.removeQueries({ queryKey: queryKeys.staffMember(userId) });
+      toast.success('Staff access removed');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useResendStaffInvite() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await staffApi.resendInvite(userId);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, userId) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.staffMember(userId) });
+      toast.success('Invitation email sent');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
 // Dashboard hooks
 export function useDashboardStats() {
   // Deprecated: migrating to useAdminDashboard
@@ -705,6 +901,13 @@ export function useChangePassword() {
       return unwrapApiResponse(response);
     },
     onSuccess: () => {
+      const { user, updateUser } = useAuthStore.getState();
+      if (user) {
+        updateUser({
+          ...user,
+          requiresPasswordRotation: false,
+        });
+      }
       toast.success('Password changed successfully');
     },
     onError: (error: unknown) => {
@@ -728,6 +931,11 @@ const pluginQueryKeys = {
   instances: (slug: string) => [...pluginQueryKeys.all, 'instances', slug] as const,
 };
 
+const pluginTokenQueryKeys = {
+  all: ['plugin-token'] as const,
+  status: (slug: string, installationId: string) => [...pluginTokenQueryKeys.all, slug, installationId, 'status'] as const,
+};
+
 const marketQueryKeys = {
   all: ['official-catalog'] as const,
 };
@@ -736,6 +944,23 @@ const platformConnectionQueryKeys = {
   all: ['platform-connection'] as const,
   status: ['platform-connection', 'status'] as const,
 };
+
+const managedPackageQueryKeys = {
+  all: ['managed-package'] as const,
+  branding: ['managed-package', 'branding'] as const,
+  status: ['managed-package', 'status'] as const,
+};
+
+export function useManagedPackageBranding() {
+  return useQuery({
+    queryKey: managedPackageQueryKeys.branding,
+    queryFn: async () => {
+      const response = await managedPackageApi.getBranding();
+      return unwrapApiResponse(response);
+    },
+    staleTime: 30 * 1000,
+  });
+}
 
 export function useOfficialCatalog() {
   return useQuery({
@@ -757,18 +982,21 @@ export function useInstallOfficialExtension() {
       slug,
       kind,
       version,
+      activate,
     }: {
       slug: string;
       kind: 'plugin' | 'theme-shop' | 'theme-admin' | 'theme-app-shop' | 'theme-app-admin';
       version?: string;
+      activate?: boolean;
     }) => {
-      const response = await marketApi.installOfficialExtension(slug, { kind, version });
+      const response = await marketApi.installOfficialExtension(slug, { kind, version, activate });
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
       queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
       toast.success(
         variables.kind === 'plugin'
           ? getText('merchant.plugins.installSuccess', 'Plugin installed successfully')
@@ -787,6 +1015,61 @@ export function useInstallOfficialExtension() {
   });
 }
 
+export function useManagedPackageStatus() {
+  return useQuery({
+    queryKey: managedPackageQueryKeys.status,
+    queryFn: async () => {
+      const response = await managedPackageApi.getStatus();
+      return unwrapApiResponse(response);
+    },
+    staleTime: 30 * 1000,
+  });
+}
+
+export function useActivateManagedPackage() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async (activationCode: string) => {
+      const response = await managedPackageApi.activate({ activationCode });
+      return unwrapApiResponse(response);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
+      toast.success('Commercial package activated');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'merchant.extensions.managedPackageActivationFailed', 'Failed to activate commercial package'));
+    },
+  });
+}
+
+export function useProvisionManagedPackage() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await managedPackageApi.provision();
+      return unwrapApiResponse(response);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
+      toast.success('Included assets provisioned successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error, 'merchant.extensions.managedPackageProvisionFailed', 'Failed to provision included assets'));
+    },
+  });
+}
+
 export function usePlatformConnectionStatus() {
   return useQuery({
     queryKey: platformConnectionQueryKeys.status,
@@ -794,7 +1077,9 @@ export function usePlatformConnectionStatus() {
       const response = await platformConnectionApi.getStatus();
       return unwrapApiResponse(response);
     },
-    staleTime: 30 * 1000,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: 'always',
   });
 }
 
@@ -867,7 +1152,7 @@ export function useBindPlatformTenant() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: platformConnectionQueryKeys.all });
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success('Default store bound to Jiffoo Platform');
+      toast.success('Default store bound to the official platform');
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error, 'merchant.extensions.platformBindTenantFailed', 'Failed to bind the default store'));
@@ -1139,6 +1424,117 @@ export function useDeletePluginInstance() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: pluginQueryKeys.instances(variables.slug) });
       toast.success('Instance deleted successfully');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function usePluginInstanceTokenStatus(slug: string, installationId: string) {
+  return useQuery({
+    queryKey: pluginTokenQueryKeys.status(slug, installationId || 'default'),
+    queryFn: async () => {
+      const response = await pluginsApi.getInstanceTokenStatus(slug, installationId);
+      return unwrapApiResponse(response);
+    },
+    enabled: Boolean(slug && installationId && installationId !== 'default'),
+    staleTime: 30 * 1000,
+  });
+}
+
+function invalidatePluginTokenStatus(queryClient: ReturnType<typeof useQueryClient>, slug: string, installationId: string) {
+  queryClient.invalidateQueries({ queryKey: pluginTokenQueryKeys.status(slug, installationId) });
+}
+
+export function useIssuePluginInstanceToken() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
+      const response = await pluginsApi.issueInstanceToken(slug, installationId);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, variables) => {
+      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
+      toast.success('Gateway access token issued');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useRefreshPluginInstanceToken() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
+      const response = await pluginsApi.refreshInstanceToken(slug, installationId);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, variables) => {
+      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
+      toast.success('Gateway access token rotated');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useSuspendPluginInstanceToken() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
+      const response = await pluginsApi.suspendInstanceToken(slug, installationId);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, variables) => {
+      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
+      toast.success('Gateway access token suspended');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useResumePluginInstanceToken() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
+      const response = await pluginsApi.resumeInstanceToken(slug, installationId);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, variables) => {
+      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
+      toast.success('Gateway access token resumed');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
+export function useRevokePluginInstanceToken() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+
+  return useMutation({
+    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
+      const response = await pluginsApi.revokeInstanceToken(slug, installationId);
+      return unwrapApiResponse(response);
+    },
+    onSuccess: (_, variables) => {
+      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
+      toast.success('Gateway access token revoked');
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -1528,166 +1924,6 @@ export function useResolveError() {
   });
 }
 
-// ==================== B2B Companies Hooks ====================
-
-const companyHooks = createCrudHooks<Company, Company, Partial<Company>, Partial<Company>>({
-  resource: 'companies',
-  api: {
-    getAll: async (params?: CrudPaginationParams) => {
-      return companiesApi.getAll(params?.page, params?.limit, params?.search);
-    },
-    getById: (id: string) => companiesApi.getById(id),
-    create: (data: Partial<Company>) => companiesApi.create(data),
-    update: (id: string, data: Partial<Company>) => companiesApi.update(id, data),
-    delete: (id: string) => companiesApi.delete(id),
-  },
-  messages: {
-    createSuccess: 'Company created successfully',
-    updateSuccess: 'Company updated successfully',
-    deleteSuccess: 'Company deleted successfully',
-  },
-  staleTime: 5 * 60 * 1000,
-});
-
-export const useCompanies = companyHooks.useList;
-export const useCreateCompany = companyHooks.useCreate;
-export const useUpdateCompany = companyHooks.useUpdate;
-export const useDeleteCompany = companyHooks.useDelete;
-
-// ==================== B2B Pricing Rules Hooks ====================
-
-const priceRuleHooks = createCrudHooks<PriceRule, PriceRule, Partial<PriceRule>, Partial<PriceRule>>({
-  resource: 'price-rules',
-  api: {
-    getAll: async (params?: CrudPaginationParams) => {
-      const { page, limit, search, ...rest } = params || {};
-      return pricingApi.getAll(page, limit, { search, ...rest });
-    },
-    getById: (id: string) => pricingApi.getById(id),
-    create: (data: Partial<PriceRule>) => pricingApi.create(data),
-    update: (id: string, data: Partial<PriceRule>) => pricingApi.update(id, data),
-    delete: (id: string) => pricingApi.delete(id),
-  },
-  messages: {
-    createSuccess: 'Pricing rule created successfully',
-    updateSuccess: 'Pricing rule updated successfully',
-    deleteSuccess: 'Pricing rule deleted successfully',
-  },
-  staleTime: 5 * 60 * 1000,
-});
-
-export const usePriceRules = priceRuleHooks.useList;
-export const useCreatePriceRule = priceRuleHooks.useCreate;
-export const useUpdatePriceRule = priceRuleHooks.useUpdate;
-export const useDeletePriceRule = priceRuleHooks.useDelete;
-
-// ==================== B2B Quotes Hooks ====================
-
-const quoteQueryKeys = {
-  all: ['quotes'] as const,
-  list: (params?: any) => ['quotes', 'list', params] as const,
-  detail: (id: string) => ['quotes', id] as const,
-};
-
-export function useQuotes(params: {
-  page?: number;
-  limit?: number;
-  status?: string;
-} = {}) {
-  return useQuery({
-    queryKey: quoteQueryKeys.list(params),
-    queryFn: async (): Promise<{ data: Quote[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> => {
-      const response = await quotesApi.getAll(params.page, params.limit, params.status);
-      const data = unwrapApiResponse(response);
-      // Transform PageResult to PaginatedResponse format
-      if (data.items && typeof data.total === 'number') {
-        return {
-          data: data.items,
-          pagination: {
-            page: params.page || 1,
-            limit: params.limit || 10,
-            total: data.total,
-            totalPages: Math.ceil(data.total / (params.limit || 10)),
-          },
-        };
-      }
-      return data as any;
-    },
-    staleTime: 2 * 60 * 1000,
-  });
-}
-
-export function useApproveQuote() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { approvedBy: string; validUntil?: string } }) => {
-      const response = await quotesApi.approve(id, data);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: quoteQueryKeys.all });
-      toast.success('Quote approved successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to approve quote');
-    },
-  });
-}
-
-export function useRejectQuote() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, data }: { id: string; data: { rejectedBy: string; rejectionReason: string } }) => {
-      const response = await quotesApi.reject(id, data);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: quoteQueryKeys.all });
-      toast.success('Quote rejected successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to reject quote');
-    },
-  });
-}
-
-// ==================== B2B Purchase Orders Hooks ====================
-
-const purchaseOrderQueryKeys = {
-  all: ['purchase-orders'] as const,
-  list: (params?: any) => ['purchase-orders', 'list', params] as const,
-  detail: (id: string) => ['purchase-orders', id] as const,
-};
-
-export function usePurchaseOrders(params: {
-  page?: number;
-  limit?: number;
-  status?: string;
-} = {}) {
-  return useQuery({
-    queryKey: purchaseOrderQueryKeys.list(params),
-    queryFn: async (): Promise<{ data: PurchaseOrder[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> => {
-      const response = await purchaseOrdersApi.getAll(params.page, params.limit, params.status);
-      const data = unwrapApiResponse(response);
-      // Transform PageResult to PaginatedResponse format
-      if (data.items && typeof data.total === 'number') {
-        return {
-          data: data.items,
-          pagination: {
-            page: params.page || 1,
-            limit: params.limit || 10,
-            total: data.total,
-            totalPages: Math.ceil(data.total / (params.limit || 10)),
-          },
-        };
-      }
-      return data as any;
-    },
-    staleTime: 2 * 60 * 1000,
-  });
-}
 
 // ==================== Promotions Hooks ====================
 

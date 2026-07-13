@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "site": {
+      "type": "object",
+      "title": "Site",
+      "properties": {
+        "archetype": {
+          "type": "string",
+          "title": "Site Archetype",
+          "enum": ["storefront", "landing-commerce", "product-site"],
+          "default": "product-site"
+        },
+        "heroEyebrow": {
+          "type": "string",
+          "title": "Hero Eyebrow",
+          "default": "AI Gateway"
+        },
+        "heroTitle": {
+          "type": "string",
+          "title": "Hero Title",
+          "default": "Launch your own model gateway with pricing, quotas, and provider routing built in."
+        },
+        "heroDescription": {
+          "type": "string",
+          "title": "Hero Description",
+          "default": "Sell API access with a storefront that feels product-led on the surface and operationally solid behind the scenes."
+        },
+        "primaryCtaLabel": {
+          "type": "string",
+          "title": "Primary CTA Label",
+          "default": "Launch Solution"
+        },
+        "secondaryCtaLabel": {
+          "type": "string",
+          "title": "Secondary CTA Label",
+          "default": "View Docs"
+        }
+      }
+    },
+    "colors": {
+      "type": "object",
+      "title": "Colors",
+      "properties": {
+        "primary": { "type": "string", "format": "color", "default": "#0f4c81" },
+        "secondary": { "type": "string", "format": "color", "default": "#138f7a" },
+        "accent": { "type": "string", "format": "color", "default": "#f59e0b" },
+        "background": { "type": "string", "format": "color", "default": "#f7fafc" },
+        "foreground": { "type": "string", "format": "color", "default": "#0f172a" }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "title": "Layout",
+      "properties": {
+        "containerWidth": { "type": "string", "default": "1240px" },
+        "headerHeight": { "type": "string", "default": "76px" },
+        "radius": { "type": "string", "default": "1rem" }
+      }
+    }
+  }
+}

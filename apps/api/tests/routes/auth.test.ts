@@ -22,10 +22,12 @@ import {
   deleteAllTestUsers,
   verifyJwt,
 } from '../helpers/auth';
+import { getTestPrisma } from '../helpers/db';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('Auth Endpoints', () => {
   let app: FastifyInstance;
+  const prisma = getTestPrisma();
 
   beforeAll(async () => {
     app = await createTestApp();
@@ -366,6 +368,7 @@ describe('Auth Endpoints', () => {
       expect(body.data).toHaveProperty('email');
       expect(body.data.id).toBe(testUser.id);
       expect(body.data.email).toBe(testUser.email);
+      expect(body.data).toHaveProperty('requiresPasswordRotation');
     });
 
     it('should not return password in response', async () => {
@@ -380,6 +383,55 @@ describe('Auth Endpoints', () => {
       const body = response.json();
       // API returns user data directly in data, not nested in data.user
       expect(body.data).not.toHaveProperty('password');
+    });
+  });
+
+  describe('GET /api/auth/bootstrap-status', () => {
+    beforeEach(async () => {
+      await prisma.systemSettings.upsert({
+        where: { id: 'system' },
+        update: {
+          settings: {
+            'auth.bootstrap.admin': {
+              mode: 'bootstrap',
+              showDemoCredentials: true,
+              requiresPasswordRotation: true,
+              email: 'admin@jiffoo.com',
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        },
+        create: {
+          id: 'system',
+          siteName: 'Test Store',
+          settings: {
+            'auth.bootstrap.admin': {
+              mode: 'bootstrap',
+              showDemoCredentials: true,
+              requiresPasswordRotation: true,
+              email: 'admin@jiffoo.com',
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        },
+      });
+    });
+
+    it('should return bootstrap credentials when bootstrap mode is active', async () => {
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/auth/bootstrap-status',
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = response.json();
+      expect(body.success).toBe(true);
+      expect(body.data.mode).toBe('bootstrap');
+      expect(body.data.showDemoCredentials).toBe(true);
+      expect(body.data.requiresPasswordRotation).toBe(true);
+      expect(body.data.credentials.email).toBe('admin@jiffoo.com');
+      expect(body.data.credentials.password).toBe('admin123');
     });
   });
 
@@ -533,6 +585,69 @@ describe('Auth Endpoints', () => {
       });
 
       expect(loginResponse.statusCode).toBe(200);
+    });
+
+    it('should clear bootstrap credential display after the seeded admin rotates the password', async () => {
+      const seededAdmin = await createTestUser({
+        email: 'admin@jiffoo.com',
+        username: 'admin',
+        role: 'ADMIN',
+        password: 'admin123',
+      });
+      const seededToken = signJwt(seededAdmin);
+
+      await prisma.systemSettings.upsert({
+        where: { id: 'system' },
+        update: {
+          settings: {
+            'auth.bootstrap.admin': {
+              mode: 'bootstrap',
+              showDemoCredentials: true,
+              requiresPasswordRotation: true,
+              email: 'admin@jiffoo.com',
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        },
+        create: {
+          id: 'system',
+          siteName: 'Test Store',
+          settings: {
+            'auth.bootstrap.admin': {
+              mode: 'bootstrap',
+              showDemoCredentials: true,
+              requiresPasswordRotation: true,
+              email: 'admin@jiffoo.com',
+              updatedAt: new Date().toISOString(),
+            },
+          },
+        },
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/auth/change-password',
+        headers: {
+          authorization: `Bearer ${seededToken}`,
+        },
+        payload: {
+          currentPassword: 'admin123',
+          newPassword: 'NewAdminPassword123!',
+        },
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const bootstrapStatus = await app.inject({
+        method: 'GET',
+        url: '/api/auth/bootstrap-status',
+      });
+
+      expect(bootstrapStatus.statusCode).toBe(200);
+      const body = bootstrapStatus.json();
+      expect(body.data.showDemoCredentials).toBe(false);
+      expect(body.data.requiresPasswordRotation).toBe(false);
+      expect(body.data.credentials).toBeNull();
     });
 
     it('should reject wrong current password', async () => {

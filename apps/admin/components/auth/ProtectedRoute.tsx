@@ -63,8 +63,17 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
         // Just show access denied for now
         return
       }
+
+      if (
+        user?.requiresPasswordRotation &&
+        pathname !== `/${locale}/profile` &&
+        pathname !== `/${locale}/auth/login`
+      ) {
+        router.replace(`/${locale}/profile`)
+        return
+      }
     }
-  }, [hasInitialized, isAuthenticated, isLoading, isChecking, user, requireAdmin, router, pathname])
+  }, [hasInitialized, isAuthenticated, isLoading, isChecking, user, requireAdmin, router, pathname, locale])
 
   // Show loading state: initializing or checking authentication
   if (!hasInitialized || isLoading || isChecking) {

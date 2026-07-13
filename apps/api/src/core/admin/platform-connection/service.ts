@@ -157,6 +157,15 @@ function isLaunchReadyBootstrapEnabled(): boolean {
   return OFFICIAL_EXTENSIONS_BOOTSTRAP_MODE === 'launch-ready';
 }
 
+function isPendingExpired(expiresAt?: string | null): boolean {
+  if (!expiresAt) {
+    return false;
+  }
+
+  const expiresAtTime = Date.parse(expiresAt);
+  return Number.isFinite(expiresAtTime) && expiresAtTime <= Date.now();
+}
+
 export class PlatformConnectionStateError extends Error {
   code: string;
   details?: unknown;
@@ -196,8 +205,54 @@ export class PlatformConnectionService {
     return nextState;
   }
 
+  private async syncPendingState(state: StoredPlatformConnectionState): Promise<StoredPlatformConnectionState> {
+    if (!state.pending?.deviceCode) {
+      return state;
+    }
+
+    if (isPendingExpired(state.pending.expiresAt)) {
+      const nextState: StoredPlatformConnectionState = {
+        ...state,
+        pending: null,
+      };
+      await this.saveState(nextState);
+      return nextState;
+    }
+
+    try {
+      const result = await MarketClient.pollPlatformConnection({ deviceCode: state.pending.deviceCode });
+      const nextState: StoredPlatformConnectionState = {
+        ...state,
+        pending: result.authorized ? null : result.status.pending || state.pending || null,
+        instance: result.authorized && result.status.instance && result.instanceToken
+          ? {
+              ...result.status.instance,
+              instanceToken: result.instanceToken,
+            }
+          : state.instance ?? null,
+        tenantBinding: result.status.tenantBinding || state.tenantBinding || null,
+      };
+
+      await this.saveState(nextState);
+      return nextState;
+    } catch (error: any) {
+      const message = typeof error?.message === 'string' ? error.message.toLowerCase() : '';
+      if (message.includes('not found') || message.includes('404')) {
+        const nextState: StoredPlatformConnectionState = {
+          ...state,
+          pending: null,
+        };
+        await this.saveState(nextState);
+        return nextState;
+      }
+
+      return state;
+    }
+  }
+
   async getStatus(): Promise<PlatformConnectionStatus> {
-    return toPublicStatus(await this.ensureLaunchReadyBinding());
+    const state = await this.ensureLaunchReadyBinding();
+    return toPublicStatus(await this.syncPendingState(state));
   }
 
   async getMarketplaceBindingContext(): Promise<{
@@ -210,7 +265,7 @@ export class PlatformConnectionService {
       localStoreId: string;
     } | null;
   }> {
-    const state = await this.ensureLaunchReadyBinding();
+    const state = await this.syncPendingState(await this.ensureLaunchReadyBinding());
     if (!state.instance || !state.tenantBinding) {
       return {
         status: toPublicStatus(state),

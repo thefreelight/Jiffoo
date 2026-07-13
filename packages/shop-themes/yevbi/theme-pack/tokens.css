@@ -1,0 +1,75 @@
+/**
+ * Yevbi theme design tokens
+ * Hard core network infrastructure style
+ */
+
+:root {
+  /* Brand colors */
+  --yevbi-primary: #ffffff;
+  --yevbi-primary-dark: #eaeaea;
+  --yevbi-secondary: #0a0a0a;
+  --yevbi-accent: #111111;
+
+  /* Background colors */
+  --yevbi-bg-primary: #000000;
+  --yevbi-bg-secondary: #0a0a0a;
+  --yevbi-bg-tertiary: #111111;
+
+  /* Text colors */
+  --yevbi-text-primary: #ffffff;
+  --yevbi-text-secondary: #eaeaea;
+  --yevbi-text-tertiary: #888888;
+
+  /* Border colors */
+  --yevbi-border-light: #1a1a1a;
+  --yevbi-border-medium: #111111;
+
+  /* Shadows */
+  --yevbi-shadow-sm: none;
+  --yevbi-shadow-md: none;
+  --yevbi-shadow-lg: none;
+
+  /* Border radius (small) */
+  --yevbi-radius-sm: 0px;
+  --yevbi-radius-md: 2px;
+  --yevbi-radius-lg: 2px;
+  --yevbi-radius-xl: 4px;
+
+  /* Spacing */
+  --yevbi-spacing-xs: 0.25rem;
+  --yevbi-spacing-sm: 0.5rem;
+  --yevbi-spacing-md: 1rem;
+  --yevbi-spacing-lg: 1.5rem;
+  --yevbi-spacing-xl: 2rem;
+  --yevbi-spacing-2xl: 3rem;
+}
+
+/* Base utilities rewritten for the monochrome style */
+.yevbi-card {
+  background: var(--yevbi-bg-secondary);
+  border: 1px solid var(--yevbi-border-light);
+  border-radius: var(--yevbi-radius-md);
+  box-shadow: none;
+  transition: all 0.2s ease;
+}
+
+.yevbi-card:hover {
+  border-color: var(--yevbi-text-secondary);
+  transform: none;
+}
+
+.yevbi-btn-primary {
+  background: var(--yevbi-primary);
+  color: #000000;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--yevbi-radius-md);
+  font-weight: 600;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.yevbi-btn-primary:hover {
+  background: var(--yevbi-primary-dark);
+  border-color: var(--yevbi-primary);
+  transform: none;
+}

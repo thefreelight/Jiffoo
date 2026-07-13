@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "colors": {
+      "type": "object",
+      "title": "Colors",
+      "properties": {
+        "primary": {
+          "type": "string",
+          "title": "Primary Color",
+          "format": "color",
+          "default": "#0071E3"
+        },
+        "secondary": {
+          "type": "string",
+          "title": "Secondary Color",
+          "format": "color",
+          "default": "#111827"
+        },
+        "background": {
+          "type": "string",
+          "title": "Background Color",
+          "format": "color",
+          "default": "#F5F5F7"
+        },
+        "foreground": {
+          "type": "string",
+          "title": "Foreground Color",
+          "format": "color",
+          "default": "#1D1D1F"
+        }
+      }
+    },
+    "layout": {
+      "type": "object",
+      "title": "Layout",
+      "properties": {
+        "containerWidth": {
+          "type": "string",
+          "title": "Container Width",
+          "default": "1280px"
+        },
+        "headerHeight": {
+          "type": "string",
+          "title": "Header Height",
+          "default": "72px"
+        },
+        "radius": {
+          "type": "string",
+          "title": "Border Radius",
+          "default": "16px"
+        }
+      }
+    }
+  }
+}

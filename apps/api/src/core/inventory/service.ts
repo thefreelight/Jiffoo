@@ -9,6 +9,20 @@ import { prisma } from '@/config/database';
 import { Prisma } from '@prisma/client';
 import { CacheService } from '@/core/cache/service';
 import { WarehouseService } from '@/core/warehouse/service';
+
+/**
+ * Structural transaction-client type: callers pass transaction clients from
+ * both the base PrismaClient and the $extends'd client, whose nominal types
+ * are incompatible.
+ */
+export type InventoryStockTx = {
+  warehouseInventory: {
+    findUnique(args: any): Promise<any>;
+    update(args: any): Promise<unknown>;
+    updateMany(args: any): Promise<{ count: number }>;
+    create(args: any): Promise<unknown>;
+  };
+};
 import {
   InventoryListResult,
   InventoryWithDetails,
@@ -114,7 +128,7 @@ export class InventoryService {
   }
 
   static async decrementStock(
-    tx: Prisma.TransactionClient,
+    tx: InventoryStockTx,
     variantId: string,
     quantity: number,
     warehouseId?: string
@@ -139,7 +153,7 @@ export class InventoryService {
   }
 
   static async incrementStock(
-    tx: Prisma.TransactionClient,
+    tx: InventoryStockTx,
     variantId: string,
     quantity: number,
     warehouseId?: string
@@ -183,7 +197,7 @@ export class InventoryService {
   }
 
   static async setStock(
-    tx: Prisma.TransactionClient,
+    tx: InventoryStockTx,
     variantId: string,
     quantity: number,
     warehouseId?: string

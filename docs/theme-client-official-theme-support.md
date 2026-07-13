@@ -63,6 +63,7 @@ That turns the label into a release-quality rule, not just a planning note.
 | Theme | Web | Mobile | Desktop | Why |
 | --- | --- | --- | --- | --- |
 | `builtin-default` | Implemented | Planned | Planned | Baseline OSS-safe storefront theme and the best first adapter target across clients. |
+| `serene` | Implemented | Planned | Planned | Second built-in base theme (calm indigo design), embedded in the shop registry. |
 | `quiet-curator` | Implemented | Planned | Planned | Official downloadable theme-pack with a clear presentation contract and lower coupling risk. |
 | `stellar-midnight` | Implemented | Planned | Planned | Official downloadable theme-pack with a clean pack-first story. |
 | `bokmoo` | Implemented | Planned | Planned | Official embedded storefront theme with no obvious theme-private API fork. |

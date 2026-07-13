@@ -9,4 +9,6 @@ cd apps/shop
 # Remove proxy.ts and install.sh route on CF Pages (they use Node.js APIs incompatible with edge runtime)
 rm -f proxy.ts
 rm -rf app/install.sh
+# next-on-pages requires edge runtime; repo source stays Node-compatible for self-hosted deploys
+printf '\nexport const runtime = "edge";\n' >> app/layout.tsx
 npx @cloudflare/next-on-pages

@@ -72,6 +72,3 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: ['/((?!api/|extensions/|uploads/|theme-app/|favicon.ico).*)'],
 };
-
-// Required for Cloudflare Pages
-export const runtime = 'edge';

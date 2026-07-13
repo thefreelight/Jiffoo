@@ -1,9 +1,14 @@
 import { evaluatePluginConfigReadiness } from '@/core/admin/extension-installer/config-readiness';
 import { isOfficialMarketOnly } from '@/core/admin/extension-installer/official-only';
+import { compareVersions } from '@/core/admin/extension-installer/version-utils';
+import { managedPackageService } from '@/core/admin/managed-package/service';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { ThemeManagementService } from '@/core/admin/theme-management/service';
+import type { ThemeMeta } from '@/core/admin/theme-management/types';
 import {
   OFFICIAL_LAUNCH_EXTENSIONS,
+  type CommercialPackageProjection,
+  type OfficialCatalogSolutionPackageMeta,
   type OfficialCatalogEntry,
   type OfficialExtensionCatalogItem as RemoteOfficialCatalogItem,
   type OfficialExtensionDeliveryMode,
@@ -14,6 +19,9 @@ import {
   type OfficialPricingModel,
 } from 'shared';
 import { MarketClient } from './market-client';
+import { checkOfficialArtifactReachable } from './official-artifact-health';
+import { buildOfficialArtifactMap, fetchOfficialArtifactsIndex } from './official-artifacts-client';
+import { UpdateChecker, type MarketUpdateCheckResult } from './update-checker';
 
 type OfficialExtensionKind = 'theme' | 'plugin';
 type OfficialInstallState = 'not_installed' | 'installed' | 'enabled' | 'active';
@@ -53,17 +61,17 @@ export interface OfficialCatalogItem {
   thumbnailUrl?: string;
   compatibility?: string;
   screenshots?: string[];
+  installedVersion?: string | null;
   publishState?: RemoteOfficialCatalogItem['publishState'];
   installable?: boolean;
   sellableVersion?: string;
+  latestVersion?: string | null;
+  artifactPackageUrl?: string | null;
+  updateAvailable?: boolean;
   configRequired?: boolean;
   configReady?: boolean;
   missingConfigFields?: string[];
-  adminUi?: {
-    entryPath?: string;
-    label?: string;
-    icon?: string;
-  };
+  solutionPackage?: OfficialCatalogSolutionPackageMeta | null;
 }
 
 export interface OfficialCatalogResponse {
@@ -71,17 +79,59 @@ export interface OfficialCatalogResponse {
   marketOnline: boolean;
   marketError?: string;
   officialMarketOnly: boolean;
+  managedPackage?: CommercialPackageProjection | null;
   generatedAt: string;
 }
 
 const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
+  fire: {
+    category: 'finance',
+    target: 'shop',
+  },
+  'imagic-studio': {
+    category: 'ai',
+    target: 'shop',
+  },
+  'navtoai': {
+    category: 'ai',
+    target: 'shop',
+  },
+  modelsfind: {
+    category: 'gallery',
+    target: 'shop',
+  },
+  'ai-gateway': {
+    category: 'ai',
+    target: 'shop',
+  },
   'esim-mall': {
     category: 'storefront',
+    target: 'shop',
+  },
+  'quiet-curator': {
+    category: 'community',
+    target: 'shop',
+  },
+  'stellar-midnight': {
+    category: 'saas',
     target: 'shop',
   },
   yevbi: {
     category: 'storefront',
     target: 'shop',
+  },
+  bokmoo: {
+    category: 'storefront',
+    target: 'shop',
+  },
+  'imagic-core': {
+    category: 'ai',
+  },
+  'quiet-curator-cms': {
+    category: 'content',
+  },
+  'ai-gateway-core': {
+    category: 'ai',
   },
   stripe: {
     category: 'payment',
@@ -89,8 +139,26 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
   i18n: {
     category: 'localization',
   },
+  'google-auth': {
+    category: 'security',
+  },
+  'apple-auth': {
+    category: 'security',
+  },
   odoo: {
     category: 'integration',
+  },
+  'admin-security': {
+    category: 'security',
+    target: 'admin',
+  },
+  'partner-network': {
+    category: 'operations',
+    target: 'admin',
+  },
+  'support-hub': {
+    category: 'support',
+    target: 'admin',
   },
 };
 
@@ -112,26 +180,6 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
     : {};
 }
 
-function getPluginAdminUi(manifestJson: unknown): OfficialCatalogItem['adminUi'] | undefined {
-  const manifest = parseJsonObject(manifestJson);
-  const adminUi = manifest.adminUi;
-
-  if (!adminUi || typeof adminUi !== 'object' || Array.isArray(adminUi)) {
-    return undefined;
-  }
-
-  const adminUiRecord = adminUi as Record<string, unknown>;
-  const entryPath = typeof adminUiRecord.entryPath === 'string' ? adminUiRecord.entryPath : undefined;
-  const label = typeof adminUiRecord.label === 'string' ? adminUiRecord.label : undefined;
-  const icon = typeof adminUiRecord.icon === 'string' ? adminUiRecord.icon : undefined;
-
-  if (!entryPath && !label && !icon) {
-    return undefined;
-  }
-
-  return { entryPath, label, icon };
-}
-
 function normalizeCatalogSource(source: unknown): OfficialCatalogItem['source'] {
   return source === 'builtin' ||
     source === 'installed' ||
@@ -141,10 +189,100 @@ function normalizeCatalogSource(source: unknown): OfficialCatalogItem['source'] 
     : 'catalog';
 }
 
+function hasVersionUpdate(currentVersion?: string | null, latestVersion?: string | null): boolean {
+  if (!currentVersion || !latestVersion) {
+    return false;
+  }
+
+  try {
+    return compareVersions(latestVersion, currentVersion) > 0;
+  } catch {
+    return latestVersion !== currentVersion;
+  }
+}
+
+function buildSolutionPackageMeta(
+  managedPackage: CommercialPackageProjection | null | undefined,
+  kind: OfficialExtensionKind,
+  slug: string,
+): OfficialCatalogSolutionPackageMeta | null {
+  if (!managedPackage || managedPackage.offerKind !== 'theme_first_solution') {
+    return null;
+  }
+
+  const included = kind === 'theme'
+    ? managedPackage.includedThemes.includes(slug)
+    : managedPackage.includedPlugins.includes(slug);
+
+  if (!included) {
+    return null;
+  }
+
+  const defaultTheme = kind === 'theme' && managedPackage.defaultThemeSlug === slug;
+
+  return {
+    offerKind: 'theme_first_solution',
+    packageId: managedPackage.packageId,
+    packageName: managedPackage.packageName,
+    displayBrandName: managedPackage.displayBrandName,
+    displaySolutionName: managedPackage.displaySolutionName,
+    packageStatus: managedPackage.status,
+    role: kind === 'theme'
+      ? defaultTheme
+        ? 'primary_theme'
+        : 'included_theme'
+      : 'companion_plugin',
+    defaultTheme,
+    setupStepCount: managedPackage.setupSteps.length,
+  };
+}
+
 function isNonBuiltinThemeSource(
   source: OfficialCatalogItem['source'] | undefined,
 ): source is Exclude<OfficialCatalogItem['source'], 'builtin' | 'catalog'> {
   return source === 'installed' || source === 'local-zip' || source === 'official-market';
+}
+
+function buildInstalledOfficialThemeState(
+  activeTheme: Awaited<ReturnType<typeof ThemeManagementService.getActiveTheme>>,
+  installedThemes: Awaited<ReturnType<typeof ThemeManagementService.getInstalledThemes>>,
+) {
+  const installedBySlug = new Map<
+    string,
+    {
+      version: string;
+      source: Exclude<OfficialCatalogItem['source'], 'builtin' | 'catalog'>;
+      installState: OfficialInstallState;
+      themeMeta?: ThemeMeta;
+    }
+  >();
+
+  for (const theme of installedThemes.items) {
+    if (theme.target !== 'shop' || !isNonBuiltinThemeSource(theme.source)) {
+      continue;
+    }
+
+    installedBySlug.set(theme.slug, {
+      version: theme.version,
+      source: theme.source,
+      installState: activeTheme.slug === theme.slug && activeTheme.type === (theme.type ?? 'pack')
+        ? 'active'
+        : 'installed',
+      themeMeta: theme,
+    });
+  }
+
+  if (activeTheme.source === 'official-market' && activeTheme.type === 'pack') {
+    const existing = installedBySlug.get(activeTheme.slug);
+    installedBySlug.set(activeTheme.slug, {
+      version: activeTheme.version,
+      source: 'official-market',
+      installState: 'active',
+      themeMeta: existing?.themeMeta,
+    });
+  }
+
+  return installedBySlug;
 }
 
 function toFallbackRemoteItem(seed: OfficialCatalogEntry): RemoteOfficialCatalogItem {
@@ -197,16 +335,30 @@ function getCatalogSeed(slug: string): OfficialCatalogEntry | undefined {
 }
 
 export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
-  const [connectivity, activeTheme, installedThemes, pluginPackages] = await Promise.all([
+  const [connectivity, activeTheme, installedThemes, pluginPackages, managedStatus] = await Promise.all([
     MarketClient.checkConnectivity(),
     ThemeManagementService.getActiveTheme('shop'),
     ThemeManagementService.getInstalledThemes('shop'),
     PluginManagementService.getAllPluginPackages(),
+    managedPackageService.getStatus().catch(() => ({ mode: 'oss' as const, package: null })),
   ]);
 
-  const remoteCatalog = connectivity.ok
-    ? await MarketClient.getOfficialCatalog().catch(() => null)
-    : null;
+  const hasInstalledOfficialSurface =
+    installedThemes.items.some((theme) => isNonBuiltinThemeSource(theme.source)) ||
+    pluginPackages.some((plugin) => normalizeCatalogSource(plugin?.source) !== 'catalog' && normalizeCatalogSource(plugin?.source) !== 'builtin');
+
+  const [remoteCatalog, artifactItems] = await Promise.all([
+    connectivity.ok
+      ? MarketClient.getOfficialCatalog(undefined, { fresh: hasInstalledOfficialSurface }).catch(() => null)
+      : Promise.resolve(null),
+    fetchOfficialArtifactsIndex({ fresh: hasInstalledOfficialSurface }).catch(() => []),
+  ]);
+  const cachedUpdates = remoteCatalog
+    ? null
+    : await UpdateChecker.getCachedResults().catch(() => null);
+  const cachedUpdatesBySlug = new Map<string, MarketUpdateCheckResult>(
+    (cachedUpdates || []).map((item) => [`${item.kind}:${item.slug}`, item] as const),
+  );
 
   const remoteItemsBySlug = new Map<string, RemoteOfficialCatalogItem>(
     (remoteCatalog?.items || OFFICIAL_LAUNCH_EXTENSIONS.map(toFallbackRemoteItem)).map((item) => [
@@ -214,45 +366,62 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
       item,
     ]),
   );
+  const artifactItemsByKey = buildOfficialArtifactMap(artifactItems);
+  const managedPackage = managedStatus.package;
 
-  const installedThemesBySlug = new Map(installedThemes.items.map((theme) => [theme.slug, theme]));
+  const installedOfficialThemesBySlug = buildInstalledOfficialThemeState(activeTheme, installedThemes);
   const installedPluginsBySlug = new Map(pluginPackages.map((plugin) => [plugin.slug, plugin]));
 
   const items = await Promise.all(
     OFFICIAL_LAUNCH_EXTENSIONS.map(async (seed): Promise<OfficialCatalogItem> => {
       const meta = OFFICIAL_CATALOG_META[seed.slug];
       const remoteItem = remoteItemsBySlug.get(seed.slug) || toFallbackRemoteItem(seed);
-      const availableInMarket = Boolean(connectivity.ok && remoteCatalog && remoteItem.installable && remoteItem.publishState === 'published');
-      const releaseStatus: OfficialReleaseStatus = connectivity.ok
-        ? availableInMarket
-          ? 'published'
-          : 'catalog-only'
-        : 'offline';
+      const artifactItem = artifactItemsByKey.get(`${seed.kind}:${seed.slug}`);
+      const effectiveSellableVersion = artifactItem?.version || remoteItem.sellableVersion || remoteItem.currentVersion || seed.version;
+      const effectiveVersionSummary = remoteItem.versions.find((candidate) => candidate.version === effectiveSellableVersion)
+        || remoteItem.versions.find((candidate) => candidate.isSellable)
+        || remoteItem.versions[0];
+      const effectivePackageUrl = artifactItem?.packageUrl || effectiveVersionSummary?.packageUrl || seed.packageUrl;
+      const artifactReachable = await checkOfficialArtifactReachable(effectivePackageUrl);
+      const hasPublishedArtifact = Boolean(artifactItem && artifactReachable);
+      const availableInMarket = Boolean(hasPublishedArtifact || (connectivity.ok && remoteCatalog && remoteItem.installable && remoteItem.publishState === 'published'));
+      const marketInstallable = availableInMarket && artifactReachable;
+      const releaseStatus: OfficialReleaseStatus = hasPublishedArtifact
+        ? 'published'
+        : connectivity.ok
+          ? marketInstallable
+            ? 'published'
+            : 'catalog-only'
+          : 'offline';
 
       if (seed.kind === 'theme') {
-        const installedTheme = installedThemesBySlug.get(seed.slug);
-        const installedMarketTheme = installedTheme && isNonBuiltinThemeSource(installedTheme.source)
-          ? installedTheme
-          : null;
-        const activeMarketTheme = activeTheme.slug === seed.slug && isNonBuiltinThemeSource(activeTheme.source)
-          ? activeTheme
-          : null;
-        const installState: OfficialInstallState = activeMarketTheme
-          ? 'active'
-          : installedMarketTheme
-            ? 'installed'
-            : 'not_installed';
+        const installedThemeState = installedOfficialThemesBySlug.get(seed.slug);
+        const installedVersion = installedThemeState?.version || null;
+        const cachedThemeUpdate = cachedUpdatesBySlug.get(`theme:${seed.slug}`);
+        const latestVersion = artifactItem?.version
+          || (!remoteCatalog ? cachedThemeUpdate?.latestVersion : null)
+          || remoteItem.sellableVersion
+          || remoteItem.currentVersion
+          || cachedThemeUpdate?.latestVersion
+          || seed.version;
+        const updateAvailable = installedThemeState
+          ? hasVersionUpdate(installedVersion, latestVersion)
+          : cachedThemeUpdate?.hasUpdate || false;
+
+        const installState: OfficialInstallState = installedThemeState?.installState || 'not_installed';
+        const installedTheme = installedThemeState?.themeMeta || null;
 
         return {
           slug: seed.slug,
-          name: installedMarketTheme?.name || remoteItem.name || seed.name,
+          name: installedTheme?.name || remoteItem.name || seed.name,
           kind: seed.kind,
           listingDomain: remoteItem.listingDomain ?? seed.listingDomain,
           listingKind: remoteItem.listingKind ?? seed.listingKind,
           providerType: remoteItem.providerType ?? seed.providerType,
-          version: installedMarketTheme?.version || remoteItem.sellableVersion || remoteItem.currentVersion || seed.version,
-          author: installedMarketTheme?.author || remoteItem.author || seed.author,
-          description: installedMarketTheme?.description || remoteItem.description || seed.description,
+          version: installedVersion || remoteItem.sellableVersion || remoteItem.currentVersion || seed.version,
+          installedVersion,
+          author: installedTheme?.author || remoteItem.author || seed.author,
+          description: installedTheme?.description || remoteItem.description || seed.description,
           category: meta.category,
           deliveryMode: remoteItem.deliveryMode,
           paymentMode: remoteItem.paymentMode ?? seed.paymentMode,
@@ -264,12 +433,19 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
           currency: remoteItem.currency,
           installState,
           releaseStatus,
-          source: installedMarketTheme?.source || 'catalog',
-          availableInMarket,
+          source: installedThemeState?.source || 'catalog',
+          availableInMarket: marketInstallable,
           publishState: remoteItem.publishState,
-          installable: remoteItem.installable,
+          installable: remoteItem.installable && artifactReachable,
           sellableVersion: remoteItem.sellableVersion,
+          latestVersion,
+          artifactPackageUrl: effectivePackageUrl,
+          updateAvailable,
           downloads: remoteItem.installCount,
+          solutionPackage: buildSolutionPackageMeta(managedPackage, seed.kind, seed.slug),
+          marketError: availableInMarket && !artifactReachable
+            ? 'Official artifact is currently unavailable for installation'
+            : undefined,
         };
       }
 
@@ -291,6 +467,16 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         : pluginPackage
           ? 'installed'
           : 'not_installed';
+      const cachedPluginUpdate = cachedUpdatesBySlug.get(`plugin:${seed.slug}`);
+      const latestVersion = artifactItem?.version
+        || (!remoteCatalog ? cachedPluginUpdate?.latestVersion : null)
+        || remoteItem.sellableVersion
+        || remoteItem.currentVersion
+        || cachedPluginUpdate?.latestVersion
+        || seed.version;
+      const updateAvailable = pluginPackage
+        ? hasVersionUpdate(pluginPackage.version, latestVersion)
+        : cachedPluginUpdate?.hasUpdate || false;
 
       return {
         slug: seed.slug,
@@ -300,6 +486,7 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         listingKind: remoteItem.listingKind ?? seed.listingKind,
         providerType: remoteItem.providerType ?? seed.providerType,
         version: pluginPackage?.version || remoteItem.sellableVersion || remoteItem.currentVersion || seed.version,
+        installedVersion: pluginPackage?.version || null,
         author: pluginPackage?.author || remoteItem.author || seed.author,
         description: pluginPackage?.description || remoteItem.description || seed.description,
         category: meta.category,
@@ -313,28 +500,42 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         installState,
         releaseStatus,
         source: normalizeCatalogSource(pluginPackage?.source),
-        availableInMarket,
+        availableInMarket: marketInstallable,
         publishState: remoteItem.publishState,
-        installable: remoteItem.installable,
+        installable: remoteItem.installable && artifactReachable,
         sellableVersion: remoteItem.sellableVersion,
+        latestVersion,
+        artifactPackageUrl: effectivePackageUrl,
+        updateAvailable,
         downloads: remoteItem.installCount,
         configRequired: readiness.requiresConfiguration,
         configReady: readiness.ready,
         missingConfigFields: readiness.missingFields,
-        adminUi: pluginPackage ? getPluginAdminUi(pluginPackage.manifestJson) : undefined,
+        solutionPackage: buildSolutionPackageMeta(managedPackage, seed.kind, seed.slug),
+        marketError: availableInMarket && !artifactReachable
+          ? 'Official artifact is currently unavailable for installation'
+          : undefined,
       };
     }),
   );
-
-  const visibleItems = connectivity.ok && remoteCatalog
-    ? items.filter((item) => item.availableInMarket || item.installState !== 'not_installed')
-    : items.filter((item) => item.installState !== 'not_installed');
+  const visibleItems = managedPackage
+    ? items.filter((item) =>
+        item.kind === 'theme'
+          ? managedPackage.includedThemes.includes(item.slug)
+          : managedPackage.includedPlugins.includes(item.slug),
+      )
+    : connectivity.ok && remoteCatalog
+      ? items.filter((item) => item.availableInMarket || item.installState !== 'not_installed')
+      : items.filter((item) => item.installState !== 'not_installed');
 
   return {
     items: visibleItems,
-    marketOnline: Boolean(connectivity.ok && remoteCatalog),
-    marketError: remoteCatalog ? connectivity.error : connectivity.error || 'Official marketplace unavailable',
+    marketOnline: Boolean((connectivity.ok && remoteCatalog) || artifactItems.length > 0),
+    marketError: remoteCatalog || artifactItems.length > 0
+      ? connectivity.error
+      : connectivity.error || 'Official marketplace unavailable',
     officialMarketOnly: isOfficialMarketOnly(),
+    managedPackage,
     generatedAt: new Date().toISOString(),
   };
 }

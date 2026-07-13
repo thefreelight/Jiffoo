@@ -25,6 +25,16 @@ const themeMetaSchema = {
     baseUrl: { type: 'string', nullable: true, description: 'Base URL for theme-app' },
     port: { type: 'number', nullable: true, description: 'Port for theme-app' },
     isActive: { type: 'boolean', description: 'Whether theme is currently active' },
+    engines: {
+      type: 'object',
+      nullable: true,
+      description: 'Engine version requirements (semver ranges)',
+      properties: {
+        'jiffoo-theme-sdk': { type: 'string', description: 'Compatible @jiffoo/theme-api-sdk version range (e.g., "^0.2.0")' },
+        jiffoo: { type: 'string', description: 'Minimum Jiffoo core version range' },
+        node: { type: 'string', description: 'Node.js version range' },
+      },
+    },
   },
   required: ['slug', 'name', 'version', 'type'],
 } as const;

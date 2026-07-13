@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "page": "home",
+  "blocks": [
+    {
+      "type": "fire_finance_agent",
+      "id": "fire-dashboard",
+      "settings": {
+        "title": "Atelier Finance",
+        "subtitle": "Drop raw ledgers, screenshots, and exported balance sheets into one agent surface, then watch the FIRE dashboard update itself.",
+        "assistantName": "FIRE Agent",
+        "goalLabel": "Financial Independence",
+        "goalAmount": 2500000,
+        "composerPlaceholder": "Analyze this balance sheet. Separate personal liabilities from company leverage, surface liquidity, and update the FIRE target view."
+      }
+    }
+  ]
+}

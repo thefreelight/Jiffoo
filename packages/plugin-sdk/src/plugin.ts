@@ -62,7 +62,6 @@ export function definePlugin(config: PluginConfig): Plugin {
     requiredScopes: config.requiredScopes,
     webhooks: config.webhooks,
     configSchema: config.configSchema,
-    adminUi: config.adminUi,
     lifecycle: config.lifecycle,
     themeExtensions: config.themeExtensions,
   };

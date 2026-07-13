@@ -1,6 +1,6 @@
 {
     "name": "create-jiffoo-app",
-    "version": "0.1.2",
+    "version": "0.2.0",
     "description": "Create Jiffoo e-commerce application with one command",
     "main": "dist/index.js",
     "bin": {
@@ -9,7 +9,7 @@
     "scripts": {
         "build": "tsup src/index.ts --format esm --target node18 --dts",
         "dev": "tsx src/index.ts",
-        "test": "echo 'No tests yet'"
+        "test": "node --test --import tsx src/**/*.test.ts"
     },
     "keywords": [
         "jiffoo",
@@ -19,7 +19,10 @@
         "starter",
         "e-commerce",
         "shop",
-        "store"
+        "store",
+        "digital-goods",
+        "esim",
+        "template"
     ],
     "author": "Jiffoo Team",
     "license": "MIT",
@@ -51,7 +54,8 @@
     },
     "files": [
         "dist",
-        "README.md"
+        "README.md",
+        "src/templates/seed-data"
     ],
     "type": "module"
 }

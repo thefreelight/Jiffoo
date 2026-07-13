@@ -23,7 +23,8 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 
 # The Admin image only needs Node.js and the standalone Next.js output.
-# Avoid apk network fetches here so CI is not coupled to external Alpine mirrors.
+# Install git because Next.js may inspect repository metadata during build.
+RUN apk add --no-cache git
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -55,7 +56,9 @@ WORKDIR /app
 # Install pnpm (needed for build commands) from the vendored tarball.
 RUN corepack enable && corepack prepare pnpm@9.0.0 --activate
 
-# Copy dependencies from deps stage
+# Copy dependencies from deps stage.
+# Keep only the workspace root node_modules to avoid duplicate Next.js module
+# resolution between /app/node_modules and /app/apps/admin/node_modules.
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/admin/node_modules ./apps/admin/node_modules
 COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules

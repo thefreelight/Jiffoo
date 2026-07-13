@@ -194,17 +194,36 @@ export interface InternalDeliveryParams {
   eventType: string;
   payload: unknown;
   installationId: string;
+  aggregateId?: string;
+}
+
+function parseJsonRecord(value: unknown): Record<string, unknown> {
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 /**
- * Deliver a webhook event to an internal plugin handler.
+ * Deliver a webhook event to an installed plugin's webhook handler.
  *
- * Internal plugins receive events via their Fastify sub-instance's
- * `/__webhooks/{eventType}` route.  If the plugin is not running or
- * the route is not registered, the delivery is logged as failed.
+ * The plugin declares its handler in the manifest (`webhooks.url` +
+ * `webhooks.events`); delivery POSTs through the public plugin runtime
+ * gateway (`/api/extensions/plugin/{slug}/api{path}`) and signs the body
+ * with the instance's configured `jiffooWebhookSecret` (HMAC-SHA256 over
+ * `{timestamp}.{body}`). Plugins without a matching webhook declaration
+ * only get a logged event.
  */
 export async function deliverInternalWebhook(params: InternalDeliveryParams): Promise<void> {
-  const { subscriptionId, eventId, eventType, payload, installationId } = params;
+  const { subscriptionId, eventId, eventType, payload, installationId, aggregateId } = params;
   const startTime = Date.now();
 
   try {
@@ -219,16 +238,68 @@ export async function deliverInternalWebhook(params: InternalDeliveryParams): Pr
       throw new Error(`Plugin installation ${installationId} is disabled`);
     }
 
-    // Internal delivery is currently a logged event.
-    // When the plugin runtime supports inject(), this will POST to the
-    // plugin's internal Fastify route: /__webhooks/{eventType}
-    LoggerService.logSystem('Internal webhook delivery', {
-      subscriptionId,
-      eventId,
-      eventType,
-      installationId,
-      pluginSlug: instance.pluginSlug,
-    });
+    const pluginPackage = await PluginManagementService.getPluginPackage(instance.pluginSlug);
+    const manifest = parseJsonRecord(pluginPackage?.manifestJson);
+    const webhooks = parseJsonRecord(manifest.webhooks);
+    const webhookPath = typeof webhooks.url === 'string' ? webhooks.url : null;
+    const webhookEvents = Array.isArray(webhooks.events) ? webhooks.events : [];
+
+    if (webhookPath && webhookEvents.includes(eventType)) {
+      const apiOrigin = (process.env.API_SERVICE_URL || 'http://localhost:8001').replace(/\/+$/, '');
+      const deliveryUrl =
+        `${apiOrigin}/api/extensions/plugin/${instance.pluginSlug}/api${webhookPath}` +
+        `?installationId=${encodeURIComponent(installationId)}`;
+
+      const body = JSON.stringify({
+        id: eventId,
+        type: eventType,
+        aggregateId,
+        data: payload,
+      });
+
+      const timestamp = String(Date.now());
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'X-Jiffoo-Timestamp': timestamp,
+      };
+
+      const platformToken = process.env.CATALOG_IMPORT_TOKEN;
+      if (platformToken) {
+        headers['X-Platform-Integration-Token'] = platformToken;
+      }
+
+      const config = parseJsonRecord(instance.configJson);
+      const secret =
+        (typeof config.jiffooWebhookSecret === 'string' && config.jiffooWebhookSecret) ||
+        process.env.BOKMOO_JIFFOO_WEBHOOK_SECRET ||
+        '';
+      if (secret) {
+        const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');
+        headers['X-Jiffoo-Signature'] = `sha256=${signature}`;
+      }
+
+      const response = await fetch(deliveryUrl, {
+        method: 'POST',
+        headers,
+        body,
+      });
+
+      if (!response.ok) {
+        const responseBody = await response.text().catch(() => '');
+        throw new Error(
+          `Plugin webhook delivery failed with ${response.status}: ${responseBody.slice(0, MAX_RESPONSE_BODY_LENGTH)}`,
+        );
+      }
+    } else {
+      // No matching webhook declaration — record the event without delivery.
+      LoggerService.logSystem('Internal webhook delivery', {
+        subscriptionId,
+        eventId,
+        eventType,
+        installationId,
+        pluginSlug: instance.pluginSlug,
+      });
+    }
 
     const latencyMs = Date.now() - startTime;
 

@@ -6,10 +6,27 @@ const withPWA = require('@ducanh2912/next-pwa').default;
 const nextConfig = createNextConfig({
   appName: 'Frontend',
   port: 3003,
-  // The open-source core only ships the default embedded theme.
-  // Official marketplace themes are installed later as Theme Packs.
-  transpilePackages: ['shared', '@shop-themes/default', '@jiffoo/core-api-sdk', '@jiffoo/theme-api-sdk'],
+  outputFileTracingRoot: path.resolve(__dirname, '../..'),
+  // The shop runtime embeds the default theme, the generic esim-mall official
+  // renderer, and legacy renderer packages needed for migration fallback.
+  transpilePackages: [
+    'shared',
+    '@shop-themes/default',
+    '@shop-themes/bokmoo',
+    '@shop-themes/esim-mall',
+    '@shop-themes/app-landingpage',
+    '@shop-themes/imagic-studio',
+    '@shop-themes/modelsfind',
+    '@shop-themes/serene',
+    '@shop-themes/yevbi',
+    '@jiffoo/core-api-sdk',
+    '@jiffoo/theme-api-sdk',
+  ],
   images: {
+    // Cloudflare Pages: _next/image optimization is limited on Workers.
+    // Disable it on Pages and rely on CDN/R2 for image delivery.
+    unoptimized: process.env.CF_PAGES === '1',
+
     // Image optimization formats - prefer modern formats with fallback
     formats: ['image/avif', 'image/webp'],
 
@@ -73,13 +90,38 @@ const nextConfig = createNextConfig({
     return config;
   },
   async headers() {
+    // react-scan (dev-only perf overlay) loads from unpkg and spawns a blob:
+    // worker; allow both only in development — prod CSP stays strict.
+    const isDevCsp = process.env.NODE_ENV === 'development';
+    const devScriptSrc = isDevCsp ? ' https://unpkg.com' : '';
+    const devWorkerSrc = isDevCsp ? " worker-src 'self' blob:;" : '';
     return [
       {
         source: '/:path*',
         headers: [
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http:; frame-ancestors 'none';",
+            value: `default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com${devScriptSrc}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https: http:; frame-src 'self' https://js.stripe.com https://hooks.stripe.com;${devWorkerSrc} frame-ancestors 'none';`,
+          },
+        ],
+      },
+      // Theme imagery is served from public/ with stable (non-hashed) names:
+      // cache hard for a day, then serve stale while revalidating for a week.
+      {
+        source: '/theme-assets/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
+          },
+        ],
+      },
+      {
+        source: '/imagic-assets/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=86400, stale-while-revalidate=604800',
           },
         ],
       },
@@ -90,7 +132,8 @@ const nextConfig = createNextConfig({
 // Wrap with PWA configuration
 module.exports = withPWA({
   dest: 'public',
-  disable: process.env.NODE_ENV === 'development',
+  // Disable PWA on Cloudflare Pages (SSR via next-on-pages has friction with SW generation)
+  disable: process.env.NODE_ENV === 'development' || process.env.CF_PAGES === '1',
   register: true,
   skipWaiting: true,
   // Custom worker configuration for push notifications

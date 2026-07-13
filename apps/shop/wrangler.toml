@@ -1,0 +1,6 @@
+name = "jiffoo-shop"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+# Used for local preview only (`npx wrangler pages dev`).
+# Production deployment is via Cloudflare Pages Git integration.

@@ -1,0 +1,387 @@
+name: Publish Self-Hosted Update Feed
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Release tag to publish, e.g. v1.0.5-opensource
+        required: true
+      release_url:
+        description: Optional release URL override
+        required: false
+      release_date:
+        description: Optional ISO-8601 release date override
+        required: false
+      tooling_ref:
+        description: Optional ref containing the hardened publication tooling. Defaults to release_tag.
+        required: false
+      quarantine_on_failure:
+        description: Mark the GitHub release as prerelease with blocked notes if publication fails
+        required: false
+        default: 'false'
+      allow_prerelease_publication:
+        description: Allow publishing a prerelease feed only from the primary release image workflow while it is quarantined.
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: self-hosted-update-feed-${{ inputs.release_tag }}
+  cancel-in-progress: false
+
+jobs:
+  publish-update-feed:
+    runs-on: ubuntu-latest
+    env:
+      REGISTRY: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com
+      IMAGE_NAMESPACE: jiffoo-oss
+      # This workflow publishes the canonical public OSS update origin served from
+      # the Singapore public host static directory, not the Kubernetes jiffoo-installer service.
+      GET_JIFFOO_ROOT: /var/www/get-jiffoo
+      GET_JIFFOO_NGINX_PATH: /etc/nginx/conf.d/get-jiffoo.conf
+      CLOUDFLARE_ZONE_ID: 0ad261d681b797c5356abafc0453603e
+      RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
+      TOOLING_REF: ${{ inputs.tooling_ref || github.event.release.tag_name || inputs.release_tag }}
+      RELEASE_URL: ${{ github.event.release.html_url || inputs.release_url }}
+      RELEASE_DATE: ${{ github.event.release.published_at || inputs.release_date }}
+      RELEASE_BODY: ${{ github.event.release.body || '' }}
+      QUARANTINE_ON_FAILURE: ${{ inputs.quarantine_on_failure || 'false' }}
+      ALLOW_PRERELEASE_PUBLICATION: ${{ inputs.allow_prerelease_publication || 'false' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tooling_ref || github.event.release.tag_name || inputs.release_tag }}
+          fetch-depth: 0
+
+      - name: Verify publication tooling ref is publishable
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          required_files=(
+            apps/api/Dockerfile
+            apps/api/Dockerfile.selfhost
+            apps/admin/Dockerfile
+            apps/shop/Dockerfile
+            scripts/build-update-feed.mjs
+            scripts/verify-self-hosted-update-feed.mjs
+            scripts/verify-public-release-convergence.mjs
+            install.sh
+            docker-compose.prod.yml
+            .env.production.example
+            nginx/get-jiffoo.conf
+          )
+
+          missing=()
+          for file in "${required_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              missing+=("$file")
+            fi
+          done
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "Publication tooling ref ${TOOLING_REF} is missing files required for self-hosted feed publication:" >&2
+            printf ' - %s\n' "${missing[@]}" >&2
+            exit 1
+          fi
+
+      - name: Verify release archive ref exists
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! git rev-parse -q --verify "${RELEASE_TAG}^{commit}" >/dev/null; then
+            git fetch --force --depth=1 origin "refs/tags/${RELEASE_TAG}:refs/tags/${RELEASE_TAG}"
+          fi
+
+          release_sha="$(git rev-parse "${RELEASE_TAG}^{commit}")"
+          echo "Source archive will be generated from ${RELEASE_TAG} (${release_sha})."
+
+      - name: Verify GitHub release is publishable
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          release_json="$(gh release view "$RELEASE_TAG" --repo "${{ github.repository }}" --json tagName,isDraft,isPrerelease)"
+          tag_name="$(printf '%s' "$release_json" | node -e "let input=''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => console.log(JSON.parse(input).tagName || ''));")"
+          is_draft="$(printf '%s' "$release_json" | node -e "let input=''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => console.log(String(Boolean(JSON.parse(input).isDraft))));")"
+          is_prerelease="$(printf '%s' "$release_json" | node -e "let input=''; process.stdin.on('data', chunk => input += chunk); process.stdin.on('end', () => console.log(String(Boolean(JSON.parse(input).isPrerelease))));")"
+
+          if [ "$tag_name" != "$RELEASE_TAG" ]; then
+            echo "GitHub release tag mismatch: expected ${RELEASE_TAG}, found ${tag_name:-<missing>}" >&2
+            exit 1
+          fi
+
+          if [ "$is_draft" = "true" ]; then
+            echo "Refusing to publish draft release ${RELEASE_TAG} to get.jiffoo.com." >&2
+            exit 1
+          fi
+
+          if [ "$is_prerelease" = "true" ] && [ "${ALLOW_PRERELEASE_PUBLICATION}" != "true" ]; then
+            echo "Refusing to publish prerelease/quarantined release ${RELEASE_TAG} to the stable self-hosted feed." >&2
+            echo "Only the primary release image workflow may set allow_prerelease_publication=true while it verifies image/feed convergence." >&2
+            exit 1
+          fi
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to ACR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Wait for runtime images
+        shell: bash
+        run: |
+          set -euo pipefail
+          core_version="${RELEASE_TAG#v}"
+          core_version="${core_version%-opensource}"
+
+          for service in api admin shop updater; do
+            image="${REGISTRY}/${IMAGE_NAMESPACE}/${service}:${core_version}"
+            echo "Waiting for ${image}"
+            ready=0
+
+            for attempt in $(seq 1 18); do
+              if docker buildx imagetools inspect "${image}" >/dev/null 2>&1; then
+                ready=1
+                break
+              fi
+
+              sleep 10
+            done
+
+            if [ "${ready}" -ne 1 ]; then
+              echo "Missing published runtime image: ${image}" >&2
+              exit 1
+            fi
+          done
+
+      - name: Prepare release notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          mkdir -p .release
+          if [ -n "${RELEASE_BODY}" ]; then
+            printf '%s\n' "${RELEASE_BODY}" > .release/release-notes.md
+          elif gh release view "$RELEASE_TAG" --repo "${{ github.repository }}" --json body --jq .body > .release/release-notes.md && [ -s .release/release-notes.md ]; then
+            true
+          else
+            printf '%s\n' 'Automated self-hosted release published from GitHub release metadata.' > .release/release-notes.md
+          fi
+
+      - name: Build self-hosted update feed
+        run: |
+          node scripts/build-update-feed.mjs \
+            --output-dir .release/self-hosted \
+            --release-tag "$RELEASE_TAG" \
+            --archive-ref "$RELEASE_TAG" \
+            --delivery-mode image-first \
+            --release-url "${RELEASE_URL:-https://github.com/${{ github.repository }}/releases/tag/$RELEASE_TAG}" \
+            --release-date "${RELEASE_DATE:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}" \
+            --release-notes-file .release/release-notes.md \
+            --repository "${{ github.repository }}"
+
+      - name: Verify local update feed artifacts
+        run: |
+          node scripts/verify-self-hosted-update-feed.mjs \
+            --output-dir .release/self-hosted \
+            --release-tag "$RELEASE_TAG" \
+            --verify-images
+
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "$RELEASE_TAG" \
+            .release/self-hosted/jiffoo-source.tar.gz \
+            .release/self-hosted/jiffoo-source.tar.gz.sha256 \
+            .release/self-hosted/core-update-manifest.json \
+            --clobber
+
+      - name: Verify GitHub release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          stable_args=()
+          if [ "${ALLOW_PRERELEASE_PUBLICATION}" != "true" ]; then
+            stable_args+=(--require-stable-release)
+          fi
+
+          node scripts/verify-self-hosted-update-feed.mjs \
+            --output-dir .release/self-hosted \
+            --release-tag "$RELEASE_TAG" \
+            --github-release "$RELEASE_TAG" \
+            --repo "${{ github.repository }}" \
+            --verify-images \
+            "${stable_args[@]}"
+
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Deploy update feed to get.jiffoo.com
+        env:
+          GET_JIFFOO_SSH_HOST: ${{ secrets.GET_JIFFOO_SSH_HOST }}
+          GET_JIFFOO_SSH_USER: ${{ secrets.GET_JIFFOO_SSH_USER }}
+          GET_JIFFOO_SSH_PRIVATE_KEY: ${{ secrets.GET_JIFFOO_SSH_PRIVATE_KEY }}
+          GET_JIFFOO_SSH_PASSWORD: ${{ secrets.GET_JIFFOO_SSH_PASSWORD }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${GET_JIFFOO_SSH_HOST:-}" ] || [ -z "${GET_JIFFOO_SSH_USER:-}" ]; then
+            echo "Missing GET_JIFFOO_SSH_HOST or GET_JIFFOO_SSH_USER secrets"
+            exit 1
+          fi
+
+          common_opts=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
+          remote_target="${GET_JIFFOO_SSH_USER}@${GET_JIFFOO_SSH_HOST}"
+          if [ -n "${GET_JIFFOO_SSH_PRIVATE_KEY:-}" ]; then
+            install -d -m 700 ~/.ssh
+            printf '%s\n' "${GET_JIFFOO_SSH_PRIVATE_KEY}" > ~/.ssh/get_jiffoo_key
+            chmod 600 ~/.ssh/get_jiffoo_key
+            scp_base=(scp "${common_opts[@]}" -i ~/.ssh/get_jiffoo_key)
+            ssh_base=(ssh "${common_opts[@]}" -i ~/.ssh/get_jiffoo_key)
+          elif [ -n "${GET_JIFFOO_SSH_PASSWORD:-}" ]; then
+            export SSHPASS="${GET_JIFFOO_SSH_PASSWORD}"
+            scp_base=(sshpass -e scp "${common_opts[@]}")
+            ssh_base=(sshpass -e ssh "${common_opts[@]}")
+          else
+            echo "Missing GET_JIFFOO_SSH_PRIVATE_KEY or GET_JIFFOO_SSH_PASSWORD secret"
+            exit 1
+          fi
+
+          "${scp_base[@]}" \
+            .release/self-hosted/install.sh \
+            .release/self-hosted/docker-compose.yml \
+            .release/self-hosted/.env.production.example \
+            .release/self-hosted/jiffoo-source.tar.gz \
+            .release/self-hosted/jiffoo-source.tar.gz.sha256 \
+            .release/self-hosted/releases/core/manifest.json \
+            .release/self-hosted/get-jiffoo.conf \
+            "${remote_target}:/tmp/"
+
+          "${ssh_base[@]}" \
+            "${remote_target}" \
+            "GET_JIFFOO_ROOT='${GET_JIFFOO_ROOT}' GET_JIFFOO_NGINX_PATH='${GET_JIFFOO_NGINX_PATH}' bash -s" <<'EOF'
+          set -euo pipefail
+          stamp=$(date +%Y%m%d%H%M%S)
+          mkdir -p "${GET_JIFFOO_ROOT}/backups/${stamp}" "${GET_JIFFOO_ROOT}/releases/core"
+          cp "${GET_JIFFOO_ROOT}/install.sh" "${GET_JIFFOO_ROOT}/backups/${stamp}/install.sh" 2>/dev/null || true
+          cp "${GET_JIFFOO_ROOT}/docker-compose.yml" "${GET_JIFFOO_ROOT}/backups/${stamp}/docker-compose.yml" 2>/dev/null || true
+          cp "${GET_JIFFOO_ROOT}/.env.production.example" "${GET_JIFFOO_ROOT}/backups/${stamp}/.env.production.example" 2>/dev/null || true
+          cp "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz" "${GET_JIFFOO_ROOT}/backups/${stamp}/jiffoo-source.tar.gz" 2>/dev/null || true
+          cp "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz.sha256" "${GET_JIFFOO_ROOT}/backups/${stamp}/jiffoo-source.tar.gz.sha256" 2>/dev/null || true
+          cp "${GET_JIFFOO_ROOT}/releases/core/manifest.json" "${GET_JIFFOO_ROOT}/backups/${stamp}/manifest.json" 2>/dev/null || true
+
+          install -m 0755 /tmp/install.sh "${GET_JIFFOO_ROOT}/install.sh"
+          install -m 0644 /tmp/docker-compose.yml "${GET_JIFFOO_ROOT}/docker-compose.yml"
+          install -m 0644 /tmp/.env.production.example "${GET_JIFFOO_ROOT}/.env.production.example"
+          install -m 0644 /tmp/jiffoo-source.tar.gz "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz"
+          install -m 0644 /tmp/jiffoo-source.tar.gz.sha256 "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz.sha256"
+          install -m 0644 /tmp/manifest.json "${GET_JIFFOO_ROOT}/releases/core/manifest.json"
+          install -m 0644 /tmp/get-jiffoo.conf "${GET_JIFFOO_NGINX_PATH}"
+
+          nginx -t
+          if command -v systemctl >/dev/null 2>&1; then
+            systemctl reload nginx
+          else
+            nginx -s reload
+          fi
+          EOF
+
+      - name: Purge Cloudflare cache
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "Skipping Cloudflare purge because CLOUDFLARE_API_TOKEN is not set"
+            exit 0
+          fi
+
+          curl -fsSL -X POST "https://api.cloudflare.com/client/v4/zones/${CLOUDFLARE_ZONE_ID}/purge_cache" \
+            -H "Authorization: Bearer ${CLOUDFLARE_API_TOKEN}" \
+            -H "Content-Type: application/json" \
+            --data '{
+              "files": [
+                "https://get.jiffoo.com/install.sh",
+                "https://get.jiffoo.com/docker-compose.yml",
+                "https://get.jiffoo.com/.env.production.example",
+                "https://get.jiffoo.com/jiffoo-source.tar.gz",
+                "https://get.jiffoo.com/jiffoo-source.tar.gz.sha256",
+                "https://get.jiffoo.com/releases/core/manifest.json"
+              ]
+            }'
+
+      - name: Verify public feed
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          stable_args=()
+          public_convergence_args=()
+          if [ "${ALLOW_PRERELEASE_PUBLICATION}" = "true" ]; then
+            public_convergence_args+=(--allow-prerelease)
+          else
+            stable_args+=(--require-stable-release)
+          fi
+
+          node scripts/verify-self-hosted-update-feed.mjs \
+            --output-dir .release/self-hosted \
+            --release-tag "$RELEASE_TAG" \
+            --github-release "$RELEASE_TAG" \
+            --public-url https://get.jiffoo.com/releases/core/manifest.json \
+            --repo "${{ github.repository }}" \
+            --verify-images \
+            --verify-public-assets \
+            "${stable_args[@]}"
+          node scripts/verify-public-release-convergence.mjs \
+            --release-tag "$RELEASE_TAG" \
+            --public-url https://get.jiffoo.com/releases/core/manifest.json \
+            --verify-images \
+            "${public_convergence_args[@]}"
+          curl -fsSI https://get.jiffoo.com/jiffoo-source.tar.gz
+
+      - name: Quarantine failed published release
+        if: ${{ failure() && env.QUARANTINE_ON_FAILURE == 'true' }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p .release
+          core_version="${RELEASE_TAG#v}"
+          core_version="${core_version%-opensource}"
+          {
+            echo "## Release publication blocked"
+            echo
+            echo "This GitHub release did not pass the self-hosted publication gate and must not be treated as self-hosted-detectable."
+            echo
+            echo "Required convergence failed before all release facts were verified:"
+            echo "- runtime images: api/admin/shop/updater:${core_version}"
+            echo "- GitHub release assets: core-update-manifest.json, jiffoo-source.tar.gz, jiffoo-source.tar.gz.sha256"
+            echo "- public feed: https://get.jiffoo.com/releases/core/manifest.json"
+            echo "- public assets and checksum at https://get.jiffoo.com/"
+            echo
+            echo "Re-run the release publication workflow after the missing images/assets/feed state has been fixed."
+          } > .release/quarantine-notes.md
+
+          gh release edit "$RELEASE_TAG" \
+            --repo "${{ github.repository }}" \
+            --prerelease \
+            --title "QUARANTINED: $RELEASE_TAG" \
+            --notes-file .release/quarantine-notes.md

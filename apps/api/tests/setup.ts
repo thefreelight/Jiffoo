@@ -31,7 +31,33 @@ process.env.LOG_LEVEL = 'error'; // Reduce log noise during tests
 beforeAll(async () => {
   console.log('\n Setting up test environment...\n');
   await setupTestDatabase();
+  await clearWarehouseCache();
 });
+
+/**
+ * The API caches the default warehouse in Redis (warehouse:default). The
+ * playwright E2E suites share this Redis database and claim their own
+ * default warehouse, so a stale cache entry would point order stock checks
+ * at a warehouse this suite never stocks (and vice versa — the E2E global
+ * setup clears the same keys).
+ */
+async function clearWarehouseCache(): Promise<void> {
+  const redisUrl = process.env.REDIS_URL;
+  if (!redisUrl) return;
+
+  try {
+    const { default: Redis } = await import('ioredis');
+    const redis = new Redis(redisUrl, { maxRetriesPerRequest: 1, lazyConnect: true });
+    await redis.connect();
+    const keys = await redis.keys('warehouse:*');
+    if (keys.length > 0) {
+      await redis.del(...keys);
+    }
+    redis.disconnect();
+  } catch (error) {
+    console.warn('Test setup: unable to clear warehouse cache in Redis:', error);
+  }
+}
 
 // Global teardown - runs once after all tests
 afterAll(async () => {

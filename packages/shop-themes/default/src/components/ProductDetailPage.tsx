@@ -18,6 +18,15 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
   onAddToCart,
   onBack,
 }: ProductDetailPageProps) {
+  const handleProductImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
+    if (event.currentTarget.dataset.fallbackApplied === 'true') {
+      return;
+    }
+
+    event.currentTarget.dataset.fallbackApplied = 'true';
+    event.currentTarget.src = '/placeholder-product.svg';
+  };
+
   // Get selected variant details
   const currentVariant = React.useMemo(() => {
     if (!selectedVariant || !product?.variants) return null;
@@ -98,6 +107,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 src={mainImage}
                 alt={product.name}
                 className="w-full h-full object-cover"
+                onError={handleProductImageError}
               />
               {discountPercent > 0 && (
                 <div className="absolute top-3 sm:top-4 left-3 sm:left-4 bg-red-500 text-white text-xs font-bold px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full uppercase tracking-wider">
@@ -121,6 +131,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                         src={imageUrl}
                         alt={imageAlt}
                         className="w-full h-full object-cover"
+                        onError={handleProductImageError}
                       />
                     </div>
                   );

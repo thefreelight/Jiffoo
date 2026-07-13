@@ -41,6 +41,10 @@
       "types": "./dist/shared/src/i18n/*.d.ts",
       "default": "./dist/shared/src/i18n/*.js"
     },
+    "./src/types/*": {
+      "types": "./dist/shared/src/types/*.d.ts",
+      "default": "./dist/shared/src/types/*.js"
+    },
     "./security": {
       "types": "./dist/shared/src/security/index.d.ts",
       "default": "./dist/shared/src/security/index.js"
@@ -72,6 +76,10 @@
     "./versioning/*": {
       "types": "./dist/shared/src/versioning/*.d.ts",
       "default": "./dist/shared/src/versioning/*.js"
+    },
+    "./core-update/public-manifest": {
+      "types": "./dist/shared/src/core-update/public-manifest.d.ts",
+      "default": "./dist/shared/src/core-update/public-manifest.js"
     }
   },
   "scripts": {

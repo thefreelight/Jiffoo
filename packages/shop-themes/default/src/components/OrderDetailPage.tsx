@@ -3,8 +3,16 @@
  */
 
 import React from 'react';
-import { ArrowLeft, Loader2, AlertCircle, Package, CheckCircle2, Truck, Clock } from 'lucide-react';
+import { ArrowLeft, Loader2, AlertCircle, Package, CheckCircle2, Truck, Clock, Download, Key, QrCode } from 'lucide-react';
 import type { OrderDetailPageProps } from '../../../../shared/src/types/theme';
+
+function hasDigitalFulfillment(data: Record<string, unknown> | null): boolean {
+  if (!data) return false;
+  return Boolean(
+    data.qrCodeContent || data.cardUid || data.planId ||
+    data.downloadUrl || data.redemptionCode || data.productCode
+  );
+}
 
 export const OrderDetailPage = React.memo(function OrderDetailPage({
   order,
@@ -135,16 +143,81 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                 </div>
                 <div className="space-y-4">
                   {order.items?.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between pb-4 border-b border-gray-100 dark:border-slate-700 last:border-0">
-                      <div className="flex-1">
-                        <p className="font-bold text-gray-900 dark:text-white">{item.productName}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">
-                          QTY: {item.quantity} × ${item.unitPrice.toFixed(2)}
+                    <div key={item.id} className="pb-4 border-b border-gray-100 dark:border-slate-700 last:border-0">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="font-bold text-gray-900 dark:text-white">{item.productName}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider mt-1">
+                            QTY: {item.quantity} × ${item.unitPrice.toFixed(2)}
+                          </p>
+                        </div>
+                        <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
+                          ${item.totalPrice.toFixed(2)}
                         </p>
                       </div>
-                      <p className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">
-                        ${item.totalPrice.toFixed(2)}
-                      </p>
+                      {/* Digital Fulfillment Data Display */}
+                      {item.fulfillmentData && hasDigitalFulfillment(item.fulfillmentData) && (
+                        <div className="mt-3 space-y-2">
+                          {item.fulfillmentStatus && (
+                            <span className={`inline-flex items-center px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                              item.fulfillmentStatus === 'delivered'
+                                ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-400'
+                                : 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400'
+                            }`}>
+                              {item.fulfillmentStatus}
+                            </span>
+                          )}
+                          {/* eSIM QR Code block */}
+                          {Boolean(item.fulfillmentData.qrCodeContent) && (
+                            <div className="p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600">
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">QR CODE</p>
+                              <div className="flex items-center gap-3">
+                                <div className="w-16 h-16 bg-white border border-gray-200 rounded-lg flex items-center justify-center">
+                                  <QrCode className="h-8 w-8 text-gray-400" />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-xs text-gray-600 dark:text-gray-400">Scan to activate your eSIM</p>
+                                  {Boolean(item.fulfillmentData.planId) && (
+                                    <p className="text-[10px] font-mono text-gray-500 mt-1">Plan: {String(item.fulfillmentData.planId)}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                          {/* Redemption Code */}
+                          {Boolean(item.fulfillmentData.cardUid) && (
+                            <div className="p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600">
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">REDEMPTION CODE</p>
+                              <code className="text-sm font-mono font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-800 px-3 py-2 rounded-lg block break-all">
+                                {String(item.fulfillmentData.cardUid)}
+                              </code>
+                            </div>
+                          )}
+                          {/* Download Link */}
+                          {Boolean(item.fulfillmentData.downloadUrl) && (
+                            <div className="p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600">
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">DOWNLOAD</p>
+                              <a
+                                href={String(item.fulfillmentData.downloadUrl)}
+                                download
+                                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-all"
+                              >
+                                <Download className="h-4 w-4" />
+                                Download File
+                              </a>
+                            </div>
+                          )}
+                          {/* Generic Product Code */}
+                          {!item.fulfillmentData.qrCodeContent && !item.fulfillmentData.cardUid && !item.fulfillmentData.downloadUrl && Boolean(item.fulfillmentData.productCode) && (
+                            <div className="p-3 bg-gray-50 dark:bg-slate-700/50 rounded-xl border border-gray-100 dark:border-slate-600">
+                              <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2">PRODUCT CODE</p>
+                              <code className="text-sm font-mono font-bold text-gray-900 dark:text-white bg-gray-100 dark:bg-slate-800 px-3 py-2 rounded-lg block break-all">
+                                {String(item.fulfillmentData.productCode)}
+                              </code>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

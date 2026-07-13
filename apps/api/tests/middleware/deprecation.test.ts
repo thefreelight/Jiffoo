@@ -183,7 +183,7 @@ describe('Deprecation Middleware', () => {
         deprecationInfo: {
           isDeprecated: true,
           deprecatedAt: '2024-06-01',
-          sunsetDate: '2024-12-31',
+          sunsetDate: '2028-12-31',
           migrationGuide: 'https://docs.example.com/migrate-v2',
         },
       };
@@ -191,7 +191,7 @@ describe('Deprecation Middleware', () => {
       await deprecationMiddleware(mockRequest as FastifyRequest, mockReply as FastifyReply);
 
       expect(headers['X-API-Deprecated']).toBe('true');
-      expect(headers['X-API-Sunset-Date']).toBe('2024-12-31');
+      expect(headers['X-API-Sunset-Date']).toBe('2028-12-31');
       expect(headers['X-Migration-Guide']).toBe('https://docs.example.com/migrate-v2');
       expect(headers['X-API-Deprecated-At']).toBe('2024-06-01');
       expect(statusCode).toBe(200);
@@ -205,7 +205,7 @@ describe('Deprecation Middleware', () => {
         deprecationInfo: {
           isDeprecated: true,
           deprecatedAt: '2024-06-01',
-          sunsetDate: '2024-12-31',
+          sunsetDate: '2028-12-31',
         },
       };
 
@@ -224,7 +224,7 @@ describe('Deprecation Middleware', () => {
         deprecationInfo: {
           isDeprecated: true,
           deprecatedAt: '2024-06-01',
-          sunsetDate: '2024-12-31',
+          sunsetDate: '2028-12-31',
         },
       };
 
@@ -319,7 +319,7 @@ describe('Deprecation Middleware', () => {
         deprecationInfo: {
           isDeprecated: true,
           deprecatedAt: '2024-06-01',
-          sunsetDate: '2024-12-31',
+          sunsetDate: '2028-12-31',
         },
       };
       (mockRequest as any).routeOptions = {

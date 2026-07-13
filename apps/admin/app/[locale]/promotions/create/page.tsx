@@ -52,7 +52,7 @@ export default function CreatePromotionPage() {
   return (
     <div className="w-full bg-white min-h-screen">
       {/* Header Bar - Full Bleed */}
-      <div className="border-b-2 border-gray-100 px-10 py-7 sticky top-0 bg-white/95 backdrop-blur-xl z-50 flex items-center justify-between">
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b-2 border-gray-100 bg-white/95 px-4 py-4 backdrop-blur-xl sm:px-10 sm:py-7">
         <div className="flex items-center space-x-6">
           <Button variant="ghost" size="icon" onClick={() => router.back()} className="hover:bg-gray-100 rounded-full w-12 h-12">
             <ArrowLeft className="w-6 h-6 text-gray-900" />
@@ -74,7 +74,7 @@ export default function CreatePromotionPage() {
       <div className="flex flex-col">
         {/* Module 1: Promotion Form */}
         <div className="bg-white">
-          <div className="px-10 py-20 space-y-20 w-full max-w-4xl">
+          <div className="w-full max-w-4xl space-y-12 px-4 py-10 sm:space-y-20 sm:px-10 sm:py-20">
             <div className="space-y-3">
               <h2 className="text-4xl font-black text-gray-900 tracking-tighter uppercase">Promotion Core</h2>
               <div className="h-1.5 w-24 bg-blue-600 rounded-full" />

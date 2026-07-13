@@ -20,12 +20,13 @@ type SeedInventoryStatus = 'in_stock' | 'low_stock' | 'out_of_stock';
 const DEFAULT_INVENTORY_PROFILE: SeedInventoryProfile = 'demo_mixed';
 
 const DEMO_PRODUCT_STOCK_STATUS: Record<string, SeedInventoryStatus> = {
-  'prod-001': 'in_stock',
-  'prod-002': 'low_stock',
-  'prod-003': 'in_stock',
-  'prod-004': 'out_of_stock',
-  'prod-005': 'low_stock',
-  'prod-006': 'out_of_stock',
+  'prod-001': 'in_stock', // headphones
+  'prod-002': 'in_stock', // classic blue watch
+  'prod-003': 'in_stock', // leather cardholder
+  'prod-004': 'low_stock', // scented candle
+  'prod-005': 'in_stock', // minimalist vase
+  'prod-006': 'out_of_stock', // leather notebook
+  'prod-007': 'in_stock', // leather handbag
 };
 
 function getSeedInventoryProfile(): SeedInventoryProfile {
@@ -170,6 +171,13 @@ async function main() {
       'localization.currency': 'USD',
       'localization.locale': 'en',
       'localization.timezone': 'UTC',
+      'auth.bootstrap.admin': {
+        mode: process.env.AUTH_BOOTSTRAP_MODE === 'demo' ? 'demo' : (process.env.AUTH_BOOTSTRAP_MODE === 'normal' ? 'normal' : 'bootstrap'),
+        showDemoCredentials: process.env.AUTH_BOOTSTRAP_MODE === 'normal' ? false : true,
+        requiresPasswordRotation: process.env.AUTH_BOOTSTRAP_MODE === 'demo' ? false : (process.env.AUTH_BOOTSTRAP_MODE === 'normal' ? false : true),
+        email: process.env.AUTH_BOOTSTRAP_ADMIN_EMAIL || 'admin@jiffoo.com',
+        updatedAt: new Date().toISOString(),
+      },
     };
     await prisma.systemSettings.upsert({
       where: { id: 'system' },
@@ -243,12 +251,13 @@ async function main() {
 
     // 3) Create categories
     console.log('🗂️ Creating sample categories...');
+    // Aligned with the storefront theme's category cards (theme-assets/default)
     const categories = [
-      { id: 'cat-electronics', name: 'Electronics', slug: 'electronics', description: 'Gadgets and devices', level: 1, sortOrder: 10 },
-      { id: 'cat-clothing', name: 'Clothing', slug: 'clothing', description: 'Apparel and accessories', level: 1, sortOrder: 20 },
-      { id: 'cat-home', name: 'Home', slug: 'home', description: 'Home and living', level: 1, sortOrder: 30 },
-      { id: 'cat-beauty', name: 'Beauty', slug: 'beauty', description: 'Skincare and cosmetics', level: 1, sortOrder: 40 },
-      { id: 'cat-sports', name: 'Sports', slug: 'sports', description: 'Fitness and outdoor', level: 1, sortOrder: 50 },
+      { id: 'cat-home-living', name: 'Home & Living', slug: 'home-living', description: 'Vases, candles and homeware', level: 1, sortOrder: 10 },
+      { id: 'cat-bags', name: 'Bags & Accessories', slug: 'bags-accessories', description: 'Bags, wallets and leather goods', level: 1, sortOrder: 20 },
+      { id: 'cat-watches', name: 'Watches', slug: 'watches', description: 'Classic and modern timepieces', level: 1, sortOrder: 30 },
+      { id: 'cat-lifestyle', name: 'Lifestyle', slug: 'lifestyle', description: 'Stationery and everyday essentials', level: 1, sortOrder: 40 },
+      { id: 'cat-electronics', name: 'Electronics', slug: 'electronics', description: 'Gadgets and devices', level: 1, sortOrder: 50 },
     ] as const;
 
     // Store category slug to id mapping
@@ -275,6 +284,8 @@ async function main() {
       zhName: string;
       zhDescription: string;
       categoryId: string;
+      /** Stored in Product.typeData.images; served by the shop app from public/ */
+      images: string[];
       variants: Array<{
         key: string;
         nameSuffix: string;
@@ -293,92 +304,98 @@ async function main() {
           zhName: '無線藍牙耳機',
           zhDescription: '高端降噪無線耳機，續航長達30小時',
           categoryId: 'cat-electronics',
+          images: ['/theme-assets/default/product-headphones.webp'],
           variants: [
-            { key: 'black', nameSuffix: 'Black', skuSuffix: 'BLACK', price: 199.99, stock: 50, sortOrder: 10, attributes: { color: 'black' } },
+            { key: 'black', nameSuffix: 'Midnight Blue', skuSuffix: 'BLACK', price: 199.99, stock: 50, sortOrder: 10, attributes: { color: 'midnight-blue' } },
             { key: 'white', nameSuffix: 'White', skuSuffix: 'WHITE', price: 199.99, stock: 45, sortOrder: 20, attributes: { color: 'white' } },
             { key: 'silver', nameSuffix: 'Silver', skuSuffix: 'SILVER', price: 209.99, stock: 40, sortOrder: 30, attributes: { color: 'silver' } },
-            { key: 'rose-gold', nameSuffix: 'Rose Gold', skuSuffix: 'ROSEGOLD', price: 219.99, stock: 35, sortOrder: 40, attributes: { color: 'rose-gold' } },
-            { key: 'blue', nameSuffix: 'Blue', skuSuffix: 'BLUE', price: 199.99, stock: 30, sortOrder: 50, attributes: { color: 'blue' } },
           ],
         },
         {
           id: 'prod-002',
-          slug: 'smart-watch-pro',
-          name: 'Smart Watch Pro',
-          description: 'Advanced fitness tracking with heart rate monitor and GPS',
-          zhName: '智能手錶專業版',
-          zhDescription: '高級運動追蹤手錶，配備心率監測和GPS',
-          categoryId: 'cat-electronics',
+          slug: 'classic-blue-watch',
+          name: 'Classic Blue Watch',
+          description: 'Analog watch with a sapphire-blue sunray dial and leather strap',
+          zhName: '經典藍面腕錶',
+          zhDescription: '寶藍色太陽紋錶盤，皮革錶帶，經典三針設計',
+          categoryId: 'cat-watches',
+          images: ['/theme-assets/default/product-watch.webp'],
           variants: [
-            { key: 'sport-black', nameSuffix: 'Sport Strap Black', skuSuffix: 'SPORT-BLK', price: 299.99, stock: 25, sortOrder: 10, attributes: { strap: 'sport', color: 'black' } },
-            { key: 'sport-blue', nameSuffix: 'Sport Strap Blue', skuSuffix: 'SPORT-BLU', price: 299.99, stock: 20, sortOrder: 20, attributes: { strap: 'sport', color: 'blue' } },
-            { key: 'leather-brown', nameSuffix: 'Leather Strap Brown', skuSuffix: 'LEATHER-BRN', price: 319.99, stock: 18, sortOrder: 30, attributes: { strap: 'leather', color: 'brown' } },
-            { key: 'leather-black', nameSuffix: 'Leather Strap Black', skuSuffix: 'LEATHER-BLK', price: 319.99, stock: 15, sortOrder: 40, attributes: { strap: 'leather', color: 'black' } },
-            { key: 'metal-silver', nameSuffix: 'Metal Strap Silver', skuSuffix: 'METAL-SLV', price: 339.99, stock: 22, sortOrder: 50, attributes: { strap: 'metal', color: 'silver' } },
+            { key: 'leather-blue', nameSuffix: 'Leather Strap Blue', skuSuffix: 'LEATHER-BLU', price: 199.0, stock: 20, sortOrder: 10, attributes: { strap: 'leather', color: 'blue' } },
+            { key: 'leather-black', nameSuffix: 'Leather Strap Black', skuSuffix: 'LEATHER-BLK', price: 199.0, stock: 16, sortOrder: 20, attributes: { strap: 'leather', color: 'black' } },
+            { key: 'mesh-silver', nameSuffix: 'Mesh Strap Silver', skuSuffix: 'MESH-SLV', price: 219.0, stock: 12, sortOrder: 30, attributes: { strap: 'mesh', color: 'silver' } },
           ],
         },
         {
           id: 'prod-003',
-          slug: 'classic-cotton-t-shirt',
-          name: 'Classic Cotton T-Shirt',
-          description: 'Comfortable 100% organic cotton t-shirt, available in multiple colors',
-          zhName: '經典純棉T恤',
-          zhDescription: '100%有機棉，舒適透氣，多色可選',
-          categoryId: 'cat-clothing',
+          slug: 'leather-cardholder',
+          name: 'Leather Cardholder',
+          description: 'Slim saffiano leather cardholder with five card slots',
+          zhName: '真皮卡包',
+          zhDescription: '十字紋真皮超薄卡包，五個卡位',
+          categoryId: 'cat-bags',
+          images: ['/theme-assets/default/product-cardholder.webp'],
           variants: [
-            { key: 'white-m', nameSuffix: 'White M', skuSuffix: 'WHT-M', price: 29.99, stock: 80, sortOrder: 10, attributes: { color: 'white', size: 'M' } },
-            { key: 'white-l', nameSuffix: 'White L', skuSuffix: 'WHT-L', price: 29.99, stock: 70, sortOrder: 20, attributes: { color: 'white', size: 'L' } },
-            { key: 'black-m', nameSuffix: 'Black M', skuSuffix: 'BLK-M', price: 29.99, stock: 75, sortOrder: 30, attributes: { color: 'black', size: 'M' } },
-            { key: 'black-l', nameSuffix: 'Black L', skuSuffix: 'BLK-L', price: 29.99, stock: 65, sortOrder: 40, attributes: { color: 'black', size: 'L' } },
-            { key: 'gray-m', nameSuffix: 'Gray M', skuSuffix: 'GRY-M', price: 29.99, stock: 60, sortOrder: 50, attributes: { color: 'gray', size: 'M' } },
+            { key: 'navy', nameSuffix: 'Navy', skuSuffix: 'NAVY', price: 89.0, stock: 40, sortOrder: 10, attributes: { color: 'navy' } },
+            { key: 'black', nameSuffix: 'Black', skuSuffix: 'BLK', price: 89.0, stock: 35, sortOrder: 20, attributes: { color: 'black' } },
+            { key: 'tan', nameSuffix: 'Tan', skuSuffix: 'TAN', price: 89.0, stock: 28, sortOrder: 30, attributes: { color: 'tan' } },
           ],
         },
         {
           id: 'prod-004',
-          slug: 'minimalist-desk-lamp',
-          name: 'Minimalist Desk Lamp',
-          description: 'LED desk lamp with adjustable brightness and color temperature',
-          zhName: '極簡檯燈',
-          zhDescription: 'LED檯燈，支持亮度和色溫調節',
-          categoryId: 'cat-home',
+          slug: 'scented-candle',
+          name: 'Scented Candle',
+          description: 'Natural wax scented candle in a cobalt glass jar, 45-hour burn time',
+          zhName: '香氛蠟燭',
+          zhDescription: '鈷藍玻璃罐天然蠟香氛蠟燭，可燃燒45小時',
+          categoryId: 'cat-home-living',
+          images: ['/theme-assets/default/product-candle.webp'],
           variants: [
-            { key: 'white', nameSuffix: 'White', skuSuffix: 'WHT', price: 49.99, stock: 50, sortOrder: 10, attributes: { color: 'white' } },
-            { key: 'black', nameSuffix: 'Black', skuSuffix: 'BLK', price: 49.99, stock: 45, sortOrder: 20, attributes: { color: 'black' } },
-            { key: 'silver', nameSuffix: 'Silver', skuSuffix: 'SLV', price: 54.99, stock: 40, sortOrder: 30, attributes: { color: 'silver' } },
-            { key: 'wood', nameSuffix: 'Wood Finish', skuSuffix: 'WOOD', price: 59.99, stock: 35, sortOrder: 40, attributes: { color: 'wood' } },
-            { key: 'rose-gold', nameSuffix: 'Rose Gold', skuSuffix: 'ROSEGOLD', price: 54.99, stock: 30, sortOrder: 50, attributes: { color: 'rose-gold' } },
+            { key: 'sea-salt', nameSuffix: 'Sea Salt', skuSuffix: 'SEASALT', price: 49.0, stock: 8, sortOrder: 10, attributes: { scent: 'sea-salt' } },
+            { key: 'cedar', nameSuffix: 'Cedarwood', skuSuffix: 'CEDAR', price: 49.0, stock: 6, sortOrder: 20, attributes: { scent: 'cedarwood' } },
+            { key: 'white-tea', nameSuffix: 'White Tea', skuSuffix: 'WHITETEA', price: 54.0, stock: 5, sortOrder: 30, attributes: { scent: 'white-tea' } },
           ],
         },
         {
           id: 'prod-005',
-          slug: 'natural-skincare-set',
-          name: 'Natural Skincare Set',
-          description: 'Complete skincare routine with cleanser, toner, and moisturizer',
-          zhName: '天然護膚套裝',
-          zhDescription: '潔面+爽膚水+面霜，完整護膚流程',
-          categoryId: 'cat-beauty',
+          slug: 'minimalist-vase',
+          name: 'Minimalist Vase',
+          description: 'Matte ceramic vase with a hand-finished indigo glaze',
+          zhName: '極簡花瓶',
+          zhDescription: '啞光陶瓷花瓶，手工靛藍釉面',
+          categoryId: 'cat-home-living',
+          images: ['/theme-assets/default/product-vase.webp'],
           variants: [
-            { key: 'normal', nameSuffix: 'Normal Skin', skuSuffix: 'NORMAL', price: 79.99, stock: 40, sortOrder: 10, attributes: { skinType: 'normal' } },
-            { key: 'dry', nameSuffix: 'Dry Skin', skuSuffix: 'DRY', price: 79.99, stock: 35, sortOrder: 20, attributes: { skinType: 'dry' } },
-            { key: 'oily', nameSuffix: 'Oily Skin', skuSuffix: 'OILY', price: 79.99, stock: 38, sortOrder: 30, attributes: { skinType: 'oily' } },
-            { key: 'sensitive', nameSuffix: 'Sensitive Skin', skuSuffix: 'SENSITIVE', price: 89.99, stock: 30, sortOrder: 40, attributes: { skinType: 'sensitive' } },
-            { key: 'combination', nameSuffix: 'Combination Skin', skuSuffix: 'COMBO', price: 79.99, stock: 32, sortOrder: 50, attributes: { skinType: 'combination' } },
+            { key: 'small', nameSuffix: 'Small', skuSuffix: 'S', price: 65.0, stock: 30, sortOrder: 10, attributes: { size: 'small' } },
+            { key: 'large', nameSuffix: 'Large', skuSuffix: 'L', price: 85.0, stock: 22, sortOrder: 20, attributes: { size: 'large' } },
           ],
         },
         {
           id: 'prod-006',
-          slug: 'yoga-mat-premium',
-          name: 'Yoga Mat Premium',
-          description: 'Extra thick eco-friendly yoga mat with carrying strap',
-          zhName: '環保加厚瑜伽墊',
-          zhDescription: '加厚防滑墊配背帶，適合居家訓練',
-          categoryId: 'cat-sports',
+          slug: 'leather-notebook',
+          name: 'Leather Notebook',
+          description: 'A5 leather-bound notebook with lay-flat binding and ribbon marker',
+          zhName: '真皮筆記本',
+          zhDescription: 'A5真皮筆記本，可平攤裝訂，附絲帶書籤',
+          categoryId: 'cat-lifestyle',
+          images: ['/theme-assets/default/product-notebook.webp'],
           variants: [
-            { key: 'purple-6mm', nameSuffix: 'Purple 6mm', skuSuffix: 'PUR-6MM', price: 45.99, stock: 45, sortOrder: 10, attributes: { color: 'purple', thickness: '6mm' } },
-            { key: 'blue-6mm', nameSuffix: 'Blue 6mm', skuSuffix: 'BLU-6MM', price: 45.99, stock: 40, sortOrder: 20, attributes: { color: 'blue', thickness: '6mm' } },
-            { key: 'pink-8mm', nameSuffix: 'Pink 8mm', skuSuffix: 'PNK-8MM', price: 49.99, stock: 35, sortOrder: 30, attributes: { color: 'pink', thickness: '8mm' } },
-            { key: 'green-8mm', nameSuffix: 'Green 8mm', skuSuffix: 'GRN-8MM', price: 49.99, stock: 38, sortOrder: 40, attributes: { color: 'green', thickness: '8mm' } },
-            { key: 'black-10mm', nameSuffix: 'Black 10mm', skuSuffix: 'BLK-10MM', price: 54.99, stock: 30, sortOrder: 50, attributes: { color: 'black', thickness: '10mm' } },
+            { key: 'ruled', nameSuffix: 'Ruled', skuSuffix: 'RULED', price: 39.0, stock: 0, sortOrder: 10, attributes: { paper: 'ruled' } },
+            { key: 'plain', nameSuffix: 'Plain', skuSuffix: 'PLAIN', price: 39.0, stock: 0, sortOrder: 20, attributes: { paper: 'plain' } },
+          ],
+        },
+        {
+          id: 'prod-007',
+          slug: 'leather-handbag',
+          name: 'Leather Handbag',
+          description: 'Structured pebbled-leather handbag with detachable shoulder strap',
+          zhName: '真皮手提包',
+          zhDescription: '荔枝紋真皮手提包，附可拆卸肩帶',
+          categoryId: 'cat-bags',
+          images: ['/theme-assets/default/category-bags.webp'],
+          variants: [
+            { key: 'navy', nameSuffix: 'Navy', skuSuffix: 'NAVY', price: 129.0, stock: 26, sortOrder: 10, attributes: { color: 'navy' } },
+            { key: 'black', nameSuffix: 'Black', skuSuffix: 'BLK', price: 129.0, stock: 24, sortOrder: 20, attributes: { color: 'black' } },
           ],
         },
       ];
@@ -395,6 +412,7 @@ async function main() {
           description: prod.description,
           categoryId: actualCategoryId,
           storeId: defaultStore.id,
+          typeData: { images: prod.images },
         },
         create: {
           id: prod.id,
@@ -403,6 +421,7 @@ async function main() {
           description: prod.description,
           categoryId: actualCategoryId,
           storeId: defaultStore.id,
+          typeData: { images: prod.images },
         },
       });
 
@@ -461,7 +480,7 @@ async function main() {
 
     const cartItems = [
       { id: 'cartitem-001', productId: 'prod-001', variantId: 'var-prod-001-black', quantity: 1, price: 199.99 },
-      { id: 'cartitem-002', productId: 'prod-003', variantId: 'var-prod-003-white-m', quantity: 2, price: 29.99 },
+      { id: 'cartitem-002', productId: 'prod-003', variantId: 'var-prod-003-navy', quantity: 2, price: 89.0 },
     ] as const;
 
     for (const item of cartItems) {
@@ -565,10 +584,10 @@ async function main() {
         storeId: defaultStore.id,
         status: 'REFUNDED',
         paymentStatus: 'REFUNDED',
-        subtotalAmount: 59.98,
+        subtotalAmount: 178.0,
         discountAmount: 0,
         taxAmount: 0,
-        totalAmount: 59.98,
+        totalAmount: 178.0,
         customerEmail: sampleUser.email,
         lastPaymentMethod: 'mock',
         cancelReason: 'Demo refund scenario',
@@ -580,10 +599,10 @@ async function main() {
         storeId: defaultStore.id,
         status: 'REFUNDED',
         paymentStatus: 'REFUNDED',
-        subtotalAmount: 59.98,
+        subtotalAmount: 178.0,
         discountAmount: 0,
         taxAmount: 0,
-        totalAmount: 59.98,
+        totalAmount: 178.0,
         customerEmail: sampleUser.email,
         lastPaymentMethod: 'mock',
         cancelReason: 'Demo refund scenario',
@@ -602,26 +621,26 @@ async function main() {
 
     await prisma.orderItem.upsert({
       where: { id: 'orderitem-002' },
-      update: { orderId: 'cmlm25xyk0002vx08jkppqwmn', productId: 'prod-003', variantId: 'var-prod-003-white-m', quantity: 2, unitPrice: 29.99, fulfillmentStatus: 'pending' },
-      create: { id: 'orderitem-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', productId: 'prod-003', variantId: 'var-prod-003-white-m', quantity: 2, unitPrice: 29.99, fulfillmentStatus: 'pending' },
+      update: { orderId: 'cmlm25xyk0002vx08jkppqwmn', productId: 'prod-003', variantId: 'var-prod-003-navy', quantity: 2, unitPrice: 89.0, fulfillmentStatus: 'pending' },
+      create: { id: 'orderitem-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', productId: 'prod-003', variantId: 'var-prod-003-navy', quantity: 2, unitPrice: 89.0, fulfillmentStatus: 'pending' },
     });
 
     await prisma.payment.upsert({
       where: { id: 'pay-002' },
-      update: { orderId: 'cmlm25xyk0002vx08jkppqwmn', paymentMethod: 'mock', amount: 59.98, currency: 'USD', status: 'SUCCEEDED', attemptNumber: 1 },
-      create: { id: 'pay-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', paymentMethod: 'mock', amount: 59.98, currency: 'USD', status: 'SUCCEEDED', attemptNumber: 1 },
+      update: { orderId: 'cmlm25xyk0002vx08jkppqwmn', paymentMethod: 'mock', amount: 178.0, currency: 'USD', status: 'SUCCEEDED', attemptNumber: 1 },
+      create: { id: 'pay-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', paymentMethod: 'mock', amount: 178.0, currency: 'USD', status: 'SUCCEEDED', attemptNumber: 1 },
     });
 
     await prisma.refund.upsert({
       where: { id: 'refund-001' },
-      update: { paymentId: 'pay-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', amount: 59.98, currency: 'USD', status: 'COMPLETED', provider: 'mock', providerRefundId: 're_0000000001', idempotencyKey: 'refund-order-002' },
-      create: { id: 'refund-001', paymentId: 'pay-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', amount: 59.98, currency: 'USD', status: 'COMPLETED', provider: 'mock', providerRefundId: 're_0000000001', idempotencyKey: 'refund-order-002' },
+      update: { paymentId: 'pay-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', amount: 178.0, currency: 'USD', status: 'COMPLETED', provider: 'mock', providerRefundId: 're_0000000001', idempotencyKey: 'refund-order-002' },
+      create: { id: 'refund-001', paymentId: 'pay-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', amount: 178.0, currency: 'USD', status: 'COMPLETED', provider: 'mock', providerRefundId: 're_0000000001', idempotencyKey: 'refund-order-002' },
     });
 
     await prisma.inventoryReservation.upsert({
       where: { id: 'invres-002' },
-      update: { orderId: 'cmlm25xyk0002vx08jkppqwmn', productId: 'prod-003', variantId: 'var-prod-003-white-m', quantity: 2, status: 'RELEASED', expiresAt: new Date(Date.now() + 30 * 60 * 1000) },
-      create: { id: 'invres-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', productId: 'prod-003', variantId: 'var-prod-003-white-m', quantity: 2, status: 'RELEASED', expiresAt: new Date(Date.now() + 30 * 60 * 1000) },
+      update: { orderId: 'cmlm25xyk0002vx08jkppqwmn', productId: 'prod-003', variantId: 'var-prod-003-navy', quantity: 2, status: 'RELEASED', expiresAt: new Date(Date.now() + 30 * 60 * 1000) },
+      create: { id: 'invres-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', productId: 'prod-003', variantId: 'var-prod-003-navy', quantity: 2, status: 'RELEASED', expiresAt: new Date(Date.now() + 30 * 60 * 1000) },
     });
 
     console.log('✅ Demo orders created');

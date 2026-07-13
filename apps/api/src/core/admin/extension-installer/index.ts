@@ -53,7 +53,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
    * 2. Read and validate manifest - theme.json / theme-app.json / manifest.json
    * 3. Save metadata - .installed.json
    */
-  async installFromZip(kind: ExtensionKind, zipStream: Readable): Promise<InstallResult> {
+  async installFromZip(kind: ExtensionKind, zipStream: Readable, options?: { source?: string }): Promise<InstallResult> {
     switch (kind) {
       case 'theme-shop': {
         const theme = await themeInstaller.install('shop', zipStream);
@@ -96,7 +96,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
         };
       }
       case 'plugin': {
-        const plugin = await pluginFsInstaller.install(zipStream);
+        const plugin = await pluginFsInstaller.install(zipStream, options);
         return {
           kind,
           slug: plugin.slug,

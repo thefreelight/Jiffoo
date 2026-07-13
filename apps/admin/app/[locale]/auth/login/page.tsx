@@ -6,13 +6,16 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/lib/store'
+import { useManagedPackageBranding } from '@/lib/hooks/use-api'
+import { authApi } from '@/lib/api'
 import { Sparkles, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
+import type { AuthBootstrapStatus } from 'shared/src/types/auth'
 import { ZodError } from 'zod'
 // Validation using shared Zod schema
 import { loginSchema } from 'shared'
@@ -22,10 +25,13 @@ export default function AdminLoginPage() {
   const { login, isAuthenticated, isLoading, checkAuth } = useAuthStore()
   const t = useT()
   const locale = useLocale()
+  const brandingQuery = useManagedPackageBranding()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
+  const [bootstrapStatus, setBootstrapStatus] = useState<AuthBootstrapStatus | null>(null)
+  const [isLoadingBootstrap, setIsLoadingBootstrap] = useState(true)
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -39,7 +45,72 @@ export default function AdminLoginPage() {
   }, [checkAuth])
 
   useEffect(() => {
+    let cancelled = false
+
+    async function redirectFreshInstall() {
+      try {
+        const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/$/, '')
+        const response = await fetch(`${apiBaseUrl}/install/status`, { credentials: 'include' })
+        if (!response.ok) return
+
+        const status = await response.json()
+        if (!cancelled && status?.isInstalled === false) {
+          router.replace(`/${locale}/install`)
+        }
+      } catch {
+        // Login remains available if the installation status endpoint is unreachable.
+      }
+    }
+
+    redirectFreshInstall()
+
+    return () => {
+      cancelled = true
+    }
+  }, [locale, router])
+
+  useEffect(() => {
+    const branding = brandingQuery.data
+    document.title = branding?.mode === 'managed' && branding.displayBrandName
+      ? `${branding.displayBrandName} Admin`
+      : 'Commerce Admin - Management Dashboard'
+  }, [brandingQuery.data])
+
+  useEffect(() => {
+    let mounted = true
+
+    async function loadBootstrapStatus() {
+      try {
+        const response = await authApi.bootstrapStatus()
+        if (!mounted) return
+        if (response.success && response.data) {
+          setBootstrapStatus(response.data)
+        } else {
+          setBootstrapStatus(null)
+        }
+      } catch {
+        if (mounted) {
+          setBootstrapStatus(null)
+        }
+      } finally {
+        if (mounted) {
+          setIsLoadingBootstrap(false)
+        }
+      }
+    }
+
+    loadBootstrapStatus()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  useEffect(() => {
     if (isAuthenticated) {
+      if (useAuthStore.getState().user?.requiresPasswordRotation) {
+        router.push(`/${locale}/profile`)
+        return
+      }
       // Check if there's a saved redirect path
       const redirectPath = sessionStorage.getItem('redirectPath')
       if (redirectPath && redirectPath !== `/${locale}/auth/login`) {
@@ -82,9 +153,26 @@ export default function AdminLoginPage() {
   }
 
   const fillDemo = () => {
-    setEmail('admin@jiffoo.com')
-    setPassword('admin123')
+    const credentials = bootstrapStatus?.credentials
+    if (!credentials) return
+    setEmail(credentials.email)
+    setPassword(credentials.password)
   }
+
+  const shouldShowDemoCredentials = Boolean(bootstrapStatus?.showDemoCredentials && bootstrapStatus?.credentials)
+  const bootstrapHint = bootstrapStatus?.requiresPasswordRotation
+    ? getText('merchant.auth.bootstrapPasswordRotationHint', 'Change the initial admin password after sign-in to hide these bootstrap credentials.')
+    : getText('merchant.auth.demoCredentialsHint', 'These credentials are visible because this instance is still in bootstrap or demo mode.')
+  const isManagedBranding = brandingQuery.data?.mode === 'managed'
+  const brandedTitle = isManagedBranding
+    ? brandingQuery.data?.displayBrandName || 'Store Admin'
+    : getText('merchant.auth.title', 'Store Console')
+  const brandedSubtitle = isManagedBranding
+    ? brandingQuery.data?.displaySolutionName || 'AUTHENTICATION INTERFACE'
+    : getText('merchant.auth.welcomeBack', 'SECURE ACCESS')
+  const brandedFooter = isManagedBranding
+    ? `© 2026 ${(brandingQuery.data?.displayBrandName || 'STORE ADMIN').toUpperCase()}. ALL RIGHTS RESERVED.`
+    : getText('merchant.auth.copyright', '© 2026 STORE CONSOLE. ALL RIGHTS RESERVED.')
 
   if (isAuthenticated) {
     return (
@@ -104,10 +192,10 @@ export default function AdminLoginPage() {
           </div>
           <div className="space-y-2">
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
-              {getText('merchant.auth.title', 'Jiffoo Admin')}
+              {brandedTitle}
             </h1>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              {getText('merchant.auth.welcomeBack', 'AUTHENTICATION INTERFACE')}
+              {brandedSubtitle}
             </p>
           </div>
         </div>
@@ -199,45 +287,54 @@ export default function AdminLoginPage() {
               </Button>
             </form>
 
-            {/* Demo Credentials */}
-            <div className="pt-6 border-t border-gray-50">
-              <div className="text-center space-y-3">
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  {getText('merchant.auth.demoCredentials', 'DEMO CREDENTIALS')}
-                </p>
-                <div className="bg-gray-50/50 rounded-xl p-4 space-y-2 text-xs border border-gray-100">
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
-                      {getText('merchant.auth.email', 'Email')}:
-                    </span>
-                    <span className="font-mono text-gray-900 font-bold">admin@jiffoo.com</span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
-                      {getText('merchant.auth.password', 'Password')}:
-                    </span>
-                    <span className="font-mono text-gray-900 font-bold">admin123</span>
-                  </div>
+            {isLoadingBootstrap ? (
+              <div className="pt-6 border-t border-gray-50">
+                <div className="flex items-center justify-center gap-2 rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-xs text-gray-500">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  {getText('common.loading', 'Loading...')}
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={fillDemo}
-                  className="w-full rounded-xl border-gray-200 hover:bg-gray-50 font-semibold text-sm h-10"
-                  disabled={isLoading}
-                >
-                  {getText('merchant.auth.useDemoCredentials', 'USE DEMO CREDENTIALS')}
-                </Button>
               </div>
-            </div>
+            ) : shouldShowDemoCredentials ? (
+              <div className="pt-6 border-t border-gray-50">
+                <div className="text-center space-y-3">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                    {getText('merchant.auth.demoCredentials', 'DEMO CREDENTIALS')}
+                  </p>
+                  <div className="bg-gray-50/50 rounded-xl p-4 space-y-2 text-xs border border-gray-100">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
+                        {getText('merchant.auth.email', 'Email')}:
+                      </span>
+                      <span className="font-mono text-gray-900 font-bold">{bootstrapStatus?.credentials?.email}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">
+                        {getText('merchant.auth.password', 'Password')}:
+                      </span>
+                      <span className="font-mono text-gray-900 font-bold">{bootstrapStatus?.credentials?.password}</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-500">{bootstrapHint}</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={fillDemo}
+                    className="w-full rounded-xl border-gray-200 hover:bg-gray-50 font-semibold text-sm h-10"
+                    disabled={isLoading}
+                  >
+                    {getText('merchant.auth.useDemoCredentials', 'USE DEMO CREDENTIALS')}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
 
         {/* Footer */}
         <div className="text-center">
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-            {getText('merchant.auth.copyright', '© 2026 JIFFOO MALL. ALL RIGHTS RESERVED.')}
+            {brandedFooter}
           </p>
         </div>
       </div>

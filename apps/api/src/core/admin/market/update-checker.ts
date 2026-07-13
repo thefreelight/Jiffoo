@@ -9,12 +9,53 @@ import { prisma } from '@/config/database';
 import { MarketClient } from './market-client';
 import { CacheService } from '@/core/cache/service';
 import { LoggerService } from '@/core/logger/unified-logger';
+import { ThemeManagementService } from '@/core/admin/theme-management/service';
+import { compareVersions } from '@/core/admin/extension-installer/version-utils';
+import { buildOfficialArtifactMap, fetchOfficialArtifactsIndex } from './official-artifacts-client';
+import type { OfficialExtensionCatalogItem } from 'shared';
 
 const CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const CACHE_KEY = 'market:update-check:results';
 const CACHE_TTL = 86400; // 24 hours in seconds
 
 let checkInterval: NodeJS.Timeout | null = null;
+
+export type MarketUpdateCheckResult = {
+  kind: 'theme' | 'plugin';
+  slug: string;
+  currentVersion: string;
+  latestVersion: string;
+  hasUpdate: boolean;
+};
+
+function hasVersionUpdate(currentVersion: string, latestVersion: string): boolean {
+  try {
+    return compareVersions(latestVersion, currentVersion) > 0;
+  } catch {
+    return latestVersion !== currentVersion;
+  }
+}
+
+async function getInstalledOfficialThemes(): Promise<Array<{ slug: string; version: string }>> {
+  const [activeTheme, installedThemes] = await Promise.all([
+    ThemeManagementService.getActiveTheme('shop'),
+    ThemeManagementService.getInstalledThemes('shop'),
+  ]);
+
+  const themesBySlug = new Map<string, string>();
+
+  for (const theme of installedThemes.items) {
+    if (theme.source === 'official-market' && theme.type === 'pack') {
+      themesBySlug.set(theme.slug, theme.version);
+    }
+  }
+
+  if (activeTheme.source === 'official-market' && activeTheme.type === 'pack') {
+    themesBySlug.set(activeTheme.slug, activeTheme.version);
+  }
+
+  return Array.from(themesBySlug.entries()).map(([slug, version]) => ({ slug, version }));
+}
 
 export const UpdateChecker = {
   /** Start the periodic update checker */
@@ -48,27 +89,58 @@ export const UpdateChecker = {
 
   /** Run an update check */
   async check(): Promise<
-    Array<{
-      slug: string;
-      currentVersion: string;
-      latestVersion: string;
-      hasUpdate: boolean;
-    }>
+    MarketUpdateCheckResult[]
   > {
-    const installed = await prisma.pluginInstall.findMany({
-      where: { source: 'official-market', deletedAt: null },
-      select: { slug: true, version: true },
-    });
+    const [installedPlugins, installedThemes] = await Promise.all([
+      prisma.pluginInstall.findMany({
+        where: { source: 'official-market', deletedAt: null },
+        select: { slug: true, version: true },
+      }),
+      getInstalledOfficialThemes(),
+    ]);
 
-    if (installed.length === 0) return [];
+    if (installedPlugins.length === 0 && installedThemes.length === 0) return [];
 
     try {
-      const updates = await MarketClient.checkUpdates(installed);
+      const [remoteCatalog, artifactItems] = await Promise.all([
+        MarketClient.getOfficialCatalog(undefined, { fresh: true }).catch(() => null),
+        fetchOfficialArtifactsIndex({ fresh: true }).catch(() => []),
+      ]);
+      const artifactItemsByKey = buildOfficialArtifactMap(artifactItems);
+      const remoteItemsBySlug = new Map<string, OfficialExtensionCatalogItem>(
+        (remoteCatalog?.items || []).map((item) => [item.slug, item]),
+      );
+      const updates: MarketUpdateCheckResult[] = [
+        ...installedThemes.map(({ slug, version }) => {
+          const artifactItem = artifactItemsByKey.get(`theme:${slug}`);
+          const remoteItem = remoteItemsBySlug.get(slug);
+          const latestVersion = artifactItem?.version || remoteItem?.sellableVersion || remoteItem?.currentVersion || version;
+          return {
+            kind: 'theme' as const,
+            slug,
+            currentVersion: version,
+            latestVersion,
+            hasUpdate: hasVersionUpdate(version, latestVersion),
+          };
+        }),
+        ...installedPlugins.map(({ slug, version }) => {
+          const artifactItem = artifactItemsByKey.get(`plugin:${slug}`);
+          const remoteItem = remoteItemsBySlug.get(slug);
+          const latestVersion = artifactItem?.version || remoteItem?.sellableVersion || remoteItem?.currentVersion || version;
+          return {
+            kind: 'plugin' as const,
+            slug,
+            currentVersion: version,
+            latestVersion,
+            hasUpdate: hasVersionUpdate(version, latestVersion),
+          };
+        }),
+      ];
       const available = updates.filter((u) => u.hasUpdate);
 
       if (available.length > 0) {
         LoggerService.logSystem(
-          `Market updates available: ${available.map((u) => `${u.slug} (${u.currentVersion} -> ${u.latestVersion})`).join(', ')}`
+          `Market updates available: ${available.map((u) => `${u.kind}:${u.slug} (${u.currentVersion} -> ${u.latestVersion})`).join(', ')}`
         );
       }
 
@@ -83,12 +155,7 @@ export const UpdateChecker = {
   },
 
   /** Get cached update check results */
-  async getCachedResults(): Promise<Array<{
-    slug: string;
-    currentVersion: string;
-    latestVersion: string;
-    hasUpdate: boolean;
-  }> | null> {
+  async getCachedResults(): Promise<MarketUpdateCheckResult[] | null> {
     const cached = await CacheService.get<string>(CACHE_KEY);
     if (cached) {
       try {

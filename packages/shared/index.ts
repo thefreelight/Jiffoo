@@ -28,6 +28,8 @@ export {
   type ApiClientConfig,
 } from './api/client';
 
+export type { AuthBootstrapStatus } from './src/types/auth';
+
 // Auth client
 export {
   AuthClient,
@@ -56,6 +58,11 @@ export {
   StorageAdapterFactory,
   type StorageAdapter,
 } from './api/storage-adapters';
+
+// Extension and marketplace contracts
+export * from './src/extensions/commercial-package';
+export * from './src/extensions/official-catalog';
+export * from './src/extensions/platform-connection';
 
 
 

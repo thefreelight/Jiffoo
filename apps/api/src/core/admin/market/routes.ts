@@ -15,9 +15,13 @@ import { isOfficialMarketOnly } from '@/core/admin/extension-installer/official-
 import { getOfficialCatalog, getOfficialCatalogEntry } from './official-catalog';
 import { installOfficialMarketExtension } from './install-handoff';
 import { cleanupDownloadedArtifact, downloadArtifactWithResume } from './resumable-downloader';
-import { verifyOfficialArtifact } from './artifact-verification';
+import { verifyEmbeddedOfficialArtifact, verifyOfficialArtifact } from './artifact-verification';
+import { assertOfficialArtifactReachable } from './official-artifact-health';
 import { getMarketBaseUrl } from './market-client';
+import { buildOfficialArtifactMap, fetchOfficialArtifactsIndex } from './official-artifacts-client';
 import { platformConnectionService } from '@/core/admin/platform-connection/service';
+import { managedPackageService } from '@/core/admin/managed-package/service';
+import { resolveEmbeddedOfficialArtifactPath } from './embedded-artifact-store';
 
 const MARKET_INSTALL_KINDS: ExtensionKind[] = [
   'plugin',
@@ -26,6 +30,63 @@ const MARKET_INSTALL_KINDS: ExtensionKind[] = [
   'theme-app-shop',
   'theme-app-admin',
 ];
+
+async function buildFreeInstallAuthorization(
+  slug: string,
+  requestedVersion: string | undefined,
+) {
+  const seed = getOfficialCatalogEntry(slug);
+  const [detail, artifactItems] = await Promise.all([
+    MarketClient.getOfficialDetail(slug).catch(() => null),
+    fetchOfficialArtifactsIndex().catch(() => []),
+  ]);
+  const artifactKind = detail?.kind || seed?.kind;
+  const artifactItem = artifactKind
+    ? buildOfficialArtifactMap(artifactItems).get(`${artifactKind}:${slug}`)
+    : null;
+  const resolvedVersion = requestedVersion ?? artifactItem?.version ?? detail?.sellableVersion ?? detail?.currentVersion;
+  const versionSummary = detail?.versions.find((item) => item.version === resolvedVersion);
+  // Guard artifactItem explicitly: when both sides are undefined the
+  // loose comparison would match and dereference undefined.
+  const packageUrl = artifactItem && artifactItem.version === resolvedVersion
+    ? artifactItem.packageUrl
+    : versionSummary?.packageUrl;
+
+  if (!resolvedVersion || !packageUrl || !artifactKind) {
+    throw Object.assign(new Error('Official artifact not found for requested version'), {
+      statusCode: 404,
+      code: 'ARTIFACT_NOT_FOUND',
+    });
+  }
+
+  return {
+    allowed: true,
+    slug: detail?.slug || seed?.slug || slug,
+    kind: detail?.kind || artifactKind,
+    listingDomain: detail?.listingDomain || seed?.listingDomain,
+    listingKind: detail?.listingKind || seed?.listingKind || artifactKind,
+    providerType: detail?.providerType || seed?.providerType,
+    deliveryMode: detail?.deliveryMode || seed?.deliveryMode || 'package-managed',
+    paymentMode: detail?.paymentMode || seed?.paymentMode,
+    settlementTargetType: detail?.settlementTargetType || seed?.settlementTargetType,
+    settlementTargetId: detail?.settlementTargetId ?? seed?.settlementTargetId ?? null,
+    artifactKind: artifactKind === 'theme' ? 'theme-package' : 'plugin-package',
+    version: resolvedVersion,
+    packageUrl,
+    checksumUrl: `${packageUrl}.sha256`,
+    signatureUrl: `${packageUrl}.sig`,
+    minCoreVersion: versionSummary?.minCoreVersion ?? seed?.minCoreVersion ?? null,
+    pricingModel: detail?.pricingModel || seed?.defaultPricingModel || 'free',
+    price: detail?.price ?? 0,
+    currency: detail?.currency || seed?.defaultCurrency || 'USD',
+    entitlement: {
+      required: false,
+      status: 'not_required' as const,
+      pricingModel: detail?.pricingModel || seed?.defaultPricingModel || 'free',
+    },
+    reason: undefined,
+  };
+}
 
 export async function marketRoutes(fastify: FastifyInstance) {
   fastify.get(
@@ -207,8 +268,31 @@ export async function marketRoutes(fastify: FastifyInstance) {
           return sendError(reply, 400, 'BAD_REQUEST', `Official theme "${slug}" must be installed with kind "theme-shop"`);
         }
 
-        const binding = await platformConnectionService.getMarketplaceBindingContext();
-        if (!binding.context) {
+        const managedStatus = await managedPackageService.getStatus();
+        const managedPackage = managedStatus.package;
+        const isManagedAsset = Boolean(
+          managedPackage &&
+            (officialEntry.kind === 'theme'
+              ? managedPackage.includedThemes.includes(slug)
+              : managedPackage.includedPlugins.includes(slug)),
+        );
+
+        if (managedPackage?.status === 'SUSPENDED' && isManagedAsset) {
+          return sendError(
+            reply,
+            403,
+            'MANAGED_PACKAGE_SUSPENDED',
+            'This managed package is suspended. New installs are frozen until billing is restored.',
+          );
+        }
+
+        const binding = isManagedAsset
+          ? { status: null, context: null }
+          : await platformConnectionService.getMarketplaceBindingContext();
+
+        const requiresPlatformBinding = !isManagedAsset && officialEntry.defaultPricingModel !== 'free';
+
+        if (requiresPlatformBinding && !binding.context) {
           return sendError(
             reply,
             403,
@@ -220,15 +304,66 @@ export async function marketRoutes(fastify: FastifyInstance) {
           );
         }
 
-        const authorization = await MarketClient.authorizeInstall(slug, {
-          userId: request.user.id,
-          version,
-          instanceId: binding.context.instanceId,
-          instanceToken: binding.context.instanceToken,
-          platformAccountId: binding.context.platformAccountId,
-          tenantBindingId: binding.context.tenantBindingId,
-          localStoreId: binding.context.localStoreId,
-        });
+        const authorization = isManagedAsset
+          ? await (async () => {
+              const detail = await MarketClient.getOfficialDetail(slug);
+              const requestedVersion = version ?? detail.sellableVersion;
+              if (requestedVersion !== detail.sellableVersion) {
+                throw Object.assign(new Error('Requested version is not currently sellable'), {
+                  statusCode: 400,
+                  code: 'UNSUPPORTED_VERSION',
+                });
+              }
+              const versionSummary = detail.versions.find((item) => item.version === requestedVersion);
+              if (!versionSummary) {
+                throw Object.assign(new Error('Official artifact not found for requested version'), {
+                  statusCode: 404,
+                  code: 'ARTIFACT_NOT_FOUND',
+                });
+              }
+              return {
+                allowed: true,
+                slug: detail.slug,
+                kind: detail.kind,
+                listingDomain: detail.listingDomain,
+                listingKind: detail.listingKind,
+                providerType: detail.providerType,
+                deliveryMode: detail.deliveryMode,
+                paymentMode: detail.paymentMode,
+                settlementTargetType: detail.settlementTargetType,
+                settlementTargetId: detail.settlementTargetId ?? null,
+                artifactKind: detail.kind === 'theme' ? 'theme-package' : 'plugin-package',
+                version: requestedVersion,
+                packageUrl: versionSummary.packageUrl,
+                checksumUrl: versionSummary.packageUrl ? `${versionSummary.packageUrl}.sha256` : null,
+                signatureUrl: versionSummary.packageUrl ? `${versionSummary.packageUrl}.sig` : null,
+                minCoreVersion: versionSummary.minCoreVersion ?? null,
+                pricingModel: detail.pricingModel,
+                price: detail.price,
+                currency: detail.currency,
+                entitlement: {
+                  required: false,
+                  status: 'not_required' as const,
+                  pricingModel: detail.pricingModel,
+                },
+                reason: undefined,
+              };
+            })()
+          : officialEntry.defaultPricingModel === 'free'
+            ? await buildFreeInstallAuthorization(slug, version)
+          : await MarketClient.authorizeInstall(slug, {
+              userId: request.user.id,
+              version,
+              ...(binding.context
+                ? {
+                    instanceId: binding.context.instanceId,
+                    instanceToken: binding.context.instanceToken,
+                    platformAccountId: binding.context.platformAccountId,
+                    tenantBindingId: binding.context.tenantBindingId,
+                    localStoreId: binding.context.localStoreId,
+                  }
+                : {}),
+            });
 
         if (!authorization.allowed) {
           return sendError(
@@ -251,22 +386,50 @@ export async function marketRoutes(fastify: FastifyInstance) {
           );
         }
 
-        const downloadResult = await downloadArtifactWithResume({
+        const embeddedKind = authorization.kind === 'theme' ? 'theme' : 'plugin';
+        const embeddedArtifactPath = await resolveEmbeddedOfficialArtifactPath(
+          embeddedKind,
           slug,
-          version: authorization.version,
-          url: authorization.packageUrl,
-        });
+          authorization.version,
+        );
 
-        const verification = await verifyOfficialArtifact({
-          filePath: downloadResult.filePath,
-          packageUrl: authorization.packageUrl,
-          checksumUrl: authorization.checksumUrl,
-          signatureUrl: authorization.signatureUrl,
-        });
+        let artifactPath = embeddedArtifactPath;
+        const verification = embeddedArtifactPath
+          ? await verifyEmbeddedOfficialArtifact({
+              filePath: embeddedArtifactPath,
+              checksumFilePath: await resolveEmbeddedOfficialArtifactPath(
+                embeddedKind,
+                slug,
+                authorization.version,
+                'checksum',
+              ),
+              signatureFilePath: await resolveEmbeddedOfficialArtifactPath(
+                embeddedKind,
+                slug,
+                authorization.version,
+                'signature',
+              ),
+            })
+          : await (async () => {
+              await assertOfficialArtifactReachable(authorization.packageUrl);
+              const downloadResult = await downloadArtifactWithResume({
+                slug,
+                version: authorization.version,
+                url: authorization.packageUrl,
+              });
+
+              artifactPath = downloadResult.filePath;
+              return verifyOfficialArtifact({
+                filePath: downloadResult.filePath,
+                packageUrl: authorization.packageUrl,
+                checksumUrl: authorization.checksumUrl,
+                signatureUrl: authorization.signatureUrl,
+              });
+            })();
 
         const result = await installOfficialMarketExtension({
           kind,
-          artifactPath: downloadResult.filePath,
+          artifactPath: artifactPath ?? undefined,
           activate,
           themeConfig,
           requestedVersion: authorization.version,
@@ -281,17 +444,20 @@ export async function marketRoutes(fastify: FastifyInstance) {
           entitlement: authorization.entitlement,
         });
 
-        await MarketClient.recordInstall(slug, {
-          userId: request.user.id,
-          version: authorization.version,
-          instanceId: binding.context.instanceId,
-          instanceToken: binding.context.instanceToken,
-          tenantBindingId: binding.context.tenantBindingId,
-          localStoreId: binding.context.localStoreId,
-        }).catch(() => undefined);
+        if (!embeddedArtifactPath) {
+          await cleanupDownloadedArtifact(slug, authorization.version).catch(() => undefined);
+        }
 
-        await cleanupDownloadedArtifact(slug, authorization.version).catch(() => undefined);
-
+        if (binding.context) {
+          await MarketClient.recordInstall(slug, {
+            userId: request.user.id,
+            version: authorization.version,
+            instanceId: binding.context.instanceId,
+            instanceToken: binding.context.instanceToken,
+            tenantBindingId: binding.context.tenantBindingId,
+            localStoreId: binding.context.localStoreId,
+          }).catch(() => undefined);
+        }
         return sendSuccess(
           reply,
           {
@@ -338,7 +504,6 @@ export async function marketRoutes(fastify: FastifyInstance) {
         if (installed.length === 0) {
           return sendSuccess(reply, { updates: [] });
         }
-
         const updates = await MarketClient.checkUpdates(installed);
         return sendSuccess(reply, { updates });
       } catch (error: any) {

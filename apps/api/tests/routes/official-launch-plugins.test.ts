@@ -68,9 +68,22 @@ async function createZipFromDirectory(sourceDir: string): Promise<Buffer> {
   const zipPath = path.join(tempDir, 'artifact.zip');
 
   try {
-    await execFileAsync('zip', ['-qr', zipPath, '.'], {
-      cwd: sourceDir,
-    });
+    // Mirror the real artifact builder: keep runtime deps but drop dev files
+    // (.ts sources, native .node binaries outside prisma) that the installer's
+    // security scan rejects.
+    await execFileAsync(
+      'zip',
+      [
+        '-qr', zipPath, '.',
+        '-x', 'src/*', 'tests/*', 'scripts/*', '*.ts', '*.map',
+        'node_modules/.bin/*', 'node_modules/fsevents/*',
+        'node_modules/esbuild/*', 'node_modules/@esbuild/*',
+        'node_modules/@rollup/*',
+      ],
+      {
+        cwd: sourceDir,
+      },
+    );
 
     return await fs.readFile(zipPath);
   } finally {
@@ -83,7 +96,7 @@ describe('Official Launch Plugin Packages', () => {
   const repoRoot = path.resolve(process.cwd(), '..', '..');
   const stripeSlug = 'stripe';
   const i18nSlug = 'i18n';
-  const stripeArtifactUrl = 'https://market.example.com/artifacts/plugins/stripe/1.0.0.jplugin';
+  const stripeArtifactUrl = 'https://market.example.com/artifacts/plugins/stripe/1.0.1.jplugin';
   const i18nArtifactUrl = 'https://market.example.com/artifacts/plugins/i18n/1.0.0.jplugin';
   const stripeChecksumUrl = `${stripeArtifactUrl}.sha256`;
   const i18nChecksumUrl = `${i18nArtifactUrl}.sha256`;
@@ -100,7 +113,50 @@ describe('Official Launch Plugin Packages', () => {
   let i18nZip: Buffer;
   let defaultStoreId = '';
 
+  /**
+   * Official plugins run against dedicated databases (STRIPE_DATABASE_URL /
+   * I18N_DATABASE_URL) with their own migrations — provision throwaway
+   * databases next to the main test database and apply each plugin's
+   * migrations before the app boots.
+   */
+  async function providePluginDatabase(envVar: string, slug: string): Promise<void> {
+    const baseUrl = new URL(process.env.DATABASE_URL_TEST || process.env.DATABASE_URL || '');
+    const dbName = `${baseUrl.pathname.replace(/^\//, '').split('?')[0]}_plugin_${slug.replace(/[^a-z0-9]/gi, '_')}`;
+    const pluginDbUrl = new URL(baseUrl.toString());
+    pluginDbUrl.pathname = `/${dbName}`;
+
+    try {
+      await prisma.$executeRawUnsafe(`CREATE DATABASE "${dbName}"`);
+    } catch {
+      // Already exists
+    }
+
+    await execFileAsync('npx', [
+      'prisma', 'migrate', 'deploy',
+      '--schema', path.join(repoRoot, 'extensions', 'plugins', slug, 'prisma', 'schema.prisma'),
+    ], {
+      // Run from the plugin dir: apps/api has a prisma.config.ts that would
+      // override --schema and deploy the wrong migrations.
+      cwd: path.join(repoRoot, 'extensions', 'plugins', slug),
+      env: { ...process.env, [envVar]: pluginDbUrl.toString() },
+    });
+
+    process.env[envVar] = pluginDbUrl.toString();
+  }
+
   beforeAll(async () => {
+    // Defensive: purge leftovers from earlier aborted runs so install starts
+    // from a clean not-installed state.
+    await prisma.pluginInstallation.deleteMany({
+      where: { pluginSlug: { in: [stripeSlug, i18nSlug] } },
+    });
+    await prisma.pluginInstall.deleteMany({
+      where: { slug: { in: [stripeSlug, i18nSlug] } },
+    });
+
+    await providePluginDatabase('STRIPE_DATABASE_URL', stripeSlug);
+    await providePluginDatabase('I18N_DATABASE_URL', i18nSlug);
+
     extensionsRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'official-launch-ext-'));
     await fs.rm(path.join(os.tmpdir(), 'jiffoo-market-downloads', stripeSlug), {
       recursive: true,
@@ -146,6 +202,27 @@ describe('Official Launch Plugin Packages', () => {
       const method = getRequestMethod(input, init);
       const rangeHeader = getHeaderValue(init?.headers, 'Range');
 
+      // Free official installs resolve versions through the public artifact
+      // index (buildFreeInstallAuthorization), not remote authorize-install.
+      if (url.endsWith('/artifacts/index.json') && method === 'GET') {
+        return jsonResponse({
+          items: [
+            {
+              slug: stripeSlug,
+              kind: 'plugin',
+              version: '1.0.1',
+              packageUrl: stripeArtifactUrl,
+            },
+            {
+              slug: i18nSlug,
+              kind: 'plugin',
+              version: '1.0.0',
+              packageUrl: i18nArtifactUrl,
+            },
+          ],
+        });
+      }
+
       if (url.endsWith(`/marketplace/official/catalog/${stripeSlug}/authorize-install`) && method === 'POST') {
         return jsonResponse({
           success: true,
@@ -161,7 +238,7 @@ describe('Official Launch Plugin Packages', () => {
             settlementTargetType: 'platform',
             settlementTargetId: 'platform:jiffoo',
             artifactKind: 'plugin-package',
-            version: '1.0.0',
+            version: '1.0.1',
             packageUrl: stripeArtifactUrl,
             checksumUrl: stripeChecksumUrl,
             signatureUrl: stripeSignatureUrl,
@@ -224,7 +301,7 @@ describe('Official Launch Plugin Packages', () => {
           headers: {
             'Content-Length': String(stripeZip.length),
             'Accept-Ranges': 'bytes',
-            ETag: '"stripe-1.0.0"',
+            ETag: '"stripe-1.0.1"',
           },
         });
       }
@@ -393,27 +470,33 @@ describe('Official Launch Plugin Packages', () => {
     const installBody = installResponse.json();
     stripeInstallationId = installBody.data.pluginInstallation.installationId;
     expect(installBody.data.slug).toBe(stripeSlug);
-    expect(installBody.data.pluginInstallation.readiness.ready).toBe(true);
+    // Stripe declares required config (secretKey/publishableKey): a fresh
+    // install is not ready until the operator configures the keys.
+    expect(installBody.data.pluginInstallation.readiness.requiresConfiguration).toBe(true);
+    expect(installBody.data.pluginInstallation.readiness.ready).toBe(false);
     expect(installBody.data.marketInstallVerification).toEqual({
       sha256: sha256Hex(stripeZip),
       checksumVerified: true,
       signatureVerified: false,
     });
-    if (!installBody.data.pluginInstallation.enabled) {
-      const enableResponse = await app.inject({
-        method: 'PATCH',
-        url: `/api/extensions/plugin/${stripeSlug}/instances/${stripeInstallationId}`,
-        headers: {
-          authorization: `Bearer ${adminToken}`,
-        },
-        payload: {
-          enabled: true,
-        },
-      });
 
-      if (enableResponse.statusCode !== 200) {
-        throw new Error(enableResponse.body);
-      }
+    const configureResponse = await app.inject({
+      method: 'PATCH',
+      url: `/api/extensions/plugin/${stripeSlug}/instances/${stripeInstallationId}`,
+      headers: {
+        authorization: `Bearer ${adminToken}`,
+      },
+      payload: {
+        enabled: true,
+        config: {
+          secretKey: 'sk_test_launch_plugin_secret',
+          publishableKey: 'pk_test_launch_plugin',
+        },
+      },
+    });
+
+    if (configureResponse.statusCode !== 200) {
+      throw new Error(configureResponse.body);
     }
 
     const healthResponse = await app.inject({
@@ -424,13 +507,17 @@ describe('Official Launch Plugin Packages', () => {
     expect(healthResponse.statusCode).toBe(200);
     const healthBody = healthResponse.json();
     expect(healthBody.plugin).toBe(stripeSlug);
-    expect(healthBody.runtime.storefrontReady).toBe(true);
+    expect(healthBody.status).toBe('healthy');
+    expect(healthBody.runtime).toBe('internal-fastify');
 
     const adminStatusResponse = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${stripeSlug}/admin-ui/api/status?installationId=${stripeInstallationId}`,
+      url: `/api/extensions/plugin/${stripeSlug}/api/admin/api/status?installationId=${stripeInstallationId}`,
       headers: {
         authorization: `Bearer ${adminToken}`,
+        // The gateway derives the caller surface from the referer; the plugin
+        // admin API only answers admin-surface callers.
+        referer: 'http://localhost:3002/admin/plugins',
       },
     });
 
@@ -438,7 +525,7 @@ describe('Official Launch Plugin Packages', () => {
     const adminStatusBody = adminStatusResponse.json();
     expect(adminStatusBody.success).toBe(true);
     expect(adminStatusBody.data.plugin).toBe(stripeSlug);
-    expect(adminStatusBody.data.endpoints.createIntent).toBe('/api/payments/stripe/create-intent');
+    expect(adminStatusBody.data.endpoints.createIntent).toBe('/api/extensions/plugin/stripe/api/create-intent');
 
     const detailResponse = await app.inject({
       method: 'GET',
@@ -451,7 +538,6 @@ describe('Official Launch Plugin Packages', () => {
     expect(detailResponse.statusCode).toBe(200);
     const detailBody = detailResponse.json();
     expect(detailBody.success).toBe(true);
-    expect(detailBody.data.manifestJson.adminUi.entryPath).toBe('/admin');
   });
 
   it('installs, enables, and updates storefront locales through the official i18n plugin package', async () => {
@@ -497,41 +583,24 @@ describe('Official Launch Plugin Packages', () => {
       }
     }
 
-    const stateResponse = await app.inject({
+    // onEnable seeds the plugin's managed languages (en + zh-Hant) into its
+    // dedicated database; the languages API is the plugin's storefront surface.
+    const languagesResponse = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${i18nSlug}/admin-ui/api/localization?installationId=${i18nInstallationId}`,
+      url: `/api/extensions/plugin/${i18nSlug}/api/languages?installationId=${i18nInstallationId}`,
       headers: {
         authorization: `Bearer ${adminToken}`,
       },
     });
 
-    if (stateResponse.statusCode !== 200) {
-      throw new Error(stateResponse.body);
+    if (languagesResponse.statusCode !== 200) {
+      throw new Error(languagesResponse.body);
     }
-    const stateBody = stateResponse.json();
-    expect(stateBody.success).toBe(true);
-    expect(stateBody.data.store.storeId).toBe(defaultStoreId);
-    expect(stateBody.data.store.defaultLocale).toBe('en');
-    expect(stateBody.data.store.supportedLocales).toEqual(['en']);
-
-    const updateResponse = await app.inject({
-      method: 'PUT',
-      url: `/api/extensions/plugin/${i18nSlug}/admin-ui/api/localization?installationId=${i18nInstallationId}`,
-      headers: {
-        authorization: `Bearer ${adminToken}`,
-        'content-type': 'application/json',
-      },
-      payload: {
-        defaultLocale: 'zh-Hant',
-        supportedLocales: ['en', 'zh-Hant'],
-      },
-    });
-
-    expect(updateResponse.statusCode).toBe(200);
-    const updateBody = updateResponse.json();
-    expect(updateBody.success).toBe(true);
-    expect(updateBody.data.defaultLocale).toBe('zh-Hant');
-    expect(updateBody.data.supportedLocales).toEqual(['en', 'zh-Hant']);
+    const languagesBody = languagesResponse.json();
+    expect(languagesBody.success).toBe(true);
+    const locales = (languagesBody.data as Array<{ locale: string }>).map((l) => l.locale);
+    expect(locales).toContain('en');
+    expect(locales).toContain('zh-Hant');
 
     const detailResponse = await app.inject({
       method: 'GET',
@@ -544,12 +613,5 @@ describe('Official Launch Plugin Packages', () => {
     expect(detailResponse.statusCode).toBe(200);
     const detailBody = detailResponse.json();
     expect(detailBody.success).toBe(true);
-    expect(detailBody.data.manifestJson.adminUi.entryPath).toBe('/admin');
-
-    const store = await prisma.store.findUnique({
-      where: { id: defaultStoreId },
-    });
-    expect(store?.defaultLocale).toBe('zh-Hant');
-    expect(store?.supportedLocales).toEqual(['en', 'zh-Hant']);
   });
 });

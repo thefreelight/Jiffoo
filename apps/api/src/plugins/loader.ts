@@ -85,9 +85,10 @@ export function validateManifestVersionInfo(manifest: PluginManifest): void {
 
   // If minApiVersion is specified, validate its format
   if (manifest.minApiVersion) {
-    if (!isValidVersion(manifest.minApiVersion)) {
+    // Accept both API version format (v1, v2) and semantic version format (1.0.0, 2.1.3)
+    if (!isValidVersion(manifest.minApiVersion) && !isValidSemver(manifest.minApiVersion)) {
       throw new PluginLoaderError(
-        `Invalid minApiVersion format: "${manifest.minApiVersion}". Must be semantic version (e.g., "v1", "v2")`,
+        `Invalid minApiVersion format: "${manifest.minApiVersion}". Must be API version (e.g., "v1", "v2") or semantic version (e.g., "1.0.0")`,
         'INVALID_VERSION_FORMAT',
         manifest.slug,
         { minApiVersion: manifest.minApiVersion }

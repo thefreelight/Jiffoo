@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "brand": {
+      "type": "object",
+      "title": "Brand",
+      "properties": {
+        "name": {
+          "type": "string",
+          "title": "Brand Name",
+          "default": "Codex"
+        },
+        "primaryColor": {
+          "type": "string",
+          "title": "Primary Color",
+          "format": "color",
+          "default": "#8a7fff"
+        },
+        "secondaryColor": {
+          "type": "string",
+          "title": "Secondary Color",
+          "format": "color",
+          "default": "#0f1529"
+        },
+        "fontFamily": {
+          "type": "string",
+          "title": "Body Font",
+          "default": "\"Manrope\", \"Inter\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif"
+        }
+      }
+    },
+    "site": {
+      "type": "object",
+      "title": "Site",
+      "properties": {
+        "eyebrow": {
+          "type": "string",
+          "title": "Eyebrow",
+          "default": "Automation control-room theme"
+        },
+        "headline": {
+          "type": "string",
+          "title": "Headline",
+          "default": "Codex Team Automation Panel"
+        },
+        "subheadline": {
+          "type": "string",
+          "title": "Subheadline",
+          "default": "Launch a dark SaaS storefront that explains the product, previews live execution telemetry, and sells automation plans from one focused surface."
+        },
+        "primaryCtaLabel": {
+          "type": "string",
+          "title": "Primary CTA Label",
+          "default": "Get Started"
+        },
+        "primaryCtaHref": {
+          "type": "string",
+          "title": "Primary CTA Link",
+          "default": "/auth/register"
+        },
+        "secondaryCtaLabel": {
+          "type": "string",
+          "title": "Secondary CTA Label",
+          "default": "View Plans"
+        },
+        "secondaryCtaHref": {
+          "type": "string",
+          "title": "Secondary CTA Link",
+          "default": "/products"
+        },
+        "supportEmail": {
+          "type": "string",
+          "title": "Support Email",
+          "default": "support@codex.example"
+        }
+      }
+    }
+  }
+}

@@ -262,7 +262,7 @@ describe('Plugin Loader - Version Checking', () => {
       const status = getPluginCompatibilityStatus(manifest);
 
       expect(status.compatible).toBe(false);
-      expect(status.reason).toContain('incompatible');
+      expect(status.reason).toMatch(/requires API version|incompatible/i);
     });
   });
 
