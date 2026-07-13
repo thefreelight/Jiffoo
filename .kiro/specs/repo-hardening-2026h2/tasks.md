@@ -71,8 +71,8 @@
   - [ ] 2.3.2 配置结果（JSON）落盘本 spec 目录 `branch-protection.json` 备查
 
 - [ ] 2.4 文档同步
-  - [ ] 2.4.1 CONTRIBUTING.md 增加「CI Quality Gates」小节：4 个 job 各查什么、本地等价命令（`pnpm type-check` / `npx vitest run` / `pnpm --filter api db:check-drift` / `pnpm theme-matrix`）、失败时的排查入口
-  - [ ] 2.4.2 README 加 pr-quality-gates 的 status badge（仓库公开的前提下）
+  - [x] 2.4.1 CONTRIBUTING.md 增加「CI Quality Gates」小节：4 个 job 各查什么、本地等价命令（`pnpm type-check` / `npx vitest run` / `pnpm --filter api db:check-drift` / `pnpm theme-matrix`）、失败时的排查入口 _(含 drift 一次性库警告与 lint 未入门禁说明)_
+  - [x] 2.4.2 README 加 pr-quality-gates 的 status badge（仓库公开的前提下）
 
 ## 3. [P1] 测试债清零与簿记对账 (R3)
 

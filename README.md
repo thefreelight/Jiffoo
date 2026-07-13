@@ -1,5 +1,6 @@
 # Jiffoo - Open Source E-Commerce Platform
 
+[![PR Quality Gates](https://github.com/thefreelight/Jiffoo/actions/workflows/pr-quality-gates.yml/badge.svg)](https://github.com/thefreelight/Jiffoo/actions/workflows/pr-quality-gates.yml)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2+-blue.svg)](https://www.gnu.org/licenses/gpl-2.0)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-black.svg)](https://nextjs.org/)
