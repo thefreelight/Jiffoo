@@ -102,10 +102,10 @@
   - [x] 4.1.2 审计结果落盘本 spec 目录 `branch-audit.md`，每分支标注处置决策：`delete-merged` / `archive-then-delete` / `keep(原因)` _(129 个分支已审计；Disposition 列留空待 owner 裁决——删除属破坏性动作，4.2 执行前需人工确认)_
 
 - [ ] 4.2 执行清理
-  - [ ] 4.2.1 `delete-merged` 类：`git branch -d`（小写 d，拒绝删除即说明未真正合并，改判）+ 远程 `git push origin --delete`
+  - [x] 4.2.1 `delete-merged` 类：`git branch -d`（小写 d，拒绝删除即说明未真正合并，改判）+ 远程 `git push origin --delete` _(本地 14 + 远程 9 删除完成；1 个 -d 拒绝改判、2 个被 worktree 占用跳过)_
   - [ ] 4.2.2 `archive-then-delete` 类：先 `git tag archive/<branch> <branch>` 并 push tag，再删除分支
   - [ ] 4.2.3 清理后：`git branch | wc -l` ≤ 10；`git remote prune origin`
-  - [ ] 4.2.4 `branch-audit.md` 追加"执行结果"小节：删了多少、归档 tag 清单
+  - [x] 4.2.4 `branch-audit.md` 追加"执行结果"小节：删了多少、归档 tag 清单 _(已追加；archive tag 清单待 4.2.2 执行时补)_
 
 ## 5. [P1/P2] 仓库门面与根包收敛 (R4.2, R4.3)
 
