@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Download, X } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { usePwaInstall } from '@/hooks/use-pwa-install';
 
@@ -13,6 +14,11 @@ interface PwaInstallBannerProps {
   position?: 'top' | 'bottom';
   /** Custom class name */
   className?: string;
+}
+
+export function isPwaInstallBannerSuppressedPath(pathname: string): boolean {
+  const segments = pathname.split('/').filter(Boolean);
+  return segments.includes('auth');
 }
 
 /**
@@ -26,6 +32,7 @@ export function PwaInstallBanner({
   position = 'bottom',
   className,
 }: PwaInstallBannerProps) {
+  const pathname = usePathname();
   const {
     isInstallable,
     isInstalled,
@@ -79,7 +86,10 @@ export function PwaInstallBanner({
     : 'bottom-0';
 
   // Should show banner
-  const shouldShow = !isInstalled && isInstallable && !dismissed;
+  const shouldShow = !isPwaInstallBannerSuppressedPath(pathname)
+    && !isInstalled
+    && isInstallable
+    && !dismissed;
 
   // Mobile-optimized animation variants (GPU-accelerated: transform & opacity only)
   const bannerVariants = {

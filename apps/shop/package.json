@@ -7,6 +7,8 @@
     "dev": "next dev -p 3003",
     "build": "next build",
     "pages:build": "npx @cloudflare/next-on-pages",
+    "workers:build:bokmoo": "rm -rf .next .open-next && NEXT_PUBLIC_API_URL=https://bokmoo-api.bokmoo.com/api API_SERVICE_URL=https://bokmoo-api.bokmoo.com SERVER_STORE_CONTEXT_TIMEOUT_MS=2000 THEME_APP_PROXY_DISABLED=1 THEME_APP_PROXY_TIMEOUT_MS=1000 opennextjs-cloudflare build --config wrangler.bokmoo.toml --dangerouslyUseUnsupportedNextVersion",
+    "workers:deploy:bokmoo": "pnpm workers:build:bokmoo && opennextjs-cloudflare deploy --config wrangler.bokmoo.toml",
     "start": "next start -p 3003",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
@@ -56,6 +58,7 @@
   },
   "devDependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
+    "@opennextjs/cloudflare": "1.20.1",
     "@tailwindcss/aspect-ratio": "^0.4.2",
     "@tailwindcss/forms": "^0.5.9",
     "@tailwindcss/typography": "^0.5.15",

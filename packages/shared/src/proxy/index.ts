@@ -43,6 +43,44 @@ export interface ProxyConfig {
  * These are handled by next.config.js rewrites to Core API
  */
 const NEVER_FORWARD_PREFIXES = ['/api/', '/extensions/', '/uploads/', '/theme-app/'];
+const DEFAULT_THEME_APP_PROXY_TIMEOUT_MS = 1000;
+
+function isThemeAppProxyDisabled(): boolean {
+  const value = process.env.THEME_APP_PROXY_DISABLED?.toLowerCase();
+  return value === '1' || value === 'true';
+}
+
+function resolveThemeAppProxyTimeoutMs(): number {
+  const rawValue = process.env.THEME_APP_PROXY_TIMEOUT_MS;
+  if (!rawValue) {
+    return DEFAULT_THEME_APP_PROXY_TIMEOUT_MS;
+  }
+
+  const parsedValue = Number.parseInt(rawValue, 10);
+  if (!Number.isFinite(parsedValue) || parsedValue <= 0) {
+    return DEFAULT_THEME_APP_PROXY_TIMEOUT_MS;
+  }
+
+  return parsedValue;
+}
+
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, {
+      ...init,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 // ============================================================================
 // Path Utilities
@@ -130,6 +168,10 @@ export async function getActiveThemeInfo(
   request: NextRequest,
   target: ProxyTarget
 ): Promise<ActiveThemeInfo | null> {
+  if (isThemeAppProxyDisabled()) {
+    return null;
+  }
+
   try {
     const apiServiceUrl = process.env.API_SERVICE_URL;
     const apiOrigin = apiServiceUrl
@@ -137,11 +179,11 @@ export async function getActiveThemeInfo(
       : request.nextUrl.origin;
     const apiUrl = new URL(`/api/themes/active?target=${target}`, apiOrigin);
 
-    const response = await fetch(apiUrl.toString(), {
+    const response = await fetchWithTimeout(apiUrl.toString(), {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
-    });
+    }, resolveThemeAppProxyTimeoutMs());
 
     if (!response.ok) {
       return null;

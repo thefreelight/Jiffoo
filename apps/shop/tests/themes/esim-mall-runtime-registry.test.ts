@@ -86,4 +86,12 @@ describe('esim-mall embedded official runtime registry', () => {
     expect(runtimeSource).not.toContain("@shop-themes/default/src/components/LoginPage");
     expect(indexSource).not.toContain("@shop-themes/default/src/components/LoginPage");
   });
+
+  it('loads the explicit Bokmoo fallback renderer from the shop theme registry', async () => {
+    const themePackage = await BUILTIN_THEMES['bokmoo'].load();
+
+    expect(themePackage.components.LoginPage).toBeTruthy();
+    expect(themePackage.components.RegisterPage).toBeTruthy();
+    expect(getMissingThemeComponents(themePackage, OFFICIAL_FULL_THEME_COMPONENTS)).toEqual([]);
+  });
 });

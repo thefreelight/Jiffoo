@@ -1,13 +1,11 @@
 /**
- * Shop Application Proxy (Next.js 16)
+ * Shop Application Middleware
  *
  * Handles:
  * 1. Theme App forwarding (L4): When activeTheme.type === 'app', proxy all requests to Theme App
  * 2. Locale-based routing: Redirects requests without locale prefix to /{locale}/...
  *
  * Priority: Theme App forwarding > Locale redirect > Pass through
- *
- * @see https://nextjs.org/docs/app/api-reference/file-conventions/proxy
  */
 
 import { LOCALES, DEFAULT_LOCALE } from 'shared/src/i18n';
@@ -25,7 +23,7 @@ const shopProxyConfig: ProxyConfig = {
 };
 
 /**
- * Shop proxy handler
+ * Shop middleware handler
  *
  * Request flow:
  * 1. Check if path should never be forwarded (/api/*, /extensions/*, /uploads/*, /theme-app/*)
@@ -46,7 +44,7 @@ function isInstallRootRequest(request: NextRequest): boolean {
   return pathname === '/' || pathname === `/${DEFAULT_LOCALE}`;
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   if (isInstallRootRequest(request)) {
     return NextResponse.redirect(new URL('/install.sh', request.url));
   }

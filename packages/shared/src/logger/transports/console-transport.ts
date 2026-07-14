@@ -94,15 +94,19 @@ export class ConsoleTransport implements ITransport {
 
     switch (entry.level) {
       case 'debug':
+        console.debug(formattedMessage);
+        break;
       case 'info':
-        process.stdout.write(formattedMessage + '\n');
+        console.info(formattedMessage);
         break;
       case 'warn':
+        console.warn(formattedMessage);
+        break;
       case 'error':
-        process.stderr.write(formattedMessage + '\n');
+        console.error(formattedMessage);
         break;
       default:
-        process.stdout.write(formattedMessage + '\n');
+        console.log(formattedMessage);
     }
   }
 

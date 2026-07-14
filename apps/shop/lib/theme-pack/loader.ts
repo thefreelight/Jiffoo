@@ -15,22 +15,11 @@ import type {
 /** Theme asset path relative to the API origin */
 const EXTENSIONS_BASE = '/extensions/themes/shop';
 
-function stripTrailingSlash(value: string): string {
-  return value.endsWith('/') ? value.slice(0, -1) : value;
-}
-
 function resolveThemeAssetsOrigin(): string {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL;
-  if (!apiUrl) {
-    return '';
-  }
-
-  try {
-    const parsed = new URL(apiUrl);
-    return stripTrailingSlash(`${parsed.protocol}//${parsed.host}`);
-  } catch {
-    return '';
-  }
+  // Theme assets are exposed through the storefront's `/extensions` proxy.
+  // Keeping them same-origin satisfies the storefront CSP and avoids making
+  // installed themes depend on a separately allowlisted API hostname.
+  return '';
 }
 
 function withThemeAssetsOrigin(path: string): string {

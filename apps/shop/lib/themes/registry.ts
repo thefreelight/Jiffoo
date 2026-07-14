@@ -8,6 +8,7 @@
  */
 
 import type { ThemePackage, ThemeMeta, ThemeRegistryEntry, ThemeRegistry } from 'shared/src/types/theme';
+import bokmooTheme from '@shop-themes/bokmoo/src/runtime';
 import esimMallTheme from '@shop-themes/esim-mall/src/runtime';
 import yevbiTheme from '@shop-themes/yevbi/src/runtime';
 import imagicStudioTheme from '@shop-themes/imagic-studio/src/runtime';
@@ -77,6 +78,23 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       const module = await import('@shop-themes/default');
       return module.default || module.theme;
     },
+  },
+  // Explicit Bokmoo fallback bridge for branded self-hosted deployments. The
+  // packaged theme runtime remains authoritative whenever the API serves the
+  // installed theme pack; this entry only lets an environment-configured
+  // fallback render Bokmoo pages while the backend is temporarily unreachable.
+  'bokmoo': {
+    meta: {
+      slug: 'bokmoo',
+      name: 'Bokmoo',
+      version: '1.0.0',
+      description: 'Premium black-and-gold storefront renderer for Bokmoo eSIM products.',
+      category: 'esim',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['esim', 'travel', 'premium', 'connectivity'],
+    },
+    load: async () => bokmooTheme,
   },
   // Migration-only compatibility bridges. Official themes that publish a
   // packaged runtime must resolve from the installed artifact instead.

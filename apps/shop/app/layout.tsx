@@ -232,6 +232,13 @@ export default async function RootLayout({
         {themeStyles && isSafeCSS && (
           <style id="theme-styles" dangerouslySetInnerHTML={{ __html: themeStyles }} />
         )}
+        <script
+          id="esbuild-name-helper"
+          dangerouslySetInnerHTML={{
+            __html:
+              'var __name=window.__name||function(target,value){try{Object.defineProperty(target,"name",{value:value,configurable:true})}catch(error){}return target};window.__name=__name;',
+          }}
+        />
         <Providers>{children}</Providers>
         <ServiceWorkerRegister />
         <PwaInstallBanner />
