@@ -113,11 +113,11 @@
   - [x] 5.1.1 `PROJECT_EVALUATION_REPORT.md`（2024-12 数据，8.0/10 结论）用 `git mv` 移入 `docs-internal/archive/`，文件头加一行"归档于 2026-07，数据已过时"
   - [x] 5.1.2 如需保留对外口径，在 README 的 Project Status 处一句话替代（版本、测试规模、门禁状态），不再维护独立评分文档
 
-- [ ] 5.2 根 package.json 收敛 (R4.3) [P2]
-  - [ ] 5.2.1 核实根 `dependencies`（`stripe`、`fastify-plugin`）：`grep -rn` 确认根目录无直接引用后移除（stripe 版本钉在 `pnpm.overrides` 即可，不需要根依赖）；移除后 `pnpm install` + `pnpm test:api:quality` 回归 _(暂缓：根 package.json 与 pnpm-lock 上有并行会话的未提交改动（@types/express + open-next 相关 +1837 行 lock），依赖移除会与之纠缠；待工作区干净后执行)_
+- [x] 5.2 根 package.json 收敛 (R4.3) [P2]
+  - [x] 5.2.1 核实根 `dependencies`（`stripe`、`fastify-plugin`）：`grep -rn` 确认根目录无直接引用后移除（stripe 版本钉在 `pnpm.overrides` 即可，不需要根依赖）；移除后 `pnpm install` + `pnpm test:api:quality` 回归 _(commit `263beaae`；在 origin/main 的干净 worktree 里做，绕开并行会话的未提交改动。**发现真问题**：fastify-plugin 被 apps/api 的 5 个模块使用却从未声明，仅靠根依赖 hoist 才解析——单纯删除会打断 API；故改为依赖下沉：根 dependencies 整块移除 + apps/api 补声明 fastify-plugin ^5.0.1。lock 仅 +3/-7)_
   - [x] 5.2.2 `pnpm.overrides` 中 `stripe 18.4.0` 与 `next 16.0.7` 的钉版本原因文档化（package.json 不支持注释，写入 CONTRIBUTING.md 依赖章节）
   - [x] 5.2.3 长尾脚本收敛：`test:updater:*`、`test:update-feed-*`、`test:*-verifier`、`verify:release-*` 等 20+ 条一次性验证脚本，收敛为 `node scripts/run.mjs <name>` 统一入口或在 `scripts/README.md` 文档化；根 scripts 数量明显下降（现约 90 条）_(取文档化路线：scripts/README.md 按用途分组全部 ~65 条；未做删减——发布验证脚本仍在使用，删减风险大于收益)_
-  - [ ] 5.2.4 回归：`pnpm build:core` + `pnpm test:api:quality` 通过
+  - [x] 5.2.4 回归：`pnpm build:core` + `pnpm test:api:quality` 通过 _(build:core ✓、prisma generate ✓、API 全量 1494 绿（补齐 gitignore 的插件 dist/openapi.json 后，与 CI 同法）)_
 
 ## Release Gate 核对清单（对应 requirements.md）
 
