@@ -86,10 +86,6 @@ function parseConfigJson(configJson: unknown): Record<string, unknown> {
   }
 }
 
-function isLiveMode(config: Record<string, unknown>): boolean {
-  return String(config?.mode || '').toLowerCase() === 'live';
-}
-
 function getStringConfig(config: Record<string, unknown>, ...keys: string[]): string | undefined {
   for (const key of keys) {
     const value = config[key];
@@ -100,10 +96,19 @@ function getStringConfig(config: Record<string, unknown>, ...keys: string[]): st
   return undefined;
 }
 
+function isLiveMode(config: Record<string, unknown>): boolean {
+  const mode = String(config?.mode || config?.environment || config?.['stripe.environment'] || '').toLowerCase();
+  if (mode === 'live') return true;
+  if (mode === 'test') return false;
+
+  const secretKey = getStringConfig(config, 'secretKey', 'secret_key', 'stripe.secretKey', 'stripe.secret_key');
+  return secretKey?.startsWith('sk_live_') ?? false;
+}
+
 function getClientConfig(pluginSlug: string, config: Record<string, unknown>): PaymentMethodDescriptor['clientConfig'] | undefined {
   if (pluginSlug !== 'stripe') return undefined;
 
-  const publishableKey = getStringConfig(config, 'publishableKey', 'publishable_key');
+  const publishableKey = getStringConfig(config, 'publishableKey', 'publishable_key', 'stripe.publishableKey', 'stripe.publishable_key');
   if (!publishableKey) return undefined;
 
   return { publishableKey };

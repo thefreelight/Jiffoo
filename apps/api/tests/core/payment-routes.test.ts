@@ -147,6 +147,39 @@ describe('Payment Routes', () => {
       expect(method.isLive).toBe(false); // mode is "test"
     });
 
+    it('should expose Stripe client config from official namespaced plugin settings', async () => {
+      (CacheService.getPluginVersion as ReturnType<typeof vi.fn>).mockResolvedValue('1');
+      (CacheService.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (CacheService.set as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+      (PluginManagementService.getAllPluginPackages as ReturnType<typeof vi.fn>).mockResolvedValue([
+        { ...STRIPE_PACKAGE, slug: 'stripe' },
+      ]);
+      (PluginManagementService.getDefaultInstance as ReturnType<typeof vi.fn>).mockResolvedValue({
+        enabled: true,
+        deletedAt: null,
+        configJson: JSON.stringify({
+          'stripe.secretKey': 'sk_live_bokmoo',
+          'stripe.publishableKey': 'pk_live_bokmoo',
+        }),
+      });
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/payments/available-methods',
+      });
+
+      expect(response.statusCode).toBe(200);
+
+      const body = response.json();
+      expect(body.data[0]).toMatchObject({
+        pluginSlug: 'stripe',
+        isLive: true,
+        clientConfig: {
+          publishableKey: 'pk_live_bokmoo',
+        },
+      });
+    });
+
     it('should return an empty array when no payment plugins are installed', async () => {
       (CacheService.getPluginVersion as ReturnType<typeof vi.fn>).mockResolvedValue('1');
       (CacheService.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);

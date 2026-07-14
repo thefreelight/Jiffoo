@@ -137,16 +137,16 @@ export class StripeService {
 
     const value = {
       publishableKey:
-        getConfiguredValue(pluginConfig, 'publishableKey', 'publishable_key')
+        getConfiguredValue(pluginConfig, 'publishableKey', 'publishable_key', 'stripe.publishableKey', 'stripe.publishable_key')
         || String(env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || env.STRIPE_PUBLISHABLE_KEY || '').trim(),
       secretKey: await resolveConfiguredSecret(pluginConfig, {
-        refKeys: ['secretKeyRef', 'secret_key_ref'],
-        valueKeys: ['secretKey', 'secret_key'],
+        refKeys: ['secretKeyRef', 'secret_key_ref', 'stripe.secretKeyRef', 'stripe.secret_key_ref'],
+        valueKeys: ['secretKey', 'secret_key', 'stripe.secretKey', 'stripe.secret_key'],
         envFallback: env.STRIPE_SECRET_KEY,
       }),
       webhookSecret: await resolveConfiguredSecret(pluginConfig, {
-        refKeys: ['webhookSecretRef', 'webhook_secret_ref'],
-        valueKeys: ['webhookSecret', 'webhook_secret'],
+        refKeys: ['webhookSecretRef', 'webhook_secret_ref', 'stripe.webhookSecretRef', 'stripe.webhook_secret_ref'],
+        valueKeys: ['webhookSecret', 'webhook_secret', 'stripe.webhookSecret', 'stripe.webhook_secret'],
         envFallback: env.STRIPE_WEBHOOK_SECRET,
       }),
     };
