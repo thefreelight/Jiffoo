@@ -164,6 +164,15 @@ apps/api/prisma/schema/
    - Create a migration (if table structure changed)
    - The model will automatically pass the dormant check on next CI run
 
+## 🏷️ Versioning
+
+The root `package.json` version tracks **the most recently published OSS release** — `scripts/release-oss-patch.mjs --version X` writes `X-opensource` there and tags `vX-opensource` in the same step. So the root version is a record of what shipped, not a "next" placeholder.
+
+- Four files move together as one set and must never drift apart (the release script writes all four): root `package.json`, `.github/oss-build-target.json`, `packages/shared/src/core-update/public-manifest.ts` (the update feed self-hosted instances poll), and the expectations in `apps/api/tests/routes/upgrade.test.ts`.
+- They currently record **v1.0.35-opensource**, the latest successfully published release. (v1.0.36/v1.0.37 exist as tags but were blocked by the self-hosted publication gate and are QUARANTINED pre-releases — do not treat them as shippable; the next release should be ≥ 1.0.38.)
+- The app packages (`apps/api`, `apps/shop`, `apps/admin`) carry independent versions and are not part of the OSS release line.
+- Releases are always manual: no workflow publishes images or the update feed on a push or merge.
+
 ## 📦 Dependency Notes
 
 Two versions are pinned via `pnpm.overrides` in the root `package.json` (package.json cannot carry comments, so the rationale lives here):
