@@ -114,33 +114,29 @@ export class ExtensionInstaller implements IExtensionInstaller {
    * Uninstall extension
    */
   async uninstall(kind: ExtensionKind, slug: string): Promise<UninstallResult> {
-    try {
-      switch (kind) {
-        case 'theme-shop':
-          await themeInstaller.uninstall('shop', slug);
-          break;
-        case 'theme-admin':
-          await themeInstaller.uninstall('admin', slug);
-          break;
-        case 'theme-app-shop':
-          await themeAppInstaller.uninstallAll('shop', slug);
-          break;
-        case 'theme-app-admin':
-          await themeAppInstaller.uninstallAll('admin', slug);
-          break;
-        case 'plugin': {
-          // CRITICAL: Use soft delete (consistent with routes behavior)
-          const { PluginManagementService } = await import('@/core/admin/plugin-management/service');
-          await PluginManagementService.uninstallPlugin(slug);
-          break;
-        }
-        default:
-          throw new Error(`Unknown extension kind: ${kind}`);
+    switch (kind) {
+      case 'theme-shop':
+        await themeInstaller.uninstall('shop', slug);
+        break;
+      case 'theme-admin':
+        await themeInstaller.uninstall('admin', slug);
+        break;
+      case 'theme-app-shop':
+        await themeAppInstaller.uninstallAll('shop', slug);
+        break;
+      case 'theme-app-admin':
+        await themeAppInstaller.uninstallAll('admin', slug);
+        break;
+      case 'plugin': {
+        // CRITICAL: Use soft delete (consistent with routes behavior)
+        const { PluginManagementService } = await import('@/core/admin/plugin-management/service');
+        await PluginManagementService.uninstallPlugin(slug);
+        break;
       }
-      return { kind, slug, success: true };
-    } catch (error) {
-      throw error;
+      default:
+        throw new Error(`Unknown extension kind: ${kind}`);
     }
+    return { kind, slug, success: true };
   }
 
   /**

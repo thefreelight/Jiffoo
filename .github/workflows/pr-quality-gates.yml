@@ -1,8 +1,8 @@
 # PR Quality Gates (repo-hardening-2026h2 §2.1)
 #
 # Four parallel jobs gate every PR into main:
-#   static-checks  — repo-wide type-check (lint is pending the ESLint 9
-#                    flat-config migration; tracked in the spec, not gated yet)
+#   static-checks  — repo-wide type-check + ESLint (flat config; errors gate,
+#                    warnings are visible debt)
 #   api-tests      — full API vitest suite against postgres + redis services
 #   drift-gate     — Prisma schema vs migrations (reuses check-drift.sh)
 #   theme-gate     — theme matrix type-check/validate + theme API surface check
@@ -42,6 +42,8 @@ jobs:
         run: pnpm --filter api exec prisma generate
       - name: Type-check (all packages)
         run: pnpm type-check
+      - name: Lint
+        run: npx eslint .
 
   api-tests:
     runs-on: ubuntu-latest

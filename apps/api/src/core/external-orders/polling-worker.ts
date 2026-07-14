@@ -150,16 +150,17 @@ export class ExternalOrderPollingWorker {
       nextDelay = this.activeIntervalMs;
       logger.error('External order polling worker failed:', error);
     } finally {
+      // No early returns in finally: a return here would also swallow any
+      // exception propagating from the try/catch above.
       this.isTicking = false;
-      if (!this.isRunning) return;
-
-      if (this.wakeRequested) {
-        this.wakeRequested = false;
-        this.scheduleNext(0);
-        return;
+      if (this.isRunning) {
+        if (this.wakeRequested) {
+          this.wakeRequested = false;
+          this.scheduleNext(0);
+        } else {
+          this.scheduleNext(nextDelay);
+        }
       }
-
-      this.scheduleNext(nextDelay);
     }
   }
 }

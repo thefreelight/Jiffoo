@@ -126,7 +126,9 @@ function validateByDescriptor(
 }
 
 function collectRequiredFlags(descriptor: GenericObject): boolean {
-  if (Boolean(descriptor.required)) {
+  // JSON-Schema style: required is either a boolean flag or a field-name array
+  // (an empty array means nothing is required).
+  if (descriptor.required === true) {
     return true;
   }
 

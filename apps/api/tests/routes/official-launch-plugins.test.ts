@@ -431,7 +431,9 @@ describe('Official Launch Plugin Packages', () => {
 
       throw new Error(`Unexpected fetch: ${method} ${url}`);
     }) as typeof fetch;
-  });
+    // Zipping the plugin fixtures (runtime node_modules included) plus the
+    // per-plugin database migrations can exceed the default 30s hook budget.
+  }, 180_000);
 
   afterAll(async () => {
     global.fetch = originalFetch as typeof fetch;

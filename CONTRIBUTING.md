@@ -179,7 +179,7 @@ Every PR into `main` runs four parallel jobs (`.github/workflows/pr-quality-gate
 
 | Job | What it checks | Local equivalent |
 |-----|----------------|------------------|
-| `static-checks` | Repo-wide TypeScript type-check (all packages) | `pnpm type-check` (build `shared`/`@jiffoo/ui`/SDK packages first if dists are stale) |
+| `static-checks` | Repo-wide TypeScript type-check + ESLint (flat config; errors block, warnings are tracked debt) | `pnpm type-check` + `npx eslint .` (build `shared`/`@jiffoo/ui`/SDK packages first if dists are stale) |
 | `api-tests` | Full API vitest suite against postgres + redis, incl. 350+ OpenAPI contract tests | `cd apps/api && pnpm export:openapi && npx vitest run tests/` |
 | `drift-gate` | Prisma schema vs migrations sync | `DATABASE_URL=<throwaway-db> pnpm --filter api db:check-drift` — **never point this at a real database; the script uses it as a shadow DB and resets it** |
 | `theme-gate` | Theme matrix type-check/validate + theme API surface snapshot | `pnpm theme-matrix:type-check && pnpm theme-matrix:validate && pnpm surface:check` |
@@ -191,7 +191,7 @@ When a gate fails:
 - **drift-gate** — you changed a schema file without a migration: `cd apps/api && pnpm db:migrate --name descriptive_name`.
 - **theme-gate** — surface snapshot mismatches mean the theme API surface changed; if intentional, regenerate with `pnpm surface:generate` and commit the snapshot.
 
-`pnpm lint` is not gated yet — the ESLint 9 flat-config migration is pending (tracked in `.kiro/specs/repo-hardening-2026h2/`).
+Lint uses the root `eslint.config.mjs` (ESLint 9 flat config). The baseline ratchets like coverage: correctness rules are errors, style/hygiene rules are warnings (~1,000 today) to be paid down over time. `extensions/**` are standalone npm packages outside the root lint scope.
 
 ## ⛔ Prohibited Practices
 

@@ -158,15 +158,10 @@ export async function withTransaction<T>(
   // This is a simplified version - for true isolation, consider using
   // nested transactions or database-level savepoints
   
-  try {
-    const result = await client.$transaction(async (tx) => {
-      return callback(tx as unknown as PrismaClient);
-    });
-    return result;
-  } catch (error) {
-    // Transaction rolled back automatically on error
-    throw error;
-  }
+  // On error the transaction rolls back automatically and the error propagates.
+  return client.$transaction(async (tx) => {
+    return callback(tx as unknown as PrismaClient);
+  });
 }
 
 /**
