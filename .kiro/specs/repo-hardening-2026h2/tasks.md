@@ -121,7 +121,7 @@
 
 ## Release Gate 核对清单（对应 requirements.md）
 
-- [ ] G1 `git status --porcelain` 为空；WIP 分支已合入 `main` 并删除 _(分支已合并删除✓；工作区尚有另一会话的 25 个未提交文件（CF/bokmoo 迁移工作），非本 spec 范畴)_
+- [x] G1 `git status --porcelain` 为空；WIP 分支已合入 `main` 并删除 _(2026-07-14：并行会话遗留的 42 个未提交文件已审阅、验证并分 5 个逻辑提交落库（邮箱验证开关 / Stripe 配置兼容 / 社交登录可用性 / CF Pages→Workers 迁移 / 测试对齐）；工作区为空)_
 - [x] G2 对 `main` 的 PR 自动触发 4 个门禁 job，branch protection 生效 _(PR #13 实测触发+全绿；protection 已配置)_
 - [x] G3 API 全量套件连续 3 次 0 failed（含 discount-e2e）_(本地→CI→本地 3 连绿，2026-07-13)_
 - [x] G4 活跃分支 ≤ 10，`branch-audit.md` 落盘 _(origin 2 个分支；本地 11——超出的 9 个全是含未提交工作的真实活跃 worktree，属"活跃"本义)_
