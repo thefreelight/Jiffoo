@@ -60,6 +60,7 @@ const envSchema = z.object({
   EMAIL_FROM: z.string().optional(),
   EMAIL_FROM_NAME: z.string().optional(),
   EMAIL_REPLY_TO: z.string().optional(),
+  AUTH_REQUIRE_EMAIL_VERIFICATION: z.string().transform((v) => v.trim().toLowerCase() !== 'false').default('true'),
 
   // Optional: Google OAuth
   GOOGLE_CLIENT_ID: z.string().optional(),

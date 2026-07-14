@@ -110,6 +110,7 @@ const TEST_USER = {
 
 const ACCESS_TOKEN = 'mock-access-token';
 const REFRESH_TOKEN = 'mock-refresh-token';
+const ORIGINAL_AUTH_REQUIRE_EMAIL_VERIFICATION = process.env.AUTH_REQUIRE_EMAIL_VERIFICATION;
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -119,6 +120,11 @@ describe('AuthService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetAuthCompatibilityCache();
+    if (ORIGINAL_AUTH_REQUIRE_EMAIL_VERIFICATION === undefined) {
+      delete process.env.AUTH_REQUIRE_EMAIL_VERIFICATION;
+    } else {
+      process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = ORIGINAL_AUTH_REQUIRE_EMAIL_VERIFICATION;
+    }
   });
 
   // -----------------------------------------------------------------------
@@ -233,6 +239,50 @@ describe('AuthService', () => {
       // Should not attempt to create the user
       expect(mockPrismaUser.create).not.toHaveBeenCalled();
       expect(mockPasswordUtils.hash).not.toHaveBeenCalled();
+    });
+
+    it('should create a verified user and skip verification email when email verification is disabled', async () => {
+      process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = 'false';
+
+      const createdUser = {
+        id: 'new-user-id',
+        email: registerData.email,
+        username: registerData.username,
+        password: 'hashed-pw',
+        role: 'USER',
+        avatar: null,
+        emailVerified: true,
+      };
+
+      mockPrismaUser.findFirst.mockResolvedValue(null);
+      mockPasswordUtils.hash.mockResolvedValue('hashed-pw');
+      mockPrismaUser.create.mockResolvedValue(createdUser);
+      mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
+      mockJwtUtils.signRefresh.mockReturnValue(REFRESH_TOKEN);
+
+      const result = await AuthService.register(registerData);
+
+      expect(mockPrismaUser.create).toHaveBeenCalledWith({
+        data: {
+          email: registerData.email,
+          username: registerData.username,
+          password: 'hashed-pw',
+          role: 'USER',
+          emailVerified: true,
+        },
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          password: true,
+          role: true,
+          isActive: true,
+          emailVerified: true,
+          avatar: true,
+        },
+      });
+      expect(mockEmailVerification.sendVerificationEmail).not.toHaveBeenCalled();
+      expect(result.user.emailVerified).toBe(true);
     });
   });
 

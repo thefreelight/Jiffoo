@@ -68,6 +68,7 @@ type RegisterAuthUserInput = {
   username: string;
   password: string;
   role: string;
+  emailVerified?: boolean;
 };
 
 let emailVerifiedColumnAvailable: boolean | null = null;
@@ -138,18 +139,20 @@ export async function findAuthIdentityById(userId: string): Promise<AuthIdentity
 }
 
 export async function createAuthUser(data: RegisterAuthUserInput): Promise<AuthUser> {
+  const { emailVerified = false, ...userData } = data;
+
   const user = await withEmailVerifiedCompatibility(
     () =>
       prisma.user.create({
         data: {
-          ...data,
-          emailVerified: false,
+          ...userData,
+          emailVerified,
         },
         select: authUserSelect,
       }),
     () =>
       prisma.user.create({
-        data,
+        data: userData,
         select: legacyAuthUserSelect,
       })
   );

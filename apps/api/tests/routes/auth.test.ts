@@ -72,6 +72,62 @@ describe('Auth Endpoints', () => {
       expect(decoded.userId).toBe(body.data.user.id);
     });
 
+    it('should allow register, login, and logout when email verification is disabled', async () => {
+      const previous = process.env.AUTH_REQUIRE_EMAIL_VERIFICATION;
+      process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = 'false';
+
+      try {
+        const uniqueId = uuidv4().substring(0, 8);
+        const email = `mvp-register-${uniqueId}@example.com`;
+        const password = 'Test123456!';
+
+        const register = await app.inject({
+          method: 'POST',
+          url: '/api/auth/register',
+          payload: {
+            email,
+            username: `mvp-register-${uniqueId}`,
+            password,
+          },
+        });
+
+        expect(register.statusCode).toBe(201);
+        const registerBody = register.json();
+        expect(registerBody.data.user.emailVerified).toBe(true);
+
+        const login = await app.inject({
+          method: 'POST',
+          url: '/api/auth/login',
+          payload: {
+            email,
+            password,
+          },
+        });
+
+        expect(login.statusCode).toBe(200);
+        const loginBody = login.json();
+        expect(loginBody.data.user.email).toBe(email);
+        expect(loginBody.data.token).toBeTruthy();
+
+        const logout = await app.inject({
+          method: 'POST',
+          url: '/api/auth/logout',
+          headers: {
+            authorization: `Bearer ${loginBody.data.token}`,
+          },
+        });
+
+        expect(logout.statusCode).toBe(200);
+        expect(logout.json().data.loggedOut).toBe(true);
+      } finally {
+        if (previous === undefined) {
+          delete process.env.AUTH_REQUIRE_EMAIL_VERIFICATION;
+        } else {
+          process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = previous;
+        }
+      }
+    });
+
     it('should return 400 for missing email', async () => {
       const response = await app.inject({
         method: 'POST',

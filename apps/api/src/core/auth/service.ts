@@ -59,6 +59,10 @@ export class AuthService {
     return process.env.JIFFOO_DEMO_MODE === 'true';
   }
 
+  private static shouldRequireEmailVerification(): boolean {
+    return process.env.AUTH_REQUIRE_EMAIL_VERIFICATION?.trim().toLowerCase() !== 'false';
+  }
+
   private static resolveDemoCredentials() {
     return {
       email: process.env.JIFFOO_DEMO_ADMIN_EMAIL?.trim() || DEFAULT_DEMO_ADMIN_EMAIL,
@@ -158,20 +162,24 @@ export class AuthService {
     }
 
     const hashedPassword = await PasswordUtils.hash(data.password);
+    const requireEmailVerification = this.shouldRequireEmailVerification();
     // createAuthUser tolerates legacy databases without the emailVerified column
     const user = await createAuthUser({
       email: data.email,
       username: data.username,
       password: hashedPassword,
       role: 'USER',
+      emailVerified: !requireEmailVerification,
     });
 
-    // Send verification email
-    await EmailVerificationService.sendVerificationEmail(
-      user.id,
-      user.email,
-      user.username
-    );
+    if (requireEmailVerification) {
+      // Send verification email
+      await EmailVerificationService.sendVerificationEmail(
+        user.id,
+        user.email,
+        user.username
+      );
+    }
 
     const token = JwtUtils.sign({
       userId: user.id,
