@@ -12,6 +12,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { useToast } from '@/hooks/use-toast';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
+import { useSocialAuthProviders, type SocialProvider } from '@/hooks/use-social-auth-providers';
 import { useShopTheme } from '@/lib/themes/provider';
 import { useT } from 'shared/src/i18n/react';
 import { LoadingState, ErrorState } from '@/components/ui/state-components';
@@ -23,6 +24,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { login, isLoading, error, clearError } = useAuthStore();
   const t = useT();
+  const socialAuth = useSocialAuthProviders();
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -102,9 +104,17 @@ export default function LoginPage() {
     nav.push('/auth/forgot-password');
   };
 
-  const handleOAuthClick = async (provider: string) => {
-    // OAuth feature not implemented
-    console.log('OAuth not implemented:', provider);
+  const handleOAuthClick = async (provider: SocialProvider) => {
+    try {
+      const redirectUrl = new URL(nav.getHref('/auth/callback'), window.location.origin).toString();
+      await socialAuth.start(provider, redirectUrl);
+    } catch (oauthError: any) {
+      toast({
+        title: getText('shop.auth.login.oauthFailed', 'OAuth login failed'),
+        description: oauthError?.message || getText('common.errors.tryAgain', 'Please try again'),
+        variant: 'destructive',
+      });
+    }
   };
 
   const LoginPageComponent = theme.components.LoginPage;
@@ -116,9 +126,15 @@ export default function LoginPage() {
       config={config}
       locale={nav.locale}
       t={t}
+      socialAuthStatus={{
+        google: socialAuth.google,
+        apple: socialAuth.apple,
+        isLoading: socialAuth.isLoading,
+      }}
       onSubmit={handleSubmit}
       onNavigateToRegister={handleNavigateToRegister}
-      onOAuthClick={handleOAuthClick}
+      onOAuthClick={() => handleOAuthClick('google')}
+      onAppleOAuthClick={() => handleOAuthClick('apple')}
       onNavigateToForgotPassword={handleNavigateToForgotPassword}
     />
   );

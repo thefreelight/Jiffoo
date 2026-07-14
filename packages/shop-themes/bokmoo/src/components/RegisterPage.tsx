@@ -13,6 +13,7 @@ export function RegisterPage({
   onSubmit,
   onOAuthClick,
   onAppleOAuthClick,
+  socialAuthStatus,
   onNavigateToLogin,
 }: RegisterPageProps) {
   const site = resolveBokmooSiteConfig(config);
@@ -26,6 +27,9 @@ export function RegisterPage({
   const [showPassword, setShowPassword] = React.useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
   const passwordsMatch = formData.password === formData.confirmPassword;
+  const socialAuthLoading = socialAuthStatus?.isLoading === true;
+  const googleAvailable = socialAuthStatus ? socialAuthStatus.google === true : true;
+  const appleAvailable = socialAuthStatus ? socialAuthStatus.apple === true : Boolean(onAppleOAuthClick);
   const canSubmit =
     formData.firstName &&
     formData.lastName &&
@@ -85,7 +89,8 @@ export function RegisterPage({
                 type="button"
                 onClick={() => onOAuthClick('google')}
                 className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING}`}
-                disabled={isLoading}
+                disabled={isLoading || socialAuthLoading || !googleAvailable}
+                title={googleAvailable ? 'Google' : 'Google sign-in is unavailable'}
               >
                 <Chrome className="h-4 w-4" />
                 Google
@@ -94,7 +99,8 @@ export function RegisterPage({
                 type="button"
                 onClick={() => onAppleOAuthClick?.()}
                 className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_86%,black)] px-4 text-sm font-semibold text-[var(--bokmoo-ink)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] disabled:cursor-not-allowed disabled:opacity-60 ${FOCUS_VISIBLE_RING}`}
-                disabled={isLoading || !onAppleOAuthClick}
+                disabled={isLoading || socialAuthLoading || !appleAvailable || !onAppleOAuthClick}
+                title={appleAvailable ? 'Apple' : 'Apple sign-in is unavailable'}
               >
                 <Apple className="h-4 w-4" />
                 Apple

@@ -533,10 +533,17 @@ export interface DealsPageProps extends ThemeI18nProps {
 /**
  * Login Page Component Props
  */
+export interface SocialAuthStatus {
+  google?: boolean;
+  apple?: boolean;
+  isLoading?: boolean;
+}
+
 export interface LoginPageProps extends ThemeI18nProps {
   isLoading: boolean;
   error?: string | null;
   config?: ThemeConfig;
+  socialAuthStatus?: SocialAuthStatus;
   onSubmit: (email: string, password: string) => Promise<void>;
   onOAuthClick: (provider: 'google') => Promise<void>;
   /** Optional Apple Sign-In entry point (themes render the button only when provided) */
@@ -552,6 +559,7 @@ export interface RegisterPageProps extends ThemeI18nProps {
   isLoading: boolean;
   error?: string | null;
   config?: ThemeConfig;
+  socialAuthStatus?: SocialAuthStatus;
   onSubmit: (data: {
     email: string;
     password: string;
