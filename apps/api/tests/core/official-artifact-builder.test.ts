@@ -11,13 +11,14 @@ async function extractArtifact(artifactPath: string): Promise<string> {
   return tempDir;
 }
 
-// Check if the required plugin/theme source trees exist in the repo
-const REPO_ROOT = path.resolve(__dirname, '../../..');
+// Check if the required MVP plugin source trees exist in the repo
+const REPO_ROOT = path.resolve(__dirname, '../../../..');
 async function sourceTreesExist(): Promise<boolean> {
   const requiredPaths = [
+    'extensions/plugins/google-auth/manifest.json',
+    'extensions/plugins/apple-auth/manifest.json',
     'extensions/plugins/stripe/manifest.json',
     'extensions/plugins/i18n/manifest.json',
-    'extensions/plugins/odoo/manifest.json',
   ];
   for (const relPath of requiredPaths) {
     try {
@@ -40,7 +41,7 @@ describe('buildOfficialArtifacts', () => {
   });
 
   it(
-    'builds official plugin and theme artifacts from repository-native source trees',
+    'builds Bokmoo MVP official plugin artifacts from repository-native source trees',
     async () => {
     // Skip if the required source trees don't exist in the repo
     if (!(await sourceTreesExist())) {
@@ -53,67 +54,73 @@ describe('buildOfficialArtifacts', () => {
 
     const result = await buildOfficialArtifacts({
       outputDir,
-      slugs: ['stripe', 'i18n', 'odoo', 'esim-mall', 'yevbi'],
+      slugs: ['google-auth', 'apple-auth', 'stripe', 'i18n'],
     });
 
-    expect(result.items).toHaveLength(5);
+    expect(result.items).toHaveLength(4);
 
+    const googlePlugin = result.items.find((item) => item.slug === 'google-auth');
+    const applePlugin = result.items.find((item) => item.slug === 'apple-auth');
     const plugin = result.items.find((item) => item.slug === 'stripe');
     const i18nPlugin = result.items.find((item) => item.slug === 'i18n');
-    const odooPlugin = result.items.find((item) => item.slug === 'odoo');
-    const esimTheme = result.items.find((item) => item.slug === 'esim-mall');
-    const yevbiTheme = result.items.find((item) => item.slug === 'yevbi');
 
+    expect(googlePlugin).toBeDefined();
+    expect(applePlugin).toBeDefined();
     expect(plugin).toBeDefined();
     expect(i18nPlugin).toBeDefined();
-    expect(odooPlugin).toBeDefined();
-    expect(esimTheme).toBeDefined();
-    expect(yevbiTheme).toBeDefined();
 
-    expect(plugin?.relativePath).toBe('plugins/stripe/1.0.0.jplugin');
+    expect(googlePlugin?.relativePath).toBe('plugins/google-auth/1.0.0.jplugin');
+    expect(applePlugin?.relativePath).toBe('plugins/apple-auth/0.0.1.jplugin');
+    expect(plugin?.relativePath).toBe('plugins/stripe/1.0.1.jplugin');
     expect(i18nPlugin?.relativePath).toBe('plugins/i18n/1.0.0.jplugin');
-    expect(odooPlugin?.relativePath).toBe('plugins/odoo/1.0.0.jplugin');
-    expect(esimTheme?.relativePath).toBe('themes/esim-mall/1.0.0.jtheme');
-    expect(yevbiTheme?.relativePath).toBe('themes/yevbi/1.0.0.jtheme');
+    expect(googlePlugin?.includedFiles).toContain('manifest.json');
+    expect(googlePlugin?.includedFiles).toContain('dist/index.js');
+    expect(applePlugin?.includedFiles).toContain('manifest.json');
+    expect(applePlugin?.includedFiles).toContain('dist/index.js');
     expect(plugin?.includedFiles).toContain('manifest.json');
-    expect(plugin?.includedFiles).toContain('src/index.js');
-    expect(i18nPlugin?.includedFiles).toContain('src/index.js');
-    expect(odooPlugin?.includedFiles).toContain('dist/index.js');
-    expect(odooPlugin?.includedFiles).toContain('node_modules/dotenv/package.json');
-    expect(odooPlugin?.includedFiles.some((file) => file.endsWith('.map'))).toBe(false);
+    expect(plugin?.includedFiles).toContain('dist/index.js');
+    expect(i18nPlugin?.includedFiles).toContain('manifest.json');
+    expect(i18nPlugin?.includedFiles).toContain('dist/index.js');
     expect(
-      odooPlugin?.includedFiles.some(
-        (file) =>
-          (file.endsWith('.ts') || file.endsWith('.tsx') || file.endsWith('.jsx')) &&
-          !file.endsWith('.d.ts'),
+      result.items.every((item) =>
+        !item.includedFiles.some(
+          (file) =>
+            (file.endsWith('.ts') || file.endsWith('.tsx') || file.endsWith('.jsx')) &&
+            !file.endsWith('.d.ts'),
+        ),
       ),
-    ).toBe(false);
-    for (const theme of [esimTheme, yevbiTheme]) {
-      expect(theme?.sourceDir.endsWith(path.join('theme-pack'))).toBe(true);
-      expect(theme?.includedFiles).toContain('theme.json');
-      expect(theme?.includedFiles).toContain('templates/home.json');
-      expect(theme?.includedFiles).toContain('tokens.css');
-      expect(theme?.includedFiles).toContain('schemas/settings.schema.json');
-      expect(theme?.includedFiles).toContain('assets/placeholder-product.svg');
-    }
+    ).toBe(true);
 
+    const googlePluginExtracted = await extractArtifact(googlePlugin!.filePath);
+    const applePluginExtracted = await extractArtifact(applePlugin!.filePath);
     const pluginExtracted = await extractArtifact(plugin!.filePath);
     const i18nPluginExtracted = await extractArtifact(i18nPlugin!.filePath);
-    const odooPluginExtracted = await extractArtifact(odooPlugin!.filePath);
-    const esimThemeExtracted = await extractArtifact(esimTheme!.filePath);
-    const yevbiThemeExtracted = await extractArtifact(yevbiTheme!.filePath);
     tempDirs.push(
+      googlePluginExtracted,
+      applePluginExtracted,
       pluginExtracted,
       i18nPluginExtracted,
-      odooPluginExtracted,
-      esimThemeExtracted,
-      yevbiThemeExtracted,
     );
+
+    const googleManifest = JSON.parse(
+      await fs.readFile(path.join(googlePluginExtracted, 'manifest.json'), 'utf-8'),
+    ) as Record<string, unknown>;
+    expect(googleManifest.slug).toBe('google-auth');
+    expect(googleManifest.runtimeType).toBe('internal-fastify');
+    await expect(fs.stat(path.join(googlePluginExtracted, 'checksums.json'))).resolves.toBeDefined();
+
+    const appleManifest = JSON.parse(
+      await fs.readFile(path.join(applePluginExtracted, 'manifest.json'), 'utf-8'),
+    ) as Record<string, unknown>;
+    expect(appleManifest.slug).toBe('apple-auth');
+    expect(appleManifest.runtimeType).toBe('internal-fastify');
+    await expect(fs.stat(path.join(applePluginExtracted, 'checksums.json'))).resolves.toBeDefined();
 
     const pluginManifest = JSON.parse(
       await fs.readFile(path.join(pluginExtracted, 'manifest.json'), 'utf-8'),
     ) as Record<string, unknown>;
     expect(pluginManifest.slug).toBe('stripe');
+    expect(pluginManifest.version).toBe('1.0.1');
     expect(pluginManifest.runtimeType).toBe('internal-fastify');
     await expect(fs.stat(path.join(pluginExtracted, 'checksums.json'))).resolves.toBeDefined();
 
@@ -122,45 +129,12 @@ describe('buildOfficialArtifacts', () => {
     ) as Record<string, unknown>;
     expect(i18nManifest.slug).toBe('i18n');
     expect(i18nManifest.runtimeType).toBe('internal-fastify');
-
-    const odooManifest = JSON.parse(
-      await fs.readFile(path.join(odooPluginExtracted, 'manifest.json'), 'utf-8'),
-    ) as Record<string, unknown>;
-    expect(odooManifest.slug).toBe('odoo');
-    expect(odooManifest.entryModule).toBe('dist/index.js');
-    await expect(fs.stat(path.join(odooPluginExtracted, 'dist', 'index.js'))).resolves.toBeDefined();
-    await expect(
-      fs.stat(path.join(odooPluginExtracted, 'node_modules', 'dotenv', 'package.json')),
-    ).resolves.toBeDefined();
-
-    for (const [slug, extractedDir] of [
-      ['esim-mall', esimThemeExtracted],
-      ['yevbi', yevbiThemeExtracted],
-    ] as const) {
-      const themeManifest = JSON.parse(
-        await fs.readFile(path.join(extractedDir, 'theme.json'), 'utf-8'),
-      ) as Record<string, unknown>;
-      expect(themeManifest.slug).toBe(slug);
-      expect(themeManifest.target).toBe('shop');
-      expect(themeManifest['x-jiffoo-renderer-mode']).toBe('embedded');
-      expect(themeManifest['x-jiffoo-renderer-slug']).toBe(slug);
-
-      const homeTemplate = JSON.parse(
-        await fs.readFile(path.join(extractedDir, 'templates', 'home.json'), 'utf-8'),
-      ) as Record<string, unknown>;
-      expect(homeTemplate.page).toBe('home');
-      expect(homeTemplate.blocks).toEqual([]);
-
-      const settingsSchema = JSON.parse(
-        await fs.readFile(path.join(extractedDir, 'schemas', 'settings.schema.json'), 'utf-8'),
-      ) as Record<string, unknown>;
-      expect(settingsSchema.type).toBe('object');
-    }
+    await expect(fs.stat(path.join(i18nPluginExtracted, 'checksums.json'))).resolves.toBeDefined();
 
     const indexJson = JSON.parse(
       await fs.readFile(path.join(outputDir, 'index.json'), 'utf-8'),
     ) as { items: Array<{ slug: string; sha256: string }> };
-    expect(indexJson.items).toHaveLength(5);
+    expect(indexJson.items).toHaveLength(4);
     expect(indexJson.items.every((item) => typeof item.sha256 === 'string' && item.sha256.length === 64)).toBe(true);
     },
     120_000,

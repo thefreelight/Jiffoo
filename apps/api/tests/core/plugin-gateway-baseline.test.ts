@@ -23,6 +23,7 @@ import { getPluginDir } from '@/core/admin/extension-installer/utils';
 describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
   let app: FastifyInstance;
   let adminToken: string;
+  let adminUserId: string;
 
   const prisma = getTestPrisma();
   const slug = `baselinegw${Date.now().toString(36).slice(-6)}`.slice(0, 20);
@@ -31,8 +32,9 @@ describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
 
   beforeAll(async () => {
     app = await createTestApp({ disableFileSystem: false });
-    const { token } = await createAdminWithToken();
+    const { token, user } = await createAdminWithToken();
     adminToken = token;
+    adminUserId = user.id;
 
     // Create a minimal internal-fastify plugin for gateway testing
     await fs.mkdir(path.join(pluginDir, 'server'), { recursive: true });
@@ -63,6 +65,12 @@ describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
 module.exports = async function plugin(fastify) {
   fastify.get('/health', async () => ({ status: 'ok', slug: '${slug}' }));
   fastify.post('/echo', async (request) => ({ received: request.body }));
+  fastify.get('/headers', async (request) => ({
+    caller: request.headers['x-caller'] || null,
+    userId: request.headers['x-user-id'] || null,
+    userRole: request.headers['x-user-role'] || null,
+    platformId: request.headers['x-platform-id'] || null
+  }));
 };
       `.trim(),
       'utf-8',
@@ -125,6 +133,37 @@ module.exports = async function plugin(fastify) {
     expect(response.statusCode).toBe(200);
     const body = response.json();
     expect(body.received).toEqual({ message: 'hello' });
+  });
+
+  it('allows anonymous public plugin routes and strips spoofed platform headers', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/extensions/plugin/${slug}/api/headers`,
+      headers: {
+        'x-caller': 'admin',
+        'x-user-id': 'spoofed-user',
+        'x-platform-id': 'spoofed-platform',
+      },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.caller).not.toBe('admin');
+    expect(body.userId).not.toBe('spoofed-user');
+    expect(body.platformId).not.toBe('spoofed-platform');
+  });
+
+  it('injects authenticated user context when a bearer token is present', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/extensions/plugin/${slug}/api/headers`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json();
+    expect(body.userId).toBe(adminUserId);
+    expect(body.userRole).toBe('ADMIN');
   });
 
   // --- Plugin 404 ---
