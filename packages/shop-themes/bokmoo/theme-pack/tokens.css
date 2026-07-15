@@ -1,9 +1,86 @@
 :root {
-  --theme-color-primary: #c9a85f;
-  --theme-color-secondary: #1f1d19;
-  --theme-color-background: #1f1d19;
-  --theme-color-foreground: #f4efe6;
-  --theme-color-muted: #2f2b24;
-  --theme-color-border: #5f584a;
-  --theme-color-accent: #d4d8df;
+  --bokmoo-bg: oklch(0.055 0.006 75);
+  --bokmoo-bg-elevated: oklch(0.082 0.008 75);
+  --bokmoo-bg-soft: oklch(0.118 0.01 75);
+  --bokmoo-panel: oklch(0.095 0.009 75 / 0.96);
+  --bokmoo-panel-strong: oklch(0.14 0.013 75 / 0.98);
+  --bokmoo-surface: var(--bokmoo-bg-elevated);
+  --bokmoo-surface-alt: var(--bokmoo-bg-soft);
+  --bokmoo-ink: oklch(0.97 0.006 86);
+  --bokmoo-copy: oklch(0.78 0.011 82);
+  --bokmoo-copy-soft: oklch(0.57 0.01 82);
+  --bokmoo-line: oklch(0.29 0.019 78 / 0.34);
+  --bokmoo-line-strong: oklch(0.52 0.034 78 / 0.52);
+  --bokmoo-gold: oklch(0.76 0.105 80);
+  --bokmoo-gold-strong: oklch(0.86 0.11 82);
+  --bokmoo-gold-soft: oklch(0.2 0.042 79);
+  --bokmoo-primary: var(--bokmoo-gold);
+  --bokmoo-primary-strong: var(--bokmoo-gold-strong);
+  --bokmoo-primary-soft: var(--bokmoo-gold-soft);
+  --bokmoo-silver: oklch(0.86 0.01 255);
+  --bokmoo-success: oklch(0.77 0.09 150);
+  --bokmoo-warning: oklch(0.81 0.1 82);
+  --bokmoo-danger: oklch(0.66 0.19 28);
+  --bokmoo-shadow: 0 34px 110px -48px rgba(0, 0, 0, 0.92);
+  --bokmoo-shadow-glow: 0 0 58px color-mix(in oklab, var(--bokmoo-gold) 30%, transparent);
+  --bokmoo-orbit-glow: radial-gradient(circle, color-mix(in oklab, var(--bokmoo-gold) 54%, transparent) 0%, transparent 68%);
+  --bokmoo-hero-gold-field: color-mix(in oklab, var(--bokmoo-gold) 42%, transparent);
+  --bokmoo-card-edge: color-mix(in oklab, var(--bokmoo-gold) 52%, transparent);
+  --bokmoo-card-glow: 0 64px 180px rgba(0, 0, 0, 0.82), 0 0 90px color-mix(in oklab, var(--bokmoo-gold) 18%, transparent);
+  --bokmoo-radius-xl: 2rem;
+  --bokmoo-radius-lg: 1.5rem;
+  --bokmoo-radius-md: 1rem;
+  --bokmoo-radius-sm: 0.75rem;
+  --bokmoo-display: "Avenir Next", "Satoshi", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --bokmoo-sans: "Avenir Next", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+  --bokmoo-grid:
+    linear-gradient(to right, color-mix(in oklab, var(--bokmoo-line) 72%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--bokmoo-line) 72%, transparent) 1px, transparent 1px);
+
+  /* Compatibility aliases for reused shared components */
+  --vault-bg: var(--bokmoo-bg);
+  --vault-surface: var(--bokmoo-bg-elevated);
+  --vault-surface-alt: var(--bokmoo-bg-soft);
+  --vault-ink: var(--bokmoo-ink);
+  --vault-copy: var(--bokmoo-copy);
+  --vault-copy-soft: var(--bokmoo-copy-soft);
+  --vault-line: var(--bokmoo-line);
+  --vault-primary: var(--bokmoo-gold);
+  --vault-primary-strong: var(--bokmoo-gold-strong);
+  --vault-primary-soft: var(--bokmoo-gold-soft);
+  --vault-accent: var(--bokmoo-silver);
+  --vault-success: var(--bokmoo-success);
+  --vault-warning: var(--bokmoo-warning);
+  --vault-danger: var(--bokmoo-danger);
+  --vault-shadow: var(--bokmoo-shadow);
+  --vault-radius-lg: var(--bokmoo-radius-lg);
+  --vault-radius-md: var(--bokmoo-radius-md);
+  --vault-radius-sm: var(--bokmoo-radius-sm);
+  --vault-grid: var(--bokmoo-grid);
+}
+
+body {
+  background:
+    radial-gradient(circle at 82% 8%, color-mix(in oklab, var(--bokmoo-gold) 13%, transparent), transparent 18%),
+    radial-gradient(circle at 75% 28%, color-mix(in oklab, var(--bokmoo-gold) 8%, transparent), transparent 24%),
+    radial-gradient(circle at 20% 80%, color-mix(in oklab, var(--bokmoo-gold) 4%, transparent), transparent 22%),
+    var(--bokmoo-bg);
+  color: var(--bokmoo-ink);
+  font-family: var(--bokmoo-sans);
+  letter-spacing: 0.01em;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--bokmoo-display);
+  font-weight: 700;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--bokmoo-gold) 38%, transparent);
+  color: var(--bokmoo-ink);
 }

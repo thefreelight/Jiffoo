@@ -107,6 +107,7 @@ async function buildThemeRuntimeBundle() {
 
   const esbuild = await loadEsbuild();
   const outfile = path.join(__dirname, 'theme-pack', runtimePath);
+  const tokensCss = fs.readFileSync(path.join(__dirname, 'src', 'tokens.css'), 'utf8');
 
   fs.mkdirSync(path.dirname(outfile), { recursive: true });
 
@@ -114,6 +115,14 @@ async function buildThemeRuntimeBundle() {
     stdin: {
       contents: `
         import theme from './src/runtime.ts';
+        const tokenStyleId = 'bokmoo-runtime-tokens';
+        let tokenStyle = document.getElementById(tokenStyleId);
+        if (!tokenStyle) {
+          tokenStyle = document.createElement('style');
+          tokenStyle.id = tokenStyleId;
+          document.head.appendChild(tokenStyle);
+        }
+        tokenStyle.textContent = ${JSON.stringify(tokensCss)};
         const existingMeta =
           theme && typeof theme === 'object' && theme.meta && typeof theme.meta === 'object'
             ? theme.meta
