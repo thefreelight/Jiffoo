@@ -14,6 +14,7 @@ import { THEME_APP_MANIFEST_FILE } from '../theme-app-runtime/contract';
 import { getThemeAppRuntimePolicy } from '../theme-app-runtime/policy';
 import { isAllowedExtensionSource, isOfficialMarketOnly } from '@/core/admin/extension-installer/official-only';
 import { ensureOfficialMarketExtensionFiles } from '@/core/admin/market/official-package-recovery';
+import { ensureThemeVersionSnapshot, hasThemeManifest } from './storage';
 
 // Target type
 export type ThemeTarget = 'shop' | 'admin';
@@ -199,12 +200,11 @@ async function ensureOfficialThemePackFilesPresent(theme: ActiveTheme, target: T
     return;
   }
 
-  const themeJsonPath = path.join(getExtensionsDir(target), normalizeThemeSlug(theme.slug), 'theme.json');
-  try {
-    await fs.access(themeJsonPath);
+  const slug = normalizeThemeSlug(theme.slug);
+  const themeDir = path.join(getExtensionsDir(target), slug);
+  if (await hasThemeManifest(themeDir)) {
+    await ensureThemeVersionSnapshot(target, slug, theme.version);
     return;
-  } catch {
-    // Restore below.
   }
 
   try {
@@ -219,6 +219,26 @@ async function ensureOfficialThemePackFilesPresent(theme: ActiveTheme, target: T
       error,
     );
   }
+
+  if (await hasThemeManifest(themeDir)) {
+    await ensureThemeVersionSnapshot(target, slug, theme.version);
+  }
+}
+
+export async function ensureActiveThemeFilesReady(target: ThemeTarget = 'shop'): Promise<ActiveTheme> {
+  const theme = await getActiveTheme(target);
+  if (theme.source !== 'official-market' || theme.type !== 'pack') {
+    return theme;
+  }
+
+  const slug = normalizeThemeSlug(theme.slug);
+  const themeDir = path.join(getExtensionsDir(target), slug);
+  if (!(await hasThemeManifest(themeDir))) {
+    throw new Error(`Active official theme "${slug}" is missing from ${themeDir}`);
+  }
+
+  await ensureThemeVersionSnapshot(target, slug, theme.version);
+  return theme;
 }
 
 function didNormalizeActiveTheme(original: ActiveTheme, normalized: ActiveTheme): boolean {

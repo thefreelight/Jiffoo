@@ -34,3 +34,9 @@ This repository must not expose:
 - Use this repository for OSS-safe work only.
 - Do not start private feature authoring here.
 - If a feature depends on closed-source systems, do not document private implementation details in this repo.
+
+## Theme Static Asset Reliability
+
+- Theme installers must publish both the compatibility path and immutable version path documented in `docs/runbooks/theme-static-asset-reliability.md`.
+- API replicas must materialize and verify the active official theme before becoming ready; request-time recovery alone is insufficient.
+- A storefront release is incomplete until the manifest, runtime, and representative assets return `200` from both the API origin and public storefront path.
