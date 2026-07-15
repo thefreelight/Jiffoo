@@ -41,7 +41,7 @@ RUN install -m 0755 /app/scripts/jiffoo-updater.mjs /usr/local/bin/jiffoo-update
 
 RUN pnpm --filter shared build
 RUN pnpm --filter api exec tsx scripts/build-official-artifacts.ts || echo "Skipping embedded official artifacts for self-hosted build"
-RUN cd apps/api && pnpm exec prisma generate --schema prisma/schema.prisma
+RUN pnpm --filter api prisma generate
 
 RUN mkdir -p /app/logs /app/uploads /app/extensions
 
