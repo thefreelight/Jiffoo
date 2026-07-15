@@ -16332,13 +16332,21 @@
   var runtime_default = theme;
 
   // bokmoo-theme-runtime-entry.ts
+  var tokenStyleId = "bokmoo-runtime-tokens";
+  var tokenStyle = document.getElementById(tokenStyleId);
+  if (!tokenStyle) {
+    tokenStyle = document.createElement("style");
+    tokenStyle.id = tokenStyleId;
+    document.head.appendChild(tokenStyle);
+  }
+  tokenStyle.textContent = ':root {\n  --bokmoo-bg: oklch(0.055 0.006 75);\n  --bokmoo-bg-elevated: oklch(0.082 0.008 75);\n  --bokmoo-bg-soft: oklch(0.118 0.01 75);\n  --bokmoo-panel: oklch(0.095 0.009 75 / 0.96);\n  --bokmoo-panel-strong: oklch(0.14 0.013 75 / 0.98);\n  --bokmoo-surface: var(--bokmoo-bg-elevated);\n  --bokmoo-surface-alt: var(--bokmoo-bg-soft);\n  --bokmoo-ink: oklch(0.97 0.006 86);\n  --bokmoo-copy: oklch(0.78 0.011 82);\n  --bokmoo-copy-soft: oklch(0.57 0.01 82);\n  --bokmoo-line: oklch(0.29 0.019 78 / 0.34);\n  --bokmoo-line-strong: oklch(0.52 0.034 78 / 0.52);\n  --bokmoo-gold: oklch(0.76 0.105 80);\n  --bokmoo-gold-strong: oklch(0.86 0.11 82);\n  --bokmoo-gold-soft: oklch(0.2 0.042 79);\n  --bokmoo-primary: var(--bokmoo-gold);\n  --bokmoo-primary-strong: var(--bokmoo-gold-strong);\n  --bokmoo-primary-soft: var(--bokmoo-gold-soft);\n  --bokmoo-silver: oklch(0.86 0.01 255);\n  --bokmoo-success: oklch(0.77 0.09 150);\n  --bokmoo-warning: oklch(0.81 0.1 82);\n  --bokmoo-danger: oklch(0.66 0.19 28);\n  --bokmoo-shadow: 0 34px 110px -48px rgba(0, 0, 0, 0.92);\n  --bokmoo-shadow-glow: 0 0 58px color-mix(in oklab, var(--bokmoo-gold) 30%, transparent);\n  --bokmoo-orbit-glow: radial-gradient(circle, color-mix(in oklab, var(--bokmoo-gold) 54%, transparent) 0%, transparent 68%);\n  --bokmoo-hero-gold-field: color-mix(in oklab, var(--bokmoo-gold) 42%, transparent);\n  --bokmoo-card-edge: color-mix(in oklab, var(--bokmoo-gold) 52%, transparent);\n  --bokmoo-card-glow: 0 64px 180px rgba(0, 0, 0, 0.82), 0 0 90px color-mix(in oklab, var(--bokmoo-gold) 18%, transparent);\n  --bokmoo-radius-xl: 2rem;\n  --bokmoo-radius-lg: 1.5rem;\n  --bokmoo-radius-md: 1rem;\n  --bokmoo-radius-sm: 0.75rem;\n  --bokmoo-display: "Avenir Next", "Satoshi", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;\n  --bokmoo-sans: "Avenir Next", "PingFang SC", "Microsoft YaHei", "Segoe UI", sans-serif;\n  --bokmoo-grid:\n    linear-gradient(to right, color-mix(in oklab, var(--bokmoo-line) 72%, transparent) 1px, transparent 1px),\n    linear-gradient(to bottom, color-mix(in oklab, var(--bokmoo-line) 72%, transparent) 1px, transparent 1px);\n\n  /* Compatibility aliases for reused shared components */\n  --vault-bg: var(--bokmoo-bg);\n  --vault-surface: var(--bokmoo-bg-elevated);\n  --vault-surface-alt: var(--bokmoo-bg-soft);\n  --vault-ink: var(--bokmoo-ink);\n  --vault-copy: var(--bokmoo-copy);\n  --vault-copy-soft: var(--bokmoo-copy-soft);\n  --vault-line: var(--bokmoo-line);\n  --vault-primary: var(--bokmoo-gold);\n  --vault-primary-strong: var(--bokmoo-gold-strong);\n  --vault-primary-soft: var(--bokmoo-gold-soft);\n  --vault-accent: var(--bokmoo-silver);\n  --vault-success: var(--bokmoo-success);\n  --vault-warning: var(--bokmoo-warning);\n  --vault-danger: var(--bokmoo-danger);\n  --vault-shadow: var(--bokmoo-shadow);\n  --vault-radius-lg: var(--bokmoo-radius-lg);\n  --vault-radius-md: var(--bokmoo-radius-md);\n  --vault-radius-sm: var(--bokmoo-radius-sm);\n  --vault-grid: var(--bokmoo-grid);\n}\n\nbody {\n  background:\n    radial-gradient(circle at 82% 8%, color-mix(in oklab, var(--bokmoo-gold) 13%, transparent), transparent 18%),\n    radial-gradient(circle at 75% 28%, color-mix(in oklab, var(--bokmoo-gold) 8%, transparent), transparent 24%),\n    radial-gradient(circle at 20% 80%, color-mix(in oklab, var(--bokmoo-gold) 4%, transparent), transparent 22%),\n    var(--bokmoo-bg);\n  color: var(--bokmoo-ink);\n  font-family: var(--bokmoo-sans);\n  letter-spacing: 0.01em;\n}\n\nh1,\nh2,\nh3,\nh4,\nh5,\nh6 {\n  font-family: var(--bokmoo-display);\n  font-weight: 700;\n}\n\n::selection {\n  background: color-mix(in oklab, var(--bokmoo-gold) 38%, transparent);\n  color: var(--bokmoo-ink);\n}\n';
   var existingMeta = runtime_default && typeof runtime_default === "object" && runtime_default.meta && typeof runtime_default.meta === "object" ? runtime_default.meta : {};
   window.__JIFFOO_THEME_RUNTIME__ = {
     ...runtime_default,
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.3",
+      version: "1.1.4",
       target: "shop"
     }
   };
