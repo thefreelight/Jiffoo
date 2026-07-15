@@ -40,6 +40,7 @@ import { accessLogMiddleware, errorLogMiddleware } from '@/core/logger/middlewar
 import { registerRoutes } from '@/routes';
 import { performHealthCheck, livenessCheck, readinessCheck } from '@/utils/health-check';
 import traceContextPlugin from '@/core/logger/trace-context';
+import { ensureActiveThemeFilesReady } from '@/core/admin/theme-management/service';
 
 const fastify = Fastify({
   logger: false,
@@ -116,6 +117,10 @@ async function buildApp() {
       await fs.mkdir(themesPath, { recursive: true });
       LoggerService.logSystem(`Created themes directory at ${themesPath}`);
     }
+
+    // Materialize active official theme files before static routes become ready.
+    // Every replica owns its local extension directory, so each replica must do this.
+    await ensureActiveThemeFilesReady('shop');
 
     // SECURITY: Only expose themes directory, NOT plugins directory
     // Plugins contain business logic code that should not be publicly downloadable

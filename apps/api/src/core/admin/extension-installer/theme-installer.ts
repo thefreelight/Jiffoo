@@ -30,6 +30,10 @@ import {
   bufferToStream,
 } from './utils';
 import { verifyPackageFromFiles, getSignatureVerifyMode } from './signature-verifier';
+import {
+  ensureThemeVersionSnapshot,
+  removeThemeVersionSnapshots,
+} from '../theme-management/storage';
 
 /** Metadata filename for installed themes */
 const INSTALLED_META_FILE = '.installed.json';
@@ -172,6 +176,9 @@ export class ThemeInstaller implements IThemeInstaller {
       // 9. Write metadata file
       await this.saveInstalledMeta(target, manifest.slug, installedTheme);
 
+      // 9b. Publish an immutable version path consumed by storefront runtimes.
+      await ensureThemeVersionSnapshot(target, manifest.slug, manifest.version);
+
       // 10. Invalidate theme cache to ensure immediate visibility
       const { CacheService } = await import('@/core/cache/service');
       await CacheService.delete(`themes:installed:${target}`);
@@ -208,6 +215,7 @@ export class ThemeInstaller implements IThemeInstaller {
     }
 
     await removeDir(targetDir);
+    await removeThemeVersionSnapshots(target, slug);
 
     // Invalidate theme cache to ensure immediate visibility
     const { CacheService } = await import('@/core/cache/service');
