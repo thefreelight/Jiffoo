@@ -22,11 +22,11 @@ export const CategoriesPage = React.memo(function CategoriesPage({
               <Globe2 className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
-                Destination map
+              <p className="text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
+                Region Collections
               </p>
               <h1 className="mt-2 text-[clamp(2.2rem,5vw,4rem)] leading-[0.94] tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-                Browse Bokmoo by destination family and travel region.
+                Browse BOKMOO plans by destination and travel region.
               </h1>
             </div>
           </div>
@@ -46,17 +46,17 @@ export const CategoriesPage = React.memo(function CategoriesPage({
               className="group rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 text-left shadow-[var(--bokmoo-shadow)] transition-transform duration-300 hover:-translate-y-1"
               type="button"
             >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]">
+              <p className="text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-gold)]">
                 {category.productCount} plans
               </p>
               <h2 className="mt-4 text-2xl leading-[1.02] tracking-[-0.04em] text-[var(--bokmoo-ink)]">
                 {category.name}
               </h2>
               <p className="mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]">
-                {category.description || 'Destination-ready bundles collected into one cleaner planning surface.'}
+                {category.description || 'Group destination-ready plans into clearer regional entry points.'}
               </p>
-              <span className="mt-4 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]">
-                Open region
+              <span className="mt-4 inline-flex items-center gap-2 text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-gold)]">
+                View category
                 <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </span>
             </button>
@@ -65,7 +65,7 @@ export const CategoriesPage = React.memo(function CategoriesPage({
 
         {categories.length === 0 ? (
           <div className="mt-6 rounded-[var(--bokmoo-radius-xl)] border border-dashed border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-16 text-center text-[var(--bokmoo-copy)]">
-            No categories available yet.
+            No region collections are available yet.
           </div>
         ) : null}
 

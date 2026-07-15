@@ -10,25 +10,30 @@ export interface BokmooSiteConfig {
   primaryCtaHref: string;
   secondaryCtaLabel: string;
   secondaryCtaHref: string;
+  apiBaseUrl: string;
 }
 
 export function resolveBokmooSiteConfig(config?: ThemeConfig): BokmooSiteConfig {
-  const brandName = config?.brand?.name?.trim() || 'Bokmoo';
+  const brandName = config?.brand?.name?.trim() || 'BOKMOO';
+  const siteConfig = (config?.site || {}) as ThemeConfig['site'] & {
+    apiBaseUrl?: string;
+  };
 
   return {
     brandName,
-    eyebrow: config?.site?.eyebrow?.trim() || 'Premium global connectivity',
+    eyebrow: siteConfig.eyebrow?.trim() || 'BOKMOO eSIM Card',
     headline:
-      config?.site?.headline?.trim() ||
-      `${brandName} brings travel connectivity into a calmer, more premium ritual.`,
+      siteConfig.headline?.trim() ||
+      'One Card.\nGlobal Connection.',
     subheadline:
-      config?.site?.subheadline?.trim() ||
-      'From instant QR delivery to destination-ready plan selection, Bokmoo is designed to feel like a welcome kit for modern international travel.',
-    supportEmail: config?.site?.supportEmail?.trim() || 'support@bokmoo.com',
-    primaryCtaLabel: config?.site?.primaryCtaLabel?.trim() || 'Browse eSIM plans',
-    primaryCtaHref: config?.site?.primaryCtaHref?.trim() || '/products',
-    secondaryCtaLabel: config?.site?.secondaryCtaLabel?.trim() || 'Check device support',
-    secondaryCtaHref: config?.site?.secondaryCtaHref?.trim() || '/help',
+      siteConfig.subheadline?.trim() ||
+      `Use multiple eSIM profiles on your ${brandName} card. Stay connected in 200+ countries.`,
+    supportEmail: siteConfig.supportEmail?.trim() || 'support@bokmoo.com',
+    primaryCtaLabel: siteConfig.primaryCtaLabel?.trim() || 'Shop eSIM Plans',
+    primaryCtaHref: siteConfig.primaryCtaHref?.trim() || '/products',
+    secondaryCtaLabel: siteConfig.secondaryCtaLabel?.trim() || 'How it works',
+    secondaryCtaHref: siteConfig.secondaryCtaHref?.trim() || '/#how-it-works',
+    apiBaseUrl: siteConfig.apiBaseUrl?.trim() || 'https://api.bokmoo.com',
   };
 }
 

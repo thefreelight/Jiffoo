@@ -95,7 +95,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const description = resolveMetadataDescription(brandName, themeConfig);
   const publicOrigin = await resolvePublicOrigin();
   const metadataBase = new URL(publicOrigin);
-  const socialImageUrl = new URL('/icon-512x512.png', metadataBase).toString();
+  const isBokmoo = context?.theme?.slug === 'bokmoo';
+  const socialImagePath = isBokmoo ? '/bokmoo-icon-512x512.png' : '/icon-512x512.png';
+  const socialImageUrl = new URL(socialImagePath, metadataBase).toString();
 
   return {
     metadataBase,
@@ -140,11 +142,11 @@ export async function generateMetadata(): Promise<Metadata> {
         'max-snippet': -1,
       },
     },
-    manifest: '/manifest.json',
+    manifest: isBokmoo ? '/bokmoo-manifest.json' : '/manifest.json',
     icons: {
-      icon: '/favicon.ico',
-      shortcut: '/favicon-16x16.png',
-      apple: '/apple-touch-icon.png',
+      icon: isBokmoo ? '/bokmoo-favicon.ico' : '/favicon.ico',
+      shortcut: isBokmoo ? '/bokmoo-favicon-16x16.png' : '/favicon-16x16.png',
+      apple: isBokmoo ? '/bokmoo-apple-touch-icon.png' : '/apple-touch-icon.png',
     },
     other: {
       'apple-mobile-web-app-capable': 'yes',

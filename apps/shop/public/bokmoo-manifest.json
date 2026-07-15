@@ -1,0 +1,34 @@
+{
+  "name": "Bokmoo Global eSIM",
+  "short_name": "Bokmoo",
+  "description": "Global eSIM plans and connected travel services from Bokmoo.",
+  "start_url": "/en",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0B0A09",
+  "background_color": "#0B0A09",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["travel", "shopping", "utilities"],
+  "icons": [
+    {
+      "src": "/bokmoo-icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/bokmoo-icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/bokmoo-apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

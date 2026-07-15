@@ -46,10 +46,10 @@ export const CartPage = React.memo(function CartPage({
               <ShoppingBag className="h-10 w-10" />
             </div>
             <h1 className="mt-6 text-[clamp(2.2rem,4vw,4rem)] leading-[0.98] tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-              Your travel bag is still empty.
+              Your cart is empty.
             </h1>
             <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-[var(--bokmoo-copy)]">
-              Add the destination or regional pass you want to prepare before departure.
+              Add a destination or regional plan to prepare your connectivity before departure.
             </p>
             <button
               onClick={onContinueShopping}
@@ -77,8 +77,8 @@ export const CartPage = React.memo(function CartPage({
             <ArrowLeft className="h-4 w-4" />
           </button>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]">
-              Travel bag
+            <p className="text-[11px] font-semibold tracking-[0.2em] text-[var(--bokmoo-copy-soft)]">
+              Travel Cart
             </p>
             <h1 className="mt-1 text-[clamp(2rem,4vw,3.6rem)] leading-[0.98] tracking-[-0.05em] text-[var(--bokmoo-ink)]">
               Review your selected plans.
@@ -111,7 +111,7 @@ export const CartPage = React.memo(function CartPage({
               </span>
               {allSelected ? 'Deselect all' : 'Select all'}
             </button>
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
+            <span className="text-xs font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
               {selectedItemCount ?? effectiveSelectedIds.length} selected
             </span>
           </div>
@@ -145,8 +145,8 @@ export const CartPage = React.memo(function CartPage({
                     {item.productImage ? (
                       <img src={item.productImage} alt={item.productName} className="h-full w-full object-cover" />
                     ) : (
-                      <div className="flex h-full items-end p-3 text-[10px] uppercase tracking-[0.16em] text-[var(--bokmoo-gold)]">
-                        Bokmoo
+                      <div className="flex h-full items-end p-3 text-[10px] tracking-[0.16em] text-[var(--bokmoo-gold)]">
+                        BOKMOO
                       </div>
                     )}
                   </div>
@@ -154,11 +154,11 @@ export const CartPage = React.memo(function CartPage({
                   <div className="min-w-0 flex-1">
                     <h2 className="text-lg font-medium text-[var(--bokmoo-ink)]">{item.productName}</h2>
                     {item.variantName ? (
-                      <p className="mt-1 text-xs uppercase tracking-[0.16em] text-[var(--bokmoo-copy-soft)]">
+                      <p className="mt-1 text-xs tracking-[0.16em] text-[var(--bokmoo-copy-soft)]">
                         {item.variantName}
                       </p>
                     ) : null}
-                    <p className="mt-3 text-sm text-[var(--bokmoo-copy)]">Instant QR delivery and traveler setup guidance.</p>
+                    <p className="mt-3 text-sm text-[var(--bokmoo-copy)]">Instant eSIM delivery with activation instructions included.</p>
                     <div className="mt-4 flex items-center gap-3">
                       <div className="flex items-center rounded-full border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-2 py-1">
                         <button
@@ -194,7 +194,7 @@ export const CartPage = React.memo(function CartPage({
                   </div>
 
                   <div className="text-right">
-                    <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Subtotal</p>
+                    <p className="text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">Subtotal</p>
                     <p className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]">
                       ${item.subtotal.toFixed(2)}
                     </p>
@@ -206,7 +206,7 @@ export const CartPage = React.memo(function CartPage({
 
           <aside className="lg:col-span-1">
             <div className="sticky top-24 rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)]">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
+              <p className="text-[11px] font-semibold tracking-[0.18em] text-[var(--bokmoo-copy-soft)]">
                 Summary
               </p>
 
@@ -226,7 +226,7 @@ export const CartPage = React.memo(function CartPage({
                 <div className="flex justify-between text-sm">
                   <span className="text-[var(--bokmoo-copy)]">Shipping</span>
                   <span className="text-[var(--bokmoo-ink)]">
-                    {selectedShipping === 0 ? 'No shipment needed' : `$${selectedShipping.toFixed(2)}`}
+                    {selectedShipping === 0 ? 'No shipping required' : `$${selectedShipping.toFixed(2)}`}
                   </span>
                 </div>
                 {selectedDiscount > 0 ? (
@@ -255,7 +255,7 @@ export const CartPage = React.memo(function CartPage({
                 className="mt-6 flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-5 text-sm font-semibold uppercase tracking-[0.2em] text-[var(--bokmoo-bg)] disabled:cursor-not-allowed disabled:opacity-50"
                 type="button"
               >
-                Secure checkout
+                Secure Checkout
               </button>
             </div>
           </aside>

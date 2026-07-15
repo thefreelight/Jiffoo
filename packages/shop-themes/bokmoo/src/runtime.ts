@@ -1,29 +1,29 @@
 import type { ThemePackage } from 'shared/src/types/theme';
 
-import { AuthCallbackPage } from './components/AuthCallbackPage';
-import { ContactPage } from './components/ContactPage';
-import { HelpPage } from './components/HelpPage';
-import { LoginPage } from './components/LoginPage';
 import { NotFound } from '@shop-themes/default/src/components/NotFound';
 import { OrderCancelledPage } from '@shop-themes/default/src/components/OrderCancelledPage';
-import { PrivacyPage } from './components/PrivacyPage';
 import { ProfilePage } from '@shop-themes/default/src/components/ProfilePage';
-import { RegisterPage } from './components/RegisterPage';
-import { TermsPage } from './components/TermsPage';
 
+import { AuthCallbackPage } from './components/AuthCallbackPage';
 import { CartPage } from './components/CartPage';
 import { CategoriesPage } from './components/CategoriesPage';
 import { CheckoutPage } from './components/CheckoutPage';
 import { BestsellersPage, DealsPage, NewArrivalsPage, SearchPage } from './components/CollectionPages';
+import { ContactPage } from './components/ContactPage';
 import { Footer } from './components/Footer';
 import { Header } from './components/Header';
+import { HelpPage } from './components/HelpPage';
 import { HomePage } from './components/HomePage';
+import { LoginPage } from './components/LoginPage';
 import { OrderDetailPage } from './components/OrderDetailPage';
 import { OrdersPage } from './components/OrdersPage';
 import { OrderSuccessPage } from './components/OrderSuccessPage';
+import { PrivacyPage } from './components/PrivacyPage';
 import { ProfileSettingsPage } from './components/ProfileSettingsPage';
+import { RegisterPage } from './components/RegisterPage';
 import { ProductDetailPage } from './components/ProductDetailPage';
 import { ProductsPage } from './components/ProductsPage';
+import { TermsPage } from './components/TermsPage';
 
 export const theme: ThemePackage = {
   components: {
@@ -56,10 +56,10 @@ export const theme: ThemePackage = {
   },
   defaultConfig: {
     brand: {
-      name: 'Bokmoo',
-      primaryColor: '#c9a85f',
-      secondaryColor: '#1f1d19',
-      fontFamily: 'Inter, ui-sans-serif, system-ui, sans-serif',
+      name: 'BOKMOO',
+      primaryColor: '#d7b23d',
+      secondaryColor: '#11100d',
+      fontFamily: '"Avenir Next", "PingFang SC", "Microsoft YaHei", sans-serif',
     },
     layout: {
       headerSticky: true,
@@ -73,15 +73,14 @@ export const theme: ThemePackage = {
     },
     site: {
       archetype: 'storefront',
-      eyebrow: 'Premium global connectivity',
-      headline:
-        'Travel connectivity, packaged with the calm precision of a premium welcome kit.',
+      eyebrow: 'BOKMOO eSIM Card',
+      headline: 'One Card.\nGlobal Connection.',
       subheadline:
-        'Bokmoo pairs instant QR delivery with a restrained black-and-gold storefront so every destination plan feels considered before departure.',
-      primaryCtaLabel: 'Browse eSIM plans',
+        'Use multiple eSIM profiles on your BOKMOO card. Stay connected in 200+ countries.',
+      primaryCtaLabel: 'Shop eSIM Plans',
       primaryCtaHref: '/products',
-      secondaryCtaLabel: 'Check device support',
-      secondaryCtaHref: '/help',
+      secondaryCtaLabel: 'How it works',
+      secondaryCtaHref: '/#how-it-works',
       demoHref: '/products',
       docsHref: '/help',
       supportEmail: 'support@bokmoo.com',

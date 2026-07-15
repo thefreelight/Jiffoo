@@ -8,7 +8,7 @@ const sections = [
   ['Your Rights', 'You have the right to access, update, or delete your personal information.'],
 ];
 
-export const PrivacyPage = React.memo(function PrivacyPage(_props: PrivacyPageProps) {
+export const PrivacyPage = React.memo(function PrivacyPage({}: PrivacyPageProps) {
   return (
     <div className="min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-[980px] rounded-[1.6rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8">
