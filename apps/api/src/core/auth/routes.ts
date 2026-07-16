@@ -15,6 +15,33 @@ import { EmailVerificationService } from '@/services/email-verification.service'
 import { completeBootstrapPasswordRotation, getPublicAuthBootstrapStatus } from './bootstrap';
 
 export async function authRoutes(fastify: FastifyInstance) {
+  fastify.post('/guest', async (request, reply) => {
+    try {
+      const body = (request.body || {}) as { guestId?: string; installId?: string; deviceId?: string };
+      const result = await AuthService.guest(body);
+      return sendSuccess(reply, {
+        account: {
+          id: result.user.id,
+          name: result.user.username,
+          displayName: result.user.username,
+          email: '',
+          phone: null,
+          membership: 'Guest',
+          accountType: 'guest',
+          guestId: result.guestId,
+        },
+        accountType: 'guest',
+        guestId: result.guestId,
+        accessToken: result.access_token,
+        token: result.token,
+        tokenType: result.token_type,
+        refreshToken: result.refresh_token,
+      }, 'Guest session created', 201);
+    } catch (error: any) {
+      return sendError(reply, 400, 'GUEST_SESSION_FAILED', error.message);
+    }
+  });
+
   // Public login configuration
   fastify.get('/login-config', {
     schema: {
@@ -43,7 +70,19 @@ export async function authRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { email, username, password } = request.body as any;
-      const result = await AuthService.register({ email, username, password });
+      const authorization = request.headers.authorization;
+      let guestUserId: string | undefined;
+      if (authorization?.startsWith('Bearer ')) {
+        try {
+          const payload = AuthService.verifyToken(authorization.slice(7));
+          guestUserId = payload?.role === 'GUEST' ? payload.userId : undefined;
+        } catch {
+          guestUserId = undefined;
+        }
+      }
+      const result = guestUserId
+        ? await AuthService.convertGuest(guestUserId, { email, username, password })
+        : await AuthService.register({ email, username, password });
       return sendSuccess(reply, result, 'Registration successful', 201);
     } catch (error: any) {
       return sendError(reply, 400, 'REGISTRATION_FAILED', error.message);

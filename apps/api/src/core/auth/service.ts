@@ -12,6 +12,7 @@ import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { shouldRequirePasswordRotation } from './bootstrap';
 import { createAuthUser, findAuthUserByEmail, findAuthUserById } from './user-compat';
+import crypto from 'node:crypto';
 
 const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
 const DEFAULT_DEMO_ADMIN_PASSWORD = 'admin123';
@@ -55,6 +56,45 @@ const authUserSelect = {
 } as const;
 
 export class AuthService {
+  static async guest(input: { guestId?: string; installId?: string; deviceId?: string }): Promise<AuthResponse & { accountType: 'guest'; guestId: string }> {
+    const suppliedGuestDigest = input.guestId?.trim().match(/^guest_([a-f0-9]{32})$/i)?.[1];
+    const hint = input.installId || input.deviceId || input.guestId || crypto.randomUUID();
+    const digest = suppliedGuestDigest || crypto.createHash('sha256').update(hint).digest('hex').slice(0, 32);
+    const guestId = input.guestId?.trim() || `guest_${digest}`;
+    const email = `${digest}@guest.bokmoo.invalid`;
+
+    let user = await findAuthUserByEmail(email);
+    if (!user) {
+      user = await createAuthUser({
+        email,
+        username: guestId.slice(0, 50),
+        password: await PasswordUtils.hash(crypto.randomUUID()),
+        role: 'GUEST',
+        emailVerified: true,
+      });
+    }
+
+    if (!user.isActive) throw new Error('Account is inactive');
+    const accessToken = JwtUtils.sign({ userId: user.id, email: user.email, role: user.role });
+    const refreshToken = JwtUtils.signRefresh({ userId: user.id });
+    return {
+      user: {
+        id: user.id,
+        email: '',
+        username: user.username,
+        role: user.role,
+        emailVerified: true,
+        avatar: user.avatar,
+      },
+      accountType: 'guest',
+      guestId,
+      access_token: accessToken,
+      token_type: 'Bearer',
+      expires_in: 604800,
+      refresh_token: refreshToken,
+      token: accessToken,
+    };
+  }
   private static isDemoModeEnabled(): boolean {
     return process.env.JIFFOO_DEMO_MODE === 'true';
   }
@@ -208,6 +248,51 @@ export class AuthService {
       refresh_token: refreshToken,
       // Compatible with old fields
       token
+    };
+  }
+
+  static async convertGuest(userId: string, data: RegisterRequest): Promise<AuthResponse> {
+    const guest = await findAuthUserById(userId);
+    if (!guest || guest.role !== 'GUEST' || !guest.email.endsWith('@guest.bokmoo.invalid')) {
+      throw new Error('Guest session is invalid');
+    }
+    const duplicate = await prisma.user.findFirst({
+      where: { OR: [{ email: data.email }, { username: data.username }], NOT: { id: userId } },
+      select: { id: true },
+    });
+    if (duplicate) throw new Error('User with this email or username already exists');
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        email: data.email,
+        username: data.username,
+        password: await PasswordUtils.hash(data.password),
+        role: 'USER',
+        emailVerified: !this.shouldRequireEmailVerification(),
+      },
+      select: authUserSelect,
+    });
+    if (!user.emailVerified) {
+      await EmailVerificationService.sendVerificationEmail(user.id, user.email, user.username);
+    }
+    const token = JwtUtils.sign({ userId: user.id, email: user.email, role: user.role });
+    const refreshToken = JwtUtils.signRefresh({ userId: user.id });
+    return {
+      user: {
+        id: user.id,
+        email: user.email,
+        username: user.username,
+        role: user.role,
+        emailVerified: user.emailVerified,
+        avatar: user.avatar,
+        requiresPasswordRotation: false,
+      },
+      access_token: token,
+      token_type: 'Bearer',
+      expires_in: 604800,
+      refresh_token: refreshToken,
+      token,
     };
   }
 

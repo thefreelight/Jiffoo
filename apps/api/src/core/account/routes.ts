@@ -5,6 +5,7 @@ import { authMiddleware } from '@/core/auth/middleware';
 import { sendSuccess, sendError } from '@/utils/response';
 import { UploadService } from '@/core/upload/service';
 import { mapAccountRouteError } from '@/utils/route-error-mapper';
+import { prisma } from '@/config/database';
 import {
   uploadResultSchema,
   createTypedCrudResponses,
@@ -53,6 +54,51 @@ const userProfileSchema = {
 export async function accountRoutes(fastify: FastifyInstance) {
   // Apply auth middleware to all account routes (before schema validation)
   fastify.addHook('onRequest', authMiddleware);
+
+  fastify.get('', async (request, reply) => {
+    try {
+      const profile = await AccountService.getProfile(request.user!.id);
+      const isGuest = profile.role === 'GUEST' || profile.email.endsWith('@guest.bokmoo.invalid');
+      const account = {
+        id: profile.id,
+        name: profile.username,
+        displayName: profile.username,
+        email: isGuest ? '' : profile.email,
+        phone: null,
+        membership: isGuest ? 'Guest' : (profile.role === 'ADMIN' ? 'Admin' : 'Member'),
+        accountType: isGuest ? 'guest' : 'customer',
+        ...(isGuest ? { guestId: profile.username } : {}),
+      };
+      return sendSuccess(reply, { account, profile: account });
+    } catch (error: unknown) {
+      const mapped = mapAccountRouteError(error, {
+        defaultStatus: 404,
+        defaultCode: 'ACCOUNT_NOT_FOUND',
+        defaultMessage: 'Account not found',
+      });
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
+    }
+  });
+
+  fastify.delete('', async (request, reply) => {
+    try {
+      const userId = request.user!.id;
+      await prisma.user.update({ where: { id: userId }, data: { isActive: false } });
+      return sendSuccess(reply, {
+        deleted: true,
+        userId,
+        unboundCardIds: [],
+        message: 'Your BOKMOO account deletion request was completed.',
+      });
+    } catch (error: unknown) {
+      const mapped = mapAccountRouteError(error, {
+        defaultStatus: 400,
+        defaultCode: 'ACCOUNT_DELETE_FAILED',
+        defaultMessage: 'Failed to delete account',
+      });
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
+    }
+  });
 
   /**
    * Get user profile

@@ -20,6 +20,7 @@ vi.mock('@/config/database', () => ({
       findFirst: vi.fn(),
       findUnique: vi.fn(),
       create: vi.fn(),
+      update: vi.fn(),
     },
   },
 }));
@@ -75,6 +76,7 @@ const mockPrismaUser = prisma.user as {
   findFirst: ReturnType<typeof vi.fn>;
   findUnique: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
 };
 
 const mockPasswordUtils = PasswordUtils as {
@@ -125,6 +127,50 @@ describe('AuthService', () => {
     } else {
       process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = ORIGINAL_AUTH_REQUIRE_EMAIL_VERIFICATION;
     }
+  });
+
+  describe('guest', () => {
+    it('creates a resumable guest account from the installation id', async () => {
+      const createdGuest = {
+        ...TEST_USER,
+        id: 'guest-user-id',
+        email: '8a91375e84c389c8a7c3827a313ac363@guest.bokmoo.invalid',
+        username: 'guest_8a91375e84c389c8a7c3827a313ac363',
+        role: 'GUEST',
+      };
+      mockPrismaUser.findUnique.mockResolvedValueOnce(null);
+      mockPrismaUser.create.mockResolvedValueOnce(createdGuest);
+      mockPasswordUtils.hash.mockResolvedValue('guest-password');
+      mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
+      mockJwtUtils.signRefresh.mockReturnValue(REFRESH_TOKEN);
+
+      const result = await AuthService.guest({ installId: 'install-123' });
+
+      expect(result).toMatchObject({
+        accountType: 'guest',
+        guestId: 'guest_8a91375e84c389c8a7c3827a313ac363',
+        access_token: ACCESS_TOKEN,
+        refresh_token: REFRESH_TOKEN,
+      });
+      expect(mockPrismaUser.create).toHaveBeenCalledOnce();
+    });
+
+    it('resumes a guest using the returned guest id', async () => {
+      const guest = {
+        ...TEST_USER,
+        email: '55c52f20c115c1877104893650a70d62@guest.bokmoo.invalid',
+        username: 'guest_55c52f20c115c1877104893650a70d62',
+        role: 'GUEST',
+      };
+      mockPrismaUser.findUnique.mockResolvedValueOnce(guest);
+      mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
+      mockJwtUtils.signRefresh.mockReturnValue(REFRESH_TOKEN);
+
+      const result = await AuthService.guest({ guestId: guest.username });
+
+      expect(result.guestId).toBe(guest.username);
+      expect(mockPrismaUser.create).not.toHaveBeenCalled();
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -283,6 +329,42 @@ describe('AuthService', () => {
       });
       expect(mockEmailVerification.sendVerificationEmail).not.toHaveBeenCalled();
       expect(result.user.emailVerified).toBe(true);
+    });
+  });
+
+  describe('convertGuest', () => {
+    it('upgrades the same user id so guest-owned data remains attached', async () => {
+      const guest = {
+        ...TEST_USER,
+        email: 'abc@guest.bokmoo.invalid',
+        role: 'GUEST',
+      };
+      const converted = {
+        ...guest,
+        email: 'member@bokmoo.com',
+        username: 'member',
+        role: 'USER',
+        emailVerified: true,
+      };
+      mockPrismaUser.findUnique.mockResolvedValueOnce(guest);
+      mockPrismaUser.findFirst.mockResolvedValueOnce(null);
+      mockPrismaUser.update.mockResolvedValueOnce(converted);
+      mockPasswordUtils.hash.mockResolvedValue('new-hash');
+      mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
+      mockJwtUtils.signRefresh.mockReturnValue(REFRESH_TOKEN);
+      process.env.AUTH_REQUIRE_EMAIL_VERIFICATION = 'false';
+
+      const result = await AuthService.convertGuest(guest.id, {
+        email: converted.email,
+        username: converted.username,
+        password: 'Password123!',
+      });
+
+      expect(result.user.id).toBe(guest.id);
+      expect(result.user.role).toBe('USER');
+      expect(mockPrismaUser.update).toHaveBeenCalledWith(expect.objectContaining({
+        where: { id: guest.id },
+      }));
     });
   });
 

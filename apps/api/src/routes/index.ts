@@ -58,6 +58,7 @@ import { webhookRoutes } from '@/core/webhooks/routes';
 import { storeRoutes } from '@/core/store/routes';
 // Install routes (Restored)
 import { installRoutes } from '@/core/install/routes';
+import { bokmooAppRoutes } from '@/core/bokmoo-app/routes';
 
 /**
  * Register all API routes
@@ -77,6 +78,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // User account routes
   await fastify.register(accountRoutes, { prefix: '/api/account' });
+  await fastify.register(bokmooAppRoutes, { prefix: '/api' });
 
   // Admin routes
   await fastify.register(adminUserRoutes, { prefix: '/api/admin/users' });
