@@ -582,7 +582,7 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
               </div>
             </div>
 
-            <div className="pointer-events-none relative z-10 mx-auto hidden h-[27rem] w-full max-w-[37rem] sm:h-[35rem] sm:max-w-[48rem] lg:mx-0 lg:block lg:h-[36rem] lg:max-w-[47rem] lg:justify-self-end xl:h-[42rem] xl:max-w-[56rem] 2xl:h-[48rem] 2xl:max-w-[64rem]">
+            <div className="pointer-events-none relative mx-auto hidden h-[27rem] w-full max-w-[37rem] sm:h-[35rem] sm:max-w-[48rem] lg:mx-0 lg:block lg:h-[36rem] lg:max-w-[47rem] lg:justify-self-end xl:h-[42rem] xl:max-w-[56rem] 2xl:h-[48rem] 2xl:max-w-[64rem]">
               <div className="absolute inset-[5%_-3%_1%_2%] z-0 bg-[radial-gradient(ellipse_at_58%_52%,color-mix(in_oklab,var(--bokmoo-gold)_28%,transparent),transparent_68%)] blur-2xl" />
               <div className="absolute bottom-[8%] left-[8%] right-[3%] h-28 rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--bokmoo-gold)_70%,transparent),transparent_70%)] blur-2xl lg:h-40" />
               <div className="absolute bottom-[9%] left-[7%] right-[2%] h-36 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_54%,transparent)] opacity-80 lg:h-52" />
