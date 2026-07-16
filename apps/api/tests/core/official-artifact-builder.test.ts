@@ -133,9 +133,20 @@ describe('buildOfficialArtifacts', () => {
 
     const indexJson = JSON.parse(
       await fs.readFile(path.join(outputDir, 'index.json'), 'utf-8'),
-    ) as { items: Array<{ slug: string; sha256: string }> };
+    ) as {
+      items: Array<{
+        slug: string;
+        name: string;
+        author: string;
+        description: string;
+        minCoreVersion: string;
+        sha256: string;
+      }>;
+    };
     expect(indexJson.items).toHaveLength(4);
     expect(indexJson.items.every((item) => typeof item.sha256 === 'string' && item.sha256.length === 64)).toBe(true);
+    expect(indexJson.items.every((item) => item.name && item.author && item.description)).toBe(true);
+    expect(indexJson.items.every((item) => item.minCoreVersion)).toBe(true);
     },
     120_000,
   );

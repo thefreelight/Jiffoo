@@ -30,8 +30,16 @@ interface BuildOfficialArtifactsOptions {
 
 interface BuiltArtifactSummary {
   slug: string;
+  name: string;
   kind: OfficialArtifactKind;
   version: string;
+  author: string;
+  description: string;
+  listingDomain: OfficialCatalogEntry['listingDomain'];
+  providerType: OfficialCatalogEntry['providerType'];
+  deliveryMode: OfficialCatalogEntry['deliveryMode'];
+  artifactKind: OfficialCatalogEntry['artifactKind'];
+  minCoreVersion: string;
   packageUrl: string;
   filePath: string;
   relativePath: string;
@@ -664,8 +672,16 @@ async function buildSingleArtifact(
 
     return {
       slug: entry.slug,
+      name: entry.name,
       kind,
       version,
+      author: entry.author,
+      description: entry.description,
+      listingDomain: entry.listingDomain,
+      providerType: entry.providerType,
+      deliveryMode: entry.deliveryMode,
+      artifactKind: entry.artifactKind,
+      minCoreVersion: entry.minCoreVersion,
       packageUrl: getDefaultPackageUrl(entry, artifactBaseUrl),
       filePath: outputFilePath,
       relativePath,
