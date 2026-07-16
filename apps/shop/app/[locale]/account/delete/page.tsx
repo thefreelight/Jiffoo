@@ -46,7 +46,12 @@ export default function DeleteAccountPage() {
         <div className="mt-14 grid gap-10 border-t border-[var(--bokmoo-line)] pt-10 md:grid-cols-[0.75fr_1.25fr]">
           <div>
             <p className="text-xs font-semibold uppercase text-[var(--bokmoo-gold)]">Account control</p>
-            <h1 className="mt-4 break-words text-3xl font-semibold leading-tight sm:text-5xl">Delete your BOKMOO account</h1>
+            <h1
+              className="mt-4 break-words text-3xl font-semibold leading-tight sm:text-5xl"
+              style={{ color: 'var(--bokmoo-ink)' }}
+            >
+              Delete your BOKMOO account
+            </h1>
           </div>
 
           <section aria-live="polite">
