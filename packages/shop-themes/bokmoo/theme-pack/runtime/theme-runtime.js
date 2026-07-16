@@ -14483,7 +14483,7 @@
           {
             src: BOKMOO_HERO_CARD_SRC,
             alt: "",
-            className: "pointer-events-none absolute right-[-108%] top-[22.5rem] z-0 block h-[33rem] w-[44rem] max-w-none select-none object-contain opacity-55 sm:right-[-58%] sm:top-[21rem] sm:h-[36rem] sm:w-[48rem] lg:hidden",
+            className: "pointer-events-none absolute right-[-108%] top-[22.5rem] z-0 block h-[33rem] w-[44rem] max-w-none select-none object-contain opacity-35 mix-blend-multiply [mask-image:radial-gradient(ellipse_82%_76%_at_52%_48%,black_52%,rgba(0,0,0,0.72)_72%,transparent_100%)] sm:right-[-58%] sm:top-[21rem] sm:h-[36rem] sm:w-[48rem] lg:hidden",
             draggable: false,
             "aria-hidden": "true"
           }
@@ -14526,6 +14526,7 @@
               ] }, title)) })
             ] }),
             /* @__PURE__ */ jsxs("div", { className: "pointer-events-none relative z-10 mx-auto hidden h-[27rem] w-full max-w-[37rem] sm:h-[35rem] sm:max-w-[48rem] lg:mx-0 lg:block lg:h-[36rem] lg:max-w-[47rem] lg:justify-self-end xl:h-[42rem] xl:max-w-[56rem] 2xl:h-[48rem] 2xl:max-w-[64rem]", children: [
+              /* @__PURE__ */ jsx("div", { className: "absolute inset-[5%_-3%_1%_2%] z-0 bg-[radial-gradient(ellipse_at_58%_52%,color-mix(in_oklab,var(--bokmoo-gold)_28%,transparent),transparent_68%)] blur-2xl" }),
               /* @__PURE__ */ jsx("div", { className: "absolute bottom-[8%] left-[8%] right-[3%] h-28 rounded-full bg-[radial-gradient(circle,color-mix(in_oklab,var(--bokmoo-gold)_70%,transparent),transparent_70%)] blur-2xl lg:h-40" }),
               /* @__PURE__ */ jsx("div", { className: "absolute bottom-[9%] left-[7%] right-[2%] h-36 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_54%,transparent)] opacity-80 lg:h-52" }),
               /* @__PURE__ */ jsx("div", { className: "absolute bottom-[3%] left-[-2%] right-[-8%] h-52 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_30%,transparent)] opacity-70 lg:h-72" }),
@@ -14534,7 +14535,7 @@
                 {
                   src: BOKMOO_HERO_CARD_SRC,
                   alt: "BOKMOO eUICC card",
-                  className: "relative z-10 h-full w-full select-none object-contain object-center drop-shadow-[0_44px_90px_rgba(0,0,0,0.68)] lg:object-right",
+                  className: "relative z-10 h-full w-full select-none object-contain object-center opacity-95 mix-blend-multiply contrast-[1.04] saturate-[0.94] [mask-image:radial-gradient(ellipse_88%_92%_at_56%_50%,black_56%,rgba(0,0,0,0.92)_72%,rgba(0,0,0,0.42)_88%,transparent_100%)] drop-shadow-[0_44px_90px_rgba(0,0,0,0.68)] lg:object-right",
                   draggable: false
                 }
               )
@@ -15613,7 +15614,7 @@
     ["Data Protection", "We implement appropriate security measures to protect your data."],
     ["Your Rights", "You have the right to access, update, or delete your personal information."]
   ];
-  var PrivacyPage = react_default.memo(function PrivacyPage2({}) {
+  var PrivacyPage = react_default.memo(function PrivacyPage2(_props) {
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[980px] rounded-[1.6rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
       /* @__PURE__ */ jsx("h1", { className: "text-[clamp(2.2rem,4vw,3.5rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "Privacy Policy" }),
       /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--bokmoo-copy-soft)]", children: "Last updated: April 15, 2024" }),
@@ -16245,7 +16246,7 @@
     ["Purchases and Payments", "All payments are final and non-refundable unless required by law."],
     ["Limitation of Liability", "BOKMOO is not liable for any indirect, incidental, or consequential damages."]
   ];
-  var TermsPage = react_default.memo(function TermsPage2({}) {
+  var TermsPage = react_default.memo(function TermsPage2(_props) {
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[980px] rounded-[1.6rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
       /* @__PURE__ */ jsx("h1", { className: "text-[clamp(2.2rem,4vw,3.5rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: "Terms of Service" }),
       /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--bokmoo-copy-soft)]", children: "Last updated: April 15, 2024" }),
@@ -16346,7 +16347,7 @@
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.4",
+      version: "1.1.5",
       target: "shop"
     }
   };
