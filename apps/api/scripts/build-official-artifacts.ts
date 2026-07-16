@@ -98,10 +98,7 @@ const OFFICIAL_PLUGIN_SOURCE_CONFIG: Record<string, PluginSourceConfig> = {
   odoo: {
     includeNodeModules: true,
     prepareCommands: [
-      'npm ci --include=dev',
-      'npm run build',
-      'rm -rf node_modules',
-      'npm ci --omit=dev',
+      'npm install --omit=dev --no-package-lock --workspaces=false',
     ],
   },
 };
