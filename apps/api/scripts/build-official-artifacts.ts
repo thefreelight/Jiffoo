@@ -278,14 +278,16 @@ function shouldRemoveExecutableArtifactFile(relativePath: string): boolean {
   return false;
 }
 
-function isAllowedBundledPluginRuntimeBinary(relativePath: string): boolean {
+export function isAllowedBundledPluginRuntimeBinary(relativePath: string): boolean {
   const normalized = relativePath.replace(/\\/g, '/').toLowerCase();
   if (!normalized.endsWith('.node')) {
     return false;
   }
 
   return (
-    normalized.includes('node_modules/.prisma/client/') ||
+    /^node_modules\/\.prisma\/(?:client|[a-z0-9-]+-client)\/(?:lib)?query_engine[^/]*\.node$/.test(
+      normalized,
+    ) ||
     normalized.includes('node_modules/@prisma/engines/') ||
     normalized.includes('node_modules/prisma/')
   );

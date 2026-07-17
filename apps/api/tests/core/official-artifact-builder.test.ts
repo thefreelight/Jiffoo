@@ -5,6 +5,7 @@ import path from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   buildOfficialArtifacts,
+  isAllowedBundledPluginRuntimeBinary,
   OFFICIAL_PLUGIN_SOURCE_CONFIG,
 } from '../../scripts/build-official-artifacts';
 
@@ -52,6 +53,19 @@ describe('buildOfficialArtifacts', () => {
         'npx prisma generate --schema prisma/schema.prisma',
       ],
     });
+  });
+
+  it('keeps Prisma query engines for named generated clients only', () => {
+    expect(
+      isAllowedBundledPluginRuntimeBinary(
+        'node_modules/.prisma/smtp-email-client/libquery_engine-debian-openssl-3.0.x.so.node',
+      ),
+    ).toBe(true);
+    expect(
+      isAllowedBundledPluginRuntimeBinary(
+        'node_modules/.prisma/smtp-email-client/untrusted-addon.node',
+      ),
+    ).toBe(false);
   });
 
   it(
