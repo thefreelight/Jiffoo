@@ -189,6 +189,7 @@ describe('AuthService', () => {
           role: true,
           isActive: true,
           emailVerified: true,
+          storeId: true,
           avatar: true,
         },
       });
@@ -278,6 +279,7 @@ describe('AuthService', () => {
           role: true,
           isActive: true,
           emailVerified: true,
+          storeId: true,
           avatar: true,
         },
       });
@@ -311,6 +313,7 @@ describe('AuthService', () => {
           role: true,
           isActive: true,
           emailVerified: true,
+          storeId: true,
           avatar: true,
         },
       });
@@ -408,6 +411,7 @@ describe('AuthService', () => {
           role: true,
           isActive: true,
           emailVerified: true,
+          storeId: true,
           avatar: true,
         },
       });
@@ -516,6 +520,7 @@ describe('AuthService', () => {
           role: true,
           isActive: true,
           emailVerified: true,
+          storeId: true,
           avatar: true,
         },
       });
