@@ -72,7 +72,7 @@ const REPO_ROOT = path.resolve(__dirname, '../../..');
 const DEFAULT_OUTPUT_DIR = path.join(REPO_ROOT, 'dist', 'official-artifacts');
 const ROOT_LICENSE_PATH = path.join(REPO_ROOT, 'LICENSE');
 
-const OFFICIAL_PLUGIN_SOURCE_CONFIG: Record<string, PluginSourceConfig> = {
+export const OFFICIAL_PLUGIN_SOURCE_CONFIG: Record<string, PluginSourceConfig> = {
   'hermes-bridge': {
     includeNodeModules: true,
     prepareCommands: [
@@ -82,6 +82,14 @@ const OFFICIAL_PLUGIN_SOURCE_CONFIG: Record<string, PluginSourceConfig> = {
     ],
   },
   wallet: {
+    includeNodeModules: true,
+    prepareCommands: [
+      'npm install --no-package-lock --ignore-scripts --workspaces=false',
+      'npx prisma generate --schema prisma/schema.prisma',
+      'npm prune --omit=dev --no-package-lock --ignore-scripts --workspaces=false',
+    ],
+  },
+  'smtp-email': {
     includeNodeModules: true,
     prepareCommands: [
       'npm install --no-package-lock --ignore-scripts --workspaces=false',
