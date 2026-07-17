@@ -28,7 +28,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
 import { URL } from 'url';
-import { createHmac, randomUUID } from 'crypto';
+import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import type { PluginManifest } from './types';
 import { getPluginDir } from './utils';
@@ -440,6 +440,18 @@ function injectPlatformHeaders(
 function inferCaller(request: FastifyRequest): CallerType {
   // SECURITY FIX: Do NOT trust inbound x-caller header
   // It is stripped by sanitizeForwardHeaders and only re-injected with platform-inferred value
+  // Internal service calls authenticate with the platform integration token. This
+  // check must run before browser heuristics, otherwise loopback calls inherit
+  // the default shop caller and wallet/email routes reject them.
+  const expected = (process.env.CATALOG_IMPORT_TOKEN || '').trim();
+  const provided = getHeaderValue(request, 'x-platform-integration-token').trim();
+  if (expected && provided) {
+    const expectedBytes = Buffer.from(expected);
+    const providedBytes = Buffer.from(provided);
+    if (expectedBytes.length === providedBytes.length && timingSafeEqual(expectedBytes, providedBytes)) {
+      return 'api-internal';
+    }
+  }
 
   // Fallback 1: Detect from Referer (most reliable for browser requests)
   const refererHeader = request.headers.referer || request.headers.referrer;
