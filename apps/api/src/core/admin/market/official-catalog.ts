@@ -127,6 +127,10 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
   'imagic-core': {
     category: 'ai',
   },
+  'hermes-bridge': {
+    category: 'analytics',
+    target: 'admin',
+  },
   'quiet-curator-cms': {
     category: 'content',
   },
