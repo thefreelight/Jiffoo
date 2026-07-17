@@ -395,6 +395,7 @@ function injectPlatformHeaders(
   const user = (request as any).user;
   const userId = user?.id || user?.userId || '';  // FIXED: Anonymous must be empty string, not 'anonymous'
   const userRole = user?.role || 'guest';
+  const workspaceId = user?.storeId || '';
 
   // Platform ID: fixed value for single-store deployments
   const platformId = process.env.PLATFORM_ID || 'single-store';
@@ -413,6 +414,7 @@ function injectPlatformHeaders(
     'x-installation-key': ctx.instanceKey,
     'x-user-id': userId,           // FIXED: Anonymous = "" (empty string)
     'x-user-role': userRole,
+    'x-workspace-id': workspaceId,
     'x-request-id': requestId,
     'x-platform-id': platformId,
     'x-platform-version': process.env.PLATFORM_VERSION || '1.0.0',

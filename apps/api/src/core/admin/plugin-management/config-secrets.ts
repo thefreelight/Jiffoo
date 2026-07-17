@@ -31,7 +31,7 @@ function getSecretFields(manifestJson: unknown): string[] {
   const configSchema = getConfigSchema(manifestJson);
   return Object.entries(configSchema)
     .filter(([, descriptor]) => isPlainObject(descriptor)
-      && (descriptor.type === 'secret' || descriptor.sensitive === true))
+      && (descriptor.type === 'secret' || descriptor.secret === true || descriptor.sensitive === true))
     .map(([field]) => field);
 }
 
