@@ -131,6 +131,14 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
     category: 'analytics',
     target: 'admin',
   },
+  wallet: {
+    category: 'finance',
+    target: 'admin',
+  },
+  'smtp-email': {
+    category: 'email',
+    target: 'admin',
+  },
   'quiet-curator-cms': {
     category: 'content',
   },
