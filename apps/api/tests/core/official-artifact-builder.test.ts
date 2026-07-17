@@ -3,7 +3,10 @@ import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { buildOfficialArtifacts } from '../../scripts/build-official-artifacts';
+import {
+  buildOfficialArtifacts,
+  OFFICIAL_PLUGIN_SOURCE_CONFIG,
+} from '../../scripts/build-official-artifacts';
 
 async function extractArtifact(artifactPath: string): Promise<string> {
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'official-artifact-extract-'));
@@ -38,6 +41,17 @@ describe('buildOfficialArtifacts', () => {
       tempDirs.map((dir) => fs.rm(dir, { recursive: true, force: true })),
     );
     tempDirs.length = 0;
+  });
+
+  it('vendors SMTP runtime dependencies and generates its Prisma client', () => {
+    expect(OFFICIAL_PLUGIN_SOURCE_CONFIG['smtp-email']).toEqual({
+      includeNodeModules: true,
+      prepareCommands: [
+        'npm install --no-package-lock --ignore-scripts --workspaces=false',
+        'npx prisma generate --schema prisma/schema.prisma',
+        'npm prune --omit=dev --no-package-lock --ignore-scripts --workspaces=false',
+      ],
+    });
   });
 
   it(

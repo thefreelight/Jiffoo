@@ -38,3 +38,9 @@ This repository must not expose:
 ## Database Safety
 
 - Stop immediately if any database drift is detected.
+
+## Official Plugin Initial Version
+
+- Every newly introduced official plugin slug must start at version `0.0.1`.
+- Its first shared-catalog entry and artifact URL must both use `0.0.1`; do not use `0.1.0`, `1.0.0`, or another milestone version as the initial release.
+- A different initial version is allowed only when the user explicitly approves an exception for a plugin that was already released or imported externally.
