@@ -77,24 +77,24 @@ export const OFFICIAL_PLUGIN_SOURCE_CONFIG: Record<string, PluginSourceConfig> =
     includeNodeModules: true,
     prepareCommands: [
       'npm install --no-package-lock --ignore-scripts --workspaces=false',
-      'npx prisma generate --schema prisma/schema.prisma',
       'npm prune --omit=dev --no-package-lock --ignore-scripts --workspaces=false',
+      'npx prisma generate --schema prisma/schema.prisma',
     ],
   },
   wallet: {
     includeNodeModules: true,
     prepareCommands: [
       'npm install --no-package-lock --ignore-scripts --workspaces=false',
-      'npx prisma generate --schema prisma/schema.prisma',
       'npm prune --omit=dev --no-package-lock --ignore-scripts --workspaces=false',
+      'npx prisma generate --schema prisma/schema.prisma',
     ],
   },
   'smtp-email': {
     includeNodeModules: true,
     prepareCommands: [
       'npm install --no-package-lock --ignore-scripts --workspaces=false',
-      'npx prisma generate --schema prisma/schema.prisma',
       'npm prune --omit=dev --no-package-lock --ignore-scripts --workspaces=false',
+      'npx prisma generate --schema prisma/schema.prisma',
     ],
   },
   stripe: {
