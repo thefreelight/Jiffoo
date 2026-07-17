@@ -424,6 +424,7 @@ describe('AuthService', () => {
           password: true,
           role: true,
           isActive: true,
+          storeId: true,
           avatar: true,
         },
       });
