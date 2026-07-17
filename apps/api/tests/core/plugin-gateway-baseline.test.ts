@@ -24,6 +24,7 @@ describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
   let app: FastifyInstance;
   let adminToken: string;
   let adminUserId: string;
+  let workspaceId: string;
 
   const prisma = getTestPrisma();
   const slug = `baselinegw${Date.now().toString(36).slice(-6)}`.slice(0, 20);
@@ -35,6 +36,14 @@ describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
     const { token, user } = await createAdminWithToken();
     adminToken = token;
     adminUserId = user.id;
+    const store = await prisma.store.create({
+      data: {
+        name: 'Gateway Workspace',
+        slug: `gateway-workspace-${slug}`,
+      },
+    });
+    workspaceId = store.id;
+    await prisma.user.update({ where: { id: user.id }, data: { storeId: workspaceId } });
 
     // Create a minimal internal-fastify plugin for gateway testing
     await fs.mkdir(path.join(pluginDir, 'server'), { recursive: true });
@@ -69,6 +78,7 @@ module.exports = async function plugin(fastify) {
     caller: request.headers['x-caller'] || null,
     userId: request.headers['x-user-id'] || null,
     userRole: request.headers['x-user-role'] || null,
+    workspaceId: request.headers['x-workspace-id'] || null,
     platformId: request.headers['x-platform-id'] || null
   }));
 };
@@ -106,6 +116,9 @@ module.exports = async function plugin(fastify) {
     await prisma.pluginInstall.deleteMany({ where: { slug } });
     await fs.rm(pluginDir, { recursive: true, force: true });
     await deleteAllTestUsers();
+    if (workspaceId) {
+      await prisma.store.delete({ where: { id: workspaceId } });
+    }
     await app.close();
   });
 
@@ -164,6 +177,7 @@ module.exports = async function plugin(fastify) {
     const body = response.json();
     expect(body.userId).toBe(adminUserId);
     expect(body.userRole).toBe('ADMIN');
+    expect(body.workspaceId).toBe(workspaceId);
   });
 
   // --- Plugin 404 ---

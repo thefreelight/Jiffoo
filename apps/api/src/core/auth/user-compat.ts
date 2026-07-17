@@ -9,6 +9,7 @@ const authUserBaseSelect = {
   role: true,
   isActive: true,
   avatar: true,
+  storeId: true,
 } as const;
 
 const authIdentityBaseSelect = {
@@ -18,6 +19,7 @@ const authIdentityBaseSelect = {
   role: true,
   isActive: true,
   avatar: true,
+  storeId: true,
 } as const;
 
 export const authUserSelect = {
@@ -42,6 +44,7 @@ type LegacyAuthUser = {
   role: string;
   isActive: boolean;
   avatar: string | null;
+  storeId: string | null;
   emailVerified?: boolean;
 };
 
@@ -52,6 +55,7 @@ type LegacyAuthIdentity = {
   role: string;
   isActive: boolean;
   avatar: string | null;
+  storeId: string | null;
   emailVerified?: boolean;
 };
 

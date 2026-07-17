@@ -12,6 +12,7 @@ interface AuthenticatedUser {
   email: string;
   username: string;
   role: string;
+  storeId?: string | null;
   emailVerified?: boolean;
   permissions?: string[];
   roles?: any[];
