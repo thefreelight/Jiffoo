@@ -48,8 +48,8 @@ describe('buildOfficialArtifacts', () => {
       includeNodeModules: true,
       prepareCommands: [
         'npm install --no-package-lock --ignore-scripts --workspaces=false',
-        'npx prisma generate --schema prisma/schema.prisma',
         'npm prune --omit=dev --no-package-lock --ignore-scripts --workspaces=false',
+        'npx prisma generate --schema prisma/schema.prisma',
       ],
     });
   });
