@@ -1,0 +1,33 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "jiffoo-shop",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-07-13",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+  "env": {
+    "staging": {
+      "name": "jiffoo-shop-staging",
+      "workers_dev": true,
+      "vars": {
+        "API_SERVICE_URL": "https://jiffoo-api.chfastpay.com",
+        "NEXT_PUBLIC_API_URL": "/api",
+        "THEME_APP_PROXY_DISABLED": "1"
+      },
+      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "jiffoo-shop-staging" }],
+      "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "jiffoo-shop-staging-cache" }]
+    },
+    "production": {
+      "name": "jiffoo-shop",
+      "routes": [{ "pattern": "jiffoo.com/*", "zone_name": "jiffoo.com" }],
+      "vars": {
+        "API_SERVICE_URL": "https://api.jiffoo.com",
+        "NEXT_PUBLIC_API_URL": "/api",
+        "THEME_APP_PROXY_DISABLED": "1"
+      },
+      "services": [{ "binding": "WORKER_SELF_REFERENCE", "service": "jiffoo-shop" }],
+      "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "jiffoo-shop-cache" }]
+    }
+  }
+}

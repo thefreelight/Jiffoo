@@ -5,6 +5,10 @@
   "scripts": {
     "dev": "next dev -p 3002",
     "build": "next build",
+    "build:cloudflare": "opennextjs-cloudflare build",
+    "preview:cloudflare": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy:cloudflare": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "upload:cloudflare": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "pages:build": "npx @cloudflare/next-on-pages",
     "start": "next start -p 3002",
     "lint": "eslint .",
@@ -40,7 +44,7 @@
     "date-fns": "^4.1.0",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.460.0",
-    "next": "16.0.7",
+    "next": "16.2.10",
     "next-themes": "^0.4.6",
     "postcss": "^8.4.49",
     "react": "19.2.1",
@@ -56,12 +60,15 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@opennextjs/cloudflare": "1.20.1",
     "@types/node": "^22.9.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "eslint": "^9",
-    "eslint-config-next": "16.0.1",
+    "eslint-config-next": "16.2.10",
+    "rclone.js": "^0.6.6",
     "typescript": "^5.8.3",
+    "wrangler": "4.110.0",
     "vitest": "4.0.15"
   }
 }

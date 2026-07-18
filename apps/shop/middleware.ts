@@ -11,7 +11,6 @@
 import { LOCALES, DEFAULT_LOCALE } from 'shared/src/i18n';
 import { createProxyHandler, type ProxyConfig } from 'shared/src/proxy';
 import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 
 /**
  * Shop proxy configuration
@@ -32,8 +31,9 @@ const shopProxyConfig: ProxyConfig = {
  * 4. Pass through
  */
 const baseProxy = createProxyHandler(shopProxyConfig);
+type ProxyRequest = Parameters<typeof baseProxy>[0];
 
-function isInstallRootRequest(request: NextRequest): boolean {
+function isInstallRootRequest(request: ProxyRequest): boolean {
   const host = request.headers.get('host')?.split(':')[0]?.toLowerCase();
   const pathname = request.nextUrl.pathname;
 
@@ -44,7 +44,7 @@ function isInstallRootRequest(request: NextRequest): boolean {
   return pathname === '/' || pathname === `/${DEFAULT_LOCALE}`;
 }
 
-export async function middleware(request: NextRequest) {
+export async function middleware(request: ProxyRequest) {
   if (isInstallRootRequest(request)) {
     return NextResponse.redirect(new URL('/install.sh', request.url));
   }
