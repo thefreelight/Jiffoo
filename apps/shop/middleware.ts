@@ -49,6 +49,13 @@ export async function middleware(request: ProxyRequest) {
     return NextResponse.redirect(new URL('/install.sh', request.url));
   }
 
+  // Keep the public storefront identity when /api rewrites to the
+  // cluster-internal API service. Theme resolution is host-aware.
+  const forwardedHost = request.headers.get('host');
+  if (forwardedHost && !request.headers.get('x-forwarded-host')) {
+    request.headers.set('x-forwarded-host', forwardedHost);
+  }
+
   return baseProxy(request);
 }
 
