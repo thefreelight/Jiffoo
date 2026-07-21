@@ -24,7 +24,6 @@ COPY packages/shared/package.json ./packages/shared/
 COPY packages/shared/dist ./packages/shared/dist
 COPY scripts ./scripts
 COPY plugins ./plugins
-COPY dist/official-artifacts ./dist/official-artifacts
 COPY node_modules ./node_modules
 COPY apps/api/node_modules ./apps/api/node_modules
 
