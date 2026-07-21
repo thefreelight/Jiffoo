@@ -116,6 +116,10 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
     category: 'saas',
     target: 'shop',
   },
+  remoteradar: {
+    category: 'ai',
+    target: 'shop',
+  },
   yevbi: {
     category: 'storefront',
     target: 'shop',
