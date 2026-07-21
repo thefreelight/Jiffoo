@@ -172,6 +172,18 @@ export class ThemeInstaller implements IThemeInstaller {
       // 9. Write metadata file
       await this.saveInstalledMeta(target, manifest.slug, installedTheme);
 
+      // Keep an immutable version-addressable copy for storefront runtimes.
+      // The legacy slug path remains the current version for older clients.
+      const versionedThemeDir = path.join(
+        getThemeDir(target),
+        '.versions',
+        manifest.slug,
+        manifest.version,
+      );
+      await ensureDir(path.dirname(versionedThemeDir));
+      await fs.rm(versionedThemeDir, { recursive: true, force: true });
+      await fs.cp(targetDir, versionedThemeDir, { recursive: true });
+
       // 10. Invalidate theme cache to ensure immediate visibility
       const { CacheService } = await import('@/core/cache/service');
       await CacheService.delete(`themes:installed:${target}`);
