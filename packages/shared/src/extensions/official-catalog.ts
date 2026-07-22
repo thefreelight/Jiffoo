@@ -28,6 +28,7 @@ export type OfficialExtensionDeliveryMode =
 
 export type OfficialArtifactKind =
   | 'theme-package'
+  | 'theme-app-package'
   | 'plugin-package'
   | 'service-descriptor';
 
