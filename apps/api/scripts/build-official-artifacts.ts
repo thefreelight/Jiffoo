@@ -10,7 +10,7 @@ import {
   type OfficialCatalogEntry,
 } from '../../../packages/shared/src/extensions/official-catalog';
 
-type OfficialArtifactKind = 'plugin' | 'theme';
+type OfficialArtifactKind = 'plugin' | 'theme' | 'theme-app';
 
 interface PluginSourceConfig {
   includeNodeModules?: boolean;
@@ -30,7 +30,8 @@ interface BuildOfficialArtifactsOptions {
 
 interface BuiltArtifactSummary {
   slug: string;
-  kind: OfficialArtifactKind;
+  kind: 'plugin' | 'theme';
+  artifactKind: string;
   version: string;
   packageUrl: string;
   filePath: string;
@@ -60,6 +61,16 @@ interface ThemePackSourceManifest {
   };
   'x-jiffoo-renderer-mode'?: 'platform' | 'embedded';
   'x-jiffoo-renderer-slug'?: string;
+}
+
+interface ThemeAppSourceManifest {
+  schemaVersion: number;
+  type: 'theme-app';
+  slug: string;
+  name: string;
+  version: string;
+  target: 'shop' | 'admin';
+  compatibility?: { minCoreVersion?: string };
 }
 
 interface BuildOfficialArtifactsResult {
@@ -147,6 +158,9 @@ function parseArgs(argv: string[]): BuildOfficialArtifactsOptions {
 }
 
 function toOfficialArtifactKind(entry: OfficialCatalogEntry): OfficialArtifactKind {
+  if (entry.artifactKind === 'theme-app-package') {
+    return 'theme-app';
+  }
   return entry.kind === 'plugin' ? 'plugin' : 'theme';
 }
 
@@ -155,8 +169,12 @@ function getDefaultPackageUrl(entry: OfficialCatalogEntry, artifactBaseUrl?: str
     return entry.packageUrl;
   }
 
-  const extension = entry.kind === 'theme' ? 'jtheme' : 'jplugin';
-  const kindPath = entry.kind === 'theme' ? 'themes' : 'plugins';
+  const extension = entry.artifactKind === 'theme-app-package'
+    ? 'theme-app.zip'
+    : entry.kind === 'theme' ? 'jtheme' : 'jplugin';
+  const kindPath = entry.artifactKind === 'theme-app-package'
+    ? 'theme-apps'
+    : entry.kind === 'theme' ? 'themes' : 'plugins';
   return `${artifactBaseUrl.replace(/\/$/, '')}/${kindPath}/${entry.slug}/${entry.version}.${extension}`;
 }
 
@@ -636,6 +654,39 @@ async function stageThemeArtifact(entry: OfficialCatalogEntry, stagingDir: strin
   return gatherFiles(stagingDir);
 }
 
+async function resolveThemeAppPackagePath(entry: OfficialCatalogEntry): Promise<string> {
+  const packageDir = path.join(REPO_ROOT, 'packages', 'shop-themes', entry.slug);
+  const manifestPath = path.join(packageDir, 'theme-app.json');
+  const packageJsonPath = path.join(packageDir, 'package.json');
+  const packageZipPath = path.join(packageDir, 'dist', `${entry.slug}-${entry.version}.theme-app.zip`);
+
+  if (!(await pathExists(manifestPath))) {
+    throw new Error(`Theme App manifest not found for ${entry.slug}: ${manifestPath}`);
+  }
+  if (!(await pathExists(packageZipPath))) {
+    throw new Error(`Theme App package not found for ${entry.slug}: ${packageZipPath}`);
+  }
+
+  const manifest = JSON.parse(await fs.readFile(manifestPath, 'utf-8')) as ThemeAppSourceManifest;
+  const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf-8')) as { version?: string };
+  if (manifest.schemaVersion !== 1 || manifest.type !== 'theme-app') {
+    throw new Error(`Theme App manifest is invalid for ${entry.slug}`);
+  }
+  if (manifest.slug !== entry.slug || manifest.name !== entry.name || manifest.version !== entry.version) {
+    throw new Error(`Theme App manifest identity does not match official catalog for ${entry.slug}`);
+  }
+  if (packageJson.version && packageJson.version !== entry.version) {
+    throw new Error(`Theme App package.json version ${packageJson.version} does not match ${entry.version}`);
+  }
+  if (manifest.target !== 'shop') {
+    throw new Error(`Theme App target ${manifest.target} is not supported for ${entry.slug}`);
+  }
+  if (manifest.compatibility?.minCoreVersion && manifest.compatibility.minCoreVersion !== entry.minCoreVersion) {
+    throw new Error(`Theme App minCoreVersion does not match official catalog for ${entry.slug}`);
+  }
+  return packageZipPath;
+}
+
 async function buildSingleArtifact(
   entry: OfficialCatalogEntry,
   outputDir: string,
@@ -643,16 +694,37 @@ async function buildSingleArtifact(
 ): Promise<BuiltArtifactSummary> {
   const kind = toOfficialArtifactKind(entry);
   const version = entry.version;
-  const extension = kind === 'theme' ? 'jtheme' : 'jplugin';
-  const kindDir = kind === 'theme' ? 'themes' : 'plugins';
+  const extension = kind === 'theme-app' ? 'theme-app.zip' : kind === 'theme' ? 'jtheme' : 'jplugin';
+  const kindDir = kind === 'theme-app' ? 'theme-apps' : kind === 'theme' ? 'themes' : 'plugins';
   const relativePath = `${kindDir}/${entry.slug}/${version}.${extension}`;
   const outputFilePath = path.join(outputDir, relativePath);
   const sourceDir = path.join(
     REPO_ROOT,
-    kind === 'theme'
+    kind === 'theme-app' || kind === 'theme'
       ? path.join('packages', 'shop-themes', entry.slug, 'theme-pack')
       : path.join('extensions', 'plugins', entry.slug),
   );
+
+  if (kind === 'theme-app') {
+    const sourcePackagePath = await resolveThemeAppPackagePath(entry);
+    await fs.mkdir(path.dirname(outputFilePath), { recursive: true });
+    await fs.copyFile(sourcePackagePath, outputFilePath);
+    const sidecars = await writeArtifactSidecars(outputFilePath);
+    return {
+      slug: entry.slug,
+      kind: 'theme',
+      artifactKind: entry.artifactKind,
+      version,
+      packageUrl: getDefaultPackageUrl(entry, artifactBaseUrl),
+      filePath: outputFilePath,
+      relativePath,
+      sha256: sidecars.sha256,
+      sizeBytes: sidecars.sizeBytes,
+      sourceDir: path.dirname(sourcePackagePath),
+      includedFiles: [path.relative(path.dirname(sourcePackagePath), sourcePackagePath)],
+      ...(sidecars.signaturePath ? { signaturePath: sidecars.signaturePath } : {}),
+    };
+  }
 
   const stagingDir = await fs.mkdtemp(path.join(os.tmpdir(), `official-artifact-${entry.slug}-`));
 
@@ -667,7 +739,8 @@ async function buildSingleArtifact(
 
     return {
       slug: entry.slug,
-      kind,
+      kind: kind === 'plugin' ? 'plugin' : 'theme',
+      artifactKind: entry.artifactKind,
       version,
       packageUrl: getDefaultPackageUrl(entry, artifactBaseUrl),
       filePath: outputFilePath,
