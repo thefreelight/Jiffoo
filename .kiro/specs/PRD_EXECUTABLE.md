@@ -165,7 +165,7 @@
 > - 开源核心自更新：统一 Admin 升级中心 + 本地 `Jiffoo Updater` + 环境感知执行器（single-host / docker-compose / k8s）
 > - 开源核心版本规范：严格 semver，默认 `stable` 通道，支持 `prerelease` opt-in；`major` 升级必须显式确认
 > - Merchant Admin 市场 IA：商户侧直接暴露 `Themes / Plugins`，插件形成插件中心，不继续以泛化 `Extensions` 作为主导航
-> - 默认 storefront 主题：必须允许 `storefront`、`landing-commerce`、`product-site` 三种 archetype，避免把首页固定成商品网格；Jiffoo 官方站与其他 SaaS 站点可基于同一主题基础模板配置出安装/部署/文档优先的 landing 体验
+> - 默认 storefront 主题：只承担商店交易体验；产品官网、安装、部署和文档页面使用独立应用或专用主题
 
 ### 2.1 交易闭环（Shopper）
 
@@ -243,8 +243,7 @@
       - 启动独立主题进程并完成 health check（失败不允许切换；应自动回滚/保持原主题）
       - 通过 `shop/admin` 网关/路由层把用户请求转发到当前激活的主题进程，实现“安装即用/切换即生效”
       - 保证 SSR 可用（主题负责路由与渲染），并保留可回滚路径（至少回滚到上一个主题）
-    - 默认主题必须支持 `storefront / landing-commerce / product-site` 三种首页定位，而不是把首页固定成商品陈列页。
-    - 当站点采用 `product-site` archetype 时，首页应优先呈现安装、部署、文档、演示与产品能力简介，商品与交易路径保留为次级入口。
+    - 默认主题必须保持 storefront-first，不得包含产品官网、安装命令、部署说明或文档导流型首页。
     - 主题切换的“立即生效”指：不重启 `apps/api`，用户刷新页面即可看到新主题效果（Theme Pack 通过 runtime 重新加载资源；Theme App 通过网关切流量）。
     - 商业包授权码激活后的主题/品牌切换必须在新的 storefront 请求中立即生效；`shop` 端不得把 `store context` 以小时级 SSR 缓存冻结在旧主题上。
     - 安全约束：Theme Pack 必须做白名单文件类型与大小限制；Theme App 属于可执行代码扩展，需以“独立进程 + 可观测 + 失败回退”为最低安全底线。

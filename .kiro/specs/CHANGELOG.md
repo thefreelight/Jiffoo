@@ -56,7 +56,6 @@ This changelog records high-signal product, architecture, and delivery changes t
   - official Stripe, i18n, and Odoo plugin wrappers
   - repository-native official Theme Pack source trees
 - Added a dedicated ADR for the official-extensions development workflow covering `jiffoo`, `jiffoo-mall-core`, and `jiffoo-extensions-official`.
-- Added a dedicated ADR for built-in storefront theme archetypes so the default theme can serve `storefront`, `landing-commerce`, and `product-site` roles.
 - Added a dedicated multi-surface architecture spec covering:
   - shared contracts
   - surface adapters
@@ -91,7 +90,9 @@ This changelog records high-signal product, architecture, and delivery changes t
   - `merchant` for merchant-store transactions
 - Changed official themes from builtin-only descriptors to downloadable Theme Pack artifacts with embedded renderer contracts.
 - Changed official plugins from builtin launch assumptions to package-managed marketplace delivery.
-- Changed the default storefront-theme direction so the built-in theme is now specified as a reusable SaaS/product-site base template with explicit `storefront / landing-commerce / product-site` archetypes instead of a fixed catalog-first homepage.
+- Changed the default storefront theme back to a storefront-only fallback.
+  Product websites and installer/documentation landing pages require a separate
+  application or purpose-built theme.
 - Changed the repo-boundary docs so they now explicitly name `jiffoo-extensions-official` as the authoritative private source repo for official themes/plugins, recommend a composite local workspace for development, and reject manual dual-write sync from `jiffoo-mall-core` as the default workflow.
 - Changed the cross-surface guidance so Web, Desktop, and Mobile now explicitly share contracts instead of pretending to share one page tree.
 - Changed the public/open-source repo topology docs so `jiffoo`, `jiffoo-mall-desktop`, and `jiffoo-mall-mobile` are documented as separate OSS repos with distinct host responsibilities.

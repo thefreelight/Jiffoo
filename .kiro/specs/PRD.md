@@ -188,22 +188,11 @@ Jiffoo 的长期市场平台，不应把所有可售卖对象都塞进 `Extensio
   - 更自然的商户文案，如 `Install`、`Enable`、`Configure`、`Manage`
 - 不应在商户界面暴露开发者口吻按钮，例如 `Open Admin UI`
 
-### 默认 storefront 主题站点 archetype（长期模型）
+### 默认 storefront 主题边界（长期模型）
 
-默认 storefront 主题不应被固定成“首页只能是商品网格”的模型。
-
-内置默认主题至少应支持以下三种 archetype：
-
-- `storefront`
-  - 以商品发现和交易为首页主轴
-- `landing-commerce`
-  - 先讲品牌/产品价值，再把用户导向商品与结账链路
-- `product-site`
-  - 首页优先承载产品介绍、安装、部署、文档、演示与 CTA，电商路径作为次级入口保留
-
-Jiffoo 官方站点应优先使用 `product-site` 或 `landing-commerce` archetype，而不是被迫伪装成普通商店首页。
-
-同一套默认主题基础模板还应可复用于其他 SaaS / product website，使其既能承担 landing page 角色，也能在需要时承接商品、演示包、模板包或相关电商路径。
+内置默认主题只承担商品发现、购物车、结账、订单和账户等商店体验。
+Jiffoo 官网以及其他产品站点使用独立应用或专用主题，不得把安装、
+部署、文档或产品 landing page 内容注入所有商店的默认主题。
 
 ### 开源核心版本号与更新通道（长期模型）
 
@@ -378,7 +367,7 @@ jiffoo-extensions-official/           # 官方扩展私有源码仓库
   - **对前端工程的要求（不等于“全部重写”）**：
     - Theme Pack：两个前端都需要清晰的 `theme-runtime` 集成层，负责读取“当前激活主题”的配置、加载主题静态资源（CSS/图片/JSON），并把配置注入到 UI。
     - Theme Pack：两个前端都需要一个“可主题化的 UI 合约”（可理解为 Block/Slot Registry）：由内置 React 组件实现，但对 Theme Pack 暴露的是稳定的 ID + JSON settings（Theme Pack 只能选择/排列/配置，不能写逻辑）。
-    - 默认主题不应只交付“商店橱窗”一种首页风格；内置主题应至少支持 `storefront / landing-commerce / product-site` 三种站点 archetype，使同一套基础模板既可服务普通商家，也可服务 SaaS/产品官网。
+    - 默认主题必须保持 storefront-first；产品官网和产品 landing page 使用独立应用或专用主题。
     - Theme App：`shop` 与 `admin` 都需要一个“主题路由层/网关”，用于把请求转发到当前激活的主题 server，并提供失败回退与回滚路径。
 - **Plugin（插件）**：
   - Alpha 阶段仅要求“离线 ZIP 安装 + 启用/禁用 + 配置生效 + 安装后立刻可用”的最小闭环；不交付“在线市场交易闭环”（上架/购买/审核/分账/提现）。

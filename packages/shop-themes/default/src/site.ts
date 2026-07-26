@@ -1,6 +1,6 @@
 import type { ThemeConfig } from 'shared/src/types/theme';
 
-export type SiteArchetype = NonNullable<ThemeConfig['site']>['archetype'];
+export type SiteArchetype = 'storefront' | 'app-download';
 
 export interface ResolvedSiteConfig {
   brandName: string;
@@ -25,7 +25,8 @@ const DEFAULT_DOCKER_COMMAND =
 
 export function resolveSiteConfig(config?: ThemeConfig): ResolvedSiteConfig {
   const brandName = config?.brand?.name?.trim() || 'Jiffoo';
-  const archetype = config?.site?.archetype || 'storefront';
+  const archetype: SiteArchetype =
+    config?.site?.archetype === 'app-download' ? 'app-download' : 'storefront';
   const docsHref = config?.site?.docsHref?.trim() || '/help';
   const demoHref = config?.site?.demoHref?.trim() || '/products';
   const primaryCtaHref = config?.site?.primaryCtaHref?.trim() || 'https://get.jiffoo.com';
@@ -45,22 +46,6 @@ export function resolveSiteConfig(config?: ThemeConfig): ResolvedSiteConfig {
         'Lead with the collection, keep the brand sharp, and let built-in commerce flows stay close to the first click.',
       primaryCtaLabel: 'Browse products',
       secondaryCtaLabel: 'Read the guide',
-    },
-    'landing-commerce': {
-      eyebrow: 'Landing-commerce starter',
-      headline: `${brandName} can explain the product first, then route buyers into the cart when they are ready.`,
-      subheadline:
-        'Use one homepage to introduce the offer, explain the stack, and still keep catalog and checkout one click away.',
-      primaryCtaLabel: 'One-click install',
-      secondaryCtaLabel: 'See the stack',
-    },
-    'product-site': {
-      eyebrow: 'Product-site starter',
-      headline: `${brandName} should launch like a product site, not look like a blank catalog wearing a logo.`,
-      subheadline:
-        'Installation, deployment, docs, themes, plugins, and commerce flows can live in one surface when the default theme is designed as a launchpad.',
-      primaryCtaLabel: 'One-click install',
-      secondaryCtaLabel: 'Open docs',
     },
     'app-download': {
       eyebrow: 'App landing starter',

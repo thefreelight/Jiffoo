@@ -4,7 +4,6 @@ import { cn } from '@jiffoo/ui';
 import { useTheme } from 'next-themes';
 import type { HeaderProps } from '../../../../shared/src/types/theme';
 import { resolveSiteConfig } from '../site';
-import { ProductSiteHeader } from './ProductSiteHeader';
 
 function StorefrontHeader({
   cartItemCount = 0,
@@ -290,11 +289,5 @@ function StorefrontHeader({
 }
 
 export const Header = React.memo(function Header(props: HeaderProps) {
-  const site = resolveSiteConfig(props.config);
-
-  if (site.archetype !== 'storefront') {
-    return <ProductSiteHeader {...props} />;
-  }
-
   return <StorefrontHeader {...props} />;
 });
