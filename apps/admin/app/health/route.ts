@@ -10,7 +10,6 @@ export async function GET() {
     status: 'ok',
     service: 'tenant',
     timestamp: new Date().toISOString(),
-    uptime: process.uptime(),
   });
 }
 
