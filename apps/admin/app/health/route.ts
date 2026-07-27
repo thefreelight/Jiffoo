@@ -12,6 +12,3 @@ export async function GET() {
     timestamp: new Date().toISOString(),
   });
 }
-
-
-export const runtime = 'edge';
