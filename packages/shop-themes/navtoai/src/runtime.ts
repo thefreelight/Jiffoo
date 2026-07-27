@@ -72,7 +72,7 @@ export const theme: ThemePackage = {
       enableQuickView: false,
     },
     site: {
-      archetype: 'product-site',
+      archetype: 'storefront',
       eyebrow: 'Curated AI stack directory',
       headline: 'Find the AI tools that fit the workflow, not just the launch cycle.',
       subheadline:

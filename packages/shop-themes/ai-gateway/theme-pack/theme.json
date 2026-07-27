@@ -17,7 +17,7 @@
   },
   "defaultConfig": {
     "site": {
-      "archetype": "product-site",
+      "archetype": "storefront",
       "heroEyebrow": "AI Gateway",
       "heroTitle": "Launch your own model gateway with pricing, quotas, and provider routing built in.",
       "heroDescription": "Sell API access with a storefront that feels product-led on the surface and operationally solid behind the scenes.",
@@ -59,7 +59,6 @@
     "openai",
     "anthropic",
     "gemini",
-    "product-site",
     "saas"
   ],
   "engines": {

@@ -50,8 +50,6 @@
           "title": "Homepage Type",
           "enum": [
             "storefront",
-            "landing-commerce",
-            "product-site",
             "app-download"
           ],
           "default": "app-download"

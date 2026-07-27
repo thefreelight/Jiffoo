@@ -9,8 +9,8 @@
         "archetype": {
           "type": "string",
           "title": "Site Archetype",
-          "enum": ["storefront", "landing-commerce", "product-site"],
-          "default": "product-site"
+          "enum": ["storefront"],
+          "default": "storefront"
         },
         "heroEyebrow": {
           "type": "string",
