@@ -1,0 +1,51 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "jiffoo-native-core-api-example",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "triggers": {
+    "crons": ["*/1 * * * *"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "replace-with-instance-database",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "kv_namespaces": [
+    { "binding": "CACHE", "id": "00000000000000000000000000000000" }
+  ],
+  "r2_buckets": [
+    { "binding": "ASSETS", "bucket_name": "replace-with-instance-assets" }
+  ],
+  "secrets_store_secrets": [
+    {
+      "binding": "JWT_SECRET",
+      "store_id": "00000000000000000000000000000000",
+      "secret_name": "replace_with_instance_jwt_secret"
+    },
+    {
+      "binding": "STRIPE_SECRET_KEY",
+      "store_id": "00000000000000000000000000000000",
+      "secret_name": "replace_with_instance_stripe_secret_key"
+    },
+    {
+      "binding": "STRIPE_WEBHOOK_SECRET",
+      "store_id": "00000000000000000000000000000000",
+      "secret_name": "replace_with_instance_stripe_webhook_secret"
+    }
+  ],
+  "vars": {
+    "CORE_ORIGIN": "https://replace-with-instance-origin.example.com",
+    "NATIVE_CHECKOUT_ENABLED": "false",
+    "RUNTIME_VERSION": "0.0.1"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": { "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
+  }
+}

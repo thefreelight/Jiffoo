@@ -1,0 +1,234 @@
+import {
+  authenticateNativeUser,
+  createNativeUser,
+  createNativeSession,
+  findNativeUserByEmail,
+  findNativeUserById,
+  nativePublicUser,
+  updateNativePassword,
+  verifyNativePassword,
+  type NativeAuthEnv,
+  type NativeUser,
+} from './auth';
+
+const RUNTIME = 'cloudflare-native-d1-shopper-account';
+
+function json(data: unknown, status = 200, headers?: HeadersInit): Response {
+  const responseHeaders = new Headers(headers);
+  responseHeaders.set('content-type', 'application/json; charset=utf-8');
+  responseHeaders.set('cache-control', 'no-store');
+  responseHeaders.set('x-jiffoo-runtime', RUNTIME);
+  return new Response(JSON.stringify(data), { status, headers: responseHeaders });
+}
+
+function success(data: unknown, status = 200, message?: string): Response {
+  return json({ success: true, data, ...(message ? { message } : {}) }, status);
+}
+
+function error(status: number, code: string, message: string, details?: unknown): Response {
+  return json({ success: false, error: { code, message, ...(details === undefined ? {} : { details }) } }, status);
+}
+
+async function readJson<T>(request: Request): Promise<T | null> {
+  try {
+    return await request.clone().json<T>();
+  } catch {
+    return null;
+  }
+}
+
+function validEmail(email: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function validPassword(password: string): boolean {
+  return password.length >= 8 && password.length <= 128;
+}
+
+async function authenticatedUser(request: Request, env: NativeAuthEnv): Promise<NativeUser | null> {
+  const session = await authenticateNativeUser(request, env);
+  if (!session) return null;
+  return findNativeUserById(env, session.id);
+}
+
+async function profile(env: NativeAuthEnv, user: NativeUser): Promise<Record<string, unknown>> {
+  const orderStats = await env.DB.prepare(
+    `SELECT COUNT(*) AS total_orders, COALESCE(SUM(total_amount), 0) AS total_spent
+     FROM native_order_metadata WHERE user_id = ?1`,
+  ).bind(user.id).first<{ total_orders: number; total_spent: number }>();
+  const totalOrders = Number(orderStats?.total_orders ?? 0);
+  return {
+    ...nativePublicUser(user),
+    isActive: user.is_active === 1,
+    emailVerified: true,
+    orderCount: totalOrders,
+    totalOrders,
+    totalSpent: Number(orderStats?.total_spent ?? 0),
+    createdAt: user.migrated_at,
+    updatedAt: user.updated_at,
+  };
+}
+
+function clearShopCookies(headers: Headers): void {
+  headers.append('set-cookie', 'auth_token=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax');
+  headers.append('set-cookie', 'refresh_token=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax');
+}
+
+async function register(request: Request, env: NativeAuthEnv): Promise<Response> {
+  const body = await readJson<{ email?: string; password?: string; username?: string }>(request);
+  const email = body?.email?.trim().toLowerCase() ?? '';
+  const username = body?.username?.trim() ?? '';
+  const password = body?.password ?? '';
+  if (!validEmail(email)) return error(400, 'VALIDATION_ERROR', 'A valid email is required');
+  if (username.length < 3 || username.length > 50) {
+    return error(400, 'VALIDATION_ERROR', 'Username must contain between 3 and 50 characters');
+  }
+  if (!validPassword(password)) {
+    return error(400, 'VALIDATION_ERROR', 'Password must contain between 8 and 128 characters');
+  }
+  if (await findNativeUserByEmail(env, email)) return error(409, 'CONFLICT', 'Email is already registered');
+
+  const user = { id: crypto.randomUUID(), email, username, role: 'USER', avatar: null };
+  try {
+    await createNativeUser(env, user, password);
+  } catch (cause) {
+    if (cause instanceof Error && cause.message.toLowerCase().includes('unique')) {
+      return error(409, 'CONFLICT', 'Email is already registered');
+    }
+    throw cause;
+  }
+  const session = await createNativeSession(env, user);
+  session.headers.set('x-jiffoo-runtime', RUNTIME);
+  session.headers.set('cache-control', 'no-store');
+  const bodyPayload = session.body as { data?: Record<string, unknown> };
+  return new Response(JSON.stringify({ ...bodyPayload, message: 'Registration successful' }), {
+    status: 201,
+    headers: session.headers,
+  });
+}
+
+async function changePassword(request: Request, env: NativeAuthEnv): Promise<Response> {
+  const user = await authenticatedUser(request, env);
+  if (!user) return error(401, 'UNAUTHORIZED', 'Authentication required');
+  const body = await readJson<{ currentPassword?: string; newPassword?: string }>(request);
+  if (!body?.currentPassword || !body.newPassword) {
+    return error(400, 'VALIDATION_ERROR', 'Current password and new password are required');
+  }
+  if (!validPassword(body.newPassword)) {
+    return error(400, 'VALIDATION_ERROR', 'New password must contain between 8 and 128 characters');
+  }
+  if (!(await verifyNativePassword(user, body.currentPassword))) {
+    return error(401, 'INVALID_PASSWORD', 'Current password is incorrect');
+  }
+  await updateNativePassword(env, user.id, body.newPassword);
+  return success({ passwordChanged: true, changedAt: new Date().toISOString() });
+}
+
+async function getProfile(request: Request, env: NativeAuthEnv): Promise<Response> {
+  const user = await authenticatedUser(request, env);
+  if (!user) return error(401, 'UNAUTHORIZED', 'Authentication required');
+  return success(await profile(env, user));
+}
+
+async function updateProfile(request: Request, env: NativeAuthEnv): Promise<Response> {
+  const user = await authenticatedUser(request, env);
+  if (!user) return error(401, 'UNAUTHORIZED', 'Authentication required');
+  const body = await readJson<{ username?: string; avatar?: string | null }>(request);
+  if (!body) return error(400, 'VALIDATION_ERROR', 'A JSON body is required');
+  if (body.username !== undefined && (body.username.trim().length < 3 || body.username.trim().length > 50)) {
+    return error(400, 'VALIDATION_ERROR', 'Username must contain between 3 and 50 characters');
+  }
+  if (body.avatar !== undefined && body.avatar !== null) {
+    try {
+      new URL(body.avatar);
+    } catch {
+      return error(400, 'VALIDATION_ERROR', 'Avatar must be a valid URL');
+    }
+  }
+  await env.DB.prepare(
+    `UPDATE native_users
+     SET username = COALESCE(?1, username), avatar = CASE WHEN ?2 = 1 THEN ?3 ELSE avatar END,
+       updated_at = CURRENT_TIMESTAMP
+     WHERE id = ?4`,
+  ).bind(
+    body.username === undefined ? null : body.username.trim(),
+    body.avatar === undefined ? 0 : 1,
+    body.avatar ?? null,
+    user.id,
+  ).run();
+  const updated = await findNativeUserById(env, user.id);
+  return success(await profile(env, updated!), 200, 'Profile updated successfully');
+}
+
+async function updateEmail(request: Request, env: NativeAuthEnv): Promise<Response> {
+  const user = await authenticatedUser(request, env);
+  if (!user) return error(401, 'UNAUTHORIZED', 'Authentication required');
+  const body = await readJson<{ newEmail?: string; currentPassword?: string }>(request);
+  const email = body?.newEmail?.trim().toLowerCase() ?? '';
+  if (!validEmail(email) || !body?.currentPassword) {
+    return error(400, 'VALIDATION_ERROR', 'A valid new email and current password are required');
+  }
+  if (!(await verifyNativePassword(user, body.currentPassword))) {
+    return error(401, 'INVALID_PASSWORD', 'Current password is incorrect');
+  }
+  const existing = await findNativeUserByEmail(env, email);
+  if (existing && existing.id !== user.id) return error(409, 'CONFLICT', 'Email is already registered');
+  await env.DB.prepare(
+    'UPDATE native_users SET email = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2',
+  ).bind(email, user.id).run();
+  const updated = await findNativeUserById(env, user.id);
+  return success(await profile(env, updated!), 200, 'Email updated successfully');
+}
+
+async function deleteAccount(request: Request, env: NativeAuthEnv): Promise<Response> {
+  const user = await authenticatedUser(request, env);
+  if (!user) return error(401, 'UNAUTHORIZED', 'Authentication required');
+  if (user.role !== 'USER') return error(403, 'FORBIDDEN', 'Admins are managed separately');
+  const body = await readJson<{ currentPassword?: string; confirm?: boolean }>(request);
+  if (body?.confirm !== true || !body.currentPassword) {
+    return error(400, 'VALIDATION_ERROR', 'Account deletion confirmation and current password are required');
+  }
+  if (!(await verifyNativePassword(user, body.currentPassword))) {
+    return error(401, 'INVALID_PASSWORD', 'Current password is incorrect');
+  }
+  const deletedAt = new Date().toISOString();
+  await env.DB.prepare(
+    `UPDATE native_users SET email = ?1, username = 'Deleted user', avatar = NULL, is_active = 0,
+       updated_at = CURRENT_TIMESTAMP WHERE id = ?2`,
+  ).bind(`deleted-${user.id}@deleted.invalid`, user.id).run();
+  const headers = new Headers();
+  clearShopCookies(headers);
+  const response = success({ deleted: true, deletedAt });
+  for (const value of headers.getSetCookie()) response.headers.append('set-cookie', value);
+  return response;
+}
+
+export async function tryNativeShopperAccount(request: Request, env: NativeAuthEnv): Promise<Response | null> {
+  const path = new URL(request.url).pathname;
+
+  if (path === '/api/v1/shop/auth/capabilities' && request.method === 'GET') {
+    return success({
+      emailAvailable: false,
+      passwordReset: false,
+      passwordChange: true,
+      emailCodeLogin: false,
+      registrationVerification: false,
+    });
+  }
+  if (path === '/api/v1/shop/auth/providers' && request.method === 'GET') return success([]);
+  if (path === '/api/v1/shop/auth/register' && request.method === 'POST') return register(request, env);
+  if (path === '/api/v1/shop/auth/password' && request.method === 'POST') return changePassword(request, env);
+  if (path === '/api/v1/account/profile' && request.method === 'GET') return getProfile(request, env);
+  if (path === '/api/v1/account/profile' && request.method === 'PUT') return updateProfile(request, env);
+  if (path === '/api/v1/account/email' && request.method === 'PUT') return updateEmail(request, env);
+  if (path === '/api/v1/account' && request.method === 'DELETE') return deleteAccount(request, env);
+
+  if (/^\/api\/v1\/shop\/auth\/(?:login\/code(?:\/verify)?|register\/code|password\/(?:code|reset))$/.test(path)) {
+    return error(503, 'EMAIL_UNAVAILABLE', 'Email authentication is not configured for this Cloudflare deployment');
+  }
+  if (path.startsWith('/api/v1/shop/auth/social')) {
+    return error(503, 'SOCIAL_AUTH_UNAVAILABLE', 'Social authentication is not configured for this Cloudflare deployment');
+  }
+
+  return null;
+}
