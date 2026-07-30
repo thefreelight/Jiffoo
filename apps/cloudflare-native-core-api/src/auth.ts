@@ -296,7 +296,50 @@ export async function tryNativeAuth(
     return new Response(JSON.stringify({ success: true, data: { loggedOut: true, timestamp: new Date().toISOString() } }), { headers });
   }
 
-  if (path === '/api/v1/shop/auth/login' && request.method === 'POST') {
+  if (
+    (path === '/api/v1/auth/register' || path === '/api/v1/shop/auth/register') &&
+    request.method === 'POST'
+  ) {
+    const body = await request.clone().json<{
+      email?: string;
+      password?: string;
+      username?: string;
+      firstName?: string;
+      lastName?: string;
+    }>();
+    const email = body.email?.trim().toLowerCase();
+    const password = body.password ?? '';
+    if (!email || !email.includes('@') || password.length < 8) {
+      return Response.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: 'A valid email and password are required' } },
+        { status: 400, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+      );
+    }
+    if (await findNativeUserByEmail(env, email)) {
+      return Response.json(
+        { success: false, error: { code: 'CONFLICT', message: 'An account already exists for this email' } },
+        { status: 409, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+      );
+    }
+    const emailPrefix = email.split('@')[0] || 'member';
+    const requestedUsername = body.username?.trim();
+    const displayName = [body.firstName?.trim(), body.lastName?.trim()].filter(Boolean).join(' ');
+    const user: PublicUser = {
+      id: crypto.randomUUID(),
+      email,
+      username: requestedUsername || displayName || emailPrefix,
+      role: 'USER',
+      avatar: null,
+    };
+    await createNativeUser(env, user, password);
+    const session = await createNativeSession(env, user);
+    return new Response(JSON.stringify(session.body), { status: 201, headers: session.headers });
+  }
+
+  if (
+    (path === '/api/v1/auth/login' || path === '/api/v1/shop/auth/login') &&
+    request.method === 'POST'
+  ) {
     const body = await request.clone().json<{ email?: string; password?: string }>();
     if (!body.email || !body.password) return null;
     const user = await findNativeUserByEmail(env, body.email);
@@ -317,7 +360,10 @@ export async function tryNativeAuth(
     return new Response(JSON.stringify(session.body), { status: 200, headers: session.headers });
   }
 
-  if (path === '/api/v1/shop/auth/refresh' && request.method === 'POST') {
+  if (
+    (path === '/api/v1/auth/refresh' || path === '/api/v1/shop/auth/refresh') &&
+    request.method === 'POST'
+  ) {
     const body: { refresh_token?: string } = await request.clone().json<{ refresh_token?: string }>().catch(() => ({}));
     const token = cookie(request, 'refresh_token') ?? body.refresh_token;
     if (!token) return null;
@@ -330,7 +376,10 @@ export async function tryNativeAuth(
     return new Response(JSON.stringify(session.body), { status: 200, headers: session.headers });
   }
 
-  if (path === '/api/v1/shop/auth/me' && request.method === 'GET') {
+  if (
+    (path === '/api/v1/auth/me' || path === '/api/v1/shop/auth/me') &&
+    request.method === 'GET'
+  ) {
     const user = await authenticateNativeUser(request, env);
     if (!user) return null;
     return Response.json(
@@ -339,7 +388,10 @@ export async function tryNativeAuth(
     );
   }
 
-  if (path === '/api/v1/shop/auth/logout' && request.method === 'POST') {
+  if (
+    (path === '/api/v1/auth/logout' || path === '/api/v1/shop/auth/logout') &&
+    request.method === 'POST'
+  ) {
     const headers = new Headers({ 'content-type': 'application/json', 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' });
     headers.append('set-cookie', 'auth_token=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax');
     headers.append('set-cookie', 'refresh_token=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Lax');
