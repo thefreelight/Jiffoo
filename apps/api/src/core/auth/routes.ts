@@ -241,6 +241,30 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.post('/verify-email/code', {
+    schema: {
+      tags: ['auth'],
+      summary: 'Verify email address with a six-digit code',
+      body: {
+        type: 'object',
+        required: ['email', 'code'],
+        properties: {
+          email: { type: 'string', format: 'email' },
+          code: { type: 'string', pattern: '^\\d{6}$' },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    try {
+      const { email, code } = request.body as { email: string; code: string };
+      const result = await EmailVerificationService.verifyCode(email, code);
+      if (!result.success) return sendError(reply, 400, 'VERIFICATION_FAILED', result.error || 'Failed to verify email');
+      return sendSuccess(reply, null, 'Email verified successfully');
+    } catch (error: any) {
+      return sendError(reply, 500, 'VERIFICATION_ERROR', error.message);
+    }
+  });
+
   // Resend verification email
   fastify.post('/resend-verification', {
     schema: {

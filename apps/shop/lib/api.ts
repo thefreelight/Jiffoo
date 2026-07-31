@@ -68,6 +68,13 @@ export const authApi = {
   }>> => apiClient.login({ email, password }),
 
   register: (data: RegisterRequest): Promise<ApiResponse<{
+    user?: {
+      id: string;
+      email: string;
+      username: string;
+      role: string;
+      emailVerified?: boolean;
+    };
     access_token: string;
     token_type: string;
     expires_in: number;
@@ -85,6 +92,12 @@ export const authApi = {
 
   verifyEmail: (token: string): Promise<ApiResponse<any>> =>
     apiClient.get('/auth/verify-email', { params: { token } }),
+
+  verifyEmailCode: (email: string, code: string): Promise<ApiResponse<any>> =>
+    apiClient.post('/auth/verify-email/code', { email, code }),
+
+  resendVerification: (email: string): Promise<ApiResponse<any>> =>
+    apiClient.post('/auth/resend-verification', { email }),
 };
 
 // Auth Gateway API REMOVED - Legacy
