@@ -1,4 +1,5 @@
 import { deliverNativeWebhooks } from './webhooks';
+import { submitNativeOdooOrders } from './external-orders';
 
 interface OutboxRow {
   id: string;
@@ -24,7 +25,7 @@ export interface OutboxRunResult {
   failed: number;
 }
 
-type OutboxEnv = Pick<Cloudflare.Env, 'DB'>;
+type OutboxEnv = Pick<Cloudflare.Env, 'DB' | 'CORE_ORIGIN'>;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -83,6 +84,7 @@ async function processEvent(env: OutboxEnv, event: OutboxRow): Promise<void> {
   const now = new Date().toISOString();
   if (event.event_type === 'payment.succeeded') {
     await fulfillPaidOrder(env, event, now);
+    await submitNativeOdooOrders(env, event.aggregate_id);
   }
   const snapshot = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(event.aggregate_id).first<OrderSnapshotRow>();
   const eventPayload = snapshot ? { order: JSON.parse(snapshot.payload) } : JSON.parse(event.payload) as unknown;

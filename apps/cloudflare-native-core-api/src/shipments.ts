@@ -49,6 +49,100 @@ export async function attachShipments(db: D1Database, order: Record<string, unkn
   return order;
 }
 
+const shipmentStatuses = new Set([
+  'PENDING', 'READY_TO_SHIP', 'SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY',
+  'DELIVERED', 'EXCEPTION', 'CANCELLED',
+]);
+
+export function normalizeShipmentStatus(value: unknown): string {
+  const normalized = typeof value === 'string' ? value.trim().toUpperCase().replaceAll('-', '_').replaceAll(' ', '_') : '';
+  if (normalized === 'FAILED' || normalized === 'ERROR') return 'EXCEPTION';
+  return shipmentStatuses.has(normalized) ? normalized : 'PENDING';
+}
+
+const shipmentRank: Record<string, number> = {
+  PENDING: 0,
+  READY_TO_SHIP: 1,
+  SHIPPED: 2,
+  IN_TRANSIT: 3,
+  OUT_FOR_DELIVERY: 4,
+  DELIVERED: 5,
+};
+
+function nextShipmentStatus(current: string | null | undefined, incoming: string): string {
+  if (!current || current === incoming) return incoming;
+  if (current === 'DELIVERED') return current;
+  if (incoming === 'EXCEPTION') return current === 'CANCELLED' ? current : incoming;
+  if (incoming === 'CANCELLED') return (shipmentRank[current] ?? 0) < shipmentRank.SHIPPED! ? incoming : current;
+  if (current === 'EXCEPTION') return incoming;
+  return (shipmentRank[incoming] ?? 0) >= (shipmentRank[current] ?? 0) ? incoming : current;
+}
+
+export interface SupplierShipmentInput {
+  orderId: string;
+  shipmentId?: string | null;
+  carrierCode?: string | null;
+  carrierName?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  status?: string | null;
+  shippedAt?: string | null;
+  estimatedDeliveryAt?: string | null;
+  lastCheckedAt?: string | null;
+  events?: Array<Record<string, unknown>> | null;
+}
+
+export async function upsertSupplierShipment(db: D1Database, input: SupplierShipmentInput) {
+  const trackingNumber = input.trackingNumber?.trim() || input.shipmentId?.trim();
+  if (!trackingNumber) return null;
+  const now = new Date().toISOString();
+  const incomingStatus = normalizeShipmentStatus(input.status);
+  const carrier = input.carrierName?.trim() || input.carrierCode?.trim() || 'Unknown carrier';
+  const existing = await db.prepare(
+    'SELECT * FROM native_shipments WHERE order_id = ?1 AND tracking_number = ?2',
+  ).bind(input.orderId, trackingNumber).first<ShipmentRow>();
+  const status = nextShipmentStatus(existing?.status, incomingStatus);
+  const id = existing?.id ?? input.shipmentId?.trim() ?? crypto.randomUUID();
+  const shippedAt = input.shippedAt?.trim() || existing?.shipped_at || (['SHIPPED', 'IN_TRANSIT', 'OUT_FOR_DELIVERY', 'DELIVERED'].includes(status) ? now : null);
+  const deliveredAt = status === 'DELIVERED' ? input.lastCheckedAt?.trim() || now : existing?.delivered_at || null;
+  const lastCheckedAt = input.lastCheckedAt?.trim() || now;
+  await db.prepare(
+    `INSERT INTO native_shipments
+      (id, order_id, carrier, tracking_number, tracking_url, status, shipped_at, delivered_at,
+       estimated_delivery_at, last_checked_at, created_at, updated_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11)
+     ON CONFLICT(order_id, tracking_number) DO UPDATE SET carrier = excluded.carrier,
+       tracking_url = excluded.tracking_url, status = excluded.status,
+       shipped_at = COALESCE(excluded.shipped_at, native_shipments.shipped_at),
+       delivered_at = COALESCE(excluded.delivered_at, native_shipments.delivered_at),
+       estimated_delivery_at = COALESCE(excluded.estimated_delivery_at, native_shipments.estimated_delivery_at),
+       last_checked_at = excluded.last_checked_at, updated_at = excluded.updated_at`,
+  ).bind(id, input.orderId, carrier, trackingNumber, input.trackingUrl?.trim() || null, status, shippedAt, deliveredAt, input.estimatedDeliveryAt?.trim() || null, lastCheckedAt, now).run();
+  if (!existing || existing.status !== status) {
+    await db.prepare(
+      `INSERT INTO native_shipment_events (id, shipment_id, status, description, occurred_at, created_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6)`,
+    ).bind(crypto.randomUUID(), id, status, null, lastCheckedAt, now).run();
+  }
+  for (const event of input.events ?? []) {
+    const eventStatus = normalizeShipmentStatus(event.status);
+    const occurredAt = typeof event.occurredAt === 'string' ? event.occurredAt : typeof event.timestamp === 'string' ? event.timestamp : lastCheckedAt;
+    const description = typeof event.description === 'string' ? event.description.slice(0, 1000) : null;
+    const duplicate = await db.prepare(
+      'SELECT id FROM native_shipment_events WHERE shipment_id = ?1 AND status = ?2 AND occurred_at = ?3',
+    ).bind(id, eventStatus, occurredAt).first<{ id: string }>();
+    if (duplicate) {
+      if (description) await db.prepare(
+        'UPDATE native_shipment_events SET description = COALESCE(description, ?1) WHERE id = ?2',
+      ).bind(description, duplicate.id).run();
+    } else await db.prepare(
+      `INSERT INTO native_shipment_events (id, shipment_id, status, description, occurred_at, created_at)
+       VALUES (?1, ?2, ?3, ?4, ?5, ?6)`,
+    ).bind(crypto.randomUUID(), id, eventStatus, description, occurredAt, now).run();
+  }
+  return id;
+}
+
 interface ShipmentEnv extends NativeAuthEnv { DB: D1Database }
 
 export async function tryNativeShipmentRead(request: Request, env: ShipmentEnv): Promise<Response | null> {

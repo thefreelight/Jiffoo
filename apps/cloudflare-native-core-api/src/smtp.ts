@@ -14,17 +14,19 @@ const decoder = new TextDecoder();
 function configuration(env: NativeSmtpEnv) {
   const host = env.SMTP_HOST?.trim();
   const port = Number(env.SMTP_PORT || '587');
-  const from = env.SMTP_FROM?.trim();
-  if (!host || !Number.isInteger(port) || port <= 0 || !from) {
+  const fromEmail = env.SMTP_FROM_EMAIL?.trim() || env.SMTP_FROM?.trim();
+  if (!host || !Number.isInteger(port) || port <= 0 || !fromEmail) {
     throw new Error('Mailcow SMTP is not configured');
   }
   return {
     host,
     port,
     secure: env.SMTP_SECURE?.trim().toLowerCase() === 'true' || port === 465,
-    user: env.SMTP_USER?.trim() || '',
-    pass: env.SMTP_PASS || '',
-    from,
+    user: env.SMTP_USERNAME?.trim() || env.SMTP_USER?.trim() || '',
+    pass: env.SMTP_PASSWORD || env.SMTP_PASS || '',
+    fromEmail,
+    from: env.SMTP_FROM_NAME?.trim() ? `${header(env.SMTP_FROM_NAME)} <${mailbox(fromEmail)}>` : fromEmail,
+    replyTo: env.SMTP_REPLY_TO?.trim() || '',
   };
 }
 
@@ -111,7 +113,7 @@ export async function sendSmtpEmail(
       await command(current, base64(config.pass));
     }
 
-    await command(current, `MAIL FROM:<${mailbox(config.from)}>`);
+    await command(current, `MAIL FROM:<${mailbox(config.fromEmail)}>`);
     await command(current, `RCPT TO:<${mailbox(message.to)}>`);
     await command(current, 'DATA');
     const boundary = `bokmoo-${crypto.randomUUID()}`;
@@ -119,6 +121,7 @@ export async function sendSmtpEmail(
       `From: ${header(config.from)}`,
       `To: ${header(message.to)}`,
       `Subject: ${header(message.subject)}`,
+      ...(config.replyTo ? [`Reply-To: ${header(config.replyTo)}`] : []),
       'MIME-Version: 1.0',
       `Content-Type: multipart/alternative; boundary="${boundary}"`,
       '',

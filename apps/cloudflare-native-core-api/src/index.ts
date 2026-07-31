@@ -10,6 +10,8 @@ import { tryNativeShipmentRead } from './shipments';
 import { tryNativeCheckout } from './checkout';
 import { processCheckoutOutbox } from './outbox';
 import { tryNativeShopperAccount } from './shopper-account';
+import { tryNativeExternalOrderSync } from './external-orders';
+import { processNativeEmailOutbox } from './mail-outbox';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv;
 
@@ -189,12 +191,12 @@ export default {
       const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'core_schema_version'")
         .first<{ value: string }>();
       return Response.json({
-        status: row?.value === '0014' ? 'ok' : 'degraded',
+        status: row?.value === '0016' ? 'ok' : 'degraded',
         service: 'jiffoo-native-core-api',
         runtime: 'cloudflare-workers-free',
         version: env.RUNTIME_VERSION,
         d1Schema: row?.value ?? null,
-      }, { status: row?.value === '0014' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
+      }, { status: row?.value === '0016' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
     }
     if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {
       return serveAsset(url, env);
@@ -223,6 +225,8 @@ export default {
     if (nativeAdminWrite) return nativeAdminWrite;
     const nativeAdminWebhooks = await tryNativeAdminWebhooks(nativeRequest, env);
     if (nativeAdminWebhooks) return nativeAdminWebhooks;
+    const nativeExternalOrderSync = await tryNativeExternalOrderSync(nativeRequest, env);
+    if (nativeExternalOrderSync) return nativeExternalOrderSync;
     const nativeAdminUsers = await tryNativeAdminUsers(nativeRequest, env);
     if (nativeAdminUsers) return nativeAdminUsers;
     const nativeOrders = await tryNativeOrderRead(nativeRequest, env, (proxyRequest) => proxy(proxyRequest, env));
@@ -230,7 +234,14 @@ export default {
     return proxy(request, env);
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const result = await processCheckoutOutbox(env);
-    console.log(JSON.stringify({ message: 'native checkout outbox processed', ...result }));
+    const [checkout, email] = await Promise.allSettled([
+      processCheckoutOutbox(env),
+      processNativeEmailOutbox(env),
+    ]);
+    console.log(JSON.stringify({
+      message: 'native scheduled work processed',
+      checkout: checkout.status === 'fulfilled' ? checkout.value : { error: String(checkout.reason) },
+      email: email.status === 'fulfilled' ? email.value : { error: String(email.reason) },
+    }));
   },
 } satisfies ExportedHandler<WorkerEnv>;
