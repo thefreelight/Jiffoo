@@ -38,6 +38,16 @@ type SupplierPushStatusInput = {
   planId?: string | null;
   qrCodeContent?: string | null;
   cardUid?: string | null;
+  shipmentId?: string | null;
+  carrierCode?: string | null;
+  carrierName?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
+  shipmentStatus?: string | null;
+  shippedAt?: string | null;
+  estimatedDeliveryAt?: string | null;
+  lastCheckedAt?: string | null;
+  shipmentEvents?: Array<Record<string, unknown>> | null;
   rawResponse?: Record<string, unknown> | null;
 };
 
@@ -316,6 +326,15 @@ function toDateOrNull(value: unknown): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function mapSupplierShipmentStatus(value: string | null): 'PENDING' | 'SHIPPED' | 'DELIVERED' | 'FAILED' | 'CANCELLED' {
+  const status = value?.trim().toLowerCase();
+  if (status === 'delivered') return 'DELIVERED';
+  if (status === 'cancelled' || status === 'canceled') return 'CANCELLED';
+  if (status === 'exception' || status === 'failed') return 'FAILED';
+  if (status === 'shipped' || status === 'in_transit' || status === 'out_for_delivery') return 'SHIPPED';
+  return 'PENDING';
+}
+
 function getPollingCooldownMs(syncStatus: string, attemptCount: number): number {
   if (syncStatus === 'SUBMITTED') {
     return 15_000;
@@ -439,6 +458,41 @@ export class ExternalOrderService {
           fulfillmentData: mergedFulfillmentData,
         },
       });
+
+      const trackingNumber = normalizeString(input.trackingNumber);
+      const carrier = normalizeString(input.carrierName) || normalizeString(input.carrierCode);
+      if (trackingNumber || normalizeString(input.shipmentId)) {
+        const metadata = {
+          provider,
+          externalShipmentId: normalizeString(input.shipmentId),
+          carrierCode: normalizeString(input.carrierCode),
+          trackingUrl: normalizeString(input.trackingUrl),
+          estimatedDeliveryAt: normalizeString(input.estimatedDeliveryAt),
+          lastCheckedAt: normalizeString(input.lastCheckedAt),
+          events: input.shipmentEvents || [],
+        };
+        const existingShipment = await prisma.shipment.findFirst({
+          where: {
+            orderId: link.coreOrderId,
+            ...(trackingNumber ? { trackingNumber } : {}),
+          },
+          select: { id: true },
+        });
+        const status = mapSupplierShipmentStatus(normalizeString(input.shipmentStatus));
+        const shippedAt = toDateOrNull(input.shippedAt) || (status === 'SHIPPED' || status === 'DELIVERED' ? new Date() : null);
+        const deliveredAt = status === 'DELIVERED' ? toDateOrNull(input.lastCheckedAt) || new Date() : null;
+
+        if (existingShipment) {
+          await prisma.shipment.update({
+            where: { id: existingShipment.id },
+            data: { carrier, trackingNumber, status, shippedAt, deliveredAt, metadata },
+          });
+        } else {
+          await prisma.shipment.create({
+            data: { orderId: link.coreOrderId, carrier, trackingNumber, status, shippedAt, deliveredAt, metadata },
+          });
+        }
+      }
       updated += 1;
     }
 
