@@ -1,4 +1,15 @@
-export type NativeAuthEnv = Pick<Cloudflare.Env, 'DB' | 'JWT_SECRET'>;
+import { sendNativeVerificationCode, verifyNativeEmailCode } from './email-verification';
+
+export interface NativeSmtpEnv {
+  SMTP_HOST?: string;
+  SMTP_PORT?: string;
+  SMTP_SECURE?: string;
+  SMTP_USER?: string;
+  SMTP_PASS?: string;
+  SMTP_FROM?: string;
+}
+
+export type NativeAuthEnv = Pick<Cloudflare.Env, 'DB' | 'JWT_SECRET'> & NativeSmtpEnv;
 
 export interface NativeUser {
   id: string;
@@ -12,6 +23,10 @@ export interface NativeUser {
   is_active: number;
   migrated_at: string;
   updated_at: string;
+  email_verified: number;
+  verification_code_hash: string | null;
+  verification_expires_at: string | null;
+  verification_attempts: number;
 }
 
 export interface PublicUser {
@@ -20,6 +35,7 @@ export interface PublicUser {
   username: string;
   role: string;
   avatar?: string | null;
+  emailVerified?: boolean;
 }
 
 export interface NativeSessionUser extends PublicUser {}
@@ -226,7 +242,14 @@ function cookie(request: Request, name: string): string | null {
 }
 
 export function nativePublicUser(user: NativeUser): PublicUser {
-  return { id: user.id, email: user.email, username: user.username, role: user.role, avatar: user.avatar };
+  return {
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    role: user.role,
+    avatar: user.avatar,
+    emailVerified: user.email_verified === 1,
+  };
 }
 
 export async function tryNativeAuth(
@@ -332,8 +355,59 @@ export async function tryNativeAuth(
       avatar: null,
     };
     await createNativeUser(env, user, password);
-    const session = await createNativeSession(env, user);
-    return new Response(JSON.stringify(session.body), { status: 201, headers: session.headers });
+    try {
+      await sendNativeVerificationCode(env, user);
+    } catch (error) {
+      await env.DB.prepare('DELETE FROM native_users WHERE id = ?1 AND email_verified = 0').bind(user.id).run();
+      return Response.json(
+        { success: false, error: { code: 'EMAIL_UNAVAILABLE', message: error instanceof Error ? error.message : 'Verification email could not be sent' } },
+        { status: 503, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+      );
+    }
+    return Response.json(
+      { success: true, data: { user: { ...user, emailVerified: false }, emailVerificationRequired: true }, message: 'Verification code sent' },
+      { status: 201, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+    );
+  }
+
+  if (
+    (path === '/api/v1/auth/verify-email/code' || path === '/api/v1/shop/auth/verify-email/code') &&
+    request.method === 'POST'
+  ) {
+    const body = await request.clone().json().catch(() => ({})) as { email?: string; code?: string };
+    const result = await verifyNativeEmailCode(env, body.email || '', body.code || '');
+    return Response.json(
+      result.success
+        ? { success: true, data: null, message: 'Email verified successfully' }
+        : { success: false, error: { code: 'VERIFICATION_FAILED', message: result.error } },
+      { status: result.success ? 200 : 400, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+    );
+  }
+
+  if (
+    (path === '/api/v1/auth/resend-verification' || path === '/api/v1/shop/auth/resend-verification') &&
+    request.method === 'POST'
+  ) {
+    const body = await request.clone().json().catch(() => ({})) as { email?: string };
+    const user = body.email ? await findNativeUserByEmail(env, body.email) : null;
+    if (!user || user.email_verified) {
+      return Response.json(
+        { success: false, error: { code: 'RESEND_FAILED', message: user ? 'Email is already verified' : 'User not found' } },
+        { status: 400, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+      );
+    }
+    try {
+      await sendNativeVerificationCode(env, nativePublicUser(user));
+      return Response.json(
+        { success: true, data: null, message: 'Verification email sent successfully' },
+        { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+      );
+    } catch (error) {
+      return Response.json(
+        { success: false, error: { code: 'EMAIL_UNAVAILABLE', message: error instanceof Error ? error.message : 'Verification email could not be sent' } },
+        { status: 503, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+      );
+    }
   }
 
   if (
@@ -350,9 +424,9 @@ export async function tryNativeAuth(
       );
     }
     const hash = await derivePassword(body.password, decodeBase64Url(user.password_salt), user.password_iterations);
-    if (!user.is_active || !constantTimeEqual(hash, decodeBase64Url(user.password_hash))) {
+    if (!user.is_active || !user.email_verified || !constantTimeEqual(hash, decodeBase64Url(user.password_hash))) {
       return Response.json(
-        { success: false, error: { code: 'LOGIN_FAILED', message: 'Invalid credentials' } },
+        { success: false, error: { code: user.email_verified ? 'LOGIN_FAILED' : 'EMAIL_NOT_VERIFIED', message: user.email_verified ? 'Invalid credentials' : 'Email not verified' } },
         { status: 401, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
       );
     }
