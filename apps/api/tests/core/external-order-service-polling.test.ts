@@ -15,11 +15,18 @@ const { prismaMock } = vi.hoisted(() => ({
       create: vi.fn(),
       update: vi.fn(),
     },
+    order: {
+      findUnique: vi.fn(),
+    },
   },
 }));
 
 vi.mock('@/config/database', () => ({
   prisma: prismaMock,
+}));
+
+vi.mock('@/services/transactional-email.service', () => ({
+  TransactionalEmailService: { send: vi.fn().mockResolvedValue({ messageId: 'email-event-1' }) },
 }));
 
 describe('ExternalOrderService.pollExternalOrderLinks', () => {
@@ -272,6 +279,7 @@ describe('ExternalOrderService.pollExternalOrderLinks', () => {
       },
     }]);
     prismaMock.shipment.findFirst.mockResolvedValue(null);
+    prismaMock.order.findUnique.mockResolvedValue({ customerEmail: 'buyer@example.com', user: { email: 'buyer@example.com' } });
 
     const { ExternalOrderService } = await import('@/core/external-orders/service');
     await ExternalOrderService.applySupplierPushStatus({

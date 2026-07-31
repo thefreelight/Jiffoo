@@ -1,5 +1,6 @@
 import { prisma } from '@/config/database';
 import { classifySupplierProductType, getSupplierProductProfile, parseJsonRecord } from './utils';
+import { TransactionalEmailService } from '@/services/transactional-email.service';
 
 type CreateSupplierOrderPayload = {
   externalOrderRef: string;
@@ -335,6 +336,36 @@ function mapSupplierShipmentStatus(value: string | null): 'PENDING' | 'SHIPPED' 
   return 'PENDING';
 }
 
+async function sendShipmentNotification(input: {
+  orderId: string;
+  shipmentStatus: 'SHIPPED' | 'DELIVERED' | 'FAILED';
+  carrier: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+}): Promise<void> {
+  const order = await prisma.order.findUnique({
+    where: { id: input.orderId },
+    select: { customerEmail: true, user: { select: { email: true } } },
+  });
+  const recipient = order?.customerEmail || order?.user?.email;
+  if (!recipient) return;
+
+  const label = input.shipmentStatus === 'SHIPPED' ? 'Your Bokmoo order has shipped' :
+    input.shipmentStatus === 'DELIVERED' ? 'Your Bokmoo order was delivered' :
+      'There is an issue with your Bokmoo shipment';
+  const details = [input.carrier, input.trackingNumber].filter(Boolean).join(' · ');
+  const link = input.trackingUrl ? `\nTrack package: ${input.trackingUrl}` : '';
+  await TransactionalEmailService.send({
+    aggregateId: input.orderId,
+    to: recipient,
+    subject: label,
+    text: `${label}.\n${details}${link}`,
+    html: `<p>${label}.</p><p>${details || 'Shipment details are available in your Bokmoo account.'}</p>${input.trackingUrl ? `<p><a href="${input.trackingUrl}">Track package</a></p>` : ''}`,
+    eventType: `shipment.${input.shipmentStatus.toLowerCase()}`,
+    metadata: { orderId: input.orderId, shipmentStatus: input.shipmentStatus },
+  });
+}
+
 function getPollingCooldownMs(syncStatus: string, attemptCount: number): number {
   if (syncStatus === 'SUBMITTED') {
     return 15_000;
@@ -482,6 +513,7 @@ export class ExternalOrderService {
         const shippedAt = toDateOrNull(input.shippedAt) || (status === 'SHIPPED' || status === 'DELIVERED' ? new Date() : null);
         const deliveredAt = status === 'DELIVERED' ? toDateOrNull(input.lastCheckedAt) || new Date() : null;
 
+        const wasStatus = existingShipment ? (await prisma.shipment.findUnique({ where: { id: existingShipment.id }, select: { status: true } }))?.status : null;
         if (existingShipment) {
           await prisma.shipment.update({
             where: { id: existingShipment.id },
@@ -491,6 +523,18 @@ export class ExternalOrderService {
           await prisma.shipment.create({
             data: { orderId: link.coreOrderId, carrier, trackingNumber, status, shippedAt, deliveredAt, metadata },
           });
+        }
+        if (status === 'SHIPPED' || status === 'DELIVERED' || status === 'FAILED') {
+          const shouldNotify = wasStatus !== status;
+          if (shouldNotify) {
+            await sendShipmentNotification({
+              orderId: link.coreOrderId,
+              shipmentStatus: status,
+              carrier,
+              trackingNumber,
+              trackingUrl: normalizeString(input.trackingUrl),
+            }).catch((error) => console.error('[external-orders] shipment notification failed', { orderId: link.coreOrderId, error }));
+          }
         }
       }
       updated += 1;
