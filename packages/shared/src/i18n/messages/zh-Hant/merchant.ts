@@ -717,7 +717,7 @@ export const merchant = {
       forgotPassword: '忘記密碼？',
     },
     // Login page specific
-    title: '商店控制台',
+    title: 'Jiffoo 管理後台',
     welcomeBack: '歡迎回來，請登入以繼續。',
     signIn: '登入',
     enterCredentials: '輸入您的憑證以存取管理後台',
@@ -736,7 +736,7 @@ export const merchant = {
     useDemoCredentials: '使用演示憑證',
     demoCredentialsHint: '此實例仍處於 bootstrap 或 demo 模式，因此仍會顯示這組憑證。',
     bootstrapPasswordRotationHint: '登入後請立即修改初始管理員密碼，修改後登入頁就不會再顯示這組憑證。',
-    copyright: '© 2026 商店控制台。保留所有權利。',
+    copyright: '© 2026 Jiffoo。保留所有權利。',
     redirectingToLogin: '正在跳轉至登入頁面...',
     verifyingIdentity: '正在驗證身份...',
   },

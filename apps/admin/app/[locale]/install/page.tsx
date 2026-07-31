@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AlertCircle, ArrowRight, Check, Database, Eye, EyeOff, Loader2, LockKeyhole, Store } from 'lucide-react'
 import { useLocale } from 'shared/src/i18n/react'
 import { useAuthStore } from '@/lib/store'
+import { JiffooMark } from '@/components/branding/jiffoo-mark'
 
 type InstallStatus = { isInstalled: boolean; version?: string; siteName?: string }
 type DatabaseStatus = { connected: boolean; error?: string }
@@ -99,10 +100,7 @@ export default function InstallPage() {
       <div className="mx-auto grid min-h-screen w-full max-w-[1440px] lg:grid-cols-[360px_1fr]">
         <aside className="relative overflow-hidden border-b border-white/10 bg-[#0e1110] px-6 py-7 lg:border-b-0 lg:border-r lg:px-9 lg:py-10">
           <div className="absolute inset-x-0 top-0 h-1 bg-emerald-400" />
-          <div className="flex items-center gap-3">
-            <div className="grid h-9 w-9 place-items-center rounded-md bg-emerald-400 text-sm font-black text-[#07100c]">B</div>
-            <div><p className="text-lg font-bold">Bokmoo</p><p className="text-xs text-zinc-500">Commerce console</p></div>
-          </div>
+          <JiffooMark size="md" className="[&_span:last-child]:text-zinc-100" />
 
           <div className="mt-12 lg:mt-24">
             <p className="text-xs font-semibold uppercase text-emerald-400">Initial setup</p>

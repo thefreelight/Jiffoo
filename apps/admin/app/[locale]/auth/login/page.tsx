@@ -12,7 +12,8 @@ import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/lib/store'
 import { useManagedPackageBranding } from '@/lib/hooks/use-api'
 import { authApi } from '@/lib/api'
-import { Sparkles, UserRound, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { UserRound, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { JiffooMark } from '@/components/branding/jiffoo-mark'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
 import type { AuthBootstrapStatus } from 'shared/src/types/auth'
@@ -76,7 +77,7 @@ export default function AdminLoginPage() {
     const branding = brandingQuery.data
     document.title = branding?.mode === 'managed' && branding.displayBrandName
       ? `${branding.displayBrandName} Admin`
-      : 'Commerce Admin - Management Dashboard'
+      : 'Jiffoo Admin'
   }, [brandingQuery.data])
 
   useEffect(() => {
@@ -169,13 +170,13 @@ export default function AdminLoginPage() {
   const isManagedBranding = brandingQuery.data?.mode === 'managed'
   const brandedTitle = isManagedBranding
     ? brandingQuery.data?.displayBrandName || 'Store Admin'
-    : getText('merchant.auth.title', 'Store Console')
+    : getText('merchant.auth.title', 'Jiffoo Admin')
   const brandedSubtitle = isManagedBranding
     ? brandingQuery.data?.displaySolutionName || 'AUTHENTICATION INTERFACE'
     : getText('merchant.auth.welcomeBack', 'SECURE ACCESS')
   const brandedFooter = isManagedBranding
     ? `© 2026 ${(brandingQuery.data?.displayBrandName || 'STORE ADMIN').toUpperCase()}. ALL RIGHTS RESERVED.`
-    : getText('merchant.auth.copyright', '© 2026 STORE CONSOLE. ALL RIGHTS RESERVED.')
+    : getText('merchant.auth.copyright', '© 2026 JIFFOO. ALL RIGHTS RESERVED.')
 
   if (isAuthenticated) {
     return (
@@ -190,9 +191,7 @@ export default function AdminLoginPage() {
       <div className="w-full max-w-md space-y-6">
         {/* Logo and Title */}
         <div className="text-center space-y-4">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-sm">
-            <Sparkles className="w-8 h-8 text-white" />
-          </div>
+          <JiffooMark size="lg" className="justify-center" />
           <div className="space-y-2">
             <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
               {brandedTitle}
