@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { AlertCircle, Check, Loader2 } from 'lucide-react'
 import { useLocale } from 'shared/src/i18n/react'
 import { useAuthStore } from '@/lib/store'
+import { JiffooMark } from '@/components/branding/jiffoo-mark'
 
 type InstallStatus = {
   isInstalled: boolean
@@ -199,12 +200,7 @@ export default function InstallPage() {
 
       <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-7xl flex-col lg:min-h-[calc(100vh-5rem)]">
         <header className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-blue-400 to-blue-700 text-lg font-extrabold text-white shadow-[0_16px_30px_rgba(37,99,235,0.2)]">
-              J
-            </div>
-            <span className="text-2xl font-extrabold tracking-[-0.04em]">Jiffoo</span>
-          </div>
+          <JiffooMark size="md" />
           <div className="hidden text-xs font-extrabold uppercase tracking-[0.18em] text-blue-600 sm:block">
             Initial Setup
           </div>

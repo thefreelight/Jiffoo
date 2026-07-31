@@ -714,7 +714,7 @@ export const merchant = {
       forgotPassword: 'Forgot password?',
     },
     // Login page specific
-    title: 'Store Console',
+    title: 'Jiffoo Admin',
     welcomeBack: 'Welcome back. Sign in to continue.',
     signIn: 'Sign in',
     enterCredentials: 'Enter your credentials to access the admin dashboard',
@@ -730,7 +730,7 @@ export const merchant = {
     useDemoCredentials: 'Use Demo Credentials',
     demoCredentialsHint: 'These credentials are visible because this instance is still in bootstrap or demo mode.',
     bootstrapPasswordRotationHint: 'Change the initial admin password after sign-in to hide these bootstrap credentials.',
-    copyright: '© 2026 Store Console. All rights reserved.',
+    copyright: '© 2026 Jiffoo. All rights reserved.',
     redirectingToLogin: 'Redirecting to login...',
     verifyingIdentity: 'Verifying identity...',
   },

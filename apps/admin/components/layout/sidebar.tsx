@@ -13,6 +13,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '../../lib/utils'
 import { useT, useLocale } from 'shared/src/i18n/react'
+import { JiffooMark } from '@/components/branding/jiffoo-mark'
 
 import {
   LayoutDashboard,
@@ -114,12 +115,7 @@ export function Sidebar({ className, onCloseMobile }: SidebarProps) {
       {/* Header - Shopify style clean header */}
       <div className="flex items-center justify-between h-14 px-3 border-b border-gray-200">
         {!isCollapsed && (
-          <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 bg-gray-900 dark:bg-blue-600 rounded-md flex items-center justify-center">
-              <span className="text-white font-semibold text-sm">S</span>
-            </div>
-            <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm tracking-tight">Store Console</span>
-          </div>
+          <JiffooMark size="sm" />
         )}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
