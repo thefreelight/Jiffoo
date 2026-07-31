@@ -6,6 +6,7 @@ import { tryNativeAdminWrites } from './admin-writes';
 import { tryNativeAdminWebhooks } from './admin-webhooks';
 import { tryNativeAdminUsers } from './admin-users';
 import { tryNativeShipping } from './shipping';
+import { tryNativeShipmentRead } from './shipments';
 import { tryNativeCheckout } from './checkout';
 import { processCheckoutOutbox } from './outbox';
 import { tryNativeShopperAccount } from './shopper-account';
@@ -188,12 +189,12 @@ export default {
       const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'core_schema_version'")
         .first<{ value: string }>();
       return Response.json({
-        status: row?.value === '0013' ? 'ok' : 'degraded',
+        status: row?.value === '0014' ? 'ok' : 'degraded',
         service: 'jiffoo-native-core-api',
         runtime: 'cloudflare-workers-free',
         version: env.RUNTIME_VERSION,
         d1Schema: row?.value ?? null,
-      }, { status: row?.value === '0013' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
+      }, { status: row?.value === '0014' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
     }
     if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {
       return serveAsset(url, env);
@@ -212,6 +213,8 @@ export default {
     if (nativeCart) return nativeCart;
     const nativeShipping = await tryNativeShipping(nativeRequest, env);
     if (nativeShipping) return nativeShipping;
+    const nativeShipmentRead = await tryNativeShipmentRead(nativeRequest, env);
+    if (nativeShipmentRead) return nativeShipmentRead;
     const nativeCheckout = await tryNativeCheckout(nativeRequest, env, (productId) => loadProduct(productId, env));
     if (nativeCheckout) return nativeCheckout;
     const nativeAdminOrders = await tryNativeAdminOrders(nativeRequest, env, (proxyRequest) => proxy(proxyRequest, env));
