@@ -18,6 +18,30 @@ describe('theme pack loader versioned source of truth', () => {
   beforeEach(() => {
     clearCache();
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+  });
+
+  it('keeps installed theme resources same-origin even when the public API is cross-origin', async () => {
+    vi.stubEnv('NEXT_PUBLIC_API_URL', 'https://api.example.com/api');
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      expect(String(input)).toBe(
+        '/extensions/themes/shop/.versions/modelsfind/0.1.4/theme.json?v=0.1.4',
+      );
+      return jsonResponse({
+        schemaVersion: 1,
+        slug: 'modelsfind',
+        name: 'ModelsFind',
+        version: '0.1.4',
+        target: 'shop',
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(fetchThemeManifest('modelsfind', '0.1.4')).resolves.toMatchObject({
+      slug: 'modelsfind',
+      version: '0.1.4',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it('loads versioned manifests from slug + version without falling back to the legacy slug path', async () => {

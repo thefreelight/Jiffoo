@@ -167,7 +167,9 @@ async function loadProduct(productId: string, env: WorkerEnv): Promise<ProductDe
 }
 
 async function serveAsset(url: URL, env: WorkerEnv): Promise<Response> {
-  const key = url.pathname.replace(/^\/uploads\//, 'uploads/');
+  const key = url.pathname.startsWith('/extensions/')
+    ? url.pathname.replace(/^\//, '')
+    : url.pathname.replace(/^\/uploads\//, 'uploads/');
   if (key.includes('..')) return Response.json({ error: 'INVALID_ASSET_PATH' }, { status: 400 });
   const object = await env.ASSETS.get(key);
   if (!object) return Response.json({ error: 'ASSET_NOT_FOUND' }, { status: 404 });
@@ -193,7 +195,9 @@ export default {
         d1Schema: row?.value ?? null,
       }, { status: row?.value === '0012' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
     }
-    if (request.method === 'GET' && url.pathname.startsWith('/uploads/')) return serveAsset(url, env);
+    if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {
+      return serveAsset(url, env);
+    }
     const nativeShopperAccount = await tryNativeShopperAccount(nativeRequest, env);
     if (nativeShopperAccount) return nativeShopperAccount;
     if (isNativeRead(nativeRequest, url)) return serveNativeRead(url, env, ctx);
