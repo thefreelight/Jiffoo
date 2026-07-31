@@ -1,4 +1,5 @@
 import { sendNativeVerificationCode, verifyNativeEmailCode } from './email-verification';
+import { consumeVerificationRateLimit } from './auth-rate-limit';
 
 export interface NativeSmtpEnv {
   SMTP_HOST?: string;
@@ -343,6 +344,11 @@ export async function tryNativeAuth(
         { status: 400, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
       );
     }
+    const rate = await consumeVerificationRateLimit(request, env, 'register', email);
+    if (!rate.allowed) return Response.json(
+      { success: false, error: { code: 'RATE_LIMITED', message: 'Too many registration attempts. Try again later' } },
+      { status: 429, headers: { 'retry-after': String(rate.retryAfter), 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+    );
     if (await findNativeUserByEmail(env, email)) {
       return Response.json(
         { success: false, error: { code: 'CONFLICT', message: 'An account already exists for this email' } },
@@ -380,6 +386,11 @@ export async function tryNativeAuth(
     request.method === 'POST'
   ) {
     const body = await request.clone().json().catch(() => ({})) as { email?: string; code?: string };
+    const rate = await consumeVerificationRateLimit(request, env, 'verify', body.email || '');
+    if (!rate.allowed) return Response.json(
+      { success: false, error: { code: 'RATE_LIMITED', message: 'Too many verification attempts. Try again later' } },
+      { status: 429, headers: { 'retry-after': String(rate.retryAfter), 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+    );
     const result = await verifyNativeEmailCode(env, body.email || '', body.code || '');
     return Response.json(
       result.success
@@ -394,6 +405,11 @@ export async function tryNativeAuth(
     request.method === 'POST'
   ) {
     const body = await request.clone().json().catch(() => ({})) as { email?: string };
+    const rate = await consumeVerificationRateLimit(request, env, 'resend', body.email || '');
+    if (!rate.allowed) return Response.json(
+      { success: false, error: { code: 'RATE_LIMITED', message: 'Too many resend attempts. Try again later' } },
+      { status: 429, headers: { 'retry-after': String(rate.retryAfter), 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+    );
     const user = body.email ? await findNativeUserByEmail(env, body.email) : null;
     if (!user || user.email_verified) {
       return Response.json(

@@ -10,6 +10,7 @@ import {
   type NativeUser,
 } from './auth';
 import { sendNativeVerificationCode, verifyNativeEmailCode } from './email-verification';
+import { consumeVerificationRateLimit } from './auth-rate-limit';
 
 const RUNTIME = 'cloudflare-native-d1-shopper-account';
 
@@ -86,6 +87,12 @@ async function register(request: Request, env: NativeAuthEnv): Promise<Response>
   if (!validPassword(password)) {
     return error(400, 'VALIDATION_ERROR', 'Password must contain between 8 and 128 characters');
   }
+  const rate = await consumeVerificationRateLimit(request, env, 'register', email);
+  if (!rate.allowed) {
+    const response = error(429, 'RATE_LIMITED', 'Too many registration attempts. Try again later');
+    response.headers.set('retry-after', String(rate.retryAfter));
+    return response;
+  }
   if (await findNativeUserByEmail(env, email)) return error(409, 'CONFLICT', 'Email is already registered');
 
   const user = { id: crypto.randomUUID(), email, username, role: 'USER', avatar: null };
@@ -108,6 +115,12 @@ async function register(request: Request, env: NativeAuthEnv): Promise<Response>
 
 async function verifyCode(request: Request, env: NativeAuthEnv): Promise<Response> {
   const body = await readJson<{ email?: string; code?: string }>(request);
+  const rate = await consumeVerificationRateLimit(request, env, 'verify', body?.email || '');
+  if (!rate.allowed) {
+    const response = error(429, 'RATE_LIMITED', 'Too many verification attempts. Try again later');
+    response.headers.set('retry-after', String(rate.retryAfter));
+    return response;
+  }
   const result = await verifyNativeEmailCode(env, body?.email || '', body?.code || '');
   return result.success
     ? success(null, 200, 'Email verified successfully')
@@ -116,6 +129,12 @@ async function verifyCode(request: Request, env: NativeAuthEnv): Promise<Respons
 
 async function resendVerification(request: Request, env: NativeAuthEnv): Promise<Response> {
   const body = await readJson<{ email?: string }>(request);
+  const rate = await consumeVerificationRateLimit(request, env, 'resend', body?.email || '');
+  if (!rate.allowed) {
+    const response = error(429, 'RATE_LIMITED', 'Too many resend attempts. Try again later');
+    response.headers.set('retry-after', String(rate.retryAfter));
+    return response;
+  }
   const user = body?.email ? await findNativeUserByEmail(env, body.email) : null;
   if (!user) return error(400, 'RESEND_FAILED', 'User not found');
   if (user.email_verified) return error(400, 'RESEND_FAILED', 'Email is already verified');
