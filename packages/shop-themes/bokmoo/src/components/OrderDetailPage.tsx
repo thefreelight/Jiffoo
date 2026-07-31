@@ -175,6 +175,20 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
               />
             ) : null}
 
+            {effectiveOrder.shipments?.length ? (
+              <section className="rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-surface)] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8">
+                <div className="flex items-start gap-3"><PackageCheck className="mt-1 h-5 w-5 shrink-0 text-[var(--bokmoo-primary)]" /><div><h2 className="text-2xl font-black tracking-[-0.04em] text-[var(--bokmoo-ink)]">Delivery tracking</h2><p className="mt-2 text-sm leading-6 text-[var(--bokmoo-copy)]">Your carrier and tracking updates appear here after dispatch.</p></div></div>
+                <div className="mt-6 grid gap-4">
+                  {effectiveOrder.shipments.map((shipment) => (
+                    <div key={shipment.id} className="rounded-[var(--bokmoo-radius-md)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--bokmoo-copy-soft)]">{shipment.carrier}</p><p className="mt-2 break-all font-mono text-sm font-semibold text-[var(--bokmoo-ink)]">{shipment.trackingNumber}</p></div><span className={cn('rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]', statusTone(shipment.status))}>{shipment.status}</span></div>
+                      <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-[var(--bokmoo-copy)]">{shipment.shippedAt ? <span>Shipped {new Date(shipment.shippedAt).toLocaleDateString()}</span> : null}{shipment.deliveredAt ? <span>Delivered {new Date(shipment.deliveredAt).toLocaleDateString()}</span> : null}{shipment.trackingUrl ? <a href={shipment.trackingUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-[var(--bokmoo-primary-strong)] underline underline-offset-4">Track package <ExternalLink className="h-3.5 w-3.5" /></a> : null}</div>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+
             {effectiveOrder.items.map((item) => {
               const sections = extractDeliverySections(item.fulfillmentData);
               const installLike = (() => {
