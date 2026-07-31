@@ -2,13 +2,14 @@
  * Email Verification Service
  *
  * Handles user email verification tokens and notification sending.
- * Uses a best-effort email send strategy to avoid hard failures when
- * mail credentials are not configured.
+ * Sends through the installed email plugin and fails explicitly when delivery
+ * cannot be accepted.
  */
 
 import crypto from 'crypto';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
+import { TransactionalEmailService } from './transactional-email.service';
 
 export class EmailVerificationService {
   /**
@@ -49,34 +50,15 @@ export class EmailVerificationService {
 
       const verificationUrl = `${env.NEXT_PUBLIC_SHOP_URL}/verify-email?token=${token}`;
 
-      // If no email provider is configured, treat as success to avoid blocking signup.
-      if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
-        if (env.NODE_ENV !== 'test') {
-          console.warn('Email provider not configured; skipping verification email send.');
-        }
-        return { success: true };
-      }
-
-      // Lazy import to avoid hard dependency in test environments.
-      const { Resend } = await import('resend');
-      const resend = new Resend(env.RESEND_API_KEY);
-      const fromName = env.EMAIL_FROM_NAME || 'Jiffoo';
-      const fromAddress = `${fromName} <${env.EMAIL_FROM}>`;
-
-      const result = await resend.emails.send({
-        from: fromAddress,
+      await TransactionalEmailService.send({
+        aggregateId: userId,
         to: email,
         subject: 'Verify your email address',
         html: this.getVerificationEmailHtml(username, verificationUrl),
         text: this.getVerificationEmailText(username, verificationUrl),
+        eventType: 'user.email_verification',
+        metadata: { userId },
       });
-
-      if (!result.data) {
-        return {
-          success: false,
-          error: result.error?.message || 'Failed to send verification email',
-        };
-      }
 
       return { success: true };
     } catch (error: any) {
@@ -185,32 +167,15 @@ export class EmailVerificationService {
 
       const verificationUrl = `${env.NEXT_PUBLIC_SHOP_URL}/verify-email?token=${token}`;
 
-      if (!env.RESEND_API_KEY || !env.EMAIL_FROM) {
-        if (env.NODE_ENV !== 'test') {
-          console.warn('Email provider not configured; skipping staff invitation email send.');
-        }
-        return { success: true };
-      }
-
-      const { Resend } = await import('resend');
-      const resend = new Resend(env.RESEND_API_KEY);
-      const fromName = env.EMAIL_FROM_NAME || 'Jiffoo';
-      const fromAddress = `${fromName} <${env.EMAIL_FROM}>`;
-
-      const result = await resend.emails.send({
-        from: fromAddress,
+      await TransactionalEmailService.send({
+        aggregateId: userId,
         to: email,
         subject: 'You have been invited to the Jiffoo admin team',
         html: this.getStaffInvitationEmailHtml(username, verificationUrl),
         text: this.getStaffInvitationEmailText(username, verificationUrl),
+        eventType: 'staff.invitation',
+        metadata: { userId },
       });
-
-      if (!result.data) {
-        return {
-          success: false,
-          error: result.error?.message || 'Failed to send staff invitation email',
-        };
-      }
 
       return { success: true };
     } catch (error: any) {

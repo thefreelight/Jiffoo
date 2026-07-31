@@ -214,11 +214,14 @@ export class AuthService {
 
     if (requireEmailVerification) {
       // Send verification email
-      await EmailVerificationService.sendVerificationEmail(
+      const verificationDelivery = await EmailVerificationService.sendVerificationEmail(
         user.id,
         user.email,
         user.username
       );
+      if (!verificationDelivery.success) {
+        throw new Error(verificationDelivery.error || 'Verification email could not be sent');
+      }
     }
 
     const token = JwtUtils.sign({
