@@ -31,13 +31,14 @@ export async function tryNativeInstall(request: Request, env: InstallEnv): Promi
   if ((await status(env)).isInstalled) return error('System is already installed', 409);
   const body = await request.json<Record<string, unknown>>().catch(() => null);
   const siteName = typeof body?.siteName === 'string' ? body.siteName.trim() : '';
-  const email = typeof body?.adminEmail === 'string' ? body.adminEmail.trim().toLowerCase() : '';
+  const suppliedEmail = typeof body?.adminEmail === 'string' ? body.adminEmail.trim().toLowerCase() : '';
   const password = typeof body?.adminPassword === 'string' ? body.adminPassword : '';
   const requestedUsername = typeof body?.adminUsername === 'string' ? body.adminUsername.trim() : '';
-  const username = requestedUsername || email.split('@')[0] || '';
+  const username = requestedUsername || suppliedEmail.split('@')[0] || '';
+  const email = suppliedEmail || `${username.toLowerCase()}@local.invalid`;
   if (!siteName || siteName.length > 120) return error('Site name must contain 1 to 120 characters');
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return error('A valid admin email is required');
-  if (username.length < 2 || username.length > 64) return error('Admin username must contain 2 to 64 characters');
+  if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{1,63}$/.test(username)) return error('Admin username must contain 2 to 64 letters, numbers, dots, dashes, or underscores');
+  if (suppliedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(suppliedEmail)) return error('Admin email is invalid');
   if (password.length < 8 || password.length > 128) return error('Admin password must contain 8 to 128 characters');
 
   const created = await createNativeBootstrapAdmin(env, { email, username, password });
