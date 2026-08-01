@@ -18,6 +18,7 @@ export interface ShipmentRow {
 export function mapShipment(row: ShipmentRow, events: Array<Record<string, unknown>> = []) {
   return {
     id: row.id,
+    shipmentId: row.id,
     carrierCode: row.carrier_code,
     carrierName: row.carrier_name ?? row.carrier,
     carrier: row.carrier_name ?? row.carrier,
