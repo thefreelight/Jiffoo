@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/lib/store'
 import { useManagedPackageBranding } from '@/lib/hooks/use-api'
 import { authApi } from '@/lib/api'
-import { Sparkles, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Sparkles, UserRound, Lock, Eye, EyeOff, Loader2 } from 'lucide-react'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
 import type { AuthBootstrapStatus } from 'shared/src/types/auth'
@@ -26,7 +26,7 @@ export default function AdminLoginPage() {
   const t = useT()
   const locale = useLocale()
   const brandingQuery = useManagedPackageBranding()
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
@@ -131,15 +131,15 @@ export default function AdminLoginPage() {
 
     // Validation using shared Zod schema
     try {
-      loginSchema.parse({ email, password });
+      loginSchema.parse({ identifier, password });
       // Validation passed, proceed with login
-      await login(email, password)
+      await login(identifier, password)
       // Redirect logic after successful login is handled in useEffect
     } catch (error: unknown) {
       if (error instanceof ZodError) {
         const firstPath = String(error.issues[0]?.path?.[0] || '')
-        if (firstPath === 'email') {
-          setError(getText('common.validation.invalidEmail', 'Please enter a valid email address'))
+        if (firstPath === 'identifier') {
+          setError(getText('merchant.auth.identifierRequired', 'Enter your email or username'))
         } else {
           setError(getText('common.errors.validation', 'Validation Error'))
         }
@@ -158,7 +158,7 @@ export default function AdminLoginPage() {
   const fillDemo = () => {
     const credentials = bootstrapStatus?.credentials
     if (!credentials) return
-    setEmail(credentials.email)
+    setIdentifier(credentials.email)
     setPassword(credentials.password)
   }
 
@@ -225,19 +225,21 @@ export default function AdminLoginPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Email Field */}
+              {/* Account identifier field */}
               <div className="space-y-3">
-                <label htmlFor="email" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">
-                  {getText('merchant.auth.emailAddress', 'EMAIL INTERFACE')}
+                <label htmlFor="identifier" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">
+                  {getText('merchant.auth.emailOrUsername', 'EMAIL OR USERNAME')}
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <UserRound className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                   <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder={getText('merchant.auth.enterEmail', 'Enter your email')}
+                    id="identifier"
+                    name="username"
+                    type="text"
+                    autoComplete="username"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    placeholder={getText('merchant.auth.enterEmailOrUsername', 'Enter your email or username')}
                     className="w-full pl-11 pr-4 py-3 border border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-gray-50/50 text-sm font-bold text-gray-900"
                     required
                     disabled={isLoading}
@@ -255,6 +257,7 @@ export default function AdminLoginPage() {
                   <input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder={getText('merchant.auth.enterPassword', 'Enter your password')}

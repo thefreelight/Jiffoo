@@ -123,9 +123,14 @@ export const authSchemas = {
   login: {
     body: {
       type: 'object',
-      required: ['email', 'password'],
+      required: ['password'],
+      anyOf: [
+        { required: ['identifier'] },
+        { required: ['email'] },
+      ],
       properties: {
-        email: { type: 'string', format: 'email', description: 'User email address' },
+        identifier: { type: 'string', minLength: 1, description: 'User email address or username' },
+        email: { type: 'string', format: 'email', description: 'Legacy user email address' },
         password: { type: 'string', description: 'User password' },
       },
     },

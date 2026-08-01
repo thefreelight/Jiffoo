@@ -25,10 +25,9 @@ export interface PaginatedResponse<T = any> {
 }
 
 // Authentication related types
-export interface LoginCredentials {
-  email: string;
-  password: string;
-}
+export type LoginCredentials =
+  | { identifier: string; password: string; email?: never }
+  | { email: string; password: string; identifier?: never };
 
 export interface RegisterData {
   email: string;

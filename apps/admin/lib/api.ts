@@ -364,19 +364,8 @@ export { getAdminClient };
 
 // Auth API
 export const authApi = {
-  login: async (email: string, password: string) => {
-    const response = await apiClient.post<{
-      access_token: string;
-      token_type: string;
-      expires_in: number;
-      refresh_token?: string;
-    }>('/admin/auth/login', { email, password }, { withCredentials: true });
-    if (response.success && response.data?.access_token) {
-      apiClient.setToken(response.data.access_token);
-      if (response.data.refresh_token) (apiClient as unknown as { setRefreshToken: (token: string) => void }).setRefreshToken(response.data.refresh_token);
-    }
-    return response;
-  },
+  login: (identifier: string, password: string) =>
+    apiClient.login({ identifier, password }),
 
   getLoginConfig: (): Promise<ApiResponse<{
     demoModeEnabled: boolean;

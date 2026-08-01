@@ -152,6 +152,15 @@ export async function findNativeUserByEmail(env: NativeAuthEnv, email: string): 
     .first<NativeUser>();
 }
 
+export async function findNativeUserByIdentifier(env: NativeAuthEnv, identifier: string): Promise<NativeUser | null> {
+  const normalized = identifier.trim();
+  if (normalized.includes('@')) return findNativeUserByEmail(env, normalized);
+  const result = await env.DB.prepare('SELECT * FROM native_users WHERE username = ?1 LIMIT 2')
+    .bind(normalized)
+    .all<NativeUser>();
+  return result.results.length === 1 ? result.results[0]! : null;
+}
+
 export async function findNativeUserById(env: NativeAuthEnv, id: string): Promise<NativeUser | null> {
   return env.DB.prepare('SELECT * FROM native_users WHERE id = ?1').bind(id).first<NativeUser>();
 }
@@ -290,16 +299,17 @@ export async function tryNativeAuth(
 ): Promise<Response | null> {
   const path = new URL(request.url).pathname;
   if (path === '/api/v1/admin/auth/login' && request.method === 'POST') {
-    const body = await request.clone().json<{ email?: string; password?: string }>();
-    if (!body.email || !body.password) return null;
-    let user = await findNativeUserByEmail(env, body.email);
+    const body = await request.clone().json<{ identifier?: string; email?: string; password?: string }>();
+    const identifier = body.identifier?.trim() || body.email?.trim();
+    if (!identifier || !body.password) return null;
+    let user = await findNativeUserByIdentifier(env, identifier);
     if (!user) {
       const upstream = await proxyRequest();
       if (upstream.ok) {
         const payload = await upstream.clone().json<{ data?: { user?: PublicUser } }>();
         if (payload.data?.user && ['ADMIN', 'SUPER_ADMIN'].includes(payload.data.user.role)) {
           await upsertNativeUser(env, payload.data.user, body.password);
-          user = await findNativeUserByEmail(env, body.email);
+          user = await findNativeUserByIdentifier(env, identifier);
         }
       }
       if (!user) return upstream;
@@ -313,6 +323,23 @@ export async function tryNativeAuth(
     }
     const session = await createNativeSession(env, nativePublicUser(user), 'admin');
     return new Response(JSON.stringify(session.body), { status: 200, headers: session.headers });
+  }
+
+  if (path === '/api/v1/admin/auth/change-password' && request.method === 'POST') {
+    const user = await authenticateNativeAdmin(request, env);
+    if (!user) return Response.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } }, { status: 401, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-auth' } });
+    const body: { currentPassword?: string; newPassword?: string } = await request.clone()
+      .json<{ currentPassword?: string; newPassword?: string }>()
+      .catch(() => ({}));
+    if (!body.currentPassword || !body.newPassword || body.newPassword.length < 8 || body.newPassword.length > 128) {
+      return Response.json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'Current password and a new password between 8 and 128 characters are required' } }, { status: 400, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-auth' } });
+    }
+    const nativeUser = await findNativeUserById(env, user.id);
+    if (!nativeUser || !(await verifyNativePassword(nativeUser, body.currentPassword))) {
+      return Response.json({ success: false, error: { code: 'INVALID_PASSWORD', message: 'Current password is incorrect' } }, { status: 401, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-auth' } });
+    }
+    await updateNativePassword(env, user.id, body.newPassword);
+    return Response.json({ success: true, data: { passwordChanged: true, changedAt: new Date().toISOString() } }, { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-auth' } });
   }
 
   if (path === '/api/v1/admin/auth/refresh' && request.method === 'POST') {

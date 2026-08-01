@@ -19,6 +19,7 @@ vi.mock('@/config/database', () => ({
     user: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
+      findMany: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
     },
@@ -75,6 +76,7 @@ import { resetAuthCompatibilityCache } from '@/core/auth/user-compat';
 const mockPrismaUser = prisma.user as {
   findFirst: ReturnType<typeof vi.fn>;
   findUnique: ReturnType<typeof vi.fn>;
+  findMany: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
 };
@@ -430,6 +432,40 @@ describe('AuthService', () => {
         refresh_token: REFRESH_TOKEN,
         token: ACCESS_TOKEN,
       });
+    });
+
+    it('should authenticate with an unambiguous username', async () => {
+      mockPrismaUser.findMany.mockResolvedValue([TEST_USER]);
+      mockPasswordUtils.verify.mockResolvedValue(true);
+      mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
+      mockJwtUtils.signRefresh.mockReturnValue(REFRESH_TOKEN);
+
+      const result = await AuthService.login({ identifier: TEST_USER.username, password: loginData.password });
+
+      expect(mockPrismaUser.findMany).toHaveBeenCalledWith({
+        where: { username: TEST_USER.username },
+        take: 2,
+        select: {
+          id: true,
+          email: true,
+          username: true,
+          password: true,
+          role: true,
+          isActive: true,
+          emailVerified: true,
+          avatar: true,
+        },
+      });
+      expect(result.user.username).toBe(TEST_USER.username);
+    });
+
+    it('should reject an ambiguous username', async () => {
+      mockPrismaUser.findMany.mockResolvedValue([TEST_USER, { ...TEST_USER, id: 'user-id-2' }]);
+
+      await expect(AuthService.login({ identifier: TEST_USER.username, password: loginData.password })).rejects.toThrow(
+        'Invalid email or password'
+      );
+      expect(mockPasswordUtils.verify).not.toHaveBeenCalled();
     });
 
     it('should throw when the email does not exist', async () => {
