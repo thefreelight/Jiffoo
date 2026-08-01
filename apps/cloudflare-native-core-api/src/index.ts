@@ -21,6 +21,7 @@ import { tryNativeAdminDashboard } from './admin-dashboard';
 import { tryNativeAdminProducts } from './admin-products';
 import { tryNativeAdminApiTokens } from './admin-api-tokens';
 import { nativeUpgradeVersion } from './upgrade-version';
+import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv;
 
@@ -174,12 +175,12 @@ export default {
       const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'core_schema_version'")
         .first<{ value: string }>();
       return Response.json({
-        status: row?.value === '0021' ? 'ok' : 'degraded',
+        status: row?.value === '0022' ? 'ok' : 'degraded',
         service: 'jiffoo-native-core-api',
         runtime: 'cloudflare-workers-free',
         version: env.RUNTIME_VERSION,
         d1Schema: row?.value ?? null,
-      }, { status: row?.value === '0021' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
+      }, { status: row?.value === '0022' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
     }
     if (nativeRequest.method === 'GET' && nativeRequest.url.includes('/api/v1/upgrade/version')) {
       return nativeUpgradeVersion(env);
@@ -199,6 +200,8 @@ export default {
     if (nativePluginSettings) return nativePluginSettings;
     const nativeIntegrationAdmin = await tryNativeIntegrationAdmin(nativeRequest, env);
     if (nativeIntegrationAdmin) return nativeIntegrationAdmin;
+    const nativeOdooCatalogSync = await tryNativeOdooCatalogSync(nativeRequest, env);
+    if (nativeOdooCatalogSync) return nativeOdooCatalogSync;
     const nativeAdminDashboard = await tryNativeAdminDashboard(nativeRequest, env);
     if (nativeAdminDashboard) return nativeAdminDashboard;
     const nativeAdminProducts = await tryNativeAdminProducts(nativeRequest, env);
@@ -236,14 +239,16 @@ export default {
     return proxy(request, env);
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email] = await Promise.allSettled([
+    const [checkout, email, odooCatalog] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
+      processScheduledOdooCatalogSync(env),
     ]);
     console.log(JSON.stringify({
       message: 'native scheduled work processed',
       checkout: checkout.status === 'fulfilled' ? checkout.value : { error: String(checkout.reason) },
       email: email.status === 'fulfilled' ? email.value : { error: String(email.reason) },
+      odooCatalog: odooCatalog.status === 'fulfilled' ? odooCatalog.value : { error: String(odooCatalog.reason) },
     }));
   },
 } satisfies ExportedHandler<WorkerEnv>;

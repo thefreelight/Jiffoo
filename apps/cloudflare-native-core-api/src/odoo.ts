@@ -17,8 +17,69 @@ interface OdooOrderInput {
   customerEmail?: unknown;
 }
 
+export type OdooProductRecord = {
+  id: number;
+  product_tmpl_id?: [number, string] | number | false;
+  display_name?: string;
+  default_code?: string | false;
+  list_price?: number | false;
+  qty_available?: number | false;
+  virtual_available?: number | false;
+  active?: boolean;
+  sale_ok?: boolean;
+  detailed_type?: string;
+  description_sale?: string | false;
+  write_date?: string | false;
+};
+
+export type NativeOdooCatalogProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  productKind: 'goods' | 'consumable' | 'service';
+  requiresShipping: boolean;
+  stock: number;
+  price: number;
+  isActive: boolean;
+  sourceUpdatedAt: string | null;
+  typeData: { provider: 'odoo'; odooTemplateId: number };
+  variants: Array<{
+    id: string;
+    name: string;
+    skuCode: string;
+    salePrice: number;
+    baseStock: number;
+    isActive: boolean;
+    attributes: { provider: 'odoo'; odooProductId: number; virtualAvailable: number };
+  }>;
+};
+
 function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function number(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
+function stableSlug(value: string, fallback: string): string {
+  const normalized = value.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return normalized ? normalized.slice(0, 80) : fallback;
+}
+
+function templateId(record: OdooProductRecord): number {
+  return Array.isArray(record.product_tmpl_id) ? record.product_tmpl_id[0] : number(record.product_tmpl_id);
+}
+
+function templateName(record: OdooProductRecord): string {
+  return Array.isArray(record.product_tmpl_id) ? text(record.product_tmpl_id[1]) : text(record.display_name);
+}
+
+function productKind(value: string): 'goods' | 'consumable' | 'service' {
+  if (value === 'service') return 'service';
+  if (value === 'consu') return 'consumable';
+  return 'goods';
 }
 
 async function config(env: OdooEnv): Promise<OdooConfig | null> {
@@ -32,6 +93,10 @@ async function config(env: OdooEnv): Promise<OdooConfig | null> {
     apiKey: text(value.apiKey),
   };
   return Object.values(result).every(Boolean) ? result : null;
+}
+
+export async function isNativeOdooCatalogConfigured(env: OdooEnv): Promise<boolean> {
+  return Boolean(await config(env));
 }
 
 async function rpc<T>(settings: OdooConfig, service: string, method: string, args: unknown[]): Promise<T> {
@@ -72,6 +137,71 @@ export async function testNativeOdooConnection(env: OdooEnv): Promise<{ database
   const uid = await authenticate(settings);
   await execute(settings, uid, 'res.users', 'read', [[uid]], { fields: ['id'], limit: 1 });
   return { database: settings.database, username: settings.username, uid };
+}
+
+export async function readNativeOdooCatalog(env: OdooEnv): Promise<NativeOdooCatalogProduct[]> {
+  const settings = await config(env);
+  if (!settings) throw new Error('Odoo plugin is not enabled or fully configured');
+  const uid = await authenticate(settings);
+  const records = await execute<OdooProductRecord[]>(settings, uid, 'product.product', 'search_read', [
+    [['sale_ok', '=', true]],
+  ], {
+    fields: [
+      'id', 'product_tmpl_id', 'display_name', 'default_code', 'list_price',
+      'qty_available', 'virtual_available', 'active', 'sale_ok', 'detailed_type',
+      'description_sale', 'write_date',
+    ],
+    order: 'product_tmpl_id,id',
+    limit: 2_000,
+  });
+  return mapNativeOdooCatalog(records);
+}
+
+export function mapNativeOdooCatalog(records: OdooProductRecord[]): NativeOdooCatalogProduct[] {
+  const products = new Map<number, NativeOdooCatalogProduct>();
+  for (const record of records) {
+    const sourceTemplateId = templateId(record);
+    if (!sourceTemplateId || record.sale_ok === false) continue;
+    const kind = productKind(text(record.detailed_type));
+    const available = Math.max(0, Math.floor(number(record.qty_available)));
+    const virtualAvailable = Math.max(0, Math.floor(number(record.virtual_available)));
+    const name = templateName(record) || `Odoo product ${sourceTemplateId}`;
+    const id = `odoo-product-${sourceTemplateId}`;
+    const variantId = `odoo-variant-${record.id}`;
+    const price = Math.max(0, number(record.list_price));
+    const existing = products.get(sourceTemplateId);
+    const variant = {
+      id: variantId,
+      name: text(record.display_name) || name,
+      skuCode: text(record.default_code) || `odoo-${record.id}`,
+      salePrice: price,
+      baseStock: available,
+      isActive: record.active !== false,
+      attributes: { provider: 'odoo' as const, odooProductId: record.id, virtualAvailable },
+    };
+    if (existing) {
+      existing.variants.push(variant);
+      existing.stock += available;
+      existing.price = Math.min(existing.price, price);
+      existing.isActive = existing.isActive || variant.isActive;
+      continue;
+    }
+    products.set(sourceTemplateId, {
+      id,
+      name,
+      slug: stableSlug(text(record.default_code) || name, id),
+      description: text(record.description_sale) || null,
+      productKind: kind,
+      requiresShipping: kind === 'goods',
+      stock: available,
+      price,
+      isActive: record.active !== false,
+      sourceUpdatedAt: text(record.write_date) || null,
+      typeData: { provider: 'odoo', odooTemplateId: sourceTemplateId },
+      variants: [variant],
+    });
+  }
+  return [...products.values()];
 }
 
 async function partnerId(settings: OdooConfig, uid: number, input: OdooOrderInput): Promise<number> {
