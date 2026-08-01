@@ -187,7 +187,7 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
       env.DB.prepare('UPDATE native_order_metadata SET payment_status = ?1 WHERE order_id = ?2').bind(fullyRefunded ? 'REFUNDED' : 'PARTIALLY_REFUNDED', orderId),
       env.DB.prepare('UPDATE native_order_snapshots SET status = ?1, payload = ?2, source_updated_at = ?3 WHERE id = ?4').bind(fullyRefunded ? 'REFUNDED' : native.status, JSON.stringify(order), now, orderId),
       env.DB.prepare("INSERT INTO native_order_audit (id, order_id, actor_id, action, from_status, to_status, payload, created_at) VALUES (?1, ?2, ?3, 'order.refund', ?4, ?5, ?6, ?7)").bind(crypto.randomUUID(), orderId, admin.id, native.status, fullyRefunded ? 'REFUNDED' : native.status, JSON.stringify({ amount, currency: metadata.currency, providerRefundId: provider.id }), now),
-      env.DB.prepare("INSERT INTO native_checkout_outbox (id, event_type, aggregate_id, payload, created_at) VALUES (?1, 'order.refunded', ?2, ?3, ?4)").bind(crypto.randomUUID(), orderId, JSON.stringify({ orderId, amount, fullyRefunded }), now),
+      env.DB.prepare("INSERT INTO native_checkout_outbox (id, event_type, aggregate_id, payload, created_at) VALUES (?1, 'order.refunded', ?2, ?3, ?4)").bind(crypto.randomUUID(), orderId, JSON.stringify({ orderId, amount, currency: metadata.currency, fullyRefunded, reason: typeof body.reason === 'string' ? body.reason : null }), now),
     );
     await env.DB.batch(statements);
     return result(order);

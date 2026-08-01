@@ -127,27 +127,39 @@ export async function tryNativeAffiliate(request: Request, env: AffiliateEnv): P
   return null;
 }
 
-export async function createNativeAffiliateCommission(env: AffiliateDataEnv, order: Record<string, unknown>): Promise<void> {
+export interface NativeAffiliateCommissionResult {
+  commissionId: string;
+  partnerId: string;
+  orderId: string;
+  amount: number;
+  currency: string;
+}
+
+export async function createNativeAffiliateCommission(env: AffiliateDataEnv, order: Record<string, unknown>): Promise<NativeAffiliateCommissionResult | null> {
   const userId = typeof order.userId === 'string' ? order.userId : null;
   const orderId = typeof order.id === 'string' ? order.id : null;
   const amount = typeof order.totalAmount === 'number' ? order.totalAmount : 0;
-  if (!userId || !orderId || amount <= 0) return;
+  if (!userId || !orderId || amount <= 0) return null;
   const attribution = await env.DB.prepare(
     `SELECT partner_id FROM native_affiliate_attributions
      WHERE user_id = ?1 AND status IN ('associated', 'converted') ORDER BY created_at DESC LIMIT 1`,
   ).bind(userId).first<{ partner_id: string }>();
-  if (!attribution) return;
-  const existing = await env.DB.prepare('SELECT id FROM native_affiliate_commissions WHERE order_id = ?1').bind(orderId).first<{ id: string }>();
-  if (existing) return;
+  if (!attribution) return null;
+  const existing = await env.DB.prepare(
+    'SELECT id, partner_id, amount, currency FROM native_affiliate_commissions WHERE order_id = ?1',
+  ).bind(orderId).first<{ id: string; partner_id: string; amount: number; currency: string }>();
+  if (existing) return { commissionId: existing.id, partnerId: existing.partner_id, orderId, amount: existing.amount, currency: existing.currency };
   const row = await env.DB.prepare('SELECT commission_rate, currency FROM native_affiliate_partners WHERE id = ?1 AND status = \'active\'').bind(attribution.partner_id).first<{ commission_rate: number; currency: string }>();
-  if (!row) return;
+  if (!row) return null;
   const commission = Math.round(amount * row.commission_rate) / 100;
+  const commissionId = crypto.randomUUID();
   await env.DB.batch([
     env.DB.prepare(`INSERT INTO native_affiliate_commissions
       (id, partner_id, order_id, order_amount, commission_rate, amount, currency, status)
       VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 'pending')`)
-      .bind(crypto.randomUUID(), attribution.partner_id, orderId, amount, row.commission_rate, commission, row.currency),
+      .bind(commissionId, attribution.partner_id, orderId, amount, row.commission_rate, commission, row.currency),
     env.DB.prepare(`UPDATE native_affiliate_attributions SET status = 'converted' WHERE user_id = ?1 AND status = 'associated'`)
       .bind(userId),
   ]);
+  return { commissionId, partnerId: attribution.partner_id, orderId, amount: commission, currency: row.currency };
 }
