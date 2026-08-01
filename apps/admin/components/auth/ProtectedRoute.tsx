@@ -9,6 +9,7 @@
 import { useEffect, ReactNode, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
+import { hasAdminWorkspaceAccess } from '@/lib/admin-access'
 import { Loader2 } from 'lucide-react'
 import { useT, useLocale } from 'shared/src/i18n/react'
 
@@ -24,6 +25,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
   const [hasInitialized, setHasInitialized] = useState(false)
   const t = useT()
   const locale = useLocale()
+  const hasAdminAccess = hasAdminWorkspaceAccess(user)
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -56,8 +58,8 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
         return
       }
 
-      if (requireAdmin && user?.role && user.role !== 'ADMIN') {
-        console.warn('Access denied - user role:', user?.role, 'required: ADMIN')
+      if (requireAdmin && !hasAdminAccess) {
+        console.warn('Access denied - user role:', user?.role, 'required: admin workspace access')
         // Force logout if role is not ADMIN but Admin access is required (security hardening)
         // router.replace(`/${locale}/auth/login`) 
         // Just show access denied for now
@@ -73,7 +75,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
         return
       }
     }
-  }, [hasInitialized, isAuthenticated, isLoading, isChecking, user, requireAdmin, router, pathname, locale])
+  }, [hasInitialized, isAuthenticated, isLoading, isChecking, user, hasAdminAccess, requireAdmin, router, pathname, locale])
 
   // Show loading state: initializing or checking authentication
   if (!hasInitialized || isLoading || isChecking) {
@@ -100,8 +102,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }: Prote
   }
 
   // Permission check
-  // Permission check
-  if (requireAdmin && user?.role && user.role !== 'ADMIN') {
+  if (requireAdmin && !hasAdminAccess) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
