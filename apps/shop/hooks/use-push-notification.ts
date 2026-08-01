@@ -38,6 +38,11 @@ interface PushNotificationActions {
   reset: () => void;
 }
 
+interface VapidPublicKeyResponse {
+  data?: { publicKey?: string };
+  publicKey?: string;
+}
+
 const initialState: PushNotificationState = {
   permissionState: {
     permission: 'default',
@@ -76,7 +81,7 @@ export const usePushNotification = create<PushNotificationState & PushNotificati
             throw new Error('Failed to fetch VAPID public key');
           }
 
-          const data = await response.json();
+          const data = await response.json() as VapidPublicKeyResponse;
           const vapidPublicKey = data.data?.publicKey || data.publicKey;
 
           if (!vapidPublicKey) {
