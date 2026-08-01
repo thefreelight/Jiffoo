@@ -36,25 +36,25 @@ export const DEFAULT_PUBLIC_CORE_UPDATE_MANIFEST_URL =
 // for release detection. Keep it aligned with the published OSS release tag and
 // changelog entry whenever a new public release is cut.
 export const PUBLIC_CORE_UPDATE_MANIFEST: PublicCoreUpdateManifest = {
-  latestVersion: '1.0.54',
-  latestStableVersion: '1.0.54',
+  latestVersion: '1.0.55',
+  latestStableVersion: '1.0.55',
   latestPrereleaseVersion: null,
   channel: 'stable',
   deliveryMode: 'image-first',
   images: {
-    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.54',
-    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.54',
-    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.54',
-    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.54',
+    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.55',
+    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.55',
+    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.55',
+    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.55',
   },
-  releaseDate: '2026-08-01T20:08:30.929Z',
-  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.54-opensource',
+  releaseDate: '2026-08-01T21:15:11.402Z',
+  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.55-opensource',
   sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
   minimumCompatibleVersion: '1.0.0',
   minimumAutoUpgradableVersion: '1.0.0',
   requiresManualIntervention: false,
   releaseNotes:
-    'Fixes OSS release asset regeneration and adds Cloudflare-native Odoo product, SKU, price, and inventory synchronization.',
+    'Adds organization and influencer affiliate membership, split commission settlement, and organization commission notifications.',
   checksumUrl: null,
   signatureUrl: null,
 };
