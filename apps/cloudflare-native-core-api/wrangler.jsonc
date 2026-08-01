@@ -36,6 +36,11 @@
       "binding": "STRIPE_WEBHOOK_SECRET",
       "store_id": "00000000000000000000000000000000",
       "secret_name": "replace_with_instance_stripe_webhook_secret"
+    },
+    {
+      "binding": "PLUGIN_CONFIG_KEY",
+      "store_id": "00000000000000000000000000000000",
+      "secret_name": "replace_with_instance_plugin_config_key"
     }
   ],
   "vars": {

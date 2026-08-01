@@ -373,6 +373,76 @@ function GenericConfigEditor(props: {
   );
 }
 
+function NativeConnectionTest({ slug, disabled }: { slug: string; disabled: boolean }) {
+  const [recipient, setRecipient] = useState('');
+  const [testing, setTesting] = useState(false);
+  const [message, setMessage] = useState('Save and enable the plugin before testing its connection.');
+  const [tone, setTone] = useState<'default' | 'success' | 'error'>('default');
+
+  const testConnection = async () => {
+    if (slug === 'smtp-email' && !recipient.trim()) {
+      setTone('error');
+      setMessage('Enter a recipient for the SMTP delivery test.');
+      return;
+    }
+    setTesting(true);
+    setTone('default');
+    setMessage('Testing connection...');
+    try {
+      const response = await apiClient.post(`/extensions/plugin/${slug}/api/admin/test`, slug === 'smtp-email' ? { to: recipient.trim() } : {});
+      const data = unwrapApiResponse<Record<string, unknown>>(response);
+      const detail = slug === 'stripe' && typeof data.accountId === 'string'
+        ? ` Stripe account ${data.accountId}.`
+        : slug === 'odoo' && typeof data.database === 'string'
+          ? ` Odoo database ${data.database}.`
+          : slug === 'smtp-email'
+            ? ` Test email accepted for ${recipient.trim()}.`
+            : '';
+      setTone('success');
+      setMessage(`Connection successful.${detail}`);
+    } catch (error) {
+      setTone('error');
+      setMessage(error instanceof Error ? error.message : 'Connection test failed.');
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  return (
+    <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+      <CardHeader>
+        <CardTitle className="text-xl tracking-tight">Connection test</CardTitle>
+        <CardDescription>Validate the saved production configuration without exposing stored credentials.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {slug === 'smtp-email' ? (
+          <div className="space-y-2">
+            <Label htmlFor="smtp-test-recipient">Test recipient</Label>
+            <Input
+              id="smtp-test-recipient"
+              type="email"
+              value={recipient}
+              onChange={(event) => setRecipient(event.target.value)}
+              placeholder="you@example.com"
+              disabled={disabled || testing}
+              className="rounded-xl"
+            />
+          </div>
+        ) : null}
+        <div className="flex items-center justify-between gap-4">
+          <p className={tone === 'error' ? 'text-sm text-red-600' : tone === 'success' ? 'text-sm text-emerald-700' : 'text-sm text-slate-600'}>
+            {message}
+          </p>
+          <Button type="button" variant="outline" onClick={() => void testConnection()} disabled={disabled || testing} className="shrink-0 rounded-xl">
+            {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Test connection
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function I18nNativeWorkspace(props: {
   installationId: string;
   disabled: boolean;
@@ -1296,7 +1366,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                 />
               ) : null}
 
-              {slug === 'odoo' ? (
+              {slug === 'odoo' && data.runtimeType !== 'cloudflare-native' ? (
                 <OdooNativeWorkspace
                   installationId={selectedInstance?.installationId || 'default'}
                   selectedInstance={selectedInstance}
@@ -1304,7 +1374,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                 />
               ) : null}
 
-              {slug !== 'i18n' && slug !== 'odoo' && configSchema ? (
+              {slug !== 'i18n' && (slug !== 'odoo' || data.runtimeType === 'cloudflare-native') && configSchema ? (
                 <GenericConfigEditor
                   configSchema={configSchema}
                   configDraft={configDraft}
@@ -1316,6 +1386,10 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                   onSave={() => void handleSaveGenericConfig()}
                   saving={isCreatingInstance || isUpdatingInstance}
                 />
+              ) : null}
+
+              {data.runtimeType === 'cloudflare-native' && ['smtp-email', 'stripe', 'odoo'].includes(slug) ? (
+                <NativeConnectionTest slug={slug} disabled={!selectedInstance?.enabled} />
               ) : null}
 
               {!hasNativeWorkspace ? (

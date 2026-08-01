@@ -27,7 +27,7 @@ export interface OutboxRunResult {
   failed: number;
 }
 
-type OutboxEnv = Pick<Cloudflare.Env, 'DB' | 'CORE_ORIGIN'>;
+type OutboxEnv = Pick<Cloudflare.Env, 'DB' | 'CORE_ORIGIN' | 'JWT_SECRET'>;
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);

@@ -1,8 +1,10 @@
 import { normalizeShipmentStatus, upsertSupplierShipment } from './shipments';
 import { enqueueShipmentEmail } from './mail-outbox';
+import { createNativeOdooOrder } from './odoo';
 
 interface ExternalOrderEnv {
   DB: D1Database;
+  JWT_SECRET: SecretsStoreSecret;
   CORE_ORIGIN: string;
   PUBLIC_API_BASE_URL?: string;
   CATALOG_IMPORT_TOKEN?: SecretsStoreSecret | string;
@@ -83,6 +85,17 @@ export async function submitNativeOdooOrders(env: ExternalOrderEnv, orderId: str
        ON CONFLICT(provider, installation_id, order_item_id) DO UPDATE SET
          request_payload = excluded.request_payload, updated_at = excluded.updated_at`,
     ).bind(crypto.randomUUID(), installationId, orderId, itemId, externalOrderRef, JSON.stringify(requestPayload), now).run();
+    const nativeResult = await createNativeOdooOrder(env, requestPayload);
+    if (nativeResult) {
+      await env.DB.prepare(
+        `UPDATE native_external_order_links SET sync_status = 'SUBMITTED', external_order_name = ?1,
+         external_status = ?2, response_payload = ?3, last_error = NULL, attempt_count = attempt_count + 1,
+         last_synced_at = ?4, updated_at = ?4 WHERE external_order_ref = ?5`,
+      ).bind(nativeResult.orderName, nativeResult.externalStatus, JSON.stringify(nativeResult), now, externalOrderRef).run();
+      item.fulfillmentStatus = 'processing';
+      item.fulfillmentData = { ...(item.fulfillmentData && typeof item.fulfillmentData === 'object' ? item.fulfillmentData as Record<string, unknown> : {}), provider: 'odoo', installationId, externalOrderRef, externalOrderName: nativeResult.orderName, externalStatus: nativeResult.externalStatus, productCode };
+      continue;
+    }
     const endpoint = new URL(`/api/extensions/plugin/odoo/api/orders/create`, env.CORE_ORIGIN);
     endpoint.searchParams.set('installationId', installationId);
     let response: Response;

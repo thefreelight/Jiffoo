@@ -1,7 +1,7 @@
 import type { NativeSmtpEnv } from './auth';
 import { sendSmtpEmail } from './smtp';
 
-interface MailEnv extends NativeSmtpEnv { DB: D1Database }
+interface MailEnv extends NativeSmtpEnv { DB: D1Database; JWT_SECRET: SecretsStoreSecret }
 
 interface OrderEmailInput {
   orderId: string;

@@ -1,4 +1,5 @@
 import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
+import { getNativePluginSecret } from './plugin-settings';
 
 type CheckoutEnv = Pick<Cloudflare.Env,
   'DB' | 'JWT_SECRET' | 'STRIPE_SECRET_KEY' | 'STRIPE_WEBHOOK_SECRET' | 'NATIVE_CHECKOUT_ENABLED'>;
@@ -296,7 +297,7 @@ async function createPaymentSession(request: Request, env: CheckoutEnv, user: Na
   const order = JSON.parse(row.payload) as Record<string, unknown>;
   const successUrl = typeof body.successUrl === 'string' ? body.successUrl : 'https://shop.jiffoo.com/payment/success?session_id={CHECKOUT_SESSION_ID}';
   const cancelUrl = typeof body.cancelUrl === 'string' ? body.cancelUrl : 'https://shop.jiffoo.com/checkout';
-  const secret = await env.STRIPE_SECRET_KEY.get();
+  const secret = await getNativePluginSecret(env, 'stripe', 'secretKey', env.STRIPE_SECRET_KEY);
   const stripe = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST',
     headers: {
@@ -355,7 +356,7 @@ async function verifyStripeSignature(raw: string, header: string, secret: string
 async function handleStripeWebhook(request: Request, env: CheckoutEnv): Promise<Response | null> {
   const raw = await request.text();
   const signature = request.headers.get('stripe-signature');
-  const secret = await env.STRIPE_WEBHOOK_SECRET.get();
+  const secret = await getNativePluginSecret(env, 'stripe', 'webhookSecret', env.STRIPE_WEBHOOK_SECRET);
   if (!signature || !await verifyStripeSignature(raw, signature, secret)) {
     return failure(400, 'INVALID_WEBHOOK_SIGNATURE', 'Stripe webhook signature is invalid');
   }
