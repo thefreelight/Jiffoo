@@ -41,6 +41,11 @@
       "binding": "PLUGIN_CONFIG_KEY",
       "store_id": "00000000000000000000000000000000",
       "secret_name": "replace_with_instance_plugin_config_key"
+    },
+    {
+      "binding": "SNAPSHOT_IMPORT_TOKEN",
+      "store_id": "00000000000000000000000000000000",
+      "secret_name": "replace_with_instance_snapshot_import_token"
     }
   ],
   "vars": {
