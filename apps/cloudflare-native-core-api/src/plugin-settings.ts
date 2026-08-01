@@ -67,6 +67,7 @@ const definitions: Record<string, PluginDefinition> = {
       database: { type: 'string', required: true, label: 'Database' },
       username: { type: 'string', required: true, label: 'Username' },
       apiKey: { type: 'secret', required: true, sensitive: true, label: 'API Key' },
+      webhookSecret: { type: 'secret', sensitive: true, label: 'Fulfillment Webhook Secret' },
     },
   },
 };

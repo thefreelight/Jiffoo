@@ -1,13 +1,14 @@
 import { normalizeShipmentStatus, upsertSupplierShipment } from './shipments';
 import { enqueueShipmentEmail } from './mail-outbox';
 import { createNativeOdooOrder } from './odoo';
+import { getNativePluginSecret } from './plugin-settings';
 
 interface ExternalOrderEnv {
   DB: D1Database;
   JWT_SECRET: SecretsStoreSecret;
   CORE_ORIGIN: string;
   PUBLIC_API_BASE_URL?: string;
-  CATALOG_IMPORT_TOKEN?: SecretsStoreSecret | string;
+  CATALOG_IMPORT_TOKEN?: SecretsStoreSecret;
 }
 
 interface SupplierUpdate {
@@ -32,11 +33,6 @@ interface SupplierUpdate {
 
 function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
-}
-
-async function secret(value: SecretsStoreSecret | string | undefined): Promise<string> {
-  if (!value) return '';
-  return typeof value === 'string' ? value : value.get();
 }
 
 function fulfillmentStatus(externalStatus: string | null, shipmentStatus: string | null): string {
@@ -144,7 +140,7 @@ export async function submitNativeOdooOrders(env: ExternalOrderEnv, orderId: str
 export async function tryNativeExternalOrderSync(request: Request, env: ExternalOrderEnv): Promise<Response | null> {
   const path = new URL(request.url).pathname;
   if (request.method !== 'POST' || path !== '/api/v1/admin/integrations/external-orders/sync-status') return null;
-  const expected = await secret(env.CATALOG_IMPORT_TOKEN);
+  const expected = await getNativePluginSecret(env, 'odoo', 'webhookSecret', env.CATALOG_IMPORT_TOKEN);
   const provided = request.headers.get('x-catalog-import-token')?.trim() || request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim() || '';
   if (!expected) return Response.json({ success: false, error: { code: 'EXTERNAL_ORDER_SYNC_DISABLED', message: 'Integration token is not configured' } }, { status: 503 });
   if (!provided || provided !== expected) return Response.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Invalid integration token' } }, { status: 401 });
