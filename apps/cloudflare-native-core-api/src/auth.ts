@@ -84,6 +84,24 @@ async function derivePassword(password: string, salt: Uint8Array, iterations: nu
   return new Uint8Array(bits);
 }
 
+export async function createNativeBootstrapAdmin(
+  env: NativeAuthEnv,
+  input: { email: string; username: string; password: string },
+): Promise<boolean> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iterations = 100_000;
+  const hash = await derivePassword(input.password, salt, iterations);
+  const now = new Date().toISOString();
+  const result = await env.DB.prepare(
+    `INSERT INTO native_users
+      (id, email, username, role, password_salt, password_hash, password_iterations,
+       is_active, migrated_at, updated_at, email_verified)
+     SELECT ?1, ?2, ?3, 'SUPER_ADMIN', ?4, ?5, ?6, 1, ?7, ?7, 1
+     WHERE NOT EXISTS (SELECT 1 FROM native_users WHERE role IN ('ADMIN', 'SUPER_ADMIN'))`,
+  ).bind(crypto.randomUUID(), input.email, input.username, base64Url(salt), base64Url(hash), iterations, now).run();
+  return (result.meta.changes ?? 0) === 1;
+}
+
 export async function upsertNativeUser(env: NativeAuthEnv, user: PublicUser, password: string): Promise<void> {
   const iterations = 100000;
   const salt = crypto.getRandomValues(new Uint8Array(16));
