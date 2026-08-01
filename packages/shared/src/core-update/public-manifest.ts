@@ -47,14 +47,14 @@ export const PUBLIC_CORE_UPDATE_MANIFEST: PublicCoreUpdateManifest = {
     shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.47',
     updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.47',
   },
-  releaseDate: '2026-08-01T12:31:49.000Z',
+  releaseDate: '2026-08-01T13:22:43.043Z',
   changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.47-opensource',
   sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
   minimumCompatibleVersion: '1.0.0',
   minimumAutoUpgradableVersion: '1.0.0',
   requiresManualIntervention: false,
   releaseNotes:
-    'Adds an authenticated Cloudflare-native product snapshot import endpoint so catalog reads can be populated without public origin fallback.',
+    'Adds Cloudflare-native Admin dashboard, product empty-state, and API token management backed by D1.',
   checksumUrl: null,
   signatureUrl: null,
 };
