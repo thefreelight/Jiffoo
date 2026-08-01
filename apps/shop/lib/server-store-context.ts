@@ -36,6 +36,11 @@ export interface ServerStoreContextOptions {
   revalidate?: number | false;
 }
 
+interface StoreContextApiResponse {
+  success?: boolean;
+  data?: ServerStoreContext;
+}
+
 const DEFAULT_STORE_CONTEXT_TIMEOUT_MS = 2000;
 
 function resolveServerStoreContextTimeoutMs(): number {
@@ -124,10 +129,10 @@ async function fetchServerStoreContext(
       return fallbackContext;
     }
 
-    const data = await response.json();
+    const data = await response.json() as StoreContextApiResponse;
 
     if (data.success && data.data) {
-      return data.data as ServerStoreContext;
+      return data.data;
     }
 
     return fallbackContext;
