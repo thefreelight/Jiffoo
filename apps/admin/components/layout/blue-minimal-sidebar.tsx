@@ -13,6 +13,7 @@ import { useT, useLocale } from 'shared/src/i18n/react'
 import { cn } from '@/lib/utils'
 import { useMemo } from 'react'
 import { useManagedMode } from '@/lib/managed-mode'
+import { canAccessAnyPermission, getSystemNavHref } from '@/lib/admin-access'
 
 import {
   LayoutDashboard,
@@ -31,6 +32,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
+import { ADMIN_PERMISSIONS, type AdminPermission } from 'shared'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -48,6 +50,7 @@ interface NavigationItem {
   fallback: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
+  requiredPermissions?: readonly AdminPermission[];
 }
 
 // Base navigation configuration - Shopify style flat menu
@@ -58,6 +61,7 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
+    requiredPermissions: [ADMIN_PERMISSIONS.DASHBOARD_READ],
   },
   {
     id: 'products',
@@ -65,6 +69,7 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Products',
     href: '/products',
     icon: Package,
+    requiredPermissions: [ADMIN_PERMISSIONS.PRODUCTS_READ],
   },
   {
     id: 'inventory',
@@ -72,6 +77,7 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Inventory',
     href: '/inventory',
     icon: Warehouse,
+    requiredPermissions: [ADMIN_PERMISSIONS.INVENTORY_READ, ADMIN_PERMISSIONS.INVENTORY_FORECAST],
   },
   {
     id: 'orders',
@@ -79,6 +85,7 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Orders',
     href: '/orders',
     icon: FileText,
+    requiredPermissions: [ADMIN_PERMISSIONS.ORDERS_READ],
   },
   {
     id: 'customers',
@@ -86,6 +93,15 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Customers',
     href: '/customers',
     icon: Users,
+    requiredPermissions: [ADMIN_PERMISSIONS.CUSTOMERS_READ],
+  },
+  {
+    id: 'staff',
+    nameKey: 'merchant.nav.staff',
+    fallback: 'Staff',
+    href: '/staff',
+    icon: ShieldCheck,
+    requiredPermissions: [ADMIN_PERMISSIONS.STAFF_READ],
   },
   {
     id: 'plugins',
@@ -93,6 +109,7 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Plugins',
     href: '/plugins',
     icon: Sliders,
+    requiredPermissions: [ADMIN_PERMISSIONS.PLUGINS_READ],
   },
   {
     id: 'themes',
@@ -100,6 +117,7 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Themes',
     href: '/themes',
     icon: Palette,
+    requiredPermissions: [ADMIN_PERMISSIONS.THEMES_READ],
   },
   {
     id: 'system',
@@ -107,6 +125,7 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'System',
     href: '/system/updates',
     icon: Monitor,
+    requiredPermissions: [ADMIN_PERMISSIONS.SETTINGS_READ, ADMIN_PERMISSIONS.HEALTH_READ],
   },
 ];
 
@@ -136,6 +155,7 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
       fallback: 'Your Package',
       href: '/package',
       icon: ShieldCheck,
+      requiredPermissions: [ADMIN_PERMISSIONS.SETTINGS_READ],
     }
 
     return [baseNavigationConfig[0], packageItem, ...baseNavigationConfig.slice(1)]
@@ -230,14 +250,19 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
 
         {/* Navigation */}
         <nav className="flex flex-col gap-1 flex-1">
-          {navigationConfig.map((item) => {
-            const isActive = isItemActive(item.href)
+          {navigationConfig
+            .filter((item) => canAccessAnyPermission(user, item.requiredPermissions))
+            .map((item) => {
+            const href = item.id === 'system'
+              ? getSystemNavHref(user, locale)
+              : getLocalizedHref(item.href)
+            const isActive = pathname === href || pathname.startsWith(`${href}/`)
             const Icon = item.icon
 
             return (
               <Link
                 key={item.id}
-                href={getLocalizedHref(item.href)}
+                href={href}
                 onClick={handleNavClick}
                 className={`
                   flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold

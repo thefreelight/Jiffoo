@@ -350,8 +350,7 @@ addCheck('API market/theme/upgrade tests cover bound official install flow', () 
   );
 
   for (const token of [
-    'bindMarketplaceForInstallTests',
-    "'platform.connection'",
+    'getMarketplaceBindingContext: async () =>',
     'instanceToken',
     'tenantBindingId',
     'installs official-market plugins into the real core installer and exposes readiness state',
@@ -363,10 +362,10 @@ addCheck('API market/theme/upgrade tests cover bound official install flow', () 
 
   for (const token of [
     'blocks official marketplace install when the instance is not platform-bound',
-    'blocks free official installs until the platform tenant is bound',
-    'routes bound free official installs through market authorization',
-    'recordInstall: vi.fn().mockResolvedValue',
-    'cleanupDownloadedArtifact: vi.fn().mockResolvedValue',
+    'allows free official installs to continue without a platform binding',
+    "expect(mocks.authorizeInstall).not.toHaveBeenCalled()",
+    'recordInstall: vi.fn()',
+    'cleanupDownloadedArtifact: vi.fn()',
   ]) {
     assertIncludes(marketInstallBindingTest, token, `market binding guard test ${token}`);
   }
