@@ -3,6 +3,16 @@ import { sendSmtpEmail } from './smtp';
 
 interface MailEnv extends NativeSmtpEnv { DB: D1Database }
 
+interface OrderEmailInput {
+  orderId: string;
+  recipient: string;
+  subject: string;
+  text: string;
+  html: string;
+  messageType: string;
+  dedupeKey: string;
+}
+
 interface MailRow {
   id: string;
   recipient: string;
@@ -16,6 +26,75 @@ export interface MailRunResult { scanned: number; sent: number; failed: number }
 
 function escapeHtml(value: string): string {
   return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+}
+
+async function enqueueEmail(env: MailEnv, input: OrderEmailInput): Promise<void> {
+  const now = new Date().toISOString();
+  await env.DB.prepare(
+    `INSERT INTO native_email_outbox
+      (id, dedupe_key, message_type, order_id, recipient, subject, text_body, html_body,
+       status, attempt_count, next_attempt_at, created_at, updated_at)
+     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'PENDING', 0, ?9, ?9, ?9)
+     ON CONFLICT(dedupe_key) DO NOTHING`,
+  ).bind(crypto.randomUUID(), input.dedupeKey, input.messageType, input.orderId, input.recipient, input.subject, input.text, input.html, now).run();
+}
+
+function localeOf(order: Record<string, unknown>): 'zh-CN' | 'en' {
+  return typeof order.locale === 'string' && order.locale.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en';
+}
+
+export async function enqueueOrderPaidEmail(env: MailEnv, order: Record<string, unknown>): Promise<void> {
+  const orderId = typeof order.id === 'string' ? order.id : null;
+  if (!orderId) return;
+  const recipient = await env.DB.prepare(
+    `SELECT users.email FROM native_order_metadata metadata
+     JOIN native_users users ON users.id = metadata.user_id WHERE metadata.order_id = ?1`,
+  ).bind(orderId).first<{ email: string }>();
+  if (!recipient?.email) return;
+  const locale = localeOf(order);
+  const subject = locale === 'zh-CN' ? `BOKMOO 订单已支付：${orderId}` : `BOKMOO payment confirmed: ${orderId}`;
+  const text = locale === 'zh-CN'
+    ? `你的 BOKMOO 订单 ${orderId} 已支付成功，我们会尽快处理。`
+    : `Your BOKMOO order ${orderId} has been paid successfully and is now being processed.`;
+  await enqueueEmail(env, {
+    orderId, recipient: recipient.email, subject, text,
+    html: `<p>${escapeHtml(text)}</p>`, messageType: 'order.paid', dedupeKey: `order-paid:${orderId}`,
+  });
+}
+
+export async function enqueueRefundEmail(
+  env: MailEnv,
+  input: { orderId: string; amount: number; currency: string; fullyRefunded: boolean; reason?: string | null },
+): Promise<void> {
+  const recipient = await env.DB.prepare(
+    `SELECT users.email FROM native_order_metadata metadata
+     JOIN native_users users ON users.id = metadata.user_id WHERE metadata.order_id = ?1`,
+  ).bind(input.orderId).first<{ email: string }>();
+  if (!recipient?.email) return;
+  const amount = `${input.currency} ${input.amount.toFixed(2)}`;
+  const subject = input.fullyRefunded ? `BOKMOO refund completed: ${input.orderId}` : `BOKMOO partial refund completed: ${input.orderId}`;
+  const text = `Your BOKMOO refund for order ${input.orderId} is complete: ${amount}.${input.reason ? ` Reason: ${input.reason}` : ''}`;
+  await enqueueEmail(env, {
+    orderId: input.orderId, recipient: recipient.email, subject, text,
+    html: `<p>${escapeHtml(text)}</p>`, messageType: 'order.refunded', dedupeKey: `order-refunded:${input.orderId}:${input.amount.toFixed(2)}`,
+  });
+}
+
+export async function enqueueAffiliateCommissionEmail(
+  env: MailEnv,
+  input: { commissionId: string; partnerId: string; orderId: string; amount: number; currency: string },
+): Promise<void> {
+  const recipient = await env.DB.prepare(
+    'SELECT email FROM native_affiliate_partners WHERE id = ?1 AND email IS NOT NULL',
+  ).bind(input.partnerId).first<{ email: string }>();
+  if (!recipient?.email) return;
+  const amount = `${input.currency} ${input.amount.toFixed(2)}`;
+  const subject = `BOKMOO affiliate commission recorded: ${input.orderId}`;
+  const text = `A pending BOKMOO affiliate commission of ${amount} was recorded for order ${input.orderId}.`;
+  await enqueueEmail(env, {
+    orderId: input.orderId, recipient: recipient.email, subject, text,
+    html: `<p>${escapeHtml(text)}</p>`, messageType: 'affiliate.commission', dedupeKey: `affiliate-commission:${input.commissionId}`,
+  });
 }
 
 export async function enqueueShipmentEmail(
@@ -34,14 +113,10 @@ export async function enqueueShipmentEmail(
   const text = `Order ${input.orderId} ${label}.\nCarrier: ${input.carrier}\nTracking number: ${input.trackingNumber}${trackingLine ? `\n${trackingLine}` : ''}`;
   const link = input.trackingUrl ? `<p><a href="${escapeHtml(input.trackingUrl)}">Track package</a></p>` : '';
   const html = `<p>Order <strong>${escapeHtml(input.orderId)}</strong> ${escapeHtml(label)}.</p><p>Carrier: ${escapeHtml(input.carrier)}<br>Tracking number: ${escapeHtml(input.trackingNumber)}</p>${link}`;
-  const now = new Date().toISOString();
-  await env.DB.prepare(
-    `INSERT INTO native_email_outbox
-      (id, dedupe_key, message_type, order_id, recipient, subject, text_body, html_body,
-       status, attempt_count, next_attempt_at, created_at, updated_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, 'PENDING', 0, ?9, ?9, ?9)
-     ON CONFLICT(dedupe_key) DO NOTHING`,
-  ).bind(crypto.randomUUID(), `shipment:${input.shipmentId}:${input.status}`, `shipment.${input.status.toLowerCase()}`, input.orderId, recipient.email, subject, text, html, now).run();
+  await enqueueEmail(env, {
+    orderId: input.orderId, recipient: recipient.email, subject, text, html,
+    messageType: `shipment.${input.status.toLowerCase()}`, dedupeKey: `shipment:${input.shipmentId}:${input.status}`,
+  });
 }
 
 export async function processNativeEmailOutbox(env: MailEnv, limit = 25): Promise<MailRunResult> {

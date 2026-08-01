@@ -1,6 +1,7 @@
 import { deliverNativeWebhooks } from './webhooks';
 import { submitNativeOdooOrders } from './external-orders';
 import { createNativeAffiliateCommission } from './affiliate';
+import { enqueueAffiliateCommissionEmail, enqueueOrderPaidEmail, enqueueRefundEmail } from './mail-outbox';
 
 interface OutboxRow {
   id: string;
@@ -87,7 +88,27 @@ async function processEvent(env: OutboxEnv, event: OutboxRow): Promise<void> {
     await fulfillPaidOrder(env, event, now);
     await submitNativeOdooOrders(env, event.aggregate_id);
     const paidSnapshot = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(event.aggregate_id).first<OrderSnapshotRow>();
-    if (paidSnapshot) await createNativeAffiliateCommission(env, JSON.parse(paidSnapshot.payload) as Record<string, unknown>);
+    if (paidSnapshot) {
+      const paidOrder = JSON.parse(paidSnapshot.payload) as Record<string, unknown>;
+      await enqueueOrderPaidEmail(env, paidOrder);
+      const commission = await createNativeAffiliateCommission(env, paidOrder);
+      if (commission) await enqueueAffiliateCommissionEmail(env, commission);
+    }
+  }
+  if (event.event_type === 'order.refunded') {
+    const refund = JSON.parse(event.payload) as { amount?: unknown; fullyRefunded?: unknown; currency?: unknown; reason?: unknown };
+    const amount = Number(refund.amount);
+    if (Number.isFinite(amount) && amount > 0) {
+      const metadata = await env.DB.prepare('SELECT currency FROM native_order_metadata WHERE order_id = ?1')
+        .bind(event.aggregate_id).first<{ currency: string }>();
+      await enqueueRefundEmail(env, {
+        orderId: event.aggregate_id,
+        amount,
+        currency: typeof refund.currency === 'string' ? refund.currency : metadata?.currency ?? 'USD',
+        fullyRefunded: refund.fullyRefunded === true,
+        reason: typeof refund.reason === 'string' ? refund.reason : null,
+      });
+    }
   }
   const snapshot = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(event.aggregate_id).first<OrderSnapshotRow>();
   const eventPayload = snapshot ? { order: JSON.parse(snapshot.payload) } : JSON.parse(event.payload) as unknown;
