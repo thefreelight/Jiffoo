@@ -17,6 +17,9 @@ import { tryNativePluginSettings } from './plugin-settings';
 import { tryNativeIntegrationAdmin } from './integration-admin';
 import { tryNativeInstall } from './install';
 import { importSnapshots } from './snapshot-import';
+import { tryNativeAdminDashboard } from './admin-dashboard';
+import { tryNativeAdminProducts } from './admin-products';
+import { tryNativeAdminApiTokens } from './admin-api-tokens';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv;
 
@@ -230,6 +233,12 @@ export default {
     if (nativePluginSettings) return nativePluginSettings;
     const nativeIntegrationAdmin = await tryNativeIntegrationAdmin(nativeRequest, env);
     if (nativeIntegrationAdmin) return nativeIntegrationAdmin;
+    const nativeAdminDashboard = await tryNativeAdminDashboard(nativeRequest, env);
+    if (nativeAdminDashboard) return nativeAdminDashboard;
+    const nativeAdminProducts = await tryNativeAdminProducts(nativeRequest, env);
+    if (nativeAdminProducts) return nativeAdminProducts;
+    const nativeAdminApiTokens = await tryNativeAdminApiTokens(nativeRequest, env);
+    if (nativeAdminApiTokens) return nativeAdminApiTokens;
     if (isNativeRead(nativeRequest, url)) return serveNativeRead(url, env, ctx);
     const nativeAuth = await tryNativeAuth(nativeRequest, env, () => proxy(request, env));
     if (nativeAuth) return nativeAuth;
