@@ -151,8 +151,10 @@ export class ApiClient {
       (response) => response,
       async (error: AxiosError) => {
         const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+        const requestUrl = originalRequest?.url ?? '';
+        const isLoginRequest = /\/auth\/login(?:\?|$)/.test(requestUrl);
 
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest) {
           originalRequest._retry = true;
 
           try {
