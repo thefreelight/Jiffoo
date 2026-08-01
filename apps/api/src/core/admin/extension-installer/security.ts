@@ -96,6 +96,10 @@ function isThemePackKind(kind?: string): boolean {
     return kind === 'theme-shop' || kind === 'theme-admin';
 }
 
+function isThemeRuntimeBundle(filename: string): boolean {
+    return filename.replace(/\\/g, '/') === 'runtime/theme-runtime.js';
+}
+
 /**
  * Validate file extension
  * @throws Error if file type is forbidden or not allowed
@@ -105,6 +109,12 @@ export function validateFileExtension(filename: string, kind?: string): void {
 
     // Theme Pack (L3.5): strict allow-list + strict forbidden-list
     if (isThemePackKind(kind)) {
+        // Theme packs are declarative by default, but the official runtime
+        // bundle is required to render the pack in the storefront. Keep the
+        // exception path-specific so arbitrary scripts remain blocked.
+        if (isThemeRuntimeBundle(filename)) {
+            return;
+        }
         if (FORBIDDEN_EXTENSIONS.includes(ext as any)) {
             throw new ExtensionInstallerError(
                 `Forbidden file type detected: ${ext}. Executable scripts are not allowed for ${kind} security reasons.`,

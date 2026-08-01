@@ -29,6 +29,11 @@ describe('extension installer security', () => {
     expect(() => validateFileExtension('index.tsx', 'plugin')).toThrow(ExtensionInstallerError);
   });
 
+  it('allows only the official theme runtime bundle in theme packs', () => {
+    expect(() => validateFileExtension('runtime/theme-runtime.js', 'theme-shop')).not.toThrow();
+    expect(() => validateFileExtension('runtime/other.js', 'theme-shop')).toThrow(ExtensionInstallerError);
+  });
+
   it('allows Prisma runtime binaries when validating extracted plugin directories recursively', async () => {
     const tempRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'plugin-security-'));
     const prismaDir = path.join(tempRoot, 'node_modules/.prisma/client');
