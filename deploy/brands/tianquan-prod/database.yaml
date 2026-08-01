@@ -54,7 +54,7 @@ spec:
       nodeSelector: { kubernetes.io/hostname: k8s-worker-02 }
       containers:
         - name: redis
-          image: redis:7.4.5-alpine
+          image: redis:7-alpine
           args: [redis-server, --appendonly, 'yes']
           ports: [{ name: redis, containerPort: 6379 }]
           readinessProbe:
