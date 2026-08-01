@@ -13,6 +13,8 @@ export interface NativeSmtpEnv {
   SMTP_FROM_EMAIL?: string;
   SMTP_FROM_NAME?: string;
   SMTP_REPLY_TO?: string;
+  /** Local test-only escape hatch; production uses the Secrets Store binding. */
+  JWT_SECRET_VALUE?: string;
 }
 
 export type NativeAuthEnv = Pick<Cloudflare.Env, 'DB' | 'JWT_SECRET'> & NativeSmtpEnv;
@@ -47,6 +49,11 @@ export interface PublicUser {
 export interface NativeSessionUser extends PublicUser {}
 
 const encoder = new TextEncoder();
+
+export async function getNativeJwtSecret(env: NativeAuthEnv): Promise<string> {
+  if (env.JWT_SECRET_VALUE?.trim()) return env.JWT_SECRET_VALUE.trim();
+  return env.JWT_SECRET.get();
+}
 
 function base64Url(bytes: Uint8Array): string {
   let binary = '';
@@ -183,7 +190,7 @@ export async function authenticateNativeUser(request: Request, env: NativeAuthEn
   const authorization = request.headers.get('authorization');
   const token = cookie(request, 'auth_token') ?? (authorization?.startsWith('Bearer ') ? authorization.slice(7) : null);
   if (!token) return null;
-  const secret = await env.JWT_SECRET.get();
+  const secret = await getNativeJwtSecret(env);
   const payload = await verifyJwt(secret, token);
   if (!payload || payload.type === 'refresh' || payload.iss !== 'jiffoo-shop' || payload.aud !== 'shop') return null;
   if (typeof payload.userId !== 'string') return null;
@@ -195,7 +202,7 @@ export async function authenticateNativeAdmin(request: Request, env: NativeAuthE
   const authorization = request.headers.get('authorization');
   const token = cookie(request, 'admin_auth_token') ?? (authorization?.startsWith('Bearer ') ? authorization.slice(7) : null);
   if (!token) return null;
-  const secret = await env.JWT_SECRET.get();
+  const secret = await getNativeJwtSecret(env);
   const payload = await verifyJwt(secret, token);
   if (!payload || payload.type === 'refresh' || payload.iss !== 'jiffoo-admin' || payload.aud !== 'admin') return null;
   if (typeof payload.userId !== 'string') return null;
@@ -208,7 +215,7 @@ export async function createNativeSession(
   user: PublicUser,
   audience: 'shop' | 'admin' = 'shop',
 ): Promise<{ body: Record<string, unknown>; headers: Headers }> {
-  const secret = await env.JWT_SECRET.get();
+  const secret = await getNativeJwtSecret(env);
   const now = Math.floor(Date.now() / 1000);
   const issuer = audience === 'admin' ? 'jiffoo-admin' : 'jiffoo-shop';
   const accessCookie = audience === 'admin' ? 'admin_auth_token' : 'auth_token';
@@ -294,7 +301,7 @@ export async function tryNativeAuth(
     const body: { refresh_token?: string } = await request.clone().json<{ refresh_token?: string }>().catch(() => ({}));
     const token = cookie(request, 'admin_refresh_token') ?? body.refresh_token;
     if (!token) return null;
-    const secret = await env.JWT_SECRET.get();
+    const secret = await getNativeJwtSecret(env);
     const payload = await verifyJwt(secret, token);
     if (!payload || payload.type !== 'refresh' || payload.iss !== 'jiffoo-admin' || payload.aud !== 'admin') return null;
     const user = await env.DB.prepare('SELECT * FROM native_users WHERE id = ?1').bind(payload.userId).first<NativeUser>();
@@ -308,7 +315,7 @@ export async function tryNativeAuth(
       ? request.headers.get('authorization')!.slice(7)
       : null);
     if (!token) return null;
-    const secret = await env.JWT_SECRET.get();
+    const secret = await getNativeJwtSecret(env);
     const payload = await verifyJwt(secret, token);
     if (!payload || payload.iss !== 'jiffoo-admin' || payload.aud !== 'admin' || typeof payload.userId !== 'string') return null;
     const user = await env.DB.prepare('SELECT * FROM native_users WHERE id = ?1').bind(payload.userId).first<NativeUser>();
@@ -462,7 +469,7 @@ export async function tryNativeAuth(
     const body: { refresh_token?: string } = await request.clone().json<{ refresh_token?: string }>().catch(() => ({}));
     const token = cookie(request, 'refresh_token') ?? body.refresh_token;
     if (!token) return null;
-    const secret = await env.JWT_SECRET.get();
+    const secret = await getNativeJwtSecret(env);
     const payload = await verifyJwt(secret, token);
     if (!payload || payload.type !== 'refresh' || payload.iss !== 'jiffoo-shop' || payload.aud !== 'shop') return null;
     const user = await env.DB.prepare('SELECT * FROM native_users WHERE id = ?1').bind(payload.userId).first<NativeUser>();

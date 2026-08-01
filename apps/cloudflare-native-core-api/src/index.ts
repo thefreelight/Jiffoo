@@ -192,12 +192,12 @@ export default {
       const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'core_schema_version'")
         .first<{ value: string }>();
       return Response.json({
-        status: row?.value === '0018' ? 'ok' : 'degraded',
+        status: row?.value === '0019' ? 'ok' : 'degraded',
         service: 'jiffoo-native-core-api',
         runtime: 'cloudflare-workers-free',
         version: env.RUNTIME_VERSION,
         d1Schema: row?.value ?? null,
-      }, { status: row?.value === '0018' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
+      }, { status: row?.value === '0019' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
     }
     if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {
       return serveAsset(url, env);

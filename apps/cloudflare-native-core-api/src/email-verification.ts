@@ -1,5 +1,5 @@
 import { sendSmtpEmail } from './smtp';
-import { findNativeUserByEmail, type NativeAuthEnv } from './auth';
+import { findNativeUserByEmail, getNativeJwtSecret, type NativeAuthEnv } from './auth';
 
 const CODE_TTL_SECONDS = 600;
 const MAX_ATTEMPTS = 5;
@@ -29,7 +29,7 @@ export async function sendNativeVerificationCode(
   user: { id: string; email: string; username: string },
 ): Promise<void> {
   const value = code();
-  const secret = await env.JWT_SECRET.get();
+  const secret = await getNativeJwtSecret(env);
   const expiresAt = new Date(Date.now() + CODE_TTL_SECONDS * 1000).toISOString();
   await env.DB.prepare(
     `UPDATE native_users SET verification_code_hash = ?1, verification_expires_at = ?2,
@@ -55,7 +55,7 @@ export async function verifyNativeEmailCode(
   if (!user.verification_code_hash || !user.verification_expires_at) return { success: false, error: 'Request a new verification code' };
   if (Date.parse(user.verification_expires_at) <= Date.now()) return { success: false, error: 'Verification code has expired' };
 
-  const secret = await env.JWT_SECRET.get();
+  const secret = await getNativeJwtSecret(env);
   const valid = equal(user.verification_code_hash, await digest(secret, user.id, value));
   if (!valid) {
     const attempts = user.verification_attempts + 1;

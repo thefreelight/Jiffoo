@@ -94,8 +94,10 @@ export interface BokmooApiOrder {
   updatedAt?: string;
   status?: string;
   shipments?: Array<{
-    id: string; carrier: string; trackingNumber: string; trackingUrl?: string | null; status: string;
+    id: string; carrier: string; carrierCode?: string | null; carrierName?: string | null;
+    trackingNumber: string; trackingUrl?: string | null; status: string;
     shippedAt?: string | null; deliveredAt?: string | null; estimatedDeliveryAt?: string | null; lastCheckedAt?: string | null;
+    events?: Array<{ status: string; description?: string | null; occurredAt: string }>;
   }>;
   items: BokmooApiOrderItem[];
 }
