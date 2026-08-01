@@ -50,7 +50,8 @@ const setupSteps = [
 ] as const
 
 function getApiBaseUrl() {
-  return (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/$/, '')
+  const base = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/$/, '')
+  return base === '/api' || base.endsWith('/api') ? `${base}/v1` : base
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
