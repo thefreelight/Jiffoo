@@ -246,12 +246,13 @@ export async function getNativePluginSecret(
   env: PluginSettingsEnv,
   slug: string,
   field: string,
-  fallback?: SecretsStoreSecret,
+  fallback?: SecretsStoreSecret | string,
 ): Promise<string> {
   const stored = await getNativePluginConfig(env, slug);
   const value = stored?.enabled ? stored.config[field] : undefined;
   if (typeof value === 'string' && value.trim()) return value.trim();
-  return fallback ? fallback.get() : '';
+  if (!fallback) return '';
+  return typeof fallback === 'string' ? fallback : fallback.get();
 }
 
 export async function tryNativePluginSettings(request: Request, env: PluginSettingsEnv): Promise<Response | null> {

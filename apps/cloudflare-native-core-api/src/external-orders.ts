@@ -8,7 +8,7 @@ interface ExternalOrderEnv {
   JWT_SECRET: SecretsStoreSecret;
   CORE_ORIGIN: string;
   PUBLIC_API_BASE_URL?: string;
-  CATALOG_IMPORT_TOKEN?: SecretsStoreSecret;
+  CATALOG_IMPORT_TOKEN?: SecretsStoreSecret | string;
 }
 
 interface SupplierUpdate {
@@ -29,6 +29,40 @@ interface SupplierUpdate {
   lastCheckedAt?: unknown;
   shipmentEvents?: unknown;
   rawResponse?: unknown;
+}
+
+function object(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function value(source: Record<string, unknown>, ...keys: string[]): unknown {
+  for (const key of keys) if (source[key] !== undefined) return source[key];
+  return undefined;
+}
+
+function normalizeOdooWebhook(raw: unknown): SupplierUpdate | null {
+  const source = object(raw);
+  if (Object.keys(source).length === 0) return null;
+  const shipment = { ...object(source.shipping), ...object(source.shipment) };
+  const field = (...keys: string[]) => value(shipment, ...keys) ?? value(source, ...keys);
+  return {
+    provider: 'odoo',
+    externalOrderRef: value(source, 'externalOrderRef', 'external_order_ref', 'customerOrderRef', 'customer_order_ref', 'client_order_ref'),
+    externalOrderName: value(source, 'externalOrderName', 'external_order_name', 'orderName', 'order_name', 'name'),
+    externalStatus: value(source, 'externalStatus', 'external_status', 'state'),
+    productCode: value(source, 'productCode', 'product_code', 'default_code'),
+    shipmentId: value(shipment, 'shipmentId', 'shipment_id', 'id') ?? value(source, 'shipmentId', 'shipment_id'),
+    carrierCode: field('carrierCode', 'carrier_code'),
+    carrierName: field('carrierName', 'carrier_name', 'carrier'),
+    trackingNumber: field('trackingNumber', 'tracking_number'),
+    trackingUrl: field('trackingUrl', 'tracking_url'),
+    shipmentStatus: field('shipmentStatus', 'shipment_status', 'status'),
+    shippedAt: field('shippedAt', 'shipped_at', 'date_done'),
+    estimatedDeliveryAt: field('estimatedDeliveryAt', 'estimated_delivery_at', 'scheduled_date'),
+    lastCheckedAt: field('lastCheckedAt', 'last_checked_at', 'write_date'),
+    shipmentEvents: field('shipmentEvents', 'shipment_events', 'events'),
+    rawResponse: source,
+  };
 }
 
 function text(value: unknown): string | null {
@@ -139,25 +173,35 @@ export async function submitNativeOdooOrders(env: ExternalOrderEnv, orderId: str
 
 export async function tryNativeExternalOrderSync(request: Request, env: ExternalOrderEnv): Promise<Response | null> {
   const path = new URL(request.url).pathname;
-  if (request.method !== 'POST' || path !== '/api/v1/admin/integrations/external-orders/sync-status') return null;
+  const legacyPath = path === '/api/v1/admin/integrations/external-orders/sync-status';
+  const nativeOdooPath = path === '/api/v1/integrations/odoo/shipment-webhook';
+  if (request.method !== 'POST' || (!legacyPath && !nativeOdooPath)) return null;
   const expected = await getNativePluginSecret(env, 'odoo', 'webhookSecret', env.CATALOG_IMPORT_TOKEN);
   const provided = request.headers.get('x-catalog-import-token')?.trim() || request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim() || '';
   if (!expected) return Response.json({ success: false, error: { code: 'EXTERNAL_ORDER_SYNC_DISABLED', message: 'Integration token is not configured' } }, { status: 503 });
   if (!provided || provided !== expected) return Response.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Invalid integration token' } }, { status: 401 });
-  const body = await request.json<{ updates?: unknown }>().catch(() => null);
-  if (!body || !Array.isArray(body.updates) || body.updates.length === 0) return Response.json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'updates must contain at least one item' } }, { status: 400 });
+  const body = await request.json<Record<string, unknown>>().catch(() => null);
+  const updates = nativeOdooPath
+    ? (Array.isArray(body?.updates) ? body.updates : [body]).map(normalizeOdooWebhook).filter((item): item is SupplierUpdate => Boolean(item))
+    : Array.isArray(body?.updates) ? body.updates : [];
+  if (updates.length === 0) return Response.json({ success: false, error: { code: 'VALIDATION_ERROR', message: 'updates must contain at least one item' } }, { status: 400 });
   let matched = 0;
-  for (const raw of body.updates) {
+  for (const raw of updates) {
     if (!raw || typeof raw !== 'object') continue;
     const update = raw as SupplierUpdate;
     const provider = text(update.provider);
     const installationId = text(update.installationId);
     const externalOrderRef = text(update.externalOrderRef);
-    if (!provider || !installationId || !externalOrderRef) continue;
-    const link = await env.DB.prepare(
-      `SELECT id, order_id, order_item_id FROM native_external_order_links
-       WHERE provider = ?1 AND installation_id = ?2 AND external_order_ref = ?3`,
-    ).bind(provider, installationId, externalOrderRef).first<{ id: string; order_id: string; order_item_id: string }>();
+    if (!provider || !externalOrderRef || (legacyPath && !installationId)) continue;
+    const link = installationId
+      ? await env.DB.prepare(
+        `SELECT id, order_id, order_item_id FROM native_external_order_links
+         WHERE provider = ?1 AND installation_id = ?2 AND external_order_ref = ?3`,
+      ).bind(provider, installationId, externalOrderRef).first<{ id: string; order_id: string; order_item_id: string }>()
+      : await env.DB.prepare(
+        `SELECT id, order_id, order_item_id FROM native_external_order_links
+         WHERE provider = 'odoo' AND external_order_ref = ?1 ORDER BY created_at DESC LIMIT 1`,
+      ).bind(externalOrderRef).first<{ id: string; order_id: string; order_item_id: string }>();
     if (!link) continue;
     const externalStatus = text(update.externalStatus);
     const shipmentStatus = text(update.shipmentStatus);
@@ -194,9 +238,10 @@ export async function tryNativeExternalOrderSync(request: Request, env: External
       'SELECT id, carrier, tracking_number, tracking_url, status FROM native_shipments WHERE order_id = ?1 AND tracking_number = COALESCE(?2, ?3)'
     ).bind(link.order_id, text(update.trackingNumber), text(update.shipmentId)).first<{ id: string; carrier: string; tracking_number: string; tracking_url: string | null; status: string }>();
     if (shipment && shipment.status === normalizedStatus) {
-      await enqueueShipmentEmail(env, { orderId: link.order_id, shipmentId: shipment.id, status: shipment.status, carrier: shipment.carrier, trackingNumber: shipment.tracking_number, trackingUrl: shipment.tracking_url });
+      const notificationStatus = ['IN_TRANSIT', 'OUT_FOR_DELIVERY'].includes(shipment.status) ? 'SHIPPED' : shipment.status;
+      await enqueueShipmentEmail(env, { orderId: link.order_id, shipmentId: shipment.id, status: notificationStatus, carrier: shipment.carrier, trackingNumber: shipment.tracking_number, trackingUrl: shipment.tracking_url });
     }
     matched += 1;
   }
-  return Response.json({ success: true, data: { matched, received: body.updates.length } }, { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-external-orders' } });
+  return Response.json({ success: true, data: { matched, received: updates.length } }, { headers: { 'x-jiffoo-runtime': nativeOdooPath ? 'cloudflare-native-d1-odoo-shipping' : 'cloudflare-native-d1-external-orders' } });
 }
