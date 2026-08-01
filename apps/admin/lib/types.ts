@@ -175,7 +175,7 @@ export interface PluginState {
   configRequired?: boolean
   configReady?: boolean
   missingConfigFields?: string[]
-  runtimeType?: 'internal-fastify' | 'external-http'
+  runtimeType?: 'internal-fastify' | 'external-http' | 'cloudflare-native'
   enabledAt?: string
   disabledAt?: string
 }

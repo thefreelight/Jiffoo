@@ -1,5 +1,8 @@
 import { connect } from 'cloudflare:sockets';
 import type { NativeSmtpEnv } from './auth';
+import { getNativePluginConfig } from './plugin-settings';
+
+type SmtpEnv = NativeSmtpEnv & Pick<Cloudflare.Env, 'DB' | 'JWT_SECRET'>;
 
 interface SmtpSession {
   socket: ReturnType<typeof connect>;
@@ -11,22 +14,29 @@ interface SmtpSession {
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-function configuration(env: NativeSmtpEnv) {
-  const host = env.SMTP_HOST?.trim();
-  const port = Number(env.SMTP_PORT || '587');
-  const fromEmail = env.SMTP_FROM_EMAIL?.trim() || env.SMTP_FROM?.trim();
+async function configuration(env: SmtpEnv) {
+  const stored = await getNativePluginConfig(env, 'smtp-email');
+  const plugin = stored?.enabled ? stored.config : {};
+  const stringValue = (value: unknown): string => typeof value === 'string' ? value.trim() : '';
+  const host = stringValue(plugin.smtpHost) || env.SMTP_HOST?.trim();
+  const port = Number(plugin.smtpPort || env.SMTP_PORT || '587');
+  const fromEmail = stringValue(plugin.fromEmail) || env.SMTP_FROM_EMAIL?.trim() || env.SMTP_FROM?.trim();
   if (!host || !Number.isInteger(port) || port <= 0 || !fromEmail) {
     throw new Error('Mailcow SMTP is not configured');
   }
   return {
     host,
     port,
-    secure: env.SMTP_SECURE?.trim().toLowerCase() === 'true' || port === 465,
-    user: env.SMTP_USERNAME?.trim() || env.SMTP_USER?.trim() || '',
-    pass: env.SMTP_PASSWORD || env.SMTP_PASS || '',
+    secure: typeof plugin.smtpSecure === 'boolean'
+      ? plugin.smtpSecure
+      : env.SMTP_SECURE?.trim().toLowerCase() === 'true' || port === 465,
+    user: stringValue(plugin.smtpUser) || env.SMTP_USERNAME?.trim() || env.SMTP_USER?.trim() || '',
+    pass: stringValue(plugin.smtpPass) || env.SMTP_PASSWORD || env.SMTP_PASS || '',
     fromEmail,
-    from: env.SMTP_FROM_NAME?.trim() ? `${header(env.SMTP_FROM_NAME)} <${mailbox(fromEmail)}>` : fromEmail,
-    replyTo: env.SMTP_REPLY_TO?.trim() || '',
+    from: stringValue(plugin.fromName) || env.SMTP_FROM_NAME?.trim()
+      ? `${header(stringValue(plugin.fromName) || env.SMTP_FROM_NAME!)} <${mailbox(fromEmail)}>`
+      : fromEmail,
+    replyTo: stringValue(plugin.replyTo) || env.SMTP_REPLY_TO?.trim() || '',
   };
 }
 
@@ -83,10 +93,10 @@ function mailbox(value: string): string {
 }
 
 export async function sendSmtpEmail(
-  env: NativeSmtpEnv,
+  env: SmtpEnv,
   message: { to: string; subject: string; text: string; html: string },
 ): Promise<void> {
-  const config = configuration(env);
+  const config = await configuration(env);
   let current = session(connect(
     { hostname: config.host, port: config.port },
     { secureTransport: config.secure ? 'on' : 'starttls', allowHalfOpen: false },

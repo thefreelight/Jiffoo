@@ -1,5 +1,6 @@
 import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
 import { attachShipments } from './shipments';
+import { getNativePluginSecret } from './plugin-settings';
 
 interface AdminWriteEnv extends NativeAuthEnv { DB: D1Database; STRIPE_SECRET_KEY: SecretsStoreSecret }
 type Status = 'PENDING' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED';
@@ -27,7 +28,7 @@ function itemsFrom(order: Record<string, unknown>): Array<Record<string, unknown
 
 async function stripePaymentIntent(env: AdminWriteEnv, sessionId: string, storedIntent: string | null): Promise<string | null> {
   if (storedIntent) return storedIntent;
-  const secret = await env.STRIPE_SECRET_KEY.get();
+  const secret = await getNativePluginSecret(env, 'stripe', 'secretKey', env.STRIPE_SECRET_KEY);
   const response = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}`, {
     headers: { authorization: `Bearer ${secret}` },
   });
@@ -164,7 +165,7 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
       await env.DB.prepare("DELETE FROM native_refunds WHERE id = ?1 AND status = 'PENDING'").bind(refundId).run();
       return error(502, 'PAYMENT_REFUND_FAILED', 'Stripe payment intent is unavailable');
     }
-    const secret = await env.STRIPE_SECRET_KEY.get();
+    const secret = await getNativePluginSecret(env, 'stripe', 'secretKey', env.STRIPE_SECRET_KEY);
     const form = new URLSearchParams({ payment_intent: intent, amount: String(Math.round(amount * 100)), 'metadata[orderId]': orderId });
     const stripe = await fetch('https://api.stripe.com/v1/refunds', { method: 'POST', headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/x-www-form-urlencoded', 'idempotency-key': body.idempotencyKey.trim() }, body: form });
     const provider = await stripe.json<{ id?: string; status?: string; error?: { message?: string } }>();

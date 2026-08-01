@@ -13,6 +13,8 @@ import { tryNativeShopperAccount } from './shopper-account';
 import { tryNativeExternalOrderSync } from './external-orders';
 import { processNativeEmailOutbox } from './mail-outbox';
 import { tryNativeAffiliate } from './affiliate';
+import { tryNativePluginSettings } from './plugin-settings';
+import { tryNativeIntegrationAdmin } from './integration-admin';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv;
 
@@ -192,12 +194,12 @@ export default {
       const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'core_schema_version'")
         .first<{ value: string }>();
       return Response.json({
-        status: row?.value === '0019' ? 'ok' : 'degraded',
+        status: row?.value === '0020' ? 'ok' : 'degraded',
         service: 'jiffoo-native-core-api',
         runtime: 'cloudflare-workers-free',
         version: env.RUNTIME_VERSION,
         d1Schema: row?.value ?? null,
-      }, { status: row?.value === '0019' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
+      }, { status: row?.value === '0020' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
     }
     if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {
       return serveAsset(url, env);
@@ -206,6 +208,10 @@ export default {
     if (nativeShopperAccount) return nativeShopperAccount;
     const nativeAffiliate = await tryNativeAffiliate(nativeRequest, env);
     if (nativeAffiliate) return nativeAffiliate;
+    const nativePluginSettings = await tryNativePluginSettings(nativeRequest, env);
+    if (nativePluginSettings) return nativePluginSettings;
+    const nativeIntegrationAdmin = await tryNativeIntegrationAdmin(nativeRequest, env);
+    if (nativeIntegrationAdmin) return nativeIntegrationAdmin;
     if (isNativeRead(nativeRequest, url)) return serveNativeRead(url, env, ctx);
     const nativeAuth = await tryNativeAuth(nativeRequest, env, () => proxy(request, env));
     if (nativeAuth) return nativeAuth;
