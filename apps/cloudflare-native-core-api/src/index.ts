@@ -20,6 +20,7 @@ import { importSnapshots } from './snapshot-import';
 import { tryNativeAdminDashboard } from './admin-dashboard';
 import { tryNativeAdminProducts } from './admin-products';
 import { tryNativeAdminApiTokens } from './admin-api-tokens';
+import { nativeUpgradeVersion } from './upgrade-version';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv;
 
@@ -63,41 +64,6 @@ function runtimeHeaders(runtime: string, headers?: HeadersInit): Headers {
   const result = new Headers(headers);
   result.set('x-jiffoo-runtime', runtime);
   return result;
-}
-
-function nativeUpgradeVersion(env: WorkerEnv): Response {
-  const currentVersion = env.RUNTIME_VERSION || '0.0.1';
-  return Response.json({
-    success: true,
-    data: {
-      currentVersion,
-      latestVersion: currentVersion,
-      updateAvailable: false,
-      releaseNotes: 'Current Cloudflare-native runtime release.',
-      changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.45-opensource',
-      sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
-      checksumUrl: null,
-      releaseTag: 'v1.0.45-opensource',
-      repository: 'thefreelight/Jiffoo',
-      deliveryMode: 'image-first',
-      runtimeImages: null,
-      releaseDate: '2026-08-01T11:05:30.000Z',
-      releaseChannel: 'stable',
-      deploymentMode: 'unsupported',
-      deploymentModeSource: 'env',
-      deploymentModeReason: 'Cloudflare-native runtime manages deployments through the platform release pipeline.',
-      oneClickUpgradeSupported: false,
-      oneClickUpgradeAvailable: false,
-      oneClickUpgradeBlockedReason: 'Cloudflare-native instances are upgraded through the published Worker release pipeline.',
-      updateSource: 'env-manifest',
-      manifestUrl: 'https://get.jiffoo.com/releases/core/manifest.json',
-      manifestStatus: 'available',
-      minimumAutoUpgradableVersion: '1.0.0',
-      requiresManualIntervention: false,
-      recoveryMode: 'automatic-recovery',
-      manualGuidance: null,
-    },
-  }, { headers: runtimeHeaders('cloudflare-native-version') });
 }
 
 function normalizePublicApiRequest(request: Request): Request {
