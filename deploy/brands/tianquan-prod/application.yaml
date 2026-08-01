@@ -25,6 +25,8 @@ spec:
           ports: [{ name: http, containerPort: 3002 }]
           env:
             - { name: NODE_ENV, value: production }
+            - { name: JIFFOO_DEMO_MODE, value: 'false' }
+            - { name: OFFICIAL_MARKET_ONLY, value: 'true' }
             - { name: API_HOST, value: 0.0.0.0 }
             - { name: API_PORT, value: '3002' }
             - { name: APP_VERSION, value: 1.0.5 }
