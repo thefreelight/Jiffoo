@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: tianquan-migrate-07b38815-r1
+  name: tianquan-migrate-07b38815-r2
 spec:
   backoffLimit: 2
   template:
@@ -12,7 +12,7 @@ spec:
       containers:
         - name: migrate
           image: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api@sha256:a95ed641b8ba0e6151db49949a4b83c6407147d00a9aba46b42b7f612cdba939
-          command: [sh, -lc, 'export HOME=/tmp COREPACK_HOME=/tmp/corepack; cd /app/apps/api && pnpm exec prisma migrate deploy']
+          command: [sh, -lc, 'cd /app/apps/api && /app/node_modules/.bin/prisma migrate deploy']
           env:
             - name: DATABASE_URL
               valueFrom: { secretKeyRef: { name: tianquan-secrets, key: database-url } }
