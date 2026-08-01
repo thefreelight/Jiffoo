@@ -16,6 +16,7 @@ import { tryNativeAffiliate } from './affiliate';
 import { tryNativePluginSettings } from './plugin-settings';
 import { tryNativeIntegrationAdmin } from './integration-admin';
 import { tryNativeInstall } from './install';
+import { importSnapshots } from './snapshot-import';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv;
 
@@ -90,32 +91,6 @@ async function proxy(request: Request, env: WorkerEnv): Promise<Response> {
     statusText: upstream.statusText,
     headers: runtimeHeaders('cloudflare-fallback-origin', upstream.headers),
   });
-}
-
-/**
- * Snapshot refresh is intentionally kept as an explicit import primitive.
- * It must never be called by a public read path: production reads are
- * authoritative against the D1 snapshot that was imported by an operator or
- * scheduled ingestion job.
- */
-async function refreshSnapshot(url: URL, env: WorkerEnv): Promise<Snapshot> {
-  const target = new URL(url.pathname + url.search, env.CORE_ORIGIN);
-  const response = await fetch(target, { headers: { accept: 'application/json' } });
-  const payload = await response.text();
-  const contentType = response.headers.get('content-type') ?? 'application/json; charset=utf-8';
-  if (contentType.includes('application/json')) JSON.parse(payload);
-  const value: Snapshot = { payload, status_code: response.status, content_type: contentType };
-  const key = snapshotKey(url);
-  await env.DB.prepare(
-    `INSERT INTO core_api_snapshots
-      (cache_key, request_path, payload, status_code, content_type, source_updated_at, refreshed_at)
-     VALUES (?1, ?2, ?3, ?4, ?5, ?6, CURRENT_TIMESTAMP)
-     ON CONFLICT(cache_key) DO UPDATE SET payload = excluded.payload,
-       status_code = excluded.status_code, content_type = excluded.content_type,
-       source_updated_at = excluded.source_updated_at, refreshed_at = CURRENT_TIMESTAMP`,
-  ).bind(key, url.pathname + url.search, payload, response.status, contentType, new Date().toISOString()).run();
-  await env.CACHE.put(key, JSON.stringify(value), { expirationTtl: 120 });
-  return value;
 }
 
 async function readSnapshot(url: URL, env: WorkerEnv): Promise<Snapshot | null> {
@@ -205,6 +180,8 @@ export default {
     if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {
       return serveAsset(url, env);
     }
+    const snapshotImport = await importSnapshots(nativeRequest, env);
+    if (snapshotImport) return snapshotImport;
     const nativeInstall = await tryNativeInstall(nativeRequest, env);
     if (nativeInstall) return nativeInstall;
     const nativeShopperAccount = await tryNativeShopperAccount(nativeRequest, env);
