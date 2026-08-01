@@ -1,7 +1,7 @@
 import { deliverNativeWebhooks } from './webhooks';
 import { submitNativeOdooOrders } from './external-orders';
 import { createNativeAffiliateCommission } from './affiliate';
-import { enqueueAffiliateCommissionEmail, enqueueOrderPaidEmail, enqueueRefundEmail } from './mail-outbox';
+import { enqueueAffiliateCommissionEmail, enqueueOrganizationCommissionEmail, enqueueOrderPaidEmail, enqueueRefundEmail } from './mail-outbox';
 
 interface OutboxRow {
   id: string;
@@ -92,7 +92,10 @@ async function processEvent(env: OutboxEnv, event: OutboxRow): Promise<void> {
       const paidOrder = JSON.parse(paidSnapshot.payload) as Record<string, unknown>;
       await enqueueOrderPaidEmail(env, paidOrder);
       const commission = await createNativeAffiliateCommission(env, paidOrder);
-      if (commission) await enqueueAffiliateCommissionEmail(env, commission);
+      if (commission) {
+        await enqueueAffiliateCommissionEmail(env, commission.partner);
+        if (commission.organization) await enqueueOrganizationCommissionEmail(env, commission.organization);
+      }
     }
   }
   if (event.event_type === 'order.refunded') {
