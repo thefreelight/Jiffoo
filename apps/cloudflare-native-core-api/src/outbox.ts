@@ -1,5 +1,6 @@
 import { deliverNativeWebhooks } from './webhooks';
 import { submitNativeOdooOrders } from './external-orders';
+import { createNativeAffiliateCommission } from './affiliate';
 
 interface OutboxRow {
   id: string;
@@ -85,6 +86,8 @@ async function processEvent(env: OutboxEnv, event: OutboxRow): Promise<void> {
   if (event.event_type === 'payment.succeeded') {
     await fulfillPaidOrder(env, event, now);
     await submitNativeOdooOrders(env, event.aggregate_id);
+    const paidSnapshot = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(event.aggregate_id).first<OrderSnapshotRow>();
+    if (paidSnapshot) await createNativeAffiliateCommission(env, JSON.parse(paidSnapshot.payload) as Record<string, unknown>);
   }
   const snapshot = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(event.aggregate_id).first<OrderSnapshotRow>();
   const eventPayload = snapshot ? { order: JSON.parse(snapshot.payload) } : JSON.parse(event.payload) as unknown;
