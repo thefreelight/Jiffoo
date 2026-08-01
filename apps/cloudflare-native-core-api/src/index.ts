@@ -15,6 +15,7 @@ import { processNativeEmailOutbox } from './mail-outbox';
 import { tryNativeAffiliate } from './affiliate';
 import { tryNativePluginSettings } from './plugin-settings';
 import { tryNativeIntegrationAdmin } from './integration-admin';
+import { tryNativeInstall } from './install';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv;
 
@@ -204,6 +205,8 @@ export default {
     if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {
       return serveAsset(url, env);
     }
+    const nativeInstall = await tryNativeInstall(nativeRequest, env);
+    if (nativeInstall) return nativeInstall;
     const nativeShopperAccount = await tryNativeShopperAccount(nativeRequest, env);
     if (nativeShopperAccount) return nativeShopperAccount;
     const nativeAffiliate = await tryNativeAffiliate(nativeRequest, env);
