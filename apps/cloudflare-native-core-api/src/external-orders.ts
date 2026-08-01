@@ -40,7 +40,7 @@ function value(source: Record<string, unknown>, ...keys: string[]): unknown {
   return undefined;
 }
 
-function normalizeOdooWebhook(raw: unknown): SupplierUpdate | null {
+export function normalizeOdooWebhook(raw: unknown): SupplierUpdate | null {
   const source = object(raw);
   if (Object.keys(source).length === 0) return null;
   const shipment = { ...object(source.shipping), ...object(source.shipment) };
