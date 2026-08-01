@@ -97,6 +97,23 @@ export async function enqueueAffiliateCommissionEmail(
   });
 }
 
+export async function enqueueOrganizationCommissionEmail(
+  env: MailEnv,
+  input: { commissionId: string; beneficiaryUserId: string; orderId: string; amount: number; currency: string },
+): Promise<void> {
+  const recipient = await env.DB.prepare(
+    'SELECT email FROM native_users WHERE id = ?1',
+  ).bind(input.beneficiaryUserId).first<{ email: string }>();
+  if (!recipient?.email) return;
+  const amount = `${input.currency} ${input.amount.toFixed(2)}`;
+  const subject = `BOKMOO organization commission recorded: ${input.orderId}`;
+  const text = `A pending BOKMOO organization commission of ${amount} was recorded for order ${input.orderId}.`;
+  await enqueueEmail(env, {
+    orderId: input.orderId, recipient: recipient.email, subject, text,
+    html: `<p>${escapeHtml(text)}</p>`, messageType: 'affiliate.organization.commission', dedupeKey: `affiliate-organization-commission:${input.commissionId}`,
+  });
+}
+
 export async function enqueueShipmentEmail(
   env: MailEnv,
   input: { orderId: string; shipmentId: string; status: string; carrier: string; trackingNumber: string; trackingUrl?: string | null },
