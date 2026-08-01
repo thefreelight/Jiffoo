@@ -289,13 +289,15 @@ function main() {
     if (dryRun) {
       console.log('[dry-run] pnpm --filter api type-check');
       console.log('[dry-run] pnpm --filter admin type-check');
-      console.log('[dry-run] node scripts/build-update-feed.mjs ...');
     } else {
       run('pnpm', ['--filter', 'api', 'type-check']);
       run('pnpm', ['--filter', 'admin', 'type-check']);
-      buildFeed(version, releaseDate, notes, false);
     }
   }
+
+  // --skip-checks only skips validation. Release assets must always be rebuilt
+  // so a publish cannot silently upload artifacts left by an older version.
+  buildFeed(version, releaseDate, notes, dryRun);
 
   if (!publish) {
     console.log('Prepared metadata only. Re-run with --publish to commit, tag, push, create release, and upload assets.');

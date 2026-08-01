@@ -1253,6 +1253,28 @@ addCheck('local OSS release helper can quarantine existing bad releases', () => 
   );
 });
 
+addCheck('local OSS release helper always rebuilds release assets', () => {
+  const releaseHelper = read('scripts/release-oss-patch.mjs');
+  const validationPath = section(
+    releaseHelper,
+    'if (!skipChecks) {',
+    'if (!publish) {',
+    'release helper validation and feed build path',
+  );
+
+  assertIncludes(
+    validationPath,
+    'buildFeed(version, releaseDate, notes, dryRun);',
+    'release feed is rebuilt even with --skip-checks',
+  );
+  assertBefore(
+    validationPath,
+    '}\n\n  // --skip-checks only skips validation.',
+    'buildFeed(version, releaseDate, notes, dryRun);',
+    'release feed build remains outside the skip-checks validation branch',
+  );
+});
+
 addCheck('manual OSS release repair workflow uses hardened release helper', () => {
   const workflow = read('.github/workflows/repair-oss-release-publication.yml');
   const runbook = read('docs/operations/oss-release-publication-repair-runbook.md');
