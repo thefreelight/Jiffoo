@@ -61,6 +61,41 @@ function runtimeHeaders(runtime: string, headers?: HeadersInit): Headers {
   return result;
 }
 
+function nativeUpgradeVersion(env: WorkerEnv): Response {
+  const currentVersion = env.RUNTIME_VERSION || '0.0.1';
+  return Response.json({
+    success: true,
+    data: {
+      currentVersion,
+      latestVersion: currentVersion,
+      updateAvailable: false,
+      releaseNotes: 'Current Cloudflare-native runtime release.',
+      changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.45-opensource',
+      sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
+      checksumUrl: null,
+      releaseTag: 'v1.0.45-opensource',
+      repository: 'thefreelight/Jiffoo',
+      deliveryMode: 'image-first',
+      runtimeImages: null,
+      releaseDate: '2026-08-01T11:05:30.000Z',
+      releaseChannel: 'stable',
+      deploymentMode: 'unsupported',
+      deploymentModeSource: 'env',
+      deploymentModeReason: 'Cloudflare-native runtime manages deployments through the platform release pipeline.',
+      oneClickUpgradeSupported: false,
+      oneClickUpgradeAvailable: false,
+      oneClickUpgradeBlockedReason: 'Cloudflare-native instances are upgraded through the published Worker release pipeline.',
+      updateSource: 'env-manifest',
+      manifestUrl: 'https://get.jiffoo.com/releases/core/manifest.json',
+      manifestStatus: 'available',
+      minimumAutoUpgradableVersion: '1.0.0',
+      requiresManualIntervention: false,
+      recoveryMode: 'automatic-recovery',
+      manualGuidance: null,
+    },
+  }, { headers: runtimeHeaders('cloudflare-native-version') });
+}
+
 function normalizePublicApiRequest(request: Request): Request {
   const url = new URL(request.url);
   if (!url.pathname.startsWith('/api/') || url.pathname.startsWith('/api/v1/')) return request;
@@ -201,6 +236,9 @@ export default {
         version: env.RUNTIME_VERSION,
         d1Schema: row?.value ?? null,
       }, { status: row?.value === '0020' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
+    }
+    if (nativeRequest.method === 'GET' && nativeRequest.url.includes('/api/v1/upgrade/version')) {
+      return nativeUpgradeVersion(env);
     }
     if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {
       return serveAsset(url, env);
