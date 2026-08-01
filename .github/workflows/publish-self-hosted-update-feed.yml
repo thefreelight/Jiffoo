@@ -230,79 +230,42 @@ jobs:
             --verify-images \
             "${stable_args[@]}"
 
-      - name: Install sshpass
-        run: sudo apt-get update && sudo apt-get install -y sshpass
-
       - name: Deploy update feed to get.jiffoo.com
         env:
-          GET_JIFFOO_SSH_HOST: ${{ secrets.GET_JIFFOO_SSH_HOST }}
-          GET_JIFFOO_SSH_USER: ${{ secrets.GET_JIFFOO_SSH_USER }}
-          GET_JIFFOO_SSH_PRIVATE_KEY: ${{ secrets.GET_JIFFOO_SSH_PRIVATE_KEY }}
-          GET_JIFFOO_SSH_PASSWORD: ${{ secrets.GET_JIFFOO_SSH_PASSWORD }}
+          CORE_UPDATE_FEED_SYNC_TOKEN: ${{ secrets.CORE_UPDATE_FEED_SYNC_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
 
-          if [ -z "${GET_JIFFOO_SSH_HOST:-}" ] || [ -z "${GET_JIFFOO_SSH_USER:-}" ]; then
-            echo "Missing GET_JIFFOO_SSH_HOST or GET_JIFFOO_SSH_USER secrets"
+          if [ -z "${CORE_UPDATE_FEED_SYNC_TOKEN:-}" ]; then
+            echo "Missing CORE_UPDATE_FEED_SYNC_TOKEN secret"
             exit 1
           fi
 
-          common_opts=(-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null)
-          remote_target="${GET_JIFFOO_SSH_USER}@${GET_JIFFOO_SSH_HOST}"
-          if [ -n "${GET_JIFFOO_SSH_PRIVATE_KEY:-}" ]; then
-            install -d -m 700 ~/.ssh
-            printf '%s\n' "${GET_JIFFOO_SSH_PRIVATE_KEY}" > ~/.ssh/get_jiffoo_key
-            chmod 600 ~/.ssh/get_jiffoo_key
-            scp_base=(scp "${common_opts[@]}" -i ~/.ssh/get_jiffoo_key)
-            ssh_base=(ssh "${common_opts[@]}" -i ~/.ssh/get_jiffoo_key)
-          elif [ -n "${GET_JIFFOO_SSH_PASSWORD:-}" ]; then
-            export SSHPASS="${GET_JIFFOO_SSH_PASSWORD}"
-            scp_base=(sshpass -e scp "${common_opts[@]}")
-            ssh_base=(sshpass -e ssh "${common_opts[@]}")
-          else
-            echo "Missing GET_JIFFOO_SSH_PRIVATE_KEY or GET_JIFFOO_SSH_PASSWORD secret"
-            exit 1
-          fi
+          publish_asset() {
+            local asset="$1"
+            local file="$2"
+            local content_type="$3"
+            local encoded_asset
+            local sha256
+            encoded_asset="$(node -p "encodeURIComponent(process.argv[1])" "$asset")"
+            sha256="$(sha256sum "$file" | awk '{print $1}')"
+            curl --fail-with-body --silent --show-error \
+              -X PUT "https://platform-api.jiffoo.com/api/releases/core/feed/${encoded_asset}" \
+              -H "x-core-update-feed-sync-token: ${CORE_UPDATE_FEED_SYNC_TOKEN}" \
+              -H "x-jiffoo-release-tag: ${RELEASE_TAG}" \
+              -H "x-jiffoo-sha256: ${sha256}" \
+              -H "content-type: ${content_type}" \
+              --data-binary "@${file}"
+          }
 
-          "${scp_base[@]}" \
-            .release/self-hosted/install.sh \
-            .release/self-hosted/docker-compose.yml \
-            .release/self-hosted/.env.production.example \
-            .release/self-hosted/jiffoo-source.tar.gz \
-            .release/self-hosted/jiffoo-source.tar.gz.sha256 \
-            .release/self-hosted/releases/core/manifest.json \
-            .release/self-hosted/get-jiffoo.conf \
-            "${remote_target}:/tmp/"
-
-          "${ssh_base[@]}" \
-            "${remote_target}" \
-            "GET_JIFFOO_ROOT='${GET_JIFFOO_ROOT}' GET_JIFFOO_NGINX_PATH='${GET_JIFFOO_NGINX_PATH}' bash -s" <<'EOF'
-          set -euo pipefail
-          stamp=$(date +%Y%m%d%H%M%S)
-          mkdir -p "${GET_JIFFOO_ROOT}/backups/${stamp}" "${GET_JIFFOO_ROOT}/releases/core"
-          cp "${GET_JIFFOO_ROOT}/install.sh" "${GET_JIFFOO_ROOT}/backups/${stamp}/install.sh" 2>/dev/null || true
-          cp "${GET_JIFFOO_ROOT}/docker-compose.yml" "${GET_JIFFOO_ROOT}/backups/${stamp}/docker-compose.yml" 2>/dev/null || true
-          cp "${GET_JIFFOO_ROOT}/.env.production.example" "${GET_JIFFOO_ROOT}/backups/${stamp}/.env.production.example" 2>/dev/null || true
-          cp "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz" "${GET_JIFFOO_ROOT}/backups/${stamp}/jiffoo-source.tar.gz" 2>/dev/null || true
-          cp "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz.sha256" "${GET_JIFFOO_ROOT}/backups/${stamp}/jiffoo-source.tar.gz.sha256" 2>/dev/null || true
-          cp "${GET_JIFFOO_ROOT}/releases/core/manifest.json" "${GET_JIFFOO_ROOT}/backups/${stamp}/manifest.json" 2>/dev/null || true
-
-          install -m 0755 /tmp/install.sh "${GET_JIFFOO_ROOT}/install.sh"
-          install -m 0644 /tmp/docker-compose.yml "${GET_JIFFOO_ROOT}/docker-compose.yml"
-          install -m 0644 /tmp/.env.production.example "${GET_JIFFOO_ROOT}/.env.production.example"
-          install -m 0644 /tmp/jiffoo-source.tar.gz "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz"
-          install -m 0644 /tmp/jiffoo-source.tar.gz.sha256 "${GET_JIFFOO_ROOT}/jiffoo-source.tar.gz.sha256"
-          install -m 0644 /tmp/manifest.json "${GET_JIFFOO_ROOT}/releases/core/manifest.json"
-          install -m 0644 /tmp/get-jiffoo.conf "${GET_JIFFOO_NGINX_PATH}"
-
-          nginx -t
-          if command -v systemctl >/dev/null 2>&1; then
-            systemctl reload nginx
-          else
-            nginx -s reload
-          fi
-          EOF
+          publish_asset install.sh .release/self-hosted/install.sh 'text/x-shellscript; charset=utf-8'
+          publish_asset docker-compose.yml .release/self-hosted/docker-compose.yml 'application/yaml; charset=utf-8'
+          publish_asset .env.production.example .release/self-hosted/.env.production.example 'text/plain; charset=utf-8'
+          publish_asset jiffoo-source.tar.gz .release/self-hosted/jiffoo-source.tar.gz 'application/gzip'
+          publish_asset jiffoo-source.tar.gz.sha256 .release/self-hosted/jiffoo-source.tar.gz.sha256 'text/plain; charset=utf-8'
+          # Publish the manifest last so it is the release visibility cutover.
+          publish_asset releases/core/manifest.json .release/self-hosted/releases/core/manifest.json 'application/json; charset=utf-8'
 
       - name: Purge Cloudflare cache
         env:
