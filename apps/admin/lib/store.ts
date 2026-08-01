@@ -14,7 +14,7 @@ interface AuthState {
   isAuthenticated: boolean
   isLoading: boolean
   isChecking: boolean
-  login: (email: string, password: string) => Promise<void>
+  login: (identifier: string, password: string) => Promise<void>
   logout: () => void
   checkAuth: () => Promise<void>
   updateUser: (user: AppUser) => void
@@ -27,10 +27,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
   isChecking: false,
 
-  login: async (email: string, password: string) => {
+  login: async (identifier: string, password: string) => {
     set({ isLoading: true })
     try {
-      const response = await authApi.login(email, password);
+      const response = await authApi.login(identifier, password);
       const loginData = unwrapApiResponse(response);
 
       if (!loginData.access_token) {

@@ -120,6 +120,21 @@ export async function findAuthUserByEmail(email: string): Promise<AuthUser | nul
   return normalizeEmailVerified(user as LegacyAuthUser | null) as AuthUser | null;
 }
 
+export async function findAuthUserByIdentifier(identifier: string): Promise<AuthUser | null> {
+  const normalizedIdentifier = identifier.trim();
+  if (normalizedIdentifier.includes('@')) {
+    return findAuthUserByEmail(normalizedIdentifier);
+  }
+
+  const users = await withEmailVerifiedCompatibility(
+    () => prisma.user.findMany({ where: { username: normalizedIdentifier }, take: 2, select: authUserSelect }),
+    () => prisma.user.findMany({ where: { username: normalizedIdentifier }, take: 2, select: legacyAuthUserSelect })
+  );
+
+  if (users.length !== 1) return null;
+  return normalizeEmailVerified(users[0] as LegacyAuthUser) as AuthUser;
+}
+
 export async function findAuthUserById(userId: string): Promise<AuthUser | null> {
   const user = await withEmailVerifiedCompatibility(
     () => prisma.user.findUnique({ where: { id: userId }, select: authUserSelect }),

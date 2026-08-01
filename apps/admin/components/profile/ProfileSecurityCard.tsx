@@ -73,8 +73,8 @@ export function ProfileSecurityCard({
       return
     }
 
-    if (newPassword.length < 6) {
-      setPasswordValidationError(t('merchant.profile.passwordMinLength', 'Password must be at least 6 characters'))
+    if (newPassword.length < 8) {
+      setPasswordValidationError(t('merchant.profile.passwordMinLength', 'Password must be at least 8 characters'))
       return
     }
 
@@ -90,7 +90,7 @@ export function ProfileSecurityCard({
   }
 
   return (
-    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 space-y-8">
+    <div id="security" className="scroll-mt-24 bg-white rounded-3xl border border-gray-100 shadow-sm p-8 space-y-8">
       <div className="space-y-1">
         <div className="flex items-center gap-2">
           <div className="h-4 w-1 bg-blue-600 rounded-full" />

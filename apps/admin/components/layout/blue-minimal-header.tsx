@@ -18,6 +18,7 @@ import {
   Settings,
   LogOut,
   User,
+  KeyRound,
   Plus,
   Menu
 } from 'lucide-react'
@@ -125,6 +126,13 @@ export function BlueMinimalHeader({ title = "Dashboard", onMenuClick }: BlueMini
             >
               <User className="mr-3 h-4 w-4 text-gray-400" />
               <span className="text-sm font-semibold">{getText('merchant.header.profile', 'Profile')}</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="rounded-xl py-2.5 cursor-pointer focus:bg-gray-50"
+              onClick={() => router.push(`/${locale}/profile#security`)}
+            >
+              <KeyRound className="mr-3 h-4 w-4 text-gray-400" />
+              <span className="text-sm font-semibold">{getText('merchant.header.changePassword', 'Change password')}</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               className="rounded-xl py-2.5 cursor-pointer focus:bg-gray-50"

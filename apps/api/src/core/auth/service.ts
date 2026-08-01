@@ -11,7 +11,7 @@ import { JwtUtils } from '@/utils/jwt';
 import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { shouldRequirePasswordRotation } from './bootstrap';
-import { createAuthUser, findAuthUserByEmail, findAuthUserById } from './user-compat';
+import { createAuthUser, findAuthUserByEmail, findAuthUserById, findAuthUserByIdentifier } from './user-compat';
 import crypto from 'node:crypto';
 
 const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
@@ -311,12 +311,13 @@ export class AuthService {
    *
    * Validates user credentials and generates new access and refresh tokens upon successful authentication.
    *
-   * @param data Login credentials containing email and password
+   * @param data Login credentials containing an email or username and password
    * @returns Authentication response with user details and OAuth2-compliant tokens
-   * @throws Error if the email does not exist or password is incorrect
+   * @throws Error if the identifier does not exist, is ambiguous, or the password is incorrect
    */
   static async login(data: LoginRequest): Promise<AuthResponse> {
-    const user = await findAuthUserByEmail(data.email);
+    const identifier = data.identifier ?? data.email;
+    const user = await findAuthUserByIdentifier(identifier);
 
     if (!user) {
       throw new Error('Invalid email or password');
