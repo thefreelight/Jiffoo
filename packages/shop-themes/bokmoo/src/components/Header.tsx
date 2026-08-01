@@ -78,6 +78,7 @@ export const Header = React.memo(function Header({
     { label: isZhHant ? '使用方式' : 'How It Works', onClick: () => openHref('/#how-it-works') },
     { label: isZhHant ? '關於我們' : 'About Us', onClick: () => openHref('/contact') },
     { label: isZhHant ? '支援' : 'Support', onClick: () => openHref('/help') },
+    { label: isZhHant ? '推廣' : 'Affiliate', onClick: () => openHref('/affiliate') },
   ];
 
   return (

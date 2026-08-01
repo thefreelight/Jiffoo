@@ -5,6 +5,7 @@ import { OrderCancelledPage } from '@shop-themes/default/src/components/OrderCan
 import { ProfilePage } from '@shop-themes/default/src/components/ProfilePage';
 
 import { AuthCallbackPage } from './components/AuthCallbackPage';
+import { AffiliatePage } from './components/AffiliatePage';
 import { CartPage } from './components/CartPage';
 import { CategoriesPage } from './components/CategoriesPage';
 import { CheckoutPage } from './components/CheckoutPage';
@@ -43,6 +44,7 @@ export const theme: ThemePackage = {
     OrderCancelledPage,
     ProfilePage,
     ProfileSettingsPage,
+    AffiliatePage,
     ContactPage,
     HelpPage,
     PrivacyPage,
