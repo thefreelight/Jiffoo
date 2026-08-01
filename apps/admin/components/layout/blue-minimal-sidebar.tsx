@@ -43,6 +43,7 @@ import {
 } from '../ui/dropdown-menu'
 import { useUpdateCheck } from '@/hooks/use-update-check'
 import { UserAvatar } from '../ui/user-avatar'
+import { JiffooMark } from '../branding/jiffoo-mark'
 
 interface NavigationItem {
   id: string;
@@ -194,8 +195,8 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   const brandTitle = isManaged && record
     ? record.displayBrandName
     : isLoading
-      ? 'Store Console'
-      : 'Store Console'
+      ? 'Jiffoo'
+      : 'Jiffoo'
 
   const solutionTitle = isManaged && record
     ? record.displaySolutionName
@@ -228,9 +229,13 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
         {/* Logo Area */}
         <div className="flex items-center justify-between mb-10 px-2">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30">
+          {isManaged && record ? (
+            <div className="grid h-10 w-10 place-items-center rounded-lg bg-blue-600 font-bold text-white shadow-sm">
               {brandInitial}
-          </div>
+            </div>
+          ) : (
+            <JiffooMark size="md" compact />
+          )}
           <div className="flex flex-col">
               <span className="font-bold text-base text-gray-900 leading-none">{brandTitle}</span>
               <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">{solutionTitle}</span>

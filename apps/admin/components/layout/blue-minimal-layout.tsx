@@ -74,7 +74,7 @@ function ManagedDocumentTitle() {
   useEffect(() => {
     document.title = isManaged && record
       ? `${record.displayBrandName} · ${record.displaySolutionName}`
-      : 'Commerce Admin - Management Dashboard'
+      : 'Jiffoo Admin'
   }, [isManaged, record])
 
   return null
