@@ -1,4 +1,5 @@
 import { authenticateNativeUser, type NativeAuthEnv } from './auth';
+import { attachShipments } from './shipments';
 
 interface NativeOrderEnv extends NativeAuthEnv {
   DB: D1Database;
@@ -50,7 +51,7 @@ export async function tryNativeOrderRead(
         headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-orders' },
       });
     }
-    return nativeResponse(JSON.parse(row.payload));
+    return nativeResponse(await attachShipments(env.DB, JSON.parse(row.payload) as Record<string, unknown>));
   }
 
   const page = integerParam(url.searchParams.get('page'), 1, 1_000_000);
@@ -77,7 +78,7 @@ export async function tryNativeOrderRead(
      WHERE ${where} ORDER BY source_updated_at DESC LIMIT ?${bindings.length - 1} OFFSET ?${bindings.length}`,
   ).bind(...bindings).all<OrderRow>();
   return nativeResponse({
-    items: rows.results.map((row) => JSON.parse(row.payload)),
+    items: await Promise.all(rows.results.map(async (row) => attachShipments(env.DB, JSON.parse(row.payload) as Record<string, unknown>))),
     page,
     limit,
     total,

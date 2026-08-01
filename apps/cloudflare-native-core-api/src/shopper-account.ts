@@ -1,7 +1,6 @@
 import {
   authenticateNativeUser,
   createNativeUser,
-  createNativeSession,
   findNativeUserByEmail,
   findNativeUserById,
   nativePublicUser,
@@ -10,6 +9,8 @@ import {
   type NativeAuthEnv,
   type NativeUser,
 } from './auth';
+import { sendNativeVerificationCode, verifyNativeEmailCode } from './email-verification';
+import { consumeVerificationRateLimit } from './auth-rate-limit';
 
 const RUNTIME = 'cloudflare-native-d1-shopper-account';
 
@@ -60,7 +61,7 @@ async function profile(env: NativeAuthEnv, user: NativeUser): Promise<Record<str
   return {
     ...nativePublicUser(user),
     isActive: user.is_active === 1,
-    emailVerified: true,
+    emailVerified: user.email_verified === 1,
     orderCount: totalOrders,
     totalOrders,
     totalSpent: Number(orderStats?.total_spent ?? 0),
@@ -86,6 +87,12 @@ async function register(request: Request, env: NativeAuthEnv): Promise<Response>
   if (!validPassword(password)) {
     return error(400, 'VALIDATION_ERROR', 'Password must contain between 8 and 128 characters');
   }
+  const rate = await consumeVerificationRateLimit(request, env, 'register', email);
+  if (!rate.allowed) {
+    const response = error(429, 'RATE_LIMITED', 'Too many registration attempts. Try again later');
+    response.headers.set('retry-after', String(rate.retryAfter));
+    return response;
+  }
   if (await findNativeUserByEmail(env, email)) return error(409, 'CONFLICT', 'Email is already registered');
 
   const user = { id: crypto.randomUUID(), email, username, role: 'USER', avatar: null };
@@ -97,14 +104,46 @@ async function register(request: Request, env: NativeAuthEnv): Promise<Response>
     }
     throw cause;
   }
-  const session = await createNativeSession(env, user);
-  session.headers.set('x-jiffoo-runtime', RUNTIME);
-  session.headers.set('cache-control', 'no-store');
-  const bodyPayload = session.body as { data?: Record<string, unknown> };
-  return new Response(JSON.stringify({ ...bodyPayload, message: 'Registration successful' }), {
-    status: 201,
-    headers: session.headers,
-  });
+  try {
+    await sendNativeVerificationCode(env, user);
+  } catch (cause) {
+    await env.DB.prepare('DELETE FROM native_users WHERE id = ?1 AND email_verified = 0').bind(user.id).run();
+    return error(503, 'EMAIL_UNAVAILABLE', cause instanceof Error ? cause.message : 'Verification email could not be sent');
+  }
+  return success({ user: { ...user, emailVerified: false }, emailVerificationRequired: true }, 201, 'Verification code sent');
+}
+
+async function verifyCode(request: Request, env: NativeAuthEnv): Promise<Response> {
+  const body = await readJson<{ email?: string; code?: string }>(request);
+  const rate = await consumeVerificationRateLimit(request, env, 'verify', body?.email || '');
+  if (!rate.allowed) {
+    const response = error(429, 'RATE_LIMITED', 'Too many verification attempts. Try again later');
+    response.headers.set('retry-after', String(rate.retryAfter));
+    return response;
+  }
+  const result = await verifyNativeEmailCode(env, body?.email || '', body?.code || '');
+  return result.success
+    ? success(null, 200, 'Email verified successfully')
+    : error(400, 'VERIFICATION_FAILED', result.error || 'Failed to verify email');
+}
+
+async function resendVerification(request: Request, env: NativeAuthEnv): Promise<Response> {
+  const body = await readJson<{ email?: string }>(request);
+  const rate = await consumeVerificationRateLimit(request, env, 'resend', body?.email || '');
+  if (!rate.allowed) {
+    const response = error(429, 'RATE_LIMITED', 'Too many resend attempts. Try again later');
+    response.headers.set('retry-after', String(rate.retryAfter));
+    return response;
+  }
+  const user = body?.email ? await findNativeUserByEmail(env, body.email) : null;
+  if (!user) return error(400, 'RESEND_FAILED', 'User not found');
+  if (user.email_verified) return error(400, 'RESEND_FAILED', 'Email is already verified');
+  try {
+    await sendNativeVerificationCode(env, nativePublicUser(user));
+    return success(null, 200, 'Verification email sent successfully');
+  } catch (cause) {
+    return error(503, 'EMAIL_UNAVAILABLE', cause instanceof Error ? cause.message : 'Verification email could not be sent');
+  }
 }
 
 async function changePassword(request: Request, env: NativeAuthEnv): Promise<Response> {
@@ -208,15 +247,17 @@ export async function tryNativeShopperAccount(request: Request, env: NativeAuthE
 
   if (path === '/api/v1/shop/auth/capabilities' && request.method === 'GET') {
     return success({
-      emailAvailable: false,
+      emailAvailable: true,
       passwordReset: false,
       passwordChange: true,
       emailCodeLogin: false,
-      registrationVerification: false,
+      registrationVerification: true,
     });
   }
   if (path === '/api/v1/shop/auth/providers' && request.method === 'GET') return success([]);
   if (path === '/api/v1/shop/auth/register' && request.method === 'POST') return register(request, env);
+  if (path === '/api/v1/shop/auth/verify-email/code' && request.method === 'POST') return verifyCode(request, env);
+  if (path === '/api/v1/shop/auth/resend-verification' && request.method === 'POST') return resendVerification(request, env);
   if (path === '/api/v1/shop/auth/password' && request.method === 'POST') return changePassword(request, env);
   if (path === '/api/v1/account/profile' && request.method === 'GET') return getProfile(request, env);
   if (path === '/api/v1/account/profile' && request.method === 'PUT') return updateProfile(request, env);

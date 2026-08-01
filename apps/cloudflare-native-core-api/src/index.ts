@@ -6,9 +6,13 @@ import { tryNativeAdminWrites } from './admin-writes';
 import { tryNativeAdminWebhooks } from './admin-webhooks';
 import { tryNativeAdminUsers } from './admin-users';
 import { tryNativeShipping } from './shipping';
+import { tryNativeShipmentRead } from './shipments';
 import { tryNativeCheckout } from './checkout';
 import { processCheckoutOutbox } from './outbox';
 import { tryNativeShopperAccount } from './shopper-account';
+import { tryNativeExternalOrderSync } from './external-orders';
+import { processNativeEmailOutbox } from './mail-outbox';
+import { tryNativeAffiliate } from './affiliate';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv;
 
@@ -167,7 +171,9 @@ async function loadProduct(productId: string, env: WorkerEnv): Promise<ProductDe
 }
 
 async function serveAsset(url: URL, env: WorkerEnv): Promise<Response> {
-  const key = url.pathname.replace(/^\/uploads\//, 'uploads/');
+  const key = url.pathname.startsWith('/extensions/')
+    ? url.pathname.replace(/^\//, '')
+    : url.pathname.replace(/^\/uploads\//, 'uploads/');
   if (key.includes('..')) return Response.json({ error: 'INVALID_ASSET_PATH' }, { status: 400 });
   const object = await env.ASSETS.get(key);
   if (!object) return Response.json({ error: 'ASSET_NOT_FOUND' }, { status: 404 });
@@ -186,16 +192,20 @@ export default {
       const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'core_schema_version'")
         .first<{ value: string }>();
       return Response.json({
-        status: row?.value === '0012' ? 'ok' : 'degraded',
+        status: row?.value === '0019' ? 'ok' : 'degraded',
         service: 'jiffoo-native-core-api',
         runtime: 'cloudflare-workers-free',
         version: env.RUNTIME_VERSION,
         d1Schema: row?.value ?? null,
-      }, { status: row?.value === '0012' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
+      }, { status: row?.value === '0019' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
     }
-    if (request.method === 'GET' && url.pathname.startsWith('/uploads/')) return serveAsset(url, env);
+    if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {
+      return serveAsset(url, env);
+    }
     const nativeShopperAccount = await tryNativeShopperAccount(nativeRequest, env);
     if (nativeShopperAccount) return nativeShopperAccount;
+    const nativeAffiliate = await tryNativeAffiliate(nativeRequest, env);
+    if (nativeAffiliate) return nativeAffiliate;
     if (isNativeRead(nativeRequest, url)) return serveNativeRead(url, env, ctx);
     const nativeAuth = await tryNativeAuth(nativeRequest, env, () => proxy(request, env));
     if (nativeAuth) return nativeAuth;
@@ -208,6 +218,8 @@ export default {
     if (nativeCart) return nativeCart;
     const nativeShipping = await tryNativeShipping(nativeRequest, env);
     if (nativeShipping) return nativeShipping;
+    const nativeShipmentRead = await tryNativeShipmentRead(nativeRequest, env);
+    if (nativeShipmentRead) return nativeShipmentRead;
     const nativeCheckout = await tryNativeCheckout(nativeRequest, env, (productId) => loadProduct(productId, env));
     if (nativeCheckout) return nativeCheckout;
     const nativeAdminOrders = await tryNativeAdminOrders(nativeRequest, env, (proxyRequest) => proxy(proxyRequest, env));
@@ -216,6 +228,8 @@ export default {
     if (nativeAdminWrite) return nativeAdminWrite;
     const nativeAdminWebhooks = await tryNativeAdminWebhooks(nativeRequest, env);
     if (nativeAdminWebhooks) return nativeAdminWebhooks;
+    const nativeExternalOrderSync = await tryNativeExternalOrderSync(nativeRequest, env);
+    if (nativeExternalOrderSync) return nativeExternalOrderSync;
     const nativeAdminUsers = await tryNativeAdminUsers(nativeRequest, env);
     if (nativeAdminUsers) return nativeAdminUsers;
     const nativeOrders = await tryNativeOrderRead(nativeRequest, env, (proxyRequest) => proxy(proxyRequest, env));
@@ -223,7 +237,14 @@ export default {
     return proxy(request, env);
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const result = await processCheckoutOutbox(env);
-    console.log(JSON.stringify({ message: 'native checkout outbox processed', ...result }));
+    const [checkout, email] = await Promise.allSettled([
+      processCheckoutOutbox(env),
+      processNativeEmailOutbox(env),
+    ]);
+    console.log(JSON.stringify({
+      message: 'native scheduled work processed',
+      checkout: checkout.status === 'fulfilled' ? checkout.value : { error: String(checkout.reason) },
+      email: email.status === 'fulfilled' ? email.value : { error: String(email.reason) },
+    }));
   },
 } satisfies ExportedHandler<WorkerEnv>;

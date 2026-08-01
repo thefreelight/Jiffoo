@@ -93,6 +93,12 @@ export interface BokmooApiOrder {
   createdAt: string;
   updatedAt?: string;
   status?: string;
+  shipments?: Array<{
+    id: string; carrier: string; carrierCode?: string | null; carrierName?: string | null;
+    trackingNumber: string; trackingUrl?: string | null; status: string;
+    shippedAt?: string | null; deliveredAt?: string | null; estimatedDeliveryAt?: string | null; lastCheckedAt?: string | null;
+    events?: Array<{ status: string; description?: string | null; occurredAt: string }>;
+  }>;
   items: BokmooApiOrderItem[];
 }
 
@@ -429,7 +435,7 @@ export function mapBokmooApiOrderToThemeOrder(order: BokmooApiOrder) {
     totalAmount: Number(order.totalAmount || 0),
     currency: order.currency || 'USD',
     shippingAddress: null,
-    shipments: [],
+    shipments: (order.shipments || []).map((shipment) => ({ ...shipment, trackingUrl: shipment.trackingUrl || null, shippedAt: shipment.shippedAt || null, deliveredAt: shipment.deliveredAt || null, estimatedDeliveryAt: shipment.estimatedDeliveryAt || null, lastCheckedAt: shipment.lastCheckedAt || null })),
     items: (order.items || []).map((item) => {
       const quantity = Number(item.quantity || 1);
       const unitPrice = Number(item.unitPrice ?? item.totalPrice ?? 0);

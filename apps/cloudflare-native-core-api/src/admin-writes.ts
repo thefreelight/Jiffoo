@@ -1,4 +1,5 @@
 import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
+import { attachShipments } from './shipments';
 
 interface AdminWriteEnv extends NativeAuthEnv { DB: D1Database; STRIPE_SECRET_KEY: SecretsStoreSecret }
 type Status = 'PENDING' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'REFUNDED';
@@ -69,7 +70,7 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
   if (!native) return null;
 
   if (shipMatch) {
-    const body = await request.json<{ carrier?: unknown; trackingNumber?: unknown; items?: unknown }>().catch(() => null);
+    const body = await request.json<{ carrier?: unknown; trackingNumber?: unknown; trackingUrl?: unknown; items?: unknown }>().catch(() => null);
     if (!body || typeof body.carrier !== 'string' || !body.carrier.trim() || typeof body.trackingNumber !== 'string' || !body.trackingNumber.trim()) return error(400, 'VALIDATION_ERROR', 'Carrier and tracking number are required');
     if (native.status === 'CANCELLED' || native.status === 'REFUNDED') return error(409, 'INVALID_STATUS_TRANSITION', `Cannot ship order with status: ${native.status}`);
     if (native.payment_status !== 'PAID') return error(409, 'ORDER_NOT_PAID', 'Order must be paid before fulfillment can advance');
@@ -77,13 +78,35 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
     const items = itemsFrom(order);
     const requested = Array.isArray(body.items) ? new Set(body.items.flatMap((entry) => entry && typeof entry === 'object' && 'orderItemId' in entry && typeof entry.orderItemId === 'string' ? [entry.orderItemId] : [])) : null;
     const shippedAt = new Date().toISOString();
+    const shipmentId = crypto.randomUUID();
+    const trackingNumber = body.trackingNumber.trim();
+    const trackingUrl = typeof body.trackingUrl === 'string' && body.trackingUrl.trim() ? body.trackingUrl.trim() : null;
+    if (trackingUrl) {
+      try {
+        if (new URL(trackingUrl).protocol !== 'https:') return error(400, 'VALIDATION_ERROR', 'Tracking URL must use HTTPS');
+      } catch {
+        return error(400, 'VALIDATION_ERROR', 'Tracking URL is invalid');
+      }
+    }
+    const existingShipment = await env.DB.prepare(
+      'SELECT id FROM native_shipments WHERE order_id = ?1 AND tracking_number = ?2',
+    ).bind(orderId, trackingNumber).first<{ id: string }>();
+    if (existingShipment) {
+      return result(await attachShipments(env.DB, order));
+    }
     for (const item of items) {
       if (requested && (typeof item.id !== 'string' || !requested.has(item.id))) continue;
       item.fulfillmentStatus = 'shipped';
-      item.fulfillmentData = { carrier: body.carrier.trim(), trackingNumber: body.trackingNumber.trim(), shippedAt };
+      item.fulfillmentData = { carrier: body.carrier.trim(), trackingNumber, shippedAt };
     }
     order.items = items;
-    return persist(env, admin.id, orderId, native, order, 'SHIPPED', 'order.ship', { carrier: body.carrier.trim(), trackingNumber: body.trackingNumber.trim(), itemIds: requested ? [...requested] : items.map((item) => item.id) });
+    order.shipments = await attachShipments(env.DB, order).then((value) => value.shipments);
+    order.shipments = [...(Array.isArray(order.shipments) ? order.shipments : []), { id: shipmentId, carrier: body.carrier.trim(), trackingNumber, trackingUrl, status: 'SHIPPED', shippedAt, deliveredAt: null, estimatedDeliveryAt: null, lastCheckedAt: shippedAt, events: [{ status: 'SHIPPED', description: null, occurredAt: shippedAt }] }];
+    await env.DB.batch([
+      env.DB.prepare(`INSERT INTO native_shipments (id, order_id, carrier, tracking_number, tracking_url, status, shipped_at, last_checked_at, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, 'SHIPPED', ?6, ?6, ?6, ?6)`).bind(shipmentId, orderId, body.carrier.trim(), trackingNumber, trackingUrl, shippedAt),
+      env.DB.prepare(`INSERT INTO native_shipment_events (id, shipment_id, status, description, occurred_at, created_at) VALUES (?1, ?2, 'SHIPPED', NULL, ?3, ?3)`).bind(crypto.randomUUID(), shipmentId, shippedAt),
+    ]);
+    return persist(env, admin.id, orderId, native, order, 'SHIPPED', 'order.ship', { carrier: body.carrier.trim(), trackingNumber, trackingUrl, itemIds: requested ? [...requested] : items.map((item) => item.id) });
   }
 
   if (cancelMatch) {

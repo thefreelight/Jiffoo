@@ -1,22 +1,26 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, MailCheck, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { authApi } from '@/lib/api';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useT } from 'shared/src/i18n/react';
 
-type VerificationState = 'loading' | 'success' | 'error';
+type VerificationState = 'idle' | 'loading' | 'success' | 'error';
 
 export default function VerifyEmailPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const nav = useLocalizedNavigation();
   const t = useT();
-  const [state, setState] = useState<VerificationState>('loading');
+  const email = searchParams.get('email')?.trim() || '';
+  const token = searchParams.get('token')?.trim() || '';
+  const [state, setState] = useState<VerificationState>(token ? 'loading' : 'idle');
   const [message, setMessage] = useState('');
+  const [code, setCode] = useState('');
+  const [resending, setResending] = useState(false);
 
   const getText = (key: string, fallback: string): string => {
     if (!t) return fallback;
@@ -28,10 +32,11 @@ export default function VerifyEmailPage() {
     let cancelled = false;
 
     async function verifyEmail() {
-      const token = searchParams.get('token');
       if (!token) {
-        setState('error');
-        setMessage(getText('shop.auth.verifyEmail.missingToken', 'Verification token is missing.'));
+        setState(email ? 'idle' : 'error');
+        setMessage(email
+          ? getText('shop.auth.verifyEmail.codePrompt', `Enter the code sent to ${email}.`)
+          : getText('shop.auth.verifyEmail.missingToken', 'Verification email is missing.'));
         return;
       }
 
@@ -52,10 +57,42 @@ export default function VerifyEmailPage() {
     return () => {
       cancelled = true;
     };
-  }, [searchParams, t]);
+  }, [email, token, t]);
+
+  const submitCode = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!email || !/^\d{6}$/.test(code)) return;
+    setState('loading');
+    setMessage(getText('shop.auth.verifyEmail.loadingMessage', 'Checking your verification code.'));
+    try {
+      await authApi.verifyEmailCode(email, code);
+      setState('success');
+      setMessage(getText('shop.auth.verifyEmail.successMessage', 'Your email has been verified. You can now sign in.'));
+    } catch (error: any) {
+      setState('error');
+      setMessage(error?.message || getText('shop.auth.verifyEmail.failedMessage', 'Email verification failed.'));
+    }
+  };
+
+  const resendCode = async () => {
+    if (!email || resending) return;
+    setResending(true);
+    try {
+      await authApi.resendVerification(email);
+      setState('idle');
+      setCode('');
+      setMessage(getText('shop.auth.verifyEmail.resent', `A new code was sent to ${email}.`));
+    } catch (error: any) {
+      setState('error');
+      setMessage(error?.message || getText('shop.auth.verifyEmail.resendFailed', 'Could not resend the code.'));
+    } finally {
+      setResending(false);
+    }
+  };
 
   const isSuccess = state === 'success';
   const isLoading = state === 'loading';
+  const isCodeFlow = Boolean(email && !token && !isSuccess);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,#e8f4ff,transparent_32%),linear-gradient(135deg,#f8fbff_0%,#eef6f1_100%)] px-6 py-16">
@@ -66,6 +103,8 @@ export default function VerifyEmailPage() {
               <Loader2 className="h-7 w-7 animate-spin" />
             ) : isSuccess ? (
               <CheckCircle2 className="h-7 w-7" />
+            ) : state === 'idle' ? (
+              <MailCheck className="h-7 w-7" />
             ) : (
               <XCircle className="h-7 w-7" />
             )}
@@ -79,11 +118,39 @@ export default function VerifyEmailPage() {
               ? getText('shop.auth.verifyEmail.loadingTitle', 'Verifying your email')
               : isSuccess
                 ? getText('shop.auth.verifyEmail.successTitle', 'Email verified')
+                : state === 'idle'
+                  ? getText('shop.auth.verifyEmail.codeTitle', 'Enter verification code')
                 : getText('shop.auth.verifyEmail.failedTitle', 'Verification failed')}
           </h1>
           <p className="mx-auto mb-8 max-w-md text-sm leading-6 text-slate-600">
             {message || getText('shop.auth.verifyEmail.loadingMessage', 'Please wait while we confirm your invite.')}
           </p>
+
+          {isCodeFlow ? (
+            <form onSubmit={submitCode} className="mx-auto mb-8 max-w-sm space-y-4">
+              <label className="block text-left">
+                <span className="text-xs font-semibold text-slate-700">
+                  {getText('shop.auth.verifyEmail.codeLabel', 'Six-digit code')}
+                </span>
+                <input
+                  value={code}
+                  onChange={(event) => setCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  aria-label={getText('shop.auth.verifyEmail.codeLabel', 'Six-digit code')}
+                  className="mt-2 h-12 w-full rounded-lg border border-slate-300 bg-white px-4 text-center font-mono text-xl tracking-[0.32em] text-slate-950 outline-none focus:border-slate-950 focus:ring-2 focus:ring-slate-200"
+                  disabled={isLoading}
+                />
+              </label>
+              <Button type="submit" disabled={code.length !== 6 || isLoading} className="w-full rounded-lg bg-slate-950 text-white hover:bg-slate-800">
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {getText('shop.auth.verifyEmail.submitCode', 'Verify email')}
+              </Button>
+              <button type="button" onClick={resendCode} disabled={resending || isLoading} className="text-sm font-medium text-slate-700 underline underline-offset-4 disabled:opacity-50">
+                {resending ? getText('shop.auth.verifyEmail.resending', 'Sending...') : getText('shop.auth.verifyEmail.resend', 'Send a new code')}
+              </button>
+            </form>
+          ) : null}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Button
@@ -92,7 +159,7 @@ export default function VerifyEmailPage() {
             >
               {getText('shop.auth.verifyEmail.goToLogin', 'Go to login')}
             </Button>
-            {!isSuccess && !isLoading && (
+            {!isSuccess && !isLoading && !isCodeFlow && (
               <Button
                 variant="outline"
                 onClick={() => router.refresh()}

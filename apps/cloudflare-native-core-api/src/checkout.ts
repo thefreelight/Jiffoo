@@ -160,6 +160,7 @@ async function createOrder(
     appliedDiscounts: [],
     currency: 'USD',
     shippingAddress: body.shippingAddress ?? null,
+    customerEmail: user.email,
     items,
     createdAt: now,
     updatedAt: now,

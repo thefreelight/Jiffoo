@@ -1,4 +1,5 @@
 import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
+import { attachShipments } from './shipments';
 
 interface AdminOrderEnv extends NativeAuthEnv { DB: D1Database }
 interface AdminOrderRow { id: string; status: string; payload: string; source_updated_at: string }
@@ -27,7 +28,7 @@ export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv,
   if (detail) {
     const row = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1')
       .bind(detail[1]).first<{ payload: string }>();
-    return row ? response(JSON.parse(row.payload)) : Response.json({ success: false, error: { code: 'NOT_FOUND', message: 'Order not found' } }, { status: 404, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
+    return row ? response(await attachShipments(env.DB, JSON.parse(row.payload) as Record<string, unknown>)) : Response.json({ success: false, error: { code: 'NOT_FOUND', message: 'Order not found' } }, { status: 404, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-orders' } });
   }
   const page = integer(url.searchParams.get('page'), 1, 1_000_000);
   const limit = integer(url.searchParams.get('limit'), 10, 100);
@@ -44,5 +45,5 @@ export async function tryNativeAdminOrders(request: Request, env: AdminOrderEnv,
     `SELECT id, status, payload, source_updated_at FROM native_order_snapshots
      WHERE ${where} ORDER BY source_updated_at DESC LIMIT ?${bindings.length + 1} OFFSET ?${bindings.length + 2}`,
   ).bind(...bindings, limit, (page - 1) * limit).all<AdminOrderRow>();
-  return response({ items: rows.results.map((row) => JSON.parse(row.payload)), page, limit, total, totalPages: total === 0 ? 0 : Math.ceil(total / limit) });
+  return response({ items: await Promise.all(rows.results.map(async (row) => attachShipments(env.DB, JSON.parse(row.payload) as Record<string, unknown>))), page, limit, total, totalPages: total === 0 ? 0 : Math.ceil(total / limit) });
 }

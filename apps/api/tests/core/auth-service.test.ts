@@ -275,6 +275,19 @@ describe('AuthService', () => {
       });
     });
 
+    it('does not issue an authenticated session when verification delivery fails', async () => {
+      mockPrismaUser.findFirst.mockResolvedValue(null);
+      mockPasswordUtils.hash.mockResolvedValue('hashed-pw');
+      mockPrismaUser.create.mockResolvedValue({
+        id: 'failed-email-user', email: registerData.email, username: registerData.username,
+        password: 'hashed-pw', role: 'USER', avatar: null, emailVerified: false,
+      });
+      mockEmailVerification.sendVerificationEmail.mockResolvedValue({ success: false, error: 'SMTP unavailable' });
+
+      await expect(AuthService.register(registerData)).rejects.toThrow('SMTP unavailable');
+      expect(mockJwtUtils.sign).not.toHaveBeenCalled();
+    });
+
     it('should throw when a user with the same email or username already exists', async () => {
       mockPrismaUser.findFirst.mockResolvedValue(TEST_USER);
 

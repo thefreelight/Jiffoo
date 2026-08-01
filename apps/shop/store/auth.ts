@@ -12,7 +12,7 @@ interface AuthState {
 
 interface AuthActions {
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { email: string; password: string; firstName: string; lastName: string }) => Promise<void>;
+  register: (data: { email: string; password: string; firstName: string; lastName: string }) => Promise<{ emailVerified: boolean }>;
   logout: () => void;
   getProfile: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
@@ -124,6 +124,12 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           const response = await authApi.register(registerData);
 
           if (response.success && response.data) {
+            const emailVerified = response.data.user?.emailVerified !== false;
+            if (!emailVerified) {
+              await authApi.logout();
+              set({ user: null, isAuthenticated: false, isLoading: false, error: null });
+              return { emailVerified: false };
+            }
             try {
               const profileResponse = await accountApi.getProfile();
               if (profileResponse.success && profileResponse.data) {
@@ -151,6 +157,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
                 error: null,
               });
             }
+            return { emailVerified: true };
           } else {
             throw new Error(response.error?.message || 'Registration failed');
           }
