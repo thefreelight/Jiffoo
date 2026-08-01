@@ -10,18 +10,18 @@ spec:
     metadata:
       labels: { app: tianquan-api }
       annotations:
-        jiffoo.com/source-commit: 07b3881542d1f504fe1f981c7c641527cbe511f3
+        jiffoo.com/source-commit: 99ccec52cb9a6e02394deffc7aac7fdd06fc1bba
     spec:
       initContainers:
         - name: prepare-api-data
-          image: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api@sha256:a95ed641b8ba0e6151db49949a4b83c6407147d00a9aba46b42b7f612cdba939
+          image: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api@sha256:72fe7477219ff34df84896e6ee368e9636914c71ce50692c118cb9ef36e49c93
           command: ['sh', '-c', 'mkdir -p /data/uploads /data/extensions/themes /data/extensions/plugins && chown -R 1001:1001 /data']
           securityContext: { runAsUser: 0, runAsGroup: 0 }
           volumeMounts:
             - { name: data, mountPath: /data }
       containers:
         - name: api
-          image: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api@sha256:a95ed641b8ba0e6151db49949a4b83c6407147d00a9aba46b42b7f612cdba939
+          image: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api@sha256:72fe7477219ff34df84896e6ee368e9636914c71ce50692c118cb9ef36e49c93
           ports: [{ name: http, containerPort: 3002 }]
           env:
             - { name: NODE_ENV, value: production }
