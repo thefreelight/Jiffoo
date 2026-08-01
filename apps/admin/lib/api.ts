@@ -364,8 +364,22 @@ export { getAdminClient };
 
 // Auth API
 export const authApi = {
-  login: (identifier: string, password: string) =>
-    apiClient.login({ identifier, password }),
+  login: async (identifier: string, password: string) => {
+    const response = await apiClient.post<{
+      access_token: string;
+      token_type: string;
+      expires_in: number;
+      refresh_token?: string;
+    }>('/admin/auth/login', { identifier, password }, { withCredentials: true });
+    if (response.success && response.data?.access_token) {
+      apiClient.setToken(response.data.access_token);
+      if (response.data.refresh_token) {
+        (apiClient as unknown as { setRefreshToken: (token: string) => void })
+          .setRefreshToken(response.data.refresh_token);
+      }
+    }
+    return response;
+  },
 
   getLoginConfig: (): Promise<ApiResponse<{
     demoModeEnabled: boolean;
@@ -1199,12 +1213,24 @@ export const upgradeApi = {
     releaseNotes?: string | null;
     changelogUrl?: string | null;
     sourceArchiveUrl?: string | null;
+    checksumUrl?: string | null;
+    releaseTag?: string | null;
+    repository?: string | null;
+    deliveryMode?: 'image-first' | 'source-archive' | null;
+    runtimeImages?: {
+      api: string;
+      admin: string;
+      shop: string;
+      updater: string;
+    } | null;
     releaseDate?: string | null;
     releaseChannel: 'stable' | 'prerelease';
     deploymentMode: 'single-host' | 'docker-compose' | 'k8s' | 'unsupported';
     deploymentModeSource: 'env' | 'k8s-signals' | 'compose-signals' | 'single-host-signals' | 'fallback';
     deploymentModeReason?: string | null;
     oneClickUpgradeSupported: boolean;
+    oneClickUpgradeAvailable?: boolean;
+    oneClickUpgradeBlockedReason?: string | null;
     updateSource: 'env-manifest' | 'default-public-manifest' | 'local-fallback';
     manifestUrl?: string | null;
     manifestStatus: 'available' | 'missing' | 'unreachable' | 'invalid';

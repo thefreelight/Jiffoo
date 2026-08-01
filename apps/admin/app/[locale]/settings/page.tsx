@@ -195,12 +195,24 @@ function SettingsPageContent() {
     updateAvailable: boolean
     changelogUrl?: string | null
     sourceArchiveUrl?: string | null
+    checksumUrl?: string | null
+    deliveryMode?: 'image-first' | 'source-archive' | null
+    runtimeImages?: {
+      api: string
+      admin: string
+      shop: string
+      updater: string
+    } | null
+    releaseTag?: string | null
+    repository?: string | null
     releaseDate?: string | null
     releaseChannel: 'stable' | 'prerelease'
     deploymentMode: 'single-host' | 'docker-compose' | 'k8s' | 'unsupported'
     deploymentModeSource: 'env' | 'k8s-signals' | 'compose-signals' | 'single-host-signals' | 'fallback'
     deploymentModeReason?: string | null
     oneClickUpgradeSupported: boolean
+    oneClickUpgradeAvailable?: boolean
+    oneClickUpgradeBlockedReason?: string | null
     updateSource: 'env-manifest' | 'default-public-manifest' | 'local-fallback'
     manifestUrl?: string | null
     manifestStatus: 'available' | 'missing' | 'unreachable' | 'invalid'
@@ -799,6 +811,35 @@ function SettingsPageContent() {
               <p className="text-xs text-gray-500">
                 {describeManifestState()}
               </p>
+              <dl className="grid gap-2 text-xs text-gray-600 sm:grid-cols-2">
+                <div>
+                  <dt className="font-semibold text-gray-700">{getText('merchant.systemUpdates.releaseTag', 'Release tag')}</dt>
+                  <dd className="break-all">{versionInfo?.releaseTag || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-gray-700">{getText('merchant.systemUpdates.deliveryMode', 'Delivery mode')}</dt>
+                  <dd>{versionInfo?.deliveryMode || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-gray-700">{getText('merchant.systemUpdates.repository', 'Repository')}</dt>
+                  <dd className="break-all">{versionInfo?.repository || '-'}</dd>
+                </div>
+                <div>
+                  <dt className="font-semibold text-gray-700">{getText('merchant.systemUpdates.sourceArchive', 'Source archive')}</dt>
+                  <dd className="break-all">{versionInfo?.sourceArchiveUrl || '-'}</dd>
+                </div>
+                <div className="sm:col-span-2">
+                  <dt className="font-semibold text-gray-700">{getText('merchant.systemUpdates.checksum', 'Checksum')}</dt>
+                  <dd className="break-all">{versionInfo?.checksumUrl || '-'}</dd>
+                </div>
+              </dl>
+              {versionInfo?.runtimeImages ? (
+                <div className="space-y-1 border-t border-gray-100 pt-2 text-xs text-gray-600">
+                  {Object.entries(versionInfo.runtimeImages).map(([name, image]) => (
+                    <p key={name} className="break-all"><span className="font-semibold text-gray-700">{name}:</span> {image}</p>
+                  ))}
+                </div>
+              ) : null}
               {versionInfo?.changelogUrl ? (
                 <a
                   href={versionInfo.changelogUrl}
@@ -846,12 +887,25 @@ function SettingsPageContent() {
                   )}
                 </p>
               ) : null}
+              {versionInfo?.oneClickUpgradeAvailable === false && versionInfo?.oneClickUpgradeBlockedReason ? (
+                <p className="text-xs font-medium text-amber-700">
+                  {versionInfo.oneClickUpgradeBlockedReason}
+                </p>
+              ) : null}
               <p className="text-xs text-gray-500">
                 {getText(
                   'merchant.systemUpdates.autoRecoveryHint',
                   'Failed upgrades should recover automatically; user-triggered version rollback is not exposed in the core update center.'
                 )}
               </p>
+              <a
+                href="https://github.com/thefreelight/Jiffoo/blob/dev/docs/operations/self-hosted-updater-runbook.md"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex text-xs font-semibold text-blue-600 hover:text-blue-700"
+              >
+                {getText('merchant.systemUpdates.openRunbook', 'Open self-hosted updater runbook')}
+              </a>
             </div>
 
             <ManagedLicensePanel />

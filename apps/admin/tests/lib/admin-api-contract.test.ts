@@ -50,7 +50,7 @@ describe('Admin API productization contracts', () => {
 
     expect(mocks.apiClient.post).toHaveBeenCalledWith(
       '/admin/auth/login',
-      { email: 'admin@example.com', password: 'not-a-real-password' },
+      { identifier: 'admin@example.com', password: 'not-a-real-password' },
       { withCredentials: true },
     );
     expect(mocks.apiClient.setToken).toHaveBeenCalledWith('admin-access-token');
