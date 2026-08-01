@@ -49,7 +49,10 @@ export default function AdminLoginPage() {
 
     async function redirectFreshInstall() {
       try {
-        const apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/$/, '')
+        const configuredApiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/$/, '')
+        const apiBaseUrl = configuredApiBaseUrl === '/api' || configuredApiBaseUrl.endsWith('/api')
+          ? `${configuredApiBaseUrl}/v1`
+          : configuredApiBaseUrl
         const response = await fetch(`${apiBaseUrl}/install/status`, { credentials: 'include' })
         if (!response.ok) return
 
