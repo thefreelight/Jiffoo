@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { DashboardStats } from './types'
-import { dashboardApi, unwrapApiResponse } from './api'
-import { authClient, type UserProfile } from 'shared'
+import { apiClient, authApi, dashboardApi, unwrapApiResponse } from './api'
+import { type UserProfile } from 'shared'
 
 interface AppUser extends UserProfile {
   requiresPasswordRotation?: boolean
@@ -30,16 +30,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (email: string, password: string) => {
     set({ isLoading: true })
     try {
-      const response = await authClient.login({ email, password });
+      const response = await authApi.login(email, password);
       const loginData = unwrapApiResponse(response);
 
       if (!loginData.access_token) {
         throw new Error('Invalid response format: missing access_token');
       }
 
-      authClient.setToken(loginData.access_token);
+      apiClient.setToken(loginData.access_token);
       if (loginData.refresh_token) {
-        (authClient as any).setRefreshToken(loginData.refresh_token);
+        (apiClient as unknown as { setRefreshToken: (token: string) => void }).setRefreshToken(loginData.refresh_token);
       }
 
       const token = loginData.access_token;
@@ -58,7 +58,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         localStorage.setItem('auth_status', 'authenticated');
       }
 
-      const profileResponse = await authClient.getProfile();
+      const profileResponse = await authApi.me();
       const userData = unwrapApiResponse(profileResponse);
       const extendedUserData = userData as UserProfile & { requiresPasswordRotation?: boolean }
 
@@ -86,7 +86,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   logout: () => {
-    authClient.logout()
+    void authApi.logout()
     if (typeof window !== 'undefined') {
       localStorage.removeItem('auth_status');
     }
@@ -98,7 +98,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (currentState.isChecking) return
     if (currentState.isAuthenticated && currentState.user) return
 
-    if (!authClient.isAuthenticated()) {
+    if (!apiClient.isAuthenticated()) {
       set({ isAuthenticated: false, isLoading: false, isChecking: false })
       return
     }
@@ -106,7 +106,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, isChecking: true })
 
     try {
-      const response = await authClient.getProfile();
+      const response = await authApi.me();
       const userData = unwrapApiResponse(response);
       const extendedUserData = userData as UserProfile & { requiresPasswordRotation?: boolean }
 
@@ -128,7 +128,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user, isAuthenticated: true, isLoading: false, isChecking: false })
     } catch (error) {
       console.warn('Auth check failed:', error)
-      authClient.clearAuth()
+      apiClient.clearAuth()
       set({ user: null, isAuthenticated: false, isLoading: false, isChecking: false })
     }
   },
@@ -138,7 +138,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   getAuthToken: () => {
-    return authClient.isAuthenticated() ? 'authenticated' : null
+    return apiClient.isAuthenticated() ? 'authenticated' : null
   },
 }))
 

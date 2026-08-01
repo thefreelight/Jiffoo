@@ -364,8 +364,19 @@ export { getAdminClient };
 
 // Auth API
 export const authApi = {
-  login: (email: string, password: string) =>
-    apiClient.login({ email, password }),
+  login: async (email: string, password: string) => {
+    const response = await apiClient.post<{
+      access_token: string;
+      token_type: string;
+      expires_in: number;
+      refresh_token?: string;
+    }>('/admin/auth/login', { email, password }, { withCredentials: true });
+    if (response.success && response.data?.access_token) {
+      apiClient.setToken(response.data.access_token);
+      if (response.data.refresh_token) (apiClient as unknown as { setRefreshToken: (token: string) => void }).setRefreshToken(response.data.refresh_token);
+    }
+    return response;
+  },
 
   getLoginConfig: (): Promise<ApiResponse<{
     demoModeEnabled: boolean;
@@ -376,14 +387,22 @@ export const authApi = {
   }>> =>
     apiClient.get('/auth/login-config'),
 
-  me: (): Promise<ApiResponse<UserProfile>> => apiClient.getProfile(),
+  me: (): Promise<ApiResponse<UserProfile>> => apiClient.get('/admin/auth/me'),
 
   bootstrapStatus: (): Promise<ApiResponse<AuthBootstrapStatus>> =>
     apiClient.get('/auth/bootstrap-status'),
 
-  logout: () => apiClient.logout(),
+  logout: async () => {
+    try {
+      return await apiClient.post<void>('/admin/auth/logout', {}, { withCredentials: true });
+    } finally {
+      apiClient.clearAuth();
+    }
+  },
 
-  refreshToken: () => apiClient.refreshAuthToken(),
+  refreshToken: () => apiClient.post('/admin/auth/refresh', {
+    refresh_token: apiClient.getRefreshToken(),
+  }, { withCredentials: true }),
 
   changePassword: (currentPassword: string, newPassword: string): Promise<ApiResponse<{ passwordChanged: boolean; changedAt: string }>> =>
     apiClient.post('/auth/change-password', { currentPassword, newPassword }),

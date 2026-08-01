@@ -7,6 +7,10 @@ const mocks = vi.hoisted(() => ({
     put: vi.fn(),
     patch: vi.fn(),
     delete: vi.fn(),
+    setToken: vi.fn(),
+    setRefreshToken: vi.fn(),
+    getRefreshToken: vi.fn(),
+    clearAuth: vi.fn(),
   },
 }));
 
@@ -16,6 +20,7 @@ vi.mock('shared', () => ({
 }));
 
 import {
+  authApi,
   marketApi,
   themesApi,
   upgradeApi,
@@ -25,6 +30,34 @@ import {
 describe('Admin API productization contracts', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('keeps Admin authentication on the admin audience endpoints', async () => {
+    mocks.apiClient.post.mockResolvedValue({
+      success: true,
+      data: {
+        access_token: 'admin-access-token',
+        refresh_token: 'admin-refresh-token',
+        token_type: 'Bearer',
+        expires_in: 3600,
+      },
+    });
+    mocks.apiClient.get.mockResolvedValue({ success: true, data: { id: 'admin-1' } });
+
+    await authApi.login('admin@example.com', 'not-a-real-password');
+    await authApi.me();
+    await authApi.logout();
+
+    expect(mocks.apiClient.post).toHaveBeenCalledWith(
+      '/admin/auth/login',
+      { email: 'admin@example.com', password: 'not-a-real-password' },
+      { withCredentials: true },
+    );
+    expect(mocks.apiClient.setToken).toHaveBeenCalledWith('admin-access-token');
+    expect(mocks.apiClient.setRefreshToken).toHaveBeenCalledWith('admin-refresh-token');
+    expect(mocks.apiClient.get).toHaveBeenCalledWith('/admin/auth/me');
+    expect(mocks.apiClient.post).toHaveBeenCalledWith('/admin/auth/logout', {}, { withCredentials: true });
+    expect(mocks.apiClient.clearAuth).toHaveBeenCalled();
   });
 
   it('keeps release truth fields from the upgrade version endpoint intact', async () => {
