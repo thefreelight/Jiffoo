@@ -12,6 +12,13 @@ spec:
       annotations:
         jiffoo.com/source-commit: 07b3881542d1f504fe1f981c7c641527cbe511f3
     spec:
+      initContainers:
+        - name: prepare-api-data
+          image: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api@sha256:a95ed641b8ba0e6151db49949a4b83c6407147d00a9aba46b42b7f612cdba939
+          command: ['sh', '-c', 'mkdir -p /data/uploads /data/extensions/themes /data/extensions/plugins && chown -R 1001:1001 /data']
+          securityContext: { runAsUser: 0, runAsGroup: 0 }
+          volumeMounts:
+            - { name: data, mountPath: /data }
       containers:
         - name: api
           image: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api@sha256:a95ed641b8ba0e6151db49949a4b83c6407147d00a9aba46b42b7f612cdba939
