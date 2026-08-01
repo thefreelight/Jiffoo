@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: tianquan-prod
+
+resources:
+  - namespace.yaml
+  - storage.yaml
+  - database.yaml
+  - migration-job.yaml
+  - application.yaml
+  - ingress.yaml

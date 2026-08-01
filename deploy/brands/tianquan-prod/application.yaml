@@ -1,0 +1,142 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: tianquan-api }
+  template:
+    metadata:
+      labels: { app: tianquan-api }
+      annotations:
+        jiffoo.com/source-commit: 07b3881542d1f504fe1f981c7c641527cbe511f3
+    spec:
+      containers:
+        - name: api
+          image: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api@sha256:a95ed641b8ba0e6151db49949a4b83c6407147d00a9aba46b42b7f612cdba939
+          ports: [{ name: http, containerPort: 3002 }]
+          env:
+            - { name: NODE_ENV, value: production }
+            - { name: API_HOST, value: 0.0.0.0 }
+            - { name: API_PORT, value: '3002' }
+            - { name: APP_VERSION, value: 1.0.5 }
+            - { name: DATABASE_URL, valueFrom: { secretKeyRef: { name: tianquan-secrets, key: database-url } } }
+            - { name: REDIS_URL, value: redis://redis:6379 }
+            - { name: JWT_SECRET, valueFrom: { secretKeyRef: { name: tianquan-secrets, key: jwt-secret } } }
+            - { name: CORS_ENABLED, value: 'true' }
+            - { name: CORS_CREDENTIALS, value: 'true' }
+            - { name: CORS_ORIGIN, value: 'https://tianquan.org,https://admin.tianquan.org' }
+            - { name: API_SERVICE_URL, value: https://api.tianquan.org }
+            - { name: NEXT_PUBLIC_API_URL, value: https://api.tianquan.org/api }
+            - { name: NEXT_PUBLIC_SHOP_URL, value: https://tianquan.org }
+            - { name: NEXT_PUBLIC_ADMIN_URL, value: https://admin.tianquan.org }
+            - { name: PLATFORM_MAIN_DOMAIN, value: tianquan.org }
+            - { name: PLATFORM_SHOP_DOMAIN, value: tianquan.org }
+            - { name: PLATFORM_API_DOMAIN, value: api.tianquan.org }
+            - { name: PLATFORM_ADMIN_DOMAIN, value: admin.tianquan.org }
+            - { name: EMAIL_FROM, value: support@tianquan.org }
+            - { name: EMAIL_FROM_NAME, value: 天权 }
+            - { name: EMAIL_REPLY_TO, value: support@tianquan.org }
+            - { name: MARKET_API_URL, value: https://platform-api.jiffoo.com/api }
+          readinessProbe:
+            httpGet: { path: /health/ready, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health/live, port: http }
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 200m, memory: 512Mi }
+            limits: { cpu: '1', memory: 2Gi }
+          volumeMounts:
+            - { name: data, mountPath: /app/uploads, subPath: uploads }
+            - { name: data, mountPath: /app/extensions, subPath: extensions }
+      volumes: [{ name: data, persistentVolumeClaim: { claimName: api-data } }]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector: { app: tianquan-api }
+  ports: [{ name: http, port: 80, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shop
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: tianquan-shop }
+  template:
+    metadata:
+      labels: { app: tianquan-shop }
+      annotations:
+        jiffoo.com/source-commit: 07b3881542d1f504fe1f981c7c641527cbe511f3
+    spec:
+      containers:
+        - name: shop
+          image: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop@sha256:5bd414a4b09b0888853e2f684ec977ba9161f8b7a77ad63cbf10f76d84d5266d
+          ports: [{ name: http, containerPort: 3001 }]
+          env:
+            - { name: PORT, value: '3001' }
+            - { name: API_SERVICE_URL, value: http://api }
+            - { name: NEXT_PUBLIC_API_URL, value: /api }
+            - { name: NEXT_PUBLIC_SHOP_URL, value: https://tianquan.org }
+          readinessProbe:
+            httpGet: { path: /, port: http }
+            initialDelaySeconds: 8
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 1Gi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shop
+spec:
+  selector: { app: tianquan-shop }
+  ports: [{ name: http, port: 80, targetPort: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app: tianquan-admin }
+  template:
+    metadata:
+      labels: { app: tianquan-admin }
+      annotations:
+        jiffoo.com/source-commit: 07b3881542d1f504fe1f981c7c641527cbe511f3
+    spec:
+      containers:
+        - name: admin
+          image: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin@sha256:63f94779520fd1c6181a35be00a00c4f44d98bf1ee039ea37d4cb0b9b9a77713
+          ports: [{ name: http, containerPort: 3003 }]
+          env:
+            - { name: PORT, value: '3003' }
+            - { name: API_SERVICE_URL, value: http://api }
+            - { name: NEXT_PUBLIC_API_URL, value: https://api.tianquan.org/api }
+            - { name: NEXT_PUBLIC_ADMIN_URL, value: https://admin.tianquan.org }
+          readinessProbe:
+            httpGet: { path: /, port: http }
+            initialDelaySeconds: 8
+            periodSeconds: 10
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 1Gi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin
+spec:
+  selector: { app: tianquan-admin }
+  ports: [{ name: http, port: 80, targetPort: http }]
