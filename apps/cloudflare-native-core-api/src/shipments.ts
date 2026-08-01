@@ -74,7 +74,7 @@ const shipmentRank: Record<string, number> = {
   DELIVERED: 5,
 };
 
-function nextShipmentStatus(current: string | null | undefined, incoming: string): string {
+export function nextShipmentStatus(current: string | null | undefined, incoming: string): string {
   if (!current || current === incoming) return incoming;
   if (current === 'DELIVERED') return current;
   if (incoming === 'EXCEPTION') return current === 'CANCELLED' ? current : incoming;
