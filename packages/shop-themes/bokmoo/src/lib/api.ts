@@ -109,6 +109,57 @@ export interface BokmooOrderListResponse {
   total?: number;
 }
 
+export interface BokmooAffiliatePartner {
+  id: string;
+  userId: string;
+  code: string;
+  status: string;
+  displayName?: string | null;
+  email?: string | null;
+  commissionRate: number;
+  organizationId?: string | null;
+  memberRole?: string | null;
+  currency: string;
+}
+
+export interface BokmooAffiliateCommission {
+  id: string;
+  order_id?: string;
+  orderId?: string;
+  order_amount?: number;
+  orderAmount?: number;
+  commission_rate?: number;
+  commissionRate?: number;
+  amount: number;
+  currency: string;
+  status: string;
+  created_at?: string;
+  createdAt?: string;
+}
+
+export interface BokmooAffiliateMember {
+  id: string;
+  userId: string;
+  role: string;
+  status: string;
+  joinedAt: string;
+  username?: string | null;
+  email?: string | null;
+  partnerId?: string | null;
+  partnerCode?: string | null;
+}
+
+export interface BokmooAffiliateOrganization {
+  id: string;
+  ownerUserId: string;
+  code: string;
+  name: string;
+  status: string;
+  commissionRate: number;
+  currency: string;
+  members: BokmooAffiliateMember[];
+}
+
 export interface BokmooInstructionSet {
   ios?: string[];
   android?: string[];
@@ -591,4 +642,46 @@ export async function getBokmooInstallSession(
 ): Promise<BokmooInstallSession> {
   const session = await request<BokmooInstallSession>(config, `/api/orders/${orderId}/install-session`);
   return normalizeInstallSession(session);
+}
+
+const affiliateBase = '/api/v1/plugins/affiliate/store';
+
+export async function getBokmooAffiliatePartner(config: BokmooApiConfig): Promise<BokmooAffiliatePartner> {
+  return request<BokmooAffiliatePartner>(config, `${affiliateBase}/partners/me`);
+}
+
+export async function registerBokmooAffiliatePartner(
+  config: BokmooApiConfig,
+  input: { displayName: string; organizationCode?: string }
+): Promise<BokmooAffiliatePartner> {
+  return request<BokmooAffiliatePartner>(config, `${affiliateBase}/partners/register`, 'POST', input);
+}
+
+export async function getBokmooAffiliateCommissions(config: BokmooApiConfig): Promise<BokmooAffiliateCommission[]> {
+  const result = await request<{ items: BokmooAffiliateCommission[] }>(config, `${affiliateBase}/commissions`);
+  return result.items || [];
+}
+
+export async function getBokmooAffiliateOrganization(config: BokmooApiConfig): Promise<BokmooAffiliateOrganization> {
+  return request<BokmooAffiliateOrganization>(config, `${affiliateBase}/organizations/me`);
+}
+
+export async function createBokmooAffiliateOrganization(
+  config: BokmooApiConfig,
+  input: { name: string; commissionRate: number }
+): Promise<BokmooAffiliateOrganization> {
+  return request<BokmooAffiliateOrganization>(config, `${affiliateBase}/organizations`, 'POST', input);
+}
+
+export async function addBokmooAffiliateMember(
+  config: BokmooApiConfig,
+  organizationId: string,
+  input: { email: string; role: 'INFLUENCER' | 'MANAGER' }
+): Promise<{ organizationId: string; userId: string; role: string }> {
+  return request(config, `${affiliateBase}/organizations/${encodeURIComponent(organizationId)}/members`, 'POST', input);
+}
+
+export async function getBokmooOrganizationCommissions(config: BokmooApiConfig): Promise<BokmooAffiliateCommission[]> {
+  const result = await request<{ items: BokmooAffiliateCommission[] }>(config, `${affiliateBase}/organizations/commissions`);
+  return result.items || [];
 }

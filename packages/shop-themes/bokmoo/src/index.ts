@@ -9,6 +9,7 @@ import { Toast, ToastContainer } from '@shop-themes/default/src/ui/Toast';
 import type { ToastProps, ToastType } from '@shop-themes/default/src/ui/Toast';
 
 import { AuthCallbackPage } from './components/AuthCallbackPage';
+import { AffiliatePage } from './components/AffiliatePage';
 import { CartPage } from './components/CartPage';
 import { CategoriesPage } from './components/CategoriesPage';
 import { CheckoutPage } from './components/CheckoutPage';
@@ -50,6 +51,7 @@ export const theme: ThemePackage = {
     OrderCancelledPage,
     ProfilePage,
     ProfileSettingsPage,
+    AffiliatePage,
     ContactPage,
     HelpPage,
     PrivacyPage,

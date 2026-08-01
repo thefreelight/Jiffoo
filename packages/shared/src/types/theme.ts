@@ -118,6 +118,7 @@ export interface ThemePackage {
     // User center pages
     ProfilePage: React.ComponentType<ProfilePageProps>;
     ProfileSettingsPage?: React.ComponentType<ProfileSettingsPageProps>;
+    AffiliatePage?: React.ComponentType<AffiliatePageProps>;
     // Content pages
     ContactPage: React.ComponentType<ContactPageProps>;
     HelpPage: React.ComponentType<HelpPageProps>;
@@ -471,6 +472,14 @@ export interface ProfileSettingsPageProps extends ThemeI18nProps {
     timezone?: string;
   }) => Promise<void>;
   onChangePassword: (currentPassword: string, newPassword: string) => Promise<void>;
+  onNavigateBack: () => void;
+  onNavigateToLogin: () => void;
+}
+
+export interface AffiliatePageProps extends ThemeI18nProps {
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  config?: ThemeConfig;
   onNavigateBack: () => void;
   onNavigateToLogin: () => void;
 }

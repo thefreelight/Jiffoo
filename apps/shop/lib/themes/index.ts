@@ -63,6 +63,7 @@ export type {
   OrderCancelledPageProps,
   ProfilePageProps,
   ProfileSettingsPageProps,
+  AffiliatePageProps,
   ContactPageProps,
   HelpPageProps,
   PrivacyPageProps,

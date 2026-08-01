@@ -3,6 +3,19 @@ import { persist } from 'zustand/middleware';
 import { type UserProfile } from 'shared';
 import { authApi, accountApi, apiClient } from '@/lib/api';
 
+async function associateAffiliateVisitor(): Promise<void> {
+  if (typeof document === 'undefined') return;
+  const match = document.cookie.match(/(?:^|;\s*)bokmoo_affiliate_visitor=([^;]+)/);
+  const visitorId = match?.[1] ? decodeURIComponent(match[1]) : '';
+  if (!visitorId) return;
+  try {
+    const response = await apiClient.post('/plugins/affiliate/store/attributions/associate', { visitorId });
+    if (response.success) document.cookie = 'bokmoo_affiliate_visitor=; Path=/; Max-Age=0; Secure; SameSite=Lax';
+  } catch {
+    // Keep the visitor cookie so a later authenticated session can retry.
+  }
+}
+
 interface AuthState {
   user: UserProfile | null;
   isAuthenticated: boolean;
@@ -76,6 +89,8 @@ export const useAuthStore = create<AuthState & AuthActions>()(
                 error: null,
               });
             }
+
+            await associateAffiliateVisitor();
 
             // Sync guest cart after login
             if (typeof window !== 'undefined') {
