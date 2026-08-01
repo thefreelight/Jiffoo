@@ -36,6 +36,11 @@ interface StoredInstance {
 type EncryptedValue = { iv: string; ciphertext: string };
 
 const definitions: Record<string, PluginDefinition> = {
+  shipping: {
+    slug: 'shipping', name: 'Shipping', version: '1.0.0', category: 'shipping',
+    description: 'Native shipment tracking, carrier metadata, Odoo webhooks, and delivery notifications.',
+    configSchema: {},
+  },
   'smtp-email': {
     slug: 'smtp-email', name: 'SMTP Email', version: '0.0.6', category: 'email',
     description: 'SMTP transport for verification and transactional email.',
