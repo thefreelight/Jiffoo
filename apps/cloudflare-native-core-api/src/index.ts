@@ -22,6 +22,7 @@ import { tryNativeAdminProducts } from './admin-products';
 import { tryNativeAdminApiTokens } from './admin-api-tokens';
 import { nativeUpgradeVersion } from './upgrade-version';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
+import { snapshotKey } from './snapshot-key';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv;
 
@@ -76,10 +77,6 @@ function normalizePublicApiRequest(request: Request): Request {
 
 function isNativeRead(request: Request, url: URL): boolean {
   return request.method === 'GET' && NATIVE_READ_PATHS.some((pattern) => pattern.test(url.pathname));
-}
-
-function snapshotKey(url: URL): string {
-  return `core:snapshot:${url.pathname}${url.search}`;
 }
 
 async function proxy(request: Request, env: WorkerEnv): Promise<Response> {
