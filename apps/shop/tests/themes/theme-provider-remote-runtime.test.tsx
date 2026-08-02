@@ -142,6 +142,35 @@ describe('ThemeProvider remote runtime source of truth', () => {
     }
   });
 
+  it('fails closed when resolving the active marketplace theme fails', async () => {
+    const activeThemeError = new Error('active theme API unavailable');
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mocks.themePackState.current = {
+      isLoading: false,
+      activeTheme: null,
+      manifest: null,
+      error: activeThemeError,
+    };
+
+    try {
+      render(
+        <ThemeProvider slug="tianquan">
+          <ThemeProbe />
+        </ThemeProvider>,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Theme Load Failed')).toBeTruthy();
+      });
+
+      expect(screen.getByText('active theme API unavailable')).toBeTruthy();
+      expect(screen.queryByTestId('theme-name')).toBeNull();
+      expect(mocks.loadRemoteThemeRuntime).not.toHaveBeenCalled();
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+  });
+
   it('loads a new runtime URL when the active installed theme version changes', async () => {
     mocks.loadRemoteThemeRuntime.mockImplementation(async ({ cacheKey }) => ({
       components: createRemoteRuntimeComponents(),

@@ -82,6 +82,30 @@ describe('storefront runtime source of truth', () => {
     await expect(fetchActiveTheme()).resolves.toEqual(apiActiveTheme);
   });
 
+  it('distinguishes an active-theme API failure from an unconfigured store', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    activeThemeResponse.mockResolvedValue({
+      success: false,
+      error: { message: 'active theme API unavailable' },
+    });
+
+    try {
+      const { fetchActiveTheme } = await import('@/lib/theme-pack/loader');
+
+      await expect(fetchActiveTheme()).rejects.toThrow('active theme API unavailable');
+    } finally {
+      consoleErrorSpy.mockRestore();
+    }
+  });
+
+  it('still returns null when the API successfully reports no active theme', async () => {
+    activeThemeResponse.mockResolvedValue({ success: true, data: null });
+
+    const { fetchActiveTheme } = await import('@/lib/theme-pack/loader');
+
+    await expect(fetchActiveTheme()).resolves.toBeNull();
+  });
+
   it('does not globally import host-bundled official theme tokens in the shop root layout', () => {
     const source = readFileSync(shopRootLayoutPath, 'utf8');
 
