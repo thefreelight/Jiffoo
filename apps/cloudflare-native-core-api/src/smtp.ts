@@ -24,6 +24,10 @@ async function configuration(env: SmtpEnv) {
   if (!host || !Number.isInteger(port) || port <= 0 || !fromEmail) {
     throw new Error('Mailcow SMTP is not configured');
   }
+  const configuredPass = stringValue(plugin.smtpPass);
+  const pass = configuredPass
+    || await resolveSmtpSecret(env.SMTP_PASSWORD)
+    || await resolveSmtpSecret(env.SMTP_PASS);
   return {
     host,
     port,
@@ -31,13 +35,20 @@ async function configuration(env: SmtpEnv) {
       ? plugin.smtpSecure
       : env.SMTP_SECURE?.trim().toLowerCase() === 'true' || port === 465,
     user: stringValue(plugin.smtpUser) || env.SMTP_USERNAME?.trim() || env.SMTP_USER?.trim() || '',
-    pass: stringValue(plugin.smtpPass) || env.SMTP_PASSWORD || env.SMTP_PASS || '',
+    pass,
     fromEmail,
     from: stringValue(plugin.fromName) || env.SMTP_FROM_NAME?.trim()
       ? `${header(stringValue(plugin.fromName) || env.SMTP_FROM_NAME!)} <${mailbox(fromEmail)}>`
       : fromEmail,
     replyTo: stringValue(plugin.replyTo) || env.SMTP_REPLY_TO?.trim() || '',
   };
+}
+
+export async function resolveSmtpSecret(
+  value: SecretsStoreSecret | string | undefined,
+): Promise<string> {
+  if (!value) return '';
+  return typeof value === 'string' ? value : value.get();
 }
 
 function session(socket: ReturnType<typeof connect>): SmtpSession {
