@@ -7,8 +7,8 @@ export interface NativeSmtpEnv {
   SMTP_SECURE?: string;
   SMTP_USER?: string;
   SMTP_USERNAME?: string;
-  SMTP_PASS?: string;
-  SMTP_PASSWORD?: string;
+  SMTP_PASS?: SecretsStoreSecret | string;
+  SMTP_PASSWORD?: SecretsStoreSecret | string;
   SMTP_FROM?: string;
   SMTP_FROM_EMAIL?: string;
   SMTP_FROM_NAME?: string;
