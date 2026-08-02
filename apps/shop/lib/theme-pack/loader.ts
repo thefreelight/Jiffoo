@@ -92,13 +92,12 @@ export async function fetchActiveTheme(): Promise<ActiveTheme | null> {
     const { themesApi } = await import('@/lib/api');
     const response = await themesApi.getActiveTheme();
     if (!response.success) {
-      console.warn('[ThemePack] Failed to fetch active theme:', response.error?.message || 'unknown error');
-      return null;
+      throw new Error(response.error?.message || 'Failed to fetch active theme');
     }
     return (response.data || null) as ActiveTheme | null;
   } catch (error) {
     console.error('[ThemePack] Error fetching active theme:', error);
-    return null;
+    throw error instanceof Error ? error : new Error('Failed to fetch active theme');
   }
 }
 
