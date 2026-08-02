@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
@@ -217,6 +218,22 @@ function ensureGhAuth() {
   run('gh', ['auth', 'status']);
 }
 
+function createReleaseTreeRef(files) {
+  const scratchDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jiffoo-release-index-'));
+  const env = {
+    ...process.env,
+    GIT_INDEX_FILE: path.join(scratchDir, 'index'),
+  };
+
+  try {
+    run('git', ['read-tree', 'HEAD'], { env });
+    run('git', ['add', '--', ...files], { env });
+    return runCapture('git', ['write-tree'], { env });
+  } finally {
+    fs.rmSync(scratchDir, { recursive: true, force: true });
+  }
+}
+
 function createReleaseNotesFile(version, notes) {
   const notesPath = path.join(ROOT, '.release', `release-notes-v${version}.md`);
   fs.mkdirSync(path.dirname(notesPath), { recursive: true });
@@ -228,23 +245,26 @@ function createReleaseNotesFile(version, notes) {
   return notesPath;
 }
 
-function buildFeed(version, releaseDate, notes, dryRun) {
+function buildFeed(version, releaseDate, notes, dryRun, archiveRef) {
   if (dryRun) {
-    console.log(`[dry-run] node scripts/build-update-feed.mjs --output-dir .release/self-hosted --release-tag v${version}-opensource --release-date ${releaseDate} --release-notes "${notes}"`);
+    console.log(`[dry-run] node scripts/build-update-feed.mjs --output-dir .release/self-hosted --release-tag v${version}-opensource --archive-ref <release-tree> --release-date ${releaseDate} --release-notes "${notes}"`);
     return;
   }
 
-  run('node', [
+  const args = [
     'scripts/build-update-feed.mjs',
     '--output-dir',
     '.release/self-hosted',
     '--release-tag',
     `v${version}-opensource`,
+    '--archive-ref',
+    archiveRef,
     '--release-date',
     releaseDate,
     '--release-notes',
     notes,
-  ]);
+  ];
+  run('node', args);
 }
 
 function uploadReleaseAssets(version) {
@@ -295,9 +315,14 @@ function main() {
     }
   }
 
+  // Build from a temporary index tree containing the new version metadata.
+  // This keeps the caller's index untouched while ensuring the source archive
+  // describes the release being published rather than the previous HEAD.
+  const archiveRef = dryRun ? null : createReleaseTreeRef(collectReleaseFiles());
+
   // --skip-checks only skips validation. Release assets must always be rebuilt
   // so a publish cannot silently upload artifacts left by an older version.
-  buildFeed(version, releaseDate, notes, dryRun);
+  buildFeed(version, releaseDate, notes, dryRun, archiveRef);
 
   if (!publish) {
     console.log('Prepared metadata only. Re-run with --publish to commit, tag, push, create release, and upload assets.');

@@ -164,7 +164,29 @@ function runCaptureBuffer(command, args, options = {}) {
 
 function createArchive(rootDir, archivePath, archiveRef) {
   ensureDirectory(path.dirname(archivePath));
-  run('git', ['-C', rootDir, 'archive', '--format=tar.gz', `--output=${archivePath}`, archiveRef]);
+  const relativeArchivePath = path.relative(rootDir, archivePath).split(path.sep).join('/');
+  const archiveArgs = [
+    '-C',
+    rootDir,
+    'archive',
+    '--format=tar.gz',
+    `--output=${archivePath}`,
+    archiveRef,
+    '--',
+    '.',
+    `:(glob,exclude)**/${path.basename(archivePath)}`,
+  ];
+
+  if (
+    relativeArchivePath
+    && relativeArchivePath !== '.'
+    && !relativeArchivePath.startsWith('../')
+    && !path.isAbsolute(relativeArchivePath)
+  ) {
+    archiveArgs.push(`:(exclude)${relativeArchivePath}`);
+  }
+
+  run('git', archiveArgs);
 }
 
 async function copyFileFromGitRef(rootDir, ref, repoPath, outputPath, mode) {
