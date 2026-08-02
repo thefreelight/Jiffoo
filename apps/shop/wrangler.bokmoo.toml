@@ -1,5 +1,5 @@
 name = "bokmoo-shop"
-main = ".open-next/worker.js"
+main = "cloudflare-entry.ts"
 compatibility_date = "2026-07-12"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
 workers_dev = true
@@ -10,7 +10,7 @@ directory = ".open-next/assets"
 binding = "ASSETS"
 
 [vars]
-NEXT_PUBLIC_API_URL = "https://api.bokmoo.com/api"
+NEXT_PUBLIC_API_URL = "/api"
 API_SERVICE_URL = "https://api.bokmoo.com"
 SERVER_STORE_CONTEXT_TIMEOUT_MS = "2000"
 THEME_APP_PROXY_DISABLED = "1"
@@ -25,3 +25,7 @@ NEXT_PUBLIC_FALLBACK_POWERED_BY_JIFFOO = "0"
 [[services]]
 binding = "WORKER_SELF_REFERENCE"
 service = "bokmoo-shop"
+
+[[r2_buckets]]
+binding = "THEME_ASSETS"
+bucket_name = "bokmoo-production-assets"
