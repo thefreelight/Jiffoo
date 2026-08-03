@@ -1,4 +1,5 @@
 import { createNativeBootstrapAdmin, type NativeAuthEnv } from './auth';
+import { nativeSiteName } from './site-name';
 
 interface InstallEnv extends NativeAuthEnv { DB: D1Database }
 
@@ -7,7 +8,7 @@ async function status(env: InstallEnv) {
     env.DB.prepare("SELECT 1 AS found FROM native_users WHERE role IN ('ADMIN', 'SUPER_ADMIN') LIMIT 1").first<{ found: number }>(),
     env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'site_name'").first<{ value: string }>(),
   ]);
-  return { isInstalled: Boolean(admin), version: '0.0.1', siteName: site?.value ?? 'Bokmoo' };
+  return { isInstalled: Boolean(admin), version: '0.0.2', siteName: site?.value ?? await nativeSiteName(env) };
 }
 
 function error(message: string, code = 400): Response {

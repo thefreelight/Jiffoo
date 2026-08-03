@@ -2,6 +2,7 @@ import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
 import { testNativeOdooConnection } from './odoo';
 import { getNativePluginSecret } from './plugin-settings';
 import { sendSmtpEmail } from './smtp';
+import { nativeSiteName } from './site-name';
 
 interface IntegrationAdminEnv extends NativeAuthEnv {
   DB: D1Database;
@@ -22,14 +23,15 @@ export async function tryNativeIntegrationAdmin(request: Request, env: Integrati
   if (!admin) return result({ code: 'UNAUTHORIZED', message: 'Admin authentication required' }, 401);
   try {
     if (match[1] === 'smtp-email') {
+      const siteName = await nativeSiteName(env);
       const body = await request.json<{ to?: unknown }>().catch(() => ({} as { to?: unknown }));
       const to = typeof body.to === 'string' ? body.to.trim() : '';
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return result({ code: 'VALIDATION_ERROR', message: 'A valid recipient email is required' }, 400);
       await sendSmtpEmail(env, {
         to,
-        subject: 'Bokmoo SMTP connection test',
-        text: 'Your Bokmoo SMTP configuration is working.',
-        html: '<p>Your Bokmoo SMTP configuration is working.</p>',
+        subject: `${siteName} SMTP connection test`,
+        text: `Your ${siteName} SMTP configuration is working.`,
+        html: `<p>Your ${siteName} SMTP configuration is working.</p>`,
       });
       return result({ ok: true, recipient: to });
     }
