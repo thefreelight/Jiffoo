@@ -21,6 +21,18 @@ export interface CreateClientOptions {
 }
 
 /**
+ * Admin endpoints already include the `/admin` audience prefix. Accept legacy
+ * deployment values that included it in the base URL without duplicating the
+ * path when requests are constructed.
+ */
+export function normalizeAdminApiBaseUrl(baseUrl: string): string {
+  const normalized = baseUrl.replace(/\/+$/, '');
+  return normalized.endsWith('/admin')
+    ? normalized.slice(0, -'/admin'.length)
+    : normalized;
+}
+
+/**
  * Create unified API client for different applications
  */
 export function createApiClient(options: CreateClientOptions): AuthClient {
@@ -58,6 +70,10 @@ export function createApiClient(options: CreateClientOptions): AuthClient {
       ...customConfig.defaultHeaders
     }
   };
+
+  if (appId === 'admin' && config.baseURL) {
+    config.baseURL = normalizeAdminApiBaseUrl(config.baseURL);
+  }
 
   // Create storage adapter
   const storage = StorageAdapterFactory.create(storageType, cookies);
