@@ -1,5 +1,6 @@
 import type { NativeSmtpEnv } from './auth';
 import { sendSmtpEmail } from './smtp';
+import { nativeSiteName } from './site-name';
 
 interface MailEnv extends NativeSmtpEnv { DB: D1Database; JWT_SECRET: SecretsStoreSecret }
 
@@ -52,10 +53,11 @@ export async function enqueueOrderPaidEmail(env: MailEnv, order: Record<string, 
   ).bind(orderId).first<{ email: string }>();
   if (!recipient?.email) return;
   const locale = localeOf(order);
-  const subject = locale === 'zh-CN' ? `BOKMOO 订单已支付：${orderId}` : `BOKMOO payment confirmed: ${orderId}`;
+  const siteName = await nativeSiteName(env);
+  const subject = locale === 'zh-CN' ? `${siteName} 订单已支付：${orderId}` : `${siteName} payment confirmed: ${orderId}`;
   const text = locale === 'zh-CN'
-    ? `你的 BOKMOO 订单 ${orderId} 已支付成功，我们会尽快处理。`
-    : `Your BOKMOO order ${orderId} has been paid successfully and is now being processed.`;
+    ? `你的 ${siteName} 订单 ${orderId} 已支付成功，我们会尽快处理。`
+    : `Your ${siteName} order ${orderId} has been paid successfully and is now being processed.`;
   await enqueueEmail(env, {
     orderId, recipient: recipient.email, subject, text,
     html: `<p>${escapeHtml(text)}</p>`, messageType: 'order.paid', dedupeKey: `order-paid:${orderId}`,
@@ -71,9 +73,10 @@ export async function enqueueRefundEmail(
      JOIN native_users users ON users.id = metadata.user_id WHERE metadata.order_id = ?1`,
   ).bind(input.orderId).first<{ email: string }>();
   if (!recipient?.email) return;
+  const siteName = await nativeSiteName(env);
   const amount = `${input.currency} ${input.amount.toFixed(2)}`;
-  const subject = input.fullyRefunded ? `BOKMOO refund completed: ${input.orderId}` : `BOKMOO partial refund completed: ${input.orderId}`;
-  const text = `Your BOKMOO refund for order ${input.orderId} is complete: ${amount}.${input.reason ? ` Reason: ${input.reason}` : ''}`;
+  const subject = input.fullyRefunded ? `${siteName} refund completed: ${input.orderId}` : `${siteName} partial refund completed: ${input.orderId}`;
+  const text = `Your ${siteName} refund for order ${input.orderId} is complete: ${amount}.${input.reason ? ` Reason: ${input.reason}` : ''}`;
   await enqueueEmail(env, {
     orderId: input.orderId, recipient: recipient.email, subject, text,
     html: `<p>${escapeHtml(text)}</p>`, messageType: 'order.refunded', dedupeKey: `order-refunded:${input.orderId}:${input.amount.toFixed(2)}`,
@@ -88,9 +91,10 @@ export async function enqueueAffiliateCommissionEmail(
     'SELECT email FROM native_affiliate_partners WHERE id = ?1 AND email IS NOT NULL',
   ).bind(input.partnerId).first<{ email: string }>();
   if (!recipient?.email) return;
+  const siteName = await nativeSiteName(env);
   const amount = `${input.currency} ${input.amount.toFixed(2)}`;
-  const subject = `BOKMOO affiliate commission recorded: ${input.orderId}`;
-  const text = `A pending BOKMOO affiliate commission of ${amount} was recorded for order ${input.orderId}.`;
+  const subject = `${siteName} affiliate commission recorded: ${input.orderId}`;
+  const text = `A pending ${siteName} affiliate commission of ${amount} was recorded for order ${input.orderId}.`;
   await enqueueEmail(env, {
     orderId: input.orderId, recipient: recipient.email, subject, text,
     html: `<p>${escapeHtml(text)}</p>`, messageType: 'affiliate.commission', dedupeKey: `affiliate-commission:${input.commissionId}`,
@@ -105,9 +109,10 @@ export async function enqueueOrganizationCommissionEmail(
     'SELECT email FROM native_users WHERE id = ?1',
   ).bind(input.beneficiaryUserId).first<{ email: string }>();
   if (!recipient?.email) return;
+  const siteName = await nativeSiteName(env);
   const amount = `${input.currency} ${input.amount.toFixed(2)}`;
-  const subject = `BOKMOO organization commission recorded: ${input.orderId}`;
-  const text = `A pending BOKMOO organization commission of ${amount} was recorded for order ${input.orderId}.`;
+  const subject = `${siteName} organization commission recorded: ${input.orderId}`;
+  const text = `A pending ${siteName} organization commission of ${amount} was recorded for order ${input.orderId}.`;
   await enqueueEmail(env, {
     orderId: input.orderId, recipient: recipient.email, subject, text,
     html: `<p>${escapeHtml(text)}</p>`, messageType: 'affiliate.organization.commission', dedupeKey: `affiliate-organization-commission:${input.commissionId}`,
@@ -124,8 +129,9 @@ export async function enqueueShipmentEmail(
      JOIN native_users users ON users.id = metadata.user_id WHERE metadata.order_id = ?1`,
   ).bind(input.orderId).first<{ email: string }>();
   if (!recipient?.email) return;
+  const siteName = await nativeSiteName(env);
   const label = input.status === 'SHIPPED' ? 'has shipped' : input.status === 'DELIVERED' ? 'was delivered' : 'has a delivery exception';
-  const subject = `Your BOKMOO order ${label}`;
+  const subject = `Your ${siteName} order ${label}`;
   const trackingLine = input.trackingUrl ? `Track it: ${input.trackingUrl}` : '';
   const text = `Order ${input.orderId} ${label}.\nCarrier: ${input.carrier}\nTracking number: ${input.trackingNumber}${trackingLine ? `\n${trackingLine}` : ''}`;
   const link = input.trackingUrl ? `<p><a href="${escapeHtml(input.trackingUrl)}">Track package</a></p>` : '';

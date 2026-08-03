@@ -2,6 +2,7 @@ import { sendNativeVerificationCode, verifyNativeEmailCode } from './email-verif
 import { consumeVerificationRateLimit } from './auth-rate-limit';
 
 export interface NativeSmtpEnv {
+  SITE_NAME?: string;
   SMTP_HOST?: string;
   SMTP_PORT?: string;
   SMTP_SECURE?: string;

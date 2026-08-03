@@ -1,5 +1,6 @@
 import { sendSmtpEmail } from './smtp';
 import { findNativeUserByEmail, getNativeJwtSecret, type NativeAuthEnv } from './auth';
+import { nativeSiteName } from './site-name';
 
 const CODE_TTL_SECONDS = 600;
 const MAX_ATTEMPTS = 5;
@@ -31,6 +32,7 @@ export async function sendNativeVerificationCode(
   const value = code();
   const secret = await getNativeJwtSecret(env);
   const expiresAt = new Date(Date.now() + CODE_TTL_SECONDS * 1000).toISOString();
+  const siteName = await nativeSiteName(env);
   await env.DB.prepare(
     `UPDATE native_users SET verification_code_hash = ?1, verification_expires_at = ?2,
       verification_attempts = 0, email_verified = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?3`,
@@ -38,9 +40,9 @@ export async function sendNativeVerificationCode(
 
   await sendSmtpEmail(env, {
     to: user.email,
-    subject: 'Your BOKMOO verification code',
-    text: `Hi ${user.username},\n\nYour BOKMOO verification code is ${value}. It expires in 10 minutes.`,
-    html: `<p>Hi ${user.username},</p><p>Your BOKMOO verification code is:</p><p style="font-size:32px;font-weight:700;letter-spacing:8px">${value}</p><p>This code expires in 10 minutes.</p>`,
+    subject: `Your ${siteName} verification code`,
+    text: `Hi ${user.username},\n\nYour ${siteName} verification code is ${value}. It expires in 10 minutes.`,
+    html: `<p>Hi ${user.username},</p><p>Your ${siteName} verification code is:</p><p style="font-size:32px;font-weight:700;letter-spacing:8px">${value}</p><p>This code expires in 10 minutes.</p>`,
   });
 }
 
