@@ -1,3 +1,5 @@
+import { snapshotKey } from './snapshot-key';
+
 interface SnapshotImportEnv {
   DB: D1Database;
   CACHE: KVNamespace;
@@ -21,6 +23,8 @@ interface ValidatedSnapshot {
 
 const MAX_IMPORT_BYTES = 1_500_000;
 const PRODUCT_PATH = /^\/api\/v1\/products(?:\/[^/?]+)?(?:\?[^#]*)?$/;
+const THEME_PATH = /^\/api\/v1\/themes\/active(?:\?target=(?:shop|admin))?$/;
+const STORE_PATH = /^\/api\/v1\/store$/;
 
 function constantTimeEqual(left: string, right: string): boolean {
   const encoder = new TextEncoder();
@@ -39,13 +43,8 @@ async function tokenValue(binding: SnapshotImportEnv['SNAPSHOT_IMPORT_TOKEN']): 
   return typeof binding === 'string' ? binding : binding.get();
 }
 
-function snapshotKey(path: string): string {
-  const url = new URL(path, 'https://native.invalid');
-  return `core:snapshot:${url.pathname}${url.search}`;
-}
-
 export function isAllowedSnapshotPath(path: string): boolean {
-  return PRODUCT_PATH.test(path);
+  return PRODUCT_PATH.test(path) || THEME_PATH.test(path) || STORE_PATH.test(path);
 }
 
 export async function importSnapshots(request: Request, env: SnapshotImportEnv): Promise<Response | null> {
@@ -87,7 +86,7 @@ export async function importSnapshots(request: Request, env: SnapshotImportEnv):
     }
     validated.push({
       path: record.path,
-      key: snapshotKey(record.path),
+      key: snapshotKey(new URL(record.path, 'https://native.invalid')),
       payload,
       statusCode,
       contentType,
