@@ -23,8 +23,9 @@ import { tryNativeAdminApiTokens } from './admin-api-tokens';
 import { nativeUpgradeVersion } from './upgrade-version';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 import { snapshotKey } from './snapshot-key';
+import { tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
 
-type WorkerEnv = Cloudflare.Env & NativeAuthEnv;
+type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv;
 
 interface Snapshot {
   payload: string;
@@ -189,6 +190,8 @@ export default {
     if (snapshotImport) return snapshotImport;
     const nativeInstall = await tryNativeInstall(nativeRequest, env);
     if (nativeInstall) return nativeInstall;
+    const nativeJobsProxy = await tryNativeJobsProxy(nativeRequest, env);
+    if (nativeJobsProxy) return nativeJobsProxy;
     const nativeShopperAccount = await tryNativeShopperAccount(nativeRequest, env);
     if (nativeShopperAccount) return nativeShopperAccount;
     const nativeAffiliate = await tryNativeAffiliate(nativeRequest, env);
