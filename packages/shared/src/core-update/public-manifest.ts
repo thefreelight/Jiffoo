@@ -36,25 +36,25 @@ export const DEFAULT_PUBLIC_CORE_UPDATE_MANIFEST_URL =
 // for release detection. Keep it aligned with the published OSS release tag and
 // changelog entry whenever a new public release is cut.
 export const PUBLIC_CORE_UPDATE_MANIFEST: PublicCoreUpdateManifest = {
-  latestVersion: '1.0.61',
-  latestStableVersion: '1.0.61',
+  latestVersion: '1.0.62',
+  latestStableVersion: '1.0.62',
   latestPrereleaseVersion: null,
   channel: 'stable',
   deliveryMode: 'image-first',
   images: {
-    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.61',
-    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.61',
-    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.61',
-    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.61',
+    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.62',
+    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.62',
+    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.62',
+    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.62',
   },
-  releaseDate: '2026-08-02T20:52:05.754Z',
-  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.61-opensource',
+  releaseDate: '2026-08-03T11:41:45.941Z',
+  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.62-opensource',
   sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
   minimumCompatibleVersion: '1.0.0',
   minimumAutoUpgradableVersion: '1.0.0',
   requiresManualIntervention: false,
   releaseNotes:
-    'Fixes Cloudflare-native storefront theme loading by canonicalizing the default shop theme snapshot key.',
+    'Adds Tianquan theme and SMTP email to the self-hosted official catalog.',
   checksumUrl: null,
   signatureUrl: null,
 };
