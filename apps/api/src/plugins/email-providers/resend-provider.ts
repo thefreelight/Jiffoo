@@ -2,8 +2,11 @@
 /**
  * Resend Email Provider
  *
- * Lightweight wrapper around Resend with a safe no-op fallback when
- * credentials are not configured.
+ * Lightweight wrapper around Resend.
+ *
+ * Missing credentials are an explicit delivery failure. Returning a successful
+ * no-op here makes registration appear complete while no verification message
+ * was accepted by a transport.
  */
 
 import { Resend } from 'resend';
@@ -38,8 +41,10 @@ export class ResendProvider {
 
   async send(input: SendEmailInput): Promise<SendEmailResult> {
     if (!this.client) {
-      // No email credentials configured; treat as a successful noop.
-      return { success: true, messageId: 'noop' };
+      return {
+        success: false,
+        error: 'Email provider is not configured',
+      };
     }
 
     try {
