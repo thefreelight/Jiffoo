@@ -23,7 +23,7 @@ import { tryNativeAdminApiTokens } from './admin-api-tokens';
 import { nativeUpgradeVersion } from './upgrade-version';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 import { snapshotKey } from './snapshot-key';
-import { tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
+import { processNativeJobsSync, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv;
 
@@ -239,16 +239,18 @@ export default {
     return proxy(request, env);
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, jobs] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
+      processNativeJobsSync(env),
     ]);
     console.log(JSON.stringify({
       message: 'native scheduled work processed',
       checkout: checkout.status === 'fulfilled' ? checkout.value : { error: String(checkout.reason) },
       email: email.status === 'fulfilled' ? email.value : { error: String(email.reason) },
       odooCatalog: odooCatalog.status === 'fulfilled' ? odooCatalog.value : { error: String(odooCatalog.reason) },
+      jobs: jobs.status === 'fulfilled' ? jobs.value : { error: String(jobs.reason) },
     }));
   },
 } satisfies ExportedHandler<WorkerEnv>;

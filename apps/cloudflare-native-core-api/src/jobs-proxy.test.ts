@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { tryNativeJobsProxy } from './jobs-proxy';
+import { processNativeJobsSync, tryNativeJobsProxy } from './jobs-proxy';
 
 describe('native jobs proxy', () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -30,5 +30,25 @@ describe('native jobs proxy', () => {
     expect(service.fetch).toHaveBeenCalledOnce();
     expect(new URL(service.fetch.mock.calls[0][0].url).pathname).toBe('/api/jobs');
     expect(response?.status).toBe(200);
+  });
+
+  it('skips scheduled collection when the source is fresh', async () => {
+    const service = { fetch: vi.fn(async () => Response.json({ ok: true })) };
+    const db = {
+      prepare: vi.fn(() => ({ first: async () => ({ updated_at: new Date().toISOString() }) })),
+    };
+    await expect(processNativeJobsSync({ JOBS_SERVICE: service, JOBS_SYNC_TOKEN: 'token', DB: db })).resolves.toMatchObject({ skipped: 'fresh' });
+    expect(service.fetch).not.toHaveBeenCalled();
+  });
+
+  it('runs scheduled collection through the service binding when stale', async () => {
+    const service = { fetch: vi.fn(async () => Response.json({ status: 'completed' })) };
+    const db = {
+      prepare: vi.fn(() => ({ first: async () => ({ updated_at: '2020-01-01T00:00:00.000Z' }) })),
+    };
+    await expect(processNativeJobsSync({ JOBS_SERVICE: service, JOBS_SYNC_TOKEN: { get: async () => 'token' }, DB: db })).resolves.toEqual({ status: 'completed' });
+    const request = service.fetch.mock.calls[0][0];
+    expect(request.headers.get('authorization')).toBe('Bearer token');
+    await expect(request.json()).resolves.toEqual({ mode: 'incremental' });
   });
 });
