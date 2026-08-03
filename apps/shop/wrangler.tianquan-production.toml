@@ -2,6 +2,9 @@ name = "tianquan-production-shop"
 main = "cloudflare-entry.ts"
 compatibility_date = "2026-07-29"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+routes = [
+  { pattern = "production-preview.tianquan.org", custom_domain = true }
+]
 
 [assets]
 directory = ".open-next/assets"
@@ -15,7 +18,7 @@ API_SERVICE_URL = "https://api.tianquan.org"
 NEXT_PUBLIC_API_URL = "/api"
 THEME_APP_PROXY_DISABLED = "1"
 FALLBACK_THEME_SLUG = "tianquan"
-FALLBACK_THEME_VERSION = "0.0.4"
+FALLBACK_THEME_VERSION = "0.0.5"
 
 [[r2_buckets]]
 binding = "NEXT_INC_CACHE_R2_BUCKET"

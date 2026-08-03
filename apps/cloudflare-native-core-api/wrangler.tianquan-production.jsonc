@@ -4,6 +4,9 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-07-29",
   "compatibility_flags": ["nodejs_compat"],
+  "routes": [
+    { "pattern": "production-preview-api.tianquan.org", "custom_domain": true }
+  ],
   "d1_databases": [
     {
       "binding": "DB",

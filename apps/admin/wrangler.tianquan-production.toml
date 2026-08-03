@@ -2,6 +2,9 @@ name = "tianquan-production-admin"
 main = ".open-next/worker.js"
 compatibility_date = "2026-07-29"
 compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+routes = [
+  { pattern = "production-preview-admin.tianquan.org", custom_domain = true }
+]
 
 [assets]
 directory = ".open-next/assets"
