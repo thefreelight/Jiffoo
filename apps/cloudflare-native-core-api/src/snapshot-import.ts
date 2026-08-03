@@ -1,3 +1,5 @@
+import { snapshotKey } from './snapshot-key';
+
 interface SnapshotImportEnv {
   DB: D1Database;
   CACHE: KVNamespace;
@@ -39,11 +41,6 @@ function constantTimeEqual(left: string, right: string): boolean {
 async function tokenValue(binding: SnapshotImportEnv['SNAPSHOT_IMPORT_TOKEN']): Promise<string> {
   if (!binding) return '';
   return typeof binding === 'string' ? binding : binding.get();
-}
-
-function snapshotKey(path: string): string {
-  const url = new URL(path, 'https://native.invalid');
-  return `core:snapshot:${url.pathname}${url.search}`;
 }
 
 export function isAllowedSnapshotPath(path: string): boolean {
@@ -89,7 +86,7 @@ export async function importSnapshots(request: Request, env: SnapshotImportEnv):
     }
     validated.push({
       path: record.path,
-      key: snapshotKey(record.path),
+      key: snapshotKey(new URL(record.path, 'https://native.invalid')),
       payload,
       statusCode,
       contentType,
