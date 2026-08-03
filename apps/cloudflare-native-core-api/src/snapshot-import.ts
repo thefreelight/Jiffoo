@@ -21,6 +21,8 @@ interface ValidatedSnapshot {
 
 const MAX_IMPORT_BYTES = 1_500_000;
 const PRODUCT_PATH = /^\/api\/v1\/products(?:\/[^/?]+)?(?:\?[^#]*)?$/;
+const THEME_PATH = /^\/api\/v1\/themes\/active(?:\?target=(?:shop|admin))?$/;
+const STORE_PATH = /^\/api\/v1\/store$/;
 
 function constantTimeEqual(left: string, right: string): boolean {
   const encoder = new TextEncoder();
@@ -45,7 +47,7 @@ function snapshotKey(path: string): string {
 }
 
 export function isAllowedSnapshotPath(path: string): boolean {
-  return PRODUCT_PATH.test(path);
+  return PRODUCT_PATH.test(path) || THEME_PATH.test(path) || STORE_PATH.test(path);
 }
 
 export async function importSnapshots(request: Request, env: SnapshotImportEnv): Promise<Response | null> {
