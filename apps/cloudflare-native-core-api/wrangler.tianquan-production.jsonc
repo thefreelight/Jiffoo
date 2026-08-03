@@ -1,0 +1,31 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "tianquan-production-core-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tianquan-production-core",
+      "database_id": "4436198d-f154-4dab-881a-9af7f55dbcf1",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "kv_namespaces": [
+    { "binding": "CACHE", "id": "6e4c5a9954194fb19bd1bb8c981ba9d1" }
+  ],
+  "r2_buckets": [
+    { "binding": "ASSETS", "bucket_name": "tianquan-production-assets" }
+  ],
+  "vars": {
+    "CORE_ORIGIN": "https://preprod-api.tianquan.org",
+    "NATIVE_CHECKOUT_ENABLED": "false",
+    "RUNTIME_VERSION": "1.0.61-opensource"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": { "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
+  }
+}

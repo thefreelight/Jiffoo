@@ -1,0 +1,26 @@
+name = "tianquan-production-shop"
+main = "cloudflare-entry.ts"
+compatibility_date = "2026-07-29"
+compatibility_flags = ["nodejs_compat", "global_fetch_strictly_public"]
+
+[assets]
+directory = ".open-next/assets"
+binding = "ASSETS"
+
+[observability]
+enabled = true
+
+[vars]
+API_SERVICE_URL = "https://api.tianquan.org"
+NEXT_PUBLIC_API_URL = "/api"
+THEME_APP_PROXY_DISABLED = "1"
+FALLBACK_THEME_SLUG = "tianquan"
+FALLBACK_THEME_VERSION = "0.0.4"
+
+[[r2_buckets]]
+binding = "NEXT_INC_CACHE_R2_BUCKET"
+bucket_name = "tianquan-production-shop-cache"
+
+[[r2_buckets]]
+binding = "THEME_ASSETS"
+bucket_name = "tianquan-production-assets"
