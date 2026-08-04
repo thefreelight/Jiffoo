@@ -23,6 +23,8 @@ interface MailRow {
   attempt_count: number;
 }
 
+type MailLocale = 'zh-CN' | 'en';
+
 export interface MailRunResult { scanned: number; sent: number; failed: number }
 
 function escapeHtml(value: string): string {
@@ -40,8 +42,82 @@ async function enqueueEmail(env: MailEnv, input: OrderEmailInput): Promise<void>
   ).bind(crypto.randomUUID(), input.dedupeKey, input.messageType, input.orderId, input.recipient, input.subject, input.text, input.html, now).run();
 }
 
-function localeOf(order: Record<string, unknown>): 'zh-CN' | 'en' {
+function localeOf(order: Record<string, unknown>): MailLocale {
   return typeof order.locale === 'string' && order.locale.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en';
+}
+
+async function orderLocale(env: MailEnv, orderId: string): Promise<MailLocale> {
+  const row = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1')
+    .bind(orderId).first<{ payload: string }>();
+  if (!row) return 'en';
+  try {
+    return localeOf(JSON.parse(row.payload) as Record<string, unknown>);
+  } catch {
+    return 'en';
+  }
+}
+
+export function refundEmailCopy(
+  locale: MailLocale,
+  input: { siteName: string; orderId: string; amount: string; fullyRefunded: boolean; reason?: string | null },
+): { subject: string; text: string } {
+  if (locale === 'zh-CN') {
+    const kind = input.fullyRefunded ? '退款已完成' : '部分退款已完成';
+    return {
+      subject: `${input.siteName} ${kind}：${input.orderId}`,
+      text: `你的 ${input.siteName} 订单 ${input.orderId} 已完成退款：${input.amount}。${input.reason ? ` 原因：${input.reason}` : ''}`,
+    };
+  }
+  return {
+    subject: input.fullyRefunded ? `${input.siteName} refund completed: ${input.orderId}` : `${input.siteName} partial refund completed: ${input.orderId}`,
+    text: `Your ${input.siteName} refund for order ${input.orderId} is complete: ${input.amount}.${input.reason ? ` Reason: ${input.reason}` : ''}`,
+  };
+}
+
+export function commissionEmailCopy(
+  locale: MailLocale,
+  input: { siteName: string; orderId: string; amount: string; organization: boolean },
+): { subject: string; text: string } {
+  if (locale === 'zh-CN') {
+    const kind = input.organization ? '机构推广佣金' : '推广佣金';
+    return {
+      subject: `${input.siteName} ${kind}已记录：${input.orderId}`,
+      text: `订单 ${input.orderId} 已记录一笔待结算的 ${input.siteName} ${kind}：${input.amount}。`,
+    };
+  }
+  const kind = input.organization ? 'organization commission' : 'affiliate commission';
+  return {
+    subject: `${input.siteName} ${kind} recorded: ${input.orderId}`,
+    text: `A pending ${input.siteName} ${kind} of ${input.amount} was recorded for order ${input.orderId}.`,
+  };
+}
+
+export function shipmentEmailCopy(
+  locale: MailLocale,
+  input: { siteName: string; orderId: string; status: string; carrier: string; trackingNumber: string; trackingUrl?: string | null },
+): { subject: string; text: string; html: string } {
+  const zhLabels: Record<string, string> = { SHIPPED: '已发货', DELIVERED: '已送达', EXCEPTION: '配送异常' };
+  const enLabel = input.status === 'SHIPPED' ? 'has shipped' : input.status === 'DELIVERED' ? 'was delivered' : 'has a delivery exception';
+  const link = input.trackingUrl
+    ? `<p><a href="${escapeHtml(input.trackingUrl)}">${locale === 'zh-CN' ? '查看物流' : 'Track package'}</a></p>`
+    : '';
+  if (locale === 'zh-CN') {
+    const label = zhLabels[input.status] ?? '物流状态已更新';
+    const trackingLine = input.trackingUrl ? `\n查看物流：${input.trackingUrl}` : '';
+    const text = `订单 ${input.orderId} ${label}。\n承运商：${input.carrier}\n物流单号：${input.trackingNumber}${trackingLine}`;
+    return {
+      subject: `你的 ${input.siteName} 订单${label}`,
+      text,
+      html: `<p>订单 <strong>${escapeHtml(input.orderId)}</strong> ${escapeHtml(label)}。</p><p>承运商：${escapeHtml(input.carrier)}<br>物流单号：${escapeHtml(input.trackingNumber)}</p>${link}`,
+    };
+  }
+  const trackingLine = input.trackingUrl ? `\nTrack it: ${input.trackingUrl}` : '';
+  const text = `Order ${input.orderId} ${enLabel}.\nCarrier: ${input.carrier}\nTracking number: ${input.trackingNumber}${trackingLine}`;
+  return {
+    subject: `Your ${input.siteName} order ${enLabel}`,
+    text,
+    html: `<p>Order <strong>${escapeHtml(input.orderId)}</strong> ${escapeHtml(enLabel)}.</p><p>Carrier: ${escapeHtml(input.carrier)}<br>Tracking number: ${escapeHtml(input.trackingNumber)}</p>${link}`,
+  };
 }
 
 export async function enqueueOrderPaidEmail(env: MailEnv, order: Record<string, unknown>): Promise<void> {
@@ -75,8 +151,7 @@ export async function enqueueRefundEmail(
   if (!recipient?.email) return;
   const siteName = await nativeSiteName(env);
   const amount = `${input.currency} ${input.amount.toFixed(2)}`;
-  const subject = input.fullyRefunded ? `${siteName} refund completed: ${input.orderId}` : `${siteName} partial refund completed: ${input.orderId}`;
-  const text = `Your ${siteName} refund for order ${input.orderId} is complete: ${amount}.${input.reason ? ` Reason: ${input.reason}` : ''}`;
+  const { subject, text } = refundEmailCopy(await orderLocale(env, input.orderId), { ...input, siteName, amount });
   await enqueueEmail(env, {
     orderId: input.orderId, recipient: recipient.email, subject, text,
     html: `<p>${escapeHtml(text)}</p>`, messageType: 'order.refunded', dedupeKey: `order-refunded:${input.orderId}:${input.amount.toFixed(2)}`,
@@ -93,8 +168,7 @@ export async function enqueueAffiliateCommissionEmail(
   if (!recipient?.email) return;
   const siteName = await nativeSiteName(env);
   const amount = `${input.currency} ${input.amount.toFixed(2)}`;
-  const subject = `${siteName} affiliate commission recorded: ${input.orderId}`;
-  const text = `A pending ${siteName} affiliate commission of ${amount} was recorded for order ${input.orderId}.`;
+  const { subject, text } = commissionEmailCopy(await orderLocale(env, input.orderId), { siteName, orderId: input.orderId, amount, organization: false });
   await enqueueEmail(env, {
     orderId: input.orderId, recipient: recipient.email, subject, text,
     html: `<p>${escapeHtml(text)}</p>`, messageType: 'affiliate.commission', dedupeKey: `affiliate-commission:${input.commissionId}`,
@@ -111,8 +185,7 @@ export async function enqueueOrganizationCommissionEmail(
   if (!recipient?.email) return;
   const siteName = await nativeSiteName(env);
   const amount = `${input.currency} ${input.amount.toFixed(2)}`;
-  const subject = `${siteName} organization commission recorded: ${input.orderId}`;
-  const text = `A pending ${siteName} organization commission of ${amount} was recorded for order ${input.orderId}.`;
+  const { subject, text } = commissionEmailCopy(await orderLocale(env, input.orderId), { siteName, orderId: input.orderId, amount, organization: true });
   await enqueueEmail(env, {
     orderId: input.orderId, recipient: recipient.email, subject, text,
     html: `<p>${escapeHtml(text)}</p>`, messageType: 'affiliate.organization.commission', dedupeKey: `affiliate-organization-commission:${input.commissionId}`,
@@ -130,12 +203,7 @@ export async function enqueueShipmentEmail(
   ).bind(input.orderId).first<{ email: string }>();
   if (!recipient?.email) return;
   const siteName = await nativeSiteName(env);
-  const label = input.status === 'SHIPPED' ? 'has shipped' : input.status === 'DELIVERED' ? 'was delivered' : 'has a delivery exception';
-  const subject = `Your ${siteName} order ${label}`;
-  const trackingLine = input.trackingUrl ? `Track it: ${input.trackingUrl}` : '';
-  const text = `Order ${input.orderId} ${label}.\nCarrier: ${input.carrier}\nTracking number: ${input.trackingNumber}${trackingLine ? `\n${trackingLine}` : ''}`;
-  const link = input.trackingUrl ? `<p><a href="${escapeHtml(input.trackingUrl)}">Track package</a></p>` : '';
-  const html = `<p>Order <strong>${escapeHtml(input.orderId)}</strong> ${escapeHtml(label)}.</p><p>Carrier: ${escapeHtml(input.carrier)}<br>Tracking number: ${escapeHtml(input.trackingNumber)}</p>${link}`;
+  const { subject, text, html } = shipmentEmailCopy(await orderLocale(env, input.orderId), { ...input, siteName });
   await enqueueEmail(env, {
     orderId: input.orderId, recipient: recipient.email, subject, text, html,
     messageType: `shipment.${input.status.toLowerCase()}`, dedupeKey: `shipment:${input.shipmentId}:${input.status}`,

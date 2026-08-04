@@ -211,6 +211,7 @@ export const ordersApi = {
       postalCode: string;
     };
     customerEmail?: string;
+    locale?: string;
     discountCodes?: string[];  // Optional discount codes to apply to order
   }): Promise<ApiResponse<ShopOrderDetailDTO>> =>
     apiClient.post(API_ENDPOINTS.ORDERS.CREATE, data),
