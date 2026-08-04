@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getEmbeddedRendererSlug,
   resolveThemeRendererSlug,
+  shouldRenderDefaultRecommendations,
   shouldLoadThemePackResources,
 } from '@/lib/theme-pack/rendering-mode';
 
@@ -129,6 +130,21 @@ describe('theme pack rendering mode contract', () => {
         serverThemeSlug: 'builtin-default',
       }),
     ).toBe('modelsfind');
+  });
+
+  it('does not append default recommendations to packaged storefront runtimes', () => {
+    expect(
+      shouldRenderDefaultRecommendations({
+        schemaVersion: 1,
+        slug: 'remoteradar',
+        name: 'RemoteRadar',
+        version: '0.0.8',
+        target: 'shop',
+        entry: { runtimeJS: 'runtime/theme-runtime.js' },
+      }),
+    ).toBe(false);
+
+    expect(shouldRenderDefaultRecommendations(null)).toBe(true);
   });
 
   it('still falls back to builtin-default when nothing provides a theme slug', () => {

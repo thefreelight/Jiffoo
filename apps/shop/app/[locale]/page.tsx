@@ -13,14 +13,14 @@ import { useT } from 'shared/src/i18n/react';
 import { TemplateRenderer } from '@/lib/theme-pack';
 import { PersonalizedRecommendations } from '@/components/recommendations/PersonalizedRecommendations';
 import { useThemePackOptional } from '@/lib/theme-pack/runtime';
-import { getEmbeddedRendererSlug } from '@/lib/theme-pack/rendering-mode';
+import { shouldRenderDefaultRecommendations } from '@/lib/theme-pack/rendering-mode';
 
 export default function HomePage() {
   const { theme, config, isLoading } = useShopTheme();
   const nav = useLocalizedNavigation();
   const t = useT();
   const themePack = useThemePackOptional();
-  const embeddedRendererSlug = getEmbeddedRendererSlug(themePack?.manifest);
+  const renderDefaultRecommendations = shouldRenderDefaultRecommendations(themePack?.manifest);
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -80,7 +80,7 @@ export default function HomePage() {
   const defaultHomePage = (
     <>
       <HomePageComponent config={config} onNavigate={handleNavigate} locale={nav.locale} t={t} />
-      {!embeddedRendererSlug ? (
+      {renderDefaultRecommendations ? (
         <div className="container mx-auto px-4">
           <PersonalizedRecommendations limit={8} />
         </div>
