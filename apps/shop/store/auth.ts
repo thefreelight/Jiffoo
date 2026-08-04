@@ -25,7 +25,7 @@ interface AuthState {
 
 interface AuthActions {
   login: (email: string, password: string) => Promise<void>;
-  register: (data: { email: string; password: string; firstName: string; lastName: string }) => Promise<{ emailVerified: boolean }>;
+  register: (data: { email: string; password: string; username?: string; firstName: string; lastName: string }) => Promise<{ emailVerified: boolean }>;
   logout: () => void;
   getProfile: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
@@ -115,7 +115,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
         }
       },
 
-      register: async (data: { email: string; password: string; firstName: string; lastName: string }) => {
+      register: async (data: { email: string; password: string; username?: string; firstName: string; lastName: string }) => {
         try {
           set({ isLoading: true, error: null });
 
@@ -123,12 +123,13 @@ export const useAuthStore = create<AuthState & AuthActions>()(
           const displayParts = emailPrefix.replace(/[._-]+/g, ' ').trim().split(/\s+/).filter(Boolean);
           const firstName = data.firstName.trim() || displayParts[0] || 'Creator';
           const lastName = data.lastName.trim() || displayParts.slice(1).join(' ') || 'Studio';
-          const username =
+          const generatedUsername =
             `${emailPrefix}.${emailDomain}`
               .toLowerCase()
               .replace(/[^a-z0-9]+/g, '.')
               .replace(/^\.+|\.+$/g, '')
               .slice(0, 64) || 'creator';
+          const username = data.username?.trim() || generatedUsername;
 
           const registerData = {
             email: data.email,
