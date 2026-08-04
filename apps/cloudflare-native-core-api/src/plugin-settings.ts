@@ -7,6 +7,9 @@ type Descriptor = {
   type: 'string' | 'number' | 'boolean' | 'secret';
   label: string;
   description?: string;
+  placeholder?: string;
+  pattern?: string;
+  patternMessage?: string;
   required?: boolean;
   sensitive?: boolean;
 };
@@ -59,12 +62,30 @@ const definitions: Record<string, PluginDefinition> = {
     },
   },
   stripe: {
-    slug: 'stripe', name: 'Stripe Payment Gateway', version: '0.1.0', category: 'payment',
+    slug: 'stripe', name: 'Stripe Payment Gateway', version: '1.0.2', category: 'payment',
     description: 'Stripe checkout, webhooks, and refunds.',
     configSchema: {
-      secretKey: { type: 'secret', required: true, sensitive: true, label: 'Stripe Secret Key' },
-      publishableKey: { type: 'string', required: true, label: 'Stripe Publishable Key' },
-      webhookSecret: { type: 'secret', required: true, sensitive: true, label: 'Webhook Signing Secret' },
+      secretKey: {
+        type: 'secret', required: true, sensitive: true, label: 'Stripe Secret Key',
+        placeholder: 'sk_live_... or rk_live_...',
+        pattern: '^(sk|rk)_(live|test)_.+$',
+        patternMessage: 'Use a Stripe secret or restricted key beginning with sk_live_, sk_test_, rk_live_, or rk_test_.',
+        description: 'Server-side credential. Paste a standard secret key (sk_...) or a least-privilege restricted key (rk_...). Never place this value in the Publishable Key field.',
+      },
+      publishableKey: {
+        type: 'string', required: true, label: 'Stripe Publishable Key',
+        placeholder: 'pk_live_... or pk_test_...',
+        pattern: '^pk_(live|test)_.+$',
+        patternMessage: 'Use a Stripe publishable key beginning with pk_live_ or pk_test_.',
+        description: 'Browser-safe key from Stripe Dashboard > Developers > API keys. It always begins with pk_; do not paste an sk_ or rk_ key here.',
+      },
+      webhookSecret: {
+        type: 'secret', required: true, sensitive: true, label: 'Webhook Signing Secret',
+        placeholder: 'whsec_...',
+        pattern: '^whsec_.+$',
+        patternMessage: 'Use the endpoint signing secret beginning with whsec_.',
+        description: 'Signing secret for this Jiffoo instance webhook endpoint. Copy it from Stripe Dashboard > Developers > Webhooks > select the endpoint > Signing secret; it is not an API key.',
+      },
     },
   },
   odoo: {
@@ -171,7 +192,7 @@ async function saveInstance(
       if (value === null) delete secrets[field];
       else if (typeof value === 'string' && value.trim()) {
         const normalized = value.trim();
-        if (definition.slug === 'stripe' && field === 'secretKey' && !/^sk_(test|live)_/.test(normalized)) throw new Error('Stripe secret key must start with sk_test_ or sk_live_');
+        if (definition.slug === 'stripe' && field === 'secretKey' && !/^(sk|rk)_(test|live)_/.test(normalized)) throw new Error('Stripe secret key must start with sk_test_, sk_live_, rk_test_, or rk_live_');
         if (definition.slug === 'stripe' && field === 'webhookSecret' && !normalized.startsWith('whsec_')) throw new Error('Stripe webhook secret must start with whsec_');
         secrets[field] = await encrypt(env, normalized);
       }
