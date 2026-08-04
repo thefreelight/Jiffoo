@@ -1,21 +1,21 @@
 {
-  "releaseTag": "v1.0.62-opensource",
-  "coreVersion": "1.0.62",
+  "releaseTag": "v1.0.64-opensource",
+  "coreVersion": "1.0.64",
   "releaseChannel": "stable",
   "deliveryMode": "image-first",
   "runtimeImages": {
-    "api": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.62",
-    "admin": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.62",
-    "shop": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.62",
-    "updater": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.62"
+    "api": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.64",
+    "admin": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.64",
+    "shop": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.64",
+    "updater": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.64"
   },
-  "releaseDate": "2026-08-03T11:41:45.941Z",
-  "releaseUrl": "https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.62-opensource",
+  "releaseDate": "2026-08-04T05:43:36.002Z",
+  "releaseUrl": "https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.64-opensource",
   "sourceArchiveName": "jiffoo-source.tar.gz",
-  "sourceArchiveUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz?sha256=75b0cf0881342b05215f662ebcfc16037ad3df5dbbe4ddd2b173ecf461a5f4e8",
-  "archiveRef": "17bb2610f2a3bf57c34b74801c3a649a91e10ee3",
-  "checksum": "75b0cf0881342b05215f662ebcfc16037ad3df5dbbe4ddd2b173ecf461a5f4e8",
-  "checksumUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz.sha256?sha256=75b0cf0881342b05215f662ebcfc16037ad3df5dbbe4ddd2b173ecf461a5f4e8",
+  "sourceArchiveUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz?sha256=17a4cd626eeed58da9cb62dc09c913788f59b4879d6e2a100a87da80af758130",
+  "archiveRef": "5ce59b6586f633ffdba4a1694b200a7c2f19cf3a",
+  "checksum": "17a4cd626eeed58da9cb62dc09c913788f59b4879d6e2a100a87da80af758130",
+  "checksumUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz.sha256?sha256=17a4cd626eeed58da9cb62dc09c913788f59b4879d6e2a100a87da80af758130",
   "manifestPath": ".release/self-hosted/releases/core/manifest.json",
   "releaseAssetManifestPath": ".release/self-hosted/core-update-manifest.json"
 }
