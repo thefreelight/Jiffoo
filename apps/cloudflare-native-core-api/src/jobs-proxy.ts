@@ -30,14 +30,19 @@ export async function processNativeJobsSync(env: NativeJobsProxyEnv): Promise<un
 
 export async function tryNativeJobsProxy(request: Request, env: NativeJobsProxyEnv): Promise<Response | null> {
   const incoming = new URL(request.url);
-  if (request.method !== 'GET' || incoming.pathname !== '/api/v1/jobs') return null;
+  const upstreamPath = incoming.pathname === '/api/v1/jobs'
+    ? '/api/jobs'
+    : incoming.pathname === '/api/v1/jobs/stats'
+      ? '/api/jobs/stats'
+      : null;
+  if (request.method !== 'GET' || !upstreamPath) return null;
   if (!env.JOBS_SERVICE && !env.JOBS_SERVICE_URL?.trim()) {
     return Response.json({ success: false, error: { code: 'JOBS_PLUGIN_UNAVAILABLE', message: 'Job search is not configured' } }, {
       status: 503,
       headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-jobs-proxy' },
     });
   }
-  const target = new URL('/api/jobs', env.JOBS_SERVICE_URL?.trim() || 'https://jobs.internal');
+  const target = new URL(upstreamPath, env.JOBS_SERVICE_URL?.trim() || 'https://jobs.internal');
   target.search = incoming.search;
   const upstreamRequest = new Request(target, { headers: { accept: 'application/json' } });
   const upstream = env.JOBS_SERVICE ? await env.JOBS_SERVICE.fetch(upstreamRequest) : await fetch(upstreamRequest);
