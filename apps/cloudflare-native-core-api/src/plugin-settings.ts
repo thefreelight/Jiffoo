@@ -53,6 +53,9 @@ const definitions: Record<string, PluginDefinition> = {
       fromEmail: { type: 'string', required: true, label: 'From Email' },
       fromName: { type: 'string', label: 'From Name' },
       replyTo: { type: 'string', label: 'Reply-To' },
+      smtpTestSubject: { type: 'string', label: 'Test email subject template' },
+      smtpTestText: { type: 'string', label: 'Test email text template' },
+      smtpTestHtml: { type: 'string', label: 'Test email HTML template' },
     },
   },
   stripe: {
