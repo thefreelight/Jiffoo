@@ -285,7 +285,7 @@ main() {
   fi
 
   log_info "Running Prisma migrations"
-  compose exec -T api npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
+  compose exec -T api npx prisma migrate deploy --schema apps/api/prisma/schema
 
   if [ "${SEED_DEMO_DATA}" = "true" ]; then
     log_info "Seeding demo data"
