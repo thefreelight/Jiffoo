@@ -82,8 +82,10 @@ export default function LoginPage() {
         sessionStorage.removeItem('redirectAfterLogin');
         router.push(redirectPath);
       } else {
-        // Navigate to home with locale preserved
-        nav.push('/');
+        // A successful sign-in should expose the user's account state directly.
+        // Keep explicit checkout redirects intact, but never leave the user on
+        // the anonymous landing page after authentication.
+        nav.push('/profile');
       }
     } catch (error: any) {
       const message = error?.message || getText('common.errors.tryAgain', 'Please try again');
