@@ -85,6 +85,9 @@ export async function authRoutes(fastify: FastifyInstance) {
         : await AuthService.register({ email, username, password });
       return sendSuccess(reply, result, 'Registration successful', 201);
     } catch (error: any) {
+      if (error.code === 'EMAIL_NOT_VERIFIED') {
+        return sendError(reply, 409, 'EMAIL_NOT_VERIFIED', error.message);
+      }
       return sendError(reply, 400, 'REGISTRATION_FAILED', error.message);
     }
   });

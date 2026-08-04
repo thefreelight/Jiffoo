@@ -187,19 +187,21 @@ export class AuthService {
    * @throws Error if a user with the same email or username already exists
    */
   static async register(data: RegisterRequest): Promise<AuthResponse> {
-    const existingUser = await prisma.user.findFirst({
-      where: {
-        OR: [
-          { email: data.email },
-          { username: data.username }
-        ]
-      },
-      select: { id: true },
-    });
-
-    if (existingUser) {
+    const existingEmailUser = await findAuthUserByEmail(data.email);
+    if (existingEmailUser) {
+      if (!existingEmailUser.emailVerified) {
+        const error = new Error('This email is already registered but has not been verified yet. Enter the verification code we sent, or request a new one.');
+        Object.assign(error, { code: 'EMAIL_NOT_VERIFIED' });
+        throw error;
+      }
       throw new Error('User with this email or username already exists');
     }
+
+    const existingUsername = await prisma.user.findFirst({
+      where: { username: data.username },
+      select: { id: true },
+    });
+    if (existingUsername) throw new Error('User with this email or username already exists');
 
     const hashedPassword = await PasswordUtils.hash(data.password);
     const requireEmailVerification = this.shouldRequireEmailVerification();
