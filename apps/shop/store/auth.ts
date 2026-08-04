@@ -102,7 +102,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
               }, 0);
             }
           } else {
-            throw new Error(response.error?.message || 'Login failed');
+            throw Object.assign(new Error(response.error?.message || 'Login failed'), {
+              code: response.error?.code,
+            });
           }
         } catch (error: unknown) {
           set({
@@ -174,7 +176,9 @@ export const useAuthStore = create<AuthState & AuthActions>()(
             }
             return { emailVerified: true };
           } else {
-            throw new Error(response.error?.message || 'Registration failed');
+            throw Object.assign(new Error(response.error?.message || 'Registration failed'), {
+              code: response.error?.code,
+            });
           }
         } catch (error: unknown) {
           set({

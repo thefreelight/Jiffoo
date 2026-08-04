@@ -197,7 +197,7 @@ describe('AuthService', () => {
         emailVerified: false,
       };
 
-      mockPrismaUser.findFirst.mockResolvedValue(null);
+      mockPrismaUser.findUnique.mockResolvedValue(null);
       mockPasswordUtils.hash.mockResolvedValue('hashed-pw');
       mockPrismaUser.create.mockResolvedValue(createdUser);
       mockEmailVerification.sendVerificationEmail.mockResolvedValue({ success: true });
@@ -206,14 +206,13 @@ describe('AuthService', () => {
 
       const result = await AuthService.register(registerData);
 
-      // Verify duplicate check was performed
+      // Verify both unique identifiers were checked independently.
+      expect(mockPrismaUser.findUnique).toHaveBeenCalledWith({
+        where: { email: registerData.email },
+        select: expect.objectContaining({ id: true, emailVerified: true }),
+      });
       expect(mockPrismaUser.findFirst).toHaveBeenCalledWith({
-        where: {
-          OR: [
-            { email: registerData.email },
-            { username: registerData.username },
-          ],
-        },
+        where: { username: registerData.username },
         select: { id: true },
       });
 
@@ -278,7 +277,7 @@ describe('AuthService', () => {
     });
 
     it('does not issue an authenticated session when verification delivery fails', async () => {
-      mockPrismaUser.findFirst.mockResolvedValue(null);
+      mockPrismaUser.findUnique.mockResolvedValue(null);
       mockPasswordUtils.hash.mockResolvedValue('hashed-pw');
       mockPrismaUser.create.mockResolvedValue({
         id: 'failed-email-user', email: registerData.email, username: registerData.username,
@@ -291,13 +290,28 @@ describe('AuthService', () => {
     });
 
     it('should throw when a user with the same email or username already exists', async () => {
-      mockPrismaUser.findFirst.mockResolvedValue(TEST_USER);
+      mockPrismaUser.findUnique.mockResolvedValueOnce(TEST_USER);
 
       await expect(AuthService.register(registerData)).rejects.toThrow(
         'User with this email or username already exists'
       );
 
       // Should not attempt to create the user
+      expect(mockPrismaUser.create).not.toHaveBeenCalled();
+      expect(mockPasswordUtils.hash).not.toHaveBeenCalled();
+    });
+
+    it('marks an existing unverified email as resumable verification', async () => {
+      mockPrismaUser.findUnique.mockResolvedValueOnce({
+        ...TEST_USER,
+        email: registerData.email,
+        emailVerified: false,
+      });
+
+      await expect(AuthService.register(registerData)).rejects.toMatchObject({
+        code: 'EMAIL_NOT_VERIFIED',
+        message: expect.stringContaining('has not been verified'),
+      });
       expect(mockPrismaUser.create).not.toHaveBeenCalled();
       expect(mockPasswordUtils.hash).not.toHaveBeenCalled();
     });
@@ -315,7 +329,7 @@ describe('AuthService', () => {
         emailVerified: true,
       };
 
-      mockPrismaUser.findFirst.mockResolvedValue(null);
+      mockPrismaUser.findUnique.mockResolvedValue(null);
       mockPasswordUtils.hash.mockResolvedValue('hashed-pw');
       mockPrismaUser.create.mockResolvedValue(createdUser);
       mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);

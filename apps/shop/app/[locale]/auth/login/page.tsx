@@ -86,9 +86,18 @@ export default function LoginPage() {
         nav.push('/');
       }
     } catch (error: any) {
+      const message = error?.message || getText('common.errors.tryAgain', 'Please try again');
+      if (error?.code === 'EMAIL_NOT_VERIFIED' || /email not verified/i.test(message)) {
+        toast({
+          title: getText('shop.auth.verifyTitle', 'Verify your email'),
+          description: getText('shop.auth.verifyMessage', 'Enter the six-digit code we sent, or request a new one.'),
+        });
+        nav.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+        return;
+      }
       toast({
         title: getText('shop.auth.login.failed', 'Login failed'),
-        description: error.message || getText('common.errors.tryAgain', 'Please try again'),
+        description: message,
         variant: 'destructive',
       });
     }

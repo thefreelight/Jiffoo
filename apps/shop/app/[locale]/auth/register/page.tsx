@@ -81,9 +81,18 @@ export default function RegisterPage() {
       });
       nav.push('/');
     } catch (error: any) {
+      const message = error?.message || getText('common.errors.tryAgain', 'Please try again');
+      if (error?.code === 'EMAIL_NOT_VERIFIED' || /already registered but has not been verified/i.test(message)) {
+        toast({
+          title: getText('shop.auth.verifyTitle', 'Verify your email'),
+          description: getText('shop.auth.verifyMessage', 'Your account is waiting for verification. Enter the code we sent, or request a new one.'),
+        });
+        nav.push(`/auth/verify-email?email=${encodeURIComponent(formData.email)}`);
+        return;
+      }
       toast({
         title: getText('shop.auth.register.failed', 'Registration failed'),
-        description: error.message || getText('common.errors.tryAgain', 'Please try again'),
+        description: message,
         variant: 'destructive',
       });
     }

@@ -235,7 +235,13 @@ describe('Auth Endpoints', () => {
         },
       });
 
-      expect([400, 409, 500]).toContain(response.statusCode);
+      expect(response.statusCode).toBe(409);
+      expect(response.json()).toMatchObject({
+        success: false,
+        error: {
+          code: 'EMAIL_NOT_VERIFIED',
+        },
+      });
     });
   });
 
