@@ -1,24 +1,24 @@
 {
-  "latestVersion": "1.0.25",
-  "latestStableVersion": "1.0.25",
+  "latestVersion": "1.0.62",
+  "latestStableVersion": "1.0.62",
   "latestPrereleaseVersion": null,
   "channel": "stable",
   "deliveryMode": "image-first",
   "images": {
-    "api": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.25",
-    "admin": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.25",
-    "shop": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.25",
-    "updater": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.25"
+    "api": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.62",
+    "admin": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.62",
+    "shop": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.62",
+    "updater": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.62"
   },
-  "releaseDate": "2026-04-18T09:30:00.000Z",
-  "changelogUrl": "https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.25-opensource",
-  "sourceArchiveUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz",
+  "releaseDate": "2026-08-03T11:41:45.941Z",
+  "changelogUrl": "https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.62-opensource",
+  "sourceArchiveUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz?sha256=75b0cf0881342b05215f662ebcfc16037ad3df5dbbe4ddd2b173ecf461a5f4e8",
   "minimumCompatibleVersion": "1.0.0",
   "minimumAutoUpgradableVersion": "1.0.0",
   "requiresManualIntervention": false,
-  "releaseNotes": "## What's included - auto-clears terminal self-hosted upgrade state so Merchant Admin returns to a clean idle state after successful completion or recovery - adds an authenticated upgrade-status reset path for the Settings page and expires stale terminal updater status files - blocks self-hosted public feed publication until `api`, `admin`, `shop`, and `updater` runtime images are present in the registry",
-  "checksumUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz.sha256",
+  "releaseNotes": "Adds Tianquan theme and SMTP email to the self-hosted official catalog.",
+  "checksumUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz.sha256?sha256=75b0cf0881342b05215f662ebcfc16037ad3df5dbbe4ddd2b173ecf461a5f4e8",
   "signatureUrl": null,
-  "releaseTag": "v1.0.25-opensource",
+  "releaseTag": "v1.0.62-opensource",
   "repository": "thefreelight/Jiffoo"
 }
