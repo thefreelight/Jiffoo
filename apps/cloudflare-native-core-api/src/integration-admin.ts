@@ -1,6 +1,6 @@
 import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
 import { testNativeOdooConnection } from './odoo';
-import { getNativePluginSecret } from './plugin-settings';
+import { getNativePluginConfig, getNativePluginSecret } from './plugin-settings';
 import { sendSmtpEmail } from './smtp';
 
 interface IntegrationAdminEnv extends NativeAuthEnv {
@@ -15,6 +15,20 @@ function result(data: unknown, status = 200): Response {
   });
 }
 
+function renderTemplate(value: unknown, fallback: string, variables: Record<string, string>): string {
+  let rendered = typeof value === 'string' && value.trim() ? value : fallback;
+  for (const [name, replacement] of Object.entries(variables)) {
+    rendered = rendered.replaceAll(`{{${name}}}`, replacement);
+  }
+  return rendered;
+}
+
+async function getSiteName(env: IntegrationAdminEnv): Promise<string> {
+  const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'site_name'")
+    .first<{ value: string }>();
+  return row?.value?.trim() || 'Jiffoo';
+}
+
 export async function tryNativeIntegrationAdmin(request: Request, env: IntegrationAdminEnv): Promise<Response | null> {
   const match = new URL(request.url).pathname.match(/^\/api\/v1\/extensions\/plugin\/(smtp-email|stripe|odoo)\/api\/admin\/test$/);
   if (!match || request.method !== 'POST') return null;
@@ -25,11 +39,16 @@ export async function tryNativeIntegrationAdmin(request: Request, env: Integrati
       const body = await request.json<{ to?: unknown }>().catch(() => ({} as { to?: unknown }));
       const to = typeof body.to === 'string' ? body.to.trim() : '';
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return result({ code: 'VALIDATION_ERROR', message: 'A valid recipient email is required' }, 400);
+      const [siteName, stored] = await Promise.all([
+        getSiteName(env),
+        getNativePluginConfig(env, 'smtp-email'),
+      ]);
+      const variables = { siteName, recipient: to };
       await sendSmtpEmail(env, {
         to,
-        subject: 'Bokmoo SMTP connection test',
-        text: 'Your Bokmoo SMTP configuration is working.',
-        html: '<p>Your Bokmoo SMTP configuration is working.</p>',
+        subject: renderTemplate(stored?.config.smtpTestSubject, '{{siteName}} SMTP connection test', variables),
+        text: renderTemplate(stored?.config.smtpTestText, 'Your {{siteName}} SMTP configuration is working.', variables),
+        html: renderTemplate(stored?.config.smtpTestHtml, '<p>Your {{siteName}} SMTP configuration is working.</p>', variables),
       });
       return result({ ok: true, recipient: to });
     }

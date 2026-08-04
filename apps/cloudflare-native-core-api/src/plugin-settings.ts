@@ -42,7 +42,7 @@ const definitions: Record<string, PluginDefinition> = {
     configSchema: {},
   },
   'smtp-email': {
-    slug: 'smtp-email', name: 'SMTP Email', version: '0.0.6', category: 'email',
+    slug: 'smtp-email', name: 'SMTP Email', version: '0.0.7', category: 'email',
     description: 'SMTP transport for verification and transactional email.',
     configSchema: {
       smtpHost: { type: 'string', required: true, label: 'SMTP Host' },
@@ -53,6 +53,9 @@ const definitions: Record<string, PluginDefinition> = {
       fromEmail: { type: 'string', required: true, label: 'From Email' },
       fromName: { type: 'string', label: 'From Name' },
       replyTo: { type: 'string', label: 'Reply-To' },
+      smtpTestSubject: { type: 'string', label: 'Test Email Subject Template', description: 'Supports {{siteName}} and {{recipient}}.' },
+      smtpTestText: { type: 'string', label: 'Test Email Text Template', description: 'Supports {{siteName}} and {{recipient}}.' },
+      smtpTestHtml: { type: 'string', label: 'Test Email HTML Template', description: 'Supports {{siteName}} and {{recipient}}.' },
     },
   },
   stripe: {
