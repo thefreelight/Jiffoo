@@ -32,6 +32,14 @@ describe('native jobs proxy', () => {
     expect(response?.status).toBe(200);
   });
 
+  it('forwards public job statistics without exposing a direct worker URL', async () => {
+    const service = { fetch: vi.fn(async () => Response.json({ activeJobs: 872, addedToday: 1 })) };
+    const response = await tryNativeJobsProxy(new Request('https://api.example/api/v1/jobs/stats'), { JOBS_SERVICE: service });
+    expect(service.fetch).toHaveBeenCalledOnce();
+    expect(new URL(service.fetch.mock.calls[0][0].url).pathname).toBe('/api/jobs/stats');
+    await expect(response?.json()).resolves.toEqual({ activeJobs: 872, addedToday: 1 });
+  });
+
   it('skips scheduled collection when the source is fresh', async () => {
     const service = { fetch: vi.fn(async () => Response.json({ ok: true })) };
     const db = {
