@@ -373,11 +373,27 @@ function GenericConfigEditor(props: {
   );
 }
 
-function NativeConnectionTest({ slug, disabled }: { slug: string; disabled: boolean }) {
+function NativeConnectionTest({ slug, disabled, onEnable }: { slug: string; disabled: boolean; onEnable: () => Promise<void> }) {
   const [recipient, setRecipient] = useState('');
   const [testing, setTesting] = useState(false);
-  const [message, setMessage] = useState('Save and enable the plugin before testing its connection.');
+  const [message, setMessage] = useState('Save configuration, then enable this plugin to run a live test.');
   const [tone, setTone] = useState<'default' | 'success' | 'error'>('default');
+  const [enabling, setEnabling] = useState(false);
+
+  const enablePlugin = async () => {
+    setEnabling(true);
+    setTone('default');
+    setMessage('Enabling plugin...');
+    try {
+      await onEnable();
+      setMessage('Plugin enabled. Enter a recipient and run the test.');
+    } catch (error) {
+      setTone('error');
+      setMessage(error instanceof Error ? error.message : 'Could not enable plugin.');
+    } finally {
+      setEnabling(false);
+    }
+  };
 
   const testConnection = async () => {
     if (slug === 'smtp-email' && !recipient.trim()) {
@@ -424,7 +440,7 @@ function NativeConnectionTest({ slug, disabled }: { slug: string; disabled: bool
               value={recipient}
               onChange={(event) => setRecipient(event.target.value)}
               placeholder="you@example.com"
-              disabled={disabled || testing}
+              disabled={disabled || testing || enabling}
               className="rounded-xl"
             />
           </div>
@@ -433,10 +449,17 @@ function NativeConnectionTest({ slug, disabled }: { slug: string; disabled: bool
           <p className={tone === 'error' ? 'text-sm text-red-600' : tone === 'success' ? 'text-sm text-emerald-700' : 'text-sm text-slate-600'}>
             {message}
           </p>
-          <Button type="button" variant="outline" onClick={() => void testConnection()} disabled={disabled || testing} className="shrink-0 rounded-xl">
+          {disabled ? (
+            <Button type="button" onClick={() => void enablePlugin()} disabled={enabling} className="shrink-0 rounded-xl">
+              {enabling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Save and enable
+            </Button>
+          ) : (
+            <Button type="button" variant="outline" onClick={() => void testConnection()} disabled={testing} className="shrink-0 rounded-xl">
             {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Test connection
-          </Button>
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>
@@ -1389,7 +1412,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               ) : null}
 
               {data.runtimeType === 'cloudflare-native' && ['smtp-email', 'stripe', 'odoo'].includes(slug) ? (
-                <NativeConnectionTest slug={slug} disabled={!selectedInstance?.enabled} />
+                <NativeConnectionTest slug={slug} disabled={!selectedInstance?.enabled} onEnable={handleToggleSelectedInstance} />
               ) : null}
 
               {!hasNativeWorkspace ? (
