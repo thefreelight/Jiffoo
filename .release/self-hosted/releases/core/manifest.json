@@ -1,24 +1,24 @@
 {
-  "latestVersion": "1.0.62",
-  "latestStableVersion": "1.0.62",
+  "latestVersion": "1.0.64",
+  "latestStableVersion": "1.0.64",
   "latestPrereleaseVersion": null,
   "channel": "stable",
   "deliveryMode": "image-first",
   "images": {
-    "api": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.62",
-    "admin": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.62",
-    "shop": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.62",
-    "updater": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.62"
+    "api": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.64",
+    "admin": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.64",
+    "shop": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.64",
+    "updater": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.64"
   },
-  "releaseDate": "2026-08-03T11:41:45.941Z",
-  "changelogUrl": "https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.62-opensource",
-  "sourceArchiveUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz?sha256=75b0cf0881342b05215f662ebcfc16037ad3df5dbbe4ddd2b173ecf461a5f4e8",
+  "releaseDate": "2026-08-04T05:43:36.002Z",
+  "changelogUrl": "https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.64-opensource",
+  "sourceArchiveUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz?sha256=17a4cd626eeed58da9cb62dc09c913788f59b4879d6e2a100a87da80af758130",
   "minimumCompatibleVersion": "1.0.0",
   "minimumAutoUpgradableVersion": "1.0.0",
   "requiresManualIntervention": false,
-  "releaseNotes": "Adds Tianquan theme and SMTP email to the self-hosted official catalog.",
-  "checksumUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz.sha256?sha256=75b0cf0881342b05215f662ebcfc16037ad3df5dbbe4ddd2b173ecf461a5f4e8",
+  "releaseNotes": "Publishes the 1.0.64 OSS patch release.",
+  "checksumUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz.sha256?sha256=17a4cd626eeed58da9cb62dc09c913788f59b4879d6e2a100a87da80af758130",
   "signatureUrl": null,
-  "releaseTag": "v1.0.62-opensource",
+  "releaseTag": "v1.0.64-opensource",
   "repository": "thefreelight/Jiffoo"
 }
