@@ -47,14 +47,14 @@ export const PUBLIC_CORE_UPDATE_MANIFEST: PublicCoreUpdateManifest = {
     shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.63',
     updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.63',
   },
-  releaseDate: '2026-08-03T20:27:09.383Z',
+  releaseDate: '2026-08-04T05:37:17.176Z',
   changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.63-opensource',
   sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
   minimumCompatibleVersion: '1.0.0',
   minimumAutoUpgradableVersion: '1.0.0',
   requiresManualIntervention: false,
   releaseNotes:
-    'Normalize legacy Admin API base paths to prevent duplicate admin login routes.',
+    'Publishes the 1.0.63 OSS patch release.',
   checksumUrl: null,
   signatureUrl: null,
 };
