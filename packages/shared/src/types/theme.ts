@@ -571,6 +571,8 @@ export interface RegisterPageProps extends ThemeI18nProps {
   socialAuthStatus?: SocialAuthStatus;
   onSubmit: (data: {
     email: string;
+    /** Stable account name used for greeting and username login. */
+    username?: string;
     password: string;
     confirmPassword: string;
     firstName: string;
