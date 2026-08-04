@@ -31,9 +31,9 @@ async function configuration(env: SmtpEnv) {
   return {
     host,
     port,
-    secure: typeof plugin.smtpSecure === 'boolean'
-      ? plugin.smtpSecure
-      : env.SMTP_SECURE?.trim().toLowerCase() === 'true' || port === 465,
+    // Mailcow submission on 587 negotiates STARTTLS; implicit TLS is only valid on 465.
+    // Treat the port as authoritative so a stale UI toggle cannot break delivery.
+    secure: port === 465,
     user: stringValue(plugin.smtpUser) || env.SMTP_USERNAME?.trim() || env.SMTP_USER?.trim() || '',
     pass,
     fromEmail,

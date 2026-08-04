@@ -3,6 +3,7 @@ import { testNativeOdooConnection } from './odoo';
 import { getNativePluginSecret } from './plugin-settings';
 import { sendSmtpEmail } from './smtp';
 import { nativeSiteName } from './site-name';
+import { getNativePluginConfig } from './plugin-settings';
 
 interface IntegrationAdminEnv extends NativeAuthEnv {
   DB: D1Database;
@@ -24,14 +25,18 @@ export async function tryNativeIntegrationAdmin(request: Request, env: Integrati
   try {
     if (match[1] === 'smtp-email') {
       const siteName = await nativeSiteName(env);
+      const config = await getNativePluginConfig(env, 'smtp-email');
       const body = await request.json<{ to?: unknown }>().catch(() => ({} as { to?: unknown }));
       const to = typeof body.to === 'string' ? body.to.trim() : '';
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) return result({ code: 'VALIDATION_ERROR', message: 'A valid recipient email is required' }, 400);
+      const template = (value: unknown, fallback: string) => String(value || fallback)
+        .replaceAll('{{siteName}}', siteName)
+        .replaceAll('{{recipient}}', to);
       await sendSmtpEmail(env, {
         to,
-        subject: `${siteName} SMTP connection test`,
-        text: `Your ${siteName} SMTP configuration is working.`,
-        html: `<p>Your ${siteName} SMTP configuration is working.</p>`,
+        subject: template(config?.config?.smtpTestSubject, `${siteName} SMTP connection test`),
+        text: template(config?.config?.smtpTestText, `Your ${siteName} SMTP configuration is working.`),
+        html: template(config?.config?.smtpTestHtml, `<p>Your ${siteName} SMTP configuration is working.</p>`),
       });
       return result({ ok: true, recipient: to });
     }
