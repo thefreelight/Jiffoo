@@ -211,6 +211,7 @@ export default function CheckoutPage() {
           }
           : undefined,
         customerEmail: normalizedEmail.length > 0 ? normalizedEmail : undefined,
+        locale: nav.locale,
       });
 
       if (!orderResponse || !orderResponse.success || !orderResponse.data) {

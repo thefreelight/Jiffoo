@@ -33,6 +33,7 @@ interface CreateOrderInput {
   shippingAddress?: Record<string, unknown> | null;
   customerEmail?: string;
   idempotencyKey?: string;
+  locale?: string;
 }
 
 interface OrderSnapshotRow {
@@ -74,6 +75,11 @@ function isOrderItem(value: unknown): value is OrderItemInput {
 
 function orderNumber(): string {
   return `ord_${Date.now().toString(36)}_${crypto.randomUUID().replaceAll('-', '').slice(0, 12)}`;
+}
+
+export function checkoutLocale(request: Request, explicitLocale?: string): 'zh-CN' | 'en' {
+  const candidate = explicitLocale?.trim() || request.headers.get('accept-language') || '';
+  return candidate.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en';
 }
 
 function searchable(order: Record<string, unknown>): string {
@@ -162,6 +168,7 @@ async function createOrder(
     currency: 'USD',
     shippingAddress: body.shippingAddress ?? null,
     customerEmail: user.email,
+    locale: checkoutLocale(request, body.locale),
     items,
     createdAt: now,
     updatedAt: now,
