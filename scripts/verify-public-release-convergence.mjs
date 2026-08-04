@@ -204,8 +204,8 @@ function validateManifest(manifest, options) {
         fail(`image-first manifest is missing ${service} image metadata.`);
       }
 
-      if (!image.includes(`:${coreVersion}`)) {
-        fail(`Runtime image for ${service} must use tag ${coreVersion}: ${image}`);
+      if (!image.endsWith(`:${coreVersion}`)) {
+        fail(`Runtime image for ${service} must use exact tag ${coreVersion}: ${image}`);
       }
     }
   }
@@ -227,6 +227,9 @@ function assertRuntimeImagesAvailable(manifest) {
     const result = spawnSync('docker', ['buildx', 'imagetools', 'inspect', image], {
       encoding: 'utf8',
     });
+    if (result.error?.code === 'ENOENT') {
+      fail('Docker is required for --verify-images. Install Docker and ensure it is available on PATH.');
+    }
     if (result.status !== 0) {
       fail(`Runtime image is not available for ${service}: ${image}\n${result.stderr || result.stdout}`);
     }
@@ -252,6 +255,11 @@ function validateRelease(release, options) {
   }
   if (release.draft) {
     fail(`GitHub release ${release.tag_name || '<unknown>'} is still a draft.`);
+  }
+  const releaseName = typeof release.name === 'string' ? release.name : '';
+  const releaseBody = typeof release.body === 'string' ? release.body : '';
+  if (releaseName.startsWith('QUARANTINED:') || releaseBody.includes('must not be treated as self-hosted-detectable')) {
+    fail(`GitHub release ${release.tag_name || '<unknown>'} is quarantined and must not be published.`);
   }
   if (release.prerelease && !options.allowPrerelease) {
     fail(`GitHub release ${release.tag_name || '<unknown>'} is still marked as prerelease.`);
