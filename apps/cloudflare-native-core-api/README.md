@@ -7,7 +7,10 @@ must be supplied through Cloudflare Secrets Store and must never be committed.
 The Worker keeps Cloudflare-native reads authoritative from D1 snapshots and
 uses the configured Core origin only for routes that have not yet migrated to
 the native adapter. Run the D1 migration status check before every deployment
-and stop immediately if the applied migration line differs from this directory.
+and stop immediately if the applied migration line differs from the verified
+union of this directory and any checksum-locked extension migrations. Use
+`pnpm verify:native-d1-migration-line` with a deployment-owned lock manifest and
+the remote `d1_migrations` ledger; extension SQL remains in its owning package.
 
 ## Operator snapshot import
 
