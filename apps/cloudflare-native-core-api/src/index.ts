@@ -31,6 +31,7 @@ import { tryNativeRemoteRadarSmtp } from './remoteradar-smtp';
 import { tryNativeRemoteRadarExternalApply } from './remoteradar-external-apply';
 import { processPendingRemoteRadarResumeDocuments, tryNativeRemoteRadarResumeDocuments } from './remoteradar-resumes';
 import { tryNativePlatformConnection } from './platform-connection';
+import { tryNativeMarketplace } from './marketplace';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv;
 
@@ -203,6 +204,8 @@ export default {
     if (nativeRemoteRadarResumeDocuments) return nativeRemoteRadarResumeDocuments;
     const nativePlatformConnection = await tryNativePlatformConnection(nativeRequest, env);
     if (nativePlatformConnection) return nativePlatformConnection;
+    const nativeMarketplace = await tryNativeMarketplace(nativeRequest, env);
+    if (nativeMarketplace) return nativeMarketplace;
     const nativeRemoteRadarApplications = await tryNativeRemoteRadarApplications(nativeRequest, env);
     if (nativeRemoteRadarApplications) return nativeRemoteRadarApplications;
     const nativeWallet = await tryNativeWallet(nativeRequest, env);
