@@ -23,7 +23,7 @@ type PluginDefinition = {
   configSchema: Record<string, Descriptor>;
 };
 
-interface PluginSettingsEnv extends NativeAuthEnv { DB: D1Database; PLUGIN_CONFIG_KEY?: SecretsStoreSecret }
+export interface PluginSettingsEnv extends NativeAuthEnv { DB: D1Database; PLUGIN_CONFIG_KEY?: SecretsStoreSecret }
 
 interface StoredInstance {
   id: string;
@@ -130,6 +130,14 @@ async function encrypt(env: PluginSettingsEnv, value: string): Promise<Encrypted
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await encryptionKey(env), encoder.encode(value));
   return { iv: bytesToBase64(iv), ciphertext: bytesToBase64(new Uint8Array(ciphertext)) };
+}
+
+export async function encryptNativeUserSecret(env: PluginSettingsEnv, value: string): Promise<EncryptedValue> {
+  return encrypt(env, value);
+}
+
+export async function decryptNativeUserSecret(env: PluginSettingsEnv, value: EncryptedValue): Promise<string> {
+  return decrypt(env, value);
 }
 
 async function decrypt(env: PluginSettingsEnv, value: EncryptedValue): Promise<string> {
