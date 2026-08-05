@@ -25,6 +25,7 @@ import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odo
 import { snapshotKey } from './snapshot-key';
 import { processNativeJobsSync, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
 import { tryNativePlatformConnection } from './platform-connection';
+import { tryNativeMarketplace } from './marketplace';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv;
 
@@ -195,6 +196,8 @@ export default {
     if (nativeJobsProxy) return nativeJobsProxy;
     const nativePlatformConnection = await tryNativePlatformConnection(nativeRequest, env);
     if (nativePlatformConnection) return nativePlatformConnection;
+    const nativeMarketplace = await tryNativeMarketplace(nativeRequest, env);
+    if (nativeMarketplace) return nativeMarketplace;
     const nativeShopperAccount = await tryNativeShopperAccount(nativeRequest, env);
     if (nativeShopperAccount) return nativeShopperAccount;
     const nativeAffiliate = await tryNativeAffiliate(nativeRequest, env);
