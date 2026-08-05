@@ -1,6 +1,6 @@
 import { connect } from 'cloudflare:sockets';
 import type { NativeSmtpEnv } from './auth';
-import { getNativePluginConfig } from './plugin-settings';
+import { decryptNativeUserSecret, getNativePluginConfig } from './plugin-settings';
 
 type SmtpEnv = NativeSmtpEnv & Pick<Cloudflare.Env, 'DB' | 'JWT_SECRET'>;
 
@@ -14,7 +14,15 @@ interface SmtpSession {
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-async function configuration(env: SmtpEnv) {
+async function configuration(env: SmtpEnv, userId?: string) {
+  if (userId) {
+    const row = await env.DB.prepare('SELECT * FROM remoteradar_user_smtp_configs WHERE user_id = ?1 AND enabled = 1').bind(userId).first<{ host: string; port: number; secure: number; username: string; encrypted_password: string; from_email: string; from_name: string | null; reply_to: string | null }>();
+    if (row) {
+      const pass = await decryptNativeUserSecret(env, JSON.parse(row.encrypted_password));
+      const from = row.from_name ? `${header(row.from_name)} <${mailbox(row.from_email)}>` : row.from_email;
+      return { host: row.host, port: row.port, secure: row.secure === 1, user: row.username, pass, fromEmail: row.from_email, from, replyTo: row.reply_to ?? '' };
+    }
+  }
   const stored = await getNativePluginConfig(env, 'smtp-email');
   const plugin = stored?.enabled ? stored.config : {};
   const stringValue = (value: unknown): string => typeof value === 'string' ? value.trim() : '';
@@ -106,8 +114,9 @@ function mailbox(value: string): string {
 export async function sendSmtpEmail(
   env: SmtpEnv,
   message: { to: string; subject: string; text: string; html: string },
+  userId?: string,
 ): Promise<void> {
-  const config = await configuration(env);
+  const config = await configuration(env, userId);
   let current = session(connect(
     { hostname: config.host, port: config.port },
     { secureTransport: config.secure ? 'on' : 'starttls', allowHalfOpen: false },
