@@ -29,7 +29,7 @@ import { expireNativeWalletReservations, tryNativeWallet } from './native-wallet
 import { expireRemoteRadarCreditGrants, tryNativeRemoteRadarEntitlements } from './remoteradar-entitlements';
 import { tryNativeRemoteRadarSmtp } from './remoteradar-smtp';
 import { tryNativeRemoteRadarExternalApply } from './remoteradar-external-apply';
-import { tryNativeRemoteRadarResumeDocuments } from './remoteradar-resumes';
+import { processPendingRemoteRadarResumeDocuments, tryNativeRemoteRadarResumeDocuments } from './remoteradar-resumes';
 import { tryNativePlatformConnection } from './platform-connection';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv;
@@ -180,12 +180,12 @@ export default {
       const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'core_schema_version'")
         .first<{ value: string }>();
       return Response.json({
-        status: row?.value === '0033' ? 'ok' : 'degraded',
+        status: row?.value === '0034' ? 'ok' : 'degraded',
         service: 'jiffoo-native-core-api',
         runtime: 'cloudflare-workers-free',
         version: env.RUNTIME_VERSION,
         d1Schema: row?.value ?? null,
-      }, { status: row?.value === '0033' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
+      }, { status: row?.value === '0034' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
     }
     if (nativeRequest.method === 'GET' && nativeRequest.url.includes('/api/v1/upgrade/version')) {
       return nativeUpgradeVersion(env);
@@ -260,13 +260,14 @@ export default {
     return proxy(request, env);
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog, jobs, walletReservations, creditGrants] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, jobs, walletReservations, creditGrants, resumeExtraction] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
       processNativeJobsSync(env),
       expireNativeWalletReservations(env),
       expireRemoteRadarCreditGrants(env),
+      processPendingRemoteRadarResumeDocuments(env),
     ]);
     console.log(JSON.stringify({
       message: 'native scheduled work processed',
@@ -280,6 +281,9 @@ export default {
       creditGrants: creditGrants.status === 'fulfilled'
         ? creditGrants.value
         : { error: String(creditGrants.reason) },
+      resumeExtraction: resumeExtraction.status === 'fulfilled'
+        ? resumeExtraction.value
+        : { error: String(resumeExtraction.reason) },
     }));
   },
 } satisfies ExportedHandler<WorkerEnv>;
