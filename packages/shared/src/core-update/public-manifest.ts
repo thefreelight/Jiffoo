@@ -36,25 +36,25 @@ export const DEFAULT_PUBLIC_CORE_UPDATE_MANIFEST_URL =
 // for release detection. Keep it aligned with the published OSS release tag and
 // changelog entry whenever a new public release is cut.
 export const PUBLIC_CORE_UPDATE_MANIFEST: PublicCoreUpdateManifest = {
-  latestVersion: '1.0.81',
-  latestStableVersion: '1.0.81',
+  latestVersion: '1.0.82',
+  latestStableVersion: '1.0.82',
   latestPrereleaseVersion: null,
   channel: 'stable',
   deliveryMode: 'image-first',
   images: {
-    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.81',
-    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.81',
-    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.81',
-    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.81',
+    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.82',
+    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.82',
+    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.82',
+    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.82',
   },
-  releaseDate: '2026-08-05T13:44:11.454Z',
-  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.81-opensource',
+  releaseDate: '2026-08-05T15:42:12.328Z',
+  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.82-opensource',
   sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
   minimumCompatibleVersion: '1.0.0',
   minimumAutoUpgradableVersion: '1.0.0',
   requiresManualIntervention: false,
   releaseNotes:
-    'RemoteRadar resume extraction, fact review drafts, immutable resume versions, and bounded retry processing.',
+    'Fixes the native Odoo connection test for Odoo 19 by omitting the unsupported read limit parameter.',
   checksumUrl: null,
   signatureUrl: null,
 };
