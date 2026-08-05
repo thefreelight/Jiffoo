@@ -21,6 +21,7 @@
   "r2_buckets": [
     { "binding": "ASSETS", "bucket_name": "replace-with-instance-assets" }
   ],
+  "ai": { "binding": "AI" },
   "secrets_store_secrets": [
     {
       "binding": "JWT_SECRET",
@@ -52,6 +53,7 @@
     "CORE_ORIGIN": "https://replace-with-instance-origin.example.com",
     "JOBS_SERVICE_URL": "https://replace-with-instance-jobs.example.com",
     "NATIVE_CHECKOUT_ENABLED": "false",
+    "REMOTERADAR_AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
     "RUNTIME_VERSION": "0.0.1"
   },
   "observability": {
