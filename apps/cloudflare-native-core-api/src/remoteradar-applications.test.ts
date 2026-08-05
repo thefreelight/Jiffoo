@@ -5,10 +5,12 @@ const nativeWalletFinish = vi.fn();
 const nativeWalletMutate = vi.fn();
 const nativeWalletReserve = vi.fn();
 const remoteRadarAllowanceStatus = vi.fn();
+const sendSmtpEmail = vi.fn();
 
 vi.mock('./auth', () => ({ authenticateNativeUser }));
 vi.mock('./native-wallet', () => ({ nativeWalletFinish, nativeWalletMutate, nativeWalletReserve }));
 vi.mock('./remoteradar-entitlements', () => ({ remoteRadarAllowanceStatus }));
+vi.mock('./smtp', () => ({ sendSmtpEmail }));
 
 const { tryNativeRemoteRadarApplications } = await import('./remoteradar-applications');
 
@@ -130,6 +132,29 @@ describe('native RemoteRadar applications adapter', () => {
     expect(result?.status).toBe(503);
     expect(nativeWalletFinish).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ reservationId: 'wallet-res-1', action: 'release' }));
     expect(state.charge.status).toBe('released');
+  });
+
+  it('sends an approved application pack through user SMTP and records the submission', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    sendSmtpEmail.mockResolvedValue(undefined);
+    const prepare = vi.fn((sql: string) => ({ bind: (...args: unknown[]) => ({
+      first: async () => {
+        if (sql.includes('remoteradar_application_submissions')) return null;
+        if (sql.includes('approved_version_id') && sql.includes('pack_version_id')) return { id: 'app-1', pack_version_id: 'version-1', approved_version_id: 'version-1' };
+        if (sql.includes('remoteradar_user_smtp_configs')) return { enabled: 1 };
+        return null;
+      },
+      all: async () => ({ results: [] }),
+      run: async () => ({ success: true, meta: { changes: 1 }, args }),
+    }) }));
+    const state = { DB: { prepare, batch: vi.fn(async () => []) } };
+    const result = await tryNativeRemoteRadarApplications(new Request('https://api.example/api/v1/plugins/remoteradar-applications/store/applications/app-1/submissions/email', {
+      method: 'POST', body: JSON.stringify({ idempotencyKey: 'submit-1', to: 'hiring@example.com', subject: 'Application', text: 'Hello', html: '<p>Hello</p>' }),
+    }), state as never);
+    expect(result?.status).toBe(201);
+    await expect(result?.json()).resolves.toMatchObject({ data: { status: 'sent', transport: 'user_smtp', applicationId: 'app-1' } });
+    expect(sendSmtpEmail).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ to: 'hiring@example.com' }), 'user-1');
+    expect(state.DB.batch).toHaveBeenCalledTimes(1);
   });
 
   it('recovers a stale orphaned hold before retrying the same generation', async () => {
