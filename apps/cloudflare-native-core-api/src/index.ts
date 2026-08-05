@@ -25,6 +25,7 @@ import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odo
 import { snapshotKey } from './snapshot-key';
 import { processNativeJobsSync, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
 import { tryNativeRemoteRadarApplications } from './remoteradar-applications';
+import { expireNativeWalletReservations, tryNativeWallet } from './native-wallet';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv;
 
@@ -174,12 +175,12 @@ export default {
       const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'core_schema_version'")
         .first<{ value: string }>();
       return Response.json({
-        status: row?.value === '0024' ? 'ok' : 'degraded',
+        status: row?.value === '0025' ? 'ok' : 'degraded',
         service: 'jiffoo-native-core-api',
         runtime: 'cloudflare-workers-free',
         version: env.RUNTIME_VERSION,
         d1Schema: row?.value ?? null,
-      }, { status: row?.value === '0024' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
+      }, { status: row?.value === '0025' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
     }
     if (nativeRequest.method === 'GET' && nativeRequest.url.includes('/api/v1/upgrade/version')) {
       return nativeUpgradeVersion(env);
@@ -195,6 +196,8 @@ export default {
     if (nativeJobsProxy) return nativeJobsProxy;
     const nativeRemoteRadarApplications = await tryNativeRemoteRadarApplications(nativeRequest, env);
     if (nativeRemoteRadarApplications) return nativeRemoteRadarApplications;
+    const nativeWallet = await tryNativeWallet(nativeRequest, env);
+    if (nativeWallet) return nativeWallet;
     const nativeShopperAccount = await tryNativeShopperAccount(nativeRequest, env);
     if (nativeShopperAccount) return nativeShopperAccount;
     const nativeAffiliate = await tryNativeAffiliate(nativeRequest, env);
@@ -242,11 +245,12 @@ export default {
     return proxy(request, env);
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog, jobs] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, jobs, walletReservations] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
       processNativeJobsSync(env),
+      expireNativeWalletReservations(env),
     ]);
     console.log(JSON.stringify({
       message: 'native scheduled work processed',
@@ -254,6 +258,9 @@ export default {
       email: email.status === 'fulfilled' ? email.value : { error: String(email.reason) },
       odooCatalog: odooCatalog.status === 'fulfilled' ? odooCatalog.value : { error: String(odooCatalog.reason) },
       jobs: jobs.status === 'fulfilled' ? jobs.value : { error: String(jobs.reason) },
+      walletReservations: walletReservations.status === 'fulfilled'
+        ? walletReservations.value
+        : { error: String(walletReservations.reason) },
     }));
   },
 } satisfies ExportedHandler<WorkerEnv>;
