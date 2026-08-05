@@ -166,7 +166,10 @@ export async function sendSmtpEmail(
       `--${boundary}--`,
     ].join('\r\n').replace(/^\./gm, '..');
     await command(current, `${raw}\r\n.`);
-    await command(current, 'QUIT');
+    // The DATA response is the delivery acceptance boundary. Some SMTP relays
+    // close or delay the QUIT response after accepting the message; that must
+    // not turn a successful delivery into a client-facing connection error.
+    await command(current, 'QUIT').catch(() => undefined);
   } finally {
     current.reader.releaseLock();
     current.writer.releaseLock();
