@@ -1,9 +1,48 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('cloudflare:sockets', () => ({ connect: vi.fn() }));
 vi.mock('./plugin-settings', () => ({ getNativePluginConfig: vi.fn() }));
 
-const { mapNativeOdooCatalog } = await import('./odoo');
+const { getNativePluginConfig } = await import('./plugin-settings');
+const { mapNativeOdooCatalog, testNativeOdooConnection } = await import('./odoo');
+
+afterEach(() => vi.unstubAllGlobals());
+
+describe('Odoo native connection test', () => {
+  it('uses read kwargs accepted by Odoo 19', async () => {
+    vi.mocked(getNativePluginConfig).mockResolvedValue({
+      enabled: true,
+      config: {
+        baseUrl: 'https://erp.example.com',
+        database: 'store',
+        username: 'integration@example.com',
+        apiKey: 'secret',
+      },
+    });
+
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: 5 }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: [{ id: 5 }] }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(testNativeOdooConnection({} as never)).resolves.toEqual({
+      database: 'store',
+      username: 'integration@example.com',
+      uid: 5,
+    });
+
+    const readRequest = JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body));
+    expect(readRequest.params.args).toEqual([
+      'store',
+      5,
+      'secret',
+      'res.users',
+      'read',
+      [[5]],
+      { fields: ['id'] },
+    ]);
+  });
+});
 
 describe('Odoo native catalog mapping', () => {
   it('groups variants and preserves sellable price, inventory, and fulfillment attributes', () => {
