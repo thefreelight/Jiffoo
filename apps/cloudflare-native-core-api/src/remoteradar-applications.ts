@@ -1,4 +1,6 @@
 import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
+import { nativeWalletFinish, nativeWalletMutate, nativeWalletReserve } from './native-wallet';
+import { remoteRadarAllowanceStatus } from './remoteradar-entitlements';
 
 interface RemoteRadarApplicationsEnv extends NativeAuthEnv { DB: D1Database }
 
@@ -48,6 +50,115 @@ async function user(request: Request, env: RemoteRadarApplicationsEnv): Promise<
 async function body(request: Request): Promise<Record<string, unknown>> { return request.json<Record<string, unknown>>().catch(() => ({})); }
 function rejectProvenance(input: Record<string, unknown>): boolean { return Object.prototype.hasOwnProperty.call(input, 'sourceUrl') || Object.prototype.hasOwnProperty.call(input, 'provenance') || Object.prototype.hasOwnProperty.call(input, 'canonicalUrl') || Object.prototype.hasOwnProperty.call(input, 'source'); }
 
+interface PackCharge {
+  id: string; user_id: string; idempotency_key: string; operation: 'create' | 'regenerate';
+  target_pack_id: string | null; grant_id: string | null; wallet_reservation_id: string | null;
+  attempt: number; status: 'initiated' | 'claiming' | 'reserved' | 'settled' | 'released';
+  result_pack_id: string | null; result_version_id: string | null;
+  updated_at: string;
+}
+
+async function chargeByKey(env: RemoteRadarApplicationsEnv, userId: string, key: string): Promise<PackCharge | null> {
+  return env.DB.prepare('SELECT * FROM remoteradar_application_pack_charges WHERE user_id = ?1 AND idempotency_key = ?2')
+    .bind(userId, key).first<PackCharge>();
+}
+
+async function completedPackResponse(env: RemoteRadarApplicationsEnv, charge: PackCharge): Promise<Response | null> {
+  if (charge.status !== 'settled' || !charge.result_pack_id || !charge.result_version_id) return null;
+  const packRow = await env.DB.prepare('SELECT * FROM native_rr_application_packs WHERE id = ?1 AND user_id = ?2')
+    .bind(charge.result_pack_id, charge.user_id).first<Record<string, unknown>>();
+  const versionRow = await env.DB.prepare('SELECT * FROM native_rr_application_pack_versions WHERE id = ?1 AND user_id = ?2')
+    .bind(charge.result_version_id, charge.user_id).first<Record<string, unknown>>();
+  if (!packRow || !versionRow) throw new Error('METERED_PACK_RESULT_MISSING');
+  return charge.operation === 'create' ? response(pack(packRow, [version(versionRow)]), 201) : response(version(versionRow), 201);
+}
+
+async function reservePackCredit(env: RemoteRadarApplicationsEnv, userId: string, key: string, operation: PackCharge['operation'], targetPackId: string | null): Promise<{ charge: PackCharge; replay: Response | null }> {
+  await remoteRadarAllowanceStatus(env, userId);
+  const now = new Date().toISOString();
+  await env.DB.prepare(`INSERT OR IGNORE INTO remoteradar_application_pack_charges
+    (id, user_id, idempotency_key, operation, target_pack_id, status, created_at, updated_at)
+    VALUES (?1, ?2, ?3, ?4, ?5, 'initiated', ?6, ?6)`)
+    .bind(`rr_charge_${crypto.randomUUID()}`, userId, key, operation, targetPackId, now).run();
+  let charge = await chargeByKey(env, userId, key);
+  if (!charge) throw new Error('PACK_CHARGE_NOT_CREATED');
+  if (charge.operation !== operation || charge.target_pack_id !== targetPackId) throw new Error('IDEMPOTENCY_CONFLICT');
+  const replay = await completedPackResponse(env, charge);
+  if (replay) return { charge, replay };
+  if (charge.status === 'reserved' && charge.result_pack_id && charge.result_version_id && charge.wallet_reservation_id) {
+    await nativeWalletFinish(env, { userId, reservationId: charge.wallet_reservation_id, idempotencyKey: `remoteradar-pack-settle:${charge.id}:${charge.attempt}`, action: 'settle' });
+    await env.DB.prepare(`UPDATE remoteradar_application_pack_charges SET status = 'settled', updated_at = ?1
+      WHERE id = ?2 AND user_id = ?3 AND status = 'reserved'`).bind(new Date().toISOString(), charge.id, userId).run();
+    charge = (await chargeByKey(env, userId, key))!;
+    return { charge, replay: await completedPackResponse(env, charge) };
+  }
+  if ((charge.status === 'claiming' || charge.status === 'reserved') && Date.parse(charge.updated_at) <= Date.now() - 15 * 60 * 1000) {
+    if (charge.wallet_reservation_id) {
+      await nativeWalletFinish(env, {
+        userId, reservationId: charge.wallet_reservation_id,
+        idempotencyKey: `remoteradar-pack-release:${charge.id}:${charge.attempt}`, action: 'release',
+      }).catch(() => undefined);
+    }
+    await env.DB.prepare(`UPDATE remoteradar_application_pack_charges SET status = 'released', updated_at = ?1
+      WHERE id = ?2 AND user_id = ?3 AND status IN ('claiming', 'reserved')`).bind(new Date().toISOString(), charge.id, userId).run();
+    charge = (await chargeByKey(env, userId, key))!;
+  }
+  if (charge.status === 'claiming' || charge.status === 'reserved') throw new Error('PACK_GENERATION_IN_PROGRESS');
+
+  const grant = await env.DB.prepare(`SELECT id, credits_total FROM remoteradar_credit_grants
+    WHERE user_id = ?1 AND credits_remaining > 0 AND expires_at > ?2
+    ORDER BY expires_at ASC, created_at ASC LIMIT 1`).bind(userId, now).first<{ id: string; credits_total: number }>();
+  if (!grant) throw new Error('REMOTERADAR_CREDITS_EXHAUSTED');
+  const attempt = Number(charge.attempt) + 1;
+  const claim = await env.DB.prepare(`UPDATE remoteradar_application_pack_charges
+    SET grant_id = ?1, wallet_reservation_id = NULL, attempt = ?2, status = 'claiming', updated_at = ?3
+    WHERE id = ?4 AND user_id = ?5 AND status IN ('initiated', 'released')`)
+    .bind(grant.id, attempt, now, charge.id, userId).run();
+  if (Number(claim.meta?.changes ?? 0) !== 1) throw new Error('PACK_GENERATION_IN_PROGRESS');
+  charge = (await chargeByKey(env, userId, key))!;
+  let walletReservationId: string | null = null;
+  try {
+    await nativeWalletMutate(env, {
+      userId, amount: Number(grant.credits_total), operation: 'credit', idempotencyKey: `remoteradar-grant:${grant.id}`,
+      type: 'remoteradar_credit_grant', description: 'RemoteRadar application credits', sourcePlugin: 'remoteradar', referenceId: grant.id,
+    });
+    const reservation = await nativeWalletReserve(env, {
+      userId, amount: 1, idempotencyKey: `remoteradar-pack:${charge.id}:${attempt}`, ttlSeconds: 900,
+      sourcePlugin: 'remoteradar', referenceId: charge.id,
+    });
+    walletReservationId = reservation.id;
+    await env.DB.prepare(`UPDATE remoteradar_application_pack_charges SET wallet_reservation_id = ?1, status = 'reserved', updated_at = ?2
+      WHERE id = ?3 AND user_id = ?4 AND status = 'claiming'`).bind(reservation.id, new Date().toISOString(), charge.id, userId).run();
+    charge = (await chargeByKey(env, userId, key))!;
+    return { charge, replay: null };
+  } catch (error) {
+    if (walletReservationId) {
+      await nativeWalletFinish(env, {
+        userId, reservationId: walletReservationId,
+        idempotencyKey: `remoteradar-pack-release:${charge.id}:${attempt}`, action: 'release',
+      }).catch(() => undefined);
+    }
+    await env.DB.prepare(`UPDATE remoteradar_application_pack_charges SET status = 'released', updated_at = ?1
+      WHERE id = ?2 AND user_id = ?3 AND status IN ('claiming', 'reserved')`).bind(new Date().toISOString(), charge.id, userId).run();
+    throw error;
+  }
+}
+
+async function releasePackCredit(env: RemoteRadarApplicationsEnv, charge: PackCharge): Promise<void> {
+  await env.DB.prepare(`UPDATE remoteradar_application_pack_charges SET status = 'released', updated_at = ?1
+    WHERE id = ?2 AND user_id = ?3 AND status IN ('claiming', 'reserved')`).bind(new Date().toISOString(), charge.id, charge.user_id).run();
+  if (charge.wallet_reservation_id) {
+    await nativeWalletFinish(env, { userId: charge.user_id, reservationId: charge.wallet_reservation_id, idempotencyKey: `remoteradar-pack-release:${charge.id}:${charge.attempt}`, action: 'release' }).catch(() => undefined);
+  }
+}
+
+async function settlePackCredit(env: RemoteRadarApplicationsEnv, charge: PackCharge): Promise<void> {
+  if (!charge.wallet_reservation_id) throw new Error('PACK_WALLET_RESERVATION_MISSING');
+  await nativeWalletFinish(env, { userId: charge.user_id, reservationId: charge.wallet_reservation_id, idempotencyKey: `remoteradar-pack-settle:${charge.id}:${charge.attempt}`, action: 'settle' });
+  await env.DB.prepare(`UPDATE remoteradar_application_pack_charges SET status = 'settled', updated_at = ?1
+    WHERE id = ?2 AND user_id = ?3 AND status = 'reserved'`).bind(new Date().toISOString(), charge.id, charge.user_id).run();
+}
+
 async function listResumes(env: RemoteRadarApplicationsEnv, userId: string): Promise<Response> {
   const rows = await env.DB.prepare('SELECT * FROM native_rr_resumes WHERE user_id = ?1 ORDER BY updated_at DESC').bind(userId).all<Record<string, unknown>>();
   const facts = await env.DB.prepare('SELECT * FROM native_rr_resume_facts WHERE user_id = ?1 ORDER BY created_at ASC').bind(userId).all<Record<string, unknown>>();
@@ -81,27 +192,59 @@ async function saveJob(request: Request, env: RemoteRadarApplicationsEnv, userId
   return response(savedJob({ id, title, company, location: location || null, description, created_at: createdAt, updated_at: now }), existing ? 200 : 201);
 }
 async function createPack(request: Request, env: RemoteRadarApplicationsEnv, userId: string): Promise<Response> {
-  const input = await body(request); const savedJobId = text(input.savedJobId, 80); const resumeId = text(input.resumeId, 80); const resumeSnapshot = jsonObject(input.resumeSnapshot); const coverLetter = text(input.coverLetter, 20000, ''); const answers = jsonObject(input.answers ?? {});
-  if (!savedJobId || !resumeId || !resumeSnapshot || coverLetter === null || !answers) return fail(400, 'VALIDATION_ERROR', 'savedJobId, resumeId, resumeSnapshot, coverLetter, and answers are required');
+  const input = await body(request); const idempotencyKey = text(input.idempotencyKey, 200); const savedJobId = text(input.savedJobId, 80); const resumeId = text(input.resumeId, 80); const resumeSnapshot = jsonObject(input.resumeSnapshot); const coverLetter = text(input.coverLetter, 20000, ''); const answers = jsonObject(input.answers ?? {});
+  if (!idempotencyKey || !savedJobId || !resumeId || !resumeSnapshot || coverLetter === null || !answers) return fail(400, 'VALIDATION_ERROR', 'idempotencyKey, savedJobId, resumeId, resumeSnapshot, coverLetter, and answers are required');
   const [job, resumeRow] = await Promise.all([env.DB.prepare('SELECT id FROM native_rr_saved_jobs WHERE id = ?1 AND user_id = ?2').bind(savedJobId, userId).first(), env.DB.prepare('SELECT id FROM native_rr_resumes WHERE id = ?1 AND user_id = ?2').bind(resumeId, userId).first()]);
   if (!job || !resumeRow) return fail(404, 'PACK_INPUT_NOT_FOUND', 'Saved job or resume was not found');
+  let metering;
+  try { metering = await reservePackCredit(env, userId, idempotencyKey, 'create', null); } catch (error) { return meteringFailure(error); }
+  if (metering.replay) return metering.replay;
   const packId = crypto.randomUUID(); const versionId = crypto.randomUUID(); const now = new Date().toISOString();
-  await env.DB.batch([
-    env.DB.prepare('INSERT INTO native_rr_application_packs (id, user_id, saved_job_id, resume_id, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?5)').bind(packId, userId, savedJobId, resumeId, now),
-    env.DB.prepare('INSERT INTO native_rr_application_pack_versions (id, user_id, pack_id, version, resume_snapshot, cover_letter, answers, created_at) VALUES (?1, ?2, ?3, 1, ?4, ?5, ?6, ?7)').bind(versionId, userId, packId, resumeSnapshot, coverLetter, answers, now),
-  ]);
+  try {
+    await env.DB.batch([
+      env.DB.prepare('INSERT INTO native_rr_application_packs (id, user_id, saved_job_id, resume_id, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?5)').bind(packId, userId, savedJobId, resumeId, now),
+      env.DB.prepare('INSERT INTO native_rr_application_pack_versions (id, user_id, pack_id, version, resume_snapshot, cover_letter, answers, created_at) VALUES (?1, ?2, ?3, 1, ?4, ?5, ?6, ?7)').bind(versionId, userId, packId, resumeSnapshot, coverLetter, answers, now),
+      env.DB.prepare(`UPDATE remoteradar_application_pack_charges SET result_pack_id = ?1, result_version_id = ?2, updated_at = ?3
+        WHERE id = ?4 AND user_id = ?5 AND status = 'reserved'`).bind(packId, versionId, now, metering.charge.id, userId),
+    ]);
+    await settlePackCredit(env, metering.charge);
+  } catch (error) {
+    const latestCharge = await chargeByKey(env, userId, idempotencyKey);
+    if (!latestCharge?.result_version_id) await releasePackCredit(env, metering.charge);
+    return meteringFailure(error);
+  }
   return response(pack({ id: packId, saved_job_id: savedJobId, resume_id: resumeId, approved_version_id: null, created_at: now, updated_at: now }, [version({ id: versionId, pack_id: packId, version: 1, resume_snapshot: resumeSnapshot, cover_letter: coverLetter, answers, approved_at: null, created_at: now })]), 201);
 }
 async function listPacks(env: RemoteRadarApplicationsEnv, userId: string): Promise<Response> { const rows = await env.DB.prepare('SELECT * FROM native_rr_application_packs WHERE user_id = ?1 ORDER BY updated_at DESC').bind(userId).all<Record<string, unknown>>(); const versions = await env.DB.prepare('SELECT * FROM native_rr_application_pack_versions WHERE user_id = ?1 ORDER BY version ASC').bind(userId).all<Record<string, unknown>>(); return response(rows.results.map((row) => pack(row, versions.results.filter((item) => item.pack_id === row.id).map(version)))); }
 async function createPackVersion(request: Request, env: RemoteRadarApplicationsEnv, userId: string, packId: string): Promise<Response> {
-  const input = await body(request); const resumeSnapshot = jsonObject(input.resumeSnapshot); const coverLetter = text(input.coverLetter, 20000); const answers = jsonObject(input.answers ?? {}); if (!resumeSnapshot || coverLetter === null || !answers) return fail(400, 'VALIDATION_ERROR', 'resumeSnapshot, coverLetter, and answers are required');
+  const input = await body(request); const idempotencyKey = text(input.idempotencyKey, 200); const resumeSnapshot = jsonObject(input.resumeSnapshot); const coverLetter = text(input.coverLetter, 20000); const answers = jsonObject(input.answers ?? {}); if (!idempotencyKey || !resumeSnapshot || coverLetter === null || !answers) return fail(400, 'VALIDATION_ERROR', 'idempotencyKey, resumeSnapshot, coverLetter, and answers are required');
   const packRow = await env.DB.prepare('SELECT id FROM native_rr_application_packs WHERE id = ?1 AND user_id = ?2').bind(packId, userId).first(); if (!packRow) return fail(404, 'PACK_NOT_FOUND', 'Application pack was not found');
+  let metering;
+  try { metering = await reservePackCredit(env, userId, idempotencyKey, 'regenerate', packId); } catch (error) { return meteringFailure(error); }
+  if (metering.replay) return metering.replay;
   const latest = await env.DB.prepare('SELECT COALESCE(MAX(version), 0) AS version FROM native_rr_application_pack_versions WHERE pack_id = ?1 AND user_id = ?2').bind(packId, userId).first<{ version: number }>(); const next = Number(latest?.version ?? 0) + 1; const id = crypto.randomUUID(); const now = new Date().toISOString();
-  await env.DB.batch([
-    env.DB.prepare('INSERT INTO native_rr_application_pack_versions (id, user_id, pack_id, version, resume_snapshot, cover_letter, answers, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)').bind(id, userId, packId, next, resumeSnapshot, coverLetter, answers, now),
-    env.DB.prepare('UPDATE native_rr_application_packs SET updated_at = ?1 WHERE id = ?2 AND user_id = ?3').bind(now, packId, userId),
-  ]);
+  try {
+    await env.DB.batch([
+      env.DB.prepare('INSERT INTO native_rr_application_pack_versions (id, user_id, pack_id, version, resume_snapshot, cover_letter, answers, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)').bind(id, userId, packId, next, resumeSnapshot, coverLetter, answers, now),
+      env.DB.prepare('UPDATE native_rr_application_packs SET updated_at = ?1 WHERE id = ?2 AND user_id = ?3').bind(now, packId, userId),
+      env.DB.prepare(`UPDATE remoteradar_application_pack_charges SET result_pack_id = ?1, result_version_id = ?2, updated_at = ?3
+        WHERE id = ?4 AND user_id = ?5 AND status = 'reserved'`).bind(packId, id, now, metering.charge.id, userId),
+    ]);
+    await settlePackCredit(env, metering.charge);
+  } catch (error) {
+    const latestCharge = await chargeByKey(env, userId, idempotencyKey);
+    if (!latestCharge?.result_version_id) await releasePackCredit(env, metering.charge);
+    return meteringFailure(error);
+  }
   return response(version({ id, pack_id: packId, version: next, resume_snapshot: resumeSnapshot, cover_letter: coverLetter, answers, approved_at: null, created_at: now }), 201);
+}
+
+function meteringFailure(error: unknown): Response {
+  const code = error instanceof Error ? error.message : 'PACK_METERING_FAILED';
+  if (code === 'REMOTERADAR_CREDITS_EXHAUSTED' || code === 'INSUFFICIENT_AVAILABLE_BALANCE') return fail(402, 'APPLICATION_CREDITS_REQUIRED', 'No application credits remain');
+  if (code === 'PACK_GENERATION_IN_PROGRESS') return fail(409, code, 'This application pack generation is already in progress');
+  if (code === 'IDEMPOTENCY_CONFLICT') return fail(409, code, 'The idempotency key was already used for another operation');
+  return fail(503, 'PACK_METERING_FAILED', 'Application pack metering is temporarily unavailable');
 }
 async function approveVersion(env: RemoteRadarApplicationsEnv, userId: string, packId: string, versionId: string): Promise<Response> {
   const row = await env.DB.prepare('SELECT id, pack_id, version FROM native_rr_application_pack_versions WHERE id = ?1 AND pack_id = ?2 AND user_id = ?3').bind(versionId, packId, userId).first<{ id: string; pack_id: string; version: number }>(); if (!row) return fail(404, 'PACK_VERSION_NOT_FOUND', 'Application pack version was not found'); const now = new Date().toISOString();
