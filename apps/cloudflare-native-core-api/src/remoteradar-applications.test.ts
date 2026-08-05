@@ -6,11 +6,13 @@ const nativeWalletMutate = vi.fn();
 const nativeWalletReserve = vi.fn();
 const remoteRadarAllowanceStatus = vi.fn();
 const sendSmtpEmail = vi.fn();
+const generateApplicationPack = vi.fn();
 
 vi.mock('./auth', () => ({ authenticateNativeUser }));
 vi.mock('./native-wallet', () => ({ nativeWalletFinish, nativeWalletMutate, nativeWalletReserve }));
 vi.mock('./remoteradar-entitlements', () => ({ remoteRadarAllowanceStatus }));
 vi.mock('./smtp', () => ({ sendSmtpEmail }));
+vi.mock('./remoteradar-pack-generator', () => ({ generateApplicationPack }));
 
 const { tryNativeRemoteRadarApplications } = await import('./remoteradar-applications');
 
@@ -40,15 +42,15 @@ function meteredDatabase(options: { failArtifactWrite?: boolean; failReservation
   const prepare = vi.fn((sql: string) => ({
     bind: (...args: unknown[]) => ({
       first: async () => {
-        if (sql.includes('native_rr_saved_jobs WHERE id')) return { id: 'job-1' };
-        if (sql.includes('native_rr_resumes WHERE id')) return { id: 'resume-1' };
+        if (sql.includes('native_rr_saved_jobs WHERE id')) return { id: 'job-1', title: 'Engineer', company: 'Acme', location: 'Remote', description: 'Build TypeScript systems' };
+        if (sql.includes('native_rr_resumes WHERE id')) return { id: 'resume-1', name: 'Primary resume', summary: 'Engineer' };
         if (sql.includes('remoteradar_application_pack_charges WHERE user_id')) return { ...charge };
         if (sql.includes('remoteradar_credit_grants')) return { id: 'grant-1', credits_total: 2 };
         if (sql.includes('native_rr_application_packs WHERE id')) return packRow;
         if (sql.includes('native_rr_application_pack_versions WHERE id')) return versionRow;
         return null;
       },
-      all: async () => ({ results: [] }),
+      all: async () => ({ results: sql.includes('native_rr_resume_facts') ? [{ id: 'fact-1', kind: 'skill', label: 'TypeScript', value: '6 years' }] : [] }),
       run: async () => {
         if (sql.includes("SET grant_id = ?1") && sql.includes("status = 'claiming'")) {
           charge.grant_id = args[0]; charge.attempt = args[1]; charge.status = 'claiming'; charge.updated_at = args[2];
@@ -117,6 +119,84 @@ describe('native RemoteRadar applications adapter', () => {
     expect(result?.status).toBe(503);
     expect(nativeWalletFinish).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ action: 'release' }));
     expect(state.charge.status).toBe('released');
+  });
+
+  it('generates a fact-grounded application pack and settles one credit', async () => {
+    authenticateNativeUser.mockResolvedValueOnce({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    remoteRadarAllowanceStatus.mockResolvedValueOnce({ totalRemaining: 2 });
+    nativeWalletMutate.mockResolvedValueOnce({ availableBalance: 2 });
+    nativeWalletReserve.mockResolvedValueOnce({ id: 'wallet-res-1' });
+    nativeWalletFinish.mockResolvedValueOnce({ status: 'settled' });
+    generateApplicationPack.mockResolvedValueOnce({
+      resumeSnapshot: { name: 'Primary resume', confirmedFacts: [{ id: 'fact-1', label: 'TypeScript' }] },
+      coverLetter: 'Dear Acme team',
+      answers: { sponsorship: 'No' },
+    });
+    const state = meteredDatabase();
+    const result = await tryNativeRemoteRadarApplications(new Request(`${baseUrl}/application-packs/generate`, {
+      method: 'POST', body: JSON.stringify({ idempotencyKey: 'generation-1', savedJobId: 'job-1', resumeId: 'resume-1', questions: { sponsorship: 'Do you need sponsorship?' } }),
+    }), state as never);
+    expect(result?.status).toBe(201);
+    expect(generateApplicationPack).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      job: expect.objectContaining({ title: 'Engineer', company: 'Acme' }),
+      facts: [expect.objectContaining({ id: 'fact-1', label: 'TypeScript' })],
+    }));
+    expect(nativeWalletFinish).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ action: 'settle' }));
+    const payload = await result?.json() as { data: { versions: Array<{ resumeSnapshot: Record<string, unknown> }> } };
+    expect(payload.data.versions[0]?.resumeSnapshot).toMatchObject({ name: 'Primary resume' });
+  });
+
+  it('releases the reserved credit when AI generation fails', async () => {
+    authenticateNativeUser.mockResolvedValueOnce({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    remoteRadarAllowanceStatus.mockResolvedValueOnce({ totalRemaining: 2 });
+    nativeWalletMutate.mockResolvedValueOnce({ availableBalance: 2 });
+    nativeWalletReserve.mockResolvedValueOnce({ id: 'wallet-res-1' });
+    nativeWalletFinish.mockResolvedValueOnce({ status: 'released' });
+    generateApplicationPack.mockRejectedValueOnce(new Error('AI_PROVIDER_UNAVAILABLE'));
+    const state = meteredDatabase();
+    const result = await tryNativeRemoteRadarApplications(new Request(`${baseUrl}/application-packs/generate`, {
+      method: 'POST', body: JSON.stringify({ idempotencyKey: 'generation-1', savedJobId: 'job-1', resumeId: 'resume-1' }),
+    }), state as never);
+    expect(result?.status).toBe(503);
+    await expect(result?.json()).resolves.toMatchObject({ error: { code: 'AI_PROVIDER_UNAVAILABLE' } });
+    expect(nativeWalletFinish).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ action: 'release' }));
+    expect(state.charge.status).toBe('released');
+  });
+
+  it('requires confirmed resume facts before reserving an application credit', async () => {
+    authenticateNativeUser.mockResolvedValueOnce({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const prepare = vi.fn((sql: string) => ({
+      bind: () => ({
+        first: async () => {
+          if (sql.includes('native_rr_saved_jobs WHERE id')) return { id: 'job-1', title: 'Engineer', company: 'Acme', location: 'Remote', description: 'Build TypeScript systems' };
+          if (sql.includes('native_rr_resumes WHERE id')) return { id: 'resume-1', name: 'Primary resume', summary: 'Engineer' };
+          return null;
+        },
+        all: async () => ({ results: [] }),
+        run: async () => ({ success: true }),
+      }),
+    }));
+    const result = await tryNativeRemoteRadarApplications(new Request(`${baseUrl}/application-packs/generate`, {
+      method: 'POST', body: JSON.stringify({ idempotencyKey: 'generation-1', savedJobId: 'job-1', resumeId: 'resume-1' }),
+    }), { DB: { prepare, batch: vi.fn() } } as never);
+    expect(result?.status).toBe(409);
+    await expect(result?.json()).resolves.toMatchObject({ error: { code: 'CONFIRMED_RESUME_FACTS_REQUIRED' } });
+    expect(nativeWalletReserve).not.toHaveBeenCalled();
+    expect(generateApplicationPack).not.toHaveBeenCalled();
+  });
+
+  it('rejects provenance fields from AI generation requests before reading workspace data', async () => {
+    authenticateNativeUser.mockResolvedValueOnce({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const db = database();
+    const result = await tryNativeRemoteRadarApplications(new Request(`${baseUrl}/application-packs/generate`, {
+      method: 'POST', body: JSON.stringify({
+        idempotencyKey: 'generation-1', savedJobId: 'job-1', resumeId: 'resume-1', sourceUrl: 'https://competitor.example/job-1',
+      }),
+    }), { DB: db } as never);
+    expect(result?.status).toBe(400);
+    await expect(result?.json()).resolves.toMatchObject({ error: { code: 'PROVENANCE_FORBIDDEN' } });
+    expect(db.prepare).not.toHaveBeenCalled();
+    expect(generateApplicationPack).not.toHaveBeenCalled();
   });
 
   it('releases a wallet hold when recording the reservation fails after the hold succeeds', async () => {

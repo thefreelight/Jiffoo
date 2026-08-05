@@ -1,9 +1,10 @@
 import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
 import { nativeWalletFinish, nativeWalletMutate, nativeWalletReserve } from './native-wallet';
 import { remoteRadarAllowanceStatus } from './remoteradar-entitlements';
+import { generateApplicationPack, type RemoteRadarPackGeneratorEnv } from './remoteradar-pack-generator';
 import { sendSmtpEmail } from './smtp';
 
-interface RemoteRadarApplicationsEnv extends NativeAuthEnv { DB: D1Database }
+interface RemoteRadarApplicationsEnv extends NativeAuthEnv, RemoteRadarPackGeneratorEnv { DB: D1Database }
 
 const STATUSES = new Set(['saved', 'planned', 'applied', 'screening', 'interview', 'offer', 'rejected', 'archived']);
 function isoDate(value: unknown): string | null {
@@ -219,6 +220,59 @@ async function createPack(request: Request, env: RemoteRadarApplicationsEnv, use
   }
   return response(pack({ id: packId, saved_job_id: savedJobId, resume_id: resumeId, approved_version_id: null, created_at: now, updated_at: now }, [version({ id: versionId, pack_id: packId, version: 1, resume_snapshot: resumeSnapshot, cover_letter: coverLetter, answers, approved_at: null, created_at: now })]), 201);
 }
+async function generatePack(request: Request, env: RemoteRadarApplicationsEnv, userId: string): Promise<Response> {
+  const input = await body(request);
+  if (rejectProvenance(input)) return fail(400, 'PROVENANCE_FORBIDDEN', 'Source and provenance fields are not accepted in user requests');
+  const idempotencyKey = text(input.idempotencyKey, 200);
+  const savedJobId = text(input.savedJobId, 80);
+  const resumeId = text(input.resumeId, 80);
+  const questions = input.questions === undefined ? {} : input.questions;
+  if (!idempotencyKey || !savedJobId || !resumeId || !jsonObject(questions)) {
+    return fail(400, 'VALIDATION_ERROR', 'idempotencyKey, savedJobId, resumeId, and questions are required');
+  }
+  const [job, resumeRow, facts] = await Promise.all([
+    env.DB.prepare('SELECT id, title, company, location, description FROM native_rr_saved_jobs WHERE id = ?1 AND user_id = ?2').bind(savedJobId, userId).first<{ id: string; title: string; company: string; location: string | null; description: string }>(),
+    env.DB.prepare('SELECT id, name, summary FROM native_rr_resumes WHERE id = ?1 AND user_id = ?2').bind(resumeId, userId).first<{ id: string; name: string; summary: string }>(),
+    env.DB.prepare('SELECT id, kind, label, value FROM native_rr_resume_facts WHERE resume_id = ?1 AND user_id = ?2 AND confirmed_at IS NOT NULL ORDER BY created_at ASC LIMIT 50').bind(resumeId, userId).all<{ id: string; kind: string; label: string; value: string }>(),
+  ]);
+  if (!job || !resumeRow) return fail(404, 'PACK_INPUT_NOT_FOUND', 'Saved job or resume was not found');
+  if (facts.results.length === 0) return fail(409, 'CONFIRMED_RESUME_FACTS_REQUIRED', 'Confirm resume facts before generating an application pack');
+  let metering;
+  try { metering = await reservePackCredit(env, userId, idempotencyKey, 'create', null); } catch (error) { return meteringFailure(error); }
+  if (metering.replay) return metering.replay;
+  let generated;
+  try {
+    generated = await generateApplicationPack(env, {
+      job: { title: job.title, company: job.company, location: job.location, description: job.description },
+      resume: { id: resumeRow.id, name: resumeRow.name, summary: resumeRow.summary },
+      facts: facts.results,
+      questions: questions as Record<string, unknown>,
+    });
+  } catch (error) {
+    await releasePackCredit(env, metering.charge);
+    const code = error instanceof Error ? error.message : 'AI_GENERATION_FAILED';
+    if (code === 'AI_PROVIDER_UNAVAILABLE') return fail(503, code, 'AI application generation is not configured');
+    if (code === 'AI_INPUT_TOO_LARGE') return fail(413, code, 'The confirmed resume facts are too large for one generation request');
+    if (code === 'AI_INVALID_RESPONSE') return fail(502, code, 'The AI provider returned an invalid application pack');
+    return fail(502, 'AI_GENERATION_FAILED', 'The application pack could not be generated');
+  }
+  const packId = crypto.randomUUID(); const versionId = crypto.randomUUID(); const now = new Date().toISOString();
+  const resumeSnapshot = JSON.stringify(generated.resumeSnapshot); const answers = JSON.stringify(generated.answers);
+  try {
+    await env.DB.batch([
+      env.DB.prepare('INSERT INTO native_rr_application_packs (id, user_id, saved_job_id, resume_id, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?5)').bind(packId, userId, savedJobId, resumeId, now),
+      env.DB.prepare('INSERT INTO native_rr_application_pack_versions (id, user_id, pack_id, version, resume_snapshot, cover_letter, answers, created_at) VALUES (?1, ?2, ?3, 1, ?4, ?5, ?6, ?7)').bind(versionId, userId, packId, resumeSnapshot, generated.coverLetter, answers, now),
+      env.DB.prepare(`UPDATE remoteradar_application_pack_charges SET result_pack_id = ?1, result_version_id = ?2, updated_at = ?3
+        WHERE id = ?4 AND user_id = ?5 AND status = 'reserved'`).bind(packId, versionId, now, metering.charge.id, userId),
+    ]);
+    await settlePackCredit(env, metering.charge);
+  } catch (error) {
+    const latestCharge = await chargeByKey(env, userId, idempotencyKey);
+    if (!latestCharge?.result_version_id) await releasePackCredit(env, metering.charge);
+    return meteringFailure(error);
+  }
+  return response(pack({ id: packId, saved_job_id: savedJobId, resume_id: resumeId, approved_version_id: null, created_at: now, updated_at: now }, [version({ id: versionId, pack_id: packId, version: 1, resume_snapshot: resumeSnapshot, cover_letter: generated.coverLetter, answers, approved_at: null, created_at: now })]), 201);
+}
 async function listPacks(env: RemoteRadarApplicationsEnv, userId: string): Promise<Response> { const rows = await env.DB.prepare('SELECT * FROM native_rr_application_packs WHERE user_id = ?1 ORDER BY updated_at DESC').bind(userId).all<Record<string, unknown>>(); const versions = await env.DB.prepare('SELECT * FROM native_rr_application_pack_versions WHERE user_id = ?1 ORDER BY version ASC').bind(userId).all<Record<string, unknown>>(); return response(rows.results.map((row) => pack(row, versions.results.filter((item) => item.pack_id === row.id).map(version)))); }
 async function createPackVersion(request: Request, env: RemoteRadarApplicationsEnv, userId: string, packId: string): Promise<Response> {
   const input = await body(request); const idempotencyKey = text(input.idempotencyKey, 200); const resumeSnapshot = jsonObject(input.resumeSnapshot); const coverLetter = text(input.coverLetter, 20000); const answers = jsonObject(input.answers ?? {}); if (!idempotencyKey || !resumeSnapshot || coverLetter === null || !answers) return fail(400, 'VALIDATION_ERROR', 'idempotencyKey, resumeSnapshot, coverLetter, and answers are required');
@@ -339,6 +393,7 @@ export async function tryNativeRemoteRadarApplications(request: Request, env: Re
   if (request.method === 'GET' && path === '/saved-jobs') return listSavedJobs(env, current.id);
   if (request.method === 'POST' && path === '/saved-jobs') return saveJob(request, env, current.id);
   if (request.method === 'GET' && path === '/application-packs') return listPacks(env, current.id);
+  if (request.method === 'POST' && path === '/application-packs/generate') return generatePack(request, env, current.id);
   if (request.method === 'POST' && path === '/application-packs') return createPack(request, env, current.id);
   const versionMatch = path.match(/^\/application-packs\/([^/]+)\/versions$/); if (versionMatch && request.method === 'POST') return createPackVersion(request, env, current.id, decodeURIComponent(versionMatch[1]!));
   const approveMatch = path.match(/^\/application-packs\/([^/]+)\/versions\/([^/]+)\/approve$/); if (approveMatch && request.method === 'POST') return approveVersion(env, current.id, decodeURIComponent(approveMatch[1]!), decodeURIComponent(approveMatch[2]!));
