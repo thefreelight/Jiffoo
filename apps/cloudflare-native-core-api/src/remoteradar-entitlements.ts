@@ -1,4 +1,5 @@
 import { authenticateNativeUser, type NativeAuthEnv } from './auth';
+import { nativeWalletMutate } from './native-wallet';
 
 type EntitlementEnv = Pick<Cloudflare.Env, 'DB'>;
 type EntitlementRouteEnv = EntitlementEnv & NativeAuthEnv;
@@ -215,6 +216,38 @@ export async function processRemoteRadarPaidOrder(
     throw new Error('REMOTERADAR_GRANT_IDEMPOTENCY_CONFLICT');
   }
   return { applied: true, productCode };
+}
+
+export async function expireRemoteRadarCreditGrants(env: EntitlementEnv, limit = 100): Promise<{ expired: number; debited: number }> {
+  const boundedLimit = Math.min(Math.max(Math.trunc(limit), 1), 500);
+  const now = new Date().toISOString();
+  const grants = await env.DB.prepare(`SELECT id, user_id, credits_remaining
+    FROM remoteradar_credit_grants
+    WHERE credits_remaining > 0 AND expires_at <= ?1
+    ORDER BY expires_at ASC LIMIT ?2`).bind(now, boundedLimit).all<{ id: string; user_id: string; credits_remaining: number }>();
+  let expired = 0;
+  let debited = 0;
+  for (const grant of grants.results) {
+    const remaining = Number(grant.credits_remaining);
+    if (remaining > 0) {
+      await nativeWalletMutate(env, {
+        userId: grant.user_id,
+        amount: remaining,
+        operation: 'debit',
+        idempotencyKey: `remoteradar-grant-expiry:${grant.id}`,
+        type: 'remoteradar_credit_expiry',
+        description: 'Expired RemoteRadar application credits',
+        sourcePlugin: 'remoteradar',
+        referenceId: grant.id,
+      });
+      debited += remaining;
+    }
+    const result = await env.DB.prepare(`UPDATE remoteradar_credit_grants
+      SET credits_remaining = 0, updated_at = ?1
+      WHERE id = ?2 AND credits_remaining = ?3 AND expires_at <= ?1`).bind(now, grant.id, remaining).run();
+    expired += Number(result.meta?.changes ?? 0);
+  }
+  return { expired, debited };
 }
 
 function response(data: unknown, status = 200): Response {
