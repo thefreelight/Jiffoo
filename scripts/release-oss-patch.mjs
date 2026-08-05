@@ -146,7 +146,7 @@ function updatePublicManifestSource(version, releaseDate, releaseNotes, dryRun) 
   );
   content = replaceOrThrow(
     content,
-    /releaseNotes:\s*\n\s*'.*?'/s,
+    /releaseNotes:\s*(?:\n\s*)?'(?:[^'\\]|\\.)*'/s,
     `releaseNotes:\n    '${escapedNotes}'`,
     'releaseNotes',
   );
