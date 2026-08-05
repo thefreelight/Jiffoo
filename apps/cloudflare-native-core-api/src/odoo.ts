@@ -135,7 +135,7 @@ export async function testNativeOdooConnection(env: OdooEnv): Promise<{ database
   const settings = await config(env);
   if (!settings) throw new Error('Odoo plugin is not enabled or fully configured');
   const uid = await authenticate(settings);
-  await execute(settings, uid, 'res.users', 'read', [[uid]], { fields: ['id'], limit: 1 });
+  await execute(settings, uid, 'res.users', 'read', [[uid]], { fields: ['id'] });
   return { database: settings.database, username: settings.username, uid };
 }
 
