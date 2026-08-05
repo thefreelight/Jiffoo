@@ -138,7 +138,7 @@ describe('theme pack rendering mode contract', () => {
         schemaVersion: 1,
         slug: 'remoteradar',
         name: 'RemoteRadar',
-        version: '0.0.8',
+        version: '0.0.11',
         target: 'shop',
         entry: { runtimeJS: 'runtime/theme-runtime.js' },
       }),
