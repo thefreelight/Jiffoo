@@ -28,6 +28,7 @@ import { tryNativeRemoteRadarApplications } from './remoteradar-applications';
 import { expireNativeWalletReservations, tryNativeWallet } from './native-wallet';
 import { expireRemoteRadarCreditGrants, tryNativeRemoteRadarEntitlements } from './remoteradar-entitlements';
 import { tryNativeRemoteRadarSmtp } from './remoteradar-smtp';
+import { tryNativeRemoteRadarExternalApply } from './remoteradar-external-apply';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv;
 
@@ -177,12 +178,12 @@ export default {
       const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'core_schema_version'")
         .first<{ value: string }>();
       return Response.json({
-        status: row?.value === '0030' ? 'ok' : 'degraded',
+        status: row?.value === '0031' ? 'ok' : 'degraded',
         service: 'jiffoo-native-core-api',
         runtime: 'cloudflare-workers-free',
         version: env.RUNTIME_VERSION,
         d1Schema: row?.value ?? null,
-      }, { status: row?.value === '0030' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
+      }, { status: row?.value === '0031' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
     }
     if (nativeRequest.method === 'GET' && nativeRequest.url.includes('/api/v1/upgrade/version')) {
       return nativeUpgradeVersion(env);
@@ -204,6 +205,8 @@ export default {
     if (nativeRemoteRadarEntitlements) return nativeRemoteRadarEntitlements;
     const nativeRemoteRadarSmtp = await tryNativeRemoteRadarSmtp(nativeRequest, env);
     if (nativeRemoteRadarSmtp) return nativeRemoteRadarSmtp;
+    const nativeRemoteRadarExternalApply = await tryNativeRemoteRadarExternalApply(nativeRequest, env);
+    if (nativeRemoteRadarExternalApply) return nativeRemoteRadarExternalApply;
     const nativeShopperAccount = await tryNativeShopperAccount(nativeRequest, env);
     if (nativeShopperAccount) return nativeShopperAccount;
     const nativeAffiliate = await tryNativeAffiliate(nativeRequest, env);
