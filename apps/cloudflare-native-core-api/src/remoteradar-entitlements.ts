@@ -1,4 +1,7 @@
+import { authenticateNativeUser, type NativeAuthEnv } from './auth';
+
 type EntitlementEnv = Pick<Cloudflare.Env, 'DB'>;
+type EntitlementRouteEnv = EntitlementEnv & NativeAuthEnv;
 
 export const REMOTERADAR_PRODUCTS = {
   PRO_MONTHLY: 'remoteradar-pro-monthly',
@@ -54,6 +57,10 @@ function addMonths(value: Date, months: number): Date {
   const result = new Date(value);
   result.setUTCMonth(result.getUTCMonth() + months);
   return result;
+}
+
+function addDays(value: Date, days: number): Date {
+  return new Date(value.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
 function period(value: Date): { key: string; startsAt: string; endsAt: string } {
@@ -166,7 +173,7 @@ export async function processRemoteRadarPaidOrder(
        (id, user_id, grant_type, credits_total, credits_remaining, period_key, source_order_id,
         expires_at, created_at, updated_at)
        VALUES (?1, ?2, 'credit_pack', 10, 10, NULL, ?3, ?4, ?5, ?5)`,
-    ).bind(grantId(order.user_id, 'credit_pack', orderId), order.user_id, orderId, addMonths(at, 3).toISOString(), now));
+    ).bind(grantId(order.user_id, 'credit_pack', orderId), order.user_id, orderId, addDays(at, 90).toISOString(), now));
   } else {
     const annual = productCode === REMOTERADAR_PRODUCTS.PRO_ANNUAL;
     const endsAt = addMonths(at, annual ? 12 : 1).toISOString();
@@ -208,4 +215,23 @@ export async function processRemoteRadarPaidOrder(
     throw new Error('REMOTERADAR_GRANT_IDEMPOTENCY_CONFLICT');
   }
   return { applied: true, productCode };
+}
+
+function response(data: unknown, status = 200): Response {
+  return Response.json({ success: status < 400, ...(status < 400 ? { data } : { error: data }) }, {
+    status,
+    headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-remoteradar-entitlements' },
+  });
+}
+
+export async function tryNativeRemoteRadarEntitlements(
+  request: Request,
+  env: EntitlementRouteEnv,
+): Promise<Response | null> {
+  const url = new URL(request.url);
+  if (url.pathname !== '/api/v1/remoteradar/entitlements') return null;
+  if (request.method !== 'GET') return response({ code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' }, 405);
+  const user = await authenticateNativeUser(request, env);
+  if (!user) return response({ code: 'UNAUTHORIZED', message: 'Login required' }, 401);
+  return response(await remoteRadarAllowanceStatus(env, user.id));
 }

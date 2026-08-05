@@ -26,6 +26,7 @@ import { snapshotKey } from './snapshot-key';
 import { processNativeJobsSync, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
 import { tryNativeRemoteRadarApplications } from './remoteradar-applications';
 import { expireNativeWalletReservations, tryNativeWallet } from './native-wallet';
+import { tryNativeRemoteRadarEntitlements } from './remoteradar-entitlements';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv;
 
@@ -175,7 +176,7 @@ export default {
       const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'core_schema_version'")
         .first<{ value: string }>();
       return Response.json({
-        status: row?.value === '0025' ? 'ok' : 'degraded',
+        status: row?.value === '0026' ? 'ok' : 'degraded',
         service: 'jiffoo-native-core-api',
         runtime: 'cloudflare-workers-free',
         version: env.RUNTIME_VERSION,
@@ -198,6 +199,8 @@ export default {
     if (nativeRemoteRadarApplications) return nativeRemoteRadarApplications;
     const nativeWallet = await tryNativeWallet(nativeRequest, env);
     if (nativeWallet) return nativeWallet;
+    const nativeRemoteRadarEntitlements = await tryNativeRemoteRadarEntitlements(nativeRequest, env);
+    if (nativeRemoteRadarEntitlements) return nativeRemoteRadarEntitlements;
     const nativeShopperAccount = await tryNativeShopperAccount(nativeRequest, env);
     if (nativeShopperAccount) return nativeShopperAccount;
     const nativeAffiliate = await tryNativeAffiliate(nativeRequest, env);

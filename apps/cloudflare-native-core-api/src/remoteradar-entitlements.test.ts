@@ -1,6 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+const { authenticateNativeUser } = vi.hoisted(() => ({ authenticateNativeUser: vi.fn() }));
+vi.mock('./auth', () => ({ authenticateNativeUser }));
+
 import {
   processRemoteRadarPaidOrder, REMOTERADAR_PRICING_USD, REMOTERADAR_PRODUCTS, remoteRadarAllowanceStatus,
+  tryNativeRemoteRadarEntitlements,
 } from './remoteradar-entitlements';
 
 function statement(first: unknown = null, results: unknown[] = []) {
@@ -41,6 +46,7 @@ describe('RemoteRadar entitlements', () => {
 
   it('grants a paid ten-credit pack once with a ninety-day expiry', async () => {
     const prepared: string[] = [];
+    const bindings: unknown[][] = [];
     let batches = 0;
     const db = {
       prepare: (sql: string) => {
@@ -55,7 +61,10 @@ describe('RemoteRadar entitlements', () => {
         if (sql.includes('SELECT product_code, provider_event_id')) return statement({
           product_code: REMOTERADAR_PRODUCTS.CREDIT_PACK_10, provider_event_id: 'evt-1',
         });
-        return statement();
+        return { bind: (...values: unknown[]) => {
+          bindings.push(values);
+          return { first: async () => null, all: async () => ({ results: [] }), run: async () => ({ success: true }) };
+        } };
       },
       batch: async (statements: unknown[]) => { batches += 1; expect(statements).toHaveLength(2); },
     };
@@ -63,6 +72,7 @@ describe('RemoteRadar entitlements', () => {
       .resolves.toEqual({ applied: true, productCode: REMOTERADAR_PRODUCTS.CREDIT_PACK_10 });
     expect(batches).toBe(1);
     expect(prepared.some((sql) => sql.includes("'credit_pack', 10, 10"))).toBe(true);
+    expect(bindings.some((values) => values.includes('2026-11-03T00:00:00.000Z'))).toBe(true);
   });
 
   it('returns an idempotent result without a second grant', async () => {
@@ -94,5 +104,22 @@ describe('RemoteRadar entitlements', () => {
     };
     await expect(processRemoteRadarPaidOrder({ DB: db } as never, 'order-1', 'evt-1'))
       .rejects.toThrow('REMOTERADAR_ORDER_PRICE_MISMATCH');
+  });
+
+  it('exposes only the authenticated allowance status', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com' });
+    const db = {
+      prepare: (sql: string) => {
+        if (sql.includes('FROM remoteradar_entitlements')) return statement(null);
+        if (sql.includes('FROM remoteradar_credit_grants')) return statement(null, []);
+        return statement();
+      },
+    };
+    const response = await tryNativeRemoteRadarEntitlements(
+      new Request('https://api.example/api/v1/remoteradar/entitlements'),
+      { DB: db } as never,
+    );
+    expect(response?.status).toBe(200);
+    await expect(response?.json()).resolves.toMatchObject({ success: true, data: { plan: 'free', totalRemaining: 0 } });
   });
 });
