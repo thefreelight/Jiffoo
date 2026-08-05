@@ -42,6 +42,10 @@ import {
   getPluginTimeoutMs,
   MAX_RESPONSE_SIZE_BYTES,
 } from './gateway-protection';
+import {
+  isContractV1Runtime,
+  registerContractV1Runtime,
+} from './contract-v1-runtime';
 
 // ============================================================================
 // Constants
@@ -718,8 +722,8 @@ async function ensureInternalRuntime(
 
   try {
     const mod = await loadPluginEntryModule(entryPath, { version: manifest.version });
-    const pluginFn = (mod as any).default || mod;
-    if (typeof pluginFn !== 'function') {
+    const pluginEntry = (mod as any).default || mod;
+    if (typeof pluginEntry !== 'function' && !isContractV1Runtime(pluginEntry)) {
       throw new Error('Plugin does not export a Fastify plugin function');
     }
 
@@ -728,7 +732,15 @@ async function ensureInternalRuntime(
     const config = ctx.config || {};
     
     // Phase 2: Register and ready (may fail here)
-    await candidateApp.register(pluginFn, config as any);
+    if (isContractV1Runtime(pluginEntry)) {
+      await registerContractV1Runtime(candidateApp, pluginEntry, {
+        slug,
+        installationId: ctx.installationId,
+        config,
+      });
+    } else {
+      await candidateApp.register(pluginEntry, config as any);
+    }
     await candidateApp.ready();
 
     // Phase 3: Candidate succeeded - create runtime object
