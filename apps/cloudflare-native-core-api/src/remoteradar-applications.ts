@@ -1,6 +1,7 @@
 import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
 import { nativeWalletFinish, nativeWalletMutate, nativeWalletReserve } from './native-wallet';
 import { remoteRadarAllowanceStatus } from './remoteradar-entitlements';
+import { sendSmtpEmail } from './smtp';
 
 interface RemoteRadarApplicationsEnv extends NativeAuthEnv { DB: D1Database }
 
@@ -261,6 +262,49 @@ async function updateApplication(request: Request, env: RemoteRadarApplicationsE
   const input = await body(request); const existing = await env.DB.prepare('SELECT * FROM native_rr_job_applications WHERE id = ?1 AND user_id = ?2').bind(applicationId, userId).first<Record<string, unknown>>(); if (!existing) return fail(404, 'APPLICATION_NOT_FOUND', 'Application was not found'); const nextStatus = input.status === undefined ? existing.status : typeof input.status === 'string' && STATUSES.has(input.status) ? input.status : null; if (!nextStatus) return fail(400, 'VALIDATION_ERROR', 'status is invalid'); const nextApplied = input.appliedAt === undefined ? existing.applied_at : input.appliedAt === null ? null : isoDate(input.appliedAt); if (input.appliedAt !== undefined && input.appliedAt !== null && !nextApplied) return fail(400, 'VALIDATION_ERROR', 'appliedAt is invalid'); const nextNote = input.note === undefined ? existing.note : input.note === null ? null : text(input.note, 2000, ''); if (input.note !== undefined && input.note !== null && nextNote === null) return fail(400, 'VALIDATION_ERROR', 'note is invalid'); const now = new Date().toISOString(); await env.DB.prepare('UPDATE native_rr_job_applications SET status = ?1, applied_at = ?2, note = ?3, updated_at = ?4 WHERE id = ?5 AND user_id = ?6').bind(nextStatus, nextApplied, nextNote, now, applicationId, userId).run(); return response(application({ ...existing, status: nextStatus, applied_at: nextApplied, note: nextNote, updated_at: now }));
 }
 
+async function submitEmail(request: Request, env: RemoteRadarApplicationsEnv, userId: string, applicationId: string): Promise<Response> {
+  const input = await body(request);
+  const idempotencyKey = text(input.idempotencyKey, 200);
+  const recipient = text(input.to, 320);
+  const subject = text(input.subject, 240);
+  const textBody = text(input.text, 30000);
+  const htmlBody = text(input.html, 60000, '');
+  if (!idempotencyKey || !recipient || !subject || textBody === null || htmlBody === null || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient)) return fail(400, 'VALIDATION_ERROR', 'idempotencyKey, valid recipient, subject, text, and html are required');
+  const existing = await env.DB.prepare('SELECT * FROM remoteradar_application_submissions WHERE user_id = ?1 AND idempotency_key = ?2').bind(userId, idempotencyKey).first<Record<string, unknown>>();
+  if (existing) {
+    if (existing.application_id !== applicationId || existing.recipient !== recipient || existing.subject !== subject) return fail(409, 'IDEMPOTENCY_CONFLICT', 'The idempotency key was already used for another submission');
+    return response({ id: existing.id, applicationId, channel: 'email', transport: existing.transport, status: existing.status, sentAt: existing.sent_at, errorCode: existing.error_code }, existing.status === 'failed' ? 502 : existing.status === 'pending' ? 409 : 200);
+  }
+  const applicationRow = await env.DB.prepare(`SELECT a.id, a.pack_version_id, p.approved_version_id
+    FROM native_rr_job_applications a JOIN native_rr_application_packs p ON p.id = a.pack_id
+    WHERE a.id = ?1 AND a.user_id = ?2`).bind(applicationId, userId).first<{ id: string; pack_version_id: string; approved_version_id: string | null }>();
+  if (!applicationRow) return fail(404, 'APPLICATION_NOT_FOUND', 'Application was not found');
+  if (!applicationRow.approved_version_id || applicationRow.approved_version_id !== applicationRow.pack_version_id) return fail(409, 'PACK_APPROVAL_REQUIRED', 'Approve the application pack version before sending');
+  const now = new Date().toISOString();
+  const submissionId = crypto.randomUUID();
+  const smtp = await env.DB.prepare('SELECT enabled FROM remoteradar_user_smtp_configs WHERE user_id = ?1 AND enabled = 1').bind(userId).first<{ enabled: number }>();
+  const transport = smtp ? 'user_smtp' : 'site_smtp';
+  await env.DB.prepare(`INSERT INTO remoteradar_application_submissions (id,user_id,application_id,pack_version_id,idempotency_key,channel,transport,recipient,subject,status,created_at,updated_at)
+    VALUES (?1,?2,?3,?4,?5,'email',?6,?7,?8,'pending',?9,?9)`).bind(submissionId, userId, applicationId, applicationRow.pack_version_id, idempotencyKey, transport, recipient, subject, now).run();
+  try {
+    await sendSmtpEmail(env, { to: recipient, subject, text: textBody, html: htmlBody }, smtp ? userId : undefined);
+    const sentAt = new Date().toISOString();
+    await env.DB.batch([
+      env.DB.prepare("UPDATE remoteradar_application_submissions SET status='sent',sent_at=?1,updated_at=?1 WHERE id=?2 AND user_id=?3").bind(sentAt, submissionId, userId),
+      env.DB.prepare("INSERT INTO remoteradar_email_events (id,user_id,application_id,recipient,subject,transport,status,created_at) VALUES (?1,?2,?3,?4,?5,?6,'sent',?7)").bind(crypto.randomUUID(), userId, applicationId, recipient, subject, transport, sentAt),
+      env.DB.prepare("UPDATE native_rr_job_applications SET status='applied',applied_at=COALESCE(applied_at,?1),updated_at=?1 WHERE id=?2 AND user_id=?3").bind(sentAt, applicationId, userId),
+    ]);
+    return response({ id: submissionId, applicationId, channel: 'email', transport, status: 'sent', sentAt }, 201);
+  } catch (error) {
+    const errorCode = error instanceof Error ? error.message.slice(0, 120) : 'SMTP_SEND_FAILED';
+    await env.DB.batch([
+      env.DB.prepare("UPDATE remoteradar_application_submissions SET status='failed',error_code=?1,updated_at=?2 WHERE id=?3 AND user_id=?4").bind(errorCode, new Date().toISOString(), submissionId, userId),
+      env.DB.prepare("INSERT INTO remoteradar_email_events (id,user_id,application_id,recipient,subject,transport,status,error_code,created_at) VALUES (?1,?2,?3,?4,?5,?6,'failed',?7,?8)").bind(crypto.randomUUID(), userId, applicationId, recipient, subject, transport, errorCode, new Date().toISOString()),
+    ]);
+    return fail(502, 'SMTP_SEND_FAILED', 'The application email could not be sent');
+  }
+}
+
 export async function tryNativeRemoteRadarApplications(request: Request, env: RemoteRadarApplicationsEnv): Promise<Response | null> {
   const url = new URL(request.url); const base = '/api/v1/plugins/remoteradar-applications/store'; if (!url.pathname.startsWith(`${base}/`)) return null;
   const current = await user(request, env); if (!current) return fail(401, 'UNAUTHORIZED', 'Login required'); const path = url.pathname.slice(base.length);
@@ -276,5 +320,6 @@ export async function tryNativeRemoteRadarApplications(request: Request, env: Re
   if (request.method === 'GET' && path === '/applications') return listApplications(env, current.id);
   const trackMatch = path.match(/^\/saved-jobs\/([^/]+)\/applications$/); if (trackMatch && request.method === 'POST') return trackApplication(request, env, current.id, decodeURIComponent(trackMatch[1]!));
   const appMatch = path.match(/^\/applications\/([^/]+)$/); if (appMatch && request.method === 'PATCH') return updateApplication(request, env, current.id, decodeURIComponent(appMatch[1]!));
+  const submitMatch = path.match(/^\/applications\/([^/]+)\/submissions\/email$/); if (submitMatch && request.method === 'POST') return submitEmail(request, env, current.id, decodeURIComponent(submitMatch[1]!));
   return fail(404, 'NOT_FOUND', 'RemoteRadar application route was not found');
 }
