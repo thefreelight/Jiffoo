@@ -43,6 +43,8 @@ import {
   MAX_RESPONSE_SIZE_BYTES,
 } from './gateway-protection';
 import {
+  clearContractV1EventHandlers,
+  dispatchContractV1Event,
   isContractV1Runtime,
   registerContractV1Runtime,
 } from './contract-v1-runtime';
@@ -789,9 +791,33 @@ export async function dropInternalRuntime(installationId: string): Promise<boole
       // Ignore close errors
     }
     internalRuntimes.delete(installationId);
+    clearContractV1EventHandlers(installationId);
     return true;
   }
   return false;
+}
+
+export async function dispatchPluginRuntimeEvent(eventType: string, payload: unknown): Promise<number> {
+  const packages = await PluginManagementService.getAllPluginPackages();
+  let delivered = 0;
+
+  for (const pkg of packages) {
+    if (pkg.runtimeType !== 'internal-fastify') continue;
+    const manifest = await readPluginManifest(pkg.slug);
+    const instances = await PluginManagementService.getPluginInstances(pkg.slug);
+    for (const instance of instances) {
+      if (!instance.enabled || instance.deletedAt) continue;
+      await ensureInternalRuntime(pkg.slug, manifest, {
+        slug: pkg.slug,
+        installationId: instance.id,
+        instanceKey: instance.instanceKey,
+        config: parseJsonObject(instance.configJson),
+      });
+      delivered += await dispatchContractV1Event(instance.id, eventType, payload);
+    }
+  }
+
+  return delivered;
 }
 
 async function proxyToExternalHttp(

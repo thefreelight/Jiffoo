@@ -9,10 +9,13 @@ const prismaMock = vi.hoisted(() => ({
   $queryRawUnsafe: vi.fn(),
   $transaction: vi.fn(),
 }));
+const applyPluginWebhook = vi.hoisted(() => vi.fn());
 
 vi.mock('@/config/database', () => ({ prisma: prismaMock }));
+vi.mock('@/core/payment/plugin-webhook', () => ({ applyNormalizedPluginWebhook: applyPluginWebhook }));
 
 import {
+  dispatchContractV1Event,
   isContractV1Runtime,
   registerContractV1Runtime,
   type ContractV1Runtime,
@@ -83,6 +86,47 @@ describe('contract v1 plugin runtime', () => {
       metadata: { plan: 'plus-monthly' },
     }));
 
+    await app.close();
+  });
+
+  it('delivers subscribed events to the owning installation', async () => {
+    const handler = vi.fn(async () => undefined);
+    const runtime: ContractV1Runtime = {
+      manifest: { id: 'subscription', version: '0.1.6', contract: 'v1' },
+      register(context) {
+        const events = context.events as { subscribe(type: string, callback: (payload: unknown) => unknown): void };
+        events.subscribe('order.paid', handler);
+      },
+    };
+    const app = Fastify({ logger: false });
+    await registerContractV1Runtime(app, runtime, { slug: 'subscription', installationId: 'install-events', config: {} });
+    const delivered = await dispatchContractV1Event('install-events', 'order.paid', { orderId: 'order-1' });
+    expect(delivered).toBe(1);
+    expect(handler).toHaveBeenCalledWith({ orderId: 'order-1' });
+    await app.close();
+  });
+
+  it('applies normalized payment webhooks to Core', async () => {
+    const webhookResult = {
+      received: true,
+      handled: true,
+      sessionId: 'order-1',
+      providerEventId: 'trade-1',
+      normalizedStatus: 'succeeded',
+    };
+    const runtime: ContractV1Runtime = {
+      manifest: { id: 'yipay', version: '0.0.5', contract: 'v1' },
+      register(context) {
+        const registerDriver = context.registerDriver as (kind: string, driver: unknown) => void;
+        registerDriver('payment', { handleWebhook: vi.fn(async () => webhookResult) });
+      },
+    };
+    const app = Fastify({ logger: false });
+    await registerContractV1Runtime(app, runtime, { slug: 'yipay', installationId: 'install-webhook', config: {} });
+    await app.ready();
+    const response = await app.inject({ method: 'POST', url: '/api/payments/webhook', payload: { trade_status: 'TRADE_SUCCESS' } });
+    expect(response.statusCode).toBe(200);
+    expect(applyPluginWebhook).toHaveBeenCalledWith('yipay', webhookResult);
     await app.close();
   });
 });
