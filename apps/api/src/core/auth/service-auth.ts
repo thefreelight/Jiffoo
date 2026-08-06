@@ -1,6 +1,27 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import { JwtUtils } from '@/utils/jwt';
 import { env } from '@/config/env';
+import jwt, { type JwtPayload } from 'jsonwebtoken';
+
+export type ServiceTokenPayload = JwtPayload & {
+    sub: string;
+    iss: string;
+};
+
+export function verifyServiceToken(token: string): ServiceTokenPayload {
+    if (!env.SERVICE_JWT_SECRET) {
+        throw new Error('SERVICE_JWT_SECRET is not configured');
+    }
+
+    const payload = jwt.verify(token, env.SERVICE_JWT_SECRET, {
+        algorithms: ['HS256'],
+        issuer: env.SERVICE_JWT_ISSUER || 'jiffoo-platform',
+    });
+    if (typeof payload === 'string' || !payload.sub || !payload.iss) {
+        throw new Error('Invalid service token payload');
+    }
+
+    return payload as ServiceTokenPayload;
+}
 
 /**
  * Service Authentication Middleware
@@ -19,17 +40,14 @@ export async function serviceAuthMiddleware(
         }
 
         const token = authHeader.substring(7);
-        const payload = JwtUtils.verify(token) as any;
+        const payload = verifyServiceToken(token);
 
         // Check if it's a Service JWT
         // issuer (iss) should be configured in .env or default to jiffoo-platform
-        const trustedIssuer = env.SERVICE_JWT_ISSUER || 'jiffoo-platform';
-
-        if (payload.iss === trustedIssuer) {
-            // It's a valid service-to-service token
+        if (payload.iss === (env.SERVICE_JWT_ISSUER || 'jiffoo-platform')) {
             request.user = {
-                id: payload.sub || 'service-account',
-                userId: payload.sub || 'service-account',
+                id: payload.sub,
+                userId: payload.sub,
                 email: 'service@jiffoo.com',
                 username: 'Platform Service',
                 role: 'ADMIN', // Service accounts are granted high privileges
@@ -44,6 +62,19 @@ export async function serviceAuthMiddleware(
     } catch (error) {
         // If it's intended to be a service token but failed, we should probably stop here
         // But for modularity, we just let it fall through unless the request specifically requires service auth
+    }
+}
+
+export async function requireServiceAuthMiddleware(
+    request: FastifyRequest,
+    reply: FastifyReply
+) {
+    await serviceAuthMiddleware(request, reply);
+    if (!(request as any).authenticatedByService) {
+        return reply.code(401).send({
+            success: false,
+            error: { code: 'SERVICE_AUTH_REQUIRED', message: 'Valid service authentication is required' },
+        });
     }
 }
 

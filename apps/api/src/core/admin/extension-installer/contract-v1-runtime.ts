@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { prisma } from '@/config/database';
+import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
 
 type JsonObject = Record<string, unknown>;
 
@@ -40,6 +41,23 @@ type RuntimeOptions = {
 };
 
 const services = new Map<string, unknown>();
+type EventHandler = (payload: unknown) => Promise<unknown> | unknown;
+const eventHandlers = new Map<string, Map<string, Set<EventHandler>>>();
+
+export async function dispatchContractV1Event(
+  installationId: string,
+  eventType: string,
+  payload: unknown,
+): Promise<number> {
+  const handlers = eventHandlers.get(installationId)?.get(eventType);
+  if (!handlers || handlers.size === 0) return 0;
+  await Promise.all([...handlers].map((handler) => handler(payload)));
+  return handlers.size;
+}
+
+export function clearContractV1EventHandlers(installationId: string): void {
+  eventHandlers.delete(installationId);
+}
 
 function checksum(sql: string): string {
   return createHash('sha256').update(sql).digest('hex');
@@ -104,7 +122,7 @@ export async function runContractV1Migrations(
   }
 }
 
-function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver): void {
+function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver, pluginSlug: string): void {
   if (driver.createSession) {
     app.post('/api/payments/create-session', async (request, reply) => {
       const body = (request.body || {}) as JsonObject;
@@ -123,6 +141,11 @@ function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver): voi
   }
 
   if (driver.verifySession) {
+    app.get('/api/payments/verify-session', async (request, reply) => {
+      const { sessionId } = request.query as { sessionId?: string };
+      if (!sessionId) return reply.code(400).send({ success: false, error: 'sessionId is required' });
+      return reply.send({ success: true, data: await driver.verifySession!(sessionId) });
+    });
     app.get('/api/payments/verify/:sessionId', async (request, reply) => {
       const { sessionId } = request.params as { sessionId: string };
       return reply.send({ success: true, data: await driver.verifySession!(sessionId) });
@@ -135,6 +158,9 @@ function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver): voi
         headers: request.headers,
         payload: request.body || {},
       });
+      if (result && typeof result === 'object') {
+        await applyNormalizedPluginWebhook(pluginSlug, result as Record<string, unknown>);
+      }
       return reply.send({ success: true, data: result });
     });
   }
@@ -146,6 +172,7 @@ export async function registerContractV1Runtime(
   options: RuntimeOptions,
 ): Promise<void> {
   await runContractV1Migrations(options.slug, runtime.migrations);
+  clearContractV1EventHandlers(options.installationId);
 
   const context: JsonObject = {
     db: {
@@ -170,7 +197,20 @@ export async function registerContractV1Runtime(
       error: (message: string, data?: unknown) => console.error(`[plugin:${options.slug}] ${message}`, data || ''),
     },
     events: {
-      subscribe: () => undefined,
+      subscribe: (eventType: string, handler: EventHandler) => {
+        let installationHandlers = eventHandlers.get(options.installationId);
+        if (!installationHandlers) {
+          installationHandlers = new Map();
+          eventHandlers.set(options.installationId, installationHandlers);
+        }
+        let handlers = installationHandlers.get(eventType);
+        if (!handlers) {
+          handlers = new Set();
+          installationHandlers.set(eventType, handlers);
+        }
+        handlers.add(handler);
+        return () => handlers!.delete(handler);
+      },
       publish: async () => undefined,
     },
     registerRoute: (route: ContractRoute) => {
@@ -181,7 +221,7 @@ export async function registerContractV1Runtime(
       });
     },
     registerDriver: (kind: string, driver: PaymentDriver) => {
-      if (kind === 'payment') registerPaymentDriver(app, driver);
+      if (kind === 'payment') registerPaymentDriver(app, driver, options.slug);
     },
     registerJob: () => undefined,
     registerAdminUI: () => undefined,
