@@ -44,7 +44,22 @@ function isInstallRootRequest(request: ProxyRequest): boolean {
   return pathname === '/' || pathname === `/${DEFAULT_LOCALE}`;
 }
 
+function isOfficialArtifactRequest(request: ProxyRequest): boolean {
+  const host = request.headers.get('host')?.split(':')[0]?.toLowerCase();
+  return host === 'get.jiffoo.com' && request.nextUrl.pathname.startsWith('/official-artifacts/');
+}
+
+export function officialArtifactRedirect(request: ProxyRequest): NextResponse | null {
+  if (!isOfficialArtifactRequest(request)) return null;
+  const target = new URL(`https://artifacts.jiffoo.com${request.nextUrl.pathname}`);
+  target.search = request.nextUrl.search;
+  return NextResponse.redirect(target, 307);
+}
+
 export async function middleware(request: ProxyRequest) {
+  const artifactRedirect = officialArtifactRedirect(request);
+  if (artifactRedirect) return artifactRedirect;
+
   if (isInstallRootRequest(request)) {
     return NextResponse.redirect(new URL('/install.sh', request.url));
   }
