@@ -23,7 +23,7 @@ type PluginDefinition = {
   configSchema: Record<string, Descriptor>;
 };
 
-interface PluginSettingsEnv extends NativeAuthEnv { DB: D1Database; PLUGIN_CONFIG_KEY?: SecretsStoreSecret }
+export interface PluginSettingsEnv extends NativeAuthEnv { DB: D1Database; PLUGIN_CONFIG_KEY?: SecretsStoreSecret }
 
 interface StoredInstance {
   id: string;
