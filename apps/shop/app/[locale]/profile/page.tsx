@@ -16,7 +16,7 @@ import { useT } from 'shared/src/i18n/react';
 export default function ProfilePage() {
   const { theme, config, isLoading: themeLoading } = useShopTheme();
   const nav = useLocalizedNavigation();
-  const { user, isAuthenticated, isLoading, getProfile } = useAuthStore();
+  const { user, isAuthenticated, isLoading, getProfile, logout } = useAuthStore();
   const t = useT();
 
   // Fetch user profile on mount
@@ -82,6 +82,10 @@ export default function ProfilePage() {
       onNavigateToSettings={() => nav.push('/profile/settings')}
       onNavigateToOrders={() => nav.push('/orders')}
       onNavigateToLogin={() => nav.push('/auth/login')}
+      onLogout={() => {
+        logout();
+        nav.push('/');
+      }}
     />
   );
 }

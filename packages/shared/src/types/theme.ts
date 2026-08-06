@@ -443,6 +443,8 @@ export interface ProfilePageProps extends ThemeI18nProps {
   onNavigateToSettings: () => void;
   onNavigateToOrders: () => void;
   onNavigateToLogin: () => void;
+  /** Clear the authenticated session and return the user to a public route. */
+  onLogout?: () => void;
 }
 
 /**
