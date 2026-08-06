@@ -26,6 +26,7 @@ import { snapshotKey } from './snapshot-key';
 import { processNativeJobsSync, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
 import { tryNativePlatformConnection } from './platform-connection';
 import { tryNativeMarketplace } from './marketplace';
+import { tryNativeImagerAi } from './imager-ai';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv;
 
@@ -198,6 +199,8 @@ export default {
     if (nativePlatformConnection) return nativePlatformConnection;
     const nativeMarketplace = await tryNativeMarketplace(nativeRequest, env);
     if (nativeMarketplace) return nativeMarketplace;
+    const nativeImagerAi = await tryNativeImagerAi(nativeRequest, env);
+    if (nativeImagerAi) return nativeImagerAi;
     const nativeShopperAccount = await tryNativeShopperAccount(nativeRequest, env);
     if (nativeShopperAccount) return nativeShopperAccount;
     const nativeAffiliate = await tryNativeAffiliate(nativeRequest, env);

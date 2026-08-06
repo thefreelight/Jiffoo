@@ -99,6 +99,15 @@ const definitions: Record<string, PluginDefinition> = {
       webhookSecret: { type: 'secret', sensitive: true, label: 'Fulfillment Webhook Secret' },
     },
   },
+  'imager-ai': {
+    slug: 'imager-ai', name: 'Imager AI', version: '0.2.2', category: 'ai',
+    description: 'Cloudflare-native image generation with style references and batch-ready requests.',
+    configSchema: {
+      baseUrl: { type: 'string', required: true, label: 'OpenAI-compatible Base URL', placeholder: 'https://api.openai.com/v1' },
+      model: { type: 'string', required: true, label: 'Image Model', placeholder: 'gpt-image-1' },
+      apiKey: { type: 'secret', required: true, sensitive: true, label: 'API Key' },
+    },
+  },
 };
 
 const encoder = new TextEncoder();
