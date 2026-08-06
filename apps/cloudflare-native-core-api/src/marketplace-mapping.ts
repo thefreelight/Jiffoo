@@ -23,6 +23,15 @@ export type NativeCatalogItem = {
   versions?: Array<{ version: string; packageUrl?: string; minCoreVersion?: string | null; isCurrent?: boolean }>;
 };
 
+function normalizeArtifactUrl(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  // The legacy get host no longer serves official extension packages. Keep
+  // catalog compatibility while the shared platform catalog is migrated.
+  return trimmed.replace(/^https:\/\/get\.jiffoo\.com\//, 'https://artifacts.jiffoo.com/');
+}
+
 function category(item: NativeCatalogItem): string {
   if (item.kind === 'theme') return 'storefront';
   if (/stripe|payment|pay/i.test(item.slug)) return 'payment';
@@ -65,7 +74,7 @@ export function buildNativeCatalogResponse(items: NativeCatalogItem[], installed
         installedVersion: enabled === undefined ? null : version,
         sellableVersion: item.sellableVersion || version,
         latestVersion: version,
-        artifactPackageUrl: versionInfo?.packageUrl || null,
+        artifactPackageUrl: normalizeArtifactUrl(versionInfo?.packageUrl),
         updateAvailable: false,
         downloads: item.installCount || 0,
       };

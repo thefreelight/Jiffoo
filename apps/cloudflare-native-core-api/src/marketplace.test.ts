@@ -32,7 +32,7 @@ describe('buildNativeCatalogResponse', () => {
       installState: 'enabled',
       releaseStatus: 'published',
       category: 'payment',
-      artifactPackageUrl: 'https://get.jiffoo.com/stripe.jplugin',
+      artifactPackageUrl: 'https://artifacts.jiffoo.com/stripe.jplugin',
     });
     expect(result.items[1]).toMatchObject({
       slug: 'imagic-studio',
