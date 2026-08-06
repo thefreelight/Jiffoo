@@ -157,10 +157,10 @@ export async function sendSmtpEmail(
       `--${boundary}--`,
     ].join('\r\n').replace(/^\./gm, '..');
     await command(current, `${raw}\r\n.`);
-    // DATA acceptance is the delivery success boundary. A relay may close or
-    // delay the QUIT response after accepting the message; do not report that
-    // close-phase behavior as a failed delivery.
-    await command(current, 'QUIT').catch(() => undefined);
+    // DATA acceptance is the delivery success boundary. Do not await QUIT:
+    // some relays keep the socket open without replying, which would leave the
+    // Cloudflare request pending even though the message was already accepted.
+    await current.writer.write(encoder.encode('QUIT\r\n')).catch(() => undefined);
   } finally {
     current.reader.releaseLock();
     current.writer.releaseLock();
