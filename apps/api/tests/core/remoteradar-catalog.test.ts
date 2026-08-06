@@ -8,9 +8,9 @@ describe('RemoteRadar official catalog seed', () => {
       slug: 'remoteradar',
       kind: 'theme',
       target: 'shop',
-      version: '0.0.11',
+      version: '0.0.12',
       defaultPricingModel: 'free',
-      packageUrl: 'https://artifacts.jiffoo.com/official-artifacts/themes/remoteradar/0.0.11.jtheme',
+      packageUrl: 'https://artifacts.jiffoo.com/official-artifacts/themes/remoteradar/0.0.12.jtheme',
     });
   });
 });
