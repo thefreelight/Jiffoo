@@ -102,6 +102,9 @@ const OFFICIAL_PLUGIN_SOURCE_CONFIG: Record<string, PluginSourceConfig> = {
   },
   stripe: {
     includeNodeModules: false,
+    prepareCommands: [
+      'pnpm dlx esbuild@0.25.12 index.ts --platform=node --format=esm --bundle --outfile=dist/index.js',
+    ],
   },
   i18n: {
     includeNodeModules: false,
