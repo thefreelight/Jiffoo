@@ -22,6 +22,7 @@ export const PLUGIN_CAPABILITIES = [
   'checkout.modify',
   'order.process',
   'payment.process',
+  'payment.session.v1',
   'payment.refund',
   'shipping.calculate',
   'shipping.track',
