@@ -1,5 +1,5 @@
 import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
-import { buildNativeCatalogResponse, type NativeCatalogItem } from './marketplace-mapping';
+import { buildNativeCatalogResponse, type NativeCatalogItem, type NativeThemeInstallState } from './marketplace-mapping';
 
 type Env = NativeAuthEnv & { DB: D1Database; MARKET_API_URL?: string; PLATFORM_API_BASE_URL?: string };
 
@@ -25,6 +25,19 @@ async function installedPluginStates(env: Env): Promise<Map<string, boolean>> {
   return new Map(result.results.map((row) => [row.plugin_slug, row.enabled === 1]));
 }
 
+async function installedThemeStates(env: Env): Promise<Map<string, NativeThemeInstallState>> {
+  const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'native_theme_state_shop'").first<{ value: string }>();
+  if (!row?.value) return new Map();
+  try {
+    const state = JSON.parse(row.value) as { active?: string | null; installed?: Array<{ slug?: string; version?: string }> };
+    return new Map((state.installed || [])
+      .filter((theme): theme is { slug: string; version: string } => typeof theme.slug === 'string' && typeof theme.version === 'string')
+      .map((theme) => [theme.slug, { version: theme.version, active: theme.slug === state.active }]));
+  } catch {
+    return new Map();
+  }
+}
+
 function failure(error: unknown): Response {
   return Response.json({ success: false, error: {
     code: 'NATIVE_MARKETPLACE_UNAVAILABLE',
@@ -41,7 +54,7 @@ export async function tryNativeMarketplace(request: Request, env: Env): Promise<
   }
   const startedAt = Date.now();
   try {
-    const [items, installed] = await Promise.all([platformCatalog(env), installedPluginStates(env)]);
+    const [items, installed, themes] = await Promise.all([platformCatalog(env), installedPluginStates(env), installedThemeStates(env)]);
     if (path.endsWith('/health')) {
       return Response.json({ success: true, data: {
         officialMarketOnly: true,
@@ -53,7 +66,7 @@ export async function tryNativeMarketplace(request: Request, env: Env): Promise<
         marketStatus: 200,
       } }, { headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-marketplace' } });
     }
-    return Response.json({ success: true, data: buildNativeCatalogResponse(items, installed) }, {
+    return Response.json({ success: true, data: buildNativeCatalogResponse(items, installed, themes) }, {
       headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-marketplace' },
     });
   } catch (error) {

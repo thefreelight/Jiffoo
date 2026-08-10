@@ -23,6 +23,8 @@ export type NativeCatalogItem = {
   versions?: Array<{ version: string; packageUrl?: string; minCoreVersion?: string | null; isCurrent?: boolean }>;
 };
 
+export type NativeThemeInstallState = { version: string; active: boolean };
+
 function normalizeArtifactUrl(value: string | null | undefined): string | null {
   if (!value) return null;
   const trimmed = value.trim();
@@ -41,10 +43,15 @@ function category(item: NativeCatalogItem): string {
   return 'extensions';
 }
 
-export function buildNativeCatalogResponse(items: NativeCatalogItem[], installed: Map<string, boolean>) {
+export function buildNativeCatalogResponse(
+  items: NativeCatalogItem[],
+  installed: Map<string, boolean>,
+  installedThemes = new Map<string, NativeThemeInstallState>(),
+) {
   return {
     items: items.map((item) => {
       const enabled = installed.get(item.slug);
+      const themeState = item.kind === 'theme' ? installedThemes.get(item.slug) : undefined;
       const version = item.sellableVersion || item.currentVersion || item.versions?.find((entry) => entry.isCurrent)?.version || '0.0.1';
       const versionInfo = item.versions?.find((entry) => entry.version === version) || item.versions?.[0];
       return {
@@ -65,17 +72,17 @@ export function buildNativeCatalogResponse(items: NativeCatalogItem[], installed
         pricingModel: item.pricingModel || 'free',
         price: item.price || 0,
         currency: item.currency || 'USD',
-        installState: enabled === undefined ? 'not_installed' : enabled ? 'enabled' : 'installed',
+        installState: themeState ? themeState.active ? 'active' : 'installed' : enabled === undefined ? 'not_installed' : enabled ? 'enabled' : 'installed',
         releaseStatus: item.installable ? 'published' : 'catalog-only',
-        source: enabled === undefined ? 'official-market' : 'installed',
+        source: themeState || enabled !== undefined ? 'installed' : 'official-market',
         availableInMarket: Boolean(item.installable),
         thumbnailUrl: item.iconUrl || undefined,
         screenshots: item.screenshots || [],
-        installedVersion: enabled === undefined ? null : version,
+        installedVersion: themeState?.version || (enabled === undefined ? null : version),
         sellableVersion: item.sellableVersion || version,
         latestVersion: version,
         artifactPackageUrl: normalizeArtifactUrl(versionInfo?.packageUrl),
-        updateAvailable: false,
+        updateAvailable: Boolean(themeState && themeState.version !== version),
         downloads: item.installCount || 0,
       };
     }),

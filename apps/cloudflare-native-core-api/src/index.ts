@@ -27,6 +27,7 @@ import { processNativeJobsSync, tryNativeJobsProxy, type NativeJobsProxyEnv } fr
 import { tryNativePlatformConnection } from './platform-connection';
 import { tryNativeMarketplace } from './marketplace';
 import { tryNativeImagerAi } from './imager-ai';
+import { tryNativeThemes } from './native-themes';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv;
 
@@ -159,7 +160,22 @@ async function serveAsset(url: URL, env: WorkerEnv): Promise<Response> {
     ? url.pathname.replace(/^\//, '')
     : url.pathname.replace(/^\/uploads\//, 'uploads/');
   if (key.includes('..')) return Response.json({ error: 'INVALID_ASSET_PATH' }, { status: 400 });
-  const object = await env.ASSETS.get(key);
+  let object = await env.ASSETS.get(key);
+  if (!object) {
+    const legacyTheme = key.match(/^extensions\/themes\/shop\/([a-z0-9][a-z0-9-]{0,63})\/(.+)$/);
+    if (legacyTheme) {
+      const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'native_theme_state_shop'").first<{ value: string }>();
+      try {
+        const state = JSON.parse(row?.value || '{}') as { installed?: Array<{ slug?: string; version?: string }> };
+        const installed = state.installed?.find((theme) => theme.slug === legacyTheme[1]);
+        if (installed?.version) {
+          object = await env.ASSETS.get(`extensions/themes/shop/.versions/${legacyTheme[1]}/${installed.version}/${legacyTheme[2]}`);
+        }
+      } catch {
+        object = null;
+      }
+    }
+  }
   if (!object) return Response.json({ error: 'ASSET_NOT_FOUND' }, { status: 404 });
   const headers = runtimeHeaders('cloudflare-native-r2');
   object.writeHttpMetadata(headers);
@@ -201,6 +217,8 @@ export default {
     if (nativeMarketplace) return nativeMarketplace;
     const nativeImagerAi = await tryNativeImagerAi(nativeRequest, env);
     if (nativeImagerAi) return nativeImagerAi;
+    const nativeThemes = await tryNativeThemes(nativeRequest, env);
+    if (nativeThemes) return nativeThemes;
     const nativeShopperAccount = await tryNativeShopperAccount(nativeRequest, env);
     if (nativeShopperAccount) return nativeShopperAccount;
     const nativeAffiliate = await tryNativeAffiliate(nativeRequest, env);
