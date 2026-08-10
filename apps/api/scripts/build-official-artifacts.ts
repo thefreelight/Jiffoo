@@ -14,6 +14,7 @@ type OfficialArtifactKind = 'plugin' | 'theme' | 'theme-app';
 
 interface PluginSourceConfig {
   includeNodeModules?: boolean;
+  alwaysPrepare?: boolean;
   prepareCommands?: string[];
 }
 
@@ -102,6 +103,7 @@ const OFFICIAL_PLUGIN_SOURCE_CONFIG: Record<string, PluginSourceConfig> = {
   },
   stripe: {
     includeNodeModules: false,
+    alwaysPrepare: true,
     prepareCommands: [
       'pnpm dlx esbuild@0.25.12 index.ts --platform=node --format=esm --bundle --outfile=dist/index.js',
     ],
@@ -404,7 +406,7 @@ async function ensurePluginSourcePrepared(
   const needsEntryRoot = entryRootPath ? !(await pathExists(entryRootPath)) : false;
   const needsNodeModules = Boolean(config.includeNodeModules) && !(await pathExists(nodeModulesPath));
 
-  if (!needsEntryRoot && !needsNodeModules) {
+  if (!config.alwaysPrepare && !needsEntryRoot && !needsNodeModules) {
     return {
       async cleanup() {},
     };
