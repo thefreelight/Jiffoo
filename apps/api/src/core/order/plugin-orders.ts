@@ -177,7 +177,7 @@ export async function createPluginOrderCheckout(input: PluginOrderCheckoutInput)
 
   const pluginResult = await callPaymentPlugin({
     pluginSlug,
-    path: '/api/payments/create-session?installation=default',
+    path: '/api/api/payments/create-session?installation=default',
     body: {
       orderId,
       amount: input.amount,
