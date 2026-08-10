@@ -105,7 +105,7 @@ const OFFICIAL_PLUGIN_SOURCE_CONFIG: Record<string, PluginSourceConfig> = {
     includeNodeModules: false,
     alwaysPrepare: true,
     prepareCommands: [
-      'pnpm dlx esbuild@0.25.12 index.ts --platform=node --format=esm --bundle --outfile=dist/index.js',
+      'pnpm dlx esbuild@0.25.12 index.ts --platform=node --format=esm --bundle --alias:jiffoo-plugin-sdk=$(cd ../../.. && pwd)/packages/plugin-sdk/src/index.ts --outfile=dist/index.js',
     ],
   },
   i18n: {
