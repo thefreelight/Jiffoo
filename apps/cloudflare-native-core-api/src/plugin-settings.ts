@@ -104,7 +104,10 @@ const definitions: Record<string, PluginDefinition> = {
     description: 'Cloudflare-native image generation with style references and batch-ready requests.',
     configSchema: {
       baseUrl: { type: 'string', required: true, label: 'OpenAI-compatible Base URL', placeholder: 'https://api.openai.com/v1' },
-      model: { type: 'string', required: true, label: 'Image Model', placeholder: 'gpt-image-1' },
+      model: {
+        type: 'string', required: true, label: 'Image Model', placeholder: 'gpt-image-2',
+        description: 'Use the provider model ID exactly as published, for example gpt-image-2.',
+      },
       apiKey: { type: 'secret', required: true, sensitive: true, label: 'API Key' },
     },
   },

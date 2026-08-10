@@ -1,4 +1,5 @@
 import { authenticateNativeUser } from './auth';
+import { imageApiRequest, parseInlineImage } from './imager-ai-provider';
 import { getNativePluginConfig, type PluginSettingsEnv } from './plugin-settings';
 
 type Env = PluginSettingsEnv & Pick<Cloudflare.Env, 'ASSETS' | 'CACHE'>;
@@ -12,12 +13,6 @@ function json(data: unknown, status = 200): Response {
 
 function bodyObject(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-}
-
-function imageData(value: unknown): string | null {
-  if (typeof value !== 'string' || !value.startsWith('data:image/')) return null;
-  const comma = value.indexOf(',');
-  return comma > 0 ? value.slice(comma + 1) : null;
 }
 
 function bytesToBase64(bytes: Uint8Array): string {
@@ -42,18 +37,19 @@ async function generate(request: Request, env: Env, userId: string): Promise<Res
   if (!configured?.enabled) return json({ code: 'NOT_CONFIGURED', message: 'Imager AI is not enabled' }, 503);
   const config = configured.config;
   const baseUrl = String(config.baseUrl || '').replace(/\/$/, '');
-  const model = String(config.model || 'gpt-image-1');
+  const model = String(config.model || 'gpt-image-2');
   const apiKey = String(config.apiKey || '');
   if (!baseUrl || !apiKey) return json({ code: 'NOT_CONFIGURED', message: 'Imager AI credentials are missing' }, 503);
   const input = bodyObject(await request.json().catch(() => ({})));
   const prompt = String(input.prompt || 'Create a polished image.');
-  const source = typeof input.sourceImageUrl === 'string' ? input.sourceImageUrl : undefined;
-  const content: Array<Record<string, string>> = [{ type: 'input_text', text: prompt }];
-  if (source?.startsWith('data:image/')) content.push({ type: 'input_image', image_url: source });
-  const upstream = await fetch(`${baseUrl}/responses`, {
+  const source = parseInlineImage(input.sourceImageUrl);
+  const providerRequest = imageApiRequest(baseUrl, model, prompt, source);
+  const headers: Record<string, string> = { authorization: `Bearer ${apiKey}` };
+  if (providerRequest.contentType) headers['content-type'] = providerRequest.contentType;
+  const upstream = await fetch(providerRequest.url, {
     method: 'POST',
-    headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model, input: [{ role: 'user', content }], tools: [{ type: 'image_generation' }] }),
+    headers,
+    body: providerRequest.body,
   });
   const payload: any = await upstream.json().catch(() => null);
   if (!upstream.ok) return json({ code: 'UPSTREAM_ERROR', message: payload?.error?.message || 'Image provider request failed' }, 502);
