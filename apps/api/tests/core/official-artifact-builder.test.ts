@@ -122,6 +122,9 @@ describe('buildOfficialArtifacts', () => {
     expect(pluginManifest.slug).toBe('stripe');
     expect(pluginManifest.version).toBe('1.0.1');
     expect(pluginManifest.runtimeType).toBe('internal-fastify');
+    const stripeEntry = await fs.readFile(path.join(pluginExtracted, 'dist/index.js'), 'utf-8');
+    expect(stripeEntry).not.toContain('from "jiffoo-plugin-sdk"');
+    expect(stripeEntry).not.toContain("from 'jiffoo-plugin-sdk'");
     await expect(fs.stat(path.join(pluginExtracted, 'checksums.json'))).resolves.toBeDefined();
 
     const i18nManifest = JSON.parse(
