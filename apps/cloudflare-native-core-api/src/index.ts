@@ -24,6 +24,7 @@ import { nativeUpgradeVersion } from './upgrade-version';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 import { snapshotKey } from './snapshot-key';
 import { processNativeJobsSync, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
+import { tryNativeSubscription } from './native-subscription';
 import { tryNativePlatformConnection } from './platform-connection';
 import { tryNativeMarketplace } from './marketplace';
 import { tryNativeImagerAi } from './imager-ai';
@@ -193,12 +194,12 @@ export default {
       const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'core_schema_version'")
         .first<{ value: string }>();
       return Response.json({
-        status: row?.value === '0025' ? 'ok' : 'degraded',
+        status: row?.value === '0026' ? 'ok' : 'degraded',
         service: 'jiffoo-native-core-api',
         runtime: 'cloudflare-workers-free',
         version: env.RUNTIME_VERSION,
         d1Schema: row?.value ?? null,
-      }, { status: row?.value === '0025' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
+      }, { status: row?.value === '0026' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
     }
     if (nativeRequest.method === 'GET' && nativeRequest.url.includes('/api/v1/upgrade/version')) {
       return nativeUpgradeVersion(env);
@@ -222,6 +223,8 @@ export default {
     if (nativeThemes) return nativeThemes;
     const nativeWallet = await tryNativeWallet(nativeRequest, env);
     if (nativeWallet) return nativeWallet;
+    const nativeSubscription = await tryNativeSubscription(nativeRequest, env);
+    if (nativeSubscription) return nativeSubscription;
     const nativeShopperAccount = await tryNativeShopperAccount(nativeRequest, env);
     if (nativeShopperAccount) return nativeShopperAccount;
     const nativeAffiliate = await tryNativeAffiliate(nativeRequest, env);

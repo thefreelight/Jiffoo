@@ -3,6 +3,8 @@ import { buildNativeCatalogResponse, type NativeCatalogItem, type NativeThemeIns
 
 type Env = NativeAuthEnv & { DB: D1Database; MARKET_API_URL?: string; PLATFORM_API_BASE_URL?: string };
 
+const NATIVE_INSTALLABLE_PLUGINS = new Set(['wallet', 'subscription']);
+
 function baseUrl(env: Env): string {
   return (env.PLATFORM_API_BASE_URL?.trim() || env.MARKET_API_URL?.trim() || 'https://platform-api.jiffoo.com/api').replace(/\/+$/, '');
 }
@@ -48,9 +50,33 @@ function failure(error: unknown): Response {
 export async function tryNativeMarketplace(request: Request, env: Env): Promise<Response | null> {
   const url = new URL(request.url);
   const path = url.pathname;
-  if (request.method !== 'GET' || (path !== '/api/v1/admin/market/official-catalog' && path !== '/api/v1/admin/market/health')) return null;
+  const install = path.match(/^\/api\/v1\/admin\/market\/extensions\/([a-z0-9][a-z0-9-]{0,63})\/install$/);
+  if (request.method !== 'GET' && !(request.method === 'POST' && install)) return null;
+  if (!install && path !== '/api/v1/admin/market/official-catalog' && path !== '/api/v1/admin/market/health') return null;
   if (!(await authenticateNativeAdmin(request, env))) {
     return Response.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Administrator authentication is required' } }, { status: 401 });
+  }
+  if (install && request.method === 'POST') {
+    const body = await request.json().catch(() => null) as { kind?: string; version?: string } | null;
+    if (body?.kind !== 'plugin') return Response.json({ success: false, error: { code: 'BAD_REQUEST', message: 'Native marketplace installs require kind=plugin' } }, { status: 400 });
+    if (!NATIVE_INSTALLABLE_PLUGINS.has(install[1])) {
+      return Response.json({ success: false, error: { code: 'NATIVE_PLUGIN_NOT_IMPLEMENTED', message: `Native installation is not implemented for ${install[1]}` } }, { status: 501 });
+    }
+    try {
+      const catalog = await platformCatalog(env);
+      const item = catalog.find((candidate) => candidate.slug === install[1] && candidate.kind === 'plugin' && candidate.installable);
+      if (!item) return Response.json({ success: false, error: { code: 'ARTIFACT_NOT_FOUND', message: `Official plugin "${install[1]}" is not installable` } }, { status: 404 });
+      const version = body.version || item.sellableVersion || item.currentVersion || item.versions?.find((entry) => entry.isCurrent)?.version || '0.0.1';
+      const now = new Date().toISOString();
+      await env.DB.prepare(`INSERT INTO native_plugin_instances
+        (id, plugin_slug, instance_key, enabled, config_json, encrypted_secrets_json, created_at, updated_at)
+        VALUES (?1, ?2, 'default', 1, '{}', '{}', ?3, ?3)
+        ON CONFLICT(plugin_slug, instance_key) DO UPDATE SET enabled = 1, updated_at = excluded.updated_at`)
+        .bind(crypto.randomUUID(), install[1], now).run();
+      return Response.json({ success: true, data: { slug: install[1], kind: 'plugin', version, source: 'official-market', installedAt: now } }, { headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-marketplace' } });
+    } catch (error) {
+      return failure(error);
+    }
   }
   const startedAt = Date.now();
   try {
