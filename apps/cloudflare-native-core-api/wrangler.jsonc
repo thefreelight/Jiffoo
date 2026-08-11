@@ -47,11 +47,17 @@
       "binding": "SNAPSHOT_IMPORT_TOKEN",
       "store_id": "00000000000000000000000000000000",
       "secret_name": "replace_with_instance_snapshot_import_token"
+    },
+    {
+      "binding": "JOBS_RUNTIME_TOKEN",
+      "store_id": "00000000000000000000000000000000",
+      "secret_name": "replace_with_remoteradar_jobs_runtime_token"
     }
   ],
   "vars": {
     "CORE_ORIGIN": "https://replace-with-instance-origin.example.com",
     "JOBS_SERVICE_URL": "https://replace-with-instance-jobs.example.com",
+    "JOBS_INSTALLATION_ID": "replace-with-remoteradar-jobs-installation-id",
     "NATIVE_CHECKOUT_ENABLED": "false",
     "REMOTERADAR_AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
     "RUNTIME_VERSION": "0.0.1"

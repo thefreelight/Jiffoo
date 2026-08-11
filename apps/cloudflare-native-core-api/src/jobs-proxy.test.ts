@@ -40,6 +40,84 @@ describe('native jobs proxy', () => {
     await expect(response?.json()).resolves.toEqual({ activeJobs: 872, addedToday: 1 });
   });
 
+  it('requires a valid native session before forwarding search profile requests', async () => {
+    const service = { fetch: vi.fn(async () => Response.json({ profiles: [] })) };
+    const authenticate = vi.fn(async () => null);
+    const response = await tryNativeJobsProxy(
+      new Request('https://api.example/api/v1/jobs/search-profiles'),
+      { JOBS_SERVICE: service },
+      authenticate,
+    );
+    expect(response?.status).toBe(401);
+    expect(service.fetch).not.toHaveBeenCalled();
+    await expect(response?.json()).resolves.toMatchObject({ error: { code: 'UNAUTHORIZED' } });
+  });
+
+  it('injects trusted profile ownership and does not forward spoofed identity headers', async () => {
+    const service = { fetch: vi.fn(async () => Response.json({ profiles: [] })) };
+    const response = await tryNativeJobsProxy(
+      new Request('https://api.example/api/v1/jobs/search-profiles', {
+        headers: { 'x-user-id': 'spoofed-user', 'x-installation-id': 'spoofed-installation' },
+      }),
+      {
+        JOBS_SERVICE: service,
+        JOBS_INSTALLATION_ID: 'rr-production',
+        JOBS_RUNTIME_TOKEN: { get: async () => 'trusted-runtime-token' },
+      },
+      async () => ({ id: 'user-123', email: 'user@example.com', username: 'user', role: 'USER' }),
+    );
+    expect(response?.status).toBe(200);
+    const forwarded = service.fetch.mock.calls[0][0];
+    expect(new URL(forwarded.url).pathname).toBe('/api/search-profiles');
+    expect(forwarded.headers.get('x-user-id')).toBe('user-123');
+    expect(forwarded.headers.get('x-user-role')).toBe('USER');
+    expect(forwarded.headers.get('x-installation-id')).toBe('rr-production');
+    expect(forwarded.headers.get('x-caller')).toBe('jiffoo-core');
+    expect(forwarded.headers.get('x-platform-integration-token')).toBe('trusted-runtime-token');
+    expect(response?.headers.get('cache-control')).toBe('no-store');
+  });
+
+  it('forwards search profile writes and profile-backed job searches', async () => {
+    const service = { fetch: vi.fn(async () => Response.json({ ok: true })) };
+    const env = { JOBS_SERVICE: service, JOBS_INSTALLATION_ID: 'rr-production', JOBS_RUNTIME_TOKEN: 'runtime-token' };
+    const authenticate = async () => ({ id: 'user-123', email: 'user@example.com', username: 'user', role: 'USER' });
+    const createResponse = await tryNativeJobsProxy(
+      new Request('https://api.example/api/v1/jobs/search-profiles', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ name: 'Frontend', query: 'typescript' }),
+      }),
+      env,
+      authenticate,
+    );
+    expect(createResponse?.status).toBe(200);
+    const createRequest = service.fetch.mock.calls[0][0];
+    expect(createRequest.method).toBe('POST');
+    await expect(createRequest.json()).resolves.toEqual({ name: 'Frontend', query: 'typescript' });
+
+    const searchResponse = await tryNativeJobsProxy(
+      new Request('https://api.example/api/v1/jobs?profileId=profile-1'),
+      env,
+      authenticate,
+    );
+    expect(searchResponse?.status).toBe(200);
+    const searchRequest = service.fetch.mock.calls[1][0];
+    expect(searchRequest.url).toBe('https://jobs.internal/api/jobs?profileId=profile-1');
+    expect(searchRequest.headers.get('x-user-id')).toBe('user-123');
+  });
+
+  it('fails closed when trusted profile forwarding is not configured', async () => {
+    const service = { fetch: vi.fn(async () => Response.json({ profiles: [] })) };
+    const response = await tryNativeJobsProxy(
+      new Request('https://api.example/api/v1/jobs/search-profiles'),
+      { JOBS_SERVICE: service },
+      async () => ({ id: 'user-123', email: 'user@example.com', username: 'user', role: 'USER' }),
+    );
+    expect(response?.status).toBe(503);
+    expect(service.fetch).not.toHaveBeenCalled();
+    await expect(response?.json()).resolves.toMatchObject({ error: { code: 'JOBS_PROFILE_UNAVAILABLE' } });
+  });
+
   it('skips scheduled collection when the source is fresh', async () => {
     const service = { fetch: vi.fn(async () => Response.json({ ok: true })) };
     const db = {
