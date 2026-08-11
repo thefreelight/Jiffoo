@@ -28,6 +28,8 @@ export type OdooProductRecord = {
   active?: boolean;
   sale_ok?: boolean;
   detailed_type?: string;
+  type?: string;
+  is_storable?: boolean;
   description_sale?: string | false;
   write_date?: string | false;
 };
@@ -76,10 +78,23 @@ function templateName(record: OdooProductRecord): string {
   return Array.isArray(record.product_tmpl_id) ? text(record.product_tmpl_id[1]) : text(record.display_name);
 }
 
-function productKind(value: string): 'goods' | 'consumable' | 'service' {
+function productKind(value: string, isStorable = false): 'goods' | 'consumable' | 'service' {
   if (value === 'service') return 'service';
-  if (value === 'consu') return 'consumable';
+  if (value === 'consu') return isStorable ? 'goods' : 'consumable';
   return 'goods';
+}
+
+async function catalogTypeFields(settings: OdooConfig, uid: number): Promise<string[]> {
+  const definitions = await execute<Record<string, unknown>>(
+    settings,
+    uid,
+    'product.product',
+    'fields_get',
+    [],
+    { attributes: ['type'] },
+  );
+  if ('detailed_type' in definitions) return ['detailed_type'];
+  return ['type', ...('is_storable' in definitions ? ['is_storable'] : [])];
 }
 
 async function config(env: OdooEnv): Promise<OdooConfig | null> {
@@ -143,12 +158,13 @@ export async function readNativeOdooCatalog(env: OdooEnv): Promise<NativeOdooCat
   const settings = await config(env);
   if (!settings) throw new Error('Odoo plugin is not enabled or fully configured');
   const uid = await authenticate(settings);
+  const typeFields = await catalogTypeFields(settings, uid);
   const records = await execute<OdooProductRecord[]>(settings, uid, 'product.product', 'search_read', [
     [['sale_ok', '=', true]],
   ], {
     fields: [
       'id', 'product_tmpl_id', 'display_name', 'default_code', 'list_price',
-      'qty_available', 'virtual_available', 'active', 'sale_ok', 'detailed_type',
+      'qty_available', 'virtual_available', 'active', 'sale_ok', ...typeFields,
       'description_sale', 'write_date',
     ],
     order: 'product_tmpl_id,id',
@@ -162,7 +178,7 @@ export function mapNativeOdooCatalog(records: OdooProductRecord[]): NativeOdooCa
   for (const record of records) {
     const sourceTemplateId = templateId(record);
     if (!sourceTemplateId || record.sale_ok === false) continue;
-    const kind = productKind(text(record.detailed_type));
+    const kind = productKind(text(record.detailed_type) || text(record.type), record.is_storable === true);
     const available = Math.max(0, Math.floor(number(record.qty_available)));
     const virtualAvailable = Math.max(0, Math.floor(number(record.virtual_available)));
     const name = templateName(record) || `Odoo product ${sourceTemplateId}`;

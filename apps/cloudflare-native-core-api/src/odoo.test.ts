@@ -4,7 +4,7 @@ vi.mock('cloudflare:sockets', () => ({ connect: vi.fn() }));
 vi.mock('./plugin-settings', () => ({ getNativePluginConfig: vi.fn() }));
 
 const { getNativePluginConfig } = await import('./plugin-settings');
-const { mapNativeOdooCatalog, testNativeOdooConnection } = await import('./odoo');
+const { mapNativeOdooCatalog, readNativeOdooCatalog, testNativeOdooConnection } = await import('./odoo');
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -45,6 +45,75 @@ describe('Odoo native connection test', () => {
 });
 
 describe('Odoo native catalog mapping', () => {
+  it('uses Odoo 19 type fields when detailed_type is unavailable', async () => {
+    vi.mocked(getNativePluginConfig).mockResolvedValue({
+      enabled: true,
+      config: {
+        baseUrl: 'https://erp.example.com',
+        database: 'store',
+        username: 'integration@example.com',
+        apiKey: 'secret',
+      },
+    });
+
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: 5 }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        result: { type: { type: 'selection' }, is_storable: { type: 'boolean' } },
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        result: [{
+          id: 6,
+          product_tmpl_id: [6, 'Bokmoo Basic Card'],
+          display_name: 'Bokmoo Basic Card',
+          default_code: 'BOKMOO-BASIC-CARD',
+          list_price: 20,
+          qty_available: 100,
+          virtual_available: 100,
+          active: true,
+          sale_ok: true,
+          type: 'consu',
+          is_storable: true,
+        }],
+      }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(readNativeOdooCatalog({} as never)).resolves.toMatchObject([{
+      id: 'odoo-product-6',
+      productKind: 'goods',
+      requiresShipping: true,
+      stock: 100,
+      price: 20,
+    }]);
+
+    const fieldsRequest = JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body));
+    expect(fieldsRequest.params.args[6].fields).toContain('type');
+    expect(fieldsRequest.params.args[6].fields).toContain('is_storable');
+    expect(fieldsRequest.params.args[6].fields).not.toContain('detailed_type');
+  });
+
+  it('keeps using detailed_type on older Odoo versions', async () => {
+    vi.mocked(getNativePluginConfig).mockResolvedValue({
+      enabled: true,
+      config: {
+        baseUrl: 'https://erp.example.com', database: 'store',
+        username: 'integration@example.com', apiKey: 'secret',
+      },
+    });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: 5 }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        result: { detailed_type: { type: 'selection' }, type: { type: 'selection' } },
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: [] }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(readNativeOdooCatalog({} as never)).resolves.toEqual([]);
+    const fieldsRequest = JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body));
+    expect(fieldsRequest.params.args[6].fields).toContain('detailed_type');
+    expect(fieldsRequest.params.args[6].fields).not.toContain('type');
+  });
+
   it('groups variants and preserves sellable price, inventory, and fulfillment attributes', () => {
     const products = mapNativeOdooCatalog([
       {
