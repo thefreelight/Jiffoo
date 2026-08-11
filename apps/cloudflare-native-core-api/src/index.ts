@@ -22,7 +22,7 @@ import { tryNativeAdminProducts } from './admin-products';
 import { tryNativeAdminApiTokens } from './admin-api-tokens';
 import { nativeUpgradeVersion } from './upgrade-version';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
-import { snapshotKey } from './snapshot-key';
+import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
 import { processNativeJobsSync, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
 import { tryNativeRemoteRadarApplications } from './remoteradar-applications';
 import { expireNativeWalletReservations, tryNativeWallet } from './native-wallet';
@@ -107,10 +107,17 @@ async function proxy(request: Request, env: WorkerEnv): Promise<Response> {
 
 async function readSnapshot(url: URL, env: WorkerEnv): Promise<Snapshot | null> {
   const key = snapshotKey(url);
-  const row = await env.DB.prepare(
+  const exact = await env.DB.prepare(
     'SELECT payload, status_code, content_type FROM core_api_snapshots WHERE cache_key = ?1',
   ).bind(key).first<Snapshot>();
-  return row ?? null;
+  if (exact) return exact;
+
+  const fallbackKey = snapshotFallbackKey(url);
+  if (!fallbackKey) return null;
+  const fallback = await env.DB.prepare(
+    'SELECT payload, status_code, content_type FROM core_api_snapshots WHERE cache_key = ?1',
+  ).bind(fallbackKey).first<Snapshot>();
+  return fallback ?? null;
 }
 
 function snapshotResponse(snapshot: Snapshot): Response {
