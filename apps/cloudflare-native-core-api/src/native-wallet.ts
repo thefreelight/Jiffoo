@@ -124,13 +124,22 @@ export async function nativeWalletMutate(env: WalletEnv, input: {
   }
   if (!existing) {
     const now = new Date().toISOString();
-    await env.DB.prepare(`INSERT INTO native_wallet_ledger
-      (id, user_id, operation, amount, balance_after, type, description, source_plugin, idempotency_key, reference_id, metadata, created_at)
-      SELECT ?1, ?2, ?3, ?4, 0, ?5, ?6, ?7, ?8, ?9, ?10, ?11
-      WHERE NOT EXISTS (SELECT 1 FROM native_wallet_ledger WHERE idempotency_key = ?8)`)
-      .bind(`wallet_tx_${crypto.randomUUID()}`, userId, input.operation, value, input.type ?? input.operation,
-        input.description ?? `Wallet ${input.operation}`, input.sourcePlugin ?? null, key, input.referenceId ?? null,
-        JSON.stringify(input.metadata ?? {}), now).run();
+    const account = await env.DB.prepare('SELECT balance, reserved_balance FROM native_wallet_accounts WHERE user_id = ?1').bind(userId).first<{ balance: number; reserved_balance: number }>();
+    const current = Number(account?.balance ?? 0);
+    const reserved = Number(account?.reserved_balance ?? 0);
+    if (input.operation === 'debit' && current - reserved < value) throw new Error('INSUFFICIENT_BALANCE');
+    const next = current + (input.operation === 'credit' ? value : -value);
+    await env.DB.batch([
+      env.DB.prepare(`UPDATE native_wallet_accounts SET balance = ?1, total_credited = total_credited + ?2,
+        total_debited = total_debited + ?3, updated_at = ?4 WHERE user_id = ?5`)
+        .bind(next, input.operation === 'credit' ? value : 0, input.operation === 'debit' ? value : 0, now, userId),
+      env.DB.prepare(`INSERT INTO native_wallet_ledger
+        (id, user_id, operation, amount, balance_after, type, description, source_plugin, idempotency_key, reference_id, metadata, created_at)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`)
+        .bind(`wallet_tx_${crypto.randomUUID()}`, userId, input.operation, value, next, input.type ?? input.operation,
+          input.description ?? `Wallet ${input.operation}`, input.sourcePlugin ?? null, key, input.referenceId ?? null,
+          JSON.stringify(input.metadata ?? {}), now),
+    ]);
   }
   const after = await env.DB.prepare('SELECT user_id, operation, amount FROM native_wallet_ledger WHERE idempotency_key = ?1')
     .bind(key).first<{ user_id: string; operation: string; amount: number }>();
@@ -164,11 +173,16 @@ export async function nativeWalletReserve(env: WalletEnv, input: {
   if (Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date()) throw new Error('EXPIRES_AT_INVALID');
   const id = `wallet_res_${crypto.randomUUID()}`;
   const now = new Date().toISOString();
-  await env.DB.prepare(`INSERT INTO native_wallet_reservations
-    (id, user_id, amount, status, expires_at, idempotency_key, reference_id, source_plugin, created_at)
-    SELECT ?1, ?2, ?3, 'reserved', ?4, ?5, ?6, ?7, ?8
-    WHERE NOT EXISTS (SELECT 1 FROM native_wallet_reservations WHERE idempotency_key = ?5)`)
-    .bind(id, userId, value, expiresAt.toISOString(), key, input.referenceId ?? null, input.sourcePlugin ?? null, now).run();
+  const account = await env.DB.prepare('SELECT balance, reserved_balance FROM native_wallet_accounts WHERE user_id = ?1').bind(userId).first<{ balance: number; reserved_balance: number }>();
+  if (Number(account?.balance ?? 0) - Number(account?.reserved_balance ?? 0) < value) throw new Error('INSUFFICIENT_AVAILABLE_BALANCE');
+  await env.DB.batch([
+    env.DB.prepare(`INSERT INTO native_wallet_reservations
+      (id, user_id, amount, status, expires_at, idempotency_key, reference_id, source_plugin, created_at)
+      VALUES (?1, ?2, ?3, 'reserved', ?4, ?5, ?6, ?7, ?8)`)
+      .bind(id, userId, value, expiresAt.toISOString(), key, input.referenceId ?? null, input.sourcePlugin ?? null, now),
+    env.DB.prepare('UPDATE native_wallet_accounts SET reserved_balance = reserved_balance + ?1, updated_at = ?2 WHERE user_id = ?3')
+      .bind(value, now, userId),
+  ]);
   const created = await env.DB.prepare('SELECT * FROM native_wallet_reservations WHERE idempotency_key = ?1')
     .bind(key).first<ReservationRow>();
   if (!created) throw new Error('INSUFFICIENT_AVAILABLE_BALANCE');
@@ -207,6 +221,20 @@ export async function nativeWalletFinish(env: WalletEnv, input: {
     released_at = CASE WHEN ?3 = 'release' THEN ?4 ELSE released_at END
     WHERE id = ?5 AND user_id = ?6 AND status = 'reserved' AND expires_at > ?4`)
     .bind(targetStatus, key, input.action, now, reservationId, userId).run();
+  if (input.action === 'settle') {
+    await env.DB.batch([
+      env.DB.prepare('UPDATE native_wallet_accounts SET balance = balance - ?1, reserved_balance = reserved_balance - ?1, total_debited = total_debited + ?1, updated_at = ?2 WHERE user_id = ?3')
+        .bind(current.amount, now, userId),
+      env.DB.prepare(`INSERT INTO native_wallet_ledger
+        (id, user_id, operation, amount, balance_after, type, description, source_plugin, reference_id, metadata, created_at)
+        SELECT ?1, ?2, 'settlement', ?3, balance, 'settlement', 'Wallet reservation settled', ?4, reference_id, '{}', ?5
+        FROM native_wallet_accounts WHERE user_id = ?2`)
+        .bind(`wallet_tx_${crypto.randomUUID()}`, userId, current.amount, current.sourcePlugin, now),
+    ]);
+  } else {
+    await env.DB.prepare('UPDATE native_wallet_accounts SET reserved_balance = reserved_balance - ?1, updated_at = ?2 WHERE user_id = ?3')
+      .bind(current.amount, now, userId).run();
+  }
   current = await reservationById(env, userId, reservationId);
   if (!current) throw new Error('RESERVATION_NOT_FOUND');
   if (current.status !== targetStatus || current.completionIdempotencyKey !== key || current.completionAction !== input.action) {
