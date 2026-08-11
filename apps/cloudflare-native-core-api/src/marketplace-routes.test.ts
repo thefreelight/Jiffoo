@@ -23,6 +23,16 @@ describe('native marketplace install routes', () => {
     expect(run).toHaveBeenCalledOnce();
   });
 
+  it('installs the baseline affiliate and coupon adapters', async () => {
+    authenticateNativeAdmin.mockResolvedValue(true);
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { items: [{ slug: 'coupon', kind: 'plugin', installable: true, sellableVersion: '0.1.4' }] } })));
+    const run = vi.fn(async () => ({ success: true, meta: { changes: 1 } }));
+    const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run })) })) };
+    const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/coupon/install', { method: 'POST', body: JSON.stringify({ kind: 'plugin' }) }), { DB: db } as never);
+    expect(response?.status).toBe(200);
+    expect(run).toHaveBeenCalledOnce();
+  });
+
   it('fails closed for plugins without a Native runtime adapter', async () => {
     authenticateNativeAdmin.mockResolvedValue(true);
     const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/unknown/install', {

@@ -1,4 +1,5 @@
 import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
+import { isNativePluginEnabled } from './plugin-enabled';
 
 interface AffiliateEnv extends NativeAuthEnv { DB: D1Database }
 type AffiliateDataEnv = Pick<Cloudflare.Env, 'DB'>;
@@ -261,8 +262,9 @@ async function commissions(request: Request, env: AffiliateEnv, user: NativeSess
 export async function tryNativeAffiliate(request: Request, env: AffiliateEnv): Promise<Response | null> {
   const url = new URL(request.url);
   const route = url.pathname.match(/^\/api\/v1\/plugins\/affiliate\/store\/r\/([^/]+)$/);
+  if (!route && !url.pathname.startsWith('/api/v1/plugins/affiliate/store/')) return null;
+  if (!(await isNativePluginEnabled(env, 'affiliate'))) return failure(404, 'PLUGIN_NOT_ENABLED', 'Affiliate plugin is not installed and enabled');
   if (request.method === 'GET' && route) return recordReferral(request, env, decodeURIComponent(route[1]!));
-  if (!url.pathname.startsWith('/api/v1/plugins/affiliate/store/')) return null;
   const user = await currentUser(request, env);
   if (!user) return failure(401, 'UNAUTHORIZED', 'Login required');
   if (request.method === 'POST' && url.pathname === '/api/v1/plugins/affiliate/store/organizations') return createOrganization(request, env, user);

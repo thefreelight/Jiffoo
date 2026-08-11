@@ -1,4 +1,5 @@
 import { authenticateNativeUser, type NativeAuthEnv } from './auth';
+import { isNativePluginEnabled } from './plugin-enabled';
 
 type Env = NativeAuthEnv & { DB: D1Database };
 
@@ -13,6 +14,7 @@ export async function tryNativeSubscription(request: Request, env: Env): Promise
   const url = new URL(request.url);
   const activePath = '/api/v1/extensions/plugin/subscription/api/api/store/subscriptions/active';
   if (request.method !== 'GET' || url.pathname !== activePath) return null;
+  if (!(await isNativePluginEnabled(env, 'subscription'))) return response({ code: 'PLUGIN_NOT_ENABLED', message: 'Subscription plugin is not installed and enabled' }, 404);
   const user = await authenticateNativeUser(request, env);
   if (!user) return response({ code: 'UNAUTHORIZED', message: 'Login required' }, 401);
   const row = await env.DB.prepare(`SELECT plan_name AS planName, plan_slug AS planSlug, status,

@@ -34,6 +34,7 @@ import { tryNativeRemoteRadarExternalApply } from './remoteradar-external-apply'
 import { processPendingRemoteRadarResumeDocuments, tryNativeRemoteRadarResumeDocuments } from './remoteradar-resumes';
 import { tryNativePlatformConnection } from './platform-connection';
 import { tryNativeMarketplace } from './marketplace';
+import { tryNativeCoupon } from './coupon';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv;
 
@@ -230,6 +231,8 @@ export default {
     if (nativeShopperAccount) return nativeShopperAccount;
     const nativeAffiliate = await tryNativeAffiliate(nativeRequest, env);
     if (nativeAffiliate) return nativeAffiliate;
+    const nativeCoupon = await tryNativeCoupon(nativeRequest, env);
+    if (nativeCoupon) return nativeCoupon;
     const nativePluginSettings = await tryNativePluginSettings(nativeRequest, env);
     if (nativePluginSettings) return nativePluginSettings;
     const nativeIntegrationAdmin = await tryNativeIntegrationAdmin(nativeRequest, env);
