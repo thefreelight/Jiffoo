@@ -140,6 +140,9 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
   stripe: {
     category: 'payment',
   },
+  subscription: {
+    category: 'membership',
+  },
   i18n: {
     category: 'localization',
   },
