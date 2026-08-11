@@ -4,6 +4,7 @@
   "description": "Jiffoo Mall API Service",
   "main": "dist/server.js",
   "_moduleAliases": {
+    "@": "dist",
     "@jiffoo/shared": "../../packages/shared/dist/shared/src",
     "@shared/security": "../../packages/shared/dist/shared/src/security",
     "@shared/observability": "../../packages/shared/dist/shared/src/observability",
