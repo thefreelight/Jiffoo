@@ -99,6 +99,14 @@ const definitions: Record<string, PluginDefinition> = {
       webhookSecret: { type: 'secret', sensitive: true, label: 'Fulfillment Webhook Secret' },
     },
   },
+  wallet: {
+    slug: 'wallet', name: 'Virtual Wallet', version: '0.2.0', category: 'billing',
+    description: 'Native credits wallet and transaction ledger.', configSchema: {},
+  },
+  subscription: {
+    slug: 'subscription', name: 'Subscription & Membership', version: '0.1.10', category: 'billing',
+    description: 'Native subscription and membership status.', configSchema: {},
+  },
 };
 
 const encoder = new TextEncoder();
