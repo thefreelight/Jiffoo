@@ -3,6 +3,7 @@
   "version": "1.0.85-opensource",
   "description": "Jiffoo open-source core for self-hosted commerce deployments",
   "_moduleAliases": {
+    "@": "apps/api/dist",
     "@shared/security": "packages/shared/dist/shared/src/security",
     "@shared/observability": "packages/shared/dist/shared/src/observability",
     "shared/logger": "packages/shared/dist/shared/src/logger",
