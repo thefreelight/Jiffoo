@@ -1,4 +1,5 @@
 import { authenticateNativeAdmin, authenticateNativeUser, type NativeAuthEnv } from './auth';
+import { isNativePluginEnabled } from './plugin-enabled';
 
 type CouponEnv = NativeAuthEnv & { DB: D1Database };
 
@@ -9,6 +10,7 @@ function reply(data: unknown, status = 200): Response {
 export async function tryNativeCoupon(request: Request, env: CouponEnv): Promise<Response | null> {
   const url = new URL(request.url);
   if (!url.pathname.startsWith('/api/v1/plugins/coupon/')) return null;
+  if (!(await isNativePluginEnabled(env, 'coupon'))) return reply({ code: 'PLUGIN_NOT_ENABLED', message: 'Coupon plugin is not installed and enabled' }, 404);
   if (request.method === 'POST' && url.pathname === '/api/v1/plugins/coupon/admin/codes') {
     if (!(await authenticateNativeAdmin(request, env))) return reply({ code: 'UNAUTHORIZED', message: 'Administrator authentication is required' }, 401);
     const body = await request.json<{ code?: string; discountType?: string; discountValue?: number; usageLimit?: number; expiresAt?: string }>().catch(() => null);
