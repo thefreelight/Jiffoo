@@ -238,10 +238,11 @@ function response(data: unknown, status = 200): Response {
 export async function tryNativeWallet(request: Request, env: WalletRouteEnv): Promise<Response | null> {
   const url = new URL(request.url);
   const base = '/api/v1/plugins/wallet/store';
-  if (!url.pathname.startsWith(`${base}/`)) return null;
+  const gatewayBase = '/api/v1/extensions/plugin/wallet/api/api';
+  if (!url.pathname.startsWith(`${base}/`) && !url.pathname.startsWith(`${gatewayBase}/`)) return null;
   const user = await authenticateNativeUser(request, env);
   if (!user) return response({ code: 'UNAUTHORIZED', message: 'Login required' }, 401);
-  const path = url.pathname.slice(base.length);
+  const path = url.pathname.startsWith(`${base}/`) ? url.pathname.slice(base.length) : url.pathname.slice(gatewayBase.length);
   if (request.method === 'GET' && path === '/balance') return response(await nativeWalletBalance(env, user.id));
   if (request.method === 'GET' && path === '/history') {
     const rows = await env.DB.prepare(`SELECT id, operation, amount, balance_after AS balanceAfter, type, description,

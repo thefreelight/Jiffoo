@@ -21,6 +21,8 @@ describe('native D1 wallet', () => {
     const db = { prepare: vi.fn(() => statement()) };
     const balance = await tryNativeWallet(new Request('https://api.example/api/v1/plugins/wallet/store/balance'), { DB: db } as never);
     expect(balance?.status).toBe(200);
+    const gatewayBalance = await tryNativeWallet(new Request('https://api.example/api/v1/extensions/plugin/wallet/api/api/balance'), { DB: db } as never);
+    expect(gatewayBalance?.status).toBe(200);
     const mutation = await tryNativeWallet(new Request('https://api.example/api/v1/plugins/wallet/store/reserve', { method: 'POST' }), { DB: db } as never);
     expect(mutation?.status).toBe(404);
   });
