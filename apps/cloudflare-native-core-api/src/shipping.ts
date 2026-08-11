@@ -20,7 +20,7 @@ const manualMethod = {
   currency: 'USD',
   estimatedDays: null,
   isFree: true,
-  pluginSlug: 'manual-shipping',
+  pluginSlug: 'shipping',
 };
 
 function success(data: unknown): Response {
