@@ -26,6 +26,7 @@ import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
 import { processNativeJobsSync, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
 import { tryNativeRemoteRadarApplications } from './remoteradar-applications';
 import { expireNativeWalletReservations, tryNativeWallet } from './native-wallet';
+import { tryNativeAvailableMethods } from './available-methods';
 import { tryNativeSubscription } from './native-subscription';
 import { expireRemoteRadarCreditGrants, tryNativeRemoteRadarEntitlements } from './remoteradar-entitlements';
 import { tryNativeRemoteRadarSmtp } from './remoteradar-smtp';
@@ -69,7 +70,6 @@ const NATIVE_READ_PATHS = [
   /^\/api\/v1\/admin\/commercial-package\/branding$/,
   /^\/api\/v1\/shop\/plugins(?:\/.*)?$/,
   /^\/api\/v1\/shop\/auth\/(?:capabilities|providers)$/,
-  /^\/api\/v1\/(?:payments|shipping)\/available-methods$/,
 ];
 
 function runtimeHeaders(runtime: string, headers?: HeadersInit): Headers {
@@ -234,6 +234,8 @@ export default {
     if (nativePluginSettings) return nativePluginSettings;
     const nativeIntegrationAdmin = await tryNativeIntegrationAdmin(nativeRequest, env);
     if (nativeIntegrationAdmin) return nativeIntegrationAdmin;
+    const nativeAvailableMethods = await tryNativeAvailableMethods(nativeRequest, env);
+    if (nativeAvailableMethods) return nativeAvailableMethods;
     const nativeOdooCatalogSync = await tryNativeOdooCatalogSync(nativeRequest, env);
     if (nativeOdooCatalogSync) return nativeOdooCatalogSync;
     const nativeAdminDashboard = await tryNativeAdminDashboard(nativeRequest, env);
