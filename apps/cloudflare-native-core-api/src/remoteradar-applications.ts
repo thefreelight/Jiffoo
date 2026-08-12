@@ -55,6 +55,38 @@ async function user(request: Request, env: RemoteRadarApplicationsEnv): Promise<
 async function body(request: Request): Promise<Record<string, unknown>> { return request.json<Record<string, unknown>>().catch(() => ({})); }
 function rejectProvenance(input: Record<string, unknown>): boolean { return Object.prototype.hasOwnProperty.call(input, 'sourceUrl') || Object.prototype.hasOwnProperty.call(input, 'provenance') || Object.prototype.hasOwnProperty.call(input, 'canonicalUrl') || Object.prototype.hasOwnProperty.call(input, 'source'); }
 
+const PRIVATE_EXPORT_KEYS = new Set(['source', 'sourceUrl', 'canonicalUrl', 'connector', 'provenance', 'targetUrl', 'url']);
+function exportValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(exportValue);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).filter(([key]) => !PRIVATE_EXPORT_KEYS.has(key)).map(([key, item]) => [key, exportValue(item)]));
+}
+function exportText(value: unknown): string { return typeof value === 'string' ? value : value == null ? '' : JSON.stringify(exportValue(value), null, 2); }
+function pdfEscape(value: string): string { return value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/[^\x20-\x7e\n]/g, '?'); }
+function makePdf(lines: string[]): Uint8Array {
+  const safeLines = lines.flatMap((line) => line.match(/.{1,95}/g) ?? ['']);
+  const content = ['BT', '/F1 11 Tf', '50 790 Td', ...safeLines.flatMap((line, index) => [index === 0 ? `(${pdfEscape(line)}) Tj` : `0 -15 Td (${pdfEscape(line)}) Tj`]), 'ET'].join('\n');
+  const objects = [`1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj`, `2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj`, `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj`, `4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj`, `5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj`];
+  let output = '%PDF-1.4\n'; const offsets = [0];
+  for (const object of objects) { offsets.push(output.length); output += `${object}\n`; }
+  const xref = output.length; output += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.slice(1).map((offset) => `${String(offset).padStart(10, '0')} 00000 n `).join('\n')}\ntrailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  return new TextEncoder().encode(output);
+}
+async function exportApplicationPack(env: RemoteRadarApplicationsEnv, userId: string, packId: string, format: string): Promise<Response> {
+  if (!['md', 'html', 'pdf'].includes(format)) return fail(400, 'EXPORT_FORMAT_INVALID', 'format must be md, html, or pdf');
+  const row = await env.DB.prepare(`SELECT p.id, p.saved_job_id, p.approved_version_id, v.id AS version_id, v.version, v.resume_snapshot, v.cover_letter, v.answers, v.approved_at
+    FROM native_rr_application_packs p JOIN native_rr_application_pack_versions v ON v.id = p.approved_version_id AND v.pack_id = p.id AND v.user_id = p.user_id
+    WHERE p.id = ?1 AND p.user_id = ?2 AND p.approved_version_id IS NOT NULL AND v.approved_at IS NOT NULL`).bind(packId, userId).first<Record<string, unknown>>();
+  if (!row) return fail(404, 'APPROVED_PACK_NOT_FOUND', 'An approved application pack was not found');
+  const resumeSnapshot = exportValue(JSON.parse(String(row.resume_snapshot))) as Record<string, unknown>;
+  const answers = exportValue(JSON.parse(String(row.answers))) as Record<string, unknown>;
+  const markdown = `# Application Pack\n\n## Tailored Resume\n\n${exportText(resumeSnapshot)}\n\n## Cover Letter\n\n${exportText(row.cover_letter)}\n\n## Application Answers\n\n${exportText(answers)}`;
+  const filename = `remoteradar-application-pack-v${row.version}`;
+  if (format === 'md') return new Response(markdown, { headers: { 'content-type': 'text/markdown; charset=utf-8', 'content-disposition': `attachment; filename="${filename}.md"`, 'cache-control': 'no-store' } });
+  if (format === 'html') { const html = `<!doctype html><meta charset="utf-8"><title>RemoteRadar Application Pack</title><pre>${markdown.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`; return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'content-disposition': `attachment; filename="${filename}.html"`, 'cache-control': 'no-store' } }); }
+  return new Response(makePdf(markdown.split('\n')), { headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="${filename}.pdf"`, 'cache-control': 'no-store' } });
+}
+
 interface PackCharge {
   id: string; user_id: string; idempotency_key: string; operation: 'create' | 'regenerate';
   target_pack_id: string | null; grant_id: string | null; wallet_reservation_id: string | null;
@@ -393,6 +425,7 @@ export async function tryNativeRemoteRadarApplications(request: Request, env: Re
   if (request.method === 'GET' && path === '/saved-jobs') return listSavedJobs(env, current.id);
   if (request.method === 'POST' && path === '/saved-jobs') return saveJob(request, env, current.id);
   if (request.method === 'GET' && path === '/application-packs') return listPacks(env, current.id);
+  const exportMatch = path.match(/^\/application-packs\/([^/]+)\/export$/); if (exportMatch && request.method === 'GET') return exportApplicationPack(env, current.id, decodeURIComponent(exportMatch[1]!), url.searchParams.get('format') ?? 'md');
   if (request.method === 'POST' && path === '/application-packs/generate') return generatePack(request, env, current.id);
   if (request.method === 'POST' && path === '/application-packs') return createPack(request, env, current.id);
   const versionMatch = path.match(/^\/application-packs\/([^/]+)\/versions$/); if (versionMatch && request.method === 'POST') return createPackVersion(request, env, current.id, decodeURIComponent(versionMatch[1]!));

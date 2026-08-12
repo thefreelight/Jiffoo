@@ -82,6 +82,35 @@ function meteredDatabase(options: { failArtifactWrite?: boolean; failReservation
 
 describe('native RemoteRadar applications adapter', () => {
   beforeEach(() => vi.clearAllMocks());
+  it('exports only the approved version in markdown, html, and real PDF formats', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const db = database();
+    db.prepare.mockImplementation((sql: string) => ({ bind: (..._args: unknown[]) => ({
+      first: async () => sql.includes('approved_version_id') ? {
+        id: 'pack-1', saved_job_id: 'job-1', approved_version_id: 'version-2', version_id: 'version-2', version: 2,
+        resume_snapshot: JSON.stringify({ summary: 'TypeScript', sourceUrl: 'https://competitor.invalid' }), cover_letter: 'Hello', answers: JSON.stringify({ source: 'hidden', q1: 'A' }), approved_at: '2026-08-12T00:00:00.000Z',
+      } : null,
+      all: async () => ({ results: [] }), run: async () => ({ success: true }),
+    }) }));
+    for (const format of ['md', 'html', 'pdf']) {
+      const response = await tryNativeRemoteRadarApplications(new Request(`${baseUrl}/application-packs/pack-1/export?format=${format}`), { DB: db, CORE_ORIGIN: 'https://core.invalid' } as never);
+      expect(response?.status).toBe(200);
+      expect(response?.headers.get('cache-control')).toBe('no-store');
+      expect(response?.headers.get('content-disposition')).toContain(`remoteradar-application-pack-v2.${format}`);
+      const body = format === 'pdf' ? new Uint8Array(await response!.arrayBuffer()) : await response!.text();
+      expect(typeof body === 'string' ? body : new TextDecoder().decode(body)).not.toContain('competitor.invalid');
+      if (format === 'pdf') expect(new TextDecoder().decode(body).startsWith('%PDF-1.4')).toBe(true);
+    }
+  });
+
+  it('rejects export when the pack has no approved immutable version', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const db = database();
+    db.prepare.mockImplementation((sql: string) => ({ bind: (..._args: unknown[]) => ({ first: async () => null, all: async () => ({ results: [] }), run: async () => ({ success: true }) }) }));
+    const response = await tryNativeRemoteRadarApplications(new Request(`${baseUrl}/application-packs/pack-1/export?format=pdf`), { DB: db, CORE_ORIGIN: 'https://core.invalid' } as never);
+    expect(response?.status).toBe(404);
+    expect((await response!.json()).error.code).toBe('APPROVED_PACK_NOT_FOUND');
+  });
   it('settles exactly one reserved credit and replays the same pack without another charge', async () => {
     authenticateNativeUser.mockResolvedValue({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
     remoteRadarAllowanceStatus.mockResolvedValue({ totalRemaining: 2 });
