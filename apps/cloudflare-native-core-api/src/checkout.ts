@@ -1,5 +1,6 @@
 import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
 import { getNativePluginSecret } from './plugin-settings';
+import { settleNativeWalletCheckout } from './native-wallet';
 
 type CheckoutEnv = Pick<Cloudflare.Env,
   'DB' | 'JWT_SECRET' | 'STRIPE_SECRET_KEY' | 'STRIPE_WEBHOOK_SECRET' | 'NATIVE_CHECKOUT_ENABLED'>;
@@ -380,6 +381,12 @@ async function handleStripeWebhook(request: Request, env: CheckoutEnv): Promise<
   const metadata = object.metadata && typeof object.metadata === 'object' ? object.metadata as Record<string, unknown> : {};
   const orderId = typeof metadata.orderId === 'string' ? metadata.orderId : null;
   const sessionId = typeof object.id === 'string' ? object.id : null;
+  const paid = (event.type === 'checkout.session.completed' && object.payment_status === 'paid')
+    || event.type === 'checkout.session.async_payment_succeeded';
+  if (sessionId && !orderId && paid && typeof metadata.walletCheckoutId === 'string') {
+    const settled = await settleNativeWalletCheckout(env, metadata, sessionId);
+    return success({ received: true, handled: Boolean(settled), applied: Boolean(settled), duplicate: false, normalizedStatus: settled ? 'succeeded' : 'ignored' });
+  }
   if (!sessionId || !orderId) return null;
   const nativeSession = await env.DB.prepare(
     'SELECT id FROM native_payment_sessions WHERE id = ?1 AND order_id = ?2',
@@ -388,8 +395,6 @@ async function handleStripeWebhook(request: Request, env: CheckoutEnv): Promise<
   const existing = await env.DB.prepare('SELECT provider_event_id FROM native_payment_events WHERE provider_event_id = ?1')
     .bind(event.id).first<{ provider_event_id: string }>();
   if (existing) return success({ received: true, handled: true, applied: false, duplicate: true, normalizedStatus: 'succeeded' });
-  const paid = (event.type === 'checkout.session.completed' && object.payment_status === 'paid')
-    || event.type === 'checkout.session.async_payment_succeeded';
   const now = new Date().toISOString();
   const statements: D1PreparedStatement[] = [env.DB.prepare(
     `INSERT INTO native_payment_events (provider_event_id, provider, event_type, received_at)
