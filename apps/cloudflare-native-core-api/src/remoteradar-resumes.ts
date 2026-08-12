@@ -87,14 +87,13 @@ async function editFact(request: Request, env: Env, resumeId: string, factId: st
     return fail('VALIDATION_ERROR', 'kind, label, or value is required');
   }
   const now = new Date().toISOString();
-  const confirmedAt = current.confirmed_at === null ? null : now;
   try {
-    await env.DB.prepare('UPDATE native_rr_resume_facts SET kind=?1,label=?2,value=?3,confirmed_at=?4,updated_at=?5 WHERE id=?6 AND resume_id=?7 AND user_id=?8').bind(kind, label, factValue, confirmedAt, now, factId, resumeId, userId).run();
+    await env.DB.prepare('UPDATE native_rr_resume_facts SET kind=?1,label=?2,value=?3,updated_at=?4 WHERE id=?5 AND resume_id=?6 AND user_id=?7').bind(kind, label, factValue, now, factId, resumeId, userId).run();
   } catch {
     return fail('RESUME_FACT_CONFLICT', 'A fact with this kind and label already exists', 409);
   }
   const version = await createVersion(env, userId, resumeId, null);
-  return Response.json({ success: true, data: { fact: fact({ ...current, kind, label, value: factValue, confirmed_at: confirmedAt, updated_at: now }), version } }, { headers: { 'cache-control': 'no-store' } });
+  return Response.json({ success: true, data: { fact: fact({ ...current, kind, label, value: factValue, updated_at: now }), version } }, { headers: { 'cache-control': 'no-store' } });
 }
 
 async function setFactActive(env: Env, resumeId: string, factId: string, userId: string, active: boolean): Promise<Response> {
@@ -165,7 +164,7 @@ export async function tryNativeRemoteRadarResumeDocuments(request: Request, env:
       return Response.json({ success: true, data: { id: draftId, status: 'rejected' } }, { headers: { 'cache-control': 'no-store' } });
     }
     const factId = crypto.randomUUID();
-    await env.DB.prepare(`INSERT INTO native_rr_resume_facts (id,user_id,resume_id,kind,label,value,confirmed_at,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?7,?7) ON CONFLICT(user_id,resume_id,kind,label) DO UPDATE SET value=excluded.value,confirmed_at=excluded.confirmed_at,updated_at=excluded.updated_at`).bind(factId, user.id, resumeId, draft.kind, draft.label, draft.value, now).run();
+    await env.DB.prepare(`INSERT INTO native_rr_resume_facts (id,user_id,resume_id,kind,label,value,is_active,confirmed_at,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,1,?7,?7,?7) ON CONFLICT(user_id,resume_id,kind,label) DO UPDATE SET value=excluded.value,is_active=1,confirmed_at=excluded.confirmed_at,updated_at=excluded.updated_at`).bind(factId, user.id, resumeId, draft.kind, draft.label, draft.value, now).run();
     const fact = await env.DB.prepare('SELECT id FROM native_rr_resume_facts WHERE user_id=?1 AND resume_id=?2 AND kind=?3 AND label=?4').bind(user.id, resumeId, draft.kind, draft.label).first<{ id: string }>();
     await env.DB.prepare("UPDATE remoteradar_resume_fact_drafts SET status='confirmed',confirmed_fact_id=?2,updated_at=?3 WHERE id=?1").bind(draftId, fact?.id ?? factId, now).run();
     const version = await createVersion(env, user.id, resumeId, String(draft.document_id));

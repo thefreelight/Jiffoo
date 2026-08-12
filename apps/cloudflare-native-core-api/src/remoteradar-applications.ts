@@ -34,7 +34,7 @@ function resume(row: Record<string, unknown>, facts: Array<Record<string, unknow
   return { id: row.id, name: row.name, summary: row.summary, facts, createdAt: row.created_at, updatedAt: row.updated_at };
 }
 function fact(row: Record<string, unknown>): Record<string, unknown> {
-  return { id: row.id, resumeId: row.resume_id, kind: row.kind, label: row.label, value: row.value, confirmedAt: row.confirmed_at, createdAt: row.created_at, updatedAt: row.updated_at };
+  return { id: row.id, resumeId: row.resume_id, kind: row.kind, label: row.label, value: row.value, active: row.is_active !== 0, confirmedAt: row.confirmed_at, createdAt: row.created_at, updatedAt: row.updated_at };
 }
 function savedJob(row: Record<string, unknown>): Record<string, unknown> {
   return { id: row.id, title: row.title, company: row.company, location: row.location, description: row.description, createdAt: row.created_at, updatedAt: row.updated_at };
@@ -183,8 +183,8 @@ async function confirmFact(request: Request, env: RemoteRadarApplicationsEnv, us
   if (!owned) return fail(404, 'RESUME_NOT_FOUND', 'Resume was not found');
   const now = new Date().toISOString(); const existing = await env.DB.prepare('SELECT id, created_at FROM native_rr_resume_facts WHERE user_id = ?1 AND resume_id = ?2 AND kind = ?3 AND label = ?4').bind(userId, resumeId, kind, label).first<{ id: string; created_at: string }>();
   const id = existing?.id ?? crypto.randomUUID();
-  await env.DB.prepare(`INSERT INTO native_rr_resume_facts (id, user_id, resume_id, kind, label, value, confirmed_at, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?7) ON CONFLICT(user_id, resume_id, kind, label) DO UPDATE SET value = excluded.value, confirmed_at = excluded.confirmed_at, updated_at = excluded.updated_at`).bind(id, userId, resumeId, kind, label, value, now, existing?.created_at ?? now).run();
-  return response(fact({ id, resume_id: resumeId, kind, label, value, confirmed_at: now, created_at: existing?.created_at ?? now, updated_at: now }));
+  await env.DB.prepare(`INSERT INTO native_rr_resume_facts (id, user_id, resume_id, kind, label, value, is_active, confirmed_at, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, 1, ?7, ?8, ?7) ON CONFLICT(user_id, resume_id, kind, label) DO UPDATE SET value = excluded.value, is_active = 1, confirmed_at = excluded.confirmed_at, updated_at = excluded.updated_at`).bind(id, userId, resumeId, kind, label, value, now, existing?.created_at ?? now).run();
+  return response(fact({ id, resume_id: resumeId, kind, label, value, is_active: 1, confirmed_at: now, created_at: existing?.created_at ?? now, updated_at: now }));
 }
 async function listSavedJobs(env: RemoteRadarApplicationsEnv, userId: string): Promise<Response> { const rows = await env.DB.prepare('SELECT * FROM native_rr_saved_jobs WHERE user_id = ?1 ORDER BY updated_at DESC').bind(userId).all<Record<string, unknown>>(); return response(rows.results.map(savedJob)); }
 async function saveJob(request: Request, env: RemoteRadarApplicationsEnv, userId: string): Promise<Response> {

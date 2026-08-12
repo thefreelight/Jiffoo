@@ -107,9 +107,13 @@ describe('RemoteRadar resume extraction', () => {
     const state = routeEnv({ fact: current, facts: [{ ...current, value: '6 years' }] });
     const response = await tryNativeRemoteRadarResumeDocuments(new Request(`${base}/resume-1/facts/fact-1`, { method: 'PATCH', body: JSON.stringify({ value: '6 years' }) }), state as never);
     expect(response?.status).toBe(200);
-    expect(state.statements[0]).toMatchObject({ sql: expect.stringContaining('WHERE id=?6 AND resume_id=?7 AND user_id=?8') });
+    expect(state.statements[0]).toMatchObject({
+      sql: expect.stringContaining('WHERE id=?5 AND resume_id=?6 AND user_id=?7'),
+      args: ['skill', 'TypeScript', '6 years', expect.any(String), 'fact-1', 'resume-1', 'user-1'],
+    });
     const payload = JSON.stringify(await response?.json());
     expect(payload).toContain('6 years');
+    expect(payload).toContain('confirmed');
     expect(payload).not.toMatch(/object_key|sourceDocumentId|provenance/i);
   });
 
