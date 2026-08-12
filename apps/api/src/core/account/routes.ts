@@ -22,6 +22,7 @@ const userProfileSchema = {
     avatar: { type: ['string', 'null'] },
     role: { type: 'string' },
     isActive: { type: 'boolean' },
+    emailVerified: { type: 'boolean' },
     orderCount: { type: 'number' },
     totalOrders: { type: 'number' },
     totalSpent: { type: 'number' },
@@ -41,7 +42,7 @@ const userProfileSchema = {
       additionalProperties: false,
     },
   },
-  required: ['id', 'email', 'username', 'avatar', 'role', 'isActive', 'orderCount', 'totalOrders', 'totalSpent', 'createdAt', 'updatedAt'],
+  required: ['id', 'email', 'username', 'avatar', 'role', 'isActive', 'emailVerified', 'orderCount', 'totalOrders', 'totalSpent', 'createdAt', 'updatedAt'],
   additionalProperties: false,
 } as const;
 
@@ -187,7 +188,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
     try {
       const updateData = UpdateEmailSchema.parse(request.body);
       const updatedProfile = await AccountService.updateEmail(request.user!.id, updateData);
-      return sendSuccess(reply, updatedProfile, 'Email updated successfully');
+      return sendSuccess(reply, updatedProfile, 'Email updated. Verify the code sent to your new address.');
     } catch (error: unknown) {
       const mapped = mapAccountRouteError(error, {
         defaultStatus: 500,
