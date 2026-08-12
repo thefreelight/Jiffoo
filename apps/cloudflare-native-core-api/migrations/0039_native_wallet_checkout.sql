@@ -17,4 +17,4 @@ CREATE INDEX IF NOT EXISTS native_wallet_checkout_user_idx
   ON native_wallet_checkout_sessions(user_id, created_at DESC);
 
 INSERT OR REPLACE INTO runtime_metadata (key, value, updated_at)
-VALUES ('core_schema_version', '0037', CURRENT_TIMESTAMP);
+VALUES ('core_schema_version', '0039', CURRENT_TIMESTAMP);
