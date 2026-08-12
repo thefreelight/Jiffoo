@@ -213,10 +213,59 @@ async function updateEmail(request: Request, env: NativeAuthEnv): Promise<Respon
   const existing = await findNativeUserByEmail(env, email);
   if (existing && existing.id !== user.id) return error(409, 'CONFLICT', 'Email is already registered');
   await env.DB.prepare(
-    'UPDATE native_users SET email = ?1, updated_at = CURRENT_TIMESTAMP WHERE id = ?2',
+    `UPDATE native_users SET email = ?1, email_verified = 0, verification_code_hash = NULL,
+       verification_expires_at = NULL, verification_attempts = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?2`,
   ).bind(email, user.id).run();
+  try {
+    await sendNativeVerificationCode(env, { id: user.id, email, username: user.username });
+  } catch (cause) {
+    await env.DB.prepare(
+      `UPDATE native_users SET email = ?1, email_verified = ?2, verification_code_hash = NULL,
+         verification_expires_at = NULL, verification_attempts = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?3`,
+    ).bind(user.email, user.email_verified, user.id).run();
+    return error(503, 'EMAIL_UNAVAILABLE', cause instanceof Error ? cause.message : 'Verification email could not be sent');
+  }
   const updated = await findNativeUserById(env, user.id);
-  return success(await profile(env, updated!), 200, 'Email updated successfully');
+  const response = success({ profile: await profile(env, updated!), emailVerificationRequired: true }, 200, 'Email updated; verification code sent');
+  clearShopCookies(response.headers);
+  return response;
+}
+
+async function exportAccount(request: Request, env: NativeAuthEnv): Promise<Response> {
+  const user = await authenticatedUser(request, env);
+  if (!user) return error(401, 'UNAUTHORIZED', 'Authentication required');
+  const [resumes, facts, savedJobs, packs, versions, applications, submissions, interviews, smtp] = await Promise.all([
+    env.DB.prepare('SELECT id, name, summary, created_at, updated_at FROM native_rr_resumes WHERE user_id = ?1 ORDER BY updated_at DESC').bind(user.id).all(),
+    env.DB.prepare('SELECT id, resume_id, kind, label, value, confirmed_at, created_at, updated_at FROM native_rr_resume_facts WHERE user_id = ?1 ORDER BY created_at ASC').bind(user.id).all(),
+    env.DB.prepare('SELECT id, title, company, location, description, created_at, updated_at FROM native_rr_saved_jobs WHERE user_id = ?1 ORDER BY updated_at DESC').bind(user.id).all(),
+    env.DB.prepare('SELECT id, saved_job_id, resume_id, approved_version_id, created_at, updated_at FROM native_rr_application_packs WHERE user_id = ?1 ORDER BY updated_at DESC').bind(user.id).all(),
+    env.DB.prepare('SELECT id, pack_id, version, resume_snapshot, cover_letter, answers, approved_at, created_at FROM native_rr_application_pack_versions WHERE user_id = ?1 ORDER BY created_at ASC').bind(user.id).all(),
+    env.DB.prepare('SELECT id, saved_job_id, pack_id, pack_version_id, status, applied_at, note, created_at, updated_at FROM native_rr_job_applications WHERE user_id = ?1 ORDER BY updated_at DESC').bind(user.id).all(),
+    env.DB.prepare('SELECT id, application_id, pack_version_id, channel, transport, recipient, subject, status, error_code, sent_at, created_at, updated_at FROM remoteradar_application_submissions WHERE user_id = ?1 ORDER BY created_at DESC').bind(user.id).all(),
+    env.DB.prepare('SELECT id, application_id, starts_at, ends_at, timezone, meeting_url, notes, status, reminder_at, created_at, updated_at FROM remoteradar_interviews WHERE user_id = ?1 ORDER BY starts_at ASC').bind(user.id).all(),
+    env.DB.prepare('SELECT host, port, secure, username, from_email, from_name, reply_to, enabled, created_at, updated_at FROM remoteradar_user_smtp_configs WHERE user_id = ?1').bind(user.id).all(),
+  ]);
+  return new Response(JSON.stringify({
+    exportedAt: new Date().toISOString(),
+    account: nativePublicUser(user),
+    resumes: resumes.results,
+    resumeFacts: facts.results,
+    savedJobs: savedJobs.results,
+    applicationPacks: packs.results,
+    applicationPackVersions: versions.results,
+    applications: applications.results,
+    submissions: submissions.results,
+    interviews: interviews.results,
+    smtp: smtp.results,
+  }), {
+    status: 200,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'content-disposition': 'attachment; filename="remoteradar-account-export.json"',
+      'cache-control': 'no-store',
+      'x-jiffoo-runtime': RUNTIME,
+    },
+  });
 }
 
 async function deleteAccount(request: Request, env: NativeAuthEnv): Promise<Response> {
@@ -262,6 +311,7 @@ export async function tryNativeShopperAccount(request: Request, env: NativeAuthE
   if (path === '/api/v1/account/profile' && request.method === 'GET') return getProfile(request, env);
   if (path === '/api/v1/account/profile' && request.method === 'PUT') return updateProfile(request, env);
   if (path === '/api/v1/account/email' && request.method === 'PUT') return updateEmail(request, env);
+  if (path === '/api/v1/account/export' && request.method === 'GET') return exportAccount(request, env);
   if (path === '/api/v1/account' && request.method === 'DELETE') return deleteAccount(request, env);
 
   if (/^\/api\/v1\/shop\/auth\/(?:login\/code(?:\/verify)?|register\/code|password\/(?:code|reset))$/.test(path)) {

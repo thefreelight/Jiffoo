@@ -223,7 +223,7 @@ export async function authenticateNativeUser(request: Request, env: NativeAuthEn
   if (!payload || payload.type === 'refresh' || payload.iss !== 'jiffoo-shop' || payload.aud !== 'shop') return null;
   if (typeof payload.userId !== 'string') return null;
   const user = await env.DB.prepare('SELECT * FROM native_users WHERE id = ?1').bind(payload.userId).first<NativeUser>();
-  return user?.is_active ? nativePublicUser(user) : null;
+  return user?.is_active && user.email_verified ? nativePublicUser(user) : null;
 }
 
 export async function authenticateNativeAdmin(request: Request, env: NativeAuthEnv): Promise<NativeSessionUser | null> {
@@ -519,7 +519,12 @@ export async function tryNativeAuth(
     const payload = await verifyJwt(secret, token);
     if (!payload || payload.type !== 'refresh' || payload.iss !== 'jiffoo-shop' || payload.aud !== 'shop') return null;
     const user = await env.DB.prepare('SELECT * FROM native_users WHERE id = ?1').bind(payload.userId).first<NativeUser>();
-    if (!user?.is_active) return null;
+    if (!user?.is_active || !user.email_verified) {
+      return Response.json(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
+        { status: 401, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth', 'cache-control': 'no-store' } },
+      );
+    }
     const session = await createNativeSession(env, nativePublicUser(user));
     return new Response(JSON.stringify(session.body), { status: 200, headers: session.headers });
   }
@@ -529,7 +534,12 @@ export async function tryNativeAuth(
     request.method === 'GET'
   ) {
     const user = await authenticateNativeUser(request, env);
-    if (!user) return null;
+    if (!user) {
+      return Response.json(
+        { success: false, error: { code: 'UNAUTHORIZED', message: 'Authentication required' } },
+        { status: 401, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth', 'cache-control': 'no-store' } },
+      );
+    }
     return Response.json(
       { success: true, data: { ...user, isActive: true } },
       { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
