@@ -233,7 +233,7 @@ async function generatePack(request: Request, env: RemoteRadarApplicationsEnv, u
   const [job, resumeRow, facts] = await Promise.all([
     env.DB.prepare('SELECT id, title, company, location, description FROM native_rr_saved_jobs WHERE id = ?1 AND user_id = ?2').bind(savedJobId, userId).first<{ id: string; title: string; company: string; location: string | null; description: string }>(),
     env.DB.prepare('SELECT id, name, summary FROM native_rr_resumes WHERE id = ?1 AND user_id = ?2').bind(resumeId, userId).first<{ id: string; name: string; summary: string }>(),
-    env.DB.prepare('SELECT id, kind, label, value FROM native_rr_resume_facts WHERE resume_id = ?1 AND user_id = ?2 AND confirmed_at IS NOT NULL ORDER BY created_at ASC LIMIT 50').bind(resumeId, userId).all<{ id: string; kind: string; label: string; value: string }>(),
+    env.DB.prepare('SELECT id, kind, label, value FROM native_rr_resume_facts WHERE resume_id = ?1 AND user_id = ?2 AND confirmed_at IS NOT NULL AND is_active = 1 ORDER BY created_at ASC LIMIT 50').bind(resumeId, userId).all<{ id: string; kind: string; label: string; value: string }>(),
   ]);
   if (!job || !resumeRow) return fail(404, 'PACK_INPUT_NOT_FOUND', 'Saved job or resume was not found');
   if (facts.results.length === 0) return fail(409, 'CONFIRMED_RESUME_FACTS_REQUIRED', 'Confirm resume facts before generating an application pack');
