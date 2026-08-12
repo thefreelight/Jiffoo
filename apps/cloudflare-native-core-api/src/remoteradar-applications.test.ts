@@ -141,6 +141,7 @@ describe('native RemoteRadar applications adapter', () => {
       job: expect.objectContaining({ title: 'Engineer', company: 'Acme' }),
       facts: [expect.objectContaining({ id: 'fact-1', label: 'TypeScript' })],
     }));
+    expect(state.prepare).toHaveBeenCalledWith(expect.stringContaining('confirmed_at IS NOT NULL AND is_active = 1'));
     expect(nativeWalletFinish).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ action: 'settle' }));
     const payload = await result?.json() as { data: { versions: Array<{ resumeSnapshot: Record<string, unknown> }> } };
     expect(payload.data.versions[0]?.resumeSnapshot).toMatchObject({ name: 'Primary resume' });
