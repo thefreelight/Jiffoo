@@ -2,6 +2,7 @@ import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } fr
 import { nativeWalletFinish, nativeWalletMutate, nativeWalletReserve } from './native-wallet';
 import { remoteRadarAllowanceStatus } from './remoteradar-entitlements';
 import { generateApplicationPack, type RemoteRadarPackGeneratorEnv } from './remoteradar-pack-generator';
+import { renderRemoteRadarPdf } from './remoteradar-pdf';
 import { sendSmtpEmail } from './smtp';
 
 interface RemoteRadarApplicationsEnv extends NativeAuthEnv, RemoteRadarPackGeneratorEnv { DB: D1Database }
@@ -62,16 +63,6 @@ function exportValue(value: unknown): unknown {
   return Object.fromEntries(Object.entries(value as Record<string, unknown>).filter(([key]) => !PRIVATE_EXPORT_KEYS.has(key)).map(([key, item]) => [key, exportValue(item)]));
 }
 function exportText(value: unknown): string { return typeof value === 'string' ? value : value == null ? '' : JSON.stringify(exportValue(value), null, 2); }
-function pdfEscape(value: string): string { return value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)').replace(/[^\x20-\x7e\n]/g, '?'); }
-function makePdf(lines: string[]): Uint8Array {
-  const safeLines = lines.flatMap((line) => line.match(/.{1,95}/g) ?? ['']);
-  const content = ['BT', '/F1 11 Tf', '50 790 Td', ...safeLines.flatMap((line, index) => [index === 0 ? `(${pdfEscape(line)}) Tj` : `0 -15 Td (${pdfEscape(line)}) Tj`]), 'ET'].join('\n');
-  const objects = [`1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj`, `2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj`, `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj`, `4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj`, `5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj`];
-  let output = '%PDF-1.4\n'; const offsets = [0];
-  for (const object of objects) { offsets.push(output.length); output += `${object}\n`; }
-  const xref = output.length; output += `xref\n0 ${objects.length + 1}\n0000000000 65535 f \n${offsets.slice(1).map((offset) => `${String(offset).padStart(10, '0')} 00000 n `).join('\n')}\ntrailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
-  return new TextEncoder().encode(output);
-}
 async function exportApplicationPack(env: RemoteRadarApplicationsEnv, userId: string, packId: string, format: string): Promise<Response> {
   if (!['md', 'html', 'pdf'].includes(format)) return fail(400, 'EXPORT_FORMAT_INVALID', 'format must be md, html, or pdf');
   const row = await env.DB.prepare(`SELECT p.id, p.saved_job_id, p.approved_version_id, v.id AS version_id, v.version, v.resume_snapshot, v.cover_letter, v.answers, v.approved_at
@@ -84,7 +75,7 @@ async function exportApplicationPack(env: RemoteRadarApplicationsEnv, userId: st
   const filename = `remoteradar-application-pack-v${row.version}`;
   if (format === 'md') return new Response(markdown, { headers: { 'content-type': 'text/markdown; charset=utf-8', 'content-disposition': `attachment; filename="${filename}.md"`, 'cache-control': 'no-store' } });
   if (format === 'html') { const html = `<!doctype html><meta charset="utf-8"><title>RemoteRadar Application Pack</title><pre>${markdown.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`; return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'content-disposition': `attachment; filename="${filename}.html"`, 'cache-control': 'no-store' } }); }
-  return new Response(makePdf(markdown.split('\n')), { headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="${filename}.pdf"`, 'cache-control': 'no-store' } });
+  return new Response(renderRemoteRadarPdf(markdown.split('\n')), { headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="${filename}.pdf"`, 'cache-control': 'no-store' } });
 }
 
 interface PackCharge {
