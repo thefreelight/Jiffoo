@@ -29,6 +29,19 @@ function productPaths(products: NativeOdooCatalogProduct[]): string[] {
 
 export async function syncNativeOdooCatalog(env: CatalogEnv): Promise<{ products: number; variants: number }> {
   const products = await readNativeOdooCatalog(env);
+  const installation = await env.DB.prepare(
+    "SELECT id FROM native_plugin_instances WHERE plugin_slug = 'odoo' AND instance_key = 'default' AND enabled = 1",
+  ).first<{ id: string }>();
+  if (!installation?.id) throw new Error('Odoo plugin installation is missing or disabled');
+  for (const product of products) {
+    for (const variant of product.variants) {
+      variant.attributes = {
+        ...variant.attributes,
+        installationId: installation.id,
+        externalVariantCode: variant.skuCode,
+      };
+    }
+  }
   const nextPaths = productPaths(products);
   const state = await env.DB.prepare(
     'SELECT product_ids_json, last_synced_at FROM native_catalog_sync_state WHERE provider = ?1',

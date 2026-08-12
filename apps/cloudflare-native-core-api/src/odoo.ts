@@ -53,7 +53,13 @@ export type NativeOdooCatalogProduct = {
     salePrice: number;
     baseStock: number;
     isActive: boolean;
-    attributes: { provider: 'odoo'; odooProductId: number; virtualAvailable: number };
+    attributes: {
+      provider: 'odoo';
+      odooProductId: number;
+      virtualAvailable: number;
+      installationId?: string;
+      externalVariantCode?: string;
+    };
   }>;
 };
 
