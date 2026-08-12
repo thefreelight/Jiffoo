@@ -1,5 +1,6 @@
 import { authenticateNativeAdmin, authenticateNativeUser, type NativeAuthEnv } from './auth';
 import { isNativePluginEnabled } from './plugin-enabled';
+import { applyNativeSubscriptionRedemption } from './native-subscription';
 
 type CouponEnv = NativeAuthEnv & { DB: D1Database };
 
@@ -45,36 +46,16 @@ async function redeemSubscription(request: Request, env: CouponEnv): Promise<Res
     .bind(code).first<RedemptionCodeRow>();
   if (!redemption) return reply({ code: 'REDEMPTION_CODE_INVALID', message: 'Redemption code is invalid or expired' }, 400);
 
-  await env.DB.batch([
-    env.DB.prepare(`INSERT OR IGNORE INTO native_subscription_redemption_claims
-      (code_id, user_id, claimed_at) VALUES (?1, ?2, ?3)`).bind(redemption.id, user.id, new Date().toISOString()),
-    env.DB.prepare(`INSERT INTO native_subscription_records
-      (user_id, plan_name, plan_slug, status, current_period_end, lifetime_credits_debited, updated_at)
-      SELECT ?1, ?2, ?3, 'active', datetime('now', '+' || ?4 || ' days'), 0, CURRENT_TIMESTAMP
-      WHERE EXISTS (SELECT 1 FROM native_subscription_redemption_claims WHERE code_id = ?5 AND user_id = ?1 AND applied_at IS NULL)
-      ON CONFLICT(user_id) DO UPDATE SET
-        plan_name = excluded.plan_name,
-        plan_slug = excluded.plan_slug,
-        status = 'active',
-        current_period_end = datetime(
-          CASE WHEN native_subscription_records.current_period_end > CURRENT_TIMESTAMP
-            THEN native_subscription_records.current_period_end ELSE CURRENT_TIMESTAMP END,
-          '+' || ?4 || ' days'
-        ),
-        updated_at = CURRENT_TIMESTAMP`).bind(user.id, redemption.plan_name, redemption.plan_slug, redemption.duration_days, redemption.id),
-    env.DB.prepare(`UPDATE native_subscription_redemption_claims
-      SET applied_at = COALESCE(applied_at, CURRENT_TIMESTAMP),
-          subscription_period_end = COALESCE(subscription_period_end,
-            (SELECT current_period_end FROM native_subscription_records WHERE user_id = ?1))
-      WHERE code_id = ?2 AND user_id = ?1`).bind(user.id, redemption.id),
-  ]);
-
-  const claim = await env.DB.prepare(`SELECT user_id, applied_at, subscription_period_end
-    FROM native_subscription_redemption_claims WHERE code_id = ?1`).bind(redemption.id)
-    .first<{ user_id: string; applied_at: string | null; subscription_period_end: string | null }>();
-  if (claim?.user_id !== user.id) return reply({ code: 'REDEMPTION_CODE_ALREADY_CLAIMED', message: 'Redemption code has already been claimed' }, 409);
-  if (!claim.applied_at || !claim.subscription_period_end) return reply({ code: 'REDEMPTION_FAILED', message: 'Subscription benefit could not be applied' }, 500);
-  return reply({ code: redemption.code, planSlug: redemption.plan_slug, planName: redemption.plan_name, currentPeriodEnd: claim.subscription_period_end, active: true });
+  const claim = await applyNativeSubscriptionRedemption(env, user.id, {
+    id: redemption.id,
+    code: redemption.code,
+    planSlug: redemption.plan_slug,
+    planName: redemption.plan_name,
+    durationDays: redemption.duration_days,
+  });
+  if (claim?.userId !== user.id) return reply({ code: 'REDEMPTION_CODE_ALREADY_CLAIMED', message: 'Redemption code has already been claimed' }, 409);
+  if (!claim.appliedAt || !claim.subscriptionPeriodEnd) return reply({ code: 'REDEMPTION_FAILED', message: 'Subscription benefit could not be applied' }, 500);
+  return reply({ code: redemption.code, planSlug: redemption.plan_slug, planName: redemption.plan_name, currentPeriodEnd: claim.subscriptionPeriodEnd, active: true });
 }
 
 export async function tryNativeCoupon(request: Request, env: CouponEnv): Promise<Response | null> {

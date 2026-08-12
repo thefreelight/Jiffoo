@@ -40,11 +40,11 @@ describe('native coupon contract', () => {
       .mockResolvedValueOnce({ enabled: 1 })
       .mockResolvedValueOnce({ enabled: 1 })
       .mockResolvedValueOnce({ id: 'code-1', code: 'PRO30', plan_slug: 'pro', plan_name: 'Pro', duration_days: 30 })
-      .mockResolvedValueOnce({ user_id: 'user-1', applied_at: '2026-08-12T00:00:00.000Z', subscription_period_end: '2026-09-11T00:00:00.000Z' })
+      .mockResolvedValueOnce({ userId: 'user-1', appliedAt: '2026-08-12T00:00:00.000Z', subscriptionPeriodEnd: '2026-09-11T00:00:00.000Z' })
       .mockResolvedValueOnce({ enabled: 1 })
       .mockResolvedValueOnce({ enabled: 1 })
       .mockResolvedValueOnce({ id: 'code-1', code: 'PRO30', plan_slug: 'pro', plan_name: 'Pro', duration_days: 30 })
-      .mockResolvedValueOnce({ user_id: 'user-1', applied_at: '2026-08-12T00:00:00.000Z', subscription_period_end: '2026-09-11T00:00:00.000Z' });
+      .mockResolvedValueOnce({ userId: 'user-1', appliedAt: '2026-08-12T00:00:00.000Z', subscriptionPeriodEnd: '2026-09-11T00:00:00.000Z' });
     const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run, first })) })), batch };
     const created = await tryNativeCoupon(new Request('https://api.example/api/v1/plugins/coupon/admin/redemption-codes', {
       method: 'POST', body: JSON.stringify({ code: 'pro30', planSlug: 'pro', planName: 'Pro', durationDays: 30 }),
@@ -66,7 +66,7 @@ describe('native coupon contract', () => {
       .mockResolvedValueOnce({ enabled: 1 })
       .mockResolvedValueOnce({ enabled: 1 })
       .mockResolvedValueOnce({ id: 'code-1', code: 'PRO30', plan_slug: 'pro', plan_name: 'Pro', duration_days: 30 })
-      .mockResolvedValueOnce({ user_id: 'user-1', applied_at: '2026-08-12T00:00:00.000Z', subscription_period_end: '2026-09-11T00:00:00.000Z' });
+      .mockResolvedValueOnce({ userId: 'user-1', appliedAt: '2026-08-12T00:00:00.000Z', subscriptionPeriodEnd: '2026-09-11T00:00:00.000Z' });
     const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ first })) })), batch: vi.fn(async () => []) };
     const response = await tryNativeCoupon(new Request('https://api.example/api/v1/plugins/coupon/api/redeem', {
       method: 'POST', body: JSON.stringify({ code: 'PRO30' }),
