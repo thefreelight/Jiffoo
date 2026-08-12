@@ -25,6 +25,7 @@ import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odo
 import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
 import { processNativeJobsSync, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
 import { tryNativeRemoteRadarApplications } from './remoteradar-applications';
+import { tryNativeRemoteRadarAudit } from './remoteradar-audit';
 import { expireNativeWalletReservations, tryNativeWallet } from './native-wallet';
 import { tryNativeAvailableMethods } from './available-methods';
 import { tryNativeSubscription } from './native-subscription';
@@ -214,6 +215,8 @@ export default {
     if (nativeJobsProxy) return nativeJobsProxy;
     const nativeRemoteRadarResumeDocuments = await tryNativeRemoteRadarResumeDocuments(nativeRequest, env);
     if (nativeRemoteRadarResumeDocuments) return nativeRemoteRadarResumeDocuments;
+    const nativeRemoteRadarAudit = await tryNativeRemoteRadarAudit(nativeRequest, env);
+    if (nativeRemoteRadarAudit) return nativeRemoteRadarAudit;
     const nativePlatformConnection = await tryNativePlatformConnection(nativeRequest, env);
     if (nativePlatformConnection) return nativePlatformConnection;
     const nativeMarketplace = await tryNativeMarketplace(nativeRequest, env);
