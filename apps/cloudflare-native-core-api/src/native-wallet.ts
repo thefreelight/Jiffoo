@@ -1,7 +1,8 @@
 import { authenticateNativeUser, type NativeAuthEnv } from './auth';
+import { getNativePluginSecret } from './plugin-settings';
 
 type WalletEnv = Pick<Cloudflare.Env, 'DB'>;
-type WalletRouteEnv = WalletEnv & NativeAuthEnv;
+type WalletRouteEnv = WalletEnv & NativeAuthEnv & Pick<Cloudflare.Env, 'STRIPE_SECRET_KEY'>;
 type WalletAction = 'settle' | 'release';
 
 export interface NativeWalletBalance {
@@ -51,6 +52,111 @@ interface ReservationRow {
   created_at: string;
   settled_at: string | null;
   released_at: string | null;
+}
+
+interface CheckoutRow {
+  id: string;
+  user_id: string;
+  package_id: string;
+  points: number;
+  amount_cents: number;
+  currency: string;
+  provider_session_id: string | null;
+  checkout_url: string | null;
+  status: string;
+}
+
+type WalletCheckoutMetadata = Record<string, unknown>;
+
+const packages = [
+  { id: 'starter', name: 'Starter', description: 'Enough for quick concept checks, thumbnails, and prompt experiments.', points: 80, price: 9, currency: 'USD', metadata: {} },
+  { id: 'creator', name: 'Creator', description: 'A practical pack for campaign visuals, product directions, and iterations.', points: 260, price: 24, currency: 'USD', metadata: { badge: 'Popular' } },
+  { id: 'studio', name: 'Studio', description: 'For heavier visual production runs and repeated client-facing experiments.', points: 720, price: 59, currency: 'USD', metadata: {} },
+] as const;
+
+function validReturnUrl(value: unknown, fallback: string): string {
+  if (typeof value !== 'string') return fallback;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.hostname === 'localhost' ? url.toString() : fallback;
+  } catch { return fallback; }
+}
+
+async function stripeSecret(env: WalletRouteEnv): Promise<string> {
+  const secret = await getNativePluginSecret(env, 'stripe', 'secretKey', env.STRIPE_SECRET_KEY);
+  if (!secret) throw new Error('STRIPE_NOT_CONFIGURED');
+  return secret;
+}
+
+async function createCheckout(request: Request, env: WalletRouteEnv, userId: string, packageId: string): Promise<Response> {
+  const pack = packages.find((item) => item.id === packageId);
+  if (!pack) return response({ code: 'PACKAGE_NOT_FOUND', message: 'Credit package was not found' }, 404);
+  const body = await request.json().catch(() => ({})) as { successUrl?: unknown; cancelUrl?: unknown };
+  const origin = new URL(request.url).origin;
+  const successUrl = validReturnUrl(body.successUrl, `${origin}/pricing?wallet_checkout=success&session_id={CHECKOUT_SESSION_ID}`);
+  const cancelUrl = validReturnUrl(body.cancelUrl, `${origin}/pricing?wallet_checkout=cancelled`);
+  const checkoutId = `wallet_checkout_${crypto.randomUUID()}`;
+  const secret = await stripeSecret(env);
+  const form = new URLSearchParams({
+    mode: 'payment', success_url: successUrl, cancel_url: cancelUrl,
+    'line_items[0][quantity]': '1', 'line_items[0][price_data][currency]': pack.currency.toLowerCase(),
+    'line_items[0][price_data][unit_amount]': String(pack.price * 100),
+    'line_items[0][price_data][product_data][name]': `${pack.name} - ${pack.points} credits`,
+    'metadata[walletCheckoutId]': checkoutId, 'metadata[walletUserId]': userId,
+    'metadata[walletPackageId]': pack.id, 'payment_intent_data[metadata][walletCheckoutId]': checkoutId,
+  });
+  const stripe = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+    method: 'POST', headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/x-www-form-urlencoded', 'idempotency-key': checkoutId }, body: form,
+  });
+  const payload = await stripe.json<{ id?: string; url?: string; error?: { message?: string } }>();
+  if (!stripe.ok || !payload.id || !payload.url) return response({ code: 'CHECKOUT_ERROR', message: payload.error?.message || 'Stripe could not create checkout' }, 502);
+  const now = new Date().toISOString();
+  await env.DB.prepare(`INSERT INTO native_wallet_checkout_sessions
+    (id,user_id,package_id,points,amount_cents,currency,provider_session_id,checkout_url,status,created_at,updated_at)
+    VALUES (?1,?2,?3,?4,?5,?6,?7,?8,'pending',?9,?9)`)
+    .bind(checkoutId, userId, pack.id, pack.points, pack.price * 100, pack.currency, payload.id, payload.url, now).run();
+  return response({ checkoutId, sessionId: payload.id, checkoutUrl: payload.url, status: 'pending' }, 201);
+}
+
+async function verifyCheckout(request: Request, env: WalletRouteEnv, userId: string): Promise<Response> {
+  const body = await request.json().catch(() => ({})) as { sessionId?: unknown; checkoutId?: unknown };
+  const lookup = typeof body.sessionId === 'string' && body.sessionId ? body.sessionId : typeof body.checkoutId === 'string' ? body.checkoutId : '';
+  if (!lookup) return response({ code: 'SESSION_REQUIRED', message: 'sessionId or checkoutId is required' }, 400);
+  const row = await env.DB.prepare(`SELECT * FROM native_wallet_checkout_sessions
+    WHERE user_id=?1 AND (provider_session_id=?2 OR id=?2)`).bind(userId, lookup).first<CheckoutRow>();
+  if (!row) return response({ code: 'CHECKOUT_NOT_FOUND', message: 'Wallet checkout was not found' }, 404);
+  if (row.status === 'paid') {
+    const balance = await nativeWalletBalance(env, userId);
+    return response({ checkoutId: row.id, sessionId: row.provider_session_id, status: 'paid', points: row.points, balance: balance.balance });
+  }
+  const secret = await stripeSecret(env);
+  const stripe = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(String(row.provider_session_id))}`, { headers: { authorization: `Bearer ${secret}` } });
+  const payload = await stripe.json<{ payment_status?: string; status?: string; metadata?: Record<string,string>; error?: { message?: string } }>();
+  if (!stripe.ok) return response({ code: 'CHECKOUT_VERIFY_ERROR', message: payload.error?.message || 'Stripe checkout verification failed' }, 502);
+  if (payload.payment_status !== 'paid') return response({ checkoutId: row.id, sessionId: row.provider_session_id, status: payload.status || 'pending' });
+  const settled = await settleNativeWalletCheckout(env, payload.metadata ?? {}, String(row.provider_session_id));
+  if (!settled || settled.userId !== userId || settled.checkoutId !== row.id) return response({ code: 'CHECKOUT_MISMATCH', message: 'Stripe checkout metadata does not match' }, 409);
+  return response({ checkoutId: settled.checkoutId, sessionId: settled.sessionId, status: 'paid', points: settled.points, balance: settled.balance });
+}
+
+export async function settleNativeWalletCheckout(env: WalletEnv, metadata: WalletCheckoutMetadata, sessionId: string): Promise<{
+  checkoutId: string; sessionId: string; userId: string; points: number; balance: number;
+} | null> {
+  const checkoutId = typeof metadata.walletCheckoutId === 'string' ? metadata.walletCheckoutId : '';
+  const userId = typeof metadata.walletUserId === 'string' ? metadata.walletUserId : '';
+  if (!checkoutId || !userId || !sessionId) return null;
+  const row = await env.DB.prepare(`SELECT * FROM native_wallet_checkout_sessions
+    WHERE id=?1 AND user_id=?2 AND provider_session_id=?3`).bind(checkoutId, userId, sessionId).first<CheckoutRow>();
+  if (!row) return null;
+  const balance = await nativeWalletMutate(env, {
+    userId, amount: row.points, operation: 'credit', idempotencyKey: `wallet_checkout:${row.id}`,
+    type: 'purchase', description: `Credit package: ${row.package_id}`, sourcePlugin: 'wallet',
+    referenceId: row.id, metadata: { stripeSessionId: sessionId },
+  });
+  const now = new Date().toISOString();
+  await env.DB.prepare("UPDATE native_wallet_checkout_sessions SET status='paid', paid_at=COALESCE(paid_at,?1), updated_at=?1 WHERE id=?2")
+    .bind(now, row.id).run();
+  return { checkoutId: row.id, sessionId, userId, points: row.points, balance: balance.balance };
 }
 
 function required(value: unknown, name: string): string {
@@ -129,17 +235,24 @@ export async function nativeWalletMutate(env: WalletEnv, input: {
     const reserved = Number(account?.reserved_balance ?? 0);
     if (input.operation === 'debit' && current - reserved < value) throw new Error('INSUFFICIENT_BALANCE');
     const next = current + (input.operation === 'credit' ? value : -value);
-    await env.DB.batch([
-      env.DB.prepare(`UPDATE native_wallet_accounts SET balance = ?1, total_credited = total_credited + ?2,
-        total_debited = total_debited + ?3, updated_at = ?4 WHERE user_id = ?5`)
-        .bind(next, input.operation === 'credit' ? value : 0, input.operation === 'debit' ? value : 0, now, userId),
-      env.DB.prepare(`INSERT INTO native_wallet_ledger
-        (id, user_id, operation, amount, balance_after, type, description, source_plugin, idempotency_key, reference_id, metadata, created_at)
-        VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`)
-        .bind(`wallet_tx_${crypto.randomUUID()}`, userId, input.operation, value, next, input.type ?? input.operation,
-          input.description ?? `Wallet ${input.operation}`, input.sourcePlugin ?? null, key, input.referenceId ?? null,
-          JSON.stringify(input.metadata ?? {}), now),
-    ]);
+    try {
+      await env.DB.batch([
+        env.DB.prepare(`UPDATE native_wallet_accounts SET balance = ?1, total_credited = total_credited + ?2,
+          total_debited = total_debited + ?3, updated_at = ?4 WHERE user_id = ?5`)
+          .bind(next, input.operation === 'credit' ? value : 0, input.operation === 'debit' ? value : 0, now, userId),
+        env.DB.prepare(`INSERT INTO native_wallet_ledger
+          (id, user_id, operation, amount, balance_after, type, description, source_plugin, idempotency_key, reference_id, metadata, created_at)
+          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)`)
+          .bind(`wallet_tx_${crypto.randomUUID()}`, userId, input.operation, value, next, input.type ?? input.operation,
+            input.description ?? `Wallet ${input.operation}`, input.sourcePlugin ?? null, key, input.referenceId ?? null,
+            JSON.stringify(input.metadata ?? {}), now),
+      ]);
+    } catch (error) {
+      const winner = await env.DB.prepare('SELECT user_id, operation, amount FROM native_wallet_ledger WHERE idempotency_key = ?1')
+        .bind(key).first<{ user_id: string; operation: string; amount: number }>();
+      if (!winner) throw error;
+      if (winner.user_id !== userId || winner.operation !== input.operation || Number(winner.amount) !== value) throw new Error('IDEMPOTENCY_CONFLICT');
+    }
   }
   const after = await env.DB.prepare('SELECT user_id, operation, amount FROM native_wallet_ledger WHERE idempotency_key = ?1')
     .bind(key).first<{ user_id: string; operation: string; amount: number }>();
@@ -272,6 +385,10 @@ export async function tryNativeWallet(request: Request, env: WalletRouteEnv): Pr
   if (!user) return response({ code: 'UNAUTHORIZED', message: 'Login required' }, 401);
   const path = url.pathname.startsWith(`${base}/`) ? url.pathname.slice(base.length) : url.pathname.slice(gatewayBase.length);
   if (request.method === 'GET' && path === '/balance') return response(await nativeWalletBalance(env, user.id));
+  if (request.method === 'GET' && path === '/packages') return response({ items: packages, total: packages.length });
+  const checkout = path.match(/^\/packages\/([^/]+)\/checkout$/);
+  if (request.method === 'POST' && checkout) return createCheckout(request, env, user.id, decodeURIComponent(checkout[1]));
+  if (request.method === 'POST' && path === '/checkout/verify') return verifyCheckout(request, env, user.id);
   if (request.method === 'GET' && path === '/history') {
     const rows = await env.DB.prepare(`SELECT id, operation, amount, balance_after AS balanceAfter, type, description,
       source_plugin AS sourcePlugin, reference_id AS referenceId, metadata, created_at AS createdAt
