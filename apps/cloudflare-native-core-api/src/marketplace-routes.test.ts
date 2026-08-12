@@ -4,6 +4,7 @@ const authenticateNativeAdmin = vi.fn();
 vi.mock('./auth', () => ({ authenticateNativeAdmin }));
 
 const { tryNativeMarketplace } = await import('./marketplace');
+const { tryNativeAffiliate } = await import('./affiliate');
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -31,6 +32,16 @@ describe('native marketplace install routes', () => {
     const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/coupon/install', { method: 'POST', body: JSON.stringify({ kind: 'plugin' }) }), { DB: db } as never);
     expect(response?.status).toBe(200);
     expect(run).toHaveBeenCalledOnce();
+  });
+
+  it('fails closed for the published Affiliate extension route when disabled', async () => {
+    const first = vi.fn(async () => ({ enabled: 0 }));
+    const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ first })) })) };
+    const response = await tryNativeAffiliate(new Request('https://api.example/api/v1/extensions/plugin/affiliate/api/api/store/affiliate/register', {
+      method: 'POST', body: JSON.stringify({}),
+    }), { DB: db } as never);
+    expect(response?.status).toBe(404);
+    await expect(response?.json()).resolves.toMatchObject({ success: false, error: { code: 'PLUGIN_NOT_ENABLED' } });
   });
 
   it('fails closed for plugins without a Native runtime adapter', async () => {

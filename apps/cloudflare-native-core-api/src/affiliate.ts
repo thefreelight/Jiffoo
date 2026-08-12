@@ -261,27 +261,30 @@ async function commissions(request: Request, env: AffiliateEnv, user: NativeSess
 
 export async function tryNativeAffiliate(request: Request, env: AffiliateEnv): Promise<Response | null> {
   const url = new URL(request.url);
-  const route = url.pathname.match(/^\/api\/v1\/plugins\/affiliate\/store\/r\/([^/]+)$/);
-  if (!route && !url.pathname.startsWith('/api/v1/plugins/affiliate/store/')) return null;
+  const path = url.pathname
+    .replace('/api/v1/extensions/plugin/affiliate/api/api/store/affiliate', '/api/v1/plugins/affiliate/store')
+    .replace('/api/v1/extensions/plugin/affiliate/api/store/affiliate', '/api/v1/plugins/affiliate/store');
+  const route = path.match(/^\/api\/v1\/plugins\/affiliate\/store\/r\/([^/]+)$/);
+  if (!route && !path.startsWith('/api/v1/plugins/affiliate/store/')) return null;
   if (!(await isNativePluginEnabled(env, 'affiliate'))) return failure(404, 'PLUGIN_NOT_ENABLED', 'Affiliate plugin is not installed and enabled');
   if (request.method === 'GET' && route) return recordReferral(request, env, decodeURIComponent(route[1]!));
   const user = await currentUser(request, env);
   if (!user) return failure(401, 'UNAUTHORIZED', 'Login required');
-  if (request.method === 'POST' && url.pathname === '/api/v1/plugins/affiliate/store/organizations') return createOrganization(request, env, user);
-  if (request.method === 'GET' && url.pathname === '/api/v1/plugins/affiliate/store/organizations/me') {
+  if (request.method === 'POST' && path === '/api/v1/plugins/affiliate/store/organizations') return createOrganization(request, env, user);
+  if (request.method === 'GET' && path === '/api/v1/plugins/affiliate/store/organizations/me') {
     const row = await organizationForUser(env, user.id);
     return row ? success(organization(row, await organizationMembers(env, row.id))) : failure(404, 'ORGANIZATION_NOT_FOUND', 'Organization not found');
   }
-  const memberMatch = url.pathname.match(/^\/api\/v1\/plugins\/affiliate\/store\/organizations\/([^/]+)\/members$/);
+  const memberMatch = path.match(/^\/api\/v1\/plugins\/affiliate\/store\/organizations\/([^/]+)\/members$/);
   if (request.method === 'POST' && memberMatch) return addOrganizationMember(request, env, user, decodeURIComponent(memberMatch[1]!));
-  if (request.method === 'GET' && url.pathname === '/api/v1/plugins/affiliate/store/organizations/commissions') return organizationCommissions(request, env, user);
-  if (request.method === 'POST' && url.pathname.endsWith('/partners/register')) return register(request, env, user);
-  if (request.method === 'GET' && url.pathname.endsWith('/partners/me')) {
+  if (request.method === 'GET' && path === '/api/v1/plugins/affiliate/store/organizations/commissions') return organizationCommissions(request, env, user);
+  if (request.method === 'POST' && path.endsWith('/partners/register')) return register(request, env, user);
+  if (request.method === 'GET' && path.endsWith('/partners/me')) {
     const row = await me(env, user.id);
     return row ? success(partner(row)) : failure(404, 'AFFILIATE_PARTNER_NOT_FOUND', 'Affiliate partner not found');
   }
-  if (request.method === 'POST' && url.pathname.endsWith('/attributions/associate')) return associate(request, env, user);
-  if (request.method === 'GET' && url.pathname.endsWith('/commissions')) return commissions(request, env, user);
+  if (request.method === 'POST' && path.endsWith('/attributions/associate')) return associate(request, env, user);
+  if (request.method === 'GET' && path.endsWith('/commissions')) return commissions(request, env, user);
   return null;
 }
 
