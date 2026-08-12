@@ -36,8 +36,9 @@ import { tryNativePlatformConnection } from './platform-connection';
 import { tryNativeMarketplace } from './marketplace';
 import { isSupportedNativeSchemaVersion } from './health';
 import { tryNativeCoupon } from './coupon';
+import { tryNativePublicAuthConfig } from './public-auth-config';
 
-type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv;
+type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv & { DEMO_MODE?: string };
 
 interface Snapshot {
   payload: string;
@@ -67,7 +68,6 @@ const NATIVE_READ_PATHS = [
   /^\/api\/v1\/themes(?:\/.*)?$/,
   /^\/api\/v1\/extensions\/theme-extensions\/embeds$/,
   /^\/api\/v1\/install\/status$/,
-  /^\/api\/v1\/auth\/bootstrap-status$/,
   /^\/api\/v1\/admin\/themes\/admin\/active$/,
   /^\/api\/v1\/admin\/commercial-package\/branding$/,
   /^\/api\/v1\/shop\/plugins(?:\/.*)?$/,
@@ -201,6 +201,8 @@ export default {
     if (nativeRequest.method === 'GET' && nativeRequest.url.includes('/api/v1/upgrade/version')) {
       return nativeUpgradeVersion(env);
     }
+    const nativePublicAuthConfig = tryNativePublicAuthConfig(nativeRequest, env);
+    if (nativePublicAuthConfig) return nativePublicAuthConfig;
     if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {
       return serveAsset(url, env);
     }
