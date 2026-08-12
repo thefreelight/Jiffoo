@@ -30,6 +30,7 @@ import { tryNativeMarketplace } from './marketplace';
 import { tryNativeImagerAi } from './imager-ai';
 import { tryNativeThemes } from './native-themes';
 import { expireNativeWalletReservations, tryNativeWallet } from './native-wallet';
+import { nativeHealth } from './health';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv;
 
@@ -190,17 +191,7 @@ export default {
   async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
     const nativeRequest = normalizePublicApiRequest(request);
     const url = new URL(nativeRequest.url);
-    if (url.pathname === '/health') {
-      const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'core_schema_version'")
-        .first<{ value: string }>();
-      return Response.json({
-        status: row?.value === '0026' ? 'ok' : 'degraded',
-        service: 'jiffoo-native-core-api',
-        runtime: 'cloudflare-workers-free',
-        version: env.RUNTIME_VERSION,
-        d1Schema: row?.value ?? null,
-      }, { status: row?.value === '0026' ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
-    }
+    if (url.pathname === '/health') return nativeHealth(env, runtimeHeaders);
     if (nativeRequest.method === 'GET' && nativeRequest.url.includes('/api/v1/upgrade/version')) {
       return nativeUpgradeVersion(env);
     }
