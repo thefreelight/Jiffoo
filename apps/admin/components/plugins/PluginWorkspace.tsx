@@ -1398,17 +1398,34 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               ) : null}
 
               {slug !== 'i18n' && (slug !== 'odoo' || data.runtimeType === 'cloudflare-native') && configSchema ? (
-                <GenericConfigEditor
-                  configSchema={configSchema}
-                  configDraft={configDraft}
-                  configMeta={selectedConfigMeta}
-                  jsonFieldDrafts={jsonFieldDrafts}
-                  jsonFieldErrors={jsonFieldErrors}
-                  onUpdateField={updateConfigField}
-                  onUpdateJsonField={updateJsonConfigField}
-                  onSave={() => void handleSaveGenericConfig()}
-                  saving={isCreatingInstance || isUpdatingInstance}
-                />
+                <div className="space-y-4">
+                  {slug === 'stripe' ? (
+                    configDraft.mode === 'live' ? (
+                      <Alert className="border-red-200 bg-red-50 text-red-950">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Live mode</AlertTitle>
+                        <AlertDescription>Stripe will create real charges after this configuration is saved.</AlertDescription>
+                      </Alert>
+                    ) : (
+                      <Alert className="border-amber-300 bg-amber-50 text-amber-950">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertTitle>Test mode</AlertTitle>
+                        <AlertDescription>Stripe test data is active. No real charges will be created.</AlertDescription>
+                      </Alert>
+                    )
+                  ) : null}
+                  <GenericConfigEditor
+                    configSchema={configSchema}
+                    configDraft={configDraft}
+                    configMeta={selectedConfigMeta}
+                    jsonFieldDrafts={jsonFieldDrafts}
+                    jsonFieldErrors={jsonFieldErrors}
+                    onUpdateField={updateConfigField}
+                    onUpdateJsonField={updateJsonConfigField}
+                    onSave={() => void handleSaveGenericConfig()}
+                    saving={isCreatingInstance || isUpdatingInstance}
+                  />
+                </div>
               ) : null}
 
               {data.runtimeType === 'cloudflare-native' && ['smtp-email', 'stripe', 'odoo'].includes(slug) ? (
