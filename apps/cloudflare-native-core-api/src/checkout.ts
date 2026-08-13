@@ -1,5 +1,5 @@
 import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
-import { getNativePluginSecret } from './plugin-settings';
+import { getNativePluginSecret, getNativeStripeSecret } from './plugin-settings';
 import { settleNativeWalletCheckout } from './native-wallet';
 
 type CheckoutEnv = Pick<Cloudflare.Env,
@@ -305,7 +305,7 @@ async function createPaymentSession(request: Request, env: CheckoutEnv, user: Na
   const order = JSON.parse(row.payload) as Record<string, unknown>;
   const successUrl = typeof body.successUrl === 'string' ? body.successUrl : 'https://shop.jiffoo.com/payment/success?session_id={CHECKOUT_SESSION_ID}';
   const cancelUrl = typeof body.cancelUrl === 'string' ? body.cancelUrl : 'https://shop.jiffoo.com/checkout';
-  const secret = await getNativePluginSecret(env, 'stripe', 'secretKey', env.STRIPE_SECRET_KEY);
+  const secret = (await getNativeStripeSecret(env, 'secretKey', env.STRIPE_SECRET_KEY)).value;
   const stripe = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST',
     headers: {
@@ -364,19 +364,21 @@ async function verifyStripeSignature(raw: string, header: string, secret: string
 async function handleStripeWebhook(request: Request, env: CheckoutEnv): Promise<Response | null> {
   const raw = await request.text();
   const signature = request.headers.get('stripe-signature');
-  const secret = await getNativePluginSecret(env, 'stripe', 'webhookSecret', env.STRIPE_WEBHOOK_SECRET);
+  const secretConfig = await getNativeStripeSecret(env, 'webhookSecret', env.STRIPE_WEBHOOK_SECRET);
+  const secret = secretConfig.value;
   if (!signature || !await verifyStripeSignature(raw, signature, secret)) {
     return failure(400, 'INVALID_WEBHOOK_SIGNATURE', 'Stripe webhook signature is invalid');
   }
   const event = (() => {
     try {
-      return JSON.parse(raw) as { id?: string; type?: string; data?: { object?: Record<string, unknown> } };
+      return JSON.parse(raw) as { id?: string; type?: string; livemode?: boolean; data?: { object?: Record<string, unknown> } };
     } catch {
       return null;
     }
   })();
   if (!event) return failure(400, 'INVALID_WEBHOOK', 'Stripe webhook payload is invalid');
   if (!event.id || !event.type) return failure(400, 'INVALID_WEBHOOK', 'Stripe webhook payload is invalid');
+  if (typeof event.livemode === 'boolean' && event.livemode !== (secretConfig.mode === 'live')) return failure(400, 'INVALID_WEBHOOK_MODE', 'Stripe webhook mode does not match active mode');
   const object = event.data?.object ?? {};
   const metadata = object.metadata && typeof object.metadata === 'object' ? object.metadata as Record<string, unknown> : {};
   const orderId = typeof metadata.orderId === 'string' ? metadata.orderId : null;

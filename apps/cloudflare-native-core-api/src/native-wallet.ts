@@ -1,5 +1,5 @@
 import { authenticateNativeUser, type NativeAuthEnv } from './auth';
-import { getNativePluginSecret } from './plugin-settings';
+import { getNativeStripeSecret } from './plugin-settings';
 
 type WalletEnv = Pick<Cloudflare.Env, 'DB'>;
 type WalletRouteEnv = WalletEnv & NativeAuthEnv & Pick<Cloudflare.Env, 'STRIPE_SECRET_KEY'>;
@@ -82,9 +82,9 @@ function validReturnUrl(value: unknown, fallback: string): string {
   } catch { return fallback; }
 }
 
-async function stripeSecret(env: WalletRouteEnv): Promise<string> {
-  const secret = await getNativePluginSecret(env, 'stripe', 'secretKey', env.STRIPE_SECRET_KEY);
-  if (!secret) throw new Error('STRIPE_NOT_CONFIGURED');
+async function stripeSecret(env: WalletRouteEnv): Promise<{ mode: 'test' | 'live'; value: string }> {
+  const secret = await getNativeStripeSecret(env, 'secretKey', env.STRIPE_SECRET_KEY);
+  if (!secret.value) throw new Error('STRIPE_NOT_CONFIGURED');
   return secret;
 }
 
@@ -96,7 +96,8 @@ async function createCheckout(request: Request, env: WalletRouteEnv, userId: str
   const successUrl = validReturnUrl(body.successUrl, `${origin}/pricing?wallet_checkout=success&session_id={CHECKOUT_SESSION_ID}`);
   const cancelUrl = validReturnUrl(body.cancelUrl, `${origin}/pricing?wallet_checkout=cancelled`);
   const checkoutId = `wallet_checkout_${crypto.randomUUID()}`;
-  const secret = await stripeSecret(env);
+  const stripeConfig = await stripeSecret(env);
+  const secret = stripeConfig.value;
   const form = new URLSearchParams({
     mode: 'payment', success_url: successUrl, cancel_url: cancelUrl,
     'line_items[0][quantity]': '1', 'line_items[0][price_data][currency]': pack.currency.toLowerCase(),
@@ -104,6 +105,7 @@ async function createCheckout(request: Request, env: WalletRouteEnv, userId: str
     'line_items[0][price_data][product_data][name]': `${pack.name} - ${pack.points} credits`,
     'metadata[walletCheckoutId]': checkoutId, 'metadata[walletUserId]': userId,
     'metadata[walletPackageId]': pack.id, 'payment_intent_data[metadata][walletCheckoutId]': checkoutId,
+    'metadata[stripeMode]': stripeConfig.mode,
   });
   const stripe = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST', headers: { authorization: `Bearer ${secret}`, 'content-type': 'application/x-www-form-urlencoded', 'idempotency-key': checkoutId }, body: form,
@@ -129,7 +131,7 @@ async function verifyCheckout(request: Request, env: WalletRouteEnv, userId: str
     const balance = await nativeWalletBalance(env, userId);
     return response({ checkoutId: row.id, sessionId: row.provider_session_id, status: 'paid', points: row.points, balance: balance.balance });
   }
-  const secret = await stripeSecret(env);
+  const secret = (await stripeSecret(env)).value;
   const stripe = await fetch(`https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(String(row.provider_session_id))}`, { headers: { authorization: `Bearer ${secret}` } });
   const payload = await stripe.json<{ payment_status?: string; status?: string; metadata?: Record<string,string>; error?: { message?: string } }>();
   if (!stripe.ok) return response({ code: 'CHECKOUT_VERIFY_ERROR', message: payload.error?.message || 'Stripe checkout verification failed' }, 502);

@@ -29,15 +29,23 @@ export function stripeMethod(row: PluginInstanceRow | null) {
   if (!row || row.enabled !== 1) return null;
   const config = object(row.config_json);
   const secrets = object(row.encrypted_secrets_json);
-  const publishableKey = typeof config.publishableKey === 'string' ? config.publishableKey.trim() : '';
-  if (!/^pk_(?:test|live)_/.test(publishableKey) || !secrets.secretKey || !secrets.webhookSecret) return null;
+  const legacyPublishableKey = typeof config.publishableKey === 'string' ? config.publishableKey.trim() : '';
+  const mode = config.mode === 'live' || config.mode === 'test'
+    ? config.mode
+    : legacyPublishableKey.startsWith('pk_live_') ? 'live' : 'test';
+  const publishableKey = typeof config[`${mode}PublishableKey`] === 'string'
+    ? String(config[`${mode}PublishableKey`]).trim()
+    : legacyPublishableKey;
+  const secretKey = secrets[`${mode}SecretKey`] ?? secrets.secretKey;
+  const webhookSecret = secrets[`${mode}WebhookSecret`] ?? secrets.webhookSecret;
+  if (!new RegExp(`^pk_${mode}_`).test(publishableKey) || !secretKey || !webhookSecret) return null;
   return {
     pluginSlug: 'stripe',
     name: 'stripe',
     displayName: 'Stripe',
     icon: 'credit-card',
     supportedCurrencies: ['USD'],
-    isLive: publishableKey.startsWith('pk_live_'),
+    isLive: mode === 'live',
     clientConfig: { publishableKey },
   };
 }

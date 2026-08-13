@@ -2,8 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 
 const authenticateNativeUser = vi.fn();
 vi.mock('./auth', () => ({ authenticateNativeUser }));
-const getNativePluginSecret = vi.fn(async () => 'sk_test_wallet');
-vi.mock('./plugin-settings', () => ({ getNativePluginSecret }));
+const getNativeStripeSecret = vi.fn(async () => ({ mode: 'test', value: 'sk_test_wallet' }));
+vi.mock('./plugin-settings', () => ({ getNativeStripeSecret }));
 
 const { expireNativeWalletReservations, nativeWalletMutate, nativeWalletReserve, settleNativeWalletCheckout, tryNativeWallet } = await import('./native-wallet');
 
@@ -72,7 +72,7 @@ describe('native D1 wallet', () => {
     }), { DB: db } as never);
     expect(result?.status).toBe(201);
     await expect(result?.json()).resolves.toMatchObject({ success: true, data: { sessionId: 'cs_test_1', checkoutUrl: 'https://checkout.stripe.test/1' } });
-    expect(getNativePluginSecret).toHaveBeenCalledWith(expect.anything(), 'stripe', 'secretKey', undefined);
+    expect(getNativeStripeSecret).toHaveBeenCalledWith(expect.anything(), 'secretKey', undefined);
     vi.unstubAllGlobals();
   });
 
