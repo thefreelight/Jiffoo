@@ -305,6 +305,20 @@ addCheck('release workflows require publishable release refs', () => {
   );
 });
 
+addCheck('ACR image workflows disable unsupported OCI attestations', () => {
+  const imageWorkflow = read('.github/workflows/publish-oss-release-images.yml');
+  const agileImageWorkflow = read('.github/workflows/oss-agile-build-push.yml');
+
+  for (const [label, workflow] of [
+    ['release image workflow', imageWorkflow],
+    ['agile image workflow', agileImageWorkflow],
+  ]) {
+    assertIncludes(workflow, '--provenance=false', `${label} provenance compatibility`);
+    assertIncludes(workflow, '--sbom=false', `${label} SBOM compatibility`);
+    assertBefore(workflow, '--sbom=false', '--build-arg "HTTP_PROXY="', `${label} attestation flags before build args`);
+  }
+});
+
 addCheck('OSS release workflow runs Admin/shop/release quality gates', () => {
   const workflow = read('.github/workflows/publish-oss-release-images.yml');
   const releaseQualityGateRunner = read('scripts/run-release-quality-gates.mjs');
