@@ -24,6 +24,18 @@ describe('native marketplace install routes', () => {
     expect(run).toHaveBeenCalledOnce();
   });
 
+  it('uses the Platform service binding when available', async () => {
+    authenticateNativeAdmin.mockResolvedValue(true);
+    const platformFetch = vi.fn(async () => Response.json({ data: { items: [{ slug: 'affiliate', kind: 'plugin', installable: true, sellableVersion: '0.1.6' }] } }));
+    const globalFetch = vi.fn(async () => Response.json({ data: { items: [] } }));
+    vi.stubGlobal('fetch', globalFetch);
+    const db = { prepare: vi.fn(() => ({ all: vi.fn(async () => ({ results: [] })) })) };
+    const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/official-catalog'), { DB: db, PLATFORM_API: { fetch: platformFetch } } as never);
+    expect(response?.status).toBe(200);
+    expect(platformFetch).toHaveBeenCalledOnce();
+    expect(globalFetch).not.toHaveBeenCalled();
+  });
+
   it('installs the baseline affiliate and coupon adapters', async () => {
     authenticateNativeAdmin.mockResolvedValue(true);
     vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { items: [{ slug: 'coupon', kind: 'plugin', installable: true, sellableVersion: '0.1.4' }] } })));

@@ -1,6 +1,6 @@
 import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
 
-type Env = NativeAuthEnv & { DB: D1Database; PLATFORM_API_BASE_URL?: string };
+type Env = NativeAuthEnv & { DB: D1Database; PLATFORM_API_BASE_URL?: string; PLATFORM_API?: Fetcher };
 type State = { instanceKey: string; pending?: Record<string, unknown> | null; instance?: Record<string, unknown> | null; tenantBinding?: Record<string, unknown> | null };
 
 function envelope(value: unknown): Record<string, unknown> {
@@ -25,7 +25,9 @@ function baseUrl(env: Env): string {
 }
 
 async function market(env: Env, path: string, init: RequestInit): Promise<Record<string, unknown>> {
-  const response = await fetch(`${baseUrl(env)}${path}`, { ...init, headers: { 'content-type': 'application/json', ...(init.headers || {}) } });
+  const target = `${baseUrl(env)}${path}`;
+  const request = new Request(target, { ...init, headers: { 'content-type': 'application/json', ...(init.headers || {}) } });
+  const response = env.PLATFORM_API ? await env.PLATFORM_API.fetch(request) : await fetch(request);
   const body = envelope(await response.json().catch(() => ({})));
   if (!response.ok) throw new Error(typeof envelope(body.error).message === 'string' ? String(envelope(body.error).message) : `Platform request failed (${response.status})`);
   return envelope(body.data);

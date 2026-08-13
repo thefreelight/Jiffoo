@@ -1,7 +1,7 @@
 import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
 import { buildNativeCatalogResponse, type NativeCatalogItem } from './marketplace-mapping';
 
-type Env = NativeAuthEnv & { DB: D1Database; MARKET_API_URL?: string; PLATFORM_API_BASE_URL?: string };
+type Env = NativeAuthEnv & { DB: D1Database; MARKET_API_URL?: string; PLATFORM_API_BASE_URL?: string; PLATFORM_API?: Fetcher };
 
 const NATIVE_INSTALLABLE_PLUGINS = new Set(['wallet', 'affiliate', 'coupon', 'subscription']);
 
@@ -10,9 +10,10 @@ function baseUrl(env: Env): string {
 }
 
 async function platformCatalog(env: Env): Promise<NativeCatalogItem[]> {
-  const response = await fetch(`${baseUrl(env)}/marketplace/official/catalog`, {
-    headers: { accept: 'application/json' },
-  });
+  const target = `${baseUrl(env)}/marketplace/official/catalog`;
+  const response = env.PLATFORM_API
+    ? await env.PLATFORM_API.fetch(new Request(target, { headers: { accept: 'application/json' } }))
+    : await fetch(target, { headers: { accept: 'application/json' } });
   const body = await response.json().catch(() => null) as { data?: { items?: NativeCatalogItem[] }; error?: { message?: string } } | null;
   if (!response.ok || !Array.isArray(body?.data?.items)) {
     throw new Error(body?.error?.message || `Official marketplace request failed (${response.status})`);
