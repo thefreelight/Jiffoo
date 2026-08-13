@@ -4,7 +4,7 @@ vi.mock('cloudflare:sockets', () => ({ connect: vi.fn() }));
 vi.mock('./plugin-settings', () => ({ getNativePluginConfig: vi.fn() }));
 
 const { getNativePluginConfig } = await import('./plugin-settings');
-const { mapNativeOdooCatalog, readNativeOdooCatalog, testNativeOdooConnection } = await import('./odoo');
+const { mapNativeOdooCatalog, readNativeOdooCatalog, readNativeOdooShipments, testNativeOdooConnection } = await import('./odoo');
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -167,5 +167,33 @@ describe('Odoo native catalog mapping', () => {
     expect(mapNativeOdooCatalog([
       { id: 30, product_tmpl_id: [9, 'Hidden'], sale_ok: false, detailed_type: 'product' },
     ])).toEqual([]);
+  });
+});
+
+describe('Odoo native shipment polling', () => {
+  it('maps linked stock pickings into the canonical shipment contract', async () => {
+    vi.mocked(getNativePluginConfig).mockResolvedValue({
+      enabled: true,
+      config: { baseUrl: 'https://erp.example.com', database: 'store', username: 'integration@example.com', apiKey: 'secret' },
+    });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: 5 }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: [{
+        id: 42, name: 'WH/OUT/00042', sale_id: [9, 'S00009'], state: 'done',
+        carrier_tracking_ref: 'TRACK-42', carrier_id: [3, 'DHL'],
+        date_done: '2026-08-13 10:00:00', write_date: '2026-08-13 10:01:00',
+      }] }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ result: [{ client_order_ref: 'native-order-9-item-1' }] }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const db = {
+      prepare: vi.fn(() => ({
+        bind: vi.fn(() => ({ first: vi.fn().mockResolvedValue({ 1: 1 }) })),
+      })),
+    };
+    await expect(readNativeOdooShipments({ DB: db } as never)).resolves.toEqual([{
+      externalOrderRef: 'native-order-9-item-1', shipmentId: 'WH/OUT/00042',
+      carrierName: 'DHL', trackingNumber: 'TRACK-42', shipmentStatus: 'SHIPPED',
+      shippedAt: '2026-08-13 10:00:00', lastCheckedAt: '2026-08-13 10:01:00',
+    }]);
   });
 });

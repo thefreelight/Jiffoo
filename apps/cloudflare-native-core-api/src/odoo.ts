@@ -283,3 +283,47 @@ export async function createNativeOdooOrder(
   if (!order) throw new Error('Odoo order was created but could not be read back');
   return { orderId: order.id, orderName: order.name, externalStatus: order.state };
 }
+
+export type NativeOdooShipment = {
+  externalOrderRef: string;
+  shipmentId: string;
+  carrierName: string | null;
+  trackingNumber: string | null;
+  shipmentStatus: 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'EXCEPTION';
+  shippedAt: string | null;
+  lastCheckedAt: string | null;
+};
+
+/** Read confirmed Odoo pickings for orders already submitted by Bokmoo. */
+export async function readNativeOdooShipments(env: OdooEnv): Promise<NativeOdooShipment[]> {
+  const settings = await config(env);
+  if (!settings) return [];
+  const uid = await authenticate(settings);
+  const pickings = await execute<Array<Record<string, unknown>>>(settings, uid, 'stock.picking', 'search_read', [
+    [['sale_id', '!=', false], ['state', 'in', ['assigned', 'done']]],
+  ], { fields: ['id', 'name', 'sale_id', 'state', 'carrier_tracking_ref', 'carrier_id', 'date_done', 'write_date'], order: 'write_date desc', limit: 200 });
+  const result: NativeOdooShipment[] = [];
+  for (const picking of pickings) {
+    const sale = Array.isArray(picking.sale_id) ? picking.sale_id[0] : null;
+    if (typeof sale !== 'number') continue;
+    const orders = await execute<Array<{ client_order_ref?: string }>>(settings, uid, 'sale.order', 'read', [[sale]], { fields: ['client_order_ref'] });
+    const externalOrderRef = text(orders[0]?.client_order_ref);
+    if (!externalOrderRef) continue;
+    const linked = await env.DB.prepare(
+      `SELECT 1 FROM native_external_order_links WHERE provider = 'odoo' AND external_order_ref = ?1 LIMIT 1`,
+    ).bind(externalOrderRef).first();
+    if (!linked) continue;
+    const carrier = Array.isArray(picking.carrier_id) ? text(picking.carrier_id[1]) : null;
+    const state = text(picking.state).toLowerCase();
+    result.push({
+      externalOrderRef,
+      shipmentId: text(picking.name) || `odoo-picking-${picking.id}`,
+      carrierName: carrier,
+      trackingNumber: text(picking.carrier_tracking_ref) || null,
+      shipmentStatus: state === 'done' ? 'SHIPPED' : 'PROCESSING',
+      shippedAt: text(picking.date_done) || null,
+      lastCheckedAt: text(picking.write_date) || new Date().toISOString(),
+    });
+  }
+  return result;
+}
