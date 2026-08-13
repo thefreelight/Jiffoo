@@ -139,6 +139,30 @@ describe('Odoo native catalog mapping', () => {
     });
   });
 
+  it('caps sellable stock at Odoo forecast availability after reservations', () => {
+    const products = mapNativeOdooCatalog([
+      {
+        id: 40, product_tmpl_id: [10, 'Reserved Card'], display_name: 'Reserved Card',
+        default_code: 'BOK-RESERVED', list_price: 20, qty_available: 100, virtual_available: 97,
+        active: true, sale_ok: true, detailed_type: 'product',
+      },
+    ]);
+
+    expect(products[0]).toMatchObject({ stock: 97, variants: [{ baseStock: 97 }] });
+  });
+
+  it('does not expose negative or missing inventory', () => {
+    const products = mapNativeOdooCatalog([
+      {
+        id: 41, product_tmpl_id: [11, 'Unavailable Card'], display_name: 'Unavailable Card',
+        default_code: 'BOK-UNAVAILABLE', list_price: 20, qty_available: -2, virtual_available: -1,
+        active: true, sale_ok: true, detailed_type: 'product',
+      },
+    ]);
+
+    expect(products[0]).toMatchObject({ stock: 0, variants: [{ baseStock: 0 }] });
+  });
+
   it('omits products that are not sellable', () => {
     expect(mapNativeOdooCatalog([
       { id: 30, product_tmpl_id: [9, 'Hidden'], sale_ok: false, detailed_type: 'product' },
