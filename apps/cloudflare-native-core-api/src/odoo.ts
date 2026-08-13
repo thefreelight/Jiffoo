@@ -185,8 +185,11 @@ export function mapNativeOdooCatalog(records: OdooProductRecord[]): NativeOdooCa
     const sourceTemplateId = templateId(record);
     if (!sourceTemplateId || record.sale_ok === false) continue;
     const kind = productKind(text(record.detailed_type) || text(record.type), record.is_storable === true);
-    const available = Math.max(0, Math.floor(number(record.qty_available)));
+    // Sell only stock that is both physically present and forecast available.
+    // Odoo's virtual_available includes outgoing reservations after a sale is
+    // confirmed, while qty_available alone would keep reserved units sellable.
     const virtualAvailable = Math.max(0, Math.floor(number(record.virtual_available)));
+    const available = Math.max(0, Math.floor(Math.min(number(record.qty_available), virtualAvailable)));
     const name = templateName(record) || `Odoo product ${sourceTemplateId}`;
     const id = `odoo-product-${sourceTemplateId}`;
     const variantId = `odoo-variant-${record.id}`;
