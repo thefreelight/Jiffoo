@@ -58,7 +58,7 @@ export async function tryNativeMarketplace(request: Request, env: Env): Promise<
   }
   if (install && request.method === 'POST') {
     const body = await request.json().catch(() => null) as { kind?: string; version?: string } | null;
-    if (body?.kind !== 'plugin') return Response.json({ success: false, error: { code: 'BAD_REQUEST', message: 'Native marketplace installs require kind=plugin' } }, { status: 400 });
+    if (body?.kind !== 'plugin') return null;
     if (!NATIVE_INSTALLABLE_PLUGINS.has(install[1])) {
       return Response.json({ success: false, error: { code: 'NATIVE_PLUGIN_NOT_IMPLEMENTED', message: `Native installation is not implemented for ${install[1]}` } }, { status: 501 });
     }
