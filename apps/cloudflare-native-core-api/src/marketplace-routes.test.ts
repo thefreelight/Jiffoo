@@ -34,10 +34,12 @@ describe('native marketplace install routes', () => {
 
   it('passes theme installs to the Native theme adapter', async () => {
     authenticateNativeAdmin.mockResolvedValue(true);
-    const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/imagic-studio/install', {
+    const request = new Request('https://api.example/api/v1/admin/market/extensions/imagic-studio/install', {
       method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ kind: 'theme-shop', version: '0.2.14', activate: true }),
-    }), { DB: {} } as never);
+    });
+    const response = await tryNativeMarketplace(request, { DB: {} } as never);
     expect(response).toBeNull();
+    await expect(request.json()).resolves.toMatchObject({ kind: 'theme-shop', version: '0.2.14' });
   });
 });
