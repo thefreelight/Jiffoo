@@ -118,6 +118,11 @@ jobs:
             --tag "${version_tag}"
             --tag "${release_tag}"
             --push
+            # Alibaba Cloud ACR rejects BuildKit's OCI provenance/attestation
+            # manifest (application/vnd.oci.empty.v1+json). Keep the release
+            # image a plain OCI image for this registry.
+            --provenance=false
+            --sbom=false
             --build-arg "HTTP_PROXY="
             --build-arg "HTTPS_PROXY="
             --build-arg "NO_PROXY=localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16"
