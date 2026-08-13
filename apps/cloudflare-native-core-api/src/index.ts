@@ -10,7 +10,7 @@ import { tryNativeShipmentRead } from './shipments';
 import { tryNativeCheckout } from './checkout';
 import { processCheckoutOutbox } from './outbox';
 import { tryNativeShopperAccount } from './shopper-account';
-import { tryNativeExternalOrderSync } from './external-orders';
+import { processNativeOdooShipmentPoll, tryNativeExternalOrderSync } from './external-orders';
 import { processNativeEmailOutbox } from './mail-outbox';
 import { tryNativeAffiliate } from './affiliate';
 import { tryNativePluginSettings } from './plugin-settings';
@@ -281,10 +281,11 @@ export default {
     return proxy(request, env);
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog, jobs, walletReservations, creditGrants, resumeExtraction] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, creditGrants, resumeExtraction] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
+      processNativeOdooShipmentPoll(env),
       processNativeJobsSync(env),
       expireNativeWalletReservations(env),
       expireRemoteRadarCreditGrants(env),
@@ -295,6 +296,7 @@ export default {
       checkout: checkout.status === 'fulfilled' ? checkout.value : { error: String(checkout.reason) },
       email: email.status === 'fulfilled' ? email.value : { error: String(email.reason) },
       odooCatalog: odooCatalog.status === 'fulfilled' ? odooCatalog.value : { error: String(odooCatalog.reason) },
+      odooShipments: odooShipments.status === 'fulfilled' ? odooShipments.value : { error: String(odooShipments.reason) },
       jobs: jobs.status === 'fulfilled' ? jobs.value : { error: String(jobs.reason) },
       walletReservations: walletReservations.status === 'fulfilled'
         ? walletReservations.value

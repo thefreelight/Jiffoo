@@ -1,6 +1,6 @@
 import { normalizeShipmentStatus, upsertSupplierShipment } from './shipments';
 import { enqueueShipmentEmail } from './mail-outbox';
-import { createNativeOdooOrder } from './odoo';
+import { createNativeOdooOrder, readNativeOdooShipments } from './odoo';
 import { getNativePluginSecret } from './plugin-settings';
 
 interface ExternalOrderEnv {
@@ -169,6 +169,56 @@ export async function submitNativeOdooOrders(env: ExternalOrderEnv, orderId: str
   order.items = items;
   order.updatedAt = new Date().toISOString();
   await env.DB.prepare('UPDATE native_order_snapshots SET payload = ?1, source_updated_at = ?2 WHERE id = ?3').bind(JSON.stringify(order), order.updatedAt, orderId).run();
+}
+
+/** Poll Odoo pickings for a small bounded set of linked orders. */
+export async function processNativeOdooShipmentPoll(env: ExternalOrderEnv): Promise<{ received: number; matched: number }> {
+  const shipments = await readNativeOdooShipments(env);
+  let matched = 0;
+  for (const shipment of shipments) {
+    const link = await env.DB.prepare(
+      `SELECT id, order_id, order_item_id FROM native_external_order_links
+       WHERE provider = 'odoo' AND external_order_ref = ?1 LIMIT 1`,
+    ).bind(shipment.externalOrderRef).first<{ id: string; order_id: string; order_item_id: string }>();
+    if (!link) continue;
+    const now = shipment.lastCheckedAt || new Date().toISOString();
+    await upsertSupplierShipment(env.DB, {
+      orderId: link.order_id,
+      shipmentId: shipment.shipmentId,
+      carrierName: shipment.carrierName,
+      trackingNumber: shipment.trackingNumber,
+      status: shipment.shipmentStatus,
+      shippedAt: shipment.shippedAt,
+      lastCheckedAt: now,
+      events: [],
+    });
+    const nextFulfillment = fulfillmentStatus(null, shipment.shipmentStatus);
+    const snapshot = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(link.order_id).first<{ payload: string }>();
+    if (snapshot) {
+      const order = JSON.parse(snapshot.payload) as Record<string, unknown>;
+      const items = Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
+      const item = items.find((candidate) => candidate.id === link.order_item_id);
+      if (item) item.fulfillmentStatus = nextFulfillment;
+      order.items = items;
+      if (nextFulfillment === 'delivered') order.status = 'DELIVERED';
+      order.updatedAt = now;
+      await env.DB.prepare('UPDATE native_order_snapshots SET status = ?1, payload = ?2, source_updated_at = ?3 WHERE id = ?4')
+        .bind(String(order.status ?? 'PROCESSING'), JSON.stringify(order), now, link.order_id).run();
+    }
+    const shipmentRow = await env.DB.prepare(
+      'SELECT id, carrier, tracking_number, tracking_url, status FROM native_shipments WHERE order_id = ?1 AND tracking_number = ?2',
+    ).bind(link.order_id, shipment.trackingNumber || shipment.shipmentId).first<{ id: string; carrier: string; tracking_number: string; tracking_url: string | null; status: string }>();
+    if (shipmentRow) {
+      const notificationStatus = ['IN_TRANSIT', 'OUT_FOR_DELIVERY'].includes(shipmentRow.status) ? 'SHIPPED' : shipmentRow.status;
+      await enqueueShipmentEmail(env, { orderId: link.order_id, shipmentId: shipmentRow.id, status: notificationStatus, carrier: shipmentRow.carrier, trackingNumber: shipmentRow.tracking_number, trackingUrl: shipmentRow.tracking_url });
+    }
+    await env.DB.prepare(
+      `UPDATE native_external_order_links SET external_status = ?1, sync_status = 'PROCESSING',
+       last_error = NULL, last_synced_at = ?2, updated_at = ?2 WHERE id = ?3`,
+    ).bind(shipment.shipmentStatus, now, link.id).run();
+    matched += 1;
+  }
+  return { received: shipments.length, matched };
 }
 
 export async function tryNativeExternalOrderSync(request: Request, env: ExternalOrderEnv): Promise<Response | null> {
