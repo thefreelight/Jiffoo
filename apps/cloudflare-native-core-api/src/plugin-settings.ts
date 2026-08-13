@@ -12,6 +12,7 @@ type Descriptor = {
   patternMessage?: string;
   required?: boolean;
   sensitive?: boolean;
+  enum?: string[];
 };
 
 type PluginDefinition = {
@@ -62,25 +63,32 @@ const definitions: Record<string, PluginDefinition> = {
     },
   },
   stripe: {
-    slug: 'stripe', name: 'Stripe Payment Gateway', version: '1.0.2', category: 'payment',
+    slug: 'stripe', name: 'Stripe Payment Gateway', version: '1.0.5', category: 'payment',
     description: 'Stripe checkout, webhooks, and refunds.',
     configSchema: {
+      mode: { type: 'string', label: 'Active Stripe mode', enum: ['test', 'live'], description: 'Use test mode for sandbox payments; live mode creates real charges.' },
       secretKey: {
-        type: 'secret', required: true, sensitive: true, label: 'Stripe Secret Key',
+        type: 'secret', sensitive: true, label: 'Stripe Secret Key',
         placeholder: 'sk_live_... or rk_live_...',
         pattern: '^(sk|rk)_(live|test)_.+$',
         patternMessage: 'Use a Stripe secret or restricted key beginning with sk_live_, sk_test_, rk_live_, or rk_test_.',
         description: 'Server-side credential. Paste a standard secret key (sk_...) or a least-privilege restricted key (rk_...). Never place this value in the Publishable Key field.',
       },
+      testSecretKey: { type: 'secret', sensitive: true, label: 'Test Secret Key', placeholder: 'sk_test_...' },
+      testPublishableKey: { type: 'string', label: 'Test Publishable Key', placeholder: 'pk_test_...' },
+      testWebhookSecret: { type: 'secret', sensitive: true, label: 'Test Webhook Signing Secret', placeholder: 'whsec_...' },
+      liveSecretKey: { type: 'secret', sensitive: true, label: 'Live Secret Key', placeholder: 'sk_live_...' },
+      livePublishableKey: { type: 'string', label: 'Live Publishable Key', placeholder: 'pk_live_...' },
+      liveWebhookSecret: { type: 'secret', sensitive: true, label: 'Live Webhook Signing Secret', placeholder: 'whsec_...' },
       publishableKey: {
-        type: 'string', required: true, label: 'Stripe Publishable Key',
+        type: 'string', label: 'Stripe Publishable Key',
         placeholder: 'pk_live_... or pk_test_...',
         pattern: '^pk_(live|test)_.+$',
         patternMessage: 'Use a Stripe publishable key beginning with pk_live_ or pk_test_.',
         description: 'Browser-safe key from Stripe Dashboard > Developers > API keys. It always begins with pk_; do not paste an sk_ or rk_ key here.',
       },
       webhookSecret: {
-        type: 'secret', required: true, sensitive: true, label: 'Webhook Signing Secret',
+        type: 'secret', sensitive: true, label: 'Webhook Signing Secret',
         placeholder: 'whsec_...',
         pattern: '^whsec_.+$',
         patternMessage: 'Use the endpoint signing secret beginning with whsec_.',
@@ -208,8 +216,10 @@ async function saveInstance(
       if (value === null) delete secrets[field];
       else if (typeof value === 'string' && value.trim()) {
         const normalized = value.trim();
-        if (definition.slug === 'stripe' && field === 'secretKey' && !/^(sk|rk)_(test|live)_/.test(normalized)) throw new Error('Stripe secret key must start with sk_test_, sk_live_, rk_test_, or rk_live_');
-        if (definition.slug === 'stripe' && field === 'webhookSecret' && !normalized.startsWith('whsec_')) throw new Error('Stripe webhook secret must start with whsec_');
+        if (definition.slug === 'stripe' && (field.endsWith('SecretKey') || field === 'secretKey')) {
+          if (!/^(sk|rk)_(test|live)_/.test(normalized)) throw new Error('Stripe secret key must start with sk_test_, sk_live_, rk_test_, or rk_live_');
+        }
+        if (definition.slug === 'stripe' && (field.endsWith('WebhookSecret') || field === 'webhookSecret') && !normalized.startsWith('whsec_')) throw new Error('Stripe webhook secret must start with whsec_');
         secrets[field] = await encrypt(env, normalized);
       }
       continue;
@@ -249,8 +259,21 @@ function validateConfig(slug: string, config: Record<string, unknown>, secrets: 
     }
   }
   if (slug === 'stripe') {
+    if (config.mode !== undefined && config.mode !== 'test' && config.mode !== 'live') throw new Error('Stripe mode must be test or live');
     const publishableKey = config.publishableKey;
     if (typeof publishableKey === 'string' && publishableKey && !/^pk_(test|live)_/.test(publishableKey)) throw new Error('Stripe publishable key must start with pk_test_ or pk_live_');
+    for (const [field, prefix] of [['testPublishableKey', 'pk_test_'], ['livePublishableKey', 'pk_live_'] as const]) {
+      const value = config[field];
+      if (typeof value === 'string' && value && !value.startsWith(prefix)) throw new Error(`Stripe ${field} must start with ${prefix}`);
+    }
+    const legacyPublishable = typeof config.publishableKey === 'string' ? config.publishableKey : '';
+    const mode = config.mode === 'live' || config.mode === 'test'
+      ? config.mode
+      : legacyPublishable.startsWith('pk_live_') ? 'live' : 'test';
+    const publishable = config[`${mode}PublishableKey`] ?? config.publishableKey;
+    const secret = secrets[`${mode}SecretKey`] ?? secrets.secretKey;
+    const webhook = secrets[`${mode}WebhookSecret`] ?? secrets.webhookSecret;
+    if (!publishable || !secret || !webhook) throw new Error(`Stripe ${mode} mode configuration is incomplete`);
   }
   if (slug === 'odoo') {
     const baseUrl = config.baseUrl;
@@ -298,6 +321,25 @@ export async function getNativePluginSecret(
   if (typeof value === 'string' && value.trim()) return value.trim();
   if (!fallback) return '';
   return typeof fallback === 'string' ? fallback : fallback.get();
+}
+
+export async function getNativeStripeSecret(
+  env: PluginSettingsEnv,
+  field: 'secretKey' | 'webhookSecret',
+  fallback?: SecretsStoreSecret | string,
+): Promise<{ mode: 'test' | 'live'; value: string }> {
+  const stored = await getNativePluginConfig(env, 'stripe');
+  const legacySecret = stored?.config.secretKey;
+  const mode = stored?.config.mode === 'live' || stored?.config.mode === 'test'
+    ? stored.config.mode
+    : typeof legacySecret === 'string' && /_(?:live)_/.test(legacySecret) ? 'live' : 'test';
+  const profileField = `${mode}${field[0].toUpperCase()}${field.slice(1)}`;
+  const value = stored?.enabled ? stored.config[profileField] : undefined;
+  if (typeof value === 'string' && value.trim()) return { mode, value: value.trim() };
+  const legacy = stored?.enabled ? stored.config[field] : undefined;
+  if (typeof legacy === 'string' && legacy.trim()) return { mode, value: legacy.trim() };
+  if (fallback) return { mode, value: typeof fallback === 'string' ? fallback : await fallback.get() };
+  return { mode, value: '' };
 }
 
 export async function tryNativePluginSettings(request: Request, env: PluginSettingsEnv): Promise<Response | null> {

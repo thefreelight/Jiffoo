@@ -1,6 +1,6 @@
 import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
 import { testNativeOdooConnection } from './odoo';
-import { getNativePluginSecret } from './plugin-settings';
+import { getNativeStripeSecret } from './plugin-settings';
 import { sendSmtpEmail } from './smtp';
 import { nativeSiteName } from './site-name';
 import { getNativePluginConfig } from './plugin-settings';
@@ -41,7 +41,7 @@ export async function tryNativeIntegrationAdmin(request: Request, env: Integrati
       return result({ ok: true, recipient: to });
     }
     if (match[1] === 'stripe') {
-      const secret = await getNativePluginSecret(env, 'stripe', 'secretKey', env.STRIPE_SECRET_KEY);
+      const secret = (await getNativeStripeSecret(env, 'secretKey', env.STRIPE_SECRET_KEY)).value;
       if (!secret) throw new Error('Stripe plugin is not enabled or configured');
       const response = await fetch('https://api.stripe.com/v1/account', {
         headers: { authorization: `Bearer ${secret}` },
