@@ -325,8 +325,11 @@ async function kuaidi100Webhook(request: Request, env: NativeShippingEnv): Promi
        WHERE provider_key = 'kuaidi100' AND event_hash = ?1`,
     ).bind(eventHash).first<{ processing_state: string; updated_at: string }>();
     const leaseCutoff = new Date(Date.now() - 5 * 60_000).toISOString();
-    if (existing?.processing_state === 'APPLIED' || (existing?.processing_state === 'PROCESSING' && existing.updated_at > leaseCutoff)) {
+    if (existing?.processing_state === 'APPLIED') {
       return Response.json({ result: true, returnCode: '200', message: 'success', duplicate: true }, { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-shipping-1.1.0' } });
+    }
+    if (existing?.processing_state === 'PROCESSING' && existing.updated_at > leaseCutoff) {
+      return Response.json({ result: false, returnCode: '503', message: 'Callback is still processing; retry later' }, { status: 503, headers: { 'retry-after': '300' } });
     }
     const reclaimed = await env.DB.prepare(
       `UPDATE native_shipping_provider_webhook_events SET processing_state = 'PROCESSING', last_error = NULL, updated_at = ?1
@@ -362,7 +365,10 @@ async function kuaidi100Webhook(request: Request, env: NativeShippingEnv): Promi
       `UPDATE native_shipping_provider_webhook_events SET processing_state = ?1, matched_order_id = ?2, updated_at = ?3
        WHERE provider_key = 'kuaidi100' AND event_hash = ?4`,
     ).bind(matchedOrderId ? 'APPLIED' : 'UNMATCHED', matchedOrderId, new Date().toISOString(), eventHash).run();
-    return Response.json({ result: true, returnCode: '200', message: 'success', matched: Boolean(matchedOrderId) }, { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-shipping-1.1.0' } });
+    if (!matchedOrderId) {
+      return Response.json({ result: false, returnCode: '503', message: 'Shipment mapping is not ready; retry later', matched: false }, { status: 503, headers: { 'retry-after': '1800', 'x-jiffoo-runtime': 'cloudflare-native-d1-shipping-1.1.0' } });
+    }
+    return Response.json({ result: true, returnCode: '200', message: 'success', matched: true }, { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-shipping-1.1.0' } });
   } catch (error) {
     await env.DB.prepare(
       `UPDATE native_shipping_provider_webhook_events SET processing_state = 'FAILED', last_error = ?1, updated_at = ?2

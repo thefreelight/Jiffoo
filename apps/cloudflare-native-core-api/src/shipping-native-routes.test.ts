@@ -228,7 +228,7 @@ describe('Cloudflare-native shipping routes', () => {
     });
     const signature = signKuaidi100Webhook(rawParam, 'salt');
     const accepted = await tryNativeShipping(callback(rawParam, signature), { DB: db } as never);
-    expect(accepted?.status).toBe(200);
+    expect(accepted?.status).toBe(503);
     expect(run).toHaveBeenCalledTimes(2);
     const rejected = await tryNativeShipping(callback(`${rawParam} `, signature), { DB: db } as never);
     expect(rejected?.status).toBe(401);
