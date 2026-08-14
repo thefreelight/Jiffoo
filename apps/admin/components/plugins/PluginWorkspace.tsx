@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, AlertTriangle, CheckCircle2, Loader2, RefreshCw, ShieldCheck, Workflow } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, Loader2, RefreshCw, Send, ShieldCheck, Truck, Workflow } from 'lucide-react';
 import { useLocale, useT } from 'shared/src/i18n/react';
 import { apiClient, unwrapApiResponse } from '@/lib/api';
 import type { PluginInstance } from '@/lib/api';
@@ -79,6 +79,31 @@ type OdooJobPayload = {
   progressTotal?: number | null;
   productType?: string | null;
   lastError?: string | null;
+};
+
+type ShippingProvider = 'kuaidi100' | 'fourpx';
+
+type ShippingProviderAction = {
+  value: string;
+  label: string;
+  endpoint: string;
+  needsMerchantReference?: boolean;
+};
+
+const shippingProviderActions: Record<ShippingProvider, ShippingProviderAction[]> = {
+  kuaidi100: [
+    { value: 'label-order', label: 'Create label order', endpoint: 'kuaidi100/label-orders', needsMerchantReference: true },
+    { value: 'pickup-order', label: 'Create pickup order', endpoint: 'kuaidi100/pickup-orders', needsMerchantReference: true },
+    { value: 'tracking-query', label: 'Query tracking', endpoint: 'kuaidi100/tracking/query' },
+    { value: 'tracking-subscribe', label: 'Subscribe to tracking', endpoint: 'kuaidi100/tracking/subscribe' },
+  ],
+  fourpx: [
+    { value: 'create-order', label: 'Create shipment order', endpoint: 'fourpx/orders', needsMerchantReference: true },
+    { value: 'get-order', label: 'Get shipment order', endpoint: 'fourpx/orders/get' },
+    { value: 'cancel-order', label: 'Cancel shipment order', endpoint: 'fourpx/orders/cancel' },
+    { value: 'get-label', label: 'Get shipping label', endpoint: 'fourpx/labels' },
+    { value: 'get-tracking', label: 'Query tracking', endpoint: 'fourpx/tracking' },
+  ],
 };
 
 function isPlainObject(value: unknown): value is Record<string, any> {
@@ -1063,6 +1088,210 @@ function OdooNativeWorkspace(props: {
   );
 }
 
+function ShippingNativeWorkspace(props: {
+  installationId: string;
+  enabled: boolean;
+}) {
+  const { installationId, enabled } = props;
+  const [provider, setProvider] = useState<ShippingProvider>('kuaidi100');
+  const [action, setAction] = useState(shippingProviderActions.kuaidi100[0].value);
+  const [merchantReference, setMerchantReference] = useState('');
+  const [orderId, setOrderId] = useState('');
+  const [requestDraft, setRequestDraft] = useState('{}');
+  const [responseDraft, setResponseDraft] = useState('');
+  const [statusMessage, setStatusMessage] = useState('Ready');
+  const [statusTone, setStatusTone] = useState<'default' | 'error' | 'success'>('default');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const availableActions = shippingProviderActions[provider];
+  const selectedAction = availableActions.find((item) => item.value === action) || availableActions[0];
+
+  const selectProvider = (nextProvider: ShippingProvider) => {
+    setProvider(nextProvider);
+    setAction(shippingProviderActions[nextProvider][0].value);
+    setResponseDraft('');
+    setStatusMessage('Ready');
+    setStatusTone('default');
+  };
+
+  const submitProviderAction = async () => {
+    if (!enabled) {
+      const message = 'Enable the Shipping instance before running provider operations.';
+      setStatusMessage(message);
+      setStatusTone('error');
+      toast.error(message);
+      return;
+    }
+
+    if (selectedAction.needsMerchantReference && !merchantReference.trim()) {
+      const message = 'Merchant reference is required for create operations.';
+      setStatusMessage(message);
+      setStatusTone('error');
+      toast.error(message);
+      return;
+    }
+    if (selectedAction.needsMerchantReference && !orderId.trim()) {
+      const message = 'Bokmoo order ID is required for create operations.';
+      setStatusMessage(message);
+      setStatusTone('error');
+      toast.error(message);
+      return;
+    }
+
+    let payload: Record<string, unknown>;
+    try {
+      const parsed = JSON.parse(requestDraft);
+      if (!isPlainObject(parsed)) throw new Error('Request body must be a JSON object.');
+      payload = parsed;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Request body is not valid JSON.';
+      setStatusMessage(message);
+      setStatusTone('error');
+      toast.error(message);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setResponseDraft('');
+    setStatusMessage(`Running ${selectedAction.label.toLowerCase()}...`);
+    setStatusTone('default');
+
+    try {
+      const requestBody = selectedAction.needsMerchantReference
+        ? { reference: merchantReference.trim(), orderId: orderId.trim(), input: payload }
+        : ['tracking-subscribe', 'cancel-order', 'get-tracking'].includes(selectedAction.value)
+          ? payload
+          : { input: payload };
+      const response = await apiClient.post(
+        `/extensions/plugin/shipping/api/admin/providers/${selectedAction.endpoint}`,
+        requestBody,
+        { params: { installationId }, timeout: 120000 }
+      );
+      const data = unwrapApiResponse<unknown>(response);
+      setResponseDraft(JSON.stringify(data, null, 2));
+      setStatusMessage(`${selectedAction.label} completed.`);
+      setStatusTone('success');
+      toast.success(`${selectedAction.label} completed`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : `${selectedAction.label} failed.`;
+      setStatusMessage(message);
+      setStatusTone('error');
+      toast.error(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+      <CardHeader>
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+            <Truck className="h-5 w-5" />
+          </div>
+          <div>
+            <CardTitle className="text-xl tracking-tight">Fulfillment operations</CardTitle>
+            <CardDescription>Run provider operations through the selected Shipping instance.</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="shipping-provider">Provider</Label>
+            <Select value={provider} onValueChange={(value) => selectProvider(value === 'fourpx' ? 'fourpx' : 'kuaidi100')}>
+              <SelectTrigger id="shipping-provider" className="rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="kuaidi100">Kuaidi100</SelectItem>
+                <SelectItem value="fourpx">4PX</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="shipping-action">Operation</Label>
+            <Select value={selectedAction.value} onValueChange={setAction}>
+              <SelectTrigger id="shipping-action" className="rounded-xl">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableActions.map((item) => (
+                  <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {selectedAction.needsMerchantReference ? (
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="shipping-order-id">Bokmoo order ID</Label>
+              <Input
+                id="shipping-order-id"
+                value={orderId}
+                onChange={(event) => setOrderId(event.target.value)}
+                placeholder="ord_..."
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
+            <Label htmlFor="shipping-merchant-reference">Merchant reference</Label>
+            <Input
+              id="shipping-merchant-reference"
+              value={merchantReference}
+              onChange={(event) => setMerchantReference(event.target.value)}
+              placeholder="Stable provider operation reference"
+              className="rounded-xl"
+            />
+            </div>
+          </div>
+        ) : null}
+
+        <div className="space-y-2">
+          <Label htmlFor="shipping-request-body">Provider request</Label>
+          <Textarea
+            id="shipping-request-body"
+            value={requestDraft}
+            onChange={(event) => setRequestDraft(event.target.value)}
+            className="min-h-48 rounded-xl font-mono text-xs"
+            spellCheck={false}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <Button onClick={() => void submitProviderAction()} disabled={isSubmitting || !enabled} className="rounded-xl">
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+            Run operation
+          </Button>
+          <Badge
+            variant="outline"
+            className={
+              statusTone === 'error'
+                ? 'border-red-200 bg-red-50 text-red-700'
+                : statusTone === 'success'
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border-slate-200 bg-slate-50 text-slate-600'
+            }
+          >
+            {statusMessage}
+          </Badge>
+        </div>
+
+        {responseDraft ? (
+          <div className="space-y-2">
+            <Label>Response</Label>
+            <pre className="max-h-80 overflow-auto rounded-xl bg-slate-950 p-4 text-xs leading-5 text-slate-100">
+              {responseDraft}
+            </pre>
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function PluginWorkspace({ slug }: { slug: string }) {
   const locale = useLocale();
   const t = useT();
@@ -1394,6 +1623,13 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                   installationId={selectedInstance?.installationId || 'default'}
                   selectedInstance={selectedInstance}
                   onSaveConfig={persistSelectedConfig}
+                />
+              ) : null}
+
+              {slug === 'shipping' && data.runtimeType === 'cloudflare-native' ? (
+                <ShippingNativeWorkspace
+                  installationId={selectedInstance?.installationId || 'default'}
+                  enabled={Boolean(selectedInstance?.enabled)}
                 />
               ) : null}
 
