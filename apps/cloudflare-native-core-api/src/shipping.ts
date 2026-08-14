@@ -78,7 +78,12 @@ async function kuaidi100(env: NativeShippingEnv): Promise<Kuaidi100NativeProvide
   const key = string(config.kuaidi100Key);
   const secret = string(config.kuaidi100Secret);
   if (config.kuaidi100Enabled !== true || !key || !secret) throw new ShippingProviderError('Kuaidi100 is not configured', 'PROVIDER_NOT_CONFIGURED');
-  return new Kuaidi100NativeProvider({ key, secret, customer: string(config.kuaidi100Customer) ?? undefined });
+  return new Kuaidi100NativeProvider({
+    key,
+    secret,
+    customer: string(config.kuaidi100Customer) ?? undefined,
+    environment: config.mode === 'test' ? 'test' : 'live',
+  });
 }
 
 async function fourpx(env: NativeShippingEnv): Promise<FourPxNativeProvider> {

@@ -28,12 +28,32 @@ describe('Cloudflare-native carrier requests', () => {
   it('uses the Kuaidi100 V2 label endpoint and signed form body', async () => {
     const carrierFetch = vi.fn(async () => Response.json({ success: true, code: 200, data: { taskId: 'task-1' } }));
     const provider = new Kuaidi100NativeProvider({ key: 'key-1', secret: 'secret-1' }, carrierFetch, () => 1725000000123);
-    await provider.createLabel({ printType: 'NON', partnerId: 'partner', kuaidicom: 'ems' });
+    await provider.createLabel({
+      printType: 'NON', partnerId: 'partner', kuaidicom: 'ems', cargo: 'Bokmoo card', count: 1,
+      recMan: { name: 'Receiver', printAddr: 'Test address', mobile: '13800000000' },
+      sendMan: { name: 'Sender', printAddr: 'Test address', mobile: '13900000000' },
+    });
     const [url, init] = carrierFetch.mock.calls[0]!;
     const form = new URLSearchParams(String(init?.body));
     expect(url).toBe('https://api.kuaidi100.com/label/order');
     expect(form.get('method')).toBe('order');
     expect(form.get('sign')).toBe(signKuaidi100(form.get('param')!, '1725000000123', 'key-1', 'secret-1'));
+  });
+
+  it('uses the official Kuaidi100 sandbox only for pickup orders in test mode', async () => {
+    const carrierFetch = vi.fn(async () => Response.json({ result: true, returnCode: '200', data: { taskId: 'task-1' } }));
+    const payload = {
+      kuaidicom: 'shunfeng', recManName: 'Receiver', recManPrintAddr: 'Test address', recManMobile: '13800000000',
+      sendManName: 'Sender', sendManPrintAddr: 'Test address', sendManMobile: '13900000000', callBackUrl: 'https://hooks.example.test/k100',
+    };
+    const testProvider = new Kuaidi100NativeProvider({ key: 'key', secret: 'secret', environment: 'test' }, carrierFetch);
+    const liveProvider = new Kuaidi100NativeProvider({ key: 'key', secret: 'secret', environment: 'live' }, carrierFetch);
+    await testProvider.createPickup(payload);
+    await liveProvider.createPickup(payload);
+    expect(carrierFetch.mock.calls.map(([url]) => url)).toEqual([
+      'http://e-test.kuaidilab.com/api/order/borderapi.do',
+      'https://poll.kuaidi100.com/order/borderapi.do',
+    ]);
   });
 
   it('maps all 4PX operations to their official method versions', async () => {

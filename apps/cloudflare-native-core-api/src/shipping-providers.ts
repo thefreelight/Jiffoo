@@ -97,7 +97,56 @@ async function responseJson(response: Response, provider: string, mutation: bool
   return record;
 }
 
-export interface Kuaidi100Config { key: string; secret: string; customer?: string; }
+function requiredString(value: unknown, field: string): string {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new ShippingProviderError(`${field} is required`, 'VALIDATION_ERROR');
+  }
+  return value.trim();
+}
+
+function requiredContact(value: unknown, field: string): void {
+  const contact = value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : {};
+  requiredString(contact.name, `${field}.name`);
+  requiredString(contact.printAddr, `${field}.printAddr`);
+  if (!stringValue(contact.mobile) && !stringValue(contact.tel)) {
+    throw new ShippingProviderError(`${field}.mobile or ${field}.tel is required`, 'VALIDATION_ERROR');
+  }
+}
+
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+function kuaidi100Code(result: JsonObject): string {
+  return String(result.returnCode ?? result.code ?? result.status ?? '');
+}
+
+function assertKuaidi100Success(result: JsonObject, mutation: boolean): JsonObject {
+  const code = kuaidi100Code(result);
+  if (result.success === true || result.result === true || code === '200') return result;
+  const retryable = code === '500' || code.startsWith('5');
+  throw new ShippingProviderError(
+    String(result.message ?? 'Kuaidi100 request failed'),
+    code || 'PROVIDER_ERROR',
+    retryable,
+    mutation && retryable,
+    result,
+  );
+}
+
+function timeoutSignal(timeoutMs: number): { signal: AbortSignal; clear: () => void } {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  return { signal: controller.signal, clear: () => clearTimeout(timeout) };
+}
+
+export interface Kuaidi100Config {
+  key: string;
+  secret: string;
+  customer?: string;
+  environment?: 'test' | 'live';
+  timeoutMs?: number;
+}
 
 export class Kuaidi100NativeProvider {
   constructor(private readonly config: Kuaidi100Config, private readonly fetchImpl: FetchLike = fetch, private readonly clock = Date.now) {}
@@ -106,42 +155,69 @@ export class Kuaidi100NativeProvider {
     const rawParam = JSON.stringify(payload);
     const timestamp = String(this.clock());
     const body = new URLSearchParams({ method, key: this.config.key, t: timestamp, param: rawParam, sign: signKuaidi100(rawParam, timestamp, this.config.key, this.config.secret) });
+    const timeout = timeoutSignal(this.config.timeoutMs ?? 15_000);
     try {
-      const response = await this.fetchImpl(url, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body });
-      const result = await responseJson(response, 'Kuaidi100', true);
-      const code = String(result.returnCode ?? result.code ?? result.status ?? '');
-      if (!(result.success === true || result.result === true || code === '200')) throw new ShippingProviderError(String(result.message ?? 'Kuaidi100 request failed'), code || 'PROVIDER_ERROR', code.startsWith('5'), false, result);
-      return result;
+      const response = await this.fetchImpl(url, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body, signal: timeout.signal });
+      return assertKuaidi100Success(await responseJson(response, 'Kuaidi100', true), true);
     } catch (error) {
       if (error instanceof ShippingProviderError) throw error;
-      throw new ShippingProviderError('Kuaidi100 network request failed', 'NETWORK_ERROR', true, true);
-    }
+      throw new ShippingProviderError(timeout.signal.aborted ? 'Kuaidi100 request timed out' : 'Kuaidi100 network request failed', timeout.signal.aborted ? 'TIMEOUT' : 'NETWORK_ERROR', true, true);
+    } finally { timeout.clear(); }
   }
 
-  createLabel(payload: JsonObject): Promise<JsonObject> { return this.signed('https://api.kuaidi100.com/label/order', 'order', payload); }
-  createPickup(payload: JsonObject): Promise<JsonObject> { return this.signed('https://poll.kuaidi100.com/order/borderapi.do', 'bOrder', payload); }
+  createLabel(payload: JsonObject): Promise<JsonObject> {
+    requiredString(payload.printType, 'printType');
+    requiredString(payload.kuaidicom, 'kuaidicom');
+    requiredString(payload.cargo, 'cargo');
+    requiredContact(payload.recMan, 'recMan');
+    requiredContact(payload.sendMan, 'sendMan');
+    if (!Number.isInteger(payload.count) || Number(payload.count) < 1) throw new ShippingProviderError('count must be a positive integer', 'VALIDATION_ERROR');
+    return this.signed('https://api.kuaidi100.com/label/order', 'order', payload);
+  }
+
+  createPickup(payload: JsonObject): Promise<JsonObject> {
+    for (const field of ['kuaidicom', 'recManName', 'recManPrintAddr', 'sendManName', 'sendManPrintAddr', 'callBackUrl']) requiredString(payload[field], field);
+    if (!stringValue(payload.recManMobile) && !stringValue(payload.recManTel)) throw new ShippingProviderError('recManMobile or recManTel is required', 'VALIDATION_ERROR');
+    if (!stringValue(payload.sendManMobile) && !stringValue(payload.sendManTel)) throw new ShippingProviderError('sendManMobile or sendManTel is required', 'VALIDATION_ERROR');
+    const endpoint = this.config.environment === 'test'
+      ? 'http://e-test.kuaidilab.com/api/order/borderapi.do'
+      : 'https://poll.kuaidi100.com/order/borderapi.do';
+    return this.signed(endpoint, 'bOrder', payload);
+  }
 
   async query(payload: JsonObject): Promise<JsonObject> {
     const rawParam = JSON.stringify(payload);
     const customer = this.config.customer || this.config.key;
     const body = new URLSearchParams({ customer, sign: signKuaidi100Query(rawParam, this.config.key, customer), param: rawParam });
+    requiredString(payload.com, 'com');
+    const number = requiredString(payload.num, 'num');
+    if (number.length < 6 || number.length > 32) throw new ShippingProviderError('num must contain 6 to 32 characters', 'VALIDATION_ERROR');
+    const timeout = timeoutSignal(this.config.timeoutMs ?? 15_000);
     try {
-      return await responseJson(await this.fetchImpl('https://poll.kuaidi100.com/poll/query.do', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body }), 'Kuaidi100', false);
+      return assertKuaidi100Success(await responseJson(await this.fetchImpl('https://poll.kuaidi100.com/poll/query.do', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body, signal: timeout.signal }), 'Kuaidi100', false), false);
     } catch (error) {
       if (error instanceof ShippingProviderError) throw error;
-      throw new ShippingProviderError('Kuaidi100 network request failed', 'NETWORK_ERROR', true, false);
-    }
+      throw new ShippingProviderError(timeout.signal.aborted ? 'Kuaidi100 request timed out' : 'Kuaidi100 network request failed', timeout.signal.aborted ? 'TIMEOUT' : 'NETWORK_ERROR', true, false);
+    } finally { timeout.clear(); }
   }
 
   async subscribe(payload: JsonObject): Promise<JsonObject> {
+    requiredString(payload.company, 'company');
+    const number = requiredString(payload.number, 'number');
+    if (number.length < 6 || number.length > 32) throw new ShippingProviderError('number must contain 6 to 32 characters', 'VALIDATION_ERROR');
+    const parameters = payload.parameters && typeof payload.parameters === 'object' && !Array.isArray(payload.parameters)
+      ? payload.parameters as JsonObject
+      : {};
+    requiredString(parameters.callbackurl, 'parameters.callbackurl');
     const rawParam = JSON.stringify({ ...payload, key: this.config.key });
     const body = new URLSearchParams({ schema: 'json', param: rawParam });
+    const timeout = timeoutSignal(this.config.timeoutMs ?? 15_000);
     try {
-      return await responseJson(await this.fetchImpl('https://poll.kuaidi100.com/poll', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body }), 'Kuaidi100', false);
+      return assertKuaidi100Success(await responseJson(await this.fetchImpl('https://poll.kuaidi100.com/poll', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body, signal: timeout.signal }), 'Kuaidi100', false), false);
     } catch (error) {
       if (error instanceof ShippingProviderError) throw error;
-      throw new ShippingProviderError('Kuaidi100 network request failed', 'NETWORK_ERROR', true, false);
-    }
+      throw new ShippingProviderError(timeout.signal.aborted ? 'Kuaidi100 request timed out' : 'Kuaidi100 network request failed', timeout.signal.aborted ? 'TIMEOUT' : 'NETWORK_ERROR', true, false);
+    } finally { timeout.clear(); }
   }
 }
 
@@ -155,7 +231,7 @@ export function signFourPx(input: { appKey: string; appSecret: string; method: s
 }
 
 export class FourPxNativeProvider {
-  constructor(private readonly config: { appKey: string; appSecret: string; environment: 'test' | 'live'; accessToken?: string; language?: string }, private readonly fetchImpl: FetchLike = fetch, private readonly clock = Date.now) {}
+  constructor(private readonly config: { appKey: string; appSecret: string; environment: 'test' | 'live'; accessToken?: string; language?: string; timeoutMs?: number }, private readonly fetchImpl: FetchLike = fetch, private readonly clock = Date.now) {}
 
   private async call(operation: keyof typeof FOURPX_METHODS, payload: JsonObject): Promise<JsonObject> {
     const [method, version] = FOURPX_METHODS[operation];
@@ -165,8 +241,9 @@ export class FourPxNativeProvider {
     if (this.config.accessToken) query.set('access_token', this.config.accessToken);
     if (this.config.language) query.set('language', this.config.language);
     const endpoint = this.config.environment === 'test' ? 'https://open-test.4px.com/router/api/service' : 'https://open.4px.com/router/api/service';
+    const timeout = timeoutSignal(this.config.timeoutMs ?? 15_000);
     try {
-      const result = await responseJson(await this.fetchImpl(`${endpoint}?${query}`, { method: 'POST', headers: { 'content-type': 'application/json; charset=utf-8' }, body }), '4PX', operation === 'create' || operation === 'cancel');
+      const result = await responseJson(await this.fetchImpl(`${endpoint}?${query}`, { method: 'POST', headers: { 'content-type': 'application/json; charset=utf-8' }, body, signal: timeout.signal }), '4PX', operation === 'create' || operation === 'cancel');
       if (result.result !== '1' && result.result !== 1 && result.success !== true) {
         const errors = Array.isArray(result.errors) ? result.errors : [];
         const first = errors[0] && typeof errors[0] === 'object' ? errors[0] as JsonObject : {};
@@ -175,8 +252,8 @@ export class FourPxNativeProvider {
       return result;
     } catch (error) {
       if (error instanceof ShippingProviderError) throw error;
-      throw new ShippingProviderError('4PX network request failed', 'NETWORK_ERROR', true, operation === 'create' || operation === 'cancel');
-    }
+      throw new ShippingProviderError(timeout.signal.aborted ? '4PX request timed out' : '4PX network request failed', timeout.signal.aborted ? 'TIMEOUT' : 'NETWORK_ERROR', true, operation === 'create' || operation === 'cancel');
+    } finally { timeout.clear(); }
   }
 
   create(payload: JsonObject): Promise<JsonObject> { return this.call('create', payload); }
