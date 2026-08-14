@@ -274,15 +274,26 @@ async function adminProviderRequest(request: Request, env: NativeShippingEnv, pa
       const reference = string(body.reference);
       const resolution = string(body.resolution)?.toUpperCase();
       const reason = string(body.reason);
-      if (!provider || !operation || !reference || !['COMPLETED', 'FAILED'].includes(resolution ?? '')) return failure(400, 'RESOLUTION_INVALID', 'provider, operation, reference and a valid resolution are required');
+      if (!provider || !operation || !reference || !['COMPLETED', 'FAILED', 'UNKNOWN'].includes(resolution ?? '')) return failure(400, 'RESOLUTION_INVALID', 'provider, operation, reference and a valid resolution are required');
       if (!reason) return failure(400, 'RESOLUTION_REASON_REQUIRED', 'reason is required for reconciliation audit');
       if (resolution === 'FAILED' && body.confirmRetryRisk !== true) return failure(400, 'RETRY_RISK_CONFIRMATION_REQUIRED', 'confirmRetryRisk must be true before allowing another create attempt');
       if (resolution === 'COMPLETED' && !string(body.externalOrderId) && !string(body.trackingNumber)) return failure(400, 'RESOLUTION_EVIDENCE_REQUIRED', 'externalOrderId or trackingNumber is required to confirm completion');
+      if (resolution === 'UNKNOWN') {
+        const leaseCutoff = new Date(Date.now() - 15 * 60_000).toISOString();
+        const expired = await env.DB.prepare(
+          `UPDATE native_shipping_provider_orders SET state = 'UNKNOWN', error_code = 'PROCESSING_LEASE_EXPIRED',
+            error_message = ?1, updated_at = ?2 WHERE provider_key = ?3 AND operation = ?4 AND merchant_reference = ?5
+            AND state = 'PROCESSING' AND updated_at <= ?6`,
+        ).bind(reason, new Date().toISOString(), provider, operation, reference, leaseCutoff).run();
+        return (expired.meta.changes ?? 0) === 1 ? success({ resolved: true, state: 'UNKNOWN' }) : failure(409, 'OPERATION_NOT_RESOLVABLE', 'The operation is still active or is not processing');
+      }
+      const resolutionResponse = JSON.stringify({ manuallyResolved: true, state: resolution, reason, externalOrderId: string(body.externalOrderId), trackingNumber: string(body.trackingNumber) });
       const updated = await env.DB.prepare(
         `UPDATE native_shipping_provider_orders SET state = ?1, external_order_id = COALESCE(?2, external_order_id),
-          tracking_number = COALESCE(?3, tracking_number), error_code = 'MANUALLY_RESOLVED', error_message = ?4, updated_at = ?5
-         WHERE provider_key = ?6 AND operation = ?7 AND merchant_reference = ?8 AND state = 'UNKNOWN'`,
-      ).bind(resolution, string(body.externalOrderId), string(body.trackingNumber), reason, new Date().toISOString(), provider, operation, reference).run();
+          tracking_number = COALESCE(?3, tracking_number), response_json = ?4,
+          error_code = 'MANUALLY_RESOLVED', error_message = ?5, updated_at = ?6
+         WHERE provider_key = ?7 AND operation = ?8 AND merchant_reference = ?9 AND state = 'UNKNOWN'`,
+      ).bind(resolution, string(body.externalOrderId), string(body.trackingNumber), resolutionResponse, reason, new Date().toISOString(), provider, operation, reference).run();
       return (updated.meta.changes ?? 0) === 1 ? success({ resolved: true, state: resolution }) : failure(409, 'OPERATION_NOT_RESOLVABLE', 'The operation is not awaiting reconciliation');
     }
     return failure(404, 'NOT_FOUND', 'Shipping provider route not found');
@@ -310,51 +321,55 @@ async function kuaidi100Webhook(request: Request, env: NativeShippingEnv): Promi
   ).bind(crypto.randomUUID(), eventHash, JSON.stringify(event), now).run();
   if ((claim.meta.changes ?? 0) !== 1) {
     const existing = await env.DB.prepare(
-      `SELECT processing_state FROM native_shipping_provider_webhook_events
+      `SELECT processing_state, updated_at FROM native_shipping_provider_webhook_events
        WHERE provider_key = 'kuaidi100' AND event_hash = ?1`,
-    ).bind(eventHash).first<{ processing_state: string }>();
-    if (existing?.processing_state === 'APPLIED' || existing?.processing_state === 'PROCESSING') {
+    ).bind(eventHash).first<{ processing_state: string; updated_at: string }>();
+    const leaseCutoff = new Date(Date.now() - 5 * 60_000).toISOString();
+    if (existing?.processing_state === 'APPLIED' || (existing?.processing_state === 'PROCESSING' && existing.updated_at > leaseCutoff)) {
       return Response.json({ result: true, returnCode: '200', message: 'success', duplicate: true }, { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-shipping-1.1.0' } });
     }
     const reclaimed = await env.DB.prepare(
       `UPDATE native_shipping_provider_webhook_events SET processing_state = 'PROCESSING', last_error = NULL, updated_at = ?1
-       WHERE provider_key = 'kuaidi100' AND event_hash = ?2 AND processing_state IN ('UNMATCHED', 'FAILED')`,
-    ).bind(now, eventHash).run();
+       WHERE provider_key = 'kuaidi100' AND event_hash = ?2
+         AND (processing_state IN ('UNMATCHED', 'FAILED') OR (processing_state = 'PROCESSING' AND updated_at <= ?3))`,
+    ).bind(now, eventHash, leaseCutoff).run();
     if ((reclaimed.meta.changes ?? 0) !== 1) return Response.json({ result: true, returnCode: '200', message: 'success', duplicate: true });
   }
-  const lastResult = object(event.lastResult);
-  const trackingNumber = string(lastResult.nu) ?? string(lastResult.number);
-  let matchedOrderId: string | null = null;
-  if (trackingNumber) {
+  try {
+    const lastResult = object(event.lastResult);
+    const trackingNumber = string(lastResult.nu) ?? string(lastResult.number);
+    let matchedOrderId: string | null = null;
+    if (trackingNumber) {
     const operation = await env.DB.prepare(
       `SELECT order_id FROM native_shipping_provider_orders WHERE provider_key = 'kuaidi100' AND tracking_number = ?1
        ORDER BY updated_at DESC LIMIT 1`,
     ).bind(trackingNumber).first<{ order_id: string }>();
     matchedOrderId = operation?.order_id ?? null;
-    if (matchedOrderId) try {
-      const overallStatus = callbackStatus(event, lastResult);
-      await upsertSupplierShipment(env.DB, {
-      orderId: matchedOrderId,
-      carrierCode: string(lastResult.com),
-      carrierName: string(lastResult.com),
-      trackingNumber,
-      status: overallStatus,
-      lastCheckedAt: new Date().toISOString(),
-      events: callbackEvents(lastResult, overallStatus),
-    });
-    } catch (error) {
-      await env.DB.prepare(
-        `UPDATE native_shipping_provider_webhook_events SET processing_state = 'FAILED', last_error = ?1, updated_at = ?2
-         WHERE provider_key = 'kuaidi100' AND event_hash = ?3`,
-      ).bind(error instanceof Error ? error.message.slice(0, 500) : 'Shipment projection failed', new Date().toISOString(), eventHash).run();
-      return Response.json({ result: false, returnCode: '500', message: 'Shipment projection failed' }, { status: 500 });
+      if (matchedOrderId) {
+        const overallStatus = callbackStatus(event, lastResult);
+        await upsertSupplierShipment(env.DB, {
+          orderId: matchedOrderId,
+          carrierCode: string(lastResult.com),
+          carrierName: string(lastResult.com),
+          trackingNumber,
+          status: overallStatus,
+          lastCheckedAt: new Date().toISOString(),
+          events: callbackEvents(lastResult, overallStatus),
+        });
+      }
     }
+    await env.DB.prepare(
+      `UPDATE native_shipping_provider_webhook_events SET processing_state = ?1, matched_order_id = ?2, updated_at = ?3
+       WHERE provider_key = 'kuaidi100' AND event_hash = ?4`,
+    ).bind(matchedOrderId ? 'APPLIED' : 'UNMATCHED', matchedOrderId, new Date().toISOString(), eventHash).run();
+    return Response.json({ result: true, returnCode: '200', message: 'success', matched: Boolean(matchedOrderId) }, { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-shipping-1.1.0' } });
+  } catch (error) {
+    await env.DB.prepare(
+      `UPDATE native_shipping_provider_webhook_events SET processing_state = 'FAILED', last_error = ?1, updated_at = ?2
+       WHERE provider_key = 'kuaidi100' AND event_hash = ?3 AND processing_state = 'PROCESSING'`,
+    ).bind(error instanceof Error ? error.message.slice(0, 500) : 'Shipment projection failed', new Date().toISOString(), eventHash).run().catch(() => undefined);
+    return Response.json({ result: false, returnCode: '500', message: 'Shipment projection failed' }, { status: 500 });
   }
-  await env.DB.prepare(
-    `UPDATE native_shipping_provider_webhook_events SET processing_state = ?1, matched_order_id = ?2, updated_at = ?3
-     WHERE provider_key = 'kuaidi100' AND event_hash = ?4`,
-  ).bind(matchedOrderId ? 'APPLIED' : 'UNMATCHED', matchedOrderId, new Date().toISOString(), eventHash).run();
-  return Response.json({ result: true, returnCode: '200', message: 'success', matched: Boolean(matchedOrderId) }, { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-shipping-1.1.0' } });
 }
 
 function calculate(body: ShippingRequest): { methods: typeof manualMethod[]; requiresShipping: boolean } | null {

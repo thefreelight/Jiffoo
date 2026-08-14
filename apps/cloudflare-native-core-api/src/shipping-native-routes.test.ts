@@ -106,6 +106,21 @@ describe('Cloudflare-native shipping routes', () => {
     expect(run).toHaveBeenCalledOnce();
   });
 
+  it('can quarantine an expired processing operation without allowing a retry', async () => {
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin' });
+    const run = vi.fn(async () => ({ meta: { changes: 1 } }));
+    const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run })) })) };
+    const response = await tryNativeShipping(new Request('https://api.example/api/v1/extensions/plugin/shipping/api/admin/providers/operations/resolve', {
+      method: 'POST', body: JSON.stringify({
+        provider: 'fourpx', operation: 'order.create', reference: 'order-1', resolution: 'UNKNOWN',
+        reason: 'Processing lease expired after Worker interruption',
+      }),
+    }), { DB: db } as never);
+    expect(response?.status).toBe(200);
+    await expect(response?.json()).resolves.toMatchObject({ data: { state: 'UNKNOWN' } });
+    expect(run).toHaveBeenCalledOnce();
+  });
+
   it('locks a create when the carrier succeeds but the result cannot be persisted', async () => {
     authenticateNativeAdmin.mockResolvedValue({ id: 'admin' });
     getNativePluginConfig.mockResolvedValue(shippingConfig());
