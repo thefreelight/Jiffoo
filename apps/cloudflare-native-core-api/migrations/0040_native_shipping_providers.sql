@@ -25,7 +25,10 @@ CREATE TABLE IF NOT EXISTS native_shipping_provider_webhook_events (
   event_hash TEXT NOT NULL,
   payload_json TEXT NOT NULL,
   matched_order_id TEXT,
+  processing_state TEXT NOT NULL DEFAULT 'PROCESSING' CHECK (processing_state IN ('PROCESSING', 'APPLIED', 'UNMATCHED', 'FAILED')),
+  last_error TEXT,
   received_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
   UNIQUE(provider_key, event_hash)
 );
 

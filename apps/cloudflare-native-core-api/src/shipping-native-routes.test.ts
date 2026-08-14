@@ -40,7 +40,7 @@ describe('Cloudflare-native shipping routes', () => {
     let row: { request_hash: string; state: string; response_json: string | null } | null = null;
     const db = {
       prepare: vi.fn((sql: string) => ({ bind: (...args: unknown[]) => ({
-        first: async () => row,
+        first: async () => sql.includes('native_order_snapshots') ? { id: 'ord-1' } : row,
         run: async () => {
           if (sql.includes('INSERT OR IGNORE INTO native_shipping_provider_orders')) {
             if (row) return { meta: { changes: 0 } };
@@ -55,7 +55,7 @@ describe('Cloudflare-native shipping routes', () => {
       }) })),
     };
     const makeRequest = () => new Request('https://api.example/api/v1/extensions/plugin/shipping/api/admin/providers/fourpx/orders', {
-      method: 'POST', body: JSON.stringify({ reference: 'order-1', input: { business_type: 'BDS' } }),
+      method: 'POST', body: JSON.stringify({ reference: 'order-1', orderId: 'ord-1', input: { business_type: 'BDS' } }),
     });
     const first = await tryNativeShipping(makeRequest(), { DB: db } as never);
     const second = await tryNativeShipping(makeRequest(), { DB: db } as never);
@@ -73,10 +73,37 @@ describe('Cloudflare-native shipping routes', () => {
     const row = { request_hash: await sha256Hex(JSON.stringify(payload)), state: 'UNKNOWN', response_json: null };
     const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ first: vi.fn(async () => row) })) })) };
     const response = await tryNativeShipping(new Request('https://api.example/api/v1/extensions/plugin/shipping/api/admin/providers/fourpx/orders', {
-      method: 'POST', body: JSON.stringify({ reference: 'order-1', input: { business_type: 'BDS' } }),
+      method: 'POST', body: JSON.stringify({ reference: 'order-1', orderId: 'ord-1', input: { business_type: 'BDS' } }),
     }), { DB: db } as never);
     expect(response?.status).toBe(409);
     await expect(response?.json()).resolves.toMatchObject({ error: { code: 'PROVIDER_REQUEST_PENDING' } });
+  });
+
+  it('rejects a create before carrier I/O when the Bokmoo order does not exist', async () => {
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin' });
+    const carrierFetch = vi.fn();
+    vi.stubGlobal('fetch', carrierFetch);
+    const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ first: vi.fn(async () => null) })) })) };
+    const response = await tryNativeShipping(new Request('https://api.example/api/v1/extensions/plugin/shipping/api/admin/providers/fourpx/orders', {
+      method: 'POST', body: JSON.stringify({ reference: 'order-1', orderId: 'missing', input: { business_type: 'BDS' } }),
+    }), { DB: db } as never);
+    expect(response?.status).toBe(404);
+    await expect(response?.json()).resolves.toMatchObject({ error: { code: 'ORDER_NOT_FOUND' } });
+    expect(carrierFetch).not.toHaveBeenCalled();
+  });
+
+  it('does not let manual reconciliation unlock an in-flight request', async () => {
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin' });
+    const run = vi.fn(async () => ({ meta: { changes: 0 } }));
+    const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run })) })) };
+    const response = await tryNativeShipping(new Request('https://api.example/api/v1/extensions/plugin/shipping/api/admin/providers/operations/resolve', {
+      method: 'POST', body: JSON.stringify({
+        provider: 'fourpx', operation: 'order.create', reference: 'order-1', resolution: 'FAILED',
+        reason: 'Provider lookup found no order', confirmRetryRisk: true,
+      }),
+    }), { DB: db } as never);
+    expect(response?.status).toBe(409);
+    expect(run).toHaveBeenCalledOnce();
   });
 
   it('locks a create when the carrier succeeds but the result cannot be persisted', async () => {
@@ -88,7 +115,7 @@ describe('Cloudflare-native shipping routes', () => {
     let claimed = false;
     let requestHash = '';
     const db = { prepare: vi.fn((sql: string) => ({ bind: (...args: unknown[]) => ({
-      first: async () => claimed ? { request_hash: requestHash, state, response_json: null } : null,
+      first: async () => sql.includes('native_order_snapshots') ? { id: 'ord-1' } : claimed ? { request_hash: requestHash, state, response_json: null } : null,
       run: async () => {
         if (sql.includes('INSERT OR IGNORE')) { claimed = true; requestHash = String(args[5]); return { meta: { changes: 1 } }; }
         if (sql.includes("state = 'COMPLETED'")) throw new Error('D1 unavailable');
@@ -97,7 +124,7 @@ describe('Cloudflare-native shipping routes', () => {
       },
     }) })) };
     const request = () => new Request('https://api.example/api/v1/extensions/plugin/shipping/api/admin/providers/fourpx/orders', {
-      method: 'POST', body: JSON.stringify({ reference: 'order-1', input: { business_type: 'BDS' } }),
+      method: 'POST', body: JSON.stringify({ reference: 'order-1', orderId: 'ord-1', input: { business_type: 'BDS' } }),
     });
     const first = await tryNativeShipping(request(), { DB: db } as never);
     expect(first?.status).toBe(503);
@@ -136,6 +163,44 @@ describe('Cloudflare-native shipping routes', () => {
     expect(statements.some((sql) => sql.includes('INSERT INTO native_shipment_events'))).toBe(true);
   });
 
+  it('reprocesses an unmatched callback after the tracking-to-order mapping appears', async () => {
+    getNativePluginConfig.mockResolvedValue(shippingConfig());
+    let eventState: string | null = null;
+    let mapped = false;
+    const statements: string[] = [];
+    const db = { prepare: vi.fn((sql: string) => ({ bind: (..._args: unknown[]) => ({
+      first: async () => {
+        if (sql.includes('SELECT processing_state')) return eventState ? { processing_state: eventState } : null;
+        if (sql.includes('native_shipping_provider_orders')) return mapped ? { order_id: 'ord-1' } : null;
+        return null;
+      },
+      run: async () => {
+        statements.push(sql);
+        if (sql.includes('INSERT OR IGNORE INTO native_shipping_provider_webhook_events')) {
+          if (eventState) return { meta: { changes: 0 } };
+          eventState = 'PROCESSING';
+          return { meta: { changes: 1 } };
+        }
+        if (sql.includes("processing_state = 'PROCESSING'")) eventState = 'PROCESSING';
+        if (sql.includes('SET processing_state = ?1')) eventState = mapped ? 'APPLIED' : 'UNMATCHED';
+        return { meta: { changes: 1 } };
+      },
+    }) })) };
+    const rawParam = JSON.stringify({ status: 'polling', lastResult: { nu: 'TRACK-LATE', com: 'ems', state: '0' } });
+    const callback = () => new Request('https://api.example/api/v1/extensions/plugin/shipping/api/admin/webhooks/kuaidi100', {
+      method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ param: rawParam, sign: signKuaidi100Webhook(rawParam, 'salt') }),
+    });
+    const firstResponse = await tryNativeShipping(callback(), { DB: db } as never);
+    await expect(firstResponse?.json()).resolves.toMatchObject({ matched: false });
+    expect(eventState).toBe('UNMATCHED');
+    mapped = true;
+    const secondResponse = await tryNativeShipping(callback(), { DB: db } as never);
+    await expect(secondResponse?.json()).resolves.toMatchObject({ matched: true });
+    expect(eventState).toBe('APPLIED');
+    expect(statements.some((sql) => sql.includes('INSERT INTO native_shipments'))).toBe(true);
+  });
+
   it('verifies the unmodified Kuaidi100 param and stores duplicate callbacks once', async () => {
     getNativePluginConfig.mockResolvedValue(shippingConfig());
     const run = vi.fn(async () => ({ meta: { changes: 1 } }));
@@ -149,9 +214,9 @@ describe('Cloudflare-native shipping routes', () => {
     const signature = signKuaidi100Webhook(rawParam, 'salt');
     const accepted = await tryNativeShipping(callback(rawParam, signature), { DB: db } as never);
     expect(accepted?.status).toBe(200);
-    expect(run).toHaveBeenCalledOnce();
+    expect(run).toHaveBeenCalledTimes(2);
     const rejected = await tryNativeShipping(callback(`${rawParam} `, signature), { DB: db } as never);
     expect(rejected?.status).toBe(401);
-    expect(run).toHaveBeenCalledOnce();
+    expect(run).toHaveBeenCalledTimes(2);
   });
 });

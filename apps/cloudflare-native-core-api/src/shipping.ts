@@ -190,12 +190,12 @@ function callbackStatus(event: JsonObject, lastResult: JsonObject): string {
   return 'IN_TRANSIT';
 }
 
-function callbackEvents(lastResult: JsonObject): Array<Record<string, unknown>> {
+function callbackEvents(lastResult: JsonObject, overallStatus: string): Array<Record<string, unknown>> {
   if (!Array.isArray(lastResult.data)) return [];
   return lastResult.data.map((entry) => {
     const item = object(entry);
     return {
-      status: string(item.status) ?? 'IN_TRANSIT',
+      status: /^[A-Z_]+$/.test(string(item.status)?.toUpperCase() ?? '') ? string(item.status) : overallStatus,
       occurredAt: string(item.ftime) ?? string(item.time) ?? new Date().toISOString(),
       description: string(item.context),
     };
@@ -210,33 +210,43 @@ function providerPath(pathname: string): string | null {
 }
 
 async function adminProviderRequest(request: Request, env: NativeShippingEnv, path: string): Promise<Response> {
-  if (!await authenticateNativeAdmin(request, env)) return failure(401, 'UNAUTHORIZED', 'Administrator authentication is required');
+  const administrator = await authenticateNativeAdmin(request, env);
+  if (!administrator) return failure(401, 'UNAUTHORIZED', 'Administrator authentication is required');
   const body = object(await request.json<unknown>().catch(() => null));
   try {
+    const requireOrder = async (): Promise<string | Response> => {
+      const orderId = string(body.orderId);
+      if (!orderId) return failure(400, 'ORDER_ID_REQUIRED', 'orderId is required for create operations');
+      const order = await env.DB.prepare('SELECT id FROM native_order_snapshots WHERE id = ?1').bind(orderId).first();
+      return order ? orderId : failure(404, 'ORDER_NOT_FOUND', 'The Bokmoo order does not exist');
+    };
     if (path === '/admin/providers/kuaidi100/label-orders') {
       const reference = string(body.reference);
-      const orderId = string(body.orderId) ?? reference;
+      const orderId = await requireOrder();
+      if (orderId instanceof Response) return orderId;
       const input = object(body.input);
       if (!reference) return failure(400, 'REFERENCE_REQUIRED', 'reference is required');
       if (!string(input.partnerId)) return failure(400, 'PARTNER_ID_REQUIRED', 'input.partnerId is required');
       if (['CLOUD', 'ORDERFIRST'].includes(string(input.printType)?.toUpperCase() ?? '') && !string(input.siid)) return failure(400, 'SIID_REQUIRED', 'input.siid is required for cloud printing');
-      return success(await providerCreate(env, 'kuaidi100', reference, 'label.order', orderId!, input, async () => (await kuaidi100(env)).createLabel(input)));
+      return success(await providerCreate(env, 'kuaidi100', reference, 'label.order', orderId, input, async () => (await kuaidi100(env)).createLabel(input)));
     }
     if (path === '/admin/providers/kuaidi100/pickup-orders') {
       const reference = string(body.reference);
-      const orderId = string(body.orderId) ?? reference;
+      const orderId = await requireOrder();
+      if (orderId instanceof Response) return orderId;
       if (!reference || reference.length > 32) return failure(400, 'REFERENCE_INVALID', 'reference is required and must not exceed 32 characters');
       const input = { ...object(body.input), thirdOrderId: reference };
-      return success(await providerCreate(env, 'kuaidi100', reference, 'pickup.order', orderId!, input, async () => (await kuaidi100(env)).createPickup(input)));
+      return success(await providerCreate(env, 'kuaidi100', reference, 'pickup.order', orderId, input, async () => (await kuaidi100(env)).createPickup(input)));
     }
     if (path === '/admin/providers/kuaidi100/tracking/query') return success(await (await kuaidi100(env)).query(object(body.input)));
     if (path === '/admin/providers/kuaidi100/tracking/subscribe') return success(await (await kuaidi100(env)).subscribe(body));
     if (path === '/admin/providers/fourpx/orders') {
       const reference = string(body.reference);
-      const orderId = string(body.orderId) ?? reference;
+      const orderId = await requireOrder();
+      if (orderId instanceof Response) return orderId;
       if (!reference) return failure(400, 'REFERENCE_REQUIRED', 'reference is required');
       const input = { ...object(body.input), ref_no: reference };
-      return success(await providerCreate(env, 'fourpx', reference, 'order.create', orderId!, input, async () => (await fourpx(env)).create(input)));
+      return success(await providerCreate(env, 'fourpx', reference, 'order.create', orderId, input, async () => (await fourpx(env)).create(input)));
     }
     if (path === '/admin/providers/fourpx/orders/get') return success(await (await fourpx(env)).get(object(body.input)));
     if (path === '/admin/providers/fourpx/orders/cancel') return success(await (await fourpx(env)).cancel(body));
@@ -263,13 +273,16 @@ async function adminProviderRequest(request: Request, env: NativeShippingEnv, pa
       const operation = string(body.operation);
       const reference = string(body.reference);
       const resolution = string(body.resolution)?.toUpperCase();
+      const reason = string(body.reason);
       if (!provider || !operation || !reference || !['COMPLETED', 'FAILED'].includes(resolution ?? '')) return failure(400, 'RESOLUTION_INVALID', 'provider, operation, reference and a valid resolution are required');
+      if (!reason) return failure(400, 'RESOLUTION_REASON_REQUIRED', 'reason is required for reconciliation audit');
       if (resolution === 'FAILED' && body.confirmRetryRisk !== true) return failure(400, 'RETRY_RISK_CONFIRMATION_REQUIRED', 'confirmRetryRisk must be true before allowing another create attempt');
+      if (resolution === 'COMPLETED' && !string(body.externalOrderId) && !string(body.trackingNumber)) return failure(400, 'RESOLUTION_EVIDENCE_REQUIRED', 'externalOrderId or trackingNumber is required to confirm completion');
       const updated = await env.DB.prepare(
         `UPDATE native_shipping_provider_orders SET state = ?1, external_order_id = COALESCE(?2, external_order_id),
-          tracking_number = COALESCE(?3, tracking_number), error_code = NULL, error_message = NULL, updated_at = ?4
-         WHERE provider_key = ?5 AND operation = ?6 AND merchant_reference = ?7 AND state IN ('PROCESSING', 'UNKNOWN')`,
-      ).bind(resolution, string(body.externalOrderId), string(body.trackingNumber), new Date().toISOString(), provider, operation, reference).run();
+          tracking_number = COALESCE(?3, tracking_number), error_code = 'MANUALLY_RESOLVED', error_message = ?4, updated_at = ?5
+         WHERE provider_key = ?6 AND operation = ?7 AND merchant_reference = ?8 AND state = 'UNKNOWN'`,
+      ).bind(resolution, string(body.externalOrderId), string(body.trackingNumber), reason, new Date().toISOString(), provider, operation, reference).run();
       return (updated.meta.changes ?? 0) === 1 ? success({ resolved: true, state: resolution }) : failure(409, 'OPERATION_NOT_RESOLVABLE', 'The operation is not awaiting reconciliation');
     }
     return failure(404, 'NOT_FOUND', 'Shipping provider route not found');
@@ -289,10 +302,26 @@ async function kuaidi100Webhook(request: Request, env: NativeShippingEnv): Promi
   let event: JsonObject;
   try { event = object(JSON.parse(rawParam)); } catch { return Response.json({ result: false, returnCode: '400', message: 'Invalid callback payload' }, { status: 400 }); }
   const eventHash = await sha256Hex(rawParam);
-  const duplicate = await env.DB.prepare(
-    `SELECT id FROM native_shipping_provider_webhook_events WHERE provider_key = 'kuaidi100' AND event_hash = ?1`,
-  ).bind(eventHash).first();
-  if (duplicate) return Response.json({ result: true, returnCode: '200', message: 'success', duplicate: true }, { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-shipping-1.1.0' } });
+  const now = new Date().toISOString();
+  const claim = await env.DB.prepare(
+    `INSERT OR IGNORE INTO native_shipping_provider_webhook_events
+     (id, provider_key, event_hash, payload_json, processing_state, received_at, updated_at)
+     VALUES (?1, 'kuaidi100', ?2, ?3, 'PROCESSING', ?4, ?4)`,
+  ).bind(crypto.randomUUID(), eventHash, JSON.stringify(event), now).run();
+  if ((claim.meta.changes ?? 0) !== 1) {
+    const existing = await env.DB.prepare(
+      `SELECT processing_state FROM native_shipping_provider_webhook_events
+       WHERE provider_key = 'kuaidi100' AND event_hash = ?1`,
+    ).bind(eventHash).first<{ processing_state: string }>();
+    if (existing?.processing_state === 'APPLIED' || existing?.processing_state === 'PROCESSING') {
+      return Response.json({ result: true, returnCode: '200', message: 'success', duplicate: true }, { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-shipping-1.1.0' } });
+    }
+    const reclaimed = await env.DB.prepare(
+      `UPDATE native_shipping_provider_webhook_events SET processing_state = 'PROCESSING', last_error = NULL, updated_at = ?1
+       WHERE provider_key = 'kuaidi100' AND event_hash = ?2 AND processing_state IN ('UNMATCHED', 'FAILED')`,
+    ).bind(now, eventHash).run();
+    if ((reclaimed.meta.changes ?? 0) !== 1) return Response.json({ result: true, returnCode: '200', message: 'success', duplicate: true });
+  }
   const lastResult = object(event.lastResult);
   const trackingNumber = string(lastResult.nu) ?? string(lastResult.number);
   let matchedOrderId: string | null = null;
@@ -302,20 +331,29 @@ async function kuaidi100Webhook(request: Request, env: NativeShippingEnv): Promi
        ORDER BY updated_at DESC LIMIT 1`,
     ).bind(trackingNumber).first<{ order_id: string }>();
     matchedOrderId = operation?.order_id ?? null;
-    if (matchedOrderId) await upsertSupplierShipment(env.DB, {
+    if (matchedOrderId) try {
+      const overallStatus = callbackStatus(event, lastResult);
+      await upsertSupplierShipment(env.DB, {
       orderId: matchedOrderId,
       carrierCode: string(lastResult.com),
       carrierName: string(lastResult.com),
       trackingNumber,
-      status: callbackStatus(event, lastResult),
+      status: overallStatus,
       lastCheckedAt: new Date().toISOString(),
-      events: callbackEvents(lastResult),
+      events: callbackEvents(lastResult, overallStatus),
     });
+    } catch (error) {
+      await env.DB.prepare(
+        `UPDATE native_shipping_provider_webhook_events SET processing_state = 'FAILED', last_error = ?1, updated_at = ?2
+         WHERE provider_key = 'kuaidi100' AND event_hash = ?3`,
+      ).bind(error instanceof Error ? error.message.slice(0, 500) : 'Shipment projection failed', new Date().toISOString(), eventHash).run();
+      return Response.json({ result: false, returnCode: '500', message: 'Shipment projection failed' }, { status: 500 });
+    }
   }
   await env.DB.prepare(
-    `INSERT OR IGNORE INTO native_shipping_provider_webhook_events
-     (id, provider_key, event_hash, payload_json, matched_order_id, received_at) VALUES (?1, 'kuaidi100', ?2, ?3, ?4, ?5)`,
-  ).bind(crypto.randomUUID(), eventHash, JSON.stringify(event), matchedOrderId, new Date().toISOString()).run();
+    `UPDATE native_shipping_provider_webhook_events SET processing_state = ?1, matched_order_id = ?2, updated_at = ?3
+     WHERE provider_key = 'kuaidi100' AND event_hash = ?4`,
+  ).bind(matchedOrderId ? 'APPLIED' : 'UNMATCHED', matchedOrderId, new Date().toISOString(), eventHash).run();
   return Response.json({ result: true, returnCode: '200', message: 'success', matched: Boolean(matchedOrderId) }, { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-shipping-1.1.0' } });
 }
 

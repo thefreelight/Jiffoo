@@ -1096,6 +1096,7 @@ function ShippingNativeWorkspace(props: {
   const [provider, setProvider] = useState<ShippingProvider>('kuaidi100');
   const [action, setAction] = useState(shippingProviderActions.kuaidi100[0].value);
   const [merchantReference, setMerchantReference] = useState('');
+  const [orderId, setOrderId] = useState('');
   const [requestDraft, setRequestDraft] = useState('{}');
   const [responseDraft, setResponseDraft] = useState('');
   const [statusMessage, setStatusMessage] = useState('Ready');
@@ -1129,6 +1130,13 @@ function ShippingNativeWorkspace(props: {
       toast.error(message);
       return;
     }
+    if (selectedAction.needsMerchantReference && !orderId.trim()) {
+      const message = 'Bokmoo order ID is required for create operations.';
+      setStatusMessage(message);
+      setStatusTone('error');
+      toast.error(message);
+      return;
+    }
 
     let payload: Record<string, unknown>;
     try {
@@ -1150,7 +1158,7 @@ function ShippingNativeWorkspace(props: {
 
     try {
       const requestBody = selectedAction.needsMerchantReference
-        ? { reference: merchantReference.trim(), input: payload }
+        ? { reference: merchantReference.trim(), orderId: orderId.trim(), input: payload }
         : ['tracking-subscribe', 'cancel-order', 'get-tracking'].includes(selectedAction.value)
           ? payload
           : { input: payload };
@@ -1217,15 +1225,27 @@ function ShippingNativeWorkspace(props: {
         </div>
 
         {selectedAction.needsMerchantReference ? (
-          <div className="space-y-2">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="shipping-order-id">Bokmoo order ID</Label>
+              <Input
+                id="shipping-order-id"
+                value={orderId}
+                onChange={(event) => setOrderId(event.target.value)}
+                placeholder="ord_..."
+                className="rounded-xl"
+              />
+            </div>
+            <div className="space-y-2">
             <Label htmlFor="shipping-merchant-reference">Merchant reference</Label>
             <Input
               id="shipping-merchant-reference"
               value={merchantReference}
               onChange={(event) => setMerchantReference(event.target.value)}
-              placeholder="Stable order or shipment reference"
+              placeholder="Stable provider operation reference"
               className="rounded-xl"
             />
+            </div>
           </div>
         ) : null}
 
