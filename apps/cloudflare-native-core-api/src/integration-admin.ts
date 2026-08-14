@@ -60,7 +60,12 @@ export async function tryNativeIntegrationAdmin(request: Request, env: Integrati
       if (!kuaidi100 && !fourpx) throw new Error('Enable and configure at least one shipping provider');
       if (kuaidi100 && (!config.config.kuaidi100Key || !config.config.kuaidi100Secret)) throw new Error('Kuaidi100 key and secret are incomplete');
       if (fourpx && (!config.config.fourpxAppKey || !config.config.fourpxAppSecret)) throw new Error('4PX app key and secret are incomplete');
-      return result({ ok: true, providers: { kuaidi100: { enabled: kuaidi100 }, fourpx: { enabled: fourpx } } });
+      return result({
+        ok: true,
+        configurationOnly: true,
+        message: 'Provider configuration is complete. Credentials are verified only when a read or create operation is submitted.',
+        providers: { kuaidi100: { enabled: kuaidi100 }, fourpx: { enabled: fourpx } },
+      });
     }
     return result({ ok: true, ...(await testNativeOdooConnection(env)) });
   } catch (error) {

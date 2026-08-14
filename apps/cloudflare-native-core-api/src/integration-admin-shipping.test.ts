@@ -20,7 +20,7 @@ describe('native Shipping integration test', () => {
     const response = await tryNativeIntegrationAdmin(new Request('https://api.example/api/v1/extensions/plugin/shipping/api/admin/test', { method: 'POST' }), {} as never);
     expect(response?.status).toBe(200);
     const body = await response?.json() as Record<string, unknown>;
-    expect(body).toMatchObject({ success: true, data: { ok: true, providers: { kuaidi100: { enabled: true }, fourpx: { enabled: true } } } });
+    expect(body).toMatchObject({ success: true, data: { ok: true, configurationOnly: true, providers: { kuaidi100: { enabled: true }, fourpx: { enabled: true } } } });
     expect(JSON.stringify(body)).not.toContain('secret');
     expect(JSON.stringify(body)).not.toContain('key');
   });

@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS native_shipping_provider_orders (
   id TEXT PRIMARY KEY,
   provider_key TEXT NOT NULL CHECK (provider_key IN ('kuaidi100', 'fourpx')),
   merchant_reference TEXT NOT NULL,
+  order_id TEXT NOT NULL,
   operation TEXT NOT NULL,
   request_hash TEXT NOT NULL,
   state TEXT NOT NULL CHECK (state IN ('PROCESSING', 'COMPLETED', 'FAILED', 'UNKNOWN')),
@@ -12,7 +13,7 @@ CREATE TABLE IF NOT EXISTS native_shipping_provider_orders (
   error_message TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
-  UNIQUE(provider_key, merchant_reference)
+  UNIQUE(provider_key, operation, merchant_reference)
 );
 
 CREATE INDEX IF NOT EXISTS native_shipping_provider_orders_state_idx
@@ -23,6 +24,7 @@ CREATE TABLE IF NOT EXISTS native_shipping_provider_webhook_events (
   provider_key TEXT NOT NULL CHECK (provider_key IN ('kuaidi100', 'fourpx')),
   event_hash TEXT NOT NULL,
   payload_json TEXT NOT NULL,
+  matched_order_id TEXT,
   received_at TEXT NOT NULL,
   UNIQUE(provider_key, event_hash)
 );

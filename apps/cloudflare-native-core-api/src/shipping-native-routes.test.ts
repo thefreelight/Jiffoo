@@ -44,7 +44,7 @@ describe('Cloudflare-native shipping routes', () => {
         run: async () => {
           if (sql.includes('INSERT OR IGNORE INTO native_shipping_provider_orders')) {
             if (row) return { meta: { changes: 0 } };
-            row = { request_hash: String(args[4]), state: 'PROCESSING', response_json: null };
+            row = { request_hash: String(args[5]), state: 'PROCESSING', response_json: null };
             return { meta: { changes: 1 } };
           }
           if (sql.includes("state = 'COMPLETED'")) {
@@ -79,10 +79,68 @@ describe('Cloudflare-native shipping routes', () => {
     await expect(response?.json()).resolves.toMatchObject({ error: { code: 'PROVIDER_REQUEST_PENDING' } });
   });
 
+  it('locks a create when the carrier succeeds but the result cannot be persisted', async () => {
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin' });
+    getNativePluginConfig.mockResolvedValue(shippingConfig());
+    const carrierFetch = vi.fn(async () => Response.json({ result: '1', data: { request_no: 'FPX-1' } }));
+    vi.stubGlobal('fetch', carrierFetch);
+    let state = 'PROCESSING';
+    let claimed = false;
+    let requestHash = '';
+    const db = { prepare: vi.fn((sql: string) => ({ bind: (...args: unknown[]) => ({
+      first: async () => claimed ? { request_hash: requestHash, state, response_json: null } : null,
+      run: async () => {
+        if (sql.includes('INSERT OR IGNORE')) { claimed = true; requestHash = String(args[5]); return { meta: { changes: 1 } }; }
+        if (sql.includes("state = 'COMPLETED'")) throw new Error('D1 unavailable');
+        if (sql.includes("state = 'UNKNOWN'")) state = 'UNKNOWN';
+        return { meta: { changes: 1 } };
+      },
+    }) })) };
+    const request = () => new Request('https://api.example/api/v1/extensions/plugin/shipping/api/admin/providers/fourpx/orders', {
+      method: 'POST', body: JSON.stringify({ reference: 'order-1', input: { business_type: 'BDS' } }),
+    });
+    const first = await tryNativeShipping(request(), { DB: db } as never);
+    expect(first?.status).toBe(503);
+    await expect(first?.json()).resolves.toMatchObject({ error: { code: 'RESULT_PERSISTENCE_ERROR' } });
+    expect(state).toBe('UNKNOWN');
+    expect(carrierFetch).toHaveBeenCalledOnce();
+    const retry = await tryNativeShipping(request(), { DB: db } as never);
+    expect(retry?.status).toBe(409);
+    expect(carrierFetch).toHaveBeenCalledOnce();
+  });
+
+  it('projects a matched Kuaidi100 callback into the shopper shipment timeline', async () => {
+    getNativePluginConfig.mockResolvedValue(shippingConfig());
+    const statements: string[] = [];
+    const db = { prepare: vi.fn((sql: string) => ({ bind: (..._args: unknown[]) => ({
+      first: async () => {
+        if (sql.includes('native_shipping_provider_webhook_events')) return null;
+        if (sql.includes('native_shipping_provider_orders')) return { order_id: 'ord-1' };
+        if (sql.includes('native_shipments')) return null;
+        if (sql.includes('native_shipment_events')) return null;
+        return null;
+      },
+      run: async () => { statements.push(sql); return { meta: { changes: 1 } }; },
+    }) })) };
+    const rawParam = JSON.stringify({ status: 'shutdown', lastResult: {
+      nu: 'TRACK-1', com: 'shunfeng', ischeck: '1',
+      data: [{ time: '2026-08-14 10:00:00', context: 'Signed', status: 'DELIVERED' }],
+    } });
+    const response = await tryNativeShipping(new Request('https://api.example/api/v1/extensions/plugin/shipping/api/admin/webhooks/kuaidi100', {
+      method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ param: rawParam, sign: signKuaidi100Webhook(rawParam, 'salt') }),
+    }), { DB: db } as never);
+    expect(response?.status).toBe(200);
+    await expect(response?.json()).resolves.toMatchObject({ matched: true });
+    expect(statements.some((sql) => sql.includes('INSERT INTO native_shipments'))).toBe(true);
+    expect(statements.some((sql) => sql.includes('INSERT INTO native_shipment_events'))).toBe(true);
+  });
+
   it('verifies the unmodified Kuaidi100 param and stores duplicate callbacks once', async () => {
     getNativePluginConfig.mockResolvedValue(shippingConfig());
     const run = vi.fn(async () => ({ meta: { changes: 1 } }));
-    const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run })) })) };
+    const first = vi.fn(async () => null);
+    const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run, first })) })) };
     const rawParam = '{"status":"polling","lastResult":{"nu":"12345678"}}';
     const callback = (param: string, signature: string) => new Request('https://api.example/api/v1/extensions/plugin/shipping/api/admin/webhooks/kuaidi100', {
       method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
