@@ -18,7 +18,7 @@ function result(data: unknown, status = 200): Response {
 }
 
 export async function tryNativeIntegrationAdmin(request: Request, env: IntegrationAdminEnv): Promise<Response | null> {
-  const match = new URL(request.url).pathname.match(/^\/api\/v1\/extensions\/plugin\/(smtp-email|stripe|odoo)\/api\/admin\/test$/);
+  const match = new URL(request.url).pathname.match(/^\/api\/v1\/extensions\/plugin\/(smtp-email|stripe|odoo|shipping)\/api\/admin\/test$/);
   if (!match || request.method !== 'POST') return null;
   const admin = await authenticateNativeAdmin(request, env);
   if (!admin) return result({ code: 'UNAUTHORIZED', message: 'Admin authentication required' }, 401);
@@ -51,6 +51,16 @@ export async function tryNativeIntegrationAdmin(request: Request, env: Integrati
         .catch(() => ({} as { id?: string; country?: string; error?: { message?: string } }));
       if (!response.ok || !payload.id) throw new Error(payload.error?.message || `Stripe returned HTTP ${response.status}`);
       return result({ ok: true, accountId: payload.id, country: payload.country ?? null });
+    }
+    if (match[1] === 'shipping') {
+      const config = await getNativePluginConfig(env, 'shipping');
+      if (!config?.enabled) throw new Error('Shipping plugin is not enabled');
+      const kuaidi100 = config.config.kuaidi100Enabled === true;
+      const fourpx = config.config.fourpxEnabled === true;
+      if (!kuaidi100 && !fourpx) throw new Error('Enable and configure at least one shipping provider');
+      if (kuaidi100 && (!config.config.kuaidi100Key || !config.config.kuaidi100Secret)) throw new Error('Kuaidi100 key and secret are incomplete');
+      if (fourpx && (!config.config.fourpxAppKey || !config.config.fourpxAppSecret)) throw new Error('4PX app key and secret are incomplete');
+      return result({ ok: true, providers: { kuaidi100: { enabled: kuaidi100 }, fourpx: { enabled: fourpx } } });
     }
     return result({ ok: true, ...(await testNativeOdooConnection(env)) });
   } catch (error) {

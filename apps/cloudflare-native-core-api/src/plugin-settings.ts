@@ -41,9 +41,21 @@ type EncryptedValue = { iv: string; ciphertext: string };
 
 const definitions: Record<string, PluginDefinition> = {
   shipping: {
-    slug: 'shipping', name: 'Shipping', version: '1.0.0', category: 'shipping',
-    description: 'Native shipment tracking, carrier metadata, Odoo webhooks, and delivery notifications.',
-    configSchema: {},
+    slug: 'shipping', name: 'Shipping', version: '1.1.0', category: 'shipping',
+    description: 'Native shipment tracking, Odoo fulfillment, Kuaidi100, and 4PX carrier operations.',
+    configSchema: {
+      mode: { type: 'string', label: 'Provider environment', enum: ['test', 'live'], description: 'Use test endpoints where the carrier provides them.' },
+      kuaidi100Enabled: { type: 'boolean', label: 'Enable Kuaidi100' },
+      kuaidi100Key: { type: 'string', label: 'Kuaidi100 Key' },
+      kuaidi100Customer: { type: 'string', label: 'Kuaidi100 Customer ID' },
+      kuaidi100Secret: { type: 'secret', sensitive: true, label: 'Kuaidi100 Secret' },
+      kuaidi100CallbackSalt: { type: 'secret', sensitive: true, label: 'Kuaidi100 Callback Salt' },
+      fourpxEnabled: { type: 'boolean', label: 'Enable 4PX' },
+      fourpxAppKey: { type: 'string', label: '4PX App Key' },
+      fourpxAppSecret: { type: 'secret', sensitive: true, label: '4PX App Secret' },
+      fourpxAccessToken: { type: 'secret', sensitive: true, label: '4PX Access Token' },
+      fourpxLanguage: { type: 'string', label: '4PX Response Language', enum: ['cn', 'en'] },
+    },
   },
   'smtp-email': {
     slug: 'smtp-email', name: 'SMTP Email', version: '0.0.6', category: 'email',
@@ -250,6 +262,12 @@ async function saveInstance(
 }
 
 function validateConfig(slug: string, config: Record<string, unknown>, secrets: Record<string, unknown>): void {
+  if (slug === 'shipping') {
+    if (config.mode !== undefined && config.mode !== 'test' && config.mode !== 'live') throw new Error('Shipping provider mode must be test or live');
+    if (config.fourpxLanguage !== undefined && config.fourpxLanguage !== 'cn' && config.fourpxLanguage !== 'en') throw new Error('4PX language must be cn or en');
+    if (config.kuaidi100Enabled === true && (!config.kuaidi100Key || !secrets.kuaidi100Secret)) throw new Error('Kuaidi100 key and secret are required when enabled');
+    if (config.fourpxEnabled === true && (!config.fourpxAppKey || !secrets.fourpxAppSecret)) throw new Error('4PX app key and secret are required when enabled');
+  }
   if (slug === 'smtp-email') {
     const port = config.smtpPort;
     if (port !== undefined && (!Number.isInteger(port) || Number(port) < 1 || Number(port) > 65535)) throw new Error('SMTP port must be between 1 and 65535');

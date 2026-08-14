@@ -46,6 +46,18 @@ describe('native marketplace install routes', () => {
     expect(run).toHaveBeenCalledOnce();
   });
 
+  it('allows the published Shipping adapter to install natively', async () => {
+    authenticateNativeAdmin.mockResolvedValue(true);
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { items: [{ slug: 'shipping', kind: 'plugin', installable: true, sellableVersion: '1.1.0' }] } })));
+    const run = vi.fn(async () => ({ success: true, meta: { changes: 1 } }));
+    const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run })) })) };
+    const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/shipping/install', {
+      method: 'POST', body: JSON.stringify({ kind: 'plugin', version: '1.1.0' }),
+    }), { DB: db } as never);
+    expect(response?.status).toBe(200);
+    await expect(response?.json()).resolves.toMatchObject({ success: true, data: { slug: 'shipping', version: '1.1.0' } });
+  });
+
   it('fails closed for the published Affiliate extension route when disabled', async () => {
     const first = vi.fn(async () => ({ enabled: 0 }));
     const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ first })) })) };
