@@ -7,5 +7,5 @@ ALTER TABLE remoteradar_external_apply_grants ADD COLUMN revoked_at TEXT;
 CREATE INDEX IF NOT EXISTS idx_remoteradar_external_grants_application
   ON remoteradar_external_apply_grants(application_id, created_at DESC);
 
-INSERT INTO runtime_metadata(key, value) VALUES ('core_schema_version', '0042')
+INSERT INTO runtime_metadata(key, value) VALUES ('core_schema_version', '0043')
 ON CONFLICT(key) DO UPDATE SET value = excluded.value;
