@@ -2,6 +2,7 @@ import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } fr
 import { nativeWalletFinish, nativeWalletMutate, nativeWalletReserve } from './native-wallet';
 import { remoteRadarAllowanceStatus } from './remoteradar-entitlements';
 import { generateApplicationPack, type RemoteRadarPackGeneratorEnv } from './remoteradar-pack-generator';
+import { renderRemoteRadarPdf } from './remoteradar-pdf';
 import { sendSmtpEmail } from './smtp';
 
 interface RemoteRadarApplicationsEnv extends NativeAuthEnv, RemoteRadarPackGeneratorEnv { DB: D1Database }
@@ -54,6 +55,36 @@ function interview(row: Record<string, unknown>): Record<string, unknown> {
 async function user(request: Request, env: RemoteRadarApplicationsEnv): Promise<NativeSessionUser | null> { return authenticateNativeUser(request, env); }
 async function body(request: Request): Promise<Record<string, unknown>> { return request.json<Record<string, unknown>>().catch(() => ({})); }
 function rejectProvenance(input: Record<string, unknown>): boolean { return Object.prototype.hasOwnProperty.call(input, 'sourceUrl') || Object.prototype.hasOwnProperty.call(input, 'provenance') || Object.prototype.hasOwnProperty.call(input, 'canonicalUrl') || Object.prototype.hasOwnProperty.call(input, 'source'); }
+
+const PRIVATE_EXPORT_KEYS = new Set(['source', 'sourceUrl', 'canonicalUrl', 'connector', 'provenance', 'targetUrl', 'url']);
+const PRIVATE_EXPORT_LABEL = /\b(?:source(?:\s*url)?|canonical\s*url|connector|provenance|target\s*url)\s*:\s*[^\r\n]*/gi;
+const EXPORT_URL = /https?:\/\/[^\s<>"')\]]+/gi;
+function exportValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(exportValue);
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).filter(([key]) => !PRIVATE_EXPORT_KEYS.has(key)).map(([key, item]) => [key, exportValue(item)]));
+}
+function redactExportText(value: string): string {
+  return value.replace(PRIVATE_EXPORT_LABEL, '[redacted]').replace(EXPORT_URL, '[redacted]');
+}
+function exportText(value: unknown): string {
+  const serialized = typeof value === 'string' ? value : value == null ? '' : JSON.stringify(exportValue(value), null, 2);
+  return redactExportText(serialized);
+}
+async function exportApplicationPack(env: RemoteRadarApplicationsEnv, userId: string, packId: string, format: string): Promise<Response> {
+  if (!['md', 'html', 'pdf'].includes(format)) return fail(400, 'EXPORT_FORMAT_INVALID', 'format must be md, html, or pdf');
+  const row = await env.DB.prepare(`SELECT p.id, p.saved_job_id, p.approved_version_id, v.id AS version_id, v.version, v.resume_snapshot, v.cover_letter, v.answers, v.approved_at
+    FROM native_rr_application_packs p JOIN native_rr_application_pack_versions v ON v.id = p.approved_version_id AND v.pack_id = p.id AND v.user_id = p.user_id
+    WHERE p.id = ?1 AND p.user_id = ?2 AND p.approved_version_id IS NOT NULL AND v.approved_at IS NOT NULL`).bind(packId, userId).first<Record<string, unknown>>();
+  if (!row) return fail(404, 'APPROVED_PACK_NOT_FOUND', 'An approved application pack was not found');
+  const resumeSnapshot = exportValue(JSON.parse(String(row.resume_snapshot))) as Record<string, unknown>;
+  const answers = exportValue(JSON.parse(String(row.answers))) as Record<string, unknown>;
+  const markdown = `# Application Pack\n\n## Tailored Resume\n\n${exportText(resumeSnapshot)}\n\n## Cover Letter\n\n${exportText(row.cover_letter)}\n\n## Application Answers\n\n${exportText(answers)}`;
+  const filename = `remoteradar-application-pack-v${row.version}`;
+  if (format === 'md') return new Response(markdown, { headers: { 'content-type': 'text/markdown; charset=utf-8', 'content-disposition': `attachment; filename="${filename}.md"`, 'cache-control': 'no-store' } });
+  if (format === 'html') { const html = `<!doctype html><meta charset="utf-8"><title>RemoteRadar Application Pack</title><pre>${markdown.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>`; return new Response(html, { headers: { 'content-type': 'text/html; charset=utf-8', 'content-disposition': `attachment; filename="${filename}.html"`, 'cache-control': 'no-store' } }); }
+  return new Response(renderRemoteRadarPdf(markdown.split('\n')), { headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="${filename}.pdf"`, 'cache-control': 'no-store' } });
+}
 
 interface PackCharge {
   id: string; user_id: string; idempotency_key: string; operation: 'create' | 'regenerate';
@@ -233,7 +264,7 @@ async function generatePack(request: Request, env: RemoteRadarApplicationsEnv, u
   const [job, resumeRow, facts] = await Promise.all([
     env.DB.prepare('SELECT id, title, company, location, description FROM native_rr_saved_jobs WHERE id = ?1 AND user_id = ?2').bind(savedJobId, userId).first<{ id: string; title: string; company: string; location: string | null; description: string }>(),
     env.DB.prepare('SELECT id, name, summary FROM native_rr_resumes WHERE id = ?1 AND user_id = ?2').bind(resumeId, userId).first<{ id: string; name: string; summary: string }>(),
-    env.DB.prepare('SELECT id, kind, label, value FROM native_rr_resume_facts WHERE resume_id = ?1 AND user_id = ?2 AND confirmed_at IS NOT NULL ORDER BY created_at ASC LIMIT 50').bind(resumeId, userId).all<{ id: string; kind: string; label: string; value: string }>(),
+    env.DB.prepare('SELECT id, kind, label, value FROM native_rr_resume_facts WHERE resume_id = ?1 AND user_id = ?2 AND confirmed_at IS NOT NULL AND is_active = 1 ORDER BY created_at ASC LIMIT 50').bind(resumeId, userId).all<{ id: string; kind: string; label: string; value: string }>(),
   ]);
   if (!job || !resumeRow) return fail(404, 'PACK_INPUT_NOT_FOUND', 'Saved job or resume was not found');
   if (facts.results.length === 0) return fail(409, 'CONFIRMED_RESUME_FACTS_REQUIRED', 'Confirm resume facts before generating an application pack');
@@ -393,6 +424,7 @@ export async function tryNativeRemoteRadarApplications(request: Request, env: Re
   if (request.method === 'GET' && path === '/saved-jobs') return listSavedJobs(env, current.id);
   if (request.method === 'POST' && path === '/saved-jobs') return saveJob(request, env, current.id);
   if (request.method === 'GET' && path === '/application-packs') return listPacks(env, current.id);
+  const exportMatch = path.match(/^\/application-packs\/([^/]+)\/export$/); if (exportMatch && request.method === 'GET') return exportApplicationPack(env, current.id, decodeURIComponent(exportMatch[1]!), url.searchParams.get('format') ?? 'md');
   if (request.method === 'POST' && path === '/application-packs/generate') return generatePack(request, env, current.id);
   if (request.method === 'POST' && path === '/application-packs') return createPack(request, env, current.id);
   const versionMatch = path.match(/^\/application-packs\/([^/]+)\/versions$/); if (versionMatch && request.method === 'POST') return createPackVersion(request, env, current.id, decodeURIComponent(versionMatch[1]!));
