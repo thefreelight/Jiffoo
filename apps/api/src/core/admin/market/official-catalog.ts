@@ -120,6 +120,14 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
     category: 'ai',
     target: 'shop',
   },
+  tianquan: {
+    category: 'storefront',
+    target: 'shop',
+  },
+  yipay: {
+    category: 'payment',
+    target: 'shop',
+  },
   yevbi: {
     category: 'storefront',
     target: 'shop',
@@ -139,6 +147,9 @@ const OFFICIAL_CATALOG_META: Record<string, OfficialCatalogPresentationMeta> = {
   },
   stripe: {
     category: 'payment',
+  },
+  'smtp-email': {
+    category: 'communication',
   },
   subscription: {
     category: 'membership',
