@@ -46,8 +46,9 @@ async function createVersion(env: Env, userId: string, resumeId: string, documen
   const facts = await env.DB.prepare('SELECT id,resume_id,kind,label,value,is_active,confirmed_at,created_at,updated_at FROM native_rr_resume_facts WHERE user_id=?1 AND resume_id=?2 ORDER BY kind,label').bind(userId, resumeId).all<Record<string, unknown>>();
   const versionRow = await env.DB.prepare('SELECT COALESCE(MAX(version),0)+1 AS version FROM remoteradar_resume_versions WHERE resume_id=?1').bind(resumeId).first<{ version: number }>();
   const version = versionRow?.version ?? 1; const id = crypto.randomUUID(); const createdAt = new Date().toISOString();
-  await env.DB.prepare('INSERT INTO remoteradar_resume_versions (id,user_id,resume_id,version,snapshot_json,source_document_id,created_at) VALUES (?1,?2,?3,?4,?5,?6,?7)').bind(id, userId, resumeId, version, JSON.stringify({ facts: facts.results }), documentId, createdAt).run();
-  return { id, resumeId, version, facts: facts.results.map(fact), createdAt };
+  const publicFacts = facts.results.map(fact);
+  await env.DB.prepare('INSERT INTO remoteradar_resume_versions (id,user_id,resume_id,version,snapshot_json,source_document_id,created_at) VALUES (?1,?2,?3,?4,?5,?6,?7)').bind(id, userId, resumeId, version, JSON.stringify({ facts: publicFacts }), documentId, createdAt).run();
+  return { id, resumeId, version, facts: publicFacts, createdAt };
 }
 
 async function ownedFact(env: Env, factId: string, resumeId: string, userId: string): Promise<Record<string, unknown> | null> {

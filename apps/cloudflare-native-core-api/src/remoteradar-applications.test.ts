@@ -88,7 +88,9 @@ describe('native RemoteRadar applications adapter', () => {
     db.prepare.mockImplementation((sql: string) => ({ bind: (..._args: unknown[]) => ({
       first: async () => sql.includes('approved_version_id') ? {
         id: 'pack-1', saved_job_id: 'job-1', approved_version_id: 'version-2', version_id: 'version-2', version: 2,
-        resume_snapshot: JSON.stringify({ summary: 'TypeScript', sourceUrl: 'https://competitor.invalid' }), cover_letter: 'Hello', answers: JSON.stringify({ source: 'hidden', q1: 'A' }), approved_at: '2026-08-12T00:00:00.000Z',
+        resume_snapshot: JSON.stringify({ summary: 'TypeScript', sourceUrl: 'https://competitor.invalid' }),
+        cover_letter: 'Hello\nSource URL: https://competitor.invalid/jobs/1\nApply at https://ats.example/secret',
+        answers: JSON.stringify({ source: 'hidden', q1: 'A' }), approved_at: '2026-08-12T00:00:00.000Z',
       } : null,
       all: async () => ({ results: [] }), run: async () => ({ success: true }),
     }) }));
@@ -98,7 +100,9 @@ describe('native RemoteRadar applications adapter', () => {
       expect(response?.headers.get('cache-control')).toBe('no-store');
       expect(response?.headers.get('content-disposition')).toContain(`remoteradar-application-pack-v2.${format}`);
       const body = format === 'pdf' ? new Uint8Array(await response!.arrayBuffer()) : await response!.text();
-      expect(typeof body === 'string' ? body : new TextDecoder().decode(body)).not.toContain('competitor.invalid');
+      const decoded = typeof body === 'string' ? body : new TextDecoder().decode(body);
+      expect(decoded).not.toContain('competitor.invalid');
+      expect(decoded).not.toContain('ats.example');
       if (format === 'pdf') expect(new TextDecoder().decode(body).startsWith('%PDF-1.4')).toBe(true);
     }
   });

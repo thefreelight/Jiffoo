@@ -15,7 +15,7 @@ function env(rows: Record<string, unknown> = {}) {
           first: async () => {
             if (sql.includes('FROM native_rr_job_applications')) return rows.application ?? null;
             if (sql.includes('FROM remoteradar_job_targets')) return rows.target ?? null;
-            if (sql.includes('SELECT target_url FROM remoteradar_external_apply_grants')) return rows.grant ?? null;
+            if (sql.includes('FROM remoteradar_external_apply_grants')) return rows.grant ?? null;
             return null;
           },
           run: async () => {
@@ -49,11 +49,32 @@ describe('RemoteRadar controlled external apply v2', () => {
     expect(insert?.args).toEqual(expect.arrayContaining(['user-1', 'app-1', 'saved-job-1', 'version-1', 'external_ats']));
   });
 
-  it('checks a grant before atomically consuming it and rejects revoked grants', async () => {
+  it('returns not found only for an unknown grant', async () => {
     const missing = env({ grant: null });
     const response = await tryNativeRemoteRadarExternalApply(new Request('https://api.example/api/v1/remoteradar/external-apply/token'), missing as never);
     expect(response?.status).toBe(404);
     expect(missing.statements).toHaveLength(0);
+  });
+
+  it.each([
+    ['used', { target_url: 'https://ats.example/apply', used_at: '2026-08-16T00:00:00.000Z', revoked_at: null, expires_at: '2099-01-01T00:00:00.000Z' }, 'APPLY_GRANT_USED'],
+    ['revoked', { target_url: 'https://ats.example/apply', used_at: null, revoked_at: '2026-08-16T00:00:00.000Z', expires_at: '2099-01-01T00:00:00.000Z' }, 'APPLY_GRANT_REVOKED'],
+    ['expired', { target_url: 'https://ats.example/apply', used_at: null, revoked_at: null, expires_at: '2020-01-01T00:00:00.000Z' }, 'APPLY_GRANT_EXPIRED'],
+  ])('returns 410 for a %s grant without attempting a claim', async (_state, grant, code) => {
+    const state = env({ grant });
+    const response = await tryNativeRemoteRadarExternalApply(new Request('https://api.example/api/v1/remoteradar/external-apply/token'), state as never);
+    expect(response?.status).toBe(410);
+    await expect(response?.json()).resolves.toMatchObject({ error: { code } });
+    expect(state.statements).toHaveLength(0);
+  });
+
+  it('atomically claims an active grant and returns 410 when a concurrent claim wins', async () => {
+    const state = env({ grant: { target_url: 'https://ats.example/apply', used_at: null, revoked_at: null, expires_at: '2099-01-01T00:00:00.000Z' }, claimChanges: 0 });
+    const response = await tryNativeRemoteRadarExternalApply(new Request('https://api.example/api/v1/remoteradar/external-apply/token'), state as never);
+    expect(response?.status).toBe(410);
+    await expect(response?.json()).resolves.toMatchObject({ error: { code: 'APPLY_GRANT_UNAVAILABLE' } });
+    expect(state.statements).toHaveLength(1);
+    expect(state.statements[0]?.sql).toContain('used_at IS NULL AND revoked_at IS NULL AND expires_at > ?1');
   });
 
   it('requires the application current pack version to be the approved version', async () => {

@@ -111,6 +111,12 @@ describe('RemoteRadar resume extraction', () => {
     const payload = JSON.stringify(await response?.json());
     expect(payload).toContain('6 years');
     expect(payload).not.toMatch(/object_key|sourceDocumentId|provenance/i);
+    const versionInsert = state.statements.find((statement) => statement.sql.includes('INSERT INTO remoteradar_resume_versions'));
+    expect(JSON.parse(String(versionInsert?.args[4]))).toEqual({ facts: [{
+      id: 'fact-1', resumeId: 'resume-1', kind: 'skill', label: 'TypeScript', value: '6 years', active: true,
+      confirmedAt: 'confirmed', createdAt: 'created', updatedAt: 'updated',
+    }] });
+    expect(String(versionInsert?.args[4])).not.toMatch(/resume_id|is_active|confirmed_at|created_at|updated_at|user_id/);
   });
 
   it('disables, re-enables, and deletes only an owned fact', async () => {

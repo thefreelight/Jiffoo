@@ -14,10 +14,13 @@ export async function tryNativeRemoteRadarExternalApply(request: Request, env: E
     const token = url.pathname.slice(redirectBase.length);
     if (!token || token.length > 256) return error('INVALID_APPLY_GRANT', 'Invalid application grant', 400);
     const tokenHash = await hash(token); const now = new Date().toISOString();
-    const grant = await env.DB.prepare('SELECT target_url FROM remoteradar_external_apply_grants WHERE token_hash = ?1 AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?2').bind(tokenHash, now).first<{ target_url: string }>();
+    const grant = await env.DB.prepare('SELECT target_url, used_at, revoked_at, expires_at FROM remoteradar_external_apply_grants WHERE token_hash = ?1').bind(tokenHash).first<{ target_url: string; used_at: string | null; revoked_at: string | null; expires_at: string }>();
     if (!grant?.target_url) return error('APPLY_GRANT_NOT_FOUND', 'Application link was not found', 404);
+    if (grant.used_at) return error('APPLY_GRANT_USED', 'This application link was already used', 410);
+    if (grant.revoked_at) return error('APPLY_GRANT_REVOKED', 'This application link was revoked', 410);
+    if (Date.parse(grant.expires_at) <= Date.parse(now)) return error('APPLY_GRANT_EXPIRED', 'This application link has expired', 410);
     const claimed = await env.DB.prepare('UPDATE remoteradar_external_apply_grants SET used_at = ?1 WHERE token_hash = ?2 AND used_at IS NULL AND revoked_at IS NULL AND expires_at > ?1').bind(now, tokenHash).run();
-    if (Number(claimed.meta?.changes ?? 0) !== 1) return error('APPLY_GRANT_EXPIRED', 'This application link has expired, was revoked, or was already used', 410);
+    if (Number(claimed.meta?.changes ?? 0) !== 1) return error('APPLY_GRANT_UNAVAILABLE', 'This application link is no longer available', 410);
     return Response.redirect(grant.target_url, 302);
   }
   const adminPath = '/api/v1/admin/remoteradar/job-targets';

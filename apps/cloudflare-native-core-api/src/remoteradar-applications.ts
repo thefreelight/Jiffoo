@@ -57,12 +57,20 @@ async function body(request: Request): Promise<Record<string, unknown>> { return
 function rejectProvenance(input: Record<string, unknown>): boolean { return Object.prototype.hasOwnProperty.call(input, 'sourceUrl') || Object.prototype.hasOwnProperty.call(input, 'provenance') || Object.prototype.hasOwnProperty.call(input, 'canonicalUrl') || Object.prototype.hasOwnProperty.call(input, 'source'); }
 
 const PRIVATE_EXPORT_KEYS = new Set(['source', 'sourceUrl', 'canonicalUrl', 'connector', 'provenance', 'targetUrl', 'url']);
+const PRIVATE_EXPORT_LABEL = /\b(?:source(?:\s*url)?|canonical\s*url|connector|provenance|target\s*url)\s*:\s*[^\r\n]*/gi;
+const EXPORT_URL = /https?:\/\/[^\s<>"')\]]+/gi;
 function exportValue(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(exportValue);
   if (!value || typeof value !== 'object') return value;
   return Object.fromEntries(Object.entries(value as Record<string, unknown>).filter(([key]) => !PRIVATE_EXPORT_KEYS.has(key)).map(([key, item]) => [key, exportValue(item)]));
 }
-function exportText(value: unknown): string { return typeof value === 'string' ? value : value == null ? '' : JSON.stringify(exportValue(value), null, 2); }
+function redactExportText(value: string): string {
+  return value.replace(PRIVATE_EXPORT_LABEL, '[redacted]').replace(EXPORT_URL, '[redacted]');
+}
+function exportText(value: unknown): string {
+  const serialized = typeof value === 'string' ? value : value == null ? '' : JSON.stringify(exportValue(value), null, 2);
+  return redactExportText(serialized);
+}
 async function exportApplicationPack(env: RemoteRadarApplicationsEnv, userId: string, packId: string, format: string): Promise<Response> {
   if (!['md', 'html', 'pdf'].includes(format)) return fail(400, 'EXPORT_FORMAT_INVALID', 'format must be md, html, or pdf');
   const row = await env.DB.prepare(`SELECT p.id, p.saved_job_id, p.approved_version_id, v.id AS version_id, v.version, v.resume_snapshot, v.cover_letter, v.answers, v.approved_at
