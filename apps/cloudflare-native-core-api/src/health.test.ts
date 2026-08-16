@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSupportedNativeSchemaVersion } from './health';
+import { isExpectedNativeSchemaVersion, isSupportedNativeSchemaVersion } from './health';
 
 describe('native health schema gate', () => {
   it('accepts the current and compatible native schema lines', () => {
@@ -18,5 +18,17 @@ describe('native health schema gate', () => {
     expect(isSupportedNativeSchemaVersion('0034')).toBe(false);
     expect(isSupportedNativeSchemaVersion(null)).toBe(false);
     expect(isSupportedNativeSchemaVersion(undefined)).toBe(false);
+  });
+
+  it('accepts an instance schema only when it exactly matches the configured expectation', () => {
+    expect(isExpectedNativeSchemaVersion('0027', '0027')).toBe(true);
+    expect(isExpectedNativeSchemaVersion('0026', '0027')).toBe(false);
+    expect(isExpectedNativeSchemaVersion('0039', '0027')).toBe(false);
+    expect(isExpectedNativeSchemaVersion(null, '0027')).toBe(false);
+  });
+
+  it('uses the native compatibility line when no instance expectation is configured', () => {
+    expect(isExpectedNativeSchemaVersion('0043', undefined)).toBe(true);
+    expect(isExpectedNativeSchemaVersion('0027', undefined)).toBe(false);
   });
 });
