@@ -125,8 +125,19 @@ export async function verifyMigrationLine({ coreDir, lockPath, externalRoot, led
     }
   }
 
+  const selectedCoreMigrations = lock.coreMigrations ?? coreMigrations;
+  if (
+    !Array.isArray(selectedCoreMigrations) ||
+    selectedCoreMigrations.some((filename) => !coreMigrations.includes(filename)) ||
+    new Set(selectedCoreMigrations).size !== selectedCoreMigrations.length ||
+    selectedCoreMigrations.some(
+      (filename, index) => index > 0 && coreMigrations.indexOf(filename) <= coreMigrations.indexOf(selectedCoreMigrations[index - 1]),
+    )
+  ) {
+    throw new Error('Migration lock coreMigrations must reference existing core files');
+  }
   const expected = buildExpectedMigrationLine(
-    coreMigrations,
+    selectedCoreMigrations,
     lock.externalMigrations,
     lock.migrationAliases ?? [],
   );

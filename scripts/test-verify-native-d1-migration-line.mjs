@@ -95,6 +95,7 @@ await writeFile(
   JSON.stringify({
     schemaVersion: 1,
     externalMigrations: [],
+    coreMigrations: ['0001_core.sql', '0002_core.sql'],
     migrationAliases: [
       {
         canonicalFilename: '0002_core.sql',
@@ -115,6 +116,7 @@ await writeFile(
   JSON.stringify({
     schemaVersion: 1,
     externalMigrations: [],
+    coreMigrations: ['0001_core.sql', '0002_core.sql'],
     migrationAliases: [
       {
         canonicalFilename: '0002_core.sql',
