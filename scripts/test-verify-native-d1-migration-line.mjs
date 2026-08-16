@@ -18,6 +18,26 @@ assert.deepEqual(
   buildExpectedMigrationLine(['0001_core.sql', '0002_core.sql'], [external]),
   ['0001_core.sql', '1001_extension.sql', '0002_core.sql'],
 );
+assert.deepEqual(
+  buildExpectedMigrationLine(
+    ['0001_core.sql', '0002_core.sql'],
+    [],
+    [{ canonicalFilename: '0002_core.sql', appliedFilename: '0026_legacy.sql' }],
+  ),
+  ['0001_core.sql', '0026_legacy.sql'],
+);
+assert.throws(
+  () =>
+    buildExpectedMigrationLine(
+      ['0001_core.sql', '0002_core.sql'],
+      [],
+      [
+        { canonicalFilename: '0001_core.sql', appliedFilename: '0026_legacy.sql' },
+        { canonicalFilename: '0002_core.sql', appliedFilename: '0026_legacy.sql' },
+      ],
+    ),
+  /Duplicate applied migration alias/,
+);
 assert.throws(
   () => assertMigrationLine(['0001_core.sql'], ['0002_core.sql']),
   /Migration mismatch at position 1/,
@@ -69,6 +89,63 @@ assert.deepEqual(
   ['0001_core.sql', '1001_extension.sql', '0002_core.sql'],
 );
 
+const coreTwoDigest = createHash('sha256').update('SELECT 2;').digest('hex');
+await writeFile(
+  lockPath,
+  JSON.stringify({
+    schemaVersion: 1,
+    externalMigrations: [],
+    migrationAliases: [
+      {
+        canonicalFilename: '0002_core.sql',
+        appliedFilename: '0002_legacy.sql',
+        sha256: coreTwoDigest,
+      },
+    ],
+  }),
+);
+await writeFile(ledgerPath, JSON.stringify(['0001_core.sql', '0002_legacy.sql']));
+assert.deepEqual(
+  await verifyMigrationLine({ coreDir, lockPath, externalRoot, ledgerPath }),
+  ['0001_core.sql', '0002_legacy.sql'],
+);
+
+await writeFile(
+  lockPath,
+  JSON.stringify({
+    schemaVersion: 1,
+    externalMigrations: [],
+    migrationAliases: [
+      {
+        canonicalFilename: '0002_core.sql',
+        appliedFilename: '0002_legacy.sql',
+        sha256: 'invalid',
+      },
+    ],
+  }),
+);
+await assert.rejects(
+  verifyMigrationLine({ coreDir, lockPath, externalRoot, ledgerPath }),
+  /Checksum mismatch for migration alias/,
+);
+
+await writeFile(
+  lockPath,
+  JSON.stringify({
+    schemaVersion: 1,
+    externalMigrations: [
+      {
+        ...external,
+        sourcePath: '1001_extension.sql',
+        sha256: digest,
+      },
+    ],
+  }),
+);
+await writeFile(
+  ledgerPath,
+  JSON.stringify(['0001_core.sql', '1001_extension.sql', '0002_core.sql']),
+);
 await writeFile(join(externalRoot, '1001_extension.sql'), 'SELECT 9;');
 await assert.rejects(
   verifyMigrationLine({ coreDir, lockPath, externalRoot, ledgerPath }),
