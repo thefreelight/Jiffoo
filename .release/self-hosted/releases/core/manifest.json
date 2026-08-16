@@ -1,24 +1,24 @@
 {
-  "latestVersion": "1.0.81",
-  "latestStableVersion": "1.0.81",
+  "latestVersion": "1.0.110",
+  "latestStableVersion": "1.0.110",
   "latestPrereleaseVersion": null,
   "channel": "stable",
   "deliveryMode": "image-first",
   "images": {
-    "api": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.81",
-    "admin": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.81",
-    "shop": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.81",
-    "updater": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.81"
+    "api": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.110",
+    "admin": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.110",
+    "shop": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.110",
+    "updater": "crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.110"
   },
-  "releaseDate": "2026-08-05T13:44:11.454Z",
-  "changelogUrl": "https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.81-opensource",
-  "sourceArchiveUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz?sha256=6a77d1bd81e42c7af48327d76e490bbf50c4970ab6c711396a97a9d80da09d73",
+  "releaseDate": "2026-08-16T18:26:05.295Z",
+  "changelogUrl": "https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.110-opensource",
+  "sourceArchiveUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz?sha256=b0199eb139966622c3109ff4726f5b12fec49c756e3abc7eb1309cbe5601dfc5",
   "minimumCompatibleVersion": "1.0.0",
   "minimumAutoUpgradableVersion": "1.0.0",
   "requiresManualIntervention": false,
-  "releaseNotes": "RemoteRadar resume extraction, fact review drafts, immutable resume versions, and bounded retry processing.",
-  "checksumUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz.sha256?sha256=6a77d1bd81e42c7af48327d76e490bbf50c4970ab6c711396a97a9d80da09d73",
+  "releaseNotes": "Support explicit Cloudflare Native instance D1 schema profiles for legacy Imagic migration aliases.",
+  "checksumUrl": "https://get.jiffoo.com/jiffoo-source.tar.gz.sha256?sha256=b0199eb139966622c3109ff4726f5b12fec49c756e3abc7eb1309cbe5601dfc5",
   "signatureUrl": null,
-  "releaseTag": "v1.0.81-opensource",
+  "releaseTag": "v1.0.110-opensource",
   "repository": "thefreelight/Jiffoo"
 }
