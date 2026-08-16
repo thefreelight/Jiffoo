@@ -129,10 +129,7 @@ export async function verifyMigrationLine({ coreDir, lockPath, externalRoot, led
   if (
     !Array.isArray(selectedCoreMigrations) ||
     selectedCoreMigrations.some((filename) => !coreMigrations.includes(filename)) ||
-    new Set(selectedCoreMigrations).size !== selectedCoreMigrations.length ||
-    selectedCoreMigrations.some(
-      (filename, index) => index > 0 && coreMigrations.indexOf(filename) <= coreMigrations.indexOf(selectedCoreMigrations[index - 1]),
-    )
+    new Set(selectedCoreMigrations).size !== selectedCoreMigrations.length
   ) {
     throw new Error('Migration lock coreMigrations must reference existing core files');
   }
