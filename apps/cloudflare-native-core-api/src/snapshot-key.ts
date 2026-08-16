@@ -11,6 +11,15 @@ export function snapshotKey(url: URL): string {
 }
 
 export function snapshotFallbackKey(url: URL): string | null {
-  if (url.pathname !== '/api/v1/products' || !url.search) return null;
-  return 'core:snapshot:/api/v1/products';
+  if (!url.search) return null;
+  if (url.pathname === '/api/v1/products') return 'core:snapshot:/api/v1/products';
+
+  // Catalog sync stores product detail snapshots under their canonical,
+  // queryless path. Clients commonly add locale (and other presentation
+  // parameters), which must not make an otherwise available product
+  // unavailable for checkout.
+  if (/^\/api\/v1\/products\/[^/]+$/.test(url.pathname)) {
+    return `core:snapshot:${url.pathname}`;
+  }
+  return null;
 }

@@ -26,6 +26,9 @@ describe('snapshotKey', () => {
     expect(snapshotFallbackKey(new URL('https://example.com/api/v1/products?page=1&limit=12&locale=en')))
       .toBe('core:snapshot:/api/v1/products');
     expect(snapshotFallbackKey(new URL('https://example.com/api/v1/products'))).toBeNull();
-    expect(snapshotFallbackKey(new URL('https://example.com/api/v1/products/product-1?locale=en'))).toBeNull();
+    expect(snapshotFallbackKey(new URL('https://example.com/api/v1/products/product-1?locale=en')))
+      .toBe('core:snapshot:/api/v1/products/product-1');
+    expect(snapshotFallbackKey(new URL('https://example.com/api/v1/products/product-1'))).toBeNull();
+    expect(snapshotFallbackKey(new URL('https://example.com/api/v1/products/a/b?locale=en'))).toBeNull();
   });
 });
