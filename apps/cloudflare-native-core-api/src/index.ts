@@ -35,11 +35,14 @@ import { tryNativeRemoteRadarExternalApply } from './remoteradar-external-apply'
 import { processPendingRemoteRadarResumeDocuments, tryNativeRemoteRadarResumeDocuments } from './remoteradar-resumes';
 import { tryNativePlatformConnection } from './platform-connection';
 import { tryNativeMarketplace } from './marketplace';
-import { isSupportedNativeSchemaVersion } from './health';
+import { isExpectedNativeSchemaVersion } from './health';
 import { tryNativeCoupon } from './coupon';
 import { tryNativePublicAuthConfig } from './public-auth-config';
 
-type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv & { DEMO_MODE?: string };
+type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv & {
+  DEMO_MODE?: string;
+  EXPECTED_D1_SCHEMA_VERSION?: string;
+};
 
 interface Snapshot {
   payload: string;
@@ -191,13 +194,14 @@ export default {
     if (url.pathname === '/health') {
       const row = await env.DB.prepare("SELECT value FROM runtime_metadata WHERE key = 'core_schema_version'")
         .first<{ value: string }>();
+      const schemaHealthy = isExpectedNativeSchemaVersion(row?.value, env.EXPECTED_D1_SCHEMA_VERSION);
       return Response.json({
-        status: isSupportedNativeSchemaVersion(row?.value) ? 'ok' : 'degraded',
+        status: schemaHealthy ? 'ok' : 'degraded',
         service: 'jiffoo-native-core-api',
         runtime: 'cloudflare-workers-free',
         version: env.RUNTIME_VERSION,
         d1Schema: row?.value ?? null,
-      }, { status: isSupportedNativeSchemaVersion(row?.value) ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
+      }, { status: schemaHealthy ? 200 : 503, headers: runtimeHeaders('cloudflare-native') });
     }
     if (nativeRequest.method === 'GET' && nativeRequest.url.includes('/api/v1/upgrade/version')) {
       return nativeUpgradeVersion(env);
