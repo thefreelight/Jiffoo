@@ -22,10 +22,23 @@ function sha256(content) {
   return createHash('sha256').update(content).digest('hex');
 }
 
-export function buildExpectedMigrationLine(coreMigrations, externalMigrations) {
-  const expected = [...coreMigrations];
+export function buildExpectedMigrationLine(coreMigrations, externalMigrations, migrationAliases = []) {
+  const aliases = new Map();
+  for (const alias of migrationAliases) {
+    if (!alias?.canonicalFilename || !alias?.appliedFilename) {
+      throw new Error('Migration aliases require canonicalFilename and appliedFilename');
+    }
+    if (aliases.has(alias.canonicalFilename)) {
+      throw new Error(`Duplicate migration alias ${alias.canonicalFilename}`);
+    }
+    if (migrationAliases.some((entry) => entry !== alias && entry.appliedFilename === alias.appliedFilename)) {
+      throw new Error(`Duplicate applied migration alias ${alias.appliedFilename}`);
+    }
+    aliases.set(alias.canonicalFilename, alias.appliedFilename);
+  }
+  const expected = coreMigrations.map((filename) => aliases.get(filename) ?? filename);
   for (const migration of externalMigrations) {
-    const anchorIndex = expected.indexOf(migration.insertAfter);
+    const anchorIndex = expected.indexOf(aliases.get(migration.insertAfter) ?? migration.insertAfter);
     if (anchorIndex === -1) {
       throw new Error(
         `External migration ${migration.filename} references missing anchor ${migration.insertAfter}`,
@@ -96,7 +109,35 @@ export async function verifyMigrationLine({ coreDir, lockPath, externalRoot, led
     }
   }
 
-  const expected = buildExpectedMigrationLine(coreMigrations, lock.externalMigrations);
+  for (const alias of lock.migrationAliases ?? []) {
+    if (!coreMigrations.includes(alias.canonicalFilename)) {
+      throw new Error(`Migration alias references missing canonical migration ${alias.canonicalFilename}`);
+    }
+    if (typeof alias.sha256 !== 'string') {
+      throw new Error(`Migration alias ${alias.canonicalFilename} is missing sha256`);
+    }
+    const canonicalPath = resolve(coreDir, alias.canonicalFilename);
+    const actualSha256 = sha256(await readFile(canonicalPath));
+    if (actualSha256 !== alias.sha256) {
+      throw new Error(
+        `Checksum mismatch for migration alias ${alias.canonicalFilename}: expected ${alias.sha256}, received ${actualSha256}`,
+      );
+    }
+  }
+
+  const selectedCoreMigrations = lock.coreMigrations ?? coreMigrations;
+  if (
+    !Array.isArray(selectedCoreMigrations) ||
+    selectedCoreMigrations.some((filename) => !coreMigrations.includes(filename)) ||
+    new Set(selectedCoreMigrations).size !== selectedCoreMigrations.length
+  ) {
+    throw new Error('Migration lock coreMigrations must reference existing core files');
+  }
+  const expected = buildExpectedMigrationLine(
+    selectedCoreMigrations,
+    lock.externalMigrations,
+    lock.migrationAliases ?? [],
+  );
   const applied = normalizeAppliedLedger(JSON.parse(await readFile(ledgerPath, 'utf8')));
   assertMigrationLine(expected, applied, mode);
   return expected;
