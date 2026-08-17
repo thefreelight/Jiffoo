@@ -84,7 +84,7 @@ function runtimeHeaders(runtime: string, headers?: HeadersInit): Headers {
   return result;
 }
 
-function normalizePublicApiRequest(request: Request): Request {
+export function normalizePublicApiRequest(request: Request): Request {
   const url = new URL(request.url);
   if (!url.pathname.startsWith('/api/') || url.pathname.startsWith('/api/v1/')) return request;
   url.pathname = `/api/v1/${url.pathname.slice('/api/'.length)}`;
@@ -258,7 +258,7 @@ export default {
     const nativeAdminApiTokens = await tryNativeAdminApiTokens(nativeRequest, env);
     if (nativeAdminApiTokens) return nativeAdminApiTokens;
     if (isNativeRead(nativeRequest, url)) return serveNativeRead(url, env, ctx);
-    const nativeAuth = await tryNativeAuth(nativeRequest, env, () => proxy(request, env));
+    const nativeAuth = await tryNativeAuth(nativeRequest, env, () => proxy(nativeRequest, env));
     if (nativeAuth) return nativeAuth;
     const nativeCart = await tryNativeCart(
       nativeRequest,
@@ -285,7 +285,10 @@ export default {
     if (nativeAdminUsers) return nativeAdminUsers;
     const nativeOrders = await tryNativeOrderRead(nativeRequest, env, (proxyRequest) => proxy(proxyRequest, env));
     if (nativeOrders) return nativeOrders;
-    return proxy(request, env);
+    // Keep legacy /api/* callers on the normalized v1 contract when native
+    // handling declines the request. The original path can hit an incompatible
+    // fallback route and turn a normal auth failure into a Worker exception.
+    return proxy(nativeRequest, env);
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
     const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, creditGrants, resumeExtraction] = await Promise.allSettled([
