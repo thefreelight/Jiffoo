@@ -36,19 +36,19 @@ export const DEFAULT_PUBLIC_CORE_UPDATE_MANIFEST_URL =
 // for release detection. Keep it aligned with the published OSS release tag and
 // changelog entry whenever a new public release is cut.
 export const PUBLIC_CORE_UPDATE_MANIFEST: PublicCoreUpdateManifest = {
-  latestVersion: '1.0.108',
-  latestStableVersion: '1.0.108',
+  latestVersion: '1.0.112',
+  latestStableVersion: '1.0.112',
   latestPrereleaseVersion: null,
   channel: 'stable',
   deliveryMode: 'image-first',
   images: {
-    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.108',
-    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.108',
-    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.108',
-    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.108',
+    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.112',
+    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.112',
+    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.112',
+    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.112',
   },
   releaseDate: '2026-08-18T00:00:00.000Z',
-  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.108-opensource',
+  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.112-opensource',
   sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
   minimumCompatibleVersion: '1.0.0',
   minimumAutoUpgradableVersion: '1.0.0',
