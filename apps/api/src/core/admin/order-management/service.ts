@@ -12,6 +12,7 @@ import { ExternalOrderService } from '@/core/external-orders/service';
 import { OrderStatus, OrderStatusType, PaymentStatus } from '@/core/order/types';
 import { recordOrderStatusHistory } from '@/core/order/status-history';
 import { InventoryService } from '@/core/inventory/service';
+import { OutboxService } from '@/infra/outbox';
 
 const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
   error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
@@ -523,6 +524,18 @@ export class AdminOrderService {
             providerEventId: `refund:${refund.id}`,
             idempotencyKey: data.idempotencyKey,
           },
+        });
+
+        await OutboxService.emit(tx, 'order.refunded', order.id, {
+          id: order.id,
+          orderId: order.id,
+          refundId: refund.id,
+          userId: order.userId,
+          paymentId: payment.id,
+          amount: Number(refund.amount),
+          currency: refund.currency,
+          fullyRefunded: true,
+          reason: refund.reason ?? undefined,
         });
 
         const updated = await tx.order.update({

@@ -38,6 +38,7 @@ import { LoggerService } from '@/core/logger/unified-logger';
 import { getSupplierProductProfile, resolveSupplierFulfillmentData, parseJsonRecord } from '@/core/external-orders/utils';
 import { InventoryService } from '@/core/inventory/service';
 import { WarehouseService } from '@/core/warehouse/service';
+import { OutboxService } from '@/infra/outbox';
 
 const shipmentItemSelect = {
   id: true,
@@ -926,6 +927,18 @@ export class OrderService {
               providerEventId: `refund:${refund.id}`,
               idempotencyKey,
             },
+          });
+
+          await OutboxService.emit(tx, 'order.refunded', order.id, {
+            id: order.id,
+            orderId: order.id,
+            refundId: refund.id,
+            userId: order.userId,
+            paymentId: successfulPayment.id,
+            amount: Number(refund.amount),
+            currency: refund.currency,
+            fullyRefunded: true,
+            reason: refund.reason ?? undefined,
           });
         }
 

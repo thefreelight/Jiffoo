@@ -144,7 +144,7 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
     if (existing?.status === 'COMPLETED') return result(JSON.parse(native.payload));
     if (existing?.status === 'PENDING') return error(502, 'PAYMENT_REFUND_PENDING', 'Payment provider has not confirmed the refund');
     if (native.payment_status !== 'PAID' && native.payment_status !== 'PARTIALLY_REFUNDED') return error(409, 'ORDER_NOT_PAID', 'Order is not paid, cannot refund');
-    const metadata = await env.DB.prepare('SELECT total_amount, currency FROM native_order_metadata WHERE order_id = ?1').bind(orderId).first<{ total_amount: number; currency: string }>();
+    const metadata = await env.DB.prepare('SELECT total_amount, currency, user_id FROM native_order_metadata WHERE order_id = ?1').bind(orderId).first<{ total_amount: number; currency: string; user_id: string }>();
     const payment = await env.DB.prepare("SELECT id, payment_intent_id FROM native_payment_sessions WHERE order_id = ?1 AND status = 'SUCCEEDED' ORDER BY updated_at DESC LIMIT 1").bind(orderId).first<{ id: string; payment_intent_id: string | null }>();
     if (!metadata || !payment) return error(409, 'PAYMENT_REFUND_FAILED', 'No successful payment found for this order');
     const totalRefunded = await env.DB.prepare("SELECT COALESCE(SUM(amount), 0) AS amount FROM native_refunds WHERE order_id = ?1 AND status IN ('PENDING', 'COMPLETED')").bind(orderId).first<{ amount: number }>();
@@ -188,7 +188,7 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
       env.DB.prepare('UPDATE native_order_metadata SET payment_status = ?1 WHERE order_id = ?2').bind(fullyRefunded ? 'REFUNDED' : 'PARTIALLY_REFUNDED', orderId),
       env.DB.prepare('UPDATE native_order_snapshots SET status = ?1, payload = ?2, source_updated_at = ?3 WHERE id = ?4').bind(fullyRefunded ? 'REFUNDED' : native.status, JSON.stringify(order), now, orderId),
       env.DB.prepare("INSERT INTO native_order_audit (id, order_id, actor_id, action, from_status, to_status, payload, created_at) VALUES (?1, ?2, ?3, 'order.refund', ?4, ?5, ?6, ?7)").bind(crypto.randomUUID(), orderId, admin.id, native.status, fullyRefunded ? 'REFUNDED' : native.status, JSON.stringify({ amount, currency: metadata.currency, providerRefundId: provider.id }), now),
-      env.DB.prepare("INSERT INTO native_checkout_outbox (id, event_type, aggregate_id, payload, created_at) VALUES (?1, 'order.refunded', ?2, ?3, ?4)").bind(crypto.randomUUID(), orderId, JSON.stringify({ orderId, amount, currency: metadata.currency, fullyRefunded, reason: typeof body.reason === 'string' ? body.reason : null }), now),
+      env.DB.prepare("INSERT INTO native_checkout_outbox (id, event_type, aggregate_id, payload, created_at) VALUES (?1, 'order.refunded', ?2, ?3, ?4)").bind(crypto.randomUUID(), orderId, JSON.stringify({ id: orderId, orderId, refundId, userId: metadata.user_id, paymentId: payment.id, providerRefundId: provider.id, amount, currency: metadata.currency, fullyRefunded, reason: typeof body.reason === 'string' ? body.reason : null }), now),
     );
     await env.DB.batch(statements);
     return result(order);
