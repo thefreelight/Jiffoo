@@ -318,6 +318,35 @@ describe('native RemoteRadar applications adapter', () => {
     expect(payload.data).toMatchObject({ title: 'Engineer', company: 'Acme' });
   });
 
+  it('accepts a privacy-safe opaque jobId from search results without persisting the reference', async () => {
+    authenticateNativeUser.mockResolvedValueOnce({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const db = database();
+    const response = await tryNativeRemoteRadarApplications(new Request(`${baseUrl}/saved-jobs`, {
+      method: 'POST',
+      body: JSON.stringify({ jobId: 'job_opaque_7c9d', title: 'Engineer', company: 'Acme', location: 'Remote', description: 'Build things' }),
+    }), { DB: db } as never);
+    expect(response?.status).toBe(201);
+    const writeArguments = db.bind.mock.calls.at(-1)!;
+    expect(writeArguments).toContain('job_opaque_7c9d');
+    await expect(response?.json()).resolves.toMatchObject({ data: { title: 'Engineer', company: 'Acme' } });
+  });
+
+  it('rejects URLs and conflicting aliases as saved-job references', async () => {
+    authenticateNativeUser.mockResolvedValueOnce({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const urlReference = await tryNativeRemoteRadarApplications(new Request(`${baseUrl}/saved-jobs`, {
+      method: 'POST',
+      body: JSON.stringify({ jobId: 'https://competitor.example/jobs/1', title: 'Engineer', company: 'Acme' }),
+    }), { DB: database() } as never);
+    expect(urlReference?.status).toBe(400);
+
+    authenticateNativeUser.mockResolvedValueOnce({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
+    const conflictingReference = await tryNativeRemoteRadarApplications(new Request(`${baseUrl}/saved-jobs`, {
+      method: 'POST',
+      body: JSON.stringify({ jobId: 'job-a', jobKey: 'job-b', title: 'Engineer', company: 'Acme' }),
+    }), { DB: database() } as never);
+    expect(conflictingReference?.status).toBe(400);
+  });
+
   it('preserves createdAt while advancing updatedAt on saved-job updates', async () => {
     authenticateNativeUser.mockResolvedValueOnce({ id: 'user-1', email: 'u@example.com', username: 'u', role: 'USER' });
     const createdAt = '2026-01-01T00:00:00.000Z';

@@ -26,6 +26,16 @@ function text(value: unknown, max: number, fallback = ''): string | null {
   const result = value.trim();
   return result.length > 0 && result.length <= max ? result : result.length === 0 && fallback !== undefined ? fallback : null;
 }
+function opaqueJobReference(input: Record<string, unknown>): string | null {
+  const jobId = text(input.jobId, 160) || null;
+  const jobKey = text(input.jobKey, 160) || null;
+  if (jobId && jobKey && jobId !== jobKey) return null;
+  const value = jobId ?? jobKey;
+  // A saved-job key is an internal, opaque identifier. URLs are provenance,
+  // not identifiers, and must never be persisted through this public route.
+  if (!value || /:\/\//.test(value) || value.startsWith('//')) return null;
+  return value;
+}
 function jsonObject(value: unknown): string | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   try { return JSON.stringify(value); } catch { return null; }
@@ -220,8 +230,8 @@ async function confirmFact(request: Request, env: RemoteRadarApplicationsEnv, us
 async function listSavedJobs(env: RemoteRadarApplicationsEnv, userId: string): Promise<Response> { const rows = await env.DB.prepare('SELECT * FROM native_rr_saved_jobs WHERE user_id = ?1 ORDER BY updated_at DESC').bind(userId).all<Record<string, unknown>>(); return response(rows.results.map(savedJob)); }
 async function saveJob(request: Request, env: RemoteRadarApplicationsEnv, userId: string): Promise<Response> {
   const input = await body(request); if (rejectProvenance(input)) return fail(400, 'PROVENANCE_FORBIDDEN', 'Source and provenance fields are not accepted in user requests');
-  const jobKey = text(input.jobKey, 160); const title = text(input.title, 240); const company = text(input.company, 240); const location = text(input.location, 240, ''); const description = text(input.description, 20000, '');
-  if (!jobKey || !title || !company || location === null || description === null) return fail(400, 'VALIDATION_ERROR', 'jobKey, title, company, location, and description are invalid');
+  const jobKey = opaqueJobReference(input); const title = text(input.title, 240); const company = text(input.company, 240); const location = text(input.location, 240, ''); const description = text(input.description, 20000, '');
+  if (!jobKey || !title || !company || location === null || description === null) return fail(400, 'VALIDATION_ERROR', 'jobId, title, company, location, and description are invalid');
   const now = new Date().toISOString(); const existing = await env.DB.prepare('SELECT id, created_at FROM native_rr_saved_jobs WHERE user_id = ?1 AND job_key = ?2').bind(userId, jobKey).first<{ id: string; created_at: string }>(); const id = existing?.id ?? crypto.randomUUID();
   const createdAt = existing?.created_at ?? now;
   await env.DB.prepare(`INSERT INTO native_rr_saved_jobs (id, user_id, job_key, title, company, location, description, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9) ON CONFLICT(user_id, job_key) DO UPDATE SET title = excluded.title, company = excluded.company, location = excluded.location, description = excluded.description, updated_at = excluded.updated_at`).bind(id, userId, jobKey, title, company, location || null, description, createdAt, now).run();
