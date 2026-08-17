@@ -97,6 +97,7 @@ import { prisma } from '@/config/database';
 import { getOrderHooks } from '@/core/order/hooks';
 import { PushNotificationService } from '@/core/notification/push-notification.service';
 import { InventoryService } from '@/core/inventory/service';
+import { OutboxService } from '@/infra/outbox';
 
 // ---------------------------------------------------------------------------
 // Typed mock helpers
@@ -433,7 +434,7 @@ describe('OrderService', () => {
       const paidOrder = {
         ...makeCreatedOrder({ status: 'COMPLETED', paymentStatus: 'PAID', totalAmount: 50 }),
         payments: [
-          { id: 'pay-1', status: 'SUCCEEDED', paymentMethod: 'stripe', createdAt: NOW },
+          { id: 'pay-1', status: 'SUCCEEDED', paymentMethod: 'stripe', currency: 'USD', createdAt: NOW },
         ],
       };
       const refundedOrder = makeCreatedOrder({
@@ -442,7 +443,12 @@ describe('OrderService', () => {
       });
 
       mockPrisma.order.findUnique.mockResolvedValue(paidOrder);
-      mockPrisma.refund.create.mockResolvedValue({});
+      mockPrisma.refund.create.mockResolvedValue({
+        id: 'refund-1',
+        amount: 50,
+        currency: 'USD',
+        reason: 'Full refund requested by admin',
+      });
       mockPrisma.order.update.mockResolvedValue(refundedOrder);
 
       const mockHooks = {
@@ -472,6 +478,23 @@ describe('OrderService', () => {
           where: { id: 'order-1' },
           data: { status: 'REFUNDED', paymentStatus: 'REFUNDED' },
         })
+      );
+
+      expect(OutboxService.emit).toHaveBeenCalledWith(
+        mockPrisma,
+        'order.refunded',
+        'order-1',
+        {
+          id: 'order-1',
+          orderId: 'order-1',
+          refundId: 'refund-1',
+          userId: 'user-1',
+          paymentId: 'pay-1',
+          amount: 50,
+          currency: 'USD',
+          fullyRefunded: true,
+          reason: 'Full refund requested by admin',
+        },
       );
 
       // Stock restored

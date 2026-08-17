@@ -114,7 +114,10 @@ async function processEvent(env: OutboxEnv, event: OutboxRow): Promise<void> {
     }
   }
   const snapshot = await env.DB.prepare('SELECT payload FROM native_order_snapshots WHERE id = ?1').bind(event.aggregate_id).first<OrderSnapshotRow>();
-  const eventPayload = snapshot ? { order: JSON.parse(snapshot.payload) } : JSON.parse(event.payload) as unknown;
+  const parsedPayload = JSON.parse(event.payload) as Record<string, unknown>;
+  const eventPayload = event.event_type === 'order.refunded'
+    ? { ...parsedPayload, ...(snapshot ? { order: JSON.parse(snapshot.payload) } : {}) }
+    : snapshot ? { order: JSON.parse(snapshot.payload) } : parsedPayload;
   await deliverNativeWebhooks(env, event.id, event.event_type, eventPayload, event.attempt_count + 1);
   await markDelivered(env, event.id, now);
 }
