@@ -197,21 +197,26 @@ async function signJwt(secret: string, payload: Record<string, unknown>): Promis
 }
 
 async function verifyJwt(secret: string, token: string): Promise<Record<string, unknown> | null> {
-  const parts = token.split('.');
-  if (parts.length !== 3) return null;
-  const [header, body, signature] = parts as [string, string, string];
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign'],
-  );
-  const expected = new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode(`${header}.${body}`)));
-  if (!constantTimeEqual(expected, decodeBase64Url(signature))) return null;
-  const payload = JSON.parse(new TextDecoder().decode(decodeBase64Url(body))) as Record<string, unknown>;
-  if (typeof payload.exp !== 'number' || payload.exp <= Math.floor(Date.now() / 1000)) return null;
-  return payload;
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const [header, body, signature] = parts as [string, string, string];
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    );
+    const expected = new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode(`${header}.${body}`)));
+    if (!constantTimeEqual(expected, decodeBase64Url(signature))) return null;
+    const payload = JSON.parse(new TextDecoder().decode(decodeBase64Url(body))) as Record<string, unknown>;
+    if (typeof payload.exp !== 'number' || payload.exp <= Math.floor(Date.now() / 1000)) return null;
+    return payload;
+  } catch {
+    // Malformed bearer/refresh tokens are authentication failures, never Worker errors.
+    return null;
+  }
 }
 
 export async function authenticateNativeUser(request: Request, env: NativeAuthEnv): Promise<NativeSessionUser | null> {

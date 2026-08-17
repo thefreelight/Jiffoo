@@ -32,4 +32,17 @@ describe('native shopper auth session status', () => {
     } as never);
     expect(authenticated).toBeNull();
   });
+
+  it('turns malformed refresh tokens into a stable 401 instead of a Worker exception', async () => {
+    const response = await tryNativeAuth(
+      new Request('https://api.example/api/v1/auth/refresh', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ refresh_token: 'not-a-jwt' }),
+      }),
+      { DB: { prepare: vi.fn() }, JWT_SECRET_VALUE: 'test-secret' } as never,
+      vi.fn(),
+    );
+    expect(response).toBeNull();
+  });
 });
