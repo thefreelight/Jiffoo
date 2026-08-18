@@ -494,6 +494,7 @@ describe('OrderService', () => {
           currency: 'USD',
           fullyRefunded: true,
           reason: 'Full refund requested by admin',
+          items: [{ orderItemId: 'item-1', quantity: 2 }],
         },
       );
 

@@ -118,6 +118,11 @@ export interface OrderRefundedPayload {
     fullyRefunded: boolean;
     reason?: string;
     providerRefundId?: string;
+    /** Refunded quantities, when the producer has line-level audit data. */
+    items?: Array<{
+        orderItemId: string;
+        quantity: number;
+    }>;
 }
 
 export interface OrderStatusChangedPayload {
