@@ -536,6 +536,7 @@ export class AdminOrderService {
           currency: refund.currency,
           fullyRefunded: true,
           reason: refund.reason ?? undefined,
+          items: order.items.map((item) => ({ orderItemId: item.id, quantity: item.quantity })),
         });
 
         const updated = await tx.order.update({

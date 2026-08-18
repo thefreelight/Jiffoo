@@ -26,6 +26,25 @@ function itemsFrom(order: Record<string, unknown>): Array<Record<string, unknown
   return Array.isArray(order.items) ? order.items as Array<Record<string, unknown>> : [];
 }
 
+function refundItemsFrom(raw: unknown, orderItems: Array<Record<string, unknown>>): Array<{ orderItemId: string; quantity: number }> | null {
+  if (raw === undefined) return null;
+  if (!Array.isArray(raw) || raw.length === 0) return null;
+  const available = new Map(orderItems.map((item) => [typeof item.id === 'string' ? item.id : '', item]));
+  const seen = new Set<string>();
+  const result: Array<{ orderItemId: string; quantity: number }> = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== 'object') return null;
+    const orderItemId = (entry as { orderItemId?: unknown }).orderItemId;
+    const quantity = (entry as { quantity?: unknown }).quantity;
+    if (typeof orderItemId !== 'string' || !orderItemId || seen.has(orderItemId) || typeof quantity !== 'number' || !Number.isInteger(quantity) || quantity <= 0) return null;
+    const orderItem = available.get(orderItemId);
+    if (!orderItem || typeof orderItem.quantity !== 'number' || quantity > orderItem.quantity) return null;
+    seen.add(orderItemId);
+    result.push({ orderItemId, quantity });
+  }
+  return result;
+}
+
 async function stripePaymentIntent(env: AdminWriteEnv, sessionId: string, storedIntent: string | null): Promise<string | null> {
   if (storedIntent) return storedIntent;
   const secret = (await getNativeStripeSecret(env, 'secretKey', env.STRIPE_SECRET_KEY)).value;
@@ -138,7 +157,7 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
   }
 
   if (refundMatch) {
-    const body = await request.json<{ idempotencyKey?: unknown; amount?: unknown; reason?: unknown }>().catch(() => null);
+    const body = await request.json<{ idempotencyKey?: unknown; amount?: unknown; reason?: unknown; items?: unknown }>().catch(() => null);
     if (!body || typeof body.idempotencyKey !== 'string' || !body.idempotencyKey.trim()) return error(400, 'VALIDATION_ERROR', 'Idempotency key is required');
     const existing = await env.DB.prepare('SELECT status FROM native_refunds WHERE idempotency_key = ?1').bind(body.idempotencyKey.trim()).first<{ status: string }>();
     if (existing?.status === 'COMPLETED') return result(JSON.parse(native.payload));
@@ -151,6 +170,9 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
     const remaining = metadata.total_amount - (totalRefunded?.amount ?? 0);
     const amount = body.amount === undefined ? remaining : Number(body.amount);
     if (!Number.isFinite(amount) || amount <= 0 || amount > remaining) return error(400, 'INVALID_REFUND_AMOUNT', `Invalid refund amount. Remaining refundable amount is ${remaining} ${metadata.currency}.`);
+    const order = JSON.parse(native.payload) as Record<string, unknown>;
+    const refundItems = refundItemsFrom(body.items, itemsFrom(order));
+    if (body.items !== undefined && !refundItems) return error(400, 'INVALID_REFUND_ITEMS', 'Refund items must contain unique order item IDs and positive quantities within the purchased quantities.');
     const refundId = crypto.randomUUID();
     const now = new Date().toISOString();
     try {
@@ -176,7 +198,6 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
     if (provider.status === 'pending') return error(502, 'PAYMENT_REFUND_PENDING', 'Payment provider has not confirmed the refund');
     const completed = (totalRefunded?.amount ?? 0) + amount;
     const fullyRefunded = completed + 0.000001 >= metadata.total_amount;
-    const order = JSON.parse(native.payload) as Record<string, unknown>;
     Object.assign(order, { paymentStatus: fullyRefunded ? 'REFUNDED' : 'PARTIALLY_REFUNDED', ...(fullyRefunded ? { status: 'REFUNDED' } : {}), updatedAt: now });
     const statements: D1PreparedStatement[] = [];
     if (fullyRefunded) {
@@ -188,7 +209,7 @@ export async function tryNativeAdminWrites(request: Request, env: AdminWriteEnv)
       env.DB.prepare('UPDATE native_order_metadata SET payment_status = ?1 WHERE order_id = ?2').bind(fullyRefunded ? 'REFUNDED' : 'PARTIALLY_REFUNDED', orderId),
       env.DB.prepare('UPDATE native_order_snapshots SET status = ?1, payload = ?2, source_updated_at = ?3 WHERE id = ?4').bind(fullyRefunded ? 'REFUNDED' : native.status, JSON.stringify(order), now, orderId),
       env.DB.prepare("INSERT INTO native_order_audit (id, order_id, actor_id, action, from_status, to_status, payload, created_at) VALUES (?1, ?2, ?3, 'order.refund', ?4, ?5, ?6, ?7)").bind(crypto.randomUUID(), orderId, admin.id, native.status, fullyRefunded ? 'REFUNDED' : native.status, JSON.stringify({ amount, currency: metadata.currency, providerRefundId: provider.id }), now),
-      env.DB.prepare("INSERT INTO native_checkout_outbox (id, event_type, aggregate_id, payload, created_at) VALUES (?1, 'order.refunded', ?2, ?3, ?4)").bind(crypto.randomUUID(), orderId, JSON.stringify({ id: orderId, orderId, refundId, userId: metadata.user_id, paymentId: payment.id, providerRefundId: provider.id, amount, currency: metadata.currency, fullyRefunded, reason: typeof body.reason === 'string' ? body.reason : null }), now),
+      env.DB.prepare("INSERT INTO native_checkout_outbox (id, event_type, aggregate_id, payload, created_at) VALUES (?1, 'order.refunded', ?2, ?3, ?4)").bind(crypto.randomUUID(), orderId, JSON.stringify({ id: orderId, orderId, refundId, userId: metadata.user_id, paymentId: payment.id, providerRefundId: provider.id, amount, currency: metadata.currency, fullyRefunded, reason: typeof body.reason === 'string' ? body.reason : null, ...(refundItems ? { items: refundItems } : fullyRefunded ? { items: itemsFrom(order).flatMap((item) => typeof item.id === 'string' && typeof item.quantity === 'number' ? [{ orderItemId: item.id, quantity: item.quantity }] : []) } : {}) }), now),
     );
     await env.DB.batch(statements);
     return result(order);
