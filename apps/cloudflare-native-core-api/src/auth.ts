@@ -147,6 +147,45 @@ export async function createNativeUser(env: NativeAuthEnv, user: PublicUser, pas
   ).run();
 }
 
+async function sha256Hex(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', encoder.encode(value));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Create (or resume) the restricted shopper identity used by guest checkout.
+ * Guest orders still have a real owner in D1; the role prevents this session
+ * from being treated as an admin or from bypassing order ownership checks.
+ */
+export async function createNativeGuest(
+  env: NativeAuthEnv,
+  input: { guestId?: string; installId?: string; deviceId?: string },
+): Promise<{ user: PublicUser; guestId: string }> {
+  const hint = input.guestId?.trim() || input.installId?.trim() || input.deviceId?.trim() || crypto.randomUUID();
+  const digest = await sha256Hex(hint);
+  const guestId = `guest_${digest.slice(0, 32)}`;
+  const email = `${digest}@guest.bokmoo.invalid`;
+  let user = await findNativeUserByEmail(env, email);
+  if (!user) {
+    const password = base64Url(crypto.getRandomValues(new Uint8Array(32)));
+    const iterations = 100000;
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const hash = await derivePassword(password, salt, iterations);
+    const id = crypto.randomUUID();
+    await env.DB.prepare(
+      `INSERT INTO native_users
+       (id, email, username, role, password_salt, password_hash, password_iterations,
+        is_active, migrated_at, updated_at, email_verified)
+       VALUES (?1, ?2, ?3, 'GUEST', ?4, ?5, ?6, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 1)`,
+    ).bind(id, email, guestId, base64Url(salt), base64Url(hash), iterations).run();
+    user = await findNativeUserByEmail(env, email);
+  }
+  if (!user || user.role !== 'GUEST' || !user.is_active || !user.email_verified) {
+    throw new Error('Guest session could not be created');
+  }
+  return { user: nativePublicUser(user), guestId };
+}
+
 export async function findNativeUserByEmail(env: NativeAuthEnv, email: string): Promise<NativeUser | null> {
   return env.DB.prepare('SELECT * FROM native_users WHERE email = ?1')
     .bind(email.toLowerCase())
@@ -304,6 +343,19 @@ export async function tryNativeAuth(
   proxyRequest: () => Promise<Response>,
 ): Promise<Response | null> {
   const path = new URL(request.url).pathname;
+  if (
+    (path === '/api/v1/auth/guest' || path === '/api/v1/shop/auth/guest') &&
+    request.method === 'POST'
+  ) {
+    const body = await request.clone().json<{ guestId?: string; installId?: string; deviceId?: string }>().catch(() => ({}));
+    const guest = await createNativeGuest(env, body);
+    const session = await createNativeSession(env, guest.user);
+    const data = session.body.data as Record<string, unknown>;
+    data.accountType = 'guest';
+    data.guestId = guest.guestId;
+    const responseBody = { ...session.body, data };
+    return new Response(JSON.stringify(responseBody), { status: 201, headers: session.headers });
+  }
   if (path === '/api/v1/admin/auth/login' && request.method === 'POST') {
     const body = await request.clone().json<{ identifier?: string; email?: string; password?: string }>();
     const identifier = body.identifier?.trim() || body.email?.trim();
