@@ -84,6 +84,7 @@ describe('Odoo native catalog mapping', () => {
       requiresShipping: true,
       stock: 100,
       price: 20,
+      images: ['https://erp.example.com/web/image/product.template/6/image_1920'],
     }]);
 
     const fieldsRequest = JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body));
@@ -127,7 +128,7 @@ describe('Odoo native catalog mapping', () => {
         default_code: 'BOK-CARD-GLD', list_price: 59, qty_available: 3, virtual_available: 3,
         active: false, sale_ok: true, detailed_type: 'product', description_sale: 'Physical card',
       },
-    ]);
+    ], 'https://erp.example.com');
 
     expect(products).toHaveLength(1);
     expect(products[0]).toMatchObject({
@@ -136,6 +137,7 @@ describe('Odoo native catalog mapping', () => {
         { id: 'odoo-variant-21', skuCode: 'BOK-CARD-BLK', salePrice: 49, baseStock: 8, isActive: true },
         { id: 'odoo-variant-22', skuCode: 'BOK-CARD-GLD', salePrice: 59, baseStock: 3, isActive: false },
       ],
+      images: ['https://erp.example.com/web/image/product.template/7/image_1920'],
     });
   });
 

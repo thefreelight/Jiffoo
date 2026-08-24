@@ -45,6 +45,7 @@ export type NativeOdooCatalogProduct = {
   price: number;
   isActive: boolean;
   sourceUpdatedAt: string | null;
+  images: string[];
   typeData: { provider: 'odoo'; odooTemplateId: number };
   variants: Array<{
     id: string;
@@ -176,10 +177,10 @@ export async function readNativeOdooCatalog(env: OdooEnv): Promise<NativeOdooCat
     order: 'product_tmpl_id,id',
     limit: 2_000,
   });
-  return mapNativeOdooCatalog(records);
+  return mapNativeOdooCatalog(records, settings.baseUrl);
 }
 
-export function mapNativeOdooCatalog(records: OdooProductRecord[]): NativeOdooCatalogProduct[] {
+export function mapNativeOdooCatalog(records: OdooProductRecord[], imageBaseUrl = ''): NativeOdooCatalogProduct[] {
   const products = new Map<number, NativeOdooCatalogProduct>();
   for (const record of records) {
     const sourceTemplateId = templateId(record);
@@ -222,6 +223,9 @@ export function mapNativeOdooCatalog(records: OdooProductRecord[]): NativeOdooCa
       price,
       isActive: record.active !== false,
       sourceUpdatedAt: text(record.write_date) || null,
+      // The Odoo image endpoint is public and gives every storefront the same
+      // canonical asset instead of embedding large base64 blobs in D1 snapshots.
+      images: imageBaseUrl ? [`${imageBaseUrl}/web/image/product.template/${sourceTemplateId}/image_1920`] : [],
       typeData: { provider: 'odoo', odooTemplateId: sourceTemplateId },
       variants: [variant],
     });
