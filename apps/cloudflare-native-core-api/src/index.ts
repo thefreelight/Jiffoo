@@ -38,6 +38,7 @@ import { tryNativeMarketplace } from './marketplace';
 import { isExpectedNativeSchemaVersion } from './health';
 import { tryNativeCoupon } from './coupon';
 import { tryNativePublicAuthConfig } from './public-auth-config';
+import { nativeOdooMediaUrl } from './odoo';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv & {
   DEMO_MODE?: string;
@@ -187,6 +188,36 @@ async function serveAsset(url: URL, env: WorkerEnv): Promise<Response> {
   return new Response(object.body, { headers });
 }
 
+export async function serveOdooMedia(url: URL, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
+  const match = url.pathname.match(/^\/media\/odoo-product-(\d+)$/);
+  if (!match) return Response.json({ error: 'MEDIA_NOT_FOUND' }, { status: 404 });
+  const version = (url.searchParams.get('v') || 'initial').replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 80);
+  const key = `media/odoo/product-${match[1]}-${version}.png`;
+  const cached = await env.ASSETS.get(key);
+  if (cached) {
+    const headers = runtimeHeaders('cloudflare-native-r2');
+    cached.writeHttpMetadata(headers);
+    headers.set('etag', cached.httpEtag);
+    headers.set('cache-control', 'public, max-age=86400, s-maxage=604800, immutable');
+    return new Response(cached.body, { headers });
+  }
+  const sourceUrl = await nativeOdooMediaUrl(env, match[1]);
+  if (!sourceUrl) return Response.json({ error: 'MEDIA_SOURCE_NOT_CONFIGURED' }, { status: 503 });
+  const upstream = await fetch(sourceUrl, {
+    cf: { cacheTtl: 604800, cacheEverything: true },
+  });
+  if (!upstream.ok || !upstream.body) return Response.json({ error: 'MEDIA_UPSTREAM_UNAVAILABLE' }, { status: 502 });
+  const contentType = upstream.headers.get('content-type') || 'image/png';
+  if (!contentType.startsWith('image/')) return Response.json({ error: 'MEDIA_UPSTREAM_INVALID' }, { status: 502 });
+  const contentLength = Number(upstream.headers.get('content-length') || 0);
+  if (contentLength > 5 * 1024 * 1024) return Response.json({ error: 'MEDIA_UPSTREAM_TOO_LARGE' }, { status: 502 });
+  const [responseBody, cacheBody] = upstream.body.tee();
+  ctx.waitUntil(env.ASSETS.put(key, cacheBody, {
+    httpMetadata: { contentType, cacheControl: 'public, max-age=86400, s-maxage=604800, immutable' },
+  }));
+  return new Response(responseBody, { headers: runtimeHeaders('cloudflare-native-origin-stream', { 'content-type': contentType, 'cache-control': 'public, max-age=86400, s-maxage=604800, immutable' }) });
+}
+
 export default {
   async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
     const nativeRequest = normalizePublicApiRequest(request);
@@ -210,6 +241,9 @@ export default {
     if (nativePublicAuthConfig) return nativePublicAuthConfig;
     if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {
       return serveAsset(url, env);
+    }
+    if (request.method === 'GET' && url.pathname.startsWith('/media/odoo-product-')) {
+      return serveOdooMedia(url, env, ctx);
     }
     const snapshotImport = await importSnapshots(nativeRequest, env);
     if (snapshotImport) return snapshotImport;

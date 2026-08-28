@@ -84,7 +84,7 @@ describe('Odoo native catalog mapping', () => {
       requiresShipping: true,
       stock: 100,
       price: 20,
-      images: ['https://erp.example.com/web/image/product.template/6/image_1920'],
+      images: ['/media/odoo-product-6?v=initial'],
     }]);
 
     const fieldsRequest = JSON.parse(String(fetchMock.mock.calls[2]?.[1]?.body));
@@ -137,7 +137,7 @@ describe('Odoo native catalog mapping', () => {
         { id: 'odoo-variant-21', skuCode: 'BOK-CARD-BLK', salePrice: 49, baseStock: 8, isActive: true },
         { id: 'odoo-variant-22', skuCode: 'BOK-CARD-GLD', salePrice: 59, baseStock: 3, isActive: false },
       ],
-      images: ['https://erp.example.com/web/image/product.template/7/image_1920'],
+      images: ['/media/odoo-product-7?v=2026-08-02%2012%3A00%3A00'],
     });
   });
 
