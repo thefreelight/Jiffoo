@@ -121,6 +121,11 @@ export async function isNativeOdooCatalogConfigured(env: OdooEnv): Promise<boole
   return Boolean(await config(env));
 }
 
+export async function nativeOdooMediaUrl(env: OdooEnv, templateId: string): Promise<string | null> {
+  const settings = await config(env);
+  return settings ? `${settings.baseUrl}/web/image/product.template/${templateId}/image_1920` : null;
+}
+
 async function rpc<T>(settings: OdooConfig, service: string, method: string, args: unknown[]): Promise<T> {
   const response = await fetch(`${settings.baseUrl}/jsonrpc`, {
     method: 'POST',
@@ -225,7 +230,7 @@ export function mapNativeOdooCatalog(records: OdooProductRecord[], imageBaseUrl 
       sourceUpdatedAt: text(record.write_date) || null,
       // The Odoo image endpoint is public and gives every storefront the same
       // canonical asset instead of embedding large base64 blobs in D1 snapshots.
-      images: imageBaseUrl ? [`${imageBaseUrl}/web/image/product.template/${sourceTemplateId}/image_1920`] : [],
+      images: imageBaseUrl ? [`/media/odoo-product-${sourceTemplateId}?v=${encodeURIComponent(text(record.write_date) || 'initial')}`] : [],
       typeData: { provider: 'odoo', odooTemplateId: sourceTemplateId },
       variants: [variant],
     });

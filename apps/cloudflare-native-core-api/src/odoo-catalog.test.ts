@@ -15,7 +15,7 @@ vi.mock('./odoo', () => ({
     price: 20,
     isActive: true,
     sourceUpdatedAt: null,
-    images: ['https://erp.example.com/web/image/product.template/6/image_1920'],
+    images: ['/media/odoo-product-6?v=initial'],
     typeData: { provider: 'odoo', odooTemplateId: 6 },
     variants: [{
       id: 'odoo-variant-6',
