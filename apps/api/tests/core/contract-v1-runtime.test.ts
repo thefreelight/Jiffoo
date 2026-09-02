@@ -129,4 +129,45 @@ describe('contract v1 plugin runtime', () => {
     expect(applyPluginWebhook).toHaveBeenCalledWith('yipay', webhookResult);
     await app.close();
   });
+
+  it('normalizes captured Buffer webhook bodies before invoking the driver', async () => {
+    const handleWebhook = vi.fn(async () => ({
+      received: true,
+      handled: true,
+      sessionId: null,
+      providerEventId: 'evt-buffer',
+      normalizedStatus: 'succeeded',
+    }));
+    const runtime: ContractV1Runtime = {
+      manifest: { id: 'stripe', version: '1.0.4', contract: 'v1' },
+      register(context) {
+        const registerDriver = context.registerDriver as (kind: string, driver: unknown) => void;
+        registerDriver('payment', { handleWebhook });
+      },
+    };
+    const app = Fastify({ logger: false });
+    await registerContractV1Runtime(app, runtime, {
+      slug: 'stripe',
+      installationId: 'install-buffer-webhook',
+      config: {},
+    });
+    await app.ready();
+
+    const rawBody = Buffer.from('{"id":"evt-buffer","type":"checkout.session.completed"}', 'utf8');
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/payments/webhook',
+      headers: { 'x-jiffoo-stripe-signature': 't=1,v1=test' },
+      payload: rawBody,
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(handleWebhook).toHaveBeenCalledWith(expect.objectContaining({
+      payload: {
+        rawBody: rawBody.toString('utf8'),
+        signature: 't=1,v1=test',
+      },
+    }));
+    await app.close();
+  });
 });
