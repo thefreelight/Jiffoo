@@ -1011,10 +1011,19 @@ async function forwardToInternalFastify(
       headers['x-jiffoo-raw-body'] = Buffer.from(body).toString('base64');
     }
     const rawHeaders = (request.raw as { headers?: Record<string, string | string[] | undefined> }).headers;
+    const rawHeaderPairs = (request.raw as { rawHeaders?: string[] }).rawHeaders || [];
+    let rawPairSignature: string | undefined;
+    for (let index = 0; index < rawHeaderPairs.length; index += 2) {
+      if (rawHeaderPairs[index]?.toLowerCase() === 'stripe-signature') {
+        rawPairSignature = rawHeaderPairs[index + 1];
+        break;
+      }
+    }
     const signatureHeaderName = Object.keys(request.headers).find((key) => key.toLowerCase() === 'stripe-signature');
     const rawSignatureHeaderName = Object.keys(rawHeaders || {}).find((key) => key.toLowerCase() === 'stripe-signature');
     const stripeSignature = request.headers[signatureHeaderName || 'stripe-signature']
-      ?? rawHeaders?.[rawSignatureHeaderName || 'stripe-signature'];
+      ?? rawHeaders?.[rawSignatureHeaderName || 'stripe-signature']
+      ?? rawPairSignature;
     const normalizedSignature = Array.isArray(stripeSignature)
       ? stripeSignature[0]
       : stripeSignature;
