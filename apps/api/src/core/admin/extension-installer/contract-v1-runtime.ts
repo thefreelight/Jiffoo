@@ -155,6 +155,11 @@ function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver, plug
 
   if (driver.handleWebhook) {
     app.post('/api/payments/webhook', async (request, reply) => {
+      const findHeader = (headers: Record<string, unknown> | undefined, name: string): unknown => {
+        if (!headers) return undefined;
+        const key = Object.keys(headers).find((candidate) => candidate.toLowerCase() === name);
+        return key ? headers[key] : undefined;
+      };
       const rawBody = (request as FastifyRequest & { rawBody?: Buffer | string }).rawBody
         ?? (typeof request.headers['x-jiffoo-raw-body'] === 'string'
           ? Buffer.from(request.headers['x-jiffoo-raw-body'], 'base64').toString('utf8')
@@ -163,10 +168,10 @@ function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver, plug
           ? undefined
           : JSON.stringify(request.body));
       const rawHeaders = (request.raw as { headers?: Record<string, string | string[] | undefined> }).headers;
-      const signatureHeader = request.headers['stripe-signature']
-        ?? request.headers['x-jiffoo-stripe-signature']
-        ?? rawHeaders?.['stripe-signature']
-        ?? rawHeaders?.['x-jiffoo-stripe-signature'];
+      const signatureHeader = findHeader(request.headers as Record<string, unknown>, 'stripe-signature')
+        ?? findHeader(request.headers as Record<string, unknown>, 'x-jiffoo-stripe-signature')
+        ?? findHeader(rawHeaders, 'stripe-signature')
+        ?? findHeader(rawHeaders, 'x-jiffoo-stripe-signature');
       const signature = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
       const result = await driver.handleWebhook!({
         headers: request.headers,
