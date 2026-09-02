@@ -156,6 +156,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    */
   fastify.all<{ Params: { slug: string } }>('/plugin/:slug/api', {
     preHandler: optionalAuthMiddleware,
+    config: { rawBody: true },
     schema: {
       tags: ['plugin-gateway'],
       summary: 'Plugin Gateway (root)',
@@ -188,6 +189,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
 
   fastify.all<{ Params: { slug: string; '*': string } }>('/plugin/:slug/api/*', {
     preHandler: optionalAuthMiddleware,
+    config: { rawBody: true },
     schema: {
       tags: ['plugin-gateway'],
       summary: 'Plugin Gateway (wildcard)',
