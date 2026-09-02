@@ -155,11 +155,16 @@ function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver, plug
 
   if (driver.handleWebhook) {
     app.post('/api/payments/webhook', async (request, reply) => {
+      const rawBody = (request as FastifyRequest & { rawBody?: Buffer | string }).rawBody;
+      const signature = request.headers['stripe-signature'];
       const result = await driver.handleWebhook!({
         headers: request.headers,
-        // Stripe signs the exact serialized request body; prefer the raw
-        // bytes captured by fastify-raw-body over the parsed JSON object.
-        payload: (request as FastifyRequest & { rawBody?: Buffer }).rawBody ?? request.body ?? {},
+        // Contract-v1 payment drivers receive webhook metadata inside payload.
+        // Preserve the exact bytes and provider signature for Stripe.
+        payload: {
+          rawBody: rawBody ?? request.body ?? {},
+          signature,
+        },
       });
       if (result && typeof result === 'object') {
         await applyNormalizedPluginWebhook(pluginSlug, result as Record<string, unknown>);
