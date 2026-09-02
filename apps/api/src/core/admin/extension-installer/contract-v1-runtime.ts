@@ -1,5 +1,6 @@
 import { createHash } from 'crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import rawBody from 'fastify-raw-body';
 import { prisma } from '@/config/database';
 import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
 
@@ -173,6 +174,15 @@ export async function registerContractV1Runtime(
   runtime: ContractV1Runtime,
   options: RuntimeOptions,
 ): Promise<void> {
+  // Contract runtimes are isolated Fastify instances. Register raw-body
+  // capture here as well as on the root API so signed webhook drivers receive
+  // the exact bytes that Stripe signed after gateway injection.
+  await app.register(rawBody, {
+    field: 'rawBody',
+    global: true,
+    encoding: false,
+    runFirst: true,
+  });
   await runContractV1Migrations(options.slug, runtime.migrations);
   clearContractV1EventHandlers(options.installationId);
 
