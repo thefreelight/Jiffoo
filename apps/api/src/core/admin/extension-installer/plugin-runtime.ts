@@ -990,7 +990,9 @@ async function forwardToInternalFastify(
 
   let payload: any = undefined;
   if (request.method !== 'GET' && request.method !== 'HEAD') {
-    const body: any = (request as any).body;
+    // Preserve the exact bytes captured by fastify-raw-body. Re-serializing
+    // parsed JSON changes the signed payload and breaks Stripe verification.
+    const body: any = (request as any).rawBody ?? (request as any).body;
     if (body === undefined || body === null) {
       payload = undefined;
     } else if (Buffer.isBuffer(body) || typeof body === 'string') {
