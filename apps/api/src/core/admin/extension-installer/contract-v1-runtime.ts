@@ -160,13 +160,16 @@ function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver, plug
         const key = Object.keys(headers).find((candidate) => candidate.toLowerCase() === name);
         return key ? headers[key] : undefined;
       };
-      const rawBody = (request as FastifyRequest & { rawBody?: Buffer | string }).rawBody
+      const capturedRawBody = (request as FastifyRequest & { rawBody?: Buffer | string }).rawBody
         ?? (typeof request.headers['x-jiffoo-raw-body'] === 'string'
           ? Buffer.from(request.headers['x-jiffoo-raw-body'], 'base64').toString('utf8')
           : undefined)
         ?? (request.body === undefined || request.body === null
           ? undefined
           : JSON.stringify(request.body));
+      const rawBody = Buffer.isBuffer(capturedRawBody)
+        ? capturedRawBody.toString('utf8')
+        : capturedRawBody;
       const rawHeaders = (request.raw as { headers?: Record<string, string | string[] | undefined> }).headers;
       const signatureHeader = findHeader(request.headers as Record<string, unknown>, 'stripe-signature')
         ?? findHeader(request.headers as Record<string, unknown>, 'x-jiffoo-stripe-signature')
