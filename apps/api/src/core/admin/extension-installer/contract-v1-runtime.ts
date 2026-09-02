@@ -162,7 +162,8 @@ function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver, plug
         ?? (request.body === undefined || request.body === null
           ? undefined
           : JSON.stringify(request.body));
-      const signature = request.headers['stripe-signature'];
+      const signature = request.headers['stripe-signature']
+        ?? request.headers['x-jiffoo-stripe-signature'];
       const result = await driver.handleWebhook!({
         headers: request.headers,
         // Contract-v1 payment drivers receive webhook metadata inside payload.

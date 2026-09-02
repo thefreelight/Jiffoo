@@ -1010,6 +1010,10 @@ async function forwardToInternalFastify(
     if (Buffer.isBuffer(body) || typeof body === 'string') {
       headers['x-jiffoo-raw-body'] = Buffer.from(body).toString('base64');
     }
+    const stripeSignature = request.headers['stripe-signature'];
+    if (typeof stripeSignature === 'string' && stripeSignature.length > 0) {
+      headers['x-jiffoo-stripe-signature'] = stripeSignature;
+    }
   }
 
   // Timeout wrapper for internal inject
