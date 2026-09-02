@@ -1011,8 +1011,11 @@ async function forwardToInternalFastify(
       headers['x-jiffoo-raw-body'] = Buffer.from(body).toString('base64');
     }
     const stripeSignature = request.headers['stripe-signature'];
-    if (typeof stripeSignature === 'string' && stripeSignature.length > 0) {
-      headers['x-jiffoo-stripe-signature'] = stripeSignature;
+    const normalizedSignature = Array.isArray(stripeSignature)
+      ? stripeSignature[0]
+      : stripeSignature;
+    if (typeof normalizedSignature === 'string' && normalizedSignature.length > 0) {
+      headers['x-jiffoo-stripe-signature'] = normalizedSignature;
     }
   }
 
