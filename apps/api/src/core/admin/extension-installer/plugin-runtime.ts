@@ -1003,6 +1003,13 @@ async function forwardToInternalFastify(
         headers['content-type'] = 'application/json';
       }
     }
+
+    // app.inject() does not reliably run raw-body preParsing hooks before the
+    // nested handler. Carry the exact bytes through an internal header so
+    // signature-sensitive contract drivers can still verify them.
+    if (Buffer.isBuffer(body) || typeof body === 'string') {
+      headers['x-jiffoo-raw-body'] = Buffer.from(body).toString('base64');
+    }
   }
 
   // Timeout wrapper for internal inject

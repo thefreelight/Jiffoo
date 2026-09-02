@@ -155,7 +155,10 @@ function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver, plug
 
   if (driver.handleWebhook) {
     app.post('/api/payments/webhook', async (request, reply) => {
-      const rawBody = (request as FastifyRequest & { rawBody?: Buffer | string }).rawBody;
+      const rawBody = (request as FastifyRequest & { rawBody?: Buffer | string }).rawBody
+        ?? (typeof request.headers['x-jiffoo-raw-body'] === 'string'
+          ? Buffer.from(request.headers['x-jiffoo-raw-body'], 'base64').toString('utf8')
+          : undefined);
       const signature = request.headers['stripe-signature'];
       const result = await driver.handleWebhook!({
         headers: request.headers,
