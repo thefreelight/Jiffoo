@@ -1019,10 +1019,14 @@ async function forwardToInternalFastify(
         break;
       }
     }
-    const signatureHeaderName = Object.keys(request.headers).find((key) => key.toLowerCase() === 'stripe-signature');
-    const rawSignatureHeaderName = Object.keys(rawHeaders || {}).find((key) => key.toLowerCase() === 'stripe-signature');
-    const stripeSignature = request.headers[signatureHeaderName || 'stripe-signature']
-      ?? rawHeaders?.[rawSignatureHeaderName || 'stripe-signature']
+    const findSignature = (headers: Record<string, unknown> | undefined): unknown => {
+      const entry = Object.entries(headers || {}).find(([key]) =>
+        key.toLowerCase().replace(/_/g, '-') === 'stripe-signature'
+          || key.toLowerCase().replace(/_/g, '-') === 'x-jiffoo-stripe-signature');
+      return entry?.[1];
+    };
+    const stripeSignature = findSignature(request.headers as Record<string, unknown>)
+      ?? findSignature(rawHeaders as Record<string, unknown>)
       ?? rawPairSignature;
     const normalizedSignature = Array.isArray(stripeSignature)
       ? stripeSignature[0]
