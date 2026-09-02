@@ -28,6 +28,7 @@ import cors from '@fastify/cors';
 // @ts-ignore - optional dependency
 import helmet from '@fastify/helmet';
 import multipart from '@fastify/multipart';
+import rawBody from 'fastify-raw-body';
 import staticFiles from '@fastify/static';
 import cookie from '@fastify/cookie';
 import swagger from '@fastify/swagger';
@@ -79,6 +80,14 @@ async function buildApp() {
         fileSize: 500 * 1024 * 1024, // 500MB (Bundle v1 max)
         files: 1
       }
+    });
+
+    // Preserve the exact request bytes for Stripe signature verification.
+    await fastify.register(rawBody, {
+      field: 'rawBody',
+      global: true,
+      encoding: false,
+      runFirst: true,
     });
 
     // Ensure uploads directory exists

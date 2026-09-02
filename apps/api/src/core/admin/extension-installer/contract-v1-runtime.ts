@@ -156,7 +156,9 @@ function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver, plug
     app.post('/api/payments/webhook', async (request, reply) => {
       const result = await driver.handleWebhook!({
         headers: request.headers,
-        payload: request.body || {},
+        // Stripe signs the exact serialized request body; prefer the raw
+        // bytes captured by fastify-raw-body over the parsed JSON object.
+        payload: (request as FastifyRequest & { rawBody?: Buffer }).rawBody ?? request.body ?? {},
       });
       if (result && typeof result === 'object') {
         await applyNormalizedPluginWebhook(pluginSlug, result as Record<string, unknown>);
