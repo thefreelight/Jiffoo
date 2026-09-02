@@ -807,13 +807,19 @@ export async function dispatchPluginRuntimeEvent(eventType: string, payload: unk
     const instances = await PluginManagementService.getPluginInstances(pkg.slug);
     for (const instance of instances) {
       if (!instance.enabled || instance.deletedAt) continue;
-      await ensureInternalRuntime(pkg.slug, manifest, {
-        slug: pkg.slug,
-        installationId: instance.id,
-        instanceKey: instance.instanceKey,
-        config: parseJsonObject(instance.configJson),
-      });
-      delivered += await dispatchContractV1Event(instance.id, eventType, payload);
+      try {
+        await ensureInternalRuntime(pkg.slug, manifest, {
+          slug: pkg.slug,
+          installationId: instance.id,
+          instanceKey: instance.instanceKey,
+          config: parseJsonObject(instance.configJson),
+        });
+        delivered += await dispatchContractV1Event(instance.id, eventType, payload);
+      } catch (error) {
+        // A stale or partially built plugin must not prevent healthy plugins
+        // from receiving lifecycle events or bring down the API process.
+        console.error(`Failed to dispatch ${eventType} to plugin instance ${instance.instanceKey}:`, error);
+      }
     }
   }
 
