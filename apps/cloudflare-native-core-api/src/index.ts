@@ -39,6 +39,7 @@ import { isExpectedNativeSchemaVersion } from './health';
 import { tryNativeCoupon } from './coupon';
 import { tryNativePublicAuthConfig } from './public-auth-config';
 import { nativeOdooMediaUrl } from './odoo';
+import { tryNativeBokmooConnect } from './bokmoo-connect';
 
 type WorkerEnv = Cloudflare.Env & NativeAuthEnv & NativeJobsProxyEnv & {
   DEMO_MODE?: string;
@@ -259,6 +260,8 @@ export default {
     if (nativePlatformConnection) return nativePlatformConnection;
     const nativeMarketplace = await tryNativeMarketplace(nativeRequest, env);
     if (nativeMarketplace) return nativeMarketplace;
+    const nativeBokmooConnect = await tryNativeBokmooConnect(nativeRequest, env);
+    if (nativeBokmooConnect) return nativeBokmooConnect;
     const nativeRemoteRadarApplications = await tryNativeRemoteRadarApplications(nativeRequest, env);
     if (nativeRemoteRadarApplications) return nativeRemoteRadarApplications;
     const nativeWallet = await tryNativeWallet(nativeRequest, env);

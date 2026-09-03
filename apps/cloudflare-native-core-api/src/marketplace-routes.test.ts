@@ -58,6 +58,19 @@ describe('native marketplace install routes', () => {
     await expect(response?.json()).resolves.toMatchObject({ success: true, data: { slug: 'shipping', version: '1.1.0' } });
   });
 
+  it('allows the published Bokmoo Connect adapter to install natively', async () => {
+    authenticateNativeAdmin.mockResolvedValue(true);
+    vi.stubGlobal('fetch', vi.fn(async () => Response.json({ data: { items: [{ slug: 'bokmoo-connect', kind: 'plugin', installable: true, sellableVersion: '0.1.2' }] } })));
+    const run = vi.fn(async () => ({ success: true, meta: { changes: 1 } }));
+    const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ run })) })) };
+    const response = await tryNativeMarketplace(new Request('https://api.example/api/v1/admin/market/extensions/bokmoo-connect/install', {
+      method: 'POST', body: JSON.stringify({ kind: 'plugin', version: '0.1.2' }),
+    }), { DB: db } as never);
+    expect(response?.status).toBe(200);
+    await expect(response?.json()).resolves.toMatchObject({ success: true, data: { slug: 'bokmoo-connect', version: '0.1.2' } });
+    expect(run).toHaveBeenCalledOnce();
+  });
+
   it('fails closed for the published Affiliate extension route when disabled', async () => {
     const first = vi.fn(async () => ({ enabled: 0 }));
     const db = { prepare: vi.fn(() => ({ bind: vi.fn(() => ({ first })) })) };
