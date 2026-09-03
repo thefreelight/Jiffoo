@@ -3,7 +3,7 @@ import { buildNativeCatalogResponse, type NativeCatalogItem } from './marketplac
 
 type Env = NativeAuthEnv & { DB: D1Database; MARKET_API_URL?: string; PLATFORM_API_BASE_URL?: string; PLATFORM_API?: Fetcher };
 
-const NATIVE_INSTALLABLE_PLUGINS = new Set(['wallet', 'affiliate', 'coupon', 'subscription', 'shipping']);
+const NATIVE_INSTALLABLE_PLUGINS = new Set(['wallet', 'affiliate', 'coupon', 'subscription', 'shipping', 'bokmoo-connect']);
 
 function baseUrl(env: Env): string {
   return (env.PLATFORM_API_BASE_URL?.trim() || env.MARKET_API_URL?.trim() || 'https://platform-api.jiffoo.com/api').replace(/\/+$/, '');
