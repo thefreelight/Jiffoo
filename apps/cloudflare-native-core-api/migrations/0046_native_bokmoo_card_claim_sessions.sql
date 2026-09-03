@@ -12,4 +12,4 @@ CREATE TABLE IF NOT EXISTS native_bokmoo_card_claim_sessions (
   updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES native_users(id) ON DELETE CASCADE,
   FOREIGN KEY (card_id) REFERENCES native_bokmoo_cards(id) ON DELETE CASCADE
-)
+);
