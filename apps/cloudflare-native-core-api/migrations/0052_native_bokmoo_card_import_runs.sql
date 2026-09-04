@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS native_bokmoo_card_import_runs (
+  id TEXT PRIMARY KEY,
+  total INTEGER NOT NULL,
+  imported INTEGER NOT NULL DEFAULT 0,
+  updated INTEGER NOT NULL DEFAULT 0,
+  conflicts INTEGER NOT NULL DEFAULT 0,
+  operator TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

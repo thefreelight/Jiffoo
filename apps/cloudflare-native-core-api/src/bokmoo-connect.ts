@@ -1,4 +1,4 @@
-import { authenticateNativeUser, type NativeAuthEnv } from './auth';
+import { authenticateNativeAdmin, authenticateNativeUser, type NativeAuthEnv } from './auth';
 import { isNativePluginEnabled } from './plugin-enabled';
 
 type Env = NativeAuthEnv & { DB: D1Database };
@@ -8,6 +8,8 @@ interface CardRow {
   mid: string;
   eid: string | null;
   iccid: string | null;
+  sku: string | null;
+  batch: string | null;
   status: string;
   verification_status: string;
   user_id: string | null;
@@ -29,6 +31,16 @@ interface ClaimRow {
   verified_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface ImportRunRow {
+  id: string;
+  total: number;
+  imported: number;
+  updated: number;
+  conflicts: number;
+  operator: string | null;
+  created_at: string;
 }
 
 function response(data: unknown, status = 200): Response {
@@ -218,8 +230,159 @@ async function verifyClaim(request: Request, env: Env, sessionId: string): Promi
   return response({ result: 'verified', card: publicCard(updatedCard!, true), session: publicSession(updatedSession!, updatedCard!) });
 }
 
+function adminCard(row: CardRow) {
+  return { ...publicCard(row, true), sku: row.sku ?? null, batch: row.batch ?? null, userId: row.user_id };
+}
+
+function optionalText(value: unknown, maxLength: number): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, maxLength) : null;
+}
+
+async function requireAdmin(request: Request, env: Env) {
+  return authenticateNativeAdmin(request, env);
+}
+
+function adminPath(pathname: string): string | null {
+  const prefix = '/api/v1/extensions/plugin/bokmoo-connect/api/admin';
+  if (!pathname.startsWith(`${prefix}/cards`)) return null;
+  const suffix = pathname.slice(prefix.length);
+  return suffix === '/cards' || suffix === '/cards/import' || suffix === '/cards/imports' ? suffix : null;
+}
+
+type ImportOutcome = { mid: string; result: 'imported' | 'updated' | 'conflict'; reason?: string };
+
+async function importCards(request: Request, env: Env): Promise<Response> {
+  const admin = await requireAdmin(request, env);
+  if (!admin) return error('UNAUTHORIZED', 'Admin authentication required', 401);
+  const body = await request.json<{ cards?: unknown }>().catch(() => null);
+  const rows = Array.isArray(body?.cards) ? body.cards : null;
+  if (!rows || rows.length === 0) return error('IMPORT_CARDS_REQUIRED', 'A non-empty cards array is required', 400);
+  if (rows.length > 1000) return error('IMPORT_CARDS_TOO_LARGE', 'Import at most 1000 cards per run', 400);
+
+  const now = new Date().toISOString();
+  const items: ImportOutcome[] = [];
+  let imported = 0;
+  let updated = 0;
+  let conflicts = 0;
+
+  for (const raw of rows) {
+    const input = raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
+    const mid = normalizeIdentifier(input.mid);
+    const eid = normalizeIdentifier(input.eid);
+    const iccid = normalizeIdentifier(input.iccid);
+    const sku = optionalText(input.sku, 64);
+    const batch = optionalText(input.batch, 64);
+    if (mid.length < 8 || mid.length > 64) {
+      conflicts += 1;
+      items.push({ mid: typeof input.mid === 'string' ? input.mid : '', result: 'conflict', reason: 'invalid_mid' });
+      continue;
+    }
+    const existing = await env.DB.prepare('SELECT * FROM native_bokmoo_cards WHERE mid = ?1 LIMIT 1')
+      .bind(mid).first<CardRow>();
+    if (existing) {
+      if (existing.user_id) {
+        conflicts += 1;
+        items.push({ mid, result: 'conflict', reason: 'card_bound_to_user' });
+        continue;
+      }
+      if (['frozen', 'lost', 'retired'].includes(existing.status)) {
+        conflicts += 1;
+        items.push({ mid, result: 'conflict', reason: `card_${existing.status}` });
+        continue;
+      }
+      if (eid && existing.eid && normalizeIdentifier(existing.eid) !== eid) {
+        conflicts += 1;
+        items.push({ mid, result: 'conflict', reason: 'eid_mismatch' });
+        continue;
+      }
+      if (iccid && existing.iccid && normalizeIdentifier(existing.iccid) !== iccid) {
+        conflicts += 1;
+        items.push({ mid, result: 'conflict', reason: 'iccid_mismatch' });
+        continue;
+      }
+    }
+    if (eid || iccid) {
+      const owner = await env.DB.prepare(`SELECT mid FROM native_bokmoo_cards
+        WHERE mid <> ?1 AND ((?2 <> '' AND eid = ?2) OR (?3 <> '' AND iccid = ?3)) LIMIT 1`)
+        .bind(mid, eid, iccid).first<{ mid: string }>();
+      if (owner) {
+        conflicts += 1;
+        items.push({ mid, result: 'conflict', reason: 'identifier_already_registered' });
+        continue;
+      }
+    }
+    if (existing) {
+      await env.DB.prepare(`UPDATE native_bokmoo_cards
+        SET sku = COALESCE(?1, sku), batch = COALESCE(?2, batch), eid = COALESCE(?3, eid), iccid = COALESCE(?4, iccid),
+        updated_at = ?5 WHERE id = ?6`)
+        .bind(sku, batch, eid || null, iccid || null, now, existing.id).run();
+      updated += 1;
+      items.push({ mid, result: 'updated' });
+    } else {
+      await env.DB.prepare(`INSERT INTO native_bokmoo_cards
+        (id, mid, eid, iccid, sku, batch, status, verification_status, created_at, updated_at)
+        VALUES (?1, ?2, ?3, ?4, ?5, ?6, 'unbound', 'pending', ?7, ?7)`)
+        .bind(`bokmoo_card_${crypto.randomUUID()}`, mid, eid || null, iccid || null, sku, batch, now).run();
+      imported += 1;
+      items.push({ mid, result: 'imported' });
+    }
+  }
+
+  const runId = `bokmoo_import_${crypto.randomUUID()}`;
+  const operator = admin.email ?? admin.id;
+  await env.DB.prepare(`INSERT INTO native_bokmoo_card_import_runs
+    (id, total, imported, updated, conflicts, operator, created_at)
+    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)`)
+    .bind(runId, rows.length, imported, updated, conflicts, operator, now).run();
+  return response({
+    result: 'completed',
+    run: { id: runId, total: rows.length, imported, updated, conflicts, operator, createdAt: now },
+    items,
+  }, 201);
+}
+
+async function listAdminCards(request: Request, env: Env): Promise<Response> {
+  const admin = await requireAdmin(request, env);
+  if (!admin) return error('UNAUTHORIZED', 'Admin authentication required', 401);
+  const url = new URL(request.url);
+  const limitParam = Number(url.searchParams.get('limit') || '200');
+  const limit = Number.isFinite(limitParam) && limitParam > 0 && limitParam <= 1000 ? Math.floor(limitParam) : 200;
+  const rows = await env.DB.prepare('SELECT * FROM native_bokmoo_cards ORDER BY created_at DESC LIMIT ?1')
+    .bind(limit).all<CardRow>();
+  const totals = await env.DB.prepare(
+    'SELECT status, COUNT(*) AS count FROM native_bokmoo_cards GROUP BY status',
+  ).all<{ status: string; count: number }>();
+  return response({
+    items: rows.results.map(adminCard),
+    summary: totals.results.map((row) => ({ status: row.status, count: row.count })),
+    total: rows.results.length,
+    limit,
+  });
+}
+
+async function listImportRuns(request: Request, env: Env): Promise<Response> {
+  const admin = await requireAdmin(request, env);
+  if (!admin) return error('UNAUTHORIZED', 'Admin authentication required', 401);
+  const rows = await env.DB.prepare(
+    'SELECT * FROM native_bokmoo_card_import_runs ORDER BY created_at DESC LIMIT 50',
+  ).all<ImportRunRow>();
+  return response({ items: rows.results, total: rows.results.length });
+}
+
 export async function tryNativeBokmooConnect(request: Request, env: Env): Promise<Response | null> {
   const url = new URL(request.url);
+  const admin = adminPath(url.pathname);
+  if (admin !== null) {
+    if (!(await isNativePluginEnabled(env, 'bokmoo-connect'))) {
+      return error('PLUGIN_NOT_ENABLED', 'BOKMOO Connect plugin is not installed and enabled', 404);
+    }
+    if (request.method === 'POST' && admin === '/cards/import') return importCards(request, env);
+    if (request.method === 'GET' && admin === '/cards') return listAdminCards(request, env);
+    if (request.method === 'GET' && admin === '/cards/imports') return listImportRuns(request, env);
+    return null;
+  }
   const path = normalizedPath(url.pathname);
   if (path === null) return null;
   if (!(await isNativePluginEnabled(env, 'bokmoo-connect'))) {
