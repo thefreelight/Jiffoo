@@ -127,6 +127,11 @@ const definitions: Record<string, PluginDefinition> = {
     slug: 'subscription', name: 'Subscription & Membership', version: '0.1.10', category: 'billing',
     description: 'Native subscription and membership status.', configSchema: {},
   },
+  'bokmoo-connect': {
+    slug: 'bokmoo-connect', name: 'BOKMOO Connect', version: '0.1.2', category: 'integration',
+    description: 'Native BOKMOO physical card claim capability: printed-MID claim sessions, Android/reader EID/ICCID verification, account card binding, and controlled card inventory import.',
+    configSchema: {},
+  },
 };
 
 const encoder = new TextEncoder();
