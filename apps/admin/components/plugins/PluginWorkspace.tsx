@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, AlertTriangle, CheckCircle2, Loader2, RefreshCw, Send, ShieldCheck, Truck, Workflow } from 'lucide-react';
+import { AlertCircle, AlertTriangle, CheckCircle2, Cloud, Loader2, RefreshCw, Send, Settings2, ShieldCheck, Truck, Workflow } from 'lucide-react';
 import { useLocale, useT } from 'shared/src/i18n/react';
 import { apiClient, unwrapApiResponse } from '@/lib/api';
 import type { PluginInstance } from '@/lib/api';
@@ -1517,8 +1517,8 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#fcfdfe] p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto grid max-w-[1600px] gap-6 lg:grid-cols-[280px,minmax(0,1fr)]">
+    <div className="min-h-screen bg-[#f6f8fb] p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto grid max-w-[1600px] gap-5 lg:grid-cols-[260px,minmax(0,1fr)]">
         <InstalledPluginsRail
           locale={locale}
           plugins={installedPlugins}
@@ -1527,20 +1527,24 @@ export function PluginWorkspace({ slug }: { slug: string }) {
           getText={getText}
         />
 
-        <div className="space-y-6">
-          <div className="rounded-[1.75rem] border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="space-y-5">
+          <div className="border-b border-slate-200 bg-white px-6 py-5 shadow-sm">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
+                <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
+                  <Link href={`/${locale}/plugins`} className="hover:text-blue-600">Plugins</Link>
+                  <span>/</span>
+                  <span>Installed</span>
+                  <span>/</span>
+                  <span className="truncate text-slate-900">{data.name || slug}</span>
+                </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600">
-                    {getText('merchant.plugins.pluginWorkspace', 'Plugin workspace')}
-                  </p>
                   {officialPluginSlugs.has(slug) ? <OfficialBadge compact /> : null}
                 </div>
-                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+                <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">
                   {data.name || slug}
                 </h1>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
                   {getText(
                     'merchant.plugins.workspaceDescription',
                     'Manage plugin-specific configuration, instance targeting, and native Admin controls from a dedicated workspace.'
@@ -1549,13 +1553,13 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               </div>
 
               <div className="flex flex-wrap gap-3 xl:justify-end">
-                <div className="min-w-[240px]">
+                <div className="min-w-[220px]">
                   <Select
                     value={selectedInstance?.installationId || selectedInstallationId}
                     onValueChange={setSelectedInstallationId}
                     disabled={isInstancesLoading || instances.length === 0}
                   >
-                    <SelectTrigger className="h-11 rounded-xl bg-white">
+                    <SelectTrigger className="h-10 rounded-lg bg-white">
                       <SelectValue placeholder={isInstancesLoading ? 'Loading instances...' : 'Select instance'} />
                     </SelectTrigger>
                     <SelectContent>
@@ -1572,13 +1576,27 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                     </SelectContent>
                   </Select>
                 </div>
-                <Button asChild variant="outline" className="rounded-xl">
+                <Button asChild variant="outline" className="rounded-lg">
                   <Link href={`/${locale}/plugins`}>
                     {getText('merchant.plugins.backToMarketplace', 'Back to plugins')}
                   </Link>
                 </Button>
               </div>
             </div>
+          </div>
+
+          <div className="grid gap-3 border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-4">
+            {[
+              ['Runtime', data.runtimeType || 'n/a'],
+              ['Instance', selectedInstance?.instanceKey || 'default'],
+              ['Config readiness', selectedReadiness.configReady ? 'Ready' : 'Needs config'],
+              ['Last updated', selectedInstance?.updatedAt ? new Date(selectedInstance.updatedAt).toLocaleDateString() : 'n/a'],
+            ].map(([label, value], index) => (
+              <div key={label} className="flex items-center gap-3 border-slate-200 sm:border-r sm:px-3 first:pl-0 last:border-0">
+                {index === 0 ? <Cloud className="h-5 w-5 text-slate-500" /> : index === 2 ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <Settings2 className="h-5 w-5 text-slate-500" />}
+                <div><p className="text-xs text-slate-500">{label}</p><p className="text-sm font-semibold text-slate-900">{value}</p></div>
+              </div>
+            ))}
           </div>
 
           <Alert className="border-blue-200 bg-blue-50 text-blue-950">
@@ -1589,7 +1607,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
             </AlertDescription>
           </Alert>
 
-          <div className="rounded-2xl border bg-white px-5 py-4 shadow-sm">
+          <div className="border border-slate-200 bg-white px-5 py-4 shadow-sm">
             <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
               <span>
                 <strong className="text-slate-900">Plugin:</strong> {data.name || slug}
@@ -1610,7 +1628,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
           </div>
 
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr),360px]">
-            <div className="space-y-6">
+            <div className="space-y-5">
               {slug === 'i18n' ? (
                 <I18nNativeWorkspace
                   installationId={selectedInstance?.installationId || 'default'}
@@ -1679,8 +1697,8 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               ) : null}
             </div>
 
-            <div className="space-y-6">
-              <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+            <div className="space-y-5">
+              <Card className="rounded-lg border-slate-200 shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-lg tracking-tight">Instance status</CardTitle>
                   <CardDescription>
@@ -1688,7 +1706,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4 text-sm">
-                  <div className="grid gap-3 rounded-2xl border border-slate-200 p-4">
+                  <div className="grid gap-3 border border-slate-200 p-4">
                     <div className="flex items-center justify-between gap-4">
                       <span className="text-slate-500">Enabled</span>
                       <Badge variant={selectedInstance?.enabled ? 'default' : 'outline'}>
@@ -1721,7 +1739,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                     <Button
                       onClick={() => void handleToggleSelectedInstance()}
                       disabled={isCreatingInstance || isUpdatingInstance}
-                      className="rounded-xl"
+                      className="rounded-lg"
                     >
                       {isCreatingInstance || isUpdatingInstance ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                       {selectedInstance?.enabled ? 'Disable instance' : 'Enable instance'}
@@ -1732,7 +1750,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                         variant="outline"
                         onClick={() => void handleCreateDefaultInstance()}
                         disabled={isCreatingInstance}
-                        className="rounded-xl"
+                        className="rounded-lg"
                       >
                         Create default instance
                       </Button>

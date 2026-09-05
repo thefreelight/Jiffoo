@@ -178,7 +178,7 @@ export function PluginsManager() {
       <div className="space-y-6">
         {record ? null : <PlatformConnectionCard getText={getText} />}
 
-        <div className="flex flex-col justify-between gap-4 rounded-[1.75rem] border border-gray-100 bg-white p-6 shadow-sm lg:flex-row lg:items-center">
+        <div className="flex flex-col justify-between gap-4 rounded-lg border border-gray-100 bg-white p-6 shadow-sm lg:flex-row lg:items-center">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600">
               {getText('merchant.plugins.management', 'Plugins')}
@@ -202,7 +202,7 @@ export function PluginsManager() {
           </div>
 
           {record?.offerKind === 'theme_first_solution' ? (
-            <Button asChild variant="outline" className="rounded-xl">
+            <Button asChild variant="outline" className="rounded-lg">
               <Link href={`/${locale}/package`}>
                 {getText('merchant.package.openPackageWorkspace', 'Open Your Package')}
               </Link>
@@ -212,7 +212,7 @@ export function PluginsManager() {
           {officialCatalogData?.officialMarketOnly || record ? null : (
             <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
               <DialogTrigger asChild>
-                <Button className="rounded-xl shadow-lg shadow-blue-500/20">
+                <Button className="rounded-lg shadow-lg shadow-blue-500/20">
                   <Upload className="mr-2 h-4 w-4" />
                   {getText('merchant.plugins.uploadTitle', 'Upload Plugin')}
                 </Button>
@@ -233,7 +233,7 @@ export function PluginsManager() {
                       id="plugin-file"
                       type="file"
                       accept=".zip"
-                      className="rounded-xl sm:col-span-3"
+                      className="rounded-lg sm:col-span-3"
                       onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                     />
                   </div>
@@ -243,10 +243,10 @@ export function PluginsManager() {
                     </Label>
                     <div className="sm:col-span-3">
                       <Select value={installType} onValueChange={(v) => setInstallType(v as 'plugin' | 'bundle')}>
-                        <SelectTrigger className="rounded-xl">
+                        <SelectTrigger className="rounded-lg">
                           <SelectValue placeholder={getText('merchant.plugins.installType', 'Type')} />
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl">
+                        <SelectContent className="rounded-lg">
                           <SelectItem value="plugin" className="rounded-lg">{getText('merchant.plugins.installTypePlugin', 'Plugin')}</SelectItem>
                           <SelectItem value="bundle" className="rounded-lg">{getText('merchant.plugins.installTypeBundle', 'Bundle')}</SelectItem>
                         </SelectContent>
@@ -255,10 +255,10 @@ export function PluginsManager() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setUploadOpen(false)} className="rounded-xl">
+                  <Button variant="outline" onClick={() => setUploadOpen(false)} className="rounded-lg">
                     {getText('common.actions.cancel', 'Cancel')}
                   </Button>
-                  <Button onClick={handleUpload} disabled={!selectedFile || installMutation.isPending} className="rounded-xl">
+                  <Button onClick={handleUpload} disabled={!selectedFile || installMutation.isPending} className="rounded-lg">
                     {installMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {getText('merchant.plugins.install', 'Install')}
                   </Button>
@@ -268,7 +268,7 @@ export function PluginsManager() {
           )}
         </div>
 
-        <div className="rounded-[1.75rem] border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="rounded-lg border border-gray-100 bg-white p-6 shadow-sm">
           <div className="mb-4 flex items-center justify-between gap-4">
             <div>
               <h3 className="text-xl font-semibold tracking-tight text-slate-950">
@@ -289,7 +289,7 @@ export function PluginsManager() {
               {getText('merchant.plugins.loading', 'Loading plugins...')}
             </div>
           ) : visiblePluginList.length === 0 ? (
-            <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center text-sm text-muted-foreground">
+            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center text-sm text-muted-foreground">
               {record
                 ? getText('merchant.plugins.noLicensedPluginsInstalled', 'No licensed plugins are currently installed.')
                 : getText('merchant.plugins.noPluginsInstalled', 'No plugins installed.')}
@@ -303,7 +303,7 @@ export function PluginsManager() {
                 const isThemeFirstSolution = record?.offerKind === 'theme_first_solution';
 
                 return (
-                  <div key={safeKey} className="rounded-[1.5rem] border border-slate-100 bg-slate-50/60 p-5">
+                  <div key={safeKey} className="rounded-lg border border-slate-100 bg-slate-50/60 p-5">
                     <div className="flex items-start gap-4">
                       <ExtensionAvatar
                         slug={plugin.slug}
@@ -360,7 +360,7 @@ export function PluginsManager() {
                             </span>
                           </div>
 
-                          <Button asChild className="rounded-xl">
+                          <Button asChild className="rounded-lg">
                             <Link href={`/${locale}/plugins/${plugin.slug}`}>
                               <Settings className="mr-2 h-4 w-4" />
                               {getText('common.actions.manage', 'Manage')}
@@ -368,7 +368,7 @@ export function PluginsManager() {
                           </Button>
 
                           {isThemeFirstSolution ? (
-                            <Button asChild variant="outline" className="rounded-xl">
+                            <Button asChild variant="outline" className="rounded-lg">
                               <Link href={`/${locale}/package`}>
                                 {getText('merchant.package.openPackageWorkspace', 'Open Your Package')}
                               </Link>
@@ -379,7 +379,7 @@ export function PluginsManager() {
                             variant="ghost"
                             onClick={() => setPurgingPlugin(plugin)}
                             disabled={purgeMutation.isPending}
-                            className="rounded-xl text-slate-500 hover:text-red-700"
+                            className="rounded-lg text-slate-500 hover:text-red-700"
                           >
                             <AlertTriangle className="mr-2 h-4 w-4" />
                             {getText('merchant.plugins.remove', 'Remove')}
