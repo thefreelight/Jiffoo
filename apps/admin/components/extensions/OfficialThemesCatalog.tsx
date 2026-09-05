@@ -190,7 +190,7 @@ export function OfficialThemesCatalog({
         </div>
       </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {isLoading ? (
           Array.from({ length: 2 }).map((_, index) => (
             <Card key={`official-theme-skeleton-${index}`} className="rounded-lg border-gray-100">
@@ -259,7 +259,9 @@ export function OfficialThemesCatalog({
 
               return (
               <Card key={item.slug} className="overflow-hidden rounded-lg border-gray-100 shadow-sm">
-                <div className="h-36 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-700 p-4 text-white">
+                <div className="relative h-44 overflow-hidden bg-slate-900 p-4 text-white">
+                  {item.thumbnailUrl ? <img src={item.thumbnailUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-70" /> : null}
+                  <div className="absolute inset-0 bg-slate-950/35" />
                   <div className="flex h-full flex-col justify-between">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3">

@@ -199,7 +199,7 @@ export function OfficialPluginsCatalog({
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 4 }).map((_, index) => (
             <Card key={`official-plugin-skeleton-${index}`} className="rounded-lg border-gray-100">
               <CardContent className="p-6">
@@ -222,8 +222,36 @@ export function OfficialPluginsCatalog({
             : getText('merchant.extensions.noOfficialMatches', 'No official plugins match the current filter.')}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {filteredItems.map((item) => {
+        <div className="space-y-4">
+          {filteredItems[0] ? (() => {
+            const item = filteredItems[0];
+            const isInstalling = installingSlug === item.slug;
+            const isInstalled = item.installState !== 'not_installed';
+            return (
+              <div className="flex flex-col gap-5 border border-blue-100 bg-blue-50/40 p-5 shadow-sm md:flex-row md:items-center md:justify-between">
+                <div className="flex min-w-0 items-center gap-4">
+                  <ExtensionAvatar slug={item.slug} name={item.name} kind="plugin" thumbnailUrl={item.thumbnailUrl} className="h-16 w-16 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-xl font-bold text-slate-950">{item.name}</h3>
+                      <OfficialBadge compact />
+                    </div>
+                    <p className="mt-1 text-sm text-slate-700">{item.description}</p>
+                    <p className="mt-2 text-xs text-slate-500">v{item.version} <span className="mx-1">•</span> {item.category} <span className="mx-1">•</span> {item.downloads ?? 0} installs</p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button variant="outline" onClick={() => onManage(item)} className="rounded-lg">{getText('common.actions.viewDetails', 'View details')}</Button>
+                  <Button onClick={() => (isInstalled ? onManage(item) : onInstall(item))} disabled={isInstalling} className="rounded-lg min-w-24">
+                    {isInstalling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {isInstalled ? getText('common.actions.manage', 'Manage') : getText('merchant.plugins.install', 'Install')}
+                  </Button>
+                </div>
+              </div>
+            );
+          })() : null}
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filteredItems.slice(1).map((item) => {
             const solutionMeta = item.solutionPackage;
             const controlPlaneSolution = item.solutionOffer;
             const hasSolutionSemantics = solutionMeta?.offerKind === 'theme_first_solution' || controlPlaneSolution?.offerKind === 'theme_first_solution';
@@ -381,6 +409,7 @@ export function OfficialPluginsCatalog({
               </Card>
             );
           })}
+          </div>
         </div>
       )}
     </section>
