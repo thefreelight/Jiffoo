@@ -90,7 +90,7 @@ export function OfficialThemesCatalog({
 
   if (target !== 'shop') {
     return (
-      <div className="rounded-[2rem] border border-dashed border-slate-200 bg-white px-6 py-10 text-center">
+      <div className="rounded-lg border border-dashed border-slate-200 bg-white px-6 py-10 text-center">
         <p className="font-semibold text-slate-900">
           {getText('merchant.themes.noOfficialAdminThemes', 'No official Admin themes in this launch wave.')}
         </p>
@@ -103,7 +103,7 @@ export function OfficialThemesCatalog({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-3 rounded-[2rem] border border-gray-100 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-3 rounded-lg border border-gray-100 bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-1">
           <h3 className="text-xl font-semibold tracking-tight">
             {managedPackage

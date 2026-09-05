@@ -258,7 +258,7 @@ function GenericConfigEditor(props: {
   } = props;
 
   return (
-    <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+    <Card className="rounded-lg border-gray-100 shadow-sm">
       <CardHeader>
         <CardTitle className="text-xl tracking-tight">Configuration</CardTitle>
         <CardDescription>
@@ -287,7 +287,7 @@ function GenericConfigEditor(props: {
                   {required ? ' *' : ''}
                 </Label>
                 <Select value={normalizedValue} onValueChange={(nextValue) => onUpdateField(field, nextValue)}>
-                  <SelectTrigger className="rounded-xl">
+                  <SelectTrigger className="rounded-lg">
                     <SelectValue placeholder={label} />
                   </SelectTrigger>
                   <SelectContent>
@@ -305,7 +305,7 @@ function GenericConfigEditor(props: {
 
           if (type === 'boolean') {
             return (
-              <div key={field} className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3">
+              <div key={field} className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3">
                 <div className="space-y-1 pr-4">
                   <Label className="text-sm font-medium">
                     {label}
@@ -330,7 +330,7 @@ function GenericConfigEditor(props: {
                 <Textarea
                   value={jsonFieldDrafts[field] ?? JSON.stringify(value ?? (type === 'array' ? [] : {}), null, 2)}
                   onChange={(event) => onUpdateJsonField(field, event.target.value, type)}
-                  className="min-h-[180px] rounded-2xl font-mono"
+                  className="min-h-[180px] rounded-lg font-mono"
                 />
                 {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
                 {error ? <p className="text-xs text-red-600">{error}</p> : null}
@@ -351,7 +351,7 @@ function GenericConfigEditor(props: {
                     onChange={(event) =>
                       onUpdateField(field, event.target.value === '' ? '' : Number(event.target.value))
                     }
-                    className="rounded-xl"
+                    className="rounded-lg"
                   />
                 {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
               </div>
@@ -375,7 +375,7 @@ function GenericConfigEditor(props: {
                     ? 'Stored securely. Leave blank to keep the current value.'
                     : undefined
                 }
-                className="rounded-xl"
+                className="rounded-lg"
               />
               {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
               {type === 'secret' && secretConfigured ? (
@@ -388,7 +388,7 @@ function GenericConfigEditor(props: {
         })}
 
         <div className="flex justify-end">
-          <Button onClick={onSave} disabled={saving} className="rounded-xl">
+          <Button onClick={onSave} disabled={saving} className="rounded-lg">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Save configuration
           </Button>
@@ -450,7 +450,7 @@ function NativeConnectionTest({ slug, disabled, onEnable }: { slug: string; disa
   };
 
   return (
-    <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+    <Card className="rounded-lg border-gray-100 shadow-sm">
       <CardHeader>
         <CardTitle className="text-xl tracking-tight">Connection test</CardTitle>
         <CardDescription>Validate the saved production configuration without exposing stored credentials.</CardDescription>
@@ -466,7 +466,7 @@ function NativeConnectionTest({ slug, disabled, onEnable }: { slug: string; disa
               onChange={(event) => setRecipient(event.target.value)}
               placeholder="you@example.com"
               disabled={disabled || testing || enabling}
-              className="rounded-xl"
+              className="rounded-lg"
             />
           </div>
         ) : null}
@@ -475,12 +475,12 @@ function NativeConnectionTest({ slug, disabled, onEnable }: { slug: string; disa
             {message}
           </p>
           {disabled ? (
-            <Button type="button" onClick={() => void enablePlugin()} disabled={enabling} className="shrink-0 rounded-xl">
+            <Button type="button" onClick={() => void enablePlugin()} disabled={enabling} className="shrink-0 rounded-lg">
               {enabling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Save and enable
             </Button>
           ) : (
-            <Button type="button" variant="outline" onClick={() => void testConnection()} disabled={testing} className="shrink-0 rounded-xl">
+            <Button type="button" variant="outline" onClick={() => void testConnection()} disabled={testing} className="shrink-0 rounded-lg">
             {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Test connection
             </Button>
@@ -596,7 +596,7 @@ function I18nNativeWorkspace(props: {
   };
 
   return (
-    <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+    <Card className="rounded-lg border-gray-100 shadow-sm">
       <CardHeader>
         <CardTitle className="text-xl tracking-tight">Localization workspace</CardTitle>
         <CardDescription>
@@ -607,7 +607,7 @@ function I18nNativeWorkspace(props: {
         <div className="space-y-2">
           <Label htmlFor="i18n-default-locale">Default locale</Label>
           <Select value={defaultLocale} onValueChange={setDefaultLocale} disabled={disabled || isLoading}>
-            <SelectTrigger id="i18n-default-locale" className="rounded-xl">
+            <SelectTrigger id="i18n-default-locale" className="rounded-lg">
               <SelectValue placeholder="Select default locale" />
             </SelectTrigger>
             <SelectContent>
@@ -628,7 +628,7 @@ function I18nNativeWorkspace(props: {
               return (
                 <div
                   key={locale.code}
-                  className="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3"
+                  className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3"
                 >
                   <div>
                     <p className="text-sm font-medium text-slate-900">{locale.name}</p>
@@ -645,7 +645,7 @@ function I18nNativeWorkspace(props: {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
           <p className="font-medium text-slate-900">Status</p>
           <p
             className={
@@ -661,11 +661,11 @@ function I18nNativeWorkspace(props: {
         </div>
 
         <div className="flex flex-wrap gap-3">
-          <Button onClick={() => void saveLocalization()} disabled={disabled || isSaving || isLoading} className="rounded-xl">
+          <Button onClick={() => void saveLocalization()} disabled={disabled || isSaving || isLoading} className="rounded-lg">
             {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Save localization
           </Button>
-          <Button variant="outline" onClick={() => void loadLocalizationState()} disabled={isSaving || isLoading} className="rounded-xl">
+          <Button variant="outline" onClick={() => void loadLocalizationState()} disabled={isSaving || isLoading} className="rounded-lg">
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
             Reload
           </Button>
@@ -853,7 +853,7 @@ function OdooNativeWorkspace(props: {
 
   return (
     <div className="space-y-6">
-      <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+      <Card className="rounded-lg border-gray-100 shadow-sm">
         <CardHeader>
           <CardTitle className="text-xl tracking-tight">Odoo configuration</CardTitle>
           <CardDescription>
@@ -864,7 +864,7 @@ function OdooNativeWorkspace(props: {
           <div className="space-y-2">
             <Label htmlFor="odoo-mode">Environment mode</Label>
             <Select value={mode} onValueChange={(value) => setMode(value === 'production' ? 'production' : 'test')}>
-              <SelectTrigger id="odoo-mode" className="rounded-xl">
+              <SelectTrigger id="odoo-mode" className="rounded-lg">
                 <SelectValue placeholder="Select environment mode" />
               </SelectTrigger>
               <SelectContent>
@@ -875,7 +875,7 @@ function OdooNativeWorkspace(props: {
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 rounded-2xl border border-slate-200 p-4">
+            <div className="space-y-2 rounded-lg border border-slate-200 p-4">
               <p className="text-sm font-semibold text-slate-900">Test credentials</p>
               <div className="space-y-2">
                 <Label htmlFor="odoo-test-channel-id">Channel ID</Label>
@@ -883,7 +883,7 @@ function OdooNativeWorkspace(props: {
                   id="odoo-test-channel-id"
                   value={testChannelId}
                   onChange={(event) => setTestChannelId(event.target.value)}
-                  className="rounded-xl"
+                  className="rounded-lg"
                 />
               </div>
               <div className="space-y-2">
@@ -893,12 +893,12 @@ function OdooNativeWorkspace(props: {
                   type="password"
                   value={testAuthSecret}
                   onChange={(event) => setTestAuthSecret(event.target.value)}
-                  className="rounded-xl"
+                  className="rounded-lg"
                 />
               </div>
             </div>
 
-            <div className="space-y-2 rounded-2xl border border-slate-200 p-4">
+            <div className="space-y-2 rounded-lg border border-slate-200 p-4">
               <p className="text-sm font-semibold text-slate-900">Production credentials</p>
               <div className="space-y-2">
                 <Label htmlFor="odoo-production-channel-id">Channel ID</Label>
@@ -906,7 +906,7 @@ function OdooNativeWorkspace(props: {
                   id="odoo-production-channel-id"
                   value={productionChannelId}
                   onChange={(event) => setProductionChannelId(event.target.value)}
-                  className="rounded-xl"
+                  className="rounded-lg"
                 />
               </div>
               <div className="space-y-2">
@@ -916,13 +916,13 @@ function OdooNativeWorkspace(props: {
                   type="password"
                   value={productionAuthSecret}
                   onChange={(event) => setProductionAuthSecret(event.target.value)}
-                  className="rounded-xl"
+                  className="rounded-lg"
                 />
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
             <p className="font-medium text-slate-900">Configuration</p>
             <p
               className={
@@ -938,7 +938,7 @@ function OdooNativeWorkspace(props: {
           </div>
 
           <div className="flex justify-end">
-            <Button onClick={() => void saveConfiguration()} disabled={isSavingConfig} className="rounded-xl">
+            <Button onClick={() => void saveConfiguration()} disabled={isSavingConfig} className="rounded-lg">
               {isSavingConfig ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Save Odoo configuration
             </Button>
@@ -947,13 +947,13 @@ function OdooNativeWorkspace(props: {
       </Card>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+        <Card className="rounded-lg border-gray-100 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg tracking-tight">Health</CardTitle>
             <CardDescription>Check whether the Odoo plugin runtime is reachable through the extension gateway.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
               <p className="font-medium text-slate-900">Status</p>
               <p
                 className={
@@ -969,7 +969,7 @@ function OdooNativeWorkspace(props: {
             </div>
 
             {healthPayload ? (
-              <div className="grid gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-600">
+              <div className="grid gap-3 rounded-lg border border-slate-200 p-4 text-sm text-slate-600">
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-500">Plugin</span>
                   <span className="font-medium text-slate-900">{healthPayload.plugin || 'odoo'}</span>
@@ -985,14 +985,14 @@ function OdooNativeWorkspace(props: {
               </div>
             ) : null}
 
-            <Button variant="outline" onClick={() => void checkHealth()} disabled={isLoadingHealth} className="rounded-xl">
+            <Button variant="outline" onClick={() => void checkHealth()} disabled={isLoadingHealth} className="rounded-lg">
               {isLoadingHealth ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
               Check health
             </Button>
           </CardContent>
         </Card>
 
-        <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+        <Card className="rounded-lg border-gray-100 shadow-sm">
           <CardHeader>
             <CardTitle className="text-lg tracking-tight">Product sync</CardTitle>
             <CardDescription>Trigger sync jobs and inspect their runtime status from Merchant Admin.</CardDescription>
@@ -1001,7 +1001,7 @@ function OdooNativeWorkspace(props: {
             <div className="space-y-2">
               <Label htmlFor="odoo-product-type">Product type</Label>
               <Select value={productType} onValueChange={setProductType}>
-                <SelectTrigger id="odoo-product-type" className="rounded-xl">
+                <SelectTrigger id="odoo-product-type" className="rounded-lg">
                   <SelectValue placeholder="Select product type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -1015,7 +1015,7 @@ function OdooNativeWorkspace(props: {
             </div>
 
             <div className="flex flex-wrap gap-3">
-              <Button onClick={() => void startSync()} disabled={isSyncing} className="rounded-xl">
+              <Button onClick={() => void startSync()} disabled={isSyncing} className="rounded-lg">
                 {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Workflow className="mr-2 h-4 w-4" />}
                 Start sync
               </Button>
@@ -1028,16 +1028,16 @@ function OdooNativeWorkspace(props: {
                 value={jobId}
                 onChange={(event) => setJobId(event.target.value)}
                 placeholder="Paste a sync job id"
-                className="rounded-xl"
+                className="rounded-lg"
               />
             </div>
 
-            <Button variant="outline" onClick={() => void loadJob()} disabled={isLoadingJob} className="rounded-xl">
+            <Button variant="outline" onClick={() => void loadJob()} disabled={isLoadingJob} className="rounded-lg">
               {isLoadingJob ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
               Load job status
             </Button>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
               <p className="font-medium text-slate-900">Sync status</p>
               <p
                 className={
@@ -1053,7 +1053,7 @@ function OdooNativeWorkspace(props: {
             </div>
 
             {jobPayload ? (
-              <div className="grid gap-3 rounded-2xl border border-slate-200 p-4 text-sm text-slate-600">
+              <div className="grid gap-3 rounded-lg border border-slate-200 p-4 text-sm text-slate-600">
                 <div className="flex justify-between gap-4">
                   <span className="text-slate-500">Job</span>
                   <span className="font-medium text-slate-900">{jobPayload.jobId}</span>
@@ -1075,7 +1075,7 @@ function OdooNativeWorkspace(props: {
                   </span>
                 </div>
                 {jobPayload.lastError ? (
-                  <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-red-700">
+                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">
                     {jobPayload.lastError}
                   </div>
                 ) : null}
@@ -1183,10 +1183,10 @@ function ShippingNativeWorkspace(props: {
   };
 
   return (
-    <Card className="rounded-[1.75rem] border-gray-100 shadow-sm">
+    <Card className="rounded-lg border-gray-100 shadow-sm">
       <CardHeader>
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
             <Truck className="h-5 w-5" />
           </div>
           <div>
@@ -1200,7 +1200,7 @@ function ShippingNativeWorkspace(props: {
           <div className="space-y-2">
             <Label htmlFor="shipping-provider">Provider</Label>
             <Select value={provider} onValueChange={(value) => selectProvider(value === 'fourpx' ? 'fourpx' : 'kuaidi100')}>
-              <SelectTrigger id="shipping-provider" className="rounded-xl">
+              <SelectTrigger id="shipping-provider" className="rounded-lg">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1212,7 +1212,7 @@ function ShippingNativeWorkspace(props: {
           <div className="space-y-2">
             <Label htmlFor="shipping-action">Operation</Label>
             <Select value={selectedAction.value} onValueChange={setAction}>
-              <SelectTrigger id="shipping-action" className="rounded-xl">
+              <SelectTrigger id="shipping-action" className="rounded-lg">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1233,7 +1233,7 @@ function ShippingNativeWorkspace(props: {
                 value={orderId}
                 onChange={(event) => setOrderId(event.target.value)}
                 placeholder="ord_..."
-                className="rounded-xl"
+                className="rounded-lg"
               />
             </div>
             <div className="space-y-2">
@@ -1243,7 +1243,7 @@ function ShippingNativeWorkspace(props: {
               value={merchantReference}
               onChange={(event) => setMerchantReference(event.target.value)}
               placeholder="Stable provider operation reference"
-              className="rounded-xl"
+              className="rounded-lg"
             />
             </div>
           </div>
@@ -1255,13 +1255,13 @@ function ShippingNativeWorkspace(props: {
             id="shipping-request-body"
             value={requestDraft}
             onChange={(event) => setRequestDraft(event.target.value)}
-            className="min-h-48 rounded-xl font-mono text-xs"
+            className="min-h-48 rounded-lg font-mono text-xs"
             spellCheck={false}
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={() => void submitProviderAction()} disabled={isSubmitting || !enabled} className="rounded-xl">
+          <Button onClick={() => void submitProviderAction()} disabled={isSubmitting || !enabled} className="rounded-lg">
             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             Run operation
           </Button>
@@ -1282,7 +1282,7 @@ function ShippingNativeWorkspace(props: {
         {responseDraft ? (
           <div className="space-y-2">
             <Label>Response</Label>
-            <pre className="max-h-80 overflow-auto rounded-xl bg-slate-950 p-4 text-xs leading-5 text-slate-100">
+            <pre className="max-h-80 overflow-auto rounded-lg bg-slate-950 p-4 text-xs leading-5 text-slate-100">
               {responseDraft}
             </pre>
           </div>
@@ -1498,7 +1498,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   if (error || !data) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="max-w-md rounded-2xl border bg-white p-6 shadow-sm">
+        <div className="max-w-md rounded-lg border bg-white p-6 shadow-sm">
           <div className="flex items-center gap-3 text-red-600">
             <AlertTriangle className="h-5 w-5" />
             <h1 className="text-lg font-semibold">Plugin unavailable</h1>
@@ -1730,7 +1730,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                   </div>
 
                   {selectedReadiness.missingConfigFields.length > 0 ? (
-                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
                       Missing required fields: {selectedReadiness.missingConfigFields.join(', ')}
                     </div>
                   ) : null}
