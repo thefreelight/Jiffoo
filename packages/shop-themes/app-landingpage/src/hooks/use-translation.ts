@@ -3,13 +3,18 @@
  * Matches eSIM Mall component expectations
  */
 
+import { useParams } from 'next/navigation';
+import { localize } from '../lib/i18n';
+import type { Locale } from '../types';
+
 export function useTranslation() {
-    const t = (key: string, _params?: Record<string, string>) => key;
-    const tSync = (key: string, _params?: Record<string, string>) => key;
+    const params = useParams<{ locale?: string }>();
+    const locale = ((params?.locale || 'en') as Locale);
+    const t = (key: string, values?: Record<string, string | number>) => localize(locale, key, key, values);
+    const tSync = t;
 
     return {
-        currentLanguage: 'en-US',
-        setLanguage: (_lang: string) => { },
+        currentLanguage: locale,
         isLoading: false,
         t,
         tSync,

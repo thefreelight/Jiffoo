@@ -9,6 +9,7 @@ import {
   getValidityDisplayText,
   getNetworkDisplayText,
 } from '../../../../lib/esim';
+import type { Locale } from '../../../../types';
 
 // Sample reviews (in a real app, these would come from an API)
 const sampleReviews = [
@@ -48,14 +49,16 @@ const getProductImage = (product: Product): string => {
 };
 
 // Helper to get eSIM attributes from variant
-const getESimAttributes = (variant: any, locale: 'en' | 'zh-Hant' = 'en'): {
+const getESimAttributes = (variant: unknown, locale: Locale = 'en'): {
   data: string;
   validity: string;
   network: string;
 } | null => {
-  if (!variant?.attributes) return null;
+  if (!variant || typeof variant !== 'object' || !('attributes' in variant)) return null;
+  const attributes = (variant as { attributes?: unknown }).attributes;
+  if (!attributes) return null;
 
-  const attrs = parseESimVariantAttributes(variant.attributes);
+  const attrs = parseESimVariantAttributes(attributes as string | Record<string, unknown>);
   if (!attrs) return null;
 
   return {
@@ -148,7 +151,7 @@ export default function ProductDetailPage() {
     if (!product || !product.variants || !selectedVariant) return null;
     const variant = product.variants.find((v) => v.id === selectedVariant);
     if (!variant) return null;
-    return getESimAttributes(variant, locale as 'en' | 'zh-Hant');
+    return getESimAttributes(variant, locale as Locale);
   }, [product, selectedVariant, locale]);
 
   const handleBuyNow = async () => {
@@ -545,7 +548,7 @@ export default function ProductDetailPage() {
               {relatedProducts.map((relatedProduct) => {
                 // Get first variant's eSIM data for related products
                 const firstVariant = relatedProduct.variants?.[0];
-                const relatedData = firstVariant ? getESimAttributes(firstVariant, locale as 'en' | 'zh-Hant') : null;
+                const relatedData = firstVariant ? getESimAttributes(firstVariant, locale as Locale) : null;
 
                 return (
                   <div

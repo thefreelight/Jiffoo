@@ -26,15 +26,18 @@ import {
 } from 'lucide-react';
 import { FEATURED_PLANS, POPULAR_DESTINATIONS, RECENTLY_VIEWED } from '../lib/plan-display';
 import type { HomePageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 const popularSearches = ['Japan', 'Europe', 'South Korea', 'United States', 'Thailand'];
 const defaultEasyEuiccDownloadUrl = 'https://easyeuicc.cc/downloads/EasyEUICC-v1.6.2.apk';
 const defaultEasyEuiccQrUrl = '/easyeuicc-download-qr.png';
 const defaultEasyEuiccScreenshotUrl = '/easyeuicc-real-empty.png';
 
-export const HomePage = React.memo(function HomePage({ config, onNavigate }: HomePageProps) {
+export const HomePage = React.memo(function HomePage({ config, onNavigate, locale, t }: HomePageProps) {
   const brandName = config?.brand?.name?.trim() || 'EASYEUICC';
-  const headline = config?.site?.headline || 'Download EasyEUICC';
+  const headline = config?.site?.headline && config.site.headline !== 'Download EasyEUICC'
+    ? config.site.headline
+    : themeText(t, locale, 'appDownload.hero.title', 'Download EasyEUICC');
   const subheadline =
     config?.site?.subheadline ||
     'A focused Android eUICC manager for installing, switching, and maintaining your eSIM profiles.';
@@ -47,17 +50,19 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate }: Hom
     return (
       <AppDownloadHome
         brandName={brandName}
-        headline={appSite?.headline || 'Download EasyEUICC'}
+        headline={appSite?.headline && appSite.headline !== 'Download EasyEUICC' ? appSite.headline : themeText(t, locale, 'appDownload.hero.title', 'Download EasyEUICC')}
         subheadline={
           appSite?.subheadline ||
           'A focused Android eUICC manager for installing, switching, and maintaining your eSIM profiles.'
         }
-        primaryLabel={appSite?.primaryCtaLabel || 'Download APK'}
+        primaryLabel={appSite?.primaryCtaLabel && appSite.primaryCtaLabel !== 'Download APK' ? appSite.primaryCtaLabel : themeText(t, locale, 'common.downloadApk', 'Download APK')}
         downloadUrl={appSite?.androidDownloadUrl || defaultEasyEuiccDownloadUrl}
         appVersion={appSite?.appVersion || 'v1.6.2-unpriv'}
         checksum={appSite?.downloadChecksum}
         qrUrl={appSite?.downloadQrUrl || defaultEasyEuiccQrUrl}
         screenshotUrl={appSite?.appScreenshotUrl || defaultEasyEuiccScreenshotUrl}
+        locale={locale}
+        t={t}
       />
     );
   }
@@ -69,8 +74,10 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate }: Hom
         headline={headline}
         subheadline={subheadline}
         onNavigate={navigate}
+        locale={locale}
+        t={t}
       />
-      <MobileExplore brandName={brandName} onNavigate={navigate} />
+      <MobileExplore brandName={brandName} onNavigate={navigate} locale={locale} t={t} />
     </main>
   );
 });
@@ -85,6 +92,8 @@ function AppDownloadHome({
   checksum,
   qrUrl,
   screenshotUrl,
+  locale,
+  t,
 }: {
   brandName: string;
   headline: string;
@@ -95,6 +104,8 @@ function AppDownloadHome({
   checksum?: string;
   qrUrl?: string;
   screenshotUrl: string;
+  locale?: HomePageProps['locale'];
+  t?: HomePageProps['t'];
 }) {
   const localEasyEuiccQrUrl = '/extensions/themes/shop/app-landingpage/assets/app/easyeuicc-download-qr.png';
   const qrImageUrl =
@@ -114,7 +125,7 @@ function AppDownloadHome({
               {brandName}
             </a>
             <a href={downloadUrl} className="rounded-full bg-[#101827] px-4 py-2 text-sm font-black text-white">
-              下载
+              {themeText(t, locale, 'appDownload.mobile.download', 'Download')}
             </a>
           </div>
 
@@ -122,7 +133,7 @@ function AppDownloadHome({
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-[#cfe0ff] bg-white px-3.5 py-2 text-sm font-black text-[#1156d9] shadow-sm">
                 <ShieldCheck className="h-4 w-4" />
-                EasyEUICC for Android · {appVersion}
+                {themeText(t, locale, 'appDownload.hero.eyebrow', 'EasyEUICC for Android')} · {appVersion}
               </div>
               <h1 className="mt-7 max-w-[620px] text-[44px] font-black leading-[1.02] text-[#101827] sm:text-[58px] lg:text-[74px]">
                 {headline}
@@ -144,15 +155,15 @@ function AppDownloadHome({
               <div className="mt-6 grid gap-3 text-sm font-bold text-[#475569] sm:grid-cols-3">
                 <span className="flex items-center gap-2">
                   <LockKeyhole className="h-4 w-4 text-[#176bff]" />
-                  无广告
+                  {themeText(t, locale, 'appDownload.hero.noAds', 'No ads')}
                 </span>
                 <span className="flex items-center gap-2">
                   <Usb className="h-4 w-4 text-[#176bff]" />
-                  eUICC 管理
+                  {themeText(t, locale, 'appDownload.hero.profileManagement', 'eUICC management')}
                 </span>
                 <span className="flex items-center gap-2">
                   <HardDriveDownload className="h-4 w-4 text-[#176bff]" />
-                  APK 直装
+                  {themeText(t, locale, 'appDownload.hero.directInstall', 'Direct APK install')}
                 </span>
               </div>
 
@@ -161,9 +172,9 @@ function AppDownloadHome({
                   <img src={qrImageUrl} alt={`${brandName} download QR code`} className="h-[112px] w-[112px]" />
                 </div>
                 <div>
-                  <p className="text-base font-black text-[#101827]">扫码或点击下载最新 APK</p>
+                  <p className="text-base font-black text-[#101827]">{themeText(t, locale, 'appDownload.download.scan', 'Scan or click to download the latest APK')}</p>
                   <p className="mt-2 text-sm font-semibold leading-6 text-[#64748b]">
-                    当前版本 {appVersion}。Android 9+ 推荐使用，下载后请核对签名与校验信息。
+                    {themeText(t, locale, 'appDownload.download.currentVersion', 'Current version {version}.', { version: appVersion })} {themeText(t, locale, 'appDownload.download.androidRecommendation', 'Android 9+ recommended. Verify the signature and checksum after downloading.')}
                   </p>
                   <p className="mt-3 rounded-full bg-[#f1f5f9] px-3 py-2 text-xs font-bold text-[#334155]">
                     {shortChecksum}
@@ -178,16 +189,16 @@ function AppDownloadHome({
                 <AppPhonePreview screenshotUrl={screenshotUrl} />
                 <div className="mb-10 hidden rounded-[30px] border border-[#dbe7f7] bg-white p-5 shadow-[0_28px_70px_rgb(15_23_42_/_0.10)] sm:block">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-black text-[#101827]">Profile tools</p>
-                    <span className="rounded-full bg-[#e8f1ff] px-3 py-1 text-xs font-black text-[#1156d9]">Ready</span>
+                    <p className="text-sm font-black text-[#101827]">{themeText(t, locale, 'appDownload.tools.title', 'Profile tools')}</p>
+                    <span className="rounded-full bg-[#e8f1ff] px-3 py-1 text-xs font-black text-[#1156d9]">{themeText(t, locale, 'appDownload.tools.ready', 'Ready')}</span>
                   </div>
                   <div className="mt-5 grid gap-3">
-                    <AppToolRow icon={ScanLine} title="Scan activation code" meta="Camera and manual entry" />
-                    <AppToolRow icon={Signal} title="Switch active profile" meta="Fast profile control" />
-                    <AppToolRow icon={Fingerprint} title="Local profile storage" meta="Device-first management" />
+                    <AppToolRow icon={ScanLine} title={themeText(t, locale, 'appDownload.tools.scan.title', 'Scan activation code')} meta={themeText(t, locale, 'appDownload.tools.scan.meta', 'Camera and manual entry')} />
+                    <AppToolRow icon={Signal} title={themeText(t, locale, 'appDownload.tools.switch.title', 'Switch active profile')} meta={themeText(t, locale, 'appDownload.tools.switch.meta', 'Fast profile control')} />
+                    <AppToolRow icon={Fingerprint} title={themeText(t, locale, 'appDownload.tools.storage.title', 'Local profile storage')} meta={themeText(t, locale, 'appDownload.tools.storage.meta', 'Device-first management')} />
                   </div>
                   <div className="mt-6 rounded-[20px] bg-[#101827] p-4 text-white">
-                    <p className="text-xs font-bold text-white/62">Latest package</p>
+                    <p className="text-xs font-bold text-white/62">{themeText(t, locale, 'appDownload.tools.latestPackage', 'Latest package')}</p>
                     <p className="mt-1 text-lg font-black">{appVersion}</p>
                     <div className="mt-4 h-2 overflow-hidden rounded-full bg-white/12">
                       <div className="h-full w-[72%] rounded-full bg-[#5eead4]" />
@@ -200,10 +211,10 @@ function AppDownloadHome({
 
           <section id="features" className="mt-8 grid gap-4 md:mt-14 md:grid-cols-4">
             {[
-              ['配置文件管理', '查看、启用和维护设备内的 eSIM profile。'],
-              ['扫码添加', '通过二维码或手动信息快速写入激活数据。'],
-              ['本地优先', '核心管理动作在设备侧完成，减少不必要依赖。'],
-              ['本地可控', '关键操作在设备端完成，减少外部依赖。'],
+              [themeText(t, locale, 'appDownload.features.manage.title', 'Profile management'), themeText(t, locale, 'appDownload.features.manage.body', 'View, enable, and maintain eSIM profiles on your device.')],
+              [themeText(t, locale, 'appDownload.features.scan.title', 'Scan to add'), themeText(t, locale, 'appDownload.features.scan.body', 'Add activation data quickly with a QR code or manual entry.')],
+              [themeText(t, locale, 'appDownload.features.local.title', 'Local first'), themeText(t, locale, 'appDownload.features.local.body', 'Core management actions run on the device with fewer dependencies.')],
+              [themeText(t, locale, 'appDownload.features.control.title', 'Stay in control'), themeText(t, locale, 'appDownload.features.control.body', 'Keep critical operations on the device and reduce external reliance.')],
             ].map(([title, copy]) => (
               <div key={title} className="rounded-[18px] border border-[#dbe7f7] bg-white p-5 shadow-sm">
                 <CheckCircle2 className="h-5 w-5 text-[#176bff]" />
@@ -216,13 +227,13 @@ function AppDownloadHome({
           <section id="security" className="mt-6 rounded-[28px] border border-[#dbe7f7] bg-[#101827] p-6 text-white md:mt-10 md:p-8 lg:p-10">
             <div className="grid gap-8 lg:grid-cols-[0.78fr_1.22fr] lg:items-center">
               <div>
-                <p className="text-sm font-black text-[#93c5fd]">安全下载</p>
-                <h2 className="mt-3 text-3xl font-black leading-tight md:text-4xl">只提供已确认的最新 Android 安装包。</h2>
+                <p className="text-sm font-black text-[#93c5fd]">{themeText(t, locale, 'appDownload.security.eyebrow', 'Secure download')}</p>
+                <h2 className="mt-3 text-3xl font-black leading-tight md:text-4xl">{themeText(t, locale, 'appDownload.security.title', 'Only the confirmed latest Android package is provided.')}</h2>
               </div>
               <div className="grid gap-3 text-sm font-semibold text-white/74 md:grid-cols-3">
-                <span className="rounded-[18px] bg-white/8 p-4">版本号：{appVersion}</span>
-                <span className="rounded-[18px] bg-white/8 p-4">包名：im.angry.easyeuicc</span>
-                <span className="rounded-[18px] bg-white/8 p-4">Target SDK：35</span>
+                <span className="rounded-[18px] bg-white/8 p-4">{themeText(t, locale, 'appDownload.security.version', 'Version: {version}', { version: appVersion })}</span>
+                <span className="rounded-[18px] bg-white/8 p-4">{themeText(t, locale, 'appDownload.security.package', 'Package: im.angry.easyeuicc')}</span>
+                <span className="rounded-[18px] bg-white/8 p-4">{themeText(t, locale, 'appDownload.security.targetSdk', 'Target SDK: 35')}</span>
               </div>
             </div>
           </section>
@@ -269,19 +280,24 @@ function DesktopHome({
   headline,
   subheadline,
   onNavigate,
+  locale,
+  t,
 }: {
   brandName: string;
   headline: string;
   subheadline: string;
   onNavigate: (path: string) => void;
+  locale?: HomePageProps['locale'];
+  t?: HomePageProps['t'];
 }) {
+  const tx = (key: string, fallback: string) => themeText(t, locale, key, fallback);
   return (
     <div className="hidden md:block">
       <section className="px-7 pb-16 pt-[122px]">
         <div className="mx-auto max-w-[1380px] rounded-[28px] border border-[var(--esim-line)] bg-white px-16 pb-14 pt-14 shadow-[0_30px_90px_rgb(15_23_42_/_0.08)]">
           <div className="grid min-h-[330px] items-center gap-12 lg:grid-cols-[0.95fr_1.05fr]">
             <div>
-              <p className="esim-kicker">Web — Home</p>
+              <p className="esim-kicker">{tx('home.webHome', 'Web - Home')}</p>
               <h1 className="mt-7 max-w-[560px] text-[72px] font-black leading-[0.98] tracking-[-0.035em] text-[var(--esim-ink)] xl:text-[84px]">
                 {headline}
               </h1>
@@ -289,9 +305,9 @@ function DesktopHome({
                 {subheadline}
               </p>
               <div className="mt-7 flex flex-wrap items-center gap-8 text-sm font-semibold text-[var(--esim-ink-soft)]">
-                <Benefit icon={PackageCheck} label="Instant QR delivery" />
-                <Benefit icon={Globe2} label="190+ countries" />
-                <Benefit icon={Wifi} label="24/7 support" />
+                <Benefit icon={PackageCheck} label={tx('home.instantQr', 'Instant QR delivery')} />
+                <Benefit icon={Globe2} label={tx('home.countries', '190+ countries')} />
+                <Benefit icon={Wifi} label={tx('home.support247', '24/7 support')} />
               </div>
             </div>
 
@@ -300,10 +316,10 @@ function DesktopHome({
             </div>
           </div>
 
-          <SearchPanel onNavigate={onNavigate} />
+          <SearchPanel onNavigate={onNavigate} locale={locale} t={t} />
 
           <section className="mt-12">
-            <SectionHeader title="Popular destinations" action="View all destinations" onAction={() => onNavigate('/products')} />
+            <SectionHeader title={tx('travelpass.products.popularDestinations', 'Popular destinations')} action={tx('home.viewAllDestinations', 'View all destinations')} onAction={() => onNavigate('/products')} />
             <div className="mt-5 grid gap-5 lg:grid-cols-4">
               {POPULAR_DESTINATIONS.map((destination) => (
                 <button
@@ -323,7 +339,7 @@ function DesktopHome({
                       <p className="mt-1 text-xs font-semibold text-[var(--esim-muted)]">{destination.country}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-semibold text-[var(--esim-muted)]">From</p>
+                      <p className="text-[10px] font-semibold text-[var(--esim-muted)]">{tx('home.from', 'From')}</p>
                       <p className="text-sm font-black text-[var(--esim-primary)]">{destination.priceLabel}</p>
                     </div>
                   </div>
@@ -333,7 +349,7 @@ function DesktopHome({
           </section>
 
           <section className="mt-9">
-            <SectionHeader title="Featured plans" action="View all plans" onAction={() => onNavigate('/products')} />
+            <SectionHeader title={tx('travelpass.products.featured', 'Featured plans')} action={tx('home.viewAllPlans', 'View all plans')} onAction={() => onNavigate('/products')} />
             <div className="mt-5 grid gap-5 lg:grid-cols-4">
               {FEATURED_PLANS.map((plan) => (
                 <button
@@ -357,7 +373,7 @@ function DesktopHome({
                     </span>
                     <span className="flex items-center gap-2">
                       <CheckCircle2 className="h-3.5 w-3.5 text-[var(--esim-ink-soft)]" />
-                      Instant QR delivery
+                      {tx('home.instantQr', 'Instant QR delivery')}
                     </span>
                   </div>
                   <ArrowRight className="ml-auto mt-4 h-4 w-4 text-[var(--esim-ink)] transition group-hover:translate-x-1 group-hover:text-[var(--esim-primary)]" />
@@ -366,28 +382,29 @@ function DesktopHome({
             </div>
           </section>
 
-          <TrustStrip brandName={brandName} />
+          <TrustStrip brandName={brandName} locale={locale} t={t} />
         </div>
       </section>
     </div>
   );
 }
 
-function SearchPanel({ onNavigate }: { onNavigate: (path: string) => void }) {
+function SearchPanel({ onNavigate, locale, t }: { onNavigate: (path: string) => void; locale?: HomePageProps['locale']; t?: HomePageProps['t'] }) {
+  const tx = (key: string, fallback: string) => themeText(t, locale, key, fallback);
   return (
     <div className="mt-10 rounded-[18px] border border-[var(--esim-line)] bg-white p-7 shadow-[0_24px_74px_rgb(15_23_42_/_0.08)]">
       <div className="grid items-end gap-5 lg:grid-cols-[1.45fr_0.75fr_0.75fr_0.62fr_0.82fr]">
         <label>
-          <span className="text-[11px] font-bold text-[var(--esim-ink-soft)]">Where do you need data?</span>
+          <span className="text-[11px] font-bold text-[var(--esim-ink-soft)]">{tx('home.whereData', 'Where do you need data?')}</span>
           <div className="mt-2 flex h-[48px] items-center gap-3 rounded-[13px] border border-[var(--esim-line)] px-4">
             <Search className="h-4 w-4 text-[var(--esim-muted)]" />
-            <input className="w-full border-0 bg-transparent p-0 text-sm font-semibold outline-none ring-0 placeholder:text-[var(--esim-muted)] focus:border-transparent focus:ring-0" placeholder="Search a destination" />
+            <input className="w-full border-0 bg-transparent p-0 text-sm font-semibold outline-none ring-0 placeholder:text-[var(--esim-muted)] focus:border-transparent focus:ring-0" placeholder={tx('travelpass.products.searchPlaceholder', 'Search a destination')} />
           </div>
         </label>
-        <CompactSelect label="Data" value="Any amount" />
-        <CompactSelect label="Duration" value="Any duration" />
+        <CompactSelect label={tx('checkout.deviceType', 'Data')} value={tx('home.anyAmount', 'Any amount')} />
+        <CompactSelect label={tx('checkout.travelDate', 'Duration')} value={tx('home.anyDuration', 'Any duration')} />
         <label>
-          <span className="text-[11px] font-bold text-[var(--esim-ink-soft)]">Travelers</span>
+          <span className="text-[11px] font-bold text-[var(--esim-ink-soft)]">{tx('home.travelers', 'Travelers')}</span>
           <div className="mt-2 flex h-[48px] items-center justify-between rounded-[13px] border border-[var(--esim-line)] px-4 text-sm font-bold">
             <Minus className="h-4 w-4 text-[var(--esim-muted)]" />
             1
@@ -399,11 +416,11 @@ function SearchPanel({ onNavigate }: { onNavigate: (path: string) => void }) {
           onClick={() => onNavigate('/products')}
           className="h-[54px] rounded-[13px] bg-[var(--esim-primary)] text-sm font-black text-white shadow-[0_16px_32px_rgb(23_107_255_/_0.24)] transition hover:bg-[var(--esim-primary-dark)]"
         >
-          Find plans
+          {tx('home.findPlans', 'Find plans')}
         </button>
       </div>
       <div className="mt-5 flex flex-wrap items-center gap-3">
-        <span className="text-xs font-semibold text-[var(--esim-muted)]">Popular searches:</span>
+        <span className="text-xs font-semibold text-[var(--esim-muted)]">{tx('home.popularSearches', 'Popular searches:')}</span>
         {popularSearches.map((item) => (
           <button
             key={item}
@@ -442,28 +459,30 @@ function SectionHeader({ title, action, onAction }: { title: string; action: str
   );
 }
 
-function TrustStrip({ brandName }: { brandName: string }) {
+function TrustStrip({ brandName, locale, t }: { brandName: string; locale?: HomePageProps['locale']; t?: HomePageProps['t'] }) {
+  const tx = (key: string, fallback: string) => themeText(t, locale, key, fallback);
   return (
     <div className="mt-10 grid rounded-[24px] border border-[var(--esim-line)] bg-[linear-gradient(180deg,#ffffff,#f8fbff)] text-sm font-semibold text-[var(--esim-muted)] lg:grid-cols-3">
       <div className="flex items-center justify-center gap-3 px-6 py-5">
         <span className="text-lg text-[var(--esim-success)]">★</span>
         <span>
-          <strong className="text-[var(--esim-ink)]">Trusted by travelers</strong> worldwide
+          <strong className="text-[var(--esim-ink)]">{tx('home.trusted', 'Trusted by travelers')}</strong> {tx('home.worldwide', 'worldwide')}
         </span>
       </div>
       <div className="flex items-center justify-center gap-3 border-y border-[var(--esim-line)] px-6 py-5 lg:border-x lg:border-y-0">
         <ShieldCheck className="h-5 w-5 text-[var(--esim-ink-soft)]" />
-        Secure payments
+        {tx('home.securePayments', 'Secure payments')}
       </div>
       <div className="flex items-center justify-center gap-3 px-6 py-5">
         <Globe2 className="h-5 w-5 text-[var(--esim-ink-soft)]" />
-        Your data is protected by {brandName}
+        {tx('home.dataProtected', 'Your data is protected by {brand}').replace('{brand}', brandName)}
       </div>
     </div>
   );
 }
 
-function MobileExplore({ brandName, onNavigate }: { brandName: string; onNavigate: (path: string) => void }) {
+function MobileExplore({ brandName, onNavigate, locale, t }: { brandName: string; onNavigate: (path: string) => void; locale?: HomePageProps['locale']; t?: HomePageProps['t'] }) {
+  const tx = (key: string, fallback: string) => themeText(t, locale, key, fallback);
   const featured = POPULAR_DESTINATIONS[0];
   return (
     <div className="block min-h-screen bg-white px-5 pb-24 pt-5 md:hidden">
@@ -487,28 +506,28 @@ function MobileExplore({ brandName, onNavigate }: { brandName: string; onNavigat
           </button>
         </div>
 
-        <p className="mt-8 text-xs font-bold uppercase tracking-[0.12em] text-[var(--esim-muted)]">Mobile — Explore</p>
-        <h1 className="mt-3 text-[38px] font-black tracking-[-0.06em] text-[var(--esim-ink)]">Explore</h1>
-        <p className="mt-2 text-base font-medium text-[var(--esim-muted)]">Where are you landing?</p>
+        <p className="mt-8 text-xs font-bold uppercase tracking-[0.12em] text-[var(--esim-muted)]">{tx('home.mobileExplore', 'Mobile - Explore')}</p>
+        <h1 className="mt-3 text-[38px] font-black tracking-[-0.06em] text-[var(--esim-ink)]">{tx('nav.explore', 'Explore')}</h1>
+        <p className="mt-2 text-base font-medium text-[var(--esim-muted)]">{tx('products.landingQuestion', 'Where are you landing?')}</p>
 
         <label className="mt-5 flex h-[52px] items-center gap-3 rounded-[15px] border border-[var(--esim-line)] bg-white px-4 shadow-sm">
           <Search className="h-5 w-5 text-[var(--esim-muted)]" />
-          <input className="w-full border-0 bg-transparent p-0 text-sm font-semibold outline-none ring-0 placeholder:text-[var(--esim-muted)] focus:border-transparent focus:ring-0" placeholder="Search destinations" />
+          <input className="w-full border-0 bg-transparent p-0 text-sm font-semibold outline-none ring-0 placeholder:text-[var(--esim-muted)] focus:border-transparent focus:ring-0" placeholder={tx('home.searchDestinations', 'Search destinations')} />
         </label>
 
         <div className="mt-4 flex gap-3">
-          {['Popular', 'Nearby', 'All regions'].map((item, index) => (
+          {[['travelpass.sort.mostPopular', 'Popular'], ['products.nearby', 'Nearby'], ['travelpass.search.allRegions', 'All regions']].map(([key, fallback], index) => (
             <button
-              key={item}
+              key={`${key}-${index}`}
               type="button"
               className={`rounded-full border px-5 py-2 text-xs font-bold ${index === 0 ? 'border-[var(--esim-primary)] bg-[var(--esim-primary-soft)] text-[var(--esim-primary-dark)]' : 'border-[var(--esim-line)] text-[var(--esim-muted)]'}`}
             >
-              {item}
+              {tx(key, fallback)}
             </button>
           ))}
         </div>
 
-        <h2 className="mt-7 text-base font-black text-[var(--esim-ink)]">Featured plan</h2>
+        <h2 className="mt-7 text-base font-black text-[var(--esim-ink)]">{tx('travelpass.products.featured', 'Featured plan')}</h2>
         <button
           type="button"
           onClick={() => onNavigate('/products')}
@@ -523,16 +542,16 @@ function MobileExplore({ brandName, onNavigate }: { brandName: string; onNavigat
                   {featured.data} • {featured.validity}
                 </p>
               </div>
-              <span className="rounded-full bg-red-50 px-2 py-1 text-[9px] font-black uppercase text-red-700">Best seller</span>
+              <span className="rounded-full bg-red-50 px-2 py-1 text-[9px] font-black uppercase text-red-700">{tx('travelpass.badge.sale', 'Best seller')}</span>
             </div>
             <div className="mt-4 grid gap-2 text-xs font-semibold text-[var(--esim-muted)]">
               <span className="flex items-center gap-2">
                 <PackageCheck className="h-4 w-4 text-[var(--esim-ink-soft)]" />
-                High speed data
+                {tx('travelpass.feature.highSpeed', 'High speed data')}
               </span>
               <span className="flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 text-[var(--esim-ink-soft)]" />
-                Instant QR delivery
+                {tx('home.instantQr', 'Instant QR delivery')}
               </span>
             </div>
             <div className="mt-4 flex items-center justify-between">
@@ -545,7 +564,7 @@ function MobileExplore({ brandName, onNavigate }: { brandName: string; onNavigat
         </button>
 
         <div className="mt-7 flex items-center justify-between">
-          <h2 className="text-base font-black text-[var(--esim-ink)]">Popular destinations</h2>
+          <h2 className="text-base font-black text-[var(--esim-ink)]">{tx('travelpass.products.popularDestinations', 'Popular destinations')}</h2>
         </div>
         <div className="mt-3 overflow-hidden rounded-[18px] border border-[var(--esim-line)] bg-white">
           {FEATURED_PLANS.slice(0, 3).map((plan) => (
@@ -558,7 +577,7 @@ function MobileExplore({ brandName, onNavigate }: { brandName: string; onNavigat
               <img src={plan.image} alt={plan.title} className="h-[58px] w-[58px] rounded-[12px] object-cover" />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-black text-[var(--esim-ink)]">{plan.title}</p>
-                <p className="mt-1 text-xs font-semibold text-[var(--esim-muted)]">From {plan.priceLabel}</p>
+                <p className="mt-1 text-xs font-semibold text-[var(--esim-muted)]">{tx('home.from', 'From')} {plan.priceLabel}</p>
               </div>
               <ArrowRight className="h-4 w-4 text-[var(--esim-muted)]" />
             </button>
@@ -566,9 +585,9 @@ function MobileExplore({ brandName, onNavigate }: { brandName: string; onNavigat
         </div>
 
         <div className="mt-7 flex items-center justify-between">
-          <h2 className="text-base font-black text-[var(--esim-ink)]">Recently viewed</h2>
+          <h2 className="text-base font-black text-[var(--esim-ink)]">{tx('travelpass.products.recentlyViewed', 'Recently viewed')}</h2>
           <button type="button" onClick={() => onNavigate('/products')} className="text-xs font-black text-[var(--esim-primary)]">
-            See all
+            {tx('travelpass.products.seeAll', 'See all')}
           </button>
         </div>
         <div className="-mx-5 mt-3 flex gap-3 overflow-x-auto px-5 pb-2">
@@ -590,10 +609,10 @@ function MobileExplore({ brandName, onNavigate }: { brandName: string; onNavigat
 
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--esim-line)] bg-white/92 px-6 pb-5 pt-3 backdrop-blur-xl">
           <div className="mx-auto grid max-w-[430px] grid-cols-4 text-[11px] font-bold">
-            <MobileNavItem active icon={Compass} label="Explore" />
-            <MobileNavItem icon={ShoppingBag} label="My eSIMs" />
-            <MobileNavItem icon={CircleUserRound} label="Profile" />
-            <MobileNavItem icon={List} label="More" />
+            <MobileNavItem active icon={Compass} label={tx('nav.explore', 'Explore')} />
+            <MobileNavItem icon={ShoppingBag} label={tx('account.esims', 'My eSIMs')} />
+            <MobileNavItem icon={CircleUserRound} label={tx('account.profile', 'Profile')} />
+            <MobileNavItem icon={List} label={tx('nav.more', 'More')} />
           </div>
           <div className="mx-auto mt-3 h-1 w-[134px] rounded-full bg-black" />
         </nav>

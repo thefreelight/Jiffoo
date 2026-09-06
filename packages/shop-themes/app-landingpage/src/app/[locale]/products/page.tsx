@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ProductsPage as ProductsCatalogPage } from '../../../components/ProductsPage';
 import { productsApi, cartApi, authApi, type Product } from '../../../lib/api';
+import type { Locale } from '../../../types';
 
 export default function ProductsPage() {
   const params = useParams();
@@ -77,7 +78,7 @@ export default function ProductsPage() {
 
   return (
     <ProductsCatalogPage
-      products={products as any}
+      products={products as unknown as Parameters<typeof ProductsCatalogPage>[0]['products']}
       isLoading={isLoading}
       totalProducts={totalProducts}
       currentPage={currentPage}
@@ -89,6 +90,7 @@ export default function ProductsPage() {
       onPageChange={setCurrentPage}
       onAddToCart={handleAddToCart}
       onProductClick={handleProductClick}
+      locale={locale as Locale}
     />
   );
 }

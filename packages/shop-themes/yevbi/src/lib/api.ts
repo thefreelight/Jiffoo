@@ -4,7 +4,7 @@
  * All API calls go through the platform API gateway endpoints.
  */
 
-import { createThemeApiClient } from '@jiffoo/theme-api-sdk';
+import { createThemeApiClient } from 'jiffoo-theme-api-sdk';
 
 // Product types aligned with Core API
 export interface Product {

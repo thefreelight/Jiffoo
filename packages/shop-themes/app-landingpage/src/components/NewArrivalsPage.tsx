@@ -63,16 +63,16 @@ export const NewArrivalsPage = React.memo(function NewArrivalsPage({
               onChange={(e) => onSortChange(e.target.value)}
               className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
             >
-              <option value="createdAt">Newest First</option>
-              <option value="price">Price: Low to High</option>
-              <option value="name">Name</option>
+              <option value="createdAt">{getText('travelpass.sort.newest', 'Newest First')}</option>
+              <option value="price">{getText('travelpass.sort.priceLow', 'Price: Low to High')}</option>
+              <option value="name">{getText('travelpass.sort.name', 'Name')}</option>
             </select>
           </div>
 
           {/* Product Grid */}
           {products.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-lg shadow-sm">
-              <p className="text-gray-400 text-lg">No new arrivals yet</p>
+              <p className="text-gray-400 text-lg">{getText('travelpass.newArrivals.empty', 'No new arrivals yet')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

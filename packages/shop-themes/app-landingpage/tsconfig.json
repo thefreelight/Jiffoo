@@ -8,17 +8,31 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "shared": ["../../shared"]
+      "shared": [
+        "../../shared"
+      ],
+      "shared/types/theme": [
+        "../../shared/dist/shared/src/types/theme.d.ts"
+      ],
+      "shared/types/dto": [
+        "../../shared/dist/shared/src/types/dto/index.d.ts"
+      ]
     },
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "skipLibCheck": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "strict": false,
+    "strict": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true
   },
-  "include": ["src/**/*"]
+  "include": [
+    "src/**/*"
+  ]
 }

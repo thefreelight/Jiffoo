@@ -7,6 +7,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 import type { LoginPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 export function LoginPage({
   isLoading,
@@ -16,7 +17,10 @@ export function LoginPage({
   onOAuthClick,
   onNavigateToRegister,
   onNavigateToForgotPassword,
+  locale,
+  t,
 }: LoginPageProps) {
+  const tx = (key: string, fallback: string) => themeText(t, locale, key, fallback);
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [showPassword, setShowPassword] = React.useState(false);
@@ -50,7 +54,7 @@ export function LoginPage({
             <i className="fas fa-globe-americas text-3xl text-blue-600" />
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-1">TravelPass</h1>
-          <p className="text-gray-600">Sign in to your account</p>
+          <p className="text-gray-600">{tx('auth.login.subtitle', 'Sign in to your account')}</p>
         </div>
 
         {/* Login Form Card */}
@@ -65,7 +69,7 @@ export function LoginPage({
           {/* Email Input */}
           <div>
             <label htmlFor="login-email" className="block text-sm font-medium text-gray-700 mb-2">
-              Email Address
+              {tx('auth.email', 'Email Address')}
             </label>
             <div className="relative">
               <i className="fas fa-envelope absolute left-4 top-3.5 text-gray-400" />
@@ -85,7 +89,7 @@ export function LoginPage({
           {/* Password Input */}
           <div>
             <label htmlFor="login-password" className="block text-sm font-medium text-gray-700 mb-2">
-              Password
+              {tx('auth.password', 'Password')}
             </label>
             <div className="relative">
               <i className="fas fa-lock absolute left-4 top-3.5 text-gray-400" />
@@ -104,7 +108,7 @@ export function LoginPage({
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
                 disabled={isLoading}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? tx('auth.hidePassword', 'Hide password') : tx('auth.showPassword', 'Show password')}
               >
                 {showPassword ? (
                   <i className="fas fa-eye-slash" />
@@ -123,7 +127,7 @@ export function LoginPage({
               className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
               disabled={isLoading}
             >
-              Forgot password?
+              {tx('auth.forgotPassword', 'Forgot password?')}
             </button>
           </div>
 
@@ -146,7 +150,7 @@ export function LoginPage({
                 Signing in...
               </>
             ) : (
-              'Sign In'
+              tx('auth.signIn', 'Sign In')
             )}
           </button>
 
@@ -156,7 +160,7 @@ export function LoginPage({
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">Or continue with</span>
+              <span className="px-4 bg-white text-gray-500">{tx('auth.orContinue', 'Or continue with')}</span>
             </div>
           </div>
 
@@ -193,7 +197,7 @@ export function LoginPage({
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            Continue with Google
+            {tx('auth.google', 'Continue with Google')}
           </button>
 
           {/* Sign Up Link */}
@@ -206,7 +210,7 @@ export function LoginPage({
                 className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
                 disabled={isLoading}
               >
-                Sign up
+              {tx('auth.signUp', 'Sign up')}
               </button>
             </p>
           </div>

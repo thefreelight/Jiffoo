@@ -7,6 +7,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 import type { CheckoutPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 export const CheckoutPage = React.memo(function CheckoutPage({
   cart,
@@ -15,7 +16,10 @@ export const CheckoutPage = React.memo(function CheckoutPage({
   config,
   onSubmit,
   onBack,
+  locale,
+  t,
 }: CheckoutPageProps) {
+  const tx = (key: string, fallback: string, params?: Record<string, string | number>) => themeText(t, locale, key, fallback, params);
   const [formData, setFormData] = React.useState({
     email: '',
     firstName: '',
@@ -50,16 +54,16 @@ export const CheckoutPage = React.memo(function CheckoutPage({
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (!formData.email) newErrors.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email format';
-    if (!formData.firstName) newErrors.firstName = 'First name is required';
-    if (!formData.lastName) newErrors.lastName = 'Last name is required';
-    if (!formData.addressLine1) newErrors.addressLine1 = 'Address is required';
-    if (!formData.city) newErrors.city = 'City is required';
-    if (!formData.state) newErrors.state = 'State is required';
-    if (!formData.postalCode) newErrors.postalCode = 'Postal code is required';
-    if (!formData.country) newErrors.country = 'Country is required';
-    if (!formData.phone) newErrors.phone = 'Phone number is required';
+    if (!formData.email) newErrors.email = tx('checkout.error.emailRequired', 'Email is required');
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = tx('checkout.error.emailFormat', 'Invalid email format');
+    if (!formData.firstName) newErrors.firstName = tx('checkout.error.firstName', 'First name is required');
+    if (!formData.lastName) newErrors.lastName = tx('checkout.error.lastName', 'Last name is required');
+    if (!formData.addressLine1) newErrors.addressLine1 = tx('checkout.error.address', 'Address is required');
+    if (!formData.city) newErrors.city = tx('checkout.error.city', 'City is required');
+    if (!formData.state) newErrors.state = tx('checkout.error.state', 'State is required');
+    if (!formData.postalCode) newErrors.postalCode = tx('checkout.error.postal', 'Postal code is required');
+    if (!formData.country) newErrors.country = tx('checkout.error.country', 'Country is required');
+    if (!formData.phone) newErrors.phone = tx('checkout.error.phone', 'Phone number is required');
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -86,13 +90,13 @@ export const CheckoutPage = React.memo(function CheckoutPage({
       <div className="bg-gray-100 pt-20 pb-2">
         <div className="container mx-auto px-4">
           <nav className="flex text-sm">
-            <button onClick={onBack} className="text-gray-500 hover:text-blue-600">Home</button>
+            <button onClick={onBack} className="text-gray-500 hover:text-blue-600">{tx('checkout.home', 'Home')}</button>
             <span className="mx-2 text-gray-500">/</span>
-            <button onClick={onBack} className="text-gray-500 hover:text-blue-600">eSIM Packages</button>
+            <button onClick={onBack} className="text-gray-500 hover:text-blue-600">{tx('checkout.packages', 'eSIM Packages')}</button>
             <span className="mx-2 text-gray-500">/</span>
-            <button onClick={onBack} className="text-gray-500 hover:text-blue-600">Japan 5GB eSIM</button>
+            <button onClick={onBack} className="text-gray-500 hover:text-blue-600">{tx('checkout.product', 'Japan 5GB eSIM')}</button>
             <span className="mx-2 text-gray-500">/</span>
-            <span className="text-gray-800 font-medium">Checkout</span>
+            <span className="text-gray-800 font-medium">{tx('checkout.title', 'Checkout')}</span>
           </nav>
         </div>
       </div>
@@ -100,7 +104,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
       {/* Two-column layout */}
       <section className="py-12">
       <div className="container mx-auto px-4">
-        <h1 className="text-2xl font-bold text-gray-800 mb-8 text-center">Checkout</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-8 text-center">{tx('checkout.title', 'Checkout')}</h1>
         <form onSubmit={handleSubmit}>
           <div className="flex flex-col lg:flex-row gap-8">
             {/* Left Column */}
@@ -108,13 +112,13 @@ export const CheckoutPage = React.memo(function CheckoutPage({
 
               {/* Card 1: Account Information */}
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-semibold mb-4">Account Information</h2>
-                <p className="text-gray-600 mb-6">Already have an account? <a href="#" className="text-blue-600 font-medium">Log in</a></p>
+                <h2 className="text-xl font-semibold mb-4">{tx('checkout.account', 'Account Information')}</h2>
+                <p className="text-gray-600 mb-6">{tx('checkout.loginPrompt', 'Already have an account?')} <a href="#" className="text-blue-600 font-medium">{tx('checkout.login', 'Log in')}</a></p>
 
                 <div className="grid grid-cols-1 gap-6 mb-6">
                   <div>
                     <label htmlFor="email" className={labelStyles}>
-                      Email Address <span className="text-red-500">*</span>
+                      {tx('checkout.email', 'Email Address')} <span className="text-red-500">*</span>
                     </label>
                     <input
                       type="email"
@@ -125,7 +129,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                       className={cn(inputStyles, errors.email && errorInputStyles)}
                       placeholder="your@email.com"
                     />
-                    <p className="mt-1 text-sm text-gray-500">Your eSIM will be delivered to this email address</p>
+                    <p className="mt-1 text-sm text-gray-500">{tx('checkout.emailDelivery', 'Your eSIM will be delivered to this email address')}</p>
                     {errors.email && <p className="text-red-600 text-sm mt-1">{errors.email}</p>}
                   </div>
                 </div>
@@ -133,11 +137,11 @@ export const CheckoutPage = React.memo(function CheckoutPage({
 
               {/* Card 2: Device Information */}
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-semibold mb-4">Device Information</h2>
+                <h2 className="text-xl font-semibold mb-4">{tx('checkout.device', 'Device Information')}</h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
-                    <label htmlFor="deviceType" className={labelStyles}>Device Type</label>
+                    <label htmlFor="deviceType" className={labelStyles}>{tx('checkout.deviceType', 'Device Type')}</label>
                     <select
                       id="deviceType"
                       name="deviceType"
@@ -145,17 +149,17 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                       onChange={handleChange}
                       className={inputStyles}
                     >
-                      <option value="">Select your device type</option>
-                      <option value="iphone-xr-plus">iPhone (XR or newer)</option>
-                      <option value="samsung-s20-plus">Samsung Galaxy (S20 or newer)</option>
-                      <option value="google-pixel-3-plus">Google Pixel (3 or newer)</option>
-                      <option value="ipad-7th-plus">iPad (7th gen or newer)</option>
-                      <option value="other">Other eSIM Compatible Device</option>
+                      <option value="">{tx('checkout.selectDevice', 'Select your device type')}</option>
+                      <option value="iphone-xr-plus">{tx('checkout.iphone', 'iPhone (XR or newer)')}</option>
+                      <option value="samsung-s20-plus">{tx('checkout.samsung', 'Samsung Galaxy (S20 or newer)')}</option>
+                      <option value="google-pixel-3-plus">{tx('checkout.pixel', 'Google Pixel (3 or newer)')}</option>
+                      <option value="ipad-7th-plus">{tx('checkout.ipad', 'iPad (7th gen or newer)')}</option>
+                      <option value="other">{tx('checkout.otherDevice', 'Other eSIM Compatible Device')}</option>
                     </select>
                   </div>
 
                   <div>
-                    <label htmlFor="iosVersion" className={labelStyles}>iOS / Android Version</label>
+                    <label htmlFor="iosVersion" className={labelStyles}>{tx('checkout.osVersion', 'iOS / Android Version')}</label>
                     <input
                       type="text"
                       id="iosVersion"
@@ -176,8 +180,8 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                     </div>
                     <div className="ml-3">
                       <p className="text-sm text-blue-800">
-                        Make sure your device is eSIM compatible. Most modern smartphones support eSIM technology.{' '}
-                        <a href="#" className="font-medium underline">Check device compatibility</a>
+                        {tx('checkout.compatibility', 'Make sure your device is eSIM compatible. Most modern smartphones support eSIM technology.')} {' '}
+                        <a href="#" className="font-medium underline">{tx('checkout.checkCompatibility', 'Check device compatibility')}</a>
                       </p>
                     </div>
                   </div>
@@ -186,12 +190,12 @@ export const CheckoutPage = React.memo(function CheckoutPage({
 
               {/* Card 3: Traveler Information */}
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-semibold mb-4">Traveler Information</h2>
+                <h2 className="text-xl font-semibold mb-4">{tx('checkout.traveler', 'Traveler Information')}</h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                     <div>
                       <label htmlFor="firstName" className={labelStyles}>
-                        First Name <span className="text-red-500">*</span>
+                        {tx('checkout.firstName', 'First Name')} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -206,7 +210,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                     </div>
                     <div>
                       <label htmlFor="lastName" className={labelStyles}>
-                        Last Name <span className="text-red-500">*</span>
+                        {tx('checkout.lastName', 'Last Name')} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -221,7 +225,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                     </div>
                     <div>
                       <label htmlFor="phone" className={labelStyles}>
-                        Phone Number
+                        {tx('checkout.phone', 'Phone Number')}
                       </label>
                       <input
                         type="tel"
@@ -236,7 +240,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                     </div>
                     <div>
                       <label htmlFor="addressLine1" className={labelStyles}>
-                        Travel Date
+                        {tx('checkout.travelDate', 'Travel Date')}
                       </label>
                       <input
                         type="date"
@@ -259,7 +263,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
 
               {/* Card 4: Payment Method */}
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
+                <h2 className="text-xl font-semibold mb-4">{tx('checkout.payment', 'Payment Method')}</h2>
 
                 <div className="space-y-5">
                   {/* Payment method radio buttons */}
@@ -273,7 +277,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                         onChange={handleChange}
                         className="w-4 h-4 text-blue-600"
                       />
-                      <label className="ml-2 text-gray-700">Credit/Debit Card</label>
+                      <label className="ml-2 text-gray-700">{tx('checkout.card', 'Credit/Debit Card')}</label>
                     </div>
 
                     <div className="flex items-center">
@@ -285,7 +289,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                         onChange={handleChange}
                         className="w-4 h-4 text-blue-600"
                       />
-                      <label className="ml-2 text-gray-700">PayPal</label>
+                      <label className="ml-2 text-gray-700">{tx('checkout.paypal', 'PayPal')}</label>
                     </div>
 
                     <div className="flex items-center">
@@ -297,7 +301,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                         onChange={handleChange}
                         className="w-4 h-4 text-blue-600"
                       />
-                      <label className="ml-2 text-gray-700">Apple Pay</label>
+                      <label className="ml-2 text-gray-700">{tx('checkout.applePay', 'Apple Pay')}</label>
                     </div>
                   </div>
 
@@ -305,7 +309,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                   {formData.paymentMethod === 'stripe' && (
                     <div className="space-y-4 pt-2">
                       <div>
-                        <label htmlFor="cardNumber" className={labelStyles}>Card Number <span className="text-red-500">*</span></label>
+                        <label htmlFor="cardNumber" className={labelStyles}>{tx('checkout.cardNumber', 'Card Number')} <span className="text-red-500">*</span></label>
                         <div className="relative">
                           <input
                             type="text"
@@ -322,7 +326,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
 
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label htmlFor="cardExpiry" className={labelStyles}>Expiry Date <span className="text-red-500">*</span></label>
+                          <label htmlFor="cardExpiry" className={labelStyles}>{tx('checkout.expiry', 'Expiry Date')} <span className="text-red-500">*</span></label>
                           <input
                             type="text"
                             id="cardExpiry"
@@ -332,7 +336,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                           />
                         </div>
                         <div>
-                          <label htmlFor="cardCvc" className={labelStyles}>CVC/CVV <span className="text-red-500">*</span></label>
+                          <label htmlFor="cardCvc" className={labelStyles}>{tx('checkout.cvc', 'CVC/CVV')} <span className="text-red-500">*</span></label>
                           <div className="relative">
                             <input
                               type="text"
@@ -359,7 +363,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                         onChange={(e) => setSaveCard(e.target.checked)}
                         className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <span className="text-sm text-gray-700">Save this card for future purchases</span>
+                      <span className="text-sm text-gray-700">{tx('checkout.saveCard', 'Save this card for future purchases')}</span>
                     </label>
 
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -370,10 +374,10 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                         className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <span className="text-sm text-gray-700">
-                        I agree to the{' '}
-                        <a href="#" className="text-blue-600 hover:underline">Terms of Service</a>
-                        {' '}and{' '}
-                        <a href="#" className="text-blue-600 hover:underline">Privacy Policy</a>
+                        {tx('checkout.agree', 'I agree to the')} {' '}
+                        <a href="#" className="text-blue-600 hover:underline">{tx('common.terms', 'Terms of Service')}</a>
+                        {' '}{tx('checkout.and', 'and')}{' '}
+                        <a href="#" className="text-blue-600 hover:underline">{tx('common.privacy', 'Privacy Policy')}</a>
                       </span>
                     </label>
                   </div>
@@ -384,7 +388,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
             {/* Right Column - Order Summary (sticky) */}
             <div className="lg:w-1/3">
                 <div className="bg-white rounded-lg shadow-sm p-6 sticky top-4">
-                  <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+                  <h2 className="text-xl font-semibold mb-4">{tx('checkout.summary', 'Order Summary')}</h2>
 
                   {/* Product list */}
                   <div className="space-y-4 mb-5">
@@ -424,22 +428,22 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                   {/* Price breakdown */}
                   <div className="border-t border-gray-200 pt-4 space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Subtotal</span>
+                      <span className="text-gray-500">{tx('checkout.subtotal', 'Subtotal')}</span>
                       <span className="text-gray-900">${cart.subtotal.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span className="text-gray-500">Tax</span>
+                      <span className="text-gray-500">{tx('checkout.tax', 'Tax')}</span>
                       <span className="text-gray-900">${cart.tax.toFixed(2)}</span>
                     </div>
                     {cart.discount > 0 && (
                       <div className="flex justify-between text-sm text-green-600">
-                        <span>Discount</span>
+                        <span>{tx('checkout.discount', 'Discount')}</span>
                         <span>-${cart.discount.toFixed(2)}</span>
                       </div>
                     )}
                     <div className="border-t border-gray-200 pt-3 mt-2">
                       <div className="flex justify-between text-lg font-bold">
-                        <span className="text-gray-900">Total</span>
+                        <span className="text-gray-900">{tx('checkout.total', 'Total')}</span>
                         <span>${cart.total.toFixed(2)}</span>
                       </div>
                     </div>
@@ -447,20 +451,20 @@ export const CheckoutPage = React.memo(function CheckoutPage({
 
                   {/* Promo code */}
                   <div className="mt-5">
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Promo Code</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">{tx('checkout.promo', 'Promo Code')}</label>
                     <div className="flex">
                       <input
                         type="text"
                         value={promoCode}
                         onChange={(e) => setPromoCode(e.target.value)}
                         className={cn(inputStyles, 'flex-1 rounded-r-none rounded-l-md')}
-                        placeholder="Enter code"
+                        placeholder={tx('checkout.enterCode', 'Enter code')}
                       />
                       <button
                         type="button"
                         className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-r-md"
                       >
-                        Apply
+                        {tx('checkout.apply', 'Apply')}
                       </button>
                     </div>
                   </div>
@@ -476,11 +480,11 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                       'flex items-center justify-center'
                     )}
                   >
-                    {isProcessing ? 'Processing...' : 'Complete Purchase'}
+                    {isProcessing ? tx('checkout.processing', 'Processing...') : tx('checkout.complete', 'Complete Purchase')}
                   </button>
 
                   {/* eSIM delivery note */}
-                  <p className="text-center text-sm text-gray-500 mt-4 mb-4">You'll receive your eSIM via email immediately after purchase</p>
+                  <p className="text-center text-sm text-gray-500 mt-4 mb-4">{tx('checkout.deliveryNote', "You'll receive your eSIM via email immediately after purchase")}</p>
 
                   {/* Payment method icons */}
                   <div className="mt-4 flex items-center justify-center gap-3 text-2xl text-gray-400">

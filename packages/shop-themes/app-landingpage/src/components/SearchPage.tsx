@@ -59,43 +59,43 @@ export const SearchPage = React.memo(function SearchPage({
               <div className="bg-white rounded-lg shadow-sm p-6 sticky top-24">
                 <h2 className="text-lg font-semibold text-gray-800 mb-5">
                   <i className="fas fa-sliders-h mr-2 text-blue-600" />
-                  Filters
+                  {getText('travelpass.search.filters', 'Filters')}
                 </h2>
 
                 {/* Category */}
                 <div className="mb-6">
                   <h3 className="text-sm font-medium text-gray-700 mb-2">
-                    <i className="fas fa-globe mr-2 text-gray-400" />Region
+                    <i className="fas fa-globe mr-2 text-gray-400" />{getText('travelpass.search.region', 'Region')}
                   </h3>
                   <select
                     value={filters.category}
                     onChange={(e) => onFilterChange({ ...filters, category: e.target.value })}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                   >
-                    <option value="">All Regions</option>
-                    <option value="asia">Asia</option>
-                    <option value="europe">Europe</option>
-                    <option value="americas">Americas</option>
-                    <option value="africa">Africa</option>
-                    <option value="oceania">Oceania</option>
+                    <option value="">{getText('travelpass.search.allRegions', 'All Regions')}</option>
+                    <option value="asia">{getText('travelpass.search.asia', 'Asia')}</option>
+                    <option value="europe">{getText('travelpass.search.europe', 'Europe')}</option>
+                    <option value="americas">{getText('travelpass.search.americas', 'Americas')}</option>
+                    <option value="africa">{getText('travelpass.search.africa', 'Africa')}</option>
+                    <option value="oceania">{getText('travelpass.search.oceania', 'Oceania')}</option>
                   </select>
                 </div>
 
                 {/* Price Range */}
                 <div className="mb-6">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">
-                    <i className="fas fa-tag mr-2 text-gray-400" />Price Range
+                    <h3 className="text-sm font-medium text-gray-700 mb-2">
+                    <i className="fas fa-tag mr-2 text-gray-400" />{getText('travelpass.search.priceRange', 'Price Range')}
                   </h3>
                   <select
                     value={filters.priceRange}
                     onChange={(e) => onFilterChange({ ...filters, priceRange: e.target.value })}
                     className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                   >
-                    <option value="">All Prices</option>
-                    <option value="0-10">Under $10</option>
-                    <option value="10-25">$10 - $25</option>
-                    <option value="25-50">$25 - $50</option>
-                    <option value="50+">$50+</option>
+                    <option value="">{getText('travelpass.search.allPrices', 'All Prices')}</option>
+                    <option value="0-10">{getText('travelpass.search.under10', 'Under $10')}</option>
+                    <option value="10-25">{getText('travelpass.search.10to25', '$10 - $25')}</option>
+                    <option value="25-50">{getText('travelpass.search.25to50', '$25 - $50')}</option>
+                    <option value="50+">{getText('travelpass.search.over50', '$50+')}</option>
                   </select>
                 </div>
 
@@ -109,7 +109,7 @@ export const SearchPage = React.memo(function SearchPage({
                       className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                     />
                     <i className="fas fa-check-circle text-green-500" />
-                    Available Now
+                    {getText('travelpass.search.availableNow', 'Available Now')}
                   </label>
                 </div>
 
@@ -118,7 +118,7 @@ export const SearchPage = React.memo(function SearchPage({
                   onClick={() => onFilterChange({ category: '', priceRange: '', brand: '', rating: '', inStock: false })}
                   className="w-full text-sm text-gray-500 hover:text-gray-700 transition-colors"
                 >
-                  Clear All Filters
+                  {getText('travelpass.search.clearFilters', 'Clear All Filters')}
                 </button>
               </div>
             </aside>
@@ -150,10 +150,10 @@ export const SearchPage = React.memo(function SearchPage({
                     onChange={(e) => onSortChange(e.target.value)}
                     className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
                   >
-                    <option value="relevance">Most Relevant</option>
-                    <option value="price">Price: Low to High</option>
-                    <option value="name">Name</option>
-                    <option value="rating">Top Rated</option>
+                    <option value="relevance">{getText('travelpass.search.mostRelevant', 'Most Relevant')}</option>
+                    <option value="price">{getText('travelpass.search.priceLow', 'Price: Low to High')}</option>
+                    <option value="name">{getText('travelpass.search.name', 'Name')}</option>
+                    <option value="rating">{getText('travelpass.search.topRated', 'Top Rated')}</option>
                   </select>
                 </div>
               </div>
@@ -162,8 +162,8 @@ export const SearchPage = React.memo(function SearchPage({
               {products.length === 0 ? (
                 <div className="text-center py-20 bg-white rounded-lg shadow-sm">
                   <i className="fas fa-search text-gray-300 text-5xl mb-4" />
-                  <h2 className="text-xl font-semibold text-gray-800 mb-2">No Results Found</h2>
-                  <p className="text-gray-400">Try adjusting your search or filter criteria</p>
+                  <h2 className="text-xl font-semibold text-gray-800 mb-2">{getText('travelpass.search.noResults', 'No Results Found')}</h2>
+                  <p className="text-gray-400">{getText('travelpass.search.tryAdjusting', 'Try adjusting your search or filter criteria')}</p>
                 </div>
               ) : viewMode === 'grid' ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -5,7 +5,9 @@
       "dom.iterable",
       "es6"
     ],
-    "types": ["vitest/globals"],
+    "types": [
+      "vitest/globals"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -65,6 +67,18 @@
       ],
       "shared/*": [
         "../../packages/shared/*"
+      ],
+      "jiffoo-theme-api-sdk": [
+        "../../packages/theme-api-sdk/src/index.ts"
+      ],
+      "jiffoo-core-api-sdk": [
+        "../../packages/core-api-sdk/src/index.ts"
+      ],
+      "shared/types/theme": [
+        "../../packages/shared/dist/shared/src/types/theme.d.ts"
+      ],
+      "shared/types/dto": [
+        "../../packages/shared/dist/shared/src/types/dto/index.d.ts"
       ]
     },
     "target": "ES2017"

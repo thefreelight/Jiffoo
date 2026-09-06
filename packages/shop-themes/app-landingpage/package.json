@@ -1,6 +1,6 @@
 {
   "name": "@shop-themes/app-landingpage",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "App download landing page theme for Jiffoo Mall",
   "private": true,
   "main": "./src/index.ts",
@@ -21,14 +21,14 @@
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.4.0",
-    "@jiffoo/theme-api-sdk": "workspace:*",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.0",
+    "jiffoo-theme-api-sdk": "workspace:^",
     "lucide-react": "^0.473.0",
     "next": "^16.1.6",
     "next-themes": "^0.4.6",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react": "19.2.1",
+    "react-dom": "19.2.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

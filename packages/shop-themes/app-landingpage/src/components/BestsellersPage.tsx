@@ -56,23 +56,23 @@ export const BestsellersPage = React.memo(function BestsellersPage({
           {/* Sort bar */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white rounded-lg shadow-sm px-5 py-3 mb-6 gap-3">
             <p className="text-sm text-gray-600">
-              Showing <span className="font-semibold text-gray-800">{totalProducts}</span> bestsellers
+              {getText('account.viewAll', 'Showing')} <span className="font-semibold text-gray-800">{totalProducts}</span> {getText('travelpass.bestsellers.title', 'bestsellers')}
             </p>
             <select
               value={sortBy}
               onChange={(e) => onSortChange(e.target.value)}
               className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500"
             >
-              <option value="popularity">Most Popular</option>
-              <option value="price">Price: Low to High</option>
-              <option value="name">Name</option>
+              <option value="popularity">{getText('travelpass.sort.mostPopular', 'Most Popular')}</option>
+              <option value="price">{getText('travelpass.sort.priceLow', 'Price: Low to High')}</option>
+              <option value="name">{getText('travelpass.sort.name', 'Name')}</option>
             </select>
           </div>
 
           {/* Product Grid */}
           {products.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-lg shadow-sm">
-              <p className="text-gray-400 text-lg">No bestsellers available</p>
+              <p className="text-gray-400 text-lg">{getText('travelpass.bestsellers.empty', 'No bestsellers available')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

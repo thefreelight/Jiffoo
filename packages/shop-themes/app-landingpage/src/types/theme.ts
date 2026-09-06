@@ -124,6 +124,7 @@ export interface ThemePackage {
 
   // Optional: Default configuration
   defaultConfig?: ThemeConfig;
+  messages?: Partial<Record<Locale, Record<string, string>>>;
 }
 
 // ============================================================================

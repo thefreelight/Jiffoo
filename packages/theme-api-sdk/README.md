@@ -1,17 +1,17 @@
-# @jiffoo/theme-api-sdk
+# jiffoo-theme-api-sdk
 
 Theme-facing SDK for Jiffoo Core API.
 
 ## Install
 
 ```bash
-npm i @jiffoo/theme-api-sdk
+npm i jiffoo-theme-api-sdk
 ```
 
 ## Usage
 
 ```ts
-import { createThemeApiClient } from '@jiffoo/theme-api-sdk';
+import { createThemeApiClient } from 'jiffoo-theme-api-sdk';
 
 const api = createThemeApiClient({
   baseUrl: 'https://api.example.com',

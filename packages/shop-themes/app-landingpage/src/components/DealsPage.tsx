@@ -6,6 +6,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 import type { DealsPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 export const DealsPage = React.memo(function DealsPage({
   products,
@@ -15,11 +16,10 @@ export const DealsPage = React.memo(function DealsPage({
   onAddToCart,
   onProductClick,
   t,
+  locale,
 }: DealsPageProps) {
   const getText = (key: string, fallback: string): string => {
-    if (!t) return fallback;
-    const translated = t(key);
-    return translated === key ? fallback : translated;
+    return themeText(t, locale, key, fallback);
   };
 
   const getProductImage = (product: (typeof products)[0]): string => {
@@ -36,7 +36,7 @@ export const DealsPage = React.memo(function DealsPage({
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <div className="text-center">
           <i className="fas fa-exclamation-triangle text-red-500 text-5xl mb-4" />
-          <h2 className="text-2xl font-semibold text-gray-800 mb-2">Something went wrong</h2>
+          <h2 className="text-2xl font-semibold text-gray-800 mb-2">{getText('common.errorTitle', 'Something went wrong')}</h2>
           <p className="text-gray-600">{error}</p>
         </div>
       </div>
@@ -63,8 +63,8 @@ export const DealsPage = React.memo(function DealsPage({
           {products.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-lg shadow-sm">
               <i className="fas fa-tags text-gray-300 text-5xl mb-4" />
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">No Deals Right Now</h2>
-              <p className="text-gray-400">Check back soon for new offers!</p>
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">{getText('travelpass.deals.emptyTitle', 'No Deals Right Now')}</h2>
+              <p className="text-gray-400">{getText('travelpass.deals.emptyHint', 'Check back soon for new offers!')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -93,8 +93,8 @@ export const DealsPage = React.memo(function DealsPage({
                         <span className="text-xs text-gray-400 ml-1">({product.reviewCount})</span>
                       </div>
                       <div className="space-y-2 mb-4 text-sm text-gray-600">
-                        <div className="flex items-center gap-2"><i className="fas fa-wifi text-blue-600 w-4 text-center" /><span>High-speed data</span></div>
-                        <div className="flex items-center gap-2"><i className="fas fa-clock text-blue-600 w-4 text-center" /><span>Limited time offer</span></div>
+                        <div className="flex items-center gap-2"><i className="fas fa-wifi text-blue-600 w-4 text-center" /><span>{getText('travelpass.feature.highSpeed', 'High-speed data')}</span></div>
+                        <div className="flex items-center gap-2"><i className="fas fa-clock text-blue-600 w-4 text-center" /><span>{getText('travelpass.deals.limitedOffer', 'Limited time offer')}</span></div>
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
@@ -102,7 +102,7 @@ export const DealsPage = React.memo(function DealsPage({
                           {hasDiscount && <span className="ml-2 text-sm text-gray-400 line-through">${product.originalPrice!.toFixed(2)}</span>}
                         </div>
                         <button onClick={() => onProductClick(product.id)} className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium px-4 py-2 rounded-md transition-colors">
-                          View Deal
+                          {getText('travelpass.deals.viewDeal', 'View Deal')}
                         </button>
                       </div>
                     </div>

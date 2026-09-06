@@ -15,7 +15,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "docker:build": "docker build -t shop:latest .",
-    "clean": "if (Test-Path .next) { Remove-Item -Recurse -Force .next }"
+    "clean": "if (Test-Path .next) { Remove-Item -Recurse -Force .next }",
+    "workers:build:easyeuicc": "rm -rf .next .open-next && NEXT_PUBLIC_API_URL=https://api.easyeuicc.cc/api API_SERVICE_URL=https://api.easyeuicc.cc SERVER_STORE_CONTEXT_TIMEOUT_MS=2000 THEME_APP_PROXY_DISABLED=1 THEME_APP_PROXY_TIMEOUT_MS=1000 opennextjs-cloudflare build --config wrangler.easyeuicc.toml --dangerouslyUseUnsupportedNextVersion",
+    "workers:deploy:easyeuicc": "pnpm workers:build:easyeuicc && opennextjs-cloudflare deploy --config wrangler.easyeuicc.toml"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "7.2.0",

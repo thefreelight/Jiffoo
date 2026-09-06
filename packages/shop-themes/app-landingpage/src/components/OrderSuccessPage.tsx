@@ -5,13 +5,17 @@
 
 import React from 'react';
 import type { OrderSuccessPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 export const OrderSuccessPage = React.memo(function OrderSuccessPage({
   orderNumber,
   config,
   onContinueShopping,
   onViewOrders,
+  t,
+  locale,
 }: OrderSuccessPageProps) {
+  const getText = (key: string, fallback: string) => themeText(t, locale, key, fallback);
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 pt-28 pb-12">
@@ -25,14 +29,14 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
 
           {/* Title */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-green-600 mb-3">eSIM Order Confirmed!</h1>
-            <p className="text-lg text-gray-600">Your eSIM package is being prepared for activation.</p>
+            <h1 className="text-3xl font-bold text-green-600 mb-3">{getText('orderSuccess.title', 'eSIM Order Confirmed!')}</h1>
+            <p className="text-lg text-gray-600">{getText('orderSuccess.subtitle', 'Your eSIM package is being prepared for activation.')}</p>
           </div>
 
           {/* Order Details */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
             <div className="text-center mb-6">
-              <p className="text-sm text-gray-600 mb-1">Order Number</p>
+              <p className="text-sm text-gray-600 mb-1">{getText('orderSuccess.orderNumber', 'Order Number')}</p>
               <p className="text-2xl font-bold font-mono text-gray-900">{orderNumber}</p>
             </div>
 
@@ -41,28 +45,28 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
                 <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center flex-shrink-0">
                   <i className="fas fa-check-circle text-green-600 text-sm" />
                 </div>
-                <p className="text-gray-700 pt-1">Your payment has been processed successfully</p>
+                <p className="text-gray-700 pt-1">{getText('orderSuccess.paymentProcessed', 'Your payment has been processed successfully')}</p>
               </div>
 
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
                   <i className="fas fa-envelope text-blue-600 text-sm" />
                 </div>
-                <p className="text-gray-700 pt-1">eSIM QR code and activation instructions sent to your email</p>
+                <p className="text-gray-700 pt-1">{getText('orderSuccess.emailSent', 'eSIM QR code and activation instructions sent to your email')}</p>
               </div>
 
               <div className="flex items-start gap-3">
                 <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
                   <i className="fas fa-qrcode text-blue-600 text-sm" />
                 </div>
-                <p className="text-gray-700 pt-1">Scan the QR code with your device to install the eSIM profile</p>
+                <p className="text-gray-700 pt-1">{getText('orderSuccess.scanQr', 'Scan the QR code with your device to install the eSIM profile')}</p>
               </div>
             </div>
           </div>
 
           {/* eSIM Delivery Steps */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">How to Activate Your eSIM</h2>
+            <h2 className="text-xl font-semibold text-gray-800 mb-6">{getText('orderSuccess.howToActivate', 'How to Activate Your eSIM')}</h2>
 
             <div className="space-y-6">
               <div className="flex items-start gap-4">
@@ -70,8 +74,8 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
                   <span className="text-white font-semibold text-sm">1</span>
                 </div>
                 <div className="text-left">
-                  <h3 className="font-medium text-gray-800 mb-1">Check Your Email</h3>
-                  <p className="text-sm text-gray-600">You&apos;ll receive an email with your eSIM QR code within minutes</p>
+                  <h3 className="font-medium text-gray-800 mb-1">{getText('orderSuccess.checkEmail', 'Check Your Email')}</h3>
+                  <p className="text-sm text-gray-600">{getText('orderSuccess.checkEmailDescription', "You'll receive an email with your eSIM QR code within minutes")}</p>
                 </div>
               </div>
 
@@ -80,8 +84,8 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
                   <span className="text-white font-semibold text-sm">2</span>
                 </div>
                 <div className="text-left">
-                  <h3 className="font-medium text-gray-800 mb-1">Scan QR Code</h3>
-                  <p className="text-sm text-gray-600">Go to Settings &gt; Cellular &gt; Add eSIM and scan the QR code</p>
+                  <h3 className="font-medium text-gray-800 mb-1">{getText('orderSuccess.scanQrTitle', 'Scan QR Code')}</h3>
+                  <p className="text-sm text-gray-600">{getText('orderSuccess.scanQrDescription', 'Go to Settings > Cellular > Add eSIM and scan the QR code')}</p>
                 </div>
               </div>
 
@@ -90,8 +94,8 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
                   <span className="text-white font-semibold text-sm">3</span>
                 </div>
                 <div className="text-left">
-                  <h3 className="font-medium text-gray-800 mb-1">Activate at Destination</h3>
-                  <p className="text-sm text-gray-600">Turn on data roaming when you arrive — your eSIM connects automatically</p>
+                  <h3 className="font-medium text-gray-800 mb-1">{getText('orderSuccess.activateDestination', 'Activate at Destination')}</h3>
+                  <p className="text-sm text-gray-600">{getText('orderSuccess.activateDestinationDescription', 'Turn on data roaming when you arrive — your eSIM connects automatically')}</p>
                 </div>
               </div>
             </div>
@@ -104,7 +108,7 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md px-6 py-3 transition-colors"
             >
               <i className="fas fa-box mr-2" />
-              View My eSIMs
+              {getText('orderSuccess.viewEsims', 'View My eSIMs')}
             </button>
 
             <button
@@ -112,7 +116,7 @@ export const OrderSuccessPage = React.memo(function OrderSuccessPage({
               className="border border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold rounded-md px-6 py-3 transition-colors"
             >
               <i className="fas fa-shopping-cart mr-2" />
-              Browse More Packages
+              {getText('orderSuccess.browsePackages', 'Browse More Packages')}
             </button>
           </div>
         </div>

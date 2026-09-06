@@ -7,6 +7,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 import type { RegisterPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 export function RegisterPage({
   isLoading,
@@ -15,7 +16,10 @@ export function RegisterPage({
   onSubmit,
   onOAuthClick,
   onNavigateToLogin,
+  locale,
+  t,
 }: RegisterPageProps) {
+  const tx = (key: string, fallback: string) => themeText(t, locale, key, fallback);
   const [formData, setFormData] = React.useState({
     firstName: '',
     lastName: '',
@@ -72,7 +76,7 @@ export function RegisterPage({
             <i className="fas fa-globe-americas text-3xl text-blue-600" />
           </div>
           <h1 className="text-3xl font-bold text-gray-800 mb-1">TravelPass</h1>
-          <p className="text-gray-600">Create your account</p>
+          <p className="text-gray-600">{tx('auth.register.subtitle', 'Create your account')}</p>
         </div>
 
         {/* Register Form Card */}
@@ -87,7 +91,7 @@ export function RegisterPage({
           {/* Name Inputs - Side by side */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label htmlFor="register-firstName" className="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+              <label htmlFor="register-firstName" className="block text-sm font-medium text-gray-700 mb-2">{tx('auth.firstName', 'First Name')}</label>
               <div className="relative">
                 <i className="fas fa-user absolute left-4 top-3.5 text-gray-400" />
                 <input
@@ -103,7 +107,7 @@ export function RegisterPage({
               </div>
             </div>
             <div>
-              <label htmlFor="register-lastName" className="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+              <label htmlFor="register-lastName" className="block text-sm font-medium text-gray-700 mb-2">{tx('auth.lastName', 'Last Name')}</label>
               <div className="relative">
                 <i className="fas fa-user absolute left-4 top-3.5 text-gray-400" />
                 <input
@@ -122,7 +126,7 @@ export function RegisterPage({
 
           {/* Email Input */}
           <div>
-            <label htmlFor="register-email" className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+            <label htmlFor="register-email" className="block text-sm font-medium text-gray-700 mb-2">{tx('auth.email', 'Email Address')}</label>
             <div className="relative">
               <i className="fas fa-envelope absolute left-4 top-3.5 text-gray-400" />
               <input
@@ -140,7 +144,7 @@ export function RegisterPage({
 
           {/* Password Input */}
           <div>
-            <label htmlFor="register-password" className="block text-sm font-medium text-gray-700 mb-2">Password</label>
+            <label htmlFor="register-password" className="block text-sm font-medium text-gray-700 mb-2">{tx('auth.password', 'Password')}</label>
             <div className="relative">
               <i className="fas fa-lock absolute left-4 top-3.5 text-gray-400" />
               <input
@@ -158,7 +162,7 @@ export function RegisterPage({
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
                 disabled={isLoading}
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-label={showPassword ? tx('auth.hidePassword', 'Hide password') : tx('auth.showPassword', 'Show password')}
               >
                 {showPassword ? <i className="fas fa-eye-slash" /> : <i className="fas fa-eye" />}
               </button>
@@ -167,7 +171,7 @@ export function RegisterPage({
 
           {/* Confirm Password Input */}
           <div>
-            <label htmlFor="register-confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
+            <label htmlFor="register-confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">{tx('auth.confirmPassword', 'Confirm Password')}</label>
             <div className="relative">
               <i className="fas fa-lock absolute left-4 top-3.5 text-gray-400" />
               <input
@@ -189,13 +193,13 @@ export function RegisterPage({
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
                 disabled={isLoading}
-                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                aria-label={showConfirmPassword ? tx('auth.hidePassword', 'Hide password') : tx('auth.showPassword', 'Show password')}
               >
                 {showConfirmPassword ? <i className="fas fa-eye-slash" /> : <i className="fas fa-eye" />}
               </button>
             </div>
             {formData.confirmPassword && !passwordsMatch && (
-              <p className="text-sm text-red-600 mt-1">Passwords do not match</p>
+              <p className="text-sm text-red-600 mt-1">{tx('auth.passwordMismatch', 'Passwords do not match')}</p>
             )}
           </div>
 
@@ -210,10 +214,10 @@ export function RegisterPage({
               disabled={isLoading}
             />
             <label htmlFor="terms" className="text-sm text-gray-500">
-              I agree to the{' '}
-              <a href="/terms" className="text-blue-600 hover:text-blue-700 font-medium">Terms of Service</a>{' '}
-              and{' '}
-              <a href="/privacy" className="text-blue-600 hover:text-blue-700 font-medium">Privacy Policy</a>
+              {tx('checkout.agree', 'I agree to the')}{' '}
+              <a href={`/${locale || 'en'}/terms`} className="text-blue-600 hover:text-blue-700 font-medium">{tx('common.terms', 'Terms of Service')}</a>{' '}
+              {tx('checkout.and', 'and')}{' '}
+              <a href={`/${locale || 'en'}/privacy`} className="text-blue-600 hover:text-blue-700 font-medium">{tx('common.privacy', 'Privacy Policy')}</a>
             </label>
           </div>
 
@@ -236,7 +240,7 @@ export function RegisterPage({
                 Creating account...
               </>
             ) : (
-              'Create Account'
+              tx('auth.createAccount', 'Create Account')
             )}
           </button>
 
@@ -246,7 +250,7 @@ export function RegisterPage({
               <div className="w-full border-t border-gray-200"></div>
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">Or sign up with</span>
+              <span className="px-4 bg-white text-gray-500">{tx('auth.orSignUp', 'Or sign up with')}</span>
             </div>
           </div>
 
@@ -271,7 +275,7 @@ export function RegisterPage({
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
               <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
             </svg>
-            Continue with Google
+            {tx('auth.google', 'Continue with Google')}
           </button>
 
           {/* Sign In Link */}
@@ -284,7 +288,7 @@ export function RegisterPage({
                 className="text-blue-600 hover:text-blue-700 font-semibold transition-colors"
                 disabled={isLoading}
               >
-                Sign in
+                {tx('auth.signIn', 'Sign in')}
               </button>
             </p>
           </div>

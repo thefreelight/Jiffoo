@@ -6,6 +6,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 import type { ProductDetailPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 export const ProductDetailPage = React.memo(function ProductDetailPage({
   product,
@@ -17,7 +18,10 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
   onQuantityChange,
   onAddToCart,
   onBack,
+  locale,
+  t,
 }: ProductDetailPageProps) {
+  const tx = (key: string, fallback: string, params?: Record<string, string | number>) => themeText(t, locale, key, fallback, params);
   const handleProductImageError = (event: React.SyntheticEvent<HTMLImageElement>) => {
     if (event.currentTarget.dataset.fallbackApplied === 'true') {
       return;
@@ -35,14 +39,14 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
       <div className="flex justify-center items-center min-h-screen bg-white">
         <div className="text-center">
           <i className="fas fa-exclamation-triangle text-blue-400 text-5xl mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Product Not Found</h2>
-          <p className="text-gray-500 mb-6">The eSIM package you are looking for does not exist.</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">{tx('product.notFound', 'Product Not Found')}</h2>
+          <p className="text-gray-500 mb-6">{tx('product.notFoundDescription', 'The eSIM package you are looking for does not exist.')}</p>
           <button
             onClick={onBack}
             className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
           >
             <i className="fas fa-arrow-left" />
-            Go Back
+            {tx('product.goBack', 'Go Back')}
           </button>
         </div>
       </div>
@@ -154,11 +158,11 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
         <div className="container mx-auto px-4">
           <nav className="flex items-center gap-2 text-sm text-gray-500">
             <button onClick={onBack} className="hover:text-blue-600 transition-colors">
-              Home
+              {tx('checkout.home', 'Home')}
             </button>
             <span>/</span>
             <button onClick={onBack} className="hover:text-blue-600 transition-colors">
-              eSIM Packages
+              {tx('checkout.packages', 'eSIM Packages')}
             </button>
             <span>/</span>
             <span className="text-gray-800 font-medium">{product.name}</span>
@@ -181,7 +185,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                   onError={handleProductImageError}
                 />
                 <span className="absolute top-4 right-4 bg-green-500 rounded-full py-1 px-3 shadow-md">
-                  <span className="text-sm font-medium text-white">New</span>
+                  <span className="text-sm font-medium text-white">{tx('product.new', 'New')}</span>
                 </span>
               </div>
 
@@ -195,7 +199,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                         {renderStars(rating, 'text-sm')}
                       </div>
                       <span className="text-gray-600">
-                        {rating.toFixed(1)} ({reviewCount} reviews)
+                        {rating.toFixed(1)} ({tx('product.reviewsCount', '{count} reviews', { count: reviewCount })})
                       </span>
                     </div>
                   </div>
@@ -206,28 +210,28 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center mb-2">
                       <i className="fas fa-wifi text-blue-600 mr-2" />
-                      <span className="font-medium">Data</span>
+                      <span className="font-medium">{tx('product.data', 'Data')}</span>
                     </div>
-                    <p>{activeVariant?.name || '5GB High-Speed Data'}</p>
+                    <p>{activeVariant?.name || tx('product.defaultData', '5GB High-Speed Data')}</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center mb-2">
                       <i className="fas fa-calendar-alt text-blue-600 mr-2" />
-                      <span className="font-medium">Validity</span>
+                      <span className="font-medium">{tx('product.validity', 'Validity')}</span>
                     </div>
-                    <p>{activeVariant?.value || '30 Days'}</p>
+                    <p>{activeVariant?.value || tx('product.defaultValidity', '30 Days')}</p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center mb-2">
                       <i className="fas fa-signal text-blue-600 mr-2" />
-                      <span className="font-medium">Network</span>
+                      <span className="font-medium">{tx('product.network', 'Network')}</span>
                     </div>
-                    <p>4G/5G Coverage</p>
+                    <p>{tx('product.coverage', '4G/5G Coverage')}</p>
                   </div>
                 </div>
 
                 {/* Key Features */}
-                <h3 className="text-xl font-semibold mb-4">Key Features</h3>
+                <h3 className="text-xl font-semibold mb-4">{tx('product.features', 'Key Features')}</h3>
                 <ul className="space-y-3 mb-6">
                   {keyFeatures.map((feature) => (
                     <li key={feature} className="flex items-start">
@@ -238,13 +242,11 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 </ul>
 
                 {/* Description */}
-                <h2 className="text-xl font-semibold mb-4">Description</h2>
+              <h2 className="text-xl font-semibold mb-4">{tx('product.description', 'Description')}</h2>
                 <div className="space-y-4 text-gray-600">
                   <p>{product.description}</p>
                   <p>
-                    Stay connected wherever you go with our premium eSIM service. Enjoy seamless
-                    connectivity with high-speed data, easy setup, and reliable coverage across
-                    major networks.
+                    {tx('product.descriptionBody', 'Stay connected wherever you go with our premium eSIM service. Enjoy seamless connectivity with high-speed data, easy setup, and reliable coverage across major networks.')}
                   </p>
                 </div>
               </div>
@@ -252,7 +254,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
 
             {/* Reviews section */}
             <div className="bg-white rounded-lg shadow-sm p-6 mt-8">
-              <h2 className="text-xl font-semibold mb-6">Customer Reviews</h2>
+              <h2 className="text-xl font-semibold mb-6">{tx('product.reviews', 'Customer Reviews')}</h2>
 
               {/* Overall rating + distribution */}
               <div className="flex flex-col md:flex-row gap-8 mb-8">
@@ -266,7 +268,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                       {renderStars(rating, 'text-sm')}
                     </div>
                     <p className="text-gray-600">
-                      Based on {reviewCount} reviews
+                      {tx('product.basedOn', 'Based on {count} reviews', { count: reviewCount })}
                     </p>
                   </div>
                 </div>
@@ -276,7 +278,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                   {ratingDistribution.map((item) => (
                     <div key={item.stars} className="flex items-center">
                       <span className="text-sm w-16">
-                        {item.stars} {item.stars === 1 ? 'star' : 'stars'}
+                        {item.stars} {tx(item.stars === 1 ? 'product.star' : 'product.stars', item.stars === 1 ? 'star' : 'stars')}
                       </span>
                       <div className="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden mx-2">
                         <div
@@ -324,7 +326,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
               {/* See All Reviews */}
               <div className="mt-6 text-center">
                 <button className="text-blue-600 hover:text-blue-800 font-medium">
-                  See All 287 Reviews <i className="fas fa-chevron-right ml-1" />
+                  {tx('product.seeAll', 'See All {count} Reviews', { count: 287 })} <i className="fas fa-chevron-right ml-1" />
                 </button>
               </div>
             </div>
@@ -348,20 +350,20 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                   </div>
                   {isOutOfStock ? (
                     <span className="inline-block bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                      Out of Stock
+                      {tx('product.outOfStock', 'Out of Stock')}
                     </span>
                   ) : (
                     <span className="inline-block bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
-                      In Stock
+                      {tx('product.inStock', 'In Stock')}
                     </span>
                   )}
                 </div>
-                <p className="text-gray-500 text-sm mb-4">Taxes included</p>
+                <p className="text-gray-500 text-sm mb-4">{tx('product.taxesIncluded', 'Taxes included')}</p>
 
                 {/* Plan selection */}
                 {product.variants && product.variants.length > 0 && (
                   <div className="mb-5">
-                    <h3 className="font-medium mb-3">Choose Your Plan</h3>
+                    <h3 className="font-medium mb-3">{tx('product.choosePlan', 'Choose Your Plan')}</h3>
                     <div className="space-y-2">
                       {product.variants.map((variant, index) => (
                         <label
@@ -403,7 +405,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
 
                 {/* Quantity selector */}
                 <div className="mb-5">
-                  <h3 className="font-semibold text-gray-900 mb-3 text-sm">Quantity</h3>
+                  <h3 className="font-semibold text-gray-900 mb-3 text-sm">{tx('product.quantity', 'Quantity')}</h3>
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => onQuantityChange(Math.max(1, quantity - 1))}
@@ -436,7 +438,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                       : 'bg-blue-600 hover:bg-blue-700'
                   )}
                 >
-                  {isOutOfStock ? 'Out of Stock' : 'Buy Now'}
+                  {isOutOfStock ? tx('product.outOfStock', 'Out of Stock') : tx('product.buyNow', 'Buy Now')}
                 </button>
 
                 {/* Add to Cart button */}
@@ -450,37 +452,37 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                       : 'border border-blue-600 text-blue-600 hover:bg-blue-50'
                   )}
                 >
-                  Add to Cart
+                  {tx('product.addToCart', 'Add to Cart')}
                 </button>
 
                 {/* Trust badges */}
                 <div className="pt-5 border-t border-gray-100 space-y-3">
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <i className="fas fa-shield-alt text-green-600 w-5 text-center" />
-                    <span>Secure transaction</span>
+                    <span>{tx('product.secure', 'Secure transaction')}</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <i className="fas fa-envelope text-blue-600 w-5 text-center" />
-                    <span>Instant delivery via email</span>
+                    <span>{tx('product.instantDelivery', 'Instant delivery via email')}</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <i className="fas fa-undo text-blue-600 w-5 text-center" />
-                    <span>7-day refund policy if not activated</span>
+                    <span>{tx('product.refund', '7-day refund policy if not activated')}</span>
                   </div>
                 </div>
 
                 {/* Need Help box */}
                 <div className="bg-gray-50 p-4 rounded-lg mt-6">
-                  <h3 className="font-medium mb-2">Need Help?</h3>
+                  <h3 className="font-medium mb-2">{tx('product.needHelp', 'Need Help?')}</h3>
                   <p className="text-sm text-gray-600 mb-3">
-                    Our support team is available 24/7 to assist you with any questions.
+                    {tx('product.supportBody', 'Our support team is available 24/7 to assist you with any questions.')}
                   </p>
                   <a
                     href="#"
                     className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
                   >
                     <i className="fas fa-comment-dots" />
-                    Chat with Support
+                    {tx('product.chatSupport', 'Chat with Support')}
                   </a>
                 </div>
               </div>
@@ -491,7 +493,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
       {/* You May Also Like */}
       <section className="py-12 bg-gray-50">
         <div className="container mx-auto px-4">
-          <h2 className="text-2xl font-bold text-gray-800 mb-8">You May Also Like</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-8">{tx('product.alsoLike', 'You May Also Like')}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { name: 'South Korea 5GB', price: 21.99, rating: 4.7, desc: '5GB Data \u2022 14 Days \u2022 4G/5G', img: 'https://images.unsplash.com/photo-1528181304800-259b08848526?w=400&h=200&fit=crop' },
@@ -517,7 +519,7 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                       onClick={(e) => { e.preventDefault(); onBack(); }}
                       className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                     >
-                      View Details
+                      {tx('product.viewDetails', 'View Details')}
                     </a>
                   </div>
                 </div>

@@ -5,13 +5,17 @@
 
 import React from 'react';
 import type { OrderCancelledPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 export const OrderCancelledPage = React.memo(function OrderCancelledPage({
   config,
   onReturnToCart,
   onContinueShopping,
   onContactSupport,
+  t,
+  locale,
 }: OrderCancelledPageProps) {
+  const getText = (key: string, fallback: string) => themeText(t, locale, key, fallback);
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 pt-28 pb-12">
@@ -25,10 +29,8 @@ export const OrderCancelledPage = React.memo(function OrderCancelledPage({
 
           {/* Title */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-yellow-600 mb-3">Payment Cancelled</h1>
-            <p className="text-lg text-gray-600">
-              Your payment was cancelled. No charges were made to your account.
-            </p>
+          <h1 className="text-3xl font-bold text-yellow-600 mb-3">{getText('orderCancelled.title', 'Payment Cancelled')}</h1>
+            <p className="text-lg text-gray-600">{getText('orderCancelled.subtitle', 'Your payment was cancelled. No charges were made to your account.')}</p>
           </div>
 
           {/* Information Card */}
@@ -39,10 +41,8 @@ export const OrderCancelledPage = React.memo(function OrderCancelledPage({
                   <i className="fas fa-shopping-cart text-blue-600 text-sm" />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-800 mb-1">Your cart is still saved</p>
-                  <p className="text-sm text-gray-600">
-                    All eSIM packages remain in your cart and you can complete your purchase anytime
-                  </p>
+                  <p className="font-medium text-gray-800 mb-1">{getText('orderCancelled.cartSaved', 'Your cart is still saved')}</p>
+                  <p className="text-sm text-gray-600">{getText('orderCancelled.cartSavedDescription', 'All eSIM packages remain in your cart and you can complete your purchase anytime')}</p>
                 </div>
               </div>
 
@@ -51,10 +51,8 @@ export const OrderCancelledPage = React.memo(function OrderCancelledPage({
                   <i className="fas fa-headset text-purple-600 text-sm" />
                 </div>
                 <div>
-                  <p className="font-medium text-gray-800 mb-1">Need help?</p>
-                  <p className="text-sm text-gray-600">
-                    If you encountered any issues during checkout, our support team is available 24/7
-                  </p>
+                  <p className="font-medium text-gray-800 mb-1">{getText('orderCancelled.needHelp', 'Need help?')}</p>
+                  <p className="text-sm text-gray-600">{getText('orderCancelled.needHelpDescription', 'If you encountered any issues during checkout, our support team is available 24/7')}</p>
                 </div>
               </div>
             </div>
@@ -62,15 +60,13 @@ export const OrderCancelledPage = React.memo(function OrderCancelledPage({
 
           {/* What Happened */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4">What Happened?</h2>
-            <p className="text-gray-600 text-left mb-4">
-              You cancelled the payment process before completing your eSIM order. This could happen if you:
-            </p>
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">{getText('orderCancelled.whatHappened', 'What Happened?')}</h2>
+            <p className="text-gray-600 text-left mb-4">{getText('orderCancelled.whatHappenedDescription', 'You cancelled the payment process before completing your eSIM order. This could happen if you:')}</p>
             <ul className="text-left text-gray-600 space-y-2 list-disc list-inside">
-              <li>Clicked the back button during checkout</li>
-              <li>Closed the payment window</li>
-              <li>Decided to review your eSIM selection again</li>
-              <li>Encountered a technical issue</li>
+              <li>{getText('orderCancelled.reasonBack', 'Clicked the back button during checkout')}</li>
+              <li>{getText('orderCancelled.reasonClosed', 'Closed the payment window')}</li>
+              <li>{getText('orderCancelled.reasonReview', 'Decided to review your eSIM selection again')}</li>
+              <li>{getText('orderCancelled.reasonIssue', 'Encountered a technical issue')}</li>
             </ul>
           </div>
 
@@ -81,7 +77,7 @@ export const OrderCancelledPage = React.memo(function OrderCancelledPage({
               className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md px-6 py-3 transition-colors"
             >
               <i className="fas fa-shopping-cart mr-2" />
-              Return to Cart
+              {getText('orderCancelled.returnCart', 'Return to Cart')}
             </button>
 
             <button
@@ -89,7 +85,7 @@ export const OrderCancelledPage = React.memo(function OrderCancelledPage({
               className="border border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold rounded-md px-6 py-3 transition-colors"
             >
               <i className="fas fa-arrow-left mr-2" />
-              Browse Packages
+              {getText('orderCancelled.browsePackages', 'Browse Packages')}
             </button>
           </div>
 
@@ -97,12 +93,12 @@ export const OrderCancelledPage = React.memo(function OrderCancelledPage({
           {onContactSupport && (
             <div className="mt-8 text-sm text-gray-500">
               <p>
-                Need assistance?{' '}
+                {getText('orderCancelled.assistance', 'Need assistance?')}{' '}
                 <button
                   onClick={onContactSupport}
                   className="text-blue-600 hover:underline font-medium"
                 >
-                  Contact Support
+                  {getText('orderCancelled.contactSupport', 'Contact Support')}
                 </button>
               </p>
             </div>
