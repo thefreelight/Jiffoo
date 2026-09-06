@@ -151,7 +151,10 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       target: 'shop',
       tags: ['app-download', 'landing', 'easyeuicc', 'responsive'],
     },
-    load: async () => appLandingpageTheme,
+    // The embedded mirror exports the official theme's own contract
+    // types; assert at this registry boundary until the theme types its
+    // runtime against the shared theme contract.
+    load: async () => appLandingpageTheme as unknown as ThemePackage,
   },
   // Second built-in base theme — "Serene" calm indigo design
   [BUILTIN_SERENE_SLUG]: {

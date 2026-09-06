@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "slug": "app-landingpage",
   "name": "App Landing Page",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "target": "shop",
   "description": "High-conversion Android app download landing page theme with QR download, APK verification, and app screenshots.",
   "author": "Jiffoo",

@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { cn } from '../lib/utils';
 import type { ProfileSettingsPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
   user,
@@ -17,11 +18,10 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
   onNavigateBack,
   onNavigateToLogin,
   t,
+  locale,
 }: ProfileSettingsPageProps) {
   const getText = (key: string, fallback: string): string => {
-    if (!t) return fallback;
-    const translated = t(key);
-    return translated === key ? fallback : translated;
+    return themeText(t, locale, key, fallback);
   };
 
   const [profileData, setProfileData] = useState({
@@ -51,10 +51,10 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <div className="text-center">
           <i className="fas fa-user-lock text-gray-400 text-5xl mb-4" />
-          <h2 className="text-2xl font-semibold text-gray-800 mb-2">Sign In Required</h2>
-          <p className="text-gray-600 mb-6">Please sign in to access settings.</p>
+          <h2 className="text-2xl font-semibold text-gray-800 mb-2">{getText('account.signInRequired', 'Sign In Required')}</h2>
+          <p className="text-gray-600 mb-6">{getText('account.signInSettings', 'Please sign in to access settings.')}</p>
           <button onClick={onNavigateToLogin} className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md px-6 py-3 transition-colors">
-            <i className="fas fa-sign-in-alt mr-2" />Sign In
+            <i className="fas fa-sign-in-alt mr-2" />{getText('account.signIn', 'Sign In')}
           </button>
         </div>
       </div>
@@ -107,9 +107,9 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
       <div className="bg-gray-100 pt-20 pb-2">
         <div className="container mx-auto px-4">
           <nav className="flex items-center gap-2 text-sm text-gray-600">
-            <button onClick={onNavigateBack} className="text-gray-500 hover:text-blue-600 transition-colors">My Account</button>
+            <button onClick={onNavigateBack} className="text-gray-500 hover:text-blue-600 transition-colors">{getText('account.title', 'My Account')}</button>
             <span>/</span>
-            <span className="text-gray-900 font-medium">Settings</span>
+            <span className="text-gray-900 font-medium">{getText('account.settings', 'Settings')}</span>
           </nav>
         </div>
       </div>
@@ -122,15 +122,15 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
               <div>
                 <h1 className="text-2xl font-bold text-gray-800">
                   <i className="fas fa-cog mr-3 text-blue-600" />
-                  Account Settings
+                  {getText('account.settingsTitle', 'Account Settings')}
                 </h1>
-                <p className="text-gray-600 mt-1">Manage your profile and account preferences</p>
+                <p className="text-gray-600 mt-1">{getText('account.settingsSubtitle', 'Manage your profile and account preferences')}</p>
               </div>
               <button
                 onClick={onNavigateBack}
                 className="text-blue-600 hover:text-blue-700 font-medium text-sm"
               >
-                <i className="fas fa-arrow-left mr-2" />Back
+                <i className="fas fa-arrow-left mr-2" />{getText('account.back', 'Back')}
               </button>
             </div>
 
@@ -138,36 +138,36 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
               <h2 className="text-lg font-semibold text-gray-800 mb-6">
                 <i className="fas fa-user mr-2 text-blue-600" />
-                Profile Information
+                {getText('account.profileInfo', 'Profile Information')}
               </h2>
 
               {profileSaved && (
                 <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
-                  <i className="fas fa-check-circle mr-2" />Profile saved successfully!
+                  <i className="fas fa-check-circle mr-2" />{getText('account.profileSaved', 'Profile saved successfully!')}
                 </div>
               )}
 
               <form onSubmit={handleSaveProfile} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{getText('account.fullName', 'Full Name')}</label>
                     <input
                       type="text"
                       value={profileData.name}
                       onChange={(e) => setProfileData((p) => ({ ...p, name: e.target.value }))}
-                      placeholder="Your full name"
+                      placeholder={getText('account.fullNamePlaceholder', 'Your full name')}
                       className={inputStyles}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{getText('auth.email', 'Email')}</label>
                     <input type="email" value={user.email} disabled className={cn(inputStyles, 'bg-gray-50 text-gray-500 cursor-not-allowed')} />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{getText('account.phone', 'Phone Number')}</label>
                     <input
                       type="tel"
                       value={profileData.phone}
@@ -177,7 +177,7 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Date of Birth</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{getText('account.dob', 'Date of Birth')}</label>
                     <input
                       type="date"
                       value={profileData.dateOfBirth}
@@ -189,51 +189,48 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{getText('account.gender', 'Gender')}</label>
                     <select
                       value={profileData.gender}
                       onChange={(e) => setProfileData((p) => ({ ...p, gender: e.target.value }))}
                       className={inputStyles}
                     >
-                      <option value="">Prefer not to say</option>
-                      <option value="MALE">Male</option>
-                      <option value="FEMALE">Female</option>
-                      <option value="OTHER">Other</option>
+                      <option value="">{getText('account.preferNot', 'Prefer not to say')}</option>
+                      <option value="MALE">{getText('account.male', 'Male')}</option>
+                      <option value="FEMALE">{getText('account.female', 'Female')}</option>
+                      <option value="OTHER">{getText('account.other', 'Other')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Language</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{getText('account.language', 'Language')}</label>
                     <select
                       value={profileData.preferredLanguage}
                       onChange={(e) => setProfileData((p) => ({ ...p, preferredLanguage: e.target.value }))}
                       className={inputStyles}
                     >
-                      <option value="en">English</option>
-                      <option value="zh">Chinese</option>
-                      <option value="ja">Japanese</option>
-                      <option value="ko">Korean</option>
-                      <option value="es">Spanish</option>
-                      <option value="fr">French</option>
+                      <option value="en">{getText('account.languageEnglish', 'English')}</option>
+                      <option value="zh-Hans">{getText('account.languageSimplifiedChinese', 'Simplified Chinese')}</option>
+                      <option value="zh-Hant">{getText('account.languageTraditionalChinese', 'Traditional Chinese')}</option>
                     </select>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{getText('account.timezone', 'Timezone')}</label>
                   <select
                     value={profileData.timezone}
                     onChange={(e) => setProfileData((p) => ({ ...p, timezone: e.target.value }))}
                     className={inputStyles}
                   >
-                    <option value="UTC">UTC</option>
-                    <option value="America/New_York">Eastern Time</option>
-                    <option value="America/Chicago">Central Time</option>
-                    <option value="America/Denver">Mountain Time</option>
-                    <option value="America/Los_Angeles">Pacific Time</option>
-                    <option value="Asia/Tokyo">Japan Standard Time</option>
-                    <option value="Asia/Shanghai">China Standard Time</option>
-                    <option value="Europe/London">GMT</option>
-                    <option value="Europe/Paris">Central European Time</option>
+                    <option value="UTC">{getText('account.timezoneUtc', 'UTC')}</option>
+                    <option value="America/New_York">{getText('account.timezoneEastern', 'Eastern Time')}</option>
+                    <option value="America/Chicago">{getText('account.timezoneCentral', 'Central Time')}</option>
+                    <option value="America/Denver">{getText('account.timezoneMountain', 'Mountain Time')}</option>
+                    <option value="America/Los_Angeles">{getText('account.timezonePacific', 'Pacific Time')}</option>
+                    <option value="Asia/Tokyo">{getText('account.timezoneJapan', 'Japan Standard Time')}</option>
+                    <option value="Asia/Shanghai">{getText('account.timezoneChina', 'China Standard Time')}</option>
+                    <option value="Europe/London">{getText('account.timezoneGmt', 'GMT')}</option>
+                    <option value="Europe/Paris">{getText('account.timezoneCET', 'Central European Time')}</option>
                   </select>
                 </div>
 
@@ -246,9 +243,9 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
                   )}
                 >
                   {saving ? (
-                    <><i className="fas fa-spinner fa-spin mr-2" />Saving...</>
+                    <><i className="fas fa-spinner fa-spin mr-2" />{getText('account.saving', 'Saving...')}</>
                   ) : (
-                    <><i className="fas fa-save mr-2" />Save Changes</>
+                    <><i className="fas fa-save mr-2" />{getText('account.save', 'Save Changes')}</>
                   )}
                 </button>
               </form>
@@ -258,23 +255,23 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-800 mb-6">
                 <i className="fas fa-lock mr-2 text-blue-600" />
-                Change Password
+                {getText('account.changePassword', 'Change Password')}
               </h2>
 
               {passwordChanged && (
                 <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
-                  <i className="fas fa-check-circle mr-2" />Password changed successfully!
+                  <i className="fas fa-check-circle mr-2" />{getText('account.passwordChanged', 'Password changed successfully!')}
                 </div>
               )}
 
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Current Password</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{getText('account.currentPassword', 'Current Password')}</label>
                   <input
                     type="password"
                     value={passwordData.currentPassword}
                     onChange={(e) => setPasswordData((p) => ({ ...p, currentPassword: e.target.value }))}
-                    placeholder="Enter current password"
+                    placeholder={getText('account.currentPasswordPlaceholder', 'Enter current password')}
                     className={inputStyles}
                     required
                   />
@@ -282,24 +279,24 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">New Password</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{getText('account.newPassword', 'New Password')}</label>
                     <input
                       type="password"
                       value={passwordData.newPassword}
                       onChange={(e) => setPasswordData((p) => ({ ...p, newPassword: e.target.value }))}
-                      placeholder="Enter new password"
+                      placeholder={getText('account.newPasswordPlaceholder', 'Enter new password')}
                       className={inputStyles}
                       required
                       minLength={6}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Confirm New Password</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{getText('account.confirmNewPassword', 'Confirm New Password')}</label>
                     <input
                       type="password"
                       value={passwordData.confirmPassword}
                       onChange={(e) => setPasswordData((p) => ({ ...p, confirmPassword: e.target.value }))}
-                      placeholder="Confirm new password"
+                      placeholder={getText('account.confirmNewPasswordPlaceholder', 'Confirm new password')}
                       className={inputStyles}
                       required
                       minLength={6}
@@ -309,7 +306,7 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
 
                 {passwordData.newPassword && passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword && (
                   <p className="text-sm text-red-600">
-                    <i className="fas fa-exclamation-circle mr-1" />Passwords do not match
+                    <i className="fas fa-exclamation-circle mr-1" />{getText('account.passwordMismatch', 'Passwords do not match')}
                   </p>
                 )}
 
@@ -324,9 +321,9 @@ export const ProfileSettingsPage = React.memo(function ProfileSettingsPage({
                   )}
                 >
                   {changingPassword ? (
-                    <><i className="fas fa-spinner fa-spin mr-2" />Changing...</>
+                    <><i className="fas fa-spinner fa-spin mr-2" />{getText('account.changing', 'Changing...')}</>
                   ) : (
-                    <><i className="fas fa-lock mr-2" />Change Password</>
+                    <><i className="fas fa-lock mr-2" />{getText('account.changePassword', 'Change Password')}</>
                   )}
                 </button>
               </form>

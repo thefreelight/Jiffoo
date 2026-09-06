@@ -21,6 +21,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './'),
       '@shop-themes': path.resolve(__dirname, '../../packages/shop-themes'),
       '@jiffoo/theme-api-sdk': path.resolve(__dirname, '../../packages/theme-api-sdk/src/index.ts'),
+      'jiffoo-theme-api-sdk': path.resolve(__dirname, '../../packages/theme-api-sdk/src/index.ts'),
       '@jiffoo/core-api-sdk': path.resolve(__dirname, '../../packages/core-api-sdk/src/index.ts'),
       '@jiffoo/ui': path.resolve(__dirname, '../../packages/ui/src/index.ts'),
       // Map shared package paths for testing

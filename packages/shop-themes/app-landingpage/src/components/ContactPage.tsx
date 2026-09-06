@@ -6,20 +6,21 @@
 import React, { useState } from 'react';
 import { cn } from '../lib/utils';
 import type { ContactPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 export const ContactPage = React.memo(function ContactPage({
   config,
   onSubmitForm,
   t,
+  locale,
 }: ContactPageProps) {
+  const supportEmail = config?.site?.supportEmail || 'support@travelpass.com';
   const [formData, setFormData] = useState({ name: '', email: '', subject: '', message: '' });
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
   const getText = (key: string, fallback: string): string => {
-    if (!t) return fallback;
-    const translated = t(key);
-    return translated === key ? fallback : translated;
+    return themeText(t, locale, key, fallback);
   };
 
   const validateEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -67,8 +68,8 @@ export const ContactPage = React.memo(function ContactPage({
                     <i className="fas fa-envelope text-blue-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-800">Email</h3>
-                    <p className="text-sm text-gray-600">support@travelpass.com</p>
+                    <h3 className="font-semibold text-gray-800">{getText('contact.emailLabel', 'Email')}</h3>
+                    <p className="text-sm text-gray-600">{supportEmail}</p>
                   </div>
                 </div>
               </div>
@@ -79,7 +80,7 @@ export const ContactPage = React.memo(function ContactPage({
                     <i className="fas fa-phone-alt text-green-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-800">Phone</h3>
+                    <h3 className="font-semibold text-gray-800">{getText('contact.phoneLabel', 'Phone')}</h3>
                     <p className="text-sm text-gray-600">+1 (555) 123-4567</p>
                   </div>
                 </div>
@@ -91,8 +92,8 @@ export const ContactPage = React.memo(function ContactPage({
                     <i className="fas fa-comment-dots text-purple-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-800">Live Chat</h3>
-                    <p className="text-sm text-gray-600">Available 24/7</p>
+                    <h3 className="font-semibold text-gray-800">{getText('contact.liveChat', 'Live Chat')}</h3>
+                    <p className="text-sm text-gray-600">{getText('contact.available247', 'Available 24/7')}</p>
                   </div>
                 </div>
               </div>
@@ -103,8 +104,8 @@ export const ContactPage = React.memo(function ContactPage({
                     <i className="fas fa-clock text-yellow-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-800">Response Time</h3>
-                    <p className="text-sm text-gray-600">Usually within 1 hour</p>
+                    <h3 className="font-semibold text-gray-800">{getText('contact.responseTime', 'Response Time')}</h3>
+                    <p className="text-sm text-gray-600">{getText('contact.responseWithinHour', 'Usually within 1 hour')}</p>
                   </div>
                 </div>
               </div>
@@ -118,65 +119,65 @@ export const ContactPage = React.memo(function ContactPage({
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <i className="fas fa-check-circle text-green-600 text-3xl" />
                     </div>
-                    <h2 className="text-2xl font-semibold text-gray-800 mb-2">Message Sent!</h2>
-                    <p className="text-gray-600 mb-6">We&apos;ll get back to you within 1 hour.</p>
+                    <h2 className="text-2xl font-semibold text-gray-800 mb-2">{getText('contact.messageSent', 'Message Sent!')}</h2>
+                    <p className="text-gray-600 mb-6">{getText('contact.responseNotice', "We'll get back to you within 1 hour.")}</p>
                     <button
                       onClick={() => setSubmitted(false)}
                       className="text-blue-600 hover:text-blue-700 font-medium"
                     >
-                      Send another message
+                      {getText('contact.sendAnother', 'Send another message')}
                     </button>
                   </div>
                 ) : (
                   <>
-                    <h2 className="text-xl font-semibold text-gray-800 mb-6">Send us a message</h2>
+                    <h2 className="text-xl font-semibold text-gray-800 mb-6">{getText('contact.sendMessageTitle', 'Send us a message')}</h2>
                     <form onSubmit={handleSubmit} className="space-y-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">{getText('contact.name', 'Name')}</label>
                           <input
                             type="text"
                             value={formData.name}
                             onChange={(e) => setFormData((p) => ({ ...p, name: e.target.value }))}
-                            placeholder="Your name"
+                            placeholder={getText('contact.namePlaceholder', 'Your name')}
                             className={inputStyles}
                             required
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">{getText('contact.emailLabel', 'Email')}</label>
                           <input
                             type="email"
                             value={formData.email}
                             onChange={(e) => setFormData((p) => ({ ...p, email: e.target.value }))}
-                            placeholder="you@example.com"
+                            placeholder={getText('contact.emailPlaceholder', 'you@example.com')}
                             className={inputStyles}
                             required
                           />
                         </div>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{getText('contact.subject', 'Subject')}</label>
                         <select
                           value={formData.subject}
                           onChange={(e) => setFormData((p) => ({ ...p, subject: e.target.value }))}
                           className={inputStyles}
                           required
                         >
-                          <option value="">Select a topic</option>
-                          <option value="activation">eSIM Activation Help</option>
-                          <option value="connectivity">Connectivity Issues</option>
-                          <option value="billing">Billing & Refunds</option>
-                          <option value="account">Account Issues</option>
-                          <option value="other">Other</option>
+                          <option value="">{getText('contact.selectTopic', 'Select a topic')}</option>
+                          <option value="activation">{getText('contact.activation', 'eSIM Activation Help')}</option>
+                          <option value="connectivity">{getText('contact.connectivity', 'Connectivity Issues')}</option>
+                          <option value="billing">{getText('contact.billing', 'Billing & Refunds')}</option>
+                          <option value="account">{getText('contact.account', 'Account Issues')}</option>
+                          <option value="other">{getText('contact.other', 'Other')}</option>
                         </select>
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{getText('contact.message', 'Message')}</label>
                         <textarea
                           value={formData.message}
                           onChange={(e) => setFormData((p) => ({ ...p, message: e.target.value }))}
-                          placeholder="Describe your issue or question..."
+                          placeholder={getText('contact.messagePlaceholder', 'Describe your issue or question...')}
                           rows={5}
                           className={inputStyles}
                           required
@@ -191,9 +192,9 @@ export const ContactPage = React.memo(function ContactPage({
                         )}
                       >
                         {isLoading ? (
-                          <><i className="fas fa-spinner fa-spin mr-2" />Sending...</>
+                          <><i className="fas fa-spinner fa-spin mr-2" />{getText('contact.sending', 'Sending...')}</>
                         ) : (
-                          <><i className="fas fa-paper-plane mr-2" />Send Message</>
+                          <><i className="fas fa-paper-plane mr-2" />{getText('contact.sendMessage', 'Send Message')}</>
                         )}
                       </button>
                     </form>

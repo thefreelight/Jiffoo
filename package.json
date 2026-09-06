@@ -80,9 +80,7 @@
     "theme-matrix": "node scripts/theme-matrix.mjs",
     "theme-matrix:type-check": "node scripts/theme-matrix.mjs --type-check",
     "theme-matrix:validate": "node scripts/theme-matrix.mjs --validate",
-    "theme-matrix:ssr": "node scripts/theme-ssr-smoke.mjs",
-    "surface:generate": "pnpm --filter @jiffoo/theme-api-sdk surface:generate",
-    "surface:check": "pnpm --filter @jiffoo/theme-api-sdk surface:check"
+    "theme-matrix:ssr": "node scripts/theme-ssr-smoke.mjs"
   },
   "lint-staged": {
     "apps/api/src/**/*.ts": [

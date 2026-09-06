@@ -7,6 +7,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 import type { ProfilePageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 export const ProfilePage = React.memo(function ProfilePage({
   user,
@@ -17,11 +18,10 @@ export const ProfilePage = React.memo(function ProfilePage({
   onNavigateToOrders,
   onNavigateToLogin,
   t,
+  locale,
 }: ProfilePageProps) {
   const getText = (key: string, fallback: string): string => {
-    if (!t) return fallback;
-    const translated = t(key);
-    return translated === key ? fallback : translated;
+    return themeText(t, locale, key, fallback);
   };
 
   if (isLoading) return <div className="min-h-screen bg-gray-50" />;
@@ -32,14 +32,14 @@ export const ProfilePage = React.memo(function ProfilePage({
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <div className="text-center">
           <i className="fas fa-user-lock text-gray-400 text-5xl mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Sign In Required</h2>
-          <p className="text-gray-500 mb-6">Please sign in to access your account.</p>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">{getText('account.signInRequired', 'Sign In Required')}</h2>
+          <p className="text-gray-500 mb-6">{getText('account.signInAccount', 'Please sign in to access your account.')}</p>
           <button
             onClick={onNavigateToLogin}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg px-6 py-3 transition-colors"
           >
             <i className="fas fa-sign-in-alt mr-2" />
-            Sign In
+            {getText('account.signIn', 'Sign In')}
           </button>
         </div>
       </div>
@@ -85,9 +85,9 @@ export const ProfilePage = React.memo(function ProfilePage({
       <div className="bg-gray-100 pt-20 pb-2">
         <div className="container mx-auto px-4">
           <nav className="flex text-sm">
-            <span className="text-gray-500">Home</span>
+            <span className="text-gray-500">{getText('account.home', 'Home')}</span>
             <span className="mx-2 text-gray-500">/</span>
-            <span className="text-gray-800 font-medium">My Account</span>
+            <span className="text-gray-800 font-medium">{getText('account.title', 'My Account')}</span>
           </nav>
         </div>
       </div>
@@ -96,8 +96,8 @@ export const ProfilePage = React.memo(function ProfilePage({
         <div className="container mx-auto px-4">
           {/* Welcome */}
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-800">My Account</h1>
-            <p className="text-gray-600">Welcome back, {user.name || user.email}!</p>
+            <h1 className="text-2xl font-bold text-gray-800">{getText('account.title', 'My Account')}</h1>
+            <p className="text-gray-600">{getText('account.welcome', 'Welcome back, {name}!').replace('{name}', user.name || user.email)}</p>
           </div>
 
           <div className="flex flex-col lg:flex-row gap-8">
@@ -139,7 +139,7 @@ export const ProfilePage = React.memo(function ProfilePage({
                     <li>
                       <button className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors">
                         <i className="fas fa-sign-out-alt w-5 text-center" />
-                        <span>Log Out</span>
+                        <span>{getText('account.logout', 'Log Out')}</span>
                       </button>
                     </li>
                   </ul>
@@ -151,39 +151,39 @@ export const ProfilePage = React.memo(function ProfilePage({
             <div className="lg:w-3/4 space-y-8">
               {/* Dashboard — Stat Cards */}
               <div className="bg-white rounded-lg shadow-sm p-6">
-                <h2 className="text-xl font-semibold mb-6">Dashboard</h2>
+                <h2 className="text-xl font-semibold mb-6">{getText('account.dashboard', 'Dashboard')}</h2>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                   <div className="bg-blue-50 p-6 rounded-lg">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-medium text-blue-800">Active eSIMs</h3>
+                      <h3 className="font-medium text-blue-800">{getText('account.activeEsims', 'Active eSIMs')}</h3>
                       <i className="fas fa-sim-card text-blue-600 text-xl" />
                     </div>
                     <p className="text-3xl font-bold text-blue-800">2</p>
-                    <p className="text-sm text-blue-700 mt-1">View active eSIMs</p>
+                    <p className="text-sm text-blue-700 mt-1">{getText('account.viewActive', 'View active eSIMs')}</p>
                   </div>
 
                   <div className="bg-green-50 p-6 rounded-lg">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-medium text-green-800">Data Remaining</h3>
+                      <h3 className="font-medium text-green-800">{getText('account.dataRemaining', 'Data Remaining')}</h3>
                       <i className="fas fa-wifi text-green-600 text-xl" />
                     </div>
-                    <p className="text-3xl font-bold text-green-800">7.2 GB</p>
-                    <p className="text-sm text-green-700 mt-1">Valid for 8 more days</p>
+                    <p className="text-3xl font-bold text-green-800">{getText('account.sampleData', '7.2 GB')}</p>
+                    <p className="text-sm text-green-700 mt-1">{getText('account.validDays', 'Valid for {days} more days').replace('{days}', '8')}</p>
                   </div>
 
                   <div className="bg-purple-50 p-6 rounded-lg">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-medium text-purple-800">Recent Orders</h3>
+                      <h3 className="font-medium text-purple-800">{getText('account.recentOrders', 'Recent Orders')}</h3>
                       <i className="fas fa-shopping-bag text-purple-600 text-xl" />
                     </div>
                     <p className="text-3xl font-bold text-purple-800">3</p>
-                    <p className="text-sm text-purple-700 mt-1">View order history</p>
+                    <p className="text-sm text-purple-700 mt-1">{getText('account.viewHistory', 'View order history')}</p>
                   </div>
                 </div>
 
                 {/* Quick Actions */}
-                <h3 className="text-lg font-medium mb-4">Quick Actions</h3>
+                <h3 className="text-lg font-medium mb-4">{getText('account.quickActions', 'Quick Actions')}</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
                     { icon: 'fas fa-shopping-cart', label: 'Buy New eSIM' },
@@ -205,7 +205,7 @@ export const ProfilePage = React.memo(function ProfilePage({
               {/* Active eSIMs */}
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold">Active eSIMs</h2>
+                  <h2 className="text-xl font-semibold">{getText('account.activeEsims', 'Active eSIMs')}</h2>
                   <button onClick={onNavigateToOrders} className="text-sm text-blue-600 hover:text-blue-800 font-medium">
                     View All
                   </button>
@@ -227,14 +227,14 @@ export const ProfilePage = React.memo(function ProfilePage({
                             </div>
                             <div>
                               <h3 className="font-medium">{esim.name}</h3>
-                              <p className="text-sm text-gray-600">Expires in {esim.daysLeft} days ({esim.expiresDate})</p>
+                              <p className="text-sm text-gray-600">{getText('account.expiresIn', 'Expires in {days} days ({date})').replace('{days}', String(esim.daysLeft)).replace('{date}', esim.expiresDate)}</p>
                             </div>
                           </div>
 
                           <div className="flex flex-col md:flex-row md:items-center gap-3">
                             <div className="flex-1 min-w-[150px]">
                               <div className="flex justify-between mb-1 text-sm">
-                                <span className="text-gray-600">Data Usage</span>
+                                <span className="text-gray-600">{getText('account.dataUsage', 'Data Usage')}</span>
                                 <span className="font-medium">
                                   {esim.usedGB}GB / {isUnlimited ? 'Unlimited' : `${esim.totalGB}GB`}
                                 </span>
@@ -257,7 +257,7 @@ export const ProfilePage = React.memo(function ProfilePage({
               {/* Recent Orders */}
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold">Recent Orders</h2>
+                  <h2 className="text-xl font-semibold">{getText('account.recentOrders', 'Recent Orders')}</h2>
                   <button onClick={onNavigateToOrders} className="text-sm text-blue-600 hover:text-blue-800 font-medium">
                     View All
                   </button>
@@ -267,12 +267,12 @@ export const ProfilePage = React.memo(function ProfilePage({
                   <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order ID</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{getText('account.orderId', 'Order ID')}</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{getText('account.date', 'Date')}</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{getText('account.product', 'Product')}</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{getText('account.amount', 'Amount')}</th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{getText('account.status', 'Status')}</th>
+                        <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{getText('account.actions', 'Actions')}</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -302,8 +302,8 @@ export const ProfilePage = React.memo(function ProfilePage({
               {/* Saved Payment Methods */}
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold">Saved Payment Methods</h2>
-                  <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">Add New Card</button>
+                  <h2 className="text-xl font-semibold">{getText('account.savedPayments', 'Saved Payment Methods')}</h2>
+                  <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">{getText('account.addCard', 'Add New Card')}</button>
                 </div>
 
                 <div className="space-y-4">
@@ -314,7 +314,7 @@ export const ProfilePage = React.memo(function ProfilePage({
                           <i className={cn(pm.icon, 'text-2xl mr-4', pm.iconColor)} />
                           <div>
                             <h3 className="font-medium">{pm.type} ending in {pm.last4}</h3>
-                            <p className="text-sm text-gray-600">Expires {pm.expires}</p>
+                            <p className="text-sm text-gray-600">{getText('account.expires', 'Expires {value}').replace('{value}', pm.expires)}</p>
                           </div>
                         </div>
                         <div className="flex gap-2">

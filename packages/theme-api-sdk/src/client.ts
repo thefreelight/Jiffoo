@@ -1,7 +1,6 @@
 import {
   createCoreOpenApiClient,
-  type CoreApiTokenProvider,
-} from '@jiffoo/core-api-sdk';
+} from 'jiffoo-core-api-sdk';
 import type { ThemeApiClientOptions, RequestOptions, PluginInvokeOptions } from './types';
 import { buildPathWithQuery, normalizePrefix, resolveApiPath, shouldUseJsonBody } from './utils';
 
@@ -14,9 +13,8 @@ export type ThemeApiClient = {
     login<T = unknown>(payload: unknown): Promise<T>;
     register<T = unknown>(payload: unknown): Promise<T>;
     me<T = unknown>(): Promise<T>;
-    refresh<T = unknown>(payload: { refresh_token: string }): Promise<T>;
+    refresh<T = unknown>(): Promise<T>;
     logout<T = unknown>(): Promise<T>;
-    changePassword<T = unknown>(payload: { currentPassword: string; newPassword: string }): Promise<T>;
   };
   account: {
     getProfile<T = unknown>(): Promise<T>;
@@ -59,16 +57,10 @@ export type ThemeApiClient = {
   };
 };
 
-function toCoreTokenProvider(
-  token?: ThemeApiClientOptions['token']
-): CoreApiTokenProvider {
-  return token as CoreApiTokenProvider;
-}
-
 function buildRequestInit(options?: RequestOptions): RequestInit {
   const method = options?.method || 'GET';
   const headers = new Headers(options?.headers);
-  const init: RequestInit = { method, headers };
+  const init: RequestInit = { method, headers, credentials: 'include' };
 
   if (options?.body !== undefined) {
     if (shouldUseJsonBody(options.body)) {
@@ -88,10 +80,10 @@ export function createThemeApiClient(options: ThemeApiClientOptions = {}): Theme
   const apiPrefix = normalizePrefix(options.apiPrefix ?? '/api');
   const openapi = createCoreOpenApiClient({
     baseUrl: options.baseUrl ?? '',
-    token: toCoreTokenProvider(options.token),
     credentials: options.credentials ?? 'include',
-    fetch: options.fetch,
-    headers: options.headers,
+    ...(options.token !== undefined ? { token: options.token } : {}),
+    ...(options.fetch !== undefined ? { fetch: options.fetch } : {}),
+    ...(options.headers !== undefined ? { headers: options.headers } : {}),
   });
 
   async function request<T = unknown>(path: string, optionsIn?: RequestOptions): Promise<T> {
@@ -104,12 +96,11 @@ export function createThemeApiClient(options: ThemeApiClientOptions = {}): Theme
     request,
     openapi,
     auth: {
-      login: (payload) => request('/auth/login', { method: 'POST', body: payload }),
-      register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
-      me: () => request('/auth/me'),
-      refresh: (payload) => request('/auth/refresh', { method: 'POST', body: payload }),
-      logout: () => request('/auth/logout', { method: 'POST' }),
-      changePassword: (payload) => request('/auth/change-password', { method: 'POST', body: payload }),
+      login: (payload) => request('/shop/auth/login', { method: 'POST', body: payload }),
+      register: (payload) => request('/shop/auth/register', { method: 'POST', body: payload }),
+      me: () => request('/shop/auth/me'),
+      refresh: () => request('/shop/auth/refresh', { method: 'POST', body: {} }),
+      logout: () => request('/shop/auth/logout', { method: 'POST' }),
     },
     account: {
       getProfile: () => request('/account/profile'),
@@ -117,9 +108,9 @@ export function createThemeApiClient(options: ThemeApiClientOptions = {}): Theme
       uploadAvatar: (formData) => request('/account/avatar', { method: 'POST', body: formData }),
     },
     products: {
-      list: (query) => request('/products', { query }),
-      detail: (id, query) => request(`/products/${id}`, { query }),
-      categories: (query) => request('/products/categories', { query }),
+      list: (query) => request('/products', query ? { query } : undefined),
+      detail: (id, query) => request(`/products/${id}`, query ? { query } : undefined),
+      categories: (query) => request('/products/categories', query ? { query } : undefined),
       search: (query) => request('/products/search', { query }),
     },
     cart: {
@@ -131,7 +122,7 @@ export function createThemeApiClient(options: ThemeApiClientOptions = {}): Theme
       clear: () => request('/cart', { method: 'DELETE' }),
     },
     orders: {
-      list: (query) => request('/orders', { query }),
+      list: (query) => request('/orders', query ? { query } : undefined),
       detail: (id) => request(`/orders/${id}`),
       create: (payload) => request('/orders', { method: 'POST', body: payload }),
       cancel: (id, payload) => request(`/orders/${id}/cancel`, { method: 'POST', body: payload }),
@@ -142,11 +133,11 @@ export function createThemeApiClient(options: ThemeApiClientOptions = {}): Theme
       verifySession: (sessionId) => request(`/payments/verify/${sessionId}`),
     },
     store: {
-      context: (query) => request('/store/context', { query }),
+      context: (query) => request('/store/context', query ? { query } : undefined),
     },
     themes: {
-      active: (query) => request('/themes/active', { query }),
-      installed: (query) => request('/themes/installed', { query }),
+      active: (query) => request('/themes/active', query ? { query } : undefined),
+      installed: (query) => request('/themes/installed', query ? { query } : undefined),
     },
     plugins: {
       invoke: (slug, pluginPath, optionsInvoke) => {
@@ -159,9 +150,9 @@ export function createThemeApiClient(options: ThemeApiClientOptions = {}): Theme
         };
         return request(path, {
           method: optionsInvoke?.method || 'GET',
-          query,
-          body: optionsInvoke?.body,
-          headers: optionsInvoke?.headers,
+          ...(Object.keys(query).length > 0 ? { query } : {}),
+          ...(optionsInvoke?.body !== undefined ? { body: optionsInvoke.body } : {}),
+          ...(optionsInvoke?.headers !== undefined ? { headers: optionsInvoke.headers } : {}),
         });
       },
     },

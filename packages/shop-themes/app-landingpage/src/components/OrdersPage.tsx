@@ -7,6 +7,7 @@
 import React, { useState } from 'react';
 import { cn } from '../lib/utils';
 import type { OrdersPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 type TabKey = 'active' | 'upcoming' | 'expired' | 'all';
 
@@ -21,13 +22,12 @@ export const OrdersPage = React.memo(function OrdersPage({
   onOrderClick,
   onCancelOrder,
   t,
+  locale,
 }: OrdersPageProps) {
   const [activeTab, setActiveTab] = useState<TabKey>('all');
 
   const getText = (key: string, fallback: string): string => {
-    if (!t) return fallback;
-    const translated = t(key);
-    return translated === key ? fallback : translated;
+    return themeText(t, locale, key, fallback);
   };
 
   // Filter orders by tab
@@ -47,10 +47,10 @@ export const OrdersPage = React.memo(function OrdersPage({
   const filteredOrders = filterOrders(activeTab);
 
   const tabs: { key: TabKey; label: string }[] = [
-    { key: 'active', label: `Active (${filterOrders('active').length})` },
-    { key: 'upcoming', label: `Upcoming (${filterOrders('upcoming').length})` },
-    { key: 'expired', label: `Expired (${filterOrders('expired').length})` },
-    { key: 'all', label: `All (${orders.length})` },
+    { key: 'active', label: `${getText('orders.active', 'Active')} (${filterOrders('active').length})` },
+    { key: 'upcoming', label: `${getText('orders.upcoming', 'Upcoming')} (${filterOrders('upcoming').length})` },
+    { key: 'expired', label: `${getText('orders.expired', 'Expired')} (${filterOrders('expired').length})` },
+    { key: 'all', label: `${getText('orders.all', 'All')} (${orders.length})` },
   ];
 
   const statusBadge: Record<string, string> = {
@@ -77,7 +77,7 @@ export const OrdersPage = React.memo(function OrdersPage({
       <div className="flex justify-center items-center min-h-screen bg-gray-50 pt-20">
         <div className="text-center">
           <i className="fas fa-exclamation-triangle text-red-500 text-5xl mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Something went wrong</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">{getText('orders.errorTitle', 'Something went wrong')}</h2>
           <p className="text-gray-500">{error}</p>
         </div>
       </div>
@@ -90,11 +90,11 @@ export const OrdersPage = React.memo(function OrdersPage({
       <div className="bg-gray-100 pt-20 pb-2">
         <div className="container mx-auto px-4">
           <nav className="flex text-sm">
-            <span className="text-gray-500">Home</span>
+            <span className="text-gray-500">{getText('orders.home', 'Home')}</span>
             <span className="mx-2 text-gray-500">/</span>
-            <span className="text-gray-500">My Account</span>
+            <span className="text-gray-500">{getText('orders.account', 'My Account')}</span>
             <span className="mx-2 text-gray-500">/</span>
-            <span className="text-gray-800 font-medium">My eSIMs</span>
+            <span className="text-gray-800 font-medium">{getText('travelpass.orders.title', 'My eSIMs')}</span>
           </nav>
         </div>
       </div>
@@ -108,7 +108,7 @@ export const OrdersPage = React.memo(function OrdersPage({
             </h1>
             <button className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition flex items-center">
               <i className="fas fa-plus mr-2" />
-              Buy New eSIM
+              {getText('orders.buyNew', 'Buy New eSIM')}
             </button>
           </div>
 
@@ -136,10 +136,10 @@ export const OrdersPage = React.memo(function OrdersPage({
           {filteredOrders.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-lg shadow-sm border border-gray-200">
               <i className="fas fa-sim-card text-gray-300 text-5xl mb-4" />
-              <h2 className="text-xl font-semibold text-gray-800 mb-2">No eSIMs Found</h2>
-              <p className="text-gray-500 mb-6">You don&apos;t have any eSIMs in this category yet.</p>
+              <h2 className="text-xl font-semibold text-gray-800 mb-2">{getText('orders.emptyTitle', 'No eSIMs Found')}</h2>
+              <p className="text-gray-500 mb-6">{getText('orders.emptyDescription', "You don't have any eSIMs in this category yet.")}</p>
               <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg px-6 py-3 transition-colors">
-                Browse Packages
+                {getText('orders.browsePackages', 'Browse Packages')}
               </button>
             </div>
           ) : (
@@ -170,11 +170,11 @@ export const OrdersPage = React.memo(function OrdersPage({
 
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Ordered:</span>
-                            <span className="font-medium">{new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                            <span className="text-gray-600">{getText('orders.ordered', 'Ordered:')}</span>
+                            <span className="font-medium">{new Date(order.createdAt).toLocaleDateString(locale === 'zh-Hans' ? 'zh-CN' : locale === 'zh-Hant' ? 'zh-TW' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                           </div>
                           <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Status:</span>
+                            <span className="text-gray-600">{getText('orders.status', 'Status:')}</span>
                             <span className={cn('font-medium', statusBadge[order.status] || 'text-gray-600')}>
                               {order.status === 'DELIVERED' || order.status === 'PAID' ? 'Active' : order.status === 'PENDING' ? 'Upcoming' : order.status === 'COMPLETED' || order.status === 'CANCELLED' ? order.status.charAt(0) + order.status.slice(1).toLowerCase() : order.status.charAt(0) + order.status.slice(1).toLowerCase()}
                             </span>
@@ -186,7 +186,7 @@ export const OrdersPage = React.memo(function OrdersPage({
                       <div className="lg:w-2/3 xl:w-3/4 p-6">
                         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
                           <div className="mb-4 md:mb-0">
-                            <h3 className="font-medium mb-1">Data Usage</h3>
+                            <h3 className="font-medium mb-1">{getText('orders.dataUsage', 'Data Usage')}</h3>
                             <div className="flex items-center">
                               <span className="text-2xl font-bold text-gray-800">{usedGB} GB</span>
                               <span className="text-gray-600 ml-2">/ {totalGB} GB</span>
@@ -230,21 +230,21 @@ export const OrdersPage = React.memo(function OrdersPage({
                           <div className="border border-gray-200 rounded-lg p-3">
                             <div className="flex items-center mb-1">
                               <i className={cn('fas fa-wifi mr-2', barColors[colorIdx].replace('bg-', 'text-'))} />
-                              <h4 className="font-medium text-sm">Speed</h4>
+                              <h4 className="font-medium text-sm">{getText('orders.speed', 'Speed')}</h4>
                             </div>
                             <p className="text-gray-600 text-sm">4G/5G High-Speed</p>
                           </div>
                           <div className="border border-gray-200 rounded-lg p-3">
                             <div className="flex items-center mb-1">
                               <i className={cn('fas fa-signal mr-2', barColors[colorIdx].replace('bg-', 'text-'))} />
-                              <h4 className="font-medium text-sm">Network</h4>
+                              <h4 className="font-medium text-sm">{getText('orders.network', 'Network')}</h4>
                             </div>
-                            <p className="text-gray-600 text-sm">Major Carriers</p>
+                            <p className="text-gray-600 text-sm">{getText('orders.majorCarriers', 'Major Carriers')}</p>
                           </div>
                           <div className="border border-gray-200 rounded-lg p-3">
                             <div className="flex items-center mb-1">
                               <i className="fas fa-phone-alt mr-2 text-blue-600" />
-                              <h4 className="font-medium text-sm">Support</h4>
+                              <h4 className="font-medium text-sm">{getText('orders.support', 'Support')}</h4>
                             </div>
                             <p className="text-gray-600 text-sm">24/7 Available</p>
                           </div>
@@ -320,8 +320,8 @@ export const OrdersPage = React.memo(function OrdersPage({
           <div className="mt-12 bg-blue-50 rounded-lg p-6">
             <div className="flex flex-col md:flex-row md:items-center">
               <div className="mb-6 md:mb-0 md:mr-6 md:w-2/3">
-                <h2 className="text-xl font-semibold text-gray-800 mb-2">Need help with your eSIM?</h2>
-                <p className="text-gray-600 mb-4">Our support team is available 24/7 to help you with any issues regarding your eSIM activation, data usage, or technical problems.</p>
+                <h2 className="text-xl font-semibold text-gray-800 mb-2">{getText('orders.helpTitle', 'Need help with your eSIM?')}</h2>
+                <p className="text-gray-600 mb-4">{getText('orders.helpDescription', 'Our support team is available 24/7 to help you with any issues regarding your eSIM activation, data usage, or technical problems.')}</p>
                 <div className="flex flex-wrap gap-4">
                   <button className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors">
                     <i className="fas fa-headset mr-2" />

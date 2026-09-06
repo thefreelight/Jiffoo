@@ -50,6 +50,22 @@ async function resolveHeaders(
 }
 
 /**
+ * Shape of a non-envelope JSON error body (HTTP 4xx/5xx responses
+ * that do not use the CoreApiEnvelope format).
+ */
+type ErrorResponseBody = {
+  success?: false;
+  error?:
+    | {
+        code?: string;
+        message?: string;
+        details?: unknown;
+      }
+    | string;
+  message?: string;
+};
+
+/**
  * Typed OpenAPI client for Core API endpoints.
  */
 export function createCoreOpenApiClient(
@@ -83,7 +99,8 @@ export function createCoreOpenApiClient(
     baseUrl,
     fetch: async (input, init: RequestInit = {}) => {
       const headers = await buildHeaders(init.headers);
-      return fetchImpl(input as any, {
+      // openapi-fetch passes a URL object internally; cast to satisfy the global fetch overload.
+      return fetchImpl(input as unknown as Parameters<typeof fetch>[0], {
         ...init,
         headers,
         credentials: init.credentials ?? defaultCredentials,
@@ -106,21 +123,26 @@ export function createCoreOpenApiClient(
 
     if (!response.ok) {
       if (isJsonContentType(contentType)) {
-        const json = (await response.json().catch(() => null)) as any;
-        if (json?.success === false && json?.error?.code && json?.error?.message) {
+        const errBody = (await response.json().catch(() => null)) as ErrorResponseBody | null;
+        const errObj = typeof errBody?.error === 'object' ? errBody.error : undefined;
+        if (errObj?.code && errObj.message) {
           throw new CoreApiError({
             status: response.status,
-            code: json.error.code,
-            message: json.error.message,
-            details: json.error.details,
+            code: errObj.code,
+            message: errObj.message,
+            details: errObj.details,
             requestId,
           });
         }
+        const fallbackMsg =
+          typeof errBody?.error === 'string'
+            ? errBody.error
+            : (errBody?.message ?? `HTTP ${response.status}`);
         throw new CoreApiError({
           status: response.status,
           code: 'HTTP_ERROR',
-          message: json?.message || json?.error || `HTTP ${response.status}`,
-          details: json,
+          message: fallbackMsg,
+          details: errBody ?? undefined,
           requestId,
         });
       }
@@ -136,23 +158,26 @@ export function createCoreOpenApiClient(
     }
 
     if (!isJsonContentType(contentType)) {
-      return (await response.text()) as any as T;
+      // Generic escape hatch: the caller declared T but the body is plain text.
+      // There is no way to satisfy this without a cast because T is opaque here.
+      return (await response.text()) as unknown as T;
     }
 
     const json = (await response.json()) as CoreApiEnvelope<T>;
-    if ((json as any)?.success === true) return (json as any).data as T;
 
-    if ((json as any)?.success === false && (json as any)?.error?.code) {
-      throw new CoreApiError({
-        status: response.status,
-        code: (json as any).error.code,
-        message: (json as any).error.message,
-        details: (json as any).error.details,
-        requestId,
-      });
+    if (json.success) {
+      // Narrowed to CoreApiSuccessEnvelope<T> — .data is T.
+      return json.data;
     }
 
-    return json as any as T;
+    // Narrowed to CoreApiErrorEnvelope — all fields are typed, no cast needed.
+    throw new CoreApiError({
+      status: response.status,
+      code: json.error.code,
+      message: json.error.message,
+      details: json.error.details,
+      requestId,
+    });
   }
 
   return Object.assign(openapi, { call }) as CoreOpenApiClient;

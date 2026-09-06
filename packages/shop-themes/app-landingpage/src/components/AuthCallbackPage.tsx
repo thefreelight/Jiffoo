@@ -5,12 +5,16 @@
 
 import React from 'react';
 import type { AuthCallbackPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 export const AuthCallbackPage = React.memo(function AuthCallbackPage({
   isLoading,
   error,
   config,
+  locale,
+  t,
 }: AuthCallbackPageProps) {
+  const tx = (key: string, fallback: string) => themeText(t, locale, key, fallback);
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
@@ -20,12 +24,12 @@ export const AuthCallbackPage = React.memo(function AuthCallbackPage({
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-red-50 mb-4">
                 <i className="fas fa-times-circle text-red-600 text-3xl" />
               </div>
-              <h1 className="text-2xl font-bold text-gray-800 mb-2">Authentication Failed</h1>
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">{tx('auth.callback.failed', 'Authentication Failed')}</h1>
               <p className="text-gray-600 mb-6">{error}</p>
               <a href="/auth/login">
                 <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md px-6 py-3 transition-colors">
                   <i className="fas fa-arrow-left mr-2" />
-                  Back to Login
+                  {tx('auth.callback.backToLogin', 'Back to Login')}
                 </button>
               </a>
             </div>
@@ -34,8 +38,8 @@ export const AuthCallbackPage = React.memo(function AuthCallbackPage({
               <div className="inline-flex items-center justify-center h-16 w-16 rounded-full bg-blue-50 mb-4">
                 <i className="fas fa-spinner fa-spin text-blue-600 text-3xl" />
               </div>
-              <h1 className="text-2xl font-bold text-gray-800 mb-2">Completing Sign In</h1>
-              <p className="text-gray-600">Please wait while we complete your authentication...</p>
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">{tx('auth.callback.completing', 'Completing Sign In')}</h1>
+              <p className="text-gray-600">{tx('auth.callback.waiting', 'Please wait while we complete your authentication...')}</p>
             </div>
           )}
         </div>

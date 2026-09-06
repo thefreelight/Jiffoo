@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 const DEFAULT_LOCALE = 'zh-Hant';
-const SUPPORTED_LOCALES = ['en', 'zh-Hant'];
+const SUPPORTED_LOCALES = ['en', 'zh-Hans', 'zh-Hant'];
 
 export function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;

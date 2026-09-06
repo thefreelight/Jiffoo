@@ -6,6 +6,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 import type { CategoriesPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 // Region icon and color mapping for eSIM categories
 const regionStyle: Record<string, { icon: string; color: string; bg: string }> = {
@@ -34,11 +35,10 @@ export const CategoriesPage = React.memo(function CategoriesPage({
   onCategoryClick,
   onNavigateToHome,
   t,
+  locale,
 }: CategoriesPageProps) {
   const getText = (key: string, fallback: string): string => {
-    if (!t) return fallback;
-    const translated = t(key);
-    return translated === key ? fallback : translated;
+    return themeText(t, locale, key, fallback);
   };
 
   if (isLoading) return <div className="min-h-screen bg-gray-50" />;
@@ -48,7 +48,7 @@ export const CategoriesPage = React.memo(function CategoriesPage({
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <div className="text-center">
           <i className="fas fa-exclamation-triangle text-red-500 text-5xl mb-4" />
-          <h2 className="text-2xl font-semibold text-gray-800 mb-2">Something went wrong</h2>
+          <h2 className="text-2xl font-semibold text-gray-800 mb-2">{getText('common.errorTitle', 'Something went wrong')}</h2>
           <p className="text-gray-600">{error}</p>
         </div>
       </div>
@@ -61,9 +61,9 @@ export const CategoriesPage = React.memo(function CategoriesPage({
       <div className="bg-gray-100 py-2">
         <div className="container mx-auto px-4">
           <nav className="flex items-center gap-2 text-sm text-gray-600">
-            <button onClick={onNavigateToHome} className="text-gray-500 hover:text-blue-600 transition-colors">Home</button>
+            <button onClick={onNavigateToHome} className="text-gray-500 hover:text-blue-600 transition-colors">{getText('account.home', 'Home')}</button>
             <span>/</span>
-            <span className="text-gray-900 font-medium">Destinations</span>
+            <span className="text-gray-900 font-medium">{getText('travelpass.categories.destinations', 'Destinations')}</span>
           </nav>
         </div>
       </div>
@@ -86,7 +86,7 @@ export const CategoriesPage = React.memo(function CategoriesPage({
           {categories.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-lg shadow-sm">
               <i className="fas fa-globe text-gray-300 text-5xl mb-4" />
-              <p className="text-gray-400 text-lg">No destinations available</p>
+              <p className="text-gray-400 text-lg">{getText('travelpass.categories.empty', 'No destinations available')}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

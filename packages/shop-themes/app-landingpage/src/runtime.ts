@@ -26,8 +26,10 @@ import { ProfileSettingsPage } from './components/ProfileSettingsPage';
 import { RegisterPage } from './components/RegisterPage';
 import { SearchPage } from './components/SearchPage';
 import { TermsPage } from './components/TermsPage';
+import { themeMessages } from './lib/i18n';
 
 export const theme: ThemePackage = {
+  messages: themeMessages,
   components: {
     HomePage,
     ProductsPage,

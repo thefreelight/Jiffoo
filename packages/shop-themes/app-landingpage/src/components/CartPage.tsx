@@ -6,6 +6,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 import type { CartPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 export const CartPage = React.memo(function CartPage({
   cart,
@@ -16,11 +17,10 @@ export const CartPage = React.memo(function CartPage({
   onCheckout,
   onContinueShopping,
   t,
+  locale,
 }: CartPageProps) {
   const getText = (key: string, fallback: string): string => {
-    if (!t) return fallback;
-    const translated = t(key);
-    return translated === key ? fallback : translated;
+    return themeText(t, locale, key, fallback);
   };
 
   // Resolve product image URL
@@ -85,7 +85,7 @@ export const CartPage = React.memo(function CartPage({
                       )}
                       <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
                         <i className="fas fa-sim-card text-blue-600" />
-                        <span>eSIM Package</span>
+                        <span>{getText('cart.package', 'eSIM Package')}</span>
                       </div>
 
                       <div className="flex items-center justify-between">
@@ -142,12 +142,12 @@ export const CartPage = React.memo(function CartPage({
 
                 <div className="space-y-3 mb-6 text-sm">
                   <div className="flex justify-between text-gray-600">
-                    <span>Subtotal ({cart.items.reduce((sum, i) => sum + i.quantity, 0)} items)</span>
+                    <span>{getText('travelpass.cart.subtotal', 'Subtotal ({count} items)').replace('{count}', String(cart.items.reduce((sum, i) => sum + i.quantity, 0)))}</span>
                     <span>${cart.total.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-gray-600">
-                    <span>Delivery</span>
-                    <span className="text-green-600 font-medium">Instant (Email)</span>
+                    <span>{getText('cart.delivery', 'Delivery')}</span>
+                    <span className="text-green-600 font-medium">{getText('cart.instantEmail', 'Instant (Email)')}</span>
                   </div>
                   <div className="border-t border-gray-200 pt-3 flex justify-between font-semibold text-gray-900 text-base">
                     <span>{getText('travelpass.cart.total', 'Total')}</span>
@@ -164,7 +164,7 @@ export const CartPage = React.memo(function CartPage({
                   )}
                 >
                   {isLoading ? (
-                    <><i className="fas fa-spinner fa-spin mr-2" />Processing...</>
+                    <><i className="fas fa-spinner fa-spin mr-2" />{getText('checkout.processing', 'Processing...')}</>
                   ) : (
                     <>{getText('travelpass.cart.checkout', 'Proceed to Checkout')}</>
                   )}
@@ -174,15 +174,15 @@ export const CartPage = React.memo(function CartPage({
                 <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     <i className="fas fa-shield-alt text-green-500" />
-                    <span>Secure checkout</span>
+                    <span>{getText('cart.secureCheckout', 'Secure checkout')}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     <i className="fas fa-bolt text-blue-500" />
-                    <span>Instant eSIM delivery</span>
+                    <span>{getText('cart.instantDelivery', 'Instant eSIM delivery')}</span>
                   </div>
                   <div className="flex items-center gap-2 text-xs text-gray-500">
                     <i className="fas fa-undo text-blue-500" />
-                    <span>7-day refund policy</span>
+                    <span>{getText('cart.refundPolicy', '7-day refund policy')}</span>
                   </div>
                 </div>
               </div>

@@ -6,6 +6,7 @@
 import React from 'react';
 import { cn } from '../lib/utils';
 import type { OrderDetailPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 export const OrderDetailPage = React.memo(function OrderDetailPage({
   order,
@@ -14,8 +15,10 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
   onBack,
   onBackToOrders,
   onCancelOrder,
+  locale,
+  t,
 }: OrderDetailPageProps) {
-  const getText = (key: string, fallback: string): string => fallback;
+  const getText = (key: string, fallback: string): string => themeText(t, locale, key, fallback);
 
   if (isLoading) return <div className="min-h-screen bg-gray-50" />;
 
@@ -24,14 +27,14 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
       <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <div className="text-center">
           <i className="fas fa-exclamation-triangle text-yellow-500 text-5xl mb-4" />
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4">Order Not Found</h2>
-          <p className="text-gray-600 mb-6">The order you are looking for does not exist.</p>
+          <h2 className="text-2xl font-semibold text-gray-800 mb-4">{getText('orderDetail.notFound', 'Order Not Found')}</h2>
+          <p className="text-gray-600 mb-6">{getText('orderDetail.notFoundDescription', 'The order you are looking for does not exist.')}</p>
           <button
             onClick={onBackToOrders || onBack}
             className="bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-md px-6 py-3 transition-colors"
           >
             <i className="fas fa-arrow-left mr-2" />
-            Back to Orders
+            {getText('orderDetail.backToOrders', 'Back to Orders')}
           </button>
         </div>
       </div>
@@ -66,7 +69,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
         <div className="container mx-auto px-4">
           <nav className="flex items-center gap-2 text-sm text-gray-600">
             <button onClick={onBackToOrders || onBack} className="hover:text-blue-600 transition-colors">
-              My eSIMs
+              {getText('orders.title', 'My eSIMs')}
             </button>
             <span>/</span>
             <span className="text-gray-900 font-medium">Order #{order.id.slice(0, 8)}</span>
@@ -83,7 +86,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                 Order #{order.id.slice(0, 8)}
               </h1>
               <p className="text-gray-600 text-sm mt-1">
-                Placed on {new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                {getText('orders.placedOn', 'Placed on')} {new Date(order.createdAt).toLocaleDateString(locale === 'zh-Hans' ? 'zh-CN' : locale === 'zh-Hant' ? 'zh-TW' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
               </p>
             </div>
             <span className={cn('px-3 py-1 rounded-full text-sm font-semibold', statusColor[order.status] || 'bg-gray-100 text-gray-800')}>
@@ -94,7 +97,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
           {/* eSIM Activation Timeline */}
           {order.status !== 'CANCELLED' && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-6">eSIM Activation Progress</h2>
+              <h2 className="text-lg font-semibold text-gray-800 mb-6">{getText('orderDetail.activationProgress', 'eSIM Activation Progress')}</h2>
               <div className="flex items-center justify-between">
                 {timelineSteps.map((step, idx) => (
                   <React.Fragment key={step.label}>
@@ -120,7 +123,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
 
           {/* Order Items */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">eSIM Packages</h2>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">{getText('orderDetail.packages', 'eSIM Packages')}</h2>
             <div className="space-y-4">
               {order.items.map((item) => (
                 <div key={item.id} className="flex gap-4 py-3 border-b border-gray-100 last:border-0">
@@ -131,7 +134,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                     <h3 className="font-medium text-gray-800 text-sm">{item.productName}</h3>
                     <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
                       <i className="fas fa-sim-card text-blue-600" />
-                      <span>Qty: {item.quantity}</span>
+                      <span>{themeText(t, locale, 'orderDetail.qty', 'Qty: {quantity}', { quantity: item.quantity })}</span>
                     </div>
                   </div>
                   <div className="text-right">
@@ -147,15 +150,15 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
             {/* Order Total */}
             <div className="mt-4 pt-4 border-t border-gray-200">
               <div className="flex justify-between text-sm text-gray-600 mb-1">
-                <span>Subtotal</span>
+                <span>{getText('orderDetail.subtotal', 'Subtotal')}</span>
                 <span>${order.totalAmount.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm text-gray-600 mb-2">
-                <span>Delivery</span>
-                <span className="text-green-600">Instant (Email)</span>
+                <span>{getText('orderDetail.delivery', 'Delivery')}</span>
+                <span className="text-green-600">{getText('orderDetail.instantEmail', 'Instant (Email)')}</span>
               </div>
               <div className="flex justify-between font-semibold text-gray-900 text-lg">
-                <span>Total</span>
+                <span>{getText('orderDetail.total', 'Total')}</span>
                 <span className="text-blue-600">${order.totalAmount.toFixed(2)}</span>
               </div>
             </div>
@@ -163,12 +166,12 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
 
           {/* Quick Actions */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-            <h2 className="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h2>
+            <h2 className="text-lg font-semibold text-gray-800 mb-4">{getText('orderDetail.quickActions', 'Quick Actions')}</h2>
             <div className="flex flex-wrap gap-3">
               {['SHIPPED', 'DELIVERED', 'COMPLETED'].includes(order.status) && (
                 <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-md hover:border-blue-500 hover:bg-blue-50 text-sm text-gray-700 transition-colors">
                   <i className="fas fa-qrcode text-blue-600" />
-                  Show QR Code
+                  {getText('orderDetail.viewQr', 'Show QR Code')}
                 </button>
               )}
               <button className="flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-md hover:border-blue-500 hover:bg-blue-50 text-sm text-gray-700 transition-colors">
@@ -185,7 +188,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
           {/* Cancel Order */}
           {onCancelOrder && ['PENDING', 'PROCESSING'].includes(order.status) && (
             <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
-              <h2 className="text-lg font-semibold text-gray-800 mb-2">Cancel Order</h2>
+                <h2 className="text-lg font-semibold text-gray-800 mb-2">{getText('orderDetail.cancelTitle', 'Cancel Order')}</h2>
               <p className="text-sm text-gray-600 mb-4">
                 If you no longer need this eSIM, you can cancel the order for a full refund.
               </p>
@@ -194,7 +197,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
                 className="border border-red-300 text-red-600 hover:bg-red-50 font-medium rounded-md px-4 py-2 text-sm transition-colors"
               >
                 <i className="fas fa-times mr-2" />
-                Cancel Order
+                {getText('orderDetail.cancel', 'Cancel Order')}
               </button>
             </div>
           )}
@@ -205,7 +208,7 @@ export const OrderDetailPage = React.memo(function OrderDetailPage({
             className="text-blue-600 hover:text-blue-700 font-medium text-sm transition-colors"
           >
             <i className="fas fa-arrow-left mr-2" />
-            Back to My eSIMs
+            {getText('orderDetail.backToEsims', 'Back to My eSIMs')}
           </button>
         </div>
       </div>

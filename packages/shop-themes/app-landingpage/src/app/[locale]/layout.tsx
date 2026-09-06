@@ -6,6 +6,7 @@ import { Header } from '../../components/Header';
 import { Footer } from '../../components/Footer';
 import { authApi, cartApi } from '../../lib/api';
 import { easyEuiccPreviewConfig } from '../../lib/easyeuiccPreview';
+import type { Locale } from '../../types';
 
 export default function LocaleLayout({
   children,
@@ -16,7 +17,7 @@ export default function LocaleLayout({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const locale = (params?.locale as string) || 'en';
+  const locale = ((params?.locale as string) || 'en') as Locale;
   const previewConfig = searchParams.get('preview') === 'easyeuicc' ? easyEuiccPreviewConfig : undefined;
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -132,6 +133,7 @@ export default function LocaleLayout({
         onNavigateToDeals={() => handleNavigate('/products')}
         variant={isHomePage ? 'transparent' : 'solid'}
         config={previewConfig}
+        locale={locale}
       />
 
       {/* Main content with padding for fixed header */}
@@ -151,6 +153,7 @@ export default function LocaleLayout({
         onNavigateToPrivacy={() => handleNavigate('/privacy')}
         onNavigateToTerms={() => handleNavigate('/terms')}
         config={previewConfig}
+        locale={locale}
       />
     </div>
   );

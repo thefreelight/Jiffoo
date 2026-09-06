@@ -20,6 +20,7 @@ import { cn } from '../lib/utils';
 import { FEATURED_PLANS, getPlanDisplay, type PlanDisplay } from '../lib/plan-display';
 import { ProductCard } from '../ui/ProductCard';
 import type { Product, ProductsPageProps } from '../types';
+import { themeText } from '../lib/i18n';
 
 const regionFilters = ['Popular', 'Nearby', 'Asia', 'Europe', 'Global'];
 const dataOptions = ['3GB', '5GB', '10GB', '20GB', 'Unlimited'];
@@ -46,6 +47,8 @@ export const ProductsPage = React.memo(function ProductsPage({
   onPageChange,
   onAddToCart,
   onProductClick,
+  t,
+  locale,
 }: ProductsPageProps) {
   const brandName = config?.brand?.name?.trim() || 'Yevbi';
 
@@ -67,6 +70,8 @@ export const ProductsPage = React.memo(function ProductsPage({
         products={products}
         totalProducts={totalProducts}
         onProductClick={onProductClick}
+        t={t}
+        locale={locale}
       />
 
       <section className="hidden min-h-screen bg-[linear-gradient(180deg,#f4f9ff_0%,#eaf4ff_48%,#f8fbff_100%)] px-8 pb-24 pt-12 lg:block xl:px-12">
@@ -75,13 +80,13 @@ export const ProductsPage = React.memo(function ProductsPage({
             <div>
               <div className="inline-flex items-center gap-2 rounded-full bg-[#eaf4ff] px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-[#1262d9]">
                 <Sparkles className="h-4 w-4" />
-                Web plans
+                {themeText(t, locale, 'products.webPlans', 'Web plans')}
               </div>
               <h1 className="mt-5 max-w-3xl text-5xl font-black leading-[0.96] tracking-[-0.055em] text-[#071d49] xl:text-6xl">
-                Explore blue-sky eSIM plans without roaming chaos.
+                {themeText(t, locale, 'products.heroTitle', 'Explore blue-sky eSIM plans without roaming chaos.')}
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-[#52657f]">
-                {brandName} keeps every plan crisp: destination, data, validity, carrier speed, and instant QR delivery in a clean white-card catalog.
+                {themeText(t, locale, 'products.heroDescription', '{brand} keeps every plan crisp: destination, data, validity, carrier speed, and instant QR delivery in a clean white-card catalog.').replace('{brand}', brandName)}
               </p>
             </div>
 
@@ -90,14 +95,14 @@ export const ProductsPage = React.memo(function ProductsPage({
                 <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#6f86a6]" />
                 <input
                   type="search"
-                  placeholder="Search Tokyo, Paris, Global"
+                  placeholder={themeText(t, locale, 'products.searchPlaceholder', 'Search Tokyo, Paris, Global')}
                   className="h-14 w-full rounded-full border border-[#cfe2ff] bg-white pl-11 pr-4 font-semibold text-[#071d49] outline-none transition focus:border-[#1167e8] focus:ring-4 focus:ring-[#dcecff]"
                 />
               </label>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center text-xs font-extrabold uppercase tracking-[0.14em] text-[#42617f]">
-                <span className="rounded-full bg-white px-3 py-2 shadow-sm">QR ready</span>
-                <span className="rounded-full bg-white px-3 py-2 shadow-sm">5G speed</span>
-                <span className="rounded-full bg-white px-3 py-2 shadow-sm">USD pricing</span>
+                <span className="rounded-full bg-white px-3 py-2 shadow-sm">{themeText(t, locale, 'products.qrReady', 'QR ready')}</span>
+                <span className="rounded-full bg-white px-3 py-2 shadow-sm">{themeText(t, locale, 'products.5gSpeed', '5G speed')}</span>
+                <span className="rounded-full bg-white px-3 py-2 shadow-sm">{themeText(t, locale, 'products.usdPricing', 'USD pricing')}</span>
               </div>
             </div>
           </div>
@@ -108,13 +113,13 @@ export const ProductsPage = React.memo(function ProductsPage({
                 <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#eaf4ff] text-[#1167e8]">
                   <SlidersHorizontal className="h-4 w-4" />
                 </span>
-                <h2 className="font-extrabold text-[#071d49]">Refine</h2>
+                <h2 className="font-extrabold text-[#071d49]">{themeText(t, locale, 'travelpass.products.refine', 'Refine')}</h2>
               </div>
-              <FilterGroup title="Region" options={regionFilters} />
-              <FilterGroup title="Data" options={dataOptions} />
-              <FilterGroup title="Duration" options={durations} />
+              <FilterGroup title={themeText(t, locale, 'travelpass.search.region', 'Region')} options={regionFilters} t={t} locale={locale} />
+              <FilterGroup title={themeText(t, locale, 'checkout.deviceType', 'Data')} options={dataOptions} t={t} locale={locale} />
+              <FilterGroup title={themeText(t, locale, 'checkout.travelDate', 'Duration')} options={durations} t={t} locale={locale} />
               <button type="button" className="mt-3 w-full rounded-full border border-[#cfe2ff] bg-white px-4 py-3 text-sm font-extrabold text-[#0b4eb8] transition hover:border-[#1167e8] hover:bg-[#f4f9ff]">
-                Reset filters
+                {themeText(t, locale, 'products.resetFilters', 'Reset filters')}
               </button>
             </aside>
 
@@ -122,9 +127,9 @@ export const ProductsPage = React.memo(function ProductsPage({
               <div className="mb-5 flex flex-col justify-between gap-4 rounded-[1.75rem] border border-[#d7e8ff] bg-white p-4 shadow-[0_14px_36px_rgba(16,88,178,0.07)] sm:flex-row sm:items-center">
                 <div>
                   <p className="text-sm font-extrabold text-[#071d49]">
-                    {totalProducts || products.length} plans available
+                    {themeText(t, locale, 'products.plansAvailable', '{count} plans available').replace('{count}', String(totalProducts || products.length))}
                   </p>
-                  <p className="mt-1 text-xs font-semibold text-[#6b7b94]">Blue-white cards, USD prices, and instant eSIM fulfillment.</p>
+                  <p className="mt-1 text-xs font-semibold text-[#6b7b94]">{themeText(t, locale, 'products.catalogHint', 'Blue-white cards, USD prices, and instant eSIM fulfillment.')}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <select
@@ -132,10 +137,10 @@ export const ProductsPage = React.memo(function ProductsPage({
                     onChange={(event) => onSortChange(event.target.value)}
                     className="h-11 rounded-full border border-[#cfe2ff] bg-white px-4 text-sm font-bold text-[#071d49] outline-none focus:border-[#1167e8]"
                   >
-                    <option value="popular">Most popular</option>
-                    <option value="price_asc">Price: low to high</option>
-                    <option value="price_desc">Price: high to low</option>
-                    <option value="rating">Best rated</option>
+                    <option value="popular">{themeText(t, locale, 'travelpass.sort.mostPopular', 'Most popular')}</option>
+                    <option value="price_asc">{themeText(t, locale, 'travelpass.sort.priceLow', 'Price: low to high')}</option>
+                    <option value="price_desc">{themeText(t, locale, 'travelpass.sort.priceHigh', 'Price: high to low')}</option>
+                    <option value="rating">{themeText(t, locale, 'travelpass.sort.rating', 'Best rated')}</option>
                   </select>
                   <button
                     type="button"
@@ -144,7 +149,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                       'flex h-11 w-11 items-center justify-center rounded-full border transition',
                       viewMode === 'grid' ? 'border-[#1167e8] bg-[#1167e8] text-white' : 'border-[#cfe2ff] text-[#6b7b94] hover:border-[#1167e8]',
                     )}
-                    aria-label="Grid view"
+                  aria-label={themeText(t, locale, 'products.gridView', 'Grid view')}
                   >
                     <Grid2X2 className="h-4 w-4" />
                   </button>
@@ -155,7 +160,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                       'flex h-11 w-11 items-center justify-center rounded-full border transition',
                       viewMode === 'list' ? 'border-[#1167e8] bg-[#1167e8] text-white' : 'border-[#cfe2ff] text-[#6b7b94] hover:border-[#1167e8]',
                     )}
-                    aria-label="List view"
+                  aria-label={themeText(t, locale, 'products.listView', 'List view')}
                   >
                     <List className="h-4 w-4" />
                   </button>
@@ -164,8 +169,8 @@ export const ProductsPage = React.memo(function ProductsPage({
 
               {products.length === 0 ? (
                 <div className="rounded-[2rem] border border-[#d7e8ff] bg-white px-6 py-20 text-center shadow-[0_18px_45px_rgba(16,88,178,0.08)]">
-                  <h3 className="text-3xl font-black tracking-[-0.04em] text-[#071d49]">No plans found</h3>
-                  <p className="mt-3 text-[#6b7b94]">Try a broader destination or fewer filters.</p>
+                  <h3 className="text-3xl font-black tracking-[-0.04em] text-[#071d49]">{themeText(t, locale, 'travelpass.products.noPlans', 'No plans found')}</h3>
+                  <p className="mt-3 text-[#6b7b94]">{themeText(t, locale, 'travelpass.products.noPlansHint', 'Try a broader destination or fewer filters.')}</p>
                 </div>
               ) : (
                 <div className={cn(viewMode === 'list' ? 'grid gap-5' : 'grid gap-5 md:grid-cols-2 2xl:grid-cols-3')}>
@@ -190,7 +195,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                     onClick={() => onPageChange(currentPage - 1)}
                     className="rounded-full border border-[#cfe2ff] bg-white px-4 py-2 text-sm font-extrabold text-[#0b4eb8] disabled:opacity-40"
                   >
-                    Previous
+                    {themeText(t, locale, 'products.previous', 'Previous')}
                   </button>
                   {pages.map((page) => (
                     <button
@@ -213,7 +218,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                     onClick={() => onPageChange(currentPage + 1)}
                     className="rounded-full border border-[#cfe2ff] bg-white px-4 py-2 text-sm font-extrabold text-[#0b4eb8] disabled:opacity-40"
                   >
-                    Next
+                    {themeText(t, locale, 'products.next', 'Next')}
                   </button>
                 </div>
               ) : null}
@@ -230,12 +235,17 @@ function MobileExplore({
   products,
   totalProducts,
   onProductClick,
+  t,
+  locale,
 }: {
   brandName: string;
   products: Product[];
   totalProducts: number;
   onProductClick: (productId: string) => void;
+  t?: ProductsPageProps['t'];
+  locale?: ProductsPageProps['locale'];
 }) {
+  const tx = (key: string, fallback: string) => themeText(t, locale, key, fallback);
   const featuredTarget = products.find((product) => productText(product).includes('tokyo') || productText(product).includes('japan')) || products[0];
   const recentPlans = getRecentPlans(products);
 
@@ -270,9 +280,9 @@ function MobileExplore({
         </header>
 
         <section className="mt-7">
-          <p className="text-[15px] font-extrabold text-[#6b7b94]">Explore</p>
+          <p className="text-[15px] font-extrabold text-[#6b7b94]">{tx('nav.explore', 'Explore')}</p>
           <h1 className="mt-1 text-[34px] font-black leading-[1.02] tracking-[-0.055em] text-[#071d49]">
-            Where are you landing?
+            {tx('products.landingQuestion', 'Where are you landing?')}
           </h1>
         </section>
 
@@ -280,28 +290,28 @@ function MobileExplore({
           <Search className="h-5 w-5 text-[#7c91ad]" />
           <input
             type="search"
-            placeholder="Search destination"
+            placeholder={tx('travelpass.products.searchPlaceholder', 'Search destination')}
             className="w-full bg-transparent text-[15px] font-bold text-[#071d49] outline-none placeholder:text-[#8ba0ba]"
           />
         </label>
 
         <div className="mt-4 flex gap-2.5 overflow-x-auto pb-1 scrollbar-hide" aria-label="Explore filters">
-          {['Popular', 'Nearby', 'All regions'].map((pill, index) => (
+          {[['travelpass.sort.mostPopular', 'Popular'], ['products.nearby', 'Nearby'], ['travelpass.search.allRegions', 'All regions']].map(([key, fallback], index) => (
             <button
-              key={pill}
+              key={`${key}-${index}`}
               type="button"
               className={cn(
                 'shrink-0 rounded-full px-4 py-2.5 text-sm font-extrabold transition',
                 index === 0 ? 'bg-[#1167e8] text-white shadow-[0_12px_28px_rgba(17,103,232,0.28)]' : 'bg-[#eef6ff] text-[#31557f]',
               )}
             >
-              {pill}
+              {tx(key, fallback)}
             </button>
           ))}
         </div>
 
         <div className="mt-7 flex items-center justify-between">
-          <h2 className="text-xl font-black tracking-[-0.04em] text-[#071d49]">Featured plan</h2>
+          <h2 className="text-xl font-black tracking-[-0.04em] text-[#071d49]">{tx('travelpass.products.featured', 'Featured plan')}</h2>
           <span className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#6b7b94]">
             {totalProducts || products.length || 'Live'} plans
           </span>
@@ -350,7 +360,7 @@ function MobileExplore({
 
         <section className="mt-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black tracking-[-0.04em] text-[#071d49]">Popular destinations</h2>
+            <h2 className="text-xl font-black tracking-[-0.04em] text-[#071d49]">{tx('travelpass.products.popularDestinations', 'Popular destinations')}</h2>
             <button type="button" className="text-sm font-extrabold text-[#1167e8]">See all</button>
           </div>
           <div className="mt-3 grid gap-3">
@@ -379,8 +389,8 @@ function MobileExplore({
 
         <section className="mt-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-black tracking-[-0.04em] text-[#071d49]">Recently viewed</h2>
-            <span className="text-sm font-extrabold text-[#6b7b94]">Swipe</span>
+            <h2 className="text-xl font-black tracking-[-0.04em] text-[#071d49]">{tx('travelpass.products.recentlyViewed', 'Recently viewed')}</h2>
+            <span className="text-sm font-extrabold text-[#6b7b94]">{tx('products.swipe', 'Swipe')}</span>
           </div>
           <div className="-mx-5 mt-3 flex gap-3 overflow-x-auto px-5 pb-2 scrollbar-hide">
             {recentPlans.map((entry, index) => (
@@ -450,7 +460,7 @@ function RecentPlanCard({ plan, price, onClick }: { plan: PlanDisplay; price: nu
   );
 }
 
-function FilterGroup({ title, options }: { title: string; options: string[] }) {
+function FilterGroup({ title, options, t, locale }: { title: string; options: string[]; t?: ProductsPageProps['t']; locale?: ProductsPageProps['locale'] }) {
   return (
     <div className="mb-7">
       <h3 className="mb-3 text-xs font-extrabold uppercase tracking-[0.18em] text-[#6b7b94]">{title}</h3>
@@ -464,7 +474,7 @@ function FilterGroup({ title, options }: { title: string; options: string[] }) {
             )}
           >
             <input type="checkbox" className="h-4 w-4 rounded border-[#b7d6ff] text-[#1167e8] focus:ring-[#1167e8]" defaultChecked={index === 0} />
-            {option}
+            {themeText(t, locale, `products.option.${option.replace(/[^a-zA-Z0-9]+/g, '_').toLowerCase()}`, option)}
           </label>
         ))}
       </div>

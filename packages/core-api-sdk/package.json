@@ -1,27 +1,23 @@
 {
-  "name": "@jiffoo/core-api-sdk",
+  "name": "jiffoo-core-api-sdk",
   "version": "0.2.0",
   "description": "Public HTTP SDK for Jiffoo Mall Core API (Shop + Admin)",
-  "main": "dist/cjs/index.js",
-  "module": "dist/esm/index.js",
-  "types": "dist/types/index.d.ts",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
   "exports": {
-    ".": {
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js",
-      "types": "./dist/types/index.d.ts"
-    }
+    ".": "./src/index.ts"
   },
   "files": [
     "dist",
     "src/openapi-types.ts"
   ],
   "scripts": {
-    "generate:openapi-types": "openapi-typescript ../../apps/api/openapi.json -o src/openapi-types.ts",
     "build": "pnpm run build:esm && pnpm run build:cjs && pnpm run build:types",
     "build:esm": "tsc -p tsconfig.esm.json",
     "build:cjs": "tsc -p tsconfig.cjs.json",
     "build:types": "tsc -p tsconfig.types.json",
+    "lint": "eslint src --ext .ts",
+    "type-check": "tsc -p tsconfig.types.json --noEmit",
     "dev": "tsc -p tsconfig.esm.json --watch",
     "clean": "rimraf dist"
   },
@@ -45,7 +41,11 @@
     "openapi-fetch": "^0.15.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.36.0",
     "@types/node": "^22.9.0",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "eslint": "^9.36.0",
     "openapi-typescript": "^7.6.1",
     "rimraf": "^6.0.1",
     "typescript": "^5.8.3"

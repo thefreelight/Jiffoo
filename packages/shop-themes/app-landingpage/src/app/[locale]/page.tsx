@@ -19,6 +19,7 @@ export default function Home() {
     <HomePage
       onNavigate={handleNavigate}
       config={preview === 'easyeuicc' ? easyEuiccPreviewConfig : undefined}
+      locale={locale as import('../../types').Locale}
     />
   );
 }
