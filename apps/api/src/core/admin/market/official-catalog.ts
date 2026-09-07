@@ -381,7 +381,13 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
 
   const items = await Promise.all(
     OFFICIAL_LAUNCH_EXTENSIONS.map(async (seed): Promise<OfficialCatalogItem> => {
-      const meta = OFFICIAL_CATALOG_META[seed.slug];
+      // Keep a malformed or newly added launch entry from taking down the
+      // whole marketplace response. The shared catalog remains the source of
+      // truth for its target; presentation metadata only enriches it.
+      const meta = OFFICIAL_CATALOG_META[seed.slug] || {
+        category: seed.kind === 'theme' ? 'storefront' : 'general',
+        target: seed.target,
+      };
       const remoteItem = remoteItemsBySlug.get(seed.slug) || toFallbackRemoteItem(seed);
       const artifactItem = artifactItemsByKey.get(`${seed.kind}:${seed.slug}`);
       const effectiveSellableVersion = artifactItem?.version || remoteItem.sellableVersion || remoteItem.currentVersion || seed.version;
