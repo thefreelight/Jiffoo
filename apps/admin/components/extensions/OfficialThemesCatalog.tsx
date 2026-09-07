@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ExtensionAvatar, OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import type { ManagedPackageDefinition } from '@/lib/managed-mode';
 
@@ -164,7 +163,7 @@ export function OfficialThemesCatalog({
           </Alert>
         ) : null}
 
-        <div className="mt-5 flex flex-col gap-3 md:flex-row md:items-center">
+        <div className="mt-5 flex flex-col gap-3">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
@@ -174,19 +173,19 @@ export function OfficialThemesCatalog({
               className="h-11 rounded-lg border-slate-200 pl-11"
             />
           </div>
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="h-11 w-full rounded-lg border-slate-200 md:w-[180px]">
-              <SelectValue placeholder={getText('common.labels.category', 'Category')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{getText('common.labels.all', 'All')}</SelectItem>
-              {categories.map((itemCategory) => (
-                <SelectItem key={itemCategory} value={itemCategory} className="capitalize">
-                  {itemCategory}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            {['all', ...categories].map((entry) => (
+              <button
+                key={entry}
+                type="button"
+                onClick={() => setCategory(entry)}
+                className={`rounded-xl border px-4 py-2 text-sm font-medium capitalize transition-colors ${category === entry ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700'}`}
+              >
+                {entry === 'all' ? getText('common.labels.all', 'All') : entry}
+              </button>
+            ))}
+            <span className="ml-auto hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 lg:inline-flex">Featured <span className="ml-2 text-slate-400">⌄</span></span>
+          </div>
         </div>
       </div>
 
