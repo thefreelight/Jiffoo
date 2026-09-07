@@ -9,7 +9,6 @@ import { useInstalledPlugins, useInstallOfficialExtension, useOfficialCatalog, u
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -32,12 +31,11 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { AlertTriangle, Loader2, Settings, Upload } from 'lucide-react';
+import { Loader2, Settings, Upload } from 'lucide-react';
 import { useT, useLocale } from 'shared/src/i18n/react';
 import { resolveApiErrorMessage } from '@/lib/error-utils';
 import { useRouter } from 'next/navigation';
 import { OfficialPluginsCatalog } from '@/components/extensions/OfficialPluginsCatalog';
-import { ExtensionAvatar, OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import { useManagedMode } from '@/lib/managed-mode';
 
 export function PluginsManager() {
@@ -128,10 +126,6 @@ export function PluginsManager() {
 
   const pluginList = installedPlugins?.items || [];
   const officialPluginItems = (officialCatalogData?.items || []).filter((item) => item.kind === 'plugin');
-  const officialPluginSlugs = useMemo(
-    () => new Set(officialPluginItems.map((item) => item.slug)),
-    [officialPluginItems]
-  );
   const { record } = useManagedMode();
   const managedPluginSlugs = useMemo(
     () => new Set(record?.includedPlugins ?? []),
@@ -263,126 +257,28 @@ export function PluginsManager() {
           )}
         </div>
 
-        <div style={{ order: 2 }} className="border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-5 flex items-end justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Installed plugins</p>
-              <h3 className="mt-1 text-2xl font-bold tracking-tight text-slate-950">{getText('merchant.plugins.installedCollection', 'Installed plugins')}</h3>
-              <p className="mt-1 text-sm text-slate-500">Manage active extensions and open their dedicated workspaces.</p>
+        <div style={{ order: 2 }} className="flex items-center justify-between gap-4 border border-slate-200 bg-white px-5 py-4 shadow-sm">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+              <Settings className="h-5 w-5" />
             </div>
-            <Badge variant="secondary" className="rounded-lg bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
-              {visiblePluginList.length}
-            </Badge>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="truncate text-base font-bold text-slate-950">{getText('merchant.plugins.installedCollection', 'Installed plugins')}</h3>
+                <Badge variant="secondary" className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{isLoading ? '…' : visiblePluginList.length}</Badge>
+              </div>
+              <p className="mt-0.5 truncate text-sm text-slate-500">Manage and update your installed plugins.</p>
+            </div>
           </div>
-
-          {isLoading ? (
-            <div className="flex h-24 items-center justify-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {getText('merchant.plugins.loading', 'Loading plugins...')}
-            </div>
-          ) : visiblePluginList.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center text-sm text-muted-foreground">
-              {record
-                ? getText('merchant.plugins.noLicensedPluginsInstalled', 'No licensed plugins are currently installed.')
-                : getText('merchant.plugins.noPluginsInstalled', 'No plugins installed.')}
-            </div>
+          {visiblePluginList[0] ? (
+            <Button asChild variant="outline" className="shrink-0 rounded-lg">
+              <Link href={`/${locale}/plugins/${visiblePluginList[0].slug}`}>
+                {getText('common.actions.viewDetails', 'View installed plugins')}
+                <Settings className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
           ) : (
-            <div className="grid gap-4 xl:grid-cols-2">
-              {visiblePluginList.map((plugin, index) => {
-                if (!plugin) return null;
-                const safeKey = plugin.slug || `plugin-${index}`;
-                const isOfficial = officialPluginSlugs.has(plugin.slug) || plugin.source === 'official-market';
-                const isThemeFirstSolution = record?.offerKind === 'theme_first_solution';
-
-                return (
-                  <div key={safeKey} className="border border-slate-200 bg-white p-5 transition-colors hover:border-blue-200 hover:bg-blue-50/20">
-                    <div className="flex items-start gap-4">
-                      <ExtensionAvatar
-                        slug={plugin.slug}
-                        name={plugin.name}
-                        kind="plugin"
-                        className="h-14 w-14 shrink-0"
-                      />
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="text-lg font-semibold text-slate-950">{plugin.name}</h4>
-                          {isOfficial ? <OfficialBadge compact /> : null}
-                          {isThemeFirstSolution ? (
-                            <Badge variant="outline" className="rounded-full border-blue-200 bg-blue-50 text-blue-700">
-                              {getText('merchant.package.solutionBadge', 'Theme-first solution')}
-                            </Badge>
-                          ) : null}
-                          <Badge variant="outline" className="rounded-full capitalize">
-                            {plugin.source}
-                          </Badge>
-                        </div>
-                        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
-                          v{plugin.version} {getText('common.labels.by', 'by')} {plugin.author}
-                        </p>
-                        <p className="mt-3 text-sm leading-6 text-slate-600">
-                          {plugin.description || getText('merchant.plugins.defaultDescription', 'A merchant-facing plugin that extends your store operations.')}
-                        </p>
-                        {isThemeFirstSolution ? (
-                          <p className="mt-3 text-sm leading-6 text-blue-700">
-                            {getText(
-                              'merchant.package.includedPluginExplanation',
-                              'This plugin is part of the managed solution package and provides companion runtime capability behind the storefront surface.'
-                            )}
-                          </p>
-                        ) : null}
-
-                        {plugin.configRequired && !plugin.configReady ? (
-                          <p className="mt-3 text-xs font-semibold text-amber-700">
-                            {getText('merchant.plugins.needsConfiguration', 'Needs configuration before enabling')}
-                          </p>
-                        ) : null}
-
-                        <div className="mt-4 flex flex-wrap items-center gap-3">
-                          <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
-                            <Switch
-                              checked={plugin.enabled}
-                              onCheckedChange={(checked) => void handleTogglePlugin(plugin, checked)}
-                              disabled={toggleMutation.isPending}
-                            />
-                            <span className="text-sm font-medium text-slate-700">
-                              {plugin.enabled
-                                ? getText('merchant.plugins.enabled', 'Enabled')
-                                : getText('merchant.plugins.disabled', 'Disabled')}
-                            </span>
-                          </div>
-
-                          <Button asChild className="rounded-lg">
-                            <Link href={`/${locale}/plugins/${plugin.slug}`}>
-                              <Settings className="mr-2 h-4 w-4" />
-                              {getText('common.actions.manage', 'Manage')}
-                            </Link>
-                          </Button>
-
-                          {isThemeFirstSolution ? (
-                            <Button asChild variant="outline" className="rounded-lg">
-                              <Link href={`/${locale}/package`}>
-                                {getText('merchant.package.openPackageWorkspace', 'Open Your Package')}
-                              </Link>
-                            </Button>
-                          ) : null}
-
-                          <Button
-                            variant="ghost"
-                            onClick={() => setPurgingPlugin(plugin)}
-                            disabled={purgeMutation.isPending}
-                            className="rounded-lg text-slate-500 hover:text-red-700"
-                          >
-                            <AlertTriangle className="mr-2 h-4 w-4" />
-                            {getText('merchant.plugins.remove', 'Remove')}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <span className="shrink-0 text-sm text-slate-400">No plugins installed</span>
           )}
         </div>
 
