@@ -370,7 +370,7 @@ export const authApi = {
       token_type: string;
       expires_in: number;
       refresh_token?: string;
-    }>('/auth/login', { identifier, password }, { withCredentials: true });
+    }>('/admin/auth/login', { identifier, password }, { withCredentials: true });
     if (response.success && response.data?.access_token) {
       apiClient.setToken(response.data.access_token);
       if (response.data.refresh_token) {
@@ -390,25 +390,25 @@ export const authApi = {
   }>> =>
     apiClient.get('/auth/login-config'),
 
-  me: (): Promise<ApiResponse<UserProfile>> => apiClient.get('/auth/me'),
+  me: (): Promise<ApiResponse<UserProfile>> => apiClient.get('/admin/auth/me'),
 
   bootstrapStatus: (): Promise<ApiResponse<AuthBootstrapStatus>> =>
     apiClient.get('/auth/bootstrap-status'),
 
   logout: async () => {
     try {
-      return await apiClient.post<void>('/auth/logout', {}, { withCredentials: true });
+      return await apiClient.post<void>('/admin/auth/logout', {}, { withCredentials: true });
     } finally {
       apiClient.clearAuth();
     }
   },
 
-  refreshToken: () => apiClient.post('/auth/refresh', {
+  refreshToken: () => apiClient.post('/admin/auth/refresh', {
     refresh_token: apiClient.getRefreshToken(),
   }, { withCredentials: true }),
 
   changePassword: (currentPassword: string, newPassword: string): Promise<ApiResponse<{ passwordChanged: boolean; changedAt: string }>> =>
-    apiClient.post('/auth/change-password', { currentPassword, newPassword }),
+    apiClient.post('/admin/auth/change-password', { currentPassword, newPassword }),
 };
 
 export const accountApi = {
