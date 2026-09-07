@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { Menu } from 'lucide-react'
+import { Bell, ChevronDown, CircleHelp, Menu } from 'lucide-react'
 import { BlueMinimalSidebar } from './blue-minimal-sidebar'
 import ProtectedRoute from '../auth/ProtectedRoute'
 import { ManagedModeProvider, useManagedMode } from '@/lib/managed-mode'
@@ -46,6 +46,24 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
           />
 
           <div className="flex-1 flex flex-col overflow-hidden bg-white">
+            <header className="hidden h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-7 lg:flex">
+              <div className="flex items-center gap-3 text-sm text-slate-500">
+                <span className="font-medium">Jiffoo Admin</span>
+                <span className="text-slate-300">/</span>
+                <span className="font-medium capitalize text-slate-900">
+                  {pathname.split('/').filter(Boolean).slice(-1)[0]?.replace(/-/g, ' ') || 'Dashboard'}
+                </span>
+              </div>
+              <div className="flex items-center gap-5 text-slate-500">
+                <button type="button" aria-label="Help" className="transition-colors hover:text-slate-900"><CircleHelp className="h-[18px] w-[18px]" /></button>
+                <button type="button" aria-label="Notifications" className="transition-colors hover:text-slate-900"><Bell className="h-[18px] w-[18px]" /></button>
+                <div className="flex items-center gap-2 border-l border-slate-200 pl-5 text-sm font-medium text-slate-900">
+                  <span className="grid h-8 w-8 place-items-center rounded-full bg-blue-600 text-xs font-semibold text-white">A</span>
+                  <span>Admin</span>
+                  <ChevronDown className="h-4 w-4 text-slate-400" />
+                </div>
+              </div>
+            </header>
             {/* Mobile Menu Button - Fixed at top left, hidden when sidebar is open */}
             {!isSidebarOpen && (
               <button
