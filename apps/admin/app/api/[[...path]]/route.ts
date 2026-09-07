@@ -25,11 +25,16 @@ async function proxyToCore(request: NextRequest): Promise<Response> {
   const headers = new Headers(request.headers)
   HOP_BY_HOP_HEADERS.forEach((name) => headers.delete(name))
   headers.delete('host')
+  headers.delete('content-length')
+
+  const body = request.method === 'GET' || request.method === 'HEAD'
+    ? undefined
+    : await request.arrayBuffer()
 
   const upstream = await fetch(upstreamUrl, {
     method: request.method,
     headers,
-    body: request.method === 'GET' || request.method === 'HEAD' ? undefined : request.body,
+    body,
     redirect: 'manual',
   })
 
