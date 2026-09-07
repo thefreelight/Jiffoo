@@ -125,7 +125,7 @@ export function OfficialPluginsCatalog({
         ) : null}
 
         {!isLoading && !marketOnline ? (
-          <Alert className="mt-4 border-amber-200 bg-amber-50 text-amber-900">
+          <Alert className="mt-4 border-amber-200 bg-amber-50/70 text-amber-900">
             <WifiOff className="h-4 w-4" />
             <AlertTitle>{getText('merchant.extensions.marketOffline', 'Official market is offline')}</AlertTitle>
             <AlertDescription>
@@ -198,10 +198,13 @@ export function OfficialPluginsCatalog({
           ))}
         </div>
       ) : filteredItems.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-slate-200 bg-white px-6 py-12 text-center text-sm text-muted-foreground">
-          {managedPackage
-            ? getText('merchant.extensions.noIncludedPlugins', 'No licensed plugins are available for this package.')
-            : getText('merchant.extensions.noOfficialMatches', 'No official plugins match the current filter.')}
+        <div className="border border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <Search className="h-5 w-5" />
+          </div>
+          <h4 className="mt-4 text-base font-semibold text-slate-950">{marketOnline ? 'No plugins found' : 'Marketplace is temporarily unavailable'}</h4>
+          <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">{marketOnline ? (managedPackage ? getText('merchant.extensions.noIncludedPlugins', 'No licensed plugins are available for this package.') : getText('merchant.extensions.noOfficialMatches', 'No official plugins match the current filter.')) : 'Installed plugins remain available. Marketplace listings will return when the catalog service reconnects.'}</p>
+          <div className="mt-5 flex justify-center gap-2"><Button variant="outline" className="rounded-lg" onClick={() => setSearch('')}>Clear search</Button></div>
         </div>
       ) : (
         <div className="space-y-4">
