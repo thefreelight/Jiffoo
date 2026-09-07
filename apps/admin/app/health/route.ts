@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
 
-
 /**
  * Health check endpoint for Tenant Admin application
  * This endpoint is independent of API Service and only checks the Next.js app itself
