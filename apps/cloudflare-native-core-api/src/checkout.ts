@@ -414,7 +414,7 @@ async function handleStripeWebhook(request: Request, env: CheckoutEnv): Promise<
         env.DB.prepare(
           `INSERT INTO native_checkout_outbox (id, event_type, aggregate_id, payload, created_at)
            VALUES (?1, 'payment.succeeded', ?2, ?3, ?4)`,
-        ).bind(crypto.randomUUID(), orderId, JSON.stringify({ orderId, sessionId }), now),
+        ).bind(crypto.randomUUID(), orderId, JSON.stringify({ orderId, sessionId, providerEventId: event.id }), now),
       );
     }
   }
