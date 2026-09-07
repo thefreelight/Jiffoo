@@ -263,7 +263,7 @@ export function PluginsManager() {
           )}
         </div>
 
-        <div className="order-2 border border-slate-200 bg-white p-6 shadow-sm">
+        <div style={{ order: 2 }} className="border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Installed plugins</p>
@@ -386,7 +386,7 @@ export function PluginsManager() {
           )}
         </div>
 
-        <div className="order-1">
+        <div style={{ order: 1 }}>
         <OfficialPluginsCatalog
           locale={locale}
           items={officialPluginItems}
