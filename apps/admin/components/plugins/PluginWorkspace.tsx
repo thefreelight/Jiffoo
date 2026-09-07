@@ -1517,7 +1517,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#f6f8fb] p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-[#f8fafc] p-5 sm:p-7 lg:p-10">
       <div className="mx-auto grid max-w-[1600px] gap-5 lg:grid-cols-[260px,minmax(0,1fr)]">
         <InstalledPluginsRail
           locale={locale}
@@ -1528,7 +1528,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
         />
 
         <div className="space-y-5">
-          <div className="border-b border-slate-200 bg-white px-6 py-5 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 bg-white px-7 py-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
             <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
               <div className="min-w-0">
                 <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
@@ -1541,7 +1541,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                 <div className="flex flex-wrap items-center gap-2">
                   {officialPluginSlugs.has(slug) ? <OfficialBadge compact /> : null}
                 </div>
-                <h1 className="mt-1 text-3xl font-bold tracking-tight text-slate-950">
+                <h1 className="mt-2 text-[30px] font-bold tracking-tight text-slate-950">
                   {data.name || slug}
                 </h1>
                 <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
@@ -1585,7 +1585,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
             </div>
           </div>
 
-          <div className="grid gap-3 border border-slate-200 bg-white p-4 shadow-sm sm:grid-cols-4">
+          <div className="grid gap-3 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:grid-cols-4">
             {[
               ['Runtime', data.runtimeType || 'n/a'],
               ['Instance', selectedInstance?.instanceKey || 'default'],
@@ -1607,7 +1607,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
             </AlertDescription>
           </Alert>
 
-          <div className="border border-slate-200 bg-white px-5 py-4 shadow-sm">
+          <div className="rounded-2xl border border-slate-200/80 bg-white px-6 py-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
             <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
               <span>
                 <strong className="text-slate-900">Plugin:</strong> {data.name || slug}

@@ -110,8 +110,8 @@ export function OfficialPluginsCatalog({
   }, [category, visibleItems, search]);
 
   return (
-    <section className="space-y-4">
-      <div className="border-b border-slate-200 bg-transparent pb-5">
+    <section className="space-y-5">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
 
         {managedPackage ? (
           <Alert className="mt-4 border-blue-200 bg-blue-50 text-blue-900">
@@ -154,18 +154,18 @@ export function OfficialPluginsCatalog({
           </Alert>
         ) : null}
 
-        <div className="mt-5 flex flex-col gap-3 lg:flex-row">
+        <div className="mt-6 flex flex-col gap-3 lg:flex-row">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder={getText('merchant.extensions.searchOfficialPlugins', 'Search official plugins')}
-              className="h-12 rounded-lg border-slate-200 pl-11"
+              className="h-12 rounded-xl border-slate-200 pl-11 shadow-none"
             />
           </div>
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="h-12 w-full rounded-lg border-slate-200 lg:w-[220px]">
+            <SelectTrigger className="h-12 w-full rounded-xl border-slate-200 lg:w-[220px]">
               <SelectValue placeholder={getText('common.labels.category', 'Category')} />
             </SelectTrigger>
             <SelectContent>
@@ -213,15 +213,15 @@ export function OfficialPluginsCatalog({
             const isInstalling = installingSlug === item.slug;
             const isInstalled = item.installState !== 'not_installed';
             return (
-              <div className="flex flex-col gap-5 border border-blue-100 bg-blue-50/40 p-5 shadow-sm md:flex-row md:items-center md:justify-between">
+              <div className="flex flex-col gap-6 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_8px_30px_rgba(15,23,42,0.04)] md:flex-row md:items-center md:justify-between">
                 <div className="flex min-w-0 items-center gap-4">
-                  <ExtensionAvatar slug={item.slug} name={item.name} kind="plugin" thumbnailUrl={item.thumbnailUrl} className="h-16 w-16 shrink-0" />
+                  <ExtensionAvatar slug={item.slug} name={item.name} kind="plugin" thumbnailUrl={item.thumbnailUrl} className="h-20 w-20 shrink-0" />
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-xl font-bold text-slate-950">{item.name}</h3>
                       <OfficialBadge compact />
                     </div>
-                    <p className="mt-1 text-sm text-slate-700">{item.description}</p>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{item.description}</p>
                     <p className="mt-2 text-xs text-slate-500">v{item.version} <span className="mx-1">•</span> {item.category} <span className="mx-1">•</span> {item.downloads ?? 0} installs</p>
                   </div>
                 </div>
@@ -289,9 +289,9 @@ export function OfficialPluginsCatalog({
               : formatPrice(item);
 
             return (
-              <Card key={item.slug} className="overflow-hidden rounded-lg border-gray-100 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex h-full flex-col gap-4">
+              <Card key={item.slug} className="overflow-hidden rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
+                <CardContent className="p-6">
+                  <div className="flex min-h-[250px] h-full flex-col gap-5">
                     <div className="flex items-start gap-3">
                       <ExtensionAvatar
                         slug={item.slug}
@@ -336,7 +336,7 @@ export function OfficialPluginsCatalog({
                           <span className="capitalize">{item.category}</span>
                         </div>
 
-                        <p className="mt-2 line-clamp-3 text-sm leading-5 text-slate-600">{item.description}</p>
+                        <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{item.description}</p>
 
                         {hasSolutionSemantics ? (
                           <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2 text-sm text-blue-900">
@@ -367,7 +367,7 @@ export function OfficialPluginsCatalog({
                     <Button
                       onClick={handlePrimaryAction}
                       disabled={isUpdateDisabled || effectiveInstallDisabled}
-                      className="w-full rounded-lg"
+                      className="w-full rounded-xl"
                     >
                       {isInstalling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Settings2 className="mr-2 h-4 w-4" />}
                       {primaryActionLabel}

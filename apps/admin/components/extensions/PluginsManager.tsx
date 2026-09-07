@@ -158,14 +158,14 @@ export function PluginsManager() {
   };
 
   return (
-    <div className="flex flex-col gap-5">
-        <div className="relative border-b border-slate-200 bg-white px-6 py-5">
+    <div className="flex flex-col gap-6">
+        <div className="relative rounded-2xl border border-slate-200/80 bg-white px-6 py-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
             <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
               <span>Plugins</span><span>/</span><span className="text-slate-900">Marketplace</span>
             </div>
-            <h2 className="text-3xl font-bold tracking-tight text-slate-950">
+            <h2 className="text-[28px] font-bold tracking-tight text-slate-950">
               {record
                 ? getText('merchant.plugins.licensedPluginCenter', 'Licensed plugins')
                 : getText('merchant.plugins.marketplace', 'Official plugin marketplace')}
@@ -183,7 +183,7 @@ export function PluginsManager() {
             </p>
             </div>
             <div className={platformConnectionStatus?.marketplaceReady
-              ? 'inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-700'
+              ? 'inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700'
               : 'inline-flex w-fit items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-sm font-medium text-slate-600'}>
               <span className={platformConnectionStatus?.marketplaceReady ? 'h-2 w-2 rounded-full bg-emerald-500' : 'h-2 w-2 rounded-full bg-slate-400'} />
               {platformConnectionStatus?.marketplaceReady ? 'Marketplace ready' : 'Not connected'}
@@ -257,7 +257,7 @@ export function PluginsManager() {
           )}
         </div>
 
-        <div style={{ order: 2 }} className="flex items-center justify-between gap-4 border border-slate-200 bg-white px-5 py-4 shadow-sm">
+        <div style={{ order: 2 }} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white px-6 py-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
               <Settings className="h-5 w-5" />

@@ -102,8 +102,8 @@ export function OfficialThemesCatalog({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="border-b border-slate-200 bg-white px-6 py-5">
+    <div className="space-y-5">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
         <div className="flex flex-col gap-1">
           <h3 className="text-2xl font-bold tracking-tight text-slate-950">
             {managedPackage
@@ -190,7 +190,7 @@ export function OfficialThemesCatalog({
         </div>
       </div>
 
-      <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
           {isLoading ? (
           Array.from({ length: 2 }).map((_, index) => (
             <Card key={`official-theme-skeleton-${index}`} className="rounded-lg border-gray-100">
@@ -256,14 +256,14 @@ export function OfficialThemesCatalog({
                 : formatPrice(item);
 
               return (
-              <Card key={item.slug} className="overflow-hidden rounded-lg border-slate-200 bg-white shadow-none transition-shadow hover:shadow-md">
+              <Card key={item.slug} className="overflow-hidden rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
                 <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
                   {item.thumbnailUrl ? <img src={item.thumbnailUrl} alt={item.name} className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.02]" /> : <ExtensionAvatar slug={item.slug} name={item.name} kind="theme" className="h-full w-full rounded-none" />}
                   <div className="absolute left-3 top-3"><OfficialBadge compact /></div>
                   {item.installState === 'active' ? <Badge className="absolute right-3 top-3 rounded-lg bg-emerald-600 text-white">{getText('merchant.themes.active', 'Active')}</Badge> : null}
                 </div>
 
-                <CardHeader className="space-y-2 px-4 pb-0 pt-4">
+                <CardHeader className="space-y-2 px-5 pb-0 pt-5">
                   <div className="space-y-1">
                     <CardTitle className="text-lg font-bold text-slate-950">{item.name}</CardTitle>
                     <p className="text-xs text-slate-500">v{item.version} <span className="mx-1">•</span> {item.category}</p>
@@ -285,7 +285,7 @@ export function OfficialThemesCatalog({
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-4 px-4 pb-4 pt-3">
+                <CardContent className="space-y-4 px-5 pb-5 pt-4">
                   <p className="line-clamp-2 min-h-10 text-sm leading-5 text-slate-600">{item.description}</p>
 
                   {hasSolutionSemantics ? (
