@@ -164,8 +164,8 @@ export function PluginsManager() {
   };
 
   return (
-    <div className="space-y-5">
-        <div className="border-b border-slate-200 bg-white px-6 py-5">
+    <div className="flex flex-col gap-5">
+        <div className="relative border-b border-slate-200 bg-white px-6 py-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
             <div>
             <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
@@ -263,7 +263,7 @@ export function PluginsManager() {
           )}
         </div>
 
-        <div className="border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="order-2 border border-slate-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Installed plugins</p>
@@ -386,6 +386,7 @@ export function PluginsManager() {
           )}
         </div>
 
+        <div className="order-1">
         <OfficialPluginsCatalog
           locale={locale}
           items={officialPluginItems}
@@ -403,6 +404,7 @@ export function PluginsManager() {
           onManage={(item) => router.push(`/${locale}/plugins/${item.slug}`)}
           getText={getText}
         />
+        </div>
       <AlertDialog open={!!purgingPlugin} onOpenChange={(open) => !open && setPurgingPlugin(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

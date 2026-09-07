@@ -111,25 +111,7 @@ export function OfficialPluginsCatalog({
 
   return (
     <section className="space-y-4">
-      <div className="rounded-lg border border-gray-100 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-1">
-          <h3 className="text-xl font-semibold tracking-tight">
-            {managedPackage
-              ? getText('merchant.plugins.includedPlugins', 'Included plugins')
-              : getText('merchant.plugins.marketplace', 'Official plugin marketplace')}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {managedPackage
-              ? getText(
-                  'merchant.plugins.includedPluginsDescription',
-                  'These plugins are included in your managed package and can be installed or configured without exposing the public marketplace.'
-                )
-              : getText(
-                  'merchant.plugins.officialCatalogDescription',
-                  'Install, enable, and manage the launch plugins without leaving Merchant Admin.'
-                )}
-          </p>
-        </div>
+      <div className="border-b border-slate-200 bg-transparent pb-5">
 
         {managedPackage ? (
           <Alert className="mt-4 border-blue-200 bg-blue-50 text-blue-900">
