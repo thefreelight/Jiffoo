@@ -39,7 +39,6 @@ import { useRouter } from 'next/navigation';
 import { OfficialPluginsCatalog } from '@/components/extensions/OfficialPluginsCatalog';
 import { PlatformConnectionCard } from '@/components/extensions/PlatformConnectionCard';
 import { ExtensionAvatar, OfficialBadge } from '@/components/extensions/ExtensionVisuals';
-import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRail';
 import { useManagedMode } from '@/lib/managed-mode';
 
 export function PluginsManager() {
@@ -166,29 +165,20 @@ export function PluginsManager() {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[280px,minmax(0,1fr)]">
-      <InstalledPluginsRail
-        locale={locale}
-        plugins={visiblePluginList}
-        officialSlugs={officialPluginSlugs}
-        getText={getText}
-        managedPackage={record}
-      />
-
-      <div className="space-y-6">
+    <div className="space-y-5">
         {record ? null : <PlatformConnectionCard getText={getText} />}
 
-        <div className="flex flex-col justify-between gap-4 rounded-lg border border-gray-100 bg-white p-6 shadow-sm lg:flex-row lg:items-center">
+        <div className="border-b border-slate-200 bg-white px-6 py-5">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600">
-              {getText('merchant.plugins.management', 'Plugins')}
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+            <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
+              <span>Plugins</span><span>/</span><span className="text-slate-900">Marketplace</span>
+            </div>
+            <h2 className="text-3xl font-bold tracking-tight text-slate-950">
               {record
                 ? getText('merchant.plugins.licensedPluginCenter', 'Licensed plugins')
-                : getText('merchant.plugins.pluginCenter', 'Plugin center')}
+                : getText('merchant.plugins.marketplace', 'Official plugin marketplace')}
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
               {record
                 ? getText(
                     'merchant.plugins.pluginCenterManagedIntro',
@@ -268,17 +258,14 @@ export function PluginsManager() {
           )}
         </div>
 
-        <div className="rounded-lg border border-gray-100 bg-white p-6 shadow-sm">
-          <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-end justify-between gap-4">
             <div>
-              <h3 className="text-xl font-semibold tracking-tight text-slate-950">
-                {getText('merchant.plugins.installedCollection', 'Installed plugins')}
-              </h3>
-              <p className="mt-1 text-sm text-slate-600">
-                {getText('merchant.plugins.installedCollectionDescription', 'Open a native plugin workspace, toggle availability, or review configuration readiness from the plugin center.')}
-              </p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-600">Installed plugins</p>
+              <h3 className="mt-1 text-2xl font-bold tracking-tight text-slate-950">{getText('merchant.plugins.installedCollection', 'Installed plugins')}</h3>
+              <p className="mt-1 text-sm text-slate-500">Manage active extensions and open their dedicated workspaces.</p>
             </div>
-            <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
+            <Badge variant="secondary" className="rounded-lg bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
               {visiblePluginList.length}
             </Badge>
           </div>
@@ -303,7 +290,7 @@ export function PluginsManager() {
                 const isThemeFirstSolution = record?.offerKind === 'theme_first_solution';
 
                 return (
-                  <div key={safeKey} className="rounded-lg border border-slate-100 bg-slate-50/60 p-5">
+                  <div key={safeKey} className="border border-slate-200 bg-white p-5 transition-colors hover:border-blue-200 hover:bg-blue-50/20">
                     <div className="flex items-start gap-4">
                       <ExtensionAvatar
                         slug={plugin.slug}
@@ -347,7 +334,7 @@ export function PluginsManager() {
                         ) : null}
 
                         <div className="mt-4 flex flex-wrap items-center gap-3">
-                          <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2">
+                          <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
                             <Switch
                               checked={plugin.enabled}
                               onCheckedChange={(checked) => void handleTogglePlugin(plugin, checked)}
@@ -411,8 +398,6 @@ export function PluginsManager() {
           onManage={(item) => router.push(`/${locale}/plugins/${item.slug}`)}
           getText={getText}
         />
-      </div>
-
       <AlertDialog open={!!purgingPlugin} onOpenChange={(open) => !open && setPurgingPlugin(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
