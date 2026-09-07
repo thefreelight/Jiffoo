@@ -48,7 +48,6 @@ async function proxyToCore(request: NextRequest): Promise<Response> {
 }
 
 export const dynamic = 'force-dynamic'
-export const runtime = 'edge'
 
 export const GET = proxyToCore
 export const POST = proxyToCore

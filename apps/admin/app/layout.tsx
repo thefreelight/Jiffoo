@@ -10,7 +10,6 @@ import './globals.css';
 import { DevTools } from '@/components/dev-tools';
 import { AdminThemePackWrapper } from '@/components/admin-theme-pack-wrapper';
 
-export const runtime = 'edge';
 
 export const metadata: Metadata = {
   title: 'Jiffoo Admin',
