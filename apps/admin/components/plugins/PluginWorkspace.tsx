@@ -258,14 +258,14 @@ function GenericConfigEditor(props: {
   } = props;
 
   return (
-    <Card className="rounded-lg border-gray-100 shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-xl tracking-tight">Configuration</CardTitle>
+    <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+      <CardHeader className="px-7 pt-7">
+        <CardTitle className="text-2xl tracking-tight">Configuration</CardTitle>
         <CardDescription>
           Update plugin settings from a native Merchant Admin form. iframe-based plugin pages are no longer used here.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="space-y-6 px-7 pb-7">
         {Object.entries(configSchema).map(([field, descriptor]) => {
           const type = getDescriptorType(descriptor);
           const label = getConfigFieldLabel(field, descriptor);
@@ -287,7 +287,7 @@ function GenericConfigEditor(props: {
                   {required ? ' *' : ''}
                 </Label>
                 <Select value={normalizedValue} onValueChange={(nextValue) => onUpdateField(field, nextValue)}>
-                  <SelectTrigger className="rounded-lg">
+                  <SelectTrigger className="h-11 rounded-xl">
                     <SelectValue placeholder={label} />
                   </SelectTrigger>
                   <SelectContent>
@@ -330,7 +330,7 @@ function GenericConfigEditor(props: {
                 <Textarea
                   value={jsonFieldDrafts[field] ?? JSON.stringify(value ?? (type === 'array' ? [] : {}), null, 2)}
                   onChange={(event) => onUpdateJsonField(field, event.target.value, type)}
-                  className="min-h-[180px] rounded-lg font-mono"
+                  className="min-h-[180px] rounded-xl font-mono"
                 />
                 {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
                 {error ? <p className="text-xs text-red-600">{error}</p> : null}
@@ -351,7 +351,7 @@ function GenericConfigEditor(props: {
                     onChange={(event) =>
                       onUpdateField(field, event.target.value === '' ? '' : Number(event.target.value))
                     }
-                    className="rounded-lg"
+                    className="h-11 rounded-xl"
                   />
                 {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
               </div>
@@ -375,7 +375,7 @@ function GenericConfigEditor(props: {
                     ? 'Stored securely. Leave blank to keep the current value.'
                     : undefined
                 }
-                className="rounded-lg"
+                className="h-11 rounded-xl"
               />
               {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
               {type === 'secret' && secretConfigured ? (
@@ -388,7 +388,7 @@ function GenericConfigEditor(props: {
         })}
 
         <div className="flex justify-end">
-          <Button onClick={onSave} disabled={saving} className="rounded-lg">
+          <Button onClick={onSave} disabled={saving} className="rounded-xl px-6">
             {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Save configuration
           </Button>
@@ -1698,7 +1698,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
             </div>
 
             <div className="space-y-5">
-              <Card className="rounded-lg border-slate-200 shadow-sm">
+              <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
                 <CardHeader>
                   <CardTitle className="text-lg tracking-tight">Instance status</CardTitle>
                   <CardDescription>

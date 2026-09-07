@@ -40,7 +40,7 @@ export function InstalledPluginsRail({
 }: InstalledPluginsRailProps) {
   return (
     <aside className="space-y-4 lg:sticky lg:top-24">
-      <div className="rounded-lg border border-gray-100 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600">
@@ -71,7 +71,7 @@ export function InstalledPluginsRail({
         </div>
       </div>
 
-      <div className="rounded-lg border border-gray-100 bg-white p-3 shadow-sm">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
         <div className="mb-3 flex items-center justify-between px-2">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
             {getText('merchant.plugins.installedCollection', 'Installed plugins')}
