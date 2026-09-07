@@ -389,11 +389,12 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
         target: seed.target,
       };
       const remoteItem = remoteItemsBySlug.get(seed.slug) || toFallbackRemoteItem(seed);
+      const remoteVersions = Array.isArray(remoteItem.versions) ? remoteItem.versions : [];
       const artifactItem = artifactItemsByKey.get(`${seed.kind}:${seed.slug}`);
       const effectiveSellableVersion = artifactItem?.version || remoteItem.sellableVersion || remoteItem.currentVersion || seed.version;
-      const effectiveVersionSummary = remoteItem.versions.find((candidate) => candidate.version === effectiveSellableVersion)
-        || remoteItem.versions.find((candidate) => candidate.isSellable)
-        || remoteItem.versions[0];
+      const effectiveVersionSummary = remoteVersions.find((candidate) => candidate.version === effectiveSellableVersion)
+        || remoteVersions.find((candidate) => candidate.isSellable)
+        || remoteVersions[0];
       const effectivePackageUrl = artifactItem?.packageUrl || effectiveVersionSummary?.packageUrl || seed.packageUrl;
       const artifactReachable = await checkOfficialArtifactReachable(effectivePackageUrl);
       const hasPublishedArtifact = Boolean(artifactItem && artifactReachable);
