@@ -14,6 +14,7 @@ import { Bell, ChevronDown, CircleHelp, Menu } from 'lucide-react'
 import { BlueMinimalSidebar } from './blue-minimal-sidebar'
 import ProtectedRoute from '../auth/ProtectedRoute'
 import { ManagedModeProvider, useManagedMode } from '@/lib/managed-mode'
+import { AdminLanguageSwitcher } from '@/components/i18n/admin-language-switcher'
 
 interface BlueMinimalLayoutProps {
   children: React.ReactNode
@@ -55,6 +56,7 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
                 </span>
               </div>
               <div className="flex items-center gap-5 text-slate-500">
+                <AdminLanguageSwitcher />
                 <button type="button" aria-label="Help" className="transition-colors hover:text-slate-900"><CircleHelp className="h-[18px] w-[18px]" /></button>
                 <button type="button" aria-label="Notifications" className="transition-colors hover:text-slate-900"><Bell className="h-[18px] w-[18px]" /></button>
                 <div className="flex items-center gap-2 border-l border-slate-200 pl-5 text-sm font-medium text-slate-900">

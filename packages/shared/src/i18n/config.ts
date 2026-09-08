@@ -13,7 +13,7 @@
  * - en: English (default)
  * - zh-Hans: Simplified Chinese
  */
-export const LOCALES = ['en', 'zh-Hant'] as const;
+export const LOCALES = ['en', 'zh-Hans', 'zh-Hant'] as const;
 
 /**
  * Locale type derived from LOCALES constant
@@ -34,6 +34,11 @@ export const LOCALE_CONFIG: Record<Locale, { name: string; nativeName: string; d
     nativeName: 'English',
     dir: 'ltr',
   },
+  'zh-Hans': {
+    name: 'Simplified Chinese',
+    nativeName: '简体中文',
+    dir: 'ltr',
+  },
   'zh-Hant': {
     name: 'Traditional Chinese',
     nativeName: 'Traditional Chinese',
@@ -48,7 +53,7 @@ export const LOCALE_CONFIG: Record<Locale, { name: string; nativeName: string; d
  */
 export function isSupportedLocale(locale: string): locale is Locale {
   // Guard against LOCALES being undefined (can happen if tree-shaken in client bundles)
-  const locales = LOCALES ?? ['en', 'zh-Hant'];
+  const locales = LOCALES ?? ['en', 'zh-Hans', 'zh-Hant'];
   return (locales as readonly string[]).includes(locale);
 }
 
@@ -67,11 +72,12 @@ const BROWSER_LANGUAGE_MAP: Record<string, Locale> = {
   'en-NZ': 'en',
   'en-IE': 'en',
   'en-ZA': 'en',
-  // Chinese variants - all map to Traditional Chinese
-  'zh': 'zh-Hant',
-  'zh-CN': 'zh-Hant',
-  'zh-SG': 'zh-Hant',
-  'zh-Hans': 'zh-Hant',
+  // Simplified Chinese variants
+  'zh': 'zh-Hans',
+  'zh-CN': 'zh-Hans',
+  'zh-SG': 'zh-Hans',
+  'zh-Hans': 'zh-Hans',
+  // Traditional Chinese variants
   'zh-TW': 'zh-Hant',
   'zh-HK': 'zh-Hant',
   'zh-Hant': 'zh-Hant',
