@@ -408,7 +408,7 @@ export const authApi = {
   }, { withCredentials: true }),
 
   changePassword: (currentPassword: string, newPassword: string): Promise<ApiResponse<{ passwordChanged: boolean; changedAt: string }>> =>
-    apiClient.post('/auth/change-password', { currentPassword, newPassword }),
+    apiClient.post('/admin/auth/change-password', { currentPassword, newPassword }),
 };
 
 export const accountApi = {

@@ -40,7 +40,7 @@ export function InstalledPluginsRail({
 }: InstalledPluginsRailProps) {
   return (
     <aside className="space-y-4 lg:sticky lg:top-24">
-      <div className="rounded-[1.75rem] border border-gray-100 bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600">
@@ -63,7 +63,7 @@ export function InstalledPluginsRail({
                   )}
             </p>
           </div>
-          <Button asChild variant="outline" size="icon" className="h-11 w-11 rounded-2xl shrink-0">
+          <Button asChild variant="outline" size="icon" className="h-11 w-11 rounded-lg shrink-0">
             <Link href={`/${locale}/plugins`}>
               <Settings2 className="h-4 w-4" />
             </Link>
@@ -71,7 +71,7 @@ export function InstalledPluginsRail({
         </div>
       </div>
 
-      <div className="rounded-[1.75rem] border border-gray-100 bg-white p-3 shadow-sm">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
         <div className="mb-3 flex items-center justify-between px-2">
           <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">
             {getText('merchant.plugins.installedCollection', 'Installed plugins')}
@@ -82,7 +82,7 @@ export function InstalledPluginsRail({
         </div>
 
         {plugins.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+          <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
             {getText('merchant.plugins.noPluginsInstalled', 'No plugins installed.')}
           </div>
         ) : (
@@ -96,7 +96,7 @@ export function InstalledPluginsRail({
                   key={plugin.slug}
                   href={`/${locale}/plugins/${plugin.slug}`}
                   className={cn(
-                    'group flex items-center gap-3 rounded-2xl border px-3 py-3 transition-all',
+                    'group flex items-center gap-3 rounded-lg border px-3 py-3 transition-all',
                     isSelected
                       ? 'border-blue-200 bg-blue-50 shadow-sm'
                       : 'border-transparent bg-slate-50 hover:border-slate-200 hover:bg-white'

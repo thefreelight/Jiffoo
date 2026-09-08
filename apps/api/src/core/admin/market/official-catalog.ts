@@ -381,13 +381,20 @@ export async function getOfficialCatalog(): Promise<OfficialCatalogResponse> {
 
   const items = await Promise.all(
     OFFICIAL_LAUNCH_EXTENSIONS.map(async (seed): Promise<OfficialCatalogItem> => {
-      const meta = OFFICIAL_CATALOG_META[seed.slug];
+      // Keep a malformed or newly added launch entry from taking down the
+      // whole marketplace response. The shared catalog remains the source of
+      // truth for its target; presentation metadata only enriches it.
+      const meta = OFFICIAL_CATALOG_META[seed.slug] || {
+        category: seed.kind === 'theme' ? 'storefront' : 'general',
+        target: seed.target,
+      };
       const remoteItem = remoteItemsBySlug.get(seed.slug) || toFallbackRemoteItem(seed);
+      const remoteVersions = Array.isArray(remoteItem.versions) ? remoteItem.versions : [];
       const artifactItem = artifactItemsByKey.get(`${seed.kind}:${seed.slug}`);
       const effectiveSellableVersion = artifactItem?.version || remoteItem.sellableVersion || remoteItem.currentVersion || seed.version;
-      const effectiveVersionSummary = remoteItem.versions.find((candidate) => candidate.version === effectiveSellableVersion)
-        || remoteItem.versions.find((candidate) => candidate.isSellable)
-        || remoteItem.versions[0];
+      const effectiveVersionSummary = remoteVersions.find((candidate) => candidate.version === effectiveSellableVersion)
+        || remoteVersions.find((candidate) => candidate.isSellable)
+        || remoteVersions[0];
       const effectivePackageUrl = artifactItem?.packageUrl || effectiveVersionSummary?.packageUrl || seed.packageUrl;
       const artifactReachable = await checkOfficialArtifactReachable(effectivePackageUrl);
       const hasPublishedArtifact = Boolean(artifactItem && artifactReachable);

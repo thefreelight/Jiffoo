@@ -220,14 +220,14 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
       <aside
         className={`
           fixed lg:static inset-y-0 left-0 z-50
-          w-[230px] h-screen bg-white border-r border-gray-100
-          px-4 py-8 flex flex-col flex-shrink-0
+          w-[204px] h-screen bg-white border-r border-slate-200
+          px-3 py-6 flex flex-col flex-shrink-0
           transform transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
         {/* Logo Area */}
-        <div className="flex items-center justify-between mb-10 px-2">
+        <div className="flex items-center justify-between mb-9 px-2">
         <div className="flex items-center gap-3">
           {isManaged && record ? (
             <div className="grid h-10 w-10 place-items-center rounded-lg bg-blue-600 font-bold text-white shadow-sm">

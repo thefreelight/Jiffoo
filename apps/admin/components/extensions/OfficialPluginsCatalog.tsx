@@ -9,7 +9,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ExtensionAvatar, OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import type { ManagedPackageDefinition } from '@/lib/managed-mode';
 
@@ -110,26 +109,8 @@ export function OfficialPluginsCatalog({
   }, [category, visibleItems, search]);
 
   return (
-    <section className="space-y-4">
-      <div className="rounded-[1.75rem] border border-gray-100 bg-white p-6 shadow-sm">
-        <div className="flex flex-col gap-1">
-          <h3 className="text-xl font-semibold tracking-tight">
-            {managedPackage
-              ? getText('merchant.plugins.includedPlugins', 'Included plugins')
-              : getText('merchant.plugins.marketplace', 'Official plugin marketplace')}
-          </h3>
-          <p className="text-sm text-muted-foreground">
-            {managedPackage
-              ? getText(
-                  'merchant.plugins.includedPluginsDescription',
-                  'These plugins are included in your managed package and can be installed or configured without exposing the public marketplace.'
-                )
-              : getText(
-                  'merchant.plugins.officialCatalogDescription',
-                  'Install, enable, and manage the launch plugins without leaving Merchant Admin.'
-                )}
-          </p>
-        </div>
+    <section className="space-y-5">
+      <div className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
 
         {managedPackage ? (
           <Alert className="mt-4 border-blue-200 bg-blue-50 text-blue-900">
@@ -143,7 +124,7 @@ export function OfficialPluginsCatalog({
         ) : null}
 
         {!isLoading && !marketOnline ? (
-          <Alert className="mt-4 border-amber-200 bg-amber-50 text-amber-900">
+          <Alert className="mt-4 border-amber-200 bg-amber-50/70 text-amber-900">
             <WifiOff className="h-4 w-4" />
             <AlertTitle>{getText('merchant.extensions.marketOffline', 'Official market is offline')}</AlertTitle>
             <AlertDescription>
@@ -172,43 +153,43 @@ export function OfficialPluginsCatalog({
           </Alert>
         ) : null}
 
-        <div className="mt-5 flex flex-col gap-3 lg:flex-row">
+        <div className="mt-6 flex flex-col gap-3">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <Input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder={getText('merchant.extensions.searchOfficialPlugins', 'Search official plugins')}
-              className="h-12 rounded-2xl border-slate-200 pl-11"
+              className="h-12 rounded-xl border-slate-200 pl-11 shadow-none"
             />
           </div>
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="h-12 w-full rounded-2xl border-slate-200 lg:w-[220px]">
-              <SelectValue placeholder={getText('common.labels.category', 'Category')} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">{getText('common.labels.all', 'All')}</SelectItem>
-              {categories.map((entry) => (
-                <SelectItem key={entry} value={entry}>
-                  {entry}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex flex-wrap items-center gap-2">
+            {['all', ...categories].map((entry) => (
+              <button
+                key={entry}
+                type="button"
+                onClick={() => setCategory(entry)}
+                className={`rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${category === entry ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700'}`}
+              >
+                {entry === 'all' ? getText('common.labels.all', 'All') : entry}
+              </button>
+            ))}
+            <span className="ml-auto hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 lg:inline-flex">Featured <span className="ml-2 text-slate-400">⌄</span></span>
+          </div>
         </div>
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 4 }).map((_, index) => (
-            <Card key={`official-plugin-skeleton-${index}`} className="rounded-[1.75rem] border-gray-100">
+            <Card key={`official-plugin-skeleton-${index}`} className="rounded-lg border-gray-100">
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <div className="h-14 w-14 animate-pulse rounded-2xl bg-slate-100" />
+                  <div className="h-14 w-14 animate-pulse rounded-lg bg-slate-100" />
                   <div className="min-w-0 flex-1 space-y-3">
                     <div className="h-5 w-40 animate-pulse rounded bg-slate-100" />
                     <div className="h-4 w-full animate-pulse rounded bg-slate-100" />
-                    <div className="h-10 animate-pulse rounded-2xl bg-slate-100" />
+                    <div className="h-10 animate-pulse rounded-lg bg-slate-100" />
                   </div>
                 </div>
               </CardContent>
@@ -216,14 +197,45 @@ export function OfficialPluginsCatalog({
           ))}
         </div>
       ) : filteredItems.length === 0 ? (
-        <div className="rounded-[1.75rem] border border-dashed border-slate-200 bg-white px-6 py-12 text-center text-sm text-muted-foreground">
-          {managedPackage
-            ? getText('merchant.extensions.noIncludedPlugins', 'No licensed plugins are available for this package.')
-            : getText('merchant.extensions.noOfficialMatches', 'No official plugins match the current filter.')}
+        <div className="border border-slate-200 bg-white px-6 py-14 text-center shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <Search className="h-5 w-5" />
+          </div>
+          <h4 className="mt-4 text-base font-semibold text-slate-950">{marketOnline ? 'No plugins found' : 'Marketplace is temporarily unavailable'}</h4>
+          <p className="mx-auto mt-1 max-w-md text-sm text-slate-500">{marketOnline ? (managedPackage ? getText('merchant.extensions.noIncludedPlugins', 'No licensed plugins are available for this package.') : getText('merchant.extensions.noOfficialMatches', 'No official plugins match the current filter.')) : 'Installed plugins remain available. Marketplace listings will return when the catalog service reconnects.'}</p>
+          <div className="mt-5 flex justify-center gap-2"><Button variant="outline" className="rounded-lg" onClick={() => setSearch('')}>Clear search</Button></div>
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {filteredItems.map((item) => {
+        <div className="space-y-4">
+          {filteredItems[0] ? (() => {
+            const item = filteredItems[0];
+            const isInstalling = installingSlug === item.slug;
+            const isInstalled = item.installState !== 'not_installed';
+            return (
+              <div className="flex flex-col gap-6 rounded-2xl border border-slate-200/80 bg-white p-7 shadow-[0_8px_30px_rgba(15,23,42,0.04)] md:flex-row md:items-center md:justify-between">
+                <div className="flex min-w-0 items-center gap-4">
+                  <ExtensionAvatar slug={item.slug} name={item.name} kind="plugin" thumbnailUrl={item.thumbnailUrl} className="h-20 w-20 shrink-0" />
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-xl font-bold text-slate-950">{item.name}</h3>
+                      <OfficialBadge compact />
+                    </div>
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{item.description}</p>
+                    <p className="mt-2 text-xs text-slate-500">v{item.version} <span className="mx-1">•</span> {item.category} <span className="mx-1">•</span> {item.downloads ?? 0} installs</p>
+                  </div>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  <Button variant="outline" onClick={() => onManage(item)} className="rounded-lg">{getText('common.actions.viewDetails', 'View details')}</Button>
+                  <Button onClick={() => (isInstalled ? onManage(item) : onInstall(item))} disabled={isInstalling} className="rounded-lg min-w-24">
+                    {isInstalling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {isInstalled ? getText('common.actions.manage', 'Manage') : getText('merchant.plugins.install', 'Install')}
+                  </Button>
+                </div>
+              </div>
+            );
+          })() : null}
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filteredItems.slice(1).map((item) => {
             const solutionMeta = item.solutionPackage;
             const controlPlaneSolution = item.solutionOffer;
             const hasSolutionSemantics = solutionMeta?.offerKind === 'theme_first_solution' || controlPlaneSolution?.offerKind === 'theme_first_solution';
@@ -276,9 +288,9 @@ export function OfficialPluginsCatalog({
               : formatPrice(item);
 
             return (
-              <Card key={item.slug} className="overflow-hidden rounded-[1.35rem] border-gray-100 shadow-sm">
-                <CardContent className="p-4">
-                  <div className="flex h-full flex-col gap-4">
+              <Card key={item.slug} className="overflow-hidden rounded-2xl border-slate-200/80 bg-white shadow-[0_8px_30px_rgba(15,23,42,0.04)] transition-shadow hover:shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
+                <CardContent className="p-6">
+                  <div className="flex min-h-[250px] h-full flex-col gap-5">
                     <div className="flex items-start gap-3">
                       <ExtensionAvatar
                         slug={item.slug}
@@ -323,10 +335,10 @@ export function OfficialPluginsCatalog({
                           <span className="capitalize">{item.category}</span>
                         </div>
 
-                        <p className="mt-2 line-clamp-3 text-sm leading-5 text-slate-600">{item.description}</p>
+                        <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-600">{item.description}</p>
 
                         {hasSolutionSemantics ? (
-                          <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-sm text-blue-900">
+                          <div className="mt-3 rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2 text-sm text-blue-900">
                             {controlPlaneSolution?.summary ||
                               getText(
                                 'merchant.package.includedPluginExplanation',
@@ -354,7 +366,7 @@ export function OfficialPluginsCatalog({
                     <Button
                       onClick={handlePrimaryAction}
                       disabled={isUpdateDisabled || effectiveInstallDisabled}
-                      className="w-full rounded-lg"
+                      className="w-full rounded-xl"
                     >
                       {isInstalling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Settings2 className="mr-2 h-4 w-4" />}
                       {primaryActionLabel}
@@ -381,6 +393,7 @@ export function OfficialPluginsCatalog({
               </Card>
             );
           })}
+          </div>
         </div>
       )}
     </section>
