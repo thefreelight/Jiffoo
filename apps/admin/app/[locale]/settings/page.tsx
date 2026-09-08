@@ -92,6 +92,7 @@ const CURRENCY_OPTIONS = [
 
 const LOCALE_OPTIONS = [
   { value: 'en', label: 'English' },
+  { value: 'zh-Hans', label: '简体中文' },
   { value: 'zh-Hant', label: 'Traditional Chinese' },
 ]
 

@@ -6,9 +6,10 @@
  * 
  * Supported languages:
  * - en: English (default)
+ * - zh-Hans: Simplified Chinese
  * - zh-Hant: Traditional Chinese
  * 
- * All zh-* browser languages map to zh-Hant.
+ * Mainland and Singapore Chinese map to zh-Hans; Taiwan and Hong Kong map to zh-Hant.
  * 
  * IMPORTANT: For React components and hooks, import from 'shared/src/i18n/react':
  * 
@@ -57,4 +58,3 @@ export {
   addLocaleToPathname,
   localeMiddlewareConfig,
 } from './middleware';
-

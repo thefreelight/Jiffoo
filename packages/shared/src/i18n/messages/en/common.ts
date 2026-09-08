@@ -174,6 +174,7 @@ export const common = {
     title: 'Language',
     select: 'Select language',
     en: 'English',
+    'zh-Hans': 'Simplified Chinese',
     'zh-Hant': 'Traditional Chinese',
   },
 
@@ -186,4 +187,3 @@ export const common = {
     help: 'Help',
   },
 };
-

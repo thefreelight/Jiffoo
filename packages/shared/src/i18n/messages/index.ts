@@ -9,6 +9,7 @@ import type { Locale } from '../config';
 import type { Messages, AppName } from '../types';
 
 import * as enMessages from './en';
+import * as zhHansMessages from './zh-Hans';
 import * as zhHantMessages from './zh-Hant';
 
 /**
@@ -25,6 +26,13 @@ const allMessages: Record<Locale, Messages> = {
     tenant: enMessages.merchant,
     merchant: enMessages.merchant, // Alias for backward compatibility with merchant.* keys
     whiteLabel: enMessages.whiteLabel,
+  },
+  'zh-Hans': {
+    common: zhHansMessages.common,
+    shop: zhHansMessages.shop,
+    tenant: zhHansMessages.merchant,
+    merchant: zhHansMessages.merchant,
+    whiteLabel: zhHansMessages.whiteLabel,
   },
   'zh-Hant': {
     common: zhHantMessages.common,
@@ -87,4 +95,3 @@ export function getNamespaceMessages(
   const messages = allMessages[locale] || allMessages.en;
   return messages[namespace];
 }
-

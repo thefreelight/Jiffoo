@@ -18,6 +18,7 @@ import { useT, useLocale } from 'shared/src/i18n/react'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
 import type { AuthBootstrapStatus } from 'shared/src/types/auth'
 import { ZodError } from 'zod'
+import { AdminLanguageSwitcher } from '@/components/i18n/admin-language-switcher'
 // Validation using shared Zod schema
 import { loginSchema } from 'shared'
 
@@ -187,7 +188,10 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#fcfdfe] p-4">
+    <div className="relative min-h-screen flex items-center justify-center bg-[#fcfdfe] p-4">
+      <div className="absolute right-5 top-5 sm:right-8 sm:top-7">
+        <AdminLanguageSwitcher />
+      </div>
       <div className="w-full max-w-md space-y-6">
         {/* Logo and Title */}
         <div className="text-center space-y-4">
