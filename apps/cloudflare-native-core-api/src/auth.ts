@@ -502,11 +502,26 @@ export async function tryNativeAuth(
       { status: 429, headers: { 'retry-after': String(rate.retryAfter), 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
     );
     const result = await verifyNativeEmailCode(env, body.email || '', body.code || '');
+    if (!result.success) {
+      return Response.json(
+        { success: false, error: { code: 'VERIFICATION_FAILED', message: result.error } },
+        { status: 400, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+      );
+    }
+    // Verified users land straight in their workspace: issue the same shop
+    // session a password login would create instead of forcing a second
+    // credential prompt.
+    const verified = body.email ? await findNativeUserByEmail(env, body.email) : null;
+    if (verified && verified.is_active) {
+      const session = await createNativeSession(env, nativePublicUser(verified));
+      return new Response(JSON.stringify({
+        ...session.body,
+        message: 'Email verified successfully',
+      }), { status: 200, headers: session.headers });
+    }
     return Response.json(
-      result.success
-        ? { success: true, data: null, message: 'Email verified successfully' }
-        : { success: false, error: { code: 'VERIFICATION_FAILED', message: result.error } },
-      { status: result.success ? 200 : 400, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+      { success: true, data: null, message: 'Email verified successfully' },
+      { status: 200, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
     );
   }
 
