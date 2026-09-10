@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, Loader2, MailCheck, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { authApi } from '@/lib/api';
+import { apiClient, authApi } from '@/lib/api';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useAuthStore } from '@/store/auth';
 import { useT } from 'shared/src/i18n/react';
