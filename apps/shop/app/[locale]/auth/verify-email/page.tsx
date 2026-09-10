@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { authApi } from '@/lib/api';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
+import { useAuthStore } from '@/store/auth';
 import { useT } from 'shared/src/i18n/react';
 
 type VerificationState = 'idle' | 'loading' | 'success' | 'error';
@@ -17,6 +18,7 @@ export default function VerifyEmailPage() {
   const t = useT();
   const email = searchParams.get('email')?.trim() || '';
   const token = searchParams.get('token')?.trim() || '';
+  const getProfile = useAuthStore((state) => state.getProfile);
   const [state, setState] = useState<VerificationState>(token ? 'loading' : 'idle');
   const [message, setMessage] = useState('');
   const [code, setCode] = useState('');
@@ -65,7 +67,22 @@ export default function VerifyEmailPage() {
     setState('loading');
     setMessage(getText('shop.auth.verifyEmail.loadingMessage', 'Checking your verification code.'));
     try {
-      await authApi.verifyEmailCode(email, code);
+      const response = await authApi.verifyEmailCode(email, code);
+      // The native API returns the shop session on success, so a verified
+      // user lands directly in the workspace instead of signing in again.
+      const session = response?.data as { access_token?: string; refresh_token?: string } | undefined;
+      if (response.success && session?.access_token) {
+        apiClient.setToken(session.access_token);
+        if (session.refresh_token) {
+          (apiClient as unknown as { setRefreshToken: (token: string) => void }).setRefreshToken(session.refresh_token);
+        }
+        await getProfile();
+        useAuthStore.setState({ isAuthenticated: true });
+        setState('success');
+        setMessage(getText('shop.auth.verifyEmail.successMessage', 'Your email has been verified. You can now sign in.'));
+        nav.push('/profile');
+        return;
+      }
       setState('success');
       setMessage(getText('shop.auth.verifyEmail.successMessage', 'Your email has been verified. You can now sign in.'));
     } catch (error: any) {
