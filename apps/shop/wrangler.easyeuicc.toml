@@ -22,6 +22,11 @@ NEXT_PUBLIC_FALLBACK_DEFAULT_LOCALE = "zh-Hant"
 NEXT_PUBLIC_FALLBACK_SUPPORTED_LOCALES = "en,zh-Hans,zh-Hant"
 NEXT_PUBLIC_FALLBACK_POWERED_BY_JIFFOO = "0"
 
+routes = [
+  { pattern = "easyeuicc.cc/*", zone_name = "easyeuicc.cc" },
+  { pattern = "www.easyeuicc.cc/*", zone_name = "easyeuicc.cc" }
+]
+
 [[services]]
 binding = "WORKER_SELF_REFERENCE"
 service = "easyeuicc-shop"

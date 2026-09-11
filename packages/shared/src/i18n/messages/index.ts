@@ -10,6 +10,7 @@ import type { Messages, AppName } from '../types';
 
 import * as enMessages from './en';
 import * as zhHantMessages from './zh-Hant';
+import * as zhHansMessages from './zh-Hans';
 
 /**
  * All messages organized by locale
@@ -25,6 +26,13 @@ const allMessages: Record<Locale, Messages> = {
     tenant: enMessages.merchant,
     merchant: enMessages.merchant, // Alias for backward compatibility with merchant.* keys
     whiteLabel: enMessages.whiteLabel,
+  },
+  'zh-Hans': {
+    common: zhHansMessages.common,
+    shop: zhHansMessages.shop,
+    tenant: zhHansMessages.merchant,
+    merchant: zhHansMessages.merchant,
+    whiteLabel: zhHansMessages.whiteLabel,
   },
   'zh-Hant': {
     common: zhHantMessages.common,
