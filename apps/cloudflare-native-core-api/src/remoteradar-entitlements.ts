@@ -5,15 +5,37 @@ type EntitlementEnv = Pick<Cloudflare.Env, 'DB'>;
 type EntitlementRouteEnv = EntitlementEnv & NativeAuthEnv;
 
 export const REMOTERADAR_PRODUCTS = {
+  STARTER_MONTHLY: 'remoteradar-starter-monthly',
+  STARTER_QUARTERLY: 'remoteradar-starter-quarterly',
+  STARTER_ANNUAL: 'remoteradar-starter-annual',
   PRO_MONTHLY: 'remoteradar-pro-monthly',
+  PRO_QUARTERLY: 'remoteradar-pro-quarterly',
   PRO_ANNUAL: 'remoteradar-pro-annual',
-  CREDIT_PACK_10: 'remoteradar-credit-pack-10',
+  POWER_MONTHLY: 'remoteradar-power-monthly',
+  POWER_QUARTERLY: 'remoteradar-power-quarterly',
+  POWER_ANNUAL: 'remoteradar-power-annual',
 } as const;
 
+// Tiered pricing follows the published tsenta-style plan card: every tier is
+// the full product and differs only by application volume per 30-day cycle.
 export const REMOTERADAR_PRICING_USD = {
-  [REMOTERADAR_PRODUCTS.PRO_MONTHLY]: 15,
-  [REMOTERADAR_PRODUCTS.PRO_ANNUAL]: 144,
-  [REMOTERADAR_PRODUCTS.CREDIT_PACK_10]: 9,
+  [REMOTERADAR_PRODUCTS.STARTER_MONTHLY]: 19,
+  [REMOTERADAR_PRODUCTS.STARTER_QUARTERLY]: 51,
+  [REMOTERADAR_PRODUCTS.STARTER_ANNUAL]: 190,
+  [REMOTERADAR_PRODUCTS.PRO_MONTHLY]: 39,
+  [REMOTERADAR_PRODUCTS.PRO_QUARTERLY]: 105,
+  [REMOTERADAR_PRODUCTS.PRO_ANNUAL]: 390,
+  [REMOTERADAR_PRODUCTS.POWER_MONTHLY]: 99,
+  [REMOTERADAR_PRODUCTS.POWER_QUARTERLY]: 267,
+  [REMOTERADAR_PRODUCTS.POWER_ANNUAL]: 990,
+} as const;
+
+// Applications credited per 30-day cycle for each tier's monthly grant.
+export const REMOTERADAR_TIER_CREDITS = {
+  starter: 600,
+  pro_beta: 1500,
+  power: 4500,
+  free: 25,
 } as const;
 
 type RemoteRadarProductCode = typeof REMOTERADAR_PRODUCTS[keyof typeof REMOTERADAR_PRODUCTS];
@@ -30,8 +52,8 @@ interface OrderRow {
 }
 
 interface EntitlementRow {
-  plan_code: 'pro_beta';
-  billing_interval: 'month' | 'year';
+  plan_code: 'starter' | 'pro_beta' | 'power';
+  billing_interval: 'month' | 'quarter' | 'year';
   starts_at: string;
   ends_at: string;
 }
@@ -44,20 +66,14 @@ interface GrantRow {
 }
 
 export interface RemoteRadarAllowanceStatus {
-  plan: 'free' | 'pro_beta';
-  billingInterval: 'month' | 'year' | null;
+  plan: 'free' | 'starter' | 'pro_beta' | 'power';
+  billingInterval: 'month' | 'quarter' | 'year' | null;
   periodKey: string;
   includedCredits: number;
   includedRemaining: number;
   purchasedRemaining: number;
   totalRemaining: number;
   entitlementEndsAt: string | null;
-}
-
-function addMonths(value: Date, months: number): Date {
-  const result = new Date(value);
-  result.setUTCMonth(result.getUTCMonth() + months);
-  return result;
 }
 
 function addDays(value: Date, days: number): Date {
@@ -82,15 +98,42 @@ function supportedProduct(value: string): value is RemoteRadarProductCode {
   return Object.values(REMOTERADAR_PRODUCTS).includes(value as RemoteRadarProductCode);
 }
 
+function productTier(product: RemoteRadarProductCode): PaidTier {
+  if (product.startsWith('remoteradar-starter-')) return 'starter';
+  if (product.startsWith('remoteradar-pro-')) return 'pro_beta';
+  if (product.startsWith('remoteradar-power-')) return 'power';
+  throw new Error('REMOTERADAR_ORDER_NOT_ELIGIBLE');
+}
+
+function productInterval(product: RemoteRadarProductCode): 'month' | 'quarter' | 'year' {
+  if (product.endsWith('-quarterly')) return 'quarter';
+  if (product.endsWith('-annual')) return 'year';
+  return 'month';
+}
+
+type PaidTier = 'starter' | 'pro_beta' | 'power';
+
+function tierCredits(tier: PaidTier): number {
+  return REMOTERADAR_TIER_CREDITS[tier];
+}
+
+function cycleEndsAt(at: Date, interval: 'month' | 'quarter' | 'year'): string {
+  const ends = new Date(at);
+  if (interval === 'month') ends.setUTCMonth(ends.getUTCMonth() + 1);
+  else if (interval === 'quarter') ends.setUTCMonth(ends.getUTCMonth() + 3);
+  else ends.setUTCFullYear(ends.getUTCFullYear() + 1);
+  return ends.toISOString();
+}
+
 async function ensureMonthlyGrant(
   env: EntitlementEnv,
   userId: string,
   now: Date,
-  pro: boolean,
+  active: EntitlementRow | null,
 ): Promise<void> {
   const current = period(now);
-  const kind = pro ? 'pro_monthly' : 'free_monthly';
-  const credits = pro ? 20 : 2;
+  const kind = active ? 'pro_monthly' : 'free_monthly';
+  const credits = active ? tierCredits(active.plan_code) : REMOTERADAR_TIER_CREDITS.free;
   await env.DB.prepare(
     `INSERT OR IGNORE INTO remoteradar_credit_grants
      (id, user_id, grant_type, credits_total, credits_remaining, period_key, source_order_id,
@@ -111,7 +154,7 @@ export async function remoteRadarAllowanceStatus(
      WHERE user_id = ?1 AND status = 'active' AND starts_at <= ?2 AND ends_at > ?2
      ORDER BY ends_at DESC LIMIT 1`,
   ).bind(userId, now).first<EntitlementRow>();
-  await ensureMonthlyGrant(env, userId, at, Boolean(active));
+  await ensureMonthlyGrant(env, userId, at, active);
   const current = period(at);
   const grants = await env.DB.prepare(
     `SELECT grant_type, credits_total, credits_remaining, expires_at
@@ -130,7 +173,7 @@ export async function remoteRadarAllowanceStatus(
     plan: active ? 'pro_beta' : 'free',
     billingInterval: active?.billing_interval ?? null,
     periodKey: current.key,
-    includedCredits: active ? 20 : 2,
+    includedCredits: active ? tierCredits(active.plan_code) : REMOTERADAR_TIER_CREDITS.free,
     includedRemaining,
     purchasedRemaining,
     totalRemaining: includedRemaining + purchasedRemaining,
@@ -168,28 +211,23 @@ export async function processRemoteRadarPaidOrder(
   const now = at.toISOString();
   const statements: D1PreparedStatement[] = [];
 
-  if (productCode === REMOTERADAR_PRODUCTS.CREDIT_PACK_10) {
-    statements.push(env.DB.prepare(
-      `INSERT OR IGNORE INTO remoteradar_credit_grants
-       (id, user_id, grant_type, credits_total, credits_remaining, period_key, source_order_id,
-        expires_at, created_at, updated_at)
-       VALUES (?1, ?2, 'credit_pack', 10, 10, NULL, ?3, ?4, ?5, ?5)`,
-    ).bind(grantId(order.user_id, 'credit_pack', orderId), order.user_id, orderId, addDays(at, 90).toISOString(), now));
-  } else {
-    const annual = productCode === REMOTERADAR_PRODUCTS.PRO_ANNUAL;
-    const endsAt = addMonths(at, annual ? 12 : 1).toISOString();
+  const tier = productTier(productCode);
+  const interval = productInterval(productCode);
+  if (tier) {
+    // A paid tier order opens the entitlement and credits the first 30-day cycle.
+    const endsAt = cycleEndsAt(at, interval);
     statements.push(env.DB.prepare(
       `INSERT OR IGNORE INTO remoteradar_entitlements
        (id, user_id, plan_code, billing_interval, status, starts_at, ends_at, source_order_id, created_at, updated_at)
-       VALUES (?1, ?2, 'pro_beta', ?3, 'active', ?4, ?5, ?6, ?4, ?4)`,
-    ).bind(entitlementId(order.user_id, orderId), order.user_id, annual ? 'year' : 'month', now, endsAt, orderId));
-    const current = period(at);
+       VALUES (?1, ?2, ?3, ?4, 'active', ?5, ?6, ?7, ?5, ?5)`,
+    ).bind(entitlementId(order.user_id, orderId), order.user_id, tier, interval, now, endsAt, orderId));
+    const firstCycleEndsAt = addDays(at, 30).toISOString();
     statements.push(env.DB.prepare(
       `INSERT OR IGNORE INTO remoteradar_credit_grants
        (id, user_id, grant_type, credits_total, credits_remaining, period_key, source_order_id,
         expires_at, created_at, updated_at)
-       VALUES (?1, ?2, 'pro_monthly', 20, 20, ?3, ?4, ?5, ?6, ?6)`,
-    ).bind(grantId(order.user_id, 'pro_monthly', current.key), order.user_id, current.key, orderId, current.endsAt, now));
+       VALUES (?1, ?2, 'pro_monthly', ?3, ?3, NULL, ?4, ?5, ?6, ?6)`,
+    ).bind(grantId(order.user_id, 'pro_monthly', orderId), order.user_id, tierCredits(tier), orderId, firstCycleEndsAt, now));
   }
   statements.push(env.DB.prepare(
     `INSERT OR IGNORE INTO remoteradar_paid_order_grants

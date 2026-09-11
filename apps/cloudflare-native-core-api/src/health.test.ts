@@ -3,6 +3,7 @@ import { isExpectedNativeSchemaVersion, isSupportedNativeSchemaVersion } from '.
 
 describe('native health schema gate', () => {
   it('accepts the current and compatible native schema lines', () => {
+    expect(isSupportedNativeSchemaVersion('0054')).toBe(true);
     expect(isSupportedNativeSchemaVersion('0053')).toBe(true);
     expect(isSupportedNativeSchemaVersion('0052')).toBe(true);
     expect(isSupportedNativeSchemaVersion('0051')).toBe(true);
