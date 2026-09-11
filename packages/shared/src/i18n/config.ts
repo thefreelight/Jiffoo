@@ -13,7 +13,7 @@
  * - en: English (default)
  * - zh-Hans: Simplified Chinese
  */
-export const LOCALES = ['en', 'zh-Hant'] as const;
+export const LOCALES = ['en', 'zh-Hans', 'zh-Hant'] as const;
 
 /**
  * Locale type derived from LOCALES constant
@@ -32,6 +32,11 @@ export const LOCALE_CONFIG: Record<Locale, { name: string; nativeName: string; d
   en: {
     name: 'English',
     nativeName: 'English',
+    dir: 'ltr',
+  },
+  'zh-Hans': {
+    name: 'Simplified Chinese',
+    nativeName: '简体中文',
     dir: 'ltr',
   },
   'zh-Hant': {
@@ -67,11 +72,12 @@ const BROWSER_LANGUAGE_MAP: Record<string, Locale> = {
   'en-NZ': 'en',
   'en-IE': 'en',
   'en-ZA': 'en',
-  // Chinese variants - all map to Traditional Chinese
+  // Chinese variants: Simplified Chinese for mainland/Singapore scripts,
+  // Traditional for TW/HK and the generic zh code.
   'zh': 'zh-Hant',
-  'zh-CN': 'zh-Hant',
-  'zh-SG': 'zh-Hant',
-  'zh-Hans': 'zh-Hant',
+  'zh-CN': 'zh-Hans',
+  'zh-SG': 'zh-Hans',
+  'zh-Hans': 'zh-Hans',
   'zh-TW': 'zh-Hant',
   'zh-HK': 'zh-Hant',
   'zh-Hant': 'zh-Hant',

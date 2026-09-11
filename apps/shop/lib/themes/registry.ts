@@ -122,7 +122,7 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       target: 'shop',
       tags: ['travel', 'modern', 'responsive'],
     },
-    load: async () => yevbiTheme,
+    load: async () => yevbiTheme as unknown as ThemePackage,
   },
   'imagic-studio': {
     meta: {
