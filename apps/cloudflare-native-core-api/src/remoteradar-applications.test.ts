@@ -54,7 +54,11 @@ function meteredDatabase(options: { failArtifactWrite?: boolean; failReservation
       run: async () => {
         if (sql.includes("SET grant_id = ?1") && sql.includes("status = 'claiming'")) {
           charge.grant_id = args[0]; charge.attempt = args[1]; charge.status = 'claiming'; charge.updated_at = args[2];
-          return { success: true, meta: { changes: 1 } };
+          // Faithful to D1: the 0027 AFTER-trigger also decrements the grant row,
+          // and Cloudflare D1 counts trigger-driven row changes in meta.changes.
+          // A successful claim therefore reports 2 (the charge row + the grant row),
+          // never 1. Only a lost race reports 0.
+          return { success: true, meta: { changes: 2 } };
         }
         if (sql.includes("wallet_reservation_id = ?1, status = 'reserved'")) {
           if (options.failReservationRecord) throw new Error('RESERVATION_RECORD_FAILED');
