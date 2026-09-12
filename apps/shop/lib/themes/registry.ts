@@ -122,7 +122,7 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       target: 'shop',
       tags: ['travel', 'modern', 'responsive'],
     },
-    load: async () => yevbiTheme as unknown as ThemePackage,
+    load: async () => yevbiTheme,
   },
   'imagic-studio': {
     meta: {
@@ -151,10 +151,7 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       target: 'shop',
       tags: ['app-download', 'landing', 'easyeuicc', 'responsive'],
     },
-    // The embedded mirror exports the official theme's own contract
-    // types; assert at this registry boundary until the theme types its
-    // runtime against the shared theme contract.
-    load: async () => appLandingpageTheme as unknown as ThemePackage,
+load: async () => appLandingpageTheme,
   },
   // Second built-in base theme — "Serene" calm indigo design
   [BUILTIN_SERENE_SLUG]: {
