@@ -160,7 +160,11 @@ async function reservePackCredit(env: RemoteRadarApplicationsEnv, userId: string
     SET grant_id = ?1, wallet_reservation_id = NULL, attempt = ?2, status = 'claiming', updated_at = ?3
     WHERE id = ?4 AND user_id = ?5 AND status IN ('initiated', 'released')`)
     .bind(grant.id, attempt, now, charge.id, userId).run();
-  if (Number(claim.meta?.changes ?? 0) !== 1) throw new Error('PACK_GENERATION_IN_PROGRESS');
+  // Winning the claim means this UPDATE matched the charge row (changes >= 1).
+  // Cloudflare D1 folds AFTER-trigger row changes (the 0027 grant-decrement and
+  // claim-validate triggers) into meta.changes, so a successful claim reports 2,
+  // not 1. Only changes === 0 means another request already claimed it.
+  if ((claim.meta?.changes ?? 0) < 1) throw new Error('PACK_GENERATION_IN_PROGRESS');
   charge = (await chargeByKey(env, userId, key))!;
   let walletReservationId: string | null = null;
   try {
