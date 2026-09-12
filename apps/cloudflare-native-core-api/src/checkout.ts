@@ -285,6 +285,25 @@ function encodeStripeForm(order: Record<string, unknown>, successUrl: string, ca
   return form;
 }
 
+/**
+ * Payment result URLs must return the shopper to the storefront that started
+ * the checkout. Explicit body URLs win; otherwise the request Origin is the
+ * storefront itself. Only headless callers with no browser origin fall back to
+ * the shared default shop host.
+ */
+export function storefrontOrigin(request: Request): string {
+  const origin = request.headers.get('origin')?.trim();
+  if (origin) {
+    try {
+      const url = new URL(origin);
+      if (url.protocol === 'https:' || url.protocol === 'http:') {
+        return url.origin;
+      }
+    } catch { /* malformed Origin header */ }
+  }
+  return 'https://shop.jiffoo.com';
+}
+
 async function createPaymentSession(request: Request, env: CheckoutEnv, user: NativeSessionUser): Promise<Response | null> {
   const body = await request.json<{ paymentMethod?: unknown; orderId?: unknown; successUrl?: unknown; cancelUrl?: unknown; idempotencyKey?: unknown }>().catch(() => null);
   if (!body || body.paymentMethod !== 'stripe' || typeof body.orderId !== 'string') return null;
@@ -303,8 +322,11 @@ async function createPaymentSession(request: Request, env: CheckoutEnv, user: Na
   ).bind(idempotencyKey).first<PaymentSessionRow>();
   if (existing) return success({ sessionId: existing.id, url: existing.session_url, expiresAt: existing.expires_at }, 200);
   const order = JSON.parse(row.payload) as Record<string, unknown>;
-  const successUrl = typeof body.successUrl === 'string' ? body.successUrl : 'https://shop.jiffoo.com/payment/success?session_id={CHECKOUT_SESSION_ID}';
-  const cancelUrl = typeof body.cancelUrl === 'string' ? body.cancelUrl : 'https://shop.jiffoo.com/checkout';
+  const storefront = storefrontOrigin(request);
+  const successUrl = typeof body.successUrl === 'string'
+    ? body.successUrl
+    : `${storefront}/payment/success?session_id={CHECKOUT_SESSION_ID}`;
+  const cancelUrl = typeof body.cancelUrl === 'string' ? body.cancelUrl : `${storefront}/checkout`;
   const secret = (await getNativeStripeSecret(env, 'secretKey', env.STRIPE_SECRET_KEY)).value;
   const stripe = await fetch('https://api.stripe.com/v1/checkout/sessions', {
     method: 'POST',
