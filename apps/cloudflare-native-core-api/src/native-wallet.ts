@@ -342,9 +342,9 @@ export async function nativeWalletFinish(env: WalletEnv, input: {
         .bind(current.amount, now, userId),
       env.DB.prepare(`INSERT INTO native_wallet_ledger
         (id, user_id, operation, amount, balance_after, type, description, source_plugin, reference_id, metadata, created_at)
-        SELECT ?1, ?2, 'settlement', ?3, balance, 'settlement', 'Wallet reservation settled', ?4, reference_id, '{}', ?5
+        SELECT ?1, ?2, 'settlement', ?3, balance, 'settlement', 'Wallet reservation settled', ?4, ?6, '{}', ?5
         FROM native_wallet_accounts WHERE user_id = ?2`)
-        .bind(`wallet_tx_${crypto.randomUUID()}`, userId, current.amount, current.sourcePlugin, now),
+        .bind(`wallet_tx_${crypto.randomUUID()}`, userId, current.amount, current.sourcePlugin, now, current.referenceId),
     ]);
   } else {
     await env.DB.prepare('UPDATE native_wallet_accounts SET reserved_balance = reserved_balance - ?1, updated_at = ?2 WHERE user_id = ?3')
