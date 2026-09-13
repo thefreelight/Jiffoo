@@ -8,6 +8,7 @@ import { tryNativeAdminUsers } from './admin-users';
 import { tryNativeShipping } from './shipping';
 import { tryNativeShipmentRead } from './shipments';
 import { tryNativeCheckout } from './checkout';
+import { tryNativePluginOrders } from './plugin-orders';
 import { processCheckoutOutbox } from './outbox';
 import { tryNativeShopperAccount } from './shopper-account';
 import { tryNativeExternalOrderSync } from './external-orders';
@@ -221,6 +222,8 @@ export default {
     if (nativeShipmentRead) return nativeShipmentRead;
     const nativeCheckout = await tryNativeCheckout(nativeRequest, env, (productId) => loadProduct(productId, env));
     if (nativeCheckout) return nativeCheckout;
+    const nativePluginOrders = await tryNativePluginOrders(nativeRequest, env);
+    if (nativePluginOrders) return nativePluginOrders;
     const nativeAdminOrders = await tryNativeAdminOrders(nativeRequest, env, (proxyRequest) => proxy(proxyRequest, env));
     if (nativeAdminOrders) return nativeAdminOrders;
     const nativeAdminWrite = await tryNativeAdminWrites(nativeRequest, env);
