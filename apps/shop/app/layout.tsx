@@ -106,7 +106,7 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${brandName}`,
     },
     description,
-    keywords: ['e-commerce', 'shopping', 'online store', 'modern', 'fast', 'beautiful'],
+    keywords: [brandName, ...(themeConfig?.site?.headline?.trim() ? [themeConfig.site.headline.trim()] : []), ...(themeConfig?.site?.eyebrow?.trim() ? [themeConfig.site.eyebrow.trim()] : [])],
     authors: [{ name: 'Jiffoo Team' }],
     creator: 'Jiffoo Team',
     openGraph: {
