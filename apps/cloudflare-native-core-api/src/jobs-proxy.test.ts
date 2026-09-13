@@ -138,3 +138,79 @@ describe('native jobs proxy', () => {
     await expect(request.json()).resolves.toEqual({ mode: 'incremental' });
   });
 });
+
+describe('native jobs admin proxy', () => {
+  it('forwards admin source/connector/provenance reads with a trusted admin actor', async () => {
+    const service = { fetch: vi.fn(async () => Response.json({ connectors: [] })) };
+    const adminAuth = vi.fn(async () => ({ id: 'admin-1', role: 'SUPER_ADMIN' }));
+    const { tryNativeJobsAdminProxy } = await import('./jobs-proxy');
+    const response = await tryNativeJobsAdminProxy(
+      new Request('https://api.example/api/v1/admin/plugins/remoteradar-jobs/connectors'),
+      { JOBS_SERVICE: service, JOBS_ADMIN_TOKEN: 'admin-secret' },
+      adminAuth,
+    );
+    expect(response?.status).toBe(200);
+    expect(service.fetch).toHaveBeenCalledOnce();
+    const forwarded = service.fetch.mock.calls[0][0] as Request;
+    expect(forwarded.url).toBe('https://jobs.internal/admin/api/connectors');
+    expect(forwarded.headers.get('authorization')).toBe('Bearer admin-secret');
+    expect(forwarded.headers.get('x-admin-actor')).toBe('admin-1');
+    expect(forwarded.headers.get('x-admin-role')).toBe('SUPER_ADMIN');
+  });
+
+  it('rejects non-admins without calling the upstream jobs worker', async () => {
+    const service = { fetch: vi.fn(async () => Response.json({ sources: [] })) };
+    const { tryNativeJobsAdminProxy } = await import('./jobs-proxy');
+    const response = await tryNativeJobsAdminProxy(
+      new Request('https://api.example/api/v1/admin/plugins/remoteradar-jobs/sources'),
+      { JOBS_SERVICE: service, JOBS_ADMIN_TOKEN: 'admin-secret' },
+      async () => ({ id: 'user-1', role: 'USER' }),
+    );
+    expect(response?.status).toBe(401);
+    expect(service.fetch).not.toHaveBeenCalled();
+    await expect(response?.json()).resolves.toMatchObject({ error: { code: 'UNAUTHORIZED' } });
+  });
+
+  it('rejects public (unauthenticated) callers without leaking an upstream URL', async () => {
+    const service = { fetch: vi.fn(async () => Response.json({ provenance: {} })) };
+    const { tryNativeJobsAdminProxy } = await import('./jobs-proxy');
+    const response = await tryNativeJobsAdminProxy(
+      new Request('https://api.example/api/v1/admin/plugins/remoteradar-jobs/jobs/job-1/provenance'),
+      { JOBS_SERVICE: service, JOBS_ADMIN_TOKEN: 'admin-secret' },
+      async () => null,
+    );
+    expect(response?.status).toBe(401);
+    expect(service.fetch).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when the admin token is not configured', async () => {
+    const service = { fetch: vi.fn(async () => Response.json({ sources: [] })) };
+    const { tryNativeJobsAdminProxy } = await import('./jobs-proxy');
+    const response = await tryNativeJobsAdminProxy(
+      new Request('https://api.example/api/v1/admin/plugins/remoteradar-jobs/sources'),
+      { JOBS_SERVICE: service },
+      async () => ({ id: 'admin-1', role: 'ADMIN' }),
+    );
+    expect(response?.status).toBe(503);
+    expect(service.fetch).not.toHaveBeenCalled();
+    await expect(response?.json()).resolves.toMatchObject({ error: { code: 'JOBS_ADMIN_UNAVAILABLE' } });
+  });
+
+  it('allows POST to sources (create) with the same trust boundary', async () => {
+    const service = { fetch: vi.fn(async () => Response.json({ created: { id: 's1' } })) };
+    const { tryNativeJobsAdminProxy } = await import('./jobs-proxy');
+    const response = await tryNativeJobsAdminProxy(
+      new Request('https://api.example/api/v1/admin/plugins/remoteradar-jobs/sources', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ connector: 'github' }),
+      }),
+      { JOBS_SERVICE: service, JOBS_ADMIN_TOKEN: 'admin-secret' },
+      async () => ({ id: 'admin-1', role: 'ADMIN' }),
+    );
+    expect(response?.status).toBe(200);
+    const forwarded = service.fetch.mock.calls[0][0] as Request;
+    expect(forwarded.method).toBe('POST');
+    expect(forwarded.url).toBe('https://jobs.internal/admin/api/sources');
+  });
+});

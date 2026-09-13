@@ -23,7 +23,8 @@ import { tryNativeAdminApiTokens } from './admin-api-tokens';
 import { nativeUpgradeVersion } from './upgrade-version';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
-import { processNativeJobsSync, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
+import { authenticateNativeAdmin } from './auth';
+import { processNativeJobsSync, tryNativeJobsAdminProxy, tryNativeJobsProxy, type NativeJobsProxyEnv } from './jobs-proxy';
 import { tryNativeRemoteRadarApplications } from './remoteradar-applications';
 import { tryNativeRemoteRadarAudit } from './remoteradar-audit';
 import { expireNativeWalletReservations, tryNativeWallet } from './native-wallet';
@@ -252,6 +253,8 @@ export default {
     if (nativeInstall) return nativeInstall;
     const nativeJobsProxy = await tryNativeJobsProxy(nativeRequest, env);
     if (nativeJobsProxy) return nativeJobsProxy;
+    const nativeJobsAdminProxy = await tryNativeJobsAdminProxy(nativeRequest, env, async (request) => authenticateNativeAdmin(request, env as never) ?? null);
+    if (nativeJobsAdminProxy) return nativeJobsAdminProxy;
     const nativeRemoteRadarResumeDocuments = await tryNativeRemoteRadarResumeDocuments(nativeRequest, env);
     if (nativeRemoteRadarResumeDocuments) return nativeRemoteRadarResumeDocuments;
     const nativeRemoteRadarAudit = await tryNativeRemoteRadarAudit(nativeRequest, env);

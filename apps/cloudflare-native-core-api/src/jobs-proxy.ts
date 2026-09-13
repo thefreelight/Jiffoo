@@ -3,6 +3,7 @@ export interface NativeJobsProxyEnv {
   JOBS_SERVICE?: { fetch(request: Request): Promise<Response> };
   JOBS_SYNC_TOKEN?: { get(): Promise<string> } | string;
   JOBS_RUNTIME_TOKEN?: { get(): Promise<string> } | string;
+  JOBS_ADMIN_TOKEN?: { get(): Promise<string> } | string;
   JOBS_INSTALLATION_ID?: string;
   DB?: { prepare(query: string): { first<T>(): Promise<T | null> } };
 }
@@ -12,8 +13,69 @@ type NativeJobsAuthenticator = (
   env: NativeJobsProxyEnv,
 ) => Promise<{ id: string; role: string } | null>;
 
-async function secretValue(secret: NativeJobsProxyEnv['JOBS_SYNC_TOKEN'] | NativeJobsProxyEnv['JOBS_RUNTIME_TOKEN']): Promise<string> {
+async function secretValue(secret: NativeJobsProxyEnv['JOBS_SYNC_TOKEN'] | NativeJobsProxyEnv['JOBS_RUNTIME_TOKEN'] | NativeJobsProxyEnv['JOBS_ADMIN_TOKEN']): Promise<string> {
   return typeof secret === 'string' ? secret : secret ? secret.get() : '';
+}
+
+/**
+ * Admin proxy for the RemoteRadar jobs worker's /admin/api/* endpoints
+ * (connector health, source browsing, provenance audit). Admin sessions are
+ * authenticated against the Core admin JWT; the jobs worker re-checks the
+ * upstream bearer token, so the shared secret never leaves the Workers edge.
+ */
+export async function tryNativeJobsAdminProxy(
+  request: Request,
+  env: NativeJobsProxyEnv,
+  authenticate: (request: Request, env: NativeJobsProxyEnv) => Promise<{ id: string; role: string } | null>,
+): Promise<Response | null> {
+  const incoming = new URL(request.url);
+  const adminMatch = incoming.pathname.match(/^\/api\/v1\/admin\/plugins\/remoteradar-jobs\/(connectors|sources(?:\/[^/]+)?|jobs\/[^/]+\/provenance)$/);
+  if (!adminMatch) return null;
+  const method = request.method;
+  if (method !== 'GET' && method !== 'POST') {
+    return Response.json({ success: false, error: { code: 'METHOD_NOT_ALLOWED', message: 'Method not allowed' } }, {
+      status: 405,
+      headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-jobs-proxy' },
+    });
+  }
+  if (!env.JOBS_SERVICE && !env.JOBS_SERVICE_URL?.trim()) {
+    return Response.json({ success: false, error: { code: 'JOBS_PLUGIN_UNAVAILABLE', message: 'Jobs plugin is not configured' } }, {
+      status: 503,
+      headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-jobs-proxy' },
+    });
+  }
+  const admin = await authenticate(request, env);
+  if (!admin || !['ADMIN', 'SUPER_ADMIN'].includes(admin.role)) {
+    return Response.json({ success: false, error: { code: 'UNAUTHORIZED', message: 'Administrator authentication is required' } }, {
+      status: 401,
+      headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-jobs-proxy' },
+    });
+  }
+  const token = await secretValue(env.JOBS_ADMIN_TOKEN);
+  if (!token) {
+    return Response.json({ success: false, error: { code: 'JOBS_ADMIN_UNAVAILABLE', message: 'Jobs admin token is not configured' } }, {
+      status: 503,
+      headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-jobs-proxy' },
+    });
+  }
+  const upstreamPath = `/admin/api/${adminMatch[1]}`;
+  const target = new URL(upstreamPath, env.JOBS_SERVICE_URL?.trim() || 'https://jobs.internal');
+  target.search = incoming.search;
+  const headers = new Headers({ accept: 'application/json', authorization: `Bearer ${token}` });
+  const contentType = request.headers.get('content-type');
+  if (contentType) headers.set('content-type', contentType);
+  headers.set('x-admin-actor', admin.id);
+  headers.set('x-admin-role', admin.role);
+  const upstreamRequest = new Request(target, {
+    method,
+    headers,
+    body: method === 'POST' ? await request.arrayBuffer() : undefined,
+  });
+  const upstream = env.JOBS_SERVICE ? await env.JOBS_SERVICE.fetch(upstreamRequest) : await fetch(upstreamRequest);
+  const responseHeaders = new Headers(upstream.headers);
+  responseHeaders.set('x-jiffoo-runtime', 'cloudflare-native-jobs-proxy');
+  responseHeaders.set('cache-control', 'no-store');
+  return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers: responseHeaders });
 }
 
 const authenticateJobsUser: NativeJobsAuthenticator = async (request, env) => {
