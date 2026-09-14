@@ -15,6 +15,7 @@ import { tryNativeShopperAccount } from './shopper-account';
 import { processNativeOdooShipmentPoll, tryNativeExternalOrderSync } from './external-orders';
 import { processNativeEmailOutbox } from './mail-outbox';
 import { tryNativeAffiliate } from './affiliate';
+import { tryNativeSupportHub } from './support-hub';
 import { tryNativePluginSettings } from './plugin-settings';
 import { tryNativeIntegrationAdmin } from './integration-admin';
 import { tryNativeInstall } from './install';
@@ -293,6 +294,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeAffiliate) return nativeAffiliate;
     const nativeCoupon = await tryNativeCoupon(nativeRequest, env);
     if (nativeCoupon) return nativeCoupon;
+    const nativeSupportHub = await tryNativeSupportHub(nativeRequest, env);
+    if (nativeSupportHub) return nativeSupportHub;
     const nativePluginSettings = await tryNativePluginSettings(nativeRequest, env);
     if (nativePluginSettings) return nativePluginSettings;
     const nativeIntegrationAdmin = await tryNativeIntegrationAdmin(nativeRequest, env);
