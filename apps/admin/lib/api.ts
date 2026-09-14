@@ -1371,10 +1371,10 @@ export const redirectsApi = {
     apiClient.post('/seo/redirects', data),
 
   update: (id: string, data: Partial<SeoRedirect>): Promise<ApiResponse<SeoRedirect>> =>
-    apiClient.put(`/api/seo/redirects/${id}`, data),
+    apiClient.put(`/seo/redirects/${id}`, data),
 
   delete: (id: string): Promise<ApiResponse<void>> =>
-    apiClient.delete(`/api/seo/redirects/${id}`),
+    apiClient.delete(`/seo/redirects/${id}`),
 };
 
 // SEO Audit types
