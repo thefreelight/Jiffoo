@@ -27,6 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRail';
 import { OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import { PluginInstanceManager } from '@/components/plugins/PluginInstanceManager';
+import { RemoteRadarJobsNativeWorkspace } from '@/components/plugins/RemoteRadarJobsNativeWorkspace';
 import { toast } from 'sonner';
 
 type PluginConfigDescriptor = {
@@ -1353,7 +1354,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   );
   const selectedConfigMeta = selectedInstance?.configMeta || data?.configMeta;
   const selectedReadiness = evaluateConfigReadiness(configSchema, selectedConfig, selectedConfigMeta);
-  const hasNativeWorkspace = slug === 'odoo' || slug === 'i18n' || Boolean(configSchema);
+  const hasNativeWorkspace = slug === 'odoo' || slug === 'i18n' || slug === 'remoteradar-jobs' || Boolean(configSchema);
 
   useEffect(() => {
     setConfigDraft(selectedConfig);
@@ -1648,6 +1649,13 @@ export function PluginWorkspace({ slug }: { slug: string }) {
                 <ShippingNativeWorkspace
                   installationId={selectedInstance?.installationId || 'default'}
                   enabled={Boolean(selectedInstance?.enabled)}
+                />
+              ) : null}
+
+              {slug === 'remoteradar-jobs' ? (
+                <RemoteRadarJobsNativeWorkspace
+                  installationId={selectedInstance?.installationId || 'default'}
+                  disabled={!selectedInstance}
                 />
               ) : null}
 
