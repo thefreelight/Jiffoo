@@ -7,7 +7,8 @@
         "analytics": "资料分析",
         "settings": "系统设定",
         "plugins": "外挂管理",
-        "themes": "布景主题管理"
+        "themes": "布景主题管理",
+        "jobSources": "职位来源"
     },
     "dashboard": {
         "title": "仪表板",

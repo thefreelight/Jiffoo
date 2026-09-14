@@ -30,6 +30,7 @@ import {
   ChevronUp,
   Monitor,
   ShieldCheck,
+  Radar,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import { ADMIN_PERMISSIONS, type AdminPermission } from 'shared'
@@ -110,6 +111,14 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Plugins',
     href: '/plugins',
     icon: Sliders,
+    requiredPermissions: [ADMIN_PERMISSIONS.PLUGINS_READ],
+  },
+  {
+    id: 'jobSources',
+    nameKey: 'merchant.nav.jobSources',
+    fallback: 'Job Sources',
+    href: '/plugins/remoteradar-jobs',
+    icon: Radar,
     requiredPermissions: [ADMIN_PERMISSIONS.PLUGINS_READ],
   },
   {
