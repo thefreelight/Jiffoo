@@ -44,6 +44,7 @@ import { tryNativePlatformConnection } from './platform-connection';
 import { tryNativeMarketplace } from './marketplace';
 import { isExpectedNativeSchemaVersion } from './health';
 import { tryNativeCoupon } from './coupon';
+import { tryNativeImagerAi } from './imager-ai';
 import { tryNativePublicAuthConfig } from './public-auth-config';
 import { nativeOdooMediaUrl } from './odoo';
 import { tryNativeBokmooConnect } from './bokmoo-connect';
@@ -294,6 +295,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeAffiliate) return nativeAffiliate;
     const nativeCoupon = await tryNativeCoupon(nativeRequest, env);
     if (nativeCoupon) return nativeCoupon;
+    const nativeImagerAi = await tryNativeImagerAi(nativeRequest, env);
+    if (nativeImagerAi) return nativeImagerAi;
     const nativeSupportHub = await tryNativeSupportHub(nativeRequest, env);
     if (nativeSupportHub) return nativeSupportHub;
     const nativePluginSettings = await tryNativePluginSettings(nativeRequest, env);

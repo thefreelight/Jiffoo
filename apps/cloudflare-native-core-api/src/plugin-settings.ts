@@ -150,6 +150,16 @@ const definitions: Record<string, PluginDefinition> = {
       defaultQueue: { type: 'string', label: 'Default queue' },
     },
   },
+  'imager-ai': {
+    slug: 'imager-ai', name: 'Imager AI', version: '0.2.2', category: 'ai',
+    description: 'Native AI image generation with wallet credit billing.',
+    configSchema: {
+      baseUrl: { type: 'string', required: true, label: 'Provider base URL', placeholder: 'https://api.openai.com/v1' },
+      model: { type: 'string', label: 'Model', placeholder: 'gpt-image-1' },
+      apiKey: { type: 'secret', required: true, sensitive: true, label: 'Provider API Key' },
+      creditCost: { type: 'number', label: 'Credits per generation' },
+    },
+  },
 };
 
 const encoder = new TextEncoder();
