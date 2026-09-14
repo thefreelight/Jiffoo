@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: tianquan-migrate-07b38815-r7
+  name: tianquan-migrate-1061
 spec:
   backoffLimit: 2
   template:
@@ -11,7 +11,7 @@ spec:
       restartPolicy: Never
       containers:
         - name: migrate
-          image: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api@sha256:a95ed641b8ba0e6151db49949a4b83c6407147d00a9aba46b42b7f612cdba939
+          image: crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api@sha256:2136f0d69635bf4126cb57c2df960f98b29278780420a02c003a37378dba1725
           command: [sh, -lc, 'cd /app/apps/api && ln -s ../migrations prisma/schema/migrations && /app/node_modules/.bin/prisma migrate deploy --schema=./prisma/schema']
           env:
             - name: DATABASE_URL
