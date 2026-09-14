@@ -1,0 +1,50 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "cuinima-production-core-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-29",
+  "compatibility_flags": ["nodejs_compat"],
+  "triggers": {
+    "crons": ["*/1 * * * *"]
+  },
+  "routes": [
+    { "pattern": "api.cuinima.cc", "custom_domain": true }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cuinima-production",
+      "database_id": "5f7c13c8-30eb-4b18-af75-75334b5bd7e6",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "kv_namespaces": [
+    { "binding": "CACHE", "id": "1978b109c0674e5cbc67d24ff2a0522a" }
+  ],
+  "r2_buckets": [
+    { "binding": "ASSETS", "bucket_name": "cuinima-production-assets" }
+  ],
+  "ai": { "binding": "AI" },
+  "secrets_store_secrets": [
+    {
+      "binding": "JWT_SECRET",
+      "store_id": "5a0c62abb59f4c1b892d1c15f723e528",
+      "secret_name": "cuinima_jwt_secret"
+    },
+    {
+      "binding": "PLUGIN_CONFIG_KEY",
+      "store_id": "5a0c62abb59f4c1b892d1c15f723e528",
+      "secret_name": "cuinima_plugin_config_key"
+    }
+  ],
+  "vars": {
+    "CORE_ORIGIN": "https://cuinima.cc",
+    "NATIVE_CHECKOUT_ENABLED": "false",
+    "RUNTIME_VERSION": "1.0.136"
+  },
+  "observability": {
+    "enabled": true,
+    "logs": { "head_sampling_rate": 1 },
+    "traces": { "enabled": true, "head_sampling_rate": 0.01 }
+  }
+}
