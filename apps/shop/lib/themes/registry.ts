@@ -13,6 +13,7 @@ import esimMallTheme from '@shop-themes/esim-mall/src/runtime';
 import yevbiTheme from '@shop-themes/yevbi/src/runtime';
 import imagicStudioTheme from '@shop-themes/imagic-studio/src/runtime';
 import appLandingpageTheme from '@shop-themes/app-landingpage/src/runtime';
+import navtoaiTheme from '@shop-themes/navtoai/src/runtime';
 
 // ============================================================================
 // Built-in Theme Constants
@@ -152,6 +153,23 @@ export const BUILTIN_THEMES: ThemeRegistry = {
       tags: ['app-download', 'landing', 'easyeuicc', 'responsive'],
     },
 load: async () => appLandingpageTheme,
+  },
+  // NavToAI multilingual AI-directory theme — embedded compatibility bridge so
+  // the navtoai.com storefront renders the directory chrome even when the API
+  // snapshot is still propagating. The packaged runtime stays authoritative
+  // whenever the core serves the installed theme pack.
+  'navtoai': {
+    meta: {
+      slug: 'navtoai',
+      name: 'NavToAI',
+      version: '0.2.2',
+      description: 'Premium multilingual AI navigation storefront theme with curated discovery, ranking blocks, and paid project submission flows.',
+      category: 'directory',
+      author: 'Jiffoo',
+      target: 'shop',
+      tags: ['ai-directory', 'navigation', 'multilingual', 'responsive'],
+    },
+    load: async () => navtoaiTheme,
   },
   // Second built-in base theme — "Serene" calm indigo design
   [BUILTIN_SERENE_SLUG]: {
