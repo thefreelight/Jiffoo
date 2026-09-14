@@ -132,6 +132,24 @@ const definitions: Record<string, PluginDefinition> = {
     description: 'Native BOKMOO physical card claim capability: printed-MID claim sessions, Android/reader EID/ICCID verification, account card binding, and controlled card inventory import.',
     configSchema: {},
   },
+  'support-hub': {
+    slug: 'support-hub', name: 'Support Hub', version: '0.0.3', category: 'social',
+    description: 'Storefront contact launcher with Telegram, WhatsApp, Feishu/Lark, and generic HTTPS chat channels.',
+    configSchema: {
+      enabled: { type: 'boolean', label: 'Enable Support Hub' },
+      telegramEnabled: { type: 'boolean', label: 'Enable Telegram' },
+      telegramLink: { type: 'string', label: 'Telegram link' },
+      whatsappEnabled: { type: 'boolean', label: 'Enable WhatsApp' },
+      whatsappLink: { type: 'string', label: 'WhatsApp link' },
+      feishuEnabled: { type: 'boolean', label: 'Enable Feishu/Lark' },
+      feishuLink: { type: 'string', label: 'Feishu/Lark link' },
+      httpsChatEnabled: { type: 'boolean', label: 'Enable HTTPS chat' },
+      httpsChatUrl: { type: 'string', label: 'HTTPS chat URL' },
+      retentionDays: { type: 'number', label: 'Retention days' },
+      autoAssign: { type: 'boolean', label: 'Auto assign' },
+      defaultQueue: { type: 'string', label: 'Default queue' },
+    },
+  },
 };
 
 const encoder = new TextEncoder();
