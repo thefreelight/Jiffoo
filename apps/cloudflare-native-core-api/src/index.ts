@@ -5,6 +5,7 @@ import { tryNativeAdminOrders } from './admin-orders';
 import { tryNativeAdminWrites } from './admin-writes';
 import { tryNativeAdminWebhooks } from './admin-webhooks';
 import { tryNativeAdminUsers } from './admin-users';
+import { tryNativeAdminStaff } from './admin-staff';
 import { tryNativeShipping } from './shipping';
 import { tryNativeShipmentRead } from './shipments';
 import { tryNativeCheckout } from './checkout';
@@ -332,6 +333,8 @@ export default {
     if (nativeExternalOrderSync) return nativeExternalOrderSync;
     const nativeAdminUsers = await tryNativeAdminUsers(nativeRequest, env);
     if (nativeAdminUsers) return nativeAdminUsers;
+    const nativeAdminStaff = await tryNativeAdminStaff(nativeRequest, env);
+    if (nativeAdminStaff) return nativeAdminStaff;
     const nativeOrders = await tryNativeOrderRead(nativeRequest, env, (proxyRequest) => proxy(proxyRequest, env));
     if (nativeOrders) return nativeOrders;
     // Keep legacy /api/* callers on the normalized v1 contract when native
