@@ -40,7 +40,12 @@
   "vars": {
     "CORE_ORIGIN": "https://cuinima.cc",
     "NATIVE_CHECKOUT_ENABLED": "false",
-    "RUNTIME_VERSION": "1.0.136"
+    "RUNTIME_VERSION": "1.0.136",
+    "SMTP_HOST": "mail.easyeuicc.cc",
+    "SMTP_PORT": "587",
+    "SMTP_USER": "noreply@cuinima.cc",
+    "SMTP_FROM": "noreply@cuinima.cc",
+    "SMTP_FROM_NAME": "催你妈 CNM"
   },
   "observability": {
     "enabled": true,
