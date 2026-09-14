@@ -6,6 +6,10 @@ import { getNavCopy } from '../i18n';
 import { getSubmissionPlanMeta } from '../lib/submission-plan';
 import { Rating, ToolLogo } from './design-primitives';
 
+function asArray<T>(value: T[] | undefined | null): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function getDetailCopy(locale?: string) {
   const resolved = getNavCopy(locale).locale;
   if (resolved === 'zh-Hant') {
@@ -105,8 +109,12 @@ function MobileProductDetailView({
   const copy = getDetailCopy(locale);
   const planMeta = getSubmissionPlanMeta(product, locale);
   const image = getProductImage(product);
+  const images = asArray(product.images);
+  const specifications = asArray(product.specifications);
+  const tags = asArray(product.tags);
+  const variants = asArray(product.variants);
   const activeVariant =
-    product.variants.find((variant) => variant.id === selectedVariant) || product.variants[0] || null;
+    variants.find((variant) => variant.id === selectedVariant) || variants[0] || null;
   const unitPrice = Number(activeVariant?.price ?? product.price ?? 0);
   const detailLocale = getNavCopy(locale).locale;
   const stats = [
@@ -121,7 +129,7 @@ function MobileProductDetailView({
   ];
   const featureRows = planMeta
     ? planMeta.benefits
-    : product.specifications.slice(0, 5).map((spec) => `${spec.name}: ${spec.value}`);
+    : specifications.slice(0, 5).map((spec) => `${spec.name}: ${spec.value}`);
 
   return (
     <div className="space-y-7 pb-3 lg:hidden">
@@ -132,7 +140,7 @@ function MobileProductDetailView({
             <h1 className="text-[1.55rem] font-black leading-tight text-[#11162b]">{product.name}</h1>
             <p className="mt-1 text-sm font-semibold text-[#6f7890]">{product.category?.name || (planMeta?.kindLabel ?? 'OpenAI')}</p>
             <div className="mt-3 flex flex-wrap gap-2">
-              {(product.tags.length ? product.tags.slice(0, 2) : [planMeta?.kindLabel || 'AI']).map((tag) => (
+              {(tags.length ? tags.slice(0, 2) : [planMeta?.kindLabel || 'AI']).map((tag) => (
                 <span key={tag} className="rounded-full bg-[#f0f2ff] px-2.5 py-1 text-[0.68rem] font-bold text-[#6257ff]">
                   {tag}
                 </span>
@@ -175,9 +183,9 @@ function MobileProductDetailView({
       <section className="border-t border-[#edf0f8] pt-6">
         <h2 className="text-[1.12rem] font-black text-[#11162b]">{copy.intro}</h2>
         <p className="mt-4 text-sm font-medium leading-7 text-[#667086]">{product.description || copy.overview}</p>
-        {product.variants.length ? (
+        {variants.length ? (
           <div className="mt-5 flex flex-wrap gap-2">
-            {product.variants.map((variant) => (
+            {variants.map((variant) => (
               <button
                 key={variant.id}
                 type="button"
@@ -220,7 +228,7 @@ function MobileProductDetailView({
       <section className="border-t border-[#edf0f8] pt-6">
         <h2 className="text-[1.12rem] font-black text-[#11162b]">{copy.screenshots}</h2>
         <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
-          {(product.images.length ? product.images : [{ id: 'fallback', url: image, alt: product.name, order: 0, isMain: true }]).slice(0, 3).map((item) => (
+          {(images.length ? images : [{ id: 'fallback', url: image, alt: product.name, order: 0, isMain: true }]).slice(0, 3).map((item) => (
             <div key={item.id} className="h-28 min-w-[6.8rem] overflow-hidden rounded-[0.65rem] bg-[#10162f]">
               <img src={item.url} alt={item.alt || product.name} className="h-full w-full object-cover" />
             </div>
@@ -323,8 +331,10 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
     );
   }
 
+  const specifications = asArray(product.specifications);
+  const variants = asArray(product.variants);
   const activeVariant =
-    product.variants.find((variant) => variant.id === selectedVariant) || product.variants[0] || null;
+    variants.find((variant) => variant.id === selectedVariant) || variants[0] || null;
   const unitPrice = Number(activeVariant?.price ?? product.price ?? 0);
   const image = getProductImage(product);
   const planMeta = getSubmissionPlanMeta(product, locale);
@@ -370,13 +380,13 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 {product.description || copy.overview}
               </p>
 
-              {product.specifications?.length ? (
+              {specifications.length ? (
                 <section className="mt-8">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-copy-soft)]">
                     {copy.specs}
                   </p>
                   <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    {product.specifications.slice(0, 8).map((spec) => (
+                    {specifications.slice(0, 8).map((spec) => (
                       <div key={`${spec.group || 'spec'}-${spec.name}`} className="rounded-[1rem] bg-[var(--navtoai-bg-alt)] p-4">
                         <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--navtoai-copy-soft)]">
                           {spec.group || spec.name}
@@ -420,13 +430,13 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
                 </div>
               ) : null}
 
-              {product.variants?.length ? (
+              {variants.length ? (
                 <div className="mt-6">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-copy-soft)]">
                     {copy.choose}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {product.variants.map((variant) => {
+                    {variants.map((variant) => {
                       const active = activeVariant?.id === variant.id;
                       return (
                         <button
