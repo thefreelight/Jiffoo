@@ -25,6 +25,7 @@ import { tryNativeAdminApiTokens } from './admin-api-tokens';
 import { nativeUpgradeVersion } from './upgrade-version';
 import { tryNativeUpgradeStatus } from './upgrade-status';
 import { tryNativeAdminSettings } from './admin-settings';
+import { captureNativeError, tryNativeAdminErrors } from './admin-errors';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
 import { authenticateNativeAdmin } from './auth';
@@ -224,8 +225,7 @@ export async function serveOdooMedia(url: URL, env: WorkerEnv, ctx: ExecutionCon
   return new Response(responseBody, { headers: runtimeHeaders('cloudflare-native-origin-stream', { 'content-type': contentType, 'cache-control': 'public, max-age=86400, s-maxage=604800, immutable' }) });
 }
 
-export default {
-  async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
+async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
     const nativeRequest = normalizePublicApiRequest(request);
     const url = new URL(nativeRequest.url);
     if (url.pathname === '/health') {
@@ -247,6 +247,8 @@ export default {
     if (nativeUpgradeStatus) return nativeUpgradeStatus;
     const nativeAdminSettings = await tryNativeAdminSettings(nativeRequest, env);
     if (nativeAdminSettings) return nativeAdminSettings;
+    const nativeAdminErrors = await tryNativeAdminErrors(nativeRequest, env);
+    if (nativeAdminErrors) return nativeAdminErrors;
     const nativePublicAuthConfig = tryNativePublicAuthConfig(nativeRequest, env);
     if (nativePublicAuthConfig) return nativePublicAuthConfig;
     if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {
@@ -341,6 +343,35 @@ export default {
     // handling declines the request. The original path can hit an incompatible
     // fallback route and turn a normal auth failure into a Worker exception.
     return proxy(nativeRequest, env);
+}
+
+export default {
+  async fetch(request: Request, env: WorkerEnv, ctx: ExecutionContext): Promise<Response> {
+    try {
+      const response = await routeNativeRequest(request, env, ctx);
+      if (response.status >= 500) {
+        ctx.waitUntil(captureNativeError(env, {
+          message: `Upstream responded ${response.status} for ${request.method} ${new URL(request.url).pathname}`,
+          path: new URL(request.url).pathname,
+          method: request.method,
+          statusCode: response.status,
+          userAgent: request.headers.get('user-agent'),
+          ip: request.headers.get('cf-connecting-ip'),
+        }));
+      }
+      return response;
+    } catch (error) {
+      ctx.waitUntil(captureNativeError(env, {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : null,
+        path: new URL(request.url).pathname,
+        method: request.method,
+        statusCode: 500,
+        userAgent: request.headers.get('user-agent'),
+        ip: request.headers.get('cf-connecting-ip'),
+      }));
+      throw error;
+    }
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
     const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, creditGrants, resumeExtraction] = await Promise.allSettled([

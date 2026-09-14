@@ -1362,13 +1362,13 @@ export interface Promotion {
 // SEO Redirect API
 export const redirectsApi = {
   getAll: (page = 1, limit = 10, search?: string): Promise<ApiResponse<PageResult<SeoRedirect>>> =>
-    apiClient.get('/api/seo/redirects', { params: { page, limit, search } }),
+    apiClient.get('/seo/redirects', { params: { page, limit, search } }),
 
   getById: (id: string): Promise<ApiResponse<SeoRedirect>> =>
-    apiClient.get(`/api/seo/redirects/${id}`),
+    apiClient.get(`/seo/redirects/${id}`),
 
   create: (data: { fromPath: string; toPath: string; statusCode?: number; isActive?: boolean }): Promise<ApiResponse<SeoRedirect>> =>
-    apiClient.post('/api/seo/redirects', data),
+    apiClient.post('/seo/redirects', data),
 
   update: (id: string, data: Partial<SeoRedirect>): Promise<ApiResponse<SeoRedirect>> =>
     apiClient.put(`/api/seo/redirects/${id}`, data),
@@ -1431,10 +1431,10 @@ export const seoAuditApi = {
     limit?: number;
     offset?: number;
   }): Promise<ApiResponse<AuditResult>> =>
-    apiClient.get('/api/seo/audit', { params: options }),
+    apiClient.get('/seo/audit', { params: options }),
 
   getStats: (): Promise<ApiResponse<AuditStats>> =>
-    apiClient.get('/api/seo/audit/stats'),
+    apiClient.get('/seo/audit/stats'),
 };
 
 export interface PromotionForm {
@@ -1483,23 +1483,23 @@ export const errorsApi = {
     sortOrder?: string;
   } = {}): Promise<ApiResponse<PageResult<any>>> => {
     const { page = 1, limit = 10, ...filters } = params;
-    return apiClient.get('/api/admin/errors', { params: { page, limit, ...filters } });
+    return apiClient.get('/admin/errors', { params: { page, limit, ...filters } });
   },
 
   getById: (id: string): Promise<ApiResponse<any>> =>
-    apiClient.get(`/api/admin/errors/${id}`),
+    apiClient.get(`/admin/errors/${id}`),
 
   resolve: (id: string): Promise<ApiResponse<any>> =>
-    apiClient.patch(`/api/admin/errors/${id}/resolve`, { resolved: true }),
+    apiClient.patch(`/admin/errors/${id}/resolve`, { resolved: true }),
 
   unresolve: (id: string): Promise<ApiResponse<any>> =>
-    apiClient.patch(`/api/admin/errors/${id}/resolve`, { resolved: false }),
+    apiClient.patch(`/admin/errors/${id}/resolve`, { resolved: false }),
 
   getStats: (): Promise<ApiResponse<any>> =>
-    apiClient.get('/api/admin/errors/stats'),
+    apiClient.get('/admin/errors/stats'),
 
   getTrends: (timeRange?: string): Promise<ApiResponse<any>> =>
-    apiClient.get('/api/admin/errors/trends', { params: { timeRange } }),
+    apiClient.get('/admin/errors/trends', { params: { timeRange } }),
 };
 
 // ============================================================
