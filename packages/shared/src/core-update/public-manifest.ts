@@ -36,25 +36,25 @@ export const DEFAULT_PUBLIC_CORE_UPDATE_MANIFEST_URL =
 // for release detection. Keep it aligned with the published OSS release tag and
 // changelog entry whenever a new public release is cut.
 export const PUBLIC_CORE_UPDATE_MANIFEST: PublicCoreUpdateManifest = {
-  latestVersion: '1.0.139',
-  latestStableVersion: '1.0.139',
+  latestVersion: '1.0.140',
+  latestStableVersion: '1.0.140',
   latestPrereleaseVersion: null,
   channel: 'stable',
   deliveryMode: 'image-first',
   images: {
-    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.139',
-    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.139',
-    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.139',
-    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.139',
+    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.140',
+    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.140',
+    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.140',
+    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.140',
   },
-  releaseDate: '2026-09-14T11:26:00.000Z',
-  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.139-opensource',
+  releaseDate: '2026-09-14T14:16:00.000Z',
+  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.140-opensource',
   sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
   minimumCompatibleVersion: '1.0.0',
   minimumAutoUpgradableVersion: '1.0.0',
   requiresManualIntervention: false,
   releaseNotes:
-    'Native Merchant Admin adapters land for Cloudflare-native instances: system settings (GET + batch write via migration 0057 native_settings), an idle upgrade-status view with reset no-op, admin sessions on /account/profile and /account/email, and a real /account/avatar upload to instance asset storage — replacing the CORE_ORIGIN self-proxy 522s behind the Settings and Profile network errors.',
+    'Native Staff management for Cloudflare instances (migration 0058 memberships + audit logs): full roles/permissions catalog, list/detail/grant/update/remove/invite endpoints behind admin auth with owner guardrails, legacy bootstrap-owner materialization, and a per-mutation audit trail — the Merchant Admin Staff panel no longer 522s through the CORE_ORIGIN self-proxy.',
   checksumUrl: null,
   signatureUrl: null,
 };
