@@ -55,6 +55,8 @@ export const common = {
     goHome: '返回首页',
     continueShopping: '继续购物',
     configure: '设定',
+    manage: '管理',
+    viewDetails: '查看详情',
   },
 
   // Status
@@ -84,6 +86,7 @@ export const common = {
 
   // Labels
   labels: {
+    all: '全部',
     file: '档案',
     by: '由',
     builtin: '内建',

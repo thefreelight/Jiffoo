@@ -186,7 +186,9 @@ export function PluginsManager() {
               ? 'inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700'
               : 'inline-flex w-fit items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-sm font-medium text-slate-600'}>
               <span className={platformConnectionStatus?.marketplaceReady ? 'h-2 w-2 rounded-full bg-emerald-500' : 'h-2 w-2 rounded-full bg-slate-400'} />
-              {platformConnectionStatus?.marketplaceReady ? 'Marketplace ready' : 'Not connected'}
+              {platformConnectionStatus?.marketplaceReady
+                ? getText('merchant.extensions.marketplaceReadyChip', 'Marketplace ready')
+                : getText('merchant.extensions.platformUnboundShort', 'Not connected')}
             </div>
           </div>
 
@@ -267,18 +269,18 @@ export function PluginsManager() {
                 <h3 className="truncate text-base font-bold text-slate-950">{getText('merchant.plugins.installedCollection', 'Installed plugins')}</h3>
                 <Badge variant="secondary" className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{isLoading ? '…' : visiblePluginList.length}</Badge>
               </div>
-              <p className="mt-0.5 truncate text-sm text-slate-500">Manage and update your installed plugins.</p>
+              <p className="mt-0.5 truncate text-sm text-slate-500">{getText('merchant.plugins.installedCollectionDescription', 'Manage and update your installed plugins.')}</p>
             </div>
           </div>
           {visiblePluginList[0] ? (
             <Button asChild variant="outline" className="shrink-0 rounded-lg">
               <Link href={`/${locale}/plugins/${visiblePluginList[0].slug}`}>
-                {getText('common.actions.viewDetails', 'View installed plugins')}
+                {getText('merchant.plugins.viewInstalled', 'View installed plugins')}
                 <Settings className="ml-2 h-4 w-4" />
               </Link>
             </Button>
           ) : (
-            <span className="shrink-0 text-sm text-slate-400">No plugins installed</span>
+            <span className="shrink-0 text-sm text-slate-400">{getText('merchant.plugins.noPluginsInstalled', 'No plugins installed')}</span>
           )}
         </div>
 
