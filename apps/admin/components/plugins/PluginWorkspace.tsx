@@ -1497,6 +1497,20 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   }
 
   if (error || !data) {
+    // The RemoteRadar jobs administration reads live connector/source data
+    // through the dedicated Core admin proxy, so it does not depend on the
+    // plugin-detail endpoint (which Cloudflare-native instances do not
+    // implement). Keep the panel available even when the generic workspace
+    // cannot load.
+    if (slug === 'remoteradar-jobs') {
+      return (
+        <div className="min-h-screen w-full bg-[#f8fafc]">
+          <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-8 lg:px-10">
+            <RemoteRadarJobsNativeWorkspace installationId="default" />
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="max-w-md rounded-lg border bg-white p-6 shadow-sm">
