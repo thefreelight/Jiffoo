@@ -28,6 +28,7 @@ import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRa
 import { OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import { PluginInstanceManager } from '@/components/plugins/PluginInstanceManager';
 import { RemoteRadarJobsNativeWorkspace } from '@/components/plugins/RemoteRadarJobsNativeWorkspace';
+import { useJobsAdminCapability } from '@/hooks/use-jobs-admin-capability';
 import { toast } from 'sonner';
 
 type PluginConfigDescriptor = {
@@ -1297,6 +1298,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   const locale = useLocale();
   const t = useT();
   const { data, isLoading, error } = usePluginConfig(slug);
+  const jobsAdminAvailable = useJobsAdminCapability();
   const { data: instancesData, isLoading: isInstancesLoading } = usePluginInstances(slug);
   const { data: installedPluginsData } = useInstalledPlugins();
   const { data: officialCatalogData } = useOfficialCatalog();
@@ -1501,8 +1503,9 @@ export function PluginWorkspace({ slug }: { slug: string }) {
     // through the dedicated Core admin proxy, so it does not depend on the
     // plugin-detail endpoint (which Cloudflare-native instances do not
     // implement). Keep the panel available even when the generic workspace
-    // cannot load.
-    if (slug === 'remoteradar-jobs') {
+    // cannot load — but only on instances that actually configure the jobs
+    // service, so generic deployments still see the standard failure surface.
+    if (slug === 'remoteradar-jobs' && jobsAdminAvailable) {
       return (
         <div className="min-h-screen w-full bg-[#f8fafc]">
           <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-8 lg:px-10">
