@@ -22,6 +22,8 @@ import { tryNativeAdminDashboard } from './admin-dashboard';
 import { tryNativeAdminProducts } from './admin-products';
 import { tryNativeAdminApiTokens } from './admin-api-tokens';
 import { nativeUpgradeVersion } from './upgrade-version';
+import { tryNativeUpgradeStatus } from './upgrade-status';
+import { tryNativeAdminSettings } from './admin-settings';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
 import { authenticateNativeAdmin } from './auth';
@@ -240,6 +242,10 @@ export default {
     if (nativeRequest.method === 'GET' && nativeRequest.url.includes('/api/v1/upgrade/version')) {
       return nativeUpgradeVersion(env);
     }
+    const nativeUpgradeStatus = await tryNativeUpgradeStatus(nativeRequest, env);
+    if (nativeUpgradeStatus) return nativeUpgradeStatus;
+    const nativeAdminSettings = await tryNativeAdminSettings(nativeRequest, env);
+    if (nativeAdminSettings) return nativeAdminSettings;
     const nativePublicAuthConfig = tryNativePublicAuthConfig(nativeRequest, env);
     if (nativePublicAuthConfig) return nativePublicAuthConfig;
     if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {
