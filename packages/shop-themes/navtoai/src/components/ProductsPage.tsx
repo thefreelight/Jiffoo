@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ProductsPageProps } from 'shared/src/types/theme';
 import { DirectoryCatalog } from './DirectoryCatalog';
+import { getNavCopy } from '../i18n';
 
 export const ProductsPage = React.memo(function ProductsPage({
   products,
@@ -10,6 +11,8 @@ export const ProductsPage = React.memo(function ProductsPage({
   totalPages,
   sortBy,
   viewMode,
+  config,
+  locale,
   onSortChange,
   onViewModeChange,
   onPageChange,
@@ -17,6 +20,8 @@ export const ProductsPage = React.memo(function ProductsPage({
   onProductClick,
   onSearch,
 }: ProductsPageProps) {
+  const copy = getNavCopy(locale);
+
   return (
     <DirectoryCatalog
       products={products}
@@ -26,9 +31,12 @@ export const ProductsPage = React.memo(function ProductsPage({
       totalPages={totalPages}
       sortBy={sortBy}
       viewMode={viewMode}
-      title="Discover tools that belong in an actual AI workflow."
-      description="Use the storefront like a navigation site: shortlist by category, scan the strongest signals fast, then open the tool page or add it straight into the buying stack."
-      eyebrow="AI tool directory"
+      locale={locale}
+      config={config}
+      activeNavId="tools"
+      title={copy.catalog.toolsTitle}
+      description={copy.catalog.toolsDescription}
+      eyebrow={copy.catalog.toolsEyebrow}
       canSearch={Boolean(onSearch)}
       onSortChange={onSortChange}
       onViewModeChange={onViewModeChange}
