@@ -434,11 +434,13 @@ export interface HealthSummaryResponse {
 }
 
 // Error tracking types
+// Values mirror the error-tracking API contract (both Node and Cloudflare
+// native persist lowercase severities); display sites uppercase as needed.
 export enum ErrorSeverity {
-  CRITICAL = 'CRITICAL',
-  ERROR = 'ERROR',
-  WARNING = 'WARNING',
-  INFO = 'INFO'
+  CRITICAL = 'critical',
+  ERROR = 'error',
+  WARNING = 'warning',
+  INFO = 'info'
 }
 
 export interface ErrorLog {
