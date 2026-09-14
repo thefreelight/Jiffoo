@@ -14,6 +14,10 @@ export const REMOTERADAR_PRODUCTS = {
   POWER_MONTHLY: 'remoteradar-power-monthly',
   POWER_QUARTERLY: 'remoteradar-power-quarterly',
   POWER_ANNUAL: 'remoteradar-power-annual',
+  // CNM Pro plans reuse the pro_beta entitlement tier; credits are unused by
+  // the CNM app but keep the shared grant engine's invariants intact.
+  CNM_PRO_MONTHLY: 'cuinima-pro-monthly',
+  CNM_PRO_ANNUAL: 'cuinima-pro-annual',
 } as const;
 
 // Tiered pricing follows the published tsenta-style plan card: every tier is
@@ -28,6 +32,8 @@ export const REMOTERADAR_PRICING_USD = {
   [REMOTERADAR_PRODUCTS.POWER_MONTHLY]: 99,
   [REMOTERADAR_PRODUCTS.POWER_QUARTERLY]: 267,
   [REMOTERADAR_PRODUCTS.POWER_ANNUAL]: 990,
+  [REMOTERADAR_PRODUCTS.CNM_PRO_MONTHLY]: 2.99,
+  [REMOTERADAR_PRODUCTS.CNM_PRO_ANNUAL]: 19.99,
 } as const;
 
 // Applications credited per 30-day cycle for each tier's monthly grant.
@@ -100,7 +106,7 @@ function supportedProduct(value: string): value is RemoteRadarProductCode {
 
 function productTier(product: RemoteRadarProductCode): PaidTier {
   if (product.startsWith('remoteradar-starter-')) return 'starter';
-  if (product.startsWith('remoteradar-pro-')) return 'pro_beta';
+  if (product.startsWith('remoteradar-pro-') || product.startsWith('cuinima-pro-')) return 'pro_beta';
   if (product.startsWith('remoteradar-power-')) return 'power';
   throw new Error('REMOTERADAR_ORDER_NOT_ELIGIBLE');
 }
