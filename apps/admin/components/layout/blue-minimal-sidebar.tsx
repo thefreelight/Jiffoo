@@ -43,6 +43,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
 import { useUpdateCheck } from '@/hooks/use-update-check'
+import { useJobsAdminCapability } from '@/hooks/use-jobs-admin-capability'
 import { UserAvatar } from '../ui/user-avatar'
 import { JiffooMark } from '../branding/jiffoo-mark'
 
@@ -151,12 +152,20 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   const router = useRouter()
   const { user, logout } = useAuthStore()
   const { hasUpdate } = useUpdateCheck()
+  const jobsAdminAvailable = useJobsAdminCapability()
   const { record, isManaged, isLoading } = useManagedMode()
 
   // Build navigation config dynamically
   const navigationConfig = useMemo(() => {
+    // Job Sources (RemoteRadar jobs administration) is instance-specific: keep
+    // it out of the sidebar on instances without a configured jobs service so
+    // generic Jiffoo deployments do not surface RemoteRadar navigation.
+    const visibleNavigation = jobsAdminAvailable
+      ? baseNavigationConfig
+      : baseNavigationConfig.filter((item) => item.id !== 'jobSources')
+
     if (!isManaged || !record) {
-      return baseNavigationConfig
+      return visibleNavigation
     }
 
     const packageItem: NavigationItem = {
@@ -168,8 +177,8 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
       requiredPermissions: [ADMIN_PERMISSIONS.SETTINGS_READ],
     }
 
-    return [baseNavigationConfig[0], packageItem, ...baseNavigationConfig.slice(1)]
-  }, [isManaged, record])
+    return [visibleNavigation[0], packageItem, ...visibleNavigation.slice(1)]
+  }, [isManaged, record, jobsAdminAvailable])
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
