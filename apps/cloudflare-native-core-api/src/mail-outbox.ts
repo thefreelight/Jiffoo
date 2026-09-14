@@ -227,11 +227,11 @@ export async function processNativeEmailOutbox(env: MailEnv, limit = 25): Promis
     ).bind(now, row.id, new Date(Date.now() - 5 * 60_000).toISOString()).run();
     if ((claimed.meta.changes ?? 0) !== 1) continue;
     try {
-      await sendSmtpEmail(env, { to: row.recipient, subject: row.subject, text: row.text_body, html: row.html_body });
+      const messageId = await sendSmtpEmail(env, { to: row.recipient, subject: row.subject, text: row.text_body, html: row.html_body });
       const sentAt = new Date().toISOString();
       await env.DB.prepare(
-        `UPDATE native_email_outbox SET status = 'SENT', sent_at = ?1, last_error = NULL, updated_at = ?1 WHERE id = ?2`,
-      ).bind(sentAt, row.id).run();
+        `UPDATE native_email_outbox SET status = 'SENT', sent_at = ?1, last_error = NULL, message_id = ?2, updated_at = ?1 WHERE id = ?3`,
+      ).bind(sentAt, messageId, row.id).run();
       result.sent += 1;
     } catch (error) {
       const attempt = row.attempt_count + 1;

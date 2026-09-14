@@ -27,6 +27,7 @@ import { nativeUpgradeVersion } from './upgrade-version';
 import { tryNativeUpgradeStatus } from './upgrade-status';
 import { tryNativeAdminSettings } from './admin-settings';
 import { captureNativeError, tryNativeAdminErrors } from './admin-errors';
+import { tryNativeMailBounces } from './mail-bounces';
 import { processScheduledOdooCatalogSync, tryNativeOdooCatalogSync } from './odoo-catalog';
 import { snapshotFallbackKey, snapshotKey } from './snapshot-key';
 import { authenticateNativeAdmin } from './auth';
@@ -250,6 +251,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeAdminSettings) return nativeAdminSettings;
     const nativeAdminErrors = await tryNativeAdminErrors(nativeRequest, env);
     if (nativeAdminErrors) return nativeAdminErrors;
+    const nativeMailBounces = await tryNativeMailBounces(nativeRequest, env);
+    if (nativeMailBounces) return nativeMailBounces;
     const nativePublicAuthConfig = tryNativePublicAuthConfig(nativeRequest, env);
     if (nativePublicAuthConfig) return nativePublicAuthConfig;
     if (request.method === 'GET' && (url.pathname.startsWith('/uploads/') || url.pathname.startsWith('/extensions/'))) {

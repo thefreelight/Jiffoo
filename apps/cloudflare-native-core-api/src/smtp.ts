@@ -111,12 +111,18 @@ function mailbox(value: string): string {
   return value.match(/<([^>]+)>/)?.[1]?.trim() || value.trim();
 }
 
+export function smtpMessageId(fromEmail: string): string {
+  const domain = mailbox(fromEmail).split('@')[1] || 'localhost';
+  return `<${crypto.randomUUID()}@${domain}>`;
+}
+
 export async function sendSmtpEmail(
   env: SmtpEnv,
-  message: { to: string; subject: string; text: string; html: string },
+  message: { to: string; subject: string; text: string; html: string; messageId?: string },
   userId?: string,
-): Promise<void> {
+): Promise<string> {
   const config = await configuration(env, userId);
+  const messageId = message.messageId || smtpMessageId(config.fromEmail);
   let current = session(connect(
     { hostname: config.host, port: config.port },
     { secureTransport: config.secure ? 'on' : 'starttls', allowHalfOpen: false },
@@ -151,6 +157,7 @@ export async function sendSmtpEmail(
       `From: ${header(config.from)}`,
       `To: ${header(message.to)}`,
       `Subject: ${header(message.subject)}`,
+      `Message-ID: ${messageId}`,
       ...(config.replyTo ? [`Reply-To: ${header(config.replyTo)}`] : []),
       'MIME-Version: 1.0',
       `Content-Type: multipart/alternative; boundary="${boundary}"`,
@@ -175,4 +182,5 @@ export async function sendSmtpEmail(
     current.writer.releaseLock();
     await current.socket.close().catch(() => undefined);
   }
+  return messageId;
 }
