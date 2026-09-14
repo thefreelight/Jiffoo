@@ -157,7 +157,7 @@ describe('native imager-ai contract', () => {
     getNativePluginConfig.mockResolvedValue({ enabled: true, config: { baseUrl: 'https://provider.test/v1', model: 'gpt-image-2', apiKey: 'sk-test', creditCost: 2 } });
     nativeWalletBalance.mockResolvedValue({ userId: 'user-1', balance: 10, reservedBalance: 0, availableBalance: 10, totalCredited: 10, totalDebited: 0 });
     nativeWalletMutate.mockResolvedValue({ userId: 'user-1', balance: 8, reservedBalance: 0, availableBalance: 8, totalCredited: 10, totalDebited: 2 });
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ output: [{ type: 'image_generation', result: 'https://cdn.test/image.png' }] }), { status: 200 }));
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ data: [{ url: 'https://cdn.test/image.png' }] }), { status: 200 }));
     const db = fakeDb();
     const response = await tryNativeImagerAi(request(`${STORE}/generate`, { method: 'POST', body: JSON.stringify({ prompt: 'a fox', style: 'ghibli' }) }), { DB: db } as never);
     expect(response?.status).toBe(200);
@@ -167,9 +167,10 @@ describe('native imager-ai contract', () => {
     });
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     const [endpoint, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
-    expect(endpoint).toBe('https://provider.test/v1/responses');
-    expect(String(init.body)).toContain('image_generation');
+    expect(endpoint).toBe('https://provider.test/v1/images/generations');
+    expect(String(init.body)).toContain('"size":"1024x1024"');
     expect(String(init.body)).toContain('a fox');
+    expect(String(init.body)).toContain('Style: ghibli');
     expect(String((init.headers as Record<string, string>).authorization)).toBe('Bearer sk-test');
     expect(nativeWalletMutate).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
       operation: 'debit', amount: 2, type: 'generation', sourcePlugin: 'imager-ai', referenceId: expect.stringMatching(/^imager_task_/),

@@ -9,6 +9,7 @@ const PLUGIN_SLUG = 'imager-ai';
 const STORE_PREFIX = `/api/v1/plugins/${PLUGIN_SLUG}/store`;
 const DEFAULT_CREDIT_COST = 1;
 const DEFAULT_OPENAI_MODEL = 'gpt-image-1';
+const DEFAULT_IMAGE_SIZE = '1024x1024';
 const MAX_PROMPT_LENGTH = 4000;
 const HISTORY_DEFAULT_LIMIT = 20;
 const HISTORY_MAX_LIMIT = 100;
@@ -34,6 +35,7 @@ interface ImagerConfig {
   model: string;
   apiKey: string;
   creditCost: number;
+  size: string;
 }
 
 async function readConfig(env: ImagerEnv): Promise<ImagerConfig | null> {
@@ -52,7 +54,13 @@ async function readConfig(env: ImagerEnv): Promise<ImagerConfig | null> {
     ?? optionalString(config.openaiCompatibleApiKey)
     ?? '';
   if (!baseUrl || !apiKey) return null;
-  return { baseUrl: baseUrl.replace(/\/+$/, ''), model, apiKey, creditCost: positiveInteger(config.creditCost, DEFAULT_CREDIT_COST) };
+  return {
+    baseUrl: baseUrl.replace(/\/+$/, ''),
+    model,
+    apiKey,
+    creditCost: positiveInteger(config.creditCost, DEFAULT_CREDIT_COST),
+    size: optionalString(config.size) ?? DEFAULT_IMAGE_SIZE,
+  };
 }
 
 interface ImageResult {
@@ -88,16 +96,27 @@ function firstImageUrl(payload: unknown): string | undefined {
 
 async function generateImage(config: ImagerConfig, prompt: string, style: string | undefined, sourceImageUrl: string | undefined): Promise<ImageResult> {
   const modelPrompt = [prompt, style ? `Style: ${style}` : ''].filter(Boolean).join('\n');
-  const content: Record<string, unknown>[] = [{ type: 'input_text', text: modelPrompt }];
-  if (sourceImageUrl) content.push({ type: 'input_image', image_url: sourceImageUrl });
-  const response = await fetch(`${config.baseUrl}/responses`, {
+  // OpenAI-compatible images endpoint. The Responses-API image tool is not
+  // enabled on common gateways (sub2api rejects /responses outright), so the
+  // portable /images/generations contract is used, with size (required by the
+  // endpoint) taken from plugin config.
+  const response = await fetch(`${config.baseUrl}/images/generations`, {
     method: 'POST',
     headers: { authorization: `Bearer ${config.apiKey}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ model: config.model, input: [{ role: 'user', content }], tools: [{ type: 'image_generation' }] }),
+    body: JSON.stringify({
+      model: config.model,
+      prompt: modelPrompt,
+      n: 1,
+      size: config.size,
+      ...(sourceImageUrl ? { image: sourceImageUrl } : {}),
+    }),
   });
-  const payload = await response.json().catch(() => ({}));
+  const rawText = await response.text().catch(() => '');
+  let payload: unknown = {};
+  try { payload = JSON.parse(rawText); } catch { /* non-JSON upstream body */ }
   if (!response.ok) {
-    const message = optionalString(record(record(payload).error).message) ?? `IMAGER_PROVIDER_${response.status}`;
+    const message = optionalString(record(record(payload).error).message)
+      ?? `IMAGER_PROVIDER_${response.status}${rawText ? `: ${rawText.slice(0, 160)}` : ''}`;
     throw new Error(message);
   }
   const imageUrl = firstImageUrl(payload);
