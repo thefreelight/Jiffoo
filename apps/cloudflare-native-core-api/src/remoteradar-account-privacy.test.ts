@@ -16,6 +16,7 @@ const sendNativeVerificationCode = vi.fn();
 
 vi.mock('./auth', () => ({
   authenticateNativeUser,
+  authenticateNativeAdmin: vi.fn(async () => null),
   findNativeUserByEmail,
   findNativeUserById,
   nativePublicUser,

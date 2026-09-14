@@ -1,5 +1,6 @@
 import {
   authenticateNativeUser,
+  authenticateNativeAdmin,
   createNativeUser,
   findNativeUserByEmail,
   findNativeUserById,
@@ -47,7 +48,7 @@ function validPassword(password: string): boolean {
 }
 
 async function authenticatedUser(request: Request, env: NativeAuthEnv): Promise<NativeUser | null> {
-  const session = await authenticateNativeUser(request, env);
+  const session = await authenticateNativeUser(request, env) ?? await authenticateNativeAdmin(request, env);
   if (!session) return null;
   return findNativeUserById(env, session.id);
 }
@@ -167,6 +168,28 @@ async function getProfile(request: Request, env: NativeAuthEnv): Promise<Respons
   const user = await authenticatedUser(request, env);
   if (!user) return error(401, 'UNAUTHORIZED', 'Authentication required');
   return success(await profile(env, user));
+}
+
+const AVATAR_ALLOWED_TYPES = new Set(['image/jpeg', 'image/pjpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif']);
+const AVATAR_MAX_BYTES = 5 * 1024 * 1024;
+
+async function uploadAvatar(request: Request, env: NativeAuthEnv): Promise<Response> {
+  const user = await authenticatedUser(request, env);
+  if (!user) return error(401, 'UNAUTHORIZED', 'Authentication required');
+  const assets = (env as NativeAuthEnv & Pick<Cloudflare.Env, 'ASSETS'>).ASSETS;
+  if (!assets) return error(503, 'STORAGE_UNAVAILABLE', 'Avatar storage is not configured');
+  const form = await request.formData().catch(() => null);
+  const file = form?.get('file');
+  if (!(file instanceof File)) return error(400, 'VALIDATION_ERROR', 'No file uploaded');
+  if (!AVATAR_ALLOWED_TYPES.has(file.type)) return error(400, 'INVALID_FILE_TYPE', 'Avatar images must be JPEG, PNG, WebP, GIF, or AVIF');
+  if (file.size <= 0 || file.size > AVATAR_MAX_BYTES) return error(400, 'FILE_TOO_LARGE', 'Avatar images must be between 1 byte and 5 MB');
+  const extensionMatch = /\.(jpe?g|png|webp|gif|avif)$/i.exec(file.name || '');
+  const extension = extensionMatch ? `.${extensionMatch[1]!.toLowerCase()}` : '.png';
+  const filename = `${crypto.randomUUID()}${extension}`;
+  const key = `uploads/avatars/${user.id}/${filename}`;
+  await assets.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type, cacheControl: 'public, max-age=31536000, immutable' } });
+  const url = new URL(request.url);
+  return success({ url: `${url.origin}/uploads/avatars/${user.id}/${filename}`, key }, 200, 'Avatar uploaded successfully');
 }
 
 async function updateProfile(request: Request, env: NativeAuthEnv): Promise<Response> {
@@ -311,6 +334,7 @@ export async function tryNativeShopperAccount(request: Request, env: NativeAuthE
   if (path === '/api/v1/account/profile' && request.method === 'GET') return getProfile(request, env);
   if (path === '/api/v1/account/profile' && request.method === 'PUT') return updateProfile(request, env);
   if (path === '/api/v1/account/email' && request.method === 'PUT') return updateEmail(request, env);
+  if (path === '/api/v1/account/avatar' && request.method === 'POST') return uploadAvatar(request, env);
   if (path === '/api/v1/account/export' && request.method === 'GET') return exportAccount(request, env);
   if (path === '/api/v1/account' && request.method === 'DELETE') return deleteAccount(request, env);
 
