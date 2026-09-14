@@ -204,14 +204,17 @@ describe('contract v1 plugin runtime', () => {
         config: {},
       });
 
-      await vi.advanceTimersByTimeAsync(3_600_000);
+      // Registration performs one catch-up run immediately.
+      await vi.advanceTimersByTimeAsync(0);
       expect(renew).toHaveBeenCalledTimes(1);
       await vi.advanceTimersByTimeAsync(3_600_000);
       expect(renew).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(3_600_000);
+      expect(renew).toHaveBeenCalledTimes(3);
 
       clearContractJobs('install-jobs');
       await vi.advanceTimersByTimeAsync(7_200_000);
-      expect(renew).toHaveBeenCalledTimes(2);
+      expect(renew).toHaveBeenCalledTimes(3);
       await app.close();
     } finally {
       vi.useRealTimers();
@@ -236,9 +239,10 @@ describe('contract v1 plugin runtime', () => {
         config: {},
       });
 
+      // One catch-up invocation at registration, then the per-minute timer.
       await vi.advanceTimersByTimeAsync(60_000);
       await vi.advanceTimersByTimeAsync(60_000);
-      expect(failing).toHaveBeenCalledTimes(2);
+      expect(failing).toHaveBeenCalledTimes(3);
       clearContractJobs('install-jobs-fail');
       await app.close();
     } finally {

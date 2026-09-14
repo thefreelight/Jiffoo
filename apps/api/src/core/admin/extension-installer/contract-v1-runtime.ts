@@ -87,13 +87,19 @@ function scheduleContractJobs(installationId: string, slug: string, jobs: Contra
     const timerKey = `${installationId}:${job.id}`;
     const previous = scheduledJobs.get(timerKey);
     if (previous) clearInterval(previous);
-    const timer = setInterval(() => {
+    const run = () => {
       Promise.resolve()
         .then(() => job.handler())
         .catch((error) => {
           console.error(`[plugin:${slug}] scheduled job ${job.id} failed:`, error);
         });
-    }, intervalMs);
+    };
+    // Catch up once when the runtime loads (e.g. after a deploy/restart) so a
+    // periodic job such as a subscription renewal that came due while the
+    // instance was down is processed immediately. Handlers are expected to be
+    // idempotent; renewal inserts key off the prior period end.
+    run();
+    const timer = setInterval(run, intervalMs);
     timer.unref();
     scheduledJobs.set(timerKey, timer);
   }
