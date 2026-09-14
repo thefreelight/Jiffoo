@@ -43,6 +43,7 @@ import {
   MAX_RESPONSE_SIZE_BYTES,
 } from './gateway-protection';
 import {
+  clearContractJobs,
   clearContractV1EventHandlers,
   dispatchContractV1Event,
   isContractV1Runtime,
@@ -792,6 +793,7 @@ export async function dropInternalRuntime(installationId: string): Promise<boole
     }
     internalRuntimes.delete(installationId);
     clearContractV1EventHandlers(installationId);
+    clearContractJobs(installationId);
     return true;
   }
   return false;

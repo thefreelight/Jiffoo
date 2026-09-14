@@ -45,6 +45,68 @@ const services = new Map<string, unknown>();
 type EventHandler = (payload: unknown) => Promise<unknown> | unknown;
 const eventHandlers = new Map<string, Map<string, Set<EventHandler>>>();
 
+type ContractJob = {
+  id: string;
+  schedule: string;
+  handler: () => Promise<unknown> | unknown;
+};
+
+const scheduledJobs = new Map<string, ReturnType<typeof setInterval>>();
+
+/**
+ * Interval milliseconds for the cron schedules contract plugins register
+ * today (hourly "0 * * * *", daily "M H * * *", and per-minute step forms
+ * such as "star-slash-15 * * * *"). Unrecognized schedules fall back to
+ * hourly so a malformed expression can never hot-loop the API process.
+ */
+export function contractJobIntervalMs(schedule: string): number {
+  const parts = String(schedule || '').trim().split(/\s+/);
+  if (parts.length !== 5) return 3_600_000;
+  const [minute, hour, dayOfMonth, month, dayOfWeek] = parts;
+  const minuteStep = minute.match(/^\*\/(\d+)$/);
+  if (minuteStep && hour === '*' && dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
+    return Math.max(1, Number(minuteStep[1])) * 60_000;
+  }
+  const hourStep = hour.match(/^\*\/(\d+)$/);
+  if (hourStep && dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
+    return Math.max(1, Number(hourStep[1])) * 3_600_000;
+  }
+  const runsEveryDay = dayOfMonth === '*' && month === '*' && dayOfWeek === '*';
+  if (runsEveryDay && /^\d+$/.test(minute) && /^\d+$/.test(hour)) {
+    // A fixed minute+hour on a daily-repeat schedule is a daily job.
+    return 86_400_000;
+  }
+  return 3_600_000;
+}
+
+function scheduleContractJobs(installationId: string, slug: string, jobs: ContractJob[]): void {
+  clearContractJobs(installationId);
+  for (const job of jobs) {
+    if (typeof job?.handler !== 'function' || !job.id) continue;
+    const intervalMs = contractJobIntervalMs(job.schedule);
+    const timerKey = `${installationId}:${job.id}`;
+    const previous = scheduledJobs.get(timerKey);
+    if (previous) clearInterval(previous);
+    const timer = setInterval(() => {
+      Promise.resolve()
+        .then(() => job.handler())
+        .catch((error) => {
+          console.error(`[plugin:${slug}] scheduled job ${job.id} failed:`, error);
+        });
+    }, intervalMs);
+    timer.unref();
+    scheduledJobs.set(timerKey, timer);
+  }
+}
+
+export function clearContractJobs(installationId?: string): void {
+  for (const [key, timer] of [...scheduledJobs.entries()]) {
+    if (installationId && !key.startsWith(`${installationId}:`)) continue;
+    clearInterval(timer);
+    scheduledJobs.delete(key);
+  }
+}
+
 export async function dispatchContractV1Event(
   installationId: string,
   eventType: string,
@@ -210,6 +272,7 @@ export async function registerContractV1Runtime(
   await runContractV1Migrations(options.slug, runtime.migrations);
   clearContractV1EventHandlers(options.installationId);
 
+  const jobs: ContractJob[] = [];
   const context: JsonObject = {
     db: {
       execute: (sql: string) => prisma.$executeRawUnsafe(sql),
@@ -259,7 +322,9 @@ export async function registerContractV1Runtime(
     registerDriver: (kind: string, driver: PaymentDriver) => {
       if (kind === 'payment') registerPaymentDriver(app, driver, options.slug);
     },
-    registerJob: () => undefined,
+    registerJob: (job: ContractJob) => {
+      jobs.push(job);
+    },
     registerAdminUI: () => undefined,
     registerStorefrontSlot: () => undefined,
     exposeService: (name: string, service: unknown) => services.set(name, service),
@@ -268,4 +333,5 @@ export async function registerContractV1Runtime(
   };
 
   runtime.register(context);
+  scheduleContractJobs(options.installationId, options.slug, jobs);
 }

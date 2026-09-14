@@ -15,6 +15,8 @@ vi.mock('@/config/database', () => ({ prisma: prismaMock }));
 vi.mock('@/core/payment/plugin-webhook', () => ({ applyNormalizedPluginWebhook: applyPluginWebhook }));
 
 import {
+  clearContractJobs,
+  contractJobIntervalMs,
   dispatchContractV1Event,
   isContractV1Runtime,
   registerContractV1Runtime,
@@ -24,6 +26,16 @@ import {
 describe('contract v1 plugin runtime', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('maps contract cron schedules to polling intervals', () => {
+    expect(contractJobIntervalMs('0 * * * *')).toBe(3_600_000);
+    expect(contractJobIntervalMs('*/15 * * * *')).toBe(900_000);
+    expect(contractJobIntervalMs('0 */6 * * *')).toBe(21_600_000);
+    expect(contractJobIntervalMs('30 2 * * *')).toBe(86_400_000);
+    // Malformed or unhandled expressions fall back to hourly, never a hot loop.
+    expect(contractJobIntervalMs('nonsense')).toBe(3_600_000);
+    expect(contractJobIntervalMs('* * * *')).toBe(3_600_000);
   });
 
   it('recognizes only contract-v1 runtime exports', () => {
@@ -157,7 +169,10 @@ describe('contract v1 plugin runtime', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/api/payments/webhook',
-      headers: { 'x-jiffoo-stripe-signature': 't=1,v1=test' },
+      headers: {
+        'content-type': 'application/json',
+        'x-jiffoo-stripe-signature': 't=1,v1=test',
+      },
       payload: rawBody,
     });
 
@@ -169,5 +184,65 @@ describe('contract v1 plugin runtime', () => {
       },
     }));
     await app.close();
+  });
+
+  it('schedules contract jobs on the mapped interval and clears them per installation', async () => {
+    vi.useFakeTimers();
+    try {
+      const renew = vi.fn(async () => []);
+      const runtime: ContractV1Runtime = {
+        manifest: { id: 'subscription', version: '0.1.10', contract: 'v1' },
+        register(context) {
+          const registerJob = context.registerJob as (job: { id: string; schedule: string; handler: () => unknown }) => void;
+          registerJob({ id: 'subscription.renew-due', schedule: '0 * * * *', handler: renew });
+        },
+      };
+      const app = Fastify({ logger: false });
+      await registerContractV1Runtime(app, runtime, {
+        slug: 'subscription',
+        installationId: 'install-jobs',
+        config: {},
+      });
+
+      await vi.advanceTimersByTimeAsync(3_600_000);
+      expect(renew).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(3_600_000);
+      expect(renew).toHaveBeenCalledTimes(2);
+
+      clearContractJobs('install-jobs');
+      await vi.advanceTimersByTimeAsync(7_200_000);
+      expect(renew).toHaveBeenCalledTimes(2);
+      await app.close();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('swallows scheduled job handler failures so the API keeps ticking', async () => {
+    vi.useFakeTimers();
+    try {
+      const failing = vi.fn(async () => { throw new Error('db down'); });
+      const runtime: ContractV1Runtime = {
+        manifest: { id: 'subscription', version: '0.1.10', contract: 'v1' },
+        register(context) {
+          const registerJob = context.registerJob as (job: { id: string; schedule: string; handler: () => unknown }) => void;
+          registerJob({ id: 'subscription.renew-due', schedule: '*/1 * * * *', handler: failing });
+        },
+      };
+      const app = Fastify({ logger: false });
+      await registerContractV1Runtime(app, runtime, {
+        slug: 'subscription',
+        installationId: 'install-jobs-fail',
+        config: {},
+      });
+
+      await vi.advanceTimersByTimeAsync(60_000);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(failing).toHaveBeenCalledTimes(2);
+      clearContractJobs('install-jobs-fail');
+      await app.close();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
