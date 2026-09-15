@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, Grid3X3, List, Search, Sparkles, Star } from 'lucide-react';
-import type { ThemeConfig } from 'shared/src/types/theme';
-import type { Product } from 'shared/src/types/product';
+import type { ThemeConfig } from 'shared';
+import type { Product } from 'shared';
 import { MarketplaceFrame } from './MarketplaceFrame';
 import { getNavCopy } from '../i18n';
 import { getSubmissionPlanMeta, isSubmissionPlanProduct } from '../lib/submission-plan';
@@ -197,7 +197,7 @@ export function DirectoryCatalog({
 
           <div className="min-w-0 flex-1 space-y-6">
             <section className="relative overflow-hidden rounded-[0.9rem] bg-[linear-gradient(135deg,#6257ff,#6b8cff)] px-4 py-6 text-white shadow-[0_18px_38px_-28px_rgba(81,86,230,0.8)]">
-              <h1 className="max-w-[10.5rem] text-[1.65rem] font-black leading-tight">
+              <h1 className="max-w-[10.5rem] text-[1.65rem] font-black leading-tight text-white">
                 {copy.locale === 'en' ? 'Explore 1000+ quality AI tools' : copy.locale === 'zh-Hant' ? '探索 1000+ 優質 AI 工具' : '探索 1000+ 优质 AI 工具'}
               </h1>
               <p className="mt-2 max-w-[10rem] text-xs font-semibold leading-5 text-white/78">

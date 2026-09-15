@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowRight, BadgeCheck, CreditCard, Rocket, ShieldCheck, Sparkles } from 'lucide-react';
-import type { ContactPageProps } from 'shared/src/types/theme';
+import type { ContactPageProps } from 'shared';
 import { MarketplaceFrame } from './MarketplaceFrame';
 import { getNavCopy } from '../i18n';
 import { getFallbackSubmissionPlans, type SubmissionPlanId } from '../lib/submission-plan';
@@ -286,7 +286,7 @@ export const ContactPage = React.memo(function ContactPage({ locale, config, onS
                 <Sparkles className="h-4 w-4 text-[#8f86ff]" />
                 {content.eyebrow}
               </div>
-              <h1 className="mt-5 max-w-4xl text-[clamp(2.2rem,4.6vw,4rem)] font-black leading-[0.96] tracking-[-0.06em]">
+              <h1 className="mt-5 max-w-4xl text-[clamp(2.2rem,4.6vw,4rem)] font-black leading-[0.96] tracking-[-0.06em] text-white">
                 {content.title}
               </h1>
               <p className="mt-4 max-w-2xl text-base leading-8 text-white/78">{content.subtitle}</p>
