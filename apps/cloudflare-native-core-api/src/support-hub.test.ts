@@ -37,6 +37,8 @@ function fakeDb() {
 }
 
 const storeRequest = (path: string) => new Request(`https://api.example/api/v1/plugins/support-hub/store${path}`);
+const mountAdminRequest = (path: string, init?: RequestInit) =>
+  new Request(`https://api.example/api/v1/plugins/support-hub/admin${path}`, init);
 const gatewayRequest = (path: string, init?: RequestInit) =>
   new Request(`https://api.example/api/v1/extensions/plugin/support-hub/api${path}`, init);
 
@@ -80,6 +82,22 @@ describe('native support hub adapter', () => {
     await expect(health?.json()).resolves.toMatchObject({ status: 'healthy', version: '0.0.3' });
     const config = await tryNativeSupportHub(gatewayRequest('/store/config'), { DB: db } as never);
     await expect(config?.json()).resolves.toMatchObject({ success: true, data: { enabled: true, channels: [] } });
+  });
+
+  it('serves admin settings through the bare plugin mount shape (0.0.3 client fetch path)', async () => {
+    const db = fakeDb();
+    const saved = await tryNativeSupportHub(mountAdminRequest('/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ whatsappEnabled: true, whatsappLink: 'https://wa.me/15551234567' }),
+    }), { DB: db } as never);
+    expect(saved?.status).toBe(200);
+    const fetched = await tryNativeSupportHub(mountAdminRequest('/settings'), { DB: db } as never);
+    await expect(fetched?.json()).resolves.toMatchObject({ data: { whatsappEnabled: true } });
+    const config = await tryNativeSupportHub(storeRequest('/config'), { DB: db } as never);
+    const configBody = await config?.json();
+    expect(configBody.data.channels).toEqual([
+      { kind: 'whatsapp', label: 'WhatsApp', href: 'https://wa.me/15551234567' },
+    ]);
   });
 
   it('persists settings via admin PUT and reflects them in store config', async () => {

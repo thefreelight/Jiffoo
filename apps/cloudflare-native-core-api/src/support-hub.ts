@@ -161,11 +161,14 @@ async function saveSettings(env: SupportHubEnv, settings: SupportHubSettings): P
 
 export async function tryNativeSupportHub(request: Request, env: SupportHubEnv): Promise<Response | null> {
   const url = new URL(request.url);
-  const storeBase = '/api/v1/plugins/support-hub/store';
+  // Native mount (bare /plugins/support-hub/* normalized to /api/v1/plugins/...
+  // by normalizePublicApiRequest) and the plugin gateway alias both reduce to
+  // the same /store/* and /admin/* tail.
+  const mountBase = '/api/v1/plugins/support-hub';
   const gatewayBase = '/api/v1/extensions/plugin/support-hub/api';
   let path: string | null = null;
-  if (url.pathname === storeBase || url.pathname.startsWith(`${storeBase}/`)) {
-    path = url.pathname.slice(storeBase.length) || '/';
+  if (url.pathname === mountBase || url.pathname.startsWith(`${mountBase}/`)) {
+    path = url.pathname.slice(mountBase.length) || '/';
   } else if (url.pathname === gatewayBase || url.pathname.startsWith(`${gatewayBase}/`)) {
     path = url.pathname.slice(gatewayBase.length) || '/';
   }
@@ -174,13 +177,13 @@ export async function tryNativeSupportHub(request: Request, env: SupportHubEnv):
     return failure(404, 'PLUGIN_NOT_ENABLED', 'Support Hub is not installed and enabled');
   }
 
-  if (request.method === 'GET' && (path === '/store/health' || path === '/health')) {
+  if (request.method === 'GET' && path === '/store/health') {
     return Response.json({ status: 'healthy', plugin: 'support-hub', version: PLUGIN_VERSION }, {
       headers: { 'x-jiffoo-runtime': RUNTIME },
     });
   }
 
-  if (request.method === 'GET' && (path === '/store/config' || path === '/config')) {
+  if (request.method === 'GET' && path === '/store/config') {
     return success(nativePublicConfig(normalizeSettings(await loadSettings(env))));
   }
 

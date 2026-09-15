@@ -28,6 +28,23 @@ describe('proxyApiRequest', () => {
     expect(forwarded.headers.get('x-forwarded-proto')).toBe('https');
   });
 
+  it('forwards plugin runtime mount requests to the Core API', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{"success":true}'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const response = await proxyApiRequest(
+      new Request('https://demo.jiffoo.com/plugins/support-hub/store/config', {
+        headers: { cookie: 'session=abc' },
+      }),
+      'https://demo-api.jiffoo.com',
+    );
+
+    expect(response?.status).toBe(200);
+    const forwarded = fetchMock.mock.calls[0]?.[0] as Request;
+    expect(forwarded.url).toBe('https://demo-api.jiffoo.com/plugins/support-hub/store/config');
+    expect(forwarded.headers.get('x-forwarded-host')).toBe('demo.jiffoo.com');
+  });
+
   it('does not intercept non-API requests', async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
