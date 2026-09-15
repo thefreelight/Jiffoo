@@ -15,13 +15,12 @@ import { isOfficialMarketOnly } from '@/core/admin/extension-installer/official-
 import { getOfficialCatalog, getOfficialCatalogEntry } from './official-catalog';
 import { installOfficialMarketExtension } from './install-handoff';
 import { cleanupDownloadedArtifact, downloadArtifactWithResume } from './resumable-downloader';
-import { verifyEmbeddedOfficialArtifact, verifyOfficialArtifact } from './artifact-verification';
+import { verifyOfficialArtifact } from './artifact-verification';
 import { assertOfficialArtifactReachable } from './official-artifact-health';
 import { getMarketBaseUrl } from './market-client';
 import { buildOfficialArtifactMap, fetchOfficialArtifactsIndex } from './official-artifacts-client';
 import { platformConnectionService } from '@/core/admin/platform-connection/service';
 import { managedPackageService } from '@/core/admin/managed-package/service';
-import { resolveEmbeddedOfficialArtifactPath } from './embedded-artifact-store';
 
 const MARKET_INSTALL_KINDS: ExtensionKind[] = [
   'plugin',
@@ -386,46 +385,19 @@ export async function marketRoutes(fastify: FastifyInstance) {
           );
         }
 
-        const embeddedKind = authorization.kind === 'theme' ? 'theme' : 'plugin';
-        const embeddedArtifactPath = await resolveEmbeddedOfficialArtifactPath(
-          embeddedKind,
+        await assertOfficialArtifactReachable(authorization.packageUrl);
+        const downloadResult = await downloadArtifactWithResume({
           slug,
-          authorization.version,
-        );
-
-        let artifactPath = embeddedArtifactPath;
-        const verification = embeddedArtifactPath
-          ? await verifyEmbeddedOfficialArtifact({
-              filePath: embeddedArtifactPath,
-              checksumFilePath: await resolveEmbeddedOfficialArtifactPath(
-                embeddedKind,
-                slug,
-                authorization.version,
-                'checksum',
-              ),
-              signatureFilePath: await resolveEmbeddedOfficialArtifactPath(
-                embeddedKind,
-                slug,
-                authorization.version,
-                'signature',
-              ),
-            })
-          : await (async () => {
-              await assertOfficialArtifactReachable(authorization.packageUrl);
-              const downloadResult = await downloadArtifactWithResume({
-                slug,
-                version: authorization.version,
-                url: authorization.packageUrl,
-              });
-
-              artifactPath = downloadResult.filePath;
-              return verifyOfficialArtifact({
-                filePath: downloadResult.filePath,
-                packageUrl: authorization.packageUrl,
-                checksumUrl: authorization.checksumUrl,
-                signatureUrl: authorization.signatureUrl,
-              });
-            })();
+          version: authorization.version,
+          url: authorization.packageUrl,
+        });
+        const artifactPath = downloadResult.filePath;
+        const verification = await verifyOfficialArtifact({
+          filePath: artifactPath,
+          packageUrl: authorization.packageUrl,
+          checksumUrl: authorization.checksumUrl,
+          signatureUrl: authorization.signatureUrl,
+        });
 
         const result = await installOfficialMarketExtension({
           kind,
@@ -444,9 +416,7 @@ export async function marketRoutes(fastify: FastifyInstance) {
           entitlement: authorization.entitlement,
         });
 
-        if (!embeddedArtifactPath) {
-          await cleanupDownloadedArtifact(slug, authorization.version).catch(() => undefined);
-        }
+        await cleanupDownloadedArtifact(slug, authorization.version).catch(() => undefined);
 
         if (binding.context) {
           await MarketClient.recordInstall(slug, {

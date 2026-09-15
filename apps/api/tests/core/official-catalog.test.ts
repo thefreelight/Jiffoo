@@ -300,7 +300,7 @@ describe('getOfficialCatalog', () => {
         slug: 'modelsfind',
         kind: 'theme',
         version: '0.1.5',
-        packageUrl: 'https://market.jiffoo.com/artifacts/themes/modelsfind/0.1.5.jtheme',
+        packageUrl: 'https://artifacts.jiffoo.com/official-artifacts/themes/modelsfind/0.1.5.jtheme',
       },
     ]);
     mocks.getActiveTheme.mockResolvedValue({
@@ -323,7 +323,7 @@ describe('getOfficialCatalog', () => {
       version: '0.1.3',
       installedVersion: '0.1.3',
       latestVersion: '0.1.5',
-      artifactPackageUrl: 'https://market.jiffoo.com/artifacts/themes/modelsfind/0.1.5.jtheme',
+      artifactPackageUrl: 'https://artifacts.jiffoo.com/official-artifacts/themes/modelsfind/0.1.5.jtheme',
       updateAvailable: true,
     });
   });

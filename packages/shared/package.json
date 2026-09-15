@@ -45,6 +45,10 @@
       "types": "./dist/shared/src/types/*.d.ts",
       "default": "./dist/shared/src/types/*.js"
     },
+    "./utils/validation": {
+      "types": "./dist/shared/src/utils/validation.d.ts",
+      "default": "./dist/shared/src/utils/validation.js"
+    },
     "./security": {
       "types": "./dist/shared/src/security/index.d.ts",
       "default": "./dist/shared/src/security/index.js"
