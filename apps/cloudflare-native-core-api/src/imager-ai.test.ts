@@ -180,6 +180,35 @@ describe('native imager-ai contract', () => {
     fetchSpy.mockRestore();
   });
 
+  it('uploads a reference image to /v1/images/edits as multipart and stores the base64 result in R2', async () => {
+    authenticateNativeUser.mockResolvedValue({ id: 'user-1' });
+    getNativePluginConfig.mockResolvedValue({ enabled: true, config: { baseUrl: 'https://provider.test', model: 'gpt-image-2', apiKey: 'sk-test', creditCost: 1 } });
+    nativeWalletBalance.mockResolvedValue({ userId: 'user-1', balance: 10, reservedBalance: 0, availableBalance: 10, totalCredited: 10, totalDebited: 0 });
+    nativeWalletMutate.mockResolvedValue({ userId: 'user-1', balance: 9, reservedBalance: 0, availableBalance: 9, totalCredited: 10, totalDebited: 1 });
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify({ data: [{ b64_json: Buffer.from('png-bytes').toString('base64') }] }), { status: 200 }));
+    const put = vi.fn(async () => {});
+    const env = { DB: fakeDb(), ASSETS: { put } } as never;
+    const response = await tryNativeImagerAi(request(`${STORE}/generate`, {
+      method: 'POST', body: JSON.stringify({ prompt: 'keep this style', sourceImageUrl: 'data:image/png;base64,aGVsbG8=' }),
+    }), env);
+    expect(response?.status).toBe(200);
+    const payload = await response?.json();
+    expect(payload.data.imageUrl).toMatch(/^\/uploads\/imager-ai\/generated\/\d{4}-\d{2}-\d{2}\/user-1-.+\.png$/);
+    const [endpoint, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(endpoint).toBe('https://provider.test/v1/images/edits');
+    expect(init.body).toBeInstanceOf(FormData);
+    expect((init.body as FormData).get('model')).toBe('gpt-image-2');
+    expect((init.body as FormData).get('image')).toBeTruthy();
+    // content-type must stay unset so the multipart boundary is generated.
+    expect(String((init.headers as Record<string, string>)['content-type'] ?? '')).toBe('');
+    expect(put).toHaveBeenCalledTimes(1);
+    const [key, bytes, meta] = put.mock.calls[0] as [string, Uint8Array, { httpMetadata: { contentType: string } }];
+    expect(key).toContain('uploads/imager-ai/generated/');
+    expect(bytes).toBeInstanceOf(Uint8Array);
+    expect(meta.httpMetadata.contentType).toBe('image/png');
+    fetchSpy.mockRestore();
+  });
+
   it('never debits when the provider fails and records the failure', async () => {
     authenticateNativeUser.mockResolvedValue({ id: 'user-1' });
     getNativePluginConfig.mockResolvedValue({ enabled: true, config: { baseUrl: 'https://provider.test/v1', model: 'm', apiKey: 'sk', creditCost: 1 } });

@@ -2,13 +2,14 @@ import { authenticateNativeUser, type NativeAuthEnv } from './auth';
 import { isNativePluginEnabled } from './plugin-enabled';
 import { getNativePluginConfig } from './plugin-settings';
 import { nativeWalletBalance, nativeWalletMutate } from './native-wallet';
+import { imageApiRequest, parseInlineImage } from './imager-ai-provider';
 
-type ImagerEnv = NativeAuthEnv & { DB: D1Database };
+type ImagerEnv = NativeAuthEnv & { DB: D1Database; ASSETS: R2Bucket };
 
 const PLUGIN_SLUG = 'imager-ai';
 const STORE_PREFIX = `/api/v1/plugins/${PLUGIN_SLUG}/store`;
 const DEFAULT_CREDIT_COST = 1;
-const DEFAULT_OPENAI_MODEL = 'gpt-image-1';
+const DEFAULT_OPENAI_MODEL = 'gpt-image-2';
 const DEFAULT_IMAGE_SIZE = '1024x1024';
 const MAX_PROMPT_LENGTH = 4000;
 const HISTORY_DEFAULT_LIMIT = 20;
@@ -72,45 +73,41 @@ function record(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
-function firstImageUrl(payload: unknown): string | undefined {
-  const root = record(payload);
-  const output = Array.isArray(root.output) ? root.output : [];
-  for (const item of output) {
-    const entry = record(item);
-    const result = optionalString(entry.result);
-    if (result?.startsWith('data:image/') || result?.startsWith('http')) return result;
-    if (result) return `data:image/png;base64,${result}`;
-    const url = optionalString(entry.url);
-    if (url) return url;
-  }
-  const data = Array.isArray(root.data) ? root.data : [];
-  for (const item of data) {
-    const entry = record(item);
-    const b64 = optionalString(entry.b64_json);
-    if (b64) return `data:image/png;base64,${b64}`;
-    const url = optionalString(entry.url);
-    if (url) return url;
-  }
-  return optionalString(root.image_url);
+function base64ToBytes(value: string): Uint8Array {
+  return Uint8Array.from(atob(value.replace(/\s/g, '')), (character) => character.charCodeAt(0));
 }
 
-async function generateImage(config: ImagerConfig, prompt: string, style: string | undefined, sourceImageUrl: string | undefined): Promise<ImageResult> {
+// gpt-image models answer with base64 by default; remote URLs are also
+// accepted so a provider configured for url response still works.
+function extractImage(payload: unknown): { bytes: Uint8Array; contentType: string } | { url: string } | null {
+  const root = record(payload);
+  const output = Array.isArray(root.output) ? root.output : [];
+  const data = Array.isArray(root.data) ? root.data : [];
+  const candidates = [...output, ...data, root];
+  for (const entry of candidates) {
+    const item = record(entry);
+    const encoded = optionalString(item.result) ?? optionalString(item.b64_json);
+    if (encoded && !encoded.startsWith('http') && !encoded.startsWith('data:')) {
+      try { return { bytes: base64ToBytes(encoded), contentType: 'image/png' }; } catch { /* not base64 */ }
+    }
+    const inline = parseInlineImage(item.result ?? item.url);
+    if (inline) return inline;
+    const url = optionalString(item.url) ?? optionalString(item.image_url);
+    if (url?.startsWith('http')) return { url };
+  }
+  return null;
+}
+
+async function generateImage(env: ImagerEnv, config: ImagerConfig, userId: string, prompt: string, style: string | undefined, sourceImageUrl: string | undefined): Promise<ImageResult> {
   const modelPrompt = [prompt, style ? `Style: ${style}` : ''].filter(Boolean).join('\n');
-  // OpenAI-compatible images endpoint. The Responses-API image tool is not
-  // enabled on common gateways (sub2api rejects /responses outright), so the
-  // portable /images/generations contract is used, with size (required by the
-  // endpoint) taken from plugin config.
-  const response = await fetch(`${config.baseUrl}/images/generations`, {
-    method: 'POST',
-    headers: { authorization: `Bearer ${config.apiKey}`, 'content-type': 'application/json' },
-    body: JSON.stringify({
-      model: config.model,
-      prompt: modelPrompt,
-      n: 1,
-      size: config.size,
-      ...(sourceImageUrl ? { image: sourceImageUrl } : {}),
-    }),
-  });
+  // Portable OpenAI-compatible images contract. The gateway requires the /v1
+  // prefix and, for a reference image (the storefront always sends a style
+  // seed as a data URL), a multipart /images/edits upload — a data URL stuffed
+  // into JSON generations is what makes the upstream hang and 502.
+  const providerRequest = imageApiRequest(config.baseUrl, config.model, modelPrompt, parseInlineImage(sourceImageUrl), config.size);
+  const headers: Record<string, string> = { authorization: `Bearer ${config.apiKey}` };
+  if (providerRequest.contentType) headers['content-type'] = providerRequest.contentType;
+  const response = await fetch(providerRequest.url, { method: 'POST', headers, body: providerRequest.body });
   const rawText = await response.text().catch(() => '');
   let payload: unknown = {};
   try { payload = JSON.parse(rawText); } catch { /* non-JSON upstream body */ }
@@ -119,9 +116,13 @@ async function generateImage(config: ImagerConfig, prompt: string, style: string
       ?? `IMAGER_PROVIDER_${response.status}${rawText ? `: ${rawText.slice(0, 160)}` : ''}`;
     throw new Error(message);
   }
-  const imageUrl = firstImageUrl(payload);
-  if (!imageUrl) throw new Error('IMAGER_PROVIDER_IMAGE_MISSING');
-  return { imageUrl, rawResponse: record(payload) };
+  const image = extractImage(payload);
+  if (!image) throw new Error('IMAGER_PROVIDER_IMAGE_MISSING');
+  if ('url' in image) return { imageUrl: image.url, rawResponse: record(payload) };
+  const key = `uploads/imager-ai/generated/${new Date().toISOString().slice(0, 10)}/${userId}-${crypto.randomUUID()}.png`;
+  await env.ASSETS.put(key, image.bytes, { httpMetadata: { contentType: image.contentType } });
+  const url = `/${key}`;
+  return { imageUrl: url, rawResponse: record(payload) };
 }
 
 interface TaskRow {
@@ -236,7 +237,7 @@ async function handleGenerate(env: ImagerEnv, request: Request): Promise<Respons
 
   let image: ImageResult;
   try {
-    image = await generateImage(config, prompt, style, sourceImageUrl);
+    image = await generateImage(env, config, user.id, prompt, style, sourceImageUrl);
   } catch (error) {
     const errorCode = error instanceof Error ? error.message : 'IMAGER_GENERATION_FAILED';
     await env.DB.prepare(
