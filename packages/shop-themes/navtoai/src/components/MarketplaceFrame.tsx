@@ -14,7 +14,7 @@ import {
   User2,
   WandSparkles,
 } from 'lucide-react';
-import type { ThemeConfig } from 'shared/src/types/theme';
+import type { ThemeConfig } from 'shared';
 import { getNavCopy } from '../i18n';
 
 type NavItemId = 'home' | 'tools' | 'apps' | 'models' | 'resources' | 'rankings' | 'news' | 'collections';
@@ -142,7 +142,7 @@ export function MarketplaceFrame({
 
             <div className="mt-16 overflow-hidden rounded-[1rem] bg-[linear-gradient(135deg,#5870ff,#8a7dff)] p-4 text-white shadow-[0_18px_34px_-22px_rgba(82,79,255,0.74)]">
               <p className="text-[0.72rem] font-semibold text-white/82">{copy.sidebar.promoEyebrow}</p>
-              <h2 className="mt-2 text-[1.05rem] font-black leading-6">{copy.sidebar.promoTitle}</h2>
+              <h2 className="mt-2 text-[1.05rem] font-black leading-6 text-white">{copy.sidebar.promoTitle}</h2>
               <p className="mt-2 text-xs leading-5 text-white/84">{copy.sidebar.promoBody}</p>
               <button
                 type="button"

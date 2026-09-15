@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowRight, Search } from 'lucide-react';
-import type { HomePageProps } from 'shared/src/types/theme';
+import type { HomePageProps } from 'shared';
 import { MarketplaceFrame } from './MarketplaceFrame';
 import { getNavCopy } from '../i18n';
 import { categoryIconMap, HeroAiDevice, Rating, ToolLogo } from './design-primitives';
@@ -199,7 +199,7 @@ export const HomePage = React.memo(function HomePage({ locale, onNavigate }: Hom
       <div className="hidden space-y-4 lg:block">
         <section className="grid min-h-[16.5rem] overflow-hidden rounded-[1rem] bg-[#070b25] text-white shadow-[var(--navtoai-shadow-hero)] xl:grid-cols-[minmax(0,1fr)_33rem]">
           <div className="px-12 py-11">
-            <h1 className="max-w-[35rem] text-[2.85rem] font-black leading-tight">{splitAiTitle(copy.home.title)}</h1>
+            <h1 className="max-w-[35rem] text-[2.85rem] font-black leading-tight text-white">{splitAiTitle(copy.home.title)}</h1>
             <p className="mt-3 text-base font-semibold text-[#b9c0d8]">{copy.home.subtitle}</p>
 
             <form onSubmit={submitSearch} className="mt-6 max-w-[30.5rem]">

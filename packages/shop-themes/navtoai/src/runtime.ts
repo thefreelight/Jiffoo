@@ -1,5 +1,7 @@
 import type { ThemePackage } from 'shared/src/types/theme';
 
+import './tokens.css';
+
 import { AuthCallbackPage } from './components/AuthCallbackPage';
 import { CartPage } from './components/CartPage';
 import { CategoriesPage } from './components/CategoriesPage';

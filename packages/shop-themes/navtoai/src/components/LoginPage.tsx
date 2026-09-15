@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, ShieldCheck } from 'lucide-react';
-import type { LoginPageProps } from 'shared/src/types/theme';
+import type { LoginPageProps } from 'shared';
 import { MarketplaceFrame } from './MarketplaceFrame';
 import { getNavCopy } from '../i18n';
 import { resolveNavToAiSiteConfig } from '../site';
@@ -82,7 +82,7 @@ export const LoginPage = React.memo(function LoginPage({
             <ShieldCheck className="h-4 w-4 text-[#8f86ff]" />
             {content.eyebrow}
           </div>
-          <h1 className="mt-6 max-w-2xl text-[clamp(2.4rem,5vw,4.4rem)] font-black leading-[0.94] tracking-[-0.06em]">
+          <h1 className="mt-6 max-w-2xl text-[clamp(2.4rem,5vw,4.4rem)] font-black leading-[0.94] tracking-[-0.06em] text-white">
             {content.title}
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-white/76">{content.body}</p>
@@ -194,3 +194,4 @@ function copyLine(locale: string | undefined, zh: string, en: string): string {
   const resolved = getNavCopy(locale).locale;
   return resolved === 'en' ? en : zh;
 }
+

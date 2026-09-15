@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowRight, BadgeCheck, Compass, CreditCard, ShieldCheck, Sparkles } from 'lucide-react';
-import type { HelpPageProps } from 'shared/src/types/theme';
+import type { HelpPageProps } from 'shared';
 import { MarketplaceFrame } from './MarketplaceFrame';
 import { getNavCopy } from '../i18n';
 
@@ -215,7 +215,7 @@ export const HelpPage = React.memo(function HelpPage({ locale, config, onNavigat
 
           <article className="rounded-[var(--navtoai-radius-xl)] border border-[var(--navtoai-line)] bg-[linear-gradient(155deg,rgba(106,108,255,0.96),rgba(123,201,255,0.82))] p-6 text-white shadow-[var(--navtoai-shadow)]">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-white/76">NavtoAI</p>
-            <h2 className="mt-4 text-2xl font-black leading-8 tracking-[-0.04em]">
+            <h2 className="mt-4 text-2xl font-black leading-8 tracking-[-0.04em] text-white">
               {content.sideTitle}
             </h2>
             <button

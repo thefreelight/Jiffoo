@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowRight, Eye, EyeOff, Loader2, Lock, Mail, UserRound } from 'lucide-react';
-import type { RegisterPageProps } from 'shared/src/types/theme';
+import type { RegisterPageProps } from 'shared';
 import { MarketplaceFrame } from './MarketplaceFrame';
 import { getNavCopy } from '../i18n';
 
@@ -104,7 +104,7 @@ export const RegisterPage = React.memo(function RegisterPage({
             <UserRound className="h-4 w-4 text-[#8f86ff]" />
             {content.eyebrow}
           </div>
-          <h1 className="mt-6 max-w-2xl text-[clamp(2.4rem,5vw,4.4rem)] font-black leading-[0.94] tracking-[-0.06em]">
+          <h1 className="mt-6 max-w-2xl text-[clamp(2.4rem,5vw,4.4rem)] font-black leading-[0.94] tracking-[-0.06em] text-white">
             {content.title}
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-white/76">{content.body}</p>
@@ -257,3 +257,4 @@ function PasswordInput({
     </label>
   );
 }
+
