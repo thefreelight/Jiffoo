@@ -133,6 +133,13 @@ function createNextConfig(options = {}) {
           source: '/extensions/:path*',
           destination: `${apiServiceUrl}/extensions/:path*`,
         },
+        // Plugin runtime mount proxy: plugin storefront/admin components
+        // fetch /plugins/<slug>/store|admin/... which the Core API in-process
+        // plugin runtime serves (e.g. Support Hub contact launcher config).
+        {
+          source: '/plugins/:path*',
+          destination: `${apiServiceUrl}/plugins/:path*`,
+        },
         // Uploads static files proxy
         {
           source: '/uploads/:path*',

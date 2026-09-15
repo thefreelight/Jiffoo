@@ -1,8 +1,16 @@
-const API_PREFIX = '/api/';
+/**
+ * Same-origin prefixes that the Shop Worker proxies to the Core API.
+ *
+ * `/api/` is the Core API surface. `/plugins/` is the in-process plugin
+ * runtime mount used by plugin storefront slots (e.g. Support Hub's
+ * `/plugins/support-hub/store/config`); without it the request would fall
+ * into the Next layer and be swallowed by the locale redirect.
+ */
+const PROXIED_API_PREFIXES = ['/api/', '/plugins/'];
 
 function resolveApiUrl(requestUrl: string, apiServiceUrl: string): URL | null {
   const url = new URL(requestUrl);
-  if (!url.pathname.startsWith(API_PREFIX)) {
+  if (!PROXIED_API_PREFIXES.some((prefix) => url.pathname.startsWith(prefix))) {
     return null;
   }
 

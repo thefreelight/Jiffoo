@@ -98,6 +98,14 @@ function runtimeHeaders(runtime: string, headers?: HeadersInit): Headers {
 
 export function normalizePublicApiRequest(request: Request): Request {
   const url = new URL(request.url);
+  // Bare plugin runtime mount (e.g. /plugins/support-hub/store/config, fetched
+  // by plugin storefront slots proxied from the Shop Worker) maps onto the
+  // versioned native namespace so adapters match it instead of silently
+  // falling back to CORE_ORIGIN.
+  if (url.pathname === '/plugins' || url.pathname.startsWith('/plugins/')) {
+    url.pathname = `/api/v1${url.pathname}`;
+    return new Request(url, request);
+  }
   if (!url.pathname.startsWith('/api/') || url.pathname.startsWith('/api/v1/')) return request;
   url.pathname = `/api/v1/${url.pathname.slice('/api/'.length)}`;
   return new Request(url, request);
