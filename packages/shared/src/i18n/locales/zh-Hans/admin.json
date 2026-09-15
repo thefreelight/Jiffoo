@@ -6,7 +6,7 @@
         "customers": "顾客管理",
         "analytics": "资料分析",
         "settings": "系统设定",
-        "plugins": "外挂管理",
+        "plugins": "插件管理",
         "themes": "布景主题管理",
         "jobSources": "职位来源"
     },
@@ -66,9 +66,9 @@
         "save_changes": "储存变更"
     },
     "plugins": {
-        "title": "外挂管理",
+        "title": "插件管理",
         "installed": "已安装",
-        "available": "可用外挂",
+        "available": "可用插件",
         "install": "安装",
         "uninstall": "解除安装",
         "enable": "启用",
