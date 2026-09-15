@@ -51,7 +51,7 @@ function normalizeArtifactItem(
 }
 
 export function getOfficialArtifactsIndexUrl(): string {
-  return process.env.OFFICIAL_ARTIFACTS_INDEX_URL?.trim() || 'https://market.jiffoo.com/artifacts/index.json';
+  return 'https://artifacts.jiffoo.com/official-artifacts/index.json';
 }
 
 export async function fetchOfficialArtifactsIndex(

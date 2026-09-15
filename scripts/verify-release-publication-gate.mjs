@@ -1529,7 +1529,7 @@ addCheck('storefront runtime gate forbids host-domain theme rewrites', () => {
   assertIncludes(registryVersionTest, "themeManifest.entry?.runtimeJS", 'packaged runtime manifest assertion');
   assertIncludes(registryVersionTest, "catalogEntry?.packageUrl", 'packaged runtime official artifact URL assertion');
   assertIncludes(officialCatalog, "slug: 'bokmoo'", 'Bokmoo official catalog entry');
-  assertIncludes(officialCatalog, "packageUrl: 'https://market.jiffoo.com/artifacts/themes/bokmoo/1.1.2.jtheme'", 'Bokmoo official artifact URL');
+  assertIncludes(officialCatalog, "packageUrl: 'https://artifacts.jiffoo.com/official-artifacts/themes/bokmoo/1.0.0.jtheme'", 'Bokmoo official artifact URL');
   assertIncludes(bokmooThemeManifest, '"runtimeJS": "runtime/theme-runtime.js"', 'Bokmoo packaged runtime manifest entry');
   assertIncludes(brandedRuntimeVerifier, '/api/themes/active?target=shop', 'branded verifier active theme API check');
   assertIncludes(brandedRuntimeVerifier, '/api/store/context', 'branded verifier store context API check');

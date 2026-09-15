@@ -98,7 +98,7 @@ describe('UpdateChecker', () => {
         slug: 'modelsfind',
         kind: 'theme',
         version: '0.1.5',
-        packageUrl: 'https://market.jiffoo.com/artifacts/themes/modelsfind/0.1.5.jtheme',
+        packageUrl: 'https://artifacts.jiffoo.com/official-artifacts/themes/modelsfind/0.1.5.jtheme',
       },
     ]);
 
