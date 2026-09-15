@@ -36,25 +36,25 @@ export const DEFAULT_PUBLIC_CORE_UPDATE_MANIFEST_URL =
 // for release detection. Keep it aligned with the published OSS release tag and
 // changelog entry whenever a new public release is cut.
 export const PUBLIC_CORE_UPDATE_MANIFEST: PublicCoreUpdateManifest = {
-  latestVersion: '1.0.147',
-  latestStableVersion: '1.0.147',
+  latestVersion: '1.0.148',
+  latestStableVersion: '1.0.148',
   latestPrereleaseVersion: null,
   channel: 'stable',
   deliveryMode: 'image-first',
   images: {
-    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.147',
-    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.147',
-    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.147',
-    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.147',
+    api: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/api:1.0.148',
+    admin: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/admin:1.0.148',
+    shop: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/shop:1.0.148',
+    updater: 'crpi-si4hvlqhabu9zjq7.ap-southeast-1.personal.cr.aliyuncs.com/jiffoo-oss/updater:1.0.148',
   },
-  releaseDate: '2026-09-15T05:37:39.000Z',
-  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.147-opensource',
+  releaseDate: '2026-09-15T06:28:07.377Z',
+  changelogUrl: 'https://github.com/thefreelight/Jiffoo/releases/tag/v1.0.148-opensource',
   sourceArchiveUrl: 'https://get.jiffoo.com/jiffoo-source.tar.gz',
   minimumCompatibleVersion: '1.0.0',
   minimumAutoUpgradableVersion: '1.0.0',
   requiresManualIntervention: false,
   releaseNotes:
-    'Simplified Chinese localization term correction: software plugins are now labeled 插件 instead of 外挂 (which reads as game-cheating software) across Merchant Admin; Traditional Chinese 外掛 is unchanged.',
+    'imager-ai adapter now uses the proven GPT Image 2 request shape: /v1 path normalization, multipart /images/edits for reference images (the storefront always sends a style seed), and R2 persistence of base64 provider results.',
   checksumUrl: null,
   signatureUrl: null,
 };
