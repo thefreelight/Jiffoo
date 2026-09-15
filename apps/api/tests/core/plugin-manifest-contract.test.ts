@@ -64,6 +64,7 @@ describe('Plugin manifest contract', () => {
       description: 'Invalid embed target',
       runtimeType: 'internal-fastify',
       trustLevel: 'builtin',
+      hostProtocol: 'internal-fastify-v1',
       entryModule: 'server/index.js',
       permissions: [],
       sdkVersion: 'invalid',
@@ -113,6 +114,45 @@ describe('Plugin manifest contract', () => {
     }));
   });
 
+  it('rejects internal-fastify plugins without the host protocol', () => {
+    const issues = getPluginManifestIssues({
+      schemaVersion: 1,
+      slug: 'missing-host-protocol',
+      name: 'Missing Host Protocol',
+      version: '1.0.0',
+      description: 'Internal plugin without a host protocol',
+      runtimeType: 'internal-fastify',
+      trustLevel: 'official',
+      entryModule: 'server/index.js',
+      permissions: [],
+    });
+
+    expect(issues).toContainEqual(expect.objectContaining({
+      path: 'hostProtocol',
+      code: 'MISSING_HOST_PROTOCOL',
+    }));
+  });
+
+  it('rejects an unsupported internal-fastify host protocol', () => {
+    const issues = getPluginManifestIssues({
+      schemaVersion: 1,
+      slug: 'wrong-host-protocol',
+      name: 'Wrong Host Protocol',
+      version: '1.0.0',
+      description: 'Internal plugin for another host runtime',
+      runtimeType: 'internal-fastify',
+      trustLevel: 'official',
+      hostProtocol: 'sdk-runtime-v1' as any,
+      entryModule: 'server/index.js',
+      permissions: [],
+    });
+
+    expect(issues).toContainEqual(expect.objectContaining({
+      path: 'hostProtocol',
+      code: 'UNSUPPORTED_HOST_PROTOCOL',
+    }));
+  });
+
   it('rejects third-party trustLevel with internal-fastify runtimeType', () => {
     const issues = getPluginManifestIssues({
       schemaVersion: 1,
@@ -122,6 +162,7 @@ describe('Plugin manifest contract', () => {
       description: 'Third-party plugin trying internal-fastify',
       runtimeType: 'internal-fastify',
       trustLevel: 'third-party',
+      hostProtocol: 'internal-fastify-v1',
       entryModule: 'server/index.js',
       permissions: [],
     });
@@ -141,6 +182,7 @@ describe('Plugin manifest contract', () => {
       description: 'Builtin internal plugin',
       runtimeType: 'internal-fastify',
       trustLevel: 'builtin',
+      hostProtocol: 'internal-fastify-v1',
       entryModule: 'server/index.js',
       permissions: [],
     });
@@ -157,6 +199,7 @@ describe('Plugin manifest contract', () => {
       description: 'Official signed internal plugin',
       runtimeType: 'internal-fastify',
       trustLevel: 'official',
+      hostProtocol: 'internal-fastify-v1',
       entryModule: 'server/index.js',
       permissions: [],
     });
@@ -188,6 +231,7 @@ describe('Plugin manifest contract', () => {
       description: 'Plugin with invalid trustLevel',
       runtimeType: 'internal-fastify',
       trustLevel: 'unknown' as any,
+      hostProtocol: 'internal-fastify-v1',
       entryModule: 'server/index.js',
       permissions: [],
     });

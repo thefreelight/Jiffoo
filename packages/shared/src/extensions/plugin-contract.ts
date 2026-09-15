@@ -52,6 +52,10 @@ export const PLUGIN_THEME_EMBED_TARGETS = [
 
 export type PluginRuntimeType = 'internal-fastify' | 'external-http';
 
+export const INTERNAL_FASTIFY_HOST_PROTOCOL = 'internal-fastify-v1';
+
+export type PluginHostProtocol = typeof INTERNAL_FASTIFY_HOST_PROTOCOL;
+
 /**
  * Trust level assigned to a plugin at install time.
  *
@@ -118,6 +122,13 @@ export interface PluginManifest {
   description: string;
   category?: PluginCategory;
   runtimeType: PluginRuntimeType;
+  /**
+   * The runtime ABI expected by an executable in-process plugin.
+   *
+   * Required for `internal-fastify` plugins so the host can reject packages
+   * built for another plugin runtime before loading their entry module.
+   */
+  hostProtocol?: PluginHostProtocol;
   /**
    * Declared trust level for the plugin.
    *
@@ -343,6 +354,24 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
       'third-party plugins must use runtimeType "external-http" — internal-fastify is restricted to builtin and official trust levels',
       'THIRD_PARTY_INTERNAL_NOT_ALLOWED'
     );
+  }
+
+  if (manifest.runtimeType === 'internal-fastify') {
+    if (manifest.hostProtocol === undefined) {
+      pushIssue(
+        issues,
+        'hostProtocol',
+        'hostProtocol is required for internal-fastify plugins',
+        'MISSING_HOST_PROTOCOL'
+      );
+    } else if (manifest.hostProtocol !== INTERNAL_FASTIFY_HOST_PROTOCOL) {
+      pushIssue(
+        issues,
+        'hostProtocol',
+        `hostProtocol must be "${INTERNAL_FASTIFY_HOST_PROTOCOL}" for internal-fastify plugins`,
+        'UNSUPPORTED_HOST_PROTOCOL'
+      );
+    }
   }
 
   if (!Array.isArray(manifest.permissions)) {

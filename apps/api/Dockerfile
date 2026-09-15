@@ -75,10 +75,6 @@ RUN mkdir -p /app/plugins
 # Build shared package first
 RUN pnpm --filter shared build
 
-# Build embedded official artifacts so free official installs do not depend on
-# an external marketplace artifact host at runtime.
-RUN pnpm --filter api exec tsx scripts/build-official-artifacts.ts || echo "Skipping embedded official artifacts for API image"
-
 # Generate Prisma client
 RUN pnpm --filter api prisma generate
 
@@ -118,8 +114,6 @@ COPY --from=builder --chown=api:nodejs /app/scripts ./scripts
 COPY --from=builder --chown=api:nodejs /app/plugins ./plugins
 # Copy Prisma schema and migrations for database migration
 COPY --from=builder --chown=api:nodejs /app/apps/api/prisma ./apps/api/prisma
-COPY --from=builder --chown=api:nodejs /app/dist/official-artifacts ./dist/official-artifacts
-
 # Copy production dependencies from builder (includes Prisma generated client)
 # Must copy from builder, not deps, because prisma generate runs in builder stage
 COPY --from=builder --chown=api:nodejs /app/node_modules ./node_modules

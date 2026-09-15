@@ -448,7 +448,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             });
           }
 
-          if (defaultInstance && hasLifecycleHook(manifest, 'onInstall')) {
+          if (defaultInstance?.enabled && hasLifecycleHook(manifest, 'onInstall')) {
             await executeLifecycleHook('onInstall', {
               installationId: defaultInstance.id,
               pluginSlug: manifest.slug,

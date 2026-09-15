@@ -350,7 +350,6 @@ addCheck('OSS release workflow runs Admin/shop/release quality gates', () => {
     "['pnpm', ['--filter', 'api', 'db:mode:test']]",
     "['pnpm', ['test:self-hosted-detection']]",
     "['pnpm', ['test:shop-runtime-truth']]",
-    "['pnpm', ['test:official-artifacts']]",
     "['pnpm', ['test:updater:docker-compose']]",
     "['pnpm', ['test:update-feed-builder']]",
     "['pnpm', ['test:update-feed-verifier']]",
@@ -1428,8 +1427,6 @@ addCheck('storefront runtime gate forbids host-domain theme rewrites', () => {
   const remoteRuntimeTest = read('apps/shop/tests/themes/theme-provider-remote-runtime.test.tsx');
   const remoteRuntimeIdentityTest = read('apps/shop/tests/themes/remote-runtime-identity.test.ts');
   const registryVersionTest = read('apps/shop/tests/themes/esim-mall-runtime-registry.test.ts');
-  const officialArtifactBuilder = read('apps/api/scripts/build-official-artifacts.ts');
-  const officialArtifactBuilderTest = read('apps/api/tests/core/official-artifact-builder.test.ts');
   const officialCatalog = read('packages/shared/src/extensions/official-catalog.ts');
   const bokmooThemeManifest = read('packages/shop-themes/bokmoo/theme-pack/theme.json');
   const brandedRuntimeVerifier = read('scripts/verify-branded-storefront-runtime.mjs');
@@ -1491,18 +1488,6 @@ addCheck('storefront runtime gate forbids host-domain theme rewrites', () => {
   assertIncludes(registryVersionTest, 'requires installed runtime-capable theme packs to ship a versioned runtime bundle', 'packaged runtime bundle regression');
   assertIncludes(registryVersionTest, "themeManifest.entry?.runtimeJS", 'packaged runtime manifest assertion');
   assertIncludes(registryVersionTest, "catalogEntry?.packageUrl", 'packaged runtime official artifact URL assertion');
-  assertIncludes(officialArtifactBuilder, 'const existingMeta =', 'official runtime artifact preserves existing metadata');
-  assertIncludes(officialArtifactBuilder, 'slug: ${JSON.stringify(entry.slug)}', 'official runtime artifact slug metadata injection');
-  assertIncludes(officialArtifactBuilder, 'version: ${JSON.stringify(entry.version)}', 'official runtime artifact version metadata injection');
-  assertIncludes(officialArtifactBuilder, "target: 'shop'", 'official runtime artifact target metadata injection');
-  assertIncludes(officialArtifactBuilderTest, 'getSourceBackedRuntimeThemeEntries', 'official runtime artifact source-derived build matrix');
-  assertIncludes(officialArtifactBuilderTest, "path.join(themeRoot, 'src', 'runtime.ts')", 'official runtime artifact source gate');
-  assertIncludes(officialArtifactBuilderTest, 'SOURCE_BACKED_RUNTIME_THEME_FLOOR', 'official runtime artifact minimum theme coverage');
-  assertIncludes(officialArtifactBuilderTest, 'slugs: themeSlugs', 'official runtime artifact catalog-derived build request');
-  assertIncludes(officialArtifactBuilderTest, 'expect(runtimeBundle).toContain(`slug: "${slug}"`);', 'official runtime artifact slug metadata regression');
-  assertIncludes(officialArtifactBuilderTest, 'expect(runtimeBundle).toContain(`version: "${version}"`);', 'official runtime artifact version metadata regression');
-  assertIncludes(officialArtifactBuilderTest, "expect(runtimeBundle).toContain('target: \"shop\"');", 'official runtime artifact target metadata regression');
-  assertNotMatches(officialArtifactBuilderTest, /const themeVersions: Record<string, string>/, 'hard-coded official runtime artifact matrix');
   assertIncludes(officialCatalog, "slug: 'bokmoo'", 'Bokmoo official catalog entry');
   assertIncludes(officialCatalog, "packageUrl: 'https://market.jiffoo.com/artifacts/themes/bokmoo/1.1.2.jtheme'", 'Bokmoo official artifact URL');
   assertIncludes(bokmooThemeManifest, '"runtimeJS": "runtime/theme-runtime.js"', 'Bokmoo packaged runtime manifest entry');

@@ -45,7 +45,6 @@
     "db:check-drift": "bash scripts/check-drift.sh",
     "schema:check": "node scripts/schema-ci-gate.cjs",
     "schema:audit": "node scripts/audit-model-usage.cjs",
-    "build:official-artifacts": "tsx scripts/build-official-artifacts.ts",
     "docker:build": "docker build -t api:latest .",
     "export:openapi": "tsx scripts/export-openapi.ts"
   },
