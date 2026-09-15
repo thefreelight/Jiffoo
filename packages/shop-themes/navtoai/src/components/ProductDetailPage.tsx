@@ -1,10 +1,12 @@
 import React from 'react';
-import { ArrowLeft, CheckCircle2, ExternalLink, Heart, Minus, Plus, ShieldCheck, ShoppingBag, Sparkles } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, ExternalLink, Heart, ShieldCheck, Sparkles } from 'lucide-react';
 import type { ProductDetailPageProps } from 'shared/src/types/theme';
 import { MarketplaceFrame } from './MarketplaceFrame';
 import { getNavCopy } from '../i18n';
 import { getSubmissionPlanMeta } from '../lib/submission-plan';
 import { Rating, ToolLogo } from './design-primitives';
+
+type DirectoryProduct = NonNullable<ProductDetailPageProps['product']>;
 
 function asArray<T>(value: T[] | undefined | null): T[] {
   return Array.isArray(value) ? value : [];
@@ -16,18 +18,19 @@ function getDetailCopy(locale?: string) {
     return {
       back: '返回目錄',
       choose: '選擇方案',
-      quantity: '數量',
-      add: '加入清單',
+      pricing: '價格方案',
       addPlan: '選擇這個方案',
       visit: '訪問官網',
       favorite: '收藏工具',
+      saved: '已收藏',
       overview: '項目概覽',
       intro: '工具簡介',
       features: '主要功能',
       screenshots: '相關截圖',
       similar: '類似工具推薦',
       reviewsTitle: '用戶評價',
-      specs: '規格資訊',
+      ratingLabel: '評分',
+      usersLabel: '全球用戶',
       notFound: '找不到這個項目。',
       note: '這個頁面用來更清楚地比較 AI 項目、方案與訂閱價值。',
     };
@@ -36,18 +39,19 @@ function getDetailCopy(locale?: string) {
     return {
       back: '返回目录',
       choose: '选择方案',
-      quantity: '数量',
-      add: '加入清单',
+      pricing: '价格方案',
       addPlan: '选择这个方案',
       visit: '访问官网',
       favorite: '收藏工具',
+      saved: '已收藏',
       overview: '项目概览',
       intro: '工具简介',
       features: '主要功能',
       screenshots: '相关截图',
       similar: '类似工具推荐',
       reviewsTitle: '用户评价',
-      specs: '规格信息',
+      ratingLabel: '评分',
+      usersLabel: '全球用户',
       notFound: '找不到这个项目。',
       note: '这个页面用来更清楚地比较 AI 项目、方案和订阅价值。',
     };
@@ -55,18 +59,19 @@ function getDetailCopy(locale?: string) {
   return {
     back: 'Back to directory',
     choose: 'Choose an option',
-    quantity: 'Quantity',
-    add: 'Add to stack',
+    pricing: 'Pricing plans',
     addPlan: 'Choose this plan',
     visit: 'Visit website',
     favorite: 'Save tool',
+    saved: 'Saved',
     overview: 'Project overview',
     intro: 'Tool intro',
     features: 'Core features',
     screenshots: 'Screenshots',
     similar: 'Similar tools',
     reviewsTitle: 'User reviews',
-    specs: 'Specifications',
+    ratingLabel: 'Rating',
+    usersLabel: 'Users',
     notFound: 'This project could not be found.',
     note: 'This page is optimized for clearer AI project evaluation, plan comparison, and purchase readiness.',
   };
@@ -81,52 +86,74 @@ function formatCurrency(value: number, locale?: string): string {
   }).format(value);
 }
 
-function getProductImage(product: ProductDetailPageProps['product']): string {
-  if (!product?.images?.length) return '/placeholder-product.svg';
-  const main = product.images.find((item) => item.isMain);
-  return main?.url || product.images[0]?.url || '/placeholder-product.svg';
+function getProductImage(product: DirectoryProduct | undefined | null): string {
+  const images = asArray(product?.images);
+  if (!images.length) return '/placeholder-product.svg';
+  const main = images.find((item) => item.isMain);
+  return main?.url || images[0]?.url || '/placeholder-product.svg';
+}
+
+function getWebsiteUrl(product: DirectoryProduct): string | null {
+  const typeData = (product as { typeData?: Record<string, unknown> }).typeData;
+  const url = typeData?.websiteUrl ?? typeData?.website ?? typeData?.url;
+  return typeof url === 'string' && /^https?:\/\//i.test(url) ? url : null;
+}
+
+function getStats(product: DirectoryProduct, locale?: string) {
+  const copy = getDetailCopy(locale);
+  const rating = Number(product.rating) > 0 ? Number(product.rating).toFixed(1) : '4.8';
+  const users =
+    Number(product.reviewCount) > 0 ? `${Number(product.reviewCount).toLocaleString('en-US')}+` : '100M+';
+  return [
+    { label: copy.ratingLabel, value: rating },
+    { label: copy.usersLabel, value: users },
+  ];
+}
+
+function FavoriteButton({ product, className }: { product: DirectoryProduct; className: string }) {
+  const copy = getDetailCopy();
+  const [saved, setSaved] = React.useState(false);
+  return (
+    <button
+      type="button"
+      aria-pressed={saved}
+      onClick={() => setSaved((value) => !value)}
+      className={className}
+    >
+      <Heart className={`h-4 w-4 ${saved ? 'fill-current' : ''}`} />
+      {saved ? copy.saved : copy.favorite}
+      <span className="sr-only">{product.name}</span>
+    </button>
+  );
 }
 
 function MobileProductDetailView({
   product,
   locale,
-  quantity,
   onProductBack,
   onAddToCart,
-  onQuantityChange,
   onVariantChange,
   selectedVariant,
 }: {
-  product: NonNullable<ProductDetailPageProps['product']>;
+  product: DirectoryProduct;
   locale?: string;
-  quantity: number;
   onProductBack: () => void;
   onAddToCart: () => Promise<void>;
-  onQuantityChange: (quantity: number) => void;
   onVariantChange: (variantId: string) => void;
   selectedVariant?: string;
 }) {
   const copy = getDetailCopy(locale);
   const planMeta = getSubmissionPlanMeta(product, locale);
   const image = getProductImage(product);
-  const images = asArray(product.images);
-  const specifications = asArray(product.specifications);
-  const tags = asArray(product.tags);
   const variants = asArray(product.variants);
+  const tags = asArray(product.tags);
+  const specifications = asArray(product.specifications);
+  const images = asArray(product.images);
   const activeVariant =
     variants.find((variant) => variant.id === selectedVariant) || variants[0] || null;
-  const unitPrice = Number(activeVariant?.price ?? product.price ?? 0);
   const detailLocale = getNavCopy(locale).locale;
-  const stats = [
-    {
-      label: detailLocale === 'en' ? 'Rating' : detailLocale === 'zh-Hant' ? '評分' : '评分',
-      value: product.rating > 0 ? product.rating.toFixed(1) : '4.8',
-    },
-    {
-      label: detailLocale === 'en' ? 'Reviews' : detailLocale === 'zh-Hant' ? '評價' : '评价',
-      value: product.reviewCount > 0 ? `${product.reviewCount}+` : '100M+',
-    },
-  ];
+  const stats = getStats(product, locale);
+  const websiteUrl = getWebsiteUrl(product);
   const featureRows = planMeta
     ? planMeta.benefits
     : specifications.slice(0, 5).map((spec) => `${spec.name}: ${spec.value}`);
@@ -138,7 +165,7 @@ function MobileProductDetailView({
           <ToolLogo name={product.name} imageUrl={image} size="xl" />
           <div className="min-w-0 flex-1 pt-1">
             <h1 className="text-[1.55rem] font-black leading-tight text-[#11162b]">{product.name}</h1>
-            <p className="mt-1 text-sm font-semibold text-[#6f7890]">{product.category?.name || (planMeta?.kindLabel ?? 'OpenAI')}</p>
+            <p className="mt-1 text-sm font-semibold text-[#6f7890]">{product.category?.name || (planMeta?.kindLabel ?? 'AI')}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {(tags.length ? tags.slice(0, 2) : [planMeta?.kindLabel || 'AI']).map((tag) => (
                 <span key={tag} className="rounded-full bg-[#f0f2ff] px-2.5 py-1 text-[0.68rem] font-bold text-[#6257ff]">
@@ -156,27 +183,44 @@ function MobileProductDetailView({
           </div>
           <div>
             <div className="text-base font-black text-[#11162b]">{stats[1].value}</div>
-            <div className="mt-1 text-xs font-semibold text-[#8a93a8]">{detailLocale === 'en' ? 'Users' : detailLocale === 'zh-Hant' ? '全球用戶' : '全球用户'}</div>
+            <div className="mt-1 text-xs font-semibold text-[#8a93a8]">{stats[1].label}</div>
           </div>
         </div>
 
         <div className="mt-7 grid gap-3">
-          <button
-            type="button"
-            onClick={() => void onAddToCart()}
-            className="inline-flex h-12 items-center justify-center gap-2 rounded-[0.7rem] bg-[#6257ff] text-sm font-bold text-white shadow-[0_16px_32px_-24px_rgba(98,87,255,0.72)]"
-          >
-            {planMeta ? copy.addPlan : copy.visit}
-            <ExternalLink className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={onProductBack}
+          {planMeta ? (
+            <button
+              type="button"
+              onClick={() => void onAddToCart()}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-[0.7rem] bg-[#6257ff] text-sm font-bold text-white shadow-[0_16px_32px_-24px_rgba(98,87,255,0.72)]"
+            >
+              {copy.addPlan}
+              <ExternalLink className="h-4 w-4" />
+            </button>
+          ) : websiteUrl ? (
+            <a
+              href={websiteUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-[0.7rem] bg-[#6257ff] text-sm font-bold text-white shadow-[0_16px_32px_-24px_rgba(98,87,255,0.72)]"
+            >
+              {copy.visit}
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          ) : (
+            <button
+              type="button"
+              onClick={onProductBack}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-[0.7rem] bg-[#6257ff] text-sm font-bold text-white shadow-[0_16px_32px_-24px_rgba(98,87,255,0.72)]"
+            >
+              {copy.visit}
+              <ExternalLink className="h-4 w-4" />
+            </button>
+          )}
+          <FavoriteButton
+            product={product}
             className="inline-flex h-12 items-center justify-center gap-2 rounded-[0.7rem] border border-[#dcd9ff] bg-white text-sm font-bold text-[#6257ff]"
-          >
-            <Heart className="h-4 w-4" />
-            {copy.favorite}
-          </button>
+          />
         </div>
       </section>
 
@@ -225,16 +269,18 @@ function MobileProductDetailView({
         </div>
       </section>
 
-      <section className="border-t border-[#edf0f8] pt-6">
-        <h2 className="text-[1.12rem] font-black text-[#11162b]">{copy.screenshots}</h2>
-        <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
-          {(images.length ? images : [{ id: 'fallback', url: image, alt: product.name, order: 0, isMain: true }]).slice(0, 3).map((item) => (
-            <div key={item.id} className="h-28 min-w-[6.8rem] overflow-hidden rounded-[0.65rem] bg-[#10162f]">
-              <img src={item.url} alt={item.alt || product.name} className="h-full w-full object-cover" />
-            </div>
-          ))}
-        </div>
-      </section>
+      {images.length ? (
+        <section className="border-t border-[#edf0f8] pt-6">
+          <h2 className="text-[1.12rem] font-black text-[#11162b]">{copy.screenshots}</h2>
+          <div className="mt-4 flex gap-3 overflow-x-auto pb-1">
+            {images.slice(0, 3).map((item) => (
+              <div key={item.id} className="h-28 min-w-[6.8rem] overflow-hidden rounded-[0.65rem] bg-[#10162f]">
+                <img src={item.url} alt={item.alt || product.name} className="h-full w-full object-cover" />
+              </div>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="border-t border-[#edf0f8] pt-6">
         <div className="flex items-center justify-between">
@@ -333,21 +379,22 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
 
   const specifications = asArray(product.specifications);
   const variants = asArray(product.variants);
-  const activeVariant =
-    variants.find((variant) => variant.id === selectedVariant) || variants[0] || null;
-  const unitPrice = Number(activeVariant?.price ?? product.price ?? 0);
+  const tags = asArray(product.tags);
   const image = getProductImage(product);
   const planMeta = getSubmissionPlanMeta(product, locale);
+  const websiteUrl = getWebsiteUrl(product);
+  const stats = getStats(product, locale);
+  const featureRows = planMeta
+    ? planMeta.benefits
+    : specifications.slice(0, 5).map((spec) => `${spec.name}: ${spec.value}`);
 
   return (
     <MarketplaceFrame locale={locale} config={config}>
       <MobileProductDetailView
         product={product}
         locale={locale}
-        quantity={quantity}
         onProductBack={onBack}
         onAddToCart={onAddToCart}
-        onQuantityChange={onQuantityChange}
         onVariantChange={onVariantChange}
         selectedVariant={selectedVariant}
       />
@@ -363,124 +410,141 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
         </button>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,0.95fr)_minmax(22rem,0.72fr)]">
-          <section className="rounded-[var(--navtoai-radius-xl)] border border-[var(--navtoai-line)] bg-[var(--navtoai-surface)] shadow-[var(--navtoai-shadow-sm)]">
-            <div className="overflow-hidden border-b border-[var(--navtoai-line)] bg-[linear-gradient(135deg,rgba(106,108,255,0.14),rgba(123,201,255,0.1),rgba(255,255,255,0.5))]">
-              <img src={image} alt={product.name} className="aspect-[1.24/1] w-full object-cover" />
-            </div>
-
-            <div className="p-6 sm:p-8">
-              <div className="inline-flex items-center gap-2 rounded-full bg-[var(--navtoai-primary-soft)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-primary-strong)]">
-                <Sparkles className="h-4 w-4 text-[var(--navtoai-primary)]" />
-                {planMeta?.kindLabel || product.category?.name || 'AI'}
+          <section className="rounded-[var(--navtoai-radius-xl)] border border-[var(--navtoai-line)] bg-[var(--navtoai-surface)] p-6 shadow-[var(--navtoai-shadow-sm)] sm:p-8">
+            <div className="flex items-start gap-5">
+              <ToolLogo name={product.name} imageUrl={image} size="xl" />
+              <div className="min-w-0 flex-1">
+                <div className="inline-flex items-center gap-2 rounded-full bg-[var(--navtoai-primary-soft)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-primary-strong)]">
+                  <Sparkles className="h-4 w-4 text-[var(--navtoai-primary)]" />
+                  {planMeta?.kindLabel || product.category?.name || 'AI'}
+                </div>
+                <h1 className="mt-4 text-[clamp(2rem,3.6vw,3.2rem)] font-black leading-[1.02] tracking-[-0.05em] text-[var(--navtoai-ink)]">
+                  {product.name}
+                </h1>
+                <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2">
+                  <span className="flex items-center gap-2">
+                    <Rating value={stats[0].value} compact />
+                    <span className="text-sm font-bold text-[var(--navtoai-ink)]">{stats[0].value}</span>
+                    <span className="text-xs font-semibold text-[var(--navtoai-copy-soft)]">{stats[0].label}</span>
+                  </span>
+                  <span className="text-sm font-semibold text-[var(--navtoai-copy)]">
+                    {stats[1].value} <span className="text-xs text-[var(--navtoai-copy-soft)]">{stats[1].label}</span>
+                  </span>
+                  {tags.length ? (
+                    <span className="flex flex-wrap gap-2">
+                      {tags.slice(0, 3).map((tag) => (
+                        <span key={tag} className="rounded-full bg-[var(--navtoai-bg-alt)] px-3 py-1 text-xs font-bold text-[var(--navtoai-primary-strong)]">
+                          #{tag}
+                        </span>
+                      ))}
+                    </span>
+                  ) : null}
+                </div>
               </div>
-              <h1 className="mt-5 text-[clamp(2.2rem,4vw,3.8rem)] font-black leading-[0.96] tracking-[-0.06em] text-[var(--navtoai-ink)]">
-                {product.name}
-              </h1>
-              <p className="mt-4 text-base leading-8 text-[var(--navtoai-copy)]">
-                {product.description || copy.overview}
-              </p>
-
-              {specifications.length ? (
-                <section className="mt-8">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-copy-soft)]">
-                    {copy.specs}
-                  </p>
-                  <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    {specifications.slice(0, 8).map((spec) => (
-                      <div key={`${spec.group || 'spec'}-${spec.name}`} className="rounded-[1rem] bg-[var(--navtoai-bg-alt)] p-4">
-                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--navtoai-copy-soft)]">
-                          {spec.group || spec.name}
-                        </p>
-                        <p className="mt-2 text-sm font-semibold text-[var(--navtoai-ink)]">
-                          {spec.group ? `${spec.name}: ${spec.value}` : spec.value}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
-
-              {planMeta ? (
-                <section className="mt-8 rounded-[1.2rem] bg-[var(--navtoai-bg-alt)] p-5">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-primary-strong)]">
-                    {planMeta.kindLabel}
-                  </p>
-                  <p className="mt-3 text-sm leading-7 text-[var(--navtoai-copy)]">{planMeta.reviewNote}</p>
-                  <p className="mt-3 text-sm leading-7 text-[var(--navtoai-copy)]">{planMeta.paymentNote}</p>
-                  <div className="mt-4 grid gap-2">
-                    {planMeta.benefits.map((benefit) => (
-                      <div key={benefit} className="rounded-[1rem] bg-white px-4 py-3 text-sm font-medium text-[var(--navtoai-ink)]">
-                        {benefit}
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ) : null}
             </div>
+
+            <p className="mt-6 text-base leading-8 text-[var(--navtoai-copy)]">
+              {product.description || copy.overview}
+            </p>
+
+            <section className="mt-8">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-copy-soft)]">
+                {copy.features}
+              </p>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                {(featureRows.length ? featureRows : [
+                  getNavCopy(locale).locale === 'en' ? 'Natural language conversations' : '自然语言对话',
+                  getNavCopy(locale).locale === 'en' ? 'Content creation' : '内容创作',
+                  getNavCopy(locale).locale === 'en' ? 'Coding assistance' : '代码编程',
+                  getNavCopy(locale).locale === 'en' ? 'Multilingual support' : '多语言支持',
+                ]).slice(0, 6).map((row) => (
+                  <div key={row} className="flex items-start gap-3 rounded-[1rem] bg-[var(--navtoai-bg-alt)] p-4">
+                    <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-[var(--navtoai-primary)]" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-black text-[var(--navtoai-ink)]">{row.split(':')[0]}</div>
+                      <div className="mt-1 text-xs font-medium leading-5 text-[var(--navtoai-copy-soft)]">
+                        {row.includes(':') ? row.split(':').slice(1).join(':').trim() : copy.note}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            {planMeta ? (
+              <section className="mt-8 rounded-[1.2rem] bg-[var(--navtoai-bg-alt)] p-5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-primary-strong)]">
+                  {planMeta.kindLabel}
+                </p>
+                <p className="mt-3 text-sm leading-7 text-[var(--navtoai-copy)]">{planMeta.reviewNote}</p>
+                <p className="mt-3 text-sm leading-7 text-[var(--navtoai-copy)]">{planMeta.paymentNote}</p>
+                <div className="mt-4 grid gap-2">
+                  {planMeta.benefits.map((benefit) => (
+                    <div key={benefit} className="rounded-[1rem] bg-white px-4 py-3 text-sm font-medium text-[var(--navtoai-ink)]">
+                      {benefit}
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </section>
 
           <aside className="space-y-4">
             <section className="rounded-[var(--navtoai-radius-xl)] border border-[var(--navtoai-line)] bg-[var(--navtoai-surface)] p-6 shadow-[var(--navtoai-shadow-sm)]">
-              <div className="text-4xl font-black tracking-[-0.06em] text-[var(--navtoai-ink)]">
-                {formatCurrency(unitPrice, locale)}
-              </div>
-              {product.originalPrice && product.originalPrice > unitPrice ? (
-                <div className="mt-2 text-lg text-[var(--navtoai-copy-soft)] line-through">
-                  {formatCurrency(product.originalPrice, locale)}
-                </div>
-              ) : null}
+              {planMeta ? (
+                <button
+                  type="button"
+                  onClick={() => void onAddToCart()}
+                  className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--navtoai-primary),var(--navtoai-primary-strong))] px-5 text-sm font-semibold text-white shadow-[var(--navtoai-glow)]"
+                >
+                  {copy.addPlan}
+                  <ExternalLink className="h-4 w-4" />
+                </button>
+              ) : websiteUrl ? (
+                <a
+                  href={websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--navtoai-primary),var(--navtoai-primary-strong))] px-5 text-sm font-semibold text-white shadow-[var(--navtoai-glow)]"
+                >
+                  {copy.visit}
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--navtoai-primary),var(--navtoai-primary-strong))] px-5 text-sm font-semibold text-white shadow-[var(--navtoai-glow)]"
+                >
+                  {copy.visit}
+                  <ExternalLink className="h-4 w-4" />
+                </button>
+              )}
+              <FavoriteButton
+                product={product}
+                className="mt-3 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full border border-[var(--navtoai-line)] bg-white px-5 text-sm font-semibold text-[var(--navtoai-primary-strong)]"
+              />
 
               {variants.length ? (
                 <div className="mt-6">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-copy-soft)]">
-                    {copy.choose}
+                    {copy.pricing}
                   </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {variants.map((variant) => {
-                      const active = activeVariant?.id === variant.id;
-                      return (
-                        <button
-                          key={variant.id}
-                          type="button"
-                          onClick={() => onVariantChange(variant.id)}
-                          className={[
-                            'rounded-full border px-4 py-2 text-sm font-semibold transition-colors',
-                            active
-                              ? 'border-[var(--navtoai-primary)] bg-[var(--navtoai-primary-soft)] text-[var(--navtoai-primary-strong)]'
-                              : 'border-[var(--navtoai-line)] bg-white text-[var(--navtoai-copy)]',
-                          ].join(' ')}
-                        >
-                          {variant.name || variant.value}
-                        </button>
-                      );
-                    })}
+                  <div className="mt-3 grid gap-2">
+                    {variants.slice(0, 4).map((variant) => (
+                      <div
+                        key={variant.id}
+                        className="flex items-center justify-between rounded-[1rem] bg-[var(--navtoai-bg-alt)] px-4 py-3"
+                      >
+                        <span className="text-sm font-bold text-[var(--navtoai-ink)]">{variant.name || variant.value}</span>
+                        <span className="text-sm font-black text-[var(--navtoai-primary-strong)]">
+                          {Number(variant.price ?? 0) > 0 ? formatCurrency(Number(variant.price ?? 0), locale) : copyFree(locale)}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ) : null}
-
-              <div className="mt-6">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-copy-soft)]">
-                  {copy.quantity}
-                </p>
-                <div className="mt-3 flex items-center justify-between rounded-full border border-[var(--navtoai-line)] bg-[var(--navtoai-bg-alt)] px-3 py-2">
-                  <button type="button" onClick={() => onQuantityChange(Math.max(1, quantity - 1))} className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--navtoai-copy)]">
-                    <Minus className="h-4 w-4" />
-                  </button>
-                  <span className="text-lg font-black text-[var(--navtoai-ink)]">{quantity}</span>
-                  <button type="button" onClick={() => onQuantityChange(Math.min(10, quantity + 1))} className="flex h-10 w-10 items-center justify-center rounded-full text-[var(--navtoai-copy)]">
-                    <Plus className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => void onAddToCart()}
-                className="mt-6 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--navtoai-primary),var(--navtoai-primary-strong))] px-5 text-sm font-semibold text-white shadow-[var(--navtoai-glow)]"
-              >
-                <ShoppingBag className="h-4 w-4" />
-                {planMeta ? copy.addPlan : copy.add}
-              </button>
             </section>
 
             <section className="rounded-[var(--navtoai-radius-xl)] border border-[var(--navtoai-line)] bg-[var(--navtoai-surface)] p-6 shadow-[var(--navtoai-shadow-sm)]">
@@ -499,3 +563,10 @@ export const ProductDetailPage = React.memo(function ProductDetailPage({
     </MarketplaceFrame>
   );
 });
+
+function copyFree(locale?: string): string {
+  const resolved = getNavCopy(locale).locale;
+  if (resolved === 'zh-Hant') return '免費';
+  if (resolved === 'zh-Hans') return '免费';
+  return 'Free';
+}
