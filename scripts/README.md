@@ -23,7 +23,7 @@ The root `package.json` carries ~65 scripts. This file groups them so you can fi
 
 ## Targeted test entry points (subsets of the API suite)
 
-`test:official-artifacts`, `test:self-hosted-detection`, `test:shop-runtime-truth`, `test:admin-market-theme-upgrade`, `smoke:admin-staff-rbac` — convenience filters over vitest/Playwright for one feature area. Safe to run anytime.
+`test:self-hosted-detection`, `test:shop-runtime-truth`, `test:admin-market-theme-upgrade`, `smoke:admin-staff-rbac` — convenience filters over vitest/Playwright for one feature area. Safe to run anytime.
 
 ## Release verification (one-shot verifiers)
 
@@ -40,7 +40,6 @@ These wrap `scripts/verify-*.mjs` / `scripts/test-verify-*.mjs` — self-contain
 |--------|---------|
 | `release:oss:patch` | Prepare an OSS patch release |
 | `release:update-feed:build` | Build the self-hosted update feed into `.release/self-hosted` |
-| `build:official-artifacts` | Build official theme/plugin artifacts |
 | `changeset` · `version:bump` · `release` | Versioning plumbing |
 
 > Releases are intentionally manual — the GitHub workflows that publish images/feeds are `workflow_dispatch`-only.

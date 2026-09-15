@@ -35,7 +35,6 @@ const RELEASE_QUALITY_GATE_COMMANDS = [
   ['pnpm', ['--filter', 'api', 'db:mode:test']],
   ['pnpm', ['test:self-hosted-detection']],
   ['pnpm', ['test:shop-runtime-truth']],
-  ['pnpm', ['test:official-artifacts']],
   ['pnpm', ['test:updater:docker-compose']],
   ['pnpm', ['test:update-feed-builder']],
   ['pnpm', ['test:update-feed-verifier']],
@@ -150,13 +149,6 @@ const COMMAND_FALLBACKS = new Map([
       'tests/themes/store-context-provider.test.tsx',
       'tests/themes/storefront-runtime-source-of-truth.test.ts',
       'tests/themes/esim-mall-runtime-registry.test.ts',
-    ]),
-  ]],
-  ['pnpm test:official-artifacts', [
-    vitestSpec('api', [
-      'run',
-      '--coverage.enabled=false',
-      'tests/core/official-artifact-builder.test.ts',
     ]),
   ]],
   ['pnpm test:updater:docker-compose', [

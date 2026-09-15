@@ -269,7 +269,7 @@ export function verifyFileIntegrity(
  * Create a detached Ed25519 signature for a manifest.
  *
  * This is used by:
- * - The `build:official-artifacts` script to sign packages
+ * - The official artifact publication workflow to sign packages
  * - Tests to generate valid signatures for verification
  *
  * @param manifestBuffer - Raw manifest.json bytes to sign
