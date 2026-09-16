@@ -342,7 +342,17 @@ export async function tryNativeAuth(
   env: NativeAuthEnv,
   proxyRequest: () => Promise<Response>,
 ): Promise<Response | null> {
-  const path = new URL(request.url).pathname;
+  let path = new URL(request.url).pathname;
+
+  // The admin Open-Next app sends auth requests to /api/v1/auth/* because
+  // its axios baseURL is /api, but native handlers expect /api/v1/admin/auth/*.
+  // Remap only when the request originates from the admin app so shop paths
+  // are unaffected.
+  if (request.headers.get('x-app-type') === 'admin') {
+    const adminPath = path.replace(/^\/api\/v1\/auth\//, '/api/v1/admin/auth/');
+    if (adminPath !== path) path = adminPath;
+  }
+
   if (
     (path === '/api/v1/auth/guest' || path === '/api/v1/shop/auth/guest') &&
     request.method === 'POST'
@@ -356,6 +366,7 @@ export async function tryNativeAuth(
     const responseBody = { ...session.body, data };
     return new Response(JSON.stringify(responseBody), { status: 201, headers: session.headers });
   }
+
   if (path === '/api/v1/admin/auth/login' && request.method === 'POST') {
     const body = await request.clone().json<{ identifier?: string; email?: string; password?: string }>();
     const identifier = body.identifier?.trim() || body.email?.trim();
