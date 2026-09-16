@@ -1,8 +1,9 @@
 import React from 'react';
-import { ArrowRight, BookOpenText, Compass, Mail, Sparkles } from 'lucide-react';
+import { Github, Linkedin, Twitter, Youtube } from 'lucide-react';
 import type { FooterProps } from 'shared/src/types/theme';
 import { getNavCopy } from '../i18n';
 import { isExternalHref, resolveNavToAiSiteConfig } from '../site';
+import { NavtoAiLogo } from './design-primitives';
 
 export const Footer = React.memo(function Footer({
   config,
@@ -41,96 +42,85 @@ export const Footer = React.memo(function Footer({
     [onNavigate],
   );
 
+  const linkClass = 'text-left text-sm font-medium text-[#5a6580] transition-colors hover:text-[#2f6bff]';
+  const colHeadClass = 'text-sm font-black text-[#0f1730]';
+
   return (
-    <footer className="border-t border-[var(--navtoai-line)] bg-[linear-gradient(180deg,var(--navtoai-surface),var(--navtoai-bg))] px-4 py-14 sm:px-6 lg:px-8">
-      <div className="mx-auto grid max-w-[1440px] gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-        <div className="rounded-[var(--navtoai-radius-xl)] border border-[var(--navtoai-line)] bg-[color:color-mix(in_oklab,var(--navtoai-surface)_94%,white)] p-6 shadow-[var(--navtoai-shadow-sm)] sm:p-8">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[var(--navtoai-primary-soft)] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-primary-strong)]">
-            <Compass className="h-4 w-4" />
-            {copy.footer.title}
-          </div>
-          <h2 className="mt-5 text-[clamp(2rem,4vw,3.5rem)] font-black leading-[0.98] tracking-[-0.05em] text-[var(--navtoai-ink)]">
-            {site.brandName}
-          </h2>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-[var(--navtoai-copy)]">
-            {copy.footer.body}
-          </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button
-              type="button"
-              onClick={onNavigateToProducts}
-              className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,var(--navtoai-primary),var(--navtoai-primary-strong))] px-5 py-3 text-sm font-semibold text-white shadow-[var(--navtoai-glow)]"
-            >
-              {copy.common.browseAll}
-              <ArrowRight className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => openHref(site.docsHref)}
-              className="inline-flex items-center gap-2 rounded-full border border-[var(--navtoai-line)] bg-[var(--navtoai-surface)] px-5 py-3 text-sm font-semibold text-[var(--navtoai-ink)]"
-            >
-              <BookOpenText className="h-4 w-4 text-[var(--navtoai-primary)]" />
-              {copy.footer.docs}
-            </button>
+    <footer className="border-t border-[#eaeff8] bg-white">
+      <div className="mx-auto grid max-w-[1240px] gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] lg:px-8">
+        <div>
+          <NavtoAiLogo />
+          <p className="mt-4 max-w-[16rem] text-sm leading-6 text-[#6b768e]">{copy.footer.tagline}</p>
+          <div className="mt-5 flex items-center gap-3 text-[#8a93a8]">
+            <a href="https://twitter.com" target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="transition-colors hover:text-[#2f6bff]">
+              <Twitter className="h-4 w-4" />
+            </a>
+            <a href="https://github.com" target="_blank" rel="noopener noreferrer" aria-label="GitHub" className="transition-colors hover:text-[#2f6bff]">
+              <Github className="h-4 w-4" />
+            </a>
+            <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" aria-label="YouTube" className="transition-colors hover:text-[#2f6bff]">
+              <Youtube className="h-4 w-4" />
+            </a>
+            <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="transition-colors hover:text-[#2f6bff]">
+              <Linkedin className="h-4 w-4" />
+            </a>
           </div>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-[var(--navtoai-radius-xl)] border border-[var(--navtoai-line)] bg-[var(--navtoai-surface)] p-6 shadow-[var(--navtoai-shadow-xs)]">
-            <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-copy-soft)]">
-              <Sparkles className="h-4 w-4 text-[var(--navtoai-primary)]" />
-              {copy.footer.explore}
-            </div>
-            <div className="mt-4 grid gap-2 text-sm">
-              <button type="button" onClick={onNavigateToProducts} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
-                {copy.sidebar.tools}
-              </button>
-              <button type="button" onClick={onNavigateToCategories} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
-                {copy.sidebar.models}
-              </button>
-              <button type="button" onClick={onNavigateToDeals} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
-                {copy.sidebar.collections}
-              </button>
-              <button type="button" onClick={onNavigateToBestsellers} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
-                {copy.sidebar.rankings}
-              </button>
-              <button type="button" onClick={onNavigateToNewArrivals} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
-                {copy.sidebar.news}
-              </button>
-            </div>
-          </div>
+        <div className="grid gap-3">
+          <p className={colHeadClass}>{copy.footer.productCol}</p>
+          <button type="button" onClick={onNavigateToProducts} className={linkClass}>
+            {copy.landing.nav.explore}
+          </button>
+          <button type="button" onClick={onNavigateToCategories} className={linkClass}>
+            {copy.landing.nav.categories}
+          </button>
+          <button type="button" onClick={onNavigateToContact} className={linkClass}>
+            {copy.footer.submitTool}
+          </button>
+          <span className="text-sm font-medium text-[#b3bdce]">{copy.footer.apiSoon}</span>
+        </div>
 
-          <div className="rounded-[var(--navtoai-radius-xl)] border border-[var(--navtoai-line)] bg-[var(--navtoai-surface)] p-6 shadow-[var(--navtoai-shadow-xs)]">
-            <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--navtoai-copy-soft)]">
-              <Mail className="h-4 w-4 text-[var(--navtoai-primary)]" />
-              {copy.footer.support}
-            </div>
-            <div className="mt-4 grid gap-2 text-sm">
-              <button type="button" onClick={onNavigateToHelp} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
-                {copy.sidebar.resources}
-              </button>
-              <button type="button" onClick={onNavigateToContact} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
-                {copy.footer.contact}
-              </button>
-              <button type="button" onClick={onNavigateToPrivacy} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
-                {copy.footer.privacy}
-              </button>
-              <button type="button" onClick={onNavigateToTerms} className="text-left text-[var(--navtoai-copy)] hover:text-[var(--navtoai-ink)]">
-                {copy.footer.terms}
-              </button>
-              <a href={`mailto:${site.supportEmail}`} className="pt-2 font-semibold text-[var(--navtoai-ink)]">
-                {site.supportEmail}
-              </a>
-            </div>
-          </div>
+        <div className="grid gap-3">
+          <p className={colHeadClass}>{copy.footer.resourcesCol}</p>
+          <button type="button" onClick={onNavigateToDeals} className={linkClass}>
+            {copy.footer.blog}
+          </button>
+          <button type="button" onClick={onNavigateToHelp} className={linkClass}>
+            {copy.footer.guides}
+          </button>
+          <button type="button" onClick={onNavigateToNewArrivals} className={linkClass}>
+            {copy.footer.aiNews}
+          </button>
+          <button type="button" onClick={() => openHref(`mailto:${site.supportEmail}`)} className={linkClass}>
+            {copy.footer.newsletter}
+          </button>
+        </div>
+
+        <div className="grid gap-3">
+          <p className={colHeadClass}>{copy.footer.companyCol}</p>
+          <button type="button" onClick={onNavigateToContact} className={linkClass}>
+            {copy.footer.about}
+          </button>
+          <button type="button" onClick={onNavigateToContact} className={linkClass}>
+            {copy.footer.contact}
+          </button>
+          <button type="button" onClick={onNavigateToPrivacy} className={linkClass}>
+            {copy.footer.privacy}
+          </button>
+          <button type="button" onClick={onNavigateToTerms} className={linkClass}>
+            {copy.footer.terms}
+          </button>
         </div>
       </div>
 
-      <div className="mx-auto mt-10 flex max-w-[1440px] flex-col gap-2 border-t border-[var(--navtoai-line)] pt-5 text-sm text-[var(--navtoai-copy)] sm:flex-row sm:items-center sm:justify-between">
-        <p>
-          © {year} {site.brandName}. {copy.footer.copyright}
-        </p>
-        <p>{copy.footer.summary}</p>
+      <div className="border-t border-[#eef2f8]">
+        <div className="mx-auto flex max-w-[1240px] flex-col gap-2 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+          <p className="text-sm text-[#8a93a8]">
+            © {year} {site.brandName}. {copy.footer.copyright}
+          </p>
+          <p className="text-sm font-semibold text-[#2f6bff]">{copy.footer.brandLine}</p>
+        </div>
       </div>
     </footer>
   );

@@ -1,57 +1,92 @@
 import React from 'react';
-import { ArrowRight, Search } from 'lucide-react';
-import type { HomePageProps } from 'shared';
+import { ArrowRight, ArrowUpRight, CheckCircle2, Flame, Search, Sparkles, TrendingUp, Users } from 'lucide-react';
+import type { HomePageProps } from 'shared/src/types/theme';
 import { MarketplaceFrame } from './MarketplaceFrame';
 import { getNavCopy } from '../i18n';
-import { categoryIconMap, HeroAiDevice, Rating, ToolLogo } from './design-primitives';
+import { categoryIconMap, HeroArch, Rating, ToolLogo } from './design-primitives';
 
 const categoryAccentClass: Record<string, string> = {
-  blue: 'bg-[#eef5ff] text-[#3c78ff]',
-  purple: 'bg-[#f0edff] text-[#6257ff]',
-  orange: 'bg-[#fff1e8] text-[#ff7a33]',
-  teal: 'bg-[#e9fbf7] text-[#17a88d]',
-  yellow: 'bg-[#fff6dc] text-[#cf9412]',
-  slate: 'bg-[#f2f4fb] text-[#667088]',
+  blue: 'bg-[#e7f0ff] text-[#2f6bff]',
+  purple: 'bg-[#efeaff] text-[#7c5cff]',
+  orange: 'bg-[#fff0e6] text-[#ff7a33]',
+  teal: 'bg-[#e6fbf5] text-[#12b189]',
+  yellow: 'bg-[#fff6dc] text-[#d99a12]',
+  slate: 'bg-[#f1f4fb] text-[#667088]',
+  pink: 'bg-[#ffeef5] text-[#e0559a]',
+  green: 'bg-[#e8f8ee] text-[#22a35a]',
 };
 
-const tagAccentClass: Record<string, string> = {
-  blue: 'bg-[#eff4ff] text-[#4e67e8]',
-  purple: 'bg-[#f1edff] text-[#6b57f3]',
-  orange: 'bg-[#fff1e8] text-[#eb7734]',
-  teal: 'bg-[#e9fbf7] text-[#16a188]',
-  yellow: 'bg-[#fff6dc] text-[#bf8d19]',
-  pink: 'bg-[#fff0f7] text-[#cc4f89]',
+// Locale-independent catalogue metrics (brand data, not translated copy).
+const categoryToolCounts = ['1000+', '800+', '500+', '600+', '700+', '400+', '300+', ''];
+const featuredUsers: Record<string, string> = {
+  chatgpt: '100M+',
+  midjourney: '20M+',
+  claude: '10M+',
+  'notion ai': '10M+',
+  runway: '5M+',
+  perplexity: '10M+',
+  cursor: '8M+',
+  gemini: '15M+',
+  sora: '3M+',
 };
 
-function splitAiTitle(title: string) {
+interface TrendingEntry {
+  name: string;
+  heat: string;
+  tagline: Record<'en' | 'zh-Hans' | 'zh-Hant', string>;
+}
+
+const trendingTools: TrendingEntry[] = [
+  { name: 'Sora', heat: '12.4K', tagline: { en: 'AI video generation by OpenAI', 'zh-Hans': 'OpenAI 的 AI 视频生成', 'zh-Hant': 'OpenAI 的 AI 影片生成' } },
+  { name: 'Lovable', heat: '8.9K', tagline: { en: 'Build products with natural language', 'zh-Hans': '用自然语言构建产品', 'zh-Hant': '用自然語言建構產品' } },
+  { name: 'Cursor', heat: '7.6K', tagline: { en: 'The AI code editor', 'zh-Hans': 'AI 代码编辑器', 'zh-Hant': 'AI 程式碼編輯器' } },
+  { name: 'Suno', heat: '6.8K', tagline: { en: 'AI music for everyone', 'zh-Hans': '人人都能用的 AI 音乐', 'zh-Hant': '人人都能用的 AI 音樂' } },
+  { name: 'ElevenLabs', heat: '6.1K', tagline: { en: 'Realistic AI voice generation', 'zh-Hans': '逼真自然的 AI 语音生成', 'zh-Hant': '逼真自然的 AI 語音生成' } },
+];
+
+function heroTitle(title: string) {
   const marker = 'AI';
   const index = title.indexOf(marker);
   if (index < 0) return title;
   return (
     <>
       {title.slice(0, index)}
-      <span className="text-[#6257ff]">{marker}</span>
+      <span className="text-[#2f6bff]">{marker}</span>
       {title.slice(index + marker.length)}
     </>
   );
 }
 
-function SectionTitle({
+function SectionHead({
+  icon,
   title,
+  sub,
   action,
   onAction,
 }: {
+  icon?: React.ReactNode;
   title: string;
+  sub?: string;
   action?: string;
   onAction?: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <h2 className="text-[1.25rem] font-black text-[#11162b]">{title}</h2>
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h2 className="flex items-center gap-2 text-[1.4rem] font-black tracking-tight text-[#0f1730]">
+          {icon}
+          {title}
+        </h2>
+        {sub ? <p className="mt-1 text-sm font-medium text-[#6b768e]">{sub}</p> : null}
+      </div>
       {action ? (
-        <button type="button" onClick={onAction} className="inline-flex items-center gap-1 text-sm font-bold text-[#6257ff]">
+        <button
+          type="button"
+          onClick={onAction}
+          className="inline-flex items-center gap-1 text-sm font-bold text-[#2f6bff] transition-colors hover:text-[#1f4fd0]"
+        >
           {action}
-          <ArrowRight className="h-3.5 w-3.5" />
+          <ArrowRight className="h-4 w-4" />
         </button>
       ) : null}
     </div>
@@ -60,7 +95,12 @@ function SectionTitle({
 
 export const HomePage = React.memo(function HomePage({ locale, onNavigate }: HomePageProps) {
   const [query, setQuery] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [subscribed, setSubscribed] = React.useState(false);
   const copy = getNavCopy(locale);
+  const landing = copy.landing;
+  const lang = copy.locale;
+
   const navigateTo = React.useCallback(
     (href: string) => {
       if (onNavigate) {
@@ -78,262 +118,213 @@ export const HomePage = React.memo(function HomePage({ locale, onNavigate }: Hom
     navigateTo(`/search?q=${encodeURIComponent(query.trim())}`);
   };
 
+  const submitSubscribe = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!email.trim()) return;
+    setSubscribed(true);
+  };
+
   return (
-    <MarketplaceFrame activeItem="home" locale={locale} onNavigate={onNavigate}>
-      <div className="lg:hidden">
-        <section className="px-1 pb-5 pt-7">
-          <h1 className="max-w-[20rem] text-[2.25rem] font-black leading-tight text-[#11162b]">
-            {splitAiTitle(copy.home.title)}
-          </h1>
-          <p className="mt-3 max-w-[20rem] text-base font-medium leading-7 text-[#7a8499]">{copy.home.subtitle}</p>
+    <MarketplaceFrame locale={locale} onNavigate={onNavigate}>
+      {/* Hero */}
+      <section className="relative mt-2 overflow-hidden rounded-[1.6rem] bg-[linear-gradient(120deg,#f4f8ff_0%,#eef3ff_46%,#e7eefc_100%)]">
+        <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+          <div className="px-6 pb-10 pt-10 sm:px-10 lg:py-16">
+            <button
+              type="button"
+              onClick={() => navigateTo('/products')}
+              className="inline-flex items-center gap-2 rounded-full border border-[#d6e4ff] bg-white/70 px-3.5 py-1.5 text-xs font-bold text-[#2f6bff]"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-[#2f6bff]" />
+              {landing.heroEyebrow}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
 
-          <form onSubmit={submitSearch} className="mt-7">
-            <div className="flex h-14 items-center rounded-[0.9rem] border border-[#dcd9ff] bg-white px-4 shadow-[0_16px_32px_-28px_rgba(65,72,118,0.42)]">
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={copy.home.heroSearchPlaceholder}
-                className="min-w-0 flex-1 bg-transparent text-sm font-medium text-[#11162b] outline-none placeholder:text-[#a0a7b8]"
-              />
-              <span className="mx-3 h-6 w-px bg-[#edf0f8]" />
-              <button type="submit" className="text-[#7c7890]" aria-label={copy.common.search}>
-                <Search className="h-5 w-5" />
-              </button>
-            </div>
-          </form>
+            <h1 className="mt-6 max-w-[15ch] text-[clamp(2.6rem,6vw,4.6rem)] font-black leading-[0.98] tracking-[-0.03em] text-[#0f1730]">
+              {heroTitle(landing.heroTitle)}
+            </h1>
+            <p className="mt-5 max-w-[34rem] text-[1.02rem] leading-8 text-[#4a5670]">{landing.heroSubtitle}</p>
 
-          <div className="mt-5">
-            <div className="text-xs font-semibold text-[#414a61]">{copy.home.hotSearches}:</div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {copy.quickSearches.slice(0, 5).map((term) => (
-                <button
-                  key={term}
-                  type="button"
-                  onClick={() => navigateTo(`/search?q=${encodeURIComponent(term)}`)}
-                  className="rounded-full bg-[#f5f6fb] px-3 py-1.5 text-xs font-semibold text-[#4c556b]"
-                >
-                  {term}
-                </button>
-              ))}
-              <button type="button" onClick={() => navigateTo('/products')} className="rounded-full bg-[#f5f6fb] px-3 py-1.5 text-xs font-semibold text-[#4c556b]">
-                ...
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <section className="border-t border-[#edf0f8] px-1 py-6">
-          <SectionTitle title={copy.home.categorySection} action={copy.common.browseAll} onAction={() => navigateTo('/categories')} />
-          <div className="mt-5 grid grid-cols-3 gap-x-4 gap-y-6">
-            {copy.categoryCards.slice(0, 6).map((category, index) => {
-              const Icon = categoryIconMap[index] || categoryIconMap[5];
-              return (
-                <button key={category.title} type="button" onClick={() => navigateTo(category.href)} className="text-center">
-                  <span className={`mx-auto flex h-12 w-12 items-center justify-center rounded-[0.9rem] ${categoryAccentClass[category.accent]}`}>
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span className="mt-3 block text-sm font-black text-[#11162b]">{category.title}</span>
-                  <span className="mt-1 block text-xs font-medium text-[#8a93a8]">{category.description.split(/[,.。]/)[0]}</span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
-
-        <section className="border-t border-[#edf0f8] px-1 py-6">
-          <SectionTitle title={`🔥 ${copy.home.featuredSection}`} action={copy.common.browseAll} onAction={() => navigateTo('/products')} />
-          <div className="mt-4 grid gap-3">
-            {copy.featuredProjects.slice(0, 4).map((project) => (
-              <button
-                key={project.name}
-                type="button"
-                onClick={() => navigateTo(`/search?q=${encodeURIComponent(project.name)}`)}
-                className="rounded-[0.95rem] border border-[#edf0f8] bg-white p-4 text-left shadow-[0_12px_28px_-24px_rgba(25,31,68,0.3)]"
-              >
-                <div className="flex items-start gap-3">
-                  <ToolLogo name={project.name} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h3 className="truncate text-base font-black text-[#11162b]">{project.name}</h3>
-                        <p className="mt-0.5 text-xs font-semibold text-[#8992a7]">{project.vendor}</p>
-                      </div>
-                      <Rating value={project.rating} />
-                    </div>
-                    <p className="mt-2 text-sm leading-6 text-[#667086]">{project.description}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {project.tags.map((tag) => (
-                        <span key={tag} className="rounded-full bg-[#f0f2ff] px-2.5 py-1 text-[0.68rem] font-bold text-[#6257ff]">
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <section className="border-t border-[#edf0f8] px-1 py-6">
-          <SectionTitle title={copy.home.rankingSection} />
-          <div className="mt-4 grid gap-3">
-            {copy.leaderboard.concat([
-              { rank: '4', name: 'Perplexity', category: copy.locale === 'en' ? 'Search engine' : '搜索引擎', score: '4.7' },
-              { rank: '5', name: 'Claude 3', category: copy.locale === 'en' ? 'AI assistant' : 'AI 助手', score: '4.7' },
-            ]).map((item) => (
-              <div key={item.rank} className="grid grid-cols-[1.6rem_2.5rem_minmax(0,1fr)_auto] items-center gap-3">
-                <div className="text-xl font-black text-[#7f89a0]">{item.rank}</div>
-                <ToolLogo name={item.name} size="sm" />
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-black text-[#11162b]">{item.name}</div>
-                  <div className="truncate text-xs font-medium text-[#8a93a8]">{item.category}</div>
-                </div>
-                <Rating value={item.score} />
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-
-      <div className="hidden space-y-4 lg:block">
-        <section className="grid min-h-[16.5rem] overflow-hidden rounded-[1rem] bg-[#070b25] text-white shadow-[var(--navtoai-shadow-hero)] xl:grid-cols-[minmax(0,1fr)_33rem]">
-          <div className="px-12 py-11">
-            <h1 className="max-w-[35rem] text-[2.85rem] font-black leading-tight text-white">{splitAiTitle(copy.home.title)}</h1>
-            <p className="mt-3 text-base font-semibold text-[#b9c0d8]">{copy.home.subtitle}</p>
-
-            <form onSubmit={submitSearch} className="mt-6 max-w-[30.5rem]">
-              <div className="flex h-12 items-center rounded-[0.7rem] bg-white p-1.5">
+            <form onSubmit={submitSearch} className="mt-8 max-w-[34rem]">
+              <div className="flex h-14 items-center gap-2 rounded-[1rem] border border-[#e4ebf7] bg-white p-2 shadow-[0_24px_48px_-30px_rgba(28,54,120,0.4)]">
+                <Search className="ml-2 h-5 w-5 shrink-0 text-[#9aa6bd]" />
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
-                  placeholder={copy.home.heroSearchPlaceholder}
-                  className="min-w-0 flex-1 bg-transparent px-4 text-sm font-medium text-[#11162b] outline-none placeholder:text-[#a8b0c2]"
+                  placeholder={copy.common.searchPlaceholder}
+                  className="min-w-0 flex-1 bg-transparent text-sm font-medium text-[#0f1730] outline-none placeholder:text-[#9aa6bd]"
                 />
-                <button type="submit" className="h-9 rounded-[0.55rem] bg-[#6257ff] px-6 text-sm font-bold text-white">
+                <button
+                  type="submit"
+                  className="inline-flex h-10 items-center rounded-[0.7rem] bg-[#2f6bff] px-6 text-sm font-bold text-white transition-colors hover:bg-[#1f57e8]"
+                >
                   {copy.common.search}
                 </button>
               </div>
             </form>
 
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span className="text-sm text-[#b9c0d8]">{copy.home.hotSearches}:</span>
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <span className="text-sm font-semibold text-[#6b768e]">{landing.popularSearches}</span>
               {copy.quickSearches.map((term) => (
                 <button
                   key={term}
                   type="button"
                   onClick={() => navigateTo(`/search?q=${encodeURIComponent(term)}`)}
-                  className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-semibold text-white/88"
+                  className="rounded-full border border-[#dde6f5] bg-white/70 px-3 py-1 text-xs font-semibold text-[#3d4a63] transition-colors hover:border-[#2f6bff] hover:text-[#2f6bff]"
                 >
                   {term}
                 </button>
               ))}
             </div>
           </div>
-          <HeroAiDevice />
-        </section>
 
-        <section className="grid gap-3 xl:grid-cols-6">
+          <div className="hidden h-full min-h-[26rem] lg:block">
+            <HeroArch locale={lang} />
+          </div>
+        </div>
+      </section>
+
+      {/* Category grid */}
+      <section className="mt-12 lg:mt-16">
+        <div className="grid grid-cols-2 gap-y-8 sm:grid-cols-4 xl:grid-cols-8">
           {copy.categoryCards.map((category, index) => {
-            const Icon = categoryIconMap[index] || categoryIconMap[5];
+            const Icon = categoryIconMap[index] || categoryIconMap[categoryIconMap.length - 1];
+            const count = categoryToolCounts[index];
             return (
               <button
                 key={category.title}
                 type="button"
                 onClick={() => navigateTo(category.href)}
-                className="flex items-center gap-3 rounded-[0.8rem] border border-[#edf0f8] bg-white px-4 py-3 text-left shadow-[0_12px_28px_-24px_rgba(25,31,68,0.28)]"
+                className="group flex flex-col items-center text-center"
               >
-                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.7rem] ${categoryAccentClass[category.accent]}`}>
-                  <Icon className="h-5 w-5" />
+                <span
+                  className={`flex h-14 w-14 items-center justify-center rounded-[1rem] ${categoryAccentClass[category.accent] || categoryAccentClass.blue} transition-transform group-hover:-translate-y-0.5`}
+                >
+                  <Icon className="h-6 w-6" />
                 </span>
-                <span className="min-w-0">
-                  <span className="block truncate text-sm font-black text-[#11162b]">{category.title}</span>
-                  <span className="mt-0.5 block truncate text-xs font-medium text-[#8790a4]">{category.description.split(/[,.。]/)[0]}</span>
+                <span className="mt-3 text-sm font-black text-[#0f1730]">{category.title}</span>
+                <span className="mt-0.5 text-xs font-medium text-[#8a93a8]">
+                  {count ? `${count} ${landing.toolsCountSuffix}` : landing.exploreAll}
                 </span>
               </button>
             );
           })}
-        </section>
+        </div>
+      </section>
 
-        <section className="pt-3">
-          <SectionTitle title={`🔥 ${copy.home.featuredSection}`} action={copy.common.browseAll} onAction={() => navigateTo('/products')} />
-          <div className="mt-4 grid gap-4 xl:grid-cols-5">
-            {copy.featuredProjects.map((project) => (
-              <article key={project.name} className="rounded-[0.9rem] border border-[#edf0f8] bg-white p-5 shadow-[0_16px_34px_-28px_rgba(25,31,68,0.32)]">
-                <div className="flex items-start gap-3">
-                  <ToolLogo name={project.name} />
-                  <div className="min-w-0">
-                    <h3 className="truncate text-lg font-black text-[#11162b]">{project.name}</h3>
-                    <p className="text-xs font-semibold text-[#8d95aa]">{project.vendor}</p>
-                  </div>
-                </div>
-                <p className="mt-4 min-h-[4.5rem] text-sm leading-6 text-[#606b80]">{project.description}</p>
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  <div className="flex flex-wrap gap-2">
-                    {project.tags.slice(0, 2).map((tag) => (
-                      <span key={tag} className="rounded-full bg-[#f0f2ff] px-2.5 py-1 text-[0.68rem] font-bold text-[#6257ff]">
-                        #{tag}
-                      </span>
-                    ))}
-                  </div>
-                  <Rating value={project.rating} />
-                </div>
-              </article>
-            ))}
+      {/* Featured tools */}
+      <section className="mt-14">
+        <SectionHead
+          icon={<Sparkles className="h-5 w-5 text-[#2f6bff]" />}
+          title={landing.featuredTitle}
+          sub={landing.featuredSub}
+          action={landing.viewAllTools}
+          onAction={() => navigateTo('/products')}
+        />
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          {copy.featuredProjects.map((project) => (
+            <article
+              key={project.name}
+              className="group flex flex-col rounded-[1.1rem] border border-[#eaeff8] bg-white p-5 shadow-[0_18px_40px_-32px_rgba(28,54,120,0.35)] transition-shadow hover:shadow-[0_28px_54px_-30px_rgba(28,54,120,0.45)]"
+            >
+              <div className="flex items-start justify-between">
+                <ToolLogo name={project.name} size="lg" />
+                <ArrowUpRight className="h-4 w-4 text-[#b3bdce] transition-colors group-hover:text-[#2f6bff]" />
+              </div>
+              <h3 className="mt-4 text-base font-black text-[#0f1730]">{project.name}</h3>
+              <p className="mt-2 flex-1 text-[0.82rem] leading-6 text-[#6b768e]">{project.description}</p>
+              <span className="mt-3 inline-flex w-fit rounded-full bg-[#f1f5fc] px-2.5 py-1 text-[0.68rem] font-bold text-[#4a5670]">
+                {project.tags[0]}
+              </span>
+              <div className="mt-4 flex items-center justify-between border-t border-[#f0f3f9] pt-3">
+                <span className="inline-flex items-center gap-1.5 text-[0.72rem] font-semibold text-[#8a93a8]">
+                  <Users className="h-3.5 w-3.5" />
+                  {featuredUsers[project.name.toLowerCase()] || '1M+'} {landing.usersSuffix}
+                </span>
+                <Rating value={project.rating} compact />
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {/* Subscribe band */}
+      <section className="mt-14 overflow-hidden rounded-[1.6rem] border border-[#e4ebf7] bg-[linear-gradient(120deg,#eef3ff_0%,#f3f0ff_100%)] p-8 sm:p-10">
+        <div className="grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#2f6bff]">{landing.subscribeEyebrow}</p>
+            <h2 className="mt-3 text-[clamp(1.6rem,3vw,2.2rem)] font-black tracking-tight text-[#0f1730]">
+              {heroTitle(landing.subscribeTitle)}
+            </h2>
+            <p className="mt-3 text-sm font-medium text-[#5a6580]">{landing.subscribeSub}</p>
           </div>
-        </section>
-
-        <section className="grid gap-4 xl:grid-cols-[1fr_1.2fr_0.9fr]">
-          <article className="rounded-[0.9rem] border border-[#edf0f8] bg-white p-5 shadow-[0_16px_34px_-30px_rgba(25,31,68,0.28)]">
-            <SectionTitle title={`📈 ${copy.home.rankingSection}`} />
-            <div className="mt-4 grid gap-3">
-              {copy.leaderboard.map((item) => (
-                <div key={item.rank} className="grid grid-cols-[1.5rem_2.5rem_minmax(0,1fr)_auto] items-center gap-3">
-                  <div className="font-black text-[#ff9248]">{item.rank}</div>
-                  <ToolLogo name={item.name} size="sm" />
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-black text-[#11162b]">{item.name}</div>
-                    <div className="truncate text-xs font-medium text-[#8a93a8]">{item.category}</div>
-                  </div>
-                  <Rating value={item.score} compact />
-                </div>
-              ))}
-            </div>
-          </article>
-
-          <article className="rounded-[0.9rem] border border-[#edf0f8] bg-white p-5 shadow-[0_16px_34px_-30px_rgba(25,31,68,0.28)]">
-            <SectionTitle title={`📰 ${copy.home.latestNewsSection}`} />
-            <div className="mt-4 grid gap-3">
-              {copy.newsItems.map((item) => (
-                <article key={item.title} className="grid grid-cols-[2.5rem_minmax(0,1fr)_4.5rem] gap-3">
-                  <span className="h-10 w-10 rounded-[0.7rem] bg-[#07102e]" />
-                  <div className="min-w-0">
-                    <h3 className="truncate text-sm font-black text-[#11162b]">{item.title}</h3>
-                    <p className="mt-1 truncate text-xs font-medium text-[#7e879b]">{item.summary}</p>
-                  </div>
-                  <span className="text-right text-xs font-medium text-[#9aa3b5]">{item.time}</span>
-                </article>
-              ))}
-            </div>
-          </article>
-
-          <article className="rounded-[0.9rem] border border-[#edf0f8] bg-white p-5 shadow-[0_16px_34px_-30px_rgba(25,31,68,0.28)]">
-            <SectionTitle title={`⭐ ${copy.home.hotTagsSection}`} />
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {copy.hotTags.map((tag) => (
+          <div>
+            {subscribed ? (
+              <p className="inline-flex items-center gap-2 rounded-[1rem] bg-white px-5 py-4 text-sm font-bold text-[#12b189] shadow-[0_18px_40px_-30px_rgba(28,54,120,0.4)]">
+                <CheckCircle2 className="h-5 w-5" />
+                {copy.locale === 'en' ? 'Subscribed! Check your inbox.' : copy.locale === 'zh-Hant' ? '訂閱成功，請查看信箱！' : '订阅成功，请查看邮箱！'}
+              </p>
+            ) : (
+              <form onSubmit={submitSubscribe} className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder={landing.subscribePlaceholder}
+                  className="min-w-0 flex-1 rounded-[0.8rem] border border-[#dce4f2] bg-white px-4 py-3 text-sm font-medium text-[#0f1730] outline-none placeholder:text-[#9aa6bd] focus:border-[#2f6bff]"
+                />
                 <button
-                  key={tag.label}
-                  type="button"
-                  onClick={() => navigateTo(`/search?q=${encodeURIComponent(tag.label)}`)}
-                  className={`rounded-[0.7rem] px-3 py-2 text-left text-xs font-bold ${tagAccentClass[tag.accent]}`}
+                  type="submit"
+                  className="inline-flex h-[46px] items-center justify-center rounded-[0.8rem] bg-[#2f6bff] px-6 text-sm font-bold text-white transition-colors hover:bg-[#1f57e8]"
                 >
-                  # {tag.label}
+                  {landing.subscribeCta}
                 </button>
+              </form>
+            )}
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
+              {landing.subscribePerks.map((perk) => (
+                <span key={perk} className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#4a5670]">
+                  <CheckCircle2 className="h-4 w-4 text-[#2f6bff]" />
+                  {perk}
+                </span>
               ))}
             </div>
-          </article>
-        </section>
-      </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Trending */}
+      <section className="mt-14">
+        <SectionHead
+          icon={<TrendingUp className="h-5 w-5 text-[#2f6bff]" />}
+          title={landing.trendingTitle}
+          sub={landing.trendingSub}
+          action={landing.viewTrending}
+          onAction={() => navigateTo('/bestsellers')}
+        />
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {trendingTools.map((tool, index) => (
+            <button
+              key={tool.name}
+              type="button"
+              onClick={() => navigateTo(`/search?q=${encodeURIComponent(tool.name)}`)}
+              className="flex items-start gap-3 rounded-[1.1rem] border border-[#eaeff8] bg-white p-4 text-left shadow-[0_18px_40px_-34px_rgba(28,54,120,0.35)] transition-shadow hover:shadow-[0_26px_50px_-30px_rgba(28,54,120,0.45)]"
+            >
+              <span className="text-sm font-black text-[#b3bdce]">{index + 1}</span>
+              <ToolLogo name={tool.name} size="sm" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-black text-[#0f1730]">{tool.name}</span>
+                <span className="mt-0.5 block truncate text-xs font-medium text-[#8a93a8]">{tool.tagline[lang]}</span>
+                <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#ff6a3d]">
+                  <Flame className="h-3.5 w-3.5" />
+                  {tool.heat}
+                </span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
     </MarketplaceFrame>
   );
 });
