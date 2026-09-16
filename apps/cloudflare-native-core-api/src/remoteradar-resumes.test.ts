@@ -4,7 +4,7 @@ import { zipSync, strToU8 } from 'fflate';
 const authenticateNativeUser = vi.fn();
 vi.mock('./auth', () => ({ authenticateNativeUser }));
 
-const { buildResumeFactCandidates, extractResumeDocumentText } = await import('./resume-extraction');
+const { buildResumeFactCandidates, detectResumeFormat, extractResumeDocumentText } = await import('./resume-extraction');
 const { tryNativeRemoteRadarResumeDocuments } = await import('./remoteradar-resumes');
 
 const base = 'https://api.example/api/v1/plugins/remoteradar-applications/store/resumes';
@@ -68,6 +68,55 @@ describe('RemoteRadar resume extraction', () => {
     const docx = zipSync({ 'other.xml': strToU8('<xml/>') });
     await expect(extractResumeDocumentText(docx, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'))
       .rejects.toThrow('DOCX_DOCUMENT_XML_MISSING');
+  });
+
+  it('detects ODT by its mimetype manifest and extracts paragraph text', async () => {
+    const odt = zipSync({
+      mimetype: strToU8('application/vnd.oasis.opendocument.text'),
+      'content.xml': strToU8('<office:document-content><office:body><office:text><text:p>Alex ODT</text:p><text:h>Skills</text:h><text:p>TypeScript<text:tab/><text:line-break/>Workers</text:p></office:text></office:body></office:document-content>'),
+    });
+    // A browser may mislabel the upload; magic bytes (mimetype entry) win.
+    expect(detectResumeFormat(odt, 'application/octet-stream', 'resume.unknown')).toBe('odt');
+    await expect(extractResumeDocumentText(odt, 'application/octet-stream', 'resume.unknown'))
+      .resolves.toBe('Alex ODT\nSkills\nTypeScript\nWorkers');
+  });
+
+  it('extracts escaped and unicode text from RTF', async () => {
+    const rtf = strToU8('{\\rtf1\\ansi{\\fonttbl\\f0 Calibri;}\\f0\\fs24 Alex Example\\par Staff \\& Engineer\\par caf\\u233  typed\\par}');
+    expect(detectResumeFormat(rtf, 'application/octet-stream', 'resume.rtf')).toBe('rtf');
+    const text = await extractResumeDocumentText(rtf, 'application/octet-stream', 'resume.rtf');
+    expect(text).toContain('Alex Example');
+    expect(text).toContain('Staff & Engineer');
+    expect(text).toContain('café typed');
+  });
+
+  it('strips markup and decodes entities from HTML resumes', async () => {
+    const html = strToU8('<!DOCTYPE html><html><head><style>.x{color:red}</style></head><body><h1>Alex &amp; Co</h1><p>Senior&nbsp;Engineer<br>alex&#64;example.com</p></body></html>');
+    expect(detectResumeFormat(html, 'text/plain', 'resume.html')).toBe('html');
+    const text = await extractResumeDocumentText(html, 'text/plain', 'resume.html');
+    expect(text).toContain('Alex & Co');
+    expect(text).toContain('Senior Engineer');
+    expect(text).not.toContain('color:red');
+  });
+
+  it('accepts Markdown as plain text even when the browser sends no MIME type', async () => {
+    const md = strToU8('# Alex\n\n- TypeScript\n- alex@example.com');
+    expect(detectResumeFormat(md, '', 'resume.md')).toBe('text');
+    const text = await extractResumeDocumentText(md, '', 'resume.md');
+    expect(text).toContain('TypeScript');
+    expect(text).toContain('alex@example.com');
+  });
+
+  it('rejects binary payloads that only claim a text extension', async () => {
+    const binary = new Uint8Array([0x7f, 0x45, 0x4c, 0x46, 0x00, 0x01, 0x02, 0x03]);
+    expect(detectResumeFormat(binary, 'application/octet-stream', 'resume.txt')).toBeNull();
+    await expect(extractResumeDocumentText(binary, 'application/octet-stream', 'resume.txt'))
+      .rejects.toThrow('RESUME_FORMAT_UNSUPPORTED');
+  });
+
+  it('prefers magic bytes over a mislabelled PDF content-type', async () => {
+    const pdf = strToU8('%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF');
+    expect(detectResumeFormat(pdf, 'text/plain', 'resume.txt')).toBe('pdf');
   });
 
   it('deletes only an owned resume after removing every private R2 document object', async () => {
