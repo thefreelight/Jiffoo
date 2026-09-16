@@ -13,6 +13,10 @@ on:
       image_tag:
         description: Optional image tag override
         required: false
+      runner:
+        description: Runner to use (ubuntu-latest = GitHub CI, self-hosted = local Mac runner)
+        required: false
+        default: ubuntu-latest
 
 permissions:
   contents: read
@@ -25,7 +29,7 @@ env:
 
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
     outputs:
       short_sha: ${{ steps.meta.outputs.short_sha }}
       image_tag: ${{ steps.meta.outputs.image_tag }}
@@ -83,7 +87,7 @@ jobs:
 
   build-and-push:
     needs: prepare
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
     strategy:
       fail-fast: false
       matrix:
@@ -179,7 +183,7 @@ jobs:
     needs:
       - prepare
       - build-and-push
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
     steps:
       - name: Print image set
         run: |
