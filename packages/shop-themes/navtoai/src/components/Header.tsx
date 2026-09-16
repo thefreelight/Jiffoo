@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Heart, Menu, Search, Share2, User2, X } from 'lucide-react';
+import { Menu, Search, User2, X } from 'lucide-react';
 import type { HeaderProps } from 'shared/src/types/theme';
 import { getNavCopy } from '../i18n';
 import { NavtoAiLogo } from './design-primitives';
@@ -8,7 +8,6 @@ export const Header = React.memo(function Header({
   isAuthenticated,
   user,
   locale,
-  onSearch,
   onNavigate,
   onLogout,
   onNavigateToProfile,
@@ -20,9 +19,8 @@ export const Header = React.memo(function Header({
   onNavigateToDeals,
 }: HeaderProps) {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
-  const [query, setQuery] = React.useState('');
   const copy = getNavCopy(locale);
-  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '';
+  const landing = copy.landing;
   const navigateTo = React.useCallback(
     (href: string) => {
       if (onNavigate) {
@@ -38,206 +36,135 @@ export const Header = React.memo(function Header({
   );
 
   const navItems = [
-    { label: copy.sidebar.home, onClick: onNavigateToHome },
-    { label: copy.sidebar.tools, onClick: onNavigateToProducts },
-    { label: copy.sidebar.models, onClick: onNavigateToCategories },
-    { label: copy.sidebar.collections, onClick: onNavigateToDeals },
-    { label: copy.sidebar.resources, onClick: () => navigateTo('/help') },
+    { label: landing.nav.explore, onClick: onNavigateToProducts },
+    { label: landing.nav.categories, onClick: onNavigateToCategories },
+    { label: landing.nav.trending, onClick: () => navigateTo('/bestsellers') },
+    { label: landing.nav.blog, onClick: onNavigateToDeals },
+    { label: landing.nav.submit, onClick: () => navigateTo('/contact') },
   ];
 
-  const submitSearch = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!query.trim()) return;
-    onSearch(query.trim());
-    setIsMenuOpen(false);
-  };
-
-  const handleMobileAction = (action: () => void) => {
+  const handleMenuAction = (action: () => void) => {
     action();
     setIsMenuOpen(false);
   };
 
-  const mobileLabels =
-    copy.locale === 'en'
-      ? { categories: 'Categories', account: 'Account', submissions: 'Submit Project', resources: 'Guide', cart: 'Cart' }
-      : copy.locale === 'zh-Hant'
-        ? { categories: '分類', account: '我的', submissions: '提交項目', resources: '指南', cart: '購物車' }
-        : { categories: '分类', account: '我的', submissions: '提交项目', resources: '指南', cart: '购物车' };
-
-  const mobileMeta = React.useMemo(() => {
-    if (currentPath === '/' || currentPath.endsWith('/home')) return { mode: 'home' as const };
-    if (/\/(product-detail|order-detail)/.test(currentPath)) return { mode: 'detail' as const };
-    if (/\/products/.test(currentPath) || /\/categories/.test(currentPath)) {
-      return { mode: 'title' as const, title: mobileLabels.categories, searchHref: '/search' };
-    }
-    if (/\/search/.test(currentPath)) return { mode: 'title' as const, title: copy.sidebar.apps, searchHref: '/search' };
-    if (/\/contact/.test(currentPath)) return { mode: 'title' as const, title: mobileLabels.submissions };
-    if (/\/help/.test(currentPath)) return { mode: 'title' as const, title: mobileLabels.resources };
-    if (/\/profile/.test(currentPath) || /\/login/.test(currentPath) || /\/register/.test(currentPath)) {
-      return { mode: 'title' as const, title: mobileLabels.account };
-    }
-    return { mode: 'home' as const };
-  }, [copy.sidebar.apps, currentPath, mobileLabels.account, mobileLabels.categories, mobileLabels.resources, mobileLabels.submissions]);
-
-  const handleMobileBack = React.useCallback(() => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      window.history.back();
-      return;
-    }
-    onNavigateToProducts();
-  }, [onNavigateToProducts]);
-
-  const handleMobileShare = React.useCallback(async () => {
-    if (typeof window === 'undefined') return;
-    const payload = { title: document.title, url: window.location.href };
-    if (navigator.share) {
-      try {
-        await navigator.share(payload);
-        return;
-      } catch {
-        return;
-      }
-    }
-    if (navigator.clipboard?.writeText) void navigator.clipboard.writeText(window.location.href);
-  }, []);
-
   return (
-    <header className="sticky top-0 z-50 border-b border-[#edf0f8] bg-white/94 backdrop-blur-xl">
-      <div className="mx-auto max-w-[1440px] px-4 py-3 sm:px-6 lg:px-5">
-        <div className="hidden items-center gap-5 lg:grid lg:grid-cols-[13.25rem_minmax(26rem,39.5rem)_1fr]">
-          <button type="button" onClick={onNavigateToHome} className="text-left">
-            <NavtoAiLogo tagline={copy.brandTagline} />
+    <header className="sticky top-0 z-50 border-b border-[#edf0f8] bg-white/92 backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-[1240px] items-center gap-6 px-4 sm:px-6 lg:px-8">
+        <button type="button" onClick={onNavigateToHome} className="shrink-0" aria-label="NavtoAI">
+          <NavtoAiLogo />
+        </button>
+
+        <nav className="ml-4 hidden items-center gap-7 lg:flex">
+          {navItems.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => handleMenuAction(item.onClick)}
+              className="text-sm font-semibold text-[#3d455d] transition-colors hover:text-[#11162b]"
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="ml-auto hidden items-center gap-4 lg:flex">
+          <button
+            type="button"
+            onClick={() => navigateTo('/search')}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-[#3d455d] transition-colors hover:bg-[#f2f5fb] hover:text-[#11162b]"
+            aria-label={copy.common.search}
+          >
+            <Search className="h-[1.15rem] w-[1.15rem]" />
           </button>
-
-          <form onSubmit={submitSearch}>
-            <div className="flex h-11 items-center gap-3 rounded-[0.75rem] border border-[#edf0f8] bg-[#fbfcff] px-4 shadow-[0_12px_28px_-24px_rgba(25,31,68,0.34)]">
-              <input
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder={copy.common.searchPlaceholder}
-                className="min-w-0 flex-1 bg-transparent text-sm font-medium text-[#202842] outline-none placeholder:text-[#a4acbf]"
-              />
-              <span className="h-5 w-px bg-[#edf0f8]" />
-              <button type="submit" className="flex h-8 w-8 items-center justify-center text-[#11162b]" aria-label={copy.common.search}>
-                <Search className="h-4 w-4" />
-              </button>
-            </div>
-          </form>
-
-          <div className="ml-auto flex items-center gap-6">
-            <button type="button" onClick={() => navigateTo('/contact')} className="text-sm font-semibold text-[#11162b]">
-              {copy.header.submit}
-            </button>
-            <button
-              type="button"
-              onClick={() => (isAuthenticated ? onNavigateToProfile() : onNavigateToLogin())}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#11162b]"
-            >
-              <Heart className="h-4 w-4" />
-              {copy.header.favorites}
-            </button>
-            <button
-              type="button"
-              onClick={() => (isAuthenticated ? onNavigateToProfile() : onNavigateToLogin())}
-              className="text-sm font-semibold text-[#11162b]"
-            >
-              {isAuthenticated ? user?.firstName || copy.header.account : copy.header.auth}
-            </button>
-            <button
-              type="button"
-              onClick={onNavigateToProfile}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-[#eef0ff] text-[#6257ff]"
-              aria-label={copy.header.account}
-            >
-              {user?.firstName?.slice(0, 1) || <User2 className="h-5 w-5" />}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => (isAuthenticated ? onNavigateToProfile() : onNavigateToLogin())}
+            className="text-sm font-semibold text-[#11162b] hover:text-[#2f6bff]"
+          >
+            {isAuthenticated ? user?.firstName || copy.header.account : landing.nav.signIn}
+          </button>
+          <button
+            type="button"
+            onClick={() => (isAuthenticated ? onNavigateToProfile() : onNavigateToRegister())}
+            className="inline-flex h-10 items-center rounded-full bg-[#2f6bff] px-5 text-sm font-bold text-white shadow-[0_12px_26px_-14px_rgba(47,107,255,0.85)] transition-colors hover:bg-[#1f57e8]"
+          >
+            {landing.nav.getStarted}
+          </button>
         </div>
 
-        <div className="flex items-center justify-between gap-3 lg:hidden">
-          {mobileMeta.mode === 'home' ? (
-            <>
-              <button
-                type="button"
-                onClick={() => setIsMenuOpen((value) => !value)}
-                className="flex h-10 w-10 items-center justify-center text-[#11162b]"
-                aria-label={copy.header.menu}
-              >
-                {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-              </button>
-              <button type="button" onClick={onNavigateToHome} className="min-w-0">
-                <NavtoAiLogo tagline={copy.locale === 'en' ? 'Discover · Explore · Build' : '发现 · 探索 · 选择 AI 世界'} />
-              </button>
-              <button type="button" onClick={() => navigateTo('/search')} className="flex h-10 w-10 items-center justify-center text-[#11162b]" aria-label={copy.common.search}>
-                <Search className="h-5 w-5" />
-              </button>
-            </>
-          ) : mobileMeta.mode === 'detail' ? (
-            <>
-              <button type="button" onClick={handleMobileBack} className="flex h-10 w-10 items-center justify-center text-[#11162b]" aria-label="Back">
-                <ArrowLeft className="h-5 w-5" />
-              </button>
-              <div className="flex-1" />
-              <button type="button" onClick={() => void handleMobileShare()} className="flex h-10 w-10 items-center justify-center text-[#11162b]" aria-label="Share">
-                <Share2 className="h-5 w-5" />
-              </button>
-            </>
-          ) : (
-            <>
-              <div className="h-10 w-10" />
-              <div className="truncate text-[1.2rem] font-black text-[#11162b]">{mobileMeta.title}</div>
-              {mobileMeta.searchHref ? (
-                <button type="button" onClick={() => navigateTo(mobileMeta.searchHref)} className="flex h-10 w-10 items-center justify-center text-[#11162b]" aria-label={copy.common.search}>
-                  <Search className="h-5 w-5" />
-                </button>
-              ) : (
-                <div className="h-10 w-10" />
-              )}
-            </>
-          )}
+        <div className="ml-auto flex items-center gap-2 lg:hidden">
+          <button
+            type="button"
+            onClick={() => navigateTo('/search')}
+            className="flex h-10 w-10 items-center justify-center text-[#11162b]"
+            aria-label={copy.common.search}
+          >
+            <Search className="h-5 w-5" />
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsMenuOpen((value) => !value)}
+            className="flex h-10 w-10 items-center justify-center text-[#11162b]"
+            aria-label={copy.header.menu}
+          >
+            {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
         </div>
+      </div>
 
-        {isMenuOpen ? (
-          <div className="mt-3 grid gap-2 rounded-[1rem] border border-[#edf0f8] bg-white p-3 shadow-[var(--navtoai-shadow-sm)] lg:hidden">
+      {isMenuOpen ? (
+        <div className="border-t border-[#edf0f8] bg-white px-4 pb-4 pt-3 lg:hidden">
+          <div className="grid gap-2">
             {navItems.map((item) => (
               <button
                 key={item.label}
                 type="button"
-                onClick={() => handleMobileAction(item.onClick)}
+                onClick={() => handleMenuAction(item.onClick)}
                 className="rounded-[0.8rem] bg-[#f6f7fb] px-4 py-3 text-left text-sm font-semibold text-[#11162b]"
               >
                 {item.label}
               </button>
             ))}
-            <button
-              type="button"
-              onClick={() => handleMobileAction(() => navigateTo('/contact'))}
-              className="rounded-[0.8rem] bg-[#eeeaff] px-4 py-3 text-left text-sm font-bold text-[#6257ff]"
-            >
-              {copy.header.submit}
-            </button>
             {isAuthenticated ? (
               <>
-                <button type="button" onClick={() => handleMobileAction(onNavigateToProfile)} className="rounded-[0.8rem] bg-[#f6f7fb] px-4 py-3 text-left text-sm font-semibold text-[#11162b]">
+                <button
+                  type="button"
+                  onClick={() => handleMenuAction(onNavigateToProfile)}
+                  className="flex items-center gap-2 rounded-[0.8rem] bg-[#f6f7fb] px-4 py-3 text-left text-sm font-semibold text-[#11162b]"
+                >
+                  <User2 className="h-4 w-4" />
                   {copy.header.account}
                 </button>
-                <button type="button" onClick={() => handleMobileAction(onLogout)} className="rounded-[0.8rem] bg-[#f6f7fb] px-4 py-3 text-left text-sm font-semibold text-[#657086]">
+                <button
+                  type="button"
+                  onClick={() => handleMenuAction(onLogout)}
+                  className="rounded-[0.8rem] bg-[#f6f7fb] px-4 py-3 text-left text-sm font-semibold text-[#657086]"
+                >
                   {copy.header.logout}
                 </button>
               </>
             ) : (
               <>
-                <button type="button" onClick={() => handleMobileAction(onNavigateToLogin)} className="rounded-[0.8rem] bg-[#f6f7fb] px-4 py-3 text-left text-sm font-semibold text-[#11162b]">
-                  {copy.header.auth}
+                <button
+                  type="button"
+                  onClick={() => handleMenuAction(onNavigateToLogin)}
+                  className="rounded-[0.8rem] bg-[#f6f7fb] px-4 py-3 text-left text-sm font-semibold text-[#11162b]"
+                >
+                  {landing.nav.signIn}
                 </button>
-                <button type="button" onClick={() => handleMobileAction(onNavigateToRegister)} className="rounded-[0.8rem] bg-[#6257ff] px-4 py-3 text-left text-sm font-bold text-white">
-                  {copy.header.register}
+                <button
+                  type="button"
+                  onClick={() => handleMenuAction(onNavigateToRegister)}
+                  className="rounded-[0.8rem] bg-[#2f6bff] px-4 py-3 text-left text-sm font-bold text-white"
+                >
+                  {landing.nav.getStarted}
                 </button>
               </>
             )}
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </header>
   );
 });
