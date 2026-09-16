@@ -1,11 +1,13 @@
 interface RateLimitEnv { DB: D1Database }
 
-type VerificationAction = 'register' | 'resend' | 'verify';
+type VerificationAction = 'register' | 'resend' | 'verify' | 'password_reset' | 'reset_complete';
 
 const limits: Record<VerificationAction, { windowSeconds: number; email: number; ip: number }> = {
   register: { windowSeconds: 3600, email: 3, ip: 10 },
   resend: { windowSeconds: 900, email: 3, ip: 20 },
   verify: { windowSeconds: 900, email: 20, ip: 40 },
+  password_reset: { windowSeconds: 900, email: 3, ip: 10 },
+  reset_complete: { windowSeconds: 900, email: 20, ip: 40 },
 };
 
 async function digest(value: string): Promise<string> {

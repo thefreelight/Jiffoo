@@ -1,4 +1,5 @@
 import { sendNativeVerificationCode, verifyNativeEmailCode } from './email-verification';
+import { sendNativePasswordResetCode, completeNativePasswordReset } from './email-password-reset';
 import { consumeVerificationRateLimit } from './auth-rate-limit';
 
 export interface NativeSmtpEnv {
@@ -36,6 +37,9 @@ export interface NativeUser {
   verification_code_hash: string | null;
   verification_expires_at: string | null;
   verification_attempts: number;
+  reset_code_hash?: string | null;
+  reset_expires_at?: string | null;
+  reset_attempts?: number;
 }
 
 export interface PublicUser {
@@ -554,6 +558,80 @@ export async function tryNativeAuth(
         { status: 503, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
       );
     }
+  }
+
+  if (
+    (path === '/api/v1/auth/password-reset' || path === '/api/v1/shop/auth/password-reset') &&
+    request.method === 'POST'
+  ) {
+    const body = await request.clone().json().catch(() => ({})) as { email?: string; identifier?: string };
+    const email = (body.email || body.identifier || '').trim().toLowerCase();
+    const rate = await consumeVerificationRateLimit(request, env, 'password_reset', email);
+    if (!rate.allowed) return Response.json(
+      { success: false, error: { code: 'RATE_LIMITED', message: 'Too many reset attempts. Try again later' } },
+      { status: 429, headers: { 'retry-after': String(rate.retryAfter), 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+    );
+    if (!email.includes('@')) {
+      return Response.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: 'A valid email is required' } },
+        { status: 400, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+      );
+    }
+    const user = await findNativeUserByEmail(env, email);
+    // Anti-enumeration: unknown emails answer exactly like known ones.
+    if (user && user.is_active) {
+      try {
+        await sendNativePasswordResetCode(env, nativePublicUser(user));
+      } catch {
+        // Swallow SMTP failures so the response never distinguishes a
+        // deliverable account from one where sending failed.
+      }
+    }
+    return Response.json(
+      { success: true, data: null, message: 'If an account exists for this email, a reset code has been sent' },
+      { headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+    );
+  }
+
+  if (
+    (path === '/api/v1/auth/password-reset/complete' || path === '/api/v1/shop/auth/password-reset/complete') &&
+    request.method === 'POST'
+  ) {
+    const body = await request.clone().json().catch(() => ({})) as { email?: string; code?: string; password?: string };
+    const email = (body.email || '').trim().toLowerCase();
+    const password = body.password ?? '';
+    const rate = await consumeVerificationRateLimit(request, env, 'reset_complete', email);
+    if (!rate.allowed) return Response.json(
+      { success: false, error: { code: 'RATE_LIMITED', message: 'Too many attempts. Try again later' } },
+      { status: 429, headers: { 'retry-after': String(rate.retryAfter), 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+    );
+    if (!email.includes('@') || password.length < 8) {
+      return Response.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: 'A valid email and a new password of at least 8 characters are required' } },
+        { status: 400, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+      );
+    }
+    const result = await completeNativePasswordReset(env, email, body.code || '', password);
+    if (!result.success) {
+      return Response.json(
+        { success: false, error: { code: 'RESET_FAILED', message: result.error } },
+        { status: 400, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+      );
+    }
+    // A completed reset lands the user straight in their session, matching
+    // the verify-email auto-login pattern.
+    const reset = await findNativeUserByEmail(env, email);
+    if (reset && reset.is_active && reset.email_verified) {
+      const session = await createNativeSession(env, nativePublicUser(reset));
+      return new Response(JSON.stringify({
+        ...session.body,
+        message: 'Password reset successfully',
+      }), { status: 200, headers: session.headers });
+    }
+    return Response.json(
+      { success: true, data: null, message: 'Password reset successfully' },
+      { status: 200, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-auth' } },
+    );
   }
 
   if (
