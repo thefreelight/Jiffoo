@@ -89,4 +89,15 @@ describe('native marketplace install routes', () => {
     expect(response?.status).toBe(501);
     await expect(response?.json()).resolves.toMatchObject({ success: false, error: { code: 'NATIVE_PLUGIN_NOT_IMPLEMENTED' } });
   });
+
+  it('passes theme installs to the Native theme adapter', async () => {
+    authenticateNativeAdmin.mockResolvedValue(true);
+    const request = new Request('https://api.example/api/v1/admin/market/extensions/bokmoo/install', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ kind: 'theme-shop', version: '1.1.8', activate: true }),
+    });
+    const response = await tryNativeMarketplace(request, { DB: {} } as never);
+    expect(response).toBeNull();
+    await expect(request.json()).resolves.toMatchObject({ kind: 'theme-shop', version: '1.1.8' });
+  });
 });
