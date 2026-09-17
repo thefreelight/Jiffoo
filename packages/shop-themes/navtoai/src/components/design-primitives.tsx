@@ -1,13 +1,13 @@
 import React from 'react';
-import { BarChart3, Boxes, Code2, ImageIcon, MessageCircle, MoreHorizontal, PenLine, Send, Sparkles, Star, TrendingUp, Video } from 'lucide-react';
+import { BarChart3, Boxes, Code2, ImageIcon, MessageCircle, MoreHorizontal, PenLine, Sparkles, Star, TrendingUp, Video } from 'lucide-react';
+
+// Reference-design mark: the blue angular "A" glyph from the navtoai logo.
+const NAVTOAI_MARK_SRC = '/theme-assets/navtoai/navtoai-mark.png';
 
 export function NavtoAiLogo({ tagline }: { tagline?: string }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center">
-        <Send className="h-8 w-8 -rotate-12 fill-[#e8edff] text-[#2f6bff]" strokeWidth={2.4} />
-        <span className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full bg-[#53d6ff] shadow-[0_0_16px_rgba(83,214,255,0.5)]" />
-      </div>
+      <img src={NAVTOAI_MARK_SRC} alt="" className="h-9 w-9 shrink-0 object-contain" />
       <div className="min-w-0">
         <div className="text-[1.4rem] font-black leading-none tracking-tight text-[#12172f]">
           navto<span className="text-[#2f6bff]">ai</span>
@@ -17,6 +17,21 @@ export function NavtoAiLogo({ tagline }: { tagline?: string }) {
     </div>
   );
 }
+
+// Brand marks cropped from the reference design; served from shop public assets.
+const brandAssetByName: Record<string, string> = {
+  chatgpt: '/theme-assets/navtoai/brand-chatgpt.png',
+  midjourney: '/theme-assets/navtoai/brand-midjourney.png',
+  claude: '/theme-assets/navtoai/brand-claude.png',
+  'notion ai': '/theme-assets/navtoai/brand-notion-ai.png',
+  runway: '/theme-assets/navtoai/brand-runway.png',
+  perplexity: '/theme-assets/navtoai/brand-perplexity.png',
+  sora: '/theme-assets/navtoai/trend-sora.png',
+  lovable: '/theme-assets/navtoai/trend-lovable.png',
+  cursor: '/theme-assets/navtoai/trend-cursor.png',
+  suno: '/theme-assets/navtoai/trend-suno.png',
+  elevenlabs: '/theme-assets/navtoai/trend-elevenlabs.png',
+};
 
 const logoClassByName: Record<string, string> = {
   chatgpt: 'bg-[#32b284] text-white',
@@ -69,6 +84,17 @@ export function ToolLogo({
     );
   }
 
+  const brandSrc = brandAssetByName[key];
+  if (brandSrc) {
+    return (
+      <span
+        className={`flex shrink-0 items-center justify-center overflow-hidden shadow-[0_12px_24px_-20px_rgba(24,31,68,0.4)] ${sizeClass}`}
+      >
+        <img src={brandSrc} alt={name} className="h-full w-full object-cover" />
+      </span>
+    );
+  }
+
   return (
     <span
       className={[
@@ -95,55 +121,17 @@ export const categoryIconMap = [MessageCircle, ImageIcon, Video, PenLine, Boxes,
 export const trendingIcon = TrendingUp;
 export const sparkIcon = Sparkles;
 
-export function HeroArch({ locale }: { locale?: string }) {
-  const words =
-    locale === 'en'
-      ? ['EXPLORE', 'LEARN', 'CREATE', 'SHARE']
-      : locale === 'zh-Hant'
-        ? ['探索', '學習', '創造', '分享']
-        : ['探索', '学习', '创造', '分享'];
+export function HeroArt() {
+  // Reference-design hero artwork (arch scene), cropped from the approved
+  // design and served from shop public assets. The left fade blends the art
+  // into the CSS gradient that continues behind the hero copy.
   return (
-    <div className="relative h-full min-h-[22rem] w-full overflow-hidden">
-      <div className="absolute inset-0 bg-[linear-gradient(160deg,#eef4ff_0%,#e7eefc_45%,#dfe9fb_100%)]" />
-      {/* arch */}
-      <div className="absolute right-[6%] top-[6%] h-[88%] w-[52%] overflow-hidden rounded-t-[999px] border border-white/70 shadow-[0_40px_80px_-40px_rgba(47,107,255,0.45)]">
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,#bfe0ff_0%,#e8f4ff_38%,#cfe3d8_55%,#9fb8c9_70%,#7e97ab_100%)]" />
-        {/* sun */}
-        <div className="absolute left-[18%] top-[30%] h-10 w-10 rounded-full bg-[#ffe9c4] blur-[2px]" />
-        {/* mountains */}
-        <div className="absolute bottom-[30%] left-[-6%] h-[34%] w-[70%] rotate-[8deg] rounded-[50%] bg-[#a8bcc9]/70" />
-        <div className="absolute bottom-[28%] right-[-10%] h-[38%] w-[75%] -rotate-[6deg] rounded-[50%] bg-[#8ba3b5]/80" />
-        {/* water */}
-        <div className="absolute bottom-0 left-0 right-0 h-[30%] bg-[linear-gradient(180deg,#9db6c6_0%,#7d99ad_100%)]" />
-        <div className="absolute bottom-[12%] left-[10%] right-[10%] h-px bg-white/40" />
-        <div className="absolute bottom-[20%] left-[16%] right-[16%] h-px bg-white/30" />
-        {/* text inside arch */}
-        <div className="absolute left-[12%] top-[14%] max-w-[70%]">
-          <p className="text-[1.05rem] font-black leading-snug text-[#1b2b4a]">
-            A More
-            <br />
-            Creative
-            <br />
-            Tomorrow
-          </p>
-          <div className="mt-3 h-px w-8 bg-[#1b2b4a]/60" />
-          <p className="mt-3 text-[0.68rem] font-semibold uppercase leading-5 tracking-[0.18em] text-[#24405f]">
-            Tools
-            <br />
-            People
-            <br />
-            Possibilities
-          </p>
-        </div>
-      </div>
-      {/* floating words */}
-      <div className="absolute right-[2%] top-[10%] hidden text-right xl:block">
-        {words.map((w) => (
-          <p key={w} className="text-[0.7rem] font-bold uppercase tracking-[0.28em] text-[#5b7397]">
-            {w}
-          </p>
-        ))}
-      </div>
+    <div className="pointer-events-none absolute inset-y-0 right-0 hidden select-none lg:block">
+      <img
+        src="/theme-assets/navtoai/hero-arch.png"
+        alt=""
+        className="h-full w-auto object-cover object-right [mask-image:linear-gradient(to_right,transparent_0%,black_26%)]"
+      />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { ArrowRight, ArrowUpRight, CheckCircle2, Flame, Search, Sparkles, Trendi
 import type { HomePageProps } from 'shared/src/types/theme';
 import { MarketplaceFrame } from './MarketplaceFrame';
 import { getNavCopy } from '../i18n';
-import { categoryIconMap, HeroArch, Rating, ToolLogo } from './design-primitives';
+import { categoryIconMap, HeroArt, Rating, ToolLogo } from './design-primitives';
 
 const categoryAccentClass: Record<string, string> = {
   blue: 'bg-[#e7f0ff] text-[#2f6bff]',
@@ -44,17 +44,26 @@ const trendingTools: TrendingEntry[] = [
   { name: 'ElevenLabs', heat: '6.1K', tagline: { en: 'Realistic AI voice generation', 'zh-Hans': '逼真自然的 AI 语音生成', 'zh-Hant': '逼真自然的 AI 語音生成' } },
 ];
 
-function heroTitle(title: string) {
-  const marker = 'AI';
-  const index = title.indexOf(marker);
-  if (index < 0) return title;
-  return (
-    <>
-      {title.slice(0, index)}
-      <span className="text-[#2f6bff]">{marker}</span>
-      {title.slice(index + marker.length)}
-    </>
-  );
+function heroTitle(title: string, marker = 'AI') {
+  const renderLine = (line: string, key: number) => {
+    const index = line.indexOf(marker);
+    if (index < 0) return <React.Fragment key={key}>{line}</React.Fragment>;
+    return (
+      <React.Fragment key={key}>
+        {line.slice(0, index)}
+        <span className="text-[#2f6bff]">{marker}</span>
+        {line.slice(index + marker.length)}
+      </React.Fragment>
+    );
+  };
+  const lines = title.split('\n');
+  if (lines.length === 1) return renderLine(title, 0);
+  return lines.map((line, index) => (
+    <React.Fragment key={index}>
+      {index > 0 ? <br /> : null}
+      {renderLine(line, index)}
+    </React.Fragment>
+  ));
 }
 
 function SectionHead({
@@ -126,37 +135,38 @@ export const HomePage = React.memo(function HomePage({ locale, onNavigate }: Hom
 
   return (
     <MarketplaceFrame locale={locale} onNavigate={onNavigate}>
-      {/* Hero */}
-      <section className="relative mt-2 overflow-hidden rounded-[1.6rem] bg-[linear-gradient(120deg,#f4f8ff_0%,#eef3ff_46%,#e7eefc_100%)]">
-        <div className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-          <div className="px-6 pb-10 pt-10 sm:px-10 lg:py-16">
+      {/* Hero — full-bleed band, reference arch art anchored to the right edge */}
+      <section className="relative left-1/2 w-screen -translate-x-1/2 overflow-hidden bg-[linear-gradient(105deg,#f7faff_0%,#eff4fd_52%,#e8eefc_100%)]">
+        <HeroArt />
+        <div className="relative mx-auto flex min-h-[30rem] max-w-[1240px] items-center px-4 sm:px-6 lg:min-h-[40rem] lg:px-8">
+          <div className="w-full max-w-[44rem] py-12 lg:py-0">
             <button
               type="button"
               onClick={() => navigateTo('/products')}
-              className="inline-flex items-center gap-2 rounded-full border border-[#d6e4ff] bg-white/70 px-3.5 py-1.5 text-xs font-bold text-[#2f6bff]"
+              className="inline-flex items-center gap-2 rounded-full border border-[#d8e5ff] bg-[#e9f0fe] px-3.5 py-1.5 text-xs font-bold text-[#2f6bff]"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-[#2f6bff]" />
               {landing.heroEyebrow}
               <ArrowRight className="h-3.5 w-3.5" />
             </button>
 
-            <h1 className="mt-6 max-w-[15ch] text-[clamp(2.6rem,6vw,4.6rem)] font-black leading-[0.98] tracking-[-0.03em] text-[#0f1730]">
+            <h1 className="mt-6 text-[clamp(2.75rem,7vw,6.75rem)] font-black leading-[0.98] tracking-[-0.03em] text-[#0f1730]">
               {heroTitle(landing.heroTitle)}
             </h1>
-            <p className="mt-5 max-w-[34rem] text-[1.02rem] leading-8 text-[#4a5670]">{landing.heroSubtitle}</p>
+            <p className="mt-5 max-w-[36rem] text-[clamp(1.02rem,1.4vw,1.3rem)] leading-8 text-[#4a5670]">{landing.heroSubtitle}</p>
 
-            <form onSubmit={submitSearch} className="mt-8 max-w-[34rem]">
-              <div className="flex h-14 items-center gap-2 rounded-[1rem] border border-[#e4ebf7] bg-white p-2 shadow-[0_24px_48px_-30px_rgba(28,54,120,0.4)]">
+            <form onSubmit={submitSearch} className="mt-8 max-w-[40rem]">
+              <div className="flex h-[3.75rem] items-center gap-2 rounded-[1.1rem] border border-[#e4ebf7] bg-white p-2 shadow-[0_24px_48px_-30px_rgba(28,54,120,0.4)]">
                 <Search className="ml-2 h-5 w-5 shrink-0 text-[#9aa6bd]" />
                 <input
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder={copy.common.searchPlaceholder}
-                  className="min-w-0 flex-1 bg-transparent text-sm font-medium text-[#0f1730] outline-none placeholder:text-[#9aa6bd]"
+                  className="min-w-0 flex-1 border-0 bg-transparent text-sm font-medium text-[#0f1730] shadow-none outline-none placeholder:text-[#9aa6bd]"
                 />
                 <button
                   type="submit"
-                  className="inline-flex h-10 items-center rounded-[0.7rem] bg-[#2f6bff] px-6 text-sm font-bold text-white transition-colors hover:bg-[#1f57e8]"
+                  className="inline-flex h-10 items-center rounded-full bg-[#2f6bff] px-7 text-sm font-bold text-white transition-colors hover:bg-[#1f57e8]"
                 >
                   {copy.common.search}
                 </button>
@@ -176,10 +186,6 @@ export const HomePage = React.memo(function HomePage({ locale, onNavigate }: Hom
                 </button>
               ))}
             </div>
-          </div>
-
-          <div className="hidden h-full min-h-[26rem] lg:block">
-            <HeroArch locale={lang} />
           </div>
         </div>
       </section>
@@ -254,7 +260,7 @@ export const HomePage = React.memo(function HomePage({ locale, onNavigate }: Hom
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#2f6bff]">{landing.subscribeEyebrow}</p>
             <h2 className="mt-3 text-[clamp(1.6rem,3vw,2.2rem)] font-black tracking-tight text-[#0f1730]">
-              {heroTitle(landing.subscribeTitle)}
+              {heroTitle(landing.subscribeTitle, copy.locale === 'en' ? 'AI tools.' : 'AI 工具')}
             </h2>
             <p className="mt-3 text-sm font-medium text-[#5a6580]">{landing.subscribeSub}</p>
           </div>
@@ -315,7 +321,7 @@ export const HomePage = React.memo(function HomePage({ locale, onNavigate }: Hom
               <ToolLogo name={tool.name} size="sm" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-black text-[#0f1730]">{tool.name}</span>
-                <span className="mt-0.5 block truncate text-xs font-medium text-[#8a93a8]">{tool.tagline[lang]}</span>
+                <span className="mt-0.5 block truncate text-[0.7rem] font-medium text-[#8a93a8]">{tool.tagline[lang]}</span>
                 <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#ff6a3d]">
                   <Flame className="h-3.5 w-3.5" />
                   {tool.heat}

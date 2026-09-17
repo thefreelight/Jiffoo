@@ -1,6 +1,6 @@
 {
   "name": "@shop-themes/navtoai",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "NavToAI theme for curated AI tool directory storefronts",
   "private": true,
   "type": "module",

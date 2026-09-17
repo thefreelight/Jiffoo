@@ -207,7 +207,7 @@ const enCopy: Omit<NavCopy, 'locale'> = {
   brandTagline: 'Discover, evaluate, and build with the right AI stack.',
   common: {
     search: 'Search',
-    searchPlaceholder: 'Search AI tools, apps, models, and resources...',
+    searchPlaceholder: 'Search AI tools, e.g. ChatGPT, video, design...',
     newest: 'Newest',
     price: 'Price',
     name: 'Name',
@@ -331,7 +331,7 @@ const enCopy: Omit<NavCopy, 'locale'> = {
     contact: 'Contact',
     privacy: 'Privacy',
     terms: 'Terms',
-    copyright: 'AI project directory theme.',
+    copyright: 'navtoai.com. All rights reserved.',
     summary: 'Made for multilingual AI discovery, editorial curation, and commerce-ready evaluation.',
     productCol: 'Product',
     resourcesCol: 'Resources',
@@ -346,7 +346,7 @@ const enCopy: Omit<NavCopy, 'locale'> = {
     tagline: 'Navigate the AI world. Discover. Learn. Create. Together.',
     brandLine: 'A more creative tomorrow, together.',
   },
-  quickSearches: ['ChatGPT', 'Midjourney', 'Notion AI', 'Cursor', 'Sora', 'Runway'],
+  quickSearches: ['ChatGPT', 'Midjourney', 'Claude', 'Notion AI', 'Runway', 'Perplexity'],
   categoryCards: [
     {
       title: 'Chatbots',
@@ -403,7 +403,7 @@ const enCopy: Omit<NavCopy, 'locale'> = {
       vendor: 'OpenAI',
       description: 'A versatile AI assistant for work, learning and creativity.',
       tags: ['Chatbot'],
-      rating: '5.0',
+      rating: '4.9',
       accent: 'green',
     },
     {
@@ -483,7 +483,7 @@ const enCopy: Omit<NavCopy, 'locale'> = {
   landing: {
     nav: { explore: 'Explore', categories: 'Categories', trending: 'Trending', blog: 'Blog', submit: 'Submit', signIn: 'Sign in', getStarted: 'Get started' },
     heroEyebrow: 'Your guide to the AI world',
-    heroTitle: 'Navigate the AI future.',
+    heroTitle: 'Navigate\nthe AI future.',
     heroSubtitle: 'Discover the best AI tools, resources and ideas. Everything you need to work smarter, create faster, and explore what’s next — all in one place.',
     popularSearches: 'Popular searches:',
     categorySection: 'Browse by category',
@@ -510,7 +510,7 @@ const zhHansCopy: Omit<NavCopy, 'locale'> = {
   brandTagline: '发现、评估并搭建真正适合你的 AI 工具栈。',
   common: {
     search: '搜索',
-    searchPlaceholder: '搜索你想要的 AI 工具、应用或资源...',
+    searchPlaceholder: '搜索 AI 工具，例如 ChatGPT、视频、设计...',
     newest: '最新',
     price: '价格',
     name: '名称',
@@ -626,7 +626,7 @@ const zhHansCopy: Omit<NavCopy, 'locale'> = {
     contact: '联系我们',
     privacy: '隐私政策',
     terms: '服务条款',
-    copyright: 'AI 项目导航主题。',
+    copyright: 'navtoai.com. All rights reserved.',
     summary: '适用于多语言 AI 导航、编辑型策展与可下单评估流程。',
     productCol: '产品',
     resourcesCol: '资源',
@@ -641,7 +641,7 @@ const zhHansCopy: Omit<NavCopy, 'locale'> = {
     tagline: '驾驭 AI 世界。发现、学习、创造，同行。',
     brandLine: '更富创意的明天，与你同行。',
   },
-  quickSearches: ['ChatGPT', 'Midjourney', 'Notion AI', 'Cursor', 'Sora', 'Runway'],
+  quickSearches: ['ChatGPT', 'Midjourney', 'Claude', 'Notion AI', 'Runway', 'Perplexity'],
   categoryCards: [
     {
       title: '对话聊天',
@@ -698,7 +698,7 @@ const zhHansCopy: Omit<NavCopy, 'locale'> = {
       vendor: 'OpenAI',
       description: '面向工作、学习与创作的通用 AI 助手。',
       tags: ['对话聊天'],
-      rating: '5.0',
+      rating: '4.9',
       accent: 'green',
     },
     {
@@ -805,7 +805,7 @@ const zhHantCopy: Omit<NavCopy, 'locale'> = {
   brandTagline: '發現、評估並建立真正適合你的 AI 工具棧。',
   common: {
     search: '搜尋',
-    searchPlaceholder: '搜尋你想要的 AI 工具、應用或資源...',
+    searchPlaceholder: '搜尋 AI 工具，例如 ChatGPT、影片、設計...',
     newest: '最新',
     price: '價格',
     name: '名稱',
@@ -921,7 +921,7 @@ const zhHantCopy: Omit<NavCopy, 'locale'> = {
     contact: '聯絡我們',
     privacy: '隱私政策',
     terms: '服務條款',
-    copyright: 'AI 項目導航主題。',
+    copyright: 'navtoai.com. All rights reserved.',
     summary: '適用於多語言 AI 導航、編輯型策展與可下單評估流程。',
     productCol: '產品',
     resourcesCol: '資源',
@@ -936,7 +936,7 @@ const zhHantCopy: Omit<NavCopy, 'locale'> = {
     tagline: '駕馭 AI 世界。發現、學習、創造，同行。',
     brandLine: '更富創意的明天，與你同行。',
   },
-  quickSearches: ['ChatGPT', 'Midjourney', 'Notion AI', 'Cursor', 'Sora', 'Runway'],
+  quickSearches: ['ChatGPT', 'Midjourney', 'Claude', 'Notion AI', 'Runway', 'Perplexity'],
   categoryCards: [
     {
       title: '對話聊天',
@@ -993,7 +993,7 @@ const zhHantCopy: Omit<NavCopy, 'locale'> = {
       vendor: 'OpenAI',
       description: '面向工作、學習與創作的通用 AI 助手。',
       tags: ['對話聊天'],
-      rating: '5.0',
+      rating: '4.9',
       accent: 'green',
     },
     {

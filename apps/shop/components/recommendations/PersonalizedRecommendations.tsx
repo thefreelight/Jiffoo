@@ -13,7 +13,7 @@ import { useCartStore } from '@/store/cart';
 import { useAuthStore } from '@/store/auth';
 import { useToast } from '@/hooks/use-toast';
 import { RecommendationsService, RecommendedProduct } from '@/services/recommendations.service';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/state-components';
+import { LoadingState, EmptyState } from '@/components/ui/state-components';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useT } from 'shared/src/i18n/react';
@@ -175,17 +175,12 @@ export function PersonalizedRecommendations({
     );
   }
 
-  // Error state
+  // Error state — recommendations are an optional storefront enhancer; when
+  // the runtime has no recommendations service (e.g. Cloudflare-native cores
+  // without the plugin) the section degrades to nothing instead of showing a
+  // storefront-facing error card.
   if (error) {
-    return (
-      <div className={cn('py-8', className)}>
-        <ErrorState
-          title={getText('shop.recommendations.errorTitle', 'Unable to load recommendations')}
-          message={error}
-          onRetry={() => window.location.reload()}
-        />
-      </div>
-    );
+    return null;
   }
 
   // Empty state - no recommendations
