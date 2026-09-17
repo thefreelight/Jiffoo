@@ -12,7 +12,7 @@ import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { useCartStore } from '@/store/cart';
 import { useToast } from '@/hooks/use-toast';
 import { RecommendationsService, RecommendedProduct } from '@/services/recommendations.service';
-import { LoadingState, ErrorState, EmptyState } from '@/components/ui/state-components';
+import { LoadingState, EmptyState } from '@/components/ui/state-components';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useT } from 'shared/src/i18n/react';
@@ -141,16 +141,10 @@ export function CustomersAlsoBought({
   }
 
   // Error state
+  // Same optional-enhancer contract as PersonalizedRecommendations: degrade to
+  // nothing when the recommendations service is unavailable on this runtime.
   if (error) {
-    return (
-      <div className={cn('py-8', className)}>
-        <ErrorState
-          title={getText('shop.recommendations.errorTitle', 'Unable to load recommendations')}
-          message={error}
-          onRetry={() => window.location.reload()}
-        />
-      </div>
-    );
+    return null;
   }
 
   // Empty state - no recommendations

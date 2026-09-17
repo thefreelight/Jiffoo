@@ -47,7 +47,7 @@ export const Footer = React.memo(function Footer({
 
   return (
     <footer className="border-t border-[#eaeff8] bg-white">
-      <div className="mx-auto grid max-w-[1240px] gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] lg:px-8">
+      <div className="mx-auto grid max-w-[1240px] gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,0.75fr)_minmax(0,0.75fr)_minmax(0,0.75fr)_minmax(0,1.05fr)] lg:px-8">
         <div>
           <NavtoAiLogo />
           <p className="mt-4 max-w-[16rem] text-sm leading-6 text-[#6b768e]">{copy.footer.tagline}</p>
@@ -112,14 +112,11 @@ export const Footer = React.memo(function Footer({
             {copy.footer.terms}
           </button>
         </div>
-      </div>
 
-      <div className="border-t border-[#eef2f8]">
-        <div className="mx-auto flex max-w-[1240px] flex-col gap-2 px-4 py-6 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <p className="text-sm text-[#8a93a8]">
-            © {year} {site.brandName}. {copy.footer.copyright}
-          </p>
-          <p className="text-sm font-semibold text-[#2f6bff]">{copy.footer.brandLine}</p>
+        <div className="grid content-start gap-4">
+          <p className="max-w-[12rem] text-[1.05rem] font-bold leading-snug text-[#12172f]">{copy.footer.brandLine}</p>
+          <span aria-hidden className="h-px w-6 bg-[#c6cede]" />
+          <p className="text-sm text-[#8a93a8]">© {year} {copy.footer.copyright}</p>
         </div>
       </div>
     </footer>

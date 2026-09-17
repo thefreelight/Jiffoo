@@ -56,7 +56,7 @@ export function MarketplaceFrame({ locale, onNavigate, children }: MarketplaceFr
   }, [currentPath]);
 
   return (
-    <div className="min-h-screen bg-[var(--navtoai-bg)]">
+    <div className="min-h-screen overflow-x-clip bg-[var(--navtoai-bg)]">
       <div className="mx-auto w-full max-w-[1240px] px-4 pb-16 sm:px-6 lg:px-8 lg:pb-10">{children}</div>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[#edf0f8] bg-white/96 px-2 pb-[max(0.6rem,env(safe-area-inset-bottom))] pt-1 shadow-[0_-18px_40px_-32px_rgba(26,34,74,0.34)] backdrop-blur lg:hidden">
