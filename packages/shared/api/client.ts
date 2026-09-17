@@ -150,9 +150,28 @@ export class ApiClient {
     this.axiosInstance.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
-        const originalRequest = error.config as AxiosRequestConfig & { _retry?: boolean };
+        const originalRequest = error.config as AxiosRequestConfig & {
+          _retry?: boolean;
+          _transientRetryCount?: number;
+        };
         const requestUrl = originalRequest?.url ?? '';
         const isLoginRequest = /\/auth\/login(?:\?|$)/.test(requestUrl);
+
+        // Transient network failures (request timeout, connection dropped
+        // before any HTTP response) are retried for idempotent GET requests
+        // so a single slow request does not surface as a hard error.
+        const transientRetryableCodes = new Set(['ECONNABORTED', 'ETIMEDOUT', 'ERR_NETWORK']);
+        const isIdempotentGet = (originalRequest?.method ?? '').toLowerCase() === 'get';
+        const isTransientNetworkError = !error.response && transientRetryableCodes.has(error.code ?? '');
+        const transientRetryCount = originalRequest?._transientRetryCount ?? 0;
+        const maxTransientRetries = 2;
+
+        if (isIdempotentGet && isTransientNetworkError && transientRetryCount < maxTransientRetries) {
+          originalRequest._transientRetryCount = transientRetryCount + 1;
+          const delayMs = 300 * 2 ** transientRetryCount;
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          return this.axiosInstance(originalRequest);
+        }
 
         if (error.response?.status === 401 && !originalRequest._retry && !isLoginRequest) {
           originalRequest._retry = true;

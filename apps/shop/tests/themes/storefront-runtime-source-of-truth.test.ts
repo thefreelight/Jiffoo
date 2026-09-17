@@ -84,6 +84,10 @@ describe('storefront runtime source of truth', () => {
 
   it('distinguishes an active-theme API failure from an unconfigured store', async () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    // Simulate a browser that has never successfully fetched the active
+    // theme: without a last-known-good cache entry the failure must still
+    // surface instead of silently degrading.
+    window.localStorage.removeItem('jiffoo:theme-pack:last-good-active-theme');
     activeThemeResponse.mockResolvedValue({
       success: false,
       error: { message: 'active theme API unavailable' },
@@ -95,6 +99,40 @@ describe('storefront runtime source of truth', () => {
       await expect(fetchActiveTheme()).rejects.toThrow('active theme API unavailable');
     } finally {
       consoleErrorSpy.mockRestore();
+    }
+  });
+
+  it('serves the last-known-good active theme when the API fails after a successful fetch', async () => {
+    const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const apiActiveTheme = {
+      slug: 'modelsfind',
+      version: '0.1.4',
+      source: 'official-market',
+      type: 'pack',
+      config: {
+        brand: {
+          name: 'ModelsFind',
+          primaryColor: '#111111',
+        },
+      },
+      activatedAt: '2026-06-02T00:00:00.000Z',
+    };
+    activeThemeResponse.mockResolvedValueOnce({ success: true, data: apiActiveTheme });
+
+    try {
+      const { fetchActiveTheme } = await import('@/lib/theme-pack/loader');
+
+      // First fetch succeeds and seeds the last-known-good cache.
+      await expect(fetchActiveTheme()).resolves.toEqual(apiActiveTheme);
+
+      activeThemeResponse.mockResolvedValueOnce({
+        success: false,
+        error: { message: 'active theme API unavailable' },
+      });
+
+      await expect(fetchActiveTheme()).resolves.toEqual(apiActiveTheme);
+    } finally {
+      consoleWarnSpy.mockRestore();
     }
   });
 

@@ -85,7 +85,47 @@ function getCacheKey(slug: string, resource: string, version?: string): string {
 }
 
 /**
- * Fetch active theme from API
+ * localStorage key holding the last successfully fetched active theme.
+ * Serves as a stale fallback when the active-theme request fails (flaky
+ * network, API timeout) so an already-working storefront keeps rendering
+ * instead of failing over to the error UI.
+ */
+const LAST_GOOD_ACTIVE_THEME_STORAGE_KEY = 'jiffoo:theme-pack:last-good-active-theme';
+
+function readLastGoodActiveTheme(): ActiveTheme | null {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  try {
+    const raw = window.localStorage.getItem(LAST_GOOD_ACTIVE_THEME_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+    const parsed = JSON.parse(raw) as ActiveTheme;
+    if (!parsed || typeof parsed !== 'object' || typeof parsed.slug !== 'string' || !parsed.slug) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function writeLastGoodActiveTheme(theme: ActiveTheme): void {
+  if (typeof window === 'undefined') {
+    return;
+  }
+  try {
+    window.localStorage.setItem(LAST_GOOD_ACTIVE_THEME_STORAGE_KEY, JSON.stringify(theme));
+  } catch {
+    // Best-effort only: storage may be unavailable (quota, private mode).
+  }
+}
+
+/**
+ * Fetch active theme from API.
+ * On failure, falls back to the last-known-good active theme persisted in
+ * localStorage so transient network errors do not break theme resolution.
  */
 export async function fetchActiveTheme(): Promise<ActiveTheme | null> {
   try {
@@ -94,8 +134,20 @@ export async function fetchActiveTheme(): Promise<ActiveTheme | null> {
     if (!response.success) {
       throw new Error(response.error?.message || 'Failed to fetch active theme');
     }
-    return (response.data || null) as ActiveTheme | null;
+    const activeTheme = (response.data || null) as ActiveTheme | null;
+    if (activeTheme) {
+      writeLastGoodActiveTheme(activeTheme);
+    }
+    return activeTheme;
   } catch (error) {
+    const lastGood = readLastGoodActiveTheme();
+    if (lastGood) {
+      console.warn(
+        '[ThemePack] Active theme fetch failed; serving last-known-good active theme from local cache:',
+        error,
+      );
+      return lastGood;
+    }
     console.error('[ThemePack] Error fetching active theme:', error);
     throw error instanceof Error ? error : new Error('Failed to fetch active theme');
   }
