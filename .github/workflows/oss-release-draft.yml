@@ -1,0 +1,115 @@
+name: OSS Release Draft (Weekly Train)
+
+on:
+  schedule:
+    # Monday 01:30 UTC — assemble the weekly release-train draft for manual review
+    - cron: '30 1 * * 1'
+  workflow_dispatch:
+    inputs:
+      prev_tag:
+        description: 'Override previous tag, e.g. v1.0.152-opensource (default: latest published release)'
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: oss-release-draft
+  cancel-in-progress: false
+
+jobs:
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Assemble release-train draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PREV_TAG_OVERRIDE: ${{ inputs.prev_tag }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${PREV_TAG_OVERRIDE}" ]; then
+            PREV_TAG="${PREV_TAG_OVERRIDE}"
+          else
+            PREV_TAG="$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1 --json tagName --jq '.[0].tagName')"
+          fi
+          if [ -z "${PREV_TAG}" ]; then
+            echo "No previous release found; nothing to diff against. Skipping."
+            exit 0
+          fi
+          echo "Previous tag: ${PREV_TAG}"
+
+          PREV_DATE="$(gh release view "${PREV_TAG}" --repo "$GITHUB_REPOSITORY" --json publishedAt --jq '.publishedAt // empty')"
+          if [ -z "${PREV_DATE}" ]; then
+            PREV_DATE="$(git log -1 --format=%cI "${PREV_TAG}")"
+          fi
+          echo "Changes since: ${PREV_DATE}"
+
+          gh pr list --repo "$GITHUB_REPOSITORY" --state merged --limit 300 \
+            --json number,title,mergedAt \
+            --jq ".[] | select(.mergedAt > \"${PREV_DATE}\")" > prs.json
+          COUNT="$(jq length prs.json)"
+          echo "Merged PRs in this train: ${COUNT}"
+          if [ "${COUNT}" -eq 0 ]; then
+            echo "No merged PRs since ${PREV_TAG}; skipping draft."
+            exit 0
+          fi
+
+          jq -r 'select(.title | test("^feat(\\(|:| )")) | "- \(.title) (#\(.number))"' prs.json > added.txt || true
+          jq -r 'select(.title | test("^fix(\\(|:| )")) | "- \(.title) (#\(.number))"' prs.json > fixed.txt || true
+          jq -r 'select(.title | test("^(perf|refactor|revert|chore|docs|test|build|ci)(\\(|:| )")) | "- \(.title) (#\(.number))"' prs.json > changed.txt || true
+          jq -r 'select((.title | test("^(feat|fix|perf|refactor|revert|chore|docs|test|build|ci)(\\(|:| )")) | not) | "- \(.title) (#\(.number))"' prs.json > other.txt || true
+
+          git diff --name-only --diff-filter=A "${PREV_TAG}..HEAD" \
+            | grep -iE '(^|/)(migrations?)/' | sed 's/^/- `/' | sed 's/$/`/' > migrations.txt || true
+
+          BASE="${PREV_TAG%-opensource}"
+          IFS='.' read -r MAJ MIN PATCH <<< "${BASE#v}"
+          NEXT_TAG="v${MAJ}.${MIN}.$((PATCH + 1))-opensource"
+          echo "Draft tag: ${NEXT_TAG} (tag is only created when the draft is published)"
+
+          emit_section() {
+            local header="$1" file="$2"
+            if [ -s "${file}" ]; then
+              echo
+              echo "## ${header}"
+              echo
+              cat "${file}"
+            fi
+          }
+
+          {
+            echo "> Open-source commerce core — storefront / admin / themes / plugins / marketplace-ready architecture."
+            echo
+            echo "Weekly release train: ${COUNT} merged change(s) since \`${PREV_TAG}\`. Review, adjust wording, then publish this draft to cut the release."
+            emit_section "Added 新增功能" added.txt
+            emit_section "Changed 优化改进" changed.txt
+            emit_section "Fixed Bug 修复" fixed.txt
+            emit_section "Other 其他" other.txt
+            if [ -s migrations.txt ]; then
+              emit_section "Migrations 数据库迁移" migrations.txt
+              echo
+              echo "Apply with \`pnpm --filter api db:migrate\` or the Docker Compose upgrader."
+            fi
+            echo
+            echo "## Upgrade 升级"
+            echo
+            echo "- Self-hosted: \`curl -fsSL https://get.jiffoo.com | bash\`, or the Docker Compose upgrader (staged \`image-first\` cutover)."
+            echo "- Self-hosted update detection is final only when this version appears at <https://get.jiffoo.com/releases/core/manifest.json> — a GitHub Release alone does not complete publication."
+            echo
+            echo "## Documentation 文档"
+            echo
+            echo "- [README](https://github.com/thefreelight/Jiffoo#readme) · [Digital Commerce](https://github.com/thefreelight/Jiffoo/blob/main/docs/digital-commerce.md) · [Agentic Commerce](https://github.com/thefreelight/Jiffoo/blob/main/docs/agentic-commerce.md) · [Release Process](https://github.com/thefreelight/Jiffoo/blob/main/docs/RELEASE_PROCESS.md)"
+          } > NOTES.md
+
+          gh release create "${NEXT_TAG}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --draft \
+            --target main \
+            --title "Jiffoo ${BASE#v}" \
+            --notes-file NOTES.md
