@@ -440,6 +440,7 @@ export interface ProfilePageProps extends ThemeI18nProps {
   isLoading: boolean;
   isAuthenticated: boolean;
   config?: ThemeConfig;
+  onNavigate?: (path: string) => void;
   onNavigateToSettings: () => void;
   onNavigateToOrders: () => void;
   onNavigateToLogin: () => void;

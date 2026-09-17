@@ -60,6 +60,7 @@ export const Header = React.memo(function Header({
   const site = resolveBokmooSiteConfig(config);
   const mobileMenuId = 'bokmoo-mobile-menu';
   const isZhHant = locale === 'zh-Hant';
+  const accountInitial = ((user?.firstName || user?.email || 'B').trim().charAt(0) || 'B').toUpperCase();
 
   const openHref = React.useCallback(
     (href: string) => {
@@ -126,10 +127,14 @@ export const Header = React.memo(function Header({
           {isAuthenticated ? (
             <button
               onClick={onNavigateToProfile}
-              className={`inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_46%,white)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-bold tracking-[0.01em] text-[var(--bokmoo-bg)] shadow-[0_14px_30px_color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),inset_0_1px_0_rgba(255,255,255,0.34)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING}`}
+              className={`inline-flex min-h-[2.75rem] items-center gap-2.5 rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_26%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(0,0,0,0.16))] pl-1.5 pr-4 text-sm font-semibold text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition-colors hover:border-[color:color-mix(in_oklab,var(--bokmoo-gold)_54%,transparent)] ${FOCUS_VISIBLE_RING}`}
               type="button"
             >
-              {isZhHant ? '控制台' : 'Dashboard'}
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_86%,white),color-mix(in_oklab,var(--bokmoo-gold)_66%,black))] text-[0.8rem] font-bold text-[var(--bokmoo-bg)]">
+                {accountInitial}
+              </span>
+              {isZhHant ? '我的帳戶' : 'My Account'}
+              <ChevronDown className="h-4 w-4 text-[var(--bokmoo-copy-soft)]" />
             </button>
           ) : (
             <>
@@ -215,13 +220,13 @@ export const Header = React.memo(function Header({
                   className={`rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-ink)] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >
-                  {isZhHant ? '帳戶' : 'Account'}
-                </button>
-                <button
-                  onClick={() => {
-                    onLogout();
-                    setIsMenuOpen(false);
-                  }}
+                    {isZhHant ? '我的帳戶' : 'My Account'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      onLogout();
+                      setIsMenuOpen(false);
+                    }}
                   className={`rounded-[0.9rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] px-4 py-3 text-left text-sm font-medium text-[var(--bokmoo-copy)] ${FOCUS_VISIBLE_RING}`}
                   type="button"
                 >
