@@ -14156,24 +14156,34 @@
               ]
             }
           ),
-          /* @__PURE__ */ jsx(
+          isAuthenticated ? /* @__PURE__ */ jsx(
             "button",
             {
-              onClick: isAuthenticated ? onNavigateToProfile : onNavigateToLogin,
-              className: `inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_28%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] px-5 text-sm font-medium text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING2}`,
-              type: "button",
-              children: isAuthenticated ? user?.firstName || (isZhHant ? "\u5E33\u6236" : "Account") : isZhHant ? "\u767B\u5165" : "Log In"
-            }
-          ),
-          /* @__PURE__ */ jsx(
-            "button",
-            {
-              onClick: isAuthenticated ? onNavigateToProfile : onNavigateToRegister,
+              onClick: onNavigateToProfile,
               className: `inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_46%,white)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-bold tracking-[0.01em] text-[var(--bokmoo-bg)] shadow-[0_14px_30px_color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),inset_0_1px_0_rgba(255,255,255,0.34)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING2}`,
               type: "button",
-              children: isAuthenticated ? isZhHant ? "\u63A7\u5236\u53F0" : "Dashboard" : isZhHant ? "\u7ACB\u5373\u958B\u59CB" : "Get Started"
+              children: isZhHant ? "\u63A7\u5236\u53F0" : "Dashboard"
             }
-          ),
+          ) : /* @__PURE__ */ jsxs(Fragment2, { children: [
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                onClick: onNavigateToLogin,
+                className: `inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_28%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] px-5 text-sm font-medium text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING2}`,
+                type: "button",
+                children: isZhHant ? "\u767B\u5165" : "Log In"
+              }
+            ),
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                onClick: onNavigateToRegister,
+                className: `inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_46%,white)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-bold tracking-[0.01em] text-[var(--bokmoo-bg)] shadow-[0_14px_30px_color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),inset_0_1px_0_rgba(255,255,255,0.34)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING2}`,
+                type: "button",
+                children: isZhHant ? "\u7ACB\u5373\u958B\u59CB" : "Get Started"
+              }
+            )
+          ] }),
           /* @__PURE__ */ jsxs(
             "button",
             {

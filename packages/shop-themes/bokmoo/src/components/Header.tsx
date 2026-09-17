@@ -123,21 +123,32 @@ export const Header = React.memo(function Header({
             <ChevronDown className="h-4 w-4" />
           </button>
 
-          <button
-            onClick={isAuthenticated ? onNavigateToProfile : onNavigateToLogin}
-            className={`inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_28%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] px-5 text-sm font-medium text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
-            type="button"
-          >
-            {isAuthenticated ? user?.firstName || (isZhHant ? '帳戶' : 'Account') : isZhHant ? '登入' : 'Log In'}
-          </button>
-
-          <button
-            onClick={isAuthenticated ? onNavigateToProfile : onNavigateToRegister}
-            className={`inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_46%,white)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-bold tracking-[0.01em] text-[var(--bokmoo-bg)] shadow-[0_14px_30px_color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),inset_0_1px_0_rgba(255,255,255,0.34)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING}`}
-            type="button"
-          >
-            {isAuthenticated ? (isZhHant ? '控制台' : 'Dashboard') : isZhHant ? '立即開始' : 'Get Started'}
-          </button>
+          {isAuthenticated ? (
+            <button
+              onClick={onNavigateToProfile}
+              className={`inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_46%,white)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-bold tracking-[0.01em] text-[var(--bokmoo-bg)] shadow-[0_14px_30px_color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),inset_0_1px_0_rgba(255,255,255,0.34)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING}`}
+              type="button"
+            >
+              {isZhHant ? '控制台' : 'Dashboard'}
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={onNavigateToLogin}
+                className={`inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_28%,transparent)] bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(0,0,0,0.16))] px-5 text-sm font-medium text-[var(--bokmoo-ink)] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition-colors hover:border-[var(--bokmoo-gold)] hover:text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
+                type="button"
+              >
+                {isZhHant ? '登入' : 'Log In'}
+              </button>
+              <button
+                onClick={onNavigateToRegister}
+                className={`inline-flex min-h-[2.75rem] items-center justify-center rounded-[0.9rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_46%,white)] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_88%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-bold tracking-[0.01em] text-[var(--bokmoo-bg)] shadow-[0_14px_30px_color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent),inset_0_1px_0_rgba(255,255,255,0.34)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING}`}
+                type="button"
+              >
+                {isZhHant ? '立即開始' : 'Get Started'}
+              </button>
+            </>
+          )}
 
           <button
             onClick={onNavigateToCart}
