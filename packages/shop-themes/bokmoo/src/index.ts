@@ -4,7 +4,7 @@ import './tokens.css';
 
 import { NotFound } from '@shop-themes/default/src/components/NotFound';
 import { OrderCancelledPage } from '@shop-themes/default/src/components/OrderCancelledPage';
-import { ProfilePage } from '@shop-themes/default/src/components/ProfilePage';
+import { ProfilePage } from './components/ProfilePage';
 import { Toast, ToastContainer } from '@shop-themes/default/src/ui/Toast';
 import type { ToastProps, ToastType } from '@shop-themes/default/src/ui/Toast';
 

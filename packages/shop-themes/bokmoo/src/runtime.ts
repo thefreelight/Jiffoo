@@ -2,7 +2,7 @@ import type { ThemePackage } from 'shared/src/types/theme';
 
 import { NotFound } from '@shop-themes/default/src/components/NotFound';
 import { OrderCancelledPage } from '@shop-themes/default/src/components/OrderCancelledPage';
-import { ProfilePage } from '@shop-themes/default/src/components/ProfilePage';
+import { ProfilePage } from './components/ProfilePage';
 
 import { AuthCallbackPage } from './components/AuthCallbackPage';
 import { AffiliatePage } from './components/AffiliatePage';

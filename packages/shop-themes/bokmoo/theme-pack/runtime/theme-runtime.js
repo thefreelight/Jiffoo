@@ -296,6 +296,13 @@
     ["circle", { cx: "12", cy: "12", r: "4", key: "4exip2" }]
   ]);
 
+  // ../../../node_modules/lucide-react/dist/esm/icons/link-2.js
+  var Link2 = createLucideIcon("Link2", [
+    ["path", { d: "M9 17H7A5 5 0 0 1 7 7h2", key: "8i5ue5" }],
+    ["path", { d: "M15 7h2a5 5 0 1 1 0 10h-2", key: "1b9ql8" }],
+    ["line", { x1: "8", x2: "16", y1: "12", y2: "12", key: "1jonct" }]
+  ]);
+
   // ../../../node_modules/lucide-react/dist/esm/icons/list.js
   var List = createLucideIcon("List", [
     ["path", { d: "M3 12h.01", key: "nlz23k" }],
@@ -329,6 +336,13 @@
     ["line", { x1: "4", x2: "20", y1: "12", y2: "12", key: "1e0a9i" }],
     ["line", { x1: "4", x2: "20", y1: "6", y2: "6", key: "1owob3" }],
     ["line", { x1: "4", x2: "20", y1: "18", y2: "18", key: "yk5zj1" }]
+  ]);
+
+  // ../../../node_modules/lucide-react/dist/esm/icons/message-square-text.js
+  var MessageSquareText = createLucideIcon("MessageSquareText", [
+    ["path", { d: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z", key: "1lielz" }],
+    ["path", { d: "M13 8H7", key: "14i4kc" }],
+    ["path", { d: "M17 12H7", key: "16if0g" }]
   ]);
 
   // ../../../node_modules/lucide-react/dist/esm/icons/minus.js
@@ -511,16 +525,25 @@
     ["path", { d: "M12 17h.01", key: "p32p05" }]
   ]);
 
+  // ../../../node_modules/lucide-react/dist/esm/icons/user-plus.js
+  var UserPlus = createLucideIcon("UserPlus", [
+    ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
+    ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }],
+    ["line", { x1: "19", x2: "19", y1: "8", y2: "14", key: "1bvyxn" }],
+    ["line", { x1: "22", x2: "16", y1: "11", y2: "11", key: "1shjgl" }]
+  ]);
+
   // ../../../node_modules/lucide-react/dist/esm/icons/user-round.js
   var UserRound = createLucideIcon("UserRound", [
     ["circle", { cx: "12", cy: "8", r: "5", key: "1hypcn" }],
     ["path", { d: "M20 21a8 8 0 0 0-16 0", key: "rfgkzh" }]
   ]);
 
-  // ../../../node_modules/lucide-react/dist/esm/icons/user.js
-  var User = createLucideIcon("User", [
-    ["path", { d: "M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2", key: "975kel" }],
-    ["circle", { cx: "12", cy: "7", r: "4", key: "17ys0d" }]
+  // ../../../node_modules/lucide-react/dist/esm/icons/users-round.js
+  var UsersRound = createLucideIcon("UsersRound", [
+    ["path", { d: "M18 21a8 8 0 0 0-16 0", key: "3ypg7q" }],
+    ["circle", { cx: "10", cy: "8", r: "5", key: "o932ke" }],
+    ["path", { d: "M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3", key: "10s06x" }]
   ]);
 
   // ../../../node_modules/lucide-react/dist/esm/icons/wallet-cards.js
@@ -11409,119 +11432,134 @@
     ] }) }) });
   }
 
-  // ../default/src/components/ProfilePage.tsx
+  // src/components/ProfilePage.tsx
   var ProfilePage = react_default.memo(function ProfilePage2({
     user,
     isLoading,
     isAuthenticated,
-    config,
     onNavigateToSettings,
     onNavigateToOrders,
     onNavigateToLogin
   }) {
     if (!isAuthenticated || !user) {
-      return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center px-4", children: /* @__PURE__ */ jsx("div", { className: "w-full max-w-md", children: /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-8 sm:p-12 text-center", children: [
-        /* @__PURE__ */ jsx("div", { className: "w-20 h-20 mx-auto mb-6 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center", children: /* @__PURE__ */ jsx(User, { className: "w-10 h-10 text-blue-600 dark:text-blue-400" }) }),
-        /* @__PURE__ */ jsxs("div", { className: "space-y-3 mb-8", children: [
-          /* @__PURE__ */ jsx("h2", { className: "text-2xl font-bold text-gray-900 dark:text-white", children: "Access Denied" }),
-          /* @__PURE__ */ jsx("p", { className: "text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase tracking-wider", children: "PLEASE LOG IN TO VIEW YOUR PROFILE" })
-        ] }),
+      return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--bokmoo-bg)] px-4", children: /* @__PURE__ */ jsx("div", { className: "w-full max-w-md", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-10 text-center shadow-[var(--bokmoo-shadow)]", children: [
+        /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(UserRound, { className: "h-8 w-8" }) }),
+        /* @__PURE__ */ jsx("h2", { className: "mt-6 text-3xl leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: "Sign in to view your profile" }),
+        /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Please log in to check your BOKMOO account" }),
         /* @__PURE__ */ jsx(
           "button",
           {
             onClick: onNavigateToLogin,
-            className: "w-full h-12 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 dark:shadow-none bg-blue-600 hover:bg-blue-700 text-white transition-all",
-            children: "GO TO LOGIN"
+            className: "mt-8 h-12 w-full rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-6 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-bg)]",
+            type: "button",
+            children: "Log In"
           }
         )
       ] }) }) });
     }
     if (isLoading) {
-      return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center", children: /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
-        /* @__PURE__ */ jsx("div", { className: "w-12 h-12 border-4 border-gray-100 dark:border-slate-700 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" }),
-        /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "LOADING PROFILE..." })
+      return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--bokmoo-bg)]", children: /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
+        /* @__PURE__ */ jsx("div", { className: "mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-4 border-[var(--bokmoo-line)] border-t-[var(--bokmoo-gold)]" }),
+        /* @__PURE__ */ jsx("p", { className: "text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", children: "Loading profile..." })
       ] }) });
     }
     const userInitial = user.name?.charAt(0).toUpperCase() || "U";
-    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-gray-50 dark:bg-slate-900", children: /* @__PURE__ */ jsx("div", { className: "container mx-auto px-4 py-8 sm:py-12", children: /* @__PURE__ */ jsxs("div", { className: "max-w-5xl mx-auto space-y-6 sm:space-y-8", children: [
-      /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden", children: [
-        /* @__PURE__ */ jsx("div", { className: "h-24 sm:h-32 bg-gray-50 dark:bg-slate-700 border-b border-gray-100 dark:border-slate-600" }),
-        /* @__PURE__ */ jsxs("div", { className: "px-6 sm:px-8 pb-6 sm:pb-8 flex flex-col sm:flex-row items-end gap-6 sm:gap-8 -mt-12 sm:-mt-16 relative z-10", children: [
-          /* @__PURE__ */ jsx("div", { className: "w-24 h-24 sm:w-32 sm:h-32 rounded-2xl bg-white dark:bg-slate-800 p-1 shadow-xl ring-1 ring-gray-100 dark:ring-slate-700 flex-shrink-0", children: user.avatar ? /* @__PURE__ */ jsx(
-            "img",
-            {
-              src: user.avatar,
-              alt: user.name,
-              className: "w-full h-full object-cover rounded-xl"
-            }
-          ) : /* @__PURE__ */ jsx("div", { className: "w-full h-full bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center text-3xl sm:text-4xl font-bold text-blue-600 dark:text-blue-400", children: userInitial }) }),
-          /* @__PURE__ */ jsxs("div", { className: "flex-1 pb-2 space-y-3 text-center sm:text-left", children: [
-            /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3 flex-wrap justify-center sm:justify-start", children: [
-              /* @__PURE__ */ jsx("h1", { className: "text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white tracking-tight leading-none", children: user.name }),
-              /* @__PURE__ */ jsx("span", { className: "bg-gray-900 dark:bg-slate-700 text-white text-[10px] font-bold uppercase tracking-widest h-5 px-3 rounded-full flex items-center", children: "MEMBER" })
-            ] }),
-            /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-4 sm:gap-6 text-[11px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest justify-center sm:justify-start", children: [
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
-                /* @__PURE__ */ jsx("div", { className: "w-1 h-1 bg-blue-500 rounded-full" }),
-                user.email
-              ] }),
-              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
-                /* @__PURE__ */ jsx("div", { className: "w-1 h-1 bg-blue-500 rounded-full" }),
-                "JOINED ",
-                new Date(user.createdAt).toLocaleDateString()
-              ] })
+    return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-16 pt-20 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-[1080px]", children: [
+      /* @__PURE__ */ jsx("section", { className: "rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-start gap-5 sm:flex-row sm:items-center", children: [
+        /* @__PURE__ */ jsx("div", { className: "flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-[1.25rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] text-3xl font-bold text-[var(--bokmoo-bg)]", children: user.avatar ? /* @__PURE__ */ jsx(
+          "img",
+          {
+            src: user.avatar,
+            alt: user.name,
+            className: "h-full w-full rounded-[1.25rem] object-cover"
+          }
+        ) : userInitial }),
+        /* @__PURE__ */ jsxs("div", { className: "min-w-0 flex-1 space-y-3 text-center sm:text-left", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center justify-center gap-3 sm:justify-start", children: [
+            /* @__PURE__ */ jsx("h1", { className: "text-3xl leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: user.name }),
+            /* @__PURE__ */ jsx("span", { className: "inline-flex h-6 items-center rounded-full bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-gold)]", children: "Member" })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--bokmoo-copy-soft)] sm:justify-start", children: [
+            /* @__PURE__ */ jsx("span", { children: user.email }),
+            /* @__PURE__ */ jsx("span", { className: "hidden sm:inline text-[var(--bokmoo-line-strong)]", children: "\xB7" }),
+            /* @__PURE__ */ jsxs("span", { children: [
+              "Joined ",
+              new Date(user.createdAt).toLocaleDateString()
             ] })
           ] })
         ] })
-      ] }),
-      /* @__PURE__ */ jsx("div", { className: "grid grid-cols-1 gap-6", children: /* @__PURE__ */ jsxs(
-        "div",
-        {
-          onClick: onNavigateToOrders,
-          className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 sm:p-8 cursor-pointer hover:shadow-md transition-all",
-          children: [
-            /* @__PURE__ */ jsx("div", { className: "flex items-center justify-between mb-6", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
-              /* @__PURE__ */ jsx("div", { className: "w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center", children: /* @__PURE__ */ jsx(ShoppingBag, { className: "w-6 h-6 text-blue-600 dark:text-blue-400" }) }),
+      ] }) }),
+      /* @__PURE__ */ jsxs("section", { className: "mt-6 grid gap-6 lg:grid-cols-1", children: [
+        /* @__PURE__ */ jsx(
+          "div",
+          {
+            onClick: onNavigateToOrders,
+            className: "cursor-pointer rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)] transition-colors sm:p-8",
+            children: /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-4", children: [
+                /* @__PURE__ */ jsx("div", { className: "flex h-12 w-12 items-center justify-center rounded-[1rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(ShoppingBag, { className: "h-6 w-6" }) }),
+                /* @__PURE__ */ jsxs("div", { children: [
+                  /* @__PURE__ */ jsx("p", { className: "text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Orders" }),
+                  /* @__PURE__ */ jsx("h3", { className: "mt-1 text-lg font-bold tracking-tight text-[var(--bokmoo-ink)]", children: "Order History" }),
+                  /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[var(--bokmoo-copy)]", children: "View and manage your orders" })
+                ] })
+              ] }),
+              /* @__PURE__ */ jsx(
+                "button",
+                {
+                  onClick: (e) => {
+                    e.stopPropagation();
+                    onNavigateToOrders();
+                  },
+                  className: "h-12 w-full rounded-full border border-[var(--bokmoo-line-strong)] bg-[var(--bokmoo-bg)] px-6 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-ink)] transition-colors hover:bg-[var(--bokmoo-bg-soft)] sm:w-auto",
+                  type: "button",
+                  children: "View orders"
+                }
+              )
+            ] })
+          }
+        ),
+        /* @__PURE__ */ jsxs("div", { className: "grid gap-6 lg:grid-cols-2", children: [
+          /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
+              /* @__PURE__ */ jsx(UserRound, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
+              /* @__PURE__ */ jsx("h3", { className: "text-xs font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Account Information" })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "mt-5 grid gap-6 sm:grid-cols-2", children: [
               /* @__PURE__ */ jsxs("div", { children: [
-                /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
-                  /* @__PURE__ */ jsx("div", { className: "h-3 w-0.5 bg-blue-600 rounded-full" }),
-                  /* @__PURE__ */ jsx("span", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "ORDERS" })
-                ] }),
-                /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold text-gray-900 dark:text-white", children: "Order History" })
+                /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Email address" }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 break-all text-sm font-bold text-[var(--bokmoo-ink)]", children: user.email })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Member since" }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm font-bold text-[var(--bokmoo-ink)]", children: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A" })
               ] })
-            ] }) }),
-            /* @__PURE__ */ jsx("p", { className: "text-sm text-gray-500 dark:text-gray-400 mb-6 leading-relaxed", children: "View and manage your orders" }),
-            /* @__PURE__ */ jsx(
-              "button",
-              {
-                onClick: (e) => {
-                  e.stopPropagation();
-                  onNavigateToOrders();
-                },
-                className: "w-full h-11 rounded-xl border border-gray-200 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 font-semibold text-sm text-gray-700 dark:text-gray-300 transition-all uppercase tracking-wider",
-                children: "VIEW ORDERS"
-              }
-            )
-          ]
-        }
-      ) }),
-      /* @__PURE__ */ jsxs("div", { className: "bg-white dark:bg-slate-800 rounded-3xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 sm:p-8", children: [
-        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-6", children: [
-          /* @__PURE__ */ jsx("div", { className: "h-4 w-1 bg-blue-600 rounded-full" }),
-          /* @__PURE__ */ jsx("h3", { className: "text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest", children: "ACCOUNT INFORMATION" })
-        ] }),
-        /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8", children: [
-          /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "EMAIL ADDRESS" }),
-            /* @__PURE__ */ jsx("p", { className: "font-bold text-gray-900 dark:text-white", children: user.email })
+            ] })
           ] }),
-          /* @__PURE__ */ jsxs("div", { children: [
-            /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2", children: "MEMBER SINCE" }),
-            /* @__PURE__ */ jsx("p", { className: "font-bold text-gray-900 dark:text-white", children: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A" })
+          /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--bokmoo-radius-xl)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
+              /* @__PURE__ */ jsx(MessageSquareText, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
+              /* @__PURE__ */ jsx("h3", { className: "text-xs font-bold uppercase tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Account Preferences" })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "mt-5", children: [
+              /* @__PURE__ */ jsx("p", { className: "text-sm leading-relaxed text-[var(--bokmoo-copy)]", children: "Update your name, phone, date of birth, language and timezone for your next BOKMOO trip." }),
+              /* @__PURE__ */ jsxs(
+                "button",
+                {
+                  onClick: onNavigateToSettings,
+                  className: "mt-6 inline-flex min-h-12 items-center gap-2 rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_65%,black))] px-6 text-sm font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-bg)]",
+                  type: "button",
+                  children: [
+                    /* @__PURE__ */ jsx(UserRound, { className: "h-4 w-4" }),
+                    "Edit profile"
+                  ]
+                }
+              )
+            ] })
           ] })
         ] })
       ] })
-    ] }) }) });
+    ] }) });
   });
 
   // src/site.ts
@@ -11589,6 +11627,605 @@
             }
           )
         ] })
+      ] }) })
+    ] });
+  }
+
+  // src/lib/api.ts
+  var BokmooApiError = class extends Error {
+    constructor(status, code, message, requestId) {
+      super(message);
+      this.name = "BokmooApiError";
+      this.status = status;
+      this.code = code;
+      this.requestId = requestId;
+    }
+  };
+  function getProductIdFromLocation() {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    const queryId = params.get("productId") || params.get("id");
+    if (queryId) return queryId;
+    const segments = window.location.pathname.split("/").filter(Boolean);
+    const productsIndex = segments.lastIndexOf("products");
+    if (productsIndex >= 0 && segments[productsIndex + 1]) {
+      return decodeURIComponent(segments[productsIndex + 1]);
+    }
+    return null;
+  }
+  function getOrderIdFromLocation() {
+    if (typeof window === "undefined") return null;
+    const params = new URLSearchParams(window.location.search);
+    const queryId = params.get("orderId") || params.get("id");
+    if (queryId) return queryId;
+    const segments = window.location.pathname.split("/").filter(Boolean);
+    const ordersIndex = segments.lastIndexOf("orders");
+    if (ordersIndex >= 0 && segments[ordersIndex + 1]) {
+      return decodeURIComponent(segments[ordersIndex + 1]);
+    }
+    return null;
+  }
+  function getClientToken() {
+    if (typeof window === "undefined") return null;
+    try {
+      const localStorageToken = window.localStorage.getItem("auth_token");
+      if (localStorageToken) return localStorageToken;
+    } catch {
+    }
+    const cookieValue = `; ${document.cookie}`;
+    const parts = cookieValue.split("; auth_token=");
+    if (parts.length === 2) {
+      return parts.pop()?.split(";").shift() || null;
+    }
+    return null;
+  }
+  function normalizeResponse(payload) {
+    if (payload && typeof payload === "object" && "data" in payload && payload.data !== void 0) {
+      return payload.data;
+    }
+    return payload;
+  }
+  function asRecord(value) {
+    return value && typeof value === "object" ? value : {};
+  }
+  function readString(source, keys) {
+    for (const key of keys) {
+      const value = source[key];
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+    return void 0;
+  }
+  function readNullableString(source, keys) {
+    for (const key of keys) {
+      const value = source[key];
+      if (value === null) return null;
+      if (typeof value === "string" && value.trim()) {
+        return value.trim();
+      }
+    }
+    return void 0;
+  }
+  function normalizeInstructions(value) {
+    if (!value) return {};
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      if (!trimmed) return {};
+      try {
+        return normalizeInstructions(JSON.parse(trimmed));
+      } catch {
+        return { general: [trimmed] };
+      }
+    }
+    if (Array.isArray(value)) {
+      return { general: value.filter((item) => typeof item === "string" && item.trim().length > 0) };
+    }
+    const source = asRecord(value);
+    return {
+      ios: Array.isArray(source.ios) ? source.ios.filter((item) => typeof item === "string" && item.trim().length > 0) : [],
+      android: Array.isArray(source.android) ? source.android.filter((item) => typeof item === "string" && item.trim().length > 0) : [],
+      general: Array.isArray(source.general) ? source.general.filter((item) => typeof item === "string" && item.trim().length > 0) : []
+    };
+  }
+  function normalizeSupport(value, source) {
+    const support = asRecord(value);
+    return {
+      email: readString(support, ["email"]) || readString(source, ["supportEmail", "support_email"]),
+      phone: readString(support, ["phone"]) || readString(source, ["supportPhone", "support_phone"])
+    };
+  }
+  async function requestEnvelope(config, endpoint, method = "GET", body) {
+    const headers = {
+      Accept: "application/json"
+    };
+    if (body !== void 0) {
+      headers["Content-Type"] = "application/json";
+    }
+    const resolvedToken = config.token === void 0 ? getClientToken() : config.token;
+    if (resolvedToken) {
+      headers.Authorization = `Bearer ${resolvedToken}`;
+    }
+    const url = `${config.baseUrl.replace(/\/$/, "")}${endpoint}`;
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: body !== void 0 ? JSON.stringify(body) : void 0,
+      cache: "no-store"
+    });
+    const json = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const error = json.error;
+      throw new BokmooApiError(
+        response.status,
+        error?.code || "API_ERROR",
+        error?.message || `Request failed with status ${response.status}`,
+        error?.requestId
+      );
+    }
+    if (json && typeof json === "object" && "data" in json && json.data !== void 0) {
+      return json;
+    }
+    return { data: json };
+  }
+  async function request(config, endpoint, method = "GET", body) {
+    const envelope = await requestEnvelope(config, endpoint, method, body);
+    return normalizeResponse(envelope);
+  }
+  function buildEsimSummary(source) {
+    const data = source?.data?.gb ? `${source.data.gb}GB` : "Flexible data";
+    const validity = source?.validityDays ? `${source.validityDays} Days` : "Flexible validity";
+    return `${data} / ${validity}`;
+  }
+  function buildTechnologyLabel(source) {
+    const technology = source?.networks?.technology?.filter(Boolean) || [];
+    return technology.length ? `${technology.join("/")} High Speed` : "4G/5G High Speed";
+  }
+  function mapVariant(variant) {
+    const esim = variant.attributes?.esim;
+    return {
+      id: variant.id,
+      name: variant.name,
+      value: buildEsimSummary(esim),
+      type: "STYLE",
+      price: variant.salePrice,
+      inventory: variant.isActive === false ? 0 : 99
+    };
+  }
+  function mapBokmooApiProductToThemeProduct(product) {
+    const esim = product.typeData?.esim;
+    const imageUrl = product.images?.[0]?.url || product.image;
+    const regionTag = esim?.region || esim?.country || "Travel";
+    const technology = buildTechnologyLabel(esim);
+    return {
+      id: product.id,
+      name: product.name,
+      description: product.description || `${product.name} travel connectivity package`,
+      price: Number(product.price || 0),
+      sku: product.slug || product.id,
+      category: {
+        id: esim?.region || "esim",
+        name: esim?.region || "eSIM Plans",
+        slug: (esim?.region || "esim").toLowerCase().replace(/\s+/g, "-"),
+        level: 1,
+        isActive: true,
+        productCount: 0
+      },
+      tags: [regionTag, esim?.carrier || "Carrier", technology].filter(Boolean),
+      images: imageUrl ? [
+        {
+          id: `${product.id}-image`,
+          url: imageUrl,
+          alt: product.name,
+          order: 0,
+          isMain: true
+        }
+      ] : [],
+      variants: (product.variants || []).map(mapVariant),
+      inventory: {
+        quantity: 99,
+        reserved: 0,
+        available: 99,
+        lowStockThreshold: 5,
+        isInStock: true,
+        isLowStock: false,
+        trackInventory: false
+      },
+      specifications: [
+        { name: "Coverage", value: esim?.country || esim?.region || "Global" },
+        { name: "Data", value: esim?.data?.gb ? `${esim.data.gb}GB` : "Flexible" },
+        { name: "Validity", value: esim?.validityDays ? `${esim.validityDays} Days` : "Flexible" },
+        { name: "Carrier", value: esim?.carrier || "Local carrier" },
+        { name: "Network", value: technology }
+      ],
+      isActive: true,
+      isFeatured: true,
+      rating: 4.9,
+      reviewCount: 1200,
+      createdAt: (/* @__PURE__ */ new Date()).toISOString(),
+      updatedAt: (/* @__PURE__ */ new Date()).toISOString()
+    };
+  }
+  function mapBokmooApiOrderToThemeOrder(order) {
+    return {
+      id: order.id,
+      userId: "",
+      status: order.status || order.fulfillmentStatus || order.paymentStatus || "PROCESSING",
+      paymentStatus: order.paymentStatus || "PAID",
+      totalAmount: Number(order.totalAmount || 0),
+      currency: order.currency || "USD",
+      shippingAddress: null,
+      shipments: (order.shipments || []).map((shipment) => ({ ...shipment, trackingUrl: shipment.trackingUrl || null, shippedAt: shipment.shippedAt || null, deliveredAt: shipment.deliveredAt || null, estimatedDeliveryAt: shipment.estimatedDeliveryAt || null, lastCheckedAt: shipment.lastCheckedAt || null })),
+      items: (order.items || []).map((item) => {
+        const quantity = Number(item.quantity || 1);
+        const unitPrice = Number(item.unitPrice ?? item.totalPrice ?? 0);
+        const totalPrice = Number(item.totalPrice ?? unitPrice * quantity);
+        return {
+          id: item.id,
+          productId: item.productId,
+          productName: item.productName,
+          variantId: item.variantId || "",
+          quantity,
+          unitPrice,
+          totalPrice,
+          fulfillmentStatus: item.fulfillmentStatus || null,
+          fulfillmentData: item.fulfillmentData || null
+        };
+      }),
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt || order.createdAt,
+      cancelReason: null,
+      cancelledAt: null
+    };
+  }
+  function normalizeProductForTheme(product) {
+    const candidate = product;
+    if (candidate && typeof candidate === "object" && Array.isArray(candidate.images) && Array.isArray(candidate.variants) && candidate.category && candidate.inventory) {
+      return candidate;
+    }
+    return mapBokmooApiProductToThemeProduct(product);
+  }
+  function normalizeInstallSession(session) {
+    const source = asRecord(session);
+    const matchingId = readString(source, ["matchingId", "matching_id", "activationCode", "activation_code"]);
+    const activationCode = readString(source, ["activationCode", "activation_code", "matchingId", "matching_id"]);
+    const smdpAddress = readString(source, ["smdpAddress", "smdp_address", "smdpServer", "smdp_server", "smdp"]);
+    const lpaString = readString(source, ["lpaString", "lpa_string", "lpa", "qrCodeContent", "qr_code_content"]) || (smdpAddress && (matchingId || activationCode) ? `LPA:1$${smdpAddress}$${matchingId || activationCode}` : "");
+    const qrCode = readString(source, ["qrCode", "qr_code", "qrCodeUrl", "qr_code_url", "qrCodeContent", "qr_code_content"]) || lpaString;
+    const instructions = normalizeInstructions(source.instructions);
+    return {
+      ...session,
+      orderId: readString(source, ["orderId", "order_id"]) || session.orderId || "",
+      orderNumber: readString(source, ["orderNumber", "order_number"]) || session.orderNumber || "",
+      status: readString(source, ["status"]) || session.status || "processing",
+      packageTitle: readString(source, ["packageTitle", "package_title"]) || session.packageTitle || "BOKMOO eSIM",
+      qrCode,
+      activationCode: activationCode || "",
+      matchingId: matchingId || "",
+      lpaString,
+      smdpAddress,
+      confirmationCode: readNullableString(source, ["confirmationCode", "confirmation_code", "confirmCode", "confirm_code"]) ?? null,
+      instructions: {
+        ios: instructions.ios || [],
+        android: instructions.android || [],
+        general: instructions.general || []
+      },
+      support: normalizeSupport(source.support, source)
+    };
+  }
+  async function getBokmooProducts(config, params = {}) {
+    const search = new URLSearchParams();
+    search.set("page", String(params.page || 1));
+    search.set("limit", String(params.limit || 12));
+    search.set("locale", params.locale || "en");
+    search.set("type", params.type || "esim");
+    if (params.country) search.set("country", params.country);
+    const envelope = await requestEnvelope(config, `/api/products?${search.toString()}`);
+    const meta = envelope.meta || {};
+    const data = envelope.data;
+    const items = Array.isArray(data) ? data : data.items || [];
+    const page = Number(meta.page || (!Array.isArray(data) ? data.page : void 0) || params.page || 1);
+    const limit = Number(meta.limit || (!Array.isArray(data) ? data.limit : void 0) || params.limit || 12);
+    const total = Number(meta.total || (!Array.isArray(data) ? data.total : void 0) || items.length);
+    return {
+      ...Array.isArray(data) ? {} : data,
+      items,
+      page,
+      limit,
+      total
+    };
+  }
+  async function getBokmooProduct(config, productId, locale = "en") {
+    return request(config, `/api/products/${productId}?locale=${locale}`);
+  }
+  async function getBokmooOrder(config, orderId2) {
+    return request(config, `/api/orders/${orderId2}`);
+  }
+  async function getBokmooOrders(config, params = {}) {
+    const search = new URLSearchParams();
+    search.set("page", String(params.page || 1));
+    search.set("limit", String(params.limit || 10));
+    if (params.status) search.set("status", params.status);
+    const envelope = await requestEnvelope(config, `/api/orders?${search.toString()}`);
+    const meta = envelope.meta || {};
+    const data = envelope.data;
+    const items = Array.isArray(data) ? data : data.items || [];
+    const page = Number(meta.page || (!Array.isArray(data) ? data.page : void 0) || params.page || 1);
+    const limit = Number(meta.limit || (!Array.isArray(data) ? data.limit : void 0) || params.limit || 10);
+    const total = Number(meta.total || (!Array.isArray(data) ? data.total : void 0) || items.length);
+    return {
+      ...Array.isArray(data) ? {} : data,
+      items,
+      page,
+      limit,
+      total
+    };
+  }
+  async function getBokmooInstallSession(config, orderId2) {
+    const session = await request(config, `/api/orders/${orderId2}/install-session`);
+    return normalizeInstallSession(session);
+  }
+  var affiliateBase = "/api/v1/plugins/affiliate/store";
+  async function getBokmooAffiliatePartner(config) {
+    return request(config, `${affiliateBase}/partners/me`);
+  }
+  async function registerBokmooAffiliatePartner(config, input) {
+    return request(config, `${affiliateBase}/partners/register`, "POST", input);
+  }
+  async function getBokmooAffiliateCommissions(config) {
+    const result = await request(config, `${affiliateBase}/commissions`);
+    return result.items || [];
+  }
+  async function getBokmooAffiliateOrganization(config) {
+    return request(config, `${affiliateBase}/organizations/me`);
+  }
+  async function createBokmooAffiliateOrganization(config, input) {
+    return request(config, `${affiliateBase}/organizations`, "POST", input);
+  }
+  async function addBokmooAffiliateMember(config, organizationId, input) {
+    return request(config, `${affiliateBase}/organizations/${encodeURIComponent(organizationId)}/members`, "POST", input);
+  }
+  async function getBokmooOrganizationCommissions(config) {
+    const result = await request(config, `${affiliateBase}/organizations/commissions`);
+    return result.items || [];
+  }
+
+  // src/components/AffiliatePage.tsx
+  function money(items) {
+    const total = items.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    return `${items[0]?.currency || "USD"} ${total.toFixed(2)}`;
+  }
+  function orderId(item) {
+    return item.orderId || item.order_id || "";
+  }
+  function createdAt(item) {
+    return item.createdAt || item.created_at || "";
+  }
+  var AffiliatePage = react_default.memo(function AffiliatePage2({
+    isLoading,
+    isAuthenticated,
+    config,
+    locale,
+    onNavigateBack,
+    onNavigateToLogin
+  }) {
+    const site = resolveBokmooSiteConfig(config);
+    const api = react_default.useMemo(() => ({ baseUrl: site.apiBaseUrl }), [site.apiBaseUrl]);
+    const [view2, setView] = react_default.useState("partner");
+    const [partner, setPartner] = react_default.useState(null);
+    const [commissions, setCommissions] = react_default.useState([]);
+    const [organization, setOrganization] = react_default.useState(null);
+    const [organizationCommissions, setOrganizationCommissions] = react_default.useState([]);
+    const [loading, setLoading] = react_default.useState(false);
+    const [error, setError] = react_default.useState("");
+    const [copied, setCopied] = react_default.useState(false);
+    const [displayName, setDisplayName] = react_default.useState("");
+    const [organizationCode, setOrganizationCode] = react_default.useState("");
+    const [organizationName, setOrganizationName] = react_default.useState("");
+    const [organizationRate, setOrganizationRate] = react_default.useState("2.5");
+    const [memberEmail, setMemberEmail] = react_default.useState("");
+    const [memberRole, setMemberRole] = react_default.useState("INFLUENCER");
+    const refresh = react_default.useCallback(async () => {
+      if (!isAuthenticated) return;
+      setLoading(true);
+      setError("");
+      const [partnerResult, organizationResult] = await Promise.allSettled([
+        Promise.all([getBokmooAffiliatePartner(api), getBokmooAffiliateCommissions(api)]),
+        Promise.all([
+          getBokmooAffiliateOrganization(api),
+          getBokmooOrganizationCommissions(api).catch((cause) => {
+            if (cause instanceof BokmooApiError && cause.status === 404) return [];
+            throw cause;
+          })
+        ])
+      ]);
+      if (partnerResult.status === "fulfilled") {
+        setPartner(partnerResult.value[0]);
+        setCommissions(partnerResult.value[1]);
+      } else if (!(partnerResult.reason instanceof BokmooApiError && partnerResult.reason.status === 404)) {
+        setError(partnerResult.reason instanceof Error ? partnerResult.reason.message : "Affiliate data could not be loaded");
+      }
+      if (organizationResult.status === "fulfilled") {
+        setOrganization(organizationResult.value[0]);
+        setOrganizationCommissions(organizationResult.value[1]);
+      } else if (!(organizationResult.reason instanceof BokmooApiError && organizationResult.reason.status === 404)) {
+        setError(organizationResult.reason instanceof Error ? organizationResult.reason.message : "Organization data could not be loaded");
+      }
+      setLoading(false);
+    }, [api, isAuthenticated]);
+    react_default.useEffect(() => {
+      void refresh();
+    }, [refresh]);
+    if (isLoading) return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--bokmoo-bg)]" });
+    if (!isAuthenticated) {
+      return /* @__PURE__ */ jsx("div", { className: "flex min-h-screen items-center justify-center bg-[var(--bokmoo-bg)] px-5", children: /* @__PURE__ */ jsxs("div", { className: "max-w-md border-y border-[var(--bokmoo-line)] py-10 text-center", children: [
+        /* @__PURE__ */ jsx(WalletCards, { className: "mx-auto h-7 w-7 text-[var(--bokmoo-gold)]" }),
+        /* @__PURE__ */ jsx("h1", { className: "mt-5 text-3xl text-[var(--bokmoo-ink)]", children: "Affiliate workspace" }),
+        /* @__PURE__ */ jsx("button", { onClick: onNavigateToLogin, className: "mt-7 min-h-11 bg-[var(--bokmoo-gold)] px-6 text-sm font-semibold text-[var(--bokmoo-bg)]", type: "button", children: "Sign in" })
+      ] }) });
+    }
+    const shareUrl = partner && typeof window !== "undefined" ? `${window.location.origin}/${locale || "en"}/r/${encodeURIComponent(partner.code)}` : "";
+    return /* @__PURE__ */ jsx("main", { className: "min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-20 pt-20 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsxs("div", { className: "mx-auto max-w-6xl", children: [
+      /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center justify-between gap-4 border-b border-[var(--bokmoo-line)] pb-6", children: [
+        /* @__PURE__ */ jsx("button", { onClick: onNavigateBack, className: "inline-flex h-10 w-10 items-center justify-center border border-[var(--bokmoo-line)] text-[var(--bokmoo-copy)]", "aria-label": "Back", type: "button", children: /* @__PURE__ */ jsx(ArrowLeft, { className: "h-4 w-4" }) }),
+        /* @__PURE__ */ jsxs("div", { className: "flex border border-[var(--bokmoo-line)] p-1", role: "tablist", "aria-label": "Affiliate view", children: [
+          /* @__PURE__ */ jsx("button", { onClick: () => setView("partner"), className: `min-h-9 px-4 text-xs font-semibold ${view2 === "partner" ? "bg-[var(--bokmoo-gold)] text-[var(--bokmoo-bg)]" : "text-[var(--bokmoo-copy)]"}`, type: "button", children: "Partner" }),
+          /* @__PURE__ */ jsx("button", { onClick: () => setView("organization"), className: `min-h-9 px-4 text-xs font-semibold ${view2 === "organization" ? "bg-[var(--bokmoo-gold)] text-[var(--bokmoo-bg)]" : "text-[var(--bokmoo-copy)]"}`, type: "button", children: "Organization" })
+        ] }),
+        /* @__PURE__ */ jsx("button", { onClick: () => void refresh(), className: "inline-flex h-10 w-10 items-center justify-center border border-[var(--bokmoo-line)] text-[var(--bokmoo-copy)]", "aria-label": "Refresh", type: "button", children: /* @__PURE__ */ jsx(RefreshCw, { className: `h-4 w-4 ${loading ? "animate-spin" : ""}` }) })
+      ] }),
+      error ? /* @__PURE__ */ jsx("div", { className: "mt-5 border border-[color:color-mix(in_oklab,var(--bokmoo-danger)_55%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-danger)_10%,transparent)] px-4 py-3 text-sm text-[var(--bokmoo-ink)]", children: error }) : null,
+      view2 === "partner" ? /* @__PURE__ */ jsx("section", { className: "pt-10", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-8 lg:grid-cols-[1.1fr_0.9fr]", children: [
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--bokmoo-copy-soft)]", children: "Personal affiliate" }),
+          /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-2xl text-4xl text-[var(--bokmoo-ink)] sm:text-5xl", children: "Your referral ledger." }),
+          partner ? /* @__PURE__ */ jsxs("div", { className: "mt-10 border-y border-[var(--bokmoo-line)] py-6", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-3 sm:flex-row", children: [
+              /* @__PURE__ */ jsx("div", { className: "min-w-0 flex-1 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 py-3 text-sm text-[var(--bokmoo-copy)]", children: /* @__PURE__ */ jsx("span", { className: "block truncate", children: shareUrl }) }),
+              /* @__PURE__ */ jsxs("button", { onClick: async () => {
+                await navigator.clipboard.writeText(shareUrl);
+                setCopied(true);
+                window.setTimeout(() => setCopied(false), 1600);
+              }, className: "inline-flex min-h-11 items-center justify-center gap-2 bg-[var(--bokmoo-gold)] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]", type: "button", children: [
+                copied ? /* @__PURE__ */ jsx(Check, { className: "h-4 w-4" }) : /* @__PURE__ */ jsx(Copy, { className: "h-4 w-4" }),
+                copied ? "Copied" : "Copy link"
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("div", { className: "mt-5 flex flex-wrap gap-x-10 gap-y-4 text-sm", children: [
+              /* @__PURE__ */ jsxs("span", { children: [
+                /* @__PURE__ */ jsx("b", { className: "text-2xl text-[var(--bokmoo-ink)]", children: money(commissions) }),
+                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--bokmoo-copy-soft)]", children: "earned" })
+              ] }),
+              /* @__PURE__ */ jsxs("span", { children: [
+                /* @__PURE__ */ jsxs("b", { className: "text-2xl text-[var(--bokmoo-ink)]", children: [
+                  partner.commissionRate,
+                  "%"
+                ] }),
+                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--bokmoo-copy-soft)]", children: "rate" })
+              ] }),
+              /* @__PURE__ */ jsxs("span", { children: [
+                /* @__PURE__ */ jsx("b", { className: "text-2xl text-[var(--bokmoo-ink)]", children: commissions.length }),
+                /* @__PURE__ */ jsx("small", { className: "ml-2 text-[var(--bokmoo-copy-soft)]", children: "orders" })
+              ] })
+            ] })
+          ] }) : /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
+            event.preventDefault();
+            setLoading(true);
+            setError("");
+            try {
+              await registerBokmooAffiliatePartner(api, { displayName, organizationCode: organizationCode || void 0 });
+              await refresh();
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : "Registration failed");
+            } finally {
+              setLoading(false);
+            }
+          }, className: "mt-10 grid max-w-xl gap-4 border-y border-[var(--bokmoo-line)] py-7", children: [
+            /* @__PURE__ */ jsx("input", { value: displayName, onChange: (event) => setDisplayName(event.target.value), placeholder: "Display name", required: true, className: "h-12 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" }),
+            /* @__PURE__ */ jsx("input", { value: organizationCode, onChange: (event) => setOrganizationCode(event.target.value.toUpperCase()), placeholder: "Organization code (optional)", className: "h-12 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" }),
+            /* @__PURE__ */ jsx("button", { disabled: loading, className: "min-h-12 bg-[var(--bokmoo-gold)] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] disabled:opacity-50", type: "submit", children: "Create affiliate account" })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx(CommissionList, { items: commissions, title: "Partner commissions" })
+      ] }) }) : /* @__PURE__ */ jsx("section", { className: "pt-10", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-8 lg:grid-cols-[1.1fr_0.9fr]", children: [
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase text-[var(--bokmoo-copy-soft)]", children: "Organization affiliate" }),
+          /* @__PURE__ */ jsx("h1", { className: "mt-3 max-w-2xl text-4xl text-[var(--bokmoo-ink)] sm:text-5xl", children: "Creator network." }),
+          organization ? /* @__PURE__ */ jsxs("div", { className: "mt-9", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-end justify-between gap-5 border-y border-[var(--bokmoo-line)] py-6", children: [
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--bokmoo-copy-soft)]", children: organization.code }),
+                /* @__PURE__ */ jsx("h2", { className: "mt-2 text-2xl text-[var(--bokmoo-ink)]", children: organization.name })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "text-right", children: [
+                /* @__PURE__ */ jsx("p", { className: "text-2xl font-semibold text-[var(--bokmoo-ink)]", children: money(organizationCommissions) }),
+                /* @__PURE__ */ jsxs("p", { className: "text-xs text-[var(--bokmoo-copy-soft)]", children: [
+                  organization.commissionRate,
+                  "% organization rate"
+                ] })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
+              event.preventDefault();
+              setLoading(true);
+              setError("");
+              try {
+                await addBokmooAffiliateMember(api, organization.id, { email: memberEmail, role: memberRole });
+                setMemberEmail("");
+                await refresh();
+              } catch (cause) {
+                setError(cause instanceof Error ? cause.message : "Member could not be added");
+              } finally {
+                setLoading(false);
+              }
+            }, className: "mt-7 flex flex-col gap-3 sm:flex-row", children: [
+              /* @__PURE__ */ jsx("input", { type: "email", value: memberEmail, onChange: (event) => setMemberEmail(event.target.value), placeholder: "Member email", required: true, className: "h-11 min-w-0 flex-1 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" }),
+              /* @__PURE__ */ jsxs("select", { value: memberRole, onChange: (event) => setMemberRole(event.target.value), className: "h-11 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-3 text-sm text-[var(--bokmoo-ink)]", children: [
+                /* @__PURE__ */ jsx("option", { value: "INFLUENCER", children: "Influencer" }),
+                /* @__PURE__ */ jsx("option", { value: "MANAGER", children: "Manager" })
+              ] }),
+              /* @__PURE__ */ jsxs("button", { className: "inline-flex h-11 items-center justify-center gap-2 bg-[var(--bokmoo-gold)] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]", type: "submit", children: [
+                /* @__PURE__ */ jsx(UserPlus, { className: "h-4 w-4" }),
+                "Add"
+              ] })
+            ] }),
+            /* @__PURE__ */ jsx("div", { className: "mt-7 divide-y divide-[var(--bokmoo-line)] border-y border-[var(--bokmoo-line)]", children: organization.members.map((member) => /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-4 py-4", children: [
+              /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
+                /* @__PURE__ */ jsx("p", { className: "truncate text-sm font-semibold text-[var(--bokmoo-ink)]", children: member.username || member.email }),
+                /* @__PURE__ */ jsx("p", { className: "mt-1 truncate text-xs text-[var(--bokmoo-copy-soft)]", children: member.email })
+              ] }),
+              /* @__PURE__ */ jsx("span", { className: "text-xs font-semibold text-[var(--bokmoo-gold)]", children: member.role })
+            ] }, member.id)) })
+          ] }) : /* @__PURE__ */ jsxs("form", { onSubmit: async (event) => {
+            event.preventDefault();
+            setLoading(true);
+            setError("");
+            try {
+              await createBokmooAffiliateOrganization(api, { name: organizationName, commissionRate: Number(organizationRate) });
+              await refresh();
+            } catch (cause) {
+              setError(cause instanceof Error ? cause.message : "Organization could not be created");
+            } finally {
+              setLoading(false);
+            }
+          }, className: "mt-10 grid max-w-xl gap-4 border-y border-[var(--bokmoo-line)] py-7", children: [
+            /* @__PURE__ */ jsx("input", { value: organizationName, onChange: (event) => setOrganizationName(event.target.value), placeholder: "Organization name", required: true, className: "h-12 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" }),
+            /* @__PURE__ */ jsxs("label", { className: "flex items-center gap-4", children: [
+              /* @__PURE__ */ jsx("span", { className: "text-sm text-[var(--bokmoo-copy)]", children: "Commission rate" }),
+              /* @__PURE__ */ jsx("input", { type: "number", min: "0", max: "90", step: "0.1", value: organizationRate, onChange: (event) => setOrganizationRate(event.target.value), className: "h-12 w-28 border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm text-[var(--bokmoo-ink)] outline-none" })
+            ] }),
+            /* @__PURE__ */ jsxs("button", { disabled: loading, className: "inline-flex min-h-12 items-center justify-center gap-2 bg-[var(--bokmoo-gold)] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] disabled:opacity-50", type: "submit", children: [
+              /* @__PURE__ */ jsx(Plus, { className: "h-4 w-4" }),
+              "Create organization"
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx(CommissionList, { items: organizationCommissions, title: "Organization commissions" })
+      ] }) })
+    ] }) });
+  });
+  function CommissionList({ items, title }) {
+    return /* @__PURE__ */ jsxs("aside", { className: "border-l border-[var(--bokmoo-line)] pl-0 lg:pl-8", children: [
+      /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
+        /* @__PURE__ */ jsx(Link2, { className: "h-4 w-4 text-[var(--bokmoo-gold)]" }),
+        /* @__PURE__ */ jsx("h2", { className: "text-sm font-semibold text-[var(--bokmoo-ink)]", children: title })
+      ] }),
+      /* @__PURE__ */ jsx("div", { className: "mt-5 divide-y divide-[var(--bokmoo-line)] border-y border-[var(--bokmoo-line)]", children: items.length ? items.map((item) => /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-[1fr_auto] gap-4 py-4", children: [
+        /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
+          /* @__PURE__ */ jsx("p", { className: "truncate text-sm text-[var(--bokmoo-ink)]", children: orderId(item) }),
+          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs text-[var(--bokmoo-copy-soft)]", children: createdAt(item) ? new Date(createdAt(item)).toLocaleDateString() : item.status })
+        ] }),
+        /* @__PURE__ */ jsxs("div", { className: "text-right", children: [
+          /* @__PURE__ */ jsxs("p", { className: "text-sm font-semibold text-[var(--bokmoo-ink)]", children: [
+            item.currency,
+            " ",
+            Number(item.amount).toFixed(2)
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs uppercase text-[var(--bokmoo-copy-soft)]", children: item.status })
+        ] })
+      ] }, item.id)) : /* @__PURE__ */ jsxs("div", { className: "py-10 text-center", children: [
+        /* @__PURE__ */ jsx(UsersRound, { className: "mx-auto h-5 w-5 text-[var(--bokmoo-copy-soft)]" }),
+        /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm text-[var(--bokmoo-copy-soft)]", children: "No commissions yet" })
       ] }) })
     ] });
   }
@@ -12605,341 +13242,6 @@
     ] }) });
   });
 
-  // src/lib/api.ts
-  var BokmooApiError = class extends Error {
-    constructor(status, code, message, requestId) {
-      super(message);
-      this.name = "BokmooApiError";
-      this.status = status;
-      this.code = code;
-      this.requestId = requestId;
-    }
-  };
-  function getProductIdFromLocation() {
-    if (typeof window === "undefined") return null;
-    const params = new URLSearchParams(window.location.search);
-    const queryId = params.get("productId") || params.get("id");
-    if (queryId) return queryId;
-    const segments = window.location.pathname.split("/").filter(Boolean);
-    const productsIndex = segments.lastIndexOf("products");
-    if (productsIndex >= 0 && segments[productsIndex + 1]) {
-      return decodeURIComponent(segments[productsIndex + 1]);
-    }
-    return null;
-  }
-  function getOrderIdFromLocation() {
-    if (typeof window === "undefined") return null;
-    const params = new URLSearchParams(window.location.search);
-    const queryId = params.get("orderId") || params.get("id");
-    if (queryId) return queryId;
-    const segments = window.location.pathname.split("/").filter(Boolean);
-    const ordersIndex = segments.lastIndexOf("orders");
-    if (ordersIndex >= 0 && segments[ordersIndex + 1]) {
-      return decodeURIComponent(segments[ordersIndex + 1]);
-    }
-    return null;
-  }
-  function getClientToken() {
-    if (typeof window === "undefined") return null;
-    try {
-      const localStorageToken = window.localStorage.getItem("auth_token");
-      if (localStorageToken) return localStorageToken;
-    } catch {
-    }
-    const cookieValue = `; ${document.cookie}`;
-    const parts = cookieValue.split("; auth_token=");
-    if (parts.length === 2) {
-      return parts.pop()?.split(";").shift() || null;
-    }
-    return null;
-  }
-  function normalizeResponse(payload) {
-    if (payload && typeof payload === "object" && "data" in payload && payload.data !== void 0) {
-      return payload.data;
-    }
-    return payload;
-  }
-  function asRecord(value) {
-    return value && typeof value === "object" ? value : {};
-  }
-  function readString(source, keys) {
-    for (const key of keys) {
-      const value = source[key];
-      if (typeof value === "string" && value.trim()) {
-        return value.trim();
-      }
-    }
-    return void 0;
-  }
-  function readNullableString(source, keys) {
-    for (const key of keys) {
-      const value = source[key];
-      if (value === null) return null;
-      if (typeof value === "string" && value.trim()) {
-        return value.trim();
-      }
-    }
-    return void 0;
-  }
-  function normalizeInstructions(value) {
-    if (!value) return {};
-    if (typeof value === "string") {
-      const trimmed = value.trim();
-      if (!trimmed) return {};
-      try {
-        return normalizeInstructions(JSON.parse(trimmed));
-      } catch {
-        return { general: [trimmed] };
-      }
-    }
-    if (Array.isArray(value)) {
-      return { general: value.filter((item) => typeof item === "string" && item.trim().length > 0) };
-    }
-    const source = asRecord(value);
-    return {
-      ios: Array.isArray(source.ios) ? source.ios.filter((item) => typeof item === "string" && item.trim().length > 0) : [],
-      android: Array.isArray(source.android) ? source.android.filter((item) => typeof item === "string" && item.trim().length > 0) : [],
-      general: Array.isArray(source.general) ? source.general.filter((item) => typeof item === "string" && item.trim().length > 0) : []
-    };
-  }
-  function normalizeSupport(value, source) {
-    const support = asRecord(value);
-    return {
-      email: readString(support, ["email"]) || readString(source, ["supportEmail", "support_email"]),
-      phone: readString(support, ["phone"]) || readString(source, ["supportPhone", "support_phone"])
-    };
-  }
-  async function requestEnvelope(config, endpoint, method = "GET", body) {
-    const headers = {
-      Accept: "application/json"
-    };
-    if (body !== void 0) {
-      headers["Content-Type"] = "application/json";
-    }
-    const resolvedToken = config.token === void 0 ? getClientToken() : config.token;
-    if (resolvedToken) {
-      headers.Authorization = `Bearer ${resolvedToken}`;
-    }
-    const url = `${config.baseUrl.replace(/\/$/, "")}${endpoint}`;
-    const response = await fetch(url, {
-      method,
-      headers,
-      body: body !== void 0 ? JSON.stringify(body) : void 0,
-      cache: "no-store"
-    });
-    const json = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const error = json.error;
-      throw new BokmooApiError(
-        response.status,
-        error?.code || "API_ERROR",
-        error?.message || `Request failed with status ${response.status}`,
-        error?.requestId
-      );
-    }
-    if (json && typeof json === "object" && "data" in json && json.data !== void 0) {
-      return json;
-    }
-    return { data: json };
-  }
-  async function request(config, endpoint, method = "GET", body) {
-    const envelope = await requestEnvelope(config, endpoint, method, body);
-    return normalizeResponse(envelope);
-  }
-  function buildEsimSummary(source) {
-    const data = source?.data?.gb ? `${source.data.gb}GB` : "Flexible data";
-    const validity = source?.validityDays ? `${source.validityDays} Days` : "Flexible validity";
-    return `${data} / ${validity}`;
-  }
-  function buildTechnologyLabel(source) {
-    const technology = source?.networks?.technology?.filter(Boolean) || [];
-    return technology.length ? `${technology.join("/")} High Speed` : "4G/5G High Speed";
-  }
-  function mapVariant(variant) {
-    const esim = variant.attributes?.esim;
-    return {
-      id: variant.id,
-      name: variant.name,
-      value: buildEsimSummary(esim),
-      type: "STYLE",
-      price: variant.salePrice,
-      inventory: variant.isActive === false ? 0 : 99
-    };
-  }
-  function mapBokmooApiProductToThemeProduct(product) {
-    const esim = product.typeData?.esim;
-    const imageUrl = product.images?.[0]?.url || product.image;
-    const regionTag = esim?.region || esim?.country || "Travel";
-    const technology = buildTechnologyLabel(esim);
-    return {
-      id: product.id,
-      name: product.name,
-      description: product.description || `${product.name} travel connectivity package`,
-      price: Number(product.price || 0),
-      sku: product.slug || product.id,
-      category: {
-        id: esim?.region || "esim",
-        name: esim?.region || "eSIM Plans",
-        slug: (esim?.region || "esim").toLowerCase().replace(/\s+/g, "-"),
-        level: 1,
-        isActive: true,
-        productCount: 0
-      },
-      tags: [regionTag, esim?.carrier || "Carrier", technology].filter(Boolean),
-      images: imageUrl ? [
-        {
-          id: `${product.id}-image`,
-          url: imageUrl,
-          alt: product.name,
-          order: 0,
-          isMain: true
-        }
-      ] : [],
-      variants: (product.variants || []).map(mapVariant),
-      inventory: {
-        quantity: 99,
-        reserved: 0,
-        available: 99,
-        lowStockThreshold: 5,
-        isInStock: true,
-        isLowStock: false,
-        trackInventory: false
-      },
-      specifications: [
-        { name: "Coverage", value: esim?.country || esim?.region || "Global" },
-        { name: "Data", value: esim?.data?.gb ? `${esim.data.gb}GB` : "Flexible" },
-        { name: "Validity", value: esim?.validityDays ? `${esim.validityDays} Days` : "Flexible" },
-        { name: "Carrier", value: esim?.carrier || "Local carrier" },
-        { name: "Network", value: technology }
-      ],
-      isActive: true,
-      isFeatured: true,
-      rating: 4.9,
-      reviewCount: 1200,
-      createdAt: (/* @__PURE__ */ new Date()).toISOString(),
-      updatedAt: (/* @__PURE__ */ new Date()).toISOString()
-    };
-  }
-  function mapBokmooApiOrderToThemeOrder(order) {
-    return {
-      id: order.id,
-      userId: "",
-      status: order.status || order.fulfillmentStatus || order.paymentStatus || "PROCESSING",
-      paymentStatus: order.paymentStatus || "PAID",
-      totalAmount: Number(order.totalAmount || 0),
-      currency: order.currency || "USD",
-      shippingAddress: null,
-      shipments: [],
-      items: (order.items || []).map((item) => {
-        const quantity = Number(item.quantity || 1);
-        const unitPrice = Number(item.unitPrice ?? item.totalPrice ?? 0);
-        const totalPrice = Number(item.totalPrice ?? unitPrice * quantity);
-        return {
-          id: item.id,
-          productId: item.productId,
-          productName: item.productName,
-          variantId: item.variantId || "",
-          quantity,
-          unitPrice,
-          totalPrice,
-          fulfillmentStatus: item.fulfillmentStatus || null,
-          fulfillmentData: item.fulfillmentData || null
-        };
-      }),
-      createdAt: order.createdAt,
-      updatedAt: order.updatedAt || order.createdAt,
-      cancelReason: null,
-      cancelledAt: null
-    };
-  }
-  function normalizeProductForTheme(product) {
-    const candidate = product;
-    if (candidate && typeof candidate === "object" && Array.isArray(candidate.images) && Array.isArray(candidate.variants) && candidate.category && candidate.inventory) {
-      return candidate;
-    }
-    return mapBokmooApiProductToThemeProduct(product);
-  }
-  function normalizeInstallSession(session) {
-    const source = asRecord(session);
-    const matchingId = readString(source, ["matchingId", "matching_id", "activationCode", "activation_code"]);
-    const activationCode = readString(source, ["activationCode", "activation_code", "matchingId", "matching_id"]);
-    const smdpAddress = readString(source, ["smdpAddress", "smdp_address", "smdpServer", "smdp_server", "smdp"]);
-    const lpaString = readString(source, ["lpaString", "lpa_string", "lpa", "qrCodeContent", "qr_code_content"]) || (smdpAddress && (matchingId || activationCode) ? `LPA:1$${smdpAddress}$${matchingId || activationCode}` : "");
-    const qrCode = readString(source, ["qrCode", "qr_code", "qrCodeUrl", "qr_code_url", "qrCodeContent", "qr_code_content"]) || lpaString;
-    const instructions = normalizeInstructions(source.instructions);
-    return {
-      ...session,
-      orderId: readString(source, ["orderId", "order_id"]) || session.orderId || "",
-      orderNumber: readString(source, ["orderNumber", "order_number"]) || session.orderNumber || "",
-      status: readString(source, ["status"]) || session.status || "processing",
-      packageTitle: readString(source, ["packageTitle", "package_title"]) || session.packageTitle || "BOKMOO eSIM",
-      qrCode,
-      activationCode: activationCode || "",
-      matchingId: matchingId || "",
-      lpaString,
-      smdpAddress,
-      confirmationCode: readNullableString(source, ["confirmationCode", "confirmation_code", "confirmCode", "confirm_code"]) ?? null,
-      instructions: {
-        ios: instructions.ios || [],
-        android: instructions.android || [],
-        general: instructions.general || []
-      },
-      support: normalizeSupport(source.support, source)
-    };
-  }
-  async function getBokmooProducts(config, params = {}) {
-    const search = new URLSearchParams();
-    search.set("page", String(params.page || 1));
-    search.set("limit", String(params.limit || 12));
-    search.set("locale", params.locale || "en");
-    search.set("type", params.type || "esim");
-    if (params.country) search.set("country", params.country);
-    const envelope = await requestEnvelope(config, `/api/products?${search.toString()}`);
-    const meta = envelope.meta || {};
-    const data = envelope.data;
-    const items = Array.isArray(data) ? data : data.items || [];
-    const page = Number(meta.page || (!Array.isArray(data) ? data.page : void 0) || params.page || 1);
-    const limit = Number(meta.limit || (!Array.isArray(data) ? data.limit : void 0) || params.limit || 12);
-    const total = Number(meta.total || (!Array.isArray(data) ? data.total : void 0) || items.length);
-    return {
-      ...Array.isArray(data) ? {} : data,
-      items,
-      page,
-      limit,
-      total
-    };
-  }
-  async function getBokmooProduct(config, productId, locale = "en") {
-    return request(config, `/api/products/${productId}?locale=${locale}`);
-  }
-  async function getBokmooOrder(config, orderId) {
-    return request(config, `/api/orders/${orderId}`);
-  }
-  async function getBokmooOrders(config, params = {}) {
-    const search = new URLSearchParams();
-    search.set("page", String(params.page || 1));
-    search.set("limit", String(params.limit || 10));
-    if (params.status) search.set("status", params.status);
-    const envelope = await requestEnvelope(config, `/api/orders?${search.toString()}`);
-    const meta = envelope.meta || {};
-    const data = envelope.data;
-    const items = Array.isArray(data) ? data : data.items || [];
-    const page = Number(meta.page || (!Array.isArray(data) ? data.page : void 0) || params.page || 1);
-    const limit = Number(meta.limit || (!Array.isArray(data) ? data.limit : void 0) || params.limit || 10);
-    const total = Number(meta.total || (!Array.isArray(data) ? data.total : void 0) || items.length);
-    return {
-      ...Array.isArray(data) ? {} : data,
-      items,
-      page,
-      limit,
-      total
-    };
-  }
-  async function getBokmooInstallSession(config, orderId) {
-    const session = await request(config, `/api/orders/${orderId}/install-session`);
-    return normalizeInstallSession(session);
-  }
-
   // src/lib/digital-fulfillment.ts
   function toRecord(input) {
     if (!input) return {};
@@ -13807,7 +14109,8 @@
       { label: isZhHant ? "\u670D\u52D9\u7BC4\u570D" : "Coverage", onClick: onNavigateToProducts },
       { label: isZhHant ? "\u4F7F\u7528\u65B9\u5F0F" : "How It Works", onClick: () => openHref("/#how-it-works") },
       { label: isZhHant ? "\u95DC\u65BC\u6211\u5011" : "About Us", onClick: () => openHref("/contact") },
-      { label: isZhHant ? "\u652F\u63F4" : "Support", onClick: () => openHref("/help") }
+      { label: isZhHant ? "\u652F\u63F4" : "Support", onClick: () => openHref("/help") },
+      { label: isZhHant ? "\u63A8\u5EE3" : "Affiliate", onClick: () => openHref("/affiliate") }
     ];
     return /* @__PURE__ */ jsxs("header", { className: "sticky top-0 z-50 border-b border-[color:color-mix(in_oklab,var(--bokmoo-gold)_18%,transparent)] bg-[radial-gradient(circle_at_8%_-24%,color-mix(in_oklab,var(--bokmoo-gold)_14%,transparent),transparent_34%),linear-gradient(180deg,oklch(0.055_0.007_75_/_0.98),oklch(0.028_0.004_75_/_0.96))] shadow-[0_18px_52px_rgba(0,0,0,0.3)] backdrop-blur-2xl", children: [
       /* @__PURE__ */ jsxs("div", { className: "mx-auto flex max-w-[107rem] items-center gap-3 px-4 py-2.5 sm:px-6 xl:min-h-[4.35rem] xl:gap-5 xl:px-0", children: [
@@ -15047,14 +15350,14 @@
     const effectiveOrder = order || remoteOrder;
     react_default.useEffect(() => {
       if (order?.id) return;
-      const orderId = getOrderIdFromLocation();
-      if (!orderId) return;
+      const orderId2 = getOrderIdFromLocation();
+      if (!orderId2) return;
       let cancelled = false;
       void getBokmooOrder(
         {
           baseUrl: site.apiBaseUrl
         },
-        orderId
+        orderId2
       ).then((response) => {
         if (!cancelled) {
           setRemoteOrder(mapBokmooApiOrderToThemeOrder(response));
@@ -15156,6 +15459,49 @@
               className: "border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)]"
             }
           ) : null,
+          effectiveOrder.shipments?.length ? /* @__PURE__ */ jsxs("section", { className: "rounded-[var(--bokmoo-radius-lg)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-surface)] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
+              /* @__PURE__ */ jsx(PackageCheck, { className: "mt-1 h-5 w-5 shrink-0 text-[var(--bokmoo-primary)]" }),
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx("h2", { className: "text-2xl font-black tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: "Delivery tracking" }),
+                /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm leading-6 text-[var(--bokmoo-copy)]", children: "Your carrier and tracking updates appear here after dispatch." })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsx("div", { className: "mt-6 grid gap-4", children: effectiveOrder.shipments.map((shipment) => /* @__PURE__ */ jsxs("div", { className: "rounded-[var(--bokmoo-radius-md)] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between", children: [
+                /* @__PURE__ */ jsxs("div", { children: [
+                  /* @__PURE__ */ jsxs("p", { className: "text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--bokmoo-copy-soft)]", children: [
+                    shipment.carrierName || shipment.carrier,
+                    shipment.carrierCode ? ` \xB7 ${shipment.carrierCode}` : ""
+                  ] }),
+                  /* @__PURE__ */ jsx("p", { className: "mt-2 break-all font-mono text-sm font-semibold text-[var(--bokmoo-ink)]", children: shipment.trackingNumber })
+                ] }),
+                /* @__PURE__ */ jsx("span", { className: cn2("rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em]", statusTone(shipment.status)), children: shipment.status })
+              ] }),
+              /* @__PURE__ */ jsxs("div", { className: "mt-4 flex flex-wrap items-center gap-3 text-xs text-[var(--bokmoo-copy)]", children: [
+                shipment.shippedAt ? /* @__PURE__ */ jsxs("span", { children: [
+                  "Shipped ",
+                  new Date(shipment.shippedAt).toLocaleDateString()
+                ] }) : null,
+                shipment.deliveredAt ? /* @__PURE__ */ jsxs("span", { children: [
+                  "Delivered ",
+                  new Date(shipment.deliveredAt).toLocaleDateString()
+                ] }) : null,
+                shipment.trackingUrl ? /* @__PURE__ */ jsxs("a", { href: shipment.trackingUrl, target: "_blank", rel: "noreferrer", className: "inline-flex items-center gap-1 font-semibold text-[var(--bokmoo-primary-strong)] underline underline-offset-4", children: [
+                  "Track package ",
+                  /* @__PURE__ */ jsx(ExternalLink, { className: "h-3.5 w-3.5" })
+                ] }) : null
+              ] }),
+              shipment.events?.length ? /* @__PURE__ */ jsx("ol", { className: "mt-5 border-l border-[var(--bokmoo-line-strong)] pl-4", children: shipment.events.map((event, eventIndex) => /* @__PURE__ */ jsxs("li", { className: "relative pb-4 last:pb-0", children: [
+                /* @__PURE__ */ jsx("span", { className: "absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full bg-[var(--bokmoo-primary)] ring-4 ring-[var(--bokmoo-bg)]" }),
+                /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-1 sm:flex-row sm:items-baseline sm:justify-between", children: [
+                  /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold text-[var(--bokmoo-ink)]", children: event.status.replace(/_/g, " ") }),
+                  /* @__PURE__ */ jsx("time", { className: "text-[11px] text-[var(--bokmoo-copy-soft)]", dateTime: event.occurredAt, children: new Date(event.occurredAt).toLocaleString() })
+                ] }),
+                event.description ? /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs leading-5 text-[var(--bokmoo-copy)]", children: event.description }) : null
+              ] }, `${event.status}-${event.occurredAt}-${eventIndex}`)) }) : null
+            ] }, shipment.id)) })
+          ] }) : null,
           effectiveOrder.items.map((item) => {
             const sections3 = extractDeliverySections(item.fulfillmentData);
             const installLike = (() => {
@@ -15503,7 +15849,7 @@
     order
   }) {
     const site = resolveBokmooSiteConfig(config);
-    const orderId = order?.id || getOrderIdFromLocation() || "";
+    const orderId2 = order?.id || getOrderIdFromLocation() || "";
     const [installSession, setInstallSession] = react_default.useState(null);
     const [status, setStatus] = react_default.useState(
       isVerifying ? "processing" : "idle"
@@ -15511,13 +15857,13 @@
     const [errorMessage, setErrorMessage] = react_default.useState("");
     const [attempt, setAttempt] = react_default.useState(0);
     const loadInstallSession = react_default.useCallback(async () => {
-      if (!orderId) return;
+      if (!orderId2) return;
       try {
         const session = await getBokmooInstallSession(
           {
             baseUrl: site.apiBaseUrl
           },
-          orderId
+          orderId2
         );
         setInstallSession(session);
         setStatus(session.status);
@@ -15527,13 +15873,13 @@
         setErrorMessage(message);
         setStatus("failed");
       }
-    }, [orderId, site.apiBaseUrl]);
+    }, [orderId2, site.apiBaseUrl]);
     react_default.useEffect(() => {
-      if (!orderId) return;
+      if (!orderId2) return;
       void loadInstallSession();
-    }, [loadInstallSession, orderId]);
+    }, [loadInstallSession, orderId2]);
     react_default.useEffect(() => {
-      if (!orderId) return;
+      if (!orderId2) return;
       if (status !== "processing" && status !== "idle") return;
       const delay2 = getPollDelay(attempt);
       if (delay2 <= 0) {
@@ -15545,7 +15891,7 @@
         void loadInstallSession();
       }, delay2);
       return () => window.clearTimeout(timer);
-    }, [attempt, loadInstallSession, orderId, status]);
+    }, [attempt, loadInstallSession, orderId2, status]);
     const isReady = status === "ready" || status === "installed";
     const isPendingPayment = status === "pending_payment";
     const supportEmail = installSession?.support?.email || site.supportEmail;
@@ -16287,6 +16633,7 @@
       OrderCancelledPage,
       ProfilePage,
       ProfileSettingsPage,
+      AffiliatePage,
       ContactPage,
       HelpPage,
       PrivacyPage,
