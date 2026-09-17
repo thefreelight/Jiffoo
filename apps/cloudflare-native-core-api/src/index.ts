@@ -48,6 +48,7 @@ import { isExpectedNativeSchemaVersion } from './health';
 import { tryNativeCoupon } from './coupon';
 import { tryNativeImagerAi } from './imager-ai';
 import { tryNativePublicAuthConfig } from './public-auth-config';
+import { tryNativeProductsSearch } from './products-search';
 import { nativeOdooMediaUrl } from './odoo';
 import { tryNativeBokmooConnect } from './bokmoo-connect';
 
@@ -327,6 +328,11 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeAdminProducts) return nativeAdminProducts;
     const nativeAdminApiTokens = await tryNativeAdminApiTokens(nativeRequest, env);
     if (nativeAdminApiTokens) return nativeAdminApiTokens;
+    // Product search must precede the snapshot read path: without it,
+    // `/api/v1/products/search` matches the products-ID snapshot pattern and
+    // reports a missing snapshot instead of a filtered catalog.
+    const nativeProductsSearch = await tryNativeProductsSearch(nativeRequest, env);
+    if (nativeProductsSearch) return nativeProductsSearch;
     if (isNativeRead(nativeRequest, url)) return serveNativeRead(url, env, ctx);
     const nativeAuth = await tryNativeAuth(nativeRequest, env, () => proxy(nativeRequest, env));
     if (nativeAuth) return nativeAuth;
