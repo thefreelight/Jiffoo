@@ -368,20 +368,45 @@ export async function tryNativeAuth(
   }
 
   if (path === '/api/v1/admin/auth/login' && request.method === 'POST') {
-    const body = await request.clone().json<{ identifier?: string; email?: string; password?: string }>();
+    const body = await request.clone()
+      .json<{ identifier?: string; email?: string; password?: string }>()
+      .catch(() => ({}) as { identifier?: string; email?: string; password?: string });
     const identifier = body.identifier?.trim() || body.email?.trim();
-    if (!identifier || !body.password) return null;
+    if (!identifier || !body.password) {
+      return Response.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: 'Email and password are required' } },
+        { status: 400, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-auth' } },
+      );
+    }
     let user = await findNativeUserByIdentifier(env, identifier);
     if (!user) {
-      const upstream = await proxyRequest();
-      if (upstream.ok) {
-        const payload = await upstream.clone().json<{ data?: { user?: PublicUser } }>();
-        if (payload.data?.user && ['ADMIN', 'SUPER_ADMIN'].includes(payload.data.user.role)) {
-          await upsertNativeUser(env, payload.data.user, body.password);
-          user = await findNativeUserByIdentifier(env, identifier);
+      // The legacy-origin bridge only applies while the upstream is reachable
+      // and answers with a usable envelope; on a native instance the fallback
+      // origin is self-referential, so any failure must fail soft to a native
+      // 401 instead of surfacing the fallback's error page.
+      let upstream: Response | null = null;
+      try {
+        upstream = await proxyRequest();
+      } catch {
+        upstream = null;
+      }
+      if (upstream?.ok) {
+        try {
+          const payload = await upstream.clone().json<{ data?: { user?: PublicUser } }>();
+          if (payload.data?.user && ['ADMIN', 'SUPER_ADMIN'].includes(payload.data.user.role)) {
+            await upsertNativeUser(env, payload.data.user, body.password);
+            user = await findNativeUserByIdentifier(env, identifier);
+          }
+        } catch {
+          // Non-JSON success envelope carries no bridgeable account.
         }
       }
-      if (!user) return upstream;
+      if (!user) {
+        return Response.json(
+          { success: false, error: { code: 'LOGIN_FAILED', message: 'Invalid credentials' } },
+          { status: 401, headers: { 'x-jiffoo-runtime': 'cloudflare-native-d1-admin-auth' } },
+        );
+      }
     }
     const hash = await derivePassword(body.password, decodeBase64Url(user.password_salt), user.password_iterations);
     if (!user.is_active || !['ADMIN', 'SUPER_ADMIN'].includes(user.role) || !constantTimeEqual(hash, decodeBase64Url(user.password_hash))) {
