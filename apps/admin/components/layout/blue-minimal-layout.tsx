@@ -10,7 +10,7 @@
 
 import { useEffect, useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { Bell, ChevronDown, CircleHelp, Menu } from 'lucide-react'
+import { Bell, CircleHelp, Menu } from 'lucide-react'
 import { BlueMinimalSidebar } from './blue-minimal-sidebar'
 import ProtectedRoute from '../auth/ProtectedRoute'
 import { ManagedModeProvider, useManagedMode } from '@/lib/managed-mode'
@@ -59,11 +59,6 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
                 <AdminLanguageSwitcher />
                 <button type="button" aria-label="Help" className="transition-colors hover:text-slate-900"><CircleHelp className="h-[18px] w-[18px]" /></button>
                 <button type="button" aria-label="Notifications" className="transition-colors hover:text-slate-900"><Bell className="h-[18px] w-[18px]" /></button>
-                <div className="flex items-center gap-2 border-l border-slate-200 pl-5 text-sm font-medium text-slate-900">
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-blue-600 text-xs font-semibold text-white">A</span>
-                  <span>Admin</span>
-                  <ChevronDown className="h-4 w-4 text-slate-400" />
-                </div>
               </div>
             </header>
             {/* Mobile Menu Button - Fixed at top left, hidden when sidebar is open */}
