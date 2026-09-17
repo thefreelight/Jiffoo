@@ -192,7 +192,9 @@ export const ProfilePage = React.memo(function ProfilePage({
   }
 
   const displayName = (user.name || '').trim();
-  const firstName = displayName && !displayName.includes('@') ? displayName.split(/\s+/)[0] : '';
+  // The mockup greets with the full account name (an email address in
+  // practice), so do not trim name-like values to a first word.
+  const firstName = displayName ? displayName.split(/\s+/)[0] : '';
   const greeting = firstName
     ? isZhHant
       ? `你好，${firstName}！`
