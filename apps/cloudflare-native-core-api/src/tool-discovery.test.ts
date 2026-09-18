@@ -9,7 +9,6 @@ const {
   buildProductFromDiscovery,
   cleanShowHnTitle,
   collectHackerNewsCandidates,
-  collectProductHuntCandidates,
   extractDomain,
   looksLikeNewsDomain,
   looksLikeNewsTitle,
@@ -136,24 +135,6 @@ describe('tool discovery connectors', () => {
     expect(candidates[0].metrics).toMatchObject({ points: 120 });
   });
 
-  it('collects AI posts from Product Hunt payloads', async () => {
-    const fetchImpl = vi.fn(async () => Response.json({
-      data: { posts: { edges: [
-        { node: { id: 'ph1', name: 'Gamma App 2.0', tagline: 'AI presentations', website: 'https://gamma.app', votesCount: 900, commentsCount: 40, createdAt: '2026-09-17T00:00:00Z' } },
-        { node: { id: 'ph2', name: 'Yoga Timer', tagline: 'Breathe better', website: 'https://yoga.app', votesCount: 500, commentsCount: 4, createdAt: '2026-09-17T00:00:00Z' } },
-      ] } },
-    }));
-    const candidates = await collectProductHuntCandidates(fetchImpl as unknown as typeof fetch, 'token');
-    expect(candidates).toHaveLength(1);
-    expect(candidates[0]).toMatchObject({ source: 'product_hunt', sourceId: 'ph1', url: 'https://gamma.app' });
-  });
-});
-
-describe('tool discovery run and catalog append', () => {
-  beforeEach(() => {
-    authenticateNativeAdmin.mockReset();
-  });
-
   it('reports product hunt as skipped without a token and upserts HN candidates', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
       if (String(input).includes('hn.algolia.com')) {
@@ -167,10 +148,7 @@ describe('tool discovery run and catalog append', () => {
     try {
       const { env } = makeEnv({ snapshot: catalogSnapshot });
       const result = await runNativeToolDiscovery(env);
-      expect(result.sources).toEqual([
-        { source: 'hacker_news', inserted: 1 },
-        { source: 'product_hunt', skipped: 'producthunt_not_configured' },
-      ]);
+      expect(result.sources).toEqual([{ source: 'hacker_news', inserted: 1 }]);
       expect(result.totalInserted).toBe(1);
     } finally {
       vi.unstubAllGlobals();
