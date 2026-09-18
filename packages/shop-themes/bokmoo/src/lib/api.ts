@@ -334,6 +334,28 @@ function normalizeSupport(value: unknown, source: Record<string, unknown>): Bokm
   };
 }
 
+/**
+ * Storefront API calls must stay same-origin: the configured `apiBaseUrl`
+ * (for example https://api.bokmoo.com) is a server-to-server hint and the
+ * native core API sends no CORS headers, so a browser fetch to it from the
+ * storefront origin always fails with "Failed to fetch". The storefront
+ * Worker proxies /api/* to the same core, so collapse any cross-origin base
+ * to the current origin when running in a browser.
+ */
+function storefrontSameOriginBase(baseUrl: string): string {
+  try {
+    if (typeof location !== 'undefined' && !baseUrl.startsWith('/')) {
+      const target = new URL(baseUrl, location.origin);
+      if (target.origin !== location.origin) {
+        return '';
+      }
+    }
+  } catch {
+    /* keep the configured base when it cannot be parsed */
+  }
+  return baseUrl;
+}
+
 async function requestEnvelope<T>(
   config: BokmooApiConfig,
   endpoint: string,
@@ -354,7 +376,7 @@ async function requestEnvelope<T>(
     headers.Authorization = `Bearer ${resolvedToken}`;
   }
 
-  const url = `${config.baseUrl.replace(/\/$/, '')}${endpoint}`;
+  const url = `${storefrontSameOriginBase(config.baseUrl.replace(/\/$/, ''))}${endpoint}`;
   const response = await fetch(url, {
     method,
     headers,
