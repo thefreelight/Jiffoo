@@ -101,12 +101,54 @@ describe('native plugin settings admin routes', () => {
     });
   });
 
-  it('still declines unknown plugin slugs so they are not mistaken for native plugins', async () => {
+  it('answers unknown plugin slugs with a structured 404 so they are not mistaken for native plugins', async () => {
     authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com' });
     const response = await tryNativePluginSettings(
       new Request('https://api.example/api/v1/extensions/plugin/does-not-exist', { headers: { authorization: 'Bearer admin-token' } }),
       { DB: { prepare: vi.fn() } } as never,
     );
-    expect(response).toBeNull();
+    expect(response?.status).toBe(404);
+    await expect(response?.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: 'PLUGIN_NOT_INSTALLED', message: expect.stringContaining('does-not-exist') },
+    });
+  });
+});
+
+describe('unknown plugin slugs fail fast natively', () => {
+  it('answers gateway-only plugin detail with a structured 404 instead of proxying', async () => {
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com' });
+    const response = await tryNativePluginSettings(
+      new Request('https://api.example/api/v1/extensions/plugin/remoteradar-jobs', { headers: { authorization: 'Bearer admin-token' } }),
+      { DB: { prepare: vi.fn() } } as never,
+    );
+    expect(response?.status).toBe(404);
+    expect(response?.headers.get('x-jiffoo-runtime')).toBe('cloudflare-native-d1-plugin-settings');
+    await expect(response?.json()).resolves.toMatchObject({
+      success: false,
+      error: { code: 'PLUGIN_NOT_INSTALLED', message: expect.stringContaining('remoteradar-jobs') },
+    });
+  });
+
+  it('answers gateway-only plugin instances with an empty native page', async () => {
+    authenticateNativeAdmin.mockResolvedValue({ id: 'admin-1', email: 'admin@example.com' });
+    const response = await tryNativePluginSettings(
+      new Request('https://api.example/api/v1/extensions/plugin/remoteradar-jobs/instances?page=1&limit=100', { headers: { authorization: 'Bearer admin-token' } }),
+      { DB: { prepare: vi.fn() } } as never,
+    );
+    expect(response?.status).toBe(200);
+    await expect(response?.json()).resolves.toMatchObject({
+      success: true,
+      data: { items: [], page: 1, limit: 100, total: 0, totalPages: 0 },
+    });
+  });
+
+  it('still requires admin authentication for unknown slugs', async () => {
+    authenticateNativeAdmin.mockResolvedValue(null);
+    const response = await tryNativePluginSettings(
+      new Request('https://api.example/api/v1/extensions/plugin/remoteradar-jobs'),
+      { DB: { prepare: vi.fn() } } as never,
+    );
+    expect(response?.status).toBe(401);
   });
 });
