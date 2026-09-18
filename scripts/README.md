@@ -19,7 +19,6 @@ The root `package.json` carries ~65 scripts. This file groups them so you can fi
 | `test` / `test:api:quality` | API suites (CI's api-tests gate ≈ `cd apps/api && npx vitest run tests/`) |
 | `test:e2e` (+ `:shop` / `:admin` / `:all` / `:ui` / `:report`) | Playwright end-to-end suites |
 | `theme-matrix` (+ `:type-check` / `:validate` / `:ssr`) | Theme matrix gate |
-| `surface:generate` / `surface:check` | Theme API surface snapshot |
 
 ## Targeted test entry points (subsets of the API suite)
 
