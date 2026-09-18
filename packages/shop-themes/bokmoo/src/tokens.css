@@ -59,7 +59,13 @@
   --vault-grid: var(--bokmoo-grid);
 }
 
-body {
+/*
+ * Global element rules are scoped under body[data-theme='bokmoo'] so the
+ * statically-bundled copy cannot restyle OTHER storefronts (the registry
+ * imports every embedded theme's runtime, tokens included). The root
+ * layout renders data-theme from the active store theme slug.
+ */
+body[data-theme='bokmoo'] {
   background:
     radial-gradient(circle at 82% 8%, color-mix(in oklab, var(--bokmoo-gold) 13%, transparent), transparent 18%),
     radial-gradient(circle at 75% 28%, color-mix(in oklab, var(--bokmoo-gold) 8%, transparent), transparent 24%),
@@ -70,17 +76,12 @@ body {
   letter-spacing: 0.01em;
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
+body[data-theme='bokmoo'] :is(h1, h2, h3, h4, h5, h6) {
   font-family: var(--bokmoo-display);
   font-weight: 700;
 }
 
-::selection {
+body[data-theme='bokmoo'] ::selection {
   background: color-mix(in oklab, var(--bokmoo-gold) 38%, transparent);
   color: var(--bokmoo-ink);
 }

@@ -222,9 +222,15 @@ export default async function RootLayout({
   // This should never fail if generateThemeStyles is working correctly
   const isSafeCSS = assertSafeCSS(themeStyles);
 
+  // Exposes the active theme slug to CSS (e.g. bokmoo's body[data-theme]
+  // rules) without leaking theme globals onto other storefronts.
+  const activeThemeSlug = typeof context?.theme?.slug === 'string' && context.theme.slug
+    ? context.theme.slug
+    : undefined;
+
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased" data-theme={activeThemeSlug}>
         {/*
           SECURITY: Only inject theme styles if they pass safety checks
           - themeStyles are already sanitized by generateThemeStyles()
