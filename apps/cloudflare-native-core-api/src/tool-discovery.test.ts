@@ -9,6 +9,9 @@ const {
   buildProductFromDiscovery,
   cleanShowHnTitle,
   collectHackerNewsCandidates,
+  collectGitHubCandidates,
+  collectHuggingFaceCandidates,
+  dedupeKey,
   extractDomain,
   looksLikeNewsDomain,
   looksLikeNewsTitle,
@@ -49,8 +52,9 @@ const CATALOG_PAYLOAD = JSON.stringify({
 
 function makeEnv(options: {
   snapshot?: { payload: string; status_code: number };
-  liveDiscoveryDomains?: string[];
+  liveDiscoveryUrls?: string[];
   rows?: Record<string, unknown>;
+  pendingSiblings?: Array<{ id: string; url: string | null }>;
   trendingRows?: Array<{ name: string; tagline: string | null; url: string | null; metrics_json: string; product_id: string | null }>;
   missingDiscoveryTable?: boolean;
 } = {}) {
@@ -73,8 +77,11 @@ function makeEnv(options: {
             return null;
           },
           all: async () => {
-            if (sql.includes('domain FROM tool_discoveries')) {
-              return { results: (options.liveDiscoveryDomains ?? []).map((domain) => ({ domain })) };
+            if (sql.includes("status = 'pending' AND id !=")) {
+              return { results: options.pendingSiblings ?? [] };
+            }
+            if (sql.includes('url FROM tool_discoveries')) {
+              return { results: (options.liveDiscoveryUrls ?? []).map((url) => ({ url })) };
             }
             if (sql.includes("status = 'approved'")) {
               if (options.missingDiscoveryTable) {
@@ -135,12 +142,23 @@ describe('tool discovery connectors', () => {
     expect(candidates[0].metrics).toMatchObject({ points: 120 });
   });
 
-  it('reports product hunt as skipped without a token and upserts HN candidates', async () => {
+  it('runs all three connectors and upserts HN candidates', async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
-      if (String(input).includes('hn.algolia.com')) {
+      const url = String(input);
+      if (url.includes('hn.algolia.com')) {
         return Response.json({ hits: [
           { objectID: '9', title: 'Show HN: AI agent framework', url: 'https://agent.example', points: 88, num_comments: 12, created_at_i: 1758000000 },
         ] });
+      }
+      if (url.includes('api.github.com')) {
+        return Response.json({ items: [
+          { full_name: 'acme/agent-kit', name: 'agent-kit', html_url: 'https://github.com/acme/agent-kit', description: 'Toolkit for building AI agents', stargazers_count: 210, created_at: '2026-09-15T00:00:00Z' },
+        ] });
+      }
+      if (url.includes('huggingface.co')) {
+        return Response.json([
+          { id: 'acme/ai-playground', likes: 320, trendingScore: 50 },
+        ]);
       }
       throw new Error('unexpected fetch');
     });
@@ -148,8 +166,12 @@ describe('tool discovery connectors', () => {
     try {
       const { env } = makeEnv({ snapshot: catalogSnapshot });
       const result = await runNativeToolDiscovery(env);
-      expect(result.sources).toEqual([{ source: 'hacker_news', inserted: 1 }]);
-      expect(result.totalInserted).toBe(1);
+      expect(result.sources).toEqual([
+        { source: 'hacker_news', inserted: 1 },
+        { source: 'github', inserted: 1 },
+        { source: 'hugging_face', inserted: 1 },
+      ]);
+      expect(result.totalInserted).toBe(3);
     } finally {
       vi.unstubAllGlobals();
     }
@@ -179,6 +201,7 @@ describe('tool discovery connectors', () => {
     const { env, updates } = makeEnv({
       snapshot: catalogSnapshot,
       rows: { 'row-1': discoveryRow },
+      pendingSiblings: [{ id: 'row-2', url: 'https://tracecat.com/landing' }],
     });
     const result = await approveDiscovery(env, discoveryRow, { categoryName: '工作流' });
     expect(result).toMatchObject({ productId: 'tracecat', catalogTotal: 2 });
@@ -272,5 +295,48 @@ describe('public trending endpoint', () => {
       env,
     );
     expect(response).toBeNull();
+  });
+});
+
+describe('github and hugging face connectors', () => {
+  it('collects fresh AI-topic repos from GitHub, news titles excluded', async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).includes('topic%3Achatbot')) {
+        return Response.json({ items: [
+          { full_name: 'acme/notice-bot', name: 'notice-bot', html_url: 'https://github.com/acme/notice-bot', description: 'AI chatbot for news digests', stargazers_count: 90, created_at: '2026-09-15T00:00:00Z' },
+        ] });
+      }
+      if (String(input).includes('topic%3Aai')) {
+        return Response.json({ items: [
+          { full_name: 'acme/agent-kit', name: 'agent-kit', html_url: 'https://github.com/acme/agent-kit', description: 'Toolkit for building AI agents', stargazers_count: 210, created_at: '2026-09-15T00:00:00Z' },
+          { full_name: 'acme/ai-news-digest', name: 'ai-news-digest', html_url: 'https://github.com/acme/ai-news-digest', description: 'We summarise AI lawsuits daily', stargazers_count: 500, created_at: '2026-09-15T00:00:00Z' },
+        ] });
+      }
+      return Response.json({ items: [] });
+    });
+    const candidates = await collectGitHubCandidates(fetchImpl as unknown as typeof fetch);
+    expect(candidates.map((candidate) => candidate.sourceId)).toEqual(['acme/agent-kit', 'acme/notice-bot']);
+    expect(candidates[0]).toMatchObject({ source: 'github', url: 'https://github.com/acme/agent-kit', metrics: { stars: 210 } });
+  });
+
+  it('collects trending Hugging Face Spaces', async () => {
+    const fetchImpl = vi.fn(async () => Response.json([
+      { id: 'acme/ai-playground', likes: 320, trendingScore: 50 },
+      { id: 'invalid', likes: 999 },
+    ]));
+    const candidates = await collectHuggingFaceCandidates(fetchImpl as unknown as typeof fetch);
+    expect(candidates).toHaveLength(1);
+    expect(candidates[0]).toMatchObject({
+      source: 'hugging_face',
+      sourceId: 'acme/ai-playground',
+      url: 'https://huggingface.co/spaces/acme/ai-playground',
+      metrics: { likes: 320 },
+    });
+  });
+
+  it('keeps distinct tools on shared hosts and dedupes by domain otherwise', () => {
+    expect(dedupeKey('https://github.com/acme/agent-kit')).toBe('https://github.com/acme/agent-kit');
+    expect(dedupeKey('https://github.com/acme/other-tool/')).toBe('https://github.com/acme/other-tool');
+    expect(dedupeKey('https://www.tracecat.com/x')).toBe('tracecat.com');
   });
 });

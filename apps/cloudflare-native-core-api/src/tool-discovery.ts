@@ -12,6 +12,7 @@ import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
 
 type ToolDiscoveryEnv = NativeAuthEnv & {
   DB: D1Database;
+  GITHUB_TOKEN?: string;
   TOOL_DISCOVERY_ENABLED?: string;
 };
 
@@ -98,6 +99,14 @@ const CATALOG_SNAPSHOT_KEY = 'core:snapshot:/api/v1/products';
 const LOOKBACK_DAYS = 3;
 const HN_MIN_POINTS = 10;
 const HN_MAX_ITEMS = 25;
+const GITHUB_TOPICS = ['ai', 'llm', 'chatbot', 'ai-agents'];
+const GITHUB_MIN_STARS = 50;
+const GITHUB_MAX_ITEMS = 20;
+const HF_MAX_ITEMS = 20;
+// Hosts that serve many distinct tools under one domain. Dedupe for these
+// falls back to the full URL instead of the domain, and the same-host guard
+// in catalog dedupe must not retire siblings of unrelated projects.
+const SHARED_HOSTS = new Set(['github.com', 'huggingface.co']);
 const MAX_CANDIDATES_PER_RUN = 30;
 
 // Tokens matched against story/post titles to keep the queue on-topic.
@@ -150,7 +159,7 @@ const NEWS_DOMAIN_BLOCKLIST = new Set([
 // Headline shapes that indicate news coverage or essays rather than a tool
 // release: security incidents, lawsuits, opinion pieces, how-to essays.
 const NEWS_TITLE_RE =
-  /\b(hackers?|breach(ed|es)?|vulnerabilit(y|ies)|rce|zero[- ]click|misconfiguration|attack|exploit(ed)?|malware|backdoor|outage|lawsuit|sues?|sued|fights?|loses?|lost (to|fight)|case against|apocalypse|doom|banned?|crackdown)\b/i;
+  /\b(hackers?|breach(ed|es)?|vulnerabilit(y|ies)|rce|zero[- ]click|misconfiguration|attack|exploit(ed)?|malware|backdoor|outage|lawsuits?|sues?|sued|fights?|loses?|lost (to|fight)|case against|apocalypse|doom|banned?|crackdown)\b/i;
 
 export function looksLikeNewsDomain(domain: string | null | undefined): boolean {
   if (!domain) return false;
@@ -169,6 +178,21 @@ export function isToolCandidate(title: string, url: string | null | undefined): 
   if (looksLikeNewsTitle(title)) return false;
   if (looksLikeNewsDomain(extractDomain(url))) return false;
   return true;
+}
+
+// Dedupe key: the tool's own domain, or the full URL on shared hosts where
+// many unrelated tools live under one domain.
+export function dedupeKey(url: string | null | undefined): string | null {
+  const domain = extractDomain(url);
+  if (!domain) return null;
+  if (SHARED_HOSTS.has(domain) && url) {
+    try {
+      return new URL(url).toString().replace(/\/+$/, '').toLowerCase();
+    } catch {
+      return domain;
+    }
+  }
+  return domain;
 }
 
 interface HnHit {  objectID: string;
@@ -213,6 +237,92 @@ export async function collectHackerNewsCandidates(
         : now.toISOString(),
     });
     if (candidates.length >= HN_MAX_ITEMS) break;
+  }
+  return candidates;
+}
+
+interface GhRepo {
+  full_name: string;
+  name?: string;
+  html_url: string;
+  description: string | null;
+  stargazers_count: number;
+  created_at: string;
+}
+
+export async function collectGitHubCandidates(
+  fetchImpl: typeof fetch,
+  now = new Date(),
+  token: string | null = null,
+): Promise<DiscoveryCandidate[]> {
+  const sinceDate = new Date(now.getTime() - LOOKBACK_DAYS * 86400_000).toISOString().slice(0, 10);
+  const headers: Record<string, string> = {
+    accept: 'application/vnd.github+json',
+    'user-agent': 'jiffoo-tool-discovery',
+  };
+  if (token) headers.authorization = `Bearer ${token}`;
+  const candidates: DiscoveryCandidate[] = [];
+  const seen = new Set<string>();
+  for (const topic of GITHUB_TOPICS) {
+    if (candidates.length >= GITHUB_MAX_ITEMS) break;
+    const q = encodeURIComponent(`created:>${sinceDate} topic:${topic} stars:>=${GITHUB_MIN_STARS}`);
+    const endpoint = `https://api.github.com/search/repositories?q=${q}&sort=stars&order=desc&per_page=30`;
+    const response = await fetchImpl(endpoint, { headers });
+    if (!response.ok) throw new Error(`github_${response.status}`);
+    const body = await response.json() as { items?: GhRepo[] };
+    for (const repo of body.items ?? []) {
+      if (seen.has(repo.full_name)) continue;
+      seen.add(repo.full_name);
+      const title = (repo.name ?? repo.full_name.split('/').pop() ?? repo.full_name).trim();
+      if (!title || looksLikeNewsTitle(`${title} ${repo.description ?? ''}`)) continue;
+      candidates.push({
+        source: 'github',
+        sourceId: repo.full_name,
+        name: title.slice(0, 160),
+        tagline: `GitHub topic:${topic}`,
+        description: (repo.description ?? title).slice(0, 1000),
+        url: repo.html_url,
+        metrics: { stars: repo.stargazers_count ?? 0 },
+        keywords: [`topic:${topic}`],
+        discoveredAt: repo.created_at ?? now.toISOString(),
+      });
+      if (candidates.length >= GITHUB_MAX_ITEMS) break;
+    }
+  }
+  return candidates;
+}
+
+interface HfSpace {
+  id: string;
+  likes?: number;
+  trendingScore?: number;
+}
+
+export async function collectHuggingFaceCandidates(
+  fetchImpl: typeof fetch,
+  now = new Date(),
+): Promise<DiscoveryCandidate[]> {
+  const endpoint = 'https://huggingface.co/api/spaces?sort=trendingScore&direction=-1&limit=60';
+  const response = await fetchImpl(endpoint, { headers: { accept: 'application/json' } });
+  if (!response.ok) throw new Error(`huggingface_${response.status}`);
+  const spaces = await response.json() as HfSpace[];
+  const candidates: DiscoveryCandidate[] = [];
+  for (const space of Array.isArray(spaces) ? spaces : []) {
+    if (!space?.id || !space.id.includes('/')) continue;
+    const title = (space.id.split('/')[1] ?? space.id).replace(/[-_]+/g, ' ').trim();
+    if (!title || looksLikeNewsTitle(title)) continue;
+    candidates.push({
+      source: 'hugging_face',
+      sourceId: space.id,
+      name: title.slice(0, 160),
+      tagline: 'Hugging Face Spaces',
+      description: title,
+      url: `https://huggingface.co/spaces/${space.id}`,
+      metrics: { likes: space.likes ?? 0 },
+      keywords: ['hugging face'],
+      discoveredAt: now.toISOString(),
+    });
+    if (candidates.length >= HF_MAX_ITEMS) break;
   }
   return candidates;
 }
@@ -266,20 +376,21 @@ export async function appendProductToCatalog(
 
 async function upsertCandidates(env: ToolDiscoveryEnv, candidates: DiscoveryCandidate[]): Promise<number> {
   const items = await readCatalogItems(env);
-  const catalogDomains = new Set(
+  const catalogKeys = new Set(
     items
-      .map((item) => extractDomain(item.typeData?.websiteUrl))
-      .filter((domain): domain is string => Boolean(domain)),
+      .map((item) => dedupeKey(item.typeData?.websiteUrl))
+      .filter((key): key is string => Boolean(key)),
   );
   const liveRows = await env.DB.prepare(
-    "SELECT domain FROM tool_discoveries WHERE status IN ('pending', 'approved') AND domain IS NOT NULL",
-  ).all<{ domain: string | null }>();
-  const liveDomains = new Set((liveRows.results ?? []).map((row) => row.domain).filter(Boolean) as string[]);
+    "SELECT url FROM tool_discoveries WHERE status IN ('pending', 'approved') AND url IS NOT NULL",
+  ).all<{ url: string | null }>();
+  const liveKeys = new Set((liveRows.results ?? []).map((row) => dedupeKey(row.url)).filter((key): key is string => Boolean(key)));
 
   let inserted = 0;
   for (const candidate of candidates) {
     const domain = extractDomain(candidate.url);
-    const isDuplicate = (domain && (catalogDomains.has(domain) || liveDomains.has(domain))) ?? false;
+    const dupKey = dedupeKey(candidate.url);
+    const isDuplicate = (dupKey && (catalogKeys.has(dupKey) || liveKeys.has(dupKey))) ?? false;
     const result = await env.DB.prepare(
       `INSERT INTO tool_discoveries
         (id, source, source_id, name, tagline, description, url, domain, metrics_json, keywords_json,
@@ -306,7 +417,7 @@ async function upsertCandidates(env: ToolDiscoveryEnv, candidates: DiscoveryCand
       nowIso(),
     ).run();
     if (result.meta.changes > 0) inserted += 1;
-    if (domain && !isDuplicate) liveDomains.add(domain);
+    if (dupKey && !isDuplicate) liveKeys.add(dupKey);
   }
   return inserted;
 }
@@ -317,7 +428,7 @@ export interface DiscoveryRunResult {
 }
 
 const heatOf = (candidate: DiscoveryCandidate): number =>
-  Number(candidate.metrics.votes ?? candidate.metrics.points ?? 0);
+  Number(candidate.metrics.votes ?? candidate.metrics.likes ?? candidate.metrics.stars ?? candidate.metrics.points ?? 0);
 
 export async function runNativeToolDiscovery(env: ToolDiscoveryEnv): Promise<DiscoveryRunResult> {
   const sources: DiscoveryRunResult['sources'] = [];
@@ -328,6 +439,17 @@ export async function runNativeToolDiscovery(env: ToolDiscoveryEnv): Promise<Dis
     runs.push({ source: 'hacker_news', candidates: await collectHackerNewsCandidates(fetch), configured: true });
   } catch (error) {
     runs.push({ source: 'hacker_news', candidates: [], configured: true, error: error instanceof Error ? error.message : 'unknown' });
+  }
+
+  try {
+    runs.push({ source: 'github', candidates: await collectGitHubCandidates(fetch, new Date(), env.GITHUB_TOKEN ?? null), configured: true });
+  } catch (error) {
+    runs.push({ source: 'github', candidates: [], configured: true, error: error instanceof Error ? error.message : 'unknown' });
+  }
+  try {
+    runs.push({ source: 'hugging_face', candidates: await collectHuggingFaceCandidates(fetch), configured: true });
+  } catch (error) {
+    runs.push({ source: 'hugging_face', candidates: [], configured: true, error: error instanceof Error ? error.message : 'unknown' });
   }
 
   for (const run of runs) {
@@ -456,12 +578,17 @@ export async function approveDiscovery(
   ).bind(row.id, product.id, nowIso()).run();
   // Retire sibling pending rows pointing at the same tool site.
   if (product.typeData?.websiteUrl) {
-    const domain = extractDomain(product.typeData.websiteUrl);
-    if (domain) {
-      await env.DB.prepare(
-        `UPDATE tool_discoveries SET status = 'duplicate', review_note = ?2, updated_at = ?3
-         WHERE status = 'pending' AND domain = ?1 AND id != ?4`,
-      ).bind(domain, `approved as ${product.id}`, nowIso(), row.id).run();
+    const key = dedupeKey(product.typeData.websiteUrl);
+    if (key) {
+      const siblings = await env.DB.prepare(
+        "SELECT id, url FROM tool_discoveries WHERE status = 'pending' AND id != ?1",
+      ).all<{ id: string; url: string | null }>();
+      for (const sibling of siblings.results ?? []) {
+        if (dedupeKey(sibling.url) !== key) continue;
+        await env.DB.prepare(
+          `UPDATE tool_discoveries SET status = 'duplicate', review_note = ?2, updated_at = ?3 WHERE id = ?1`,
+        ).bind(sibling.id, `approved as ${product.id}`, nowIso()).run();
+      }
     }
   }
   return { productId: product.id, catalogTotal };
