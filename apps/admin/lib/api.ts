@@ -1468,6 +1468,51 @@ export const errorsApi = {
     apiClient.get('/api/admin/errors/trends', { params: { timeRange } }),
 };
 
+// Tool Discovery (automated trending-AI-tool intake + admin review)
+export interface ToolDiscoveryItem {
+  id: string;
+  source: string;
+  source_id: string;
+  name: string;
+  tagline: string | null;
+  description: string | null;
+  url: string | null;
+  domain: string | null;
+  metrics_json: string;
+  keywords_json: string;
+  status: 'pending' | 'approved' | 'rejected' | 'duplicate';
+  product_id: string | null;
+  review_note: string | null;
+  reviewed_at: string | null;
+  discovered_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ToolDiscoveryApprovePayload {
+  name?: string;
+  description?: string;
+  websiteUrl?: string;
+  categoryName?: string;
+  tags?: string[];
+  rating?: number;
+  featured?: boolean;
+}
+
+export const toolDiscoveriesApi = {
+  list: (params: { page?: number; limit?: number; status?: string; source?: string } = {}): Promise<ApiResponse<PageResult<ToolDiscoveryItem>>> =>
+    apiClient.get('/api/admin/tool-discoveries', { params }),
+
+  run: (): Promise<ApiResponse<{ sources: Array<{ source: string; inserted?: number; skipped?: string }>; totalInserted: number }>> =>
+    apiClient.post('/api/admin/tool-discoveries/run'),
+
+  approve: (id: string, data: ToolDiscoveryApprovePayload = {}): Promise<ApiResponse<{ productId: string; catalogTotal: number }>> =>
+    apiClient.post(`/api/admin/tool-discoveries/${encodeURIComponent(id)}/approve`, data),
+
+  reject: (id: string, note?: string): Promise<ApiResponse<{ id: string; status: string }>> =>
+    apiClient.post(`/api/admin/tool-discoveries/${encodeURIComponent(id)}/reject`, { note }),
+};
+
 // ============================================================
 // Staff Management (Admin RBAC)
 // ============================================================

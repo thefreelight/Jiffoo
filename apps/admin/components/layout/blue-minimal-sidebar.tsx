@@ -28,6 +28,7 @@ import {
   LogOut,
   ChevronUp,
   Monitor,
+  Radar,
   ShieldCheck,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
@@ -65,6 +66,13 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Products',
     href: '/products',
     icon: Package,
+  },
+  {
+    id: 'tool-discovery',
+    nameKey: 'merchant.nav.toolDiscovery',
+    fallback: 'Tool Discovery',
+    href: '/tool-discovery',
+    icon: Radar,
   },
   {
     id: 'inventory',
