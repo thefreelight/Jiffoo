@@ -311,10 +311,10 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeAffiliate) return nativeAffiliate;
     const nativeCoupon = await tryNativeCoupon(nativeRequest, env);
     if (nativeCoupon) return nativeCoupon;
-    const nativeImagerAi = await tryNativeImagerAi(nativeRequest, env);
-    if (nativeImagerAi) return nativeImagerAi;
     const nativeVideoAi = await tryNativeVideoAi(nativeRequest, env);
     if (nativeVideoAi) return nativeVideoAi;
+    const nativeImagerAi = await tryNativeImagerAi(nativeRequest, env);
+    if (nativeImagerAi) return nativeImagerAi;
     const nativeSupportHub = await tryNativeSupportHub(nativeRequest, env);
     if (nativeSupportHub) return nativeSupportHub;
     const nativePluginSettings = await tryNativePluginSettings(nativeRequest, env);

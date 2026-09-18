@@ -264,3 +264,12 @@ describe('native imager-ai contract', () => {
     expect(payload.data[0]).toMatchObject({ taskId: 'imager_task_1', prompt: 'hello', resultImageUrl: 'https://cdn.test/h.png' });
   });
 });
+
+it('yields /store/video/* paths to the video adapter', async () => {
+  const { tryNativeImagerAi } = await import('./imager-ai');
+  const response = await tryNativeImagerAi(
+    new Request('https://x/api/v1/plugins/imager-ai/store/video/config'),
+    { DB: {} } as never,
+  );
+  expect(response).toBeNull();
+});
