@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, staffApi, unwrapApiResponse, isAdminApiError, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
+import { apiClient, PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, staffApi, unwrapApiResponse, isAdminApiError, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
@@ -1257,6 +1257,35 @@ export function usePluginConfig(slug: string) {
       return unwrapApiResponse(response);
     },
     enabled: !!slug,
+  });
+}
+
+// Native affiliate adapter overview: partners, attributions, and commissions
+// served by the Cloudflare-native core from native_affiliate_* tables. The
+// generic plugin-detail endpoint is not implemented natively, so this query
+// also acts as the capability probe for the dedicated affiliate workspace.
+export interface AffiliateNativeOverviewData {
+  totals?: {
+    partnerCount?: number;
+    commissionCount?: number;
+    commissionTotal?: number;
+    commissionPending?: number;
+  };
+  partners?: Array<Record<string, unknown>>;
+  commissions?: Array<Record<string, unknown>>;
+  attributions?: Array<Record<string, unknown>>;
+}
+
+export function useAffiliateNativeOverview(slug: string) {
+  return useQuery({
+    queryKey: [...pluginQueryKeys.all, 'affiliate-native-overview', slug] as const,
+    queryFn: async () => {
+      const response = await apiClient.get('/extensions/plugin/affiliate/api/admin/overview');
+      return unwrapApiResponse<AffiliateNativeOverviewData>(response);
+    },
+    enabled: slug === 'affiliate',
+    retry: false,
+    staleTime: 30_000,
   });
 }
 

@@ -8,12 +8,14 @@ import { apiClient, unwrapApiResponse } from '@/lib/api';
 import type { PluginInstance } from '@/lib/api';
 import type { PluginConfigMeta } from '@/lib/types';
 import {
+  useAffiliateNativeOverview,
   useCreatePluginInstance,
   useInstalledPlugins,
   useOfficialCatalog,
   usePluginConfig,
   usePluginInstances,
   useUpdatePluginInstance,
+  type AffiliateNativeOverviewData,
 } from '@/lib/hooks/use-api';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -1299,6 +1301,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   const t = useT();
   const { data, isLoading, error } = usePluginConfig(slug);
   const jobsAdminAvailable = useJobsAdminCapability();
+  const affiliateOverviewQuery = useAffiliateNativeOverview(slug);
   const { data: instancesData, isLoading: isInstancesLoading } = usePluginInstances(slug);
   const { data: installedPluginsData } = useInstalledPlugins();
   const { data: officialCatalogData } = useOfficialCatalog();
@@ -1510,6 +1513,18 @@ export function PluginWorkspace({ slug }: { slug: string }) {
         <div className="min-h-screen w-full bg-[#f8fafc]">
           <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-8 lg:px-10">
             <RemoteRadarJobsNativeWorkspace installationId="default" />
+          </div>
+        </div>
+      );
+    }
+    // Same pattern for the native affiliate adapter: its overview endpoint is
+    // served by the Cloudflare-native core from native_affiliate_* tables,
+    // while the generic plugin-detail endpoint is not implemented natively.
+    if (slug === 'affiliate' && affiliateOverviewQuery.isSuccess) {
+      return (
+        <div className="min-h-screen w-full bg-[#f8fafc]">
+          <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-8 lg:px-10">
+            <AffiliateNativeWorkspace data={affiliateOverviewQuery.data} />
           </div>
         </div>
       );
@@ -1790,6 +1805,151 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               />
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function affiliateText(value: unknown, fallback = '—'): string {
+  if (value === null || value === undefined || value === '') return fallback;
+  return String(value);
+}
+
+function affiliateMoney(value: unknown, currency: unknown): string {
+  const amount = Number(value || 0);
+  return `${affiliateText(currency, 'USD')} ${amount.toFixed(2)}`;
+}
+
+export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOverviewData }) {
+  const partners = data.partners || [];
+  const commissions = data.commissions || [];
+  const attributions = data.attributions || [];
+  const totals = data.totals || {};
+
+  return (
+    <div className="space-y-6">
+      <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <h1 className="text-lg font-semibold">Affiliate workspace</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Live partner, attribution, and commission data served by the native core adapter.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-4">
+          <div className="rounded-md border p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Partners</p>
+            <p className="mt-1 text-xl font-semibold">{Number(totals.partnerCount || 0)}</p>
+          </div>
+          <div className="rounded-md border p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Commission entries</p>
+            <p className="mt-1 text-xl font-semibold">{Number(totals.commissionCount || 0)}</p>
+          </div>
+          <div className="rounded-md border p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Commission total</p>
+            <p className="mt-1 text-xl font-semibold">{affiliateMoney(totals.commissionTotal, 'USD')}</p>
+          </div>
+          <div className="rounded-md border p-3">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Pending payout</p>
+            <p className="mt-1 text-xl font-semibold">{affiliateMoney(totals.commissionPending, 'USD')}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold">Partners</h2>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="py-2 pr-4">Code</th>
+                <th className="py-2 pr-4">Partner</th>
+                <th className="py-2 pr-4">Status</th>
+                <th className="py-2 pr-4">Rate</th>
+                <th className="py-2 pr-4">Commissions</th>
+                <th className="py-2 pr-4">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {partners.map((partner) => (
+                <tr key={affiliateText(partner.id)} className="border-b last:border-0">
+                  <td className="py-2 pr-4 font-medium">{affiliateText(partner.code)}</td>
+                  <td className="py-2 pr-4">{affiliateText(partner.display_name || partner.email)}</td>
+                  <td className="py-2 pr-4">{affiliateText(partner.status)}</td>
+                  <td className="py-2 pr-4">{Number(partner.commission_rate || 0)}%</td>
+                  <td className="py-2 pr-4">{Number(partner.commission_count || 0)}</td>
+                  <td className="py-2 pr-4">{affiliateMoney(partner.commission_total, partner.currency)}</td>
+                </tr>
+              ))}
+              {partners.length === 0 ? (
+                <tr><td colSpan={6} className="py-3 text-muted-foreground">No partners yet.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold">Commissions</h2>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="py-2 pr-4">Order</th>
+                <th className="py-2 pr-4">Partner</th>
+                <th className="py-2 pr-4">Order amount</th>
+                <th className="py-2 pr-4">Rate</th>
+                <th className="py-2 pr-4">Commission</th>
+                <th className="py-2 pr-4">Status</th>
+                <th className="py-2 pr-4">Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {commissions.map((commission) => (
+                <tr key={affiliateText(commission.id)} className="border-b last:border-0">
+                  <td className="py-2 pr-4 font-medium">{affiliateText(commission.order_id)}</td>
+                  <td className="py-2 pr-4">{affiliateText(commission.partner_code)}</td>
+                  <td className="py-2 pr-4">{affiliateMoney(commission.order_amount, commission.currency)}</td>
+                  <td className="py-2 pr-4">{Number(commission.commission_rate || 0)}%</td>
+                  <td className="py-2 pr-4">{affiliateMoney(commission.amount, commission.currency)}</td>
+                  <td className="py-2 pr-4">{affiliateText(commission.status)}</td>
+                  <td className="py-2 pr-4">{affiliateText(commission.created_at)}</td>
+                </tr>
+              ))}
+              {commissions.length === 0 ? (
+                <tr><td colSpan={7} className="py-3 text-muted-foreground">No commissions yet.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="rounded-lg border bg-white p-5 shadow-sm">
+        <h2 className="text-base font-semibold">Referral attributions</h2>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                <th className="py-2 pr-4">Partner code</th>
+                <th className="py-2 pr-4">Visitor</th>
+                <th className="py-2 pr-4">Status</th>
+                <th className="py-2 pr-4">User</th>
+                <th className="py-2 pr-4">Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              {attributions.map((attribution) => (
+                <tr key={affiliateText(attribution.id)} className="border-b last:border-0">
+                  <td className="py-2 pr-4 font-medium">{affiliateText(attribution.partner_code)}</td>
+                  <td className="py-2 pr-4">{affiliateText(attribution.visitor_id)}</td>
+                  <td className="py-2 pr-4">{affiliateText(attribution.status)}</td>
+                  <td className="py-2 pr-4">{affiliateText(attribution.user_id)}</td>
+                  <td className="py-2 pr-4">{affiliateText(attribution.created_at)}</td>
+                </tr>
+              ))}
+              {attributions.length === 0 ? (
+                <tr><td colSpan={5} className="py-3 text-muted-foreground">No attributions yet.</td></tr>
+              ) : null}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

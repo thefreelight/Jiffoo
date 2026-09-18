@@ -1,4 +1,4 @@
-import { authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
+import { authenticateNativeAdmin, authenticateNativeUser, type NativeAuthEnv, type NativeSessionUser } from './auth';
 import { isNativePluginEnabled } from './plugin-enabled';
 
 interface AffiliateEnv extends NativeAuthEnv { DB: D1Database }
@@ -261,9 +261,58 @@ async function commissions(request: Request, env: AffiliateEnv, user: NativeSess
 
 export async function tryNativeAffiliate(request: Request, env: AffiliateEnv): Promise<Response | null> {
   const url = new URL(request.url);
-  const path = url.pathname
+  const rawPath = url.pathname;
+  const path = rawPath
     .replace('/api/v1/extensions/plugin/affiliate/api/api/store/affiliate', '/api/v1/plugins/affiliate/store')
     .replace('/api/v1/extensions/plugin/affiliate/api/store/affiliate', '/api/v1/plugins/affiliate/store');
+
+  // Admin workspace data for the native affiliate adapter. The platform
+  // plugin runtime serves these through /extensions/plugin/affiliate/api/admin,
+  // so keep the same prefix contract for the Cloudflare-native core.
+  if (rawPath === '/api/v1/extensions/plugin/affiliate/api/admin/overview' && request.method === 'GET') {
+    const admin = await authenticateNativeAdmin(request, env);
+    if (!admin) return failure(401, 'UNAUTHORIZED', 'Administrator authentication is required');
+    if (!(await isNativePluginEnabled(env, 'affiliate'))) return failure(404, 'PLUGIN_NOT_ENABLED', 'Affiliate plugin is not installed and enabled');
+    const partners = await env.DB.prepare(
+      `SELECT p.id, p.code, p.status, p.display_name, p.email, p.commission_rate, p.currency,
+              p.organization_id, p.created_at,
+              COUNT(c.id) AS commission_count,
+              COALESCE(SUM(c.amount), 0) AS commission_total,
+              COALESCE(SUM(CASE WHEN c.status = 'pending' THEN c.amount ELSE 0 END), 0) AS commission_pending
+       FROM native_affiliate_partners p
+       LEFT JOIN native_affiliate_commissions c ON c.partner_id = p.id
+       GROUP BY p.id ORDER BY p.created_at DESC LIMIT 200`,
+    ).all<Record<string, unknown>>();
+    const commissions = await env.DB.prepare(
+      `SELECT c.id, p.code AS partner_code, c.order_id, c.order_amount, c.commission_rate,
+              c.amount, c.currency, c.status, c.created_at
+       FROM native_affiliate_commissions c
+       JOIN native_affiliate_partners p ON p.id = c.partner_id
+       ORDER BY c.created_at DESC LIMIT 200`,
+    ).all<Record<string, unknown>>();
+    const attributions = await env.DB.prepare(
+      `SELECT a.id, p.code AS partner_code, a.visitor_id, a.status, a.user_id,
+              a.landing_url, a.created_at, a.expires_at, a.converted_at
+       FROM native_affiliate_attributions a
+       LEFT JOIN native_affiliate_partners p ON p.id = a.partner_id
+       ORDER BY a.created_at DESC LIMIT 200`,
+    ).all<Record<string, unknown>>();
+    const totals = {
+      partnerCount: partners.results.length,
+      commissionCount: commissions.results.length,
+      commissionTotal: commissions.results.reduce((sum, row) => sum + Number(row.amount || 0), 0),
+      commissionPending: commissions.results
+        .filter((row) => row.status === 'pending')
+        .reduce((sum, row) => sum + Number(row.amount || 0), 0),
+    };
+    return success({
+      totals,
+      partners: partners.results,
+      commissions: commissions.results,
+      attributions: attributions.results,
+    });
+  }
+
   const route = path.match(/^\/api\/v1\/plugins\/affiliate\/store\/r\/([^/]+)$/);
   if (!route && !path.startsWith('/api/v1/plugins/affiliate/store/')) return null;
   if (!(await isNativePluginEnabled(env, 'affiliate'))) return failure(404, 'PLUGIN_NOT_ENABLED', 'Affiliate plugin is not installed and enabled');

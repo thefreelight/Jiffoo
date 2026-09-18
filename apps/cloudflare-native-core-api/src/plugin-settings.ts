@@ -132,6 +132,11 @@ const definitions: Record<string, PluginDefinition> = {
     description: 'Native BOKMOO physical card claim capability: printed-MID claim sessions, Android/reader EID/ICCID verification, account card binding, and controlled card inventory import.',
     configSchema: {},
   },
+  affiliate: {
+    slug: 'affiliate', name: 'Affiliate Marketing', version: '0.1.6', category: 'marketing',
+    description: 'Native affiliate partners, referral attributions, and commission ledger with storefront self-service enrollment.',
+    configSchema: {},
+  },
   'support-hub': {
     slug: 'support-hub', name: 'Support Hub', version: '0.0.3', category: 'social',
     description: 'Storefront contact launcher with Telegram, WhatsApp, Feishu/Lark, and generic HTTPS chat channels.',
