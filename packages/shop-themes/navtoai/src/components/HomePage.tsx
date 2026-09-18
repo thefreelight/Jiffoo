@@ -36,6 +36,29 @@ interface TrendingEntry {
   tagline: Record<'en' | 'zh-Hans' | 'zh-Hant', string>;
 }
 
+// Shape served by GET /api/v1/tool-directory/trending on Cloudflare-native
+// runtimes with the discovery intake (migration 0063).
+interface LiveTrendingEntry {
+  name: string;
+  tagline: string | null;
+  heat: number;
+  url: string | null;
+  productId: string | null;
+}
+
+interface TrendingCard {
+  key: string;
+  name: string;
+  tagline: string;
+  heatLabel: string;
+  href: string;
+}
+
+function formatHeat(heat: number): string {
+  if (heat >= 1000) return `${(heat / 1000).toFixed(1)}K`;
+  return String(heat);
+}
+
 const trendingTools: TrendingEntry[] = [
   { name: 'Sora', heat: '12.4K', tagline: { en: 'AI video generation by OpenAI', 'zh-Hans': 'OpenAI 的 AI 视频生成', 'zh-Hant': 'OpenAI 的 AI 影片生成' } },
   { name: 'Lovable', heat: '8.9K', tagline: { en: 'Build products with natural language', 'zh-Hans': '用自然语言构建产品', 'zh-Hant': '用自然語言建構產品' } },
@@ -106,9 +129,30 @@ export const HomePage = React.memo(function HomePage({ locale, onNavigate }: Hom
   const [query, setQuery] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [subscribed, setSubscribed] = React.useState(false);
+  // Real trending entries from the runtime's discovery intake (approved
+  // discoveries ranked by source heat). Null until fetched; the static
+  // config list stays the fallback so runtimes without the intake table
+  // render unchanged.
+  const [liveTrending, setLiveTrending] = React.useState<LiveTrendingEntry[] | null>(null);
   const copy = getNavCopy(locale);
   const landing = copy.landing;
   const lang = copy.locale;
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch('/api/tool-directory/trending?limit=5')
+      .then((response) => (response.ok ? response.json() : null))
+      .then((body) => {
+        const items = (body as { data?: { items?: LiveTrendingEntry[] } } | null)?.data?.items;
+        if (!cancelled && Array.isArray(items) && items.length >= 3) {
+          setLiveTrending(items);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const navigateTo = React.useCallback(
     (href: string) => {
@@ -132,6 +176,24 @@ export const HomePage = React.memo(function HomePage({ locale, onNavigate }: Hom
     if (!email.trim()) return;
     setSubscribed(true);
   };
+
+  const trendingCards: TrendingCard[] = liveTrending
+    ? liveTrending.map((entry) => ({
+        key: entry.productId ?? entry.url ?? entry.name,
+        name: entry.name,
+        tagline: entry.tagline ?? '',
+        heatLabel: formatHeat(entry.heat),
+        href: entry.productId
+          ? `/products/${entry.productId}`
+          : `/search?q=${encodeURIComponent(entry.name)}`,
+      }))
+    : trendingTools.map((tool) => ({
+        key: tool.name,
+        name: tool.name,
+        tagline: tool.tagline[lang],
+        heatLabel: tool.heat,
+        href: `/search?q=${encodeURIComponent(tool.name)}`,
+      }));
 
   return (
     <MarketplaceFrame locale={locale} onNavigate={onNavigate}>
@@ -310,21 +372,21 @@ export const HomePage = React.memo(function HomePage({ locale, onNavigate }: Hom
           onAction={() => navigateTo('/bestsellers')}
         />
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {trendingTools.map((tool, index) => (
+          {trendingCards.map((tool, index) => (
             <button
-              key={tool.name}
+              key={tool.key}
               type="button"
-              onClick={() => navigateTo(`/search?q=${encodeURIComponent(tool.name)}`)}
+              onClick={() => navigateTo(tool.href)}
               className="flex items-start gap-3 rounded-[1.1rem] border border-[#eaeff8] bg-white p-4 text-left shadow-[0_18px_40px_-34px_rgba(28,54,120,0.35)] transition-shadow hover:shadow-[0_26px_50px_-30px_rgba(28,54,120,0.45)]"
             >
               <span className="text-sm font-black text-[#b3bdce]">{index + 1}</span>
               <ToolLogo name={tool.name} size="sm" />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-black text-[#0f1730]">{tool.name}</span>
-                <span className="mt-0.5 block truncate text-[0.7rem] font-medium text-[#8a93a8]">{tool.tagline[lang]}</span>
+                <span className="mt-0.5 block truncate text-[0.7rem] font-medium text-[#8a93a8]">{tool.tagline}</span>
                 <span className="mt-2 inline-flex items-center gap-1 text-xs font-bold text-[#ff6a3d]">
                   <Flame className="h-3.5 w-3.5" />
-                  {tool.heat}
+                  {tool.heatLabel}
                 </span>
               </span>
             </button>
