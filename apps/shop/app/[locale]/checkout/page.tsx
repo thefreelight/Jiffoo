@@ -238,19 +238,26 @@ export default function CheckoutPage() {
           throw new Error(getText('common.errors.general', 'Stripe storefront key is not configured'));
         }
 
-        const intentResponse = await paymentApi.createIntent({ orderId });
-        const intentData = intentResponse?.data || readLegacyStripeIntentResponse(intentResponse);
+        try {
+          const intentResponse = await paymentApi.createIntent({ orderId });
+          const intentData = intentResponse?.data || readLegacyStripeIntentResponse(intentResponse);
 
-        if (!intentResponse || !intentResponse.success || !intentData?.clientSecret) {
-          throw new Error(intentResponse?.message || getText('common.errors.general', 'Failed to create payment intent'));
+          if (!intentResponse || !intentResponse.success || !intentData?.clientSecret) {
+            throw new Error(intentResponse?.message || getText('common.errors.general', 'Failed to create payment intent'));
+          }
+
+          setStripePublishableKey(publishableKey);
+          setStripeClientSecret(intentData.clientSecret);
+          setStripeOrderId(orderId);
+          setIsStripeModalOpen(true);
+          setIsProcessing(false);
+          return; // Modal now assumes control
+        } catch (intentError) {
+          // Native Cloudflare cores do not implement /payments/create-intent.
+          // Fall through to the hosted checkout-session redirect below so
+          // storefront checkout keeps working on native instances.
+          console.warn('Stripe direct-intent flow unavailable, falling back to hosted checkout session:', intentError);
         }
-
-        setStripePublishableKey(publishableKey);
-        setStripeClientSecret(intentData.clientSecret);
-        setStripeOrderId(orderId);
-        setIsStripeModalOpen(true);
-        setIsProcessing(false);
-        return; // Modal now assumes control
       }
 
       // 2. Create payment session using legacy unified payment gateway
