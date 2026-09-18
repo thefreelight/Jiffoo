@@ -139,6 +139,42 @@ export function cleanShowHnTitle(title: string): string {
   return title.replace(/^show\s*hn[\s:]+/i, '').trim() || title.trim();
 }
 
+// News and social domains publish AI coverage, not tools. Their stories pass
+// the keyword filter easily but never belong in a tool directory queue.
+const NEWS_DOMAIN_BLOCKLIST = new Set([
+  'wsj.com', 'arstechnica.com', 'techcrunch.com', 'theverge.com', 'engadget.com',
+  'gizmodo.com', 'wired.com', 'venturebeat.com', 'zdnet.com', 'theregister.com',
+  'nytimes.com', 'washingtonpost.com', 'bloomberg.com', 'cnbc.com', 'ft.com',
+  'economist.com', 'bbc.com', 'cnn.com', 'forbes.com', 'businessinsider.com',
+  'theinformation.com', 'news.ycombinator.com', 'twitter.com', 'x.com',
+  'reddit.com', 'youtube.com', 'medium.com', 'substack.com', 'facebook.com',
+  'linkedin.com', 'instagram.com', 'tiktok.com',
+]);
+
+// Headline shapes that indicate news coverage or essays rather than a tool
+// release: security incidents, lawsuits, opinion pieces, how-to essays.
+const NEWS_TITLE_RE =
+  /\b(hackers?|breach(ed|es)?|vulnerabilit(y|ies)|rce|zero[- ]click|misconfiguration|attack|exploit(ed)?|malware|backdoor|outage|lawsuit|sues?|sued|fights?|loses?|lost (to|fight)|case against|apocalypse|doom|banned?|crackdown)\b/i;
+
+export function looksLikeNewsDomain(domain: string | null | undefined): boolean {
+  if (!domain) return false;
+  const normalized = domain.toLowerCase().replace(/^www\./, '');
+  if (NEWS_DOMAIN_BLOCKLIST.has(normalized)) return true;
+  // Second-level news domains (e.g. ft.com syndicates, country TLDs).
+  return [...NEWS_DOMAIN_BLOCKLIST].some((blocked) => normalized.endsWith(`.${blocked}`));
+}
+
+export function looksLikeNewsTitle(title: string): boolean {
+  return NEWS_TITLE_RE.test(title) || /^(how|why)\s+(to|i|we|the)\b/i.test(title);
+}
+
+export function isToolCandidate(title: string, url: string | null | undefined): boolean {
+  if (!matchesAiKeywords(title)) return false;
+  if (looksLikeNewsTitle(title)) return false;
+  if (looksLikeNewsDomain(extractDomain(url))) return false;
+  return true;
+}
+
 async function bindingValue(token: ToolDiscoveryEnv['PRODUCTHUNT_TOKEN']): Promise<string | null> {
   if (!token) return null;
   if (typeof token === 'string') return token.trim() || null;
@@ -175,9 +211,10 @@ export async function collectHackerNewsCandidates(
   const candidates: DiscoveryCandidate[] = [];
   for (const hit of hits) {
     const rawTitle = (hit.title ?? '').trim();
-    if (!rawTitle || !matchesAiKeywords(rawTitle)) continue;
+    if (!rawTitle) continue;
+    const url = (hit.url ?? '').trim() || `https://news.ycombinator.com/item?id=${hit.objectID}`;
+    if (!isToolCandidate(rawTitle, url)) continue;
     const discussionUrl = `https://news.ycombinator.com/item?id=${hit.objectID}`;
-    const url = (hit.url ?? '').trim() || discussionUrl;
     candidates.push({
       source: 'hacker_news',
       sourceId: hit.objectID,
@@ -232,6 +269,8 @@ export async function collectProductHuntCandidates(
     if (!node?.id || !node.name) continue;
     const combined = `${node.name} ${node.tagline ?? ''}`;
     if (!matchesAiKeywords(combined)) continue;
+    if (looksLikeNewsTitle(combined)) continue;
+    if (looksLikeNewsDomain(extractDomain(node.website))) continue;
     candidates.push({
       source: 'product_hunt',
       sourceId: node.id,
@@ -588,6 +627,77 @@ export async function tryNativeToolDiscovery(request: Request, env: ToolDiscover
   }
 
   return null;
+}
+
+export interface TrendingEntry {
+  name: string;
+  tagline: string | null;
+  heat: number;
+  url: string | null;
+  productId: string | null;
+}
+
+/**
+ * Public read for the storefront landing: the most recent admin-approved
+ * discoveries ranked by their source heat. Pending rows are intentionally
+ * excluded — nothing reaches the public landing before review.
+ */
+export async function tryNativeToolDirectoryTrending(
+  request: Request,
+  env: ToolDiscoveryEnv,
+): Promise<Response | null> {
+  if (request.method !== 'GET') return null;
+  const url = new URL(request.url);
+  if (url.pathname !== '/api/v1/tool-directory/trending') return null;
+  const limit = Math.min(Math.max(Number(url.searchParams.get('limit')) || 5, 1), 20);
+  let rows: Array<{
+    name: string;
+    tagline: string | null;
+    url: string | null;
+    metrics_json: string;
+    product_id: string | null;
+  }>;
+  try {
+    rows = (await env.DB.prepare(
+      `SELECT name, tagline, url, metrics_json, product_id FROM tool_discoveries
+       WHERE status = 'approved' AND discovered_at >= ?1
+       ORDER BY discovered_at DESC LIMIT 100`,
+    ).bind(new Date(Date.now() - 30 * 86400_000).toISOString()).all<{
+      name: string;
+      tagline: string | null;
+      url: string | null;
+      metrics_json: string;
+      product_id: string | null;
+    }>()).results ?? [];
+  } catch {
+    // Instances without the tool_discoveries table (migration 0063) simply
+    // keep their theme's static trending config.
+    return null;
+  }
+  const heatOf = (metricsJson: string): number => {
+    try {
+      const metrics = JSON.parse(metricsJson || '{}') as Record<string, number>;
+      return Number(metrics.votes ?? metrics.points ?? 0);
+    } catch {
+      return 0;
+    }
+  };
+  const items = rows
+    .map((row) => ({
+      name: row.name,
+      tagline: row.tagline,
+      heat: heatOf(row.metrics_json),
+      url: row.url,
+      productId: row.product_id,
+    }))
+    .sort((a, b) => b.heat - a.heat)
+    .slice(0, limit);
+  return Response.json({ success: true, data: { items } }, {
+    headers: {
+      'cache-control': 'public, max-age=300, stale-while-revalidate=600',
+      'x-jiffoo-runtime': DISCOVERY_RUNTIME,
+    },
+  });
 }
 
 export async function processScheduledToolDiscovery(

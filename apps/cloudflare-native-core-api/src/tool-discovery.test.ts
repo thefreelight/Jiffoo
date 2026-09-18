@@ -11,10 +11,13 @@ const {
   collectHackerNewsCandidates,
   collectProductHuntCandidates,
   extractDomain,
+  looksLikeNewsDomain,
+  looksLikeNewsTitle,
   matchesAiKeywords,
   readCatalogItems,
   runNativeToolDiscovery,
   slugifyName,
+  tryNativeToolDirectoryTrending,
   tryNativeToolDiscovery,
 } = await import('./tool-discovery');
 
@@ -49,6 +52,8 @@ function makeEnv(options: {
   snapshot?: { payload: string; status_code: number };
   liveDiscoveryDomains?: string[];
   rows?: Record<string, unknown>;
+  trendingRows?: Array<{ name: string; tagline: string | null; url: string | null; metrics_json: string; product_id: string | null }>;
+  missingDiscoveryTable?: boolean;
 } = {}) {
   const batch = vi.fn(async (statements: unknown[]) => statements.map(() => ({ meta: {} })));
   const updates: Array<{ sql: string; binds: unknown[] }> = [];
@@ -71,6 +76,12 @@ function makeEnv(options: {
           all: async () => {
             if (sql.includes('domain FROM tool_discoveries')) {
               return { results: (options.liveDiscoveryDomains ?? []).map((domain) => ({ domain })) };
+            }
+            if (sql.includes("status = 'approved'")) {
+              if (options.missingDiscoveryTable) {
+                throw new Error('no such table: tool_discoveries');
+              }
+              return { results: options.trendingRows ?? [] };
             }
             return { results: [] };
           },
@@ -114,14 +125,15 @@ describe('tool discovery connectors', () => {
       hits: [
         { objectID: '1', title: 'Show HN: Tracecat – open-source AI automations', url: 'https://tracecat.com', points: 120, num_comments: 40, created_at_i: 1758000000 },
         { objectID: '2', title: 'Show HN: I wrote a TODO app in Assembly', url: 'https://todo.example', points: 300, num_comments: 10, created_at_i: 1758000000 },
+        // Text-only stories fall back to the HN discussion domain, which is
+        // blocklisted: directory listings need an official tool site.
         { objectID: '3', title: 'Show HN: Llama Coder – local copilot', url: null, points: 15, num_comments: 2, created_at_i: 1758000000 },
       ],
     }));
     const candidates = await collectHackerNewsCandidates(fetchImpl as unknown as typeof fetch);
-    expect(candidates).toHaveLength(2);
+    expect(candidates).toHaveLength(1);
     expect(candidates[0]).toMatchObject({ source: 'hacker_news', sourceId: '1', url: 'https://tracecat.com' });
-    expect(candidates[1].url).toContain('news.ycombinator.com/item?id=3');
-    expect(candidates[1].metrics).toMatchObject({ points: 15 });
+    expect(candidates[0].metrics).toMatchObject({ points: 120 });
   });
 
   it('collects AI posts from Product Hunt payloads', async () => {
@@ -234,5 +246,53 @@ describe('tool discovery run and catalog append', () => {
       env,
     );
     expect(runResponse?.status).toBe(401);
+  });
+});
+
+describe('connector quality filters', () => {
+  it('rejects news domains, security headlines and essay titles', async () => {
+    const fetchImpl = vi.fn(async () => Response.json({
+      hits: [
+        { objectID: 'n1', title: "Microsoft, OpenAI lose fight to hide internal docs admitting scraping", url: 'https://arstechnica.com/ai/1', points: 44, num_comments: 10, created_at_i: 1758000000 },
+        { objectID: 'n2', title: 'A heap overflow and SSO misconfiguration to compromise OpenAI', url: 'https://hacktron.ai/post/1', points: 343, num_comments: 90, created_at_i: 1758000000 },
+        { objectID: 'n3', title: 'How to Write with an LLM', url: 'https://sockpuppet.org/blog', points: 153, num_comments: 70, created_at_i: 1758000000 },
+        { objectID: 'n4', title: 'Sex, AI, and the Apocalypse', url: 'https://iankduncan.com/essay', points: 207, num_comments: 100, created_at_i: 1758000000 },
+        { objectID: 't1', title: 'MCPJam – testing platform for MCP servers', url: 'https://mcpjam.com', points: 61, num_comments: 12, created_at_i: 1758000000 },
+      ],
+    }));
+    const candidates = await collectHackerNewsCandidates(fetchImpl as unknown as typeof fetch);
+    expect(candidates.map((candidate) => candidate.sourceId)).toEqual(['t1']);
+    expect(looksLikeNewsDomain('www.wsj.com')).toBe(true);
+    expect(looksLikeNewsDomain('mcpjam.com')).toBe(false);
+    expect(looksLikeNewsTitle('A heap overflow and SSO misconfiguration')).toBe(true);
+    expect(looksLikeNewsTitle('Glean – AI search')).toBe(false);
+  });
+});
+
+describe('public trending endpoint', () => {
+  it('serves approved discoveries ranked by heat', async () => {
+    const { env } = makeEnv({
+      trendingRows: [
+        { name: 'MCPJam', tagline: 'MCP testing', url: 'https://mcpjam.com', metrics_json: '{"points": 61}', product_id: null },
+        { name: 'Tracecat', tagline: 'Show HN', url: 'https://tracecat.com', metrics_json: '{"points": 88}', product_id: 'tracecat' },
+      ],
+    });
+    const response = await tryNativeToolDirectoryTrending(
+      new Request('https://native.invalid/api/v1/tool-directory/trending?limit=5'),
+      env,
+    );
+    expect(response?.headers.get('x-jiffoo-runtime')).toBe('cloudflare-native-d1-tool-discovery');
+    const body = await response?.json() as { data: { items: Array<{ name: string; heat: number }> } };
+    expect(body.data.items.map((item) => item.name)).toEqual(['Tracecat', 'MCPJam']);
+    expect(body.data.items[0]).toMatchObject({ heat: 88, productId: 'tracecat' });
+  });
+
+  it('falls through on instances without the discovery table', async () => {
+    const { env } = makeEnv({ missingDiscoveryTable: true });
+    const response = await tryNativeToolDirectoryTrending(
+      new Request('https://native.invalid/api/v1/tool-directory/trending'),
+      env,
+    );
+    expect(response).toBeNull();
   });
 });
