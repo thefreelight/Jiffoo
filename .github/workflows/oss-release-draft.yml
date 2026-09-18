@@ -53,7 +53,7 @@ jobs:
           gh pr list --repo "$GITHUB_REPOSITORY" --state merged --limit 300 \
             --json number,title,mergedAt \
             --jq ".[] | select(.mergedAt > \"${PREV_DATE}\")" > prs.json
-          COUNT="$(jq length prs.json)"
+          COUNT="$(jq -s length prs.json)"
           echo "Merged PRs in this train: ${COUNT}"
           if [ "${COUNT}" -eq 0 ]; then
             echo "No merged PRs since ${PREV_TAG}; skipping draft."
@@ -71,6 +71,8 @@ jobs:
           BASE="${PREV_TAG%-opensource}"
           IFS='.' read -r MAJ MIN PATCH <<< "${BASE#v}"
           NEXT_TAG="v${MAJ}.${MIN}.$((PATCH + 1))-opensource"
+          TITLE_VER="${NEXT_TAG#v}"
+          TITLE_VER="${TITLE_VER%-opensource}"
           echo "Draft tag: ${NEXT_TAG} (tag is only created when the draft is published)"
 
           emit_section() {
@@ -111,5 +113,5 @@ jobs:
             --repo "$GITHUB_REPOSITORY" \
             --draft \
             --target main \
-            --title "Jiffoo ${BASE#v}" \
+            --title "Jiffoo ${TITLE_VER}" \
             --notes-file NOTES.md
