@@ -47,6 +47,7 @@ import { tryNativeMarketplace } from './marketplace';
 import { isExpectedNativeSchemaVersion } from './health';
 import { tryNativeCoupon } from './coupon';
 import { tryNativeImagerAi } from './imager-ai';
+import { processNativeVideoTasks, tryNativeVideoAi } from './video-ai';
 import { tryNativePublicAuthConfig } from './public-auth-config';
 import { tryNativeProductsSearch } from './products-search';
 import { nativeOdooMediaUrl } from './odoo';
@@ -312,6 +313,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeCoupon) return nativeCoupon;
     const nativeImagerAi = await tryNativeImagerAi(nativeRequest, env);
     if (nativeImagerAi) return nativeImagerAi;
+    const nativeVideoAi = await tryNativeVideoAi(nativeRequest, env);
+    if (nativeVideoAi) return nativeVideoAi;
     const nativeSupportHub = await tryNativeSupportHub(nativeRequest, env);
     if (nativeSupportHub) return nativeSupportHub;
     const nativePluginSettings = await tryNativePluginSettings(nativeRequest, env);
@@ -400,7 +403,7 @@ export default {
     }
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, creditGrants, resumeExtraction] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, creditGrants, resumeExtraction, videoTasks] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
@@ -409,6 +412,7 @@ export default {
       expireNativeWalletReservations(env),
       expireRemoteRadarCreditGrants(env),
       processPendingRemoteRadarResumeDocuments(env),
+      processNativeVideoTasks(env),
     ]);
     console.log(JSON.stringify({
       message: 'native scheduled work processed',
@@ -426,6 +430,9 @@ export default {
       resumeExtraction: resumeExtraction.status === 'fulfilled'
         ? resumeExtraction.value
         : { error: String(resumeExtraction.reason) },
+      videoTasks: videoTasks.status === 'fulfilled'
+        ? videoTasks.value
+        : { error: String(videoTasks.reason) },
     }));
   },
 } satisfies ExportedHandler<WorkerEnv>;
