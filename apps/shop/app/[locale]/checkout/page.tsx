@@ -13,7 +13,7 @@ import { useCartStore } from '@/store/cart';
 import { useAuthStore } from '@/store/auth';
 import { useStoreContext } from '@/store/store';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { ordersApi, paymentApi } from '@/lib/api';
+import { apiClient, ordersApi, paymentApi } from '@/lib/api';
 import { useT } from 'shared/src/i18n/react';
 import { toast } from '@/components/ui/toaster';
 import { LoadingState, ErrorState } from '@/components/ui/state-components';
@@ -260,28 +260,43 @@ export default function CheckoutPage() {
         }
       }
 
-      // 2. Create payment session using legacy unified payment gateway
-      const paymentResponse = await paymentApi.createSession({
+      // 2. Create a hosted checkout session. Cloudflare-native cores
+      // implement POST /payments/sessions; the platform unified gateway uses
+      // /payments/create-session. Try the native shape first so storefront
+      // checkout works on native instances, then fall back to the gateway.
+      const sessionPayload = {
         paymentMethod: data.paymentMethod,
         orderId: orderId,
         successUrl: `${window.location.origin}${nav.getHref('/order-success')}?session_id={CHECKOUT_SESSION_ID}`,
         cancelUrl: `${window.location.origin}${nav.getHref('/checkout')}`
-      });
+      };
 
-      console.log('Payment response:', JSON.stringify(paymentResponse, null, 2));
-
-      if (!paymentResponse || !paymentResponse.success || !paymentResponse.data) {
-        throw new Error(paymentResponse?.message || getText('common.errors.general', 'Failed to create payment session'));
+      let sessionData: any = null;
+      try {
+        const nativeSession = await apiClient.post('/payments/sessions', sessionPayload);
+        if (nativeSession?.success && nativeSession.data) {
+          sessionData = nativeSession.data;
+        }
+      } catch (nativeSessionError) {
+        console.warn('Native checkout session unavailable, falling back to unified gateway:', nativeSessionError);
       }
 
-      // 3. Redirect to payment page
-      const sessionData = paymentResponse.data as any;
+      if (!sessionData) {
+        const paymentResponse = await paymentApi.createSession(sessionPayload);
+
+        console.log('Payment response:', JSON.stringify(paymentResponse, null, 2));
+
+        if (!paymentResponse || !paymentResponse.success || !paymentResponse.data) {
+          throw new Error(paymentResponse?.message || getText('common.errors.general', 'Failed to create payment session'));
+        }
+        sessionData = paymentResponse.data;
+      }
       const paymentUrl = sessionData.url || sessionData.data?.url;
 
       if (paymentUrl) {
         window.location.href = paymentUrl;
       } else {
-        console.error('paymentResponse.data does not have url:', paymentResponse.data);
+        console.error('session data does not have url:', sessionData);
         throw new Error('Invalid payment session response');
       }
     } catch (error: any) {
