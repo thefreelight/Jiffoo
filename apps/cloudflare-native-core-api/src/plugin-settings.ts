@@ -413,10 +413,21 @@ export async function tryNativePluginSettings(request: Request, env: PluginSetti
   const instancesMatch = url.pathname.match(/^\/api\/v1\/extensions\/plugin\/([^/]+)\/instances$/);
   const instanceMatch = url.pathname.match(/^\/api\/v1\/extensions\/plugin\/([^/]+)\/instances\/([^/]+)$/);
   const slug = detailMatch?.[1] ?? instancesMatch?.[1] ?? instanceMatch?.[1];
-  if (!slug || !definitions[slug]) return null;
+  if (!slug) return null;
   const admin = await authenticateNativeAdmin(request, env);
   if (!admin) return response({ code: 'UNAUTHORIZED', message: 'Admin authentication required' }, 401);
   const definition = definitions[slug];
+  if (!definition) {
+    // Slugs outside the native registry (e.g. gateway-only plugins such as
+    // remoteradar-jobs) must answer fast with structured envelopes. Falling
+    // through to the self-referential CORE_ORIGIN proxy hangs every admin
+    // navigation until Cloudflare gives up with a 522.
+    if (instancesMatch && request.method === 'GET') {
+      const limit = Number(new URL(request.url).searchParams.get('limit') ?? 20) || 20;
+      return response({ items: [], page: 1, limit, total: 0, totalPages: 0 });
+    }
+    return response({ code: 'PLUGIN_NOT_INSTALLED', message: `Plugin "${slug}" is not installed on this native runtime` }, 404);
+  }
 
   if (detailMatch && request.method === 'GET') {
     return response({

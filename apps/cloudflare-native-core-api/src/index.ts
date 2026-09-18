@@ -17,6 +17,7 @@ import { processNativeEmailOutbox } from './mail-outbox';
 import { tryNativeAffiliate } from './affiliate';
 import { tryNativeSupportHub } from './support-hub';
 import { tryNativePluginSettings } from './plugin-settings';
+import { tryNativePlatformOffers } from './platform-offers';
 import { tryNativeIntegrationAdmin } from './integration-admin';
 import { tryNativeInstall } from './install';
 import { importSnapshots } from './snapshot-import';
@@ -320,6 +321,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     if (nativeSupportHub) return nativeSupportHub;
     const nativePluginSettings = await tryNativePluginSettings(nativeRequest, env);
     if (nativePluginSettings) return nativePluginSettings;
+    const nativePlatformOffers = await tryNativePlatformOffers(nativeRequest);
+    if (nativePlatformOffers) return nativePlatformOffers;
     const nativeIntegrationAdmin = await tryNativeIntegrationAdmin(nativeRequest, env);
     if (nativeIntegrationAdmin) return nativeIntegrationAdmin;
     const nativeAvailableMethods = await tryNativeAvailableMethods(nativeRequest, env);
