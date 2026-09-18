@@ -1,3 +1,4 @@
+import './tokens.css';
 import type { ThemePackage } from 'shared/src/types/theme';
 
 import { NotFound } from '@shop-themes/default/src/components/NotFound';

@@ -1,3 +1,4 @@
+import './tokens.css';
 import type { ThemePackage } from 'shared/src/types/theme';
 
 import { AuthCallbackPage } from '@shop-themes/default/src/components/AuthCallbackPage';

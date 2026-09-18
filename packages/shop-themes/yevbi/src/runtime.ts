@@ -1,3 +1,4 @@
+import './tokens.css';
 import type { ThemePackage } from './types/theme';
 
 import { HomePage } from './components/HomePage';
