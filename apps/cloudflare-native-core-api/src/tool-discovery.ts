@@ -7,14 +7,11 @@
 // Sources:
 // - Hacker News (Algolia API, public, no auth): recent Show HN stories that
 //   match the AI keyword filter with a minimum score.
-// - Product Hunt (GraphQL API, gated): daily top posts. Skipped with a
-//   reason until PRODUCTHUNT_TOKEN is configured on the instance.
 
 import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
 
 type ToolDiscoveryEnv = NativeAuthEnv & {
   DB: D1Database;
-  PRODUCTHUNT_TOKEN?: string | { get(): Promise<string> };
   TOOL_DISCOVERY_ENABLED?: string;
 };
 
@@ -101,7 +98,6 @@ const CATALOG_SNAPSHOT_KEY = 'core:snapshot:/api/v1/products';
 const LOOKBACK_DAYS = 3;
 const HN_MIN_POINTS = 10;
 const HN_MAX_ITEMS = 25;
-const PH_MAX_ITEMS = 25;
 const MAX_CANDIDATES_PER_RUN = 30;
 
 // Tokens matched against story/post titles to keep the queue on-topic.
@@ -175,19 +171,7 @@ export function isToolCandidate(title: string, url: string | null | undefined): 
   return true;
 }
 
-async function bindingValue(token: ToolDiscoveryEnv['PRODUCTHUNT_TOKEN']): Promise<string | null> {
-  if (!token) return null;
-  if (typeof token === 'string') return token.trim() || null;
-  try {
-    const value = await token.get();
-    return value?.trim() || null;
-  } catch {
-    return null;
-  }
-}
-
-interface HnHit {
-  objectID: string;
+interface HnHit {  objectID: string;
   title?: string;
   url?: string | null;
   points?: number;
@@ -229,60 +213,6 @@ export async function collectHackerNewsCandidates(
         : now.toISOString(),
     });
     if (candidates.length >= HN_MAX_ITEMS) break;
-  }
-  return candidates;
-}
-
-interface PhPostNode {
-  id: string;
-  name: string;
-  tagline?: string;
-  description?: string;
-  website?: string;
-  votesCount?: number;
-  commentsCount?: number;
-  createdAt?: string;
-}
-
-export async function collectProductHuntCandidates(
-  fetchImpl: typeof fetch,
-  token: string,
-  now = new Date(),
-): Promise<DiscoveryCandidate[]> {
-  const postedAfter = new Date(now.getTime() - 2 * 86400_000).toISOString();
-  const query = `query($postedAfter: DateTime!) { posts(first: 30, order: VOTES, postedAfter: $postedAfter) { edges { node { id name tagline description website votesCount commentsCount createdAt } } } }`;
-  const response = await fetchImpl('https://api.producthunt.com/v2/api/graphql', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
-    body: JSON.stringify({ query, variables: { postedAfter } }),
-  });
-  if (!response.ok) throw new Error(`producthunt_${response.status}`);
-  const body = await response.json() as {
-    data?: { posts?: { edges?: Array<{ node?: PhPostNode }> } };
-    errors?: Array<{ message?: string }>;
-  };
-  if (body.errors?.length) throw new Error(`producthunt_graphql: ${body.errors[0]?.message ?? 'unknown'}`);
-  const edges = body.data?.posts?.edges ?? [];
-  const candidates: DiscoveryCandidate[] = [];
-  for (const edge of edges) {
-    const node = edge.node;
-    if (!node?.id || !node.name) continue;
-    const combined = `${node.name} ${node.tagline ?? ''}`;
-    if (!matchesAiKeywords(combined)) continue;
-    if (looksLikeNewsTitle(combined)) continue;
-    if (looksLikeNewsDomain(extractDomain(node.website))) continue;
-    candidates.push({
-      source: 'product_hunt',
-      sourceId: node.id,
-      name: node.name.slice(0, 160),
-      tagline: (node.tagline ?? '').slice(0, 300),
-      description: (node.description || node.tagline || node.name).slice(0, 1000),
-      url: (node.website ?? '').trim() || `https://www.producthunt.com/posts/${node.id}`,
-      metrics: { votes: node.votesCount ?? 0, comments: node.commentsCount ?? 0 },
-      keywords: ['product hunt'],
-      discoveredAt: node.createdAt ?? now.toISOString(),
-    });
-    if (candidates.length >= PH_MAX_ITEMS) break;
   }
   return candidates;
 }
@@ -398,16 +328,6 @@ export async function runNativeToolDiscovery(env: ToolDiscoveryEnv): Promise<Dis
     runs.push({ source: 'hacker_news', candidates: await collectHackerNewsCandidates(fetch), configured: true });
   } catch (error) {
     runs.push({ source: 'hacker_news', candidates: [], configured: true, error: error instanceof Error ? error.message : 'unknown' });
-  }
-  const phToken = await bindingValue(env.PRODUCTHUNT_TOKEN);
-  if (!phToken) {
-    runs.push({ source: 'product_hunt', candidates: [], configured: false });
-  } else {
-    try {
-      runs.push({ source: 'product_hunt', candidates: await collectProductHuntCandidates(fetch, phToken), configured: true });
-    } catch (error) {
-      runs.push({ source: 'product_hunt', candidates: [], configured: true, error: error instanceof Error ? error.message : 'unknown' });
-    }
   }
 
   for (const run of runs) {
