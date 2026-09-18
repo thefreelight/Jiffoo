@@ -1,3 +1,4 @@
+import './tokens.css';
 import type { ThemePackage } from 'shared';
 
 import { HomePage } from './components/HomePage';
