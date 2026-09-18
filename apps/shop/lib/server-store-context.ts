@@ -130,6 +130,19 @@ async function fetchServerStoreContext(
       return data.data as ServerStoreContext;
     }
 
+    // Snapshot-serving deployments may return the bare store context
+    // without the {success, data} envelope; accept it so theme and
+    // brand resolution do not silently fall back to the builtin default.
+    if (
+      data &&
+      typeof data === 'object' &&
+      !Array.isArray(data) &&
+      data.success === undefined &&
+      (data.storeId !== undefined || data.storeName !== undefined || data.theme !== undefined)
+    ) {
+      return data as ServerStoreContext;
+    }
+
     return fallbackContext;
   } catch (error: any) {
     const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build';

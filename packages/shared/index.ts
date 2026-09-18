@@ -19,6 +19,7 @@ export {
 // API client
 export {
   ApiClient,
+  normalizeApiResponse,
   type ApiResponse,
   type PaginatedResponse,
   type LoginCredentials,

@@ -11,6 +11,30 @@ import { StorageAdapter, StorageAdapterFactory } from './storage-adapters';
 import type { ApiResponse as SharedApiResponse } from '../src/types/api';
 export type ApiResponse<T = any> = SharedApiResponse<T>;
 
+/**
+ * Normalize a 2xx response body into the ApiResponse envelope.
+ * Self-hosted / native-core deployments may serve snapshot routes
+ * (store context, active theme) as the bare payload without the
+ * {success, data} envelope; wrap those so callers checking
+ * `response.success` keep working. Bodies that already carry an
+ * explicit `success` field pass through untouched.
+ */
+export function normalizeApiResponse<T = any>(body: unknown): ApiResponse<T> {
+  if (
+    body !== null &&
+    typeof body === 'object' &&
+    (body as Record<string, unknown>).success === undefined
+  ) {
+    const wrapped = { success: true, data: body } as ApiResponse<T>;
+    const message = (body as Record<string, unknown>).message;
+    if (typeof message === 'string') {
+      wrapped.message = message;
+    }
+    return wrapped;
+  }
+  return body as ApiResponse<T>;
+}
+
 // Paginated response type
 export interface PaginatedResponse<T = any> {
   data: T[];
@@ -283,7 +307,7 @@ export class ApiClient {
   public async request<T = any>(config: AxiosRequestConfig): Promise<ApiResponse<T>> {
     try {
       const response: AxiosResponse<ApiResponse<T>> = await this.axiosInstance(config);
-      return response.data;
+      return normalizeApiResponse<T>(response.data);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const apiError = error.response?.data as ApiResponse<T>;

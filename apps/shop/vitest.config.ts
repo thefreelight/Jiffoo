@@ -25,6 +25,7 @@ export default defineConfig({
       '@jiffoo/core-api-sdk': path.resolve(__dirname, '../../packages/core-api-sdk/src/index.ts'),
       '@jiffoo/ui': path.resolve(__dirname, '../../packages/ui/src/index.ts'),
       // Map shared package paths for testing
+      'shared/api/client': path.resolve(__dirname, '../../packages/shared/api/client'),
       'shared/src/i18n': path.resolve(__dirname, '../../packages/shared/src/i18n'),
       'shared/src': path.resolve(__dirname, '../../packages/shared/src'),
       'shared': path.resolve(__dirname, '../../packages/shared/src'),
