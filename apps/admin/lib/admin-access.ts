@@ -92,6 +92,10 @@ export function getRequiredPermissionsForAdminPath(
     return [ADMIN_PERMISSIONS.PRODUCTS_READ];
   }
 
+  if (path.startsWith('/tool-discovery')) {
+    return [ADMIN_PERMISSIONS.PRODUCTS_READ];
+  }
+
   if (path.startsWith('/inventory/alerts')) {
     return [ADMIN_PERMISSIONS.INVENTORY_FORECAST];
   }
