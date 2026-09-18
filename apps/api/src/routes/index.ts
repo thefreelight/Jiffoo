@@ -124,7 +124,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(seoRoutes, { prefix: '/api/seo' });
   await fastify.register(sitemapRoute, { prefix: '/api' });
   await fastify.register(discountRoutes, { prefix: '/api/discounts' });
-  await fastify.register(recommendationRoutes, { prefix: '/api/recommendations' });
+  await fastify.register(recommendationRoutes, { prefix: '/api/v1/recommendations' });
 
   // Extension installer routes
   await fastify.register(extensionInstallerRoutes, { prefix: '/api/extensions' });
