@@ -254,6 +254,17 @@ export const CheckoutPage = React.memo(function CheckoutPage({
                 <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
                   <p className="text-lg font-medium text-[var(--bokmoo-ink)]">Billing Details</p>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <input
+                        name="phone"
+                        type="tel"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        className={inputClassName('phone')}
+                        placeholder="Phone number"
+                      />
+                      {errors.phone ? <p className="mt-2 text-xs text-[var(--bokmoo-danger)]">{errors.phone}</p> : null}
+                    </div>
                     <div className="sm:col-span-2">
                       <input
                         name="addressLine1"

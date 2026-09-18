@@ -13555,6 +13555,20 @@
           shouldCollectShipping ? /* @__PURE__ */ jsxs("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: [
             /* @__PURE__ */ jsx("p", { className: "text-lg font-medium text-[var(--bokmoo-ink)]", children: "Billing Details" }),
             /* @__PURE__ */ jsxs("div", { className: "mt-4 grid gap-3 sm:grid-cols-2", children: [
+              /* @__PURE__ */ jsxs("div", { children: [
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    name: "phone",
+                    type: "tel",
+                    value: formData.phone,
+                    onChange: handleChange,
+                    className: inputClassName("phone"),
+                    placeholder: "Phone number"
+                  }
+                ),
+                errors.phone ? /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs text-[var(--bokmoo-danger)]", children: errors.phone }) : null
+              ] }),
               /* @__PURE__ */ jsx("div", { className: "sm:col-span-2", children: /* @__PURE__ */ jsx(
                 "input",
                 {
