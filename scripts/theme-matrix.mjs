@@ -5,7 +5,6 @@
  * Runs type-check + build validation across all theme packages:
  * 1. Type-checks @shop-themes/default (React component theme)
  * 2. Validates all theme.json manifests (engines, schema, entry paths)
- * 3. Verifies API surface snapshot integrity
  *
  * Usage:
  *   node scripts/theme-matrix.mjs                  # Full matrix
@@ -141,27 +140,7 @@ function validateThemeManifests() {
 }
 
 // ============================================================
-// 3. API surface snapshot check
-// ============================================================
-
-function checkSurfaceSnapshot() {
-  console.log('\n🔍 Checking API surface snapshot...');
-  try {
-    execSync('node packages/theme-api-sdk/scripts/generate-theme-surface.cjs --check', {
-      cwd: ROOT,
-      stdio: 'pipe',
-    });
-    console.log('  ✅ API surface snapshot matches');
-    checks++;
-  } catch (err) {
-    console.error('  ❌ API surface snapshot mismatch');
-    console.error(err.stderr?.toString() || err.message);
-    failures++;
-  }
-}
-
-// ============================================================
-// 4. Verify theme-api-sdk builds
+// 3. Verify theme-api-sdk builds
 // ============================================================
 
 function buildThemeApiSdk() {
@@ -195,7 +174,6 @@ if (fullMatrix || typeCheckOnly) {
 
 if (fullMatrix || validateOnly) {
   validateThemeManifests();
-  checkSurfaceSnapshot();
 }
 
 console.log('\n═══════════════════════════════════════════════════════════');

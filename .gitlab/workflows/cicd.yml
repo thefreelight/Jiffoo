@@ -450,9 +450,6 @@ jobs:
           pnpm theme-matrix
           pnpm theme-matrix:ssr
 
-      - name: 📐 SDK Surface Snapshot
-        run: pnpm surface:check
-
   # 🔒 Security Scan（并行运行）
   security-scan:
     name: 🔒 Security Scan

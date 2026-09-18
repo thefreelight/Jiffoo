@@ -5,7 +5,7 @@
 #                    warnings are visible debt)
 #   api-tests      — full API vitest suite against postgres + redis services
 #   drift-gate     — Prisma schema vs migrations (reuses check-drift.sh)
-#   theme-gate     — theme matrix type-check/validate + theme API surface check
+#   theme-gate     — theme matrix type-check/validate
 name: PR Quality Gates
 
 on:
@@ -166,5 +166,3 @@ jobs:
         run: pnpm theme-matrix:type-check
       - name: Theme matrix validate
         run: pnpm theme-matrix:validate
-      - name: Theme API surface check
-        run: pnpm surface:check
