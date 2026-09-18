@@ -320,6 +320,8 @@ async function handleHistory(env: ImagerEnv, request: Request): Promise<Response
 export async function tryNativeImagerAi(request: Request, env: ImagerEnv): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname !== STORE_PREFIX && !url.pathname.startsWith(`${STORE_PREFIX}/`)) return null;
+  // /store/video/* belongs to the video-ai adapter mounted alongside this one.
+  if (url.pathname.startsWith(`${STORE_PREFIX}/video`)) return null;
   if (!(await isNativePluginEnabled(env, PLUGIN_SLUG))) {
     return reply({ code: 'PLUGIN_NOT_ENABLED', message: 'Imager AI plugin is not installed and enabled' }, 404);
   }
