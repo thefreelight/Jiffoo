@@ -50,6 +50,7 @@ import { tryNativeImagerAi } from './imager-ai';
 import { processNativeVideoTasks, tryNativeVideoAi } from './video-ai';
 import { tryNativePublicAuthConfig } from './public-auth-config';
 import { tryNativeProductsSearch } from './products-search';
+import { processScheduledToolDiscovery, tryNativeToolDiscovery } from './tool-discovery';
 import { nativeOdooMediaUrl } from './odoo';
 import { tryNativeBokmooConnect } from './bokmoo-connect';
 
@@ -336,6 +337,8 @@ async function routeNativeRequest(request: Request, env: WorkerEnv, ctx: Executi
     // reports a missing snapshot instead of a filtered catalog.
     const nativeProductsSearch = await tryNativeProductsSearch(nativeRequest, env);
     if (nativeProductsSearch) return nativeProductsSearch;
+    const nativeToolDiscovery = await tryNativeToolDiscovery(nativeRequest, env);
+    if (nativeToolDiscovery) return nativeToolDiscovery;
     if (isNativeRead(nativeRequest, url)) return serveNativeRead(url, env, ctx);
     const nativeAuth = await tryNativeAuth(nativeRequest, env, () => proxy(nativeRequest, env));
     if (nativeAuth) return nativeAuth;
@@ -403,7 +406,7 @@ export default {
     }
   },
   async scheduled(_controller: ScheduledController, env: WorkerEnv): Promise<void> {
-    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, creditGrants, resumeExtraction, videoTasks] = await Promise.allSettled([
+    const [checkout, email, odooCatalog, odooShipments, jobs, walletReservations, creditGrants, resumeExtraction, videoTasks, toolDiscovery] = await Promise.allSettled([
       processCheckoutOutbox(env),
       processNativeEmailOutbox(env),
       processScheduledOdooCatalogSync(env),
@@ -413,6 +416,7 @@ export default {
       expireRemoteRadarCreditGrants(env),
       processPendingRemoteRadarResumeDocuments(env),
       processNativeVideoTasks(env),
+      processScheduledToolDiscovery(env),
     ]);
     console.log(JSON.stringify({
       message: 'native scheduled work processed',
@@ -433,6 +437,9 @@ export default {
       videoTasks: videoTasks.status === 'fulfilled'
         ? videoTasks.value
         : { error: String(videoTasks.reason) },
+      toolDiscovery: toolDiscovery.status === 'fulfilled'
+        ? toolDiscovery.value
+        : { error: String(toolDiscovery.reason) },
     }));
   },
 } satisfies ExportedHandler<WorkerEnv>;

@@ -34,7 +34,7 @@ describe('native health schema gate', () => {
 
   it('degrades unknown, missing, and older schema lines', () => {
     expect(isSupportedNativeSchemaVersion('0034')).toBe(false);
-    expect(isSupportedNativeSchemaVersion('0062')).toBe(false);
+    expect(isSupportedNativeSchemaVersion('0099')).toBe(false);
     expect(isSupportedNativeSchemaVersion(null)).toBe(false);
     expect(isSupportedNativeSchemaVersion(undefined)).toBe(false);
   });
