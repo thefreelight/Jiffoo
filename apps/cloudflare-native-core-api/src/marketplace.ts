@@ -1,7 +1,14 @@
 import { authenticateNativeAdmin, type NativeAuthEnv } from './auth';
 import { buildNativeCatalogResponse, type NativeCatalogItem } from './marketplace-mapping';
+import { installThemePackage, readActiveThemeSnapshot } from './theme-install';
 
-type Env = NativeAuthEnv & { DB: D1Database; MARKET_API_URL?: string; PLATFORM_API_BASE_URL?: string; PLATFORM_API?: Fetcher };
+type Env = NativeAuthEnv & {
+  DB: D1Database;
+  MARKET_API_URL?: string;
+  PLATFORM_API_BASE_URL?: string;
+  PLATFORM_API?: Fetcher;
+  ASSETS: { put(key: string, value: Uint8Array): Promise<unknown> };
+};
 
 const NATIVE_INSTALLABLE_PLUGINS = new Set(['wallet', 'affiliate', 'coupon', 'subscription', 'shipping', 'bokmoo-connect', 'support-hub']);
 
@@ -46,15 +53,29 @@ export async function tryNativeMarketplace(request: Request, env: Env): Promise<
   }
   if (install && request.method === 'POST') {
     const body = await request.clone().json().catch(() => null) as { kind?: string; version?: string } | null;
-    if (body?.kind !== 'plugin') return null;
-    if (!NATIVE_INSTALLABLE_PLUGINS.has(install[1])) {
+    if (body?.kind !== 'plugin' && body?.kind !== 'theme' && body?.kind !== 'theme-shop') return null;
+    const catalogKind = body.kind === 'theme' || body.kind === 'theme-shop' ? 'theme' : 'plugin';
+    if (body.kind === 'plugin' && !NATIVE_INSTALLABLE_PLUGINS.has(install[1])) {
       return Response.json({ success: false, error: { code: 'NATIVE_PLUGIN_NOT_IMPLEMENTED', message: `Native installation is not implemented for ${install[1]}` } }, { status: 501 });
     }
     try {
       const catalog = await platformCatalog(env);
-      const item = catalog.find((candidate) => candidate.slug === install[1] && candidate.kind === 'plugin' && candidate.installable);
-      if (!item) return Response.json({ success: false, error: { code: 'ARTIFACT_NOT_FOUND', message: `Official plugin "${install[1]}" is not installable` } }, { status: 404 });
+      const item = catalog.find((candidate) => candidate.slug === install[1] && candidate.kind === catalogKind && candidate.installable);
+      if (!item) return Response.json({ success: false, error: { code: 'ARTIFACT_NOT_FOUND', message: `Official ${body.kind} "${install[1]}" is not installable` } }, { status: 404 });
       const version = body.version || item.sellableVersion || item.currentVersion || item.versions?.find((entry) => entry.isCurrent)?.version || '0.0.1';
+      if (body.kind === 'theme' || body.kind === 'theme-shop') {
+        const packageUrl = item.versions?.find((entry) => entry.version === version)?.packageUrl
+          || item.versions?.[0]?.packageUrl;
+        if (!packageUrl) return Response.json({ success: false, error: { code: 'ARTIFACT_NOT_FOUND', message: `Official theme "${install[1]}" has no package for ${version}` } }, { status: 404 });
+        const packageResponse = env.PLATFORM_API
+          ? await env.PLATFORM_API.fetch(new Request(packageUrl))
+          : await fetch(packageUrl);
+        if (!packageResponse.ok) return failure(new Error(`Theme package request failed (${packageResponse.status})`));
+        const installed = await installThemePackage(env, {
+          slug: install[1], version, packageBytes: await packageResponse.arrayBuffer(),
+        });
+        return Response.json({ success: true, data: { ...installed, source: 'official-market', installedAt: new Date().toISOString() } }, { headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-marketplace' } });
+      }
       const now = new Date().toISOString();
       await env.DB.prepare(`INSERT INTO native_plugin_instances
         (id, plugin_slug, instance_key, enabled, config_json, encrypted_secrets_json, created_at, updated_at)
@@ -80,7 +101,18 @@ export async function tryNativeMarketplace(request: Request, env: Env): Promise<
         marketStatus: 200,
       } }, { headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-marketplace' } });
     }
-    return Response.json({ success: true, data: buildNativeCatalogResponse(items, installed) }, {
+    const data = buildNativeCatalogResponse(items, installed);
+    const activeTheme = await readActiveThemeSnapshot(env).catch(() => null);
+    if (activeTheme?.data) {
+      for (const item of data.items) {
+        if (item.kind !== 'theme' || item.slug !== activeTheme.data.slug) continue;
+        item.installState = 'installed';
+        item.source = 'installed';
+        item.installedVersion = activeTheme.data.version;
+        item.updateAvailable = item.version !== activeTheme.data.version;
+      }
+    }
+    return Response.json({ success: true, data }, {
       headers: { 'cache-control': 'no-store', 'x-jiffoo-runtime': 'cloudflare-native-marketplace' },
     });
   } catch (error) {
