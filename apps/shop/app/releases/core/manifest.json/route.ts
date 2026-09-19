@@ -1,6 +1,6 @@
 import {
   PUBLIC_CORE_UPDATE_MANIFEST,
-} from 'shared/src/core-update/public-manifest';
+} from 'shared/core-update/public-manifest';
 
 export async function GET() {
   return Response.json(PUBLIC_CORE_UPDATE_MANIFEST, {

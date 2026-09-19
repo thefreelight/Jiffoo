@@ -62,12 +62,6 @@
       "@jiffoo/ui/*": [
         "../../packages/ui/src/*"
       ],
-      "shared": [
-        "../../packages/shared"
-      ],
-      "shared/*": [
-        "../../packages/shared/*"
-      ],
       "jiffoo-theme-api-sdk": [
         "../../packages/theme-api-sdk/src/index.ts"
       ],
@@ -75,10 +69,13 @@
         "../../packages/core-api-sdk/src/index.ts"
       ],
       "shared/types/theme": [
-        "../../packages/shared/dist/shared/src/types/theme.d.ts"
+        "../../packages/shared/src/types/theme"
       ],
       "shared/types/dto": [
         "../../packages/shared/dist/shared/src/types/dto/index.d.ts"
+      ],
+      "shared": [
+        "../../packages/shared"
       ]
     },
     "target": "ES2017"
