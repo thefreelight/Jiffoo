@@ -112,6 +112,62 @@ export function getLocaleFromPathname(
 }
 
 /**
+ * Locale preference cookie (Next.js i18n convention). Set whenever a visitor
+ * browses a locale-prefixed path or accepts a detected locale; honored before
+ * Accept-Language detection so an explicit choice always wins.
+ */
+export const LOCALE_COOKIE = 'NEXT_LOCALE';
+const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+/**
+ * Match the visitor's preferred locale from an Accept-Language header.
+ * Exact tag match first ('en-US' → 'en'), then base-language match
+ * ('zh-CN' → 'zh-Hant' when that is the supported Chinese locale).
+ * Returns undefined when nothing matches (caller falls back to default).
+ */
+export function matchLocaleFromAcceptLanguage(
+  acceptLanguage: string | null | undefined,
+  locales: readonly string[]
+): string | undefined {
+  if (!acceptLanguage) return undefined;
+
+  const candidates = acceptLanguage
+    .split(',')
+    .map((part) => {
+      const segments = part.trim().split(';');
+      const tag = (segments[0] ?? '').trim();
+      const qParam = segments.find((segment) => segment.trim().startsWith('q='));
+      const q = qParam ? Number.parseFloat(qParam.split('=')[1] ?? '') : 1;
+      return { tag, q: Number.isFinite(q) ? q : 0 };
+    })
+    .filter((candidate) => candidate.tag.length > 0)
+    .sort((a, b) => b.q - a.q);
+
+  for (const { tag } of candidates) {
+    const exact = locales.find((locale) => locale.toLowerCase() === tag);
+    if (exact) return exact;
+    const base = tag.split('-')[0];
+    const baseMatch = locales.find((locale) => locale.toLowerCase().split('-')[0] === base);
+    if (baseMatch) return baseMatch;
+  }
+
+  return undefined;
+}
+
+/**
+ * Attach the locale preference cookie to a response so the visitor's choice
+ * persists across visits.
+ */
+export function attachLocaleCookie(response: NextResponse, locale: string): NextResponse {
+  response.cookies.set(LOCALE_COOKIE, locale, {
+    path: '/',
+    maxAge: LOCALE_COOKIE_MAX_AGE,
+    sameSite: 'lax',
+  });
+  return response;
+}
+
+/**
  * Check if pathname should skip locale handling
  * (static files, Next.js internals, etc.)
  */
@@ -272,11 +328,30 @@ export function handleLocaleRedirect(
   const pathnameLocale = getLocaleFromPathname(pathname, config.locales);
 
   if (pathnameLocale) {
-    // Locale exists, no redirect needed
+    // Locale exists: pass through (the handler attaches the locale cookie)
     return null;
   }
 
-  // No locale in pathname, redirect to default locale
+  // 1. Explicit visitor choice wins over detection
+  const cookieLocale = request.cookies.get(LOCALE_COOKIE)?.value;
+  if (cookieLocale && config.locales.includes(cookieLocale)) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${cookieLocale}${pathname === '/' ? '' : pathname}`;
+    return NextResponse.redirect(url);
+  }
+
+  // 2. First visit: adapt to the visitor's system/browser language
+  const detectedLocale = matchLocaleFromAcceptLanguage(
+    request.headers.get('accept-language'),
+    config.locales
+  );
+  if (detectedLocale) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/${detectedLocale}${pathname === '/' ? '' : pathname}`;
+    return attachLocaleCookie(NextResponse.redirect(url), detectedLocale);
+  }
+
+  // 3. No preference signal: fall back to the configured default locale
   const url = request.nextUrl.clone();
   url.pathname = `/${config.defaultLocale}${pathname === '/' ? '' : pathname}`;
 
@@ -321,8 +396,13 @@ export function createProxyHandler(config: ProxyConfig) {
       return localeRedirectResponse;
     }
 
-    // Step 4: Pass through
-    return NextResponse.next();
+    // Step 4: Pass through, remembering the visitor's locale choice
+    const pathnameLocale = getLocaleFromPathname(pathname, config.locales);
+    const response = NextResponse.next();
+    if (pathnameLocale) {
+      return attachLocaleCookie(response, pathnameLocale);
+    }
+    return response;
   };
 }
 
