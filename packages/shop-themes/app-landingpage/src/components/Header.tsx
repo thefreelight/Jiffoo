@@ -3,6 +3,7 @@ import { ChevronDown, Menu, ShoppingBag, UserRound, X } from 'lucide-react';
 import type { HeaderProps } from '../types';
 import { cn } from '../lib/utils';
 import { themeText } from '../lib/i18n';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 interface EsimMallHeaderProps extends HeaderProps {
   variant?: 'transparent' | 'solid';
@@ -105,7 +106,7 @@ export const Header = React.memo(function Header({
 
         {isAppDownload ? (
           <div className="hidden items-center gap-3 lg:flex">
-            <LanguageLinks currentLocale={locale} />
+            <LanguageSwitcher currentLocale={locale} />
             <a href={downloadUrl} className="esim-button-primary px-5 py-2">
               {themeText(t, locale, 'common.downloadApk', 'Download APK')}
             </a>
@@ -188,7 +189,7 @@ export const Header = React.memo(function Header({
           ) : null}
           {isAppDownload ? (
             <div className="mt-3 grid gap-2">
-              <LanguageLinks currentLocale={locale} />
+              <LanguageSwitcher currentLocale={locale} variant="inline" />
               <a href={downloadUrl} className="esim-button-primary w-full px-5 py-3">
                 {themeText(t, locale, 'common.downloadApk', 'Download APK')}
               </a>
@@ -221,26 +222,5 @@ export const Header = React.memo(function Header({
     </header>
   );
 });
-
-function LanguageLinks({ currentLocale }: { currentLocale?: HeaderProps['locale'] }) {
-  const locales = [
-    { code: 'en', label: 'EN' },
-    { code: 'zh-Hans', label: '简' },
-    { code: 'zh-Hant', label: '繁' },
-  ] as const;
-  const pathname = typeof window === 'undefined' ? '/' : window.location.pathname;
-  const query = typeof window === 'undefined' ? '' : window.location.search;
-  const pathWithoutLocale = pathname.replace(/^\/(?:en|zh-Hans|zh-Hant)(?=\/|$)/, '') || '/';
-
-  return (
-    <nav aria-label="Language" className="flex items-center gap-1 text-xs font-black text-[var(--esim-ink-soft)]">
-      {locales.map((item) => (
-        <a key={item.code} href={`/${item.code}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}${query}`} aria-current={item.code === currentLocale ? 'page' : undefined} className={item.code === currentLocale ? 'text-[var(--esim-primary)]' : 'hover:text-[var(--esim-primary)]'}>
-          {item.label}
-        </a>
-      ))}
-    </nav>
-  );
-}
 
 export default Header;

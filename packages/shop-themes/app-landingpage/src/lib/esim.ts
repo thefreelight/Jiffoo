@@ -1,3 +1,5 @@
+import type { Locale } from '../types';
+
 export interface ESimVariantAttributes {
   esim: {
     data: {
@@ -65,7 +67,7 @@ export function parseESimFulfillmentData(
 
 export function getDataDisplayText(
   data: ESimVariantAttributes['esim']['data'],
-  locale: 'en' | 'zh-Hans' | 'zh-Hant' = 'en'
+  locale: Locale = 'en'
 ): string {
   if (data.type === 'unlimited') return locale === 'en' ? 'Unlimited Data' : '无限流量';
   if (typeof data.gb === 'number') return `${data.gb}GB`;
@@ -74,7 +76,7 @@ export function getDataDisplayText(
 
 export function getValidityDisplayText(
   validityDays: number,
-  locale: 'en' | 'zh-Hans' | 'zh-Hant' = 'en'
+  locale: Locale = 'en'
 ): string {
   if (locale === 'en') return `${validityDays} ${validityDays === 1 ? 'Day' : 'Days'}`;
   return `${validityDays} 天`;

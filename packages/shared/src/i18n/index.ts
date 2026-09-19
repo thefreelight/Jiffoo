@@ -20,6 +20,7 @@
 // Configuration exports (server-safe)
 export {
   LOCALES,
+  ROUTE_LOCALES,
   DEFAULT_LOCALE,
   LOCALE_CONFIG,
   isSupportedLocale,

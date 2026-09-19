@@ -8,7 +8,7 @@
  * Priority: Theme App forwarding > Locale redirect > Pass through
  */
 
-import { LOCALES, DEFAULT_LOCALE } from 'shared/src/i18n';
+import { ROUTE_LOCALES, DEFAULT_LOCALE } from 'shared/src/i18n';
 import { createProxyHandler, type ProxyConfig } from 'shared/src/proxy';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
@@ -19,7 +19,7 @@ import type { NextRequest } from 'next/server';
 const shopProxyConfig: ProxyConfig = {
   target: 'shop',
   defaultLocale: DEFAULT_LOCALE,
-  locales: LOCALES,
+  locales: ROUTE_LOCALES,
 };
 
 /**

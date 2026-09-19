@@ -8,6 +8,14 @@ import type { Cart } from './cart';
 import type { Order } from './order';
 import type { Locale, TranslationFunction } from './i18n';
 
+/**
+ * The locale union of the shared ThemePackage contract. The theme's own
+ * i18n Locale (see ./i18n) covers the wider storefront set, but contract
+ * fields must stay narrower-or-equal to the shared core so the registry
+ * bridge stays assignable.
+ */
+export type CoreLocale = 'en' | 'zh-Hans' | 'zh-Hant';
+
 // ============================================================================
 // Theme i18n Props
 // ============================================================================
@@ -18,7 +26,7 @@ import type { Locale, TranslationFunction } from './i18n';
  */
 export interface ThemeI18nProps {
   /** Current locale */
-  locale?: Locale;
+  locale?: CoreLocale;
   /** Translation function - t('key') or t('key', { param: value }) */
   t?: TranslationFunction;
 }
@@ -52,7 +60,7 @@ export interface ThemeConfig {
   /** i18n configuration */
   i18n?: {
     /** Current locale */
-    locale?: Locale;
+    locale?: CoreLocale;
   };
   site?: {
     archetype?: 'storefront' | 'landing-commerce' | 'product-site' | 'app-download';
@@ -124,7 +132,7 @@ export interface ThemePackage {
 
   // Optional: Default configuration
   defaultConfig?: ThemeConfig;
-  messages?: Partial<Record<Locale, Record<string, string>>>;
+  messages?: Partial<Record<CoreLocale, Record<string, string>>>;
 }
 
 // ============================================================================
