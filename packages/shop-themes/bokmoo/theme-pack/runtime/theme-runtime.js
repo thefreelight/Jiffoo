@@ -12175,6 +12175,17 @@
       inventory: variant.isActive === false ? 0 : 99
     };
   }
+  function displayProductTitle(name) {
+    const cleaned = String(name || "").replace(/^\[[^\]]*\]\s*/, "").replace(/\s+V\d+$/i, "").trim();
+    return cleaned || String(name || "");
+  }
+  function resolveBokmooMediaUrl(url, apiBaseUrl) {
+    const value = String(url || "").trim();
+    if (!value) return null;
+    if (/^(https?:)?\/\//i.test(value) || value.startsWith("data:")) return value;
+    if (!apiBaseUrl) return value;
+    return `${apiBaseUrl.replace(/\/+$/, "")}${value.startsWith("/") ? "" : "/"}${value}`;
+  }
   function mapBokmooApiProductToThemeProduct(product) {
     const esim = product.typeData?.esim;
     const imageUrl = product.images?.[0]?.url || product.image;
@@ -12184,8 +12195,8 @@
     const sellablePrice = variantPrices.length > 0 ? Math.min(...variantPrices) : Number(product.price || 0);
     return {
       id: product.id,
-      name: product.name,
-      description: product.description || `${product.name} travel connectivity package`,
+      name: displayProductTitle(product.name),
+      description: product.description || `${displayProductTitle(product.name)} travel connectivity package`,
       price: sellablePrice,
       sku: product.slug || product.id,
       category: {
@@ -13864,15 +13875,15 @@
     if (filter2 === "Local") return Boolean(country && (!region || region === country || !region.includes("global")));
     return true;
   }
-  function ProductMedia({ product }) {
-    const image = getProductImage(product);
+  function ProductMedia({ product, apiBaseUrl }) {
+    const image = resolveBokmooMediaUrl(getProductImage(product), apiBaseUrl);
     const profile = getBokmooTravelProfile(product);
     if (image) {
       return /* @__PURE__ */ jsx(
         "img",
         {
           src: image,
-          alt: product.name,
+          alt: displayProductTitle(product.name),
           className: "h-full w-full object-cover"
         }
       );
@@ -14107,7 +14118,7 @@
                               "overflow-hidden border-[var(--bokmoo-line)]",
                               viewMode === "grid" ? "aspect-[1.28/1] border-b sm:aspect-[1.18/1]" : "aspect-[1.45/1] rounded-[1rem] border md:aspect-auto md:h-full md:rounded-[var(--bokmoo-radius-lg)]"
                             ),
-                            children: /* @__PURE__ */ jsx(ProductMedia, { product })
+                            children: /* @__PURE__ */ jsx(ProductMedia, { product, apiBaseUrl: site.apiBaseUrl })
                           }
                         ),
                         /* @__PURE__ */ jsxs("div", { className: cn2(viewMode === "grid" ? "p-5" : "min-w-0"), children: [
@@ -14115,7 +14126,7 @@
                             /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-gold)]", children: profile.cardEyebrow }),
                             /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy)]", children: profile.deliveryLabel })
                           ] }),
-                          /* @__PURE__ */ jsx("h2", { className: "mt-4 text-[clamp(1.7rem,2vw,2.4rem)] leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: product.name }),
+                          /* @__PURE__ */ jsx("h2", { className: "mt-4 text-[clamp(1.7rem,2vw,2.4rem)] leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: displayProductTitle(product.name) }),
                           /* @__PURE__ */ jsx("p", { className: "mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]", children: product.description || profile.summary }),
                           /* @__PURE__ */ jsx("div", { className: "mt-5 grid gap-2 sm:grid-cols-3", children: [
                             ["Coverage", profile.coverageLabel],
@@ -14303,6 +14314,7 @@
   var Footer = react_default.memo(function Footer2({
     locale,
     config,
+    platformBranding,
     onNavigate,
     onNavigateToProducts,
     onNavigateToCategories,
@@ -14314,6 +14326,9 @@
     const site = resolveBokmooSiteConfig(config);
     const year = (/* @__PURE__ */ new Date()).getFullYear();
     const isZhHant = locale === "zh-Hant";
+    const showPoweredByJiffoo = platformBranding?.showPoweredByJiffoo !== false;
+    const poweredByHref = platformBranding?.poweredByHref || "https://jiffoo.com";
+    const poweredByLabel = platformBranding?.poweredByLabel || "Jiffoo";
     const openHref = react_default.useCallback(
       (href) => {
         if (isExternalHref(href)) {
@@ -14404,7 +14419,23 @@
             ". ",
             isZhHant ? "\u5B98\u65B9\u5168\u7403 eSIM \u5546\u5E97\u3002" : "Official global eSIM storefront."
           ] }),
-          /* @__PURE__ */ jsx("p", { children: isZhHant ? "\u7121\u754C\u9023\u7DDA\u3001\u5B89\u5168\u555F\u7528\u8207\u512A\u8CEA\u65C5\u904A\u6578\u64DA\u7BA1\u7406\u3002" : "Boundless connectivity, secure activation, and premium travel data management." })
+          /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4", children: [
+            /* @__PURE__ */ jsx("p", { children: isZhHant ? "\u7121\u754C\u9023\u7DDA\u3001\u5B89\u5168\u555F\u7528\u8207\u512A\u8CEA\u65C5\u904A\u6578\u64DA\u7BA1\u7406\u3002" : "Boundless connectivity, secure activation, and premium travel data management." }),
+            showPoweredByJiffoo ? /* @__PURE__ */ jsxs(
+              "a",
+              {
+                href: poweredByHref,
+                target: "_blank",
+                rel: "noopener noreferrer",
+                className: "inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.16em] text-[var(--bokmoo-copy-soft)] transition-colors hover:text-[var(--bokmoo-gold)]",
+                children: [
+                  "Powered by ",
+                  poweredByLabel,
+                  /* @__PURE__ */ jsx(ArrowRight, { className: "h-3 w-3" })
+                ]
+              }
+            ) : null
+          ] })
         ] })
       ] }),
       /* @__PURE__ */ jsx("div", { className: "fixed inset-x-0 bottom-0 z-40 border-t border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,var(--bokmoo-line))] bg-[color:oklch(0.07_0.01_75_/_0.96)] px-3 pb-[calc(0.65rem+env(safe-area-inset-bottom))] pt-2 shadow-[0_-18px_50px_rgba(0,0,0,0.36)] backdrop-blur-xl sm:hidden", children: /* @__PURE__ */ jsx("div", { className: "mx-auto grid max-w-[420px] grid-cols-5 gap-1", children: [
@@ -14836,114 +14867,10 @@
       ] })
     ] });
   }
-  function DestinationScene({ scene }) {
-    const waterGradientId = react_default.useId().replace(/:/g, "");
-    const skyByScene = {
-      japan: "from-[#d77365] via-[#344d81] to-[#080b12]",
-      usa: "from-[#7390c8] via-[#34506d] to-[#07101a]",
-      europe: "from-[#d99d7a] via-[#5c4051] to-[#100d12]",
-      "hong-kong": "from-[#234f78] via-[#142c45] to-[#060910]",
-      thailand: "from-[#b9906c] via-[#56405b] to-[#09070d]",
-      singapore: "from-[#4f89a4] via-[#173b4a] to-[#071012]",
-      korea: "from-[#7b8fc9] via-[#353c65] to-[#0d0b12]",
-      malaysia: "from-[#6b8c66] via-[#2e493a] to-[#071009]",
-      uk: "from-[#7789a5] via-[#333c4c] to-[#0c0d12]",
-      italy: "from-[#d49b72] via-[#634034] to-[#100c0b]",
-      canada: "from-[#8598af] via-[#394b5d] to-[#0a0d11]",
-      mexico: "from-[#b18a58] via-[#514028] to-[#100c09]",
-      global: "from-[#80613b] via-[#292019] to-[#070605]"
-    };
-    return /* @__PURE__ */ jsxs("div", { className: `absolute inset-0 bg-gradient-to-br ${skyByScene[scene]}`, children: [
-      /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[radial-gradient(circle_at_24%_16%,rgba(255,210,132,0.58),transparent_15%),radial-gradient(circle_at_70%_12%,rgba(255,196,104,0.2),transparent_22%)]" }),
-      /* @__PURE__ */ jsxs("svg", { className: "absolute inset-0 h-full w-full", viewBox: "0 0 420 260", preserveAspectRatio: "none", "aria-hidden": "true", children: [
-        /* @__PURE__ */ jsx("defs", { children: /* @__PURE__ */ jsxs("linearGradient", { id: waterGradientId, x1: "0", x2: "1", y1: "0", y2: "1", children: [
-          /* @__PURE__ */ jsx("stop", { offset: "0%", stopColor: "rgba(255,255,255,0.16)" }),
-          /* @__PURE__ */ jsx("stop", { offset: "100%", stopColor: "rgba(255,255,255,0)" })
-        ] }) }),
-        /* @__PURE__ */ jsx("path", { d: "M0 206 C78 184 143 197 202 182 C276 162 338 174 420 150 L420 260 L0 260 Z", fill: "rgba(4,5,8,0.58)" }),
-        /* @__PURE__ */ jsx("path", { d: "M0 220 C82 204 160 212 232 198 C306 184 362 194 420 178", fill: "none", stroke: `url(#${waterGradientId})`, strokeWidth: "2" }),
-        scene === "japan" ? /* @__PURE__ */ jsxs(Fragment2, { children: [
-          /* @__PURE__ */ jsx("path", { d: "M230 172 L285 80 L344 172 Z", fill: "rgba(248,238,220,0.78)" }),
-          /* @__PURE__ */ jsx("path", { d: "M250 172 L285 112 L322 172 Z", fill: "rgba(82,102,142,0.7)" }),
-          /* @__PURE__ */ jsxs("g", { fill: "rgba(29,16,15,0.88)", children: [
-            /* @__PURE__ */ jsx("path", { d: "M42 118 L112 118 L98 132 L56 132 Z" }),
-            /* @__PURE__ */ jsx("rect", { x: "58", y: "132", width: "38", height: "44", rx: "2" }),
-            /* @__PURE__ */ jsx("path", { d: "M46 152 L108 152 L96 164 L58 164 Z" }),
-            /* @__PURE__ */ jsx("rect", { x: "63", y: "164", width: "28", height: "44", rx: "2" })
-          ] })
-        ] }) : null,
-        scene === "usa" ? /* @__PURE__ */ jsxs("g", { fill: "rgba(215,225,218,0.74)", children: [
-          /* @__PURE__ */ jsx("path", { d: "M102 74 L122 74 L126 188 L98 188 Z" }),
-          /* @__PURE__ */ jsx("path", { d: "M92 190 L132 190 L142 218 L82 218 Z" }),
-          /* @__PURE__ */ jsx("path", { d: "M105 62 L119 42 L129 62 Z" }),
-          /* @__PURE__ */ jsx("path", { d: "M123 100 L162 86 L164 100 L125 116 Z" })
-        ] }) : null,
-        scene === "europe" ? /* @__PURE__ */ jsxs("g", { fill: "rgba(33,22,24,0.78)", stroke: "rgba(246,203,126,0.2)", strokeWidth: "2", children: [
-          /* @__PURE__ */ jsx("path", { d: "M214 54 L244 218 L186 218 Z" }),
-          /* @__PURE__ */ jsx("path", { d: "M198 118 L234 118 L248 142 L184 142 Z" }),
-          /* @__PURE__ */ jsx("path", { d: "M188 178 L246 178 L262 218 L172 218 Z" })
-        ] }) : null,
-        scene === "hong-kong" || scene === "singapore" ? /* @__PURE__ */ jsxs("g", { fill: "rgba(12,14,20,0.9)", children: [
-          /* @__PURE__ */ jsx("rect", { x: "36", y: "134", width: "34", height: "84", rx: "3" }),
-          /* @__PURE__ */ jsx("rect", { x: "82", y: "104", width: "42", height: "114", rx: "3" }),
-          /* @__PURE__ */ jsx("rect", { x: "142", y: "128", width: "48", height: "90", rx: "3" }),
-          /* @__PURE__ */ jsx("rect", { x: "214", y: "84", width: "36", height: "134", rx: "3" }),
-          /* @__PURE__ */ jsx("rect", { x: "272", y: "116", width: "54", height: "102", rx: "3" }),
-          /* @__PURE__ */ jsx("rect", { x: "342", y: "96", width: "32", height: "122", rx: "3" })
-        ] }) : null,
-        scene === "thailand" ? /* @__PURE__ */ jsxs("g", { fill: "rgba(38,23,16,0.86)", stroke: "rgba(244,203,111,0.2)", strokeWidth: "2", children: [
-          /* @__PURE__ */ jsx("path", { d: "M82 110 L118 72 L154 110 Z" }),
-          /* @__PURE__ */ jsx("rect", { x: "94", y: "110", width: "48", height: "82", rx: "3" }),
-          /* @__PURE__ */ jsx("path", { d: "M184 124 L222 78 L260 124 Z" }),
-          /* @__PURE__ */ jsx("rect", { x: "198", y: "124", width: "48", height: "76", rx: "3" }),
-          /* @__PURE__ */ jsx("path", { d: "M288 132 L324 90 L360 132 Z" }),
-          /* @__PURE__ */ jsx("rect", { x: "302", y: "132", width: "44", height: "68", rx: "3" })
-        ] }) : null,
-        ["korea", "malaysia", "uk", "italy", "canada", "mexico", "global"].includes(scene) ? /* @__PURE__ */ jsxs("g", { fill: "rgba(14,16,18,0.82)", children: [
-          /* @__PURE__ */ jsx("path", { d: "M0 190 C60 140 102 164 148 126 C196 88 255 132 306 96 C354 66 382 98 420 76 L420 260 L0 260 Z" }),
-          /* @__PURE__ */ jsx("path", { d: "M82 138 L118 106 L154 138 Z", fill: "rgba(237,202,132,0.12)" }),
-          /* @__PURE__ */ jsx("path", { d: "M260 122 L296 80 L332 122 Z", fill: "rgba(237,202,132,0.14)" })
-        ] }) : null
-      ] }),
-      /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(180deg,rgba(4,5,8,0.02),rgba(4,5,8,0.42)_58%,rgba(4,5,8,0.78))]" })
-    ] });
-  }
-  function PlanCard({
-    plan,
-    onClick,
-    isZhHant
-  }) {
-    return /* @__PURE__ */ jsxs("article", { className: "group overflow-hidden rounded-[1.1rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] shadow-[var(--bokmoo-shadow)]", children: [
-      /* @__PURE__ */ jsxs("div", { className: `relative aspect-[1.28/0.76] overflow-hidden border-b border-[var(--bokmoo-line)] ${plan.art}`, children: [
-        /* @__PURE__ */ jsx(DestinationScene, { scene: plan.scene }),
-        /* @__PURE__ */ jsx("div", { className: "absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(6,6,7,0.08)_48%,rgba(6,6,7,0.7))]" }),
-        plan.badge ? /* @__PURE__ */ jsx("span", { className: "absolute left-3 top-3 inline-flex rounded-full bg-[var(--bokmoo-gold)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-bg)]", children: plan.badge }) : null,
-        /* @__PURE__ */ jsxs("div", { className: "absolute inset-x-0 bottom-0 p-4", children: [
-          /* @__PURE__ */ jsx("p", { className: "text-2xl font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: plan.country }),
-          /* @__PURE__ */ jsx("p", { className: "mt-1 text-sm text-[color:color-mix(in_oklab,var(--bokmoo-copy)_88%,white)]", children: plan.allowance }),
-          /* @__PURE__ */ jsx("p", { className: "mt-1 text-xs uppercase tracking-[0.12em] text-[var(--bokmoo-copy-soft)]", children: plan.speed })
-        ] })
-      ] }),
-      /* @__PURE__ */ jsx("div", { className: "p-4", children: /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-4", children: [
-        /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("p", { className: "text-[1.85rem] font-semibold tracking-[-0.05em] text-[var(--bokmoo-gold)]", children: plan.price }),
-          /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--bokmoo-copy-soft)]", children: isZhHant ? "\u8D85\u503C\u65C5\u904A\u7D44\u5408" : "Best-value travel bundle" })
-        ] }),
-        /* @__PURE__ */ jsx(
-          "button",
-          {
-            onClick,
-            className: "inline-flex min-h-11 items-center justify-center rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_66%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] transition-transform duration-300 group-hover:-translate-y-0.5",
-            type: "button",
-            children: isZhHant ? "\u7ACB\u5373\u8CFC\u8CB7" : "Buy Now"
-          }
-        )
-      ] }) })
-    ] });
-  }
   var HomePage = react_default.memo(function HomePage2({ locale, config, onNavigate }) {
     const site = resolveBokmooSiteConfig(config);
-    const [activeCategory, setActiveCategory] = react_default.useState("Popular");
+    const [homeProducts, setHomeProducts] = react_default.useState([]);
+    const [homeProductsLoading, setHomeProductsLoading] = react_default.useState(true);
     const isZhHant = locale === "zh-Hant";
     const openHref = react_default.useCallback(
       (href) => {
@@ -14963,152 +14890,31 @@
       },
       [onNavigate]
     );
-    const planDecks = react_default.useMemo(
-      () => ({
-        Popular: [
-          {
-            country: "Japan",
-            allowance: "10GB / 7 Days",
-            speed: "4G/5G High Speed",
-            price: "$12.00",
-            badge: "Hot",
-            art: "bg-[linear-gradient(160deg,#93a4db_0%,#4d6d9f_45%,#11151e_100%)]",
-            scene: "japan"
-          },
-          {
-            country: "United States",
-            allowance: "20GB / 15 Days",
-            speed: "4G/5G High Speed",
-            price: "$19.00",
-            art: "bg-[linear-gradient(160deg,#5878a7_0%,#2e425b_48%,#0e1117_100%)]",
-            scene: "usa"
-          },
-          {
-            country: "Europe",
-            allowance: "10GB / 15 Days",
-            speed: "4G/5G High Speed",
-            price: "$18.50",
-            art: "bg-[linear-gradient(160deg,#d09c8c_0%,#7a5160_46%,#161116_100%)]",
-            scene: "europe"
-          },
-          {
-            country: "Hong Kong",
-            allowance: "5GB / 7 Days",
-            speed: "4G/5G High Speed",
-            price: "$8.50",
-            art: "bg-[linear-gradient(160deg,#355a80_0%,#1f3347_54%,#0c1018_100%)]",
-            scene: "hong-kong"
-          },
-          {
-            country: "Thailand",
-            allowance: "15GB / 10 Days",
-            speed: "4G/5G High Speed",
-            price: "$11.00",
-            art: "bg-[linear-gradient(160deg,#8579b6_0%,#4e3953_56%,#110f16_100%)]",
-            scene: "thailand"
-          }
-        ],
-        Asia: [
-          {
-            country: "Singapore",
-            allowance: "8GB / 7 Days",
-            speed: "4G/5G High Speed",
-            price: "$9.50",
-            art: "bg-[linear-gradient(160deg,#4d7485_0%,#233642_56%,#0d1114_100%)]",
-            scene: "singapore"
-          },
-          {
-            country: "Korea",
-            allowance: "12GB / 10 Days",
-            speed: "4G/5G High Speed",
-            price: "$10.50",
-            art: "bg-[linear-gradient(160deg,#6c80b5_0%,#2d3451_56%,#110f14_100%)]",
-            scene: "korea"
-          },
-          {
-            country: "Malaysia",
-            allowance: "10GB / 8 Days",
-            speed: "4G/5G High Speed",
-            price: "$8.00",
-            art: "bg-[linear-gradient(160deg,#54705f_0%,#243129_56%,#0f1310_100%)]",
-            scene: "malaysia"
-          }
-        ],
-        Europe: [
-          {
-            country: "Europe 33",
-            allowance: "20GB / 30 Days",
-            speed: "4G/5G High Speed",
-            price: "$24.00",
-            badge: "Best",
-            art: "bg-[linear-gradient(160deg,#cb977f_0%,#67484b_52%,#151013_100%)]",
-            scene: "europe"
-          },
-          {
-            country: "United Kingdom",
-            allowance: "12GB / 14 Days",
-            speed: "4G/5G High Speed",
-            price: "$15.00",
-            art: "bg-[linear-gradient(160deg,#7181a1_0%,#323947_54%,#131216_100%)]",
-            scene: "uk"
-          },
-          {
-            country: "Italy",
-            allowance: "10GB / 10 Days",
-            speed: "4G/5G High Speed",
-            price: "$13.50",
-            art: "bg-[linear-gradient(160deg,#9d6d59_0%,#49322e_54%,#140f10_100%)]",
-            scene: "italy"
-          }
-        ],
-        "North America": [
-          {
-            country: "United States",
-            allowance: "20GB / 15 Days",
-            speed: "4G/5G High Speed",
-            price: "$19.00",
-            art: "bg-[linear-gradient(160deg,#5878a7_0%,#2e425b_48%,#0e1117_100%)]",
-            scene: "usa"
-          },
-          {
-            country: "Canada",
-            allowance: "12GB / 15 Days",
-            speed: "4G/5G High Speed",
-            price: "$16.00",
-            art: "bg-[linear-gradient(160deg,#7c8ca7_0%,#353d4d_52%,#121419_100%)]",
-            scene: "canada"
-          },
-          {
-            country: "Mexico",
-            allowance: "8GB / 7 Days",
-            speed: "4G/5G High Speed",
-            price: "$9.00",
-            art: "bg-[linear-gradient(160deg,#7b6f59_0%,#42392a_54%,#15120f_100%)]",
-            scene: "mexico"
-          }
-        ],
-        Global: [
-          {
-            country: "Global Pass",
-            allowance: "25GB / 30 Days",
-            speed: "Priority Multi-Network",
-            price: "$39.00",
-            badge: "Pro",
-            art: "bg-[linear-gradient(160deg,#6e5d3f_0%,#2a231a_48%,#0e0d0b_100%)]",
-            scene: "global"
-          },
-          {
-            country: "Business Global",
-            allowance: "50GB / 45 Days",
-            speed: "Priority Multi-Network",
-            price: "$69.00",
-            art: "bg-[linear-gradient(160deg,#4b3f6c_0%,#241d33_50%,#0f0d13_100%)]",
-            scene: "global"
-          }
-        ]
-      }),
-      []
-    );
+    react_default.useEffect(() => {
+      let cancelled = false;
+      void getBokmooProducts({ baseUrl: site.apiBaseUrl }, { page: 1, limit: 12, locale: "en", type: "esim" }).then((response) => {
+        if (cancelled) return;
+        setHomeProducts(
+          response.items.map((item) => {
+            const variantPrices = (item.variants || []).map((variant) => Number(variant.salePrice || 0)).filter((price) => price > 0).sort((a, b) => a - b);
+            return {
+              id: String(item.id || ""),
+              name: displayProductTitle(item.name),
+              description: String(item.description || ""),
+              price: variantPrices[0] ?? Number(item.price || 0),
+              image: resolveBokmooMediaUrl(item.images?.[0]?.url || item.image, site.apiBaseUrl)
+            };
+          })
+        );
+      }).catch(() => {
+        if (!cancelled) setHomeProducts([]);
+      }).finally(() => {
+        if (!cancelled) setHomeProductsLoading(false);
+      });
+      return () => {
+        cancelled = true;
+      };
+    }, [site.apiBaseUrl]);
     const reasonCards = [
       {
         title: "Global Coverage",
@@ -15177,7 +14983,6 @@
       { value: "10M+", label: "eSIM Profiles Delivered" },
       { value: "99.9%", label: "Uptime Guarantee" }
     ];
-    const activePlans = planDecks[activeCategory];
     const heroTitleLines = react_default.useMemo(() => {
       const lines = site.headline.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
       return lines.length > 0 ? lines : ["One Card.", "Global Connection."];
@@ -15300,20 +15105,11 @@
             title
           )) })
         ] }),
-        /* @__PURE__ */ jsxs("div", { className: "rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
+        homeProductsLoading || homeProducts.length > 0 ? /* @__PURE__ */ jsxs("div", { className: "rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
           /* @__PURE__ */ jsxs("div", { className: "flex flex-col gap-4 border-b border-[var(--bokmoo-line)] pb-5 sm:flex-row sm:items-end sm:justify-between", children: [
             /* @__PURE__ */ jsxs("div", { children: [
-              /* @__PURE__ */ jsx("h2", { className: "text-[clamp(2rem,3.4vw,3rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: isZhHant ? "\u9069\u5408\u6BCF\u8D9F\u65C5\u7A0B\u7684 eSIM \u65B9\u6848" : "eSIM Plans for Every Journey" }),
-              /* @__PURE__ */ jsx("div", { className: "mt-4 flex flex-wrap gap-2", children: ["Popular", "Asia", "Europe", "North America", "Global"].map((category) => /* @__PURE__ */ jsx(
-                "button",
-                {
-                  onClick: () => setActiveCategory(category),
-                  className: `rounded-full px-4 py-2 text-sm transition-colors ${activeCategory === category ? "bg-[var(--bokmoo-gold)] text-[var(--bokmoo-bg)]" : "text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]"} ${FOCUS_VISIBLE_RING3}`,
-                  type: "button",
-                  children: isZhHant ? { Popular: "\u71B1\u9580", Asia: "\u4E9E\u6D32", Europe: "\u6B50\u6D32", "North America": "\u5317\u7F8E\u6D32", Global: "\u5168\u7403" }[category] : category
-                },
-                category
-              )) })
+              /* @__PURE__ */ jsx("h2", { className: "text-[clamp(2rem,3.4vw,3rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: isZhHant ? "BOKMOO \u5BE6\u9AD4\u5361" : "The BOKMOO Card" }),
+              /* @__PURE__ */ jsx("p", { className: "mt-2 text-sm text-[var(--bokmoo-copy)]", children: isZhHant ? "\u8207\u5546\u54C1\u76EE\u9304\u5373\u6642\u540C\u6B65\u7684\u771F\u5BE6\u8CC7\u8A0A\u2014\u2014\u8CFC\u8CB7\u5BE6\u9AD4\u5361\uFF0C\u843D\u5730\u5373\u53EF\u555F\u7528 eSIM \u670D\u52D9\u3002" : "Live data straight from our product catalog. Buy the physical card and activate eSIM service on arrival." })
             ] }),
             /* @__PURE__ */ jsxs(
               "button",
@@ -15322,14 +15118,60 @@
                 className: `inline-flex items-center gap-2 rounded-full px-2 py-1 text-sm font-medium text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING3}`,
                 type: "button",
                 children: [
-                  isZhHant ? "\u67E5\u770B\u6240\u6709\u65B9\u6848" : "View all plans",
+                  isZhHant ? "\u67E5\u770B\u5361\u7247\u8207\u65B9\u6848" : "View card & plans",
                   /* @__PURE__ */ jsx(ArrowRight, { className: "h-4 w-4" })
                 ]
               }
             )
           ] }),
-          /* @__PURE__ */ jsx("div", { className: "mt-6 grid gap-4 xl:grid-cols-5", children: activePlans.map((plan) => /* @__PURE__ */ jsx(PlanCard, { plan, onClick: () => openHref("/products"), isZhHant }, `${activeCategory}-${plan.country}`)) })
-        ] }),
+          /* @__PURE__ */ jsx("div", { className: "mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3", children: homeProductsLoading ? [0, 1, 2].map((index) => /* @__PURE__ */ jsx(
+            "div",
+            {
+              className: "h-[25rem] animate-pulse rounded-[1.25rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)]"
+            },
+            index
+          )) : homeProducts.map((product) => /* @__PURE__ */ jsxs(
+            "article",
+            {
+              className: "group overflow-hidden rounded-[1.25rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] shadow-[var(--bokmoo-shadow)] transition-transform duration-300 hover:-translate-y-1",
+              children: [
+                /* @__PURE__ */ jsx("div", { className: "aspect-[1.6/1] overflow-hidden border-b border-[var(--bokmoo-line)] bg-[linear-gradient(160deg,color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent),transparent_60%),var(--bokmoo-bg-soft)]", children: product.image ? /* @__PURE__ */ jsx(
+                  "img",
+                  {
+                    src: product.image,
+                    alt: product.name,
+                    loading: "lazy",
+                    className: "h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                  }
+                ) : /* @__PURE__ */ jsx("div", { className: "flex h-full items-center justify-center text-[var(--bokmoo-copy-soft)]", children: /* @__PURE__ */ jsx(CreditCard, { className: "h-10 w-10" }) }) }),
+                /* @__PURE__ */ jsxs("div", { className: "p-5", children: [
+                  /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [
+                    /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-gold)]", children: isZhHant ? "\u5BE6\u9AD4\u5361" : "Physical card" }),
+                    /* @__PURE__ */ jsx("span", { className: "rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy)]", children: "eUICC" })
+                  ] }),
+                  /* @__PURE__ */ jsx("h3", { className: "mt-4 text-2xl font-semibold tracking-[-0.03em] text-[var(--bokmoo-ink)]", children: product.name }),
+                  /* @__PURE__ */ jsx("p", { className: "mt-2 line-clamp-2 text-sm leading-6 text-[var(--bokmoo-copy)]", children: product.description }),
+                  /* @__PURE__ */ jsxs("div", { className: "mt-4 flex items-center justify-between gap-3", children: [
+                    /* @__PURE__ */ jsxs("p", { className: "text-2xl font-semibold tracking-[-0.03em] text-[var(--bokmoo-ink)]", children: [
+                      "$",
+                      Number(product.price || 0).toFixed(2)
+                    ] }),
+                    /* @__PURE__ */ jsx(
+                      "button",
+                      {
+                        onClick: () => openHref("/products"),
+                        className: `inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_84%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-semibold text-[var(--bokmoo-bg)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING3}`,
+                        type: "button",
+                        children: isZhHant ? "\u7ACB\u5373\u8CFC\u8CB7" : "Buy Now"
+                      }
+                    )
+                  ] })
+                ] })
+              ]
+            },
+            product.id
+          )) })
+        ] }) : null,
         /* @__PURE__ */ jsx("div", { className: "rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8", children: /* @__PURE__ */ jsxs("div", { className: "grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]", children: [
           /* @__PURE__ */ jsxs("div", { children: [
             /* @__PURE__ */ jsx("h2", { className: "text-[clamp(2rem,3.2vw,2.8rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: isZhHant ? "\u4F7F\u7528\u65B9\u5F0F" : "How It Works" }),
@@ -17111,7 +16953,7 @@
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.6",
+      version: "1.1.7",
       target: "shop"
     }
   };

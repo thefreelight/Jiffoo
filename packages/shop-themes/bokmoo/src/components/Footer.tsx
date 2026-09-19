@@ -6,6 +6,7 @@ import { isExternalHref, resolveBokmooSiteConfig } from '../site';
 export const Footer = React.memo(function Footer({
   locale,
   config,
+  platformBranding,
   onNavigate,
   onNavigateToProducts,
   onNavigateToCategories,
@@ -17,6 +18,9 @@ export const Footer = React.memo(function Footer({
   const site = resolveBokmooSiteConfig(config);
   const year = new Date().getFullYear();
   const isZhHant = locale === 'zh-Hant';
+  const showPoweredByJiffoo = platformBranding?.showPoweredByJiffoo !== false;
+  const poweredByHref = platformBranding?.poweredByHref || 'https://jiffoo.com';
+  const poweredByLabel = platformBranding?.poweredByLabel || 'Jiffoo';
 
   const openHref = React.useCallback(
     (href: string) => {
@@ -122,7 +126,20 @@ export const Footer = React.memo(function Footer({
 
         <div className="mt-8 flex flex-col gap-3 border-t border-[var(--bokmoo-line)] pt-6 text-sm text-[var(--bokmoo-copy)] sm:mt-12 sm:flex-row sm:items-center sm:justify-between">
           <p>© {year} {site.brandName.toUpperCase()}. {isZhHant ? '官方全球 eSIM 商店。' : 'Official global eSIM storefront.'}</p>
-          <p>{isZhHant ? '無界連線、安全啟用與優質旅遊數據管理。' : 'Boundless connectivity, secure activation, and premium travel data management.'}</p>
+          <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <p>{isZhHant ? '無界連線、安全啟用與優質旅遊數據管理。' : 'Boundless connectivity, secure activation, and premium travel data management.'}</p>
+            {showPoweredByJiffoo ? (
+              <a
+                href={poweredByHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs uppercase tracking-[0.16em] text-[var(--bokmoo-copy-soft)] transition-colors hover:text-[var(--bokmoo-gold)]"
+              >
+                Powered by {poweredByLabel}
+                <ArrowRight className="h-3 w-3" />
+              </a>
+            ) : null}
+          </div>
         </div>
       </div>
 

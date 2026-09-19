@@ -13,38 +13,16 @@ import {
   Zap,
 } from 'lucide-react';
 import type { HomePageProps } from 'shared/src/types/theme';
+import { displayProductTitle, getBokmooProducts, resolveBokmooMediaUrl } from '../lib/api';
 import { isExternalHref, resolveBokmooSiteConfig } from '../site';
 
-type PlanCategory = 'Popular' | 'Asia' | 'Europe' | 'North America' | 'Global';
-
-type HeroPillarProps = {
-  className: string;
+type HomeProduct = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  image: string | null;
 };
-
-type HomePlan = {
-  country: string;
-  allowance: string;
-  speed: string;
-  price: string;
-  badge?: string;
-  art: string;
-  scene: DestinationSceneName;
-};
-
-type DestinationSceneName =
-  | 'japan'
-  | 'usa'
-  | 'europe'
-  | 'hong-kong'
-  | 'thailand'
-  | 'singapore'
-  | 'korea'
-  | 'malaysia'
-  | 'uk'
-  | 'italy'
-  | 'canada'
-  | 'mexico'
-  | 'global';
 
 const BOKMOO_HERO_CARD_SRC = '/theme-assets/bokmoo/bokmoo-hero-card-product.png?v=20260716';
 const FOCUS_VISIBLE_RING =
@@ -112,146 +90,10 @@ function WorldGlobe() {
   );
 }
 
-function DestinationScene({ scene }: { scene: DestinationSceneName }) {
-  const waterGradientId = React.useId().replace(/:/g, '');
-  const skyByScene: Record<DestinationSceneName, string> = {
-    japan: 'from-[#d77365] via-[#344d81] to-[#080b12]',
-    usa: 'from-[#7390c8] via-[#34506d] to-[#07101a]',
-    europe: 'from-[#d99d7a] via-[#5c4051] to-[#100d12]',
-    'hong-kong': 'from-[#234f78] via-[#142c45] to-[#060910]',
-    thailand: 'from-[#b9906c] via-[#56405b] to-[#09070d]',
-    singapore: 'from-[#4f89a4] via-[#173b4a] to-[#071012]',
-    korea: 'from-[#7b8fc9] via-[#353c65] to-[#0d0b12]',
-    malaysia: 'from-[#6b8c66] via-[#2e493a] to-[#071009]',
-    uk: 'from-[#7789a5] via-[#333c4c] to-[#0c0d12]',
-    italy: 'from-[#d49b72] via-[#634034] to-[#100c0b]',
-    canada: 'from-[#8598af] via-[#394b5d] to-[#0a0d11]',
-    mexico: 'from-[#b18a58] via-[#514028] to-[#100c09]',
-    global: 'from-[#80613b] via-[#292019] to-[#070605]',
-  };
-
-  return (
-    <div className={`absolute inset-0 bg-gradient-to-br ${skyByScene[scene]}`}>
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_24%_16%,rgba(255,210,132,0.58),transparent_15%),radial-gradient(circle_at_70%_12%,rgba(255,196,104,0.2),transparent_22%)]" />
-      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 420 260" preserveAspectRatio="none" aria-hidden="true">
-        <defs>
-          <linearGradient id={waterGradientId} x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0%" stopColor="rgba(255,255,255,0.16)" />
-            <stop offset="100%" stopColor="rgba(255,255,255,0)" />
-          </linearGradient>
-        </defs>
-        <path d="M0 206 C78 184 143 197 202 182 C276 162 338 174 420 150 L420 260 L0 260 Z" fill="rgba(4,5,8,0.58)" />
-        <path d="M0 220 C82 204 160 212 232 198 C306 184 362 194 420 178" fill="none" stroke={`url(#${waterGradientId})`} strokeWidth="2" />
-        {scene === 'japan' ? (
-          <>
-            <path d="M230 172 L285 80 L344 172 Z" fill="rgba(248,238,220,0.78)" />
-            <path d="M250 172 L285 112 L322 172 Z" fill="rgba(82,102,142,0.7)" />
-            <g fill="rgba(29,16,15,0.88)">
-              <path d="M42 118 L112 118 L98 132 L56 132 Z" />
-              <rect x="58" y="132" width="38" height="44" rx="2" />
-              <path d="M46 152 L108 152 L96 164 L58 164 Z" />
-              <rect x="63" y="164" width="28" height="44" rx="2" />
-            </g>
-          </>
-        ) : null}
-        {scene === 'usa' ? (
-          <g fill="rgba(215,225,218,0.74)">
-            <path d="M102 74 L122 74 L126 188 L98 188 Z" />
-            <path d="M92 190 L132 190 L142 218 L82 218 Z" />
-            <path d="M105 62 L119 42 L129 62 Z" />
-            <path d="M123 100 L162 86 L164 100 L125 116 Z" />
-          </g>
-        ) : null}
-        {scene === 'europe' ? (
-          <g fill="rgba(33,22,24,0.78)" stroke="rgba(246,203,126,0.2)" strokeWidth="2">
-            <path d="M214 54 L244 218 L186 218 Z" />
-            <path d="M198 118 L234 118 L248 142 L184 142 Z" />
-            <path d="M188 178 L246 178 L262 218 L172 218 Z" />
-          </g>
-        ) : null}
-        {scene === 'hong-kong' || scene === 'singapore' ? (
-          <g fill="rgba(12,14,20,0.9)">
-            <rect x="36" y="134" width="34" height="84" rx="3" />
-            <rect x="82" y="104" width="42" height="114" rx="3" />
-            <rect x="142" y="128" width="48" height="90" rx="3" />
-            <rect x="214" y="84" width="36" height="134" rx="3" />
-            <rect x="272" y="116" width="54" height="102" rx="3" />
-            <rect x="342" y="96" width="32" height="122" rx="3" />
-          </g>
-        ) : null}
-        {scene === 'thailand' ? (
-          <g fill="rgba(38,23,16,0.86)" stroke="rgba(244,203,111,0.2)" strokeWidth="2">
-            <path d="M82 110 L118 72 L154 110 Z" />
-            <rect x="94" y="110" width="48" height="82" rx="3" />
-            <path d="M184 124 L222 78 L260 124 Z" />
-            <rect x="198" y="124" width="48" height="76" rx="3" />
-            <path d="M288 132 L324 90 L360 132 Z" />
-            <rect x="302" y="132" width="44" height="68" rx="3" />
-          </g>
-        ) : null}
-        {['korea', 'malaysia', 'uk', 'italy', 'canada', 'mexico', 'global'].includes(scene) ? (
-          <g fill="rgba(14,16,18,0.82)">
-            <path d="M0 190 C60 140 102 164 148 126 C196 88 255 132 306 96 C354 66 382 98 420 76 L420 260 L0 260 Z" />
-            <path d="M82 138 L118 106 L154 138 Z" fill="rgba(237,202,132,0.12)" />
-            <path d="M260 122 L296 80 L332 122 Z" fill="rgba(237,202,132,0.14)" />
-          </g>
-        ) : null}
-      </svg>
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(4,5,8,0.02),rgba(4,5,8,0.42)_58%,rgba(4,5,8,0.78))]" />
-    </div>
-  );
-}
-
-function PlanCard({
-  plan,
-  onClick,
-  isZhHant,
-}: {
-  plan: HomePlan;
-  onClick: () => void;
-  isZhHant: boolean;
-}) {
-  return (
-    <article className="group overflow-hidden rounded-[1.1rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] shadow-[var(--bokmoo-shadow)]">
-      <div className={`relative aspect-[1.28/0.76] overflow-hidden border-b border-[var(--bokmoo-line)] ${plan.art}`}>
-        <DestinationScene scene={plan.scene} />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,transparent,rgba(6,6,7,0.08)_48%,rgba(6,6,7,0.7))]" />
-        {plan.badge ? (
-          <span className="absolute left-3 top-3 inline-flex rounded-full bg-[var(--bokmoo-gold)] px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--bokmoo-bg)]">
-            {plan.badge}
-          </span>
-        ) : null}
-        <div className="absolute inset-x-0 bottom-0 p-4">
-          <p className="text-2xl font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">{plan.country}</p>
-          <p className="mt-1 text-sm text-[color:color-mix(in_oklab,var(--bokmoo-copy)_88%,white)]">{plan.allowance}</p>
-          <p className="mt-1 text-xs uppercase tracking-[0.12em] text-[var(--bokmoo-copy-soft)]">{plan.speed}</p>
-        </div>
-      </div>
-
-      <div className="p-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[1.85rem] font-semibold tracking-[-0.05em] text-[var(--bokmoo-gold)]">
-              {plan.price}
-            </p>
-            <p className="text-xs text-[var(--bokmoo-copy-soft)]">{isZhHant ? '超值旅遊組合' : 'Best-value travel bundle'}</p>
-          </div>
-          <button
-            onClick={onClick}
-            className="inline-flex min-h-11 items-center justify-center rounded-[0.9rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_66%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)] transition-transform duration-300 group-hover:-translate-y-0.5"
-            type="button"
-          >
-            {isZhHant ? '立即購買' : 'Buy Now'}
-          </button>
-        </div>
-      </div>
-    </article>
-  );
-}
-
 export const HomePage = React.memo(function HomePage({ locale, config, onNavigate }: HomePageProps) {
   const site = resolveBokmooSiteConfig(config);
-  const [activeCategory, setActiveCategory] = React.useState<PlanCategory>('Popular');
+  const [homeProducts, setHomeProducts] = React.useState<HomeProduct[]>([]);
+  const [homeProductsLoading, setHomeProductsLoading] = React.useState(true);
   const isZhHant = locale === 'zh-Hant';
 
   const openHref = React.useCallback(
@@ -275,152 +117,40 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
     [onNavigate]
   );
 
-  const planDecks = React.useMemo<Record<PlanCategory, HomePlan[]>>(
-    () => ({
-      Popular: [
-        {
-          country: 'Japan',
-          allowance: '10GB / 7 Days',
-          speed: '4G/5G High Speed',
-          price: '$12.00',
-          badge: 'Hot',
-          art: 'bg-[linear-gradient(160deg,#93a4db_0%,#4d6d9f_45%,#11151e_100%)]',
-          scene: 'japan',
-        },
-        {
-          country: 'United States',
-          allowance: '20GB / 15 Days',
-          speed: '4G/5G High Speed',
-          price: '$19.00',
-          art: 'bg-[linear-gradient(160deg,#5878a7_0%,#2e425b_48%,#0e1117_100%)]',
-          scene: 'usa',
-        },
-        {
-          country: 'Europe',
-          allowance: '10GB / 15 Days',
-          speed: '4G/5G High Speed',
-          price: '$18.50',
-          art: 'bg-[linear-gradient(160deg,#d09c8c_0%,#7a5160_46%,#161116_100%)]',
-          scene: 'europe',
-        },
-        {
-          country: 'Hong Kong',
-          allowance: '5GB / 7 Days',
-          speed: '4G/5G High Speed',
-          price: '$8.50',
-          art: 'bg-[linear-gradient(160deg,#355a80_0%,#1f3347_54%,#0c1018_100%)]',
-          scene: 'hong-kong',
-        },
-        {
-          country: 'Thailand',
-          allowance: '15GB / 10 Days',
-          speed: '4G/5G High Speed',
-          price: '$11.00',
-          art: 'bg-[linear-gradient(160deg,#8579b6_0%,#4e3953_56%,#110f16_100%)]',
-          scene: 'thailand',
-        },
-      ],
-      Asia: [
-        {
-          country: 'Singapore',
-          allowance: '8GB / 7 Days',
-          speed: '4G/5G High Speed',
-          price: '$9.50',
-          art: 'bg-[linear-gradient(160deg,#4d7485_0%,#233642_56%,#0d1114_100%)]',
-          scene: 'singapore',
-        },
-        {
-          country: 'Korea',
-          allowance: '12GB / 10 Days',
-          speed: '4G/5G High Speed',
-          price: '$10.50',
-          art: 'bg-[linear-gradient(160deg,#6c80b5_0%,#2d3451_56%,#110f14_100%)]',
-          scene: 'korea',
-        },
-        {
-          country: 'Malaysia',
-          allowance: '10GB / 8 Days',
-          speed: '4G/5G High Speed',
-          price: '$8.00',
-          art: 'bg-[linear-gradient(160deg,#54705f_0%,#243129_56%,#0f1310_100%)]',
-          scene: 'malaysia',
-        },
-      ],
-      Europe: [
-        {
-          country: 'Europe 33',
-          allowance: '20GB / 30 Days',
-          speed: '4G/5G High Speed',
-          price: '$24.00',
-          badge: 'Best',
-          art: 'bg-[linear-gradient(160deg,#cb977f_0%,#67484b_52%,#151013_100%)]',
-          scene: 'europe',
-        },
-        {
-          country: 'United Kingdom',
-          allowance: '12GB / 14 Days',
-          speed: '4G/5G High Speed',
-          price: '$15.00',
-          art: 'bg-[linear-gradient(160deg,#7181a1_0%,#323947_54%,#131216_100%)]',
-          scene: 'uk',
-        },
-        {
-          country: 'Italy',
-          allowance: '10GB / 10 Days',
-          speed: '4G/5G High Speed',
-          price: '$13.50',
-          art: 'bg-[linear-gradient(160deg,#9d6d59_0%,#49322e_54%,#140f10_100%)]',
-          scene: 'italy',
-        },
-      ],
-      'North America': [
-        {
-          country: 'United States',
-          allowance: '20GB / 15 Days',
-          speed: '4G/5G High Speed',
-          price: '$19.00',
-          art: 'bg-[linear-gradient(160deg,#5878a7_0%,#2e425b_48%,#0e1117_100%)]',
-          scene: 'usa',
-        },
-        {
-          country: 'Canada',
-          allowance: '12GB / 15 Days',
-          speed: '4G/5G High Speed',
-          price: '$16.00',
-          art: 'bg-[linear-gradient(160deg,#7c8ca7_0%,#353d4d_52%,#121419_100%)]',
-          scene: 'canada',
-        },
-        {
-          country: 'Mexico',
-          allowance: '8GB / 7 Days',
-          speed: '4G/5G High Speed',
-          price: '$9.00',
-          art: 'bg-[linear-gradient(160deg,#7b6f59_0%,#42392a_54%,#15120f_100%)]',
-          scene: 'mexico',
-        },
-      ],
-      Global: [
-        {
-          country: 'Global Pass',
-          allowance: '25GB / 30 Days',
-          speed: 'Priority Multi-Network',
-          price: '$39.00',
-          badge: 'Pro',
-          art: 'bg-[linear-gradient(160deg,#6e5d3f_0%,#2a231a_48%,#0e0d0b_100%)]',
-          scene: 'global',
-        },
-        {
-          country: 'Business Global',
-          allowance: '50GB / 45 Days',
-          speed: 'Priority Multi-Network',
-          price: '$69.00',
-          art: 'bg-[linear-gradient(160deg,#4b3f6c_0%,#241d33_50%,#0f0d13_100%)]',
-          scene: 'global',
-        },
-      ],
-    }),
-    []
-  );
+  React.useEffect(() => {
+    let cancelled = false;
+    // The native core serves catalog reads from D1 snapshots keyed by the full
+    // request query; this exact query string matches the maintained odoo-synced
+    // snapshot row, so the homepage always renders the real synced product.
+    void getBokmooProducts({ baseUrl: site.apiBaseUrl }, { page: 1, limit: 12, locale: 'en', type: 'esim' })
+      .then((response) => {
+        if (cancelled) return;
+        setHomeProducts(
+          response.items.map((item) => {
+            const variantPrices = (item.variants || [])
+              .map((variant) => Number(variant.salePrice || 0))
+              .filter((price) => price > 0)
+              .sort((a, b) => a - b);
+            return {
+              id: String(item.id || ''),
+              name: displayProductTitle(item.name),
+              description: String(item.description || ''),
+              price: variantPrices[0] ?? Number(item.price || 0),
+              image: resolveBokmooMediaUrl(item.images?.[0]?.url || item.image, site.apiBaseUrl),
+            };
+          })
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setHomeProducts([]);
+      })
+      .finally(() => {
+        if (!cancelled) setHomeProductsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [site.apiBaseUrl]);
 
   const reasonCards = [
     {
@@ -495,7 +225,6 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
     { value: '99.9%', label: 'Uptime Guarantee' },
   ];
 
-  const activePlans = planDecks[activeCategory];
   const heroTitleLines = React.useMemo(() => {
     const lines = site.headline
       .split(/\r?\n/)
@@ -647,48 +376,84 @@ export const HomePage = React.memo(function HomePage({ locale, config, onNavigat
             </div>
           </div>
 
-          <div className="rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8">
-            <div className="flex flex-col gap-4 border-b border-[var(--bokmoo-line)] pb-5 sm:flex-row sm:items-end sm:justify-between">
-              <div>
-                <h2 className="text-[clamp(2rem,3.4vw,3rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">
-                  {isZhHant ? '適合每趟旅程的 eSIM 方案' : 'eSIM Plans for Every Journey'}
-                </h2>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {(
-                    ['Popular', 'Asia', 'Europe', 'North America', 'Global'] as PlanCategory[]
-                  ).map((category) => (
-                    <button
-                      key={category}
-                      onClick={() => setActiveCategory(category)}
-                      className={`rounded-full px-4 py-2 text-sm transition-colors ${
-                        activeCategory === category
-                          ? 'bg-[var(--bokmoo-gold)] text-[var(--bokmoo-bg)]'
-                          : 'text-[var(--bokmoo-copy)] hover:text-[var(--bokmoo-ink)]'
-                      } ${FOCUS_VISIBLE_RING}`}
-                      type="button"
-                    >
-                      {isZhHant ? ({ Popular: '熱門', Asia: '亞洲', Europe: '歐洲', 'North America': '北美洲', Global: '全球' } as Record<PlanCategory, string>)[category] : category}
-                    </button>
-                  ))}
+          {homeProductsLoading || homeProducts.length > 0 ? (
+            <div className="rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8">
+              <div className="flex flex-col gap-4 border-b border-[var(--bokmoo-line)] pb-5 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-[clamp(2rem,3.4vw,3rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]">
+                    {isZhHant ? 'BOKMOO 實體卡' : 'The BOKMOO Card'}
+                  </h2>
+                  <p className="mt-2 text-sm text-[var(--bokmoo-copy)]">
+                    {isZhHant
+                      ? '與商品目錄即時同步的真實資訊——購買實體卡，落地即可啟用 eSIM 服務。'
+                      : 'Live data straight from our product catalog. Buy the physical card and activate eSIM service on arrival.'}
+                  </p>
                 </div>
+
+                <button
+                  onClick={() => openHref('/products')}
+                  className={`inline-flex items-center gap-2 rounded-full px-2 py-1 text-sm font-medium text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
+                  type="button"
+                >
+                  {isZhHant ? '查看卡片與方案' : 'View card & plans'}
+                  <ArrowRight className="h-4 w-4" />
+                </button>
               </div>
 
-              <button
-                onClick={() => openHref('/products')}
-                className={`inline-flex items-center gap-2 rounded-full px-2 py-1 text-sm font-medium text-[var(--bokmoo-gold)] ${FOCUS_VISIBLE_RING}`}
-                type="button"
-              >
-                {isZhHant ? '查看所有方案' : 'View all plans'}
-                <ArrowRight className="h-4 w-4" />
-              </button>
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {homeProductsLoading
+                  ? [0, 1, 2].map((index) => (
+                      <div
+                        key={index}
+                        className="h-[25rem] animate-pulse rounded-[1.25rem] border border-[var(--bokmoo-line)] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)]"
+                      />
+                    ))
+                  : homeProducts.map((product) => (
+                      <article
+                        key={product.id}
+                        className="group overflow-hidden rounded-[1.25rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] shadow-[var(--bokmoo-shadow)] transition-transform duration-300 hover:-translate-y-1"
+                      >
+                        <div className="aspect-[1.6/1] overflow-hidden border-b border-[var(--bokmoo-line)] bg-[linear-gradient(160deg,color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent),transparent_60%),var(--bokmoo-bg-soft)]">
+                          {product.image ? (
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              loading="lazy"
+                              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+                            />
+                          ) : (
+                            <div className="flex h-full items-center justify-center text-[var(--bokmoo-copy-soft)]">
+                              <CreditCard className="h-10 w-10" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-gold)]">
+                              {isZhHant ? '實體卡' : 'Physical card'}
+                            </span>
+                            <span className="rounded-full border border-[var(--bokmoo-line)] px-3 py-1 text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy)]">eUICC</span>
+                          </div>
+                          <h3 className="mt-4 text-2xl font-semibold tracking-[-0.03em] text-[var(--bokmoo-ink)]">{product.name}</h3>
+                          <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--bokmoo-copy)]">{product.description}</p>
+                          <div className="mt-4 flex items-center justify-between gap-3">
+                            <p className="text-2xl font-semibold tracking-[-0.03em] text-[var(--bokmoo-ink)]">
+                              ${Number(product.price || 0).toFixed(2)}
+                            </p>
+                            <button
+                              onClick={() => openHref('/products')}
+                              className={`inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_84%,white),color-mix(in_oklab,var(--bokmoo-gold)_64%,black))] px-6 text-sm font-semibold text-[var(--bokmoo-bg)] transition-transform duration-300 hover:-translate-y-0.5 ${FOCUS_VISIBLE_RING}`}
+                              type="button"
+                            >
+                              {isZhHant ? '立即購買' : 'Buy Now'}
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    ))}
+              </div>
             </div>
-
-            <div className="mt-6 grid gap-4 xl:grid-cols-5">
-              {activePlans.map((plan) => (
-                <PlanCard key={`${activeCategory}-${plan.country}`} plan={plan} onClick={() => openHref('/products')} isZhHant={isZhHant} />
-              ))}
-            </div>
-          </div>
+          ) : null}
 
           <div className="rounded-[1.5rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 shadow-[var(--bokmoo-shadow)] sm:p-8">
             <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_24rem]">

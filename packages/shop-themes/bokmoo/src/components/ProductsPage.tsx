@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight, Grid3X3, List, Search, ShieldCheck } from 'l
 import { cn } from '@jiffoo/ui';
 import type { Product } from 'shared/src/types/product';
 import type { ProductsPageProps } from 'shared/src/types/theme';
-import { getBokmooProducts, mapBokmooApiProductToThemeProduct, normalizeProductForTheme } from '../lib/api';
+import { displayProductTitle, getBokmooProducts, mapBokmooApiProductToThemeProduct, normalizeProductForTheme, resolveBokmooMediaUrl } from '../lib/api';
 import { getBokmooTravelProfile } from '../lib/digital-fulfillment';
 import { resolveBokmooSiteConfig } from '../site';
 
@@ -33,15 +33,15 @@ function matchesCatalogFilter(product: { typeData?: { esim?: { country?: string;
   return true;
 }
 
-function ProductMedia({ product }: { product: Product }) {
-  const image = getProductImage(product);
+function ProductMedia({ product, apiBaseUrl }: { product: Product; apiBaseUrl?: string }) {
+  const image = resolveBokmooMediaUrl(getProductImage(product), apiBaseUrl);
   const profile = getBokmooTravelProfile(product);
 
   if (image) {
     return (
       <img
         src={image}
-        alt={product.name}
+        alt={displayProductTitle(product.name)}
         className="h-full w-full object-cover"
       />
     );
@@ -317,7 +317,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                             : 'aspect-[1.45/1] rounded-[1rem] border md:aspect-auto md:h-full md:rounded-[var(--bokmoo-radius-lg)]'
                         )}
                       >
-                        <ProductMedia product={product} />
+                        <ProductMedia product={product} apiBaseUrl={site.apiBaseUrl} />
                       </div>
 
                       <div className={cn(viewMode === 'grid' ? 'p-5' : 'min-w-0')}>
@@ -331,7 +331,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                         </div>
 
                         <h2 className="mt-4 text-[clamp(1.7rem,2vw,2.4rem)] leading-[1] tracking-[-0.04em] text-[var(--bokmoo-ink)]">
-                          {product.name}
+                          {displayProductTitle(product.name)}
                         </h2>
                         <p className="mt-3 text-sm leading-6 text-[var(--bokmoo-copy)]">
                           {product.description || profile.summary}

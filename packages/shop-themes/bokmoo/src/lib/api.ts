@@ -441,6 +441,26 @@ function mapVariant(variant: BokmooApiVariant): ThemeProductVariant {
   };
 }
 
+// Odoo-synced catalog names carry an internal "[SKU] " prefix (and sometimes a
+// trailing version token) that must never reach the storefront shelf.
+export function displayProductTitle(name: string | null | undefined): string {
+  const cleaned = String(name || '')
+    .replace(/^\[[^\]]*\]\s*/, '')
+    .replace(/\s+V\d+$/i, '')
+    .trim();
+  return cleaned || String(name || '');
+}
+
+// Catalog media URLs are core-relative ("/media/..."); the shop host has no
+// /media route, so resolve them against the core API base before rendering.
+export function resolveBokmooMediaUrl(url: string | null | undefined, apiBaseUrl?: string): string | null {
+  const value = String(url || '').trim();
+  if (!value) return null;
+  if (/^(https?:)?\/\//i.test(value) || value.startsWith('data:')) return value;
+  if (!apiBaseUrl) return value;
+  return `${apiBaseUrl.replace(/\/+$/, '')}${value.startsWith('/') ? '' : '/'}${value}`;
+}
+
 export function mapBokmooApiProductToThemeProduct(product: BokmooApiProduct): ThemeProduct {
   const esim = product.typeData?.esim;
   const imageUrl = product.images?.[0]?.url || product.image;
@@ -458,8 +478,8 @@ export function mapBokmooApiProductToThemeProduct(product: BokmooApiProduct): Th
 
   return {
     id: product.id,
-    name: product.name,
-    description: product.description || `${product.name} travel connectivity package`,
+    name: displayProductTitle(product.name),
+    description: product.description || `${displayProductTitle(product.name)} travel connectivity package`,
     price: sellablePrice,
     sku: product.slug || product.id,
     category: {
