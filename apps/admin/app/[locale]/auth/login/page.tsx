@@ -296,6 +296,12 @@ export default function AdminLoginPage() {
               </Button>
             </form>
 
+            <p className="text-center text-xs text-gray-500">
+              <a href={`/${locale}/auth/forgot-password`} className="underline underline-offset-4 hover:text-gray-700">
+                {getText('merchant.auth.forgotPassword', 'Forgot password?')}
+              </a>
+            </p>
+
             {isLoadingBootstrap ? (
               <div className="pt-6 border-t border-gray-50">
                 <div className="flex items-center justify-center gap-2 rounded-xl border border-gray-100 bg-gray-50/50 px-4 py-3 text-xs text-gray-500">

@@ -364,6 +364,12 @@ export { getAdminClient };
 
 // Auth API
 export const authApi = {
+  forgotPassword: (email: string): Promise<ApiResponse<void>> =>
+    apiClient.forgotPassword(email),
+
+  resetPassword: (data: { email: string; code: string; password: string }): Promise<ApiResponse<void>> =>
+    apiClient.resetPassword(data),
+
   login: async (identifier: string, password: string) => {
     const response = await apiClient.post<{
       access_token: string;
