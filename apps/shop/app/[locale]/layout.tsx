@@ -8,7 +8,7 @@
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
 import {
-  isSupportedLocale,
+  ROUTE_LOCALES,
   getMessages,
   type Locale,
   type LocaleLayoutProps,
@@ -27,8 +27,9 @@ interface Props extends Omit<LocaleLayoutProps, 'params'> {
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params;
 
-  // Validate locale
-  if (!isSupportedLocale(locale)) {
+  // Validate locale against the routing superset. Themes translate what
+  // they ship; namespaces without translations fall back to English.
+  if (!ROUTE_LOCALES.includes(locale)) {
     notFound();
   }
 

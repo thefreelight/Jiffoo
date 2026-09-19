@@ -6,7 +6,7 @@ import { Header } from '../../components/Header';
 import { Footer } from '../../components/Footer';
 import { authApi, cartApi } from '../../lib/api';
 import { easyEuiccPreviewConfig } from '../../lib/easyeuiccPreview';
-import type { Locale } from '../../types';
+import type { Locale, CoreLocale  } from '../../types';
 
 export default function LocaleLayout({
   children,
@@ -17,7 +17,7 @@ export default function LocaleLayout({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const locale = ((params?.locale as string) || 'en') as Locale;
+  const locale = ((params?.locale as string) || 'en') as CoreLocale;
   const previewConfig = searchParams.get('preview') === 'easyeuicc' ? easyEuiccPreviewConfig : undefined;
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);

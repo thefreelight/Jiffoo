@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const themesRoot = path.resolve(__dirname, '../../../packages/shop-themes');
+const themesRoot = path.resolve(__dirname, '../../../../packages/shop-themes');
 
 // The registry statically bundles every embedded theme's tokens.css, so a
 // bare element selector there restyles ALL storefronts (observed live:

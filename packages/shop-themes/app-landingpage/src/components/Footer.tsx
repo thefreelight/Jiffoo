@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowRight, Globe2, ShieldCheck } from 'lucide-react';
 import type { FooterProps } from '../types';
 import { themeText } from '../lib/i18n';
+import { LanguageSwitcher } from './LanguageSwitcher';
 
 const defaultEasyEuiccDownloadUrl = 'https://easyeuicc.cc/downloads/EasyEUICC-v1.6.2.apk';
 
@@ -115,24 +116,7 @@ export const Footer = React.memo(function Footer({
 });
 
 function LanguageLinks({ currentLocale }: { currentLocale?: FooterProps['locale'] }) {
-  const locales = [
-    { code: 'en', label: 'EN' },
-    { code: 'zh-Hans', label: '简' },
-    { code: 'zh-Hant', label: '繁' },
-  ] as const;
-  const pathname = typeof window === 'undefined' ? '/' : window.location.pathname;
-  const query = typeof window === 'undefined' ? '' : window.location.search;
-  const pathWithoutLocale = pathname.replace(/^\/(?:en|zh-Hans|zh-Hant)(?=\/|$)/, '') || '/';
-
-  return (
-    <nav aria-label="Language" className="flex items-center gap-1 text-xs font-black text-[var(--esim-ink-soft)]">
-      {locales.map((item) => (
-        <a key={item.code} href={`/${item.code}${pathWithoutLocale === '/' ? '' : pathWithoutLocale}${query}`} aria-current={item.code === currentLocale ? 'page' : undefined} className={item.code === currentLocale ? 'text-[var(--esim-primary)]' : 'hover:text-[var(--esim-primary)]'}>
-          {item.label}
-        </a>
-      ))}
-    </nav>
-  );
+  return <LanguageSwitcher currentLocale={currentLocale} variant="inline" />;
 }
 
 function FooterLinks({ title, links }: { title: string; links: Array<[string, () => void]> }) {

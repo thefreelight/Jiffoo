@@ -13,7 +13,28 @@
  * - en: English (default)
  * - zh-Hans: Simplified Chinese
  */
+/**
+ * Supported locale codes
+ * - en: English (default)
+ * - zh-Hans: Simplified Chinese
+ * - zh-Hant: Traditional Chinese
+ *
+ * This is the fully-translated core locale set. Storefronts can expose
+ * more languages through ROUTE_LOCALES (below) and their store context's
+ * supportedLocales; themes translate what they ship and fall back to
+ * English for missing keys.
+ */
 export const LOCALES = ['en', 'zh-Hans', 'zh-Hant'] as const;
+
+/**
+ * Routing superset for storefront locale prefixes. Includes the fully
+ * translated core locales plus storefront languages whose translations
+ * live in individual themes (e.g. app-landingpage ships es/fr/de/ja
+ * landing copy). Plain strings on purpose: it must stay decoupled from
+ * the shared Locale union so theme packages are not forced to translate
+ * every language.
+ */
+export const ROUTE_LOCALES: readonly string[] = ['en', 'zh-Hans', 'zh-Hant', 'es', 'fr', 'de', 'ja'];
 
 /**
  * Locale type derived from LOCALES constant
@@ -41,7 +62,7 @@ export const LOCALE_CONFIG: Record<Locale, { name: string; nativeName: string; d
   },
   'zh-Hant': {
     name: 'Traditional Chinese',
-    nativeName: 'Traditional Chinese',
+    nativeName: '繁體中文',
     dir: 'ltr',
   },
 };

@@ -24,6 +24,7 @@ export type { OrderStatus, PaymentStatus, Order, OrderItem, OrderAddress } from 
 
 // Theme types
 export type {
+  CoreLocale,
   ThemeI18nProps,
   ThemeConfig,
   ThemePackage,
