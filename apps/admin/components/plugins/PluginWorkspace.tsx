@@ -1501,6 +1501,21 @@ export function PluginWorkspace({ slug }: { slug: string }) {
     );
   }
 
+  // The native affiliate adapter serves live partners/commissions/attributions
+  // from native_affiliate_* tables through its own admin overview endpoint, so
+  // the affiliate workspace renders that data view before the generic
+  // config-driven workspace (the generic detail endpoint is still used on
+  // platform deployments where the overview route does not exist).
+  if (slug === 'affiliate' && !isLoading && affiliateOverviewQuery.isSuccess) {
+    return (
+      <div className="min-h-screen w-full bg-[#f8fafc]">
+        <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-8 lg:px-10">
+          <AffiliateNativeWorkspace data={affiliateOverviewQuery.data} />
+        </div>
+      </div>
+    );
+  }
+
   if (error || !data) {
     // The RemoteRadar jobs administration reads live connector/source data
     // through the dedicated Core admin proxy, so it does not depend on the
@@ -1513,18 +1528,6 @@ export function PluginWorkspace({ slug }: { slug: string }) {
         <div className="min-h-screen w-full bg-[#f8fafc]">
           <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-8 lg:px-10">
             <RemoteRadarJobsNativeWorkspace installationId="default" />
-          </div>
-        </div>
-      );
-    }
-    // Same pattern for the native affiliate adapter: its overview endpoint is
-    // served by the Cloudflare-native core from native_affiliate_* tables,
-    // while the generic plugin-detail endpoint is not implemented natively.
-    if (slug === 'affiliate' && affiliateOverviewQuery.isSuccess) {
-      return (
-        <div className="min-h-screen w-full bg-[#f8fafc]">
-          <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-8 lg:px-10">
-            <AffiliateNativeWorkspace data={affiliateOverviewQuery.data} />
           </div>
         </div>
       );
