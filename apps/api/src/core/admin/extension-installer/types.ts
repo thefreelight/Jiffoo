@@ -102,7 +102,6 @@ export interface InstalledPlugin {
   /** Trust level assigned at install time (builtin | official | third-party) */
   trustLevel?: PluginTrustLevel;
   entryModule?: string;        // For internal-fastify, e.g. 'server/index.js'
-  externalBaseUrl?: string;    // For external-http
   source: ExtensionSource;
   fsPath: string;              // extensions/plugins/{slug}
   permissions?: string[];
@@ -240,7 +239,7 @@ export type PluginManifest = SharedPluginManifest;
 /** Unified Extension Installer Interface */
 export interface IExtensionInstaller {
   /** Install extension from ZIP */
-  installFromZip(kind: ExtensionKind, zipStream: Readable, options?: { source?: string }): Promise<InstallResult>;
+  installFromZip(kind: ExtensionKind, zipStream: Readable, options?: { source?: string; confirmUnsigned?: boolean; actorUserId?: string }): Promise<InstallResult>;
   /** Uninstall extension */
   uninstall(kind: ExtensionKind, slug: string): Promise<UninstallResult>;
   /** List installed extensions */
@@ -259,7 +258,7 @@ export interface IThemeInstaller {
 
 /** Plugin Installer Interface */
 export interface IPluginInstaller {
-  install(zipStream: Readable, options?: { source?: string }): Promise<InstalledPlugin>;
+  install(zipStream: Readable, options?: { source?: string; confirmUnsigned?: boolean; actorUserId?: string }): Promise<InstalledPlugin>;
   uninstall(slug: string): Promise<void>;
   list(): Promise<InstalledPlugin[]>;
   get(slug: string): Promise<InstalledPlugin | null>;

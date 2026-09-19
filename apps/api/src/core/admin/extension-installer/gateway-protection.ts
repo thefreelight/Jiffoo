@@ -2,7 +2,7 @@
  * Gateway Protection: Timeout, Response Size Limit, Circuit Breaker, Rate Limiting
  *
  * Tasks 2.4 + 2.5 — implements protective measures for the plugin gateway
- * when proxying to external-http plugins.
+ * for isolated in-process plugin runtimes.
  *
  * - Timeout: default 10s, configurable per plugin via install config `timeoutMs`
  * - Response size: 5MB hard limit (content-length check + streaming truncation)
@@ -18,7 +18,7 @@ import type { FastifyReply } from 'fastify';
 // Constants
 // ============================================================================
 
-/** Default request timeout for external-http plugins (10 seconds) */
+/** Default request timeout for plugin gateway requests (10 seconds) */
 export const DEFAULT_GATEWAY_TIMEOUT_MS = 10_000;
 
 /** Maximum response body size (5 MB) */

@@ -44,8 +44,6 @@ import {
 } from './signature-verifier';
 import {
   deriveTrustLevel,
-  checkInstallationAllowed,
-  INTERNAL_PLUGIN_ENFORCEMENT_VERSION,
 } from './trust-level';
 import {
   executeLifecycleHook,
@@ -104,7 +102,7 @@ export class PluginFsInstaller implements IPluginInstaller {
    * 6. Create/update database records (PluginInstall + default instance)
    * 7. Write local metadata file
    */
-  async install(zipStream: Readable, options?: { source?: string }): Promise<InstalledPlugin> {
+  async install(zipStream: Readable, options?: { source?: string; confirmUnsigned?: boolean; actorUserId?: string }): Promise<InstalledPlugin> {
     let tempDir: string | null = null;
     let targetDir: string | null = null;
     let backupDir: string | null = null;
@@ -138,9 +136,8 @@ export class PluginFsInstaller implements IPluginInstaller {
         version: existingByHash.version,
         description: existingByHash.description || '',
         category: existingByHash.category || 'general',
-        runtimeType: existingByHash.runtimeType as 'internal-fastify' | 'external-http',
+        runtimeType: 'internal-fastify',
         entryModule: existingByHash.entryModule || undefined,
-        externalBaseUrl: existingByHash.externalBaseUrl || undefined,
         source: 'local-zip',
         fsPath: existingDir,
         permissions: parseJsonArray(existingByHash.permissions),
@@ -188,17 +185,34 @@ export class PluginFsInstaller implements IPluginInstaller {
       // installation is allowed under the two-tier trust model.
       const trustLevel = deriveTrustLevel(
         options?.source || 'local-zip',
-        manifest.runtimeType,
         signatureResult,
         manifest.trustLevel,
       );
 
-      const enforcementError = checkInstallationAllowed(manifest.runtimeType, trustLevel);
-      if (enforcementError) {
-        throw new Error(
-          `[${enforcementError.code}] ${enforcementError.message} ` +
-          `(enforcement version: v${INTERNAL_PLUGIN_ENFORCEMENT_VERSION})`
-        );
+      if (trustLevel === 'unsigned') {
+        if (!options?.confirmUnsigned || !options.actorUserId) {
+          const error: any = new Error('Unsigned packages require explicit merchant confirmation');
+          error.statusCode = 400;
+          error.code = 'UNSIGNED_CONFIRMATION_REQUIRED';
+          throw error;
+        }
+        const actor = await prisma.user.findUnique({
+          where: { id: options.actorUserId },
+          select: { id: true, email: true, username: true },
+        });
+        if (!actor) throw new Error('Unsigned package confirmation actor was not found');
+        await prisma.adminStaffAuditLog.create({
+          data: {
+            staffUserId: actor.id,
+            staffEmail: actor.email,
+            staffUsername: actor.username,
+            actorUserId: actor.id,
+            actorEmail: actor.email,
+            actorUsername: actor.username,
+            action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED',
+            metadata: { slug: manifest.slug, version: manifest.version, zipHash, source: options.source || 'local-zip' },
+          },
+        });
       }
 
       // 6. Determine target directory
@@ -256,7 +270,6 @@ export class PluginFsInstaller implements IPluginInstaller {
               category: manifest.category,
               runtimeType: manifest.runtimeType,
               entryModule: manifest.entryModule,
-              externalBaseUrl: manifest.externalBaseUrl,
               zipHash,
               manifestJson: manifest,
               permissions: manifest.permissions ?? null,
@@ -332,7 +345,6 @@ export class PluginFsInstaller implements IPluginInstaller {
             runtimeType: manifest.runtimeType,
             trustLevel: trustLevel,
             entryModule: manifest.entryModule,
-            externalBaseUrl: manifest.externalBaseUrl,
             source: 'local-zip',
             fsPath: targetDir,
             permissions: manifest.permissions,
@@ -383,7 +395,6 @@ export class PluginFsInstaller implements IPluginInstaller {
                 category: manifest.category,
                 runtimeType: manifest.runtimeType,
                 entryModule: manifest.entryModule,
-                externalBaseUrl: manifest.externalBaseUrl,
                 source: 'local-zip',
                 installPath: `extensions/plugins/${manifest.slug}`,
                 zipHash,
@@ -489,7 +500,6 @@ export class PluginFsInstaller implements IPluginInstaller {
             runtimeType: manifest.runtimeType,
             trustLevel: trustLevel,
             entryModule: manifest.entryModule,
-            externalBaseUrl: manifest.externalBaseUrl,
             source: 'local-zip',
             fsPath: targetDir,
             permissions: manifest.permissions,
@@ -639,7 +649,6 @@ export class PluginFsInstaller implements IPluginInstaller {
         category: manifest.category || 'general',
         runtimeType: manifest.runtimeType || 'internal-fastify',
         entryModule: manifest.entryModule,
-        externalBaseUrl: manifest.externalBaseUrl,
         source: 'local-zip',
         fsPath: targetDir,
         permissions: manifest.permissions,

@@ -53,7 +53,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
    * 2. Read and validate manifest - theme.json / theme-app.json / manifest.json
    * 3. Save metadata - .installed.json
    */
-  async installFromZip(kind: ExtensionKind, zipStream: Readable, options?: { source?: string }): Promise<InstallResult> {
+  async installFromZip(kind: ExtensionKind, zipStream: Readable, options?: { source?: string; confirmUnsigned?: boolean; actorUserId?: string }): Promise<InstallResult> {
     switch (kind) {
       case 'theme-shop': {
         const theme = await themeInstaller.install('shop', zipStream);
@@ -163,9 +163,8 @@ export class ExtensionInstaller implements IExtensionInstaller {
           version: pkg.version,
           description: pkg.description || '',
           category: pkg.category || 'general',
-          runtimeType: pkg.runtimeType as 'internal-fastify' | 'external-http',
+          runtimeType: 'internal-fastify',
           entryModule: pkg.entryModule || undefined,
-          externalBaseUrl: pkg.externalBaseUrl || undefined,
           source: (pkg.source === 'builtin' || pkg.source === 'local-zip' || pkg.source === 'official-market' 
             ? pkg.source 
             : 'local-zip') as ExtensionSource, // Map DB source to ExtensionSource
@@ -219,9 +218,8 @@ export class ExtensionInstaller implements IExtensionInstaller {
           version: pkg.version,
           description: pkg.description || '',
           category: pkg.category || 'general',
-          runtimeType: pkg.runtimeType as 'internal-fastify' | 'external-http',
+          runtimeType: 'internal-fastify',
           entryModule: pkg.entryModule || undefined,
-          externalBaseUrl: pkg.externalBaseUrl || undefined,
           source: (pkg.source === 'builtin' || pkg.source === 'local-zip' || pkg.source === 'official-market' 
             ? pkg.source 
             : 'local-zip') as ExtensionSource, // Map DB source to ExtensionSource

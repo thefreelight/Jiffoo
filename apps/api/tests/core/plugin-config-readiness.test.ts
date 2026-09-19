@@ -8,8 +8,10 @@ function createManifestWithSchema(configSchema: Record<string, unknown>): string
     name: 'Stripe',
     version: '1.0.0',
     description: 'Stripe payment plugin',
-    runtimeType: 'external-http',
-    externalBaseUrl: 'http://127.0.0.1:4211',
+    runtimeType: 'internal-fastify',
+    hostProtocol: 'internal-fastify-v1',
+    trustLevel: 'unsigned',
+    entryModule: 'dist/index.js',
     permissions: [],
     configSchema,
   });
@@ -23,8 +25,10 @@ describe('Plugin Config Readiness', () => {
       name: 'Simple',
       version: '1.0.0',
       description: 'No config plugin',
-      runtimeType: 'external-http',
-      externalBaseUrl: 'http://127.0.0.1:4211',
+      runtimeType: 'internal-fastify',
+      hostProtocol: 'internal-fastify-v1',
+      trustLevel: 'unsigned',
+      entryModule: 'dist/index.js',
       permissions: [],
     });
 

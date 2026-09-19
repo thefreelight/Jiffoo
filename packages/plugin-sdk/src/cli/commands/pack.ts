@@ -50,7 +50,6 @@ export async function packCommand(options: PackOptions) {
 
   try {
     const hasDist = await fs.pathExists(distDir);
-    const runtimeType = manifest.runtimeType as string | undefined;
     let codePathLabel = 'dist/';
 
     const tempDir = path.join(cwd, '.pack-temp');
@@ -67,9 +66,6 @@ export async function packCommand(options: PackOptions) {
     } else if (options.includeSource) {
       await fs.copy(path.join(cwd, 'src'), path.join(tempDir, 'src'));
       codePathLabel = 'src/';
-    } else if (runtimeType === 'external-http') {
-      // external-http plugins can be metadata-only for installation
-      codePathLabel = '(none, external-http metadata-only)';
     } else {
       spinner.fail(chalk.red('No dist directory found. Run "npm run build" first.'));
       await fs.remove(tempDir);

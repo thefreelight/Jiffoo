@@ -146,7 +146,7 @@ export type NextFunction = (error?: any) => void;
 /**
  * Plugin configuration for definePlugin()
  */
-export interface PluginConfig extends Omit<PluginManifest, 'description'> {
+export interface PluginConfig extends Omit<PluginManifest, 'description' | 'runtimeType'> {
   description?: string;
   // Lifecycle hooks
   onInstall?: (context: PluginContext) => Promise<void>;

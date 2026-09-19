@@ -149,7 +149,6 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    *
    * Makes plugins usable immediately after ZIP installation without restarting the main API server.
    * - internal-fastify: isolated Fastify instance + inject forwarding
-   * - external-http: proxy forwarding to externalBaseUrl
    *
    * This gateway is intentionally NOT admin-protected because it may be called by Shop/Admin runtime.
    * Individual plugins should implement their own auth as needed.
@@ -663,7 +662,14 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
 
       // Install extension
       const { stream: limitedStream, getTotalBytes } = enforceZipSizeLimit(data.file as Readable, kind);
-      const result = await extensionInstaller.installFromZip(kind, limitedStream);
+      const confirmationField = data.fields?.confirmUnsigned;
+      const confirmUnsigned = !Array.isArray(confirmationField)
+        && confirmationField?.type === 'field'
+        && confirmationField.value === 'true';
+      const result = await extensionInstaller.installFromZip(kind, limitedStream, {
+        confirmUnsigned,
+        actorUserId: request.user!.id,
+      });
 
       // Plugins: ensure default instance exists
       if (kind === 'plugin') {
