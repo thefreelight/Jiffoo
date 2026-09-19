@@ -16,6 +16,10 @@ import type { HomePageProps } from 'shared/src/types/theme';
 import { displayProductTitle, getBokmooProducts, resolveBokmooMediaUrl } from '../lib/api';
 import { isExternalHref, resolveBokmooSiteConfig } from '../site';
 
+type HeroPillarProps = {
+  className: string;
+};
+
 type HomeProduct = {
   id: string;
   name: string;
