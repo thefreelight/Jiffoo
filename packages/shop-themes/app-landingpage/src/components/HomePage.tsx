@@ -29,9 +29,10 @@ import type { HomePageProps } from '../types';
 import { themeText } from '../lib/i18n';
 
 const popularSearches = ['Japan', 'Europe', 'South Korea', 'United States', 'Thailand'];
-const defaultEasyEuiccDownloadUrl = 'https://easyeuicc.cc/downloads/EasyEUICC-v1.6.2.apk';
+const defaultEasyEuiccDownloadUrl = 'https://gitea.angry.im/PeterCxy/OpenEUICC/releases/download/unpriv-v1.7.2/app-unpriv-release.apk';
 const defaultEasyEuiccQrUrl = '/easyeuicc-download-qr.png';
 const defaultEasyEuiccScreenshotUrl = '/easyeuicc-real-empty.png';
+const DEFAULT_EASYEUICC_TARGET_SDK = '37';
 
 export const HomePage = React.memo(function HomePage({ config, onNavigate, locale, t }: HomePageProps) {
   const brandName = config?.brand?.name?.trim() || 'EASYEUICC';
@@ -57,10 +58,11 @@ export const HomePage = React.memo(function HomePage({ config, onNavigate, local
         }
         primaryLabel={appSite?.primaryCtaLabel && appSite.primaryCtaLabel !== 'Download APK' ? appSite.primaryCtaLabel : themeText(t, locale, 'common.downloadApk', 'Download APK')}
         downloadUrl={appSite?.androidDownloadUrl || defaultEasyEuiccDownloadUrl}
-        appVersion={appSite?.appVersion || 'v1.6.2-unpriv'}
+        appVersion={appSite?.appVersion || 'v1.7.2-unpriv'}
         checksum={appSite?.downloadChecksum}
         qrUrl={appSite?.downloadQrUrl || defaultEasyEuiccQrUrl}
         screenshotUrl={appSite?.appScreenshotUrl || defaultEasyEuiccScreenshotUrl}
+        targetSdk={appSite?.androidTargetSdk || DEFAULT_EASYEUICC_TARGET_SDK}
         locale={locale}
         t={t}
       />
@@ -92,6 +94,7 @@ function AppDownloadHome({
   checksum,
   qrUrl,
   screenshotUrl,
+  targetSdk,
   locale,
   t,
 }: {
@@ -104,13 +107,14 @@ function AppDownloadHome({
   checksum?: string;
   qrUrl?: string;
   screenshotUrl: string;
+  targetSdk: string;
   locale?: HomePageProps['locale'];
   t?: HomePageProps['t'];
 }) {
   const localEasyEuiccQrUrl = '/extensions/themes/shop/app-landingpage/assets/app/easyeuicc-download-qr.png';
   const qrImageUrl =
     qrUrl ||
-    (downloadUrl.includes('easyeuicc.cc/downloads/EasyEUICC-v1.6.2.apk')
+    (downloadUrl.includes('easyeuicc.cc/downloads/')
       ? localEasyEuiccQrUrl
       : `https://quickchart.io/qr?size=180&margin=1&text=${encodeURIComponent(downloadUrl)}`);
   const shortChecksum = checksum ? `${checksum.slice(0, 14)}...${checksum.slice(-10)}` : 'SHA-256 verified package';
@@ -233,7 +237,7 @@ function AppDownloadHome({
               <div className="grid gap-3 text-sm font-semibold text-white/74 md:grid-cols-3">
                 <span className="rounded-[18px] bg-white/8 p-4">{themeText(t, locale, 'appDownload.security.version', 'Version: {version}', { version: appVersion })}</span>
                 <span className="rounded-[18px] bg-white/8 p-4">{themeText(t, locale, 'appDownload.security.package', 'Package: im.angry.easyeuicc')}</span>
-                <span className="rounded-[18px] bg-white/8 p-4">{themeText(t, locale, 'appDownload.security.targetSdk', 'Target SDK: 35')}</span>
+                <span className="rounded-[18px] bg-white/8 p-4">{themeText(t, locale, 'appDownload.security.targetSdk', 'Target SDK: {sdk}', { sdk: targetSdk })}</span>
               </div>
             </div>
           </section>

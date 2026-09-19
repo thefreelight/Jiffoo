@@ -21,7 +21,7 @@ const appDownloadNavItems = [
   { label: 'Security', path: '#security' },
   { label: 'Download', path: '#download' },
 ];
-const defaultEasyEuiccDownloadUrl = 'https://easyeuicc.cc/downloads/EasyEUICC-v1.6.2.apk';
+const defaultEasyEuiccDownloadUrl = 'https://gitea.angry.im/PeterCxy/OpenEUICC/releases/download/unpriv-v1.7.2/app-unpriv-release.apk';
 
 export const Header = React.memo(function Header({
   isAuthenticated,

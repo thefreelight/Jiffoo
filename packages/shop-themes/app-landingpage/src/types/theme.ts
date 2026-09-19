@@ -74,6 +74,7 @@ export interface ThemeConfig {
     supportEmail?: string;
     appVersion?: string;
     androidDownloadUrl?: string;
+    androidTargetSdk?: string;
     downloadChecksum?: string;
     downloadQrUrl?: string;
     appScreenshotUrl?: string;
