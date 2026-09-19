@@ -14082,6 +14082,9 @@
           ),
           children: normalizedProducts.map((product) => {
             const profile = getBokmooTravelProfile(product);
+            const variantSalePrices = (Array.isArray(product.variants) ? product.variants : []).map((variant) => Number(variant.salePrice ?? variant.price ?? 0)).filter((price) => price > 0);
+            const listPrice = Number(product.price || 0);
+            const displayPrice = variantSalePrices.length > 0 ? Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices) : listPrice;
             return /* @__PURE__ */ jsxs(
               "article",
               {
@@ -14137,7 +14140,7 @@
                     /* @__PURE__ */ jsx("p", { className: "text-[10px] tracking-[0.18em] text-[var(--bokmoo-copy-soft)]", children: "Starting at" }),
                     /* @__PURE__ */ jsxs("p", { className: "mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]", children: [
                       "$",
-                      Number(product.price || 0).toFixed(2)
+                      Number(Number.isFinite(displayPrice) ? displayPrice : 0).toFixed(2)
                     ] }),
                     /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs text-[var(--bokmoo-copy)]", children: profile.planBadge }),
                     /* @__PURE__ */ jsx(

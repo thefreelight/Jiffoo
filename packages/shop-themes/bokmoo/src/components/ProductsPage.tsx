@@ -285,6 +285,16 @@ export const ProductsPage = React.memo(function ProductsPage({
             >
               {normalizedProducts.map((product) => {
                 const profile = getBokmooTravelProfile(product);
+                // The core's product-level price is the odoo list price; the
+                // amount checkout bills is the variant sale price. Show the
+                // cheapest sellable figure so the card matches the cart.
+                const variantSalePrices = (Array.isArray(product.variants) ? product.variants : [])
+                  .map((variant: any) => Number(variant.salePrice ?? variant.price ?? 0))
+                  .filter((price: number) => price > 0);
+                const listPrice = Number(product.price || 0);
+                const displayPrice = variantSalePrices.length > 0
+                  ? Math.min(listPrice > 0 ? listPrice : Number.POSITIVE_INFINITY, ...variantSalePrices)
+                  : listPrice;
 
                 return (
                   <article
@@ -351,7 +361,7 @@ export const ProductsPage = React.memo(function ProductsPage({
                           Starting at
                         </p>
                         <p className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-[var(--bokmoo-ink)]">
-                          ${Number(product.price || 0).toFixed(2)}
+                          ${Number(Number.isFinite(displayPrice) ? displayPrice : 0).toFixed(2)}
                         </p>
                         <p className="mt-2 text-xs text-[var(--bokmoo-copy)]">{profile.planBadge}</p>
                         <button
