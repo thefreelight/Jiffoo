@@ -7,6 +7,7 @@ export type NativeCatalogItem = {
   providerType?: 'platform' | 'developer' | 'vendor' | 'merchant';
   description?: string;
   author?: string;
+  category?: string;
   deliveryMode?: 'package-managed' | 'service-managed';
   paymentMode?: 'platform_collect' | 'merchant_collect';
   settlementTargetType?: 'platform' | 'developer' | 'vendor' | 'merchant' | 'none';
@@ -25,6 +26,7 @@ export type NativeCatalogItem = {
 
 function category(item: NativeCatalogItem): string {
   if (item.kind === 'theme') return 'storefront';
+  if (item.category) return item.category;
   if (/stripe|payment|pay/i.test(item.slug)) return 'payment';
   if (/mail|smtp|email/i.test(item.slug)) return 'email';
   if (/ship/i.test(item.slug)) return 'shipping';

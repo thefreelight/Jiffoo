@@ -12,6 +12,15 @@ import { Input } from '@/components/ui/input';
 import { ExtensionAvatar, OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import type { ManagedPackageDefinition } from '@/lib/managed-mode';
 
+// Canonical display order; must stay in sync with the official manifest category
+// enum in jiffoo-extensions-official scripts/verify-plugin-zip.js.
+const CATEGORY_ORDER = ['marketing', 'seo', 'ai', 'email', 'analytics', 'payment', 'integration', 'content', 'operations', 'security', 'shipping', 'social', 'theme', 'other'];
+
+function categoryRank(value: string): number {
+  const index = CATEGORY_ORDER.indexOf(value);
+  return index === -1 ? CATEGORY_ORDER.length : index;
+}
+
 interface OfficialPluginsCatalogProps {
   locale: string;
   items: OfficialCatalogItem[];
@@ -87,7 +96,10 @@ export function OfficialPluginsCatalog({
   }, [items, managedPackage]);
 
   const categories = useMemo(
-    () => Array.from(new Set(visibleItems.map((item) => item.category).filter(Boolean))).sort(),
+    () =>
+      Array.from(new Set(visibleItems.map((item) => item.category).filter(Boolean) as string[])).sort(
+        (a, b) => categoryRank(a) - categoryRank(b) || a.localeCompare(b)
+      ),
     [visibleItems]
   );
 
@@ -171,7 +183,7 @@ export function OfficialPluginsCatalog({
                 onClick={() => setCategory(entry)}
                 className={`rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${category === entry ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white text-slate-600 hover:border-blue-200 hover:text-blue-700'}`}
               >
-                {entry === 'all' ? getText('common.labels.all', 'All') : entry}
+                {entry === 'all' ? getText('common.labels.all', 'All') : getText(`merchant.extensions.category.${entry}`, entry)}
               </button>
             ))}
             <span className="ml-auto hidden rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 lg:inline-flex">Featured <span className="ml-2 text-slate-400">⌄</span></span>
@@ -221,7 +233,7 @@ export function OfficialPluginsCatalog({
                       <OfficialBadge compact />
                     </div>
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{item.description}</p>
-                    <p className="mt-2 text-xs text-slate-500">v{item.version} <span className="mx-1">•</span> {item.category} <span className="mx-1">•</span> {item.downloads ?? 0} installs</p>
+                    <p className="mt-2 text-xs text-slate-500">v{item.version} <span className="mx-1">•</span> {item.category ? getText(`merchant.extensions.category.${item.category}`, item.category) : ''} <span className="mx-1">•</span> {item.downloads ?? 0} installs</p>
                   </div>
                 </div>
                 <div className="flex shrink-0 gap-2">

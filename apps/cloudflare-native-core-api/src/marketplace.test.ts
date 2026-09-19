@@ -41,4 +41,24 @@ describe('buildNativeCatalogResponse', () => {
       category: 'storefront',
     });
   });
+
+  it('prefers the platform-declared category over the slug heuristic', () => {
+    const result = buildNativeCatalogResponse([
+      {
+        slug: 'hermes-bridge',
+        kind: 'plugin',
+        category: 'integration',
+        installable: true,
+      },
+      {
+        slug: 'paywall-tunables',
+        kind: 'plugin',
+        category: 'content',
+        installable: true,
+      },
+    ], new Map());
+
+    expect(result.items[0]).toMatchObject({ slug: 'hermes-bridge', category: 'integration' });
+    expect(result.items[1]).toMatchObject({ slug: 'paywall-tunables', category: 'content' });
+  });
 });
