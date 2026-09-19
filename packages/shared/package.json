@@ -9,6 +9,14 @@
       "types": "./dist/shared/index.d.ts",
       "default": "./dist/shared/index.js"
     },
+    "./src": {
+      "types": "./dist/shared/src/index.d.ts",
+      "default": "./dist/shared/src/index.js"
+    },
+    "./src/*": {
+      "types": "./dist/shared/src/*.d.ts",
+      "default": "./dist/shared/src/*.js"
+    },
     "./logger": {
       "types": "./dist/shared/src/logger/index.d.ts",
       "default": "./dist/shared/src/logger/index.js"

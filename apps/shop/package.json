@@ -19,7 +19,9 @@
     "workers:build:easyeuicc": "rm -rf .next .open-next && NEXT_PUBLIC_API_URL=https://api.easyeuicc.cc/api API_SERVICE_URL=https://api.easyeuicc.cc SERVER_STORE_CONTEXT_TIMEOUT_MS=2000 THEME_APP_PROXY_DISABLED=1 THEME_APP_PROXY_TIMEOUT_MS=1000 opennextjs-cloudflare build --config wrangler.easyeuicc.toml --dangerouslyUseUnsupportedNextVersion",
     "workers:deploy:easyeuicc": "pnpm workers:build:easyeuicc && opennextjs-cloudflare deploy --config wrangler.easyeuicc.toml",
     "workers:build:navtoai": "rm -rf .next .open-next && NEXT_PUBLIC_API_URL=https://navapi.navtoai.com/api API_SERVICE_URL=https://navapi.navtoai.com SERVER_STORE_CONTEXT_TIMEOUT_MS=2000 THEME_APP_PROXY_DISABLED=1 THEME_APP_PROXY_TIMEOUT_MS=1000 opennextjs-cloudflare build --config wrangler.navtoai.toml --dangerouslyUseUnsupportedNextVersion",
-    "workers:deploy:navtoai": "pnpm workers:build:navtoai && opennextjs-cloudflare deploy --config wrangler.navtoai.toml"
+    "workers:deploy:navtoai": "pnpm workers:build:navtoai && opennextjs-cloudflare deploy --config wrangler.navtoai.toml",
+    "workers:build:demo": "rm -rf .next .open-next && NEXT_PUBLIC_API_URL=/api API_SERVICE_URL=https://demo-api.jiffoo.com SERVER_STORE_CONTEXT_TIMEOUT_MS=2000 THEME_APP_PROXY_DISABLED=1 THEME_APP_PROXY_TIMEOUT_MS=1000 opennextjs-cloudflare build --config wrangler.demo.toml",
+    "workers:deploy:demo": "pnpm workers:build:demo && opennextjs-cloudflare deploy --config wrangler.demo.toml"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "7.2.0",
