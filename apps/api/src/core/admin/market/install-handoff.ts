@@ -151,7 +151,6 @@ async function updateInstalledMetaSource(
       category: typeof manifest.category === 'string' ? manifest.category : 'general',
       runtimeType: typeof manifest.runtimeType === 'string' ? manifest.runtimeType : 'internal-fastify',
       entryModule: typeof manifest.entryModule === 'string' ? manifest.entryModule : undefined,
-      externalBaseUrl: typeof manifest.externalBaseUrl === 'string' ? manifest.externalBaseUrl : undefined,
       source: 'official-market',
       fsPath,
       permissions: Array.isArray(manifest.permissions) ? manifest.permissions : [],

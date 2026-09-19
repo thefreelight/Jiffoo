@@ -36,6 +36,8 @@ module.exports.__lifecycle_onEnable = async function onEnable(context) {
       description: 'Ensures lifecycle hooks can import plugin entry modules',
       author: 'test-suite',
       runtimeType: 'internal-fastify',
+      hostProtocol: 'internal-fastify-v1',
+      trustLevel: 'unsigned',
       entryModule: 'src/index.js',
       permissions: [],
       lifecycle: {

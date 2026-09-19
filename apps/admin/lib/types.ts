@@ -175,7 +175,7 @@ export interface PluginState {
   configRequired?: boolean
   configReady?: boolean
   missingConfigFields?: string[]
-  runtimeType?: 'internal-fastify' | 'external-http' | 'cloudflare-native'
+  runtimeType?: 'internal-fastify'
   enabledAt?: string
   disabledAt?: string
 }
@@ -434,13 +434,11 @@ export interface HealthSummaryResponse {
 }
 
 // Error tracking types
-// Values mirror the error-tracking API contract (both Node and Cloudflare
-// native persist lowercase severities); display sites uppercase as needed.
 export enum ErrorSeverity {
-  CRITICAL = 'critical',
-  ERROR = 'error',
-  WARNING = 'warning',
-  INFO = 'info'
+  CRITICAL = 'CRITICAL',
+  ERROR = 'ERROR',
+  WARNING = 'WARNING',
+  INFO = 'INFO'
 }
 
 export interface ErrorLog {

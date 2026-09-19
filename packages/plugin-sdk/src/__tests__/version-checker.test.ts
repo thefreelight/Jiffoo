@@ -25,8 +25,10 @@ describe('Version Checker', () => {
     version: '1.0.0',
     description: 'Test plugin for version compatibility',
     author: 'Test Author',
-    runtimeType: 'external-http',
-    externalBaseUrl: 'http://localhost:3000',
+    runtimeType: 'internal-fastify',
+    hostProtocol: 'internal-fastify-v1',
+    trustLevel: 'unsigned',
+    entryModule: 'dist/index.js',
     permissions: []
   };
 

@@ -18,13 +18,13 @@ import {
   SDK_VERSION,
   PLATFORM_COMPATIBILITY,
 } from '../index';
-import type { PluginConfig, PluginManifest } from '../types';
+import type { HookEvent, PluginConfig, PluginManifest, PluginRoute } from '../types';
 
 // Arbitrary generators for plugin configuration
 const pluginSlugArb = fc.stringMatching(/^[a-z][a-z0-9-]{0,30}[a-z0-9]$/);
-const pluginNameArb = fc.string({ minLength: 1, maxLength: 100 });
+const pluginNameArb = fc.string({ minLength: 1, maxLength: 100 }).filter((name) => name.trim().length > 0);
 const pluginVersionArb = fc.stringMatching(/^\d+\.\d+\.\d+$/);
-const pluginCategoryArb = fc.constantFrom(
+const pluginCategoryArb: fc.Arbitrary<NonNullable<PluginManifest['category']>> = fc.constantFrom(
   'payment',
   'email',
   'integration',
@@ -37,7 +37,7 @@ const pluginCategoryArb = fc.constantFrom(
   'security',
   'other'
 );
-const pluginCapabilityArb = fc.constantFrom(
+const pluginCapabilityArb: fc.Arbitrary<NonNullable<PluginManifest['capabilities']>[number]> = fc.constantFrom(
   'webhook.receive',
   'webhook.send',
   'api.read',
@@ -69,8 +69,9 @@ const pluginConfigArb: fc.Arbitrary<PluginConfig> = fc.record({
   version: pluginVersionArb,
   description: fc.string({ minLength: 1, maxLength: 500 }),
   author: fc.string({ minLength: 1, maxLength: 100 }),
-  runtimeType: fc.constant('external-http'),
-  externalBaseUrl: fc.webUrl(),
+  hostProtocol: fc.constant('internal-fastify-v1'),
+  trustLevel: fc.constant('unsigned'),
+  entryModule: fc.constant('dist/index.js'),
   permissions: fc.array(fc.string({ minLength: 1, maxLength: 40 }), { maxLength: 5 }),
   category: pluginCategoryArb,
   capabilities: fc.array(pluginCapabilityArb, { minLength: 1, maxLength: 5 }),
@@ -113,11 +114,11 @@ describe('SDK Independence Property Tests', () => {
    */
   it('createRoute produces valid route definition', () => {
     const pathArb = fc.stringMatching(/^\/[a-z0-9/-]*$/);
-    const methodArb = fc.constantFrom('GET', 'POST', 'PUT', 'DELETE', 'PATCH');
+    const methodArb: fc.Arbitrary<PluginRoute['method']> = fc.constantFrom('GET', 'POST', 'PUT', 'DELETE', 'PATCH');
     
     fc.assert(
       fc.property(pathArb, methodArb, (path, method) => {
-        const handler = async () => ({ success: true });
+        const handler = async () => {};
         const route = createRoute(path, handler, { method });
         
         expect(route.path).toBe(path);
@@ -135,13 +136,13 @@ describe('SDK Independence Property Tests', () => {
    * Hooks should be properly registered with event and handler
    */
   it('createHook produces valid hook definition', () => {
-    const eventArb = fc.constantFrom(
+    const eventArb: fc.Arbitrary<HookEvent> = fc.constantFrom(
       'order.created',
       'order.paid',
       'order.shipped',
       'product.created',
       'product.updated',
-      'user.registered'
+      'customer.created'
     );
     
     fc.assert(
@@ -170,8 +171,10 @@ describe('SDK Independence Property Tests', () => {
       version: pluginVersionArb,
       description: fc.string({ maxLength: 500 }),
       author: fc.string({ minLength: 1, maxLength: 100 }),
-      runtimeType: fc.constant('external-http'),
-      externalBaseUrl: fc.webUrl(),
+      runtimeType: fc.constant<'internal-fastify'>('internal-fastify'),
+      hostProtocol: fc.constant('internal-fastify-v1'),
+      trustLevel: fc.constant('unsigned'),
+      entryModule: fc.constant('dist/index.js'),
       permissions: fc.array(fc.string({ minLength: 1, maxLength: 40 }), { maxLength: 5 }),
       category: pluginCategoryArb,
       capabilities: fc.array(pluginCapabilityArb, { minLength: 1, maxLength: 5 }),

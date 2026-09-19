@@ -107,7 +107,7 @@ export const WebhookSubscriptionService = {
    * Manifest shape (subset):
    * ```json
    * {
-   *   "runtimeType": "internal-fastify" | "external-http",
+   *   "runtimeType": "internal-fastify",
    *   "webhooks": {
    *     "url": "https://example.com/webhook",
    *     "events": ["order.created", "product.updated"]
@@ -121,10 +121,8 @@ export const WebhookSubscriptionService = {
       return []; // Nothing to subscribe to
     }
 
-    const deliveryMode: 'internal' | 'external' =
-      manifest.runtimeType === 'external-http' ? 'external' : 'internal';
-
-    const endpointUrl = deliveryMode === 'external' ? webhooksBlock.url : undefined;
+    const deliveryMode: 'internal' = 'internal';
+    const endpointUrl = undefined;
     const secret = webhooksBlock.secret ?? undefined;
 
     const created = [];

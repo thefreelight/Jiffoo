@@ -5,13 +5,11 @@
  *
  * Constraint: Fastify cannot register new plugins after the root instance has booted.
  * Therefore we run internal-fastify plugins in an isolated Fastify instance and forward requests via inject().
- * external-http plugins are forwarded via fetch() to externalBaseUrl.
  *
  * Instance-level features:
  * - Instance selection via ?installation= or ?installationId= query params
  * - Instance-level enable/disable check
  * - Header sanitization and injection (x-plugin-*, x-installation-*, x-user-*, x-platform-*)
- * - SSRF protection for external-http plugins
  * - 30s timeout for all requests
  * - Structured audit logging
  *
@@ -27,21 +25,12 @@ import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest }
 import path from 'path';
 import fs from 'fs/promises';
 import { existsSync } from 'fs';
-import { URL } from 'url';
-import { createHmac, randomUUID, timingSafeEqual } from 'crypto';
+import { randomUUID } from 'crypto';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import type { PluginManifest } from './types';
 import { getPluginDir } from './utils';
 import { loadPluginEntryModule } from './plugin-module-loader';
 import { validatePluginCompatibility, PluginLoaderError } from '@/plugins/loader';
-import {
-  isBreakerAllowed,
-  recordBreakerResult,
-  isRateLimitAllowed,
-  sendGatewayError,
-  getPluginTimeoutMs,
-  MAX_RESPONSE_SIZE_BYTES,
-} from './gateway-protection';
 import {
   clearContractV1EventHandlers,
   dispatchContractV1Event,
@@ -93,20 +82,6 @@ const FORBIDDEN_HEADER_PREFIXES = [
   'x-locale',        // Single header, not a prefix
 ];
 
-/** Private IP ranges (for SSRF protection) */
-const PRIVATE_IP_PATTERNS = [
-  /^127\./,                           // Loopback
-  /^10\./,                            // Class A private
-  /^172\.(1[6-9]|2[0-9]|3[0-1])\./,   // Class B private
-  /^192\.168\./,                      // Class C private
-  /^169\.254\./,                      // Link-local
-  /^0\./,                             // Current network
-  /^localhost$/i,                     // Localhost hostname
-  /^::1$/,                            // IPv6 loopback
-  /^fc00:/i,                          // IPv6 private
-  /^fe80:/i,                          // IPv6 link-local
-];
-
 export type PluginGatewayErrorCode =
   | 'PLUGIN_NOT_FOUND'
   | 'PLUGIN_DISABLED'
@@ -115,9 +90,7 @@ export type PluginGatewayErrorCode =
   | 'PLUGIN_INVALID_MANIFEST'
   | 'PLUGIN_LOAD_FAILED'
   | 'PLUGIN_UPGRADE_RESTART_REQUIRED'
-  | 'PLUGIN_PROXY_FAILED'
   | 'PLUGIN_TIMEOUT'
-  | 'SSRF_BLOCKED'
   | 'INVALID_SLUG'
   | 'INVALID_INSTANCE_KEY';
 
@@ -199,70 +172,6 @@ const internalRuntimes = new Map<string, InternalRuntime>();
  */
 function generateRequestId(): string {
   return randomUUID();
-}
-
-/**
- * Validate URL for SSRF protection
- *
- * Current protections:
- * - Blocks localhost (127.0.0.1, ::1, localhost)
- * - Blocks private IP ranges (10.x, 172.16-31.x, 192.168.x, 169.254.x)
- * - Blocks IPv6 private ranges (fc00::/7, fe80::/10)
- * - Requires HTTPS in production environment
- *
- * Known limitations (documented per Phase C requirements):
- * - Does NOT prevent DNS rebinding attacks (hostname resolves to public IP initially,
- *   then changes to private IP after validation)
- * - Does NOT prevent redirects to internal addresses (e.g., HTTP 301/302 to localhost)
- * - Does NOT prevent IDN homograph attacks (e.g., using Unicode lookalikes)
- * - Does NOT rate-limit external requests (potential for amplification attacks)
- *
- * Future improvements for closed-source/platform version:
- * - Add DNS rebinding protection (resolve hostname, check IP, then connect to IP directly)
- * - Follow redirects manually and validate each redirect target
- * - Implement request rate limiting per plugin
- * - Add allowlist/blocklist for external domains
- * - Consider using a dedicated egress proxy with additional controls
- */
-function validateExternalUrl(urlString: string): void {
-  let url: URL;
-  try {
-    url = new URL(urlString);
-  } catch {
-    throw new PluginGatewayError(
-      'Invalid external URL',
-      'SSRF_BLOCKED',
-      400
-    );
-  }
-
-  const hostname = url.hostname.toLowerCase();
-
-  // In local development, external plugins are often hosted on localhost/private IPs.
-  // Keep strict SSRF blocking by default in production.
-  const allowPrivateInCurrentEnv =
-    process.env.PLUGIN_ALLOW_PRIVATE_EXTERNAL_URLS === 'true' || process.env.NODE_ENV !== 'production';
-
-  if (!allowPrivateInCurrentEnv) {
-    for (const pattern of PRIVATE_IP_PATTERNS) {
-      if (pattern.test(hostname)) {
-        throw new PluginGatewayError(
-          `SSRF blocked: cannot access private/internal address "${hostname}"`,
-          'SSRF_BLOCKED',
-          403
-        );
-      }
-    }
-  }
-
-  // In production, require HTTPS
-  if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:') {
-    throw new PluginGatewayError(
-      'SSRF blocked: external plugins must use HTTPS in production',
-      'SSRF_BLOCKED',
-      403
-    );
-  }
 }
 
 /**
@@ -440,24 +349,11 @@ function injectPlatformHeaders(
  * 4. User-Agent (least reliable)
  * 5. Fallback to 'unknown'
  *
- * CRITICAL: x-caller header from external requests is stripped by sanitizeForwardHeaders.
  * Only platform-inferred caller is injected via injectPlatformHeaders.
  */
 function inferCaller(request: FastifyRequest): CallerType {
   // SECURITY FIX: Do NOT trust inbound x-caller header
   // It is stripped by sanitizeForwardHeaders and only re-injected with platform-inferred value
-  // Internal service calls authenticate with the platform integration token. This
-  // check must run before browser heuristics, otherwise loopback calls inherit
-  // the default shop caller and wallet/email routes reject them.
-  const expected = (process.env.CATALOG_IMPORT_TOKEN || '').trim();
-  const provided = getHeaderValue(request, 'x-platform-integration-token').trim();
-  if (expected && provided) {
-    const expectedBytes = Buffer.from(expected);
-    const providedBytes = Buffer.from(provided);
-    if (expectedBytes.length === providedBytes.length && timingSafeEqual(expectedBytes, providedBytes)) {
-      return 'api-internal';
-    }
-  }
 
   // Fallback 1: Detect from Referer (most reliable for browser requests)
   const refererHeader = request.headers.referer || request.headers.referrer;
@@ -646,33 +542,6 @@ function toForwardUrl(pathPart: string, query: string): string {
   return `${normalized}${query}`;
 }
 
-function normalizeOptionalString(input: unknown): string | null {
-  if (typeof input !== 'string') return null;
-  const trimmed = input.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-function resolveExternalBaseUrl(manifest: PluginManifest, ctx: GatewayContext): string | null {
-  const configured = normalizeOptionalString(ctx.config.externalBaseUrl);
-  if (configured) return configured;
-  return normalizeOptionalString(manifest.externalBaseUrl);
-}
-
-function resolvePlatformSignatureSecret(ctx: GatewayContext): string | null {
-  const configured = normalizeOptionalString(ctx.config.platformSignatureSecret);
-  if (configured) return configured;
-
-  const fromEnv = normalizeOptionalString(process.env.PLUGIN_PLATFORM_SIGNATURE_SECRET);
-  if (fromEnv) return fromEnv;
-
-  return null;
-}
-
-function buildPlatformSignature(secret: string, method: string, path: string, body: string, timestamp: string): string {
-  const payload = `${method.toUpperCase()}.${path}.${body}.${timestamp}`;
-  return createHmac('sha256', secret).update(payload).digest('hex');
-}
-
 /**
  * Ensure internal runtime exists for a specific installation
  * Key is now installationId (not slug) to support multi-instance
@@ -818,149 +687,6 @@ export async function dispatchPluginRuntimeEvent(eventType: string, payload: unk
   }
 
   return delivered;
-}
-
-async function proxyToExternalHttp(
-  slug: string,
-  manifest: PluginManifest,
-  request: FastifyRequest,
-  reply: FastifyReply,
-  forwardPath: string,
-  ctx: GatewayContext,
-  requestId: string,
-  caller: CallerType
-): Promise<void> {
-  const baseUrl = resolveExternalBaseUrl(manifest, ctx);
-  if (!baseUrl) {
-    throw new PluginGatewayError(
-      `Plugin "${slug}" is external-http but missing externalBaseUrl (manifest or instance config)`,
-      'PLUGIN_INVALID_MANIFEST',
-      400
-    );
-  }
-
-  // SSRF validation
-  validateExternalUrl(baseUrl);
-
-  // ── Gateway Protection: Circuit Breaker (Task 2.5) ──
-  if (!isBreakerAllowed(slug)) {
-    sendGatewayError(reply, 503, slug, 'circuit_open', requestId,
-      `Circuit breaker open for plugin "${slug}"`);
-    return;
-  }
-
-  // ── Gateway Protection: Rate Limiting (Task 2.5.3) ──
-  if (!isRateLimitAllowed(slug)) {
-    sendGatewayError(reply, 429, slug, 'rate_limited', requestId,
-      `Rate limit exceeded for plugin "${slug}"`);
-    return;
-  }
-
-  const query = getQueryStringFromRawUrl(request.raw.url);
-  const targetUrl = new URL(toForwardUrl(forwardPath, query), baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`).toString();
-
-  // Sanitize and inject headers
-  let headers = sanitizeForwardHeaders(request.headers as any);
-  headers = injectPlatformHeaders(headers, ctx, requestId, request, caller);
-
-  let body: any = undefined;
-  if (request.method !== 'GET' && request.method !== 'HEAD') {
-    const payload: any = (request as any).body;
-    if (payload === undefined || payload === null) {
-      body = undefined;
-    } else if (Buffer.isBuffer(payload) || typeof payload === 'string') {
-      body = payload;
-    } else {
-      body = JSON.stringify(payload);
-      if (!headers['content-type']) {
-        headers['content-type'] = 'application/json';
-      }
-    }
-  }
-
-  const signatureSecret = resolvePlatformSignatureSecret(ctx);
-  if (signatureSecret) {
-    const timestamp = Math.floor(Date.now() / 1000).toString();
-    const normalizedPath = forwardPath.startsWith('/') ? forwardPath : `/${forwardPath}`;
-    const signatureBody = Buffer.isBuffer(body) ? body.toString('utf-8') : typeof body === 'string' ? body : '';
-    headers['x-platform-timestamp'] = timestamp;
-    headers['x-platform-signature'] = buildPlatformSignature(
-      signatureSecret,
-      request.method,
-      normalizedPath,
-      signatureBody,
-      timestamp
-    );
-  }
-
-  // ── Gateway Protection: Timeout (Task 2.4.1) ──
-  const effectiveTimeoutMs = getPluginTimeoutMs(ctx.config);
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), effectiveTimeoutMs);
-
-  try {
-    // ── Gateway Protection: Response Size Pre-check (Task 2.4.2) ──
-    const contentLength = request.headers['content-length'];
-    if (contentLength && parseInt(contentLength, 10) > MAX_RESPONSE_SIZE_BYTES) {
-      clearTimeout(timeoutId);
-      recordBreakerResult(slug, false);
-      sendGatewayError(reply, 502, slug, 'too_large', requestId,
-        `Response too large for plugin "${slug}" (limit: ${MAX_RESPONSE_SIZE_BYTES} bytes)`);
-      return;
-    }
-
-    const res = await fetch(targetUrl, {
-      method: request.method,
-      headers: headers as any,
-      body,
-      signal: controller.signal,
-    });
-
-    clearTimeout(timeoutId);
-
-    // ── Gateway Protection: Response Size Post-check (Task 2.4.2) ──
-    const resContentLength = res.headers.get('content-length');
-    if (resContentLength && parseInt(resContentLength, 10) > MAX_RESPONSE_SIZE_BYTES) {
-      recordBreakerResult(slug, false);
-      sendGatewayError(reply, 502, slug, 'too_large', requestId,
-        `Upstream response too large for plugin "${slug}" (limit: ${MAX_RESPONSE_SIZE_BYTES} bytes)`);
-      return;
-    }
-
-    const buf = Buffer.from(await res.arrayBuffer());
-
-    // Streaming truncation: check actual buffer size
-    if (buf.length > MAX_RESPONSE_SIZE_BYTES) {
-      recordBreakerResult(slug, false);
-      sendGatewayError(reply, 502, slug, 'too_large', requestId,
-        `Response body exceeded size limit for plugin "${slug}"`);
-      return;
-    }
-
-    // Success — record for circuit breaker
-    recordBreakerResult(slug, true);
-
-    reply.code(res.status);
-    res.headers.forEach((value, key) => {
-      if (key.toLowerCase() === 'transfer-encoding') return;
-      reply.header(key, value);
-    });
-    reply.send(buf);
-  } catch (error: any) {
-    clearTimeout(timeoutId);
-
-    // Record failure for circuit breaker
-    recordBreakerResult(slug, false);
-
-    if (error.name === 'AbortError') {
-      sendGatewayError(reply, 504, slug, 'timeout', requestId,
-        `Plugin "${slug}" request timeout (${effectiveTimeoutMs}ms)`);
-      return;
-    }
-
-    sendGatewayError(reply, 502, slug, 'upstream_error', requestId,
-      `Plugin proxy error for "${slug}": ${error?.message || 'Unknown error'}`);
-  }
 }
 
 async function forwardToInternalFastify(
@@ -1123,23 +849,9 @@ export async function handlePluginGateway(
     // Read manifest
     const manifest = await readPluginManifest(slug);
 
-    if (manifest.runtimeType === 'external-http') {
-      await proxyToExternalHttp(slug, manifest, request, reply, forwardPath, ctx, requestId, caller);
-      statusCode = reply.statusCode;
-      return;
-    }
-
-    if (manifest.runtimeType === 'internal-fastify') {
-      await forwardToInternalFastify(slug, manifest, request, reply, forwardPath, ctx, requestId, caller);
-      statusCode = reply.statusCode;
-      return;
-    }
-
-    throw new PluginGatewayError(
-      `Unknown plugin runtime type: ${(manifest as any).runtimeType}`,
-      'PLUGIN_INVALID_MANIFEST',
-      400
-    );
+    await forwardToInternalFastify(slug, manifest, request, reply, forwardPath, ctx, requestId, caller);
+    statusCode = reply.statusCode;
+    return;
   } catch (error: any) {
     if (error instanceof PluginGatewayError) {
       statusCode = error.statusCode;

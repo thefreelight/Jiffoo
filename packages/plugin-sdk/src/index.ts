@@ -1,7 +1,7 @@
 /**
  * Jiffoo Plugin SDK
  *
- * SDK for building external plugins for the Jiffoo Mall platform.
+ * SDK for building in-process plugins for Jiffoo Core.
  *
  * Features:
  * - HMAC signature verification
@@ -102,10 +102,6 @@ export type { CoreApiClient, CoreApiClientOptions, ApiRequestOptions } from './c
 // Webhook Handler (§4.7)
 export { createWebhookHandler } from './webhook-handler';
 export type { WebhookHandler, WebhookHandlerOptions, WebhookEventHandler } from './webhook-handler';
-
-// Lifecycle Handler (§4.5)
-export { defineLifecycleHooks } from './lifecycle-handler';
-export type { LifecycleHandler, LifecycleHooks } from './lifecycle-handler';
 
 // Database & Storage (sandboxed)
 export { createPluginDatabase, createPluginStorage } from './sandbox';

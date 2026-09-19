@@ -12,8 +12,6 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import path from 'path';
 import { promises as fs } from 'fs';
-import http from 'http';
-import { createHmac } from 'crypto';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
@@ -245,116 +243,5 @@ module.exports = async function plugin(fastify, opts) {
     });
     expect(deleteResp.statusCode).toBe(200);
     expect(deleteResp.json().data.deleted).toBe(true);
-  });
-});
-
-describe('Plugin Runtime - External HTTP config override and signature', () => {
-  let app: FastifyInstance;
-  const prisma = getTestPrisma();
-  const slug = `extplug${Date.now().toString(36).slice(-6)}`.slice(0, 20);
-  const pluginDir = getPluginDir(slug);
-  const signatureSecret = 'itest-signature-secret';
-
-  let server: http.Server;
-  let baseUrl = '';
-
-  beforeAll(async () => {
-    app = await createTestApp({ disableFileSystem: false });
-
-    server = http.createServer((req, res) => {
-      const bodyChunks: Buffer[] = [];
-      req.on('data', (chunk) => bodyChunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
-      req.on('end', () => {
-        const body = Buffer.concat(bodyChunks).toString('utf-8');
-        const payload = {
-          path: req.url || '',
-          method: req.method || 'GET',
-          body,
-          signature: req.headers['x-platform-signature'] || '',
-          timestamp: req.headers['x-platform-timestamp'] || '',
-        };
-        res.setHeader('content-type', 'application/json');
-        res.end(JSON.stringify(payload));
-      });
-    });
-    await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));
-    const address = server.address();
-    const port = typeof address === 'object' && address ? address.port : 0;
-    baseUrl = `http://127.0.0.1:${port}`;
-
-    await fs.mkdir(pluginDir, { recursive: true });
-    await fs.writeFile(
-      path.join(pluginDir, 'manifest.json'),
-      JSON.stringify(
-        {
-          schemaVersion: 1,
-          slug,
-          name: 'External HTTP Test Plugin',
-          version: '1.0.0',
-          description: 'Plugin runtime external-http tests',
-          author: 'test-suite',
-          runtimeType: 'external-http',
-          externalBaseUrl: 'http://127.0.0.1:9',
-          permissions: [],
-        },
-        null,
-        2
-      ),
-      'utf-8'
-    );
-
-    await prisma.pluginInstall.create({
-      data: {
-        slug,
-        name: 'External HTTP Test Plugin',
-        version: '1.0.0',
-        description: 'Plugin runtime external-http tests',
-        category: 'general',
-        runtimeType: 'external-http',
-        source: 'local-zip',
-        installPath: `extensions/plugins/${slug}`,
-        permissions: JSON.stringify([]),
-      },
-    });
-
-    await prisma.pluginInstallation.create({
-      data: {
-        pluginSlug: slug,
-        instanceKey: 'default',
-        enabled: true,
-        configJson: JSON.stringify({
-          externalBaseUrl: baseUrl,
-          platformSignatureSecret: signatureSecret,
-        }),
-      },
-    });
-  });
-
-  afterAll(async () => {
-    await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
-    await prisma.pluginInstall.deleteMany({ where: { slug } });
-    await fs.rm(pluginDir, { recursive: true, force: true });
-    if (server) {
-      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
-    }
-    await app.close();
-  });
-
-  it('uses installation config externalBaseUrl and injects platform signature headers', async () => {
-    const response = await app.inject({
-      method: 'GET',
-      url: `/api/extensions/plugin/${slug}/api/echo`,
-    });
-
-    expect(response.statusCode).toBe(200);
-    const body = response.json();
-    expect(body.path).toContain('/echo');
-    expect(String(body.timestamp)).not.toHaveLength(0);
-    expect(String(body.signature)).not.toHaveLength(0);
-
-    const expected = createHmac('sha256', signatureSecret)
-      .update(`GET./echo..${String(body.timestamp)}`)
-      .digest('hex');
-    expect(body.signature).toBe(expected);
   });
 });

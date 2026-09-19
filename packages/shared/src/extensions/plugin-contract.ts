@@ -51,7 +51,7 @@ export const PLUGIN_THEME_EMBED_TARGETS = [
   'body-end',
 ] as const;
 
-export type PluginRuntimeType = 'internal-fastify' | 'external-http';
+export type PluginRuntimeType = 'internal-fastify';
 
 export const INTERNAL_FASTIFY_HOST_PROTOCOL = 'internal-fastify-v1';
 
@@ -61,14 +61,13 @@ export type PluginHostProtocol = typeof INTERNAL_FASTIFY_HOST_PROTOCOL;
  * Trust level assigned to a plugin at install time.
  *
  * - `builtin`      — ships with the Jiffoo distribution itself.
- * - `official`     — signed by the Jiffoo team (Ed25519 signature verified).
- * - `third-party`  — unsigned or signed by an unknown key.
+ * - `signed`       — has a verified publisher signature.
+ * - `unsigned`     — has no verified publisher signature.
  *
- * Per the two-tier trust model (R2), only `builtin` and `official` plugins
- * may run with `runtimeType=internal-fastify`. Third-party plugins must use
- * `external-http`.
+ * Trust describes publisher accountability. Every trust tier uses the same
+ * in-process runtime and gateway contract.
  */
-export type PluginTrustLevel = 'builtin' | 'official' | 'third-party';
+export type PluginTrustLevel = 'builtin' | 'signed' | 'unsigned';
 
 export type PluginCategory = (typeof PLUGIN_CATEGORIES)[number];
 export type PluginCapability = (typeof PLUGIN_CAPABILITIES)[number];
@@ -133,13 +132,10 @@ export interface PluginManifest {
   /**
    * Declared trust level for the plugin.
    *
-   * Required when `runtimeType` is `internal-fastify` (enforced in task 2.3).
-   * For `external-http` plugins this field is optional and defaults to
-   * `third-party` at install time.
+   * Required when `runtimeType` is `internal-fastify`.
    */
   trustLevel?: PluginTrustLevel;
   entryModule?: string;
-  externalBaseUrl?: string;
   permissions: string[];
   author?: string;
   authorUrl?: string;
@@ -304,30 +300,26 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
     pushIssue(issues, 'description', 'description is required', 'INVALID_MANIFEST');
   }
 
-  if (manifest.runtimeType !== 'internal-fastify' && manifest.runtimeType !== 'external-http') {
+  if (manifest.runtimeType !== 'internal-fastify') {
     pushIssue(
       issues,
       'runtimeType',
-      'runtimeType must be "internal-fastify" or "external-http"',
+      'runtimeType must be "internal-fastify"',
       'INVALID_RUNTIME_TYPE'
     );
   }
 
-  // --- Trust level mounting point (R1.5) ---
-  // For internal-fastify plugins, trustLevel must be declared so the installer
-  // (task 2.3) can enforce the two-tier whitelist. Third-party internal-fastify
-  // plugins will be rejected at install time; this validation ensures the field
-  // is present and well-formed so the enforcement logic has a reliable input.
+  // Trust is mandatory so Core can display package accountability before install.
   if (manifest.trustLevel !== undefined) {
     if (
       manifest.trustLevel !== 'builtin' &&
-      manifest.trustLevel !== 'official' &&
-      manifest.trustLevel !== 'third-party'
+      manifest.trustLevel !== 'signed' &&
+      manifest.trustLevel !== 'unsigned'
     ) {
       pushIssue(
         issues,
         'trustLevel',
-        'trustLevel must be "builtin", "official", or "third-party"',
+        'trustLevel must be "builtin", "signed", or "unsigned"',
         'INVALID_TRUST_LEVEL'
       );
     }
@@ -342,18 +334,6 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
       'trustLevel',
       'trustLevel is required for internal-fastify plugins (see LICENSE-EXCEPTIONS.md and PLUGIN_SYSTEM_ARCHITECTURE.md)',
       'MISSING_TRUST_LEVEL'
-    );
-  }
-
-  if (
-    manifest.runtimeType === 'internal-fastify' &&
-    manifest.trustLevel === 'third-party'
-  ) {
-    pushIssue(
-      issues,
-      'trustLevel',
-      'third-party plugins must use runtimeType "external-http" — internal-fastify is restricted to builtin and official trust levels',
-      'THIRD_PARTY_INTERNAL_NOT_ALLOWED'
     );
   }
 
@@ -388,14 +368,6 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
   if (manifest.runtimeType === 'internal-fastify') {
     if (typeof manifest.entryModule !== 'string' || !manifest.entryModule.trim()) {
       pushIssue(issues, 'entryModule', 'entryModule is required for internal-fastify plugins', 'MISSING_ENTRY_MODULE');
-    }
-  }
-
-  if (manifest.runtimeType === 'external-http') {
-    if (typeof manifest.externalBaseUrl !== 'string' || !manifest.externalBaseUrl.trim()) {
-      pushIssue(issues, 'externalBaseUrl', 'externalBaseUrl is required for external-http plugins', 'MISSING_EXTERNAL_BASE_URL');
-    } else if (!isUrl(manifest.externalBaseUrl)) {
-      pushIssue(issues, 'externalBaseUrl', 'externalBaseUrl must be a valid http(s) URL', 'INVALID_EXTERNAL_BASE_URL');
     }
   }
 

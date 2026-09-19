@@ -566,8 +566,10 @@ describe('Plugin Compatibility Integration', () => {
         name: 'Google Analytics Integration',
         version: '1.0.0',
         description: 'Google Analytics tracking',
-        runtimeType: 'external-http',
-        externalBaseUrl: 'https://analytics.example.com',
+        runtimeType: 'internal-fastify',
+        hostProtocol: 'internal-fastify-v1',
+        trustLevel: 'unsigned',
+        entryModule: 'dist/index.js',
         permissions: ['analytics.track'],
       };
 
@@ -577,15 +579,17 @@ describe('Plugin Compatibility Integration', () => {
       expect(report).toContain('Required API Version: None specified');
     });
 
-    it('should handle external plugin with version requirement', () => {
+    it('should handle third-party in-process plugin with version requirement', () => {
       const manifest: PluginManifest = {
         schemaVersion: 1,
-        slug: 'external-crm',
-        name: 'External CRM Integration',
+        slug: 'crm-integration',
+        name: 'CRM Integration',
         version: '2.0.0',
-        description: 'CRM integration service',
-        runtimeType: 'external-http',
-        externalBaseUrl: 'https://crm.example.com',
+        description: 'CRM integration package',
+        runtimeType: 'internal-fastify',
+        hostProtocol: 'internal-fastify-v1',
+        trustLevel: 'unsigned',
+        entryModule: 'dist/index.js',
         permissions: ['customers.read', 'customers.write'],
         minApiVersion: 'v1',
       };
