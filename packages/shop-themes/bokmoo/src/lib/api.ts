@@ -446,12 +446,21 @@ export function mapBokmooApiProductToThemeProduct(product: BokmooApiProduct): Th
   const imageUrl = product.images?.[0]?.url || product.image;
   const regionTag = esim?.region || esim?.country || 'Travel';
   const technology = buildTechnologyLabel(esim);
+  // The core's product-level price is the odoo list price; the sellable
+  // amount is the variant sale price. Prefer the cheapest active variant so
+  // the storefront "Starting at" figure matches what checkout actually bills.
+  const variantPrices = (product.variants || [])
+    .map((variant) => Number(variant.salePrice || 0))
+    .filter((price) => price > 0);
+  const sellablePrice = variantPrices.length > 0
+    ? Math.min(...variantPrices)
+    : Number(product.price || 0);
 
   return {
     id: product.id,
     name: product.name,
     description: product.description || `${product.name} travel connectivity package`,
-    price: Number(product.price || 0),
+    price: sellablePrice,
     sku: product.slug || product.id,
     category: {
       id: esim?.region || 'esim',

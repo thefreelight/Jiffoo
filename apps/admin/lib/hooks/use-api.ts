@@ -1248,6 +1248,38 @@ export function useInstalledPlugins() {
   });
 }
 
+// Lightweight installed-plugin list for navigation (sidebar submenu). Unlike
+// useInstalledPlugins this does not fan out per-plugin instance requests —
+// the plain list endpoint already carries slug/name/enabled.
+export interface InstalledPluginNavItem {
+  slug: string;
+  name: string;
+  enabled: boolean;
+}
+
+export function useInstalledPluginNav() {
+  return useQuery({
+    queryKey: [...pluginQueryKeys.all, 'nav-installed'] as const,
+    queryFn: async () => {
+      const response = await apiClient.get('/extensions/plugin', { params: { page: 1, limit: 50 } });
+      const unwrapped = unwrapApiResponse<{ items?: Array<Record<string, unknown>> }>(response);
+      return (unwrapped.items || [])
+        .map((item) => ({
+          slug: String(item.slug || ''),
+          name: String(item.displayName || item.name || item.slug || ''),
+          enabled: item.enabled === 1 || item.enabled === true,
+        }))
+        .filter((item) => item.slug.length > 0)
+        .sort((a, b) => {
+          if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        });
+    },
+    staleTime: 2 * 60 * 1000,
+    retry: false,
+  });
+}
+
 // Get plugin configuration
 export function usePluginConfig(slug: string) {
   return useQuery({

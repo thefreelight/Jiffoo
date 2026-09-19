@@ -11,7 +11,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { cn } from '@/lib/utils'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useManagedMode } from '@/lib/managed-mode'
 import { canAccessAnyPermission, getSystemNavHref } from '@/lib/admin-access'
 
@@ -27,6 +27,8 @@ import {
   User,
   Settings,
   LogOut,
+  ChevronDown,
+  ChevronRight,
   ChevronUp,
   Monitor,
   ShieldCheck,
@@ -44,6 +46,7 @@ import {
 } from '../ui/dropdown-menu'
 import { useUpdateCheck } from '@/hooks/use-update-check'
 import { useJobsAdminCapability } from '@/hooks/use-jobs-admin-capability'
+import { useInstalledPluginNav } from '@/lib/hooks/use-api'
 import { UserAvatar } from '../ui/user-avatar'
 import { JiffooMark } from '../branding/jiffoo-mark'
 
@@ -154,6 +157,8 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   const { hasUpdate } = useUpdateCheck()
   const jobsAdminAvailable = useJobsAdminCapability()
   const { record, isManaged, isLoading } = useManagedMode()
+  const { data: pluginNavItems } = useInstalledPluginNav()
+  const [pluginsExpanded, setPluginsExpanded] = useState(() => pathname.startsWith('/plugins'))
 
   // Build navigation config dynamically
   const navigationConfig = useMemo(() => {
@@ -281,6 +286,85 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
               : getLocalizedHref(item.href)
             const isActive = pathname === href || pathname.startsWith(`${href}/`)
             const Icon = item.icon
+
+            // Installed plugins render as a second-level group under Plugins:
+            // the parent opens the plugin center, the chevron toggles the
+            // submenu, and each enabled workspace gets a direct entry.
+            if (item.id === 'plugins') {
+              const expanded = pluginsExpanded || pathname.startsWith('/plugins')
+              const subItems = pluginNavItems || []
+              return (
+                <div key={item.id} className="flex flex-col gap-0.5">
+                  <div
+                    className={`
+                      flex items-center rounded-xl text-sm font-semibold transition-all duration-200
+                      ${isActive
+                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
+                        : 'text-gray-400 hover:bg-gray-50 hover:text-gray-900'
+                      }
+                    `}
+                  >
+                    <Link
+                      href={href}
+                      onClick={handleNavClick}
+                      className="flex items-center gap-3 px-4 py-2.5 flex-1 min-w-0"
+                    >
+                      <Icon className={cn('w-5 h-5 transition-transform', isActive && 'scale-110')} />
+                      <span>{getText(item.nameKey, item.fallback)}</span>
+                    </Link>
+                    <button
+                      onClick={() => setPluginsExpanded((value) => !value)}
+                      className="mr-2 p-1.5 rounded-lg hover:bg-black/5"
+                      aria-expanded={expanded}
+                      aria-label={getText('merchant.nav.plugins', 'Plugins')}
+                      type="button"
+                    >
+                      {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {expanded ? (
+                    <div className="ml-6 flex flex-col gap-0.5 border-l border-slate-100 pl-3 py-1">
+                      <Link
+                        href={href}
+                        onClick={handleNavClick}
+                        className={`
+                          rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors
+                          ${pathname === href
+                            ? 'text-blue-600 bg-blue-50 font-semibold'
+                            : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
+                          }
+                        `}
+                      >
+                        {getText('merchant.nav.pluginCenter', 'Plugin Center')}
+                      </Link>
+                      {subItems.map((sub) => {
+                        const subHref = getLocalizedHref(`/plugins/${sub.slug}`)
+                        const subActive = pathname === subHref || pathname.startsWith(`${subHref}/`)
+                        return (
+                          <Link
+                            key={sub.slug}
+                            href={subHref}
+                            onClick={handleNavClick}
+                            title={sub.name}
+                            className={`
+                              rounded-lg px-3 py-1.5 text-[13px] font-medium truncate transition-colors
+                              ${subActive
+                                ? 'text-blue-600 bg-blue-50 font-semibold'
+                                : sub.enabled
+                                  ? 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
+                                  : 'text-gray-300 hover:text-gray-500'
+                              }
+                            `}
+                          >
+                            {sub.name}
+                          </Link>
+                        )
+                      })}
+                    </div>
+                  ) : null}
+                </div>
+              )
+            }
 
             return (
               <Link

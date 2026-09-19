@@ -39,13 +39,13 @@
   var useState = React.useState;
   var useTransition = React.useTransition;
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/shared/src/utils.js
+  // ../../../node_modules/lucide-react/dist/esm/shared/src/utils.js
   var toKebabCase = (string) => string.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
   var mergeClasses = (...classes) => classes.filter((className, index, array) => {
     return Boolean(className) && className.trim() !== "" && array.indexOf(className) === index;
   }).join(" ").trim();
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/defaultAttributes.js
+  // ../../../node_modules/lucide-react/dist/esm/defaultAttributes.js
   var defaultAttributes = {
     xmlns: "http://www.w3.org/2000/svg",
     width: 24,
@@ -58,7 +58,7 @@
     strokeLinejoin: "round"
   };
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/Icon.js
+  // ../../../node_modules/lucide-react/dist/esm/Icon.js
   var Icon = forwardRef(
     ({
       color: color2 = "currentColor",
@@ -90,7 +90,7 @@
     }
   );
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/createLucideIcon.js
+  // ../../../node_modules/lucide-react/dist/esm/createLucideIcon.js
   var createLucideIcon = (iconName, iconNode) => {
     const Component2 = forwardRef(
       ({ className, ...props }, ref) => createElement(Icon, {
@@ -104,7 +104,7 @@
     return Component2;
   };
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/apple.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/apple.js
   var Apple = createLucideIcon("Apple", [
     [
       "path",
@@ -116,19 +116,19 @@
     ["path", { d: "M10 2c1 .5 2 2 2 5", key: "fcco2y" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/arrow-left.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/arrow-left.js
   var ArrowLeft = createLucideIcon("ArrowLeft", [
     ["path", { d: "m12 19-7-7 7-7", key: "1l729n" }],
     ["path", { d: "M19 12H5", key: "x3x0zl" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/arrow-right.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/arrow-right.js
   var ArrowRight = createLucideIcon("ArrowRight", [
     ["path", { d: "M5 12h14", key: "1ays0h" }],
     ["path", { d: "m12 5 7 7-7 7", key: "xquz4c" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/book-open.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/book-open.js
   var BookOpen = createLucideIcon("BookOpen", [
     ["path", { d: "M12 7v14", key: "1akyts" }],
     [
@@ -140,7 +140,7 @@
     ]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/calendar-days.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/calendar-days.js
   var CalendarDays = createLucideIcon("CalendarDays", [
     ["path", { d: "M8 2v4", key: "1cmpym" }],
     ["path", { d: "M16 2v4", key: "4m81vk" }],
@@ -154,25 +154,25 @@
     ["path", { d: "M16 18h.01", key: "kzsmim" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/check.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/check.js
   var Check = createLucideIcon("Check", [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/chevron-down.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/chevron-down.js
   var ChevronDown = createLucideIcon("ChevronDown", [
     ["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/chevron-left.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/chevron-left.js
   var ChevronLeft = createLucideIcon("ChevronLeft", [
     ["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/chevron-right.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/chevron-right.js
   var ChevronRight = createLucideIcon("ChevronRight", [
     ["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/chrome.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/chrome.js
   var Chrome = createLucideIcon("Chrome", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["circle", { cx: "12", cy: "12", r: "4", key: "4exip2" }],
@@ -181,45 +181,45 @@
     ["line", { x1: "10.88", x2: "15.46", y1: "21.94", y2: "14", key: "1ymyh8" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/circle-check.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/circle-check.js
   var CircleCheck = createLucideIcon("CircleCheck", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/circle-help.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/circle-help.js
   var CircleHelp = createLucideIcon("CircleHelp", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3", key: "1u773s" }],
     ["path", { d: "M12 17h.01", key: "p32p05" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/circle-x.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/circle-x.js
   var CircleX = createLucideIcon("CircleX", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m15 9-6 6", key: "1uzhvr" }],
     ["path", { d: "m9 9 6 6", key: "z0biqf" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/clock-3.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/clock-3.js
   var Clock3 = createLucideIcon("Clock3", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["polyline", { points: "12 6 12 12 16.5 12", key: "1aq6pp" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/copy.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/copy.js
   var Copy = createLucideIcon("Copy", [
     ["rect", { width: "14", height: "14", x: "8", y: "8", rx: "2", ry: "2", key: "17jyea" }],
     ["path", { d: "M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2", key: "zix9uf" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/credit-card.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/credit-card.js
   var CreditCard = createLucideIcon("CreditCard", [
     ["rect", { width: "20", height: "14", x: "2", y: "5", rx: "2", key: "ynyp8z" }],
     ["line", { x1: "2", x2: "22", y1: "10", y2: "10", key: "1b3vmo" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/crown.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/crown.js
   var Crown = createLucideIcon("Crown", [
     [
       "path",
@@ -231,7 +231,7 @@
     ["path", { d: "M5 21h14", key: "11awu3" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/earth.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/earth.js
   var Earth = createLucideIcon("Earth", [
     ["path", { d: "M21.54 15H17a2 2 0 0 0-2 2v4.54", key: "1djwo0" }],
     [
@@ -245,14 +245,14 @@
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/external-link.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/external-link.js
   var ExternalLink = createLucideIcon("ExternalLink", [
     ["path", { d: "M15 3h6v6", key: "1q9fwt" }],
     ["path", { d: "M10 14 21 3", key: "gplh6r" }],
     ["path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6", key: "a6xqqp" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/eye-off.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/eye-off.js
   var EyeOff = createLucideIcon("EyeOff", [
     [
       "path",
@@ -272,7 +272,7 @@
     ["path", { d: "m2 2 20 20", key: "1ooewy" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/eye.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/eye.js
   var Eye = createLucideIcon("Eye", [
     [
       "path",
@@ -284,7 +284,7 @@
     ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/grid-3x3.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/grid-3x3.js
   var Grid3x3 = createLucideIcon("Grid3x3", [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M3 9h18", key: "1pudct" }],
@@ -293,7 +293,7 @@
     ["path", { d: "M15 3v18", key: "14nvp0" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/headphones.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/headphones.js
   var Headphones = createLucideIcon("Headphones", [
     [
       "path",
@@ -304,7 +304,7 @@
     ]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/house.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/house.js
   var House = createLucideIcon("House", [
     ["path", { d: "M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8", key: "5wwlr5" }],
     [
@@ -316,7 +316,7 @@
     ]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/layout-grid.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/layout-grid.js
   var LayoutGrid = createLucideIcon("LayoutGrid", [
     ["rect", { width: "7", height: "7", x: "3", y: "3", rx: "1", key: "1g98yp" }],
     ["rect", { width: "7", height: "7", x: "14", y: "3", rx: "1", key: "6d4xhi" }],
@@ -324,7 +324,7 @@
     ["rect", { width: "7", height: "7", x: "3", y: "14", rx: "1", key: "1bb6yr" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/life-buoy.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/life-buoy.js
   var LifeBuoy = createLucideIcon("LifeBuoy", [
     ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
     ["path", { d: "m4.93 4.93 4.24 4.24", key: "1ymg45" }],
@@ -334,14 +334,14 @@
     ["circle", { cx: "12", cy: "12", r: "4", key: "4exip2" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/link-2.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/link-2.js
   var Link2 = createLucideIcon("Link2", [
     ["path", { d: "M9 17H7A5 5 0 0 1 7 7h2", key: "8i5ue5" }],
     ["path", { d: "M15 7h2a5 5 0 1 1 0 10h-2", key: "1b9ql8" }],
     ["line", { x1: "8", x2: "16", y1: "12", y2: "12", key: "1jonct" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/list.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/list.js
   var List = createLucideIcon("List", [
     ["path", { d: "M3 12h.01", key: "nlz23k" }],
     ["path", { d: "M3 18h.01", key: "1tta3j" }],
@@ -351,42 +351,42 @@
     ["path", { d: "M8 6h13", key: "ik3vkj" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/loader-circle.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/loader-circle.js
   var LoaderCircle = createLucideIcon("LoaderCircle", [
     ["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/lock-keyhole.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/lock-keyhole.js
   var LockKeyhole = createLucideIcon("LockKeyhole", [
     ["circle", { cx: "12", cy: "16", r: "1", key: "1au0dj" }],
     ["rect", { x: "3", y: "10", width: "18", height: "12", rx: "2", key: "6s8ecr" }],
     ["path", { d: "M7 10V7a5 5 0 0 1 10 0v3", key: "1pqi11" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/mail.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/mail.js
   var Mail = createLucideIcon("Mail", [
     ["rect", { width: "20", height: "16", x: "2", y: "4", rx: "2", key: "18n3k1" }],
     ["path", { d: "m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7", key: "1ocrg3" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/menu.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/menu.js
   var Menu = createLucideIcon("Menu", [
     ["line", { x1: "4", x2: "20", y1: "12", y2: "12", key: "1e0a9i" }],
     ["line", { x1: "4", x2: "20", y1: "6", y2: "6", key: "1owob3" }],
     ["line", { x1: "4", x2: "20", y1: "18", y2: "18", key: "yk5zj1" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/minus.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/minus.js
   var Minus = createLucideIcon("Minus", [["path", { d: "M5 12h14", key: "1ays0h" }]]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/package-2.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/package-2.js
   var Package2 = createLucideIcon("Package2", [
     ["path", { d: "M3 9h18v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9Z", key: "1ront0" }],
     ["path", { d: "m3 9 2.45-4.9A2 2 0 0 1 7.24 3h9.52a2 2 0 0 1 1.8 1.1L21 9", key: "19h2x1" }],
     ["path", { d: "M12 3v6", key: "1holv5" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/package-check.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/package-check.js
   var PackageCheck = createLucideIcon("PackageCheck", [
     ["path", { d: "m16 16 2 2 4-4", key: "gfu2re" }],
     [
@@ -401,7 +401,7 @@
     ["line", { x1: "12", x2: "12", y1: "22", y2: "12", key: "a4e8g8" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/pencil-line.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/pencil-line.js
   var PencilLine = createLucideIcon("PencilLine", [
     ["path", { d: "M12 20h9", key: "t2du7b" }],
     [
@@ -414,7 +414,7 @@
     ["path", { d: "m15 5 3 3", key: "1w25hb" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/phone.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/phone.js
   var Phone = createLucideIcon("Phone", [
     [
       "path",
@@ -425,7 +425,7 @@
     ]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/plane.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/plane.js
   var Plane = createLucideIcon("Plane", [
     [
       "path",
@@ -436,13 +436,13 @@
     ]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/plus.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/plus.js
   var Plus = createLucideIcon("Plus", [
     ["path", { d: "M5 12h14", key: "1ays0h" }],
     ["path", { d: "M12 5v14", key: "s699le" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/qr-code.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/qr-code.js
   var QrCode = createLucideIcon("QrCode", [
     ["rect", { width: "5", height: "5", x: "3", y: "3", rx: "1", key: "1tu5fj" }],
     ["rect", { width: "5", height: "5", x: "16", y: "3", rx: "1", key: "1v8r4q" }],
@@ -458,7 +458,7 @@
     ["path", { d: "M12 21v-1", key: "1880an" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/receipt-text.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/receipt-text.js
   var ReceiptText = createLucideIcon("ReceiptText", [
     [
       "path",
@@ -469,7 +469,7 @@
     ["path", { d: "M13 16H8", key: "wsln4y" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/refresh-cw.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/refresh-cw.js
   var RefreshCw = createLucideIcon("RefreshCw", [
     ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", key: "v9h5vc" }],
     ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
@@ -477,7 +477,7 @@
     ["path", { d: "M8 16H3v5", key: "1cv678" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/save.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/save.js
   var Save = createLucideIcon("Save", [
     [
       "path",
@@ -490,13 +490,13 @@
     ["path", { d: "M7 3v4a1 1 0 0 0 1 1h7", key: "t51u73" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/search.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/search.js
   var Search = createLucideIcon("Search", [
     ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }],
     ["path", { d: "m21 21-4.3-4.3", key: "1qie3q" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/settings.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/settings.js
   var Settings = createLucideIcon("Settings", [
     [
       "path",
@@ -508,7 +508,7 @@
     ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/shield-check.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/shield-check.js
   var ShieldCheck = createLucideIcon("ShieldCheck", [
     [
       "path",
@@ -520,14 +520,14 @@
     ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/shopping-bag.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/shopping-bag.js
   var ShoppingBag = createLucideIcon("ShoppingBag", [
     ["path", { d: "M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z", key: "hou9p0" }],
     ["path", { d: "M3 6h18", key: "d0wm0j" }],
     ["path", { d: "M16 10a4 4 0 0 1-8 0", key: "1ltviw" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/shopping-cart.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/shopping-cart.js
   var ShoppingCart = createLucideIcon("ShoppingCart", [
     ["circle", { cx: "8", cy: "21", r: "1", key: "jimo8o" }],
     ["circle", { cx: "19", cy: "21", r: "1", key: "13723u" }],
@@ -540,7 +540,7 @@
     ]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/signal.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/signal.js
   var Signal = createLucideIcon("Signal", [
     ["path", { d: "M2 20h.01", key: "4haj6o" }],
     ["path", { d: "M7 20v-4", key: "j294jx" }],
@@ -549,13 +549,13 @@
     ["path", { d: "M22 4v16", key: "sih9yq" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/smartphone.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/smartphone.js
   var Smartphone = createLucideIcon("Smartphone", [
     ["rect", { width: "14", height: "20", x: "5", y: "2", rx: "2", ry: "2", key: "1yt0o3" }],
     ["path", { d: "M12 18h.01", key: "mhygvu" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/sparkles.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/sparkles.js
   var Sparkles = createLucideIcon("Sparkles", [
     [
       "path",
@@ -570,7 +570,7 @@
     ["path", { d: "M5 18H3", key: "zchphs" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/star.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/star.js
   var Star = createLucideIcon("Star", [
     [
       "path",
@@ -581,7 +581,7 @@
     ]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/trash-2.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/trash-2.js
   var Trash2 = createLucideIcon("Trash2", [
     ["path", { d: "M3 6h18", key: "d0wm0j" }],
     ["path", { d: "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6", key: "4alrt4" }],
@@ -590,7 +590,7 @@
     ["line", { x1: "14", x2: "14", y1: "11", y2: "17", key: "xtxkd" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/triangle-alert.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/triangle-alert.js
   var TriangleAlert = createLucideIcon("TriangleAlert", [
     [
       "path",
@@ -603,7 +603,7 @@
     ["path", { d: "M12 17h.01", key: "p32p05" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/user-plus.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/user-plus.js
   var UserPlus = createLucideIcon("UserPlus", [
     ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
     ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }],
@@ -611,20 +611,20 @@
     ["line", { x1: "22", x2: "16", y1: "11", y2: "11", key: "1shjgl" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/user-round.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/user-round.js
   var UserRound = createLucideIcon("UserRound", [
     ["circle", { cx: "12", cy: "8", r: "5", key: "1hypcn" }],
     ["path", { d: "M20 21a8 8 0 0 0-16 0", key: "rfgkzh" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/users-round.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/users-round.js
   var UsersRound = createLucideIcon("UsersRound", [
     ["path", { d: "M18 21a8 8 0 0 0-16 0", key: "3ypg7q" }],
     ["circle", { cx: "10", cy: "8", r: "5", key: "o932ke" }],
     ["path", { d: "M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3", key: "10s06x" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/users.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/users.js
   var Users = createLucideIcon("Users", [
     ["path", { d: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2", key: "1yyitq" }],
     ["circle", { cx: "9", cy: "7", r: "4", key: "nufk8" }],
@@ -632,7 +632,7 @@
     ["path", { d: "M16 3.13a4 4 0 0 1 0 7.75", key: "1da9ce" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/wallet-cards.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/wallet-cards.js
   var WalletCards = createLucideIcon("WalletCards", [
     ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
     ["path", { d: "M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2", key: "4125el" }],
@@ -645,7 +645,7 @@
     ]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/wallet.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/wallet.js
   var Wallet = createLucideIcon("Wallet", [
     [
       "path",
@@ -657,13 +657,13 @@
     ["path", { d: "M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4", key: "xoc0q4" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/x.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/x.js
   var X = createLucideIcon("X", [
     ["path", { d: "M18 6 6 18", key: "1bl5f8" }],
     ["path", { d: "m6 6 12 12", key: "d8bk6v" }]
   ]);
 
-  // ../../../../../Jiffoo/node_modules/lucide-react/dist/esm/icons/zap.js
+  // ../../../node_modules/lucide-react/dist/esm/icons/zap.js
   var Zap = createLucideIcon("Zap", [
     [
       "path",
@@ -684,10 +684,10 @@
   var jsxs = runtime.jsxs;
   var jsxDEV = runtime.jsxDEV;
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/context/LayoutGroupContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/LayoutGroupContext.mjs
   var LayoutGroupContext = createContext({});
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/use-constant.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/use-constant.mjs
   function useConstant(init) {
     const ref = useRef(null);
     if (ref.current === null) {
@@ -696,17 +696,17 @@
     return ref.current;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/context/PresenceContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/PresenceContext.mjs
   var PresenceContext = createContext(null);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/context/MotionConfigContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/MotionConfigContext.mjs
   var MotionConfigContext = createContext({
     transformPagePoint: (p) => p,
     isStatic: false,
     reducedMotion: "never"
   });
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/components/AnimatePresence/PopChild.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/PopChild.mjs
   var PopChildMeasure = class extends Component {
     getSnapshotBeforeUpdate(prevProps) {
       const element = this.props.childRef.current;
@@ -765,7 +765,7 @@
     return jsx(PopChildMeasure, { isPresent, childRef: ref, sizeRef: size, children: cloneElement(children, { ref }) });
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/components/AnimatePresence/PresenceChild.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/PresenceChild.mjs
   var PresenceChild = ({ children, initial, isPresent, onExitComplete, custom, presenceAffectsLayout, mode }) => {
     const presenceChildren = useConstant(newChildrenMap);
     const id3 = useId();
@@ -811,7 +811,7 @@
     return /* @__PURE__ */ new Map();
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/components/AnimatePresence/use-presence.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/use-presence.mjs
   function usePresence(subscribe = true) {
     const context = useContext(PresenceContext);
     if (context === null)
@@ -826,7 +826,7 @@
     return !isPresent && onExitComplete ? [false, safeToRemove] : [true];
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/components/AnimatePresence/utils.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/utils.mjs
   var getChildKey = (child) => child.key || "";
   function onlyElements(children) {
     const filtered = [];
@@ -837,13 +837,13 @@
     return filtered;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/is-browser.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/is-browser.mjs
   var isBrowser = typeof window !== "undefined";
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/use-isomorphic-effect.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/use-isomorphic-effect.mjs
   var useIsomorphicLayoutEffect = isBrowser ? useLayoutEffect : useEffect;
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/components/AnimatePresence/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/components/AnimatePresence/index.mjs
   var AnimatePresence = ({ children, custom, initial = true, onExitComplete, presenceAffectsLayout = true, mode = "sync", propagate = false }) => {
     const [isParentPresent, safeToRemove] = usePresence(propagate);
     const presentChildren = useMemo(() => onlyElements(children), [children]);
@@ -914,10 +914,10 @@
     }) });
   };
 
-  // ../../../../../Jiffoo/node_modules/motion-utils/dist/es/noop.mjs
+  // ../../../node_modules/motion-utils/dist/es/noop.mjs
   var noop = /* @__NO_SIDE_EFFECTS__ */ (any) => any;
 
-  // ../../../../../Jiffoo/node_modules/motion-utils/dist/es/errors.mjs
+  // ../../../node_modules/motion-utils/dist/es/errors.mjs
   var warning = noop;
   var invariant = noop;
   if (true) {
@@ -933,7 +933,7 @@
     };
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-utils/dist/es/memo.mjs
+  // ../../../node_modules/motion-utils/dist/es/memo.mjs
   // @__NO_SIDE_EFFECTS__
   function memo2(callback) {
     let result;
@@ -944,23 +944,23 @@
     };
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-utils/dist/es/progress.mjs
+  // ../../../node_modules/motion-utils/dist/es/progress.mjs
   var progress = /* @__NO_SIDE_EFFECTS__ */ (from, to, value) => {
     const toFromDifference = to - from;
     return toFromDifference === 0 ? 1 : (value - from) / toFromDifference;
   };
 
-  // ../../../../../Jiffoo/node_modules/motion-utils/dist/es/time-conversion.mjs
+  // ../../../node_modules/motion-utils/dist/es/time-conversion.mjs
   var secondsToMilliseconds = /* @__NO_SIDE_EFFECTS__ */ (seconds) => seconds * 1e3;
   var millisecondsToSeconds = /* @__NO_SIDE_EFFECTS__ */ (milliseconds) => milliseconds / 1e3;
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/GlobalConfig.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/GlobalConfig.mjs
   var MotionGlobalConfig = {
     skipAnimations: false,
     useManualTiming: false
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/frameloop/render-step.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/render-step.mjs
   function createRenderStep(runNextFrame) {
     let thisFrame = /* @__PURE__ */ new Set();
     let nextFrame = /* @__PURE__ */ new Set();
@@ -1022,7 +1022,7 @@
     return step;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/frameloop/batcher.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/batcher.mjs
   var stepsOrder = [
     "read",
     // Read
@@ -1094,13 +1094,13 @@
     return { schedule, cancel, state, steps };
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/frameloop/frame.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/frame.mjs
   var { schedule: frame, cancel: cancelFrame, state: frameData, steps: frameSteps } = createRenderBatcher(typeof requestAnimationFrame !== "undefined" ? requestAnimationFrame : noop, true);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/context/LazyContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/LazyContext.mjs
   var LazyContext = createContext({ strict: false });
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/features/definitions.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/definitions.mjs
   var featureProps = {
     animation: [
       "animate",
@@ -1128,7 +1128,7 @@
     };
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/features/load-features.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/load-features.mjs
   function loadFeatures(features) {
     for (const key in features) {
       featureDefinitions[key] = {
@@ -1138,7 +1138,7 @@
     }
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/utils/valid-prop.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/valid-prop.mjs
   var validMotionProps = /* @__PURE__ */ new Set([
     "animate",
     "exit",
@@ -1175,7 +1175,7 @@
     return key.startsWith("while") || key.startsWith("drag") && key !== "draggable" || key.startsWith("layout") || key.startsWith("onTap") || key.startsWith("onPan") || key.startsWith("onLayout") || validMotionProps.has(key);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/utils/filter-props.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/filter-props.mjs
   var shouldForward = (key) => !isValidMotionProp(key);
   function loadExternalIsValidProp(isValidProp) {
     if (!isValidProp)
@@ -1199,7 +1199,7 @@
     return filteredProps;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/warn-once.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/warn-once.mjs
   var warned = /* @__PURE__ */ new Set();
   function warnOnce(condition, message, element) {
     if (condition || warned.has(message))
@@ -1210,7 +1210,7 @@
     warned.add(message);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/components/create-proxy.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/components/create-proxy.mjs
   function createDOMMotionComponentProxy(componentFactory) {
     if (typeof Proxy === "undefined") {
       return componentFactory;
@@ -1239,20 +1239,20 @@
     });
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/context/MotionContext/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/MotionContext/index.mjs
   var MotionContext = createContext({});
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/utils/is-variant-label.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/is-variant-label.mjs
   function isVariantLabel(v) {
     return typeof v === "string" || Array.isArray(v);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/utils/is-animation-controls.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-animation-controls.mjs
   function isAnimationControls(v) {
     return v !== null && typeof v === "object" && typeof v.start === "function";
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/utils/variant-props.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/variant-props.mjs
   var variantPriorityOrder = [
     "animate",
     "whileInView",
@@ -1264,7 +1264,7 @@
   ];
   var variantProps = ["initial", ...variantPriorityOrder];
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/utils/is-controlling-variants.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/is-controlling-variants.mjs
   function isControllingVariants(props) {
     return isAnimationControls(props.animate) || variantProps.some((name) => isVariantLabel(props[name]));
   }
@@ -1272,7 +1272,7 @@
     return Boolean(isControllingVariants(props) || props.variants);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/context/MotionContext/utils.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/MotionContext/utils.mjs
   function getCurrentTreeVariants(props, context) {
     if (isControllingVariants(props)) {
       const { initial, animate } = props;
@@ -1284,7 +1284,7 @@
     return props.inherit !== false ? context : {};
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/context/MotionContext/create.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/MotionContext/create.mjs
   function useCreateMotionContext(props) {
     const { initial, animate } = getCurrentTreeVariants(props, useContext(MotionContext));
     return useMemo(() => ({ initial, animate }), [variantLabelsAsDependency(initial), variantLabelsAsDependency(animate)]);
@@ -1293,15 +1293,15 @@
     return Array.isArray(prop) ? prop.join(" ") : prop;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/utils/symbol.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/symbol.mjs
   var motionComponentSymbol = /* @__PURE__ */ Symbol.for("motionComponentSymbol");
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/is-ref-object.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/is-ref-object.mjs
   function isRefObject(ref) {
     return ref && typeof ref === "object" && Object.prototype.hasOwnProperty.call(ref, "current");
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/utils/use-motion-ref.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/use-motion-ref.mjs
   function useMotionRef(visualState, visualElement, externalRef) {
     return useCallback(
       (instance) => {
@@ -1332,20 +1332,20 @@
     );
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/utils/camel-to-dash.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/camel-to-dash.mjs
   var camelToDash = (str) => str.replace(/([a-z])([A-Z])/gu, "$1-$2").toLowerCase();
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/optimized-appear/data-id.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/optimized-appear/data-id.mjs
   var optimizedAppearDataId = "framerAppearId";
   var optimizedAppearDataAttribute = "data-" + camelToDash(optimizedAppearDataId);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/frameloop/microtask.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/microtask.mjs
   var { schedule: microtask, cancel: cancelMicrotask } = createRenderBatcher(queueMicrotask, false);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/context/SwitchLayoutGroupContext.mjs
+  // ../../../node_modules/framer-motion/dist/es/context/SwitchLayoutGroupContext.mjs
   var SwitchLayoutGroupContext = createContext({});
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/utils/use-visual-element.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/use-visual-element.mjs
   function useVisualElement(Component2, visualState, props, createVisualElement, ProjectionNodeConstructor) {
     var _a, _b;
     const { visualElement: parent } = useContext(MotionContext);
@@ -1431,7 +1431,7 @@
     return visualElement.options.allowProjection !== false ? visualElement.projection : getClosestProjectingNode(visualElement.parent);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/index.mjs
   function createRendererMotionComponent({ preloadedFeatures, createVisualElement, useRender, useVisualState, Component: Component2 }) {
     var _a, _b;
     preloadedFeatures && loadFeatures(preloadedFeatures);
@@ -1480,7 +1480,7 @@
     };
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/svg/lowercase-elements.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/lowercase-elements.mjs
   var lowercaseSVGElements = [
     "animate",
     "circle",
@@ -1509,7 +1509,7 @@
     "view"
   ];
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/utils/is-svg-component.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/is-svg-component.mjs
   function isSVGComponent(Component2) {
     if (
       /**
@@ -1536,7 +1536,7 @@
     return false;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/utils/resolve-variants.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/resolve-variants.mjs
   function getValueState(visualElement) {
     const state = [{}, {}];
     visualElement === null || visualElement === void 0 ? void 0 : visualElement.values.forEach((value, key) => {
@@ -1560,12 +1560,12 @@
     return definition;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/utils/is-keyframes-target.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-keyframes-target.mjs
   var isKeyframesTarget = (v) => {
     return Array.isArray(v);
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/resolve-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/resolve-value.mjs
   var isCustomValue = (v) => {
     return Boolean(v && typeof v === "object" && v.mix && v.toValue);
   };
@@ -1573,16 +1573,16 @@
     return isKeyframesTarget(v) ? v[v.length - 1] || 0 : v;
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/utils/is-motion-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/utils/is-motion-value.mjs
   var isMotionValue = (value) => Boolean(value && value.getVelocity);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/utils/resolve-motion-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/utils/resolve-motion-value.mjs
   function resolveMotionValue(value) {
     const unwrappedValue = isMotionValue(value) ? value.get() : value;
     return isCustomValue(unwrappedValue) ? unwrappedValue.toValue() : unwrappedValue;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/utils/use-visual-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/use-visual-state.mjs
   function makeState({ scrapeMotionValuesFromProps: scrapeMotionValuesFromProps3, createRenderState, onUpdate }, props, context, presenceContext) {
     const state = {
       latestValues: makeLatestValues(props, context, presenceContext, scrapeMotionValuesFromProps3),
@@ -1643,7 +1643,7 @@
     return values;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/html/utils/keys-transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/keys-transform.mjs
   var transformPropOrder = [
     "transformPerspective",
     "x",
@@ -1665,7 +1665,7 @@
   ];
   var transformProps = new Set(transformPropOrder);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/utils/is-css-variable.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/is-css-variable.mjs
   var checkStringStartsWith = (token) => (key) => typeof key === "string" && key.startsWith(token);
   var isCSSVariableName = /* @__PURE__ */ checkStringStartsWith("--");
   var startsAsVariableToken = /* @__PURE__ */ checkStringStartsWith("var(--");
@@ -1677,12 +1677,12 @@
   };
   var singleCssVariableRegex = /var\(--(?:[\w-]+\s*|[\w-]+\s*,(?:\s*[^)(\s]|\s*\((?:[^)(]|\([^)(]*\))*\))+\s*)\)$/iu;
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/value-types/get-as-type.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/get-as-type.mjs
   var getValueAsType = (value, type) => {
     return type && typeof value === "number" ? type.transform(value) : value;
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/clamp.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/clamp.mjs
   var clamp = (min, max, v) => {
     if (v > max)
       return max;
@@ -1691,7 +1691,7 @@
     return v;
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/types/numbers/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/numbers/index.mjs
   var number = {
     test: (v) => typeof v === "number",
     parse: parseFloat,
@@ -1706,7 +1706,7 @@
     default: 1
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/types/numbers/units.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/numbers/units.mjs
   var createUnitType = (unit) => ({
     test: (v) => typeof v === "string" && v.endsWith(unit) && v.split(" ").length === 1,
     parse: parseFloat,
@@ -1723,7 +1723,7 @@
     transform: (v) => percent.transform(v * 100)
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/value-types/number-browser.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/number-browser.mjs
   var browserNumberValueTypes = {
     // Border props
     borderWidth: px,
@@ -1762,7 +1762,7 @@
     backgroundPositionY: px
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/value-types/transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/transform.mjs
   var transformValueTypes = {
     rotate: degrees,
     rotateX: degrees,
@@ -1790,13 +1790,13 @@
     originZ: px
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/value-types/type-int.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/type-int.mjs
   var int = {
     ...number,
     transform: Math.round
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/value-types/number.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/number.mjs
   var numberValueTypes = {
     ...browserNumberValueTypes,
     ...transformValueTypes,
@@ -1808,7 +1808,7 @@
     numOctaves: int
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/html/utils/build-transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/build-transform.mjs
   var translateAlias = {
     x: "translateX",
     y: "translateY",
@@ -1851,7 +1851,7 @@
     return transformString;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/html/utils/build-styles.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/build-styles.mjs
   function buildHTMLStyles(state, latestValues, transformTemplate) {
     const { style, vars, transformOrigin } = state;
     let hasTransform2 = false;
@@ -1887,7 +1887,7 @@
     }
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/svg/utils/path.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/path.mjs
   var dashKeys = {
     offset: "stroke-dashoffset",
     array: "stroke-dasharray"
@@ -1905,7 +1905,7 @@
     attrs[keys.array] = `${pathLength} ${pathSpacing}`;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/svg/utils/transform-origin.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/transform-origin.mjs
   function calcOrigin(origin, offset, size) {
     return typeof origin === "string" ? origin : px.transform(offset + size * origin);
   }
@@ -1915,7 +1915,7 @@
     return `${pxOriginX} ${pxOriginY}`;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/svg/utils/build-attrs.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/build-attrs.mjs
   function buildSVGAttrs(state, {
     attrX,
     attrY,
@@ -1957,7 +1957,7 @@
     }
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/html/utils/create-render-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/create-render-state.mjs
   var createHtmlRenderState = () => ({
     style: {},
     transform: {},
@@ -1965,16 +1965,16 @@
     vars: {}
   });
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/svg/utils/create-render-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/create-render-state.mjs
   var createSvgRenderState = () => ({
     ...createHtmlRenderState(),
     attrs: {}
   });
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/svg/utils/is-svg-tag.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/is-svg-tag.mjs
   var isSVGTag = (tag) => typeof tag === "string" && tag.toLowerCase() === "svg";
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/html/utils/render.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/render.mjs
   function renderHTML(element, { style, vars }, styleProp, projection) {
     Object.assign(element.style, style, projection && projection.getProjectionStyles(styleProp));
     for (const key in vars) {
@@ -1982,7 +1982,7 @@
     }
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/svg/utils/camel-case-attrs.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/camel-case-attrs.mjs
   var camelCaseAttributes = /* @__PURE__ */ new Set([
     "baseFrequency",
     "diffuseConstant",
@@ -2009,7 +2009,7 @@
     "lengthAdjust"
   ]);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/svg/utils/render.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/render.mjs
   function renderSVG(element, renderState, _styleProp, projection) {
     renderHTML(element, renderState, void 0, projection);
     for (const key in renderState.attrs) {
@@ -2017,18 +2017,18 @@
     }
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/styles/scale-correction.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/styles/scale-correction.mjs
   var scaleCorrectors = {};
   function addScaleCorrector(correctors) {
     Object.assign(scaleCorrectors, correctors);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/utils/is-forced-motion-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/utils/is-forced-motion-value.mjs
   function isForcedMotionValue(key, { layout: layout2, layoutId }) {
     return transformProps.has(key) || key.startsWith("origin") || (layout2 || layoutId !== void 0) && (!!scaleCorrectors[key] || key === "opacity");
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/html/utils/scrape-motion-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/scrape-motion-values.mjs
   function scrapeMotionValuesFromProps(props, prevProps, visualElement) {
     var _a;
     const { style } = props;
@@ -2041,7 +2041,7 @@
     return newValues;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/svg/utils/scrape-motion-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/utils/scrape-motion-values.mjs
   function scrapeMotionValuesFromProps2(props, prevProps, visualElement) {
     const newValues = scrapeMotionValuesFromProps(props, prevProps, visualElement);
     for (const key in props) {
@@ -2053,7 +2053,7 @@
     return newValues;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/svg/config-motion.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/config-motion.mjs
   function updateSVGDimensions(instance, renderState) {
     try {
       renderState.dimensions = typeof instance.getBBox === "function" ? instance.getBBox() : instance.getBoundingClientRect();
@@ -2107,7 +2107,7 @@
     })
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/html/config-motion.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/config-motion.mjs
   var htmlMotionConfig = {
     useVisualState: makeUseVisualState({
       scrapeMotionValuesFromProps,
@@ -2115,7 +2115,7 @@
     })
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/html/use-props.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/use-props.mjs
   function copyRawValuesOnly(target, source, props) {
     for (const key in source) {
       if (!isMotionValue(source[key]) && !isForcedMotionValue(key, props)) {
@@ -2152,7 +2152,7 @@
     return htmlProps;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/svg/use-props.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/use-props.mjs
   function useSVGProps(props, visualState, _isStatic, Component2) {
     const visualProps = useMemo(() => {
       const state = createSvgRenderState();
@@ -2170,7 +2170,7 @@
     return visualProps;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/use-render.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/use-render.mjs
   function createUseRender(forwardMotionProps = false) {
     const useRender = (Component2, props, ref, { latestValues }, isStatic) => {
       const useVisualProps = isSVGComponent(Component2) ? useSVGProps : useHTMLProps;
@@ -2187,7 +2187,7 @@
     return useRender;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/components/create-factory.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/components/create-factory.mjs
   function createMotionComponentFactory(preloadedFeatures, createVisualElement) {
     return function createMotionComponent2(Component2, { forwardMotionProps } = { forwardMotionProps: false }) {
       const baseConfig = isSVGComponent(Component2) ? svgMotionConfig : htmlMotionConfig;
@@ -2202,7 +2202,7 @@
     };
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/shallow-compare.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/shallow-compare.mjs
   function shallowCompare(next, prev) {
     if (!Array.isArray(prev))
       return false;
@@ -2216,16 +2216,16 @@
     return true;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/utils/resolve-dynamic-variants.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/resolve-dynamic-variants.mjs
   function resolveVariant(visualElement, definition, custom) {
     const props = visualElement.getProps();
     return resolveVariantFromProps(props, definition, custom !== void 0 ? custom : props.custom, visualElement);
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/utils/supports/scroll-timeline.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/supports/scroll-timeline.mjs
   var supportsScrollTimeline = memo2(() => window.ScrollTimeline !== void 0);
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/animation/controls/BaseGroup.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/controls/BaseGroup.mjs
   var BaseGroupPlaybackControls = class {
     constructor(animations2) {
       this.stop = () => this.runAll("stop");
@@ -2302,19 +2302,19 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/animation/controls/Group.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/controls/Group.mjs
   var GroupPlaybackControls = class extends BaseGroupPlaybackControls {
     then(onResolve, onReject) {
       return Promise.all(this.animations).then(onResolve).catch(onReject);
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/animation/utils/get-value-transition.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/utils/get-value-transition.mjs
   function getValueTransition(transition, key) {
     return transition ? transition[key] || transition["default"] || transition : void 0;
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/animation/generators/utils/calc-duration.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/generators/utils/calc-duration.mjs
   var maxGeneratorDuration = 2e4;
   function calcGeneratorDuration(generator) {
     let duration = 0;
@@ -2327,26 +2327,26 @@
     return duration >= maxGeneratorDuration ? Infinity : duration;
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/animation/generators/utils/is-generator.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/generators/utils/is-generator.mjs
   function isGenerator(type) {
     return typeof type === "function";
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/animation/waapi/utils/attach-timeline.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/waapi/utils/attach-timeline.mjs
   function attachTimeline(animation3, timeline) {
     animation3.timeline = timeline;
     animation3.onfinish = null;
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/utils/is-bezier-definition.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/is-bezier-definition.mjs
   var isBezierDefinition = (easing) => Array.isArray(easing) && typeof easing[0] === "number";
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/utils/supports/flags.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/supports/flags.mjs
   var supportsFlags = {
     linearEasing: void 0
   };
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/utils/supports/memo.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/supports/memo.mjs
   function memoSupports(callback, supportsFlag) {
     const memoized = memo2(callback);
     return () => {
@@ -2355,7 +2355,7 @@
     };
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/utils/supports/linear-easing.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/supports/linear-easing.mjs
   var supportsLinearEasing = /* @__PURE__ */ memoSupports(() => {
     try {
       document.createElement("div").animate({ opacity: 0 }, { easing: "linear(0, 1)" });
@@ -2365,7 +2365,7 @@
     return true;
   }, "linearEasing");
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/animation/waapi/utils/linear.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/waapi/utils/linear.mjs
   var generateLinearEasing = (easing, duration, resolution = 10) => {
     let points = "";
     const numPoints = Math.max(Math.round(duration / resolution), 2);
@@ -2375,7 +2375,7 @@
     return `linear(${points.substring(0, points.length - 2)})`;
   };
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/animation/waapi/utils/easing.mjs
+  // ../../../node_modules/motion-dom/dist/es/animation/waapi/utils/easing.mjs
   function isWaapiSupportedEasing(easing) {
     return Boolean(typeof easing === "function" && supportsLinearEasing() || !easing || typeof easing === "string" && (easing in supportedWaapiEasing || supportsLinearEasing()) || isBezierDefinition(easing) || Array.isArray(easing) && easing.every(isWaapiSupportedEasing));
   }
@@ -2405,7 +2405,7 @@
     }
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/gestures/drag/state/is-active.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/drag/state/is-active.mjs
   var isDragging = {
     x: false,
     y: false
@@ -2414,7 +2414,7 @@
     return isDragging.x || isDragging.y;
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/utils/resolve-elements.mjs
+  // ../../../node_modules/motion-dom/dist/es/utils/resolve-elements.mjs
   function resolveElements(elementOrSelector, scope, selectorCache) {
     var _a;
     if (elementOrSelector instanceof Element) {
@@ -2430,7 +2430,7 @@
     return Array.from(elementOrSelector);
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/gestures/utils/setup.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/utils/setup.mjs
   function setupGesture(elementOrSelector, options) {
     const elements = resolveElements(elementOrSelector);
     const gestureAbortController = new AbortController();
@@ -2443,7 +2443,7 @@
     return [elements, eventOptions, cancel];
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/gestures/hover.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/hover.mjs
   function filterEvents(callback) {
     return (event) => {
       if (event.pointerType === "touch" || isDragActive())
@@ -2470,7 +2470,7 @@
     return cancel;
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/gestures/utils/is-node-or-child.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/utils/is-node-or-child.mjs
   var isNodeOrChild = (parent, child) => {
     if (!child) {
       return false;
@@ -2481,7 +2481,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/gestures/utils/is-primary-pointer.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/utils/is-primary-pointer.mjs
   var isPrimaryPointer = (event) => {
     if (event.pointerType === "mouse") {
       return typeof event.button !== "number" || event.button <= 0;
@@ -2490,7 +2490,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/gestures/press/utils/is-keyboard-accessible.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/press/utils/is-keyboard-accessible.mjs
   var focusableElements = /* @__PURE__ */ new Set([
     "BUTTON",
     "INPUT",
@@ -2502,10 +2502,10 @@
     return focusableElements.has(element.tagName) || element.tabIndex !== -1;
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/gestures/press/utils/state.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/press/utils/state.mjs
   var isPressing = /* @__PURE__ */ new WeakSet();
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/gestures/press/utils/keyboard.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/press/utils/keyboard.mjs
   function filterEvents2(callback) {
     return (event) => {
       if (event.key !== "Enter")
@@ -2535,7 +2535,7 @@
     element.addEventListener("blur", () => element.removeEventListener("keydown", handleKeydown), eventOptions);
   };
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/gestures/press/index.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/press/index.mjs
   function isValidPressEvent(event) {
     return isPrimaryPointer(event) && !isDragActive();
   }
@@ -2578,7 +2578,7 @@
     return cancelEvents;
   }
 
-  // ../../../../../Jiffoo/node_modules/motion-dom/dist/es/gestures/drag/state/set-active.mjs
+  // ../../../node_modules/motion-dom/dist/es/gestures/drag/state/set-active.mjs
   function setDragLock(axis) {
     if (axis === "x" || axis === "y") {
       if (isDragging[axis]) {
@@ -2601,7 +2601,7 @@
     }
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/html/utils/keys-position.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/keys-position.mjs
   var positionalKeys = /* @__PURE__ */ new Set([
     "width",
     "height",
@@ -2612,7 +2612,7 @@
     ...transformPropOrder
   ]);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/frameloop/sync-time.mjs
+  // ../../../node_modules/framer-motion/dist/es/frameloop/sync-time.mjs
   var now;
   function clearTime() {
     now = void 0;
@@ -2630,7 +2630,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/array.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/array.mjs
   function addUniqueItem(arr, item) {
     if (arr.indexOf(item) === -1)
       arr.push(item);
@@ -2641,7 +2641,7 @@
       arr.splice(index, 1);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/subscription-manager.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/subscription-manager.mjs
   var SubscriptionManager = class {
     constructor() {
       this.subscriptions = [];
@@ -2671,12 +2671,12 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/velocity-per-second.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/velocity-per-second.mjs
   function velocityPerSecond(velocity, frameDuration) {
     return frameDuration ? velocity * (1e3 / frameDuration) : 0;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/index.mjs
   var MAX_VELOCITY_DELTA = 30;
   var isFloat = (value) => {
     return !isNaN(parseFloat(value));
@@ -2950,7 +2950,7 @@
     return new MotionValue(init, options);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/utils/setters.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/setters.mjs
   function setMotionValue(visualElement, key, value) {
     if (visualElement.hasValue(key)) {
       visualElement.getValue(key).set(value);
@@ -2968,12 +2968,12 @@
     }
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/use-will-change/is.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/use-will-change/is.mjs
   function isWillChangeMotionValue(value) {
     return Boolean(isMotionValue(value) && value.add);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/use-will-change/add-will-change.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/use-will-change/add-will-change.mjs
   function addValueToWillChange(visualElement, key) {
     const willChange = visualElement.getValue("willChange");
     if (isWillChangeMotionValue(willChange)) {
@@ -2981,17 +2981,17 @@
     }
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/optimized-appear/get-appear-id.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/optimized-appear/get-appear-id.mjs
   function getOptimisedAppearId(visualElement) {
     return visualElement.props[optimizedAppearDataAttribute];
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/use-instant-transition-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/use-instant-transition-state.mjs
   var instantAnimationState = {
     current: false
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/easing/cubic-bezier.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/cubic-bezier.mjs
   var calcBezier = (t, a1, a2) => (((1 - 3 * a2 + 3 * a1) * t + (3 * a2 - 6 * a1)) * t + 3 * a1) * t;
   var subdivisionPrecision = 1e-7;
   var subdivisionMaxIterations = 12;
@@ -3017,29 +3017,29 @@
     return (t) => t === 0 || t === 1 ? t : calcBezier(getTForX(t), mY1, mY2);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/easing/modifiers/mirror.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/modifiers/mirror.mjs
   var mirrorEasing = (easing) => (p) => p <= 0.5 ? easing(2 * p) / 2 : (2 - easing(2 * (1 - p))) / 2;
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/easing/modifiers/reverse.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/modifiers/reverse.mjs
   var reverseEasing = (easing) => (p) => 1 - easing(1 - p);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/easing/back.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/back.mjs
   var backOut = /* @__PURE__ */ cubicBezier(0.33, 1.53, 0.69, 0.99);
   var backIn = /* @__PURE__ */ reverseEasing(backOut);
   var backInOut = /* @__PURE__ */ mirrorEasing(backIn);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/easing/anticipate.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/anticipate.mjs
   var anticipate = (p) => (p *= 2) < 1 ? 0.5 * backIn(p) : 0.5 * (2 - Math.pow(2, -10 * (p - 1)));
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/easing/circ.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/circ.mjs
   var circIn = (p) => 1 - Math.sin(Math.acos(p));
   var circOut = reverseEasing(circIn);
   var circInOut = mirrorEasing(circIn);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/is-zero-value-string.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/is-zero-value-string.mjs
   var isZeroValueString = (v) => /^0[^.\s]+$/u.test(v);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/utils/is-none.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-none.mjs
   function isNone(value) {
     if (typeof value === "number") {
       return value === 0;
@@ -3050,21 +3050,21 @@
     }
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/types/utils/sanitize.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/sanitize.mjs
   var sanitize = (v) => Math.round(v * 1e5) / 1e5;
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/types/utils/float-regex.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/float-regex.mjs
   var floatRegex = /-?(?:\d+(?:\.\d+)?|\.\d+)/gu;
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/types/utils/is-nullish.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/is-nullish.mjs
   function isNullish(v) {
     return v == null;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/types/utils/single-color-regex.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/single-color-regex.mjs
   var singleColorRegex = /^(?:#[\da-f]{3,8}|(?:rgb|hsl)a?\((?:-?[\d.]+%?[,\s]+){2}-?[\d.]+%?\s*(?:[,/]\s*)?(?:\b\d+(?:\.\d+)?|\.\d+)?%?\))$/iu;
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/types/color/utils.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/utils.mjs
   var isColorString = (type, testProp) => (v) => {
     return Boolean(typeof v === "string" && singleColorRegex.test(v) && v.startsWith(type) || testProp && !isNullish(v) && Object.prototype.hasOwnProperty.call(v, testProp));
   };
@@ -3080,7 +3080,7 @@
     };
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/types/color/rgba.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/rgba.mjs
   var clampRgbUnit = (v) => clamp(0, 255, v);
   var rgbUnit = {
     ...number,
@@ -3092,7 +3092,7 @@
     transform: ({ red, green, blue, alpha: alpha$1 = 1 }) => "rgba(" + rgbUnit.transform(red) + ", " + rgbUnit.transform(green) + ", " + rgbUnit.transform(blue) + ", " + sanitize(alpha.transform(alpha$1)) + ")"
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/types/color/hex.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/hex.mjs
   function parseHex(v) {
     let r2 = "";
     let g = "";
@@ -3126,7 +3126,7 @@
     transform: rgba.transform
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/types/color/hsla.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/hsla.mjs
   var hsla = {
     test: /* @__PURE__ */ isColorString("hsl", "hue"),
     parse: /* @__PURE__ */ splitColor("hue", "saturation", "lightness"),
@@ -3135,7 +3135,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/types/color/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/color/index.mjs
   var color = {
     test: (v) => rgba.test(v) || hex.test(v) || hsla.test(v),
     parse: (v) => {
@@ -3152,10 +3152,10 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/types/utils/color-regex.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/utils/color-regex.mjs
   var colorRegex = /(?:#[\da-f]{3,8}|(?:rgb|hsl)a?\((?:-?[\d.]+%?[,\s]+){2}-?[\d.]+%?\s*(?:[,/]\s*)?(?:\b\d+(?:\.\d+)?|\.\d+)?%?\))/giu;
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/types/complex/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/complex/index.mjs
   function test(v) {
     var _a, _b;
     return isNaN(v) && typeof v === "string" && (((_a = v.match(floatRegex)) === null || _a === void 0 ? void 0 : _a.length) || 0) + (((_b = v.match(colorRegex)) === null || _b === void 0 ? void 0 : _b.length) || 0) > 0;
@@ -3233,7 +3233,7 @@
     getAnimatableNone
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/value/types/complex/filter.mjs
+  // ../../../node_modules/framer-motion/dist/es/value/types/complex/filter.mjs
   var maxDefaults = /* @__PURE__ */ new Set(["brightness", "contrast", "saturate", "opacity"]);
   function applyDefaultFilter(v) {
     const [name, value] = v.slice(0, -1).split("(");
@@ -3257,7 +3257,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/value-types/defaults.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/defaults.mjs
   var defaultValueTypes = {
     ...numberValueTypes,
     // Color props
@@ -3277,7 +3277,7 @@
   };
   var getDefaultValueType = (key) => defaultValueTypes[key];
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/value-types/animatable-none.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/animatable-none.mjs
   function getAnimatableNone2(key, value) {
     let defaultValueType = getDefaultValueType(key);
     if (defaultValueType !== filter)
@@ -3285,7 +3285,7 @@
     return defaultValueType.getAnimatableNone ? defaultValueType.getAnimatableNone(value) : void 0;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/html/utils/make-none-animatable.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/utils/make-none-animatable.mjs
   var invalidTemplates = /* @__PURE__ */ new Set(["auto", "none", "0"]);
   function makeNoneKeyframesAnimatable(unresolvedKeyframes, noneKeyframeIndexes, name) {
     let i = 0;
@@ -3304,7 +3304,7 @@
     }
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/utils/unit-conversion.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/unit-conversion.mjs
   var isNumOrPxType = (v) => v === number || v === px;
   var getPosFromMatrix = (matrix, pos) => parseFloat(matrix.split(", ")[pos]);
   var getTranslateFromMatrix = (pos2, pos3) => (_bbox, { transform }) => {
@@ -3350,7 +3350,7 @@
   positionalValues.translateX = positionalValues.x;
   positionalValues.translateY = positionalValues.y;
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/utils/KeyframesResolver.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/KeyframesResolver.mjs
   var toResolve = /* @__PURE__ */ new Set();
   var isScheduled = false;
   var anyNeedsMeasurement = false;
@@ -3480,10 +3480,10 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/is-numerical-string.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/is-numerical-string.mjs
   var isNumericalString = (v) => /^-?(?:\d+(?:\.\d+)?|\.\d+)$/u.test(v);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/utils/css-variables-conversion.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/css-variables-conversion.mjs
   var splitCSSVariableRegex = (
     // eslint-disable-next-line redos-detector/no-unsafe-regex -- false positive, as it can match a lot of words
     /^var\(--(?:([\w-]+)|([\w-]+), ?([a-zA-Z\d ()%#.,-]+))\)/u
@@ -3509,20 +3509,20 @@
     return isCSSVariableToken(fallback) ? getVariableValue(fallback, element, depth + 1) : fallback;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/value-types/test.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/test.mjs
   var testValueType = (v) => (type) => type.test(v);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/value-types/type-auto.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/type-auto.mjs
   var auto = {
     test: (v) => v === "auto",
     parse: (v) => v
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/value-types/dimensions.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/dimensions.mjs
   var dimensionValueTypes = [number, px, percent, degrees, vw, vh, auto];
   var findDimensionValueType = (v) => dimensionValueTypes.find(testValueType(v));
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/DOMKeyframesResolver.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/DOMKeyframesResolver.mjs
   var DOMKeyframesResolver = class extends KeyframeResolver {
     constructor(unresolvedKeyframes, onComplete, name, motionValue2, element) {
       super(unresolvedKeyframes, onComplete, name, motionValue2, element, true);
@@ -3615,7 +3615,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/utils/is-animatable.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-animatable.mjs
   var isAnimatable = (value, name) => {
     if (name === "zIndex")
       return false;
@@ -3629,7 +3629,7 @@
     return false;
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/animators/utils/can-animate.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/utils/can-animate.mjs
   function hasKeyframesChanged(keyframes2) {
     const current = keyframes2[0];
     if (keyframes2.length === 1)
@@ -3655,7 +3655,7 @@
     return hasKeyframesChanged(keyframes2) || (type === "spring" || isGenerator(type)) && velocity;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/animators/waapi/utils/get-final-keyframe.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/waapi/utils/get-final-keyframe.mjs
   var isNotNull = (value) => value !== null;
   function getFinalKeyframe(keyframes2, { repeat, repeatType = "loop" }, finalKeyframe) {
     const resolvedKeyframes = keyframes2.filter(isNotNull);
@@ -3663,7 +3663,7 @@
     return !index || finalKeyframe === void 0 ? resolvedKeyframes[index] : finalKeyframe;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/animators/BaseAnimation.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/BaseAnimation.mjs
   var MAX_RESOLVE_DELAY = 40;
   var BaseAnimation = class {
     constructor({ autoplay = true, delay: delay2 = 0, type = "keyframes", repeat = 0, repeatDelay = 0, repeatType = "loop", ...options }) {
@@ -3757,12 +3757,12 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/mix/number.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/number.mjs
   var mixNumber = (from, to, progress2) => {
     return from + (to - from) * progress2;
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/hsla-to-rgba.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/hsla-to-rgba.mjs
   function hueToRgb(p, q, t) {
     if (t < 0)
       t += 1;
@@ -3800,12 +3800,12 @@
     };
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/mix/immediate.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/immediate.mjs
   function mixImmediate(a, b) {
     return (p) => p > 0 ? b : a;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/mix/color.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/color.mjs
   var mixLinearColor = (from, to, v) => {
     const fromExpo = from * from;
     const expo = v * (to * to - fromExpo) + fromExpo;
@@ -3840,11 +3840,11 @@
     };
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/pipe.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/pipe.mjs
   var combineFunctions = (a, b) => (v) => b(a(v));
   var pipe = (...transformers) => transformers.reduce(combineFunctions);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/mix/visibility.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/visibility.mjs
   var invisibleValues = /* @__PURE__ */ new Set(["none", "hidden"]);
   function mixVisibility(origin, target) {
     if (invisibleValues.has(origin)) {
@@ -3854,7 +3854,7 @@
     }
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/mix/complex.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/complex.mjs
   function mixNumber2(a, b) {
     return (p) => mixNumber(a, b, p);
   }
@@ -3925,7 +3925,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/mix/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/mix/index.mjs
   function mix(from, to, p) {
     if (typeof from === "number" && typeof to === "number" && typeof p === "number") {
       return mixNumber(from, to, p);
@@ -3934,14 +3934,14 @@
     return mixer(from, to);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/generators/utils/velocity.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/utils/velocity.mjs
   var velocitySampleDuration = 5;
   function calcGeneratorVelocity(resolveValue, t, current) {
     const prevT = Math.max(t - velocitySampleDuration, 0);
     return velocityPerSecond(current - resolveValue(prevT), t - prevT);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/generators/spring/defaults.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/spring/defaults.mjs
   var springDefaults = {
     // Default spring physics
     stiffness: 100,
@@ -3972,7 +3972,7 @@
     maxDamping: 1
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/generators/spring/find.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/spring/find.mjs
   var safeMin = 1e-3;
   function findSpring({ duration = springDefaults.duration, bounce = springDefaults.bounce, velocity = springDefaults.velocity, mass = springDefaults.mass }) {
     let envelope;
@@ -4042,7 +4042,7 @@
     return undampedFreq * Math.sqrt(1 - dampingRatio * dampingRatio);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/generators/spring/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/spring/index.mjs
   var durationKeys = ["duration", "bounce"];
   var physicsKeys = ["stiffness", "damping", "mass"];
   function isSpringType(options, keys) {
@@ -4146,7 +4146,7 @@
     return generator;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/generators/inertia.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/inertia.mjs
   function inertia({ keyframes: keyframes2, velocity = 0, power = 0.8, timeConstant = 325, bounceDamping = 10, bounceStiffness = 500, modifyTarget, min, max, restDelta = 0.5, restSpeed }) {
     const origin = keyframes2[0];
     const state = {
@@ -4210,17 +4210,17 @@
     };
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/easing/ease.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/ease.mjs
   var easeIn = /* @__PURE__ */ cubicBezier(0.42, 0, 1, 1);
   var easeOut = /* @__PURE__ */ cubicBezier(0, 0, 0.58, 1);
   var easeInOut = /* @__PURE__ */ cubicBezier(0.42, 0, 0.58, 1);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/easing/utils/is-easing-array.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/utils/is-easing-array.mjs
   var isEasingArray = (ease2) => {
     return Array.isArray(ease2) && typeof ease2[0] !== "number";
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/easing/utils/map.mjs
+  // ../../../node_modules/framer-motion/dist/es/easing/utils/map.mjs
   var easingLookup = {
     linear: noop,
     easeIn,
@@ -4246,7 +4246,7 @@
     return definition;
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/interpolate.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/interpolate.mjs
   function createMixers(output, ease2, customMixer) {
     const mixers = [];
     const mixerFactory = customMixer || mix;
@@ -4291,7 +4291,7 @@
     return isClamp ? (v) => interpolator(clamp(input[0], input[inputLength - 1], v)) : interpolator;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/offsets/fill.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/offsets/fill.mjs
   function fillOffset(offset, remaining) {
     const min = offset[offset.length - 1];
     for (let i = 1; i <= remaining; i++) {
@@ -4300,19 +4300,19 @@
     }
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/offsets/default.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/offsets/default.mjs
   function defaultOffset(arr) {
     const offset = [0];
     fillOffset(offset, arr.length - 1);
     return offset;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/offsets/time.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/offsets/time.mjs
   function convertOffsetToTimes(offset, duration) {
     return offset.map((o) => o * duration);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/generators/keyframes.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/generators/keyframes.mjs
   function defaultEasing(values, easing) {
     return values.map(() => easing || easeInOut).splice(0, values.length - 1);
   }
@@ -4341,7 +4341,7 @@
     };
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/animators/drivers/driver-frameloop.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/drivers/driver-frameloop.mjs
   var frameloopDriver = (update) => {
     const passTimestamp = ({ timestamp }) => update(timestamp);
     return {
@@ -4355,7 +4355,7 @@
     };
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/animators/MainThreadAnimation.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/MainThreadAnimation.mjs
   var generators = {
     decay: inertia,
     inertia,
@@ -4617,7 +4617,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/animators/utils/accelerated-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/utils/accelerated-values.mjs
   var acceleratedValues = /* @__PURE__ */ new Set([
     "opacity",
     "clipPath",
@@ -4628,7 +4628,7 @@
     // "background-color"
   ]);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/animators/waapi/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/waapi/index.mjs
   function startWaapiAnimation(element, valueName, keyframes2, { delay: delay2 = 0, duration = 300, repeat = 0, repeatType = "loop", ease: ease2 = "easeInOut", times } = {}) {
     const keyframeOptions = { [valueName]: keyframes2 };
     if (times)
@@ -4646,10 +4646,10 @@
     });
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/animators/waapi/utils/supports-waapi.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/waapi/utils/supports-waapi.mjs
   var supportsWaapi = /* @__PURE__ */ memo2(() => Object.hasOwnProperty.call(Element.prototype, "animate"));
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/animators/AcceleratedAnimation.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animators/AcceleratedAnimation.mjs
   var sampleDelta = 10;
   var maxDuration = 2e4;
   function requiresPregeneratedKeyframes(options) {
@@ -4878,7 +4878,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/utils/default-transitions.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/default-transitions.mjs
   var underDampedSpring = {
     type: "spring",
     stiffness: 500,
@@ -4909,12 +4909,12 @@
     return ease;
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/utils/is-transition-defined.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/utils/is-transition-defined.mjs
   function isTransitionDefined({ when, delay: _delay, delayChildren, staggerChildren, staggerDirection, repeat, repeatType, repeatDelay, from, elapsed, ...transition }) {
     return !!Object.keys(transition).length;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/interfaces/motion-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/interfaces/motion-value.mjs
   var animateMotionValue = (name, value, target, transition = {}, element, isHandoff) => (onComplete) => {
     const valueTransition = getValueTransition(transition, name) || {};
     const delay2 = valueTransition.delay || transition.delay || 0;
@@ -4982,7 +4982,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/interfaces/visual-element-target.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/interfaces/visual-element-target.mjs
   function shouldBlockAnimation({ protectedKeys, needsAnimating }, key) {
     const shouldBlock = protectedKeys.hasOwnProperty(key) && needsAnimating[key] !== true;
     needsAnimating[key] = false;
@@ -5033,7 +5033,7 @@
     return animations2;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/interfaces/visual-element-variant.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/interfaces/visual-element-variant.mjs
   function animateVariant(visualElement, variant, options = {}) {
     var _a;
     const resolved = resolveVariant(visualElement, variant, options.type === "exit" ? (_a = visualElement.presenceContext) === null || _a === void 0 ? void 0 : _a.custom : void 0);
@@ -5071,7 +5071,7 @@
     return a.sortNodePosition(b);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/interfaces/visual-element.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/interfaces/visual-element.mjs
   function animateVisualElement(visualElement, definition, options = {}) {
     visualElement.notify("AnimationStart", definition);
     let animation3;
@@ -5089,7 +5089,7 @@
     });
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/utils/get-variant-context.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/get-variant-context.mjs
   var numVariantProps = variantProps.length;
   function getVariantContext(visualElement) {
     if (!visualElement)
@@ -5112,7 +5112,7 @@
     return context;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/utils/animation-state.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/animation-state.mjs
   var reversePriorityOrder = [...variantPriorityOrder].reverse();
   var numAnimationTypes = variantPriorityOrder.length;
   function animateList(visualElement) {
@@ -5299,7 +5299,7 @@
     };
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/features/Feature.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/Feature.mjs
   var Feature = class {
     constructor(node) {
       this.isMounted = false;
@@ -5309,7 +5309,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/features/animation/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/animation/index.mjs
   var AnimationFeature = class extends Feature {
     /**
      * We dynamically generate the AnimationState manager as it contains a reference
@@ -5346,7 +5346,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/features/animation/exit.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/animation/exit.mjs
   var id = 0;
   var ExitAnimationFeature = class extends Feature {
     constructor() {
@@ -5376,7 +5376,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/features/animations.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/animations.mjs
   var animations = {
     animation: {
       Feature: AnimationFeature
@@ -5386,13 +5386,13 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/events/add-dom-event.mjs
+  // ../../../node_modules/framer-motion/dist/es/events/add-dom-event.mjs
   function addDomEvent(target, eventName, handler, options = { passive: true }) {
     target.addEventListener(eventName, handler, options);
     return () => target.removeEventListener(eventName, handler);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/events/event-info.mjs
+  // ../../../node_modules/framer-motion/dist/es/events/event-info.mjs
   function extractEventInfo(event) {
     return {
       point: {
@@ -5405,12 +5405,12 @@
     return (event) => isPrimaryPointer(event) && handler(event, extractEventInfo(event));
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/events/add-pointer-event.mjs
+  // ../../../node_modules/framer-motion/dist/es/events/add-pointer-event.mjs
   function addPointerEvent(target, eventName, handler, options) {
     return addDomEvent(target, eventName, addPointerInfo(handler), options);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/distance.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/distance.mjs
   var distance = (a, b) => Math.abs(a - b);
   function distance2D(a, b) {
     const xDelta = distance(a.x, b.x);
@@ -5418,7 +5418,7 @@
     return Math.sqrt(xDelta ** 2 + yDelta ** 2);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/gestures/pan/PanSession.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/pan/PanSession.mjs
   var PanSession = class {
     constructor(event, handlers, { transformPagePoint, contextWindow, dragSnapToOrigin = false } = {}) {
       this.startEvent = null;
@@ -5539,7 +5539,7 @@
     return currentVelocity;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/geometry/delta-calc.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/delta-calc.mjs
   var SCALE_PRECISION = 1e-4;
   var SCALE_MIN = 1 - SCALE_PRECISION;
   var SCALE_MAX = 1 + SCALE_PRECISION;
@@ -5585,7 +5585,7 @@
     calcRelativeAxisPosition(target.y, layout2.y, parent.y);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/gestures/drag/utils/constraints.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/drag/utils/constraints.mjs
   function applyConstraints(point, { min, max }, elastic) {
     if (min !== void 0 && point < min) {
       point = elastic ? mixNumber(min, point, elastic.min) : Math.max(point, min);
@@ -5663,7 +5663,7 @@
     return typeof dragElastic === "number" ? dragElastic : dragElastic[label] || 0;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/geometry/models.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/models.mjs
   var createAxisDelta = () => ({
     translate: 0,
     scale: 1,
@@ -5680,12 +5680,12 @@
     y: createAxis()
   });
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/utils/each-axis.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/utils/each-axis.mjs
   function eachAxis(callback) {
     return [callback("x"), callback("y")];
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/geometry/conversion.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/conversion.mjs
   function convertBoundingBoxToBox({ top, left, right, bottom }) {
     return {
       x: { min: left, max: right },
@@ -5708,7 +5708,7 @@
     };
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/utils/has-transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/utils/has-transform.mjs
   function isIdentityScale(scale2) {
     return scale2 === void 0 || scale2 === 1;
   }
@@ -5725,7 +5725,7 @@
     return value && value !== "0%";
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/geometry/delta-apply.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/delta-apply.mjs
   function scalePoint(point, scale2, originPoint) {
     const distanceFromOrigin = point - originPoint;
     const scaled = scale2 * distanceFromOrigin;
@@ -5796,7 +5796,7 @@
     transformAxis(box.y, transform.y, transform.scaleY, transform.scale, transform.originY);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/utils/measure.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/utils/measure.mjs
   function measureViewportBox(instance, transformPoint2) {
     return convertBoundingBoxToBox(transformBoxPoints(instance.getBoundingClientRect(), transformPoint2));
   }
@@ -5810,12 +5810,12 @@
     return viewportBox;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/get-context-window.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/get-context-window.mjs
   var getContextWindow = ({ current }) => {
     return current ? current.ownerDocument.defaultView : null;
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/gestures/drag/VisualElementDragControls.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/drag/VisualElementDragControls.mjs
   var elementDragControls = /* @__PURE__ */ new WeakMap();
   var VisualElementDragControls = class {
     constructor(visualElement) {
@@ -6167,7 +6167,7 @@
     return direction;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/gestures/drag/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/drag/index.mjs
   var DragGesture = class extends Feature {
     constructor(node) {
       super(node);
@@ -6188,7 +6188,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/gestures/pan/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/pan/index.mjs
   var asyncHandler = (handler) => (event, info) => {
     if (handler) {
       frame.postRender(() => handler(event, info));
@@ -6231,7 +6231,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/node/state.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/node/state.mjs
   var globalProjectionState = {
     /**
      * Global flag as to whether the tree has animated since the last time
@@ -6245,7 +6245,7 @@
     hasEverUpdated: false
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/styles/scale-border-radius.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/styles/scale-border-radius.mjs
   function pixelsToPercent(pixels, axis) {
     if (axis.max === axis.min)
       return 0;
@@ -6268,7 +6268,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/styles/scale-box-shadow.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/styles/scale-box-shadow.mjs
   var correctBoxShadow = {
     correct: (latest, { treeScale, projectionDelta }) => {
       const original = latest;
@@ -6290,7 +6290,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/features/layout/MeasureLayout.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/layout/MeasureLayout.mjs
   var MeasureLayoutWithContext = class extends Component {
     /**
      * This only mounts projection nodes for components that
@@ -6395,22 +6395,22 @@
     boxShadow: correctBoxShadow
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/animation/animate/single-value.mjs
+  // ../../../node_modules/framer-motion/dist/es/animation/animate/single-value.mjs
   function animateSingleValue(value, keyframes2, options) {
     const motionValue$1 = isMotionValue(value) ? value : motionValue(value);
     motionValue$1.start(animateMotionValue("", motionValue$1, keyframes2, options));
     return motionValue$1.animation;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/utils/is-svg-element.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/utils/is-svg-element.mjs
   function isSVGElement(element) {
     return element instanceof SVGElement && element.tagName !== "svg";
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/utils/compare-by-depth.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/compare-by-depth.mjs
   var compareByDepth = (a, b) => a.depth - b.depth;
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/utils/flat-tree.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/flat-tree.mjs
   var FlatTree = class {
     constructor() {
       this.children = [];
@@ -6431,7 +6431,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/delay.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/delay.mjs
   function delay(callback, timeout) {
     const start = time.now();
     const checkElapsed = ({ timestamp }) => {
@@ -6445,7 +6445,7 @@
     return () => cancelFrame(checkElapsed);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/animation/mix-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/animation/mix-values.mjs
   var borders = ["TopLeft", "TopRight", "BottomLeft", "BottomRight"];
   var numBorders = borders.length;
   var asNumber = (value) => typeof value === "string" ? parseFloat(value) : value;
@@ -6499,7 +6499,7 @@
     };
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/geometry/copy.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/copy.mjs
   function copyAxisInto(axis, originAxis) {
     axis.min = originAxis.min;
     axis.max = originAxis.max;
@@ -6515,7 +6515,7 @@
     delta.origin = originDelta.origin;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/geometry/delta-remove.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/delta-remove.mjs
   function removePointDelta(point, translate, scale2, originPoint, boxScale) {
     point -= translate;
     point = scalePoint(point, 1 / scale2, originPoint);
@@ -6548,7 +6548,7 @@
     removeAxisTransforms(box.y, transforms, yKeys, originBox ? originBox.y : void 0, sourceBox ? sourceBox.y : void 0);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/geometry/utils.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/geometry/utils.mjs
   function isAxisDeltaZero(delta) {
     return delta.translate === 0 && delta.scale === 1;
   }
@@ -6574,7 +6574,7 @@
     return a.translate === b.translate && a.scale === b.scale && a.originPoint === b.originPoint;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/shared/stack.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/shared/stack.mjs
   var NodeStack = class {
     constructor() {
       this.members = [];
@@ -6666,7 +6666,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/styles/transform.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/styles/transform.mjs
   function buildProjectionTransform(delta, treeScale, latestTransform) {
     let transform = "";
     const xTranslate = delta.x.translate / treeScale.x;
@@ -6701,7 +6701,7 @@
     return transform || "none";
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/node/create-projection-node.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/node/create-projection-node.mjs
   var metrics = {
     type: "projectionFrame",
     totalNodes: 0,
@@ -7754,7 +7754,7 @@
     return node !== node.root && ((_a = node.scroll) === null || _a === void 0 ? void 0 : _a.wasRoot);
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/node/DocumentProjectionNode.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/node/DocumentProjectionNode.mjs
   var DocumentProjectionNode = createProjectionNode2({
     attachResizeListener: (ref, notify) => addDomEvent(ref, "resize", notify),
     measureScroll: () => ({
@@ -7764,7 +7764,7 @@
     checkIsScrollRoot: () => true
   });
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/projection/node/HTMLProjectionNode.mjs
+  // ../../../node_modules/framer-motion/dist/es/projection/node/HTMLProjectionNode.mjs
   var rootProjectionNode = {
     current: void 0
   };
@@ -7788,7 +7788,7 @@
     checkIsScrollRoot: (instance) => Boolean(window.getComputedStyle(instance).position === "fixed")
   });
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/features/drag.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/drag.mjs
   var drag = {
     pan: {
       Feature: PanGesture
@@ -7800,7 +7800,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/gestures/hover.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/hover.mjs
   function handleHoverEvent(node, event, lifecycle) {
     const { props } = node;
     if (node.animationState && props.whileHover) {
@@ -7826,7 +7826,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/gestures/focus.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/focus.mjs
   var FocusGesture = class extends Feature {
     constructor() {
       super(...arguments);
@@ -7857,7 +7857,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/gestures/press.mjs
+  // ../../../node_modules/framer-motion/dist/es/gestures/press.mjs
   function handlePressEvent(node, event, lifecycle) {
     const { props } = node;
     if (node.animationState && props.whileTap) {
@@ -7883,7 +7883,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/features/viewport/observers.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/viewport/observers.mjs
   var observerCallbacks = /* @__PURE__ */ new WeakMap();
   var observers = /* @__PURE__ */ new WeakMap();
   var fireObserverCallback = (entry) => {
@@ -7915,7 +7915,7 @@
     };
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/features/viewport/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/viewport/index.mjs
   var thresholdNames = {
     some: 0,
     all: 1
@@ -7973,7 +7973,7 @@
     return (name) => viewport[name] !== prevViewport[name];
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/features/gestures.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/gestures.mjs
   var gestureAnimations = {
     inView: {
       Feature: InViewFeature
@@ -7989,7 +7989,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/motion/features/layout.mjs
+  // ../../../node_modules/framer-motion/dist/es/motion/features/layout.mjs
   var layout = {
     layout: {
       ProjectionNode: HTMLProjectionNode,
@@ -7997,11 +7997,11 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/reduced-motion/state.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/reduced-motion/state.mjs
   var prefersReducedMotion = { current: null };
   var hasReducedMotionListener = { current: false };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/utils/reduced-motion/index.mjs
+  // ../../../node_modules/framer-motion/dist/es/utils/reduced-motion/index.mjs
   function initPrefersReducedMotion() {
     hasReducedMotionListener.current = true;
     if (!isBrowser)
@@ -8016,14 +8016,14 @@
     }
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/value-types/find.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/value-types/find.mjs
   var valueTypes = [...dimensionValueTypes, color, complex];
   var findValueType = (v) => valueTypes.find(testValueType(v));
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/store.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/store.mjs
   var visualElementStore = /* @__PURE__ */ new WeakMap();
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/utils/motion-values.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/utils/motion-values.mjs
   function updateMotionValuesFromProps(element, next, prev) {
     for (const key in next) {
       const nextValue = next[key];
@@ -8056,7 +8056,7 @@
     return next;
   }
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/VisualElement.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/VisualElement.mjs
   var propEventHandlers = [
     "AnimationStart",
     "AnimationComplete",
@@ -8408,7 +8408,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/DOMVisualElement.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/DOMVisualElement.mjs
   var DOMVisualElement = class extends VisualElement {
     constructor() {
       super(...arguments);
@@ -8440,7 +8440,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/html/HTMLVisualElement.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/html/HTMLVisualElement.mjs
   function getComputedStyle(element) {
     return window.getComputedStyle(element);
   }
@@ -8471,7 +8471,7 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/svg/SVGVisualElement.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/svg/SVGVisualElement.mjs
   var SVGVisualElement = class extends DOMVisualElement {
     constructor() {
       super(...arguments);
@@ -8505,14 +8505,14 @@
     }
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/dom/create-visual-element.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/dom/create-visual-element.mjs
   var createDomVisualElement = (Component2, options) => {
     return isSVGComponent(Component2) ? new SVGVisualElement(options) : new HTMLVisualElement(options, {
       allowProjection: Component2 !== Fragment
     });
   };
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/components/motion/create.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/components/motion/create.mjs
   var createMotionComponent = /* @__PURE__ */ createMotionComponentFactory({
     ...animations,
     ...gestureAnimations,
@@ -8520,10 +8520,10 @@
     ...layout
   }, createDomVisualElement);
 
-  // ../../../../../Jiffoo/node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs
+  // ../../../node_modules/framer-motion/dist/es/render/components/motion/proxy.mjs
   var motion = /* @__PURE__ */ createDOMMotionComponentProxy(createMotionComponent);
 
-  // ../../../../../Jiffoo/node_modules/clsx/dist/clsx.mjs
+  // ../../../node_modules/clsx/dist/clsx.mjs
   function r(e) {
     var t, f, n = "";
     if ("string" == typeof e || "number" == typeof e) n += e;
@@ -8538,7 +8538,7 @@
     return n;
   }
 
-  // ../../../../../Jiffoo/node_modules/tailwind-merge/dist/bundle-mjs.mjs
+  // ../../../node_modules/tailwind-merge/dist/bundle-mjs.mjs
   var CLASS_PART_SEPARATOR = "-";
   var createClassGroupUtils = (config) => {
     const classMap = createClassMap(config);
@@ -10998,7 +10998,7 @@
   };
   var twMerge = /* @__PURE__ */ createTailwindMerge(getDefaultConfig);
 
-  // ../../../../../Jiffoo/packages/ui/dist/index.js
+  // ../../ui/dist/index.js
   function cn(...inputs) {
     return twMerge(clsx(inputs));
   }
@@ -12180,11 +12180,13 @@
     const imageUrl = product.images?.[0]?.url || product.image;
     const regionTag = esim?.region || esim?.country || "Travel";
     const technology = buildTechnologyLabel(esim);
+    const variantPrices = (product.variants || []).map((variant) => Number(variant.salePrice || 0)).filter((price) => price > 0);
+    const sellablePrice = variantPrices.length > 0 ? Math.min(...variantPrices) : Number(product.price || 0);
     return {
       id: product.id,
       name: product.name,
       description: product.description || `${product.name} travel connectivity package`,
-      price: Number(product.price || 0),
+      price: sellablePrice,
       sku: product.slug || product.id,
       category: {
         id: esim?.region || "esim",
