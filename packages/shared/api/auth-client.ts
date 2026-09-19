@@ -147,27 +147,20 @@ export class AuthClient extends ApiClient {
 
   // Forgot password - Not implemented, return error
   public async forgotPassword(email: string): Promise<ApiResponse<void>> {
-    return {
-      success: false,
-      error: {
-        code: 'NOT_IMPLEMENTED',
-        message: 'Forgot password feature is not implemented yet'
-      }
-    };
+    return this.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
   }
 
-  // Reset password - Not implemented, return error
+  // Reset password with the code delivered by forgotPassword()
   public async resetPassword(data: {
-    token: string;
+    email: string;
+    code: string;
     password: string;
   }): Promise<ApiResponse<void>> {
-    return {
-      success: false,
-      error: {
-        code: 'NOT_IMPLEMENTED',
-        message: 'Reset password feature is not implemented yet'
-      }
-    };
+    return this.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
+      email: data.email,
+      code: data.code,
+      newPassword: data.password,
+    });
   }
 
   // Refresh token

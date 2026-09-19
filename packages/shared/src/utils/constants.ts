@@ -8,6 +8,8 @@ export const API_ENDPOINTS = {
     PROFILE: '/auth/me', // Get user profile
     UPDATE_PROFILE: '/account/profile', // Update user profile
     CHANGE_PASSWORD: '/auth/change-password', // Update password endpoint
+    FORGOT_PASSWORD: '/auth/forgot-password', // Request a password reset code
+    RESET_PASSWORD: '/auth/reset-password', // Complete a password reset with the emailed code
   },
 
   // Account - User account management endpoints

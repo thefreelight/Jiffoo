@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('cloudflare:sockets', () => ({ connect: vi.fn() }));
 
-const { sendNativeVerificationCode, verifyNativeEmailCode } = await import('./email-verification');
+const { sendNativeVerificationCode, verifyNativeEmailCode, sendNativePasswordResetCode, verifyNativePasswordResetCode } = await import('./email-verification');
 const { tryNativeAuth } = await import('./auth');
 
 function emailDb(options: { existing?: Record<string, unknown> } = {}) {
@@ -87,5 +87,88 @@ describe('verification email template and auto-login session', () => {
     const setCookie = response?.headers.get('set-cookie') ?? '';
     expect(setCookie).toContain('auth_token=');
     expect(proxyRequest).not.toHaveBeenCalled();
+  });
+});
+
+describe('password reset codes', () => {
+  it('sends a password reset email without touching email_verified', async () => {
+    smtp.sendSmtpEmail.mockReset().mockResolvedValue(undefined);
+    const { db, statements } = emailDb();
+    await sendNativePasswordResetCode(
+      { DB: db, JWT_SECRET_VALUE: 'secret' } as never,
+      { id: 'u1', email: 'user@example.com', username: 'Jordan' },
+    );
+    expect(smtp.sendSmtpEmail).toHaveBeenCalledTimes(1);
+    const call = smtp.sendSmtpEmail.mock.calls[0]![1] as { subject: string; html: string };
+    expect(call.subject).toMatch(/password reset code: \d{6}$/);
+    expect(call.html).toContain('Reset your password');
+    expect(call.html).not.toMatch(/<script/i);
+    const update = statements.find((statement) => statement.sql.includes('verification_code_hash = ?1'));
+    expect(update?.sql).not.toContain('email_verified = 0');
+  });
+
+  it('verifies a valid reset code and reports the user id', async () => {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey('raw', encoder.encode('secret'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const signature = new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode('u1:654321')));
+    const codeHash = Array.from(signature, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    const { db } = emailDb({
+      existing: {
+        id: 'u1', email: 'user@example.com', username: 'Jordan', role: 'USER', is_active: 1,
+        email_verified: 1, verification_code_hash: codeHash,
+        verification_expires_at: new Date(Date.now() + 300_000).toISOString(), verification_attempts: 0,
+      },
+    });
+    const result = await verifyNativePasswordResetCode(
+      { DB: db, JWT_SECRET_VALUE: 'secret' } as never,
+      'user@example.com',
+      '654321',
+    );
+    expect(result.success).toBe(true);
+    expect(result.userId).toBe('u1');
+  });
+
+  it('rejects a wrong reset code without clearing email_verified', async () => {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey('raw', encoder.encode('secret'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const signature = new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode('u1:654321')));
+    const codeHash = Array.from(signature, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    const { db, statements } = emailDb({
+      existing: {
+        id: 'u1', email: 'user@example.com', username: 'Jordan', role: 'USER', is_active: 1,
+        email_verified: 1, verification_code_hash: codeHash,
+        verification_expires_at: new Date(Date.now() + 300_000).toISOString(), verification_attempts: 0,
+      },
+    });
+    const result = await verifyNativePasswordResetCode(
+      { DB: db, JWT_SECRET_VALUE: 'secret' } as never,
+      'user@example.com',
+      '000000',
+    );
+    expect(result.success).toBe(false);
+    const attempts = statements.filter((statement) => statement.sql.includes('verification_attempts = ?1'));
+    expect(attempts.length).toBeGreaterThan(0);
+    expect(attempts.every((statement) => !statement.sql.includes('email_verified'))).toBe(true);
+  });
+
+  it('rejects an expired reset code', async () => {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey('raw', encoder.encode('secret'), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const signature = new Uint8Array(await crypto.subtle.sign('HMAC', key, encoder.encode('u1:654321')));
+    const codeHash = Array.from(signature, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    const { db } = emailDb({
+      existing: {
+        id: 'u1', email: 'user@example.com', username: 'Jordan', role: 'USER', is_active: 1,
+        email_verified: 1, verification_code_hash: codeHash,
+        verification_expires_at: new Date(Date.now() - 1000).toISOString(), verification_attempts: 0,
+      },
+    });
+    const result = await verifyNativePasswordResetCode(
+      { DB: db, JWT_SECRET_VALUE: 'secret' } as never,
+      'user@example.com',
+      '654321',
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/expired/i);
   });
 });
