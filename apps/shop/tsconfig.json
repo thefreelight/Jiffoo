@@ -71,6 +71,9 @@
       "shared/types/theme": [
         "../../packages/shared/src/types/theme"
       ],
+      "shared/api/client": [
+        "../../packages/shared/api/client"
+      ],
       "shared/types/dto": [
         "../../packages/shared/dist/shared/src/types/dto/index.d.ts"
       ],
