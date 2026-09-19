@@ -11,7 +11,7 @@
  * intended to offer the panel, and the panel itself can explain the gap.
  */
 
-const JOBS_ADMIN_CAPABILITY_CACHE_KEY = 'jiffoo_admin_jobs_capability';
+const JOBS_ADMIN_CAPABILITY_CACHE_KEY = 'jiffoo_admin_jobs_capability_v2';
 const JOBS_ADMIN_UNAVAILABLE_CODE = 'JOBS_PLUGIN_UNAVAILABLE';
 const CAPABILITY_CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -63,6 +63,23 @@ export function clearJobsAdminCapabilityCache(): void {
   }
 }
 
+export function isJobsAdminCapableEnvelope(envelope: JobsAdminEnvelope | null | undefined): boolean {
+  // The dedicated envelope means this core has NO jobs service binding: hide.
+  if (isJobsAdminUnavailable(envelope)) return false;
+  // A well-formed success envelope means the proxy is configured and healthy.
+  if (envelope?.success === true) return true;
+  // Any other explicit application envelope (UNAUTHORIZED, another 503 code)
+  // proves the route exists on this core — the instance configures the
+  // panel; keep the entry and let it explain the gap.
+  if (envelope?.success === false) return true;
+  // Network-level failures never reached the core; do not hide the entry.
+  const code = typeof envelope?.error === 'object' ? envelope?.error?.code : undefined;
+  if (code === 'REQUEST_FAILED' || code === 'UNKNOWN_ERROR') return true;
+  // Anything else — bodies without a `success` flag at all, such as the
+  // native route 404 — means the proxy route does not exist on this core.
+  return false;
+}
+
 export function isJobsAdminUnavailable(envelope: JobsAdminEnvelope | null | undefined): boolean {
   const code = typeof envelope?.error === 'object' ? envelope?.error?.code : undefined;
   return envelope?.success === false && code === JOBS_ADMIN_UNAVAILABLE_CODE;
@@ -73,12 +90,9 @@ export async function probeJobsAdminCapability(
 ): Promise<boolean> {
   try {
     const response = await getCapability();
-    if (isJobsAdminUnavailable(response)) {
-      writeCachedJobsAdminCapability(false);
-      return false;
-    }
-    writeCachedJobsAdminCapability(true);
-    return true;
+    const available = isJobsAdminCapableEnvelope(response);
+    writeCachedJobsAdminCapability(available);
+    return available;
   } catch {
     // A failed probe (network, auth, upstream outage) must not hide the entry
     // from instances that do configure the panel; assume available and let the

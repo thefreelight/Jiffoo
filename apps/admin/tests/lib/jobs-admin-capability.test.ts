@@ -8,7 +8,7 @@ import {
   shouldShowJobSourcesNavigation,
 } from '../../lib/jobs-admin-capability';
 
-const STORAGE_KEY = 'jiffoo_admin_jobs_capability';
+const STORAGE_KEY = 'jiffoo_admin_jobs_capability_v2';
 
 interface Store {
   [key: string]: string;
