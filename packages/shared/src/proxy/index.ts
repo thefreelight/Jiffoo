@@ -131,6 +131,7 @@ export function shouldSkipLocaleHandling(pathname: string): boolean {
     '.ico', '.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp',
     '.css', '.js', '.json', '.xml', '.txt', '.pdf', '.sh', '.yml', '.yaml',
     '.woff', '.woff2', '.ttf', '.eot',
+    '.apk',
   ];
 
   if (staticExtensions.some((ext) => pathname.endsWith(ext))) {

@@ -89,6 +89,25 @@ const nextConfig = createNextConfig({
     };
     return config;
   },
+  async redirects() {
+    // Legacy APK path from the pre-Cloudflare-native easyeuicc site. The
+    // storefront no longer ships the binary; the real artifact lives on the
+    // Angry.Im Gitea release (checksum published on the landing page).
+    // Host-scoped so other storefronts are untouched.
+    const easyeuiccHost = { type: 'host', value: 'easyeuicc.cc' };
+    const easyeuiccWwwHost = { type: 'host', value: 'www.easyeuicc.cc' };
+    const easyeuiccApkRedirect = {
+      destination:
+        'https://gitea.angry.im/PeterCxy/OpenEUICC/releases/download/unpriv-v1.6.2/app-unpriv-release.apk',
+      permanent: false,
+    };
+    return [
+      { ...easyeuiccApkRedirect, source: '/downloads/:file*', has: [easyeuiccHost] },
+      { ...easyeuiccApkRedirect, source: '/downloads/:file*', has: [easyeuiccWwwHost] },
+      { ...easyeuiccApkRedirect, source: '/:locale/downloads/:file*', has: [easyeuiccHost] },
+      { ...easyeuiccApkRedirect, source: '/:locale/downloads/:file*', has: [easyeuiccWwwHost] },
+    ];
+  },
   async headers() {
     // react-scan (dev-only perf overlay) loads from unpkg and spawns a blob:
     // worker; allow both only in development — prod CSP stays strict.
