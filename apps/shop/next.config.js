@@ -98,7 +98,7 @@ const nextConfig = createNextConfig({
     const easyeuiccWwwHost = { type: 'host', value: 'www.easyeuicc.cc' };
     const easyeuiccApkRedirect = {
       destination:
-        'https://gitea.angry.im/PeterCxy/OpenEUICC/releases/download/unpriv-v1.6.2/app-unpriv-release.apk',
+        'https://gitea.angry.im/PeterCxy/OpenEUICC/releases/download/unpriv-v1.7.2/app-unpriv-release.apk',
       permanent: false,
     };
     return [

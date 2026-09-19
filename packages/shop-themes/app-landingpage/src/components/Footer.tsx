@@ -4,7 +4,7 @@ import type { FooterProps } from '../types';
 import { themeText } from '../lib/i18n';
 import { LanguageSwitcher } from './LanguageSwitcher';
 
-const defaultEasyEuiccDownloadUrl = 'https://easyeuicc.cc/downloads/EasyEUICC-v1.6.2.apk';
+const defaultEasyEuiccDownloadUrl = 'https://gitea.angry.im/PeterCxy/OpenEUICC/releases/download/unpriv-v1.7.2/app-unpriv-release.apk';
 
 export const Footer = React.memo(function Footer({
   config,

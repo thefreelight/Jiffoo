@@ -52,7 +52,7 @@ export const themeMessages: Record<Locale, Record<MessageKey, string>> = {
     'appDownload.security.title': 'Only the confirmed latest Android package is provided.',
     'appDownload.security.version': 'Version: {version}',
     'appDownload.security.package': 'Package: im.angry.easyeuicc',
-    'appDownload.security.targetSdk': 'Target SDK: 35',
+    'appDownload.security.targetSdk': 'Target SDK: {sdk}',
   },
   // es / fr / de / ja translate the storefront-visible surface (chrome, nav,
   // legal titles, app-download landing). Long-tail commerce keys (auth,
@@ -95,7 +95,7 @@ export const themeMessages: Record<Locale, Record<MessageKey, string>> = {
     'appDownload.security.title': 'Solo se proporciona el último paquete de Android confirmado.',
     'appDownload.security.version': 'Versión: {version}',
     'appDownload.security.package': 'Paquete: im.angry.easyeuicc',
-    'appDownload.security.targetSdk': 'SDK de destino: 35',
+    'appDownload.security.targetSdk': 'SDK de destino: {sdk}',
   },
   fr: {
     'common.privacy': 'Confidentialité',
@@ -133,7 +133,7 @@ export const themeMessages: Record<Locale, Record<MessageKey, string>> = {
     'appDownload.security.title': 'Seul le dernier paquet Android confirmé est fourni.',
     'appDownload.security.version': 'Version : {version}',
     'appDownload.security.package': 'Paquet : im.angry.easyeuicc',
-    'appDownload.security.targetSdk': 'SDK cible : 35',
+    'appDownload.security.targetSdk': 'SDK cible : {sdk}',
   },
   de: {
     'common.privacy': 'Datenschutz',
@@ -171,7 +171,7 @@ export const themeMessages: Record<Locale, Record<MessageKey, string>> = {
     'appDownload.security.title': 'Nur das bestätigte neueste Android-Paket wird bereitgestellt.',
     'appDownload.security.version': 'Version: {version}',
     'appDownload.security.package': 'Paket: im.angry.easyeuicc',
-    'appDownload.security.targetSdk': 'Ziel-SDK: 35',
+    'appDownload.security.targetSdk': 'Ziel-SDK: {sdk}',
   },
   ja: {
     'common.privacy': 'プライバシー',
@@ -209,7 +209,7 @@ export const themeMessages: Record<Locale, Record<MessageKey, string>> = {
     'appDownload.security.title': '確認済みの最新Androidパッケージのみを提供します。',
     'appDownload.security.version': 'バージョン: {version}',
     'appDownload.security.package': 'パッケージ: im.angry.easyeuicc',
-    'appDownload.security.targetSdk': '対象SDK: 35',
+    'appDownload.security.targetSdk': '対象SDK: {sdk}',
   },
   'zh-Hans': {
     'common.privacy': '隐私政策',
@@ -259,7 +259,7 @@ export const themeMessages: Record<Locale, Record<MessageKey, string>> = {
     'appDownload.security.title': '只提供已确认的最新 Android 安装包。',
     'appDownload.security.version': '版本号：{version}',
     'appDownload.security.package': '包名：im.angry.easyeuicc',
-    'appDownload.security.targetSdk': 'Target SDK：35',
+    'appDownload.security.targetSdk': 'Target SDK：{sdk}',
   },
   'zh-Hant': {
     'common.privacy': '隱私政策',
@@ -309,7 +309,7 @@ export const themeMessages: Record<Locale, Record<MessageKey, string>> = {
     'appDownload.security.title': '只提供已確認的最新 Android 安裝包。',
     'appDownload.security.version': '版本號：{version}',
     'appDownload.security.package': '套件名稱：im.angry.easyeuicc',
-    'appDownload.security.targetSdk': 'Target SDK：35',
+    'appDownload.security.targetSdk': 'Target SDK：{sdk}',
   },
 };
 
