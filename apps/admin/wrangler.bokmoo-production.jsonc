@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "bokmoo-production-admin",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-07-29",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "bokmoo-production-admin-cache" }],
+  "vars": {
+    "API_SERVICE_URL": "https://api.bokmoo.com",
+    "NEXT_PUBLIC_API_URL": "/api",
+    "THEME_APP_PROXY_DISABLED": "1"
+  }
+}

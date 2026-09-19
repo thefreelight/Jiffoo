@@ -292,7 +292,7 @@ export async function tryNativeAffiliate(request: Request, env: AffiliateEnv): P
     ).all<Record<string, unknown>>();
     const attributions = await env.DB.prepare(
       `SELECT a.id, p.code AS partner_code, a.visitor_id, a.status, a.user_id,
-              a.landing_url, a.created_at, a.expires_at, a.converted_at
+              a.landing_url, a.created_at, a.expires_at, a.associated_at
        FROM native_affiliate_attributions a
        LEFT JOIN native_affiliate_partners p ON p.id = a.partner_id
        ORDER BY a.created_at DESC LIMIT 200`,
