@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { type UserProfile } from 'shared';
 import { authApi, accountApi, apiClient } from '@/lib/api';
 
-async function associateAffiliateVisitor(): Promise<void> {
+export async function associateAffiliateVisitor(): Promise<void> {
   if (typeof document === 'undefined') return;
   const match = document.cookie.match(/(?:^|;\s*)bokmoo_affiliate_visitor=([^;]+)/);
   const visitorId = match?.[1] ? decodeURIComponent(match[1]) : '';
@@ -175,6 +175,7 @@ export const useAuthStore = create<AuthState & AuthActions>()(
                 error: null,
               });
             }
+            await associateAffiliateVisitor();
             return { emailVerified: true };
           } else {
             throw Object.assign(new Error(response.error?.message || 'Registration failed'), {

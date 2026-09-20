@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { apiClient, authApi } from '@/lib/api';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
-import { useAuthStore } from '@/store/auth';
+import { associateAffiliateVisitor, useAuthStore } from '@/store/auth';
 import { useT } from 'shared/src/i18n/react';
 
 type VerificationState = 'idle' | 'loading' | 'success' | 'error';
@@ -78,6 +78,9 @@ function VerifyEmailContent() {
         }
         await getProfile();
         useAuthStore.setState({ isAuthenticated: true });
+        // The code-verification path signs the user in without the login
+        // action, so the referral attribution has to be associated here too.
+        await associateAffiliateVisitor();
         setState('success');
         setMessage(getText('shop.auth.verifyEmail.successMessage', 'Your email has been verified. You can now sign in.'));
         nav.push('/profile');
