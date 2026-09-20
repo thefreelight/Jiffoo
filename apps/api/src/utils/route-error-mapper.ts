@@ -111,6 +111,8 @@ export function mapAdminOrderRouteError(
     lowerMessage.includes('cannot ship order with status') ||
     lowerMessage.includes('order is not paid, cannot refund') ||
     lowerMessage.includes('no successful payment found for this order') ||
+    lowerMessage.includes('no pending manual payment found for order') ||
+    lowerMessage.includes('order is already paid') ||
     lowerMessage.includes('cannot cancel order with status') ||
     lowerMessage.includes('order is already cancelled')
   ) {

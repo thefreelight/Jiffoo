@@ -20,6 +20,7 @@ import { LoggerService } from '@/core/logger/unified-logger';
 import { PaymentStatus } from '@/core/order/types';
 import { syncPaymentFromPlugin } from '@/core/payment/reconciliation';
 import { callPaymentPlugin } from '@/core/payment/plugin-gateway';
+import { builtinManualPaymentDriver, MANUAL_PAYMENT_METHOD } from '@/core/payment/manual-payment';
 import { Prisma } from '@prisma/client';
 
 function setHttpCache(reply: FastifyReply, data: unknown, maxAge: number, swr: number) {
@@ -178,6 +179,20 @@ function getPluginErrorMessage(pluginPayload: Record<string, unknown>, fallbackS
   return `Plugin gateway failed with status ${fallbackStatus}`;
 }
 
+function getShopOrigin(): string {
+  return process.env.SHOP_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
+}
+
+function getShopLocale(successUrl?: string): string {
+  if (!successUrl) return 'en';
+  try {
+    const [locale] = new URL(successUrl).pathname.split('/').filter(Boolean);
+    return locale || 'en';
+  } catch {
+    return 'en';
+  }
+}
+
 // syncPaymentFromPlugin moved to core/payment/reconciliation
 
 export async function paymentRoutes(fastify: FastifyInstance) {
@@ -228,15 +243,6 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const availableMethods = await getEnabledPaymentMethods();
-      if (availableMethods.length === 0) {
-        return sendError(
-          reply,
-          409,
-          'PAYMENT_PLUGIN_REQUIRED',
-          'No payment plugin is installed/enabled. Please install and enable at least one payment plugin.'
-        );
-      }
-
       const { paymentMethod, orderId, successUrl, cancelUrl, idempotencyKey: rawIdempotencyKey } = request.body as {
         paymentMethod: string;
         orderId: string;
@@ -245,8 +251,9 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         idempotencyKey?: string;
       };
       const pluginSlug = resolvePluginSlugByMethod(paymentMethod, availableMethods);
+      const useBuiltinManualPayment = availableMethods.length === 0;
 
-      if (!pluginSlug) {
+      if (!useBuiltinManualPayment && !pluginSlug) {
         return sendError(
           reply,
           400,
@@ -255,7 +262,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         );
       }
 
-      if (!availableMethods.some((m) => m.pluginSlug === pluginSlug)) {
+      if (!useBuiltinManualPayment && !availableMethods.some((m) => m.pluginSlug === pluginSlug)) {
         return sendError(
           reply,
           409,
@@ -291,7 +298,8 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       const normalizedIdempotencyKey = typeof rawIdempotencyKey === 'string' && rawIdempotencyKey.trim()
         ? rawIdempotencyKey.trim()
         : undefined;
-      const idempotencyKey = normalizedIdempotencyKey || `order:${order.id}:attempt:${attemptNumber}:${pluginSlug}`;
+      const paymentProvider = useBuiltinManualPayment ? MANUAL_PAYMENT_METHOD : pluginSlug!;
+      const idempotencyKey = normalizedIdempotencyKey || `order:${order.id}:attempt:${attemptNumber}:${paymentProvider}`;
 
       const existingPayment = await prisma.payment.findUnique({
         where: { idempotencyKey },
@@ -308,8 +316,39 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         });
       }
       const currency = await systemSettingsService.getShopCurrency();
+      if (useBuiltinManualPayment) {
+        try {
+          const session = await builtinManualPaymentDriver.createSession({
+            orderId: order.id,
+            amountMinor: Math.round(Number(order.totalAmount) * 100),
+            currency,
+            successUrl,
+            cancelUrl,
+            idempotencyKey,
+            metadata: {
+              attemptNumber,
+              shopOrigin: getShopOrigin(),
+              locale: getShopLocale(successUrl),
+            },
+          });
+          return sendSuccess(reply, session);
+        } catch (error: any) {
+          if (isUniqueConstraintError(error)) {
+            const existing = await prisma.payment.findUnique({ where: { idempotencyKey } });
+            if (existing) {
+              return sendSuccess(reply, {
+                sessionId: existing.sessionId,
+                url: existing.sessionUrl,
+                expiresAt: existing.expiresAt?.toISOString() || new Date(Date.now() + 30 * 60 * 1000).toISOString(),
+              });
+            }
+          }
+          throw error;
+        }
+      }
+
       const pluginResult = await callPaymentPlugin({
-        pluginSlug,
+        pluginSlug: pluginSlug!,
         path: '/api/payments/create-session?installation=default',
         body: {
           orderId: order.id,
@@ -352,7 +391,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
           const payment = await tx.payment.create({
             data: {
               orderId: order.id,
-              paymentMethod: pluginSlug,
+              paymentMethod: pluginSlug!,
               amount: Number(order.totalAmount),
               currency,
               status: 'PENDING',
@@ -372,7 +411,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
               eventType: 'CREATED',
               amount: Number(order.totalAmount),
               currency,
-              provider: pluginSlug,
+              provider: pluginSlug!,
               idempotencyKey,
             },
           });
@@ -382,7 +421,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
             data: {
               paymentAttempts: attemptNumber,
               lastPaymentAttemptAt: new Date(),
-              lastPaymentMethod: pluginSlug
+              lastPaymentMethod: pluginSlug!
             }
           });
         });
@@ -436,6 +475,18 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string };
+
+    const existingPayment = await prisma.payment.findFirst({ where: { sessionId } });
+    if (existingPayment?.paymentMethod === MANUAL_PAYMENT_METHOD) {
+      const session = await builtinManualPaymentDriver.verifySession(sessionId);
+      return sendSuccess(reply, {
+        sessionId,
+        orderId: session.orderId,
+        status: session.status === 'SUCCEEDED' ? 'paid' : session.status,
+        paidAt: existingPayment.status === 'SUCCEEDED' ? existingPayment.updatedAt : undefined,
+        paymentMethod: session.paymentMethod,
+      });
+    }
 
     await syncPaymentFromPlugin(sessionId);
     const payment = await prisma.payment.findFirst({ where: { sessionId } });

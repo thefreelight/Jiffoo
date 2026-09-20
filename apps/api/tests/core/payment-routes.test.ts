@@ -16,6 +16,7 @@ vi.mock('@/config/database', () => ({
   prisma: {
     payment: {
       findFirst: vi.fn(),
+      findUnique: vi.fn(),
       create: vi.fn(),
       update: vi.fn(),
     },
@@ -60,6 +61,10 @@ vi.mock('@/core/logger/unified-logger', () => ({
   },
 }));
 
+vi.mock('@/core/payment/plugin-gateway', () => ({
+  callPaymentPlugin: vi.fn(),
+}));
+
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
@@ -70,6 +75,7 @@ import { PluginManagementService } from '@/core/admin/plugin-management/service'
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { CacheService } from '@/core/cache/service';
 import { authMiddleware } from '@/core/auth/middleware';
+import { callPaymentPlugin } from '@/core/payment/plugin-gateway';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -206,13 +212,27 @@ describe('Payment Routes', () => {
   // -----------------------------------------------------------------------
 
   describe('POST /api/payments/create-session', () => {
-    it('should return 409 when no payment plugins are available', async () => {
+    it('should use the built-in manual payment when no payment plugins are available', async () => {
       (CacheService.getPluginVersion as ReturnType<typeof vi.fn>).mockResolvedValue('1');
       (CacheService.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       (CacheService.set as ReturnType<typeof vi.fn>).mockResolvedValue(true);
       (PluginManagementService.getAllPluginPackages as ReturnType<typeof vi.fn>).mockResolvedValue(
         [],
       );
+      (systemSettingsService.getShopCurrency as ReturnType<typeof vi.fn>).mockResolvedValue('USD');
+      (prisma.order.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'order-1',
+        totalAmount: 12.34,
+        paymentStatus: 'PENDING',
+        paymentAttempts: 0,
+      });
+      (prisma.payment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      const tx = {
+        payment: { create: vi.fn().mockResolvedValue({ id: 'payment-1', sessionId: 'manual_order-1_1', sessionUrl: 'http://localhost:3000/en/payment/manual?order_id=order-1' }) },
+        paymentLedger: { create: vi.fn().mockResolvedValue({}) },
+        order: { update: vi.fn().mockResolvedValue({}) },
+      };
+      (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
 
       const response = await app.inject({
         method: 'POST',
@@ -220,14 +240,19 @@ describe('Payment Routes', () => {
         payload: {
           paymentMethod: 'stripe-payment',
           orderId: 'order-1',
+          successUrl: 'https://shop.example/en/order-success',
         },
       });
 
-      expect(response.statusCode).toBe(409);
+      expect(response.statusCode).toBe(200);
 
       const body = response.json();
-      expect(body.success).toBe(false);
-      expect(body.error.code).toBe('PAYMENT_PLUGIN_REQUIRED');
+      expect(body.success).toBe(true);
+      expect(body.data.sessionId).toBe('manual_order-1_1');
+      expect(body.data.url).toBe('http://localhost:3000/en/payment/manual?order_id=order-1');
+      expect(tx.paymentLedger.create).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({ eventType: 'CREATED', provider: 'manual' }),
+      }));
     });
 
     it('should call authMiddleware for authentication', async () => {
@@ -251,6 +276,40 @@ describe('Payment Routes', () => {
 
       expect(authMiddleware).toHaveBeenCalled();
     });
+
+    it('should prefer an enabled payment extension over the built-in manual payment', async () => {
+      setupDefaultMocks();
+      (prisma.order.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'order-1',
+        totalAmount: 12.34,
+        paymentStatus: 'PENDING',
+        paymentAttempts: 0,
+      });
+      (prisma.payment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (callPaymentPlugin as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ok: true,
+        status: 200,
+        payload: { data: { sessionId: 'stripe-session-1', url: 'https://stripe.example/session' } },
+      });
+      const tx = {
+        payment: { create: vi.fn().mockResolvedValue({ id: 'payment-1' }) },
+        paymentLedger: { create: vi.fn().mockResolvedValue({}) },
+        order: { update: vi.fn().mockResolvedValue({}) },
+      };
+      (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
+
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/payments/create-session',
+        payload: { paymentMethod: 'stripe-payment', orderId: 'order-1' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(callPaymentPlugin).toHaveBeenCalledWith(expect.objectContaining({ pluginSlug: 'stripe-payment' }));
+      expect(tx.payment.create).toHaveBeenCalledWith(expect.objectContaining({
+        data: expect.objectContaining({ paymentMethod: 'stripe-payment' }),
+      }));
+    });
   });
 
   // -----------------------------------------------------------------------
@@ -258,6 +317,30 @@ describe('Payment Routes', () => {
   // -----------------------------------------------------------------------
 
   describe('GET /api/payments/verify/:sessionId', () => {
+    it('should resolve a manual payment without calling a payment extension', async () => {
+      const manualPayment = {
+        id: 'payment-1',
+        orderId: 'order-1',
+        sessionId: 'manual_order-1_1',
+        status: 'PENDING',
+        paymentMethod: 'manual',
+        updatedAt: new Date('2025-06-01T12:00:00Z'),
+      };
+      (prisma.payment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(manualPayment);
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/api/payments/verify/manual_order-1_1',
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().data).toMatchObject({
+        orderId: 'order-1',
+        status: 'PENDING',
+        paymentMethod: 'manual',
+      });
+    });
+
     it('should return payment status for a known session', async () => {
       const mockPayment = {
         id: 'pay-1',

@@ -27,7 +27,6 @@ const allMessages: Record<Locale, Messages> = {
   'zh-Hans': {
     common: zhHansMessages.common,
     shop: zhHansMessages.shop,
-    tenant: zhHansMessages.merchant,
     merchant: zhHansMessages.merchant,
     whiteLabel: zhHansMessages.whiteLabel,
   },

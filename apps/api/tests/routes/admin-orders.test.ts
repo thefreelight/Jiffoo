@@ -24,6 +24,7 @@ import {
   deleteAllTestOrders,
 } from '../helpers/fixtures';
 import { v4 as uuidv4 } from 'uuid';
+import { prisma } from '@/config/database';
 
 describe('Admin Orders Endpoints', () => {
   let app: FastifyInstance;
@@ -238,6 +239,64 @@ describe('Admin Orders Endpoints', () => {
       });
 
       expect(response.statusCode).toBe(200);
+    });
+  });
+
+  describe('POST /api/admin/orders/:id/record-manual-payment', () => {
+    it('should register the v1 admin route', async () => {
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/v1/admin/orders/${uuidv4()}/record-manual-payment`,
+      });
+
+      expect(response.statusCode).toBe(401);
+    });
+
+    it('should record a manual payment, update the order, and write an audit record', async () => {
+      if (!testOrderId) return;
+
+      const order = await prisma.order.findUniqueOrThrow({ where: { id: testOrderId } });
+      const payment = await prisma.payment.create({
+        data: {
+          orderId: testOrderId,
+          paymentMethod: 'manual',
+          amount: order.totalAmount,
+          currency: order.currency,
+          status: 'PENDING',
+          sessionId: `manual_${testOrderId}_test`,
+          sessionUrl: `http://localhost:3000/en/payment/manual?order_id=${testOrderId}`,
+          attemptNumber: (order.paymentAttempts || 0) + 1,
+          idempotencyKey: `manual-test:${testOrderId}`,
+        },
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/api/admin/orders/${testOrderId}/record-manual-payment`,
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { reference: 'cash-receipt-001' },
+      });
+
+      expect(response.statusCode).toBe(200);
+      expect(response.json().data).toMatchObject({
+        id: testOrderId,
+        status: 'PROCESSING',
+        paymentStatus: 'PAID',
+      });
+
+      const [updatedPayment, audit] = await Promise.all([
+        prisma.payment.findUniqueOrThrow({ where: { id: payment.id } }),
+        prisma.orderStatusHistory.findFirst({
+          where: { orderId: testOrderId, reason: 'manual_payment_recorded' },
+          orderBy: { createdAt: 'desc' },
+        }),
+      ]);
+      expect(updatedPayment.status).toBe('SUCCEEDED');
+      expect(audit).toMatchObject({
+        actorType: 'admin',
+        reason: 'manual_payment_recorded',
+        metadata: { reference: 'cash-receipt-001' },
+      });
     });
   });
 

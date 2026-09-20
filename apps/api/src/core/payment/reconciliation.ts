@@ -14,9 +14,125 @@ function normalizeMethodKey(value: unknown): string {
   return String(value || '').trim().toLowerCase();
 }
 
+export type RecordPaymentSucceededInput = {
+  paymentId: string;
+  providerEventId: string;
+  paymentIntentId?: string | null;
+  reason?: string;
+  actorType?: string;
+  actorId?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput): Promise<boolean> {
+  const payment = await prisma.payment.findUnique({ where: { id: input.paymentId } });
+  if (!payment || payment.status === 'SUCCEEDED') {
+    return false;
+  }
+
+  const order = await prisma.order.findUnique({
+    where: { id: payment.orderId },
+    select: { status: true, paymentStatus: true },
+  });
+  if (!order) {
+    return false;
+  }
+
+  let didUpdate = false;
+  try {
+    await prisma.$transaction(async (tx) => {
+      const ledger = await tx.paymentLedger.findUnique({
+        where: { providerEventId: input.providerEventId },
+      });
+      if (ledger) {
+        return;
+      }
+
+      const updatedPayment = await tx.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: 'SUCCEEDED',
+          paymentIntentId: input.paymentIntentId || payment.paymentIntentId || null,
+          providerEventId: input.providerEventId,
+        },
+      });
+
+      await tx.paymentLedger.create({
+        data: {
+          paymentId: updatedPayment.id,
+          orderId: payment.orderId,
+          eventType: 'SUCCEEDED',
+          amount: updatedPayment.amount,
+          currency: updatedPayment.currency,
+          provider: updatedPayment.paymentMethod,
+          providerEventId: input.providerEventId,
+          metadata: input.metadata,
+        },
+      });
+
+      const updatedOrder = await tx.order.update({
+        where: { id: payment.orderId },
+        data: {
+          paymentStatus: PaymentStatus.PAID,
+          status: OrderStatus.PROCESSING,
+        },
+      });
+
+      await recordOrderStatusHistory(tx, {
+        orderId: updatedOrder.id,
+        fromStatus: order.status as PrismaOrderStatus,
+        toStatus: updatedOrder.status as PrismaOrderStatus,
+        fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+        toPaymentStatus: updatedOrder.paymentStatus as PrismaOrderPaymentStatus,
+        reason: input.reason || 'payment_succeeded',
+        actorType: input.actorType || 'system',
+        actorId: input.actorId,
+        metadata: input.metadata,
+      });
+
+      await emitOrderPaidEvent(tx, payment.orderId, {
+        paymentId: updatedPayment.id,
+        paymentMethod: updatedPayment.paymentMethod,
+        paymentIntentId: updatedPayment.paymentIntentId,
+        sessionId: updatedPayment.sessionId,
+        providerEventId: input.providerEventId,
+        metadata: (updatedPayment.metadata || {}) as Record<string, unknown>,
+        actorId: input.actorId,
+      });
+
+      await OutboxService.emit(tx, 'payment.succeeded', updatedPayment.id, {
+        paymentId: updatedPayment.id,
+        orderId: payment.orderId,
+        userId: (updatedPayment.metadata as Record<string, unknown> | null)?.userId,
+        amount: Number(updatedPayment.amount),
+        currency: updatedPayment.currency,
+        metadata: updatedPayment.metadata || {},
+      }, { actorId: input.actorId });
+
+      didUpdate = true;
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return false;
+    }
+    throw error;
+  }
+
+  if (didUpdate) {
+    await ExternalOrderService.processPaidOrder(payment.orderId).catch((error) => {
+      console.error('Failed to process paid external orders:', error);
+    });
+  }
+  return didUpdate;
+}
+
 export async function syncPaymentFromPlugin(sessionId: string): Promise<boolean> {
   const payment = await prisma.payment.findFirst({ where: { sessionId } });
   if (!payment || !payment.paymentMethod) {
+    return false;
+  }
+
+  if (normalizeMethodKey(payment.paymentMethod) === 'manual') {
     return false;
   }
 
@@ -30,11 +146,6 @@ export async function syncPaymentFromPlugin(sessionId: string): Promise<boolean>
   if (payment.status === 'FAILED') {
     return false;
   }
-
-  const order = await prisma.order.findUnique({
-    where: { id: payment.orderId },
-    select: { status: true, paymentStatus: true },
-  });
 
   const verifyResult = await callPaymentPlugin({
     pluginSlug: payment.paymentMethod,
@@ -64,93 +175,18 @@ export async function syncPaymentFromPlugin(sessionId: string): Promise<boolean>
   }
 
   if (['paid', 'succeeded', 'success', 'completed'].includes(status)) {
-    let didUpdate = false;
-    try {
-      await prisma.$transaction(async (tx) => {
-        const ledger = await tx.paymentLedger.findUnique({
-          where: { providerEventId },
-        });
-        if (ledger) {
-          return;
-        }
-
-        const updatedPayment = await tx.payment.update({
-          where: { id: payment.id },
-          data: {
-            status: 'SUCCEEDED',
-            paymentIntentId: (data?.paymentIntentId as string) || payment.paymentIntentId || null,
-            providerEventId,
-          },
-        });
-
-        await tx.paymentLedger.create({
-          data: {
-            paymentId: updatedPayment.id,
-            orderId: payment.orderId,
-            eventType: 'SUCCEEDED',
-            amount: updatedPayment.amount,
-            currency: updatedPayment.currency,
-            provider: updatedPayment.paymentMethod,
-            providerEventId,
-          },
-        });
-
-        const updatedOrder = await tx.order.update({
-          where: { id: payment.orderId },
-          data: {
-            paymentStatus: PaymentStatus.PAID,
-            status: OrderStatus.PROCESSING,
-          },
-        });
-
-        if (order) {
-          await recordOrderStatusHistory(tx, {
-            orderId: updatedOrder.id,
-            fromStatus: order.status as PrismaOrderStatus,
-            toStatus: updatedOrder.status as PrismaOrderStatus,
-            fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
-            toPaymentStatus: updatedOrder.paymentStatus as PrismaOrderPaymentStatus,
-            reason: 'payment_succeeded',
-            actorType: 'system',
-          });
-        }
-
-        await emitOrderPaidEvent(tx, payment.orderId, {
-          paymentId: updatedPayment.id,
-          paymentMethod: updatedPayment.paymentMethod,
-          paymentIntentId: updatedPayment.paymentIntentId,
-          sessionId: updatedPayment.sessionId,
-          providerEventId,
-          metadata: (updatedPayment.metadata || {}) as Record<string, unknown>,
-        });
-
-        await OutboxService.emit(tx, 'payment.succeeded', updatedPayment.id, {
-          paymentId: updatedPayment.id,
-          orderId: payment.orderId,
-          userId: (updatedPayment.metadata as Record<string, unknown> | null)?.userId,
-          amount: Number(updatedPayment.amount),
-          currency: updatedPayment.currency,
-          metadata: updatedPayment.metadata || {},
-        });
-
-        didUpdate = true;
-      });
-    } catch (error) {
-      if (isUniqueConstraintError(error)) {
-        return false;
-      }
-      throw error;
-    }
-
-    if (didUpdate) {
-      await ExternalOrderService.processPaidOrder(payment.orderId).catch((error) => {
-        console.error('Failed to process paid external orders:', error);
-      });
-    }
-    return didUpdate;
+    return recordPaymentSucceeded({
+      paymentId: payment.id,
+      providerEventId,
+      paymentIntentId: (data?.paymentIntentId as string) || null,
+    });
   }
 
   if (['failed', 'canceled', 'cancelled', 'expired'].includes(status)) {
+    const order = await prisma.order.findUnique({
+      where: { id: payment.orderId },
+      select: { status: true, paymentStatus: true },
+    });
     let didUpdate = false;
     try {
       await prisma.$transaction(async (tx) => {
@@ -260,14 +296,14 @@ export async function reconcilePendingPayments(
     where,
     orderBy: { createdAt: 'asc' },
     take: limit,
-    select: { sessionId: true },
+    select: { sessionId: true, paymentMethod: true },
   });
 
   let updated = 0;
   let failed = 0;
 
   for (const payment of payments) {
-    if (!payment.sessionId) {
+    if (!payment.sessionId || normalizeMethodKey(payment.paymentMethod) === 'manual') {
       continue;
     }
     try {

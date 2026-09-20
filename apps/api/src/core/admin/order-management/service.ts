@@ -13,6 +13,8 @@ import { OrderStatus, OrderStatusType, PaymentStatus } from '@/core/order/types'
 import { recordOrderStatusHistory } from '@/core/order/status-history';
 import { InventoryService } from '@/core/inventory/service';
 import { OutboxService } from '@/infra/outbox';
+import { MANUAL_PAYMENT_METHOD } from '@/core/payment/manual-payment';
+import { recordPaymentSucceeded } from '@/core/payment/reconciliation';
 
 const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
   error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
@@ -375,6 +377,43 @@ export class AdminOrderService {
     // Invalidate list cache
     await CacheService.incrementOrderVersion();
 
+    return this.getOrderById(orderId);
+  }
+
+  static async recordManualPayment(orderId: string, actorId: string, reference?: string) {
+    const order = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, paymentStatus: true },
+    });
+    if (!order) {
+      throw new Error('Order not found');
+    }
+    if (order.paymentStatus === PaymentStatus.PAID) {
+      throw new Error('Order is already paid');
+    }
+
+    const payment = await prisma.payment.findFirst({
+      where: {
+        orderId,
+        paymentMethod: MANUAL_PAYMENT_METHOD,
+        status: 'PENDING',
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!payment) {
+      throw new Error('No pending manual payment found for order');
+    }
+
+    await recordPaymentSucceeded({
+      paymentId: payment.id,
+      providerEventId: `manual:${payment.id}`,
+      reason: 'manual_payment_recorded',
+      actorType: 'admin',
+      actorId,
+      metadata: reference ? { reference } : undefined,
+    });
+
+    await CacheService.incrementOrderVersion();
     return this.getOrderById(orderId);
   }
 

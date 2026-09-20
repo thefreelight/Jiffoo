@@ -240,6 +240,23 @@ export const adminOrderSchemas = {
     response: createTypedUpdateResponses(adminOrderDetailSchema),
   },
 
+  recordManualPayment: {
+    params: {
+      type: 'object',
+      required: ['id'],
+      properties: {
+        id: { type: 'string', description: 'Order ID' },
+      },
+    },
+    body: {
+      type: 'object',
+      properties: {
+        reference: { type: 'string', maxLength: 256, description: 'Optional offline payment reference' },
+      },
+    },
+    response: createTypedUpdateResponses(adminOrderDetailSchema),
+  },
+
   // POST /api/admin/orders/:id/ship
   shipOrder: {
     params: {

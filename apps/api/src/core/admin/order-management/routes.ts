@@ -116,6 +116,30 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
     }
   });
 
+  fastify.post('/:id/record-manual-payment', {
+    schema: {
+      tags: ['admin-orders'],
+      summary: 'Record a manual payment',
+      description: 'Mark a pending manual payment as paid (admin only)',
+      security: [{ bearerAuth: [] }],
+      ...adminOrderSchemas.recordManualPayment,
+    },
+  }, async (request, reply) => {
+    try {
+      const { id } = request.params as { id: string };
+      const { reference } = (request.body || {}) as { reference?: string };
+      const order = await AdminOrderService.recordManualPayment(id, request.user!.id, reference);
+      return sendSuccess(reply, order);
+    } catch (error: unknown) {
+      const mapped = mapAdminOrderRouteError(error, {
+        defaultStatus: 500,
+        defaultCode: 'INTERNAL_SERVER_ERROR',
+        defaultMessage: 'Failed to record manual payment',
+      });
+      return sendError(reply, mapped.status, mapped.code, mapped.message, mapped.details);
+    }
+  });
+
   // Ship order
   fastify.post('/:id/ship', {
     schema: {
