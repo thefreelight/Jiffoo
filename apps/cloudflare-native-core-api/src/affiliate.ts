@@ -346,12 +346,114 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
         .filter((row) => row.status === 'pending')
         .reduce((sum, row) => sum + Number(row.amount || 0), 0),
     };
+    const organizations = await env.DB.prepare(
+      `SELECT o.id, o.code, o.name, o.status, o.commission_rate, o.currency, o.created_at,
+              COUNT(p.id) AS member_count
+       FROM native_affiliate_organizations o
+       LEFT JOIN native_affiliate_partners p ON p.organization_id = o.id
+       GROUP BY o.id ORDER BY o.created_at DESC LIMIT 200`,
+    ).all<Record<string, unknown>>();
     return success({
-      totals,
+      totals: { ...totals, organizationCount: organizations.results.length },
       partners: partners.results,
+      organizations: organizations.results,
       commissions: commissions.results,
       attributions: attributions.results,
     });
+  }
+
+  const adminAffiliateGuard = async () => {
+    const admin = await authenticateNativeAdmin(request, env);
+    if (!admin) return { error: failure(401, 'UNAUTHORIZED', 'Administrator authentication is required') };
+    if (!(await isNativePluginEnabled(env, 'affiliate'))) {
+      return { error: failure(404, 'PLUGIN_NOT_ENABLED', 'Affiliate plugin is not installed and enabled') };
+    }
+    return { admin };
+  };
+
+  const adminPartnerMatch = rawPath.match(/^\/api\/v1\/extensions\/plugin\/affiliate\/api\/admin\/partners\/([\w-]+)$/);
+  if (adminPartnerMatch && request.method === 'PATCH') {
+    const guard = await adminAffiliateGuard();
+    if (guard.error) return guard.error;
+    const body = await request.clone().json<{ commissionRate?: unknown; status?: unknown }>().catch(() => ({}));
+    const updates: string[] = [];
+    const bindings: unknown[] = [];
+    if (body.commissionRate !== undefined) {
+      const rate = Number(body.commissionRate);
+      if (!Number.isFinite(rate) || rate < 0 || rate > 90) {
+        return failure(400, 'VALIDATION_ERROR', 'Commission rate must be between 0 and 90');
+      }
+      updates.push('commission_rate = ?');
+      bindings.push(rate);
+    }
+    if (body.status !== undefined) {
+      const status = String(body.status);
+      if (!['active', 'suspended'].includes(status)) {
+        return failure(400, 'VALIDATION_ERROR', 'Partner status must be active or suspended');
+      }
+      updates.push('status = ?');
+      bindings.push(status);
+    }
+    if (updates.length === 0) return failure(400, 'VALIDATION_ERROR', 'Nothing to update');
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    bindings.push(adminPartnerMatch[1]!);
+    const result = await env.DB.prepare(
+      `UPDATE native_affiliate_partners SET ${updates.join(', ')} WHERE id = ?1`,
+    ).bind(...bindings).run();
+    if (!result.meta.changes) return failure(404, 'NOT_FOUND', 'Partner not found');
+    const row = await env.DB.prepare('SELECT * FROM native_affiliate_partners WHERE id = ?1').bind(adminPartnerMatch[1]!).first<Record<string, unknown>>();
+    return success({ partner: row });
+  }
+
+  const adminOrgMatch = rawPath.match(/^\/api\/v1\/extensions\/plugin\/affiliate\/api\/admin\/organizations\/([\w-]+)$/);
+  if (adminOrgMatch && request.method === 'PATCH') {
+    const guard = await adminAffiliateGuard();
+    if (guard.error) return guard.error;
+    const body = await request.clone().json<{ commissionRate?: unknown; status?: unknown }>().catch(() => ({}));
+    const updates: string[] = [];
+    const bindings: unknown[] = [];
+    if (body.commissionRate !== undefined) {
+      const rate = Number(body.commissionRate);
+      if (!Number.isFinite(rate) || rate < 0 || rate > 90) {
+        return failure(400, 'VALIDATION_ERROR', 'Commission rate must be between 0 and 90');
+      }
+      updates.push('commission_rate = ?');
+      bindings.push(rate);
+    }
+    if (body.status !== undefined) {
+      const status = String(body.status);
+      if (!['active', 'suspended', 'closed'].includes(status)) {
+        return failure(400, 'VALIDATION_ERROR', 'Organization status must be active, suspended, or closed');
+      }
+      updates.push('status = ?');
+      bindings.push(status);
+    }
+    if (updates.length === 0) return failure(400, 'VALIDATION_ERROR', 'Nothing to update');
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    bindings.push(adminOrgMatch[1]!);
+    const result = await env.DB.prepare(
+      `UPDATE native_affiliate_organizations SET ${updates.join(', ')} WHERE id = ?1`,
+    ).bind(...bindings).run();
+    if (!result.meta.changes) return failure(404, 'NOT_FOUND', 'Organization not found');
+    const row = await env.DB.prepare('SELECT * FROM native_affiliate_organizations WHERE id = ?1').bind(adminOrgMatch[1]!).first<Record<string, unknown>>();
+    return success({ organization: row });
+  }
+
+  const adminCommissionMatch = rawPath.match(/^\/api\/v1\/extensions\/plugin\/affiliate\/api\/admin\/commissions\/([\w-]+)\/status$/);
+  if (adminCommissionMatch && request.method === 'POST') {
+    const guard = await adminAffiliateGuard();
+    if (guard.error) return guard.error;
+    const body = await request.clone().json<{ status?: unknown }>().catch(() => ({}));
+    const status = String(body.status || '');
+    if (!['pending', 'paid', 'reversed'].includes(status)) {
+      return failure(400, 'VALIDATION_ERROR', 'Commission status must be pending, paid, or reversed');
+    }
+    const result = await env.DB.prepare(
+      'UPDATE native_affiliate_commissions SET status = ?1 WHERE id = ?2',
+    ).bind(status, adminCommissionMatch[1]!).run();
+    if (!result.meta.changes) return failure(404, 'NOT_FOUND', 'Commission not found');
+    const row = await env.DB.prepare('SELECT * FROM native_affiliate_commissions WHERE id = ?1').bind(adminCommissionMatch[1]!).first<Record<string, unknown>>();
+    return success({ commission: row });
   }
 
   const route = path.match(/^\/api\/v1\/plugins\/affiliate\/store\/r\/([^/]+)$/);

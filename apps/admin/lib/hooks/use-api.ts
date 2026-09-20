@@ -1299,13 +1299,68 @@ export function usePluginConfig(slug: string) {
 export interface AffiliateNativeOverviewData {
   totals?: {
     partnerCount?: number;
+    organizationCount?: number;
     commissionCount?: number;
     commissionTotal?: number;
     commissionPending?: number;
   };
   partners?: Array<Record<string, unknown>>;
+  organizations?: Array<Record<string, unknown>>;
   commissions?: Array<Record<string, unknown>>;
   attributions?: Array<Record<string, unknown>>;
+}
+
+// Affiliate admin mutations — partner/organization rate + status edits and
+// commission payout marks, all under the native admin overview contract.
+export function useUpdateAffiliatePartner() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+  return useMutation({
+    mutationFn: async (input: { id: string; commissionRate?: number; status?: string }) => {
+      const response = await apiClient.patch(`/extensions/plugin/affiliate/api/admin/partners/${input.id}`, {
+        ...(input.commissionRate !== undefined ? { commissionRate: input.commissionRate } : {}),
+        ...(input.status !== undefined ? { status: input.status } : {}),
+      });
+      if (!response.success) throw new Error(getErrorMessage(response) || 'Update failed');
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [...pluginQueryKeys.all, 'affiliate-native-overview', 'affiliate'] });
+    },
+  });
+}
+
+export function useUpdateAffiliateOrganization() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+  return useMutation({
+    mutationFn: async (input: { id: string; commissionRate?: number; status?: string }) => {
+      const response = await apiClient.patch(`/extensions/plugin/affiliate/api/admin/organizations/${input.id}`, {
+        ...(input.commissionRate !== undefined ? { commissionRate: input.commissionRate } : {}),
+        ...(input.status !== undefined ? { status: input.status } : {}),
+      });
+      if (!response.success) throw new Error(getErrorMessage(response) || 'Update failed');
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [...pluginQueryKeys.all, 'affiliate-native-overview', 'affiliate'] });
+    },
+  });
+}
+
+export function useUpdateAffiliateCommissionStatus() {
+  const queryClient = useQueryClient();
+  const { getErrorMessage } = useLocalizedApiFeedback();
+  return useMutation({
+    mutationFn: async (input: { id: string; status: 'pending' | 'paid' | 'reversed' }) => {
+      const response = await apiClient.post(`/extensions/plugin/affiliate/api/admin/commissions/${input.id}/status`, { status: input.status });
+      if (!response.success) throw new Error(getErrorMessage(response) || 'Update failed');
+      return response.data;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: [...pluginQueryKeys.all, 'affiliate-native-overview', 'affiliate'] });
+    },
+  });
 }
 
 export function useAffiliateNativeOverview(slug: string) {
