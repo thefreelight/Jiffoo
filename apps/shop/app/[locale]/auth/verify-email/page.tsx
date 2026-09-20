@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { CheckCircle2, Loader2, MailCheck, XCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,7 @@ import { useT } from 'shared/src/i18n/react';
 
 type VerificationState = 'idle' | 'loading' | 'success' | 'error';
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const nav = useLocalizedNavigation();
@@ -189,5 +189,13 @@ export default function VerifyEmailPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen" />}>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }

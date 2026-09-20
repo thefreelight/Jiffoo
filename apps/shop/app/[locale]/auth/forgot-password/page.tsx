@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { KeyRound, Loader2, MailCheck } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { authApi } from '@/lib/api';
@@ -13,7 +13,7 @@ type Step = 'email' | 'reset' | 'done';
  * The core sends a six-digit code by email; this page collects it with the
  * new password and completes the reset.
  */
-export default function ForgotPasswordPage() {
+function ForgotPasswordContent() {
   const searchParams = useSearchParams();
   const nav = useLocalizedNavigation();
   const presetEmail = searchParams.get('email')?.trim().toLowerCase() || '';
@@ -170,5 +170,13 @@ export default function ForgotPasswordPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function ForgotPasswordPage() {
+  return (
+    <Suspense fallback={<main className="min-h-screen" />}>
+      <ForgotPasswordContent />
+    </Suspense>
   );
 }

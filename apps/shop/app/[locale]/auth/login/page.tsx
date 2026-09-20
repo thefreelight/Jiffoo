@@ -115,6 +115,16 @@ export default function LoginPage() {
     nav.push('/auth/forgot-password');
   };
 
+  // Prefetch the recovery page so clicking "Forgot password" is instant
+  // instead of waiting on a cold route render.
+  React.useEffect(() => {
+    try {
+      router.prefetch(`/${nav.locale}/auth/forgot-password`);
+    } catch {
+      // Prefetch is best-effort; navigation still works without it.
+    }
+  }, [router, nav.locale]);
+
   const handleOAuthClick = async (provider: SocialProvider) => {
     try {
       const redirectUrl = new URL(nav.getHref('/auth/callback'), window.location.origin).toString();
