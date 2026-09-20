@@ -76,6 +76,7 @@ export interface BokmooApiOrderItem {
   productId: string;
   variantId?: string;
   productName: string;
+  productKind?: string;
   quantity: number;
   unitPrice?: number;
   totalPrice?: number;

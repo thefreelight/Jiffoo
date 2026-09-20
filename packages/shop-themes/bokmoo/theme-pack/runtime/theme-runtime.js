@@ -401,6 +401,20 @@
     ["line", { x1: "12", x2: "12", y1: "22", y2: "12", key: "a4e8g8" }]
   ]);
 
+  // ../../../node_modules/lucide-react/dist/esm/icons/package.js
+  var Package = createLucideIcon("Package", [
+    [
+      "path",
+      {
+        d: "M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z",
+        key: "1a0edw"
+      }
+    ],
+    ["path", { d: "M12 22V12", key: "d0xqtd" }],
+    ["path", { d: "m3.3 7 7.703 4.734a2 2 0 0 0 1.994 0L20.7 7", key: "yx3hmr" }],
+    ["path", { d: "m7.5 4.27 9 5.15", key: "1c824w" }]
+  ]);
+
   // ../../../node_modules/lucide-react/dist/esm/icons/pencil-line.js
   var PencilLine = createLucideIcon("PencilLine", [
     ["path", { d: "M12 20h9", key: "t2du7b" }],
@@ -16115,8 +16129,29 @@
     );
     const [errorMessage, setErrorMessage] = react_default.useState("");
     const [attempt, setAttempt] = react_default.useState(0);
-    const loadInstallSession = react_default.useCallback(async () => {
+    const [orderKind, setOrderKind] = react_default.useState(
+      orderId2 ? "checking" : "esim"
+    );
+    react_default.useEffect(() => {
       if (!orderId2) return;
+      let cancelled = false;
+      void (async () => {
+        try {
+          const detail = await getBokmooOrder({ baseUrl: site.apiBaseUrl }, orderId2);
+          if (cancelled) return;
+          const items = detail.items || [];
+          const hasEsim = items.some((item) => item.productKind === "esim");
+          setOrderKind(hasEsim || items.length === 0 ? "esim" : "physical");
+        } catch {
+          if (!cancelled) setOrderKind("esim");
+        }
+      })();
+      return () => {
+        cancelled = true;
+      };
+    }, [orderId2, site.apiBaseUrl]);
+    const loadInstallSession = react_default.useCallback(async () => {
+      if (!orderId2 || orderKind !== "esim") return;
       try {
         const session = await getBokmooInstallSession(
           {
@@ -16138,7 +16173,7 @@
       void loadInstallSession();
     }, [loadInstallSession, orderId2]);
     react_default.useEffect(() => {
-      if (!orderId2) return;
+      if (!orderId2 || orderKind !== "esim") return;
       if (status !== "processing" && status !== "idle") return;
       const delay2 = getPollDelay(attempt);
       if (delay2 <= 0) {
@@ -16150,14 +16185,14 @@
         void loadInstallSession();
       }, delay2);
       return () => window.clearTimeout(timer);
-    }, [attempt, loadInstallSession, orderId2, status]);
+    }, [attempt, loadInstallSession, orderId2, orderKind, status]);
     const isReady = status === "ready" || status === "installed";
     const isPendingPayment = status === "pending_payment";
     const supportEmail = installSession?.support?.email || site.supportEmail;
     return /* @__PURE__ */ jsx("div", { className: "min-h-screen bg-[var(--bokmoo-bg)] px-4 pb-24 pt-10 sm:px-6 lg:px-8", children: /* @__PURE__ */ jsx("div", { className: "mx-auto max-w-[520px]", children: /* @__PURE__ */ jsxs("div", { className: "rounded-[1.6rem] border border-[var(--bokmoo-line)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--bokmoo-bg-elevated)_96%,white),var(--bokmoo-bg-elevated))] p-6 text-center shadow-[var(--bokmoo-shadow)] sm:p-8", children: [
-      /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_36%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] text-[var(--bokmoo-gold)]", children: status === "failed" || status === "expired" || isPendingPayment ? /* @__PURE__ */ jsx(TriangleAlert, { className: "h-11 w-11" }) : status === "processing" || isVerifying ? /* @__PURE__ */ jsx(LoaderCircle, { className: "h-11 w-11 animate-spin" }) : /* @__PURE__ */ jsx(CircleCheck, { className: "h-11 w-11" }) }),
-      /* @__PURE__ */ jsx("h1", { className: "mt-8 text-[clamp(2.2rem,4vw,3.6rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: status === "failed" ? "Fulfillment Needs Attention" : isPendingPayment ? "Payment Pending" : status === "expired" ? "Activation Expired" : status === "processing" || isVerifying ? "Preparing your eSIM..." : "Payment Successful!" }),
-      /* @__PURE__ */ jsx("p", { className: "mt-4 text-base leading-8 text-[var(--bokmoo-copy)]", children: status === "failed" ? errorMessage || "We could not prepare your install session yet." : isPendingPayment ? "Complete payment to unlock your eSIM install details." : status === "expired" ? "Your activation session expired before installation completed." : status === "processing" || isVerifying ? "Your order is paid. We are preparing the install session now." : "Your eSIM is ready to use." }),
+      /* @__PURE__ */ jsx("div", { className: "mx-auto flex h-24 w-24 items-center justify-center rounded-full border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_36%,transparent)] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_10%,transparent)] text-[var(--bokmoo-gold)]", children: orderKind === "physical" ? status === "failed" ? /* @__PURE__ */ jsx(TriangleAlert, { className: "h-11 w-11" }) : /* @__PURE__ */ jsx(Package, { className: "h-10 w-10" }) : status === "failed" || status === "expired" || isPendingPayment ? /* @__PURE__ */ jsx(TriangleAlert, { className: "h-11 w-11" }) : status === "processing" || isVerifying ? /* @__PURE__ */ jsx(LoaderCircle, { className: "h-11 w-11 animate-spin" }) : /* @__PURE__ */ jsx(CircleCheck, { className: "h-11 w-11" }) }),
+      /* @__PURE__ */ jsx("h1", { className: "mt-8 text-[clamp(2.2rem,4vw,3.6rem)] font-semibold tracking-[-0.05em] text-[var(--bokmoo-ink)]", children: orderKind === "physical" ? status === "failed" ? "Fulfillment Needs Attention" : isPendingPayment ? "Payment Pending" : "Your card is being prepared for shipment" : status === "failed" ? "Fulfillment Needs Attention" : isPendingPayment ? "Payment Pending" : status === "expired" ? "Activation Expired" : status === "processing" || isVerifying ? "Preparing your eSIM..." : "Payment Successful!" }),
+      /* @__PURE__ */ jsx("p", { className: "mt-4 text-base leading-8 text-[var(--bokmoo-copy)]", children: orderKind === "physical" ? status === "failed" ? errorMessage || "We could not prepare your shipment yet." : isPendingPayment ? "Complete payment and we will start preparing your card for delivery." : "Your order is paid. We are packing your Bokmoo Card now \u2014 you will get a shipping confirmation with tracking, and it should arrive within a few business days." : status === "failed" ? errorMessage || "We could not prepare your install session yet." : isPendingPayment ? "Complete payment to unlock your eSIM install details." : status === "expired" ? "Your activation session expired before installation completed." : status === "processing" || isVerifying ? "Your order is paid. We are preparing the install session now." : "Your eSIM is ready to use." }),
       installSession?.packageTitle ? /* @__PURE__ */ jsx("div", { className: "mx-auto mt-8 max-w-[320px] rounded-[1rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg)] p-4 text-left", children: /* @__PURE__ */ jsxs("div", { className: "flex gap-3", children: [
         /* @__PURE__ */ jsx("div", { className: "h-16 w-20 overflow-hidden rounded-[0.8rem] bg-[linear-gradient(160deg,#924a57_0%,#261922_44%,#0f1115_100%)]" }),
         /* @__PURE__ */ jsxs("div", { children: [
@@ -16168,7 +16203,15 @@
       ] }) }) : null,
       isReady && installSession ? /* @__PURE__ */ jsx(InstallSessionPanel, { className: "mt-8", session: installSession }) : null,
       /* @__PURE__ */ jsxs("div", { className: "mt-8 space-y-3", children: [
-        /* @__PURE__ */ jsxs(
+        orderKind === "physical" ? /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: onViewOrders,
+            className: "flex min-h-12 w-full items-center justify-center gap-2 rounded-[0.95rem] bg-[linear-gradient(145deg,color-mix(in_oklab,var(--bokmoo-gold)_82%,white),color-mix(in_oklab,var(--bokmoo-gold)_68%,black))] px-5 text-sm font-semibold text-[var(--bokmoo-bg)]",
+            type: "button",
+            children: "Track Your Order"
+          }
+        ) : /* @__PURE__ */ jsxs(
           "button",
           {
             onClick: isReady ? onViewOrders : () => void loadInstallSession(),
@@ -16953,7 +16996,7 @@
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.8",
+      version: "1.1.9",
       target: "shop"
     }
   };
