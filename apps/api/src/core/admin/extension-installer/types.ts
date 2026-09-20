@@ -2,7 +2,7 @@
  * Extension Installer Types
  * 
  * Core types for extension installer, supporting ZIP installation of themes and plugins
- * Based on .kiro/specs/single-tenant-core-architecture/design.md
+ * Based on docs/agentra-001-core-v1-product-charter.md
  */
 
 import { Readable } from 'stream';

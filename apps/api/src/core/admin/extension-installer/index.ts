@@ -3,7 +3,7 @@
  * Extension Installer Service
  * 
  * Unified extension installer entry point, supporting ZIP installation for themes and plugins
- * Based on .kiro/specs/single-tenant-core-architecture/design.md
+ * Based on docs/agentra-001-core-v1-product-charter.md
  */
 
 import { Readable } from 'stream';

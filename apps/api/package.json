@@ -44,7 +44,6 @@
     "db:mode:test": "dotenv -e tests/.env.test -- node scripts/run-test-migrate.js",
     "db:check-drift": "bash scripts/check-drift.sh",
     "schema:check": "node scripts/schema-ci-gate.cjs",
-    "schema:audit": "node scripts/audit-model-usage.cjs",
     "docker:build": "docker build -t api:latest .",
     "export:openapi": "tsx scripts/export-openapi.ts"
   },

@@ -332,7 +332,7 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
     pushIssue(
       issues,
       'trustLevel',
-      'trustLevel is required for internal-fastify plugins (see LICENSE-EXCEPTIONS.md and PLUGIN_SYSTEM_ARCHITECTURE.md)',
+      'trustLevel is required for internal-fastify plugins',
       'MISSING_TRUST_LEVEL'
     );
   }
