@@ -319,7 +319,7 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
     if (!admin) return failure(401, 'UNAUTHORIZED', 'Administrator authentication is required');
     if (!(await isNativePluginEnabled(env, 'affiliate'))) return failure(404, 'PLUGIN_NOT_ENABLED', 'Affiliate plugin is not installed and enabled');
     const partners = await env.DB.prepare(
-      `SELECT p.id, p.code, p.status, p.display_name, p.email, p.commission_rate, p.currency,
+      `SELECT p.id, p.code, p.status, p.display_name, p.email, p.commission_rate, p.discount_rate, p.currency,
               p.organization_id, p.created_at,
               COUNT(c.id) AS commission_count,
               COALESCE(SUM(c.amount), 0) AS commission_total,
@@ -379,7 +379,7 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
   if (adminPartnerMatch && request.method === 'PATCH') {
     const guard = await adminAffiliateGuard();
     if (guard.error) return guard.error;
-    const body = await request.clone().json().catch(() => ({})) as { commissionRate?: unknown; status?: unknown };
+    const body = await request.clone().json().catch(() => ({})) as { commissionRate?: unknown; status?: unknown; code?: unknown; discountRate?: unknown };
     const updates: string[] = [];
     const bindings: unknown[] = [];
     if (body.commissionRate !== undefined) {
@@ -388,6 +388,25 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
         return failure(400, 'VALIDATION_ERROR', 'Commission rate must be between 0 and 90');
       }
       updates.push('commission_rate = ?');
+      bindings.push(rate);
+    }
+    if (body.code !== undefined) {
+      const code = String(body.code).trim().toUpperCase();
+      if (!/^[A-Z0-9][A-Z0-9_-]{2,31}$/.test(code)) {
+        return failure(400, 'VALIDATION_ERROR', 'Codes use 3-32 characters: letters, numbers, dash, underscore');
+      }
+      const clash = await env.DB.prepare('SELECT id FROM native_affiliate_partners WHERE code = ?1 AND id != ?2')
+        .bind(code, adminPartnerMatch[1]!).first<{ id: string }>();
+      if (clash) return failure(409, 'CONFLICT', 'That code is already taken');
+      updates.push('code = ?');
+      bindings.push(code);
+    }
+    if (body.discountRate !== undefined) {
+      const rate = Number(body.discountRate);
+      if (!Number.isFinite(rate) || rate < 0 || rate > 90) {
+        return failure(400, 'VALIDATION_ERROR', 'Buyer discount rate must be between 0 and 90');
+      }
+      updates.push('discount_rate = ?');
       bindings.push(rate);
     }
     if (body.status !== undefined) {
@@ -463,6 +482,17 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
   const route = path.match(/^\/api\/v1\/plugins\/affiliate\/store\/r\/([^/]+)$/);
   if (!route && !path.startsWith('/api/v1/plugins/affiliate/store/')) return null;
   if (!(await isNativePluginEnabled(env, 'affiliate'))) return failure(404, 'PLUGIN_NOT_ENABLED', 'Affiliate plugin is not installed and enabled');
+  const promoRoute = path.match(/^\/api\/v1\/plugins\/affiliate\/store\/promo\/([A-Za-z0-9_-]{3,32})$/);
+  if (request.method === 'GET' && promoRoute) {
+    // Public: the checkout shows the buyer their discount before paying.
+    const code = decodeURIComponent(promoRoute[1]!).toUpperCase();
+    const partner = await env.DB.prepare(
+      `SELECT code, discount_rate, display_name FROM native_affiliate_partners
+       WHERE code = ?1 AND status = 'active' AND discount_rate > 0`,
+    ).bind(code).first<{ code: string; discount_rate: number; display_name: string | null }>();
+    if (!partner) return success({ valid: false }, 200);
+    return success({ valid: true, code: partner.code, discountRate: partner.discount_rate, partnerName: partner.display_name }, 200);
+  }
   if (request.method === 'GET' && route) return recordReferral(request, env, decodeURIComponent(route[1]!));
   const user = await currentUser(request, env);
   if (!user) return failure(401, 'UNAUTHORIZED', 'Login required');
@@ -511,10 +541,18 @@ export async function createNativeAffiliateCommission(env: AffiliateDataEnv, ord
   const orderId = typeof order.id === 'string' ? order.id : null;
   const amount = typeof order.totalAmount === 'number' ? order.totalAmount : 0;
   if (!userId || !orderId || amount <= 0) return null;
-  const attribution = await env.DB.prepare(
-    `SELECT partner_id FROM native_affiliate_attributions
-     WHERE user_id = ?1 AND status IN ('associated', 'converted') ORDER BY created_at DESC LIMIT 1`,
-  ).bind(userId).first<{ partner_id: string }>();
+  // A promo code used at checkout attributes the order directly, even when
+  // the buyer never registered through a referral link.
+  const promoPartner = await env.DB.prepare(
+    `SELECT m.affiliate_partner_id AS partner_id FROM native_order_metadata m
+     WHERE m.order_id = ?1 AND m.affiliate_partner_id IS NOT NULL`,
+  ).bind(orderId).first<{ partner_id: string }>();
+  const attribution = promoPartner?.partner_id
+    ? { partner_id: promoPartner.partner_id }
+    : await env.DB.prepare(
+      `SELECT partner_id FROM native_affiliate_attributions
+       WHERE user_id = ?1 AND status IN ('associated', 'converted') ORDER BY created_at DESC LIMIT 1`,
+    ).bind(userId).first<{ partner_id: string }>();
   if (!attribution) return null;
   const existing = await env.DB.prepare(
     'SELECT id, partner_id, amount, currency FROM native_affiliate_commissions WHERE order_id = ?1',

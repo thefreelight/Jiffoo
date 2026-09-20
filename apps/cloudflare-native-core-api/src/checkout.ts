@@ -35,6 +35,7 @@ interface CreateOrderInput {
   customerEmail?: string;
   idempotencyKey?: string;
   locale?: string;
+  affiliateCode?: string;
 }
 
 interface OrderSnapshotRow {
@@ -154,14 +155,25 @@ async function createOrder(
   ).bind(user.id).first<{ shipping_amount: number; method_name: string; plugin_slug: string }>();
   const requiresShipping = items.some((item) => item.productKind === 'goods' || item.productKind === 'consumable');
   const shippingAmount = requiresShipping ? shipping?.shipping_amount ?? 0 : 0;
+  // Promo codes double as buyer discounts and affiliate attribution.
+  const affiliateCodeRaw = typeof body.affiliateCode === 'string' ? body.affiliateCode.trim().toUpperCase() : '';
+  const affiliatePartner = affiliateCodeRaw
+    ? await env.DB.prepare(
+      `SELECT id, discount_rate FROM native_affiliate_partners
+       WHERE code = ?1 AND status = 'active' AND discount_rate > 0`,
+    ).bind(affiliateCodeRaw).first<{ id: string; discount_rate: number }>()
+    : null;
+  const discountAmount = affiliatePartner
+    ? Math.min(subtotal, Math.round(subtotal * affiliatePartner.discount_rate) / 100)
+    : 0;
   const order: Record<string, unknown> = {
     id: orderId,
     userId: user.id,
     status: 'PENDING',
     paymentStatus: 'PENDING',
     subtotalAmount: subtotal,
-    totalAmount: subtotal + shippingAmount,
-    discountAmount: 0,
+    totalAmount: subtotal + shippingAmount - discountAmount,
+    discountAmount,
     shippingAmount,
     shippingMethod: requiresShipping ? shipping?.method_name ?? null : null,
     shippingProvider: requiresShipping ? shipping?.plugin_slug ?? null : null,
@@ -195,9 +207,9 @@ async function createOrder(
     ).bind(orderId, user.id, searchable(order), JSON.stringify(order), now),
     env.DB.prepare(
       `INSERT INTO native_order_metadata
-       (order_id, user_id, idempotency_key, payment_status, currency, total_amount)
-       VALUES (?1, ?2, ?3, 'PENDING', 'USD', ?4)`,
-    ).bind(orderId, user.id, idempotencyKey, subtotal + shippingAmount),
+       (order_id, user_id, idempotency_key, payment_status, currency, total_amount, affiliate_partner_id)
+       VALUES (?1, ?2, ?3, 'PENDING', 'USD', ?4, ?5)`,
+    ).bind(orderId, user.id, idempotencyKey, subtotal + shippingAmount - discountAmount, affiliatePartner?.id ?? null),
   ];
   for (let index = 0; index < resolved.length; index += 1) {
     const { input, product, variant } = resolved[index]!;

@@ -268,6 +268,7 @@ export interface CheckoutFormData {
   postalCode: string;
   country: string;
   paymentMethod: string;
+  promoCode?: string;
 }
 
 /**

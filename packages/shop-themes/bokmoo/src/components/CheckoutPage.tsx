@@ -33,6 +33,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
     country: '',
     phone: '',
     paymentMethod: paymentMethods[0]?.name || '',
+    promoCode: '',
   });
   const [errors, setErrors] = React.useState<Record<string, string>>({});
 
@@ -168,6 +169,22 @@ export const CheckoutPage = React.memo(function CheckoutPage({
             </aside>
 
             <form id="bokmoo-checkout-form" onSubmit={handleSubmit} className="space-y-4">
+
+          <div className="rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,var(--bokmoo-line))] bg-[var(--bokmoo-bg)] p-4">
+            <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]" htmlFor="bokmoo-promo-code">
+              Promo / referral code
+            </label>
+            <input
+              id="bokmoo-promo-code"
+              value={formData.promoCode}
+              onChange={(event) => setFormData((prev) => ({ ...prev, promoCode: event.target.value.toUpperCase() }))}
+              placeholder="e.g. BOKMOO10"
+              className="mt-2 h-12 w-full rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm font-semibold tracking-[0.08em] text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]"
+            />
+            <p className="mt-2 text-xs leading-5 text-[var(--bokmoo-copy-soft)]">
+              Have a referral code from a creator? Enter it — your discount is applied to the order total at payment.
+            </p>
+          </div>
               <div className="rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-[0.9rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] text-[var(--bokmoo-gold)]">

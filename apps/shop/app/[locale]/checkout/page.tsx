@@ -212,6 +212,9 @@ export default function CheckoutPage() {
           : undefined,
         customerEmail: normalizedEmail.length > 0 ? normalizedEmail : undefined,
         locale: nav.locale,
+        affiliateCode: typeof data.promoCode === 'string' && data.promoCode.trim()
+          ? data.promoCode.trim().toUpperCase()
+          : undefined,
       });
 
       if (!orderResponse || !orderResponse.success || !orderResponse.data) {

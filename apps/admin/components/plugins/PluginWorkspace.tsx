@@ -1838,7 +1838,7 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
   const organizationMutation = useUpdateAffiliateOrganization();
   const commissionMutation = useUpdateAffiliateCommissionStatus();
 
-  const [partnerEdits, setPartnerEdits] = useState<Record<string, { rate: string; status: string }>>({});
+  const [partnerEdits, setPartnerEdits] = useState<Record<string, { rate: string; status: string; code: string; discount: string }>>({});
   const [orgEdits, setOrgEdits] = useState<Record<string, { rate: string; status: string }>>({});
   const [actionError, setActionError] = useState('');
 
@@ -1846,6 +1846,8 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
     partnerEdits[id] || {
       rate: String(Number(partners.find((row) => row.id === id)?.commission_rate ?? 0)),
       status: String(partners.find((row) => row.id === id)?.status ?? 'active'),
+      code: String(partners.find((row) => row.id === id)?.code ?? ''),
+      discount: String(Number(partners.find((row) => row.id === id)?.discount_rate ?? 0)),
     };
   const orgEdit = (id: string) =>
     orgEdits[id] || {
@@ -1857,7 +1859,13 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
     setActionError('');
     const edit = partnerEdit(id);
     try {
-      await partnerMutation.mutateAsync({ id, commissionRate: Number(edit.rate), status: edit.status });
+      await partnerMutation.mutateAsync({
+        id,
+        commissionRate: Number(edit.rate),
+        status: edit.status,
+        code: edit.code,
+        discountRate: Number(edit.discount),
+      });
     } catch (cause: any) {
       setActionError(cause?.message || 'Could not update the partner.');
     }
@@ -1921,10 +1929,11 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="py-2 pr-4">Code</th>
+                <th className="py-2 pr-4">Promo code</th>
                 <th className="py-2 pr-4">Partner</th>
                 <th className="py-2 pr-4">Commissions</th>
                 <th className="py-2 pr-4">Rate (%)</th>
+                <th className="py-2 pr-4">Discount (%)</th>
                 <th className="py-2 pr-4">Status</th>
                 <th className="py-2 pr-4">Actions</th>
               </tr>
@@ -1935,7 +1944,15 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
                 const edit = partnerEdit(id);
                 return (
                   <tr key={id} className="border-b align-middle">
-                    <td className="py-2 pr-4 font-mono text-xs">{String(partner.code || '—')}</td>
+                    <td className="py-2 pr-4">
+                      <Input
+                        value={edit.code}
+                        onChange={(event) =>
+                          setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, code: event.target.value.toUpperCase() } }))
+                        }
+                        className="h-8 w-28 font-mono text-xs"
+                      />
+                    </td>
                     <td className="py-2 pr-4">{String(partner.display_name || partner.email || '—')}</td>
                     <td className="py-2 pr-4">
                       {affiliateMoney(partner.commission_total, partner.currency)}
@@ -1954,6 +1971,19 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
                           setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, rate: event.target.value } }))
                         }
                         className="h-8 w-20"
+                      />
+                    </td>
+                    <td className="py-2 pr-4">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={90}
+                        step="1"
+                        value={edit.discount}
+                        onChange={(event) =>
+                          setPartnerEdits((previous) => ({ ...previous, [id]: { ...edit, discount: event.target.value } }))
+                        }
+                        className="h-8 w-16"
                       />
                     </td>
                     <td className="py-2 pr-4">
@@ -1977,7 +2007,7 @@ export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOvervi
                 );
               })}
               {partners.length === 0 ? (
-                <tr><td colSpan={6} className="py-4 text-center text-muted-foreground">No partners yet.</td></tr>
+                <tr><td colSpan={7} className="py-4 text-center text-muted-foreground">No partners yet.</td></tr>
               ) : null}
             </tbody>
           </table>

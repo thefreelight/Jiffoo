@@ -13373,7 +13373,8 @@
       postalCode: "",
       country: "",
       phone: "",
-      paymentMethod: paymentMethods[0]?.name || ""
+      paymentMethod: paymentMethods[0]?.name || "",
+      promoCode: ""
     });
     const [errors, setErrors] = react_default.useState({});
     react_default.useEffect(() => {
@@ -13495,6 +13496,20 @@
           ] })
         ] }),
         /* @__PURE__ */ jsxs("form", { id: "bokmoo-checkout-form", onSubmit: handleSubmit, className: "space-y-4", children: [
+          /* @__PURE__ */ jsxs("div", { className: "rounded-[1rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_22%,var(--bokmoo-line))] bg-[var(--bokmoo-bg)] p-4", children: [
+            /* @__PURE__ */ jsx("label", { className: "text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--bokmoo-copy-soft)]", htmlFor: "bokmoo-promo-code", children: "Promo / referral code" }),
+            /* @__PURE__ */ jsx(
+              "input",
+              {
+                id: "bokmoo-promo-code",
+                value: formData.promoCode,
+                onChange: (event) => setFormData((prev) => ({ ...prev, promoCode: event.target.value.toUpperCase() })),
+                placeholder: "e.g. BOKMOO10",
+                className: "mt-2 h-12 w-full rounded-[0.95rem] border border-[var(--bokmoo-line)] bg-[var(--bokmoo-bg-elevated)] px-4 text-sm font-semibold tracking-[0.08em] text-[var(--bokmoo-ink)] outline-none focus:border-[var(--bokmoo-gold)]"
+              }
+            ),
+            /* @__PURE__ */ jsx("p", { className: "mt-2 text-xs leading-5 text-[var(--bokmoo-copy-soft)]", children: "Have a referral code from a creator? Enter it \u2014 your discount is applied to the order total at payment." })
+          ] }),
           /* @__PURE__ */ jsxs("div", { className: "rounded-[1.2rem] border border-[color:color-mix(in_oklab,var(--bokmoo-gold)_16%,var(--bokmoo-line))] bg-[color:color-mix(in_oklab,var(--bokmoo-bg)_88%,black)] p-4", children: [
             /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
               /* @__PURE__ */ jsx("div", { className: "flex h-10 w-10 items-center justify-center rounded-[0.9rem] bg-[color:color-mix(in_oklab,var(--bokmoo-gold)_12%,transparent)] text-[var(--bokmoo-gold)]", children: /* @__PURE__ */ jsx(Mail, { className: "h-5 w-5" }) }),
@@ -16996,7 +17011,7 @@
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.9",
+      version: "1.1.10",
       target: "shop"
     }
   };
