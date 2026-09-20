@@ -287,7 +287,11 @@ export async function tryNativeAffiliate(request: Request, env: AffiliateEnv): P
   // older cached runtime that has not collapsed the API base to same-origin).
   // Bearer-token auth means any origin may preflight/GET safely, so answer
   // the preflight here and stamp every response with matching CORS headers.
-  if (path.startsWith('/api/v1/plugins/affiliate/store/') || path.startsWith('/api/v1/plugins/affiliate/admin/')) {
+  const isAffiliateRoute =
+    path.startsWith('/api/v1/plugins/affiliate/store/') ||
+    path.startsWith('/api/v1/plugins/affiliate/admin/') ||
+    path.startsWith('/api/v1/extensions/plugin/affiliate/api/');
+  if (isAffiliateRoute) {
     const origin = request.headers.get('origin');
     if (request.method === 'OPTIONS') {
       return new Response(null, {
