@@ -446,8 +446,7 @@ export class UpgradeService {
       explicitManifestUrl === LEGACY_PUBLIC_CORE_UPDATE_MANIFEST_URL
         ? DEFAULT_PUBLIC_CORE_UPDATE_MANIFEST_URL
         : explicitManifestUrl;
-    const manifestUrl =
-      normalizedExplicitManifestUrl || (process.env.NODE_ENV === 'test' ? null : DEFAULT_PUBLIC_CORE_UPDATE_MANIFEST_URL);
+    const manifestUrl = normalizedExplicitManifestUrl || null;
     const source: UpdateSource =
       explicitManifestUrl && explicitManifestUrl !== LEGACY_PUBLIC_CORE_UPDATE_MANIFEST_URL
         ? 'env-manifest'
