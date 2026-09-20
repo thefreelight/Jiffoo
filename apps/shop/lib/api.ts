@@ -219,6 +219,7 @@ export const ordersApi = {
     customerEmail?: string;
     locale?: string;
     discountCodes?: string[];  // Optional discount codes to apply to order
+    affiliateCode?: string;    // Referral/promo code: buyer discount + affiliate attribution
   }): Promise<ApiResponse<ShopOrderDetailDTO>> =>
     apiClient.post(API_ENDPOINTS.ORDERS.CREATE, data),
 
