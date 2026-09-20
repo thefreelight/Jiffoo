@@ -375,7 +375,7 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
   if (adminPartnerMatch && request.method === 'PATCH') {
     const guard = await adminAffiliateGuard();
     if (guard.error) return guard.error;
-    const body = await request.clone().json<{ commissionRate?: unknown; status?: unknown }>().catch(() => ({}));
+    const body = await request.clone().json().catch(() => ({})) as { commissionRate?: unknown; status?: unknown };
     const updates: string[] = [];
     const bindings: unknown[] = [];
     if (body.commissionRate !== undefined) {
@@ -409,7 +409,7 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
   if (adminOrgMatch && request.method === 'PATCH') {
     const guard = await adminAffiliateGuard();
     if (guard.error) return guard.error;
-    const body = await request.clone().json<{ commissionRate?: unknown; status?: unknown }>().catch(() => ({}));
+    const body = await request.clone().json().catch(() => ({})) as { commissionRate?: unknown; status?: unknown };
     const updates: string[] = [];
     const bindings: unknown[] = [];
     if (body.commissionRate !== undefined) {
@@ -443,7 +443,7 @@ async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: 
   if (adminCommissionMatch && request.method === 'POST') {
     const guard = await adminAffiliateGuard();
     if (guard.error) return guard.error;
-    const body = await request.clone().json<{ status?: unknown }>().catch(() => ({}));
+    const body = await request.clone().json().catch(() => ({})) as { status?: unknown };
     const status = String(body.status || '');
     if (!['pending', 'paid', 'reversed'].includes(status)) {
       return failure(400, 'VALIDATION_ERROR', 'Commission status must be pending, paid, or reversed');
