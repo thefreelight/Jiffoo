@@ -1,7 +1,7 @@
 {
   "name": "@jiffoo/plugin-sdk",
   "version": "1.2.0",
-  "description": "SDK for building external plugins for Jiffoo Mall platform",
+  "description": "SDK for building in-process Fastify plugins for Jiffoo Core",
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.js",
   "types": "dist/types/index.d.ts",
@@ -38,7 +38,7 @@
     "jiffoo",
     "plugin",
     "sdk",
-    "external-plugin",
+    "in-process-plugin",
     "ecommerce",
     "marketplace"
   ],

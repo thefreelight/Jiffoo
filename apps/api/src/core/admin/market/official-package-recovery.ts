@@ -4,9 +4,10 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { prisma } from '@/config/database';
 import { extensionInstaller, type ExtensionKind } from '@/core/admin/extension-installer';
-import { MarketClient } from './market-client';
 import { cleanupDownloadedArtifact, downloadArtifactWithResume } from './resumable-downloader';
 import { verifyOfficialArtifact } from './artifact-verification';
+import { fetchOfficialArtifactsIndex } from './official-artifacts-client';
+import { pluginPackageStore, type PluginPackage } from '@/core/storage/plugin-package-store';
 
 type RecoverableOfficialKind = 'plugin' | 'theme-shop';
 
@@ -33,7 +34,6 @@ async function updateInstalledMeta(
   slug: string,
   version: string,
   packageUrl: string,
-  deliveryMode: string,
 ): Promise<void> {
   const metaPath = path.join(fsPath, '.installed.json');
   let current: Record<string, unknown>;
@@ -69,53 +69,63 @@ async function updateInstalledMeta(
     requestedVersion: version,
     installedVersion: version,
     packageUrl,
-    deliveryMode,
     restoredAt: new Date().toISOString(),
   };
 
   await fs.writeFile(metaPath, JSON.stringify(current, null, 2), 'utf-8');
 }
 
+async function updatePluginInstalledMeta(pluginPackage: PluginPackage, slug: string, version: string, packageUrl: string): Promise<void> {
+  let current: Record<string, unknown>;
+  try {
+    current = JSON.parse(await pluginPackage.readText('.installed.json')) as Record<string, unknown>;
+  } catch {
+    const manifest = JSON.parse(await pluginPackage.readText('manifest.json')) as Record<string, unknown>;
+    const stat = await pluginPackage.stat();
+    current = {
+      id: crypto.randomUUID(), slug: typeof manifest.slug === 'string' ? manifest.slug : slug,
+      name: typeof manifest.name === 'string' ? manifest.name : slug,
+      version: typeof manifest.version === 'string' ? manifest.version : version,
+      description: typeof manifest.description === 'string' ? manifest.description : '',
+      category: typeof manifest.category === 'string' ? manifest.category : 'general',
+      runtimeType: typeof manifest.runtimeType === 'string' ? manifest.runtimeType : 'internal-fastify',
+      entryModule: typeof manifest.entryModule === 'string' ? manifest.entryModule : undefined,
+      source: 'official-market', fsPath: pluginPackage.getEntryPath(''),
+      permissions: Array.isArray(manifest.permissions) ? manifest.permissions : [],
+      author: typeof manifest.author === 'string' ? manifest.author : undefined,
+      authorUrl: typeof manifest.authorUrl === 'string' ? manifest.authorUrl : undefined,
+      installedAt: stat.birthtime.toISOString(), updatedAt: stat.mtime.toISOString(),
+    };
+  }
+  current.source = 'official-market';
+  current.officialMarket = { requestedVersion: version, installedVersion: version, packageUrl, restoredAt: new Date().toISOString() };
+  await pluginPackage.writeText('.installed.json', JSON.stringify(current, null, 2));
+}
+
 async function recoverOfficialMarketExtensionFilesInternal(
   input: EnsureOfficialMarketExtensionFilesInput,
 ): Promise<void> {
-  const detail = await MarketClient.getOfficialDetail(input.slug);
-  const versionSummary =
-    detail.versions.find((candidate) => candidate.version === input.version) ||
-    detail.versions.find((candidate) => candidate.version === detail.currentVersion) ||
-    detail.versions.find((candidate) => candidate.isCurrent) ||
-    detail.versions[0];
-
-  if (!versionSummary) {
-    throw new Error(`Official extension "${input.slug}" does not expose a downloadable version`);
-  }
-
-  if (input.kind === 'plugin' && detail.kind !== 'plugin') {
-    throw new Error(`Official extension "${input.slug}" is not a plugin`);
-  }
-
-  if (input.kind === 'theme-shop' && detail.kind !== 'theme') {
-    throw new Error(`Official extension "${input.slug}" is not a shop theme`);
-  }
-
-  if (detail.deliveryMode !== 'package-managed') {
-    throw new Error(
-      `Official extension "${input.slug}" delivery mode "${detail.deliveryMode}" cannot be restored into local files`,
-    );
+  const artifactKind = input.kind === 'plugin' ? 'plugin' : 'theme';
+  const artifacts = await fetchOfficialArtifactsIndex({ fresh: true });
+  const artifact = artifacts.find((item) =>
+    item.slug === input.slug && item.kind === artifactKind && (!input.version || item.version === input.version),
+  );
+  if (!artifact) {
+    throw new Error(`Official ${artifactKind} "${input.slug}" does not expose the requested artifact`);
   }
 
   const download = await downloadArtifactWithResume({
     slug: input.slug,
-    version: versionSummary.version,
-    url: versionSummary.packageUrl,
+    version: artifact.version,
+    url: artifact.packageUrl,
   });
 
   try {
     await verifyOfficialArtifact({
       filePath: download.filePath,
-      packageUrl: versionSummary.packageUrl,
-      checksumUrl: `${versionSummary.packageUrl}.sha256`,
-      signatureUrl: `${versionSummary.packageUrl}.sig`,
+      packageUrl: artifact.packageUrl,
+      checksumUrl: `${artifact.packageUrl}.sha256`,
+      signatureUrl: `${artifact.packageUrl}.sig`,
     });
 
     const installResult = await extensionInstaller.installFromZip(
@@ -130,15 +140,20 @@ async function recoverOfficialMarketExtensionFilesInternal(
       });
     }
 
+    const pluginPackage = input.kind === 'plugin' ? await pluginPackageStore.get(installResult.slug) : null;
+    if (input.kind === 'plugin') {
+      if (!pluginPackage) throw new Error(`Plugin package files are missing for "${installResult.slug}"`);
+      await updatePluginInstalledMeta(pluginPackage, installResult.slug, artifact.version, artifact.packageUrl);
+    } else {
     await updateInstalledMeta(
       installResult.fsPath,
       installResult.slug,
-      versionSummary.version,
-      versionSummary.packageUrl,
-      detail.deliveryMode,
+      artifact.version,
+      artifact.packageUrl,
     );
+    }
   } finally {
-    await cleanupDownloadedArtifact(input.slug, versionSummary.version);
+    await cleanupDownloadedArtifact(input.slug, artifact.version);
   }
 }
 

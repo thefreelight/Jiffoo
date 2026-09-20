@@ -1,5 +1,5 @@
 /**
- * Orders Page for Tenant Application
+ * Orders Page for the Admin Application
  *
  * Displays order list with search, filter, batch operations and pagination.
  * Supports i18n through the translation function.

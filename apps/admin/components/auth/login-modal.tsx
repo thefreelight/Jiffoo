@@ -17,7 +17,6 @@ import { useToast } from '@/components/ui/toast';
 import { Eye, EyeOff, Lock, Mail, Loader2 } from 'lucide-react';
 import { useT } from 'shared/src/i18n/react';
 import { resolveApiErrorMessage } from '@/lib/error-utils';
-import { useManagedPackageBranding } from '@/lib/hooks/use-api';
 import type { AuthBootstrapStatus } from 'shared/src/types/auth';
 
 interface LoginModalProps {
@@ -37,7 +36,6 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
   const { login, isLoading } = useAuthStore();
   const { addToast } = useToast();
   const t = useT();
-  const brandingQuery = useManagedPackageBranding();
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -120,13 +118,8 @@ export function LoginModal({ isOpen, onClose, onSuccess }: LoginModalProps) {
 
   if (!isOpen) return null;
 
-  const isManagedBranding = brandingQuery.data?.mode === 'managed';
-  const modalTitle = isManagedBranding
-    ? `Welcome to ${brandingQuery.data?.displayBrandName || 'your store'}`
-    : getText('merchant.auth.welcomeBackTitle', 'Welcome Back');
-  const modalDescription = isManagedBranding
-    ? `Sign in to access the ${brandingQuery.data?.displaySolutionName || 'managed admin workspace'}.`
-    : getText('merchant.auth.signInDescription', 'Sign in to access your commerce admin workspace');
+  const modalTitle = getText('merchant.auth.welcomeBackTitle', 'Welcome Back');
+  const modalDescription = getText('merchant.auth.signInDescription', 'Sign in to access your commerce admin workspace');
   const shouldShowDemoCredentials = Boolean(bootstrapStatus?.showDemoCredentials && bootstrapStatus?.credentials);
   const bootstrapHint = bootstrapStatus?.requiresPasswordRotation
     ? getText('merchant.auth.bootstrapPasswordRotationHint', 'Change the initial admin password after sign-in to hide these bootstrap credentials.')

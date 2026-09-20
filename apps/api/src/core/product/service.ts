@@ -1,7 +1,7 @@
 /**
  * Product Service (Single Merchant Version)
  *
- * Simplified version, removed multi-tenant related logic.
+ * Product service for the self-hosted Core.
  */
 
 import { Prisma } from '@prisma/client';

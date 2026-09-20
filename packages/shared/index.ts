@@ -42,11 +42,9 @@ export {
   createShopClient,
 
   createAdminClient,
-  createAdminClient as createSuperAdminClient, // Alias for admin app compatibility
   getShopClient,
 
   getAdminClient,
-  getAdminClient as getSuperAdminClient, // Alias for admin app compatibility
   useApiClient,
   ApiClientManager,
   type AppType,
@@ -60,9 +58,7 @@ export {
 } from './api/storage-adapters';
 
 // Extension and marketplace contracts
-export * from './src/extensions/commercial-package';
 export * from './src/extensions/official-catalog';
-export * from './src/extensions/platform-connection';
 
 
 

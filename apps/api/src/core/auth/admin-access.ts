@@ -6,11 +6,6 @@ import {
   type AdminRole,
 } from '@shared/security';
 
-const LEGACY_ADMIN_ROLE_ALIASES: Record<string, AdminRole> = {
-  SUPER_ADMIN: ADMIN_ROLES.OWNER,
-  TENANT_ADMIN: ADMIN_ROLES.ADMIN,
-};
-
 const ADMIN_ROLE_SET = new Set<AdminRole>(Object.values(ADMIN_ROLES) as AdminRole[]);
 const KNOWN_ADMIN_PERMISSION_SET = new Set<string>(Object.values(ADMIN_PERMISSIONS));
 
@@ -26,10 +21,6 @@ export interface ResolvedAdminAccess {
 export function resolveAdminRole(role?: string | null): AdminRole | null {
   if (!role) {
     return null;
-  }
-
-  if (role in LEGACY_ADMIN_ROLE_ALIASES) {
-    return LEGACY_ADMIN_ROLE_ALIASES[role];
   }
 
   return ADMIN_ROLE_SET.has(role as AdminRole) ? (role as AdminRole) : null;

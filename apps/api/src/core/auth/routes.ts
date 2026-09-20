@@ -1,7 +1,7 @@
 /**
  * Auth Routes
  *
- * Simplified version, removed multi-tenant related logic.
+ * Authentication routes for the self-hosted Core.
  */
 
 import { FastifyInstance } from 'fastify';

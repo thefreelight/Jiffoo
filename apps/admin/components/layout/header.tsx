@@ -1,7 +1,7 @@
 /**
  * Header Component
  *
- * Top navigation header for tenant dashboard with i18n support.
+ * Top navigation header for the Admin application with i18n support.
  */
 
 'use client'

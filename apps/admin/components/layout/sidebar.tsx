@@ -1,5 +1,5 @@
 /**
- * Sidebar Navigation Component for Tenant Application
+ * Sidebar Navigation Component for the Admin Application
  *
  * Provides the main navigation sidebar with i18n support.
  * Shopify-style flat navigation with only 5 main menu items.

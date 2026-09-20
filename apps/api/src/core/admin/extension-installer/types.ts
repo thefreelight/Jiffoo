@@ -103,7 +103,7 @@ export interface InstalledPlugin {
   trustLevel?: PluginTrustLevel;
   entryModule?: string;        // For internal-fastify, e.g. 'server/index.js'
   source: ExtensionSource;
-  fsPath: string;              // extensions/plugins/{slug}
+  fsPath: string;
   permissions?: string[];
   author?: string;
   authorUrl?: string;

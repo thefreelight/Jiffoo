@@ -2,7 +2,7 @@
 /**
  * User Service (Single Merchant Version)
  * 
- * Simplified version, removed multi-tenant related logic.
+ * User service for the self-hosted Core.
  */
 
 import { prisma } from '@/config/database';

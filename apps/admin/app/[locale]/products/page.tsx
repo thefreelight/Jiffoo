@@ -1,5 +1,5 @@
 /**
- * Products Page for Tenant Application
+ * Products Page for the Admin Application
  *
  * Displays product list with search, filter, batch operations and pagination.
  * Supports i18n through the translation function.

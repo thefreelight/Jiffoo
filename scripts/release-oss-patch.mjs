@@ -187,7 +187,6 @@ function collectPublishFiles() {
     'apps/admin/app/[locale]/settings/page.tsx',
     'apps/admin/components/auth/login-modal.tsx',
     'apps/admin/lib/api.ts',
-    'apps/api/src/core/admin/market/market-client.ts',
     'apps/api/src/core/admin/market/official-catalog.ts',
     'apps/api/src/core/auth/routes.ts',
     'apps/api/src/core/auth/schemas.ts',

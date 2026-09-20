@@ -1,9 +1,7 @@
 import { prisma } from '@/config/database';
 import { LoggerService } from '@/core/logger/unified-logger';
-import { getPluginDir } from '@/core/admin/extension-installer/utils';
+import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { loadPluginEntryModule } from '@/core/admin/extension-installer/plugin-module-loader';
-import path from 'path';
-import { existsSync } from 'fs';
 import type { LifecycleHookName, PluginManifest } from '@jiffoo/shared';
 
 export interface LifecycleContext {
@@ -40,8 +38,10 @@ export async function executeLifecycleHook(hookName: LifecycleHookName, context:
 }
 
 async function callInternalLifecycleHook(hookName: LifecycleHookName, context: LifecycleContext, manifest: PluginManifest): Promise<void> {
-  const entryPath = path.join(getPluginDir(context.pluginSlug), manifest.entryModule || 'server/index.js');
-  if (!existsSync(entryPath)) throw new Error(`Plugin entry module not found: ${entryPath}`);
+  const entryModule = manifest.entryModule || 'server/index.js';
+  const pluginPackage = await pluginPackageStore.get(context.pluginSlug);
+  if (!pluginPackage || !await pluginPackage.exists(entryModule)) throw new Error(`Plugin entry module not found: ${entryModule}`);
+  const entryPath = pluginPackage.getEntryPath(entryModule);
   const mod = await loadPluginEntryModule(entryPath, { version: manifest.version });
   const hookFn = mod[`__lifecycle_${hookName}`] || mod.default?.[`__lifecycle_${hookName}`];
   if (typeof hookFn !== 'function') return;

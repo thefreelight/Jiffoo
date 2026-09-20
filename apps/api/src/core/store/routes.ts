@@ -7,7 +7,6 @@ import { createHash } from 'crypto';
 import { FastifyInstance, FastifyReply } from 'fastify';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { ThemeManagementService } from '@/core/admin/theme-management/service';
-import { managedPackageService } from '@/core/admin/managed-package/service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { createTypedReadResponses } from '@/types/common-dto';
 import { CacheService } from '@/core/cache/service';
@@ -96,13 +95,12 @@ export async function storeRoutes(fastify: FastifyInstance) {
             }
 
             // Parallel fetch settings and theme
-            const [platformName, activeTheme, currency, logo, defaultLocale, managedStatus] = await Promise.all([
+            const [platformName, activeTheme, currency, logo, defaultLocale] = await Promise.all([
                 systemSettingsService.getString('branding.platform_name', 'Jiffoo Store'),
                 ThemeManagementService.getActiveTheme('shop'),
                 systemSettingsService.getShopCurrency(),
                 systemSettingsService.getString('branding.logo', null),
                 systemSettingsService.getShopLocale(),
-                managedPackageService.getStatus().catch(() => ({ mode: 'oss' as const, package: null })),
             ]);
 
             const contextData = {
@@ -111,9 +109,9 @@ export async function storeRoutes(fastify: FastifyInstance) {
                 logo: logo as string | null,
                 domain: null, // Single merchant version
                 platformBranding: {
-                    mode: managedStatus.mode,
-                    showPoweredByJiffoo: managedStatus.mode !== 'managed',
-                    poweredByHref: managedStatus.mode === 'managed' ? null : 'https://jiffoo.com',
+                    mode: 'self_hosted',
+                    showPoweredByJiffoo: true,
+                    poweredByHref: 'https://jiffoo.com',
                     poweredByLabel: 'Jiffoo',
                 },
                 status: 'active',

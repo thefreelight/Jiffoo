@@ -103,4 +103,30 @@ describe('storeContextMiddleware', () => {
     expect(reply.code).not.toHaveBeenCalled();
     expect(reply.send).not.toHaveBeenCalled();
   });
+
+  it('always resolves the configured default store when a request supplies X-Store-Id', async () => {
+    const defaultStoreId = process.env.STORE_DEFAULT_ID || 'store-default';
+    (prisma.store.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: defaultStoreId,
+      name: 'Default Store',
+      slug: 'default-store',
+      domain: null,
+      status: 'active',
+      currency: 'USD',
+      defaultLocale: 'en',
+      supportedLocales: ['en'],
+      settings: null,
+      logo: null,
+      themeConfig: null,
+    });
+    const request = { headers: { 'x-store-id': 'another-store' } } as any;
+    const reply = {} as any;
+
+    await storeContextMiddleware(request, reply);
+
+    expect(prisma.store.findUnique).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: defaultStoreId },
+    }));
+    expect(request.storeContext.id).toBe(defaultStoreId);
+  });
 });

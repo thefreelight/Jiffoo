@@ -10,7 +10,6 @@ import { hasAdminAccessRole, resolveAdminPermissionsForRole } from './admin-acce
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 const PUBLIC_ADMIN_ROUTES = new Set([
-  '/admin/commercial-package/branding',
   '/admin/integrations/catalog-import/sync-batch',
 ]);
 
@@ -133,12 +132,6 @@ function resolveRequiredPermission(method: string, pathname: string): AdminPermi
       : ADMIN_PERMISSIONS.MARKET_INSTALL;
   }
 
-  if (pathname.startsWith('/admin/platform/connection')) {
-    return isReadMethod(method)
-      ? ADMIN_PERMISSIONS.PLATFORM_CONNECTION_READ
-      : ADMIN_PERMISSIONS.PLATFORM_CONNECTION_WRITE;
-  }
-
   if (pathname.startsWith('/admin/stores')) {
     return isReadMethod(method)
       ? ADMIN_PERMISSIONS.STORE_READ
@@ -159,12 +152,6 @@ function resolveRequiredPermission(method: string, pathname: string): AdminPermi
     return isReadMethod(method)
       ? ADMIN_PERMISSIONS.WEBHOOKS_READ
       : ADMIN_PERMISSIONS.WEBHOOKS_WRITE;
-  }
-
-  if (pathname.startsWith('/admin/commercial-package')) {
-    return isReadMethod(method)
-      ? ADMIN_PERMISSIONS.SETTINGS_READ
-      : ADMIN_PERMISSIONS.SETTINGS_WRITE;
   }
 
   return null;

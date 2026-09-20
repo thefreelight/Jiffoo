@@ -1,6 +1,6 @@
 # @jiffoo/plugin-sdk
 
-SDK for building external plugins for the Jiffoo Mall platform.
+SDK for building in-process Fastify plugins for Jiffoo Core.
 
 [![npm version](https://img.shields.io/npm/v/@jiffoo/plugin-sdk)](https://www.npmjs.com/package/@jiffoo/plugin-sdk)
 [![License: GPL-3.0](https://img.shields.io/badge/License-GPL%203.0-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
@@ -65,8 +65,10 @@ const plugin = definePlugin({
   version: '1.0.0',
   description: 'My awesome Jiffoo plugin',
   author: 'Your Name',
-  runtimeType: 'external-http',
-  externalBaseUrl: 'https://my-plugin.example.com',
+  runtimeType: 'internal-fastify',
+  hostProtocol: 'internal-fastify-v1',
+  entryModule: 'dist/index.js',
+  trustLevel: 'unsigned',
   permissions: [],
   category: 'integration',
   capabilities: ['webhook.receive'],
@@ -376,10 +378,6 @@ import type {
   PluginHook,
   HookEvent,
 
-  // Lifecycle
-  InstallRequest,
-  UninstallRequest,
-
   // API
   ApiResponse,
   HealthResponse,
@@ -404,8 +402,10 @@ A valid plugin manifest (`manifest.json`):
   "version": "1.0.0",
   "description": "Plugin description",
   "author": "Your Name",
-  "runtimeType": "external-http",
-  "externalBaseUrl": "https://my-plugin.example.com",
+  "runtimeType": "internal-fastify",
+  "hostProtocol": "internal-fastify-v1",
+  "entryModule": "dist/index.js",
+  "trustLevel": "unsigned",
   "permissions": ["orders.read", "orders.write"],
   "category": "integration",
   "capabilities": ["webhook.receive"],

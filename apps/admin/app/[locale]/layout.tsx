@@ -1,5 +1,5 @@
 /**
- * Locale Layout for Tenant Application
+ * Locale Layout for the Admin Application
  * 
  * Provides i18n context for all pages within the [locale] route segment.
  * Wraps children with I18nProvider containing locale-specific messages.
@@ -33,7 +33,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   }
 
   // Get messages for this locale
-  const messages = getMessages(locale as Locale, 'tenant');
+  const messages = getMessages(locale as Locale, 'merchant');
 
   return (
     <I18nProvider locale={locale as Locale} messages={messages}>

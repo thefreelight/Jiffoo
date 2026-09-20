@@ -44,24 +44,6 @@ export function getThemeDir(target: ThemeTarget, slug?: string): string {
   return slug ? path.join(base, slug) : base;
 }
 
-/** Get plugin directory path */
-export function getPluginDir(slug?: string): string {
-  const base = path.join(EXTENSIONS_ROOT, 'plugins');
-  return slug ? path.join(base, slug) : base;
-}
-
-/** Get target directory based on ExtensionKind */
-export function getTargetDir(kind: ExtensionKind, slug: string): string {
-  switch (kind) {
-    case 'theme-shop':
-      return getThemeDir('shop', slug);
-    case 'theme-admin':
-      return getThemeDir('admin', slug);
-    case 'plugin':
-      return getPluginDir(slug);
-  }
-}
-
 // ============================================================================
 // ZIP Extraction
 // ============================================================================

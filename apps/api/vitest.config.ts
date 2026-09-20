@@ -34,7 +34,9 @@ export default defineConfig({
     // Coverage configuration
     coverage: {
       provider: 'v8',
-      enabled: true,
+      // Keep the full integration suite free of coverage worker artifacts.
+      // `vitest run --coverage` enables this explicitly for coverage runs.
+      enabled: false,
       reporter: ['text', 'json', 'html', 'lcov'],
       reportsDirectory: './coverage',
       

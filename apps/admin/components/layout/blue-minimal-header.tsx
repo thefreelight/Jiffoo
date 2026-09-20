@@ -1,5 +1,5 @@
 /**
- * Blue Minimal Header Component for Tenant Application
+ * Blue Minimal Header Component for the Admin Application
  *
  * Modern top header using Jiffoo Blue Minimal design system.
  */

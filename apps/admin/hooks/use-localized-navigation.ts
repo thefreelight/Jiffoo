@@ -1,8 +1,8 @@
 /**
- * Localized Navigation Hook for Tenant Application
+ * Localized Navigation Hook for the Admin Application
  * 
  * Provides navigation utilities that preserve locale context.
- * This ensures that when users navigate within the tenant dashboard,
+ * This ensures that when users navigate within the Admin application,
  * they stay in the same language.
  * 
  * Example: /zh-Hant/products -> /zh-Hant/orders

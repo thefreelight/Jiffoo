@@ -15,7 +15,7 @@ import { promises as fs } from 'fs';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
-import { getPluginDir } from '@/core/admin/extension-installer/utils';
+import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 
 describe('Plugin Runtime - Integration', () => {
   let app: FastifyInstance;
@@ -23,7 +23,7 @@ describe('Plugin Runtime - Integration', () => {
 
   const prisma = getTestPrisma();
   const slug = `itestplug${Date.now().toString(36).slice(-6)}`.slice(0, 20);
-  const pluginDir = getPluginDir(slug);
+  let pluginDir = '';
   const entryModule = 'server/index.js';
 
   let defaultInstallationId = '';
@@ -35,6 +35,7 @@ describe('Plugin Runtime - Integration', () => {
     const { token } = await createAdminWithToken();
     adminToken = token;
 
+    pluginDir = await fs.mkdtemp(path.join(process.cwd(), '.plugin-runtime-'));
     await fs.mkdir(path.join(pluginDir, 'server'), { recursive: true });
     await fs.writeFile(
       path.join(pluginDir, 'manifest.json'),
@@ -55,6 +56,9 @@ describe('Plugin Runtime - Integration', () => {
       ),
       'utf-8'
     );
+
+    await pluginPackageStore.put(slug, pluginDir);
+    pluginDir = (await pluginPackageStore.get(slug))!.getEntryPath('');
 
     await fs.writeFile(
       path.join(pluginDir, entryModule),
@@ -91,7 +95,6 @@ module.exports = async function plugin(fastify, opts) {
         runtimeType: 'internal-fastify',
         entryModule,
         source: 'local-zip',
-        installPath: `extensions/plugins/${slug}`,
         permissions: JSON.stringify([]),
       },
     });
@@ -120,7 +123,7 @@ module.exports = async function plugin(fastify, opts) {
   afterAll(async () => {
     await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
     await prisma.pluginInstall.deleteMany({ where: { slug } });
-    await fs.rm(pluginDir, { recursive: true, force: true });
+    await pluginPackageStore.delete(slug);
     await deleteAllTestUsers();
     await app.close();
   });
@@ -222,6 +225,8 @@ module.exports = async function plugin(fastify, opts) {
     expect(gwOk.statusCode).toBe(200);
     expect(gwOk.json().config.marker).toBe('beta');
 
+    const registryBeforeDisable = await prisma.systemSettings.findUnique({ where: { id: 'system' } });
+
     const disableResp = await app.inject({
       method: 'PATCH',
       url: `/api/extensions/plugin/${slug}/instances/${betaInstallationId}`,
@@ -229,6 +234,8 @@ module.exports = async function plugin(fastify, opts) {
       payload: { enabled: false },
     });
     expect(disableResp.statusCode).toBe(200);
+    const registryAfterDisable = await prisma.systemSettings.findUnique({ where: { id: 'system' } });
+    expect(registryAfterDisable?.pluginRegistryVersion).toBe((registryBeforeDisable?.pluginRegistryVersion ?? 0) + 1);
 
     const gwBlocked = await app.inject({
       method: 'GET',

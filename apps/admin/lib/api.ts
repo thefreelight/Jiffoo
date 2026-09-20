@@ -7,9 +7,6 @@ import {
   createAdminClient,
   getAdminClient,
   type ApiResponse,
-  type CommercialPackageProjection,
-  type ManagedPackageBrandingResponse,
-  type ManagedPackageStatusResponse,
   type ListResult,
   type PageResult,
   type UserProfile,
@@ -19,16 +16,7 @@ import {
   type AdminOrderListItemDTO,
   type AdminOrderDetailDTO,
 } from 'shared';
-import type {
-  OfficialCatalogSolutionOffer,
-  OfficialCatalogSolutionPackageMeta,
-} from 'shared/src/extensions/official-catalog';
 import type { AuthBootstrapStatus } from 'shared/src/types/auth';
-import type {
-  PlatformConnectionPollRequest,
-  PlatformConnectionStartRequest,
-  PlatformConnectionStatus,
-} from 'shared';
 
 export type { ApiResponse, ListResult, PageResult, UserProfile };
 
@@ -581,27 +569,17 @@ export interface PluginServiceTokenStatus {
 
 export type OfficialCatalogInstallState = 'not_installed' | 'installed' | 'enabled' | 'active';
 export type OfficialCatalogReleaseStatus = 'published' | 'catalog-only' | 'offline';
-export type OfficialCatalogPricingModel = 'free' | 'one_time' | 'subscription';
 
 export interface OfficialCatalogItem {
   slug: string;
   name: string;
   kind: 'theme' | 'plugin';
-  listingDomain?: 'app_marketplace' | 'goods_marketplace' | 'merchant_store';
-  listingKind?: 'theme' | 'plugin';
-  providerType?: 'platform' | 'developer' | 'vendor' | 'merchant';
   version: string;
   author: string;
   description: string;
   category: string;
-  deliveryMode: 'package-managed' | 'service-managed';
-  paymentMode?: 'platform_collect' | 'merchant_collect';
-  settlementTargetType?: 'platform' | 'developer' | 'vendor' | 'merchant' | 'none';
-  settlementTargetId?: string | null;
+  deliveryMode: 'package-managed';
   target?: 'shop' | 'admin';
-  pricingModel: OfficialCatalogPricingModel;
-  price: number;
-  currency: string;
   installState: OfficialCatalogInstallState;
   releaseStatus: OfficialCatalogReleaseStatus;
   source: 'builtin' | 'installed' | 'local-zip' | 'official-market' | 'catalog';
@@ -613,15 +591,12 @@ export interface OfficialCatalogItem {
   compatibility?: string;
   screenshots?: string[];
   installedVersion?: string | null;
-  sellableVersion?: string;
   latestVersion?: string | null;
   artifactPackageUrl?: string | null;
   updateAvailable?: boolean;
   configRequired?: boolean;
   configReady?: boolean;
   missingConfigFields?: string[];
-  solutionOffer?: OfficialCatalogSolutionOffer | null;
-  solutionPackage?: OfficialCatalogSolutionPackageMeta | null;
 }
 
 export interface OfficialCatalogResponse {
@@ -629,7 +604,6 @@ export interface OfficialCatalogResponse {
   marketOnline: boolean;
   marketError?: string;
   officialMarketOnly: boolean;
-  managedPackage?: CommercialPackageProjection | null;
   generatedAt: string;
 }
 
@@ -647,13 +621,6 @@ export interface InstallOfficialExtensionResult {
   fsPath?: string;
 }
 
-export interface ActivateManagedPackageRequest {
-  activationCode: string;
-}
-
-export type {
-  PlatformConnectionStatus,
-};
 
 const DEFAULT_PLUGIN_INSTANCE_KEY = 'default';
 
@@ -843,39 +810,6 @@ export const marketApi = {
     }),
 };
 
-export const managedPackageApi = {
-  getBranding: (): Promise<ApiResponse<ManagedPackageBrandingResponse>> =>
-    apiClient.get('/admin/commercial-package/branding'),
-
-  getStatus: (): Promise<ApiResponse<ManagedPackageStatusResponse>> =>
-    apiClient.get('/admin/commercial-package/status'),
-
-  activate: (data: ActivateManagedPackageRequest): Promise<ApiResponse<ManagedPackageStatusResponse>> =>
-    apiClient.post('/admin/commercial-package/activate', data),
-
-  provision: (): Promise<ApiResponse<ManagedPackageStatusResponse>> =>
-    apiClient.post('/admin/commercial-package/provision', {}, { timeout: 120000 }),
-};
-
-export const platformConnectionApi = {
-  getStatus: (): Promise<ApiResponse<PlatformConnectionStatus>> =>
-    apiClient.get('/admin/platform/connection/status'),
-
-  start: (data: Omit<PlatformConnectionStartRequest, 'instanceKey'>): Promise<ApiResponse<PlatformConnectionStatus>> =>
-    apiClient.post('/admin/platform/connection/start', data),
-
-  poll: (data: PlatformConnectionPollRequest): Promise<ApiResponse<PlatformConnectionStatus>> =>
-    apiClient.post('/admin/platform/connection/poll', data),
-
-  complete: (data: { deviceCode: string; accountEmail: string; accountName?: string }): Promise<ApiResponse<PlatformConnectionStatus>> =>
-    apiClient.post('/admin/platform/connection/complete', data),
-
-  bindTenant: (): Promise<ApiResponse<PlatformConnectionStatus>> =>
-    apiClient.post('/admin/platform/connection/bind-tenant', {}),
-
-  disconnect: (): Promise<ApiResponse<PlatformConnectionStatus>> =>
-    apiClient.post('/admin/platform/connection/disconnect', {}),
-};
 
 // Plugin Management API
 export const pluginsApi = {

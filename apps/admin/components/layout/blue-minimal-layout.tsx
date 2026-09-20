@@ -1,5 +1,5 @@
 /**
- * Blue Minimal Admin Layout Component for Tenant Application
+ * Blue Minimal Admin Layout Component
  *
  * Main layout wrapper using Jiffoo Blue Minimal design system.
  * Features fixed sidebar, fixed header, and scrollable content area.
@@ -8,13 +8,11 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { usePathname } from 'next/navigation'
-import { Bell, CircleHelp, Menu } from 'lucide-react'
+import { Menu } from 'lucide-react'
 import { BlueMinimalSidebar } from './blue-minimal-sidebar'
 import ProtectedRoute from '../auth/ProtectedRoute'
-import { ManagedModeProvider, useManagedMode } from '@/lib/managed-mode'
-import { AdminLanguageSwitcher } from '@/components/i18n/admin-language-switcher'
 
 interface BlueMinimalLayoutProps {
   children: React.ReactNode
@@ -37,9 +35,7 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
 
   return (
     <ProtectedRoute requireAdmin={true}>
-      <ManagedModeProvider>
-        <ManagedDocumentTitle />
-        <div className="flex h-screen overflow-hidden bg-[#F1F5F9] font-sans">
+      <div className="flex h-screen overflow-hidden bg-[#F1F5F9] font-sans">
           {/* Sidebar */}
           <BlueMinimalSidebar
             isOpen={isSidebarOpen}
@@ -47,20 +43,6 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
           />
 
           <div className="flex-1 flex flex-col overflow-hidden bg-white">
-            <header className="hidden h-16 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-7 lg:flex">
-              <div className="flex items-center gap-3 text-sm text-slate-500">
-                <span className="font-medium">Jiffoo Admin</span>
-                <span className="text-slate-300">/</span>
-                <span className="font-medium capitalize text-slate-900">
-                  {pathname.split('/').filter(Boolean).slice(-1)[0]?.replace(/-/g, ' ') || 'Dashboard'}
-                </span>
-              </div>
-              <div className="flex items-center gap-5 text-slate-500">
-                <AdminLanguageSwitcher />
-                <button type="button" aria-label="Help" className="transition-colors hover:text-slate-900"><CircleHelp className="h-[18px] w-[18px]" /></button>
-                <button type="button" aria-label="Notifications" className="transition-colors hover:text-slate-900"><Bell className="h-[18px] w-[18px]" /></button>
-              </div>
-            </header>
             {/* Mobile Menu Button - Fixed at top left, hidden when sidebar is open */}
             {!isSidebarOpen && (
               <button
@@ -77,20 +59,7 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
               {children}
             </main>
           </div>
-        </div>
-      </ManagedModeProvider>
+      </div>
     </ProtectedRoute>
   )
-}
-
-function ManagedDocumentTitle() {
-  const { record, isManaged } = useManagedMode()
-
-  useEffect(() => {
-    document.title = isManaged && record
-      ? `${record.displayBrandName} · ${record.displaySolutionName}`
-      : 'Jiffoo Admin'
-  }, [isManaged, record])
-
-  return null
 }

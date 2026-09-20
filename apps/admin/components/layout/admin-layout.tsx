@@ -1,5 +1,5 @@
 /**
- * Admin Layout Component for Tenant Application
+ * Admin Layout Component
  *
  * Main layout wrapper with sidebar, header, and protected route.
  * Uses i18n for page titles.

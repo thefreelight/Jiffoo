@@ -98,7 +98,7 @@ declare module 'fastify' {
     // Plugin Gateway Decorators
     // ============================================
 
-    registerExternalPluginRoutes(): Promise<{
+    registerPluginRoutes(): Promise<{
       registeredCount: number;
     }>;
 
@@ -109,7 +109,7 @@ declare module 'fastify' {
     checkRateLimit(
       request: FastifyRequest,
       reply: FastifyReply,
-      limitType?: 'plugin-api' | 'external-plugin' | 'high-frequency'
+      limitType?: 'plugin-api' | 'plugin-gateway' | 'high-frequency'
     ): Promise<boolean>;
 
     // Plugin error boundary (with fallback value)

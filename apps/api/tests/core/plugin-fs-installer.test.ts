@@ -4,7 +4,7 @@ import os from 'os';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PluginFsInstaller } from '@/core/admin/extension-installer/plugin-fs-installer';
-import { getPluginDir } from '@/core/admin/extension-installer/utils';
+import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { createAdminUser, deleteTestUser, type TestUser } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 
@@ -61,13 +61,14 @@ describe('PluginFsInstaller unsigned packages', () => {
       await prisma.adminStaffAuditLog.deleteMany({ where: { staffUserId: admin.id } });
       await deleteTestUser(admin.id);
     }
-    await fs.rm(getPluginDir(slug), { recursive: true, force: true });
+    await pluginPackageStore.delete(slug);
     await cleanupArchive?.();
   });
 
   it('requires confirmation and records the confirmation before installation', async () => {
     const archive = await createPluginArchive(slug);
     cleanupArchive = archive.cleanup;
+    const registryBefore = await prisma.systemSettings.findUnique({ where: { id: 'system' } });
 
     await expect(installer.install(createReadStream(archive.archivePath))).rejects.toMatchObject({
       code: 'UNSIGNED_CONFIRMATION_REQUIRED',
@@ -87,5 +88,7 @@ describe('PluginFsInstaller unsigned packages', () => {
       orderBy: { createdAt: 'desc' },
     });
     expect(audit?.metadata).toMatchObject({ slug, version: '1.0.0', source: 'local-zip' });
+    const registryAfter = await prisma.systemSettings.findUnique({ where: { id: 'system' } });
+    expect(registryAfter?.pluginRegistryVersion).toBe((registryBefore?.pluginRegistryVersion ?? 0) + 1);
   });
 });

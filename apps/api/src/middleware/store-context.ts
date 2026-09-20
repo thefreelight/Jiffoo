@@ -9,7 +9,6 @@ import { sendError } from '@/utils/response';
  * Store Context Middleware (Single Store)
  *
  * Loads the default store and attaches it to request.storeContext.
- * Multi-tenant routing (domain mapping, X-Store-Id) is available via plugin.
  */
 
 const DEFAULT_STORE_ID = process.env.STORE_DEFAULT_ID || 'store-default';
@@ -97,11 +96,7 @@ export async function storeContextMiddleware(
   request: FastifyRequest,
   reply: FastifyReply
 ) {
-  const headerStoreId = request.headers['x-store-id'];
-  const requestedStoreId =
-    typeof headerStoreId === 'string' && headerStoreId.trim().length > 0
-      ? headerStoreId.trim()
-      : DEFAULT_STORE_ID;
+  const requestedStoreId = DEFAULT_STORE_ID;
 
   try {
     const store = await getStoreById(requestedStoreId);

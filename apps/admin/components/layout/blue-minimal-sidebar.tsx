@@ -1,5 +1,5 @@
 /**
- * Blue Minimal Sidebar Component for Tenant Application
+ * Blue Minimal Sidebar Component for the Admin Application
  *
  * Modern sidebar navigation using Jiffoo Blue Minimal design system.
  * Supports responsive design with mobile overlay.
@@ -11,9 +11,6 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { cn } from '@/lib/utils'
-import { useMemo, useState } from 'react'
-import { useManagedMode } from '@/lib/managed-mode'
-import { canAccessAnyPermission, getSystemNavHref } from '@/lib/admin-access'
 
 import {
   LayoutDashboard,
@@ -27,15 +24,10 @@ import {
   User,
   Settings,
   LogOut,
-  ChevronDown,
-  ChevronRight,
   ChevronUp,
   Monitor,
-  ShieldCheck,
-  Radar,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
-import { ADMIN_PERMISSIONS, type AdminPermission } from 'shared'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,10 +37,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
 import { useUpdateCheck } from '@/hooks/use-update-check'
-import { useJobsAdminCapability } from '@/hooks/use-jobs-admin-capability'
-import { useInstalledPluginNav } from '@/lib/hooks/use-api'
 import { UserAvatar } from '../ui/user-avatar'
-import { JiffooMark } from '../branding/jiffoo-mark'
 
 interface NavigationItem {
   id: string;
@@ -56,7 +45,6 @@ interface NavigationItem {
   fallback: string;
   href: string;
   icon: React.ComponentType<{ className?: string }>;
-  requiredPermissions?: readonly AdminPermission[];
 }
 
 // Base navigation configuration - Shopify style flat menu
@@ -67,7 +55,6 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Dashboard',
     href: '/dashboard',
     icon: LayoutDashboard,
-    requiredPermissions: [ADMIN_PERMISSIONS.DASHBOARD_READ],
   },
   {
     id: 'products',
@@ -75,7 +62,6 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Products',
     href: '/products',
     icon: Package,
-    requiredPermissions: [ADMIN_PERMISSIONS.PRODUCTS_READ],
   },
   {
     id: 'inventory',
@@ -83,7 +69,6 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Inventory',
     href: '/inventory',
     icon: Warehouse,
-    requiredPermissions: [ADMIN_PERMISSIONS.INVENTORY_READ, ADMIN_PERMISSIONS.INVENTORY_FORECAST],
   },
   {
     id: 'orders',
@@ -91,7 +76,6 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Orders',
     href: '/orders',
     icon: FileText,
-    requiredPermissions: [ADMIN_PERMISSIONS.ORDERS_READ],
   },
   {
     id: 'customers',
@@ -99,15 +83,6 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Customers',
     href: '/customers',
     icon: Users,
-    requiredPermissions: [ADMIN_PERMISSIONS.CUSTOMERS_READ],
-  },
-  {
-    id: 'staff',
-    nameKey: 'merchant.nav.staff',
-    fallback: 'Staff',
-    href: '/staff',
-    icon: ShieldCheck,
-    requiredPermissions: [ADMIN_PERMISSIONS.STAFF_READ],
   },
   {
     id: 'plugins',
@@ -115,15 +90,6 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Plugins',
     href: '/plugins',
     icon: Sliders,
-    requiredPermissions: [ADMIN_PERMISSIONS.PLUGINS_READ],
-  },
-  {
-    id: 'jobSources',
-    nameKey: 'merchant.nav.jobSources',
-    fallback: 'Job Sources',
-    href: '/plugins/remoteradar-jobs',
-    icon: Radar,
-    requiredPermissions: [ADMIN_PERMISSIONS.PLUGINS_READ],
   },
   {
     id: 'themes',
@@ -131,7 +97,6 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Themes',
     href: '/themes',
     icon: Palette,
-    requiredPermissions: [ADMIN_PERMISSIONS.THEMES_READ],
   },
   {
     id: 'system',
@@ -139,7 +104,6 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'System',
     href: '/system/updates',
     icon: Monitor,
-    requiredPermissions: [ADMIN_PERMISSIONS.SETTINGS_READ, ADMIN_PERMISSIONS.HEALTH_READ],
   },
 ];
 
@@ -155,35 +119,7 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   const router = useRouter()
   const { user, logout } = useAuthStore()
   const { hasUpdate } = useUpdateCheck()
-  const jobsAdminAvailable = useJobsAdminCapability()
-  const { record, isManaged, isLoading } = useManagedMode()
-  const { data: pluginNavItems } = useInstalledPluginNav()
-  const [pluginsExpanded, setPluginsExpanded] = useState(() => pathname.startsWith('/plugins'))
-
-  // Build navigation config dynamically
-  const navigationConfig = useMemo(() => {
-    // Job Sources (RemoteRadar jobs administration) is instance-specific: keep
-    // it out of the sidebar on instances without a configured jobs service so
-    // generic Jiffoo deployments do not surface RemoteRadar navigation.
-    const visibleNavigation = jobsAdminAvailable
-      ? baseNavigationConfig
-      : baseNavigationConfig.filter((item) => item.id !== 'jobSources')
-
-    if (!isManaged || !record) {
-      return visibleNavigation
-    }
-
-    const packageItem: NavigationItem = {
-      id: 'package',
-      nameKey: 'merchant.nav.yourPackage',
-      fallback: 'Your Package',
-      href: '/package',
-      icon: ShieldCheck,
-      requiredPermissions: [ADMIN_PERMISSIONS.SETTINGS_READ],
-    }
-
-    return [visibleNavigation[0], packageItem, ...visibleNavigation.slice(1)]
-  }, [isManaged, record, jobsAdminAvailable])
+  const navigationConfig = baseNavigationConfig
 
   // Helper function for translations with fallback
   const getText = (key: string, fallback: string): string => {
@@ -215,17 +151,8 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
     }
   }
 
-  const brandTitle = isManaged && record
-    ? record.displayBrandName
-    : isLoading
-      ? 'Jiffoo'
-      : 'Jiffoo'
-
-  const solutionTitle = isManaged && record
-    ? record.displaySolutionName
-    : isLoading
-      ? 'Loading workspace'
-      : 'Management Workspace'
+  const brandTitle = 'Store Console'
+  const solutionTitle = 'Management Workspace'
 
   const brandInitial = brandTitle.trim().charAt(0).toUpperCase() || 'J'
 
@@ -243,22 +170,18 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
       <aside
         className={`
           fixed lg:static inset-y-0 left-0 z-50
-          w-[204px] h-screen bg-white border-r border-slate-200
-          px-3 py-6 flex flex-col flex-shrink-0
+          w-[230px] h-screen bg-white border-r border-gray-100
+          px-4 py-8 flex flex-col flex-shrink-0
           transform transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
         {/* Logo Area */}
-        <div className="flex items-center justify-between mb-9 px-2">
+        <div className="flex items-center justify-between mb-10 px-2">
         <div className="flex items-center gap-3">
-          {isManaged && record ? (
-            <div className="grid h-10 w-10 place-items-center rounded-lg bg-blue-600 font-bold text-white shadow-sm">
+          <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30">
               {brandInitial}
-            </div>
-          ) : (
-            <JiffooMark size="md" compact />
-          )}
+          </div>
           <div className="flex flex-col">
               <span className="font-bold text-base text-gray-900 leading-none">{brandTitle}</span>
               <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">{solutionTitle}</span>
@@ -278,98 +201,14 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
 
         {/* Navigation */}
         <nav className="flex flex-col gap-1 flex-1">
-          {navigationConfig
-            .filter((item) => canAccessAnyPermission(user, item.requiredPermissions))
-            .map((item) => {
-            const href = item.id === 'system'
-              ? getSystemNavHref(user, locale)
-              : getLocalizedHref(item.href)
-            const isActive = pathname === href || pathname.startsWith(`${href}/`)
+          {navigationConfig.map((item) => {
+            const isActive = isItemActive(item.href)
             const Icon = item.icon
-
-            // Installed plugins render as a second-level group under Plugins:
-            // the parent opens the plugin center, the chevron toggles the
-            // submenu, and each enabled workspace gets a direct entry.
-            if (item.id === 'plugins') {
-              const expanded = pluginsExpanded || pathname.startsWith('/plugins')
-              const subItems = pluginNavItems || []
-              return (
-                <div key={item.id} className="flex flex-col gap-0.5">
-                  <div
-                    className={`
-                      flex items-center rounded-xl text-sm font-semibold transition-all duration-200
-                      ${isActive
-                        ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                        : 'text-gray-400 hover:bg-gray-50 hover:text-gray-900'
-                      }
-                    `}
-                  >
-                    <Link
-                      href={href}
-                      onClick={handleNavClick}
-                      className="flex items-center gap-3 px-4 py-2.5 flex-1 min-w-0"
-                    >
-                      <Icon className={cn('w-5 h-5 transition-transform', isActive && 'scale-110')} />
-                      <span>{getText(item.nameKey, item.fallback)}</span>
-                    </Link>
-                    <button
-                      onClick={() => setPluginsExpanded((value) => !value)}
-                      className="mr-2 p-1.5 rounded-lg hover:bg-black/5"
-                      aria-expanded={expanded}
-                      aria-label={getText('merchant.nav.plugins', 'Plugins')}
-                      type="button"
-                    >
-                      {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  {expanded ? (
-                    <div className="ml-6 flex flex-col gap-0.5 border-l border-slate-100 pl-3 py-1">
-                      <Link
-                        href={href}
-                        onClick={handleNavClick}
-                        className={`
-                          rounded-lg px-3 py-1.5 text-[13px] font-medium transition-colors
-                          ${pathname === href
-                            ? 'text-blue-600 bg-blue-50 font-semibold'
-                            : 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
-                          }
-                        `}
-                      >
-                        {getText('merchant.nav.pluginCenter', 'Plugin Center')}
-                      </Link>
-                      {subItems.map((sub) => {
-                        const subHref = getLocalizedHref(`/plugins/${sub.slug}`)
-                        const subActive = pathname === subHref || pathname.startsWith(`${subHref}/`)
-                        return (
-                          <Link
-                            key={sub.slug}
-                            href={subHref}
-                            onClick={handleNavClick}
-                            title={sub.name}
-                            className={`
-                              rounded-lg px-3 py-1.5 text-[13px] font-medium truncate transition-colors
-                              ${subActive
-                                ? 'text-blue-600 bg-blue-50 font-semibold'
-                                : sub.enabled
-                                  ? 'text-gray-400 hover:text-gray-900 hover:bg-gray-50'
-                                  : 'text-gray-300 hover:text-gray-500'
-                              }
-                            `}
-                          >
-                            {sub.name}
-                          </Link>
-                        )
-                      })}
-                    </div>
-                  ) : null}
-                </div>
-              )
-            }
 
             return (
               <Link
                 key={item.id}
-                href={href}
+                href={getLocalizedHref(item.href)}
                 onClick={handleNavClick}
                 className={`
                   flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold

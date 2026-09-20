@@ -23,12 +23,6 @@ describe('Admin access policy', () => {
     expect(getUserPermissions(adminUser({ role: ADMIN_ROLES.ANALYST }))).toContain(
       ADMIN_PERMISSIONS.PLUGINS_READ,
     );
-    expect(getUserPermissions(adminUser({ role: 'TENANT_ADMIN' }))).toContain(
-      ADMIN_PERMISSIONS.STAFF_WRITE,
-    );
-    expect(getUserPermissions(adminUser({ role: 'SUPER_ADMIN' }))).toContain(
-      ADMIN_PERMISSIONS.SETTINGS_WRITE,
-    );
   });
 
   it('uses explicit permission grants ahead of role defaults', () => {

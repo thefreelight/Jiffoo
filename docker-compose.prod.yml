@@ -82,7 +82,6 @@ services:
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3001/api/auth/google/callback}
       RESEND_API_KEY: ${RESEND_API_KEY:-re_local_placeholder}
       RESEND_WEBHOOK_SECRET: ${RESEND_WEBHOOK_SECRET:-whsec_resend_placeholder}
-      MARKET_API_URL: ${MARKET_API_URL:-https://platform-api.jiffoo.com/api}
     ports:
       - "${JIFFOO_API_PORT:-3001}:3002"
     depends_on:

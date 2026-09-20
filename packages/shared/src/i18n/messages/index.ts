@@ -15,16 +15,13 @@ import * as zhHantMessages from './zh-Hant';
 /**
  * All messages organized by locale
  *
- * Note: For backward compatibility, we include both:
- * - 'tenant' namespace (for getMessages with appName='tenant')
- * - 'merchant' namespace (for direct merchant.* key lookups)
+ * Merchant Admin messages use the merchant namespace.
  */
 const allMessages: Record<Locale, Messages> = {
   en: {
     common: enMessages.common,
     shop: enMessages.shop,
-    tenant: enMessages.merchant,
-    merchant: enMessages.merchant, // Alias for backward compatibility with merchant.* keys
+    merchant: enMessages.merchant,
     whiteLabel: enMessages.whiteLabel,
   },
   'zh-Hans': {
@@ -37,8 +34,7 @@ const allMessages: Record<Locale, Messages> = {
   'zh-Hant': {
     common: zhHantMessages.common,
     shop: zhHantMessages.shop,
-    tenant: zhHantMessages.merchant,
-    merchant: zhHantMessages.merchant, // Alias for backward compatibility with merchant.* keys
+    merchant: zhHantMessages.merchant,
     whiteLabel: zhHantMessages.whiteLabel,
   },
 };
@@ -66,18 +62,11 @@ export function getMessages(locale: Locale, appName?: AppName): Messages {
     return messages;
   }
 
-  // Return only common and app-specific messages
-  // For tenant app, also include merchant namespace for backward compatibility
+  // Return only common and app-specific messages.
   const result: Messages = {
     common: messages.common,
     [appName]: messages[appName],
   };
-
-  // If requesting tenant messages, also include merchant alias
-  // This allows both tenant.* and merchant.* keys to work
-  if (appName === 'tenant' && messages.merchant) {
-    result.merchant = messages.merchant;
-  }
 
   return result;
 }

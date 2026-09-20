@@ -61,7 +61,7 @@
     "test:live-runtime-verifier": "node scripts/test-verify-live-runtime-version.mjs",
     "test:native-d1-migration-line": "node scripts/test-verify-native-d1-migration-line.mjs",
     "test:branded-storefront-runtime-verifier": "node scripts/test-verify-branded-storefront-runtime.mjs",
-    "test:admin-market-theme-upgrade": "pnpm --filter api test -- tests/routes/admin-staff.test.ts tests/routes/admin-market-install.test.ts tests/routes/market-install-binding.test.ts tests/core/official-catalog.test.ts tests/core/market-update-checker.test.ts tests/core/theme-installer-upgrade.test.ts tests/core/theme-management-service.test.ts tests/routes/upgrade.test.ts tests/core/upgrade-executors.test.ts",
+    "test:admin-market-theme-upgrade": "pnpm --filter api test -- tests/routes/admin-staff.test.ts tests/core/official-catalog.test.ts tests/core/market-update-checker.test.ts tests/core/official-package-recovery.test.ts tests/core/theme-installer-upgrade.test.ts tests/core/theme-management-service.test.ts tests/routes/upgrade.test.ts tests/core/upgrade-executors.test.ts",
     "verify:release-quality-gates": "node scripts/run-release-quality-gates.mjs",
     "verify:release-publication-gate": "node scripts/verify-release-publication-gate.mjs",
     "verify:release-history-availability": "node scripts/verify-release-history-availability.mjs --verify-images",

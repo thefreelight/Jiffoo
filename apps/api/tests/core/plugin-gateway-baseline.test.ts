@@ -18,7 +18,7 @@ import { promises as fs } from 'fs';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
-import { getPluginDir } from '@/core/admin/extension-installer/utils';
+import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 
 describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
   let app: FastifyInstance;
@@ -27,7 +27,7 @@ describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
 
   const prisma = getTestPrisma();
   const slug = `baselinegw${Date.now().toString(36).slice(-6)}`.slice(0, 20);
-  const pluginDir = getPluginDir(slug);
+  let pluginDir = '';
   const entryModule = 'server/index.js';
 
   beforeAll(async () => {
@@ -37,6 +37,7 @@ describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
     adminUserId = user.id;
 
     // Create a minimal internal-fastify plugin for gateway testing
+    pluginDir = await fs.mkdtemp(path.join(process.cwd(), '.plugin-gateway-'));
     await fs.mkdir(path.join(pluginDir, 'server'), { recursive: true });
     await fs.writeFile(
       path.join(pluginDir, 'manifest.json'),
@@ -58,6 +59,9 @@ describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
       ),
       'utf-8',
     );
+
+    await pluginPackageStore.put(slug, pluginDir);
+    pluginDir = (await pluginPackageStore.get(slug))!.getEntryPath('');
 
     await fs.writeFile(
       path.join(pluginDir, entryModule),
@@ -86,7 +90,6 @@ module.exports = async function plugin(fastify) {
         runtimeType: 'internal-fastify',
         entryModule,
         source: 'local-zip',
-        installPath: `extensions/plugins/${slug}`,
         permissions: JSON.stringify([]),
       },
     });
@@ -104,7 +107,7 @@ module.exports = async function plugin(fastify) {
   afterAll(async () => {
     await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
     await prisma.pluginInstall.deleteMany({ where: { slug } });
-    await fs.rm(pluginDir, { recursive: true, force: true });
+    await pluginPackageStore.delete(slug);
     await deleteAllTestUsers();
     await app.close();
   });

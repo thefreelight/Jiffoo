@@ -379,7 +379,7 @@ export declare const merchant: {
         batchDeleteConfirm: string;
         selectRole: string;
         roleUser: string;
-        roleTenantAdmin: string;
+        roleAdmin: string;
         processing: string;
         confirm: string;
         showingResults: string;
@@ -686,7 +686,6 @@ export declare const merchant: {
             getStarted: string;
             version: string;
             installedDate: string;
-            plan: string;
             enabled: string;
             uninstallTitle: string;
             uninstallConfirm: string;

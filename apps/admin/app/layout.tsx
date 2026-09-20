@@ -1,5 +1,5 @@
 /**
- * Root Layout for Tenant Application
+ * Root Layout for the Admin Application
  *
  * Provides the base HTML structure and global styles.
  * Language-specific content is handled by the [locale] layout.

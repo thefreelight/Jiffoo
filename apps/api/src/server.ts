@@ -43,6 +43,7 @@ import { accessLogMiddleware, errorLogMiddleware } from '@/core/logger/middlewar
 import { registerRoutes } from '@/routes';
 import { performHealthCheck, livenessCheck, readinessCheck } from '@/utils/health-check';
 import traceContextPlugin from '@/core/logger/trace-context';
+import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
 
 const fastify = Fastify({
   logger: false,
@@ -81,20 +82,18 @@ async function buildApp() {
       }
     });
 
-    // Ensure uploads directory exists
-    const uploadsPath = path.join(process.cwd(), 'uploads');
-    try {
-      await fs.access(uploadsPath);
-    } catch {
-      await fs.mkdir(uploadsPath, { recursive: true });
-      LoggerService.logSystem(`Created uploads directory at ${uploadsPath}`);
-    }
-
-    // Register static files for uploads
-    await fastify.register(staticFiles, {
-      root: uploadsPath,
-      prefix: '/uploads/',
-      decorateReply: false
+    fastify.get('/uploads/*', async (request, reply) => {
+      const key = (request.params as { '*': string })['*'];
+      const file = await uploadedFileStore.get(key);
+      if (!file) return reply.code(404).send({ error: 'File not found' });
+      const contentType = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.webp': 'image/webp',
+      }[path.extname(key).toLowerCase()];
+      if (contentType) reply.type(contentType);
+      return reply.send(file);
     });
 
     // Ensure extensions directory exists

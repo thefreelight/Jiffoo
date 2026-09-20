@@ -19,6 +19,7 @@ import {
 import { themeInstaller } from './theme-installer';
 import { themeAppInstaller } from './theme-app-installer';
 import { pluginFsInstaller } from './plugin-fs-installer';
+import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 
 // Re-export types
 export * from './types';
@@ -156,7 +157,10 @@ export class ExtensionInstaller implements IExtensionInstaller {
         // Read from DB instead of disk scan (exclude soft-uninstalled packages from admin list)
         const { PluginManagementService } = await import('@/core/admin/plugin-management/service');
         const packages = await PluginManagementService.getAllPluginPackages();
-        return packages.map(pkg => ({
+        return Promise.all(packages.map(async (pkg) => {
+          const pluginPackage = await pluginPackageStore.get(pkg.slug);
+          if (!pluginPackage) throw new Error(`Plugin package files are missing for "${pkg.slug}"`);
+          return {
           id: pkg.id,
           slug: pkg.slug,
           name: pkg.name,
@@ -168,7 +172,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
           source: (pkg.source === 'builtin' || pkg.source === 'local-zip' || pkg.source === 'official-market' 
             ? pkg.source 
             : 'local-zip') as ExtensionSource, // Map DB source to ExtensionSource
-          fsPath: `extensions/plugins/${pkg.slug}`,
+          fsPath: pluginPackage.getEntryPath(''),
           permissions: parseJsonArray(pkg.permissions),
           author: pkg.author || undefined,
           authorUrl: pkg.authorUrl || undefined,
@@ -176,6 +180,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
           updatedAt: pkg.updatedAt,
           zipHash: pkg.zipHash || undefined,
           manifestJson: pkg.manifestJson || undefined,
+          };
         }));
       }
       default:
@@ -211,6 +216,8 @@ export class ExtensionInstaller implements IExtensionInstaller {
         if (!pkg) {
           return null;
         }
+        const pluginPackage = await pluginPackageStore.get(pkg.slug);
+        if (!pluginPackage) throw new Error(`Plugin package files are missing for "${pkg.slug}"`);
         return {
           id: pkg.id,
           slug: pkg.slug,
@@ -223,7 +230,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
           source: (pkg.source === 'builtin' || pkg.source === 'local-zip' || pkg.source === 'official-market' 
             ? pkg.source 
             : 'local-zip') as ExtensionSource, // Map DB source to ExtensionSource
-          fsPath: `extensions/plugins/${pkg.slug}`,
+          fsPath: pluginPackage.getEntryPath(''),
           permissions: parseJsonArray(pkg.permissions),
           author: pkg.author || undefined,
           authorUrl: pkg.authorUrl || undefined,

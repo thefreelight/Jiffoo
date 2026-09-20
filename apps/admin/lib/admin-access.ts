@@ -10,20 +10,11 @@ import {
 
 type AdminUser = Pick<UserProfile, 'role' | 'permissions' | 'admin' | 'adminStatus'> | null | undefined;
 
-const LEGACY_ADMIN_ROLE_ALIASES: Record<string, AdminRole> = {
-  SUPER_ADMIN: ADMIN_ROLES.OWNER,
-  TENANT_ADMIN: ADMIN_ROLES.ADMIN,
-};
-
 const ADMIN_ROLE_SET = new Set<AdminRole>(Object.values(ADMIN_ROLES) as AdminRole[]);
 
 function resolveAdminRole(role?: string | null): AdminRole | null {
   if (!role) {
     return null;
-  }
-
-  if (role in LEGACY_ADMIN_ROLE_ALIASES) {
-    return LEGACY_ADMIN_ROLE_ALIASES[role];
   }
 
   return ADMIN_ROLE_SET.has(role as AdminRole) ? (role as AdminRole) : null;

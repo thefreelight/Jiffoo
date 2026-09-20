@@ -6,20 +6,18 @@
  * Supports multi-instance per plugin (installationId/instanceKey model).
  */
 
-import { promises as fs } from 'fs';
-import path from 'path';
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import type { PluginMeta, PluginState, PluginConfig, InstalledPluginsResponse } from './types';
-import { getPluginDir, validateInstanceConfig, validateInstanceKeyFormat } from '@/core/admin/extension-installer/utils';
+import { validateInstanceConfig, validateInstanceKeyFormat } from '@/core/admin/extension-installer/utils';
+import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { incrementPluginRegistryVersion } from '@/core/admin/extension-installer/plugin-registry-version';
 import { assertPluginConfigReadyForEnable } from '@/core/admin/extension-installer/config-readiness';
 import type { PluginInstall, PluginInstallation } from '@prisma/client';
 import { executeLifecycleHook, hasLifecycleHook } from './lifecycle-hooks';
 import { isAllowedExtensionSource, isOfficialMarketOnly } from '@/core/admin/extension-installer/official-only';
 import { ensureOfficialMarketExtensionFiles } from '@/core/admin/market/official-package-recovery';
 import { mergeSecretConfigForUpdate } from './config-secrets';
-
-const EXTENSIONS_DIR = getPluginDir();
 
 // instanceKey validation regex: ^[a-z0-9-]{1,32}$
 const INSTANCE_KEY_REGEX = /^[a-z0-9-]{1,32}$/;
@@ -85,10 +83,8 @@ async function getPluginPackage(slug: string): Promise<PluginInstall | null> {
   }
 
   if (plugin?.source === 'official-market') {
-    const manifestPath = path.join(EXTENSIONS_DIR, slug, 'manifest.json');
-    try {
-      await fs.access(manifestPath);
-    } catch {
+    const pluginPackage = await pluginPackageStore.get(slug);
+    if (!pluginPackage || !await pluginPackage.exists('manifest.json')) {
       await ensureOfficialMarketExtensionFiles({
         slug,
         kind: 'plugin',
@@ -332,9 +328,12 @@ async function updateInstance(
     updateData.grantedPermissions = updates.grantedPermissions ?? null;
   }
 
-  const updated = await prisma.pluginInstallation.update({
-    where: { id: installationId },
-    data: updateData,
+  const updated = await prisma.$transaction(async (tx) => {
+    const next = await tx.pluginInstallation.update({ where: { id: installationId }, data: updateData });
+    if (updates.enabled !== undefined && updates.enabled !== existing.enabled) {
+      await incrementPluginRegistryVersion(tx);
+    }
+    return next;
   });
 
   // If disabling: execute onDisable lifecycle hook AFTER the DB update.
@@ -374,12 +373,13 @@ async function deleteInstance(installationId: string): Promise<PluginInstallatio
     throw new Error(`Installation "${installationId}" is already deleted`);
   }
 
-  const deleted = await prisma.pluginInstallation.update({
-    where: { id: installationId },
-    data: {
-      enabled: false,
-      deletedAt: new Date(),
-    },
+  const deleted = await prisma.$transaction(async (tx) => {
+    const next = await tx.pluginInstallation.update({
+      where: { id: installationId },
+      data: { enabled: false, deletedAt: new Date() },
+    });
+    await incrementPluginRegistryVersion(tx);
+    return next;
   });
 
   await CacheService.incrementPluginVersion();
@@ -420,14 +420,8 @@ export async function isPluginEnabled(
     return false;
   }
 
-  // Verify plugin exists on disk
-  const manifestPath = path.join(EXTENSIONS_DIR, slug, 'manifest.json');
-  try {
-    await fs.access(manifestPath);
-    return true;
-  } catch {
-    return false;
-  }
+  const pluginPackageFiles = await pluginPackageStore.get(slug);
+  return !!pluginPackageFiles && await pluginPackageFiles.exists('manifest.json');
 }
 
 /**
@@ -495,10 +489,10 @@ export async function uninstallPlugin(slug: string): Promise<void> {
       },
       data: { enabled: false },
     });
+    await incrementPluginRegistryVersion(tx);
   });
 
-  // Note: Files are preserved on disk (extensions/plugins/{slug})
-  // This is intentional for safety and allows re-installation
+  // Files are preserved by the package store for safety and re-installation.
 
   await CacheService.delete('plugins:installed');
   await CacheService.delete(`plugins:config:${slug}`);
@@ -521,11 +515,8 @@ export async function restorePlugin(slug: string): Promise<void> {
     throw new Error(`Plugin "${slug}" is already installed`);
   }
 
-  const pluginDir = getPluginDir(slug);
-  const manifestPath = path.join(pluginDir, 'manifest.json');
-  try {
-    await fs.access(manifestPath);
-  } catch {
+  const pluginPackageFiles = await pluginPackageStore.get(slug);
+  if (!pluginPackageFiles || !await pluginPackageFiles.exists('manifest.json')) {
     throw new Error(`Plugin "${slug}" files are missing. Please reinstall from ZIP.`);
   }
 
@@ -563,6 +554,7 @@ export async function restorePlugin(slug: string): Promise<void> {
         },
       });
     }
+    await incrementPluginRegistryVersion(tx);
   });
 
   await CacheService.delete('plugins:installed');
@@ -587,8 +579,7 @@ export async function purgePlugin(slug: string): Promise<void> {
     throw new Error('Cannot purge built-in plugins');
   }
 
-  const pluginDir = getPluginDir(slug);
-  await fs.rm(pluginDir, { recursive: true, force: true }).catch(() => {});
+  await pluginPackageStore.delete(slug);
 
   await prisma.pluginInstall.delete({
     where: { slug },

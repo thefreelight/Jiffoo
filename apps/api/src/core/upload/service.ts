@@ -1,9 +1,9 @@
 
 import { MultipartFile } from '@fastify/multipart';
 import path from 'path';
-import fs from 'fs/promises';
 import { randomUUID } from 'crypto';
 import { CDNConfig } from '../performance/cdn-config';
+import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
 
 export interface UploadResult {
   filename: string;
@@ -14,7 +14,6 @@ export interface UploadResult {
 }
 
 export class UploadService {
-  private static readonly UPLOAD_DIR = 'uploads';
   private static readonly MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
   private static readonly ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
   private static sharpModule: any | null | undefined;
@@ -42,21 +41,18 @@ export class UploadService {
     const baseFilename = `${fileId}${ext}`;
     const webpFilename = `${fileId}.webp`;
 
-    const productDir = path.join(this.UPLOAD_DIR, 'products');
-    await this.ensureDirectoryExists(productDir);
-
     // Generate different sizes of images in both JPEG and WebP formats
     await Promise.all([
       // JPEG versions
-      this.processImage(buffer, path.join(productDir, `thumb_${baseFilename}`), this.IMAGE_SIZES.thumbnail),
-      this.processImage(buffer, path.join(productDir, `medium_${baseFilename}`), this.IMAGE_SIZES.medium),
-      this.processImage(buffer, path.join(productDir, `large_${baseFilename}`), this.IMAGE_SIZES.large),
-      this.processImage(buffer, path.join(productDir, baseFilename)), // Original image
+      this.processImage(buffer, `products/thumb_${baseFilename}`, this.IMAGE_SIZES.thumbnail),
+      this.processImage(buffer, `products/medium_${baseFilename}`, this.IMAGE_SIZES.medium),
+      this.processImage(buffer, `products/large_${baseFilename}`, this.IMAGE_SIZES.large),
+      this.processImage(buffer, `products/${baseFilename}`), // Original image
       // WebP versions
-      this.processWebP(buffer, path.join(productDir, `thumb_${webpFilename}`), this.IMAGE_SIZES.thumbnail),
-      this.processWebP(buffer, path.join(productDir, `medium_${webpFilename}`), this.IMAGE_SIZES.medium),
-      this.processWebP(buffer, path.join(productDir, `large_${webpFilename}`), this.IMAGE_SIZES.large),
-      this.processWebP(buffer, path.join(productDir, webpFilename)) // Original WebP
+      this.processWebP(buffer, `products/thumb_${webpFilename}`, this.IMAGE_SIZES.thumbnail),
+      this.processWebP(buffer, `products/medium_${webpFilename}`, this.IMAGE_SIZES.medium),
+      this.processWebP(buffer, `products/large_${webpFilename}`, this.IMAGE_SIZES.large),
+      this.processWebP(buffer, `products/${webpFilename}`) // Original WebP
     ]);
 
     const localUrl = `/uploads/products/${baseFilename}`;
@@ -87,13 +83,10 @@ export class UploadService {
     const filename = `${fileId}${ext}`;
     const webpFilename = `${fileId}.webp`;
 
-    const avatarDir = path.join(this.UPLOAD_DIR, 'avatars');
-    await this.ensureDirectoryExists(avatarDir);
-
     // Avatars only need one size, generate both JPEG and WebP
     await Promise.all([
-      this.processImage(buffer, path.join(avatarDir, filename), { width: 200, height: 200 }),
-      this.processWebP(buffer, path.join(avatarDir, webpFilename), { width: 200, height: 200 })
+      this.processImage(buffer, `avatars/${filename}`, { width: 200, height: 200 }),
+      this.processWebP(buffer, `avatars/${webpFilename}`, { width: 200, height: 200 })
     ]);
 
     const localUrl = `/uploads/avatars/${filename}`;
@@ -110,12 +103,12 @@ export class UploadService {
 
   private static async processImage(
     buffer: Buffer,
-    outputPath: string,
+    key: string,
     size?: { width: number; height: number }
   ): Promise<void> {
     const sharp = this.getSharp();
     if (!sharp) {
-      await fs.writeFile(outputPath, buffer);
+      await uploadedFileStore.put(key, buffer);
       return;
     }
 
@@ -128,21 +121,19 @@ export class UploadService {
       });
     }
 
-    await sharpInstance
-      .jpeg({ quality: 85 })
-      .toFile(outputPath);
+    await uploadedFileStore.put(key, await sharpInstance.jpeg({ quality: 85 }).toBuffer());
   }
 
   private static async processWebP(
     buffer: Buffer,
-    outputPath: string,
+    key: string,
     size?: { width: number; height: number }
   ): Promise<void> {
     const sharp = this.getSharp();
     if (!sharp) {
       // Without sharp we cannot reliably transcode to WebP.
-      if (path.extname(outputPath) === '.webp' && this.isWebP(buffer)) {
-        await fs.writeFile(outputPath, buffer);
+      if (path.extname(key) === '.webp' && this.isWebP(buffer)) {
+        await uploadedFileStore.put(key, buffer);
       }
       return;
     }
@@ -156,9 +147,7 @@ export class UploadService {
       });
     }
 
-    await sharpInstance
-      .webp({ quality: 85 })
-      .toFile(outputPath);
+    await uploadedFileStore.put(key, await sharpInstance.webp({ quality: 85 }).toBuffer());
   }
 
   private static getSharp(): any | null {
@@ -189,45 +178,32 @@ export class UploadService {
       buffer.subarray(8, 12).toString('ascii') === 'WEBP';
   }
 
-  private static async ensureDirectoryExists(dir: string): Promise<void> {
-    try {
-      await fs.access(dir);
-    } catch {
-      await fs.mkdir(dir, { recursive: true });
-    }
-  }
-
   static async deleteFile(filePath: string): Promise<void> {
     try {
-      const fullPath = path.join(this.UPLOAD_DIR, filePath);
-
-      // Check if file exists
-      try {
-        await fs.access(fullPath);
-      } catch {
+      if (!await uploadedFileStore.get(filePath)) {
         throw new Error('File not found');
       }
 
-      await fs.unlink(fullPath);
+      await uploadedFileStore.delete(filePath);
 
       // Delete related thumbnails and WebP versions
-      const dir = path.dirname(fullPath);
-      const filename = path.basename(fullPath);
+      const dir = path.posix.dirname(filePath);
+      const filename = path.posix.basename(filePath);
       const fileWithoutExt = filename.replace(/\.[^/.]+$/, '');
       const relatedFiles = [
         // JPEG versions
-        path.join(dir, `thumb_${filename}`),
-        path.join(dir, `medium_${filename}`),
-        path.join(dir, `large_${filename}`),
+        path.posix.join(dir, `thumb_${filename}`),
+        path.posix.join(dir, `medium_${filename}`),
+        path.posix.join(dir, `large_${filename}`),
         // WebP versions
-        path.join(dir, `${fileWithoutExt}.webp`),
-        path.join(dir, `thumb_${fileWithoutExt}.webp`),
-        path.join(dir, `medium_${fileWithoutExt}.webp`),
-        path.join(dir, `large_${fileWithoutExt}.webp`)
+        path.posix.join(dir, `${fileWithoutExt}.webp`),
+        path.posix.join(dir, `thumb_${fileWithoutExt}.webp`),
+        path.posix.join(dir, `medium_${fileWithoutExt}.webp`),
+        path.posix.join(dir, `large_${fileWithoutExt}.webp`)
       ];
 
       await Promise.allSettled(
-        relatedFiles.map(file => fs.unlink(file))
+        relatedFiles.map(file => uploadedFileStore.delete(file))
       );
     } catch (error) {
       if (error instanceof Error && error.message === 'File not found') {

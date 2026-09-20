@@ -2,19 +2,20 @@ import { afterAll, describe, expect, it } from 'vitest';
 import path from 'path';
 import { promises as fs } from 'fs';
 import { executeLifecycleHook, type LifecycleContext } from '@/core/admin/plugin-management/lifecycle-hooks';
-import { getPluginDir } from '@/core/admin/extension-installer/utils';
+import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import type { PluginManifest } from '@jiffoo/shared';
 
 describe('Plugin lifecycle hooks', () => {
   const slug = `lifecycletest${Date.now().toString(36).slice(-6)}`.slice(0, 24);
-  const pluginDir = getPluginDir(slug);
-  const markerPath = path.join(pluginDir, 'hook-marker.json');
+  let markerPath = path.join(process.cwd(), `.plugin-lifecycle-${slug}.json`);
 
   afterAll(async () => {
-    await fs.rm(pluginDir, { recursive: true, force: true });
+    await pluginPackageStore.delete(slug);
+    await fs.rm(markerPath, { force: true });
   });
 
   it('loads internal-fastify lifecycle hooks from the plugin entry module', async () => {
+    const pluginDir = await fs.mkdtemp(path.join(process.cwd(), '.plugin-lifecycle-'));
     await fs.mkdir(path.join(pluginDir, 'src'), { recursive: true });
     await fs.writeFile(
       path.join(pluginDir, 'src', 'index.js'),
@@ -27,6 +28,8 @@ module.exports.__lifecycle_onEnable = async function onEnable(context) {
       `.trim(),
       'utf-8',
     );
+
+    await pluginPackageStore.put(slug, pluginDir);
 
     const manifest: PluginManifest = {
       schemaVersion: 1,

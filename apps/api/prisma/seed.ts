@@ -216,21 +216,21 @@ async function main() {
     });
     console.log(`✅ Admin user created: ${admin.email}`);
 
-    console.log('👤 Creating super admin user...');
-    const superAdmin = await prisma.user.upsert({
-      where: { email: 'superadmin@jiffoo.com' },
-      update: { role: 'SUPER_ADMIN', password: hashedPassword, emailVerified: true, storeId: defaultStore.id },
+    console.log('Creating owner user...');
+    const owner = await prisma.user.upsert({
+      where: { email: 'admin@jiffoo.com' },
+      update: { role: 'OWNER', password: hashedPassword, emailVerified: true, storeId: defaultStore.id },
       create: {
-        email: 'superadmin@jiffoo.com',
-        username: 'superadmin',
+        email: 'admin@jiffoo.com',
+        username: 'admin',
         password: hashedPassword,
-        role: 'SUPER_ADMIN',
+        role: 'OWNER',
         emailVerified: true,
         avatar: null,
         storeId: defaultStore.id,
       },
     });
-    console.log(`✅ Super admin user created: ${superAdmin.email}`);
+    console.log(`Owner user created: ${owner.email}`);
 
     // Sample shopper user (for Shop UI)
     console.log('👤 Creating sample user...');

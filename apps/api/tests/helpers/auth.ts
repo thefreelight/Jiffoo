@@ -78,9 +78,6 @@ export async function createAdminUser(options: Omit<CreateUserOptions, 'role'> =
   return createTestUser({ ...options, role: 'ADMIN' });
 }
 
-// createSuperAdminUser removed - All privileged operations now use ADMIN role
-
-
 /**
  * Sign a JWT token for a user
  */

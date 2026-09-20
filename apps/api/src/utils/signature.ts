@@ -2,7 +2,7 @@
  * Jiffoo Platform - Unified Signature Utilities
  *
  * HMAC-SHA256 signature generation and verification for secure communication
- * between the Jiffoo platform and external plugins.
+ * between the Core gateway and in-process plugins.
  *
  * Protocol Specification (V1):
  * - Algorithm: HMAC-SHA256

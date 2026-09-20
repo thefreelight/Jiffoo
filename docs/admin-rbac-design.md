@@ -9,12 +9,12 @@ The current admin authorization model is binary:
 - API admin routes gate on `requireAdmin`
 - admin frontend gates on `user.role === 'ADMIN'`
 
-That works for a single super-admin, but it does not scale to a real back-office team.
+That works for a single administrator, but it does not scale to a real back-office team.
 
 This document defines a role-based access control model for the open-source, single-merchant version of Jiffoo that:
 
 - keeps the OSS deployment model simple
-- does not reintroduce multi-tenant complexity
+- preserves the single-merchant Core boundary
 - separates customer identity from admin access
 - supports route-level authorization in the API
 - supports menu/page/action gating in the admin frontend
@@ -328,11 +328,6 @@ The current admin route groups map naturally to permissions:
 
 - catalog browsing: `market.read`
 - install/launch actions: `market.install`
-
-`apps/api/src/core/admin/platform-connection/routes.ts`
-
-- read: `platformConnection.read`
-- connect/refresh/disconnect: `platformConnection.write`
 
 `apps/api/src/core/admin/store-management/routes.ts`
 

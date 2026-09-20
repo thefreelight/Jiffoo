@@ -1,7 +1,7 @@
 /**
  * Jiffoo Plugin SDK - Type Definitions
  *
- * Core type definitions for external plugin development.
+ * Core type definitions for in-process plugin development.
  */
 
 import type {
@@ -56,31 +56,6 @@ export interface PluginContext {
 }
 
 /**
- * Install request body from platform
- */
-export interface InstallRequest {
-  installationId: string;
-  environment: string;
-  planId: string;
-  config?: {
-    accountId?: string;
-    scopes?: string;
-    metadata?: Record<string, any>;
-  };
-  platform: {
-    baseUrl: string;
-    pluginSlug: string;
-  };
-}
-
-/**
- * Uninstall request body from platform
- */
-export interface UninstallRequest {
-  installationId: string;
-  reason: string;
-}
-
 /**
  * Plugin runtime types
  */

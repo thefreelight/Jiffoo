@@ -25,10 +25,8 @@ import { adminProductRoutes } from '@/core/admin/product-management/routes';
 import { adminOrderRoutes } from '@/core/admin/order-management/routes';
 import { adminThemeRoutes, publicThemeRoutes } from '@/core/admin/theme-management/routes';
 import systemSettingsRoutes from '@/core/admin/system-settings/routes';
-import platformConnectionRoutes from '@/core/admin/platform-connection/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
 import { adminCatalogImportRoutes } from '@/core/admin/catalog-import/routes';
-import { platformOffersRoutes } from '@/core/admin/platform-offers/routes';
 
 // Extension installer routes
 import { extensionInstallerRoutes } from '@/core/admin/extension-installer/routes';
@@ -57,7 +55,6 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(adminOrderRoutes, { prefix: '/admin/orders' });
   await fastify.register(adminThemeRoutes, { prefix: '/admin/themes' });
   await fastify.register(systemSettingsRoutes, { prefix: '/admin' });
-  await fastify.register(platformConnectionRoutes, { prefix: '/admin/platform/connection' });
   await fastify.register(adminCatalogImportRoutes, { prefix: '/admin/integrations/catalog-import' });
 
   // API Token management (admin only)
@@ -77,8 +74,6 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(paymentRoutes, { prefix: '/payments' });
   await fastify.register(publicThemeRoutes, { prefix: '/themes' });
 
-  // Platform offers (public, display-only)
-  await fastify.register(platformOffersRoutes, { prefix: '/platform-offers' });
 
   // Extension installer routes
   await fastify.register(extensionInstallerRoutes, { prefix: '/extensions' });

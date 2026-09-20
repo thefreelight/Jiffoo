@@ -38,7 +38,7 @@ export interface ErrorUserContext {
 }
 
 /**
- * Store context for multi-tenant scenarios
+ * Store context for the configured storefront
  */
 export interface ErrorStoreContext {
   storeId?: string;

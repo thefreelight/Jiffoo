@@ -39,6 +39,7 @@ import {
   bufferToStream,
 } from './utils';
 import { ExtensionInstallerError } from './errors';
+import { incrementPluginRegistryVersion } from './plugin-registry-version';
 
 // ============================================================================
 // Types
@@ -244,12 +245,13 @@ export async function installBundle(zipStream: Readable): Promise<BundleInstallR
 
             if (existingInstance) {
               // Update existing instance
-              await prisma.pluginInstallation.update({
-                where: { id: existingInstance.id },
-                data: {
-                  configJson: instanceEntry.config ?? null,
-                  enabled: instanceEntry.enable ?? existingInstance.enabled,
-                },
+              await prisma.$transaction(async (tx) => {
+                const enabled = instanceEntry.enable ?? existingInstance.enabled;
+                await tx.pluginInstallation.update({
+                  where: { id: existingInstance.id },
+                  data: { configJson: instanceEntry.config ?? null, enabled },
+                });
+                if (enabled !== existingInstance.enabled) await incrementPluginRegistryVersion(tx);
               });
               console.log(`[BundleInstaller] Updated existing instance "${instanceEntry.key}"`);
             } else {
@@ -272,9 +274,10 @@ export async function installBundle(zipStream: Readable): Promise<BundleInstallR
         // Step 1.2: Enable plugin if specified (at plugin level)
         if (pluginEntry.enable) {
           // Enable all instances of this plugin
-          await prisma.pluginInstallation.updateMany({
-            where: { pluginSlug: result.slug },
-            data: { enabled: true },
+          await prisma.$transaction(async (tx) => {
+            const disabledInstances = await tx.pluginInstallation.count({ where: { pluginSlug: result.slug, enabled: false } });
+            await tx.pluginInstallation.updateMany({ where: { pluginSlug: result.slug }, data: { enabled: true } });
+            if (disabledInstances > 0) await incrementPluginRegistryVersion(tx);
           });
           await CacheService.incrementPluginVersion();
           console.log(`[BundleInstaller] Enabled plugin "${result.slug}"`);

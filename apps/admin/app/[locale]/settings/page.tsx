@@ -26,7 +26,6 @@ import { settingsApi, type SystemSettingsMap, unwrapApiResponse, upgradeApi } fr
 import { clearUpdateCheckCache } from '@/hooks/use-update-check'
 import { cn } from '@/lib/utils'
 import CurrencySettings from '@/components/settings/currency-settings'
-import { ManagedLicensePanel } from '@/components/settings/ManagedLicensePanel'
 import { ApiTokenPanel } from '@/components/settings/ApiTokenPanel'
 
 type SettingField = {
@@ -909,7 +908,6 @@ function SettingsPageContent() {
               </a>
             </div>
 
-            <ManagedLicensePanel />
           </div>
         </div>
 

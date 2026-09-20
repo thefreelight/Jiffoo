@@ -113,8 +113,6 @@ export { createLogger, formatError, retry } from './utils';
 export type {
   PlatformHeaders,
   PluginContext,
-  InstallRequest,
-  UninstallRequest,
   PluginManifest,
   HealthResponse,
   ApiResponse,

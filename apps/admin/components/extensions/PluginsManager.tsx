@@ -5,10 +5,11 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { pluginsApi, unwrapApiResponse } from '@/lib/api';
 import type { OfficialCatalogItem } from '@/lib/api';
-import { useInstalledPlugins, useInstallOfficialExtension, useOfficialCatalog, usePlatformConnectionStatus, useProvisionManagedPackage, usePurgePlugin, useTogglePlugin } from '@/lib/hooks/use-api';
+import { useInstalledPlugins, useInstallOfficialExtension, useOfficialCatalog, usePurgePlugin, useTogglePlugin } from '@/lib/hooks/use-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
@@ -31,12 +32,13 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
-import { Loader2, Settings, Upload } from 'lucide-react';
+import { AlertTriangle, Loader2, Settings, Upload } from 'lucide-react';
 import { useT, useLocale } from 'shared/src/i18n/react';
 import { resolveApiErrorMessage } from '@/lib/error-utils';
 import { useRouter } from 'next/navigation';
 import { OfficialPluginsCatalog } from '@/components/extensions/OfficialPluginsCatalog';
-import { useManagedMode } from '@/lib/managed-mode';
+import { ExtensionAvatar, OfficialBadge } from '@/components/extensions/ExtensionVisuals';
+import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRail';
 
 export function PluginsManager() {
   const router = useRouter();
@@ -57,9 +59,7 @@ export function PluginsManager() {
 
   const { data: installedPlugins, isLoading } = useInstalledPlugins();
   const { data: officialCatalogData, isLoading: isOfficialCatalogLoading } = useOfficialCatalog();
-  const { data: platformConnectionStatus } = usePlatformConnectionStatus();
   const installOfficialMutation = useInstallOfficialExtension();
-  const provisionManagedPackageMutation = useProvisionManagedPackage();
 
   const installMutation = useMutation({
     mutationFn: (file: File) => (
@@ -126,84 +126,56 @@ export function PluginsManager() {
 
   const pluginList = installedPlugins?.items || [];
   const officialPluginItems = (officialCatalogData?.items || []).filter((item) => item.kind === 'plugin');
-  const { record } = useManagedMode();
-  const managedPluginSlugs = useMemo(
-    () => new Set(record?.includedPlugins ?? []),
-    [record]
+  const officialPluginSlugs = useMemo(
+    () => new Set(officialPluginItems.map((item) => item.slug)),
+    [officialPluginItems]
   );
-  const visiblePluginList = useMemo(
-    () => (
-      record
-        ? pluginList.filter((plugin) => managedPluginSlugs.has(plugin.slug))
-        : pluginList
-    ),
-    [managedPluginSlugs, pluginList, record]
-  );
+  const visiblePluginList = pluginList;
 
   const handleInstallOfficialPlugin = async (item: OfficialCatalogItem) => {
     setInstallingOfficialSlug(item.slug);
     try {
-      if (item.solutionPackage?.offerKind === 'theme_first_solution' && record?.offerKind === 'theme_first_solution') {
-        await provisionManagedPackageMutation.mutateAsync();
-      } else {
-        await installOfficialMutation.mutateAsync({
-          slug: item.slug,
-          kind: 'plugin',
-          version: item.latestVersion || item.sellableVersion || item.version,
-        });
-      }
+      await installOfficialMutation.mutateAsync({
+        slug: item.slug,
+        kind: 'plugin',
+        version: item.latestVersion || item.version,
+      });
     } finally {
       setInstallingOfficialSlug(null);
     }
   };
 
   return (
-    <div className="flex flex-col gap-6">
-        <div className="relative rounded-2xl border border-slate-200/80 bg-white px-6 py-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-            <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
-              <span>Plugins</span><span>/</span><span className="text-slate-900">Marketplace</span>
-            </div>
-            <h2 className="text-[28px] font-bold tracking-tight text-slate-950">
-              {record
-                ? getText('merchant.plugins.licensedPluginCenter', 'Licensed plugins')
-                : getText('merchant.plugins.marketplace', 'Official plugin marketplace')}
-            </h2>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">
-              {record
-                ? getText(
-                    'merchant.plugins.pluginCenterManagedIntro',
-                    'This managed workspace only surfaces the plugins included in your commercial package.'
-                  )
-                : getText(
-                    'merchant.plugins.pluginCenterIntro',
-                    'Installed plugins live in a dedicated control rail, while the official marketplace stays ready for the next capability you want to add.'
-                  )}
+    <div className="grid gap-6 lg:grid-cols-[280px,minmax(0,1fr)]">
+      <InstalledPluginsRail
+        locale={locale}
+        plugins={visiblePluginList}
+        officialSlugs={officialPluginSlugs}
+        getText={getText}
+      />
+
+      <div className="space-y-6">
+        <div className="flex flex-col justify-between gap-4 rounded-[1.75rem] border border-gray-100 bg-white p-6 shadow-sm lg:flex-row lg:items-center">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-blue-600">
+              {getText('merchant.plugins.management', 'Plugins')}
             </p>
-            </div>
-            <div className={platformConnectionStatus?.marketplaceReady
-              ? 'inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700'
-              : 'inline-flex w-fit items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-sm font-medium text-slate-600'}>
-              <span className={platformConnectionStatus?.marketplaceReady ? 'h-2 w-2 rounded-full bg-emerald-500' : 'h-2 w-2 rounded-full bg-slate-400'} />
-              {platformConnectionStatus?.marketplaceReady
-                ? getText('merchant.extensions.marketplaceReadyChip', 'Marketplace ready')
-                : getText('merchant.extensions.platformUnboundShort', 'Not connected')}
-            </div>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+              {getText('merchant.plugins.pluginCenter', 'Plugin center')}
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+              {getText(
+                'merchant.plugins.pluginCenterIntro',
+                'Installed plugins live in a dedicated control rail, while the official catalog stays ready for the next capability you want to add.'
+              )}
+            </p>
           </div>
 
-          {record?.offerKind === 'theme_first_solution' ? (
-            <Button asChild variant="outline" className="rounded-lg">
-              <Link href={`/${locale}/package`}>
-                {getText('merchant.package.openPackageWorkspace', 'Open Your Package')}
-              </Link>
-            </Button>
-          ) : null}
 
-          {officialCatalogData?.officialMarketOnly || record ? null : (
+          {officialCatalogData?.officialMarketOnly ? null : (
             <Dialog open={uploadOpen} onOpenChange={setUploadOpen}>
               <DialogTrigger asChild>
-                <Button className="rounded-lg shadow-lg shadow-blue-500/20">
+                <Button className="rounded-xl shadow-lg shadow-blue-500/20">
                   <Upload className="mr-2 h-4 w-4" />
                   {getText('merchant.plugins.uploadTitle', 'Upload Plugin')}
                 </Button>
@@ -224,7 +196,7 @@ export function PluginsManager() {
                       id="plugin-file"
                       type="file"
                       accept=".zip"
-                      className="rounded-lg sm:col-span-3"
+                      className="rounded-xl sm:col-span-3"
                       onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                     />
                   </div>
@@ -234,10 +206,10 @@ export function PluginsManager() {
                     </Label>
                     <div className="sm:col-span-3">
                       <Select value={installType} onValueChange={(v) => setInstallType(v as 'plugin' | 'bundle')}>
-                        <SelectTrigger className="rounded-lg">
+                        <SelectTrigger className="rounded-xl">
                           <SelectValue placeholder={getText('merchant.plugins.installType', 'Type')} />
                         </SelectTrigger>
-                        <SelectContent className="rounded-lg">
+                        <SelectContent className="rounded-xl">
                           <SelectItem value="plugin" className="rounded-lg">{getText('merchant.plugins.installTypePlugin', 'Plugin')}</SelectItem>
                           <SelectItem value="bundle" className="rounded-lg">{getText('merchant.plugins.installTypeBundle', 'Bundle')}</SelectItem>
                         </SelectContent>
@@ -246,10 +218,10 @@ export function PluginsManager() {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setUploadOpen(false)} className="rounded-lg">
+                  <Button variant="outline" onClick={() => setUploadOpen(false)} className="rounded-xl">
                     {getText('common.actions.cancel', 'Cancel')}
                   </Button>
-                  <Button onClick={handleUpload} disabled={!selectedFile || installMutation.isPending} className="rounded-lg">
+                  <Button onClick={handleUpload} disabled={!selectedFile || installMutation.isPending} className="rounded-xl">
                     {installMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     {getText('merchant.plugins.install', 'Install')}
                   </Button>
@@ -259,50 +231,124 @@ export function PluginsManager() {
           )}
         </div>
 
-        <div style={{ order: 2 }} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-200/80 bg-white px-6 py-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-              <Settings className="h-5 w-5" />
+        <div className="rounded-[1.75rem] border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-semibold tracking-tight text-slate-950">
+                {getText('merchant.plugins.installedCollection', 'Installed plugins')}
+              </h3>
+              <p className="mt-1 text-sm text-slate-600">
+                {getText('merchant.plugins.installedCollectionDescription', 'Open a native plugin workspace, toggle availability, or review configuration readiness from the plugin center.')}
+              </p>
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h3 className="truncate text-base font-bold text-slate-950">{getText('merchant.plugins.installedCollection', 'Installed plugins')}</h3>
-                <Badge variant="secondary" className="rounded-lg bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">{isLoading ? '…' : visiblePluginList.length}</Badge>
-              </div>
-              <p className="mt-0.5 truncate text-sm text-slate-500">{getText('merchant.plugins.installedCollectionDescription', 'Manage and update your installed plugins.')}</p>
-            </div>
+            <Badge variant="secondary" className="rounded-full bg-slate-100 px-3 py-1 text-sm font-semibold text-slate-600">
+              {visiblePluginList.length}
+            </Badge>
           </div>
-          {visiblePluginList[0] ? (
-            <Button asChild variant="outline" className="shrink-0 rounded-lg">
-              <Link href={`/${locale}/plugins/${visiblePluginList[0].slug}`}>
-                {getText('merchant.plugins.viewInstalled', 'View installed plugins')}
-                <Settings className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+
+          {isLoading ? (
+            <div className="flex h-24 items-center justify-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {getText('merchant.plugins.loading', 'Loading plugins...')}
+            </div>
+          ) : visiblePluginList.length === 0 ? (
+            <div className="rounded-[1.5rem] border border-dashed border-slate-200 bg-slate-50 px-6 py-12 text-center text-sm text-muted-foreground">
+              {getText('merchant.plugins.noPluginsInstalled', 'No plugins installed.')}
+            </div>
           ) : (
-            <span className="shrink-0 text-sm text-slate-400">{getText('merchant.plugins.noPluginsInstalled', 'No plugins installed')}</span>
+            <div className="grid gap-4 xl:grid-cols-2">
+              {visiblePluginList.map((plugin, index) => {
+                if (!plugin) return null;
+                const safeKey = plugin.slug || `plugin-${index}`;
+                const isOfficial = officialPluginSlugs.has(plugin.slug) || plugin.source === 'official-market';
+
+                return (
+                  <div key={safeKey} className="rounded-[1.5rem] border border-slate-100 bg-slate-50/60 p-5">
+                    <div className="flex items-start gap-4">
+                      <ExtensionAvatar
+                        slug={plugin.slug}
+                        name={plugin.name}
+                        kind="plugin"
+                        className="h-14 w-14 shrink-0"
+                      />
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h4 className="text-lg font-semibold text-slate-950">{plugin.name}</h4>
+                          {isOfficial ? <OfficialBadge compact /> : null}
+                          <Badge variant="outline" className="rounded-full capitalize">
+                            {plugin.source}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+                          v{plugin.version} {getText('common.labels.by', 'by')} {plugin.author}
+                        </p>
+                        <p className="mt-3 text-sm leading-6 text-slate-600">
+                          {plugin.description || getText('merchant.plugins.defaultDescription', 'A merchant-facing plugin that extends your store operations.')}
+                        </p>
+
+                        {plugin.configRequired && !plugin.configReady ? (
+                          <p className="mt-3 text-xs font-semibold text-amber-700">
+                            {getText('merchant.plugins.needsConfiguration', 'Needs configuration before enabling')}
+                          </p>
+                        ) : null}
+
+                        <div className="mt-4 flex flex-wrap items-center gap-3">
+                          <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2">
+                            <Switch
+                              checked={plugin.enabled}
+                              onCheckedChange={(checked) => void handleTogglePlugin(plugin, checked)}
+                              disabled={toggleMutation.isPending}
+                            />
+                            <span className="text-sm font-medium text-slate-700">
+                              {plugin.enabled
+                                ? getText('merchant.plugins.enabled', 'Enabled')
+                                : getText('merchant.plugins.disabled', 'Disabled')}
+                            </span>
+                          </div>
+
+                          <Button asChild className="rounded-xl">
+                            <Link href={`/${locale}/plugins/${plugin.slug}`}>
+                              <Settings className="mr-2 h-4 w-4" />
+                              {getText('common.actions.manage', 'Manage')}
+                            </Link>
+                          </Button>
+
+
+                          <Button
+                            variant="ghost"
+                            onClick={() => setPurgingPlugin(plugin)}
+                            disabled={purgeMutation.isPending}
+                            className="rounded-xl text-slate-500 hover:text-red-700"
+                          >
+                            <AlertTriangle className="mr-2 h-4 w-4" />
+                            {getText('merchant.plugins.remove', 'Remove')}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
 
-        <div style={{ order: 1 }}>
         <OfficialPluginsCatalog
-          locale={locale}
           items={officialPluginItems}
           isLoading={isOfficialCatalogLoading}
           marketOnline={officialCatalogData?.marketOnline ?? false}
           marketError={officialCatalogData?.marketError}
           officialMarketOnly={Boolean(officialCatalogData?.officialMarketOnly)}
-          marketplaceReady={Boolean(platformConnectionStatus?.marketplaceReady)}
           installingSlug={installingOfficialSlug || (installOfficialMutation.isPending ? installingOfficialSlug : null)}
-          isProvisioningPackage={provisionManagedPackageMutation.isPending}
-          managedPackage={record}
           onInstall={(item) => void handleInstallOfficialPlugin(item)}
           onEnable={(item) => void handleTogglePlugin(item, true)}
           onConfigure={(item) => void handleConfigOpen(item)}
           onManage={(item) => router.push(`/${locale}/plugins/${item.slug}`)}
           getText={getText}
         />
-        </div>
+      </div>
+
       <AlertDialog open={!!purgingPlugin} onOpenChange={(open) => !open && setPurgingPlugin(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>

@@ -22,13 +22,10 @@
  */
 
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
-import path from 'path';
-import fs from 'fs/promises';
-import { existsSync } from 'fs';
 import { randomUUID } from 'crypto';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import type { PluginManifest } from './types';
-import { getPluginDir } from './utils';
+import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { loadPluginEntryModule } from './plugin-module-loader';
 import { validatePluginCompatibility, PluginLoaderError } from '@/plugins/loader';
 import {
@@ -206,11 +203,11 @@ function logAudit(entry: GatewayAuditLog, fastify?: FastifyInstance): void {
 }
 
 async function readPluginManifest(slug: string): Promise<PluginManifest> {
-  const pluginDir = getPluginDir(slug);
-  const manifestPath = path.join(pluginDir, 'manifest.json');
   let content: string;
   try {
-    content = await fs.readFile(manifestPath, 'utf-8');
+    const pluginPackage = await pluginPackageStore.get(slug);
+    if (!pluginPackage) throw new Error('Plugin package not found');
+    content = await pluginPackage.readText('manifest.json');
   } catch {
     throw new PluginGatewayError(`Plugin "${slug}" not found`, 'PLUGIN_NOT_FOUND', 404);
   }
@@ -361,7 +358,7 @@ function inferCaller(request: FastifyRequest): CallerType {
 
   // More precise referer detection:
   // - Check for /admin/ path (Admin app)
-  // - Check for subdomain 'admin.' (if multi-tenant)
+  // - Check for the Admin application origin
   // - Check for port numbers (e.g., :3001 for admin, :3000 for shop)
   if (referer) {
     try {
@@ -583,13 +580,12 @@ async function ensureInternalRuntime(
     throw error;
   }
 
-  const pluginDir = getPluginDir(slug);
   const entryModule = manifest.entryModule || 'server/index.js';
-  const entryPath = path.join(pluginDir, entryModule);
-
-  if (!existsSync(entryPath)) {
+  const pluginPackage = await pluginPackageStore.get(slug);
+  if (!pluginPackage || !await pluginPackage.exists(entryModule)) {
     throw new PluginGatewayError(`Plugin entry module not found: ${entryModule}`, 'PLUGIN_LOAD_FAILED', 400);
   }
+  const entryPath = pluginPackage.getEntryPath(entryModule);
 
   try {
     const mod = await loadPluginEntryModule(entryPath, { version: manifest.version });

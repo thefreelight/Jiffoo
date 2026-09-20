@@ -85,10 +85,6 @@ const envSchema = z.object({
   // Extension Package Signing (Phase 5, Section 4.8)
   EXTENSION_SIGNATURE_VERIFY: z.enum(['required', 'optional', 'disabled']).default('optional'),
 
-  // Market Integration (Phase 6, Section 4.9)
-  MARKET_API_URL: z.string().default('https://platform-api.jiffoo.com/api'),
-  MARKET_API_KEY: z.string().optional(),
-  ENABLE_MARKET_UPDATE_CHECKER: z.string().transform((v) => v === 'true').default('false'),
 
   // External catalog import (integration projector)
   CATALOG_IMPORT_TOKEN: z.string().optional(),

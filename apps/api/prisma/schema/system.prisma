@@ -48,6 +48,7 @@ model SystemSettings {
 
   version       String    @default("1.0.0")
   lastUpdatedAt DateTime?
+  pluginRegistryVersion Int @default(0)
 
   siteName        String  @default("Jiffoo Mall")
   siteDescription String?

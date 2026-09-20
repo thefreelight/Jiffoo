@@ -173,8 +173,7 @@ async function startHttpTransport(
   //
   // Note: The SDK's StreamableHTTPServerTransport handles the
   // MCP protocol over HTTP. The token is configured at the
-  // client level, not per-request — for multi-tenant HTTP mode,
-  // each agent should run its own server instance with its own token.
+  // client level, not per-request. Each local server instance uses one token.
 
   const http = await import('node:http');
   const { URL } = await import('node:url');

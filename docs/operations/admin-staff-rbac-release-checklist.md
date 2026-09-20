@@ -27,7 +27,7 @@ Verification queries:
 ```sql
 SELECT COUNT(*) FROM public.admin_memberships;
 SELECT COUNT(*) FROM public.admin_staff_audit_logs;
-SELECT id, email, role FROM public.users WHERE role IN ('ADMIN', 'SUPER_ADMIN', 'TENANT_ADMIN');
+SELECT id, email, role FROM public.users WHERE role IN ('OWNER', 'ADMIN');
 ```
 
 ## Release Smoke

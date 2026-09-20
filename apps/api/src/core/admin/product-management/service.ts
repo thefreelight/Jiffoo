@@ -2,7 +2,7 @@
 /**
 * Admin Product Service
 * 
-* Simplified version, removed multi-tenant logic.
+* Product management service for the self-hosted Core.
 */
 
 import { prisma } from '@/config/database';

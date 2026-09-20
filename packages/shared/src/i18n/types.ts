@@ -13,13 +13,12 @@ export type { Locale };
 /**
  * Application names for namespace organization
  */
-export type AppName = 'tenant' | 'shop' | 'whiteLabel';
+export type AppName = 'merchant' | 'shop' | 'whiteLabel';
 
 /**
  * Message namespace identifiers
  * - common: Cross-app common messages (buttons, system prompts, error states)
- * - tenant: Tenant-specific messages
- * - merchant: Alias for tenant (backward compatibility with merchant.* keys)
+ * - merchant: Merchant Admin messages
  * - shop: Shop frontend messages
  * - whiteLabel: White-label studio messages
  */
@@ -71,9 +70,9 @@ export interface I18nContextValue {
  * These fields should be added to the Mall Context response
  */
 export interface MallContextLocaleFields {
-  /** Default locale for the tenant (currently always 'en') */
+  /** Default locale for the merchant (currently always 'en') */
   defaultLocale: Locale;
-  /** Supported locales for the tenant */
+  /** Supported locales for the merchant (currently always ['en', 'zh-Hant']) */
   supportedLocales: Locale[];
 }
 

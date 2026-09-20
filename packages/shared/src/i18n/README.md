@@ -46,7 +46,7 @@ function App() {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `namespace` | `'shop' \| 'admin' \| 'super-admin'` | - | Required. Determines which translations to load |
+| `namespace` | `'shop' \| 'admin'` | - | Required. Determines which translations to load |
 | `defaultLocale` | `SupportedLocale` | `'en'` | Default language |
 | `loadPath` | `string` | `/api/extensions/plugin/i18n/locales` | Path to load translation files |
 | `children` | `ReactNode` | - | Child components |
@@ -171,8 +171,7 @@ packages/i18n/locales/
   └── fr/
       ├── common.json
       ├── shop.json
-      ├── admin.json
-      └── super-admin.json
+      └── admin.json
 ```
 
 ### 2. Add Translation Keys
@@ -226,7 +225,6 @@ The package organizes translations into namespaces:
 - **common** - Shared translations (buttons, errors, messages)
 - **shop** - Shop frontend translations
 - **admin** - Merchant dashboard translations
-- **super-admin** - Super admin panel translations
 
 ## Features
 

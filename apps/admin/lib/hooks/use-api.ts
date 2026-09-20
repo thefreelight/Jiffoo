@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient, PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, managedPackageApi, platformConnectionApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, staffApi, unwrapApiResponse, isAdminApiError, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
+import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
@@ -940,55 +940,6 @@ const marketQueryKeys = {
   all: ['official-catalog'] as const,
 };
 
-const platformConnectionQueryKeys = {
-  all: ['platform-connection'] as const,
-  status: ['platform-connection', 'status'] as const,
-};
-
-const managedPackageQueryKeys = {
-  all: ['managed-package'] as const,
-  branding: ['managed-package', 'branding'] as const,
-  status: ['managed-package', 'status'] as const,
-};
-
-function refreshPluginRuntimeState(
-  queryClient: ReturnType<typeof useQueryClient>,
-  slug: string,
-) {
-  queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
-  queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-  queryClient.invalidateQueries({ queryKey: pluginQueryKeys.config(slug) });
-  queryClient.invalidateQueries({ queryKey: pluginQueryKeys.instances(slug) });
-}
-
-function refreshThemeRuntimeState(
-  queryClient: ReturnType<typeof useQueryClient>,
-  target: 'shop' | 'admin',
-) {
-  queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
-  queryClient.invalidateQueries({ queryKey: themeQueryKeys.installed(target) });
-  queryClient.invalidateQueries({ queryKey: themeQueryKeys.active(target) });
-  queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-}
-
-function refreshOfficialExtensionState(queryClient: ReturnType<typeof useQueryClient>) {
-  queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-  queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
-  queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
-  queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
-}
-
-export function useManagedPackageBranding() {
-  return useQuery({
-    queryKey: managedPackageQueryKeys.branding,
-    queryFn: async () => {
-      const response = await managedPackageApi.getBranding();
-      return unwrapApiResponse(response);
-    },
-    staleTime: 30 * 1000,
-  });
-}
-
 export function useOfficialCatalog() {
   return useQuery({
     queryKey: marketQueryKeys.all,
@@ -1020,7 +971,9 @@ export function useInstallOfficialExtension() {
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {
-      refreshOfficialExtensionState(queryClient);
+      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
       toast.success(
         variables.kind === 'plugin'
           ? getText('merchant.plugins.installSuccess', 'Plugin installed successfully')
@@ -1028,213 +981,16 @@ export function useInstallOfficialExtension() {
       );
     },
     onError: (error: unknown, variables) => {
-      if (isAdminApiError(error)) {
-        const isVersionConflict =
-          error.code === 'VERSION_CONFLICT' || error.message.includes('is equal or newer');
-        const isThemeActivationRace =
-          variables.kind === 'theme-shop' &&
-          error.code === 'NOT_FOUND' &&
-          error.message.includes('not found for target');
-
-        if (isVersionConflict || isThemeActivationRace) {
-          refreshOfficialExtensionState(queryClient);
-          toast.success(
-            variables.kind === 'plugin'
-              ? getText('merchant.plugins.installStateRefreshed', 'Plugin state refreshed')
-              : getText('merchant.themes.installStateRefreshed', 'Theme state refreshed')
-          );
-          return;
-        }
-      }
-
       const fallbackKey = variables.kind === 'plugin'
         ? 'merchant.plugins.installFailed'
         : 'merchant.themes.installFailed';
       const fallbackText = variables.kind === 'plugin'
         ? 'Failed to install plugin'
         : 'Failed to install theme';
-
-      if (isAdminApiError(error) && error.message.includes('Artifact download failed: 416')) {
-        refreshOfficialExtensionState(queryClient);
-        toast.error(
-          getText(
-            'merchant.extensions.installRetryRequired',
-            'The previous partial download was invalid. Please retry the install.',
-          ),
-        );
-        return;
-      }
       toast.error(getErrorMessage(error, fallbackKey, fallbackText));
     },
   });
 }
-
-export function useManagedPackageStatus() {
-  return useQuery({
-    queryKey: managedPackageQueryKeys.status,
-    queryFn: async () => {
-      const response = await managedPackageApi.getStatus();
-      return unwrapApiResponse(response);
-    },
-    staleTime: 30 * 1000,
-  });
-}
-
-export function useActivateManagedPackage() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async (activationCode: string) => {
-      const response = await managedPackageApi.activate({ activationCode });
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
-      toast.success('Commercial package activated');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, 'merchant.extensions.managedPackageActivationFailed', 'Failed to activate commercial package'));
-    },
-  });
-}
-
-export function useProvisionManagedPackage() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async () => {
-      const response = await managedPackageApi.provision();
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: managedPackageQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.all });
-      toast.success('Included assets provisioned successfully');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, 'merchant.extensions.managedPackageProvisionFailed', 'Failed to provision included assets'));
-    },
-  });
-}
-
-export function usePlatformConnectionStatus() {
-  return useQuery({
-    queryKey: platformConnectionQueryKeys.status,
-    queryFn: async () => {
-      const response = await platformConnectionApi.getStatus();
-      return unwrapApiResponse(response);
-    },
-    staleTime: 0,
-    refetchOnWindowFocus: true,
-    refetchOnMount: 'always',
-  });
-}
-
-export function useStartPlatformConnection() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async (data: { instanceName?: string; originUrl?: string; coreVersion?: string }) => {
-      const response = await platformConnectionApi.start(data);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: platformConnectionQueryKeys.all });
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, 'merchant.extensions.platformConnectFailed', 'Failed to start platform connection'));
-    },
-  });
-}
-
-export function usePollPlatformConnection() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async (data: { deviceCode: string }) => {
-      const response = await platformConnectionApi.poll(data);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: platformConnectionQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, 'merchant.extensions.platformPollFailed', 'Failed to refresh platform connection'));
-    },
-  });
-}
-
-export function useCompletePlatformConnection() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async (data: { deviceCode: string; accountEmail: string; accountName?: string }) => {
-      const response = await platformConnectionApi.complete(data);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: platformConnectionQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success('Platform instance connected successfully');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, 'merchant.extensions.platformCompleteFailed', 'Failed to complete platform connection'));
-    },
-  });
-}
-
-export function useBindPlatformTenant() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async () => {
-      const response = await platformConnectionApi.bindTenant();
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: platformConnectionQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success('Default store bound to the official platform');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, 'merchant.extensions.platformBindTenantFailed', 'Failed to bind the default store'));
-    },
-  });
-}
-
-export function useDisconnectPlatformConnection() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async () => {
-      const response = await platformConnectionApi.disconnect();
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: platformConnectionQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success('Platform connection removed');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, 'merchant.extensions.platformDisconnectFailed', 'Failed to disconnect platform connection'));
-    },
-  });
-}
-
-
 
 // Get installed plugins
 export function useInstalledPlugins() {
@@ -1248,38 +1004,6 @@ export function useInstalledPlugins() {
   });
 }
 
-// Lightweight installed-plugin list for navigation (sidebar submenu). Unlike
-// useInstalledPlugins this does not fan out per-plugin instance requests —
-// the plain list endpoint already carries slug/name/enabled.
-export interface InstalledPluginNavItem {
-  slug: string;
-  name: string;
-  enabled: boolean;
-}
-
-export function useInstalledPluginNav() {
-  return useQuery({
-    queryKey: [...pluginQueryKeys.all, 'nav-installed'] as const,
-    queryFn: async () => {
-      const response = await apiClient.get('/extensions/plugin', { params: { page: 1, limit: 50 } });
-      const unwrapped = unwrapApiResponse<{ items?: Array<Record<string, unknown>> }>(response);
-      return (unwrapped.items || [])
-        .map((item) => ({
-          slug: String(item.slug || ''),
-          name: String(item.displayName || item.name || item.slug || ''),
-          enabled: item.enabled === 1 || item.enabled === true,
-        }))
-        .filter((item) => item.slug.length > 0)
-        .sort((a, b) => {
-          if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
-          return a.name.localeCompare(b.name);
-        });
-    },
-    staleTime: 2 * 60 * 1000,
-    retry: false,
-  });
-}
-
 // Get plugin configuration
 export function usePluginConfig(slug: string) {
   return useQuery({
@@ -1289,35 +1013,6 @@ export function usePluginConfig(slug: string) {
       return unwrapApiResponse(response);
     },
     enabled: !!slug,
-  });
-}
-
-// Native affiliate adapter overview: partners, attributions, and commissions
-// served by the Cloudflare-native core from native_affiliate_* tables. The
-// generic plugin-detail endpoint is not implemented natively, so this query
-// also acts as the capability probe for the dedicated affiliate workspace.
-export interface AffiliateNativeOverviewData {
-  totals?: {
-    partnerCount?: number;
-    commissionCount?: number;
-    commissionTotal?: number;
-    commissionPending?: number;
-  };
-  partners?: Array<Record<string, unknown>>;
-  commissions?: Array<Record<string, unknown>>;
-  attributions?: Array<Record<string, unknown>>;
-}
-
-export function useAffiliateNativeOverview(slug: string) {
-  return useQuery({
-    queryKey: [...pluginQueryKeys.all, 'affiliate-native-overview', slug] as const,
-    queryFn: async () => {
-      const response = await apiClient.get('/extensions/plugin/affiliate/api/admin/overview');
-      return unwrapApiResponse<AffiliateNativeOverviewData>(response);
-    },
-    enabled: slug === 'affiliate',
-    retry: false,
-    staleTime: 30_000,
   });
 }
 
@@ -1337,7 +1032,9 @@ export function useUpdatePluginConfig() {
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {
-      refreshPluginRuntimeState(queryClient, variables.slug);
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.config(variables.slug) });
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       toast.success('Plugin configuration updated successfully');
     },
     onError: (error: unknown) => {
@@ -1362,7 +1059,8 @@ export function useTogglePlugin() {
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {
-      refreshPluginRuntimeState(queryClient, variables.slug);
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       toast.success(`Plugin ${variables.enabled ? 'enabled' : 'disabled'} successfully`);
     },
     onError: (error: unknown) => {
@@ -1381,8 +1079,9 @@ export function useUninstallPlugin() {
       const response = await pluginsApi.uninstall(slug);
       return unwrapApiResponse(response);
     },
-    onSuccess: (_, slug) => {
-      refreshPluginRuntimeState(queryClient, slug);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       toast.success('Plugin uninstalled successfully');
     },
     onError: (error: unknown) => {
@@ -1401,8 +1100,9 @@ export function useRestorePlugin() {
       const response = await pluginsApi.restore(slug);
       return unwrapApiResponse(response);
     },
-    onSuccess: (_, slug) => {
-      refreshPluginRuntimeState(queryClient, slug);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       toast.success('Plugin restored successfully');
     },
     onError: (error: unknown) => {
@@ -1421,8 +1121,9 @@ export function usePurgePlugin() {
       const response = await pluginsApi.purge(slug);
       return unwrapApiResponse(response);
     },
-    onSuccess: (_, slug) => {
-      refreshPluginRuntimeState(queryClient, slug);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
+      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       toast.success('Plugin purged permanently');
     },
     onError: (error: unknown) => {
@@ -1474,7 +1175,7 @@ export function useCreatePluginInstance() {
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {
-      refreshPluginRuntimeState(queryClient, variables.slug);
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.instances(variables.slug) });
       toast.success(`Instance "${variables.instanceKey}" created successfully`);
     },
     onError: (error: unknown) => {
@@ -1510,7 +1211,8 @@ export function useUpdatePluginInstance() {
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {
-      refreshPluginRuntimeState(queryClient, variables.slug);
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.instances(variables.slug) });
+      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       toast.success('Instance updated successfully');
     },
     onError: (error: unknown) => {
@@ -1530,7 +1232,7 @@ export function useDeletePluginInstance() {
       return unwrapApiResponse(response);
     },
     onSuccess: (_, variables) => {
-      refreshPluginRuntimeState(queryClient, variables.slug);
+      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.instances(variables.slug) });
       toast.success('Instance deleted successfully');
     },
     onError: (error: unknown) => {
@@ -1687,8 +1389,9 @@ export function useActivateTheme() {
       const response = await themesApi.activate(slug, target, undefined, type);
       return unwrapApiResponse(response);
     },
-    onSuccess: (_, variables) => {
-      refreshThemeRuntimeState(queryClient, variables.target);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       toast.success(getText('merchant.themes.activateSuccess', 'Theme activated successfully'));
     },
     onError: (error: unknown) => {
@@ -1706,8 +1409,9 @@ export function useRollbackTheme() {
       const response = await themesApi.rollback(target);
       return unwrapApiResponse(response);
     },
-    onSuccess: (_, target) => {
-      refreshThemeRuntimeState(queryClient, target);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
+      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       toast.success(getText('merchant.themes.rollbackSuccess', 'Theme rolled back successfully'));
     },
     onError: (error: unknown) => {

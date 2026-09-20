@@ -13,6 +13,7 @@ import { evaluatePluginConfigReadiness } from '@/core/admin/extension-installer/
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { ThemeManagementService, type ThemeTarget } from '@/core/admin/theme-management/service';
 import type { ActiveTheme, ThemeConfig } from '@/core/admin/theme-management/types';
+import { pluginPackageStore, type PluginPackage } from '@/core/storage/plugin-package-store';
 
 export interface PluginInstallationState {
   installationId: string;
@@ -42,22 +43,6 @@ export interface OfficialMarketInstallOptions {
   themeConfig?: ThemeConfig;
   requestedVersion?: string;
   packageUrl?: string;
-  listingDomain?: string;
-  listingKind?: string;
-  providerType?: string;
-  deliveryMode?: string;
-  paymentMode?: string;
-  settlementTargetType?: string;
-  settlementTargetId?: string | null;
-  entitlement?: {
-    required: boolean;
-    status: 'not_required' | 'granted' | 'denied';
-    pricingModel: 'free' | 'one_time' | 'subscription';
-    licenseId?: string | null;
-    licenseType?: string | null;
-    expiresAt?: string | null;
-    reason?: string | null;
-  };
 }
 
 export interface OfficialMarketInstallResult extends InstallResult {
@@ -66,14 +51,6 @@ export interface OfficialMarketInstallResult extends InstallResult {
     requestedVersion?: string;
     installedVersion: string;
     packageUrl?: string;
-    listingDomain?: string;
-    listingKind?: string;
-    providerType?: string;
-    deliveryMode?: string;
-    paymentMode?: string;
-    settlementTargetType?: string;
-    settlementTargetId?: string | null;
-    entitlement?: OfficialMarketInstallOptions['entitlement'];
   };
   pluginInstallation?: PluginInstallationState;
   themeActivation?: ThemeActivationState;
@@ -166,17 +143,36 @@ async function updateInstalledMetaSource(
     requestedVersion: options.requestedVersion,
     installedVersion: installResult.version,
     packageUrl: options.packageUrl,
-    listingDomain: options.listingDomain,
-    listingKind: options.listingKind,
-    providerType: options.providerType,
-    deliveryMode: options.deliveryMode,
-    paymentMode: options.paymentMode,
-    settlementTargetType: options.settlementTargetType,
-    settlementTargetId: options.settlementTargetId ?? null,
-    entitlement: options.entitlement,
     installedAt: new Date().toISOString(),
   };
   await fs.writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
+}
+
+async function updatePluginInstalledMetaSource(pluginPackage: PluginPackage, installResult: InstallResult, options: OfficialMarketInstallOptions): Promise<void> {
+  let meta: Record<string, unknown>;
+  try {
+    meta = JSON.parse(await pluginPackage.readText('.installed.json')) as Record<string, unknown>;
+  } catch {
+    const manifest = JSON.parse(await pluginPackage.readText('manifest.json')) as Record<string, unknown>;
+    const stat = await pluginPackage.stat();
+    meta = {
+      id: crypto.randomUUID(), slug: typeof manifest.slug === 'string' ? manifest.slug : installResult.slug,
+      name: typeof manifest.name === 'string' ? manifest.name : installResult.slug,
+      version: typeof manifest.version === 'string' ? manifest.version : installResult.version,
+      description: typeof manifest.description === 'string' ? manifest.description : '',
+      category: typeof manifest.category === 'string' ? manifest.category : 'general',
+      runtimeType: typeof manifest.runtimeType === 'string' ? manifest.runtimeType : 'internal-fastify',
+      entryModule: typeof manifest.entryModule === 'string' ? manifest.entryModule : undefined,
+      source: 'official-market', fsPath: pluginPackage.getEntryPath(''),
+      permissions: Array.isArray(manifest.permissions) ? manifest.permissions : [],
+      author: typeof manifest.author === 'string' ? manifest.author : undefined,
+      authorUrl: typeof manifest.authorUrl === 'string' ? manifest.authorUrl : undefined,
+      installedAt: stat.birthtime.toISOString(), updatedAt: stat.mtime.toISOString(),
+    };
+  }
+  meta.source = 'official-market';
+  meta.officialMarket = { requestedVersion: options.requestedVersion, installedVersion: installResult.version, packageUrl: options.packageUrl, installedAt: new Date().toISOString() };
+  await pluginPackage.writeText('.installed.json', JSON.stringify(meta, null, 2));
 }
 
 async function markInstalledSource(
@@ -191,6 +187,10 @@ async function markInstalledSource(
       where: { slug },
       data: { source: 'official-market' },
     });
+    const pluginPackage = await pluginPackageStore.get(slug);
+    if (!pluginPackage) throw new Error(`Plugin package files are missing for "${slug}"`);
+    await updatePluginInstalledMetaSource(pluginPackage, installResult, options);
+    return;
   }
 
   await updateInstalledMetaSource(fsPath, installResult, options);
@@ -274,14 +274,6 @@ export async function installOfficialMarketExtension(
       requestedVersion: options.requestedVersion,
       installedVersion: installResult.version,
       packageUrl: options.packageUrl,
-      listingDomain: options.listingDomain,
-      listingKind: options.listingKind,
-      providerType: options.providerType,
-      deliveryMode: options.deliveryMode,
-      paymentMode: options.paymentMode,
-      settlementTargetType: options.settlementTargetType,
-      settlementTargetId: options.settlementTargetId ?? null,
-      entitlement: options.entitlement,
     },
   };
 

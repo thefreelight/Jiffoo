@@ -174,7 +174,6 @@ GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-local-google-secret}
 GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-${api_url}/api/auth/google/callback}
 RESEND_API_KEY=${RESEND_API_KEY:-re_local_placeholder}
 RESEND_WEBHOOK_SECRET=${RESEND_WEBHOOK_SECRET:-whsec_resend_placeholder}
-MARKET_API_URL=${MARKET_API_URL:-https://platform-api.jiffoo.com/api}
 BUILD_SHA=${BUILD_SHA:-install-${REF}}
 BUILD_TIME=${BUILD_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
 APP_VERSION=${default_app_version}

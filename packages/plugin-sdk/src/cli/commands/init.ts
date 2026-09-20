@@ -32,8 +32,12 @@ export async function initCommand(name: string | undefined, options: InitOptions
       devDependencies: options.typescript ? { typescript: '^5.0.0', '@types/node': '^20.0.0' } : {}, license: 'GPL-3.0',
     }, { spaces: 2 });
     if (options.typescript) await fs.writeJson(path.join(target, 'tsconfig.json'), { compilerOptions: { target: 'ES2020', module: 'CommonJS', moduleResolution: 'node', outDir: './dist', rootDir: './src', strict: true, esModuleInterop: true, skipLibCheck: true }, include: ['src/**/*'] }, { spaces: 2 });
-    await fs.writeFile(path.join(target, 'src', `index.${extension}`), `module.exports = async function plugin(fastify) {\n  fastify.get('/health', async () => ({ status: 'healthy' }));\n  fastify.get('/api/status', async (request) => ({ pluginSlug: request.headers['x-plugin-slug'], status: 'active' }));\n};\n`);
+    const pluginSource = options.typescript
+      ? `type PluginRequest = { headers: Record<string, string | string[] | undefined> };\ntype PluginFastify = {\n  get(path: string, handler: (request: PluginRequest) => unknown): void;\n};\n\nconst plugin = async function plugin(fastify: PluginFastify) {\n  fastify.get('/health', async () => ({ status: 'healthy' }));\n  fastify.get('/status', async (request) => ({\n    pluginSlug: request.headers['x-plugin-slug'],\n    status: 'active',\n  }));\n};\n\nexport = plugin;\n`
+      : `module.exports = async function plugin(fastify) {\n  fastify.get('/health', async () => ({ status: 'healthy' }));\n  fastify.get('/status', async (request) => ({\n    pluginSlug: request.headers['x-plugin-slug'],\n    status: 'active',\n  }));\n};\n`;
+    await fs.writeFile(path.join(target, 'src', `index.${extension}`), pluginSource);
     await fs.writeFile(path.join(target, 'LICENSE'), 'GNU GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007\n');
+    await fs.writeFile(path.join(target, 'README.md'), `# ${answers.displayName}\n\n${answers.description}\n\nThis package runs in-process through the Jiffoo Core Fastify plugin gateway.\n`);
     spinner.succeed(chalk.green('In-process plugin project created.'));
   } catch (error) { spinner.fail('Failed to create plugin project'); throw error; }
 }

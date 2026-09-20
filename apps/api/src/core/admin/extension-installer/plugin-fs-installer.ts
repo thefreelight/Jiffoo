@@ -14,7 +14,6 @@
 import { Readable } from 'stream';
 import { createReadStream } from 'fs';
 import path from 'path';
-import { promises as fs } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '@/config/database';
 import {
@@ -29,13 +28,10 @@ import {
   readJsonFile,
   validatePluginManifest,
   resolveExtractedPackageRoot,
-  getPluginDir,
-  moveDir,
-  dirExists,
-  removeDir,
-  ensureDir,
   spoolStreamToTempFileAndHash,
 } from './utils';
+import { pluginPackageStore, type PluginPackageDeployment } from '@/core/storage/plugin-package-store';
+import { incrementPluginRegistryVersion } from './plugin-registry-version';
 import { evaluatePluginConfigReadiness } from './config-readiness';
 import {
   verifyPackageFromZipFile,
@@ -104,8 +100,7 @@ export class PluginFsInstaller implements IPluginInstaller {
    */
   async install(zipStream: Readable, options?: { source?: string; confirmUnsigned?: boolean; actorUserId?: string }): Promise<InstalledPlugin> {
     let tempDir: string | null = null;
-    let targetDir: string | null = null;
-    let backupDir: string | null = null;
+    let deployment: PluginPackageDeployment | null = null;
     let tempZipCleanup: (() => Promise<void>) | null = null;
     let wasNewInstall = false;
 
@@ -128,7 +123,8 @@ export class PluginFsInstaller implements IPluginInstaller {
 
     if (existingByHash) {
       // Same ZIP already installed and not deleted - return existing plugin info
-      const existingDir = getPluginDir(existingByHash.slug);
+      const existingPackage = await pluginPackageStore.get(existingByHash.slug);
+      if (!existingPackage) throw new Error(`Plugin package files are missing for "${existingByHash.slug}"`);
       return {
         id: existingByHash.id,
         slug: existingByHash.slug,
@@ -139,7 +135,7 @@ export class PluginFsInstaller implements IPluginInstaller {
         runtimeType: 'internal-fastify',
         entryModule: existingByHash.entryModule || undefined,
         source: 'local-zip',
-        fsPath: existingDir,
+        fsPath: existingPackage.getEntryPath(''),
         permissions: parseJsonArray(existingByHash.permissions),
         author: existingByHash.author || undefined,
         authorUrl: existingByHash.authorUrl || undefined,
@@ -169,7 +165,7 @@ export class PluginFsInstaller implements IPluginInstaller {
       const sigFilePath = path.join(rootDir, 'package.sig');
       let signatureResult: SignatureVerifyResult;
       try {
-        await fs.access(sigFilePath);
+        await import('fs/promises').then(({ access }) => access(sigFilePath));
         signatureResult = await verifyPackageFromZipFile(zipFilePath, sigFilePath);
       } catch {
         // No .sig file found in the package
@@ -215,9 +211,6 @@ export class PluginFsInstaller implements IPluginInstaller {
         });
       }
 
-      // 6. Determine target directory
-      targetDir = getPluginDir(manifest.slug);
-
       // 7. Check if slug already exists (update/restore scenario)
       const existingBySlug = await prisma.pluginInstall.findUnique({
         where: { slug: manifest.slug },
@@ -225,16 +218,9 @@ export class PluginFsInstaller implements IPluginInstaller {
       const now = new Date();
 
       // 8. TWO-PHASE COMMIT WITH WARM VALIDATION
-      // Phase 1: Backup existing directory if exists
-      const targetExists = await dirExists(targetDir);
-      if (targetExists) {
-        backupDir = `${targetDir}.__backup_${Date.now()}`;
-        await fs.rename(targetDir, backupDir);
-      }
-
-      // Phase 2: Move new directory to target
-      await ensureDir(path.dirname(targetDir));
-      await fs.rename(rootDir, targetDir);
+      // Phase 1: atomically replace the package through the storage boundary.
+      deployment = await pluginPackageStore.put(manifest.slug, rootDir);
+      const targetDir = deployment.package.getEntryPath('');
       wasNewInstall = !existingBySlug;
 
       // Phase 3: For UPGRADE scenario, warm all enabled instances BEFORE DB commit
@@ -259,29 +245,18 @@ export class PluginFsInstaller implements IPluginInstaller {
 
           // All instances warmed successfully - proceed with DB update
           // CRITICAL: Set deletedAt=null to restore visibility (in case of re-install after soft delete)
-          const pluginInstall = await prisma.pluginInstall.update({
-            where: { slug: manifest.slug },
-            data: {
-              name: manifest.name,
-              version: manifest.version,
-              description: manifest.description,
-              author: manifest.author,
-              authorUrl: manifest.authorUrl,
-              category: manifest.category,
-              runtimeType: manifest.runtimeType,
-              entryModule: manifest.entryModule,
-              zipHash,
-              manifestJson: manifest,
-              permissions: manifest.permissions ?? null,
-              deletedAt: null, // CRITICAL: Restore visibility
-              updatedAt: now,
-            },
-          });
-
-          // If previously soft-deleted, ensure default instance is enabled
-          const wasSoftDeleted = existingBySlug.deletedAt !== null;
-          if (wasSoftDeleted) {
-            const defaultInstance = await prisma.pluginInstallation.findUnique({
+          const pluginInstall = await prisma.$transaction(async (tx) => {
+            const updatedInstall = await tx.pluginInstall.update({
+              where: { slug: manifest.slug },
+              data: {
+                name: manifest.name, version: manifest.version, description: manifest.description,
+                author: manifest.author, authorUrl: manifest.authorUrl, category: manifest.category,
+                runtimeType: manifest.runtimeType, entryModule: manifest.entryModule, zipHash,
+                manifestJson: manifest, permissions: manifest.permissions ?? null, deletedAt: null, updatedAt: now,
+              },
+            });
+            if (existingBySlug.deletedAt !== null) {
+              const defaultInstance = await tx.pluginInstallation.findUnique({
               where: {
                 pluginSlug_instanceKey: {
                   pluginSlug: manifest.slug,
@@ -290,20 +265,21 @@ export class PluginFsInstaller implements IPluginInstaller {
               },
             });
 
-            if (defaultInstance) {
-              const defaultConfig = parseJsonObject(defaultInstance.configJson);
-              const restoredReadiness = evaluatePluginConfigReadiness(manifest, defaultConfig);
-              // Re-enable default instance after restore
-              await prisma.pluginInstallation.update({
+              if (defaultInstance) {
+                const defaultConfig = parseJsonObject(defaultInstance.configJson);
+                const restoredReadiness = evaluatePluginConfigReadiness(manifest, defaultConfig);
+                await tx.pluginInstallation.update({
                 where: { id: defaultInstance.id },
                 data: {
                   enabled: restoredReadiness.ready,
                   deletedAt: null, // Clear soft delete
                 },
               });
-              await CacheService.incrementPluginVersion();
+              }
             }
-          }
+            await incrementPluginRegistryVersion(tx);
+            return updatedInstall;
+          });
 
           // Re-register webhook subscriptions and theme extensions on upgrade (§4.7, §10)
           try {
@@ -324,14 +300,6 @@ export class PluginFsInstaller implements IPluginInstaller {
               `Non-fatal: Failed to re-register webhooks/theme-extensions on upgrade for ${manifest.slug}:`,
               integrationError.message
             );
-          }
-
-          // Success: cleanup backup
-          if (backupDir) {
-            await removeDir(backupDir).catch((err) =>
-              console.warn(`Failed to cleanup backup dir ${backupDir}:`, err)
-            );
-            backupDir = null;
           }
 
           // Create installed metadata
@@ -358,6 +326,8 @@ export class PluginFsInstaller implements IPluginInstaller {
           };
 
           await this.saveInstalledMeta(manifest.slug, installedPlugin);
+          await deployment.commit();
+          deployment = null;
           return installedPlugin;
 
         } catch (warmError: any) {
@@ -365,15 +335,8 @@ export class PluginFsInstaller implements IPluginInstaller {
           console.error(`Warm failed for plugin ${manifest.slug}, rolling back:`, warmError);
 
           // Remove new directory
-          if (targetDir && (await dirExists(targetDir))) {
-            await removeDir(targetDir).catch(() => {});
-          }
-
-          // Restore backup
-          if (backupDir && (await dirExists(backupDir))) {
-            await fs.rename(backupDir, targetDir).catch(() => {});
-            backupDir = null;
-          }
+          await deployment?.rollback().catch(() => {});
+          deployment = null;
 
           // DB is NOT updated (old version remains)
           throw new Error(
@@ -396,7 +359,6 @@ export class PluginFsInstaller implements IPluginInstaller {
                 runtimeType: manifest.runtimeType,
                 entryModule: manifest.entryModule,
                 source: 'local-zip',
-                installPath: `extensions/plugins/${manifest.slug}`,
                 zipHash,
                 manifestJson: manifest,
                 permissions: manifest.permissions ?? null,
@@ -412,6 +374,8 @@ export class PluginFsInstaller implements IPluginInstaller {
                 grantedPermissions: manifest.permissions ?? null,
               },
             });
+
+            await incrementPluginRegistryVersion(tx);
 
             return install;
           });
@@ -441,12 +405,12 @@ export class PluginFsInstaller implements IPluginInstaller {
               `Warm failed for new plugin ${manifest.slug}, disabling default instance:`,
               warmError
             );
-            await prisma.pluginInstallation.updateMany({
-              where: {
-                pluginSlug: manifest.slug,
-                instanceKey: 'default',
-              },
-              data: { enabled: false },
+            await prisma.$transaction(async (tx) => {
+              await tx.pluginInstallation.updateMany({
+                where: { pluginSlug: manifest.slug, instanceKey: 'default' },
+                data: { enabled: false },
+              });
+              await incrementPluginRegistryVersion(tx);
             });
             await CacheService.incrementPluginVersion();
             defaultInstance = await prisma.pluginInstallation.findUnique({
@@ -481,14 +445,6 @@ export class PluginFsInstaller implements IPluginInstaller {
             );
           }
 
-          // Cleanup backup if exists
-          if (backupDir) {
-            await removeDir(backupDir).catch((err) =>
-              console.warn(`Failed to cleanup backup dir ${backupDir}:`, err)
-            );
-            backupDir = null;
-          }
-
           // Create installed metadata
           const installedPlugin: InstalledPlugin = {
             id: pluginInstall.id,
@@ -513,36 +469,23 @@ export class PluginFsInstaller implements IPluginInstaller {
           };
 
           await this.saveInstalledMeta(manifest.slug, installedPlugin);
+          await deployment.commit();
+          deployment = null;
           await CacheService.incrementPluginVersion();
           return installedPlugin;
 
         } catch (dbError) {
           // DB transaction failed: ROLLBACK file system changes
-          if (targetDir && (await dirExists(targetDir))) {
-            await removeDir(targetDir).catch(() => {});
-          }
-
-          if (backupDir && (await dirExists(backupDir))) {
-            await fs.rename(backupDir, targetDir).catch(() => {});
-            backupDir = null;
-          }
+          await deployment?.rollback().catch(() => {});
+          deployment = null;
 
           throw dbError;
         }
       }
     } catch (error) {
       // Ensure backup is restored if still exists
-      if (backupDir && targetDir) {
-        try {
-          const targetStillExists = await dirExists(targetDir);
-          if (targetStillExists) {
-            await removeDir(targetDir);
-          }
-          await fs.rename(backupDir, targetDir);
-        } catch (rollbackError) {
-          console.error('Failed to rollback file system after install failure:', rollbackError);
-        }
-      }
+      await deployment?.rollback().catch((rollbackError) => console.error('Failed to rollback file system after install failure:', rollbackError));
+      deployment = null;
 
       throw error;
     } finally {
@@ -555,10 +498,6 @@ export class PluginFsInstaller implements IPluginInstaller {
         await cleanupTemp(tempDir);
       }
 
-      // Clean up backup directory if still exists (shouldn't happen, but safety)
-      if (backupDir) {
-        await removeDir(backupDir).catch(() => {});
-      }
     }
   }
 
@@ -566,34 +505,24 @@ export class PluginFsInstaller implements IPluginInstaller {
    * Uninstall plugin
    */
   async uninstall(slug: string): Promise<void> {
-    const targetDir = getPluginDir(slug);
-
-    if (!(await dirExists(targetDir))) {
+    const pluginPackage = await pluginPackageStore.get(slug);
+    if (!pluginPackage) {
       throw new Error(`Plugin "${slug}" is not installed`);
     }
 
-    await removeDir(targetDir);
+    await pluginPackageStore.delete(slug);
   }
 
   /**
    * List installed plugins
    */
   async list(): Promise<InstalledPlugin[]> {
-    const pluginsDir = getPluginDir();
-
-    // Ensure directory exists
-    await ensureDir(pluginsDir);
-
-    const entries = await fs.readdir(pluginsDir, { withFileTypes: true });
     const plugins: InstalledPlugin[] = [];
-
-    for (const entry of entries) {
-      if (entry.isDirectory() && !entry.name.startsWith('.')) {
-        const plugin = await this.get(entry.name);
+    for (const slug of await pluginPackageStore.list()) {
+        const plugin = await this.get(slug);
         if (plugin) {
           plugins.push(plugin);
         }
-      }
     }
 
     return plugins;
@@ -603,19 +532,17 @@ export class PluginFsInstaller implements IPluginInstaller {
    * Get installed plugin details
    */
   async get(slug: string): Promise<InstalledPlugin | null> {
-    const targetDir = getPluginDir(slug);
-
-    if (!(await dirExists(targetDir))) {
+    const pluginPackage = await pluginPackageStore.get(slug);
+    if (!pluginPackage) {
       return null;
     }
 
     // Prefer reading .installed.json
-    const metaPath = path.join(targetDir, INSTALLED_META_FILE);
     try {
-      return await readJsonFile<InstalledPlugin>(metaPath);
+      return JSON.parse(await pluginPackage.readText(INSTALLED_META_FILE)) as InstalledPlugin;
     } catch {
       // If no metadata file exists, rebuild from manifest.json
-      return this.rebuildMetaFromManifest(slug, targetDir);
+      return this.rebuildMetaFromManifest(slug, pluginPackage);
     }
   }
 
@@ -623,9 +550,9 @@ export class PluginFsInstaller implements IPluginInstaller {
    * Save installed metadata
    */
   private async saveInstalledMeta(slug: string, meta: InstalledPlugin): Promise<void> {
-    const targetDir = getPluginDir(slug);
-    const metaPath = path.join(targetDir, INSTALLED_META_FILE);
-    await fs.writeFile(metaPath, JSON.stringify(meta, null, 2), 'utf-8');
+    const pluginPackage = await pluginPackageStore.get(slug);
+    if (!pluginPackage) throw new Error(`Plugin "${slug}" is not installed`);
+    await pluginPackage.writeText(INSTALLED_META_FILE, JSON.stringify(meta, null, 2));
   }
 
   /**
@@ -633,12 +560,12 @@ export class PluginFsInstaller implements IPluginInstaller {
    */
   private async rebuildMetaFromManifest(
     slug: string,
-    targetDir: string
+    pluginPackage: Awaited<ReturnType<typeof pluginPackageStore.get>>
   ): Promise<InstalledPlugin | null> {
     try {
-      const manifestPath = path.join(targetDir, 'manifest.json');
-      const manifest = await readJsonFile<PluginManifest>(manifestPath);
-      const stat = await fs.stat(targetDir);
+      if (!pluginPackage) return null;
+      const manifest = JSON.parse(await pluginPackage.readText('manifest.json')) as PluginManifest;
+      const stat = await pluginPackage.stat();
 
       return {
         id: uuidv4(),
@@ -650,7 +577,7 @@ export class PluginFsInstaller implements IPluginInstaller {
         runtimeType: manifest.runtimeType || 'internal-fastify',
         entryModule: manifest.entryModule,
         source: 'local-zip',
-        fsPath: targetDir,
+        fsPath: pluginPackage.getEntryPath(''),
         permissions: manifest.permissions,
         author: manifest.author,
         authorUrl: manifest.authorUrl,
