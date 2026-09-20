@@ -259,6 +259,23 @@ async function commissions(request: Request, env: AffiliateEnv, user: NativeSess
   return success({ items: rows.results, page: 1, limit: 100, total: rows.results.length, totalPages: rows.results.length ? 1 : 0 });
 }
 
+function affiliateCorsHeaders(origin: string | null, extra: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = { ...extra };
+  if (origin) {
+    headers['access-control-allow-origin'] = origin;
+    headers.vary = 'Origin';
+  }
+  return headers;
+}
+
+function withAffiliateCors(origin: string | null, response: Response): Response {
+  if (!origin) return response;
+  const headers = new Headers(response.headers);
+  headers.set('access-control-allow-origin', origin);
+  headers.append('vary', 'Origin');
+  return new Response(response.body, { status: response.status, headers });
+}
+
 export async function tryNativeAffiliate(request: Request, env: AffiliateEnv): Promise<Response | null> {
   const url = new URL(request.url);
   const rawPath = url.pathname;
@@ -266,6 +283,30 @@ export async function tryNativeAffiliate(request: Request, env: AffiliateEnv): P
     .replace('/api/v1/extensions/plugin/affiliate/api/api/store/affiliate', '/api/v1/plugins/affiliate/store')
     .replace('/api/v1/extensions/plugin/affiliate/api/store/affiliate', '/api/v1/plugins/affiliate/store');
 
+  // Storefront themes legitimately call these routes cross-origin (e.g. an
+  // older cached runtime that has not collapsed the API base to same-origin).
+  // Bearer-token auth means any origin may preflight/GET safely, so answer
+  // the preflight here and stamp every response with matching CORS headers.
+  if (path.startsWith('/api/v1/plugins/affiliate/store/') || path.startsWith('/api/v1/plugins/affiliate/admin/')) {
+    const origin = request.headers.get('origin');
+    if (request.method === 'OPTIONS') {
+      return new Response(null, {
+        status: 204,
+        headers: affiliateCorsHeaders(origin, {
+          'access-control-allow-methods': 'GET, POST, OPTIONS',
+          'access-control-allow-headers': 'Authorization, Content-Type, X-App-Type, X-Client-Version',
+          'access-control-max-age': '86400',
+        }),
+      });
+    }
+    const response = await handleNativeAffiliate(request, env, url, rawPath, path);
+    return response ? withAffiliateCors(origin, response) : null;
+  }
+
+  return null;
+}
+
+async function handleNativeAffiliate(request: Request, env: AffiliateEnv, _url: URL, rawPath: string, path: string): Promise<Response | null> {
   // Admin workspace data for the native affiliate adapter. The platform
   // plugin runtime serves these through /extensions/plugin/affiliate/api/admin,
   // so keep the same prefix contract for the Cloudflare-native core.
