@@ -97,25 +97,6 @@ app.use('/api', createSignatureMiddleware(process.env.SHARED_SECRET));
 fastify.addHook('preHandler', createSignatureMiddleware(process.env.SHARED_SECRET));
 ```
 
-### Extract Platform Context
-
-```typescript
-import { getContext, createContextMiddleware } from '@jiffoo/plugin-sdk';
-
-// Manual extraction
-const context = getContext(req.headers);
-console.log(context.platformId, context.installationId);
-
-// As middleware
-app.use(createContextMiddleware());
-
-// Then access in routes
-app.post('/webhook', (req, res) => {
-  const context = req.pluginContext;
-  console.log(`Request from platform: ${context.platformId}`);
-});
-```
-
 ### Create Routes and Hooks
 
 ```typescript
@@ -125,7 +106,7 @@ import { createRoute, createHook } from '@jiffoo/plugin-sdk';
 const webhookRoute = createRoute(
   '/webhook',
   async (req, res, context) => {
-    console.log(`Webhook from ${context.platformId}`);
+    console.log('Webhook received');
     res.json({ success: true });
   },
   {
@@ -260,7 +241,7 @@ jiffoo-plugin validate --manifest custom-manifest.json
 
 ### `jiffoo-plugin pack`
 
-Package plugin for submission to marketplace:
+Package a plugin archive:
 
 ```bash
 jiffoo-plugin pack
@@ -366,12 +347,10 @@ import type {
   PluginManifest,
   PluginConfig,
   Plugin,
-  PluginContext,
 
   // Request/Response
   PluginRequest,
   PluginResponse,
-  PlatformHeaders,
 
   // Routes and Hooks
   PluginRoute,
@@ -410,8 +389,7 @@ A valid plugin manifest (`manifest.json`):
   "category": "integration",
   "capabilities": ["webhook.receive"],
   "webhooks": {
-    "events": ["order.created", "order.updated"],
-    "url": "https://my-plugin.example.com/webhooks"
+    "events": ["order.created", "order.updated"]
   },
   "configSchema": {
     "apiKey": {
@@ -440,7 +418,7 @@ A valid plugin manifest (`manifest.json`):
 
 ## Hook Events
 
-The SDK supports listening to various platform events:
+The SDK supports listening to Core events:
 
 **Order Events:** `order.created`, `order.updated`, `order.paid`, `order.shipped`, `order.delivered`, `order.cancelled`, `order.refunded`
 
@@ -460,7 +438,6 @@ The SDK supports listening to various platform events:
 
 - [Plugin Development Guide](https://docs.jiffoo.com/developer/plugin-development)
 - [API Reference](https://docs.jiffoo.com/api/plugin-sdk)
-- [Plugin Submission](https://docs.jiffoo.com/marketplace/submission)
 - [Security Best Practices](https://docs.jiffoo.com/developer/security)
 - [GitHub Repository](https://github.com/jiffoo/jiffoo-mall)
 - [Community Discussions](https://github.com/jiffoo/jiffoo-mall/discussions)

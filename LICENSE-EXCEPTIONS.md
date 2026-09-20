@@ -1,88 +1,43 @@
-# License Exceptions & Boundary Statement
+# Licence Boundary
 
-> **Effective from**: v1.1.0  
-> **Governs**: Jiffoo open-source core (`jiffoo-mall-core`) and its SDK packages
+Governs the Jiffoo open-source core and its SDK packages.
 
-## 1. Three-Layer Boundary
+## Layer 1 — GPL core
 
-Jiffoo's open-source ecosystem is structured in three license layers:
+Applies to `apps/api`, `apps/admin`, `apps/shop`, `packages/shared`, and the root
+package.
 
-### Layer 1 — GPL Core (the monolith)
+Licence: GPL-2.0-or-later.
 
-**Applies to**: `apps/api`, `apps/shop`, `apps/admin`, `packages/shared`, root `package.json`
+Anyone who modifies and distributes the core must release their changes under the same
+terms.
 
-**License**: GPL-2.0-or-later
-
-Anyone who modifies and distributes the GPL core must open-source their changes under the same GPL terms. This is the copyleft core — the "engine" of the platform.
-
-### Layer 2 — External-HTTP Plugins (independent works)
-
-**Applies to**: Third-party plugins that communicate with Jiffoo API exclusively via HTTP (no shared process, no in-process imports)
-
-**License**: Any license (proprietary, MIT, Apache, etc.)
-
-External-HTTP plugins are **independent works**. They run as separate processes/services and communicate with Jiffoo through the documented Plugin Gateway HTTP protocol. They are **not derivative works** of the GPL core and are not subject to copyleft.
-
-**Requirements**:
-- Must communicate only via documented HTTP endpoints
-- Must not import or link against GPL-licensed code
-- Must respect the Plugin Gateway protocol contract (see §3)
-
-### Layer 3 — Internal-Fastify Plugins (derivative works)
-
-**Applies to**: Plugins that run inside the Jiffoo API process (loaded via the extension-installer, sharing the Fastify runtime)
-
-**License**: GPL-2.0-or-later (same as core)
-
-Internal-fastify plugins are **derivative works** of the GPL core. They share the process, memory space, and Fastify runtime. Distributing them requires compliance with GPL copyleft.
-
-**Trust levels**:
-- `builtin`: Ships with the core (GPL, always trusted)
-- `official`: Signed by Jiffoo team (Ed25519 signature, trusted)
-- `third-party`: Unsigned — **must use external-http runtime** (rejected if internal-fastify)
-
-## 2. SDK Packages (MIT)
-
-The following packages are licensed under MIT:
+## Layer 2 — SDK packages (MIT)
 
 | Package | Purpose |
 |---------|---------|
-| `@jiffoo/plugin-sdk` | Plugin development SDK (types, utilities, gateway client) |
-| `@jiffoo/theme-api-sdk` | Theme API SDK (types, client) |
-| `@jiffoo/core-api-sdk` | Core API SDK (types, client) |
-| `@jiffoo/ui` | Shared UI component library |
+| `@jiffoo/plugin-sdk` | Plugin development SDK |
+| `@jiffoo/theme-api-sdk` | Theme-facing Core API SDK |
+| `@jiffoo/core-api-sdk` | Core API SDK |
+| `@jiffoo/ui` | Shared UI components |
 | `create-jiffoo-app` | Project scaffolding CLI |
-| `shared` | Shared utilities and types |
 
-MIT-licensed SDKs allow anyone to build commercial products that **interface with** Jiffoo without triggering copyleft — as long as they communicate via documented APIs (not by importing GPL core code).
+These are MIT so that anyone can build against Jiffoo's documented APIs without
+triggering copyleft, provided they do not import core code.
 
-## 3. Interface Exceptions (protocol contracts)
+## Extensions
 
-The following interfaces are designated as **stable protocol contracts** that plugins/themes may implement without becoming derivative works:
+Core V1 has one local execution model: extension packages run in the Core process,
+reached through the plugin gateway. An extension that runs in the Core process is a
+derivative work of the GPL core, and distributing it requires GPL-2.0-or-later,
+regardless of whether the package is signed.
 
-1. **Plugin Gateway HTTP Protocol**: The request/response contract between Jiffoo API and external-http plugins (documented in `EXTERNAL_PLUGIN_DEVELOPMENT_GUIDE.md`)
-2. **Webhook Protocol**: Outbound webhook payload schema (documented in API docs under `/webhooks`)
-3. **Theme Pack Declarative Format**: The `theme.json` + template JSON schema (documented in `PLUGIN_SYSTEM_ARCHITECTURE.md`)
+A package signature establishes publisher accountability, not a licence exemption and
+not technical isolation. The three trust tiers defined in the charter — builtin,
+signed, unsigned — hold identical execution rights and identical licence obligations.
 
-Implementing these protocols in a separate process/service does **not** make your work a derivative of the GPL core.
+Themes are declarative data, not code, and carry no copyleft obligation.
 
-## 4. Commercial Distribution Path
+## Versioning
 
-To distribute a **closed-source commercial plugin** for Jiffoo:
-
-```
-Your Plugin (proprietary)
-    ↕ HTTP only
-Plugin Gateway (GPL core, runs in Jiffoo API)
-```
-
-1. Build your plugin as an independent HTTP service (any language, any license)
-2. Register it via the Plugin Gateway HTTP protocol
-3. Use MIT-licensed SDKs (`@jiffoo/plugin-sdk`) for type definitions and utilities
-4. **Do not** import or link against any GPL-licensed package in your plugin process
-
-This is the **only compliant path** for closed-source plugins. Internal-fastify (in-process) plugins must be GPL.
-
-## 5. Versioning
-
-This document takes effect from version `1.1.0` of the Jiffoo open-source core. Future versions may update this statement; each version's boundaries are governed by the document in effect at that version's release.
+Each release is governed by the version of this document in effect at that release.

@@ -1,211 +1,66 @@
-# Jiffoo - Open Source E-Commerce Platform
+# Jiffoo
 
-[![PR Quality Gates](https://github.com/thefreelight/Jiffoo/actions/workflows/pr-quality-gates.yml/badge.svg)](https://github.com/thefreelight/Jiffoo/actions/workflows/pr-quality-gates.yml)
 [![License: GPL v2+](https://img.shields.io/badge/License-GPL%20v2+-blue.svg)](https://www.gnu.org/licenses/gpl-2.0)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue.svg)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-black.svg)](https://nextjs.org/)
 [![Fastify](https://img.shields.io/badge/Fastify-5-green.svg)](https://www.fastify.io/)
 
-> **Deploy shop frontend to Cloudflare Pages with one click:**
->
-> [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/thefreelight/Jiffoo/tree/main/apps/shop)
+A self-hosted commerce core for a single merchant and a single storefront.
 
-Jiffoo is a TypeScript commerce core for self-hosted storefronts, admin tooling, and extension-driven customization.
+Deploy once with Docker Compose, own your data and your environment, and manage
+products, orders, extensions, themes and Core updates from the Admin application.
+Installing an extension does not require SSH access, a plugin-specific deployment,
+or a Core restart.
 
-**Project status**: actively developed; every PR into `main` passes four CI quality gates (type-check, ~1,500 API tests against postgres/redis, Prisma drift check, theme matrix + API surface check) plus end-to-end Playwright suites for shop and admin.
+## What it is
 
-The public runtime surface owned by this repository is:
+- Commerce kernel: catalog, customers, inventory, cart, checkout, orders, payment state
+- One Extension Center: marketplace index or local package upload, one installation path
+- Extensions run in-process and become usable without restarting Core
+- Themes are declarative data; Core ships the components that render them
+- Docker Compose is the reference delivery form, including backup, migration and
+  update flows
 
-- `shop`
-- `api`
-- `admin`
+Jiffoo is not a hosted marketplace platform. It has no multi-tenant, super-admin,
+platform-account or subscription layer.
 
-In the long-term deployment model, this repository is the source of the public/open-source runtime surface, including the future `jiffoo-prod` production namespace.
+## Status
 
-## Features
+Core V1 is under active development against the acceptance scenarios in the
+[execution plan](docs/agentra-002-v1-execution-plan.md). The scenarios are not all
+met yet; the plan records which are.
 
-- Complete commerce flows for catalog, cart, checkout, orders, and payments
-- **Digital Commerce** — First-class support for virtual goods: eSIM QR delivery, redemption codes, software licenses, and downloadable products with automated fulfillment
-- **Agentic Commerce (MCP)** — Official MCP server enables AI agents to browse products, manage carts, and create orders programmatically
-- Theme packs and plugin-based extensibility
-- Fastify API with Prisma-backed data access
-- Next.js shop and admin applications
-- Shared SDKs for frontend, theme, and plugin integrations
-- Vertical templates: `create-jiffoo-app --template digital-goods` or `--template esim` for purpose-built storefronts
-
-## Quick Start
-
-### Prerequisites
-
-- Node.js 20+
-- PostgreSQL 14+
-- Redis 6+ for caching and async jobs
-- pnpm 9+
-
-### Installation
+## Quick start
 
 ```bash
 git clone https://github.com/thefreelight/Jiffoo.git
 cd Jiffoo
 pnpm install
-cp apps/api/.env.example .env
+cp apps/api/.env.example apps/api/.env
 pnpm --filter api db:migrate
 pnpm dev
 ```
 
-### One-Command Scaffolding with Vertical Templates
+Requires Node 20+, PostgreSQL 14+, Redis 6+, pnpm 9+.
+Shop runs on 3003, Admin on 3002, API on 3001.
 
-```bash
-# General-purpose storefront
-npx create-jiffoo-app my-store
-
-# Digital goods store (gift cards, codes, licenses, downloads)
-npx create-jiffoo-app my-store --template digital-goods
-
-# eSIM marketplace (travel data plans, QR code delivery)
-npx create-jiffoo-app my-esim-shop --template esim
-```
-
-See the [Digital Commerce guide](docs/digital-commerce.md) for details on virtual goods fulfillment and how Jiffoo differs from Medusa/Saleor for digital-first commerce.
-
-### One-Command Server Install
-
-For a fresh server, the quickest self-hosted path is:
-
-```bash
-curl -fsSL https://get.jiffoo.com | bash
-```
-
-If you already have the repository on the server, you can also run:
-
-```bash
-./install.sh
-```
-
-This path installs Docker if needed, prepares a production `.env.production.local`,
-builds `shop + api + admin`, starts PostgreSQL and Redis, runs Prisma migrations,
-and optionally seeds demo data with:
-
-- Admin: `admin@jiffoo.com / admin123`
-
-Important defaults:
-
-- one-command installs now default `JIFFOO_DEMO_MODE=false`
-- the login UI will not display demo credentials unless demo mode is explicitly enabled
-- demo-mode login credentials are controlled by the backend, not hardcoded in the frontend
-
-The underlying production compose file is:
-
-```bash
-docker compose --env-file .env.production.local -f docker-compose.prod.yml up -d --build
-```
-
-### Public update-feed topology
-
-The public self-hosted update flow currently has two separate publication surfaces:
-
-1. `jiffoo-installer`
-   - a Kubernetes-side installer/static helper service used by the Singapore cluster topology
-2. `get.jiffoo.com`
-   - the canonical public self-hosted update-feed and source-archive origin used by OSS update checks
-
-`https://get.jiffoo.com/releases/core/manifest.json` is the source of truth for self-hosted version detection. Updating the Kubernetes `jiffoo-installer` service alone does not update the public OSS manifest or source archive assets.
-
-Formal OSS version publication is anchored to the Singapore cluster release path. A GitHub tag or GitHub Release does not, by itself, mean self-hosted instances will detect the new version. Detection changes only after the Singapore publication path has updated `get.jiffoo.com`.
-
-Downstream environments such as RackNerd-branded deployments are consumer instances. They may still report an older current version or still run an older updater until they are explicitly rolled forward, even after the public feed has advanced.
-
-### Self-Hosted Upgrade Model
-
-The Docker Compose upgrader follows a staged runtime cutover model:
-
-- `image-first` is the default path
-- `source-archive` is recovery-only
-- `APP_VERSION` is committed only after live runtime verification succeeds
-- `api`, `shop`, and `admin` switch sequentially instead of a one-shot recreate
-
-See the dedicated upgrade docs for the full decision trail and execution record.
-
-### Maintainer OSS Patch Release Helper
-
-Maintainers can prepare or publish an OSS patch release with:
-
-```bash
-pnpm release:oss:patch -- --version 1.0.12 --notes "Short release summary"
-```
-
-Add `--publish` to let the helper:
-
-- stage the release files only
-- create the release commit and tag
-- push the current branch and tag
-- create the GitHub Release
-- upload `core-update-manifest.json`, `jiffoo-source.tar.gz`, and `jiffoo-source.tar.gz.sha256`
-
-The helper is for maintainers, not merchants. Its job is to remove the repetitive patch-release ceremony around:
-
-- bumping OSS release metadata
-- aligning `package.json`, public manifest defaults, and build-target metadata
-- generating self-hosted release artifacts
-- creating the GitHub tag/release and attaching the public update assets
-
-Use `--dry-run` first if you want to inspect the planned actions before it touches git state.
-
-Important:
-
-- GitHub Release creation is not the final publication step for self-hosted update detection.
-- The final publication check is `https://get.jiffoo.com/releases/core/manifest.json`.
-- If a consumer instance still detects an older version, verify the public manifest first, then verify that the consumer host has actually rolled forward.
-
-### Local URLs
-
-- Shop: `http://localhost:3003`
-- Admin: `http://localhost:3002`
-- API: `http://localhost:3001`
-
-## Repository Layout
+## Repository layout
 
 ```text
-Jiffoo/
-├── apps/
-│   ├── api/
-│   ├── admin/
-│   └── shop/
-├── packages/
-│   ├── core-api-sdk/
-│   ├── create-jiffoo-app/
-│   ├── mcp-server/
-│   ├── plugin-sdk/
-│   ├── shared/
-│   ├── shop-themes/
-│   ├── theme-api-sdk/
-│   └── ui/
-└── scripts/
+apps/        api, admin, shop
+packages/    core-api-sdk, plugin-sdk, theme-api-sdk, shared, ui,
+             shop-themes, create-jiffoo-app, mcp-server
 ```
 
 ## Documentation
 
-- [Digital Commerce Guide](docs/digital-commerce.md) — Virtual goods fulfillment, eSIM delivery, and vertical templates
-- [Agentic Commerce Guide](docs/agentic-commerce.md) — MCP server for AI agents (Claude Desktop / Code integration)
-- [Create App CLI](packages/create-jiffoo-app/README.md)
-- [Core API SDK](packages/core-api-sdk/README.md)
-- [Plugin SDK](packages/plugin-sdk/README.md)
-- [Theme API SDK](packages/theme-api-sdk/README.md)
-- [Self-Hosted Updater Spec](docs/operations/self-hosted-updater-spec.md)
-- [Self-Hosted Updater PRD](docs/operations/self-hosted-updater-prd.md)
-- [Self-Hosted Updater PRD Executable](docs/operations/self-hosted-updater-prd-executable.md)
-- [ADR-0001 Self-Hosted Updater Commits Version Last](docs/adr/ADR-0001-self-hosted-updater-version-commit-last.md)
-- [Cross-Platform Theme Client Contract](docs/theme-client-platform-contract.md)
-- [Theme Client API Catalog](docs/theme-client-api-catalog.json)
-- [Theme Client Compatibility Matrix](docs/theme-client-compatibility-matrix.md)
-- [Official Theme Support Inventory](docs/theme-client-official-theme-support.md)
-- [First-Wave Theme Rollout](docs/theme-client-first-wave-rollout.md)
-- [Default Theme Pack](packages/shop-themes/default/README.md)
+- [Core V1 Product Charter](docs/agentra-001-core-v1-product-charter.md) — what Core V1 is
+- [V1 Execution Plan](docs/agentra-002-v1-execution-plan.md) — acceptance status
+- [Contributing](CONTRIBUTING.md)
+- [Licence boundary](LICENSE-EXCEPTIONS.md)
 
-## License
+## Licence
 
-Jiffoo is licensed under the [GNU General Public License v2.0 or later](LICENSE).
-
-The SDK packages (`@jiffoo/plugin-sdk`, `@jiffoo/theme-api-sdk`, `@jiffoo/core-api-sdk`, `@jiffoo/ui`, `create-jiffoo-app`) are licensed under MIT, enabling commercial plugin and theme development without copyleft obligations.
-
-See [LICENSE-EXCEPTIONS.md](LICENSE-EXCEPTIONS.md) for the full three-layer license boundary statement (GPL core / MIT SDKs / external-http independent works).
+GPL v2.0 or later. The SDK packages (`@jiffoo/plugin-sdk`, `@jiffoo/theme-api-sdk`,
+`@jiffoo/core-api-sdk`, `@jiffoo/ui`, `create-jiffoo-app`) are MIT — see
+[LICENSE-EXCEPTIONS.md](LICENSE-EXCEPTIONS.md).

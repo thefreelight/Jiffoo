@@ -164,10 +164,10 @@ The package supports the following languages:
 
 ### 1. Create Translation Files
 
-Create a new directory in `packages/i18n/locales/` with your locale code:
+Create a new directory in `packages/shared/src/i18n/locales/` with your locale code:
 
 ```
-packages/i18n/locales/
+packages/shared/src/i18n/locales/
   └── fr/
       ├── common.json
       ├── shop.json
@@ -176,7 +176,7 @@ packages/i18n/locales/
 
 ### 2. Add Translation Keys
 
-Follow the structure in `locales/en/common.json`:
+Follow the structure in `packages/shared/src/i18n/messages/en/common.ts`:
 
 ```json
 {
@@ -210,7 +210,7 @@ export const locales = {
 
 ### 4. Enable in Language Switcher
 
-Update `LanguageSwitcher` component in `provider.tsx`:
+Update `LanguageSwitcher` component in `react/language-switcher.tsx`:
 
 ```typescript
 const availableLocales = SUPPORTED_LOCALES.filter(l =>

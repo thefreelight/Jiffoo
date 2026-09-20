@@ -241,33 +241,6 @@ const safeData = redactor.redact({
 - Health check service with custom checks
 - Automatic sensitive data redaction
 
-### 🔄 Proxy
-
-Next.js proxy utilities for theme app forwarding and locale handling.
-
-```typescript
-// proxy.ts (Next.js 16)
-import { createProxyHandler, UNIFIED_PROXY_MATCHER } from '@jiffoo/shared/src/proxy';
-
-export const config = {
-  matcher: UNIFIED_PROXY_MATCHER
-};
-
-const handler = createProxyHandler({
-  target: 'shop', // or 'admin'
-  defaultLocale: 'en',
-  locales: ['en', 'zh-Hant']
-});
-
-export default handler;
-```
-
-**Features:**
-- Theme App forwarding (type='app' themes)
-- Automatic locale detection and redirect
-- Smart path handling and caching
-- Next.js 16 compatible
-
 ### 🔌 API Client
 
 Type-safe API clients for shop and admin applications.

@@ -14,7 +14,7 @@ By contributing to Jiffoo Mall, you agree that:
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - pnpm (recommended) or npm
 - Git
 
@@ -118,15 +118,15 @@ Then create a Pull Request on GitHub.
 
 ```
 apps/
-├── api/           # Backend API
-├── shop/          # Customer storefront
-├── tenant/        # Tenant admin
-├── admin/         # Platform admin
-└── agent/         # Agent portal
+├── api/      # Core API
+├── admin/    # Merchant admin
+└── shop/     # Customer storefront
 
 packages/
-├── shared/        # Shared utilities
-└── shop-themes/   # Theme packages
+├── shared/       # Shared utilities and types
+├── plugin-sdk/   # Plugin development SDK
+├── shop-themes/  # Theme packages
+└── ...
 ```
 
 ## 🗄️ Prisma Schema Management
@@ -164,15 +164,6 @@ apps/api/prisma/schema/
    - Create a migration (if table structure changed)
    - The model will automatically pass the dormant check on next CI run
 
-## 🏷️ Versioning
-
-The root `package.json` version tracks **the most recently published OSS release** — `scripts/release-oss-patch.mjs --version X` writes `X-opensource` there and tags `vX-opensource` in the same step. So the root version is a record of what shipped, not a "next" placeholder.
-
-- Four files move together as one set and must never drift apart (the release script writes all four): root `package.json`, `.github/oss-build-target.json`, `packages/shared/src/core-update/public-manifest.ts` (the update feed self-hosted instances poll), and the expectations in `apps/api/tests/routes/upgrade.test.ts`.
-- They currently record **v1.0.35-opensource**, the latest successfully published release. (v1.0.36/v1.0.37 exist as tags but were blocked by the self-hosted publication gate and are QUARANTINED pre-releases — do not treat them as shippable; the next release should be ≥ 1.0.38.)
-- The app packages (`apps/api`, `apps/shop`, `apps/admin`) carry independent versions and are not part of the OSS release line.
-- Releases are always manual: no workflow publishes images or the update feed on a push or merge.
-
 ## 📦 Dependency Notes
 
 Two versions are pinned via `pnpm.overrides` in the root `package.json` (package.json cannot carry comments, so the rationale lives here):
@@ -189,7 +180,7 @@ Every PR into `main` runs four parallel jobs (`.github/workflows/pr-quality-gate
 | Job | What it checks | Local equivalent |
 |-----|----------------|------------------|
 | `static-checks` | Repo-wide TypeScript type-check + ESLint (flat config; errors block, warnings are tracked debt) | `pnpm type-check` + `npx eslint .` (build `shared`/`@jiffoo/ui`/SDK packages first if dists are stale) |
-| `api-tests` | Full API vitest suite against postgres + redis, incl. 350+ OpenAPI contract tests | `cd apps/api && pnpm export:openapi && npx vitest run tests/` |
+| `api-tests` | Full API vitest suite against postgres and redis, including OpenAPI contract tests | See `apps/api/tests/KNOWN-FAILURES.md` for the required sequence |
 | `drift-gate` | Prisma schema vs migrations sync | `DATABASE_URL=<throwaway-db> pnpm --filter api db:check-drift` — **never point this at a real database; the script uses it as a shadow DB and resets it** |
 | `theme-gate` | Theme matrix type-check/validate + theme API surface snapshot | `pnpm theme-matrix:type-check && pnpm theme-matrix:validate && pnpm surface:check` |
 
@@ -200,7 +191,7 @@ When a gate fails:
 - **drift-gate** — you changed a schema file without a migration: `cd apps/api && pnpm db:migrate --name descriptive_name`.
 - **theme-gate** — surface snapshot mismatches mean the theme API surface changed; if intentional, regenerate with `pnpm surface:generate` and commit the snapshot.
 
-Lint uses the root `eslint.config.mjs` (ESLint 9 flat config). The baseline ratchets like coverage: correctness rules are errors, style/hygiene rules are warnings (~1,000 today) to be paid down over time. `extensions/**` are standalone npm packages outside the root lint scope.
+Lint uses the root `eslint.config.mjs` (ESLint 9 flat config). The baseline ratchets like coverage: correctness rules are errors, style/hygiene rules are warnings to be paid down over time. `extensions/**` are standalone npm packages outside the root lint scope.
 
 ## ⛔ Prohibited Practices
 
