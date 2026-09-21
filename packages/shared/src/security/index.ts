@@ -51,7 +51,6 @@ export {
 // Webhook Verifier
 export {
   WebhookVerifier,
-  StripeWebhookVerifier,
   type WebhookVerifierConfig,
   type VerificationResult,
 } from './webhook-verifier';

@@ -22,8 +22,6 @@ const themeMetaSchema = {
     description: { type: 'string', nullable: true, description: 'Theme description' },
     author: { type: 'string', nullable: true, description: 'Theme author' },
     preview: { type: 'string', nullable: true, description: 'Preview image URL' },
-    baseUrl: { type: 'string', nullable: true, description: 'Base URL for theme-app' },
-    port: { type: 'number', nullable: true, description: 'Port for theme-app' },
     isActive: { type: 'boolean', description: 'Whether theme is currently active' },
     engines: {
       type: 'object',
@@ -52,8 +50,6 @@ const activeThemeSchema = {
     version: { type: 'string', description: 'Theme version' },
     source: { type: 'string', description: 'Theme source (builtin or installed)' },
     type: { type: 'string', enum: ['pack', 'app'], description: 'Theme type' },
-    baseUrl: { type: 'string', nullable: true, description: 'Base URL for theme-app' },
-    port: { type: 'number', nullable: true, description: 'Port for theme-app' },
     config: { type: 'object', additionalProperties: true, description: 'Theme config' },
   },
 } as const;

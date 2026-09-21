@@ -10,7 +10,6 @@ import { winstonLogger } from '@/core/logger/unified-logger';
 import type { JobHandler, BaseJobData } from './types';
 import { QUEUE_NAMES } from './types';
 import { workerManager } from './worker-manager';
-import { ResendProvider } from '@/plugins/email-providers/resend-provider';
 
 async function dispatchToPluginRuntimes(outboxEventId: string, eventType: string): Promise<void> {
   const event = await prisma.outboxEvent.findUnique({ where: { id: outboxEventId } });

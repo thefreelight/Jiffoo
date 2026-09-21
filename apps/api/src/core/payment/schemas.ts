@@ -26,15 +26,6 @@ const paymentMethodSchema = {
       description: 'List of supported currency codes',
     },
     isLive: { type: 'boolean', description: 'Whether this is a live (real) payment method' },
-    clientConfig: {
-      type: 'object',
-      nullable: true,
-      description: 'Client-safe payment config exposed to storefronts',
-      properties: {
-        publishableKey: { type: 'string', description: 'Public key used by client SDKs such as Stripe.js' },
-      },
-      additionalProperties: false,
-    },
   },
   required: ['pluginSlug', 'name', 'displayName', 'icon', 'supportedCurrencies', 'isLive'],
 } as const;
@@ -101,7 +92,7 @@ export const paymentSchemas = {
       type: 'object',
       required: ['paymentMethod', 'orderId'],
       properties: {
-        paymentMethod: { type: 'string', description: 'Payment method to use (e.g., stripe, paypal, alipay)' },
+        paymentMethod: { type: 'string', description: 'Payment method to use' },
         orderId: { type: 'string', description: 'Order ID to pay for' },
         successUrl: { type: 'string', description: 'URL to redirect on successful payment' },
         cancelUrl: { type: 'string', description: 'URL to redirect on cancelled payment' },
@@ -129,7 +120,7 @@ export const paymentSchemas = {
       type: 'object',
       required: ['provider'],
       properties: {
-        provider: { type: 'string', description: 'Payment provider name (e.g., stripe, paypal)' },
+        provider: { type: 'string', description: 'Payment provider name' },
       },
     },
     body: {

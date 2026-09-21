@@ -26,24 +26,11 @@ process.env.API_SERVICE_URL = process.env.API_SERVICE_URL || 'http://localhost:3
 process.env.NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 process.env.NEXT_PUBLIC_ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
 process.env.NEXT_PUBLIC_SHOP_URL = process.env.NEXT_PUBLIC_SHOP_URL || 'http://localhost:3002';
-process.env.PLATFORM_MAIN_DOMAIN = process.env.PLATFORM_MAIN_DOMAIN || 'jiffoo.com';
-process.env.PLATFORM_FRONTEND_DOMAIN = process.env.PLATFORM_FRONTEND_DOMAIN || 'shop.jiffoo.com';
-process.env.PLATFORM_ADMIN_DOMAIN = process.env.PLATFORM_ADMIN_DOMAIN || 'admin.jiffoo.com';
-process.env.PLATFORM_API_DOMAIN = process.env.PLATFORM_API_DOMAIN || 'api.jiffoo.com';
-process.env.PLATFORM_AUTH_DOMAIN = process.env.PLATFORM_AUTH_DOMAIN || 'auth.jiffoo.com';
-
 // 3rd Party Services (Mocked)
-process.env.STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_mock';
-process.env.STRIPE_PUBLISHABLE_KEY = process.env.STRIPE_PUBLISHABLE_KEY || 'pk_test_mock';
-process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_mock';
-process.env.STRIPE_WEBHOOK_SECRET = process.env.STRIPE_WEBHOOK_SECRET || 'whsec_mock';
-
 process.env.GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || 'mock_client_id';
 process.env.GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || 'mock_client_secret';
 process.env.GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/auth/google/callback';
 
-process.env.RESEND_API_KEY = process.env.RESEND_API_KEY || 're_mock';
-process.env.RESEND_WEBHOOK_SECRET = process.env.RESEND_WEBHOOK_SECRET || 'whsec_resend_mock';
 process.env.EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
 process.env.EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Jiffoo';
 process.env.EMAIL_REPLY_TO = process.env.EMAIL_REPLY_TO || 'support@jiffoo.com';

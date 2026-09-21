@@ -23,7 +23,7 @@ import {
   getCompatibilityReport,
   checkMultiplePlugins,
   PluginLoaderError,
-} from '@/plugins/loader';
+} from '@/core/admin/extension-installer/plugin-compatibility';
 import type { PluginManifest } from '@/core/admin/extension-installer/types';
 
 describe('Plugin Compatibility Integration', () => {

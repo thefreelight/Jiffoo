@@ -116,7 +116,7 @@ const uninstallExtensionResultSchema = {
   properties: {
     kind: {
       type: 'string',
-      enum: ['theme-shop', 'theme-admin', 'theme-app-shop', 'theme-app-admin', 'plugin'],
+      enum: ['theme-shop', 'theme-admin', 'plugin'],
       description: 'Extension kind',
     },
     slug: { type: 'string', description: 'Uninstalled extension slug' },
@@ -304,7 +304,7 @@ export const extensionInstallerSchemas = {
       properties: {
         kind: {
           type: 'string',
-          enum: ['theme-shop', 'theme-admin', 'theme-app-shop', 'theme-app-admin', 'plugin'],
+          enum: ['theme-shop', 'theme-admin', 'plugin'],
           description: 'Extension kind',
         },
       },
@@ -359,7 +359,7 @@ export const extensionInstallerSchemas = {
       properties: {
         kind: {
           type: 'string',
-          enum: ['theme-shop', 'theme-admin', 'theme-app-shop', 'theme-app-admin', 'plugin'],
+          enum: ['theme-shop', 'theme-admin', 'plugin'],
           description: 'Extension kind',
         },
         slug: { type: 'string', description: 'Extension slug to uninstall' },
@@ -376,7 +376,7 @@ export const extensionInstallerSchemas = {
       properties: {
         kind: {
           type: 'string',
-          enum: ['theme-shop', 'theme-admin', 'theme-app-shop', 'theme-app-admin', 'plugin'],
+          enum: ['theme-shop', 'theme-admin', 'plugin'],
           description: 'Extension kind',
         },
       },
@@ -399,7 +399,7 @@ export const extensionInstallerSchemas = {
       properties: {
         kind: {
           type: 'string',
-          enum: ['theme-shop', 'theme-admin', 'theme-app-shop', 'theme-app-admin', 'plugin'],
+          enum: ['theme-shop', 'theme-admin', 'plugin'],
           description: 'Extension kind',
         },
         slug: { type: 'string', description: 'Extension slug' },

@@ -295,9 +295,6 @@ export function getManifestFileName(kind: ExtensionKind): string {
   switch (kind) {
     case 'plugin':
       return 'manifest.json';
-    case 'theme-app-shop':
-    case 'theme-app-admin':
-      return 'theme-app.json';
     case 'bundle':
       return 'bundle.json';
     case 'theme-shop':

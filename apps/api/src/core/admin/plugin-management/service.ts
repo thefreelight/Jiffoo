@@ -16,7 +16,6 @@ import { assertPluginConfigReadyForEnable } from '@/core/admin/extension-install
 import type { PluginInstall, PluginInstallation } from '@prisma/client';
 import { executeLifecycleHook, hasLifecycleHook } from './lifecycle-hooks';
 import { isAllowedExtensionSource, isOfficialMarketOnly } from '@/core/admin/extension-installer/official-only';
-import { ensureOfficialMarketExtensionFiles } from '@/core/admin/market/official-package-recovery';
 import { mergeSecretConfigForUpdate } from './config-secrets';
 
 // instanceKey validation regex: ^[a-z0-9-]{1,32}$
@@ -82,25 +81,6 @@ async function getPluginPackage(slug: string): Promise<PluginInstall | null> {
     return null;
   }
 
-  if (plugin?.source === 'official-market') {
-    const pluginPackage = await pluginPackageStore.get(slug);
-    if (!pluginPackage || !await pluginPackage.exists('manifest.json')) {
-      await ensureOfficialMarketExtensionFiles({
-        slug,
-        kind: 'plugin',
-        version: plugin.version,
-      });
-
-      plugin = await prisma.pluginInstall.findUnique({
-        where: { slug },
-      });
-
-      if (!plugin || plugin.deletedAt || !isAllowedExtensionSource(plugin.source)) {
-        return null;
-      }
-    }
-  }
-  
   return plugin;
 }
 

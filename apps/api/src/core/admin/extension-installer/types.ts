@@ -6,7 +6,6 @@
  */
 
 import { Readable } from 'stream';
-import type { InstalledThemeApp } from './theme-app-installer';
 import type {
   PluginManifest as SharedPluginManifest,
   PluginRuntimeType as SharedPluginRuntimeType,
@@ -21,16 +20,12 @@ import type {
  * Extension type enum - all installable content types
  * - theme-shop: Theme Pack for shop frontend
  * - theme-admin: Theme Pack for admin frontend
- * - theme-app-shop: Theme App (executable) for shop frontend
- * - theme-app-admin: Theme App (executable) for admin frontend
  * - plugin: Plugin for backend functionality
  * - bundle: Bundle containing multiple extensions
  */
 export type ExtensionKind =
   | 'theme-shop'
   | 'theme-admin'
-  | 'theme-app-shop'
-  | 'theme-app-admin'
   | 'plugin'
   | 'bundle';
 
@@ -151,7 +146,7 @@ export interface UpdatePluginInstanceRequest {
 }
 
 /** Universal installed extension metadata (used for lists) */
-export type InstalledExtensionMeta = InstalledTheme | InstalledThemeApp | InstalledPlugin;
+export type InstalledExtensionMeta = InstalledTheme | InstalledPlugin;
 
 // ============================================================================
 // Manifest Types (Descriptor files within the ZIP package)

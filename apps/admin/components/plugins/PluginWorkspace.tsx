@@ -8,7 +8,6 @@ import type { PluginConfigMeta } from '@/lib/types';
 import {
   useCreatePluginInstance,
   useInstalledPlugins,
-  useOfficialCatalog,
   usePluginConfig,
   usePluginInstances,
   useUpdatePluginInstance,
@@ -23,7 +22,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRail';
-import { OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import { PluginInstanceManager } from '@/components/plugins/PluginInstanceManager';
 import { toast } from 'sonner';
 
@@ -142,7 +140,6 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   const { data, isLoading, error } = usePluginConfig(slug);
   const { data: instancesData, isLoading: instancesLoading } = usePluginInstances(slug);
   const { data: installedPluginsData } = useInstalledPlugins();
-  const { data: officialCatalogData } = useOfficialCatalog();
   const { mutateAsync: createInstance, isPending: creating } = useCreatePluginInstance();
   const { mutateAsync: updateInstance, isPending: updating } = useUpdatePluginInstance();
   const [selectedId, setSelectedId] = useState('default');
@@ -159,7 +156,6 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   const meta = selected?.configMeta || data?.configMeta;
   const readiness = configReadiness(schema, config, meta);
   const saving = creating || updating;
-  const officialSlugs = useMemo(() => new Set((officialCatalogData?.items || []).filter((item) => item.kind === 'plugin').map((item) => item.slug)), [officialCatalogData?.items]);
 
   useEffect(() => {
     setDraft(config);
@@ -206,12 +202,12 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   return (
     <div className="min-h-screen bg-[#f8fafc] p-5 sm:p-7 lg:p-10">
       <div className="mx-auto grid max-w-[1600px] gap-5 lg:grid-cols-[260px,minmax(0,1fr)]">
-        <InstalledPluginsRail locale={locale} plugins={installedPluginsData?.items || []} selectedSlug={slug} officialSlugs={officialSlugs} getText={getText} />
+        <InstalledPluginsRail locale={locale} plugins={installedPluginsData?.items || []} selectedSlug={slug} officialSlugs={new Set()} getText={getText} />
         <div className="space-y-5">
           <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
             <CardHeader>
               <div className="flex items-center gap-2 text-sm text-slate-500"><Link href={`/${locale}/plugins`} className="hover:text-blue-600">Plugins</Link><span>/</span><span>{data.name || slug}</span></div>
-              <CardTitle className="flex items-center gap-2 text-2xl">{data.name || slug}{officialSlugs.has(slug) ? <OfficialBadge compact /> : null}</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-2xl">{data.name || slug}</CardTitle>
               <CardDescription>{data.description || 'Manage the extension configuration and instances.'}</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap items-center gap-3">

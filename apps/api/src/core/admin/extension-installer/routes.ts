@@ -23,8 +23,6 @@ import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/con
 const ZIP_SIZE_LIMITS: Record<ExtensionKind, number> = {
   'theme-shop': 10 * 1024 * 1024, // 10MB
   'theme-admin': 10 * 1024 * 1024, // 10MB
-  'theme-app-shop': 200 * 1024 * 1024, // 200MB
-  'theme-app-admin': 200 * 1024 * 1024, // 200MB
   'plugin': 50 * 1024 * 1024, // 50MB
   'bundle': 500 * 1024 * 1024, // 500MB
 };
@@ -641,8 +639,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       const { kind } = request.params;
 
       // Validate kind
-      if (!['theme-shop', 'theme-admin', 'theme-app-shop', 'theme-app-admin', 'plugin'].includes(kind)) {
-        return sendError(reply, 400, 'BAD_REQUEST', 'Invalid extension kind. Must be: theme-shop, theme-admin, theme-app-shop, theme-app-admin, or plugin');
+      if (!['theme-shop', 'theme-admin', 'plugin'].includes(kind)) {
+        return sendError(reply, 400, 'BAD_REQUEST', 'Invalid extension kind. Must be: theme-shop, theme-admin, or plugin');
       }
 
       if (isOfficialMarketOnly()) {

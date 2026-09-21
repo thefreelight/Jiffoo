@@ -14,7 +14,6 @@ export interface WebhookVerifierConfig {
   /** Timestamp header name */
   timestampHeader?: string;
 }
-
 export interface VerificationResult {
   valid: boolean;
   error?: string;
@@ -109,50 +108,3 @@ export class WebhookVerifier {
     return { ts, sig };
   }
 }
-
-/**
- * Stripe Webhook Signature Verifier
- */
-export class StripeWebhookVerifier {
-  private secret: string;
-  private toleranceSeconds: number;
-
-  constructor(secret: string, toleranceSeconds = 300) {
-    this.secret = secret;
-    this.toleranceSeconds = toleranceSeconds;
-  }
-
-  verify(payload: string | Buffer, signature: string): VerificationResult {
-    try {
-      const elements = signature.split(',');
-      const tsElement = elements.find((e) => e.startsWith('t='));
-      const sigElement = elements.find((e) => e.startsWith('v1='));
-
-      if (!tsElement || !sigElement) {
-        return { valid: false, error: 'Missing signature elements' };
-      }
-
-      const timestamp = parseInt(tsElement.slice(2), 10);
-      const expectedSig = sigElement.slice(3);
-
-      // Check timestamp
-      const now = Math.floor(Date.now() / 1000);
-      if (Math.abs(now - timestamp) > this.toleranceSeconds) {
-        return { valid: false, error: 'Timestamp too old', timestamp };
-      }
-
-      // Calculate signature
-      const signedPayload = `${timestamp}.${typeof payload === 'string' ? payload : payload.toString('utf8')}`;
-      const hmac = createHmac('sha256', this.secret);
-      hmac.update(signedPayload);
-      const computedSig = hmac.digest('hex');
-
-      // Safe comparison
-      const valid = timingSafeEqual(Buffer.from(computedSig), Buffer.from(expectedSig));
-      return { valid, error: valid ? undefined : 'Signature mismatch', timestamp };
-    } catch (error) {
-      return { valid: false, error: `Verification failed: ${(error as Error).message}` };
-    }
-  }
-}
-

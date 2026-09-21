@@ -396,60 +396,6 @@ export interface PluginServiceTokenStatus {
   lastUsedAt?: string | null;
 }
 
-export type OfficialCatalogInstallState = 'not_installed' | 'installed' | 'enabled' | 'active';
-export type OfficialCatalogReleaseStatus = 'published' | 'catalog-only' | 'offline';
-
-export interface OfficialCatalogItem {
-  slug: string;
-  name: string;
-  kind: 'theme' | 'plugin';
-  version: string;
-  author: string;
-  description: string;
-  category: string;
-  deliveryMode: 'package-managed';
-  target?: 'shop' | 'admin';
-  installState: OfficialCatalogInstallState;
-  releaseStatus: OfficialCatalogReleaseStatus;
-  source: 'builtin' | 'installed' | 'local-zip' | 'official-market' | 'catalog';
-  availableInMarket: boolean;
-  marketError?: string;
-  rating?: number;
-  downloads?: number;
-  thumbnailUrl?: string;
-  compatibility?: string;
-  screenshots?: string[];
-  installedVersion?: string | null;
-  latestVersion?: string | null;
-  artifactPackageUrl?: string | null;
-  updateAvailable?: boolean;
-  configRequired?: boolean;
-  configReady?: boolean;
-  missingConfigFields?: string[];
-}
-
-export interface OfficialCatalogResponse {
-  items: OfficialCatalogItem[];
-  marketOnline: boolean;
-  marketError?: string;
-  officialMarketOnly: boolean;
-  generatedAt: string;
-}
-
-export interface InstallOfficialExtensionRequest {
-  version?: string;
-  activate?: boolean;
-  kind: 'plugin' | 'theme-shop' | 'theme-admin' | 'theme-app-shop' | 'theme-app-admin';
-}
-
-export interface InstallOfficialExtensionResult {
-  kind: string;
-  slug: string;
-  version: string;
-  source: string;
-  fsPath?: string;
-}
-
 
 const DEFAULT_PLUGIN_INSTANCE_KEY = 'default';
 
@@ -613,31 +559,6 @@ function toApiErrorPayload(
     message: fallbackMessage,
   };
 }
-
-export const marketApi = {
-  getOfficialCatalog: (): Promise<ApiResponse<OfficialCatalogResponse>> =>
-    apiClient.get('/admin/market/official-catalog'),
-
-  getHealth: (): Promise<ApiResponse<{
-    officialMarketOnly: boolean;
-    signatureMode: string;
-    officialKeyPresent: boolean;
-    marketApiUrl: string;
-    marketOnline: boolean;
-    marketLatencyMs: number;
-    marketStatus?: number;
-    marketError?: string;
-  }>> =>
-    apiClient.get('/admin/market/health'),
-
-  installOfficialExtension: (
-    slug: string,
-    data: InstallOfficialExtensionRequest
-  ): Promise<ApiResponse<InstallOfficialExtensionResult>> =>
-    apiClient.post(`/admin/market/extensions/${slug}/install`, data, {
-      timeout: 120000,
-    }),
-};
 
 
 // Plugin Management API
@@ -939,17 +860,8 @@ export const themesApi = {
     });
   },
 
-  installThemeAppFromZip: (target: 'shop' | 'admin', file: File): Promise<ApiResponse<{ slug: string; version: string }>> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    const kind = `theme-app-${target}`;
-    return apiClient.post(`/extensions/${kind}/install`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  },
-
-  uninstall: (target: 'shop' | 'admin', slug: string, type: 'pack' | 'app' = 'pack'): Promise<ApiResponse<void>> => {
-    const kind = type === 'app' ? `theme-app-${target}` : `theme-${target}`;
+  uninstall: (target: 'shop' | 'admin', slug: string): Promise<ApiResponse<void>> => {
+    const kind = `theme-${target}`;
     return apiClient.delete(`/extensions/${kind}/${slug}`);
   },
 };

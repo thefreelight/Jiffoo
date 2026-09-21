@@ -469,36 +469,6 @@ async function start() {
       environment: env.NODE_ENV
     });
 
-    try {
-      const { getThemeAppRuntimePolicy } = await import('@/core/admin/theme-app-runtime/policy');
-      const themeAppPolicy = getThemeAppRuntimePolicy();
-      if (themeAppPolicy.supported) {
-        LoggerService.logSystem('Theme App runtime policy', {
-          mode: themeAppPolicy.mode,
-          apiReplicaCount: themeAppPolicy.apiReplicaCount,
-          allowUnsafeMultiPod: themeAppPolicy.allowUnsafeMultiPod,
-        });
-      } else {
-        LoggerService.logSystem('Theme App runtime policy blocks local-process startup', {
-          mode: themeAppPolicy.mode,
-          apiReplicaCount: themeAppPolicy.apiReplicaCount,
-          allowUnsafeMultiPod: themeAppPolicy.allowUnsafeMultiPod,
-          reasons: themeAppPolicy.reasons,
-        });
-      }
-    } catch (policyError) {
-      LoggerService.logError(policyError as Error, { context: 'Theme App runtime policy' });
-    }
-
-    // Restore active Theme Apps (if any were running before server restart)
-    try {
-      const { restoreActiveThemeApps } = await import('@/core/admin/theme-management/service');
-      const restoreResults = await restoreActiveThemeApps();
-      LoggerService.logSystem('Theme App restore completed', restoreResults);
-    } catch (restoreError) {
-      // Non-fatal: log error but don't crash server
-      LoggerService.logError(restoreError as Error, { context: 'Theme App restore' });
-    }
 
     // Start unified job infrastructure (BullMQ + Outbox poller)
     // Replaces the old OutboxWorkerService with the unified async task layer.
@@ -508,16 +478,6 @@ async function start() {
       await startJobInfrastructure();
     }
 
-    // Start Market Update Checker (Optional, §4.9)
-    if (process.env.ENABLE_MARKET_UPDATE_CHECKER === 'true') {
-      try {
-        const { UpdateChecker } = await import('@/core/admin/market/update-checker');
-        UpdateChecker.start();
-      } catch (marketError) {
-        // Non-fatal: log error but don't crash server
-        LoggerService.logError(marketError as Error, { context: 'Market update checker startup' });
-      }
-    }
 
     // Start payment reconciliation job (Optional)
     if (process.env.ENABLE_PAYMENT_RECONCILIATION_JOB !== 'false') {
@@ -562,23 +522,6 @@ const gracefulShutdown = async (signal: string) => {
 
   try {
     logMonitor.stop();
-
-    // Stop all running Theme Apps
-    try {
-      const { shutdownAllThemeApps } = await import('@/core/admin/theme-app-runtime/manager');
-      await shutdownAllThemeApps();
-      LoggerService.logSystem('All Theme Apps stopped');
-    } catch (themeAppError) {
-      LoggerService.logError(themeAppError as Error, { context: 'Theme App shutdown' });
-    }
-
-    // Stop Market Update Checker
-    try {
-      const { UpdateChecker } = await import('@/core/admin/market/update-checker');
-      UpdateChecker.stop();
-    } catch {
-      // Ignore - may not have been started
-    }
 
     await redisCache.disconnect();
     await prisma.$disconnect();

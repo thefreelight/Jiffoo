@@ -61,7 +61,7 @@ function createTargetThemeRoutes(fastify: FastifyInstance, target: ThemeTarget) 
    * POST /api/admin/themes/{target}/:slug/activate
    * Activate theme for target
    */
-  fastify.post<{ Params: { slug: string }; Body?: { config?: ThemeConfig; type?: 'pack' | 'app' } }>('/:slug/activate', {
+  fastify.post<{ Params: { slug: string }; Body?: { config?: ThemeConfig; type?: 'pack' } }>('/:slug/activate', {
     schema: {
       tags: ['admin-themes'],
       summary: `Activate ${target} theme`,
@@ -72,7 +72,7 @@ function createTargetThemeRoutes(fastify: FastifyInstance, target: ThemeTarget) 
   }, async (request, reply) => {
     try {
       const { slug } = request.params;
-      const body = request.body as { config?: ThemeConfig; type?: 'pack' | 'app' } | undefined;
+      const body = request.body as { config?: ThemeConfig; type?: 'pack' } | undefined;
       const result = await ThemeManagementService.activateTheme(slug, target, body?.config, body?.type);
       return sendSuccess(reply, result);
     } catch (error: any) {

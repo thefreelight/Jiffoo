@@ -98,21 +98,7 @@ function getStringConfig(config: Record<string, unknown>, ...keys: string[]): st
 }
 
 function isLiveMode(config: Record<string, unknown>): boolean {
-  const mode = String(config?.mode || config?.environment || config?.['stripe.environment'] || '').toLowerCase();
-  if (mode === 'live') return true;
-  if (mode === 'test') return false;
-
-  const secretKey = getStringConfig(config, 'secretKey', 'secret_key', 'stripe.secretKey', 'stripe.secret_key');
-  return secretKey?.startsWith('sk_live_') ?? false;
-}
-
-function getClientConfig(pluginSlug: string, config: Record<string, unknown>): PaymentMethodDescriptor['clientConfig'] | undefined {
-  if (pluginSlug !== 'stripe') return undefined;
-
-  const publishableKey = getStringConfig(config, 'publishableKey', 'publishable_key', 'stripe.publishableKey', 'stripe.publishable_key');
-  if (!publishableKey) return undefined;
-
-  return { publishableKey };
+  return String(config.mode || config.environment || '').toLowerCase() === 'live';
 }
 
 async function getEnabledPaymentMethods(): Promise<PaymentMethodDescriptor[]> {
@@ -127,15 +113,13 @@ async function getEnabledPaymentMethods(): Promise<PaymentMethodDescriptor[]> {
     }
 
     const manifest = parseManifestJson(pkg.manifestJson);
-    const config = parseConfigJson(defaultInstance.configJson);
     methods.push({
       pluginSlug: pkg.slug,
       name: pkg.slug,
       displayName: pkg.name || pkg.slug,
       icon: manifest?.icon ? String(manifest.icon) : `/icons/${pkg.slug}.svg`,
       supportedCurrencies: normalizeCurrencies(manifest),
-      isLive: isLiveMode(config),
-      clientConfig: getClientConfig(pkg.slug, config),
+      isLive: isLiveMode(parseConfigJson(defaultInstance.configJson)),
     });
   }
 
@@ -521,17 +505,6 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const { provider } = request.params as { provider: string };
     LoggerService.logPayment('webhook-received', undefined, undefined, { provider });
-
-    if (normalizeMethodKey(provider) === 'stripe') {
-      const payload = (request.body || {}) as Record<string, unknown>;
-      const eventType = String(payload?.type || '').toLowerCase();
-      const dataObj = (payload?.data && typeof payload.data === 'object' ? payload.data : {}) as Record<string, unknown>;
-      const sessionObj = (dataObj?.object && typeof dataObj.object === 'object' ? dataObj.object : {}) as Record<string, unknown>;
-      const objectId = String(sessionObj?.id || '').trim();
-      if (eventType === 'checkout.session.completed' && objectId) {
-        await syncPaymentFromPlugin(objectId);
-      }
-    }
 
     return sendSuccess(reply, { received: true });
   });

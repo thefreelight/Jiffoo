@@ -75,7 +75,6 @@ describe('internal webhook delivery', () => {
     expect(url).toBe('https://api.bokmoo.com/api/extensions/plugin/bokmoo-connect/api/webhooks/jiffoo/order-paid?installationId=ins_1');
 
     const headers = init.headers as Record<string, string>;
-    expect(headers['X-Platform-Integration-Token']).toBe('platform-token');
     expect(headers['X-Jiffoo-Timestamp']).toEqual(expect.any(String));
     expect(headers['X-Jiffoo-Signature']).toMatch(/^sha256=/);
 

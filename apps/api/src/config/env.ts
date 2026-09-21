@@ -37,17 +37,6 @@ const envSchema = z.object({
   NEXT_PUBLIC_ADMIN_URL: z.string().default('http://localhost:3002'),
   NEXT_PUBLIC_SHOP_URL: z.string().default('http://localhost:3003'),
 
-  // Platform domains (production)
-  PLATFORM_MAIN_DOMAIN: z.string().default('jiffoo.com'),
-  PLATFORM_SHOP_DOMAIN: z.string().default('shop.jiffoo.com'),
-  PLATFORM_ADMIN_DOMAIN: z.string().default('admin.jiffoo.com'),
-  PLATFORM_API_DOMAIN: z.string().default('api.jiffoo.com'),
-
-  // Optional: Stripe
-  STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_PUBLISHABLE_KEY: z.string().optional(),
-  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().optional(),
   VAULT_ADDR: z.string().optional(),
   VAULT_TOKEN: z.string().optional(),
   VAULT_NAMESPACE: z.string().optional(),
@@ -55,8 +44,6 @@ const envSchema = z.object({
   VAULT_CACHE_TTL_MS: z.string().transform(Number).default('60000'),
 
   // Optional: Email
-  RESEND_API_KEY: z.string().optional(),
-  RESEND_WEBHOOK_SECRET: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
   EMAIL_FROM_NAME: z.string().optional(),
   EMAIL_REPLY_TO: z.string().optional(),
@@ -68,8 +55,6 @@ const envSchema = z.object({
   GOOGLE_REDIRECT_URI: z.string().optional(),
 
   // Platform integration (for closed-source deployment)
-  SERVICE_JWT_ISSUER: z.string().default('jiffoo-platform'),
-  SERVICE_JWT_SECRET: z.string().optional(),
   // CDN Configuration
   CDN_ENABLED: z.string().transform((v) => v === 'true').default('false'),
   CDN_URL: z.string().optional(),

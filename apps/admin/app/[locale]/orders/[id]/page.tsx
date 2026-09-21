@@ -259,14 +259,6 @@ export default function OrderDetailPage() {
                       <span className="text-[9px] font-black text-gray-400 uppercase block mb-1">Verification</span>
                       <span className="text-xs font-bold uppercase tracking-widest text-white">{order.paymentStatus || "UNVERIFIED"}</span>
                     </div>
-                    {(order.stripePaymentIntentId || (order.payments && order.payments[0]?.paymentIntentId)) && (
-                      <div className="bg-white/5 border border-white/10 rounded-2xl p-4 col-span-2">
-                        <span className="text-[9px] font-black text-gray-400 uppercase block mb-1">Stripe Intent ID</span>
-                        <span className="text-xs font-bold tracking-widest text-blue-400 font-mono break-all">
-                          {order.stripePaymentIntentId || (order.payments && order.payments[0]?.paymentIntentId)}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
                 <div className="text-center md:text-right">

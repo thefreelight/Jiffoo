@@ -16,7 +16,6 @@
  * Caller Injection Responsibility (Phase C - EXTENSIONS_BLUEPRINT.md):
  * - shop → plugin gateway: x-caller=shop (detected from referer/origin)
  * - admin → plugin gateway: x-caller=admin (detected from referer/origin)
- * - theme-app → plugin gateway: x-caller=theme-app (detected from referer/origin)
  * - Caller is inferred by inferCaller() and injected via injectPlatformHeaders()
  * - All audit logs must include: caller, installationId, latencyMs, statusCode
  */
@@ -27,7 +26,7 @@ import { PluginManagementService } from '@/core/admin/plugin-management/service'
 import type { PluginManifest } from './types';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { loadPluginEntryModule } from './plugin-module-loader';
-import { validatePluginCompatibility, PluginLoaderError } from '@/plugins/loader';
+import { validatePluginCompatibility, PluginLoaderError } from './plugin-compatibility';
 import {
   clearContractV1EventHandlers,
   dispatchContractV1Event,
@@ -63,7 +62,7 @@ const SLUG_REGEX = /^[a-z][a-z0-9-]{0,30}[a-z0-9]$/;  // 2-32 chars, start with 
 const INSTANCE_KEY_REGEX = /^[a-z0-9-]{1,32}$/;        // 1-32 chars, lowercase letters/numbers/hyphens only
 
 /** Valid caller values for audit logging */
-type CallerType = 'shop' | 'admin' | 'theme-app' | 'api-internal' | 'unknown';
+type CallerType = 'shop' | 'admin' | 'api-internal' | 'unknown';
 
 /**
  * Header security strategy per EXTENSIONS_BLUEPRINT.md:
@@ -148,7 +147,7 @@ interface GatewayAuditLog {
   statusCode: number;
   /** Request duration in milliseconds */
   latencyMs: number;
-  /** Caller type: shop | admin | theme-app | api-internal | unknown (REQUIRED) */
+  /** Caller type. */
   caller: CallerType;
   /** Unique request ID (UUID v4) */
   requestId: string;

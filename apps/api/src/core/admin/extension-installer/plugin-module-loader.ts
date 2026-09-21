@@ -1,12 +1,9 @@
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
-import { pathToFileURL } from 'url';
 
 const runtimeRequire = createRequire(__filename);
-const nativeDynamicImport = new Function('specifier', 'return import(specifier);') as (
-  specifier: string,
-) => Promise<any>;
+const ESM_PLUGIN_ERROR = 'ESM plugin packages are not supported in Core V1; the entry module must be CommonJS.';
 
 function findNearestPackageJson(startDir: string): string | null {
   let currentDir = startDir;
@@ -25,25 +22,25 @@ function findNearestPackageJson(startDir: string): string | null {
   }
 }
 
-function isEsmModule(entryPath: string): boolean {
+function assertCommonJsModule(entryPath: string): void {
   const extension = path.extname(entryPath).toLowerCase();
   if (extension === '.mjs' || extension === '.mts') {
-    return true;
+    throw new Error(ESM_PLUGIN_ERROR);
   }
   if (extension === '.cjs' || extension === '.cts') {
-    return false;
+    return;
   }
 
   const packageJsonPath = findNearestPackageJson(path.dirname(entryPath));
   if (!packageJsonPath) {
-    return false;
+    return;
   }
 
   try {
     const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as { type?: string };
-    return packageJson.type === 'module';
+    if (packageJson.type === 'module') throw new Error(ESM_PLUGIN_ERROR);
   } catch {
-    return false;
+    return;
   }
 }
 
@@ -53,15 +50,7 @@ export async function loadPluginEntryModule(
 ): Promise<any> {
   const absolutePath = path.resolve(entryPath);
 
-  if (isEsmModule(absolutePath)) {
-    const specifier = pathToFileURL(absolutePath).href;
-    if (options?.bustCache === false) {
-      return nativeDynamicImport(specifier);
-    }
-
-    const version = options?.version || '0';
-    return nativeDynamicImport(`${specifier}?v=${version}&t=${Date.now()}`);
-  }
+  assertCommonJsModule(absolutePath);
 
   const resolvedPath = runtimeRequire.resolve(absolutePath);
   if (options?.bustCache !== false) {

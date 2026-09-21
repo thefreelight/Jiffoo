@@ -112,7 +112,6 @@ export interface AdminOrderDetailDTO {
   expiresAt?: string | null;
   cancelReason?: string | null;
   cancelledAt?: string | null;
-  stripePaymentIntentId?: string | null;
   payments?: Array<{
     id: string;
     paymentIntentId?: string | null;

@@ -213,7 +213,6 @@ function getMaxFileSize(kind?: string): number {
     // Executable bundles/apps may legitimately include larger JS/WASM assets.
     if (kind === 'bundle') return 100 * 1024 * 1024; // 100MB
     if (kind === 'plugin') return 50 * 1024 * 1024; // 50MB
-    if (kind === 'theme-app-shop' || kind === 'theme-app-admin') return 100 * 1024 * 1024; // 100MB
     return MAX_FILE_SIZE;
 }
 

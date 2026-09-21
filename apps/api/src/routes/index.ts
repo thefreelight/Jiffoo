@@ -14,7 +14,6 @@ import { productRoutes } from '@/core/product/routes';
 import { cartRoutes } from '@/core/cart/routes';
 import { orderRoutes } from '@/core/order/routes';
 import { paymentRoutes as legacyPaymentRoutes } from '@/core/payment/routes';
-import { paymentsRoutes as stripePaymentRoutes } from './payments'; // NEW explicit stripe intent routes
 
 import { upgradeRoutes } from '@/core/upgrade/routes';
 
@@ -33,9 +32,6 @@ import { adminInventoryRoutes } from '@/core/inventory/routes';
 // Extension installer routes
 import { extensionInstallerRoutes } from '@/core/admin/extension-installer/routes';
 // Market integration routes
-import { marketRoutes } from '@/core/admin/market/routes';
-// Theme App Gateway routes
-import { themeAppGatewayRoutes } from '@/core/admin/theme-app-runtime/gateway';
 // Webhook admin routes
 import { webhookRoutes } from '@/core/webhooks/routes';
 // Store routes
@@ -88,19 +84,10 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(cartRoutes, { prefix: '/api/cart' });
   await fastify.register(orderRoutes, { prefix: '/api/orders' });
   await fastify.register(legacyPaymentRoutes, { prefix: '/api/payments' });
-  // Keep the legacy Stripe direct-intent path alive for the current shop checkout.
-  await fastify.register(stripePaymentRoutes, { prefix: '/api/payments' });
-  await fastify.register(stripePaymentRoutes, { prefix: '/api/payments/stripe' });
   await fastify.register(publicThemeRoutes, { prefix: '/api/themes' });
   // Extension installer routes
   await fastify.register(extensionInstallerRoutes, { prefix: '/api/extensions' });
 
-  // Official Market integration routes (§4.9)
-  await fastify.register(marketRoutes, { prefix: '/api/admin/market' });
-
-  // Theme App Gateway (reverse proxy to running Theme Apps)
-  // This allows frontends to access Theme Apps through the API server
-  await fastify.register(themeAppGatewayRoutes, { prefix: '/theme-app' });
 
   // Install routes
   await fastify.register(installRoutes, { prefix: '/api/install' });

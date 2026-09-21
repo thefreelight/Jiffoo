@@ -47,7 +47,7 @@ export const ApiSecurityConfig: SecurityHeadersConfig = {
       'script-src': ["'self'"],
       'style-src': ["'self'", "'unsafe-inline'"],
       'img-src': ["'self'", 'data:', 'https:'],
-      'connect-src': ["'self'", 'https://api.stripe.com'],
+      'connect-src': ["'self'"],
     },
   },
 };

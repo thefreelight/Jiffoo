@@ -9,11 +9,7 @@ import { promises as fs } from 'fs';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { CacheService } from '@/core/cache/service';
 import type { ActiveTheme, ThemeMeta, ThemeConfig, InstalledThemesResponse } from './types';
-import * as ThemeAppRuntime from '../theme-app-runtime/manager';
-import { THEME_APP_MANIFEST_FILE } from '../theme-app-runtime/contract';
-import { getThemeAppRuntimePolicy } from '../theme-app-runtime/policy';
 import { isAllowedExtensionSource, isOfficialMarketOnly } from '@/core/admin/extension-installer/official-only';
-import { ensureOfficialMarketExtensionFiles } from '@/core/admin/market/official-package-recovery';
 import { satisfiesRange } from '@/core/admin/extension-installer/version-utils';
 
 // Current @jiffoo/theme-api-sdk version (single source of truth)
@@ -32,14 +28,6 @@ function getExtensionsDir(target: ThemeTarget): string {
   return path.join(basePath, 'themes', target);
 }
 
-// Get Theme App storage directory based on target
-function getThemeAppExtensionsDir(target: ThemeTarget): string {
-  const extensionsRoot = process.env.EXTENSIONS_PATH || 'extensions';
-  const basePath = path.isAbsolute(extensionsRoot)
-    ? extensionsRoot
-    : path.join(process.cwd(), extensionsRoot);
-  return path.join(basePath, 'themes-app', target);
-}
 
 // Get system setting keys based on target
 function getSettingKeys(target: ThemeTarget) {
@@ -210,18 +198,6 @@ async function ensureOfficialThemePackFilesPresent(theme: ActiveTheme, target: T
     // Restore below.
   }
 
-  try {
-    await ensureOfficialMarketExtensionFiles({
-      slug: normalizeThemeSlug(theme.slug),
-      kind: 'theme-shop',
-      version: theme.version,
-    });
-  } catch (error) {
-    console.warn(
-      `Failed to restore official theme pack "${theme.slug}" while resolving active theme:`,
-      error,
-    );
-  }
 }
 
 function didNormalizeActiveTheme(original: ActiveTheme, normalized: ActiveTheme): boolean {
@@ -321,7 +297,7 @@ export async function getPreviousTheme(target: ThemeTarget = 'shop'): Promise<Ac
 async function detectThemeType(
   slug: string,
   target: ThemeTarget
-): Promise<{ type: 'pack' | 'app'; manifest?: any; version?: string }> {
+): Promise<{ type: 'pack'; manifest?: any; version?: string }> {
   // Check Theme Pack first (extensions/themes/{target}/{slug}/theme.json)
   const packDir = path.join(getExtensionsDir(target), slug);
   const packManifestPath = path.join(packDir, 'theme.json');
@@ -329,34 +305,7 @@ async function detectThemeType(
     const data = await fs.readFile(packManifestPath, 'utf-8');
     const manifest = JSON.parse(data);
     return { type: 'pack', manifest, version: manifest.version };
-  } catch {
-    // Not a Theme Pack, try Theme App
-  }
-
-  // Check Theme App (extensions/themes-app/{target}/{slug}/{version}/theme-app.json)
-  const appBaseDir = path.join(getThemeAppExtensionsDir(target), slug);
-  try {
-    const versions = await fs.readdir(appBaseDir);
-    // Use the latest version (sorted descending)
-    versions.sort((a, b) => b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' }));
-
-    for (const version of versions) {
-      const versionDir = path.join(appBaseDir, version);
-      const stat = await fs.stat(versionDir);
-      if (!stat.isDirectory()) continue;
-
-      const manifestPath = path.join(versionDir, THEME_APP_MANIFEST_FILE);
-      try {
-        const data = await fs.readFile(manifestPath, 'utf-8');
-        const manifest = JSON.parse(data);
-        return { type: 'app', manifest, version: manifest.version || version };
-      } catch {
-        // theme-app.json not found, skip this version
-      }
-    }
-  } catch {
-    // Not a Theme App
-  }
+  } catch {}
 
   // Default to pack for builtin themes
   return { type: 'pack' };
@@ -367,7 +316,7 @@ async function detectThemeType(
  * @param type - Optional explicit type ('pack' | 'app'). When provided, skips detectThemeType
  *               so pack and app variants of the same slug can be activated independently.
  */
-export async function activateTheme(slug: string, target: ThemeTarget = 'shop', config?: ThemeConfig, type?: 'pack' | 'app'): Promise<ActiveTheme> {
+export async function activateTheme(slug: string, target: ThemeTarget = 'shop', config?: ThemeConfig, type?: 'pack'): Promise<ActiveTheme> {
   const keys = getSettingKeys(target);
   const extensionsDir = getExtensionsDir(target);
 
@@ -416,7 +365,6 @@ export async function activateTheme(slug: string, target: ThemeTarget = 'shop', 
         throw err;
       }
       // If theme.json doesn't exist or can't be parsed, skip version check
-      // (the theme might be a theme-app with its own manifest)
     }
   }
   // ── End SDK version compatibility check ──────────────────────────────
@@ -451,54 +399,13 @@ export async function activateTheme(slug: string, target: ThemeTarget = 'shop', 
   const themeTypeInfo = type ? { type, version: theme.version } : await detectThemeType(normalizedSlug, target);
   const themeType = themeTypeInfo.type;
 
-  let themeAppInstance: any = null;
-
-  // If Theme App, start runtime and health check BEFORE switching active
-  if (themeType === 'app') {
-    try {
-      // Get version from themeTypeInfo
-      const version = themeTypeInfo.version || 'latest';
-
-      // Start Theme App Runtime (with version)
-      themeAppInstance = await ThemeAppRuntime.startThemeApp(target, normalizedSlug, version, {
-        forceRestart: false, // Don't force restart if already running and healthy
-      });
-
-      // Perform health check
-      const healthResult = await ThemeAppRuntime.checkThemeAppHealth(target, normalizedSlug);
-      if (!healthResult || !healthResult.success) {
-        // Health check failed, rollback and throw error
-        await ThemeAppRuntime.stopThemeApp(target, normalizedSlug);
-        throw new Error(
-          `Theme App health check failed: ${healthResult?.error || 'Unknown error'}. ` +
-          `Active theme not changed. Previous active: ${currentTheme.slug}`
-        );
-      }
-
-      // Health check passed, theme app is ready
-    } catch (error: any) {
-      // If startup or health check fails, do NOT change active theme
-      throw new Error(
-        `Failed to activate Theme App "${normalizedSlug}": ${error.message}. ` +
-        `Active theme remains: ${currentTheme.slug}`
-      );
-    }
-  }
-
   const newActiveTheme: ActiveTheme = {
     slug: theme.slug,
     version: theme.version,
     source: theme.source,
-    type: themeType, // 'pack' or 'app'
+    type: themeType,
     config: finalConfig,
     activatedAt: new Date().toISOString(),
-    // Add baseUrl and port for Theme App
-    ...(themeType === 'app' && themeAppInstance
-      ? {
-        baseUrl: themeAppInstance.baseUrl,
-        port: themeAppInstance.port,
-      }
-      : {}),
   };
 
   // If we are actually changing themes (slug different), save current as previous
@@ -611,84 +518,6 @@ export async function getInstalledThemes(target: ThemeTarget = 'shop'): Promise<
     // extensions directory does not exist or empty
   }
 
-  // Read installed Theme Apps from extensions/themes-app/{target}
-  // Theme Apps are a distinct delivery form: same slug can have both a pack and an app installed.
-  // Use slug+':app' as Map key so theme apps never collapse onto their pack/builtin counterpart.
-  try {
-    const themeAppBaseDir = getThemeAppExtensionsDir(target);
-    const slugDirs = await fs.readdir(themeAppBaseDir, { withFileTypes: true });
-
-    for (const slugDir of slugDirs) {
-      if (!slugDir.isDirectory()) continue;
-
-      const slugPath = path.join(themeAppBaseDir, slugDir.name);
-      const versionDirs = await fs.readdir(slugPath, { withFileTypes: true });
-
-      // Get the latest version for this slug
-      const versions = versionDirs
-        .filter(v => v.isDirectory())
-        .map(v => v.name)
-        .sort((a, b) => b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' }));
-
-      if (versions.length === 0) continue;
-
-      const latestVersion = versions[0];
-      const versionPath = path.join(slugPath, latestVersion);
-
-      // Prefer installed metadata for source + display info
-      const metaPath = path.join(versionPath, '.installed.json');
-      try {
-        const installedMeta = JSON.parse(await fs.readFile(metaPath, 'utf-8'));
-        if (installedMeta?.type === 'theme-app') {
-          const preview = installedMeta.icon || installedMeta.previewImage || installedMeta.thumbnail;
-          const slug = installedMeta.slug || slugDir.name;
-          themesMap.set(`${slug}:app`, {
-            slug,
-            name: installedMeta.name || slugDir.name,
-            version: installedMeta.version || latestVersion,
-            description: installedMeta.description,
-            author: installedMeta.author,
-            category: installedMeta.category,
-            previewImage: preview,
-            source: installedMeta.source || 'installed',
-            type: 'app',
-            target,
-          });
-          continue;
-        }
-      } catch {
-        // Fall back to manifest files
-      }
-
-      const manifestPath = path.join(versionPath, THEME_APP_MANIFEST_FILE);
-      try {
-        const data = await fs.readFile(manifestPath, 'utf-8');
-        const themeMeta = JSON.parse(data);
-
-        if (themeMeta.type === 'theme-app') {
-          const preview = themeMeta.icon || themeMeta.previewImage || themeMeta.thumbnail;
-          const slug = themeMeta.slug || slugDir.name;
-          themesMap.set(`${slug}:app`, {
-            slug,
-            name: themeMeta.name || slugDir.name,
-            version: themeMeta.version || latestVersion,
-            description: themeMeta.description,
-            author: themeMeta.author,
-            category: themeMeta.category,
-            previewImage: preview,
-            source: 'installed',
-            type: 'app',
-            target,
-          });
-        }
-      } catch {
-        // Ignore invalid or missing theme-app.json
-      }
-    }
-  } catch (err) {
-    // themes-app directory does not exist or empty
-  }
-
   const themes: ThemeMeta[] = Array.from(themesMap.values());
 
   const filtered = isOfficialMarketOnly()
@@ -729,85 +558,6 @@ export async function getInstalledThemesPaged(
  *
  * @returns Summary of restore operations
  */
-export async function restoreActiveThemeApps(): Promise<{
-  shop: { restored: boolean; slug?: string; error?: string };
-  admin: { restored: boolean; slug?: string; error?: string };
-}> {
-  const results: {
-    shop: { restored: boolean; slug?: string; error?: string };
-    admin: { restored: boolean; slug?: string; error?: string };
-  } = {
-    shop: { restored: false },
-    admin: { restored: false },
-  };
-
-  const runtimePolicy = getThemeAppRuntimePolicy();
-  if (!runtimePolicy.supported) {
-    const error = runtimePolicy.reasons.join(' ');
-    return {
-      shop: { restored: false, error },
-      admin: { restored: false, error },
-    };
-  }
-
-  const targets: ThemeTarget[] = ['shop', 'admin'];
-
-  for (const target of targets) {
-    try {
-      const activeTheme = await getActiveTheme(target);
-
-      // Only restore if it's a Theme App type
-      if (activeTheme.type !== 'app') {
-        continue;
-      }
-
-      // Check if already running
-      const instance = ThemeAppRuntime.getThemeAppInstance(target, activeTheme.slug);
-      if (instance && instance.status === 'healthy') {
-        console.log(`[ThemeRestore] Theme App "${activeTheme.slug}" for ${target} is already running`);
-        results[target] = { restored: true, slug: activeTheme.slug };
-        continue;
-      }
-
-      // Detect theme type to get version info
-      const themeTypeInfo = await detectThemeType(activeTheme.slug, target);
-      if (themeTypeInfo.type !== 'app') {
-        console.warn(`[ThemeRestore] Active theme "${activeTheme.slug}" for ${target} is marked as 'app' but no Theme App found`);
-        continue;
-      }
-
-      const version = themeTypeInfo.version || activeTheme.version || 'latest';
-
-      console.log(`[ThemeRestore] Restoring Theme App "${activeTheme.slug}" (v${version}) for ${target}...`);
-
-      // Start the Theme App
-      const startedInstance = await ThemeAppRuntime.startThemeApp(target, activeTheme.slug, version, {
-        forceRestart: false,
-      });
-
-      // Health check
-      const healthResult = await ThemeAppRuntime.checkThemeAppHealth(target, activeTheme.slug);
-
-      if (healthResult && healthResult.success) {
-        console.log(`[ThemeRestore] ✅ Theme App "${activeTheme.slug}" for ${target} restored successfully (port: ${startedInstance.port})`);
-        results[target] = { restored: true, slug: activeTheme.slug };
-      } else {
-        console.error(`[ThemeRestore] ⚠️ Theme App "${activeTheme.slug}" for ${target} started but health check failed`);
-        results[target] = {
-          restored: false,
-          slug: activeTheme.slug,
-          error: healthResult?.error || 'Health check failed'
-        };
-      }
-    } catch (error: any) {
-      console.error(`[ThemeRestore] ❌ Failed to restore Theme App for ${target}:`, error.message);
-      results[target] = { restored: false, error: error.message };
-    }
-  }
-
-  return results;
-}
-
 function dedupeThemeEntries(themes: ThemeMeta[]): ThemeMeta[] {
   const deduped = new Map<string, ThemeMeta>();
 
@@ -855,5 +605,4 @@ export const ThemeManagementService = {
   updateThemeConfig,
   getInstalledThemes,
   getInstalledThemesPaged,
-  restoreActiveThemeApps,
 };

@@ -14,7 +14,6 @@ import { accountRoutes } from '@/core/account/routes';
 import { productRoutes } from '@/core/product/routes';
 import { cartRoutes } from '@/core/cart/routes';
 import { orderRoutes } from '@/core/order/routes';
-import { pluginOrderRoutes } from '@/core/order/plugin-orders-routes';
 import { paymentRoutes } from '@/core/payment/routes';
 
 import { upgradeRoutes } from '@/core/upgrade/routes';
@@ -29,8 +28,6 @@ import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
 
 // Extension installer routes
 import { extensionInstallerRoutes } from '@/core/admin/extension-installer/routes';
-// Theme App Gateway routes
-import { themeAppGatewayRoutes } from '@/core/admin/theme-app-runtime/gateway';
 // Store routes
 import { storeRoutes } from '@/core/store/routes';
 
@@ -68,7 +65,6 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(productRoutes, { prefix: '/products' });
   await fastify.register(cartRoutes, { prefix: '/cart' });
   await fastify.register(orderRoutes, { prefix: '/orders' });
-  await fastify.register(pluginOrderRoutes, { prefix: '/internal/plugin-orders' });
   await fastify.register(paymentRoutes, { prefix: '/payments' });
   await fastify.register(publicThemeRoutes, { prefix: '/themes' });
 
@@ -76,7 +72,4 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   // Extension installer routes
   await fastify.register(extensionInstallerRoutes, { prefix: '/extensions' });
 
-  // Theme App Gateway (reverse proxy to running Theme Apps)
-  // This allows frontends to access Theme Apps through the API server
-  await fastify.register(themeAppGatewayRoutes, { prefix: '/theme-app' });
 }

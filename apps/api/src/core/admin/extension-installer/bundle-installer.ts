@@ -102,7 +102,7 @@ interface BundlePluginInstance {
 interface BundleThemeEntry {
   /** Theme type: 'pack' or 'app' */
   type: 'pack' | 'app';
-  /** ZIP file path (relative to bundle root, e.g., "theme-pack/aurora.zip" or "theme-app/travelpass.zip") */
+  /** ZIP file path relative to the bundle root. */
   zip: string;
   /** Expected slug (for validation, optional) */
   slug?: string;
@@ -162,20 +162,6 @@ export async function installBundle(zipStream: Readable): Promise<BundleInstallR
     // Extract bundle to temp directory
     const bufferStream = bufferToStream(zipBuffer);
     tempDir = await extractZipToTemp(bufferStream, 'bundle' as any);
-
-    // Validate bundle structure: theme-pack/ and theme-app/ cannot coexist
-    const themePackDir = path.join(tempDir, 'theme-pack');
-    const themeAppDir = path.join(tempDir, 'theme-app');
-    
-    const hasThemePack = await fs.access(themePackDir).then(() => true).catch(() => false);
-    const hasThemeApp = await fs.access(themeAppDir).then(() => true).catch(() => false);
-    
-    if (hasThemePack && hasThemeApp) {
-      throw new ExtensionInstallerError(
-        'Invalid bundle structure: theme-pack/ and theme-app/ cannot coexist in the same bundle (ambiguous)',
-        { code: 'INVALID_BUNDLE_STRUCTURE', statusCode: 400 }
-      );
-    }
 
     // Read bundle manifest
     const manifestPath = path.join(tempDir, 'bundle.json');
@@ -297,8 +283,6 @@ export async function installBundle(zipStream: Readable): Promise<BundleInstallR
       let themeKind: ExtensionKind;
       if (themeEntry.type === 'pack') {
         themeKind = target === 'shop' ? 'theme-shop' : 'theme-admin';
-      } else if (themeEntry.type === 'app') {
-        themeKind = target === 'shop' ? 'theme-app-shop' : 'theme-app-admin';
       } else {
         throw new ExtensionInstallerError(
           `Invalid theme type: "${themeEntry.type}"`,

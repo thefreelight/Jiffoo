@@ -17,13 +17,8 @@ export interface ApiServiceEnv {
   JWT_SECRET: string;
   JWT_EXPIRES_IN: string;
   API_SERVICE_URL: string;
-  STRIPE_SECRET_KEY: string;
-  STRIPE_PUBLISHABLE_KEY: string;
-  STRIPE_WEBHOOK_SECRET: string;
   GOOGLE_CLIENT_ID: string;
   GOOGLE_CLIENT_SECRET: string;
-  RESEND_API_KEY: string;
-  RESEND_WEBHOOK_SECRET: string;
 }
 
 // Frontend Environment Interfaces
@@ -32,7 +27,6 @@ export interface FrontendEnv {
   NEXT_PUBLIC_API_URL: string;
   NEXT_PUBLIC_ADMIN_URL: string;
   NEXT_PUBLIC_SHOP_URL: string;
-  NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: string;
 }
 
 /**
@@ -129,7 +123,6 @@ class EnvironmentConfig {
       NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
       NEXT_PUBLIC_ADMIN_URL: process.env.NEXT_PUBLIC_ADMIN_URL,
       NEXT_PUBLIC_SHOP_URL: process.env.NEXT_PUBLIC_SHOP_URL,
-      NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     };
     const value = key.startsWith('NEXT_PUBLIC_') ? publicEnv[key] : process.env[key];
 
@@ -224,14 +217,6 @@ class EnvironmentConfig {
     };
   }
 
-  // Stripe Configuration
-  getStripeConfig() {
-    return {
-      secretKey: this.getRequired('STRIPE_SECRET_KEY'),
-      publishableKey: this.getRequired('STRIPE_PUBLISHABLE_KEY'),
-      webhookSecret: this.getRequired('STRIPE_WEBHOOK_SECRET'),
-    };
-  }
 }
 
 // Export singleton instance
@@ -246,7 +231,6 @@ export const isDevelopment = envConfig.isDevelopment;
 export const isProduction = envConfig.isProduction;
 export const isServer = envConfig.isServer;
 export const isClient = envConfig.isClient;
-export const getStripeConfig = () => envConfig.getStripeConfig();
 export const getDatabaseConfig = () => envConfig.getDatabaseConfig();
 export const getRedisConfig = () => envConfig.getRedisConfig();
 export const getJwtConfig = () => envConfig.getJwtConfig();

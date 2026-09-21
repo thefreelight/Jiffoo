@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, errorsApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
+import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, errorsApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
@@ -873,61 +873,7 @@ const pluginTokenQueryKeys = {
   status: (slug: string, installationId: string) => [...pluginTokenQueryKeys.all, slug, installationId, 'status'] as const,
 };
 
-const marketQueryKeys = {
-  all: ['official-catalog'] as const,
-};
-
-export function useOfficialCatalog() {
-  return useQuery({
-    queryKey: marketQueryKeys.all,
-    queryFn: async () => {
-      const response = await marketApi.getOfficialCatalog();
-      return unwrapApiResponse(response);
-    },
-    staleTime: 60 * 1000,
-  });
-}
-
-export function useInstallOfficialExtension() {
-  const queryClient = useQueryClient();
-  const { getText, getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({
-      slug,
-      kind,
-      version,
-      activate,
-    }: {
-      slug: string;
-      kind: 'plugin' | 'theme-shop' | 'theme-admin' | 'theme-app-shop' | 'theme-app-admin';
-      version?: string;
-      activate?: boolean;
-    }) => {
-      const response = await marketApi.installOfficialExtension(slug, { kind, version, activate });
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.installed() });
-      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
-      toast.success(
-        variables.kind === 'plugin'
-          ? getText('merchant.plugins.installSuccess', 'Plugin installed successfully')
-          : getText('merchant.themes.installSuccess', 'Theme installed successfully')
-      );
-    },
-    onError: (error: unknown, variables) => {
-      const fallbackKey = variables.kind === 'plugin'
-        ? 'merchant.plugins.installFailed'
-        : 'merchant.themes.installFailed';
-      const fallbackText = variables.kind === 'plugin'
-        ? 'Failed to install plugin'
-        : 'Failed to install theme';
-      toast.error(getErrorMessage(error, fallbackKey, fallbackText));
-    },
-  });
-}
+const marketQueryKeys = { all: ['extensions'] as const };
 
 // Get installed plugins
 export function useInstalledPlugins() {

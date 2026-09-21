@@ -17,7 +17,6 @@ import {
   ThemeTarget,
 } from './types';
 import { themeInstaller } from './theme-installer';
-import { themeAppInstaller } from './theme-app-installer';
 import { pluginFsInstaller } from './plugin-fs-installer';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 
@@ -51,7 +50,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
    * 
    * Internally performs three steps:
    * 1. Extract to correct directory - destination path determined by kind
-   * 2. Read and validate manifest - theme.json / theme-app.json / manifest.json
+   * 2. Read and validate manifest - theme.json / manifest.json
    * 3. Save metadata - .installed.json
    */
   async installFromZip(kind: ExtensionKind, zipStream: Readable, options?: { source?: string; confirmUnsigned?: boolean; actorUserId?: string }): Promise<InstallResult> {
@@ -74,26 +73,6 @@ export class ExtensionInstaller implements IExtensionInstaller {
           version: theme.version,
           source: theme.source,
           fsPath: theme.fsPath,
-        };
-      }
-      case 'theme-app-shop': {
-        const themeApp = await themeAppInstaller.install('shop', zipStream);
-        return {
-          kind,
-          slug: themeApp.slug,
-          version: themeApp.version,
-          source: themeApp.source,
-          fsPath: themeApp.fsPath,
-        };
-      }
-      case 'theme-app-admin': {
-        const themeApp = await themeAppInstaller.install('admin', zipStream);
-        return {
-          kind,
-          slug: themeApp.slug,
-          version: themeApp.version,
-          source: themeApp.source,
-          fsPath: themeApp.fsPath,
         };
       }
       case 'plugin': {
@@ -122,12 +101,6 @@ export class ExtensionInstaller implements IExtensionInstaller {
       case 'theme-admin':
         await themeInstaller.uninstall('admin', slug);
         break;
-      case 'theme-app-shop':
-        await themeAppInstaller.uninstallAll('shop', slug);
-        break;
-      case 'theme-app-admin':
-        await themeAppInstaller.uninstallAll('admin', slug);
-        break;
       case 'plugin': {
         // CRITICAL: Use soft delete (consistent with routes behavior)
         const { PluginManagementService } = await import('@/core/admin/plugin-management/service');
@@ -149,10 +122,6 @@ export class ExtensionInstaller implements IExtensionInstaller {
         return themeInstaller.list('shop');
       case 'theme-admin':
         return themeInstaller.list('admin');
-      case 'theme-app-shop':
-        return themeAppInstaller.list('shop');
-      case 'theme-app-admin':
-        return themeAppInstaller.list('admin');
       case 'plugin': {
         // Read from DB instead of disk scan (exclude soft-uninstalled packages from admin list)
         const { PluginManagementService } = await import('@/core/admin/plugin-management/service');
@@ -197,18 +166,6 @@ export class ExtensionInstaller implements IExtensionInstaller {
         return themeInstaller.get('shop', slug);
       case 'theme-admin':
         return themeInstaller.get('admin', slug);
-      case 'theme-app-shop': {
-        // Theme App get requires version, get latest version
-        const shopThemeApps = await themeAppInstaller.list('shop');
-        const shopThemeApp = shopThemeApps.find(t => t.slug === slug);
-        return shopThemeApp || null;
-      }
-      case 'theme-app-admin': {
-        // Theme App get requires version, get latest version
-        const adminThemeApps = await themeAppInstaller.list('admin');
-        const adminThemeApp = adminThemeApps.find(t => t.slug === slug);
-        return adminThemeApp || null;
-      }
       case 'plugin': {
         // Read from DB instead of disk (filters deletedAt=null)
         const { PluginManagementService } = await import('@/core/admin/plugin-management/service');

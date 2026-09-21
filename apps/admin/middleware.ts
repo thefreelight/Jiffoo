@@ -17,5 +17,5 @@ export function middleware(request: Parameters<typeof proxyHandler>[0]) {
 }
 
 export const config = {
-  matcher: ['/((?!api/|plugins/|health$|extensions/|uploads/|theme-app/|favicon.ico).*)'],
+  matcher: ['/((?!api/|plugins/|health$|extensions/|uploads/|favicon.ico).*)'],
 };

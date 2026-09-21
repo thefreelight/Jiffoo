@@ -816,7 +816,6 @@ export const merchant = {
     pluginWorkspace: 'Plugin workspace',
     workspaceDescription: 'Manage plugin-specific configuration, instance targeting, and native Admin controls from a dedicated workspace.',
     defaultDescription: 'A merchant-facing plugin that extends your store operations.',
-    officialCatalogDescription: 'Install, enable, and manage the launch plugins without leaving Merchant Admin.',
     marketplace: 'Official plugin marketplace',
     needsConfiguration: 'Needs configuration before enabling',
     // Plugin status labels
@@ -891,8 +890,6 @@ export const merchant = {
     activateFailed: 'Failed to activate theme',
     rollbackSuccess: 'Theme rolled back successfully',
     rollbackFailed: 'Failed to rollback theme',
-    officialCatalog: 'Official theme marketplace',
-    officialCatalogDescription: 'Browse the official storefront themes and activate them directly from Merchant Admin.',
     installedThemes: 'Installed themes',
     installedThemesDescription: 'Switch the active storefront look, remove unused themes, and keep built-in themes available as fallbacks.',
   },
