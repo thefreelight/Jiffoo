@@ -10,11 +10,11 @@
  * All extension installer endpoints require admin authentication.
  */
 
-import { execFileSync } from 'child_process';
-import { promises as fs } from 'fs';
+import { createWriteStream, promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
-import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
+import archiver from 'archiver';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, createAdminWithToken, deleteAllTestUsers, type TestUser } from '../helpers/auth';
@@ -25,38 +25,41 @@ async function createUnsignedPluginArchive(slug: string): Promise<{ archivePath:
   const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), 'jiffoo-extension-route-'));
   const packageDir = path.join(rootDir, 'package');
   const archivePath = path.join(rootDir, `${slug}.zip`);
-  const sdkRoot = path.resolve(process.cwd(), '../..');
-  const inquirer = (await import('inquirer')).default;
-  const prompt = vi.spyOn(inquirer, 'prompt').mockResolvedValue({
-    name: slug,
-    displayName: 'Unsigned Route Test Plugin',
+  await fs.mkdir(path.join(packageDir, 'dist'), { recursive: true });
+  await fs.writeFile(path.join(packageDir, 'manifest.json'), JSON.stringify({
+    schemaVersion: 1,
+    slug,
+    name: 'Unsigned Route Test Plugin',
+    version: '1.0.0',
     description: 'Exercises the normal in-process upload path.',
     author: 'Jiffoo Test',
-  } as never);
+    category: 'other',
+    runtimeType: 'internal-fastify',
+    hostProtocol: 'internal-fastify-v1',
+    trustLevel: 'unsigned',
+    entryModule: 'dist/index.js',
+    permissions: [],
+    capabilities: [],
+  }, null, 2));
+  await fs.writeFile(path.join(packageDir, 'dist', 'index.js'), `module.exports = async function plugin(fastify) {
+  fastify.get('/health', async () => ({ status: 'healthy' }));
+  fastify.get('/status', async (request) => ({
+    pluginSlug: request.headers['x-plugin-slug'],
+    status: 'active',
+  }));
+};
+`);
 
-  try {
-    const { initCommand } = await import('../../../../packages/plugin-sdk/src/cli/commands/init');
-    await initCommand(slug, { template: 'default', directory: packageDir, typescript: true });
-  } finally {
-    prompt.mockRestore();
-  }
-
-  execFileSync(
-    process.execPath,
-    [path.join(sdkRoot, 'node_modules', 'typescript', 'bin', 'tsc'), '--project', path.join(packageDir, 'tsconfig.json')],
-    { cwd: packageDir, stdio: 'pipe' },
-  );
-
-  const originalCwd = process.cwd();
-  try {
-    process.chdir(packageDir);
-    const { packCommand } = await import('../../../../packages/plugin-sdk/src/cli/commands/pack');
-    await packCommand({ build: false, validate: true });
-  } finally {
-    process.chdir(originalCwd);
-  }
-
-  await fs.rename(path.join(packageDir, `${slug}-1.0.0.zip`), archivePath);
+  await new Promise<void>((resolve, reject) => {
+    const output = createWriteStream(archivePath);
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    output.on('close', resolve);
+    output.on('error', reject);
+    archive.on('error', reject);
+    archive.pipe(output);
+    archive.directory(packageDir, false);
+    archive.finalize();
+  });
 
   return { archivePath, cleanup: () => fs.rm(rootDir, { recursive: true, force: true }) };
 }
