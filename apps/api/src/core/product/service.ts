@@ -105,60 +105,6 @@ function applyTranslation(
  * Single merchant version without multi-tenancy logic.
  */
 export class ProductService {
-  private static async loadOdooProductLinks(productIds: string[]) {
-    if (productIds.length === 0) return new Map<string, { sourceIsActive: boolean | null }>();
-
-    const links = await prisma.externalProductLink.findMany({
-      where: {
-        provider: 'odoo',
-        coreProductId: { in: productIds },
-      },
-      select: {
-        coreProductId: true,
-        sourceIsActive: true,
-      },
-    });
-
-    return new Map(links.map((link) => [link.coreProductId, { sourceIsActive: link.sourceIsActive }]));
-  }
-
-  private static async loadOdooVariantLinks(variantIds: string[]) {
-    if (variantIds.length === 0) return new Map<string, { sourceIsActive: boolean | null }>();
-
-    const links = await prisma.externalVariantLink.findMany({
-      where: {
-        provider: 'odoo',
-        coreVariantId: { in: variantIds },
-      },
-      select: {
-        coreVariantId: true,
-        sourceIsActive: true,
-      },
-    });
-
-    return new Map(links.map((link) => [link.coreVariantId, { sourceIsActive: link.sourceIsActive }]));
-  }
-
-  private static async filterPublicProductsBySource<T extends { id: string; variants: Array<{ id: string }> }>(
-    products: T[]
-  ): Promise<T[]> {
-    const productLinks = await this.loadOdooProductLinks(products.map((product) => product.id));
-    const variantLinks = await this.loadOdooVariantLinks(products.flatMap((product) => product.variants.map((variant) => variant.id)));
-
-    return products
-      .filter((product) => {
-        const productLink = productLinks.get(product.id);
-        return !productLink || (productLink as any).sourceIsActive !== false;
-      })
-      .map((product) => ({
-        ...product,
-        variants: product.variants.filter((variant) => {
-          const variantLink = variantLinks.get(variant.id);
-          return !variantLink || (variantLink as any).sourceIsActive !== false;
-        }),
-      } as T))
-      .filter((product) => product.variants.length > 0);
-  }
 
   private static async getInStockVariantIds(): Promise<Set<string>> {
     const variantIds = await InventoryService.getVariantIdsByAvailability({
@@ -309,7 +255,7 @@ export class ProductService {
     }
 
     // Apply translations and format response
-    const filteredProducts = await this.filterPublicProductsBySource(products as any);
+    const filteredProducts = products as any[];
 
     const stockMap = await this.getVariantStockMap(
       filteredProducts.flatMap((product) => product.variants.map((variant) => variant.id))
@@ -381,10 +327,7 @@ export class ProductService {
       return null;
     }
 
-    const [filteredProduct] = await this.filterPublicProductsBySource([product]);
-    if (!filteredProduct) {
-      return null;
-    }
+    const filteredProduct = product;
 
     // Get translation if needed
     let translation = null;
@@ -548,7 +491,7 @@ export class ProductService {
     }
 
     // Return minimal ProductSearchItem DTO (no Prisma fields)
-    const filteredProducts = await this.filterPublicProductsBySource(products as any);
+    const filteredProducts = products as any[];
 
     const stockMap = await this.getVariantStockMap(
       filteredProducts.flatMap((product) => product.variants.map((variant) => variant.id))

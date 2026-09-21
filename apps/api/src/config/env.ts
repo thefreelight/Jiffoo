@@ -86,8 +86,6 @@ const envSchema = z.object({
   EXTENSION_SIGNATURE_VERIFY: z.enum(['required', 'optional', 'disabled']).default('optional'),
 
 
-  // External catalog import (integration projector)
-  CATALOG_IMPORT_TOKEN: z.string().optional(),
 
   // Worker deployment mode: embedded (default), standalone, off
   WORKER_MODE: z.enum(['embedded', 'standalone', 'off']).default('embedded'),

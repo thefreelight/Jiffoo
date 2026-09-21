@@ -65,31 +65,6 @@ describe('Orders Endpoints', () => {
     sourceInactiveVariantId = sourceInactiveProduct.variants[0].id;
 
     const prisma = getTestPrisma();
-    await prisma.externalProductLink.create({
-      data: {
-        provider: 'odoo',
-        installationId: 'ins_order_source_inactive',
-        storeId: 'store_1',
-        externalProductCode: `ext_${sourceInactiveProduct.id}`,
-        coreProductId: sourceInactiveProduct.id,
-        coreProductSlug: sourceInactiveProduct.slug,
-        sourceIsActive: false,
-      },
-    });
-    await prisma.externalVariantLink.create({
-      data: {
-        provider: 'odoo',
-        installationId: 'ins_order_source_inactive',
-        storeId: 'store_1',
-        externalProductCode: `ext_${sourceInactiveProduct.id}`,
-        externalVariantCode: `ext_${sourceInactiveVariantId}`,
-        coreProductId: sourceInactiveProduct.id,
-        coreVariantId: sourceInactiveVariantId,
-        coreSkuCode: sourceInactiveProduct.variants[0].skuCode,
-        sourceIsActive: false,
-      },
-    });
-
     supplierDataProduct = await createTestProduct({
       name: 'Supplier Data Order Product',
       price: 29.99,
@@ -127,54 +102,6 @@ describe('Orders Endpoints', () => {
     const supplierCardExternalCode = `ODOO-CARD-ORDER-${supplierCardProduct.id}`;
     const supplierCardVariantCode = `odoo-card-order-sku-${supplierCardVariantId}`;
 
-    await prisma.externalProductLink.createMany({
-      data: [
-        {
-          provider: 'odoo',
-          installationId: 'ins_order_supplier',
-          storeId: 'store_1',
-          externalProductCode: supplierDataExternalCode,
-          coreProductId: supplierDataProduct.id,
-          coreProductSlug: supplierDataProduct.slug,
-          sourceIsActive: true,
-        },
-        {
-          provider: 'odoo',
-          installationId: 'ins_order_supplier',
-          storeId: 'store_1',
-          externalProductCode: supplierCardExternalCode,
-          coreProductId: supplierCardProduct.id,
-          coreProductSlug: supplierCardProduct.slug,
-          sourceIsActive: true,
-        },
-      ],
-    });
-    await prisma.externalVariantLink.createMany({
-      data: [
-        {
-          provider: 'odoo',
-          installationId: 'ins_order_supplier',
-          storeId: 'store_1',
-          externalProductCode: supplierDataExternalCode,
-          externalVariantCode: supplierDataVariantCode,
-          coreProductId: supplierDataProduct.id,
-          coreVariantId: supplierDataVariantId,
-          coreSkuCode: supplierDataVariantCode,
-          sourceIsActive: true,
-        },
-        {
-          provider: 'odoo',
-          installationId: 'ins_order_supplier',
-          storeId: 'store_1',
-          externalProductCode: supplierCardExternalCode,
-          externalVariantCode: supplierCardVariantCode,
-          coreProductId: supplierCardProduct.id,
-          coreVariantId: supplierCardVariantId,
-          coreSkuCode: supplierCardVariantCode,
-          sourceIsActive: true,
-        },
-      ],
-    });
   });
 
   afterAll(async () => {

@@ -61,31 +61,6 @@ describe('Payments Endpoints', () => {
     const prisma = getTestPrisma();
     const supplierExternalCode = `ODOO-PAYMENT-${supplierProduct.id}`;
     const supplierVariantCode = `odoo-payment-sku-${supplierProduct.variants[0].id}`;
-    await prisma.externalProductLink.create({
-      data: {
-        provider: 'odoo',
-        installationId: 'ins_payment_supplier',
-        storeId: 'store_1',
-        externalProductCode: supplierExternalCode,
-        coreProductId: supplierProduct.id,
-        coreProductSlug: supplierProduct.slug,
-        sourceIsActive: true,
-      },
-    });
-    await prisma.externalVariantLink.create({
-      data: {
-        provider: 'odoo',
-        installationId: 'ins_payment_supplier',
-        storeId: 'store_1',
-        externalProductCode: supplierExternalCode,
-        externalVariantCode: supplierVariantCode,
-        coreProductId: supplierProduct.id,
-        coreVariantId: supplierProduct.variants[0].id,
-        coreSkuCode: supplierVariantCode,
-        sourceIsActive: true,
-      },
-    });
-
     // Create a test order
     const orderResponse = await app.inject({
       method: 'POST',

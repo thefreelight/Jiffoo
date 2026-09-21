@@ -10,7 +10,6 @@ import { hasAdminAccessRole, resolveAdminPermissionsForRole } from './admin-acce
 const READ_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 const PUBLIC_ADMIN_ROUTES = new Set([
-  '/admin/integrations/catalog-import/sync-batch',
 ]);
 
 function normalizeAdminPath(requestUrl: string): string {

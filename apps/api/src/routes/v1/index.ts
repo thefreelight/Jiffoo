@@ -26,7 +26,6 @@ import { adminOrderRoutes } from '@/core/admin/order-management/routes';
 import { adminThemeRoutes, publicThemeRoutes } from '@/core/admin/theme-management/routes';
 import systemSettingsRoutes from '@/core/admin/system-settings/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
-import { adminCatalogImportRoutes } from '@/core/admin/catalog-import/routes';
 
 // Extension installer routes
 import { extensionInstallerRoutes } from '@/core/admin/extension-installer/routes';
@@ -55,7 +54,6 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(adminOrderRoutes, { prefix: '/admin/orders' });
   await fastify.register(adminThemeRoutes, { prefix: '/admin/themes' });
   await fastify.register(systemSettingsRoutes, { prefix: '/admin' });
-  await fastify.register(adminCatalogImportRoutes, { prefix: '/admin/integrations/catalog-import' });
 
   // API Token management (admin only)
   await fastify.register(apiTokenRoutes, { prefix: '/admin/api-tokens' });

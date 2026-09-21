@@ -47,31 +47,6 @@ describe('Cart Endpoints', () => {
     sourceInactiveVariantId = sourceInactiveProduct.variants[0].id;
 
     const prisma = getTestPrisma();
-    await prisma.externalProductLink.create({
-      data: {
-        provider: 'odoo',
-        installationId: 'ins_cart_source_inactive',
-        storeId: 'store_1',
-        externalProductCode: `ext_${sourceInactiveProduct.id}`,
-        coreProductId: sourceInactiveProduct.id,
-        coreProductSlug: sourceInactiveProduct.slug,
-        sourceIsActive: false,
-      },
-    });
-    await prisma.externalVariantLink.create({
-      data: {
-        provider: 'odoo',
-        installationId: 'ins_cart_source_inactive',
-        storeId: 'store_1',
-        externalProductCode: `ext_${sourceInactiveProduct.id}`,
-        externalVariantCode: `ext_${sourceInactiveVariantId}`,
-        coreProductId: sourceInactiveProduct.id,
-        coreVariantId: sourceInactiveVariantId,
-        coreSkuCode: sourceInactiveProduct.variants[0].skuCode,
-        sourceIsActive: false,
-      },
-    });
-
     supplierDataProduct = await createTestProduct({
       name: 'Supplier Data Cart Product',
       price: 39.99,
@@ -90,30 +65,6 @@ describe('Cart Endpoints', () => {
     supplierDataVariantId = supplierDataProduct.variants[0].id;
     const supplierDataExternalCode = `ODOO-DATA-${supplierDataProduct.id}`;
     const supplierDataVariantCode = `odoo-data-sku-${supplierDataVariantId}`;
-    await prisma.externalProductLink.create({
-      data: {
-        provider: 'odoo',
-        installationId: 'ins_cart_supplier',
-        storeId: 'store_1',
-        externalProductCode: supplierDataExternalCode,
-        coreProductId: supplierDataProduct.id,
-        coreProductSlug: supplierDataProduct.slug,
-        sourceIsActive: true,
-      },
-    });
-    await prisma.externalVariantLink.create({
-      data: {
-        provider: 'odoo',
-        installationId: 'ins_cart_supplier',
-        storeId: 'store_1',
-        externalProductCode: supplierDataExternalCode,
-        externalVariantCode: supplierDataVariantCode,
-        coreProductId: supplierDataProduct.id,
-        coreVariantId: supplierDataVariantId,
-        coreSkuCode: supplierDataVariantCode,
-        sourceIsActive: true,
-      },
-    });
   });
 
   afterAll(async () => {

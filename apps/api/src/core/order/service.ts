@@ -33,7 +33,6 @@ import { recordOrderStatusHistory } from './status-history';
 const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
   error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 import { systemSettingsService } from '../admin/system-settings/service';
-import { PushNotificationService } from '../notification/push-notification.service';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { InventoryService } from '@/core/inventory/service';
 import { WarehouseService } from '@/core/warehouse/service';
@@ -61,32 +60,6 @@ const shipmentSelect = {
 } as const;
 
 export class OrderService {
-  private static async ensureProductPurchasable(productId: string, variantId: string): Promise<void> {
-    const [productLink, variantLink] = await Promise.all([
-      prisma.externalProductLink.findFirst({
-        where: {
-          coreProductId: productId,
-        },
-        select: {
-          sourceIsActive: true,
-        },
-      }),
-      prisma.externalVariantLink.findFirst({
-        where: {
-          coreProductId: productId,
-          coreVariantId: variantId,
-        },
-        select: {
-          sourceIsActive: true,
-        },
-      }),
-    ]);
-
-    if (productLink?.sourceIsActive === false || variantLink?.sourceIsActive === false) {
-      throw new Error('Product is no longer available from source');
-    }
-  }
-
   private static async validateShippingAddress(address: NonNullable<CreateOrderRequest['shippingAddress']>) {
     const requiredFields: Array<keyof NonNullable<CreateOrderRequest['shippingAddress']>> = [
       'firstName',
@@ -239,8 +212,6 @@ export class OrderService {
         throw new Error(`Variant is not available: ${variant.name}`);
       }
 
-      await this.ensureProductPurchasable(item.productId, variantId);
-
       if (product.requiresShipping) {
         requiresOrderShipping = true;
       }
@@ -266,6 +237,11 @@ export class OrderService {
       throw new Error('Shipping address is required for shippable items');
     }
 
+    const subtotalAmount = totalAmount;
+    const taxAmount = 0;
+    const shippingAmount = 0;
+    totalAmount = subtotalAmount + taxAmount + shippingAmount;
+
     if (normalizedShippingAddress) {
       await this.validateShippingAddress(normalizedShippingAddress);
     }
@@ -289,7 +265,8 @@ export class OrderService {
           customerEmail: data.customerEmail?.trim() || user.email,
           status: OrderStatus.PENDING,
           paymentStatus: PaymentStatus.PENDING,
-          subtotalAmount: totalAmount,
+          subtotalAmount,
+          taxAmount,
           totalAmount,
           // Create order address relation
           shippingAddress: data.shippingAddress
@@ -528,17 +505,6 @@ export class OrderService {
       return updated;
     });
 
-    // Send push notification for status update
-    try {
-      await PushNotificationService.sendOrderStatusUpdate(
-        order.userId,
-        order.id,
-        status
-      );
-    } catch (err) {
-      LoggerService.logError(err instanceof Error ? err : new Error(String(err)), { context: 'order status push notification' });
-    }
-
     const currency = await systemSettingsService.getShopCurrency();
     return this.formatOrderResponse(order, currency);
   }
@@ -547,8 +513,7 @@ export class OrderService {
    * Cancel a pending order and restore inventory stock
    *
    * Only orders with PENDING status can be cancelled. Stock for all
-   * order items is restored to product variants. A push notification
-   * is sent to the user.
+   * order items is restored to product variants.
    *
    * @param orderId Order ID to cancel
    * @param userId User ID requesting cancellation (for authorization)
@@ -617,17 +582,6 @@ export class OrderService {
       return updated;
     });
 
-    // Send push notification for cancellation
-    try {
-      await PushNotificationService.sendOrderStatusUpdate(
-        updatedOrder.userId,
-        updatedOrder.id,
-        OrderStatus.CANCELLED
-      );
-    } catch (err) {
-      LoggerService.logError(err instanceof Error ? err : new Error(String(err)), { context: 'order cancellation push notification' });
-    }
-
     const currency = await systemSettingsService.getShopCurrency();
     return this.formatOrderResponse(updatedOrder, currency);
   }
@@ -636,8 +590,7 @@ export class OrderService {
    * Mark an order as completed after successful payment
    *
    * Updates order status to COMPLETED and payment status to PAID.
-   * Sends a push notification to the user and triggers order completion
-   * hooks asynchronously for downstream processing.
+   * Triggers order completion hooks asynchronously for downstream processing.
    *
    * @param orderId Order ID to complete
    * @returns Promise resolving to completed order response
@@ -688,17 +641,6 @@ export class OrderService {
       return updated;
     });
 
-    // Send push notification for payment confirmation
-    try {
-      await PushNotificationService.sendOrderStatusUpdate(
-        updatedOrder.userId,
-        updatedOrder.id,
-        PaymentStatus.PAID
-      );
-    } catch (err) {
-      LoggerService.logError(err instanceof Error ? err : new Error(String(err)), { context: 'order completion push notification' });
-    }
-
     // Trigger order completion hooks
     const orderHooks = getOrderHooks();
     if (orderHooks) {
@@ -717,7 +659,6 @@ export class OrderService {
    *
    * Creates a Refund record for audit purposes, updates order status to
    * REFUNDED, restores stock for all items, and triggers refund hooks.
-   * A push notification is sent to the user.
    *
    * The refund is processed in a transaction to ensure atomicity between
    * refund record creation and order status update.
@@ -893,17 +834,6 @@ export class OrderService {
         return this.formatOrderResponse(existingOrder, currency);
       }
       throw error;
-    }
-
-    // Send push notification for refund
-    try {
-      await PushNotificationService.sendOrderStatusUpdate(
-        updatedOrder.userId,
-        updatedOrder.id,
-        OrderStatus.REFUNDED
-      );
-    } catch (err) {
-      LoggerService.logError(err instanceof Error ? err : new Error(String(err)), { context: 'order refund push notification' });
     }
 
     // Trigger order refund hooks

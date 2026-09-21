@@ -32,9 +32,6 @@ import {
   useUpdateProduct,
   useUploadProductImage,
   useCategories,
-  useProductExternalSource,
-  useAcknowledgeProductSourceChanges,
-  useAcknowledgeVariantSourceChange,
 } from '@/lib/hooks/use-api'
 import { VariantsEditor } from '@/components/products/VariantsEditor'
 
@@ -60,15 +57,8 @@ export default function EditProductPage() {
   }
 
   const { data: product, isLoading, error, refetch } = useProduct(productId)
-  const {
-    data: externalSource,
-    isLoading: isExternalSourceLoading,
-    refetch: refetchExternalSource,
-  } = useProductExternalSource(productId)
   const { data: categories = [] } = useCategories()
   const updateProductMutation = useUpdateProduct()
-  const acknowledgeProductSourceMutation = useAcknowledgeProductSourceChanges()
-  const acknowledgeVariantSourceMutation = useAcknowledgeVariantSourceChange()
   const uploadImageMutation = useUploadProductImage()
   const [isUploading, setIsUploading] = useState(false)
   const [successMode, setSuccessMode] = useState(false)
@@ -155,35 +145,6 @@ export default function EditProductPage() {
     }
   }
 
-  const handleAcknowledgeAllSourceChanges = async () => {
-    try {
-      await acknowledgeProductSourceMutation.mutateAsync(productId)
-      await Promise.all([refetch(), refetchExternalSource()])
-    } catch (error) {
-      console.error('Acknowledge all source changes failed:', error)
-    }
-  }
-
-  const handleAcknowledgeVariantSourceChange = async (variantId: string) => {
-    try {
-      await acknowledgeVariantSourceMutation.mutateAsync({ productId, variantId })
-      await Promise.all([refetch(), refetchExternalSource()])
-    } catch (error) {
-      console.error('Acknowledge variant source change failed:', error)
-    }
-  }
-
-  const renderChangedFields = (summary: any): string => {
-    const fields = Array.isArray(summary?.changedFields) ? summary.changedFields.filter((item: unknown) => typeof item === 'string') : []
-    return fields.length > 0 ? fields.join(', ') : 'Pending source review'
-  }
-
-  const hasExternalSource = !!externalSource?.linked
-  const hasPendingProductChange = !!externalSource?.product?.hasPendingChange
-  const pendingVariantCount = Array.isArray(externalSource?.variants)
-    ? externalSource.variants.filter((variant: any) => variant.hasPendingChange).length
-    : 0
-
   if (isLoading) return <div className="p-12 text-center text-gray-400 font-bold uppercase tracking-[0.2em] animate-pulse">Accessing Encrypted Asset...</div>
   if (error) return <div className="p-12 text-center text-red-500 font-black uppercase">{getText('common.errors.general', 'Something went wrong. Please try again.')}</div>
 
@@ -218,132 +179,6 @@ export default function EditProductPage() {
       </div>
 
       <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
-        {hasExternalSource && (
-          <section className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm space-y-5">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-                    <Link2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-bold text-gray-900 uppercase tracking-tight">External Source</h2>
-                    <p className="text-gray-400 text-xs font-medium uppercase tracking-widest">
-                      {externalSource?.sourceProvider || 'External'} linked source snapshot
-                    </p>
-                  </div>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge className="bg-gray-900 text-white">{externalSource?.sourceProvider || 'external'}</Badge>
-                  <Badge variant="outline" className={externalSource?.product?.sourceIsActive === false ? 'border-red-200 text-red-600' : 'border-green-200 text-green-600'}>
-                    {externalSource?.product?.sourceIsActive === false ? 'Source inactive' : 'Source active'}
-                  </Badge>
-                  {hasPendingProductChange && (
-                    <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Product change pending</Badge>
-                  )}
-                  {pendingVariantCount > 0 && (
-                    <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">{pendingVariantCount} variant changes pending</Badge>
-                  )}
-                </div>
-              </div>
-
-              <Button
-                type="button"
-                onClick={handleAcknowledgeAllSourceChanges}
-                disabled={acknowledgeProductSourceMutation.isPending}
-                className="bg-gray-900 hover:bg-black text-white rounded-xl"
-              >
-                {acknowledgeProductSourceMutation.isPending ? 'Confirming...' : 'Acknowledge All'}
-              </Button>
-            </div>
-
-            {(hasPendingProductChange || pendingVariantCount > 0) && (
-              <Alert className="border-amber-200 bg-amber-50 text-amber-900">
-                <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Source changes detected</AlertTitle>
-                <AlertDescription>
-                  Product-level and variant-level source snapshots have changed. Review them here before clearing the pending flags.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-              <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">External Product Code</p>
-                <p className="text-sm font-semibold text-gray-900 break-all">{externalSource?.product?.externalProductCode || '-'}</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 pt-2">Last Source Update</p>
-                <p className="text-sm font-medium text-gray-700">{externalSource?.product?.sourceUpdatedAt || '-'}</p>
-              </div>
-
-              <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Product Pending Summary</p>
-                <p className="text-sm font-medium text-gray-700">
-                  {hasPendingProductChange ? renderChangedFields(externalSource?.product?.pendingChangeSummary) : 'No pending product-level changes'}
-                </p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 pt-2">Last Approved</p>
-                <p className="text-sm font-medium text-gray-700">{externalSource?.product?.lastApprovedAt || '-'}</p>
-              </div>
-
-              <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 space-y-2">
-                <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">Source Snapshot</p>
-                <p className="text-sm font-medium text-gray-700">Name: {externalSource?.product?.sourceName || '-'}</p>
-                <p className="text-sm font-medium text-gray-700">Category: {externalSource?.product?.sourceCategoryCode || '-'}</p>
-                <p className="text-sm font-medium text-gray-700">Sync Status: {externalSource?.product?.syncStatus || '-'}</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <GitCompareArrows className="w-4 h-4 text-blue-600" />
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-tight">Variant Source Review</h3>
-              </div>
-
-              {isExternalSourceLoading ? (
-                <div className="rounded-2xl border border-gray-100 bg-gray-50/60 p-4 text-sm text-gray-500">Loading source details...</div>
-              ) : (
-                <div className="space-y-3">
-                  {externalSource?.variants?.map((variant: any) => (
-                    <div
-                      key={variant.coreVariantId}
-                      className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"
-                    >
-                      <div className="space-y-2 min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-bold text-gray-900">{variant.sourceVariantName || variant.externalVariantCode}</span>
-                          <Badge variant="outline" className="border-gray-200 text-gray-600">{variant.sourceSkuCode || variant.coreSkuCode || 'No SKU'}</Badge>
-                          {variant.hasPendingChange ? (
-                            <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Pending</Badge>
-                          ) : (
-                            <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Confirmed</Badge>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm text-gray-600">
-                          <p>Cost: {variant.sourceCostPrice ?? '-'}</p>
-                          <p>Status: {variant.sourceIsActive === false ? 'Inactive' : 'Active'}</p>
-                          <p>Sync: {variant.syncStatus}</p>
-                        </div>
-                        <p className="text-sm text-gray-700">
-                          {variant.hasPendingChange ? renderChangedFields(variant.pendingChangeSummary) : 'No pending source changes'}
-                        </p>
-                      </div>
-
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => handleAcknowledgeVariantSourceChange(variant.coreVariantId)}
-                        disabled={!variant.hasPendingChange || acknowledgeVariantSourceMutation.isPending}
-                        className="rounded-xl border-gray-200"
-                      >
-                        {acknowledgeVariantSourceMutation.isPending ? 'Confirming...' : 'Acknowledge Variant'}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </section>
-        )}
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column: Basic Info & Media */}
           <div className="lg:col-span-1 space-y-6">

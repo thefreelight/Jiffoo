@@ -44,7 +44,6 @@ export type { ErrorLog, ErrorListParams } from '../types';
 export const queryKeys = {
   products: ['products'] as const,
   product: (id: string) => ['products', id] as const,
-  productExternalSource: (id: string) => ['products', id, 'external-source'] as const,
   orders: ['orders'] as const,
   order: (id: string) => ['orders', id] as const,
   orderStats: ['order-stats'] as const,
@@ -118,17 +117,6 @@ export function useProduct(id: string) {
   });
 }
 
-export function useProductExternalSource(id: string) {
-  return useQuery({
-    queryKey: queryKeys.productExternalSource(id),
-    queryFn: async () => {
-      const response = await productsApi.getExternalSource(id);
-      return unwrapApiResponse(response);
-    },
-    enabled: !!id,
-  });
-}
-
 export function useCreateProduct() {
   const queryClient = useQueryClient();
   const { getErrorMessage } = useLocalizedApiFeedback();
@@ -176,54 +164,6 @@ export function useUpdateProduct() {
       queryClient.invalidateQueries({ queryKey: queryKeys.productStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
       toast.success('Product updated successfully');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-export function useAcknowledgeProductSourceChanges() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const response = await productsApi.acknowledgeSourceChanges(id);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, id) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.product(id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.productExternalSource(id) });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.products,
-        exact: false,
-      });
-      toast.success('Source changes acknowledged');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-export function useAcknowledgeVariantSourceChange() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({ productId, variantId }: { productId: string; variantId: string }) => {
-      const response = await productsApi.acknowledgeVariantSourceChange(productId, variantId);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, { productId }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.product(productId) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.productExternalSource(productId) });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.products,
-        exact: false,
-      });
-      toast.success('Variant source change acknowledged');
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));

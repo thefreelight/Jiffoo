@@ -138,7 +138,7 @@ apps/api/prisma/schema/
 ├── inventory.prisma     # Warehouse, WarehouseInventory, StockAlert, Transfer, Adjustment
 ├── payment.prisma       # Payment, Refund, PaymentLedger
 ├── extension.prisma     # PluginInstall*, Webhook*, PluginThemeExtension
-├── platform-links.prisma# External*Link, OutboxEvent, PushSubscription
+├── platform-links.prisma# OutboxEvent
 ├── system.prisma        # User, SystemSettings, ErrorLog, SeoRedirect
 └── _dormant.prisma      # Frozen models (zero code references)
 ```

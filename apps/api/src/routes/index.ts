@@ -15,7 +15,6 @@ import { cartRoutes } from '@/core/cart/routes';
 import { orderRoutes } from '@/core/order/routes';
 import { paymentRoutes as legacyPaymentRoutes } from '@/core/payment/routes';
 import { paymentsRoutes as stripePaymentRoutes } from './payments'; // NEW explicit stripe intent routes
-import { notificationRoutes } from '@/core/notification/routes';
 
 import { upgradeRoutes } from '@/core/upgrade/routes';
 
@@ -29,7 +28,6 @@ import systemSettingsRoutes from '@/core/admin/system-settings/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
 import { healthMonitoringRoutes } from '@/core/admin/health-monitoring/routes';
 import { adminStoreManagementRoutes } from '@/core/admin/store-management/routes';
-import { adminCatalogImportRoutes } from '@/core/admin/catalog-import/routes';
 
 import { adminWarehouseRoutes } from '@/core/warehouse/routes';
 import { adminInventoryRoutes } from '@/core/inventory/routes';
@@ -76,7 +74,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(adminInventoryRoutes, { prefix: '/api/admin/inventory' });
   await fastify.register(systemSettingsRoutes, { prefix: '/api/admin' });
   await fastify.register(adminStoreManagementRoutes, { prefix: '/api/admin/stores' });
-  await fastify.register(adminCatalogImportRoutes, { prefix: '/api/admin/integrations/catalog-import' });
 
   // Dashboard routes
   await fastify.register(adminDashboardRoutes, { prefix: '/api/admin' });
@@ -98,7 +95,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
   // Keep the legacy Stripe direct-intent path alive for the current shop checkout.
   await fastify.register(stripePaymentRoutes, { prefix: '/api/payments' });
   await fastify.register(stripePaymentRoutes, { prefix: '/api/payments/stripe' });
-  await fastify.register(notificationRoutes, { prefix: '/api/notifications' });
   await fastify.register(publicThemeRoutes, { prefix: '/api/themes' });
   // Extension installer routes
   await fastify.register(extensionInstallerRoutes, { prefix: '/api/extensions' });

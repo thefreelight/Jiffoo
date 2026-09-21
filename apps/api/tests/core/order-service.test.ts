@@ -31,8 +31,6 @@ vi.mock('@/config/database', () => ({
     refund: { create: vi.fn(), findUnique: vi.fn() },
     refundLedger: { create: vi.fn() },
     paymentLedger: { create: vi.fn() },
-    externalProductLink: { findFirst: vi.fn() },
-    externalVariantLink: { findFirst: vi.fn() },
     $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn(prisma)),
   },
 }));
@@ -53,12 +51,6 @@ vi.mock('@/core/order/hooks', () => ({
 
 vi.mock('@/core/order/status-history', () => ({
   recordOrderStatusHistory: vi.fn().mockResolvedValue(undefined),
-}));
-
-vi.mock('@/core/notification/push-notification.service', () => ({
-  PushNotificationService: {
-    sendOrderStatusUpdate: vi.fn().mockResolvedValue(undefined),
-  },
 }));
 
 vi.mock('@/core/logger/unified-logger', () => ({
@@ -95,7 +87,6 @@ vi.mock('@/core/warehouse/service', () => ({
 import { OrderService } from '@/core/order/service';
 import { prisma } from '@/config/database';
 import { getOrderHooks } from '@/core/order/hooks';
-import { PushNotificationService } from '@/core/notification/push-notification.service';
 import { InventoryService } from '@/core/inventory/service';
 import { OutboxService } from '@/infra/outbox';
 
@@ -118,15 +109,10 @@ const mockPrisma = prisma as unknown as {
   refund: { create: ReturnType<typeof vi.fn>; findUnique: ReturnType<typeof vi.fn> };
   refundLedger: { create: ReturnType<typeof vi.fn> };
   paymentLedger: { create: ReturnType<typeof vi.fn> };
-  externalProductLink: { findFirst: ReturnType<typeof vi.fn> };
-  externalVariantLink: { findFirst: ReturnType<typeof vi.fn> };
   $transaction: ReturnType<typeof vi.fn>;
 };
 
 const mockGetOrderHooks = getOrderHooks as ReturnType<typeof vi.fn>;
-const mockPushNotification = PushNotificationService as {
-  sendOrderStatusUpdate: ReturnType<typeof vi.fn>;
-};
 const mockInventory = InventoryService as unknown as {
   getAvailableStockByVariantIds: ReturnType<typeof vi.fn>;
   decrementStock: ReturnType<typeof vi.fn>;
@@ -189,8 +175,6 @@ describe('OrderService', () => {
 
     // Re-apply default mock returns that are needed across most tests
     mockPrisma.store.findFirst.mockResolvedValue(TEST_STORE);
-    mockPrisma.externalProductLink.findFirst.mockResolvedValue(null);
-    mockPrisma.externalVariantLink.findFirst.mockResolvedValue(null);
     mockPrisma.refund.findUnique.mockResolvedValue(null);
     mockPrisma.refundLedger.create.mockResolvedValue({});
     mockPrisma.paymentLedger.create.mockResolvedValue({});
@@ -297,7 +281,7 @@ describe('OrderService', () => {
   // -----------------------------------------------------------------------
 
   describe('cancelOrder', () => {
-    it('should restore stock, update status to CANCELLED, and send push notification', async () => {
+    it('should restore stock and update status to CANCELLED', async () => {
       const pendingOrder = makeCreatedOrder({ status: 'PENDING' });
       const cancelledOrder = makeCreatedOrder({
         status: 'CANCELLED',
@@ -328,13 +312,6 @@ describe('OrderService', () => {
         })
       );
 
-      // Push notification sent
-      expect(mockPushNotification.sendOrderStatusUpdate).toHaveBeenCalledWith(
-        'user-1',
-        'order-1',
-        'CANCELLED'
-      );
-
       expect(result.status).toBe('CANCELLED');
     });
 
@@ -363,7 +340,7 @@ describe('OrderService', () => {
   // -----------------------------------------------------------------------
 
   describe('completeOrder', () => {
-    it('should update status to COMPLETED/PAID, send push notification, and fire hooks', async () => {
+    it('should update status to COMPLETED/PAID and fire hooks', async () => {
       const pendingOrder = makeCreatedOrder({ status: 'PENDING' });
       const completedOrder = makeCreatedOrder({
         status: 'COMPLETED',
@@ -387,13 +364,6 @@ describe('OrderService', () => {
           where: { id: 'order-1' },
           data: { status: 'COMPLETED', paymentStatus: 'PAID' },
         })
-      );
-
-      // Push notification for PAID
-      expect(mockPushNotification.sendOrderStatusUpdate).toHaveBeenCalledWith(
-        'user-1',
-        'order-1',
-        'PAID'
       );
 
       // Hooks fired
@@ -503,13 +473,6 @@ describe('OrderService', () => {
         mockPrisma,
         'var-1',
         2
-      );
-
-      // Push notification sent
-      expect(mockPushNotification.sendOrderStatusUpdate).toHaveBeenCalledWith(
-        'user-1',
-        'order-1',
-        'REFUNDED'
       );
 
       // Refund hooks fired

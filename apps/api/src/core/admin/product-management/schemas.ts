@@ -99,96 +99,6 @@ const adminProductSchema = {
   required: ['id', 'name', 'variants', 'createdAt', 'updatedAt'],
 } as const;
 
-const externalSourceProductSchema = {
-  type: 'object',
-  nullable: true,
-  properties: {
-    provider: { type: 'string' },
-    installationId: { type: 'string' },
-    storeId: { type: 'string' },
-    externalProductCode: { type: 'string' },
-    externalName: { type: 'string', nullable: true },
-    externalHash: { type: 'string', nullable: true },
-    sourceName: { type: 'string', nullable: true },
-    sourceDescription: { type: 'string', nullable: true },
-    sourceCategoryCode: { type: 'string', nullable: true },
-    sourceIsActive: { type: 'boolean', nullable: true },
-    sourcePayloadJson: { type: 'object', nullable: true, additionalProperties: true },
-    sourcePayloadHash: { type: 'string', nullable: true },
-    syncStatus: { type: 'string' },
-    sourceUpdatedAt: { type: 'string', nullable: true, format: 'date-time' },
-    lastSyncedAt: { type: 'string', nullable: true, format: 'date-time' },
-    lastComparedAt: { type: 'string', nullable: true, format: 'date-time' },
-    lastApprovedAt: { type: 'string', nullable: true, format: 'date-time' },
-    hasPendingChange: { type: 'boolean' },
-    pendingChangeSummary: { type: 'object', nullable: true, additionalProperties: true },
-  },
-} as const;
-
-const externalSourceVariantSchema = {
-  type: 'object',
-  properties: {
-    coreVariantId: { type: 'string' },
-    coreSkuCode: { type: 'string', nullable: true },
-    externalVariantCode: { type: 'string' },
-    externalProductCode: { type: 'string' },
-    externalHash: { type: 'string', nullable: true },
-    sourceVariantName: { type: 'string', nullable: true },
-    sourceSkuCode: { type: 'string', nullable: true },
-    sourceCostPrice: { type: 'number', nullable: true },
-    sourceIsActive: { type: 'boolean', nullable: true },
-    sourceAttributesJson: { type: 'object', nullable: true, additionalProperties: true },
-    sourcePayloadHash: { type: 'string', nullable: true },
-    syncStatus: { type: 'string' },
-    sourceUpdatedAt: { type: 'string', nullable: true, format: 'date-time' },
-    lastSyncedAt: { type: 'string', nullable: true, format: 'date-time' },
-    lastComparedAt: { type: 'string', nullable: true, format: 'date-time' },
-    lastApprovedAt: { type: 'string', nullable: true, format: 'date-time' },
-    hasPendingChange: { type: 'boolean' },
-    pendingChangeSummary: { type: 'object', nullable: true, additionalProperties: true },
-  },
-  required: ['coreVariantId', 'externalVariantCode', 'externalProductCode', 'syncStatus', 'hasPendingChange'],
-} as const;
-
-const externalSourceDetailsSchema = {
-  type: 'object',
-  properties: {
-    productId: { type: 'string' },
-    productName: { type: 'string' },
-    sourceProvider: { type: 'string', nullable: true },
-    linked: { type: 'boolean' },
-    product: externalSourceProductSchema,
-    variants: { type: 'array', items: externalSourceVariantSchema },
-  },
-  required: ['productId', 'productName', 'sourceProvider', 'linked', 'product', 'variants'],
-} as const;
-
-const externalSourceAckSchema = {
-  type: 'object',
-  properties: {
-    productId: { type: 'string' },
-    acknowledgedAt: { type: 'string', format: 'date-time' },
-    productLinksUpdated: { type: 'integer' },
-    variantLinksUpdated: { type: 'integer' },
-  },
-  required: ['productId', 'acknowledgedAt', 'productLinksUpdated', 'variantLinksUpdated'],
-} as const;
-
-const externalSourceVariantAckSchema = {
-  type: 'object',
-  properties: {
-    productId: { type: 'string' },
-    variantId: { type: 'string' },
-    acknowledgedAt: { type: 'string', format: 'date-time' },
-    variantLinksUpdated: { type: 'integer' },
-  },
-  required: ['productId', 'variantId', 'acknowledgedAt', 'variantLinksUpdated'],
-} as const;
-
-// ============================================================================
-// Category Schema
-// ============================================================================
-
 const categorySchema = {
   type: 'object',
   properties: {
@@ -239,10 +149,6 @@ const productStatsSchema = {
   required: ['metrics'],
 } as const;
 
-// ============================================================================
-// Endpoint Schemas
-// ============================================================================
-
 export const adminProductSchemas = {
   // GET /api/admin/products/ (paginated)
   listProducts: {
@@ -280,40 +186,6 @@ export const adminProductSchemas = {
       },
     },
     response: createTypedReadResponses(adminProductSchema),
-  },
-
-  getExternalSource: {
-    params: {
-      type: 'object',
-      required: ['id'],
-      properties: {
-        id: { type: 'string', description: 'Product ID' },
-      },
-    },
-    response: createTypedReadResponses(externalSourceDetailsSchema),
-  },
-
-  acknowledgeExternalSource: {
-    params: {
-      type: 'object',
-      required: ['id'],
-      properties: {
-        id: { type: 'string', description: 'Product ID' },
-      },
-    },
-    response: createTypedUpdateResponses(externalSourceAckSchema),
-  },
-
-  acknowledgeExternalSourceVariant: {
-    params: {
-      type: 'object',
-      required: ['id', 'variantId'],
-      properties: {
-        id: { type: 'string', description: 'Product ID' },
-        variantId: { type: 'string', description: 'Variant ID' },
-      },
-    },
-    response: createTypedUpdateResponses(externalSourceVariantAckSchema),
   },
 
   // POST /api/admin/products/

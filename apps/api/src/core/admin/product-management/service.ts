@@ -121,129 +121,7 @@ export interface UpdateProductData {
   variants?: ProductVariantData[];
 }
 
-type ProductSourceLink = {
-  coreProductId: string;
-  provider: string;
-  sourceIsActive: boolean | null;
-  hasPendingChange: boolean;
-  pendingChangeSummary: Record<string, unknown> | null;
-};
-
-type VariantSourceLink = {
-  coreVariantId: string;
-  sourceIsActive: boolean | null;
-  hasPendingChange: boolean;
-  pendingChangeSummary: Record<string, unknown> | null;
-};
-
-type ExternalSourceProductSnapshot = {
-  provider: string;
-  installationId: string;
-  storeId: string;
-  externalProductCode: string;
-  externalName: string | null;
-  externalHash: string | null;
-  sourceName: string | null;
-  sourceDescription: string | null;
-  sourceCategoryCode: string | null;
-  sourceIsActive: boolean | null;
-  sourcePayloadJson: Record<string, unknown> | null;
-  sourcePayloadHash: string | null;
-  syncStatus: string;
-  sourceUpdatedAt: string | null;
-  lastSyncedAt: string | null;
-  lastComparedAt: string | null;
-  lastApprovedAt: string | null;
-  hasPendingChange: boolean;
-  pendingChangeSummary: Record<string, unknown> | null;
-};
-
-type ExternalSourceVariantSnapshot = {
-  coreVariantId: string;
-  coreSkuCode: string | null;
-  externalVariantCode: string;
-  externalProductCode: string;
-  externalHash: string | null;
-  sourceVariantName: string | null;
-  sourceSkuCode: string | null;
-  sourceCostPrice: number | null;
-  sourceIsActive: boolean | null;
-  sourceAttributesJson: Record<string, unknown> | null;
-  sourcePayloadHash: string | null;
-  syncStatus: string;
-  sourceUpdatedAt: string | null;
-  lastSyncedAt: string | null;
-  lastComparedAt: string | null;
-  lastApprovedAt: string | null;
-  hasPendingChange: boolean;
-  pendingChangeSummary: Record<string, unknown> | null;
-};
-
-type ExternalSourceDetails = {
-  productId: string;
-  productName: string;
-  sourceProvider: string | null;
-  linked: boolean;
-  product: ExternalSourceProductSnapshot | null;
-  variants: ExternalSourceVariantSnapshot[];
-};
-
-type ExternalSourceAckResult = {
-  productId: string;
-  acknowledgedAt: string;
-  productLinksUpdated: number;
-  variantLinksUpdated: number;
-};
-
-type ExternalSourceVariantAckResult = {
-  productId: string;
-  variantId: string;
-  acknowledgedAt: string;
-  variantLinksUpdated: number;
-};
-
-function toIsoString(value: Date | null | undefined): string | null {
-  return value ? value.toISOString() : null;
-}
-
 export class AdminProductService {
-  private static async loadProductSourceLinks(productIds: string[]): Promise<Map<string, ProductSourceLink>> {
-    if (productIds.length === 0) return new Map();
-
-    const links = await prisma.externalProductLink.findMany({
-      where: {
-        coreProductId: { in: productIds },
-      },
-      select: {
-        coreProductId: true,
-        provider: true,
-        sourceIsActive: true,
-        hasPendingChange: true,
-        pendingChangeSummary: true,
-      },
-    });
-
-    return new Map(links.map((link) => [link.coreProductId, link]));
-  }
-
-  private static async loadVariantSourceLinks(variantIds: string[]): Promise<Map<string, VariantSourceLink>> {
-    if (variantIds.length === 0) return new Map();
-
-    const links = await prisma.externalVariantLink.findMany({
-      where: {
-        coreVariantId: { in: variantIds },
-      },
-      select: {
-        coreVariantId: true,
-        sourceIsActive: true,
-        hasPendingChange: true,
-        pendingChangeSummary: true,
-      },
-    });
-
-    return new Map(links.map((link) => [link.coreVariantId, link]));
-  }
-
   /**
    * Get product list (Optimized for Admin List View)
    */
@@ -447,7 +325,6 @@ export class AdminProductService {
       prisma.product.count({ where })
     ]);
 
-    const sourceLinks = await this.loadProductSourceLinks(products.map((product) => product.id));
     const stockMap = await InventoryService.getAvailableStockByVariantIds(
       products.flatMap((product) => product.variants.map((variant) => variant.id))
     );
@@ -464,8 +341,6 @@ export class AdminProductService {
             Number(current.salePrice) < Number(lowest.salePrice) ? current : lowest
           )
           : null;
-        const sourceLink = sourceLinks.get(p.id);
-
         return {
           id: p.id,
           name: p.name,
@@ -476,10 +351,6 @@ export class AdminProductService {
           price: minPrice,
           stock,
           isActive: p.isActive && skuCount > 0,
-          sourceProvider: sourceLink?.provider || null,
-          sourceIsActive: sourceLink?.sourceIsActive ?? null,
-          hasPendingChange: sourceLink?.hasPendingChange ?? false,
-          requiresShippingLocked: sourceLink?.provider === 'odoo',
           variantsCount: p._count.variants,
           createdAt: p.createdAt.toISOString()
         };
@@ -609,18 +480,6 @@ export class AdminProductService {
       return null;
     }
 
-    const [productSourceLink, variantSourceLinks] = await Promise.all([
-      prisma.externalProductLink.findFirst({
-        where: { coreProductId: productId },
-        select: {
-          provider: true,
-          sourceIsActive: true,
-          hasPendingChange: true,
-          pendingChangeSummary: true,
-        },
-      }),
-      this.loadVariantSourceLinks(product.variants.map((variant) => variant.id)),
-    ]);
     const stockMap = await InventoryService.getAvailableStockByVariantIds(
       product.variants.map((variant) => variant.id)
     );
@@ -635,11 +494,6 @@ export class AdminProductService {
       categoryName: product.category?.name || null,
       images: parseImageList(product.typeData),
       requiresShipping: product.requiresShipping,
-      sourceProvider: productSourceLink?.provider || null,
-      sourceIsActive: productSourceLink?.sourceIsActive ?? null,
-      hasPendingChange: productSourceLink?.hasPendingChange ?? false,
-      pendingChangeSummary: parseJsonObject(productSourceLink?.pendingChangeSummary ?? null),
-      requiresShippingLocked: productSourceLink?.provider === 'odoo',
       variants: product.variants.map(v => ({
         id: v.id,
         name: v.name,
@@ -648,9 +502,6 @@ export class AdminProductService {
         costPrice: v.costPrice !== null && v.costPrice !== undefined ? Number(v.costPrice) : null,
         baseStock: stockMap.get(v.id) ?? 0,
         isActive: v.isActive,
-        sourceIsActive: variantSourceLinks.get(v.id)?.sourceIsActive ?? null,
-        hasPendingChange: variantSourceLinks.get(v.id)?.hasPendingChange ?? false,
-        pendingChangeSummary: parseJsonObject(variantSourceLinks.get(v.id)?.pendingChangeSummary ?? null),
         attributes: parseAttributes(v.attributes)
       })),
       createdAt: product.createdAt.toISOString(),
@@ -660,211 +511,6 @@ export class AdminProductService {
     // Set cache
     await CacheService.setProduct(productId, dto);
     return dto;
-  }
-
-  static async getExternalSourceByProductId(productId: string): Promise<ExternalSourceDetails | null> {
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-      select: {
-        id: true,
-        name: true,
-        variants: {
-          select: {
-            id: true,
-          },
-          orderBy: { sortOrder: 'asc' },
-        },
-      },
-    });
-
-    if (!product) {
-      return null;
-    }
-
-    const [productSourceLink, variantSourceLinks] = await Promise.all([
-      prisma.externalProductLink.findFirst({
-        where: { coreProductId: productId },
-        select: {
-          provider: true,
-          installationId: true,
-          storeId: true,
-          externalProductCode: true,
-          externalName: true,
-          externalHash: true,
-          sourceName: true,
-          sourceDescription: true,
-          sourceCategoryCode: true,
-          sourceIsActive: true,
-          sourcePayloadJson: true,
-          sourcePayloadHash: true,
-          syncStatus: true,
-          sourceUpdatedAt: true,
-          lastSyncedAt: true,
-          lastComparedAt: true,
-          lastApprovedAt: true,
-          hasPendingChange: true,
-          pendingChangeSummary: true,
-        },
-      }),
-      prisma.externalVariantLink.findMany({
-        where: { coreProductId: productId },
-        select: {
-          coreVariantId: true,
-          coreSkuCode: true,
-          externalVariantCode: true,
-          externalProductCode: true,
-          externalHash: true,
-          sourceVariantName: true,
-          sourceSkuCode: true,
-          sourceCostPrice: true,
-          sourceIsActive: true,
-          sourceAttributesJson: true,
-          sourcePayloadHash: true,
-          syncStatus: true,
-          sourceUpdatedAt: true,
-          lastSyncedAt: true,
-          lastComparedAt: true,
-          lastApprovedAt: true,
-          hasPendingChange: true,
-          pendingChangeSummary: true,
-        },
-        orderBy: { createdAt: 'asc' },
-      }),
-    ]);
-
-    return {
-      productId: product.id,
-      productName: product.name,
-      sourceProvider: productSourceLink?.provider ?? null,
-      linked: Boolean(productSourceLink || variantSourceLinks.length > 0),
-      product: productSourceLink
-        ? {
-          provider: productSourceLink.provider,
-          installationId: productSourceLink.installationId,
-          storeId: productSourceLink.storeId,
-          externalProductCode: productSourceLink.externalProductCode,
-          externalName: productSourceLink.externalName ?? null,
-          externalHash: productSourceLink.externalHash ?? null,
-          sourceName: productSourceLink.sourceName ?? null,
-          sourceDescription: productSourceLink.sourceDescription ?? null,
-          sourceCategoryCode: productSourceLink.sourceCategoryCode ?? null,
-          sourceIsActive: productSourceLink.sourceIsActive ?? null,
-          sourcePayloadJson: parseJsonObject(productSourceLink.sourcePayloadJson),
-          sourcePayloadHash: productSourceLink.sourcePayloadHash ?? null,
-          syncStatus: productSourceLink.syncStatus,
-          sourceUpdatedAt: toIsoString(productSourceLink.sourceUpdatedAt),
-          lastSyncedAt: toIsoString(productSourceLink.lastSyncedAt),
-          lastComparedAt: toIsoString(productSourceLink.lastComparedAt),
-          lastApprovedAt: toIsoString(productSourceLink.lastApprovedAt),
-          hasPendingChange: productSourceLink.hasPendingChange,
-          pendingChangeSummary: parseJsonObject(productSourceLink.pendingChangeSummary),
-        }
-        : null,
-      variants: variantSourceLinks.map((link) => ({
-        coreVariantId: link.coreVariantId,
-        coreSkuCode: link.coreSkuCode ?? null,
-        externalVariantCode: link.externalVariantCode,
-        externalProductCode: link.externalProductCode,
-        externalHash: link.externalHash ?? null,
-        sourceVariantName: link.sourceVariantName ?? null,
-        sourceSkuCode: link.sourceSkuCode ?? null,
-        sourceCostPrice: link.sourceCostPrice !== null && link.sourceCostPrice !== undefined ? Number(link.sourceCostPrice) : null,
-        sourceIsActive: link.sourceIsActive ?? null,
-        sourceAttributesJson: parseJsonObject(link.sourceAttributesJson),
-        sourcePayloadHash: link.sourcePayloadHash ?? null,
-        syncStatus: link.syncStatus,
-        sourceUpdatedAt: toIsoString(link.sourceUpdatedAt),
-        lastSyncedAt: toIsoString(link.lastSyncedAt),
-        lastComparedAt: toIsoString(link.lastComparedAt),
-        lastApprovedAt: toIsoString(link.lastApprovedAt),
-        hasPendingChange: link.hasPendingChange,
-        pendingChangeSummary: parseJsonObject(link.pendingChangeSummary),
-      })),
-    };
-  }
-
-  static async acknowledgeExternalSourceChanges(productId: string): Promise<ExternalSourceAckResult | null> {
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-      select: { id: true },
-    });
-
-    if (!product) {
-      return null;
-    }
-
-    const approvedAt = new Date();
-    const [productLinksUpdated, variantLinksUpdated] = await Promise.all([
-      prisma.externalProductLink.updateMany({
-        where: { coreProductId: productId },
-        data: {
-          hasPendingChange: false,
-          pendingChangeSummary: null,
-          lastApprovedAt: approvedAt,
-        },
-      }),
-      prisma.externalVariantLink.updateMany({
-        where: { coreProductId: productId },
-        data: {
-          hasPendingChange: false,
-          pendingChangeSummary: null,
-          lastApprovedAt: approvedAt,
-        },
-      }),
-    ]);
-
-    await CacheService.incrementProductVersion();
-    await CacheService.deleteProduct(productId);
-
-    return {
-      productId,
-      acknowledgedAt: approvedAt.toISOString(),
-      productLinksUpdated: productLinksUpdated.count,
-      variantLinksUpdated: variantLinksUpdated.count,
-    };
-  }
-
-  static async acknowledgeExternalSourceVariantChange(
-    productId: string,
-    variantId: string
-  ): Promise<ExternalSourceVariantAckResult | null> {
-    const variant = await prisma.productVariant.findFirst({
-      where: {
-        id: variantId,
-        productId,
-      },
-      select: {
-        id: true,
-        productId: true,
-      },
-    });
-
-    if (!variant) {
-      return null;
-    }
-
-    const approvedAt = new Date();
-    const variantLinksUpdated = await prisma.externalVariantLink.updateMany({
-      where: {
-        coreProductId: productId,
-        coreVariantId: variantId,
-      },
-      data: {
-        hasPendingChange: false,
-        pendingChangeSummary: null,
-        lastApprovedAt: approvedAt,
-      },
-    });
-
-    await CacheService.incrementProductVersion();
-    await CacheService.deleteProduct(productId);
-
-    return {
-      productId,
-      variantId,
-      acknowledgedAt: approvedAt.toISOString(),
-      variantLinksUpdated: variantLinksUpdated.count,
-    };
   }
 
   /**
@@ -930,17 +576,6 @@ export class AdminProductService {
    * Update product
    */
   static async updateProduct(productId: string, data: UpdateProductData) {
-    const externalSourceLink = await prisma.externalProductLink.findFirst({
-      where: {
-        coreProductId: productId,
-        provider: 'odoo',
-      },
-      select: {
-        id: true,
-      },
-    });
-    const isOdooLinked = Boolean(externalSourceLink);
-
     const updateData: any = {};
 
     if (data.name !== undefined) updateData.name = data.name;
@@ -963,7 +598,7 @@ export class AdminProductService {
       }
     }
     if (data.productType !== undefined) updateData.productType = data.productType;
-    if (!isOdooLinked && data.requiresShipping !== undefined) updateData.requiresShipping = data.requiresShipping;
+    if (data.requiresShipping !== undefined) updateData.requiresShipping = data.requiresShipping;
     if (data.images !== undefined) updateData.typeData = { images: data.images };
 
     const defaultWarehouse = await WarehouseService.getDefaultWarehouse();

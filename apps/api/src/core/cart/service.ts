@@ -47,32 +47,6 @@ export class CartService {
   private static CART_CACHE_PREFIX = 'user_cart:';
   private static CART_CACHE_TTL = 86400 * 7; // 7 days
 
-  private static async ensureProductPurchasable(productId: string, variantId: string): Promise<void> {
-    const [productLink, variantLink] = await Promise.all([
-      prisma.externalProductLink.findFirst({
-        where: {
-          coreProductId: productId,
-        },
-        select: {
-          sourceIsActive: true,
-        },
-      }),
-      prisma.externalVariantLink.findFirst({
-        where: {
-          coreProductId: productId,
-          coreVariantId: variantId,
-        },
-        select: {
-          sourceIsActive: true,
-        },
-      }),
-    ]);
-
-    if (productLink?.sourceIsActive === false || variantLink?.sourceIsActive === false) {
-      throw new Error('Product is no longer available from source');
-    }
-  }
-
   /**
    * Get user cart with caching
    *
@@ -190,8 +164,6 @@ export class CartService {
         throw new Error('Product or variant not found');
       }
 
-      await this.ensureProductPurchasable(productId, variant.id);
-
       // Check if item already exists
       const existingItem = cart.items.find(
         (item) =>
@@ -293,8 +265,6 @@ export class CartService {
         if (!variant) {
           throw new Error('Product or variant not found');
         }
-
-        await this.ensureProductPurchasable(item.productId, variant.id);
 
         const existingItem = await tx.cartItem.findFirst({
           where: {

@@ -31,12 +31,6 @@ vi.mock('@/config/database', () => ({
       findMany: vi.fn(),
       count: vi.fn(),
     },
-    externalProductLink: {
-      findMany: vi.fn(),
-    },
-    externalVariantLink: {
-      findMany: vi.fn(),
-    },
   },
 }));
 
@@ -82,12 +76,6 @@ const mockPrisma = prisma as unknown as {
   category: {
     findMany: ReturnType<typeof vi.fn>;
     count: ReturnType<typeof vi.fn>;
-  };
-  externalProductLink: {
-    findMany: ReturnType<typeof vi.fn>;
-  };
-  externalVariantLink: {
-    findMany: ReturnType<typeof vi.fn>;
   };
 };
 
@@ -145,8 +133,6 @@ describe('ProductService', () => {
     mockCache.getProductVersion.mockResolvedValue(1);
     mockCache.get.mockResolvedValue(null);
     mockCache.set.mockResolvedValue(true);
-    mockPrisma.externalProductLink.findMany.mockResolvedValue([]);
-    mockPrisma.externalVariantLink.findMany.mockResolvedValue([]);
     mockInventory.getVariantIdsByAvailability.mockResolvedValue([]);
     mockInventory.getAvailableStockByVariantIds.mockResolvedValue(new Map());
   });

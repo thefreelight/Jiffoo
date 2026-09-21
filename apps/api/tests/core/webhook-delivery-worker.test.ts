@@ -30,7 +30,6 @@ describe('internal webhook delivery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     process.env.API_SERVICE_URL = 'https://api.bokmoo.com';
-    process.env.CATALOG_IMPORT_TOKEN = 'platform-token';
     delete process.env.BOKMOO_JIFFOO_WEBHOOK_SECRET;
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,

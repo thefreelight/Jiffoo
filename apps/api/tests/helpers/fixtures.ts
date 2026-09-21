@@ -386,9 +386,6 @@ export async function deleteAllTestProducts() {
   // Variants are referenced by cart items in several route suites.
   await prisma.cartItem.deleteMany({});
   await prisma.productVariant.deleteMany({});
-  await prisma.externalVariantLink.deleteMany({});
-  await prisma.externalProductLink.deleteMany({});
-  await prisma.externalCategoryLink.deleteMany({});
   // Clean all products created during tests, not just 'Test Product'
   // But to be safe, we look for those containing 'Test' or specific prefix patterns
   // or simply delete all if it's a dedicated test DB (but that's dangerous).

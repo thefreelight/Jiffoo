@@ -164,77 +164,6 @@ export interface AccountProfile {
   updatedAt: string;
 }
 
-export interface SourceChangeSummary {
-  changedFields?: string[];
-  [key: string]: unknown;
-}
-
-export interface ProductExternalSourceRecord {
-  provider: string;
-  installationId: string;
-  storeId: string;
-  externalProductCode: string;
-  externalName: string | null;
-  externalHash: string | null;
-  sourceName: string | null;
-  sourceDescription: string | null;
-  sourceCategoryCode: string | null;
-  sourceIsActive: boolean | null;
-  sourcePayloadJson: Record<string, unknown> | null;
-  sourcePayloadHash: string | null;
-  syncStatus: string;
-  sourceUpdatedAt: string | null;
-  lastSyncedAt: string | null;
-  lastComparedAt: string | null;
-  lastApprovedAt: string | null;
-  hasPendingChange: boolean;
-  pendingChangeSummary: SourceChangeSummary | null;
-}
-
-export interface VariantExternalSourceRecord {
-  coreVariantId: string;
-  coreSkuCode: string | null;
-  externalVariantCode: string;
-  externalProductCode: string;
-  externalHash: string | null;
-  sourceVariantName: string | null;
-  sourceSkuCode: string | null;
-  sourceCostPrice: number | null;
-  sourceIsActive: boolean | null;
-  sourceAttributesJson: Record<string, unknown> | null;
-  sourcePayloadHash: string | null;
-  syncStatus: string;
-  sourceUpdatedAt: string | null;
-  lastSyncedAt: string | null;
-  lastComparedAt: string | null;
-  lastApprovedAt: string | null;
-  hasPendingChange: boolean;
-  pendingChangeSummary: SourceChangeSummary | null;
-}
-
-export interface ProductExternalSourceDetails {
-  productId: string;
-  productName: string;
-  sourceProvider: string | null;
-  linked: boolean;
-  product: ProductExternalSourceRecord | null;
-  variants: VariantExternalSourceRecord[];
-}
-
-export interface ProductSourceAckResult {
-  productId: string;
-  acknowledgedAt: string;
-  productLinksUpdated: number;
-  variantLinksUpdated: number;
-}
-
-export interface VariantSourceAckResult {
-  productId: string;
-  variantId: string;
-  acknowledgedAt: string;
-  variantLinksUpdated: number;
-}
-
 // Lazy initialize API client
 let _apiClient: ReturnType<typeof createAdminClient> | null = null;
 
@@ -344,13 +273,6 @@ export const productsApi = {
     apiClient.get('/admin/products/stats', { params }),
 
   getById: (id: string): Promise<ApiResponse<AdminProductDetailDTO>> => apiClient.get(`/admin/products/${id}`),
-
-  getExternalSource: (id: string): Promise<ApiResponse<ProductExternalSourceDetails>> => apiClient.get(`/admin/products/${id}/external-source`),
-
-  acknowledgeSourceChanges: (id: string): Promise<ApiResponse<ProductSourceAckResult>> => apiClient.post(`/admin/products/${id}/ack-source-change`),
-
-  acknowledgeVariantSourceChange: (id: string, variantId: string): Promise<ApiResponse<VariantSourceAckResult>> =>
-    apiClient.post(`/admin/products/${id}/variants/${variantId}/ack-source-change`),
 
   create: (data: ProductForm): Promise<ApiResponse<AdminProductDetailDTO>> => apiClient.post('/admin/products', data),
 

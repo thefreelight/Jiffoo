@@ -37,7 +37,6 @@ export const ADMIN_PERMISSIONS = {
   HEALTH_READ: 'health.read',
   WEBHOOKS_READ: 'webhooks.read',
   WEBHOOKS_WRITE: 'webhooks.write',
-  CATALOG_IMPORT_RUN: 'catalogImport.run',
 } as const;
 
 export type AdminPermission = typeof ADMIN_PERMISSIONS[keyof typeof ADMIN_PERMISSIONS];
@@ -92,7 +91,6 @@ export const ADMIN_PERMISSION_GROUPS = {
     ADMIN_PERMISSIONS.WEBHOOKS_READ,
     ADMIN_PERMISSIONS.WEBHOOKS_WRITE,
   ],
-  CATALOG_IMPORT: [ADMIN_PERMISSIONS.CATALOG_IMPORT_RUN],
 } as const satisfies Record<string, readonly AdminPermission[]>;
 
 const ALL_ADMIN_PERMISSIONS = Object.values(ADMIN_PERMISSIONS) as AdminPermission[];

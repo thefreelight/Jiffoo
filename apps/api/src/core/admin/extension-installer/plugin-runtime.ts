@@ -314,7 +314,6 @@ function injectPlatformHeaders(
   // Extract locale from request
   const locale = extractLocale(request);
   const platformApiBaseUrl = resolvePlatformApiBaseUrl(request);
-  const integrationToken = (process.env.CATALOG_IMPORT_TOKEN || '').trim();
 
   const encodedPluginConfig = Buffer.from(JSON.stringify(ctx.config || {}), 'utf-8').toString('base64url');
 
@@ -329,7 +328,6 @@ function injectPlatformHeaders(
     'x-platform-id': platformId,
     'x-platform-version': process.env.PLATFORM_VERSION || '1.0.0',
     'x-platform-api-base-url': platformApiBaseUrl,
-    'x-platform-integration-token': integrationToken,
     'x-locale': locale,            // NEW: Added x-locale support
     'x-caller': caller,
     'x-plugin-config': encodedPluginConfig,

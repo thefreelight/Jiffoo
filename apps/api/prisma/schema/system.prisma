@@ -24,7 +24,6 @@ model User {
   // E-commerce relations
   orders            Order[]
   carts             Cart[]
-  pushSubscriptions PushSubscription[]
   store             Store?             @relation(fields: [storeId], references: [id])
   adminMembership   AdminMembership?
 

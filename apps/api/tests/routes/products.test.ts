@@ -37,18 +37,6 @@ describe('Products Endpoints', () => {
       stock: 5,
       category: 'electronics',
     });
-    await prisma.externalProductLink.create({
-      data: {
-        provider: 'odoo',
-        installationId: 'ins_hidden',
-        storeId: 'store_1',
-        externalProductCode: `ext_${hiddenOdooProduct.id}`,
-        coreProductId: hiddenOdooProduct.id,
-        coreProductSlug: hiddenOdooProduct.slug,
-        sourceIsActive: false,
-        syncStatus: 'DISABLED',
-      },
-    });
   });
 
   afterAll(async () => {

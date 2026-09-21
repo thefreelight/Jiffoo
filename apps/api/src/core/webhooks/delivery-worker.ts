@@ -263,11 +263,6 @@ export async function deliverInternalWebhook(params: InternalDeliveryParams): Pr
         'X-Jiffoo-Timestamp': timestamp,
       };
 
-      const platformToken = process.env.CATALOG_IMPORT_TOKEN;
-      if (platformToken) {
-        headers['X-Platform-Integration-Token'] = platformToken;
-      }
-
       const config = parseJsonRecord(instance.configJson);
       const secret =
         (typeof config.jiffooWebhookSecret === 'string' && config.jiffooWebhookSecret) ||
