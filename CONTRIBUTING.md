@@ -120,12 +120,10 @@ Then create a Pull Request on GitHub.
 apps/
 ├── api/      # Core API
 ├── admin/    # Merchant admin
-└── shop/     # Customer storefront
 
 packages/
 ├── shared/       # Shared utilities and types
 ├── plugin-sdk/   # Plugin development SDK
-├── shop-themes/  # Theme packages
 └── ...
 ```
 
@@ -169,7 +167,6 @@ apps/api/prisma/schema/
 Two versions are pinned via `pnpm.overrides` in the root `package.json` (package.json cannot carry comments, so the rationale lives here):
 
 - **`stripe: 18.4.0`** — the API server and the official Stripe plugin embed different stripe SDK ranges (`^18.2.1` / `^17.7.0`); the override keeps the whole workspace on one audited SDK version so payment-intent typings and webhook event shapes stay consistent.
-- **`next: 16.0.7`** — `apps/shop`, `apps/admin`, and the theme packages that ship Next app trees (e.g. `app-landingpage`) must resolve the exact same Next build; a mixed-minor workspace breaks `transpilePackages` and the CF Pages build.
 
 Remove an override only together with a full regression (`pnpm type-check` + the CI gate suite).
 

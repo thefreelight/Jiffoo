@@ -11,31 +11,24 @@
   "workspaces": [
     "apps/api",
     "apps/admin",
-    "apps/shop",
-    "packages/*",
-    "packages/shop-themes/*"
+    "packages/*"
   ],
   "scripts": {
-    "dev": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --concurrency=5",
-    "dev:core": "dotenv -e .env -- turbo run dev --filter=api --filter=shop --filter=admin --concurrency=5",
-    "dev:minimal": "turbo run dev --filter=api --filter=shop --concurrency=2",
+    "dev": "dotenv -e .env -- turbo run dev --filter=api --filter=admin --concurrency=5",
+    "dev:core": "dotenv -e .env -- turbo run dev --filter=api --filter=admin --concurrency=5",
+    "dev:minimal": "turbo run dev --filter=api --concurrency=2",
     "dev:api-only": "dotenv -e .env -- pnpm --filter api dev",
-    "dev:shop-only": "dotenv -e .env -- pnpm --filter shop dev",
     "dev:admin-only": "dotenv -e .env -- pnpm --filter admin dev",
     "dev:packages": "turbo run dev --filter='./packages/**' --concurrency=8",
     "build": "turbo run build",
-    "build:core": "turbo run build --filter=api --filter=shop --filter=admin",
-    "pages:build:shop": "pnpm --filter shop pages:build",
+    "build:core": "turbo run build --filter=api --filter=admin",
     "pages:build:admin": "pnpm --filter admin pages:build",
-    "pages:build:all": "pnpm pages:build:shop && pnpm pages:build:admin",
-    "pages:preview:shop": "pnpm --filter shop exec npx wrangler pages dev .vercel/output/static --port 3003",
     "pages:preview:admin": "pnpm --filter admin exec npx wrangler pages dev .vercel/output/static --port 3002",
     "start": "turbo run start",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean",
     "dev:api": "pnpm --filter api dev",
-    "dev:shop": "pnpm --filter shop dev",
     "db:generate": "pnpm --filter api db:generate",
     "db:migrate": "pnpm --filter api db:migrate",
     "db:studio": "pnpm --filter api db:studio",
@@ -43,15 +36,11 @@
     "db:seed": "pnpm --filter api db:seed",
     "test": "turbo run test",
     "test:api:quality": "pnpm --filter api test:quality",
-    "test:e2e": "pnpm test:e2e:shop && pnpm test:e2e:admin",
-    "test:e2e:shop": "playwright test -c apps/api/tests/e2e/playwright.shop.config.ts",
     "test:e2e:admin": "playwright test -c apps/api/tests/e2e/playwright.admin.config.ts",
-    "test:e2e:all": "pnpm test:e2e",
-    "test:e2e:ui": "playwright test -c apps/api/tests/e2e/playwright.shop.config.ts --ui",
+    "test:e2e:all": "pnpm test:e2e:admin",
     "test:e2e:report": "playwright show-report apps/api/tests/e2e/playwright-report",
     "smoke:admin-staff-rbac": "node scripts/smoke-admin-staff-rbac.mjs",
     "test:self-hosted-detection": "pnpm --filter api test -- tests/routes/upgrade.test.ts tests/core/upgrade-executors.test.ts",
-    "test:shop-runtime-truth": "pnpm --filter shop test -- tests/themes/theme-pack-rendering-mode.test.ts tests/themes/theme-pack-loader.test.ts tests/themes/theme-provider-remote-runtime.test.tsx tests/themes/store-context-provider.test.tsx tests/themes/storefront-runtime-source-of-truth.test.ts tests/themes/esim-mall-runtime-registry.test.ts",
     "test:updater:docker-compose": "node scripts/rehearse-docker-compose-updater.mjs",
     "test:live-runtime-verifier": "node scripts/test-verify-live-runtime-version.mjs",
     "test:native-d1-migration-line": "node scripts/test-verify-native-d1-migration-line.mjs",
@@ -61,24 +50,15 @@
     "verify:live-runtime": "node scripts/verify-live-runtime-version.mjs",
     "verify:native-d1-migration-line": "node scripts/verify-native-d1-migration-line.mjs",
     "verify:branded-storefront-runtime": "node scripts/verify-branded-storefront-runtime.mjs",
-    "verify:theme-clients": "node scripts/verify-theme-client-contracts.mjs",
-    "verify:theme-clients:strict": "node scripts/verify-theme-client-contracts.mjs --strict-cross-repo",
     "changeset": "changeset",
     "version:bump": "changeset version",
     "release": "pnpm version:bump && pnpm build",
-    "theme-matrix": "node scripts/theme-matrix.mjs",
-    "theme-matrix:type-check": "node scripts/theme-matrix.mjs --type-check",
-    "theme-matrix:validate": "node scripts/theme-matrix.mjs --validate",
-    "theme-matrix:ssr": "node scripts/theme-ssr-smoke.mjs",
     "surface:generate": "pnpm --filter @jiffoo/theme-api-sdk surface:generate",
     "surface:check": "pnpm --filter @jiffoo/theme-api-sdk surface:check"
   },
   "lint-staged": {
     "apps/api/src/**/*.ts": [
       "pnpm --filter api exec eslint --fix"
-    ],
-    "apps/shop/**/*.{ts,tsx}": [
-      "pnpm --filter shop exec eslint --fix"
     ],
     "apps/admin/**/*.{ts,tsx}": [
       "pnpm --filter admin exec eslint --fix"

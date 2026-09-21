@@ -1,8 +1,0 @@
-{
-  "name": "@shop-themes/stellar-midnight",
-  "version": "0.1.0",
-  "description": "Official Stellar Midnight SaaS storefront theme pack",
-  "private": true,
-  "type": "module",
-  "scripts": {}
-}

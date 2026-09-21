@@ -126,33 +126,6 @@ services:
       api:
         condition: service_healthy
 
-  shop:
-    build:
-      context: .
-      dockerfile: apps/shop/Dockerfile
-      args:
-        NODE_BASE_IMAGE: node:20-alpine
-        HTTP_PROXY: ""
-        HTTPS_PROXY: ""
-        NO_PROXY: localhost,127.0.0.1,api
-        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmjs.org}
-        API_SERVICE_URL: http://api:3002
-        NEXT_PUBLIC_SHOP_URL: ${JIFFOO_PUBLIC_SHOP_URL}
-        NEXT_PUBLIC_API_URL: ${JIFFOO_PUBLIC_API_URL}/api
-    image: ${SHOP_IMAGE:-jiffoo/shop:self-hosted}
-    restart: unless-stopped
-    environment:
-      NODE_ENV: production
-      PORT: 3001
-      API_SERVICE_URL: http://api:3002
-      NEXT_PUBLIC_API_URL: ${JIFFOO_PUBLIC_API_URL}/api
-      NEXT_PUBLIC_SHOP_URL: ${JIFFOO_PUBLIC_SHOP_URL}
-    ports:
-      - "${JIFFOO_SHOP_PORT:-3000}:3001"
-    depends_on:
-      api:
-        condition: service_healthy
-
   admin:
     build:
       context: .

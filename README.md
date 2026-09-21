@@ -42,14 +42,13 @@ pnpm dev
 ```
 
 Requires Node 20+, PostgreSQL 14+, Redis 6+, pnpm 9+.
-Shop runs on 3003, Admin on 3002, API on 3001.
+Admin runs on 3002, API on 3001.
 
 ## Repository layout
 
 ```text
-apps/        api, admin, shop
-packages/    core-api-sdk, plugin-sdk, theme-api-sdk, shared, ui,
-             shop-themes, create-jiffoo-app, mcp-server
+apps/        api, admin
+packages/    core-api-sdk, plugin-sdk, theme-api-sdk, shared, ui
 ```
 
 ## Documentation
@@ -62,5 +61,5 @@ packages/    core-api-sdk, plugin-sdk, theme-api-sdk, shared, ui,
 ## Licence
 
 GPL v2.0 or later. The SDK packages (`@jiffoo/plugin-sdk`, `@jiffoo/theme-api-sdk`,
-`@jiffoo/core-api-sdk`, `@jiffoo/ui`, `create-jiffoo-app`) are MIT — see
+`@jiffoo/core-api-sdk`, `@jiffoo/ui`) are MIT — see
 [LICENSE-EXCEPTIONS.md](LICENSE-EXCEPTIONS.md).

@@ -21,7 +21,6 @@
     "API_SERVICE_URL",
     "NEXT_PUBLIC_API_URL",
     "NEXT_PUBLIC_ADMIN_URL",
-    "NEXT_PUBLIC_SUPER_ADMIN_URL",
     "NEXT_PUBLIC_SHOP_URL",
     "STRIPE_SECRET_KEY",
     "STRIPE_PUBLISHABLE_KEY",
@@ -95,29 +94,6 @@
     },
     "db:seed": {
       "cache": false
-    },
-    "theme-matrix": {
-      "dependsOn": [
-        "^build"
-      ],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "!**/*.tsbuildinfo"
-      ],
-      "outputs": [
-        "dist/**"
-      ],
-      "outputLogs": "new-only"
-    },
-    "theme-matrix:type-check": {
-      "dependsOn": [
-        "^build"
-      ],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        "!**/*.tsbuildinfo"
-      ],
-      "outputLogs": "new-only"
     }
   }
 }

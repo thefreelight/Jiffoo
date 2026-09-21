@@ -4,7 +4,7 @@ Governs the Jiffoo open-source core and its SDK packages.
 
 ## Layer 1 — GPL core
 
-Applies to `apps/api`, `apps/admin`, `apps/shop`, `packages/shared`, and the root
+Applies to `apps/api`, `apps/admin`, `packages/shared`, and the root
 package.
 
 Licence: GPL-2.0-or-later.
@@ -20,7 +20,6 @@ terms.
 | `@jiffoo/theme-api-sdk` | Theme-facing Core API SDK |
 | `@jiffoo/core-api-sdk` | Core API SDK |
 | `@jiffoo/ui` | Shared UI components |
-| `create-jiffoo-app` | Project scaffolding CLI |
 
 These are MIT so that anyone can build against Jiffoo's documented APIs without
 triggering copyleft, provided they do not import core code.
