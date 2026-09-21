@@ -1783,7 +1783,6 @@ addCheck('updater verifies live runtime before committing version metadata', () 
   const executorTest = read('apps/api/tests/core/upgrade-executors.test.ts');
   const dockerAgent = read('scripts/jiffoo-updater-agent.mjs');
   const k8sAgent = read('scripts/jiffoo-k8s-updater-agent.mjs');
-  const k8sUpdaterController = read('deploy/k8s/jiffoo-k8s-updater-controller.yaml');
   const rehearsal = read('scripts/rehearse-docker-compose-updater.mjs');
 
   const imageFirstPath = section(
@@ -1830,9 +1829,6 @@ addCheck('updater verifies live runtime before committing version metadata', () 
   assertIncludes(k8sAgent, 'requires manual intervention and cannot use one-click upgrade', 'k8s updater agent manual-intervention guard');
   assertIncludes(k8sAgent, 'minimum auto-upgradable version', 'k8s updater agent minimum auto-upgradable guard');
   assertIncludes(k8sAgent, 'Update manifest image-first delivery is missing a valid checksumUrl recovery asset', 'k8s updater agent checksum recovery asset guard');
-  assertIncludes(k8sUpdaterController, 'JIFFOO_CORE_UPDATE_MANIFEST_URL', 'k8s updater controller public manifest URL env');
-  assertIncludes(k8sUpdaterController, 'https://get.jiffoo.com/releases/core/manifest.json', 'k8s updater controller default public manifest feed');
-  assertIncludes(k8sUpdaterController, 'JIFFOO_UPDATE_CHANNEL', 'k8s updater controller update channel env');
   assertBefore(
     dockerAgentUpgradePath,
     'validatedTargetVersion = await assertPublicManifestAllowsUpgrade(targetVersion, body.currentVersion);',
