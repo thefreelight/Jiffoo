@@ -47,7 +47,6 @@ describe('Admin access policy', () => {
     ['/en/products', ADMIN_PERMISSIONS.PRODUCTS_READ],
     ['/en/products/new', ADMIN_PERMISSIONS.PRODUCTS_WRITE],
     ['/en/products/sku_123/edit', ADMIN_PERMISSIONS.PRODUCTS_WRITE],
-    ['/en/inventory/alerts', ADMIN_PERMISSIONS.INVENTORY_FORECAST],
     ['/en/orders', ADMIN_PERMISSIONS.ORDERS_READ],
     ['/en/customers', ADMIN_PERMISSIONS.CUSTOMERS_READ],
     ['/en/staff', ADMIN_PERMISSIONS.STAFF_READ],

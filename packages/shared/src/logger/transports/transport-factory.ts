@@ -4,13 +4,12 @@
 
 import { ITransport, TransportConfig } from '../types';
 import { ConsoleTransport, ConsoleTransportOptions } from './console-transport';
-import { RemoteTransport, RemoteTransportOptions } from './remote-transport';
 
 // Dynamically import FileTransport to avoid bundling in browser environment
 type FileTransportType = typeof import('./file-transport').FileTransport;
 type FileTransportOptionsType = import('./file-transport').FileTransportOptions;
 
-export type TransportType = 'console' | 'file' | 'remote';
+export type TransportType = 'console' | 'file';
 
 /**
  * Unified factory function for creating transports
@@ -33,15 +32,6 @@ export function createTransport(config: TransportConfig): ITransport {
         level: config.level,
         ...config.options
       } as FileTransportOptionsType);
-
-    case 'remote':
-      if (typeof window === 'undefined') {
-        throw new Error('RemoteTransport is primarily designed for browser environment');
-      }
-      return new RemoteTransport({
-        level: config.level,
-        ...config.options
-      } as RemoteTransportOptions);
 
     default:
       throw new Error(`Unknown transport type: ${config.type}`);
@@ -94,20 +84,3 @@ export function createDefaultFileTransports(baseDir: string = './logs'): ITransp
   ];
 }
 
-/**
- * Create default remote transport (Browser only)
- */
-export function createDefaultRemoteTransport(endpoint: string): RemoteTransport | null {
-  if (typeof window === 'undefined') {
-    return null;
-  }
-
-  return new RemoteTransport({
-    endpoint,
-    level: 'info',
-    batchSize: 10,
-    flushInterval: 5000,
-    maxRetries: 3,
-    enableLocalStorage: true
-  });
-}

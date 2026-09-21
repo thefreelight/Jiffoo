@@ -4,9 +4,8 @@
 
 import { ITransport, TransportConfig } from '../types';
 import { ConsoleTransport, ConsoleTransportOptions } from './console-transport';
-import { RemoteTransport, RemoteTransportOptions } from './remote-transport';
 
-export type TransportType = 'console' | 'remote';
+export type TransportType = 'console';
 
 /**
  * Unified factory function for creating transports (Browser environment)
@@ -18,12 +17,6 @@ export function createTransport(config: TransportConfig): ITransport {
         level: config.level,
         ...config.options
       } as ConsoleTransportOptions);
-
-    case 'remote':
-      return new RemoteTransport({
-        level: config.level,
-        ...config.options
-      } as RemoteTransportOptions);
 
     case 'file':
       throw new Error('FileTransport is not available in browser environment');
@@ -44,16 +37,3 @@ export function createDefaultConsoleTransport(): ConsoleTransport {
   });
 }
 
-/**
- * Create default remote transport (Browser only)
- */
-export function createDefaultRemoteTransport(endpoint: string): RemoteTransport {
-  return new RemoteTransport({
-    endpoint,
-    level: 'info',
-    batchSize: 10,
-    flushInterval: 5000,
-    maxRetries: 3,
-    enableLocalStorage: true
-  });
-}

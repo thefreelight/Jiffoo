@@ -63,7 +63,6 @@ describe('Unified Job Infrastructure', () => {
       expect(QUEUE_NAMES.WEBHOOK_DELIVERY).toBe('webhook-delivery');
       expect(QUEUE_NAMES.EMAIL).toBe('email');
       expect(QUEUE_NAMES.FULFILLMENT).toBe('fulfillment');
-      expect(QUEUE_NAMES.STOCK_ALERT).toBe('stock-alert');
     });
   });
 
@@ -77,8 +76,6 @@ describe('Unified Job Infrastructure', () => {
       expect(queueManager.resolveQueue('email.send')).toBe('email');
       expect(queueManager.resolveQueue('user.registered')).toBe('email');
       expect(queueManager.resolveQueue('order.paid')).toBe('fulfillment');
-      expect(queueManager.resolveQueue('stock.check')).toBe('stock-alert');
-      expect(queueManager.resolveQueue('inventory.adjusted')).toBe('stock-alert');
     });
 
     it('should default to webhook-delivery for unknown event types', async () => {
@@ -195,10 +192,5 @@ describe('Unified Job Infrastructure', () => {
       expect(queueManager.resolveQueue('order.paid')).toBe('fulfillment');
     });
 
-    it('should route stock events to stock-alert queue', async () => {
-      const { queueManager } = await import('@/infra/jobs/queue-manager');
-      expect(queueManager.resolveQueue('stock.check')).toBe('stock-alert');
-      expect(queueManager.resolveQueue('inventory.adjusted')).toBe('stock-alert');
-    });
   });
 });

@@ -360,20 +360,6 @@ export const shop = {
     underDevelopmentDescription: 'The contact form feature is currently under development. Please try again later.',
   },
 
-  // Recommendations
-  recommendations: {
-    errorTitle: 'Unable to load recommendations',
-    loading: 'Loading recommendations...',
-    personalizedForYou: 'Recommended For You',
-    popularProducts: 'Popular Products',
-    personalizedDescription: 'Based on your interests and shopping history',
-    popularDescription: 'Trending products you might like',
-    frequentlyBoughtTogether: 'Frequently Bought Together',
-    frequentlyBoughtTogetherDescription: 'Complete your order with these popular combinations',
-    customersAlsoBought: 'Customers Also Bought',
-    customersAlsoBoughtDescription: 'Based on what other customers purchased',
-  },
-
   // Footer
   footer: {
     aboutUs: 'About Us',

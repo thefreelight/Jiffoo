@@ -1,6 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import { env } from './env';
-import { QueryAnalyzer } from '@/core/performance/query-analyzer';
 import { slowQueryExtension } from '@/infra/prisma-slow-query-extension';
 
 /**
@@ -21,14 +20,12 @@ console.log('[DatabaseConfig] Prisma client created:', !!prisma);
 
 // Note: Prisma v5+ removed $use middleware. Query analyzer middleware is disabled.
 // To re-enable, use prisma.$extends() or Prisma client extensions.
-// prisma.$use(QueryAnalyzer.createPrismaMiddleware());
 
 // Enable query analyzer in development and production
 if (env.NODE_ENV === 'development' || env.NODE_ENV === 'production') {
-  QueryAnalyzer.enable();
 }
 
-export { prisma, QueryAnalyzer };
+export { prisma };
 
 // Graceful shutdown
 process.on('beforeExit', async () => {

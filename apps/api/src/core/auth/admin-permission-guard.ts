@@ -48,15 +48,6 @@ function isReadMethod(method: string): boolean {
   return READ_METHODS.has(method.toUpperCase());
 }
 
-function isForecastingInventoryPath(pathname: string): boolean {
-  return pathname === '/admin/inventory/dashboard'
-    || pathname === '/admin/inventory/stats'
-    || pathname === '/admin/inventory/forecast'
-    || pathname === '/admin/inventory/recompute-all'
-    || pathname.startsWith('/admin/inventory/alerts/')
-    || pathname.startsWith('/admin/inventory/accuracy/');
-}
-
 function resolveRequiredPermission(method: string, pathname: string): AdminPermission | null {
   if (pathname.startsWith('/admin/dashboard')) {
     return ADMIN_PERMISSIONS.DASHBOARD_READ;
@@ -98,17 +89,13 @@ function resolveRequiredPermission(method: string, pathname: string): AdminPermi
       : ADMIN_PERMISSIONS.ORDERS_WRITE;
   }
 
-  if (pathname.startsWith('/admin/warehouses') || pathname.startsWith('/admin/stock-alerts')) {
+  if (pathname.startsWith('/admin/warehouses')) {
     return isReadMethod(method)
       ? ADMIN_PERMISSIONS.INVENTORY_READ
       : ADMIN_PERMISSIONS.INVENTORY_WRITE;
   }
 
   if (pathname.startsWith('/admin/inventory')) {
-    if (isForecastingInventoryPath(pathname)) {
-      return ADMIN_PERMISSIONS.INVENTORY_FORECAST;
-    }
-
     return isReadMethod(method)
       ? ADMIN_PERMISSIONS.INVENTORY_READ
       : ADMIN_PERMISSIONS.INVENTORY_WRITE;

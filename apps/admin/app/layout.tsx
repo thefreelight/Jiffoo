@@ -7,7 +7,6 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
-import { DevTools } from '@/components/dev-tools';
 import { AdminThemePackWrapper } from '@/components/admin-theme-pack-wrapper';
 
 
@@ -27,7 +26,6 @@ export default function RootLayout({
         <AdminThemePackWrapper>
           {children}
         </AdminThemePackWrapper>
-        {/* <DevTools /> */}
       </body>
     </html>
   );

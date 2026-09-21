@@ -22,19 +22,16 @@ const allMessages: Record<Locale, Messages> = {
     common: enMessages.common,
     shop: enMessages.shop,
     merchant: enMessages.merchant,
-    whiteLabel: enMessages.whiteLabel,
   },
   'zh-Hans': {
     common: zhHansMessages.common,
     shop: zhHansMessages.shop,
     merchant: zhHansMessages.merchant,
-    whiteLabel: zhHansMessages.whiteLabel,
   },
   'zh-Hant': {
     common: zhHantMessages.common,
     shop: zhHantMessages.shop,
     merchant: zhHantMessages.merchant,
-    whiteLabel: zhHantMessages.whiteLabel,
   },
 };
 

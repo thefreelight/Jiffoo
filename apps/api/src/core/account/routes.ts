@@ -59,7 +59,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
   fastify.get('', async (request, reply) => {
     try {
       const profile = await AccountService.getProfile(request.user!.id);
-      const isGuest = profile.role === 'GUEST' || profile.email.endsWith('@guest.bokmoo.invalid');
+      const isGuest = profile.role === 'GUEST' || profile.email.endsWith('@guest.invalid');
       const account = {
         id: profile.id,
         name: profile.username,

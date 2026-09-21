@@ -1,4 +1,4 @@
-// inventory.prisma — Warehouse, WarehouseInventory, StockAlert,
+// inventory.prisma — Warehouse, WarehouseInventory,
 //                    InventoryAdjustment, InventoryTransfer
 
 // ============================================================
@@ -18,7 +18,6 @@ model Warehouse {
   inventoryAdjustments   InventoryAdjustment[]
   inventoryTransfersFrom InventoryTransfer[]   @relation("TransfersFrom")
   inventoryTransfersTo   InventoryTransfer[]   @relation("TransfersTo")
-  stockAlerts            StockAlert[]
 
   @@index([code])
   @@index([isActive])
@@ -50,33 +49,6 @@ model WarehouseInventory {
   @@index([quantity])
   @@index([available])
   @@map("warehouse_inventories")
-  @@schema("public")
-}
-
-// ============================================================
-// STOCK ALERT
-// ============================================================
-model StockAlert {
-  id          String           @id @default(cuid())
-  warehouseId String
-  variantId   String
-  alertType   StockAlertType   @default(LOW_STOCK)
-  threshold   Int
-  quantity    Int
-  status      StockAlertStatus @default(ACTIVE)
-  resolvedAt  DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-  warehouse Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
-  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade)
-
-  @@index([warehouseId])
-  @@index([variantId])
-  @@index([alertType])
-  @@index([status])
-  @@index([createdAt])
-  @@map("stock_alerts")
   @@schema("public")
 }
 

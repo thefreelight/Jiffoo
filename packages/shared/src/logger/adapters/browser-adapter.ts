@@ -5,12 +5,10 @@
 import { ILogger, ITransport, LogLevel, LogMeta, OperationLog, LoggerConfig } from '../types';
 import { BaseLogger } from '../base-logger';
 import { ConsoleTransport } from '../transports/console-transport';
-import { RemoteTransport } from '../transports/remote-transport';
 import { createTransport } from '../transports/transport-factory.browser';
 
 export interface BrowserAdapterOptions {
   config: LoggerConfig;
-  remoteEndpoint?: string;
   enableLocalStorage?: boolean;
   storageKey?: string;
   maxLocalLogs?: number;
@@ -32,7 +30,7 @@ export class BrowserAdapter extends BaseLogger {
     this.maxLocalLogs = options.maxLocalLogs || 100;
 
     // Initialize default transports
-    this.initializeDefaultTransports(options.remoteEndpoint);
+    this.initializeDefaultTransports();
     
     // Setup browser-specific features
     this.setupBrowserFeatures();
@@ -41,7 +39,7 @@ export class BrowserAdapter extends BaseLogger {
   /**
    * Initialize default transports
    */
-  private initializeDefaultTransports(remoteEndpoint?: string): void {
+  private initializeDefaultTransports(): void {
     // Add console transport
     const consoleTransport = new ConsoleTransport({
       level: this.currentLevel,
@@ -49,19 +47,6 @@ export class BrowserAdapter extends BaseLogger {
       timestamp: true
     });
     this.addTransport(consoleTransport);
-
-    // If remote endpoint provided, add remote transport
-    if (remoteEndpoint) {
-      const remoteTransport = new RemoteTransport({
-        endpoint: remoteEndpoint,
-        level: 'info', // Only send info and above levels to server
-        batchSize: 10,
-        flushInterval: 5000,
-        enableLocalStorage: this.enableLocalStorage,
-        storageKey: `${this.localStorageKey}_remote`
-      });
-      this.addTransport(remoteTransport);
-    }
 
     // Add other transports based on configuration
     this.config.transports.forEach(transportConfig => {
@@ -341,7 +326,7 @@ export function createBrowserAdapter(options: BrowserAdapterOptions): BrowserAda
 /**
  * Create default browser adapter
  */
-export function createDefaultBrowserAdapter(appName: string, remoteEndpoint?: string): BrowserAdapter {
+export function createDefaultBrowserAdapter(appName: string): BrowserAdapter {
   const config: LoggerConfig = {
     appName,
     environment: (process.env.NODE_ENV as 'development' | 'production' | 'test') || 'development',
@@ -353,7 +338,6 @@ export function createDefaultBrowserAdapter(appName: string, remoteEndpoint?: st
 
   return new BrowserAdapter({
     config,
-    remoteEndpoint,
     enableLocalStorage: true,
     maxLocalLogs: 100
   });

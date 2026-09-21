@@ -2,7 +2,6 @@
 import { MultipartFile } from '@fastify/multipart';
 import path from 'path';
 import { randomUUID } from 'crypto';
-import { CDNConfig } from '../performance/cdn-config';
 import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
 
 export interface UploadResult {
@@ -56,7 +55,7 @@ export class UploadService {
     ]);
 
     const localUrl = `/uploads/products/${baseFilename}`;
-    const url = CDNConfig.getAssetUrl(localUrl);
+    const url = localUrl;
 
     return {
       filename: baseFilename,
@@ -90,7 +89,7 @@ export class UploadService {
     ]);
 
     const localUrl = `/uploads/avatars/${filename}`;
-    const url = CDNConfig.getAssetUrl(localUrl);
+    const url = localUrl;
 
     return {
       filename,
@@ -236,6 +235,6 @@ export class UploadService {
     }
 
     // Transform to CDN URL if CDN is enabled
-    return CDNConfig.getAssetUrl(localUrl);
+    return localUrl;
   }
 }

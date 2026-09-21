@@ -83,10 +83,6 @@ export function getRequiredPermissionsForAdminPath(
     return [ADMIN_PERMISSIONS.PRODUCTS_READ];
   }
 
-  if (path.startsWith('/inventory/alerts')) {
-    return [ADMIN_PERMISSIONS.INVENTORY_FORECAST];
-  }
-
   if (path.startsWith('/inventory')) {
     return [ADMIN_PERMISSIONS.INVENTORY_READ];
   }

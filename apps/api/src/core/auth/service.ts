@@ -61,7 +61,7 @@ export class AuthService {
     const hint = input.installId || input.deviceId || input.guestId || crypto.randomUUID();
     const digest = suppliedGuestDigest || crypto.createHash('sha256').update(hint).digest('hex').slice(0, 32);
     const guestId = input.guestId?.trim() || `guest_${digest}`;
-    const email = `${digest}@guest.bokmoo.invalid`;
+    const email = `${digest}@guest.invalid`;
 
     let user = await findAuthUserByEmail(email);
     if (!user) {
@@ -258,7 +258,7 @@ export class AuthService {
 
   static async convertGuest(userId: string, data: RegisterRequest): Promise<AuthResponse> {
     const guest = await findAuthUserById(userId);
-    if (!guest || guest.role !== 'GUEST' || !guest.email.endsWith('@guest.bokmoo.invalid')) {
+    if (!guest || guest.role !== 'GUEST' || !guest.email.endsWith('@guest.invalid')) {
       throw new Error('Guest session is invalid');
     }
     const duplicate = await prisma.user.findFirst({

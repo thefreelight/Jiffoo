@@ -10,13 +10,6 @@ export {
   type ConsoleTransportOptions 
 } from './console-transport';
 
-// Remote Transport
-export { 
-  RemoteTransport, 
-  createRemoteTransport,
-  type RemoteTransportOptions 
-} from './remote-transport';
-
 // File Transport (Node.js only)
 export { 
   FileTransport, 
@@ -27,4 +20,4 @@ export {
 } from './file-transport';
 
 // Transport Factory (Node.js version)
-export { createTransport, createDefaultConsoleTransport, createDefaultFileTransports, createDefaultRemoteTransport, type TransportType } from './transport-factory';
+export { createTransport, createDefaultConsoleTransport, createDefaultFileTransports, type TransportType } from './transport-factory';

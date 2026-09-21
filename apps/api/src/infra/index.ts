@@ -19,5 +19,3 @@ export {
   QUEUE_NAMES,
 } from './jobs';
 
-// Re-export forecasting worker for infrastructure layer
-export { ForecastingWorker } from '@/core/inventory/forecasting/worker';

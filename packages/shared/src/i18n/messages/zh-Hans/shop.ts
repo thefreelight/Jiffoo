@@ -360,20 +360,6 @@ export const shop = {
     underDevelopmentDescription: '联络表单功能目前正在开发中，请稍后再试。',
   },
 
-  // Recommendations
-  recommendations: {
-    errorTitle: '无法载入推荐',
-    loading: '正在载入推荐...',
-    personalizedForYou: '为您推荐',
-    popularProducts: '热门商品',
-    personalizedDescription: '根据您的兴趣和购物记录',
-    popularDescription: '您可能喜欢的热门商品',
-    frequentlyBoughtTogether: '经常一起购买',
-    frequentlyBoughtTogetherDescription: '搭配这些热门组合完成您的订单',
-    customersAlsoBought: '其他买家也购买了',
-    customersAlsoBoughtDescription: '根据其他顾客的购买记录',
-  },
-
   // Footer
   footer: {
     aboutUs: '关于我们',

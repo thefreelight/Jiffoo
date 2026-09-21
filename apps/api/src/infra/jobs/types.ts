@@ -13,7 +13,6 @@ export const QUEUE_NAMES = {
   WEBHOOK_DELIVERY: 'webhook-delivery',
   EMAIL: 'email',
   FULFILLMENT: 'fulfillment',
-  STOCK_ALERT: 'stock-alert',
 } as const;
 
 export type QueueName = (typeof QUEUE_NAMES)[keyof typeof QUEUE_NAMES];

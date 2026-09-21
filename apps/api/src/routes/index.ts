@@ -18,7 +18,6 @@ import { paymentsRoutes as stripePaymentRoutes } from './payments'; // NEW expli
 import { notificationRoutes } from '@/core/notification/routes';
 import currencyRoutes from '@/core/currency/routes';
 import { discountRoutes } from '@/core/discount/routes';
-import { recommendationRoutes } from '@/core/recommendations/routes';
 
 import { upgradeRoutes } from '@/core/upgrade/routes';
 
@@ -31,17 +30,11 @@ import { adminThemeRoutes, publicThemeRoutes } from '@/core/admin/theme-manageme
 import systemSettingsRoutes from '@/core/admin/system-settings/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
 import { healthMonitoringRoutes } from '@/core/admin/health-monitoring/routes';
-import { errorTrackingRoutes } from '@/core/error-tracking/routes';
 import { adminStoreManagementRoutes } from '@/core/admin/store-management/routes';
 import { adminCatalogImportRoutes } from '@/core/admin/catalog-import/routes';
 
-// SEO routes
-import { seoRoutes, sitemapRoute } from '@/core/seo/routes';
 import { adminWarehouseRoutes } from '@/core/warehouse/routes';
 import { adminInventoryRoutes } from '@/core/inventory/routes';
-import { adminStockAlertRoutes } from '@/core/stock-alert/routes';
-
-import { forecastingRoutes } from '@/core/inventory/forecasting/routes';
 
 // Extension installer routes
 import { extensionInstallerRoutes } from '@/core/admin/extension-installer/routes';
@@ -56,7 +49,6 @@ import { webhookRoutes } from '@/core/webhooks/routes';
 import { storeRoutes } from '@/core/store/routes';
 // Install routes (Restored)
 import { installRoutes } from '@/core/install/routes';
-import { bokmooAppRoutes } from '@/core/bokmoo-app/routes';
 
 /**
  * Register all API routes
@@ -76,7 +68,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // User account routes
   await fastify.register(accountRoutes, { prefix: '/api/account' });
-  await fastify.register(bokmooAppRoutes, { prefix: '/api' });
 
   // Admin routes
   await fastify.register(adminUserRoutes, { prefix: '/api/admin/users' });
@@ -86,8 +77,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(adminThemeRoutes, { prefix: '/api/admin/themes' });
   await fastify.register(adminWarehouseRoutes, { prefix: '/api/admin/warehouses' });
   await fastify.register(adminInventoryRoutes, { prefix: '/api/admin/inventory' });
-  await fastify.register(forecastingRoutes, { prefix: '/api/admin/inventory' });
-  await fastify.register(adminStockAlertRoutes, { prefix: '/api/admin/stock-alerts' });
   await fastify.register(systemSettingsRoutes, { prefix: '/api/admin' });
   await fastify.register(adminStoreManagementRoutes, { prefix: '/api/admin/stores' });
   await fastify.register(adminCatalogImportRoutes, { prefix: '/api/admin/integrations/catalog-import' });
@@ -97,8 +86,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // Health monitoring routes
   await fastify.register(healthMonitoringRoutes, { prefix: '/api/admin' });
-  // Error tracking routes
-  await fastify.register(errorTrackingRoutes, { prefix: '/api/admin/errors' });
 
   // Webhook management routes
   await fastify.register(webhookRoutes, { prefix: '/api/admin/webhooks' });
@@ -118,11 +105,7 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(publicThemeRoutes, { prefix: '/api/themes' });
   await fastify.register(currencyRoutes, { prefix: '/api/currency' });
 
-  // SEO routes
-  await fastify.register(seoRoutes, { prefix: '/api/seo' });
-  await fastify.register(sitemapRoute, { prefix: '/api' });
   await fastify.register(discountRoutes, { prefix: '/api/discounts' });
-  await fastify.register(recommendationRoutes, { prefix: '/api/recommendations' });
 
   // Extension installer routes
   await fastify.register(extensionInstallerRoutes, { prefix: '/api/extensions' });

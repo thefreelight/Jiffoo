@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, uploadApi, dashboardApi, inventoryApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, redirectsApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, InventoryStatsData, type SeoRedirect, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
+import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
@@ -39,7 +39,7 @@ export interface PaginatedApiResponse<T> {
 // Re-export types for convenience
 export type { DashboardStats, Product, Order, OrderDetail, User, OrderItem, OrderDetailItem } from '../types';
 export type { ErrorLog, ErrorListParams } from '../types';
-export type { SeoRedirect, Promotion, PromotionForm } from '../api';
+export type { Promotion, PromotionForm } from '../api';
 
 // Query keys
 export const queryKeys = {
@@ -62,8 +62,6 @@ export const queryKeys = {
   productStats: ['product-stats'] as const,
   adminDashboard: ['admin-dashboard'] as const,
 
-  inventoryDashboard: ['inventory-dashboard'] as const,
-  inventoryStats: ['inventory-stats'] as const,
   accountProfile: ['account-profile'] as const,
 };
 
@@ -1420,202 +1418,6 @@ export function useRollbackTheme() {
   });
 }
 
-// ==================== Inventory Forecasting Hooks ====================
-
-// Get aggregated inventory dashboard data
-export function useInventoryDashboard(params: {
-  page?: number;
-  limit?: number;
-  status?: 'ACTIVE' | 'DISMISSED' | 'RESOLVED';
-  productId?: string;
-  variantId?: string;
-} = {}) {
-  return useQuery({
-    queryKey: [...queryKeys.inventoryDashboard, params],
-    queryFn: async () => {
-      const response = await inventoryApi.getDashboard(params);
-      return unwrapApiResponse(response);
-    },
-    staleTime: 2 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
-  });
-}
-
-export function useInventoryStats() {
-  return useQuery({
-    queryKey: queryKeys.inventoryStats,
-    queryFn: async () => {
-      const response = await inventoryApi.getStats();
-      return unwrapApiResponse(response) as InventoryStatsData;
-    },
-    staleTime: 2 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
-  });
-}
-
-// Generate forecast mutation
-export function useGenerateForecast() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async (data: {
-      productId: string;
-      variantId: string;
-      days?: number;
-      historicalDays?: number;
-    }) => {
-      const response = await inventoryApi.generateForecast(data);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryDashboard });
-      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryStats });
-      toast.success('Forecast generated successfully');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-export function useRecomputeAllForecasts() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async (data?: { days?: number; historicalDays?: number }) => {
-      const response = await inventoryApi.recomputeAll(data);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (result: any) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryDashboard });
-      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryStats });
-
-      const processed = result?.processedSkus ?? 0;
-      const failed = result?.failedSkus ?? 0;
-      toast.success(`Recompute finished: ${processed} SKUs processed, ${failed} failed`);
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-// Dismiss alert mutation
-export function useDismissAlert() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({ id, reason }: { id: string; reason?: string }) => {
-      const response = await inventoryApi.dismissAlert(id, reason);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryDashboard });
-      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryStats });
-      toast.success('Alert dismissed successfully');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-// Resolve alert mutation
-export function useResolveAlert() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const response = await inventoryApi.resolveAlert(id);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryDashboard });
-      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryStats });
-      toast.success('Alert resolved successfully');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-// Update alert status mutation
-export function useUpdateAlertStatus() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({
-      id,
-      status,
-      reason,
-    }: {
-      id: string;
-      status: 'ACTIVE' | 'DISMISSED' | 'RESOLVED';
-      reason?: string;
-    }) => {
-      const response = await inventoryApi.updateAlertStatus(id, status, reason);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryDashboard });
-      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryStats });
-      toast.success('Alert status updated successfully');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-// Check and create alerts mutation
-export function useCheckAlerts() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({ productId, variantId }: { productId: string; variantId: string }) => {
-      const response = await inventoryApi.checkAndCreateAlerts(productId, variantId);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryDashboard });
-      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryStats });
-      toast.success('Alerts updated successfully');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-// Record forecast accuracy mutation
-export function useRecordAccuracy() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({ forecastId, actualDemand }: { forecastId: string; actualDemand: number }) => {
-      const response = await inventoryApi.recordAccuracy(forecastId, actualDemand);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryDashboard });
-      queryClient.invalidateQueries({ queryKey: queryKeys.inventoryStats });
-
-      toast.success('Forecast accuracy recorded successfully');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
 // ==================== Health Monitoring Hooks ====================
 
 const healthQueryKeys = {
@@ -1761,28 +1563,3 @@ export const useCreatePromotion = promotionHooks.useCreate;
 export const useUpdatePromotion = promotionHooks.useUpdate;
 export const useDeletePromotion = promotionHooks.useDelete;
 
-// ==================== SEO Redirects Hooks ====================
-
-const redirectHooks = createCrudHooks<SeoRedirect, SeoRedirect, { fromPath: string; toPath: string; statusCode?: number; isActive?: boolean }, Partial<SeoRedirect>>({
-  resource: 'redirects',
-  api: {
-    getAll: async (params?: CrudPaginationParams) => {
-      return redirectsApi.getAll(params?.page, params?.limit, params?.search);
-    },
-    getById: (id: string) => redirectsApi.getById(id),
-    create: (data: { fromPath: string; toPath: string; statusCode?: number; isActive?: boolean }) => redirectsApi.create(data),
-    update: (id: string, data: Partial<SeoRedirect>) => redirectsApi.update(id, data),
-    delete: (id: string) => redirectsApi.delete(id),
-  },
-  messages: {
-    createSuccess: 'Redirect created successfully',
-    updateSuccess: 'Redirect updated successfully',
-    deleteSuccess: 'Redirect deleted successfully',
-  },
-  staleTime: 5 * 60 * 1000,
-});
-
-export const useRedirects = redirectHooks.useList;
-export const useCreateRedirect = redirectHooks.useCreate;
-export const useUpdateRedirect = redirectHooks.useUpdate;
-export const useDeleteRedirect = redirectHooks.useDelete;

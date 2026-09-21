@@ -1,6 +1,6 @@
 /**
  * Inventory Management API Client
- * Provides API methods for warehouses, inventory, transfers, and stock alerts
+ * Provides API methods for warehouses, inventory, and transfers
  */
 
 import { apiClient } from '../api';
@@ -30,16 +30,6 @@ import type {
   UpdateInventoryTransferRequest,
   ApproveInventoryTransferRequest,
   CancelInventoryTransferRequest,
-
-  // Stock Alert Types
-  StockAlert,
-  StockAlertDetail,
-  StockAlertStats,
-  StockAlertFilters,
-  CreateStockAlertRequest,
-  UpdateStockAlertRequest,
-  ResolveStockAlertRequest,
-  BulkResolveStockAlertsRequest,
 } from 'shared';
 
 // ============================================================================
@@ -255,74 +245,3 @@ export const inventoryTransferApi = {
     apiClient.post(`/admin/inventory/transfers/${id}/cancel`, data),
 };
 
-// ============================================================================
-// Stock Alert API
-// ============================================================================
-
-export const stockAlertApi = {
-  /**
-   * Get list of stock alerts with pagination and filtering
-   */
-  getAll: (params: {
-    page?: number;
-    limit?: number;
-    warehouseId?: string;
-    variantId?: string;
-    productId?: string;
-    alertType?: 'LOW_STOCK' | 'OUT_OF_STOCK' | 'RESTOCK_NEEDED';
-    status?: 'ACTIVE' | 'RESOLVED' | 'DISMISSED';
-    dateFrom?: string;
-    dateTo?: string;
-    sortBy?: 'createdAt' | 'updatedAt' | 'threshold' | 'quantity';
-    sortOrder?: 'asc' | 'desc';
-  } = {}): Promise<ApiResponse<PageResult<StockAlertDetail>>> =>
-    apiClient.get('/admin/stock-alerts', { params }),
-
-  /**
-   * Get stock alert by ID
-   */
-  getById: (id: string): Promise<ApiResponse<StockAlertDetail>> =>
-    apiClient.get(`/admin/stock-alerts/${id}`),
-
-  /**
-   * Get stock alert statistics
-   */
-  getStats: (): Promise<ApiResponse<StockAlertStats>> =>
-    apiClient.get('/admin/stock-alerts/stats/summary'),
-
-  /**
-   * Create new stock alert
-   */
-  create: (data: CreateStockAlertRequest): Promise<ApiResponse<StockAlert>> =>
-    apiClient.post('/admin/stock-alerts', data),
-
-  /**
-   * Update stock alert
-   */
-  update: (id: string, data: UpdateStockAlertRequest): Promise<ApiResponse<StockAlert>> =>
-    apiClient.put(`/admin/stock-alerts/${id}`, data),
-
-  /**
-   * Resolve or dismiss stock alert
-   */
-  resolve: (id: string, data: ResolveStockAlertRequest): Promise<ApiResponse<StockAlert>> =>
-    apiClient.post(`/admin/stock-alerts/${id}/resolve`, data),
-
-  /**
-   * Bulk resolve or dismiss stock alerts
-   */
-  bulkResolve: (data: BulkResolveStockAlertsRequest): Promise<ApiResponse<{ count: number }>> =>
-    apiClient.post('/admin/stock-alerts/bulk-resolve', data),
-
-  /**
-   * Delete stock alert
-   */
-  delete: (id: string): Promise<ApiResponse<void>> =>
-    apiClient.delete(`/admin/stock-alerts/${id}`),
-
-  /**
-   * Manually trigger stock alert check
-   */
-  triggerCheck: (): Promise<ApiResponse<void>> =>
-    apiClient.post('/admin/stock-alerts/check'),
-};

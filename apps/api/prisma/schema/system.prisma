@@ -1,4 +1,4 @@
-// system.prisma — User, SystemSettings, ErrorLog, SeoRedirect
+// system.prisma — User, SystemSettings
 
 // ============================================================
 // USER
@@ -65,67 +65,6 @@ model SystemSettings {
   updatedAt DateTime @updatedAt
 
   @@map("system_settings")
-  @@schema("public")
-}
-
-// ============================================================
-// ERROR LOG
-// ============================================================
-model ErrorLog {
-  id              String    @id @default(cuid())
-  errorHash       String
-  message         String
-  stack           String?
-  requestId       String?
-  userId          String?
-  storeId         String?
-  path            String
-  method          String
-  statusCode      Int
-  userAgent       String?
-  ip              String?
-  headers         String?
-  body            String?
-  query           String?
-  params          String?
-  environment     String
-  occurredAt      DateTime  @default(now())
-  firstSeenAt     DateTime  @default(now())
-  lastSeenAt      DateTime  @default(now())
-  occurrenceCount Int       @default(1)
-  severity        String    @default("error")
-  resolved        Boolean   @default(false)
-  resolvedAt      DateTime?
-  resolvedBy      String?
-  store           Store?    @relation(fields: [storeId], references: [id])
-
-  @@index([errorHash])
-  @@index([occurredAt])
-  @@index([userId])
-  @@index([storeId])
-  @@index([severity])
-  @@index([resolved])
-  @@index([lastSeenAt])
-  @@map("error_logs")
-  @@schema("public")
-}
-
-// ============================================================
-// SEO REDIRECT
-// ============================================================
-model SeoRedirect {
-  id         String   @id @default(cuid())
-  fromPath   String   @unique
-  toPath     String
-  statusCode Int      @default(301)
-  isActive   Boolean  @default(true)
-  hitCount   Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  @@index([isActive])
-  @@index([createdAt])
-  @@map("seo_redirects")
   @@schema("public")
 }
 

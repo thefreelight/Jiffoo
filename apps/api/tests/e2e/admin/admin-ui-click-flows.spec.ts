@@ -115,16 +115,6 @@ async function createUserViaApi(request: APIRequestContext, token: string, email
   return body.data.id as string;
 }
 
-async function createForecastViaApi(request: APIRequestContext, token: string, productId: string): Promise<string> {
-  const response = await request.post(`${apiBaseUrl}/api/admin/inventory/forecast`, {
-    headers: { authorization: `Bearer ${token}` },
-    data: { productId },
-  });
-  expect(response.ok()).toBeTruthy();
-  const body = (await response.json()) as JsonObject;
-  return body.data.id as string;
-}
-
 async function updateOrderStatusViaApi(
   request: APIRequestContext,
   token: string,
@@ -329,70 +319,6 @@ test.describe.serial('Admin UI Click Flows E2E', () => {
     ]);
   });
 
-  test('inventory page should execute check, forecast, accuracy and alert update by click', async ({ page, request }) => {
-    const productId = await createLowStockProductViaApi(request, token, randomSuffix('ui-inventory-product'));
-    const forecastId = await createForecastViaApi(request, token, productId);
-    const inventoryHeading = page.getByRole('heading', { name: /Inventory|merchant\.inventory\.title/i });
-    const recoverInventoryPage = async (): Promise<boolean> => {
-      for (let attempt = 0; attempt < 4; attempt += 1) {
-        if (await inventoryHeading.isVisible().catch(() => false)) {
-          return true;
-        }
-        const retryBtn = page.getByRole('button', { name: /Reconnect Signal|Try Again|merchant\.inventory\.retry/i });
-        if (await retryBtn.isVisible().catch(() => false)) {
-          await retryBtn.click();
-          await page.waitForTimeout(1200);
-        }
-      }
-      return inventoryHeading.isVisible().catch(() => false);
-    };
-
-    await page.goto(`/${locale}/inventory`);
-    if (!(await recoverInventoryPage())) {
-      test.skip(true, 'Inventory page remained in error state during E2E run');
-    }
-
-    const signalOpsPanel = page.locator('div', {
-      has: page.getByRole('heading', { name: /Signal Operations|merchant\.inventory\.signalOperations/i }),
-    }).first();
-    const productIdInput = signalOpsPanel.getByRole('textbox').first();
-    await expect(productIdInput).toBeVisible();
-    await productIdInput.fill(productId);
-
-    await Promise.all([
-      waitForApiResponse(page, 'POST', '/admin/inventory/alerts/check'),
-      page.getByRole('button', { name: /Check Alerts|Check Signal|merchant\.inventory\.checkAlerts/i }).click(),
-    ]);
-
-    await Promise.all([
-      waitForApiResponse(page, 'POST', '/admin/inventory/forecast'),
-      page.getByRole('button', { name: /Generate Forecast|Emit Forecast|merchant\.inventory\.generateForecast/i }).click(),
-    ]);
-    if (!(await recoverInventoryPage())) {
-      test.skip(true, 'Inventory page became unavailable after forecast action');
-    }
-
-    const idInputs = page.locator('input[placeholder="Enter ID..."]');
-    await expect(idInputs.nth(2)).toBeVisible();
-    await idInputs.nth(2).fill(forecastId);
-    const actualDemandInput = page.locator('input[type="number"]').first();
-    await expect(actualDemandInput).toBeVisible();
-    await actualDemandInput.fill('13');
-    await Promise.all([
-      waitForApiResponse(page, 'POST', `/admin/inventory/accuracy/${forecastId}`),
-      page.getByRole('button', { name: /Submit Accuracy|Submit Calibration|merchant\.inventory\.submitAccuracy/i }).click(),
-    ]);
-
-    const firstAlertRow = page.locator('tbody tr').first();
-    if (!(await firstAlertRow.getByRole('button', { name: /Resolve|merchant\.inventory\.resolve/i }).isVisible().catch(() => false))) {
-      test.skip(true, 'No active alert row available for inventory alert action checks');
-    }
-
-    await Promise.all([
-      waitForApiResponse(page, 'PUT', '/admin/inventory/alerts/'),
-      firstAlertRow.getByRole('button', { name: /Resolve|merchant\.inventory\.resolve/i }).click(),
-    ]);
-  });
 
   test('plugins page should support toggle and config save by click', async ({ page }) => {
     await page.goto(`/${locale}/plugins?tab=plugins`);

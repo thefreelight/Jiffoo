@@ -21,7 +21,6 @@
 import 'module-alias/register';
 
 // Initialize telemetry before anything else (R5)
-import { initTelemetry, shutdownTelemetry, businessMetrics } from '@/infra/telemetry';
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
@@ -230,21 +229,12 @@ async function buildApp() {
     fastify.addHook('onRequest', accessLogMiddleware);
     fastify.addHook('onError', errorLogMiddleware);
 
-    // R5: x-trace-id response header + HTTP metrics
+    // R5: x-trace-id response header
     fastify.addHook('onResponse', async (request, reply) => {
       // Propagate trace ID to frontend for error correlation
       const traceId = request.id;
       reply.header('x-trace-id', traceId);
 
-      // Record HTTP metrics
-      const durationSeconds = reply.elapsedTime / 1000;
-      const route = request.routeOptions?.url || request.url || 'unknown';
-      businessMetrics.recordHttpRequest(
-        request.method,
-        route,
-        reply.statusCode,
-        durationSeconds
-      );
     });
 
     // Global error handler to standardize all error responses
@@ -459,7 +449,6 @@ async function start() {
     const app = await buildApp();
 
     // Initialize telemetry (R5) — must be before DB connect for instrumentation
-    await initTelemetry();
 
     await prisma.$connect();
     app.log.info('Database connected successfully');
@@ -517,18 +506,6 @@ async function start() {
     if (process.env.ENABLE_OUTBOX_WORKER !== 'false') {
       const { startJobInfrastructure } = await import('@/infra/jobs');
       await startJobInfrastructure();
-    }
-
-    // Start Forecasting Worker for automated inventory forecasting (Optional)
-    if (process.env.ENABLE_FORECASTING_WORKER !== 'false') {
-      try {
-        const { ForecastingWorker } = await import('@/infra');
-        await ForecastingWorker.start();
-        LoggerService.logSystem('Forecasting worker started successfully');
-      } catch (forecastingError) {
-        // Non-fatal: log error but don't crash server
-        LoggerService.logError(forecastingError as Error, { context: 'Forecasting worker startup' });
-      }
     }
 
     // Start Market Update Checker (Optional, §4.9)
@@ -620,15 +597,6 @@ const gracefulShutdown = async (signal: string) => {
       LoggerService.logError(themeAppError as Error, { context: 'Theme App shutdown' });
     }
 
-    // Stop Forecasting Worker
-    try {
-      const { ForecastingWorker } = await import('@/infra');
-      await ForecastingWorker.stop();
-      LoggerService.logSystem('Forecasting worker stopped');
-    } catch (forecastingError) {
-      LoggerService.logError(forecastingError as Error, { context: 'Forecasting worker shutdown' });
-    }
-
     // Stop Market Update Checker
     try {
       const { UpdateChecker } = await import('@/core/admin/market/update-checker');
@@ -649,7 +617,6 @@ const gracefulShutdown = async (signal: string) => {
     await prisma.$disconnect();
 
     // Shutdown telemetry
-    await shutdownTelemetry();
 
     LoggerService.logSystem('Server shutdown completed');
     process.exit(0);

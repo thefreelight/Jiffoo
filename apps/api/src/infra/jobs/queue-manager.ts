@@ -53,10 +53,6 @@ const EVENT_TYPE_TO_QUEUE: Record<string, QueueName> = {
   'fulfillment.': QUEUE_NAMES.FULFILLMENT,
   'order.paid': QUEUE_NAMES.FULFILLMENT,
   'shipment.': QUEUE_NAMES.FULFILLMENT,
-
-  // Stock alert events
-  'stock.': QUEUE_NAMES.STOCK_ALERT,
-  'inventory.': QUEUE_NAMES.STOCK_ALERT,
 };
 
 class QueueManager {

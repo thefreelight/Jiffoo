@@ -100,7 +100,6 @@ test.describe.serial('Admin API Client Endpoints E2E', () => {
   let createdVariantId = '';
   let createdUserId = '';
   let createdOrderId = '';
-  let createdForecastId = '';
   let createdPluginInstanceId = '';
   let pluginSlug = '';
 
@@ -233,29 +232,6 @@ test.describe.serial('Admin API Client Endpoints E2E', () => {
       cancelReason: 'E2E cancel test',
     });
     expect([200, 400]).toContain(cancel.response.status());
-  });
-
-  test('inventory forecasting endpoints should be callable', async ({ request }) => {
-    if (!createdProductId) {
-      throw new Error('Product was not created before inventory flow');
-    }
-
-    await expectSuccess(request, token, 'GET', `/api/admin/inventory/dashboard?productId=${createdProductId}&status=ACTIVE`);
-    const generate = await expectSuccess(request, token, 'POST', '/api/admin/inventory/forecast', {
-      productId: createdProductId,
-    });
-    createdForecastId = generate?.data?.id || '';
-
-    await expectSuccess(request, token, 'GET', `/api/admin/inventory/dashboard?page=1&limit=10&status=ACTIVE`);
-    await expectSuccess(request, token, 'POST', '/api/admin/inventory/alerts/check', {
-      productId: createdProductId,
-    });
-
-    if (createdForecastId) {
-      await expectSuccess(request, token, 'POST', `/api/admin/inventory/accuracy/${createdForecastId}`, {
-        actualDemand: 10,
-      });
-    }
   });
 
   test('plugins and instances endpoints should be callable', async ({ request }) => {

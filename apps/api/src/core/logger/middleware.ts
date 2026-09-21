@@ -1,6 +1,5 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
 import { LoggerService, OperationType } from './unified-logger';
-import { ErrorTrackingService } from '@/core/error-tracking/service';
 
 // Access log middleware
 export async function accessLogMiddleware(request: FastifyRequest, reply: FastifyReply) {
@@ -62,7 +61,6 @@ export function operationLogMiddleware(operation: OperationType, resource: strin
 // Error log middleware
 export async function errorLogMiddleware(request: FastifyRequest, reply: FastifyReply, error: Error) {
   const user = (request as any).user;
-  const statusCode = reply.statusCode || 500;
 
   // Log to unified logger
   LoggerService.logError(error, {
@@ -75,40 +73,6 @@ export async function errorLogMiddleware(request: FastifyRequest, reply: Fastify
     userId: user?.id,
     ip: request.ip
   });
-
-  // Capture error to database with full context
-  try {
-    await ErrorTrackingService.captureError(error, {
-      request: {
-        requestId: (request as any).id || request.headers['x-request-id'] as string,
-        path: request.url,
-        method: request.method,
-        statusCode,
-        headers: request.headers as Record<string, any>,
-        body: request.body as Record<string, any>,
-        query: request.query as Record<string, any>,
-        params: request.params as Record<string, any>,
-        userAgent: request.headers['user-agent'] as string,
-        ip: request.ip
-      },
-      user: user ? {
-        userId: user.id,
-        username: user.username,
-        email: user.email
-      } : undefined,
-      store: user?.storeId ? {
-        storeId: user.storeId,
-        storeName: user.storeName
-      } : undefined,
-      environment: process.env.NODE_ENV || 'development'
-    });
-  } catch (captureError) {
-    // If error capture fails, log but don't throw to avoid masking the original error
-    LoggerService.logError(captureError as Error, {
-      context: 'error_tracking_capture_failed',
-      originalError: error.message
-    });
-  }
 
   // Log security-related errors
   if (error.message.includes('Unauthorized') || error.message.includes('Forbidden')) {

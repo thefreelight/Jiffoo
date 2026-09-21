@@ -12,7 +12,6 @@ export interface AdapterFactoryOptions {
   type?: AdapterType;
   config: LoggerConfig;
   winston?: any; // Winston instance for winston adapter
-  remoteEndpoint?: string; // Remote endpoint for browser adapter
   enableLocalStorage?: boolean;
 }
 
@@ -37,7 +36,6 @@ export function createAdapter(options: AdapterFactoryOptions): ILogger {
     case 'browser':
       return new BrowserAdapter({
         config: options.config,
-        remoteEndpoint: options.remoteEndpoint,
         enableLocalStorage: options.enableLocalStorage
       });
 
@@ -57,8 +55,7 @@ function createAutoAdapter(options: AdapterFactoryOptions): ILogger {
   
   if (isBrowser) {
     return new BrowserAdapter({
-      config: options.config,
-      remoteEndpoint: options.remoteEndpoint,
+        config: options.config,
       enableLocalStorage: options.enableLocalStorage
     });
   } else {

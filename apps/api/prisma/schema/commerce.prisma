@@ -1,5 +1,5 @@
 // commerce.prisma — Store, Category, Product, Variant, Translation,
-//                   Discount*, Order, OrderItem, Cart, CartItem, Recommendation*
+//                   Discount*, Order, OrderItem, Cart, CartItem
 
 // ============================================================
 // STORE
@@ -22,7 +22,6 @@ model Store {
   users     User[]
   products  Product[]
   orders    Order[]
-  errorLogs ErrorLog[]
 
   @@index([status])
   @@map("stores")
@@ -100,8 +99,6 @@ model Product {
   translations          ProductTranslation[]
   variants              ProductVariant[]
   discountProducts      DiscountProduct[]
-  affinitiesAsA         ProductAffinity[]      @relation("ProductAffinityA")
-  affinitiesAsB         ProductAffinity[]      @relation("ProductAffinityB")
 
   @@index([categoryId])
   @@index([productType])
@@ -136,7 +133,6 @@ model ProductVariant {
   warehouseInventories  WarehouseInventory[]
   inventoryAdjustments  InventoryAdjustment[]
   inventoryTransfers    InventoryTransfer[]
-  stockAlerts           StockAlert[]
 
   @@index([productId])
   @@index([skuCode])
@@ -394,43 +390,3 @@ model CartItem {
   @@schema("public")
 }
 
-// ============================================================
-// RECOMMENDATION SYSTEM
-// ============================================================
-model RecommendationInteraction {
-  id                 String   @id @default(cuid())
-  userId             String?
-  productId          String
-  sessionId          String
-  recommendationType String
-  sourceProductId    String?
-  sourceContext      String?
-  action             String
-  algorithmVariant   String?
-  testGroupId        String?
-  metadata           Json?
-  createdAt          DateTime @default(now())
-
-  @@index([userId])
-  @@index([sessionId])
-  @@index([productId])
-  @@map("recommendation_interactions")
-  @@schema("public")
-}
-
-model RecommendationConfig {
-  id                 String   @id @default(cuid())
-  name               String
-  recommendationType String
-  algorithm          String
-  isActive           Boolean  @default(true)
-  trafficPercentage  Float    @default(100.0)
-  priority           Int      @default(0)
-  parameters         Json?
-  metricsJson        Json?
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  @@map("recommendation_configs")
-  @@schema("public")
-}

@@ -10,9 +10,7 @@ import { winstonLogger } from '@/core/logger/unified-logger';
 import type { JobHandler, BaseJobData } from './types';
 import { QUEUE_NAMES } from './types';
 import { workerManager } from './worker-manager';
-import { renderDigitalDeliveryEmail, extractDigitalItems } from '@/core/notification/digital-delivery-email';
 import { ResendProvider } from '@/plugins/email-providers/resend-provider';
-import { systemSettingsService } from '@/core/admin/system-settings/service';
 
 async function dispatchToPluginRuntimes(outboxEventId: string, eventType: string): Promise<void> {
   const event = await prisma.outboxEvent.findUnique({ where: { id: outboxEventId } });
@@ -113,10 +111,6 @@ const emailHandler: JobHandler = {
       aggregateId: event.aggregateId,
     });
 
-    // Task 7.1.2: Digital delivery email for paid orders
-    if (eventType === 'order.paid' || eventType === 'order.confirmation') {
-      await sendDigitalDeliveryEmail(event.aggregateId, event.payload);
-    }
   },
 };
 
@@ -166,36 +160,6 @@ const fulfillmentHandler: JobHandler = {
 };
 
 // ============================================================
-// Stock Alert Handler
-// ============================================================
-
-/**
- * Processes stock alert check events.
- */
-const stockAlertHandler: JobHandler = {
-  queue: QUEUE_NAMES.STOCK_ALERT,
-  eventTypes: [
-    'stock.check',
-    'stock.alert',
-    'inventory.adjusted',
-    'inventory.transferred',
-  ],
-  async handle(data: BaseJobData): Promise<void> {
-    const { outboxEventId, eventType } = data;
-
-    winstonLogger.info('Stock alert job processed', {
-      component: 'stockAlertHandler',
-      eventType,
-      outboxEventId,
-    });
-
-    // The stock alert check logic is in StockAlertService.checkAlerts().
-    // This handler is triggered by inventory change events.
-    // TODO: Wire to StockAlertService.checkAlerts() for event-driven alerts
-  },
-};
-
-// ============================================================
 // Register all handlers
 // ============================================================
 
@@ -203,11 +167,10 @@ export function registerAllHandlers(): void {
   workerManager.register(webhookDeliveryHandler);
   workerManager.register(emailHandler);
   workerManager.register(fulfillmentHandler);
-  workerManager.register(stockAlertHandler);
 
   winstonLogger.info('All job handlers registered', {
     component: 'JobHandlers',
-    count: 4,
+    count: 3,
   });
 }
 
@@ -215,95 +178,5 @@ export {
   webhookDeliveryHandler,
   emailHandler,
   fulfillmentHandler,
-  stockAlertHandler,
 };
 
-// ============================================================
-// Helper: Digital Delivery Email (Task 7.1.2)
-// ============================================================
-
-async function sendDigitalDeliveryEmail(orderId: string, eventPayload: unknown): Promise<void> {
-  try {
-    // Fetch order with items and user email
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        items: {
-          include: {
-            product: { select: { name: true } },
-          },
-        },
-        user: { select: { email: true } },
-      },
-    });
-
-    if (!order || !order.user?.email) {
-      winstonLogger.warn('Cannot send digital delivery email: order or user email not found', {
-        component: 'emailHandler',
-        orderId,
-      });
-      return;
-    }
-
-    // Map order items to email template items
-    const emailItems = order.items.map(item => ({
-      productName: item.product?.name || 'Unknown Product',
-      quantity: item.quantity,
-      fulfillmentStatus: item.fulfillmentStatus,
-      fulfillmentData: item.fulfillmentData as Record<string, unknown> | null,
-    }));
-
-    // Only send if there are digital items
-    const digitalItems = extractDigitalItems(emailItems);
-    if (digitalItems.length === 0) {
-      return; // Not a digital order, skip
-    }
-
-    const storeName = (await systemSettingsService.getSetting('storeName').catch(() => null)) as string | null || 'Jiffoo';
-
-    const { html, text, subject } = renderDigitalDeliveryEmail({
-      orderNumber: order.id,
-      customerEmail: order.user.email,
-      storeName,
-      items: emailItems,
-    });
-
-    if (!html) {
-      return; // No digital content to send
-    }
-
-    // Send via Resend provider (no-op if not configured)
-    const provider = new ResendProvider();
-    const fromEmail = process.env.EMAIL_FROM || 'noreply@jiffoo.com';
-    const result = await provider.send({
-      to: order.user.email,
-      from: fromEmail,
-      fromName: storeName,
-      subject,
-      html,
-      text,
-      tags: ['digital-delivery', `order:${order.id}`],
-    });
-
-    if (result.success) {
-      winstonLogger.info('Digital delivery email sent', {
-        component: 'emailHandler',
-        orderId,
-        email: order.user.email,
-        messageId: result.messageId,
-      });
-    } else {
-      winstonLogger.error('Failed to send digital delivery email', {
-        component: 'emailHandler',
-        orderId,
-        error: result.error,
-      });
-    }
-  } catch (error) {
-    winstonLogger.error('Error in sendDigitalDeliveryEmail', {
-      component: 'emailHandler',
-      orderId,
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-}

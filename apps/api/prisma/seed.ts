@@ -833,60 +833,6 @@ async function main() {
     });
     console.log('✅ Created 3 inventory transfers');
 
-    // 12) Create sample stock alerts
-    console.log('⚠️ Creating stock alerts...');
-    const lowStockVariants = variants.slice(0, 4);
-
-    // Active LOW_STOCK alert for East warehouse
-    await prisma.stockAlert.create({
-      data: {
-        warehouseId: warehouseRecords[2].id,
-        variantId: lowStockVariants[0].id,
-        alertType: 'LOW_STOCK',
-        threshold: 10,
-        quantity: 5,
-        status: 'ACTIVE',
-      },
-    });
-
-    // Active OUT_OF_STOCK alert for East warehouse
-    await prisma.stockAlert.create({
-      data: {
-        warehouseId: warehouseRecords[2].id,
-        variantId: lowStockVariants[1].id,
-        alertType: 'OUT_OF_STOCK',
-        threshold: 10,
-        quantity: 0,
-        status: 'ACTIVE',
-      },
-    });
-
-    // Resolved LOW_STOCK alert for West warehouse
-    await prisma.stockAlert.create({
-      data: {
-        warehouseId: warehouseRecords[1].id,
-        variantId: lowStockVariants[2].id,
-        alertType: 'LOW_STOCK',
-        threshold: 15,
-        quantity: 12,
-        status: 'RESOLVED',
-        resolvedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      },
-    });
-
-    // Active RESTOCK_NEEDED alert for Main warehouse
-    await prisma.stockAlert.create({
-      data: {
-        warehouseId: warehouseRecords[0].id,
-        variantId: lowStockVariants[3].id,
-        alertType: 'RESTOCK_NEEDED',
-        threshold: 20,
-        quantity: 18,
-        status: 'ACTIVE',
-      },
-    });
-    console.log('✅ Created 4 stock alerts');
-
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('\n📋 Summary:');
     console.log('   - System settings initialized');

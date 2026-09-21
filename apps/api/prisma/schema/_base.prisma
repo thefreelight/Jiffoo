@@ -105,21 +105,3 @@ enum RefundLedgerEventType {
   @@schema("public")
 }
 
-// ============================================================
-// ENUMS: INVENTORY / STOCK ALERT
-// ============================================================
-enum StockAlertType {
-  LOW_STOCK
-  OUT_OF_STOCK
-  RESTOCK_NEEDED
-
-  @@schema("public")
-}
-
-enum StockAlertStatus {
-  ACTIVE
-  RESOLVED
-  DISMISSED
-
-  @@schema("public")
-}

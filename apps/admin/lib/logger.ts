@@ -4,29 +4,12 @@
 
 import { createDefaultBrowserAdapter, type ILogger } from 'shared/src/logger/index.browser';
 
-// Get backend API base URL (for log uploading)
-const getApiBaseUrl = (): string => {
-  if (typeof window !== 'undefined') {
-    // Browser environment: NEXT_PUBLIC_API_URL already includes /api prefix
-    return process.env.NEXT_PUBLIC_API_URL || '/api';
-  }
-  // Server-side rendering environment
-  return process.env.API_URL || 'http://localhost:3001/api';
-};
-
 // Lazy initialize logger to avoid duplicate warnings during module loading
 let _logger: ILogger | null = null;
 
 const getLogger = (): ILogger => {
   if (!_logger) {
-    // Decide whether to enable remote log reporting based on environment variables
-    const enableRemoteLogs = process.env.NEXT_PUBLIC_ENABLE_REMOTE_LOGS === 'true';
-    const remoteEndpoint = enableRemoteLogs ? `${getApiBaseUrl()}/logs/batch` : undefined;
-
-    _logger = createDefaultBrowserAdapter(
-      'admin',
-      remoteEndpoint
-    );
+    _logger = createDefaultBrowserAdapter('admin');
   }
   return _logger;
 };

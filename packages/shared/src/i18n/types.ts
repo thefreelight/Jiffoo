@@ -13,14 +13,13 @@ export type { Locale };
 /**
  * Application names for namespace organization
  */
-export type AppName = 'merchant' | 'shop' | 'whiteLabel';
+export type AppName = 'merchant' | 'shop';
 
 /**
  * Message namespace identifiers
  * - common: Cross-app common messages (buttons, system prompts, error states)
  * - merchant: Merchant Admin messages
  * - shop: Shop frontend messages
- * - whiteLabel: White-label studio messages
  */
 export type MessageNamespace = 'common' | 'merchant' | AppName;
 

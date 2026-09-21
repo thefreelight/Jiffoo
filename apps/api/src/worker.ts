@@ -40,7 +40,7 @@ async function main(): Promise<void> {
 
   winstonLogger.info('Standalone worker ready', {
     component: 'Worker',
-    queues: ['webhook-delivery', 'email', 'fulfillment', 'stock-alert'],
+    queues: ['webhook-delivery', 'email', 'fulfillment'],
   });
 
   // Graceful shutdown

@@ -37,7 +37,6 @@ import {
   useAcknowledgeVariantSourceChange,
 } from '@/lib/hooks/use-api'
 import { VariantsEditor } from '@/components/products/VariantsEditor'
-import { SeoMetaEditor } from '@/components/seo/SeoMetaEditor'
 
 interface ProductFormData {
   name: string
@@ -46,12 +45,6 @@ interface ProductFormData {
   requiresShipping: boolean
   images: string[]
   variants: any[]
-  seoMeta: {
-    metaTitle?: string | null
-    metaDescription?: string | null
-    canonicalUrl?: string | null
-    structuredData?: string | null
-  }
 }
 
 export default function EditProductPage() {
@@ -87,29 +80,10 @@ export default function EditProductPage() {
     requiresShipping: true,
     images: [],
     variants: [],
-    seoMeta: {
-      metaTitle: null,
-      metaDescription: null,
-      canonicalUrl: null,
-      structuredData: null
-    }
   })
 
   useEffect(() => {
     if (product) {
-      const rawStructuredData = (product as any).structuredData ?? null
-      const structuredData = rawStructuredData
-        ? typeof rawStructuredData === 'string'
-          ? rawStructuredData
-          : (() => {
-            try {
-              return JSON.stringify(rawStructuredData, null, 2)
-            } catch {
-              return null
-            }
-          })()
-        : null
-
       setFormData({
         name: product.name ?? '',
         description: product.description ?? '',
@@ -125,12 +99,6 @@ export default function EditProductPage() {
           skuCode: v.skuCode ?? '',
           isActive: !!v.isActive
         })) || [],
-        seoMeta: {
-          metaTitle: (product as any).metaTitle ?? null,
-          metaDescription: (product as any).metaDescription ?? null,
-          canonicalUrl: (product as any).canonicalUrl ?? null,
-          structuredData
-        }
       })
     }
   }, [product])
@@ -171,10 +139,6 @@ export default function EditProductPage() {
         requiresShipping: formData.requiresShipping,
         images: formData.images,
         variants: formData.variants,
-        metaTitle: formData.seoMeta.metaTitle,
-        metaDescription: formData.seoMeta.metaDescription,
-        canonicalUrl: formData.seoMeta.canonicalUrl,
-        structuredData: formData.seoMeta.structuredData
       }
       await updateProductMutation.mutateAsync({ id: productId, data: productData as any })
 
@@ -501,18 +465,6 @@ export default function EditProductPage() {
               />
             </section>
           </div>
-        </div>
-
-        {/* SEO Configuration Section */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
-          <SeoMetaEditor
-            value={formData.seoMeta}
-            onChange={(seoData) => {
-              handleInputChange('seoMeta', seoData)
-              setSuccessMode(false)
-            }}
-            entityType="product"
-          />
         </div>
 
         {/* Action Footer */}

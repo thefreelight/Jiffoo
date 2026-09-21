@@ -383,8 +383,6 @@ export async function deleteTestProduct(productId: string) {
 
 export async function deleteAllTestProducts() {
   const prisma = getTestPrisma();
-  await prisma.reorderAlert.deleteMany({});
-  await prisma.inventoryForecast.deleteMany({});
   await prisma.productTranslation.deleteMany({});
   // Variants are referenced by cart items in several route suites.
   await prisma.cartItem.deleteMany({});

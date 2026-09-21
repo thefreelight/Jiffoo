@@ -360,20 +360,6 @@ export const shop = {
     underDevelopmentDescription: '聯絡表單功能目前正在開發中，請稍後再試。',
   },
 
-  // Recommendations
-  recommendations: {
-    errorTitle: '無法載入推薦',
-    loading: '正在載入推薦...',
-    personalizedForYou: '為您推薦',
-    popularProducts: '熱門商品',
-    personalizedDescription: '根據您的興趣和購物記錄',
-    popularDescription: '您可能喜歡的熱門商品',
-    frequentlyBoughtTogether: '經常一起購買',
-    frequentlyBoughtTogetherDescription: '搭配這些熱門組合完成您的訂單',
-    customersAlsoBought: '其他買家也購買了',
-    customersAlsoBoughtDescription: '根據其他顧客的購買記錄',
-  },
-
   // Footer
   footer: {
     aboutUs: '關於我們',

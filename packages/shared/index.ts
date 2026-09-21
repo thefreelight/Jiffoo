@@ -58,7 +58,6 @@ export {
 } from './api/storage-adapters';
 
 // Extension and marketplace contracts
-export * from './src/extensions/official-catalog';
 
 
 
@@ -139,23 +138,6 @@ export {
   type InventoryTransferFiltersFormData,
 } from './src/schemas/inventory';
 
-// Stock Alert Schemas
-export {
-  stockAlertTypeSchema,
-  stockAlertStatusSchema,
-  stockAlertSchema,
-  createStockAlertSchema,
-  updateStockAlertSchema,
-  resolveStockAlertSchema,
-  bulkResolveStockAlertsSchema,
-  stockAlertFiltersSchema,
-  type StockAlertSchema,
-  type CreateStockAlertFormData,
-  type UpdateStockAlertFormData,
-  type ResolveStockAlertFormData,
-  type BulkResolveStockAlertsFormData,
-  type StockAlertFiltersFormData,
-} from './src/schemas/stock-alert';
 
 // Core Events
 export type {
@@ -212,25 +194,6 @@ export type {
   UpdateCartItemRequestDTO,
 } from './src/types/dto';
 
-// eSIM Schema Types - Platform Standard for productType="esim"
-export type {
-  ESimProductTypeData,
-  ESimVariantAttributes,
-  ESimFulfillmentData,
-  ESimProduct,
-  ESimVariant,
-} from './src/types/esim-schema';
-
-export {
-  isESimProduct,
-  parseESimProductTypeData,
-  parseESimVariantAttributes,
-  parseESimFulfillmentData,
-  getDataDisplayText,
-  getValidityDisplayText,
-  getNetworkDisplayText,
-  getBadgeColorClass,
-} from './src/types/esim-schema';
 
 // Warehouse Types
 export type {
@@ -266,16 +229,3 @@ export type {
   CancelInventoryTransferRequest,
 } from './src/types/inventory';
 
-// Stock Alert Types
-export type {
-  StockAlert,
-  StockAlertType,
-  StockAlertStatus,
-  StockAlertDetail,
-  StockAlertStats,
-  StockAlertFilters,
-  CreateStockAlertRequest,
-  UpdateStockAlertRequest,
-  ResolveStockAlertRequest,
-  BulkResolveStockAlertsRequest,
-} from './src/types/stock-alert';
