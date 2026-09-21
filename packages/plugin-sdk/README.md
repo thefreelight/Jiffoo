@@ -439,12 +439,12 @@ The SDK supports listening to Core events:
 - [Plugin Development Guide](https://docs.jiffoo.com/developer/plugin-development)
 - [API Reference](https://docs.jiffoo.com/api/plugin-sdk)
 - [Security Best Practices](https://docs.jiffoo.com/developer/security)
-- [GitHub Repository](https://github.com/jiffoo/jiffoo-mall)
-- [Community Discussions](https://github.com/jiffoo/jiffoo-mall/discussions)
+- [GitHub Repository](https://github.com/thefreelight/Jiffoo)
+- [Community Discussions](https://github.com/thefreelight/Jiffoo/discussions)
 
 ## Examples
 
-Check out example plugins in the [examples directory](https://github.com/jiffoo/jiffoo-mall/tree/main/examples/plugins):
+Check out the plugin SDK in the [repository](https://github.com/thefreelight/Jiffoo/tree/main/packages/plugin-sdk):
 
 - **payment-plugin** - Payment gateway integration
 - **email-plugin** - Email service integration
@@ -453,8 +453,8 @@ Check out example plugins in the [examples directory](https://github.com/jiffoo/
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/jiffoo/jiffoo-mall/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/jiffoo/jiffoo-mall/discussions)
+- **Issues**: [GitHub Issues](https://github.com/thefreelight/Jiffoo/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/thefreelight/Jiffoo/discussions)
 - **Documentation**: [docs.jiffoo.com](https://docs.jiffoo.com)
 
 ## License

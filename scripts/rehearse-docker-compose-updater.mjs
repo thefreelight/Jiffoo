@@ -6,8 +6,9 @@ import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const REPO_ROOT = '/Users/jordan/Projects/Jiffoo';
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const UPDATER_SCRIPT = path.join(REPO_ROOT, 'scripts', 'jiffoo-updater.mjs');
 const AGENT_SCRIPT = path.join(REPO_ROOT, 'scripts', 'jiffoo-updater-agent.mjs');
 
