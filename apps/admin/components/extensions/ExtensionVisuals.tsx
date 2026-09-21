@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Blocks, Palette, ShieldCheck, Sparkles, Puzzle } from 'lucide-react';
+import { Blocks, Palette, ShieldCheck, Puzzle } from 'lucide-react';
 
 type ExtensionKind = 'plugin' | 'theme';
 
@@ -15,22 +15,8 @@ interface ExtensionAvatarProps {
   className?: string;
 }
 
-function resolveExtensionPalette(slug: string, kind: ExtensionKind) {
+function resolveExtensionPalette(kind: ExtensionKind) {
   if (kind === 'theme') {
-    if (slug === 'yevbi') {
-      return {
-        icon: Palette,
-        shell: 'bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-900 text-white shadow-indigo-500/20',
-      };
-    }
-
-    if (slug === 'esim-mall') {
-      return {
-        icon: Sparkles,
-        shell: 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 text-white shadow-emerald-500/20',
-      };
-    }
-
     return {
       icon: Palette,
       shell: 'bg-gradient-to-br from-slate-900 to-slate-700 text-white shadow-slate-500/10',
@@ -50,7 +36,7 @@ export function ExtensionAvatar({
   thumbnailUrl,
   className,
 }: ExtensionAvatarProps) {
-  const palette = resolveExtensionPalette(slug, kind);
+  const palette = resolveExtensionPalette(kind);
   const Icon = palette.icon;
 
   if (thumbnailUrl) {

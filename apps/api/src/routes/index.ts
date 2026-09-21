@@ -16,8 +16,6 @@ import { orderRoutes } from '@/core/order/routes';
 import { paymentRoutes as legacyPaymentRoutes } from '@/core/payment/routes';
 import { paymentsRoutes as stripePaymentRoutes } from './payments'; // NEW explicit stripe intent routes
 import { notificationRoutes } from '@/core/notification/routes';
-import currencyRoutes from '@/core/currency/routes';
-import { discountRoutes } from '@/core/discount/routes';
 
 import { upgradeRoutes } from '@/core/upgrade/routes';
 
@@ -38,7 +36,6 @@ import { adminInventoryRoutes } from '@/core/inventory/routes';
 
 // Extension installer routes
 import { extensionInstallerRoutes } from '@/core/admin/extension-installer/routes';
-import { adminExternalOrdersIntegrationRoutes } from '@/core/admin/external-orders-integration/routes';
 // Market integration routes
 import { marketRoutes } from '@/core/admin/market/routes';
 // Theme App Gateway routes
@@ -103,10 +100,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(stripePaymentRoutes, { prefix: '/api/payments/stripe' });
   await fastify.register(notificationRoutes, { prefix: '/api/notifications' });
   await fastify.register(publicThemeRoutes, { prefix: '/api/themes' });
-  await fastify.register(currencyRoutes, { prefix: '/api/currency' });
-
-  await fastify.register(discountRoutes, { prefix: '/api/discounts' });
-
   // Extension installer routes
   await fastify.register(extensionInstallerRoutes, { prefix: '/api/extensions' });
 

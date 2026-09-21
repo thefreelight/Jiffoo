@@ -158,47 +158,4 @@ export async function cartRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Apply discount code
-  fastify.post('/apply-discount', {
-    schema: {
-      tags: ['cart'],
-      summary: 'Apply discount code to cart',
-      security: [{ bearerAuth: [] }],
-      body: {
-        type: 'object',
-        required: ['code'],
-        properties: {
-          code: { type: 'string' }
-        }
-      }
-    }
-  }, async (request, reply) => {
-    try {
-      const { code } = request.body as any;
-      const cart = await (CartService as any).applyDiscount(request.user!.id, code);
-      return sendSuccess(reply, cart);
-    } catch (error: any) {
-      return reply.code(400).send({
-        success: false,
-        error: error.message,
-      });
-    }
-  });
-
-  // Remove discount code
-  fastify.delete('/discount/:code', {
-    schema: {
-      tags: ['cart'],
-      summary: 'Remove discount code from cart',
-      security: [{ bearerAuth: [] }]
-    }
-  }, async (request, reply) => {
-    try {
-      const { code } = request.params as any;
-      const cart = await (CartService as any).removeDiscount(request.user!.id, code);
-      return sendSuccess(reply, cart);
-    } catch (error: any) {
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
-  });
 }

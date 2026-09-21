@@ -1,5 +1,5 @@
 // commerce.prisma — Store, Category, Product, Variant, Translation,
-//                   Discount*, Order, OrderItem, Cart, CartItem
+//                   Order, OrderItem, Cart, CartItem
 
 // ============================================================
 // STORE
@@ -98,7 +98,6 @@ model Product {
   inventoryReservations InventoryReservation[]
   translations          ProductTranslation[]
   variants              ProductVariant[]
-  discountProducts      DiscountProduct[]
 
   @@index([categoryId])
   @@index([productType])
@@ -162,82 +161,6 @@ model ProductTranslation {
 }
 
 // ============================================================
-// DISCOUNT
-// ============================================================
-model Discount {
-  id          String    @id @default(cuid())
-  code        String    @unique
-  type        String
-  value       Decimal   @db.Decimal(10, 2)
-  minAmount   Decimal?  @db.Decimal(18, 2)
-  maxUses     Int?
-  usedCount   Int       @default(0)
-  startDate   DateTime?
-  endDate     DateTime?
-  isActive    Boolean   @default(true)
-  stackable   Boolean   @default(false)
-  description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-
-  products       DiscountProduct[]
-  customerGroups DiscountCustomerGroup[]
-  usages         DiscountUsage[]
-
-  @@index([isActive])
-  @@index([code])
-  @@map("discounts")
-  @@schema("public")
-}
-
-model DiscountProduct {
-  id         String   @id @default(cuid())
-  discountId String
-  productId  String
-  createdAt  DateTime @default(now())
-
-  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
-  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-
-  @@unique([discountId, productId])
-  @@index([productId])
-  @@map("discount_products")
-  @@schema("public")
-}
-
-model DiscountCustomerGroup {
-  id            String   @id @default(cuid())
-  discountId    String
-  customerGroup String
-  createdAt     DateTime @default(now())
-
-  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
-
-  @@unique([discountId, customerGroup])
-  @@map("discount_customer_groups")
-  @@schema("public")
-}
-
-model DiscountUsage {
-  id             String   @id @default(cuid())
-  discountId     String
-  userId         String
-  orderId        String
-  discountAmount Decimal  @db.Decimal(18, 2)
-  createdAt      DateTime @default(now())
-
-  discount Discount @relation(fields: [discountId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  order    Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-
-  @@unique([discountId, orderId])
-  @@index([userId])
-  @@index([orderId])
-  @@map("discount_usages")
-  @@schema("public")
-}
-
-// ============================================================
 // ORDER
 // ============================================================
 model Order {
@@ -257,7 +180,6 @@ model Order {
 
   // Pricing fields
   subtotalAmount Decimal @db.Decimal(18, 2)
-  discountAmount Decimal @default(0) @db.Decimal(18, 2)
   taxAmount      Decimal @default(0) @db.Decimal(18, 2)
   totalAmount    Decimal @db.Decimal(18, 2)
   currency       String  @default("USD")
@@ -275,8 +197,6 @@ model Order {
   refunds               Refund[]
   paymentLedgers        PaymentLedger[]
   refundLedgers         RefundLedger[]
-  discountUsages        DiscountUsage[]
-  externalOrderLinks    ExternalOrderLink[]
   inventoryReservations InventoryReservation[]
   shipments             Shipment[]
   statusHistory         OrderStatusHistory[]
@@ -322,7 +242,6 @@ model OrderItem {
   order              Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product            Product             @relation(fields: [productId], references: [id])
   variant            ProductVariant      @relation(fields: [variantId], references: [id])
-  externalOrderLinks ExternalOrderLink[]
   shipments          ShipmentItem[]
 
   @@index([orderId])

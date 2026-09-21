@@ -314,7 +314,6 @@ async function ensureE2EOrderSeed(prisma: PrismaClient): Promise<void> {
       status: 'PENDING',
       paymentStatus: 'PAID',
       subtotalAmount: 19.99,
-      discountAmount: 0,
       taxAmount: 0,
       totalAmount: 19.99,
       customerEmail: admin.email,

@@ -1141,56 +1141,6 @@ export const settingsApi = {
     apiClient.put('/admin/settings/batch', { settings }),
 };
 
-// Promotions/Discounts API
-export interface Promotion {
-  id: string;
-  code: string;
-  type: 'PERCENTAGE' | 'FIXED_AMOUNT' | 'BUY_X_GET_Y' | 'FREE_SHIPPING';
-  value: number;
-  description?: string;
-  minAmount?: number;
-  maxUses?: number;
-  usedCount: number;
-  startDate?: string;
-  endDate?: string;
-  isActive: boolean;
-  stackable: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface PromotionForm {
-  code: string;
-  type: 'PERCENTAGE' | 'FIXED_AMOUNT' | 'BUY_X_GET_Y' | 'FREE_SHIPPING';
-  value: number;
-  description?: string;
-  minAmount?: number;
-  maxUses?: number;
-  startDate?: string;
-  endDate?: string;
-  isActive?: boolean;
-  stackable?: boolean;
-  productIds?: string[];
-  customerGroups?: string[];
-}
-
-export const promotionsApi = {
-  getAll: (page = 1, limit = 10, search?: string, type?: string): Promise<ApiResponse<PageResult<Promotion>>> =>
-    apiClient.get('/admin/discounts', { params: { page, limit, search, type } }),
-
-  getById: (id: string): Promise<ApiResponse<Promotion>> =>
-    apiClient.get(`/admin/discounts/${id}`),
-
-  create: (data: PromotionForm): Promise<ApiResponse<Promotion>> =>
-    apiClient.post('/admin/discounts', data),
-
-  update: (id: string, data: Partial<PromotionForm>): Promise<ApiResponse<Promotion>> =>
-    apiClient.put(`/admin/discounts/${id}`, data),
-
-  delete: (id: string): Promise<ApiResponse<void>> =>
-    apiClient.delete(`/admin/discounts/${id}`),
-};
-
 // Errors API
 export const errorsApi = {
   getAll: (params: {

@@ -134,7 +134,7 @@ The Prisma schema is split across multiple files in `apps/api/prisma/schema/`:
 ```
 apps/api/prisma/schema/
 ├── _base.prisma         # datasource + generator + shared enums
-├── commerce.prisma      # Store, Product, Variant, Category, Cart, Order, Discount, Recommendation*
+├── commerce.prisma      # Store, Product, Variant, Category, Cart, Order
 ├── inventory.prisma     # Warehouse, WarehouseInventory, StockAlert, Transfer, Adjustment
 ├── payment.prisma       # Payment, Refund, PaymentLedger
 ├── extension.prisma     # PluginInstall*, Webhook*, PluginThemeExtension

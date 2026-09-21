@@ -35,7 +35,6 @@ const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKn
 import { systemSettingsService } from '../admin/system-settings/service';
 import { PushNotificationService } from '../notification/push-notification.service';
 import { LoggerService } from '@/core/logger/unified-logger';
-import { getSupplierProductProfile, resolveSupplierFulfillmentData, parseJsonRecord } from '@/core/external-orders/utils';
 import { InventoryService } from '@/core/inventory/service';
 import { WarehouseService } from '@/core/warehouse/service';
 import { OutboxService } from '@/infra/outbox';
@@ -178,14 +177,11 @@ export class OrderService {
 
     // Verify products and calculate total amount
     let totalAmount = 0;
-    let discountAmount = 0;
-    let appliedDiscounts: Array<{ id: string; code: string; discountAmount: number }> = [];
     const orderItems: Array<{
       productId: string;
       variantId: string;
       quantity: number;
       unitPrice: number;
-      fulfillmentData?: Record<string, unknown> | null;
     }> = [];
     let requiresOrderShipping = false;
 
@@ -245,20 +241,7 @@ export class OrderService {
 
       await this.ensureProductPurchasable(item.productId, variantId);
 
-      const supplierProfile = getSupplierProductProfile(product.typeData);
-      const isSupplierProduct = supplierProfile.isSupplierProduct;
-      const fallbackShippingAddress = normalizedShippingAddress;
-      const resolvedFulfillmentData = isSupplierProduct
-        ? resolveSupplierFulfillmentData(supplierProfile, item.fulfillmentData, fallbackShippingAddress)
-        : null;
-
-      if (isSupplierProduct && resolvedFulfillmentData?.shippingAddress) {
-        await this.validateShippingAddress(
-          resolvedFulfillmentData.shippingAddress as NonNullable<CreateOrderRequest['shippingAddress']>
-        );
-      }
-
-      if (product.requiresShipping && !isSupplierProduct) {
+      if (product.requiresShipping) {
         requiresOrderShipping = true;
       }
 
@@ -271,70 +254,12 @@ export class OrderService {
       }
 
       totalAmount += unitPrice * item.quantity;
-      if (isSupplierProduct) {
-        for (let index = 0; index < item.quantity; index += 1) {
-          orderItems.push({
-            productId: item.productId,
-            variantId,
-            quantity: 1,
-            unitPrice,
-            fulfillmentData: resolvedFulfillmentData ?? null,
-          });
-        }
-      } else {
-        orderItems.push({
-          productId: item.productId,
-          variantId,
-          quantity: item.quantity,
-          unitPrice,
-        });
-      }
-    }
-
-    if (data.discountCodes && data.discountCodes.length > 0) {
-      const { DiscountEngine } = await import('@/core/discount/engine');
-      const cartForDiscount = {
-        id: '',
-        userId,
-        items: orderItems.map((item, index) => ({
-          id: `preview-${index}`,
-          productId: item.productId,
-          productName: '',
-          productImage: '',
-          price: item.unitPrice,
-          quantity: item.quantity,
-          variantId: item.variantId,
-          requiresShipping: false,
-          maxQuantity: Number.MAX_SAFE_INTEGER,
-          subtotal: item.unitPrice * item.quantity,
-          fulfillmentData: item.fulfillmentData ?? null,
-        })),
-        total: totalAmount,
-        itemCount: orderItems.reduce((sum, item) => sum + item.quantity, 0),
-        subtotal: totalAmount,
-        tax: 0,
-        shipping: 0,
-        discount: 0,
-        discountAmount: 0,
-        appliedDiscounts: [],
-        status: 'ACTIVE',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-
-      const discountResult = await DiscountEngine.calculateDiscount(
-        cartForDiscount,
-        data.discountCodes,
-        { id: userId }
-      );
-
-      discountAmount = discountResult.discountAmount;
-      totalAmount = discountResult.finalTotal;
-      appliedDiscounts = discountResult.appliedDiscounts.map((discount) => ({
-        id: discount.id,
-        code: discount.code,
-        discountAmount: discount.discountAmount,
-      }));
+      orderItems.push({
+        productId: item.productId,
+        variantId,
+        quantity: item.quantity,
+        unitPrice,
+      });
     }
 
     if (requiresOrderShipping && !data.shippingAddress) {
@@ -364,8 +289,7 @@ export class OrderService {
           customerEmail: data.customerEmail?.trim() || user.email,
           status: OrderStatus.PENDING,
           paymentStatus: PaymentStatus.PENDING,
-          subtotalAmount: totalAmount + discountAmount,
-          discountAmount,
+          subtotalAmount: totalAmount,
           totalAmount,
           // Create order address relation
           shippingAddress: data.shippingAddress
@@ -390,31 +314,11 @@ export class OrderService {
               variantId: item.variantId,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
-              fulfillmentData: (item.fulfillmentData ?? null) as Prisma.InputJsonValue | null,
             }))
           },
-          discountUsages: appliedDiscounts.length
-            ? {
-              create: appliedDiscounts.map((discount) => ({
-                discountId: discount.id,
-                userId,
-                discountAmount: discount.discountAmount,
-              })),
-            }
-            : undefined,
         },
         include: {
           shippingAddress: true,
-          discountUsages: {
-            include: {
-              discount: {
-                select: {
-                  id: true,
-                  code: true,
-                },
-              },
-            },
-          },
           items: {
             include: {
               product: true,
@@ -426,15 +330,6 @@ export class OrderService {
 
       for (const item of orderItems) {
         await InventoryService.decrementStock(tx, item.variantId, item.quantity);
-      }
-
-      for (const discount of appliedDiscounts) {
-        await tx.discount.update({
-          where: { id: discount.id },
-          data: {
-            usedCount: { increment: 1 },
-          },
-        });
       }
 
       await recordOrderStatusHistory(tx, {
@@ -1042,14 +937,6 @@ export class OrderService {
       paymentStatus: order.paymentStatus,
       subtotalAmount: Number(order.subtotalAmount || 0),
       totalAmount: Number(order.totalAmount),
-      discountAmount: Number(order.discountAmount || 0),
-      appliedDiscounts: Array.isArray(order.discountUsages)
-        ? order.discountUsages.map((usage: any) => ({
-          id: usage.discountId,
-          code: usage.discount?.code || '',
-          discountAmount: Number(usage.discountAmount),
-        }))
-        : [],
       currency: currency,
       shippingAddress: order.shippingAddress || null,
       shipments: (order.shipments || []).map((shipment) => {

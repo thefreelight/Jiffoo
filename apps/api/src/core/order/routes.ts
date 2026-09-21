@@ -30,9 +30,7 @@ export async function orderRoutes(fastify: FastifyInstance) {
         request.user!.id,
         payload
       );
-      const statusCode =
-        Array.isArray(payload?.discountCodes) && payload.discountCodes.length > 0 ? 200 : 201;
-      return sendSuccess(reply, order, undefined, statusCode);
+      return sendSuccess(reply, order, undefined, 201);
     } catch (error: any) {
       return sendError(reply, 400, 'BAD_REQUEST', error.message);
     }

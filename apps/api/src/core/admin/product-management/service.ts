@@ -7,10 +7,8 @@
 
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
-import { CurrencyService } from '@/core/currency/service';
 import { InventoryService } from '@/core/inventory/service';
 import { WarehouseService } from '@/core/warehouse/service';
-import type { CurrencyPriceResponse } from '@/core/currency/types';
 
 function calculateTrendPercent(current: number, previous: number): number {
   if (previous === 0) {
@@ -1108,71 +1106,4 @@ export class AdminProductService {
     };
   }
 
-  /**
-   * Set currency-specific price for a product variant
-   * Allows admins to set fixed prices for variants in different currencies
-   */
-  static async setCurrencyPrice(
-    productId: string,
-    variantId: string,
-    currency: string,
-    price: number
-  ): Promise<CurrencyPriceResponse> {
-    // Verify product exists
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-      include: {
-        variants: {
-          where: { id: variantId }
-        }
-      }
-    });
-
-    if (!product) {
-      throw new Error('Product not found');
-    }
-
-    if (product.variants.length === 0) {
-      throw new Error('Variant not found or does not belong to this product');
-    }
-
-    const currencyService = new CurrencyService();
-    const result = await currencyService.setCurrencyPrice(variantId, currency, price);
-
-    // Invalidate product cache
-    await CacheService.incrementProductVersion();
-    await CacheService.deleteProduct(productId);
-
-    return result;
-  }
-
-  /**
-   * Get all currency-specific prices for a product variant
-   * Returns list of custom prices set for different currencies
-   */
-  static async getVariantCurrencyPrices(
-    productId: string,
-    variantId: string
-  ): Promise<CurrencyPriceResponse[]> {
-    // Verify product exists
-    const product = await prisma.product.findUnique({
-      where: { id: productId },
-      include: {
-        variants: {
-          where: { id: variantId }
-        }
-      }
-    });
-
-    if (!product) {
-      throw new Error('Product not found');
-    }
-
-    if (product.variants.length === 0) {
-      throw new Error('Variant not found or does not belong to this product');
-    }
-
-    const currencyService = new CurrencyService();
-    return await currencyService.getVariantCurrencyPrices(variantId);
-  }
 }

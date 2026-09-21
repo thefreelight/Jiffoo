@@ -44,7 +44,6 @@ export const CreateOrderSchema = z.object({
   shippingAddress: ShippingAddressSchema.optional(),
   customerEmail: z.string().email('Valid email is required').optional(),
   currency: z.string().optional().default('USD'),
-  discountCodes: z.array(z.string()).optional(),
   paymentTermId: z.string().optional(), // B2B payment terms
 });
 
@@ -139,21 +138,12 @@ export interface OrderResponse {
   shippingAddress: ShippingAddressResponse | null;
   items: OrderItemResponse[];
   shipments?: ShipmentResponse[];
-  discountAmount?: number;
-  appliedDiscounts?: AppliedDiscountInfo[];
   createdAt: string;
   updatedAt: string;
   cancelReason?: string | null;
   cancelledAt?: string | null;
   paymentTermId?: string | null; // B2B payment term
   paymentDueDate?: string | null; // B2B payment due date
-}
-
-// Applied Discount Info for Order Response
-export interface AppliedDiscountInfo {
-  id: string;
-  code: string;
-  discountAmount: number;
 }
 
 // Order Item Response Interface

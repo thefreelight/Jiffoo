@@ -153,8 +153,6 @@ describe('Cart Endpoints', () => {
 
       const body = response.json();
       expect(body).toBeDefined();
-      expect(body.data).toHaveProperty('discount');
-      expect(typeof body.data.discount).toBe('number');
     });
 
     it('should return cart with items after adding', async () => {

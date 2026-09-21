@@ -519,31 +519,6 @@ async function start() {
       }
     }
 
-    // Start external order polling worker (Optional)
-    if (process.env.ENABLE_EXTERNAL_ORDER_POLLING_WORKER !== 'false') {
-      try {
-        const { ExternalOrderPollingWorker } = await import('@/core/external-orders/polling-worker');
-        const activeIntervalMs = Number(process.env.EXTERNAL_ORDER_POLLING_INTERVAL_MS || 30_000) || 30_000;
-        const idleIntervalMs = Number(process.env.EXTERNAL_ORDER_POLLING_IDLE_INTERVAL_MS || 180_000) || 180_000;
-        const idleThreshold = Number(process.env.EXTERNAL_ORDER_POLLING_IDLE_THRESHOLD || 3) || 3;
-        const pollLimit = Number(process.env.EXTERNAL_ORDER_POLLING_LIMIT || 50) || 50;
-        ExternalOrderPollingWorker.start({
-          activeIntervalMs,
-          idleIntervalMs,
-          idleThreshold,
-          limit: pollLimit,
-        });
-        LoggerService.logSystem('External order polling worker started', {
-          activeIntervalMs,
-          idleIntervalMs,
-          idleThreshold,
-          pollLimit,
-        });
-      } catch (pollingError) {
-        LoggerService.logError(pollingError as Error, { context: 'External order polling worker startup' });
-      }
-    }
-
     // Start payment reconciliation job (Optional)
     if (process.env.ENABLE_PAYMENT_RECONCILIATION_JOB !== 'false') {
       try {
@@ -605,14 +580,6 @@ const gracefulShutdown = async (signal: string) => {
       // Ignore - may not have been started
     }
 
-    // Stop external order polling worker
-    try {
-      const { ExternalOrderPollingWorker } = await import('@/core/external-orders/polling-worker');
-      ExternalOrderPollingWorker.stop();
-      LoggerService.logSystem('External order polling worker stopped');
-    } catch (pollingError) {
-      LoggerService.logError(pollingError as Error, { context: 'External order polling worker shutdown' });
-    }
     await redisCache.disconnect();
     await prisma.$disconnect();
 

@@ -25,7 +25,6 @@ model User {
   orders            Order[]
   carts             Cart[]
   pushSubscriptions PushSubscription[]
-  discountUsages    DiscountUsage[]
   store             Store?             @relation(fields: [storeId], references: [id])
   adminMembership   AdminMembership?
 

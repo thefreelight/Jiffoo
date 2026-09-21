@@ -1,5 +1,4 @@
 import { prisma } from '@/config/database';
-import { ExternalOrderService } from '@/core/external-orders/service';
 import { OrderStatus, PaymentStatus } from '@/core/order/types';
 import { recordOrderStatusHistory } from '@/core/order/status-history';
 import { callPaymentPlugin } from '@/core/payment/plugin-gateway';
@@ -118,11 +117,6 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput)
     throw error;
   }
 
-  if (didUpdate) {
-    await ExternalOrderService.processPaidOrder(payment.orderId).catch((error) => {
-      console.error('Failed to process paid external orders:', error);
-    });
-  }
   return didUpdate;
 }
 
@@ -136,12 +130,7 @@ export async function syncPaymentFromPlugin(sessionId: string): Promise<boolean>
     return false;
   }
 
-  if (payment.status === 'SUCCEEDED') {
-    await ExternalOrderService.processPaidOrder(payment.orderId).catch((error) => {
-      console.error('Failed to process paid external orders:', error);
-    });
-    return false;
-  }
+  if (payment.status === 'SUCCEEDED') return false;
 
   if (payment.status === 'FAILED') {
     return false;

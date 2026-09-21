@@ -33,7 +33,7 @@ export default function InstallPage() {
   const router = useRouter()
   const locale = useLocale()
   const { login } = useAuthStore()
-  const [siteName, setSiteName] = useState('Bokmoo')
+  const [siteName, setSiteName] = useState('Jiffoo')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

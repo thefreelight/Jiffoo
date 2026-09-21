@@ -271,7 +271,6 @@ export async function deliverInternalWebhook(params: InternalDeliveryParams): Pr
       const config = parseJsonRecord(instance.configJson);
       const secret =
         (typeof config.jiffooWebhookSecret === 'string' && config.jiffooWebhookSecret) ||
-        process.env.BOKMOO_JIFFOO_WEBHOOK_SECRET ||
         '';
       if (secret) {
         const signature = createHmac('sha256', secret).update(`${timestamp}.${body}`).digest('hex');

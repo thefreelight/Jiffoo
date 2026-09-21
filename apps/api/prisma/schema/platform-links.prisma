@@ -116,44 +116,6 @@ model ExternalVariantLink {
 }
 
 // ============================================================
-// EXTERNAL ORDER LINK
-// storeId: plugin-protocol routing metadata, not multi-tenancy
-// ============================================================
-model ExternalOrderLink {
-  id String @id @default(cuid())
-
-  provider       String
-  installationId String
-  storeId        String
-
-  coreOrderId     String
-  coreOrderItemId String
-
-  externalOrderRef  String
-  externalOrderName String?
-  externalStatus    String?
-  syncStatus        String    @default("PENDING")
-  requestPayload    String?
-  responsePayload   String?
-  lastSyncedAt      DateTime?
-  lastError         String?
-  attemptCount      Int       @default(0)
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-
-  order     Order     @relation(fields: [coreOrderId], references: [id], onDelete: Cascade)
-  orderItem OrderItem @relation(fields: [coreOrderItemId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, installationId, storeId, coreOrderItemId], map: "ext_order_links_uq_src_store_item")
-  @@unique([provider, installationId, storeId, externalOrderRef], map: "ext_order_links_uq_src_store_ref")
-  @@index([coreOrderId], map: "ext_order_links_idx_core_order")
-  @@index([coreOrderItemId], map: "ext_order_links_idx_core_item")
-  @@index([syncStatus], map: "ext_order_links_idx_status")
-  @@map("external_order_links")
-  @@schema("public")
-}
-
-// ============================================================
 // OUTBOX EVENT (transactional outbox pattern)
 // ============================================================
 model OutboxEvent {

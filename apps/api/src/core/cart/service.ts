@@ -1,12 +1,12 @@
 import { CacheService } from '@/core/cache/service';
 import { prisma } from '@/config/database';
-import {
-  buildFulfillmentSignature,
-  getSupplierProductProfile,
-  parseJsonRecord,
-  resolveSupplierFulfillmentData,
-} from '@/core/external-orders/utils';
 import { InventoryService } from '@/core/inventory/service';
+
+function parseJsonRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
 
 export interface CartItem {
   id: string;
@@ -21,15 +21,6 @@ export interface CartItem {
   requiresShipping: boolean;
   maxQuantity: number;
   subtotal: number;
-  fulfillmentData?: Record<string, unknown> | null;
-}
-
-export interface AppliedCartDiscount {
-  id: string;
-  code: string;
-  type: string;
-  value: number;
-  amount: number;
 }
 
 export interface Cart {
@@ -41,9 +32,6 @@ export interface Cart {
   subtotal: number;
   tax: number;
   shipping: number;
-  discount: number;
-  discountAmount: number;
-  appliedDiscounts: AppliedCartDiscount[];
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -57,9 +45,7 @@ export interface Cart {
  */
 export class CartService {
   private static CART_CACHE_PREFIX = 'user_cart:';
-  private static CART_DISCOUNT_CACHE_PREFIX = 'user_cart_discounts:';
   private static CART_CACHE_TTL = 86400 * 7; // 7 days
-  private static inMemoryDiscountCodes = new Map<string, string[]>();
 
   private static async ensureProductPurchasable(productId: string, variantId: string): Promise<void> {
     const [productLink, variantLink] = await Promise.all([
@@ -114,7 +100,7 @@ export class CartService {
         // Backward-compatible normalization for old cached payloads.
         const parsed = typeof cachedCart === 'string' ? JSON.parse(cachedCart) : cachedCart;
         const normalized = this.normalizeCart(parsed, userId);
-        return this.attachAppliedDiscountState(userId, normalized);
+        return normalized;
       }
 
       // 2. Get from database
@@ -122,7 +108,7 @@ export class CartService {
 
       if (dbCart) {
         await CacheService.set(cacheKey, dbCart, { ttl: this.CART_CACHE_TTL });
-        return this.attachAppliedDiscountState(userId, dbCart);
+        return dbCart;
       }
 
       return this.createEmptyCart(userId);
@@ -206,20 +192,11 @@ export class CartService {
 
       await this.ensureProductPurchasable(productId, variant.id);
 
-      const supplierProfile = getSupplierProductProfile(product.typeData);
-      const resolvedFulfillmentData = supplierProfile.isSupplierProduct
-        ? resolveSupplierFulfillmentData(supplierProfile, fulfillmentData)
-        : null;
-      const fulfillmentSignature = supplierProfile.isSupplierProduct
-        ? buildFulfillmentSignature(resolvedFulfillmentData)
-        : null;
-
       // Check if item already exists
       const existingItem = cart.items.find(
         (item) =>
           item.productId === productId &&
-          item.variantId === variant.id &&
-          buildFulfillmentSignature(parseJsonRecord(item.fulfillmentData)) === fulfillmentSignature
+          item.variantId === variant.id
       );
 
       if (existingItem) {
@@ -237,13 +214,11 @@ export class CartService {
             variantId: variant.id,
             quantity,
             price: variant.salePrice,
-            fulfillmentData: (resolvedFulfillmentData ?? null) as any,
           }
         });
       }
 
       // Invalidate cache and return updated cart
-      await this.clearAppliedDiscountCodes(userId);
       await this.invalidateCache(userId);
       return this.getCart(userId);
     } catch (error) {
@@ -321,14 +296,6 @@ export class CartService {
 
         await this.ensureProductPurchasable(item.productId, variant.id);
 
-        const supplierProfile = getSupplierProductProfile(product.typeData);
-        const resolvedFulfillmentData = supplierProfile.isSupplierProduct
-          ? resolveSupplierFulfillmentData(supplierProfile, item.fulfillmentData)
-          : null;
-        const fulfillmentSignature = supplierProfile.isSupplierProduct
-          ? buildFulfillmentSignature(resolvedFulfillmentData)
-          : null;
-
         const existingItem = await tx.cartItem.findFirst({
           where: {
             cartId: cart.id,
@@ -337,10 +304,7 @@ export class CartService {
           },
         });
 
-        if (
-          existingItem &&
-          buildFulfillmentSignature(parseJsonRecord(existingItem.fulfillmentData)) === fulfillmentSignature
-        ) {
+        if (existingItem) {
           await tx.cartItem.update({
             where: { id: existingItem.id },
             data: { quantity: existingItem.quantity + normalizedQuantity },
@@ -353,83 +317,13 @@ export class CartService {
               variantId: variant.id,
               quantity: normalizedQuantity,
               price: variant.salePrice,
-              fulfillmentData: (resolvedFulfillmentData ?? null) as any,
             },
           });
         }
       }
     });
 
-    await this.clearAppliedDiscountCodes(userId);
     await this.invalidateCache(userId);
-    return this.getCart(userId);
-  }
-
-  /**
-   * Apply a single discount code to current cart.
-   */
-  static async applyDiscount(userId: string, code: string): Promise<Cart> {
-    const normalizedCode = code.trim().toUpperCase();
-    const cart = await this.getCart(userId);
-    if (!cart.items.length) {
-      throw new Error('Cart is empty');
-    }
-
-    const { DiscountEngine } = await import('@/core/discount/engine');
-    const { DiscountService } = await import('@/core/discount/service');
-    const validation = await DiscountService.validateDiscount({
-      code: normalizedCode,
-      userId,
-      cartTotal: cart.subtotal,
-      productIds: cart.items.map((item) => item.productId),
-    });
-
-    if (!validation.isValid) {
-      throw new Error(validation.errors?.[0] || 'Invalid discount code');
-    }
-
-    const existingCodes = await this.getAppliedDiscountCodes(userId);
-    const candidateCodes = existingCodes.includes(normalizedCode)
-      ? existingCodes
-      : [...existingCodes, normalizedCode];
-    const result = await DiscountEngine.calculateDiscount(cart, candidateCodes, { id: userId });
-
-    if (result.appliedDiscounts.length === 0) {
-      throw new Error('Discount code is not applicable');
-    }
-
-    const appliedCodes = result.appliedDiscounts.map((discount) => discount.code.toUpperCase());
-    await this.setAppliedDiscountCodes(userId, appliedCodes);
-
-    return {
-      ...cart,
-      discount: result.discountAmount,
-      total: result.finalTotal,
-      discountAmount: result.discountAmount,
-      appliedDiscounts: result.appliedDiscounts.map((discount) => ({
-        id: discount.id,
-        code: discount.code,
-        type: discount.type,
-        value: discount.value,
-        amount: discount.discountAmount,
-      })),
-    };
-  }
-
-  /**
-   * Remove discount from cart response (cart baseline stays unchanged in DB).
-   */
-  static async removeDiscount(userId: string, code: string): Promise<Cart> {
-    const normalizedCode = code.trim().toUpperCase();
-    const existingCodes = await this.getAppliedDiscountCodes(userId);
-    const nextCodes = existingCodes.filter((item) => item !== normalizedCode);
-
-    if (nextCodes.length === 0) {
-      await this.clearAppliedDiscountCodes(userId);
-    } else {
-      await this.setAppliedDiscountCodes(userId, nextCodes);
-    }
-
     return this.getCart(userId);
   }
 
@@ -485,7 +379,6 @@ export class CartService {
         });
       }
 
-      await this.clearAppliedDiscountCodes(userId);
       await this.invalidateCache(userId);
       return this.getCart(userId);
     } catch (error) {
@@ -515,7 +408,6 @@ export class CartService {
   static async removeFromCart(userId: string, itemId: string): Promise<Cart> {
     try {
       await prisma.cartItem.deleteMany({ where: { id: itemId } });
-      await this.clearAppliedDiscountCodes(userId);
       await this.invalidateCache(userId);
       return this.getCart(userId);
     } catch (error) {
@@ -547,7 +439,6 @@ export class CartService {
       if (cart) {
         await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
       }
-      await this.clearAppliedDiscountCodes(userId);
       await this.invalidateCache(userId);
       return this.createEmptyCart(userId);
     } catch (error) {
@@ -569,91 +460,6 @@ export class CartService {
    */
   private static buildCacheKey(userId: string): string {
     return `${this.CART_CACHE_PREFIX}${userId}`;
-  }
-
-  private static buildDiscountStateKey(userId: string): string {
-    return `${this.CART_DISCOUNT_CACHE_PREFIX}${userId}`;
-  }
-
-  private static async getAppliedDiscountCodes(userId: string): Promise<string[]> {
-    const key = this.buildDiscountStateKey(userId);
-    const cachedCodes = await CacheService.get<unknown>(key);
-    if (Array.isArray(cachedCodes)) {
-      return cachedCodes
-        .filter((code): code is string => typeof code === 'string')
-        .map((code) => code.trim().toUpperCase())
-        .filter((code) => code.length > 0);
-    }
-    const memoryCodes = this.inMemoryDiscountCodes.get(userId);
-    return memoryCodes ? [...memoryCodes] : [];
-  }
-
-  private static async setAppliedDiscountCodes(userId: string, codes: string[]): Promise<void> {
-    const key = this.buildDiscountStateKey(userId);
-    const normalizedCodes = Array.from(
-      new Set(
-        codes
-          .filter((code) => typeof code === 'string')
-          .map((code) => code.trim().toUpperCase())
-          .filter((code) => code.length > 0)
-      )
-    );
-    if (!normalizedCodes.length) {
-      this.inMemoryDiscountCodes.delete(userId);
-      await CacheService.delete(key);
-      return;
-    }
-    this.inMemoryDiscountCodes.set(userId, normalizedCodes);
-    await CacheService.set(key, normalizedCodes, { ttl: this.CART_CACHE_TTL });
-  }
-
-  private static async clearAppliedDiscountCodes(userId: string): Promise<void> {
-    const key = this.buildDiscountStateKey(userId);
-    this.inMemoryDiscountCodes.delete(userId);
-    await CacheService.delete(key);
-  }
-
-  private static async attachAppliedDiscountState(userId: string, cart: Cart): Promise<Cart> {
-    const appliedCodes = await this.getAppliedDiscountCodes(userId);
-    if (!appliedCodes.length || cart.items.length === 0) {
-      if (appliedCodes.length && cart.items.length === 0) {
-        await this.clearAppliedDiscountCodes(userId);
-      }
-      return {
-        ...cart,
-        discount: 0,
-        discountAmount: 0,
-        appliedDiscounts: [],
-        total: cart.subtotal + cart.tax + cart.shipping,
-      };
-    }
-
-    const { DiscountEngine } = await import('@/core/discount/engine');
-    const result = await DiscountEngine.calculateDiscount(cart, appliedCodes, { id: userId });
-    const resultCodes = result.appliedDiscounts.map((discount) => discount.code.toUpperCase());
-
-    if (resultCodes.length === 0) {
-      await this.clearAppliedDiscountCodes(userId);
-    } else if (
-      resultCodes.length !== appliedCodes.length ||
-      resultCodes.some((code, index) => code !== appliedCodes[index])
-    ) {
-      await this.setAppliedDiscountCodes(userId, resultCodes);
-    }
-
-    return {
-      ...cart,
-      discount: result.discountAmount,
-      discountAmount: result.discountAmount,
-      appliedDiscounts: result.appliedDiscounts.map((discount) => ({
-        id: discount.id,
-        code: discount.code,
-        type: discount.type,
-        value: discount.value,
-        amount: discount.discountAmount,
-      })),
-      total: result.finalTotal,
-    };
   }
 
   /**
@@ -719,7 +525,6 @@ export class CartService {
         requiresShipping: item.product?.requiresShipping ?? true,
         maxQuantity: availableStock,
         subtotal: Number(item.price) * item.quantity,
-        fulfillmentData: parseJsonRecord(item.fulfillmentData),
       };
     });
 
@@ -732,9 +537,6 @@ export class CartService {
       subtotal,
       tax: 0,
       shipping: 0,
-      discount: 0,
-      discountAmount: 0,
-      appliedDiscounts: [],
       total: subtotal,
       itemCount: items.reduce((sum, item) => sum + item.quantity, 0),
       status: cart.status,
@@ -764,9 +566,6 @@ export class CartService {
       subtotal: 0,
       tax: 0,
       shipping: 0,
-      discount: 0,
-      discountAmount: 0,
-      appliedDiscounts: [],
       status: 'ACTIVE',
       createdAt: now,
       updatedAt: now
@@ -779,11 +578,8 @@ export class CartService {
     const subtotal = Number(raw?.subtotal ?? 0);
     const tax = Number(raw?.tax ?? 0);
     const shipping = Number(raw?.shipping ?? 0);
-    const discount = Number(raw?.discount ?? 0);
-    const discountAmount = Number(raw?.discountAmount ?? discount ?? 0);
-    const total = Number(raw?.total ?? (subtotal + tax + shipping - discount));
+    const total = Number(raw?.total ?? (subtotal + tax + shipping));
     const itemCount = Number(raw?.itemCount ?? items.reduce((sum: number, item: any) => sum + Number(item?.quantity || 0), 0));
-    const appliedDiscounts = Array.isArray(raw?.appliedDiscounts) ? raw.appliedDiscounts : [];
 
     return {
       id: typeof raw?.id === 'string' ? raw.id : '',
@@ -792,9 +588,6 @@ export class CartService {
       subtotal,
       tax,
       shipping,
-      discount,
-      discountAmount,
-      appliedDiscounts,
       total,
       itemCount,
       status: typeof raw?.status === 'string' ? raw.status : 'ACTIVE',

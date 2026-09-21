@@ -25,7 +25,6 @@ import { resolveApiErrorMessage } from '@/lib/error-utils'
 import { settingsApi, type SystemSettingsMap, unwrapApiResponse, upgradeApi } from '@/lib/api'
 import { clearUpdateCheckCache } from '@/hooks/use-update-check'
 import { cn } from '@/lib/utils'
-import CurrencySettings from '@/components/settings/currency-settings'
 import { ApiTokenPanel } from '@/components/settings/ApiTokenPanel'
 
 type SettingField = {

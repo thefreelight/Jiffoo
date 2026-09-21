@@ -5,16 +5,12 @@
  * Aligned with the high-impact product editor design.
  */
 
-import { Plus, Trash2, CheckCircle2, Circle, DollarSign, ChevronDown, ChevronUp } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { Plus, Trash2, CheckCircle2, Circle } from 'lucide-react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import { generateId } from '@/lib/utils'
-import { cn } from '@/lib/utils'
-import { apiClient, unwrapApiResponse } from '@/lib/api'
-import { toast } from 'sonner'
 
 interface Variant {
     id?: string
@@ -27,122 +23,13 @@ interface Variant {
     isActive?: boolean
 }
 
-interface CurrencyPrice {
-    id: string
-    variantId: string
-    currency: string
-    price: number
-    createdAt: string
-    updatedAt: string
-}
-
-// Currency metadata
-const CURRENCY_INFO: Record<string, { name: string; symbol: string }> = {
-    USD: { name: 'US Dollar', symbol: '$' },
-    EUR: { name: 'Euro', symbol: '€' },
-    GBP: { name: 'British Pound', symbol: '£' },
-    CAD: { name: 'Canadian Dollar', symbol: 'CA$' },
-    AUD: { name: 'Australian Dollar', symbol: 'A$' },
-    JPY: { name: 'Japanese Yen', symbol: '¥' },
-    CNY: { name: 'Chinese Yuan', symbol: '¥' },
-    INR: { name: 'Indian Rupee', symbol: '₹' },
-}
-
 interface VariantsEditorProps {
     variants: Variant[]
     onChange: (variants: Variant[]) => void
     productId?: string
 }
 
-export function VariantsEditor({ variants, onChange, productId }: VariantsEditorProps) {
-    const [enabledCurrencies, setEnabledCurrencies] = useState<string[]>(['USD'])
-    const [baseCurrency, setBaseCurrency] = useState<string>('USD')
-    const [currencyPrices, setCurrencyPrices] = useState<Record<string, CurrencyPrice[]>>({})
-    const [expandedVariants, setExpandedVariants] = useState<Record<string, boolean>>({})
-    const [loadingPrices, setLoadingPrices] = useState<Record<string, boolean>>({})
-    const [localPrices, setLocalPrices] = useState<Record<string, string>>({})
-
-    // Load enabled currencies and base currency
-    useEffect(() => {
-        loadCurrencySettings()
-    }, [])
-
-    // Load currency prices for existing variants
-    useEffect(() => {
-        if (productId) {
-            variants.forEach((variant) => {
-                if (variant.id) {
-                    loadCurrencyPrices(variant.id)
-                }
-            })
-        }
-    }, [productId, variants.map(v => v.id).join(',')])
-
-    const loadCurrencySettings = async () => {
-        try {
-            const response = await apiClient.get('/admin/settings')
-            const data = unwrapApiResponse(response)
-
-            if (data.baseCurrency) {
-                setBaseCurrency(data.baseCurrency)
-            }
-            if (data.enabledCurrencies && Array.isArray(data.enabledCurrencies)) {
-                setEnabledCurrencies(data.enabledCurrencies)
-            }
-        } catch (err: any) {
-            console.warn('Failed to load currency settings:', err)
-        }
-    }
-
-    const loadCurrencyPrices = async (variantId: string) => {
-        if (!productId || !variantId) return
-
-        try {
-            setLoadingPrices(prev => ({ ...prev, [variantId]: true }))
-            const response = await apiClient.get(`/admin/products/${productId}/variants/${variantId}/prices`)
-            const data = unwrapApiResponse(response)
-
-            if (data.items && Array.isArray(data.items)) {
-                setCurrencyPrices(prev => ({ ...prev, [variantId]: data.items }))
-            }
-        } catch (err: any) {
-            console.warn('Failed to load currency prices:', err)
-        } finally {
-            setLoadingPrices(prev => ({ ...prev, [variantId]: false }))
-        }
-    }
-
-    const saveCurrencyPrice = async (variantId: string, currency: string, price: number) => {
-        if (!productId || !variantId) {
-            toast.error('Save the product first before setting currency prices')
-            return
-        }
-
-        try {
-            const response = await apiClient.post(`/admin/products/${productId}/variants/${variantId}/prices`, {
-                currency,
-                price
-            })
-            unwrapApiResponse(response)
-
-            toast.success(`${currency} price updated successfully`)
-
-            // Reload currency prices
-            await loadCurrencyPrices(variantId)
-        } catch (err: any) {
-            const errorMsg = err instanceof Error ? err.message : 'Unknown error'
-            toast.error('Failed to save currency price: ' + errorMsg)
-        }
-    }
-
-    const toggleVariantExpanded = (variantKey: string) => {
-        setExpandedVariants(prev => ({ ...prev, [variantKey]: !prev[variantKey] }))
-    }
-
-    const getCurrencyPrice = (variantId: string, currency: string): CurrencyPrice | undefined => {
-        const prices = currencyPrices[variantId] || []
-        return prices.find(p => p.currency === currency)
-    }
+export function VariantsEditor({ variants, onChange }: VariantsEditorProps) {
     const handleAddVariant = () => {
         const newVariant: Variant = {
             tempId: generateId(),
@@ -245,107 +132,6 @@ export function VariantsEditor({ variants, onChange, productId }: VariantsEditor
                             </div>
                         </div>
 
-                        {/* Currency-Specific Pricing Section */}
-                        {variant.id && enabledCurrencies.length > 1 && (
-                            <div className="mt-8 pt-8 border-t-2 border-gray-100">
-                                <button
-                                    type="button"
-                                    onClick={() => toggleVariantExpanded(variant.id || variant.tempId || String(index))}
-                                    className="flex items-center justify-between w-full mb-4 group"
-                                >
-                                    <div className="flex items-center gap-3">
-                                        <DollarSign className="w-6 h-6 text-blue-500" />
-                                        <h4 className="text-lg font-black text-gray-900 uppercase tracking-wide">
-                                            Multi-Currency Pricing
-                                        </h4>
-                                        <Badge variant="outline" className="text-xs">
-                                            {(currencyPrices[variant.id] || []).length} of {enabledCurrencies.length - 1} custom
-                                        </Badge>
-                                    </div>
-                                    {expandedVariants[variant.id || variant.tempId || String(index)] ? (
-                                        <ChevronUp className="w-6 h-6 text-gray-400 group-hover:text-gray-600" />
-                                    ) : (
-                                        <ChevronDown className="w-6 h-6 text-gray-400 group-hover:text-gray-600" />
-                                    )}
-                                </button>
-
-                                {expandedVariants[variant.id || variant.tempId || String(index)] && (
-                                    <div className="space-y-4 pl-9">
-                                        <p className="text-sm text-gray-500 mb-6">
-                                            Set custom prices for different currencies. Currencies without custom prices will use auto-converted rates.
-                                        </p>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                            {enabledCurrencies
-                                                .filter(currency => currency !== baseCurrency)
-                                                .map((currency) => {
-                                                    const customPrice = getCurrencyPrice(variant.id!, currency)
-                                                    const hasCustomPrice = !!customPrice
-                                                    const priceKey = `${variant.id}-${currency}`
-                                                    const localPrice = localPrices[priceKey] || customPrice?.price?.toString() || ''
-
-                                                    return (
-                                                        <div
-                                                            key={currency}
-                                                            className={cn(
-                                                                "p-6 border-2 rounded-2xl transition-all",
-                                                                hasCustomPrice
-                                                                    ? "border-blue-300 bg-blue-50/50"
-                                                                    : "border-gray-200 bg-white"
-                                                            )}
-                                                        >
-                                                            <div className="flex items-center justify-between mb-4">
-                                                                <div className="flex items-center gap-2">
-                                                                    <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg font-bold">
-                                                                        {CURRENCY_INFO[currency]?.symbol || currency}
-                                                                    </div>
-                                                                    <div>
-                                                                        <div className="font-black text-gray-900">{currency}</div>
-                                                                        <div className="text-xs text-gray-500">{CURRENCY_INFO[currency]?.name}</div>
-                                                                    </div>
-                                                                </div>
-                                                                {hasCustomPrice && (
-                                                                    <Badge className="bg-blue-600 text-white text-xs">Custom</Badge>
-                                                                )}
-                                                            </div>
-
-                                                            <div className="space-y-3">
-                                                                <div className="relative">
-                                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 font-black text-gray-400">
-                                                                        {CURRENCY_INFO[currency]?.symbol || currency}
-                                                                    </span>
-                                                                    <Input
-                                                                        type="text"
-                                                                        value={localPrice}
-                                                                        onChange={(e) => setLocalPrices(prev => ({ ...prev, [priceKey]: e.target.value }))}
-                                                                        placeholder="Auto-converted"
-                                                                        className="h-12 pl-10 pr-4 font-bold text-lg border-gray-200"
-                                                                    />
-                                                                </div>
-                                                                <Button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const price = parseFloat(localPrice)
-                                                                        if (!isNaN(price) && price > 0) {
-                                                                            saveCurrencyPrice(variant.id!, currency, price)
-                                                                        } else {
-                                                                            toast.error('Please enter a valid price')
-                                                                        }
-                                                                    }}
-                                                                    disabled={!localPrice || loadingPrices[variant.id!]}
-                                                                    className="w-full h-10 text-xs font-black uppercase"
-                                                                    size="sm"
-                                                                >
-                                                                    {loadingPrices[variant.id!] ? 'Saving...' : hasCustomPrice ? 'Update' : 'Set Custom Price'}
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    )
-                                                })}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                        )}
                     </div>
                 ))}
             </div>

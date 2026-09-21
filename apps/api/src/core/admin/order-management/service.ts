@@ -8,7 +8,6 @@ import { OrderPaymentStatus as PrismaOrderPaymentStatus, OrderStatus as PrismaOr
 import { systemSettingsService } from '../system-settings/service';
 import { CacheService } from '@/core/cache/service';
 import { getTodayAndYesterdayRangeUtc } from '@/utils/timezone';
-import { ExternalOrderService } from '@/core/external-orders/service';
 import { OrderStatus, OrderStatusType, PaymentStatus } from '@/core/order/types';
 import { recordOrderStatusHistory } from '@/core/order/status-history';
 import { InventoryService } from '@/core/inventory/service';
@@ -521,8 +520,6 @@ export class AdminOrderService {
     if (existingRefund) {
       return this.getOrderById(orderId);
     }
-
-    await ExternalOrderService.requestRefundForOrder(orderId);
 
     try {
       await prisma.$transaction(async (tx) => {

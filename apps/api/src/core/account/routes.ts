@@ -89,7 +89,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
         deleted: true,
         userId,
         unboundCardIds: [],
-        message: 'Your BOKMOO account deletion request was completed.',
+        message: 'Your account deletion request was completed.',
       });
     } catch (error: unknown) {
       const mapped = mapAccountRouteError(error, {

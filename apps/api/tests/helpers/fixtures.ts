@@ -279,7 +279,6 @@ export async function createTestOrder(options: CreateOrderOptions) {
       status: options.status || 'PENDING',
       paymentStatus: 'PENDING',
       subtotalAmount: totalAmount,
-      discountAmount: 0,
       taxAmount: 0,
       totalAmount,
       currency: 'USD',
@@ -419,7 +418,6 @@ export async function deleteTestOrder(orderId: string) {
 export async function deleteAllTestOrders() {
   const prisma = getTestPrisma();
   // Delete dependent records first to avoid FK constraint violations
-  await prisma.externalOrderLink.deleteMany({});
   await prisma.shipmentItem.deleteMany({});
   await prisma.shipment.deleteMany({});
   await prisma.refund.deleteMany({});

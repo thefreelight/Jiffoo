@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, errorsApi, promotionsApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type Promotion, type PromotionForm as PromotionFormData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
+import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, marketApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, errorsApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
@@ -39,7 +39,6 @@ export interface PaginatedApiResponse<T> {
 // Re-export types for convenience
 export type { DashboardStats, Product, Order, OrderDetail, User, OrderItem, OrderDetailItem } from '../types';
 export type { ErrorLog, ErrorListParams } from '../types';
-export type { Promotion, PromotionForm } from '../api';
 
 // Query keys
 export const queryKeys = {
@@ -1014,8 +1013,6 @@ export function usePluginConfig(slug: string) {
   });
 }
 
-
-
 // Update plugin configuration mutation
 export function useUpdatePluginConfig() {
   const queryClient = useQueryClient();
@@ -1537,29 +1534,4 @@ export function useResolveError() {
 }
 
 
-// ==================== Promotions Hooks ====================
-
-const promotionHooks = createCrudHooks<Promotion, Promotion, PromotionFormData, Partial<PromotionFormData>>({
-  resource: 'promotions',
-  api: {
-    getAll: async (params?: CrudPaginationParams) => {
-      return promotionsApi.getAll(params?.page, params?.limit, params?.search, params?.type);
-    },
-    getById: (id: string) => promotionsApi.getById(id),
-    create: (data: PromotionFormData) => promotionsApi.create(data),
-    update: (id: string, data: Partial<PromotionFormData>) => promotionsApi.update(id, data),
-    delete: (id: string) => promotionsApi.delete(id),
-  },
-  messages: {
-    createSuccess: 'Promotion created successfully',
-    updateSuccess: 'Promotion updated successfully',
-    deleteSuccess: 'Promotion deleted successfully',
-  },
-  staleTime: 5 * 60 * 1000,
-});
-
-export const usePromotion = promotionHooks.useDetail;
-export const useCreatePromotion = promotionHooks.useCreate;
-export const useUpdatePromotion = promotionHooks.useUpdate;
-export const useDeletePromotion = promotionHooks.useDelete;
 

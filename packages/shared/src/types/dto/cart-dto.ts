@@ -23,9 +23,7 @@ export interface CartItemDTO {
   requiresShipping: boolean;
   maxQuantity: number;
   subtotal: number; // price * quantity (computed by backend)
-  originalPrice?: number; // original price before discount (optional)
   isAvailable?: boolean; // whether the item is currently available
-  fulfillmentData?: Record<string, unknown> | null;
 }
 
 // ============================================================================
@@ -40,7 +38,6 @@ export interface CartDTO {
   subtotal: number;
   tax: number;
   shipping: number;
-  discount: number;
   total: number;
   status: string;
   createdAt: string;
@@ -55,7 +52,6 @@ export interface AddToCartRequestDTO {
   productId: string;
   quantity: number;
   variantId: string;
-  fulfillmentData?: Record<string, unknown>;
 }
 
 export interface UpdateCartItemRequestDTO {

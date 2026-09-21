@@ -152,10 +152,6 @@ const fulfillmentHandler: JobHandler = {
     });
     await dispatchToPluginRuntimes(outboxEventId, eventType);
 
-    // Task 7.1.2: Digital fulfillment is handled by ExternalOrderService
-    // (called directly from payment reconciliation). This handler serves as
-    // a monitoring/logging checkpoint for the unified job layer.
-    // Physical fulfillment (shipments) is handled by the order service.
   },
 };
 

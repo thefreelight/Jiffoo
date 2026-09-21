@@ -301,9 +301,6 @@ import type {
   OrderCreatedPayload,
   ProductStockChangedPayload,
 
-  // eSIM Types
-  ESimProduct,
-  ESimVariantAttributes
 } from '@jiffoo/shared';
 ```
 
