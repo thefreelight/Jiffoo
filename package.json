@@ -52,9 +52,7 @@
     "verify:branded-storefront-runtime": "node scripts/verify-branded-storefront-runtime.mjs",
     "changeset": "changeset",
     "version:bump": "changeset version",
-    "release": "pnpm version:bump && pnpm build",
-    "surface:generate": "pnpm --filter @jiffoo/theme-api-sdk surface:generate",
-    "surface:check": "pnpm --filter @jiffoo/theme-api-sdk surface:check"
+    "release": "pnpm version:bump && pnpm build"
   },
   "lint-staged": {
     "apps/api/src/**/*.ts": [

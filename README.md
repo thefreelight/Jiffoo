@@ -48,7 +48,7 @@ Admin runs on 3002, API on 3001.
 
 ```text
 apps/        api, admin
-packages/    core-api-sdk, plugin-sdk, theme-api-sdk, shared, ui
+packages/    plugin-sdk, shared, ui
 ```
 
 ## Documentation
@@ -60,6 +60,5 @@ packages/    core-api-sdk, plugin-sdk, theme-api-sdk, shared, ui
 
 ## Licence
 
-GPL v2.0 or later. The SDK packages (`@jiffoo/plugin-sdk`, `@jiffoo/theme-api-sdk`,
-`@jiffoo/core-api-sdk`, `@jiffoo/ui`) are MIT — see
+GPL v2.0 or later. The SDK packages (`@jiffoo/plugin-sdk`, `@jiffoo/ui`) are MIT — see
 [LICENSE-EXCEPTIONS.md](LICENSE-EXCEPTIONS.md).

@@ -86,7 +86,6 @@ extensions/plugins/*/dist/
 
 # Theme/Plugin zip artifacts (build products, should not be committed)
 *.zip
-packages/shop-themes/*.zip
 
 # API extensions runtime directory (should use EXTENSIONS_PATH env var)
 apps/api/extensions/
@@ -105,7 +104,6 @@ e2e/visual/baselines/*.png
 .wrangler/
 
 # App binaries belong in release storage, not the source repo
-packages/shop-themes/*/public/downloads/
 *.apk
 
 # nyc test coverage
@@ -138,12 +136,10 @@ imagerAI/
 .claude_settings.json
 .worktrees/
 .tools/
-.release/
 .security-key
 logs/security/
 
 # Theme package scratch files
-packages/shop-themes/*/diff_*.txt
 .codex-worktrees/
 tmp/
 .env.bak

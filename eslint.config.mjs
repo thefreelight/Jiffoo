@@ -20,7 +20,6 @@ export default tseslint.config(
       '**/test-results/**',
       '**/*.d.ts',
       '**/generated/**',
-      'packages/shop-themes/*/theme-pack/runtime/**',
       // Standalone npm packages with their own toolchains (installed and
       // tested independently of the workspace)
       'extensions/**',

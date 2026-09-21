@@ -17,8 +17,6 @@ terms.
 | Package | Purpose |
 |---------|---------|
 | `@jiffoo/plugin-sdk` | Plugin development SDK |
-| `@jiffoo/theme-api-sdk` | Theme-facing Core API SDK |
-| `@jiffoo/core-api-sdk` | Core API SDK |
 | `@jiffoo/ui` | Shared UI components |
 
 These are MIT so that anyone can build against Jiffoo's documented APIs without

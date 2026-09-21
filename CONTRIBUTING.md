@@ -179,7 +179,6 @@ Every PR into `main` runs four parallel jobs (`.github/workflows/pr-quality-gate
 | `static-checks` | Repo-wide TypeScript type-check + ESLint (flat config; errors block, warnings are tracked debt) | `pnpm type-check` + `npx eslint .` (build `shared`/`@jiffoo/ui`/SDK packages first if dists are stale) |
 | `api-tests` | Full API vitest suite against postgres and redis, including OpenAPI contract tests | See `apps/api/tests/KNOWN-FAILURES.md` for the required sequence |
 | `drift-gate` | Prisma schema vs migrations sync | `DATABASE_URL=<throwaway-db> pnpm --filter api db:check-drift` — **never point this at a real database; the script uses it as a shadow DB and resets it** |
-| `theme-gate` | Theme matrix type-check/validate + theme API surface snapshot | `pnpm theme-matrix:type-check && pnpm theme-matrix:validate && pnpm surface:check` |
 
 When a gate fails:
 

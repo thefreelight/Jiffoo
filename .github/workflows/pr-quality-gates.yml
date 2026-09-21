@@ -5,7 +5,6 @@
 #                    warnings are visible debt)
 #   api-tests      — full API vitest suite against postgres + redis services
 #   drift-gate     — Prisma schema vs migrations (reuses check-drift.sh)
-#   theme-gate     — theme API surface check
 name: PR Quality Gates
 
 on:
@@ -36,8 +35,6 @@ jobs:
         run: |
           pnpm --filter shared build
           pnpm --filter @jiffoo/ui build
-          pnpm --filter @jiffoo/core-api-sdk build
-          pnpm --filter @jiffoo/theme-api-sdk build
       - name: Generate Prisma client
         run: pnpm --filter api exec prisma generate
       - name: Type-check (all packages)
@@ -91,8 +88,6 @@ jobs:
         run: |
           pnpm --filter shared build
           pnpm --filter @jiffoo/ui build
-          pnpm --filter @jiffoo/core-api-sdk build
-          pnpm --filter @jiffoo/theme-api-sdk build
       - name: Generate Prisma client
         run: pnpm --filter api exec prisma generate
       - name: Apply migrations
@@ -145,22 +140,3 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/jiffoo_drift
         run: bash apps/api/scripts/check-drift.sh
 
-  theme-gate:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Build shared packages
-        run: |
-          pnpm --filter shared build
-          pnpm --filter @jiffoo/ui build
-          pnpm --filter @jiffoo/core-api-sdk build
-          pnpm --filter @jiffoo/theme-api-sdk build
-      - name: Theme API surface check
-        run: pnpm surface:check
