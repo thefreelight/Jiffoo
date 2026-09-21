@@ -372,7 +372,7 @@ export async function deleteAllTestOrders() {
   await prisma.shipment.deleteMany({});
   await prisma.refund.deleteMany({});
   await prisma.payment.deleteMany({});
-  await prisma.  await prisma.orderItem.deleteMany({});
+  await prisma.orderItem.deleteMany({});
   await prisma.orderShippingAddress.deleteMany({});
   await prisma.order.deleteMany({});
 }

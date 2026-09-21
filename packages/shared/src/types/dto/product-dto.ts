@@ -59,7 +59,6 @@ export interface AdminProductDetailDTO {
   name: string;
   description?: string | null;
   requiresShipping?: boolean;
-  requiresShippingLocked?: boolean;
   categoryName?: string | null;
   categoryId?: string | null;
   skuCode?: string | null;

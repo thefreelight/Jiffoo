@@ -365,7 +365,7 @@ describe('AuthService', () => {
     it('upgrades the same user id so guest-owned data remains attached', async () => {
       const guest = {
         ...TEST_USER,
-        email: 'abc@guest.bokmoo.invalid',
+        email: 'abc@guest.invalid',
         role: 'GUEST',
       };
       const converted = {

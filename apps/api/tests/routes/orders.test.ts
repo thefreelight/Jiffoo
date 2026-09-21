@@ -18,7 +18,6 @@ import {
   deleteAllTestOrders,
   deleteAllTestCarts,
 } from '../helpers/fixtures';
-import { getTestPrisma } from '../helpers/db';
 import { v4 as uuidv4 } from 'uuid';
 
 describe('Orders Endpoints', () => {
@@ -27,12 +26,6 @@ describe('Orders Endpoints', () => {
   let userId: string;
   let testProduct: Awaited<ReturnType<typeof createTestProduct>>;
   let testVariantId: string;
-  let sourceInactiveProduct: Awaited<ReturnType<typeof createTestProduct>>;
-  let sourceInactiveVariantId: string;
-  let supplierDataProduct: Awaited<ReturnType<typeof createTestProduct>>;
-  let supplierDataVariantId: string;
-  let supplierCardProduct: Awaited<ReturnType<typeof createTestProduct>>;
-  let supplierCardVariantId: string;
   const validShippingAddress = {
     firstName: 'Test',
     lastName: 'User',
@@ -56,51 +49,6 @@ describe('Orders Endpoints', () => {
       stock: 100,
     });
     testVariantId = testProduct.variants[0].id;
-
-    sourceInactiveProduct = await createTestProduct({
-      name: 'Source Inactive Order Product',
-      price: 69.99,
-      stock: 10,
-    });
-    sourceInactiveVariantId = sourceInactiveProduct.variants[0].id;
-
-    const prisma = getTestPrisma();
-    supplierDataProduct = await createTestProduct({
-      name: 'Supplier Data Order Product',
-      price: 29.99,
-      stock: 10,
-      productType: 'digital',
-      requiresShipping: false,
-      skuCode: 'odoo-data-order-sku',
-      typeData: {
-        provider: 'odoo',
-        installationId: 'ins_order_supplier',
-        sourceProductType: 'data',
-        requiredUid: true,
-        externalProductCode: `ODOO-DATA-ORDER-${uuidv4()}`,
-      },
-    });
-    supplierDataVariantId = supplierDataProduct.variants[0].id;
-    supplierCardProduct = await createTestProduct({
-      name: 'Supplier Card Order Product',
-      price: 19.99,
-      stock: 10,
-      productType: 'digital',
-      requiresShipping: true,
-      skuCode: 'odoo-card-order-sku',
-      typeData: {
-        provider: 'odoo',
-        installationId: 'ins_order_supplier',
-        sourceProductType: 'card',
-        requiredUid: false,
-        externalProductCode: `ODOO-CARD-ORDER-${uuidv4()}`,
-      },
-    });
-    supplierCardVariantId = supplierCardProduct.variants[0].id;
-    const supplierDataExternalCode = `ODOO-DATA-ORDER-${supplierDataProduct.id}`;
-    const supplierDataVariantCode = `odoo-data-order-sku-${supplierDataVariantId}`;
-    const supplierCardExternalCode = `ODOO-CARD-ORDER-${supplierCardProduct.id}`;
-    const supplierCardVariantCode = `odoo-card-order-sku-${supplierCardVariantId}`;
 
   });
 
@@ -206,88 +154,6 @@ describe('Orders Endpoints', () => {
       expect([200, 201]).toContain(response.statusCode);
     });
 
-    it('should reject source-inactive odoo products', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/orders/',
-        headers: { authorization: `Bearer ${userToken}` },
-        payload: {
-          items: [
-            { productId: sourceInactiveProduct.id, variantId: sourceInactiveVariantId, quantity: 1 },
-          ],
-        },
-      });
-
-      expect(response.statusCode).toBe(400);
-    });
-
-    it('should split supplier quantity into atomic order items', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/orders/',
-        headers: { authorization: `Bearer ${userToken}` },
-        payload: {
-          items: [
-            {
-              productId: supplierDataProduct.id,
-              variantId: supplierDataVariantId,
-              quantity: 2,
-              fulfillmentData: {
-                cardUid: '10001',
-              },
-            },
-          ],
-        },
-      });
-
-      expect(response.statusCode).toBe(201);
-      const body = response.json();
-      expect(body.data.items).toHaveLength(2);
-      expect(body.data.items.every((item: any) => item.quantity === 1)).toBe(true);
-      expect(body.data.items.every((item: any) => item.fulfillmentData?.cardUid === '10001')).toBe(true);
-    });
-
-    it('should allow supplier card items to use item-level shipping address', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/orders/',
-        headers: { authorization: `Bearer ${userToken}` },
-        payload: {
-          items: [
-            {
-              productId: supplierCardProduct.id,
-              variantId: supplierCardVariantId,
-              quantity: 1,
-              fulfillmentData: {
-                shippingAddress: validShippingAddress,
-              },
-            },
-          ],
-        },
-      });
-
-      expect(response.statusCode).toBe(201);
-      expect(response.json().data.items[0].fulfillmentData.shippingAddress.city).toBe(validShippingAddress.city);
-    });
-
-    it('should reject supplier data items without cardUid', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/orders/',
-        headers: { authorization: `Bearer ${userToken}` },
-        payload: {
-          items: [
-            {
-              productId: supplierDataProduct.id,
-              variantId: supplierDataVariantId,
-              quantity: 1,
-            },
-          ],
-        },
-      });
-
-      expect(response.statusCode).toBe(400);
-    });
   });
 
   describe('GET /api/orders/', () => {

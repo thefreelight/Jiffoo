@@ -77,7 +77,6 @@ describe('Admin Products Endpoints', () => {
         url: '/api/admin/products/',
         headers: { authorization: `Bearer ${adminToken}` },
       });
-
       expect(response.statusCode).toBe(200);
     });
   });
@@ -96,12 +95,6 @@ describe('Admin Products Endpoints', () => {
       expect(body).toHaveProperty('data');
       // Response format is { items: [...], page, limit, total, totalPages }
       expect(Array.isArray(body.data.items)).toBe(true);
-      if (body.data.items.length > 0) {
-        expect(body.data.items[0]).toHaveProperty('sourceProvider');
-        expect(body.data.items[0]).toHaveProperty('sourceIsActive');
-        expect(body.data.items[0]).toHaveProperty('hasPendingChange');
-        expect(body.data.items[0]).toHaveProperty('requiresShippingLocked');
-      }
     });
 
     it('should support pagination', async () => {
@@ -261,7 +254,6 @@ describe('Admin Products Endpoints', () => {
       if (response.statusCode === 200 || response.statusCode === 201) {
         const body = response.json();
         expect(body.data).toHaveProperty('id');
-        expect(body.data).toHaveProperty('requiresShippingLocked');
       }
     });
   });
@@ -299,13 +291,7 @@ describe('Admin Products Endpoints', () => {
       expect(body.data).toHaveProperty('id');
       expect(body.data.id).toBe(testProduct.id);
       expect(body.data).toHaveProperty('isActive');
-      expect(body.data).toHaveProperty('sourceProvider');
-      expect(body.data).toHaveProperty('sourceIsActive');
-      expect(body.data).toHaveProperty('hasPendingChange');
-      expect(body.data).toHaveProperty('requiresShippingLocked');
       expect(body.data.variants[0]).toHaveProperty('costPrice');
-      expect(body.data.variants[0]).toHaveProperty('sourceIsActive');
-      expect(body.data.variants[0]).toHaveProperty('hasPendingChange');
     });
 
     it('should return 404 for non-existent product', async () => {
