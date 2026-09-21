@@ -8,7 +8,6 @@
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import { InventoryService } from '@/core/inventory/service';
-import { WarehouseService } from '@/core/warehouse/service';
 
 function calculateTrendPercent(current: number, previous: number): number {
   if (previous === 0) {
@@ -62,8 +61,6 @@ export interface AdminProductSearchFilters {
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
-  lowStock?: boolean;
-  lowStockThreshold?: number;
   sortBy?: 'name' | 'createdAt';
   sortOrder?: 'asc' | 'desc';
 }
@@ -71,11 +68,9 @@ export interface AdminProductSearchFilters {
 export interface AdminProductStatsMetrics {
   totalProducts: number;
   activeProducts: number;
-  lowStockProducts: number;
   outOfStockProducts: number;
   totalProductsTrend: number;
   activeProductsTrend: number;
-  lowStockProductsTrend: number;
   outOfStockProductsTrend: number;
 }
 
@@ -89,7 +84,7 @@ export interface ProductVariantData {
   salePrice?: number;
   basePrice?: number;
   costPrice?: number | null;
-  baseStock: number;
+  stock: number;
   skuCode?: string;
   isActive?: boolean;
   attributes?: any;
@@ -161,12 +156,6 @@ export class AdminProductService {
     const inStock = this.toBoolean((filters as any).inStock);
     if (inStock !== undefined) validFilters.inStock = inStock;
 
-    const lowStock = this.toBoolean((filters as any).lowStock);
-    if (lowStock !== undefined) validFilters.lowStock = lowStock;
-
-    const lowStockThreshold = this.toNumber((filters as any).lowStockThreshold);
-    if (lowStockThreshold !== undefined) validFilters.lowStockThreshold = lowStockThreshold;
-
     if (filters.sortBy) validFilters.sortBy = filters.sortBy;
     if (filters.sortOrder) validFilters.sortOrder = filters.sortOrder;
 
@@ -225,25 +214,7 @@ export class AdminProductService {
 
     const where = this.buildWhere(normalizedFilters, storeId);
 
-    if (normalizedFilters.lowStock) {
-      const threshold = normalizedFilters.lowStockThreshold || 10;
-      const lowStockVariantIds = await InventoryService.getVariantIdsByAvailability({
-        minAvailable: 1,
-        maxAvailable: threshold,
-        onlyActiveVariants: true,
-      });
-      if (lowStockVariantIds.length === 0) {
-        return { items: [], page: safePage, limit: safeLimit, total: 0, totalPages: 0 };
-      }
-      where.variants = {
-        ...where.variants,
-        some: {
-          ...(where.variants?.some || {}),
-          id: { in: lowStockVariantIds },
-          isActive: true,
-        },
-      };
-    } else if (normalizedFilters.inStock !== undefined) {
+    if (normalizedFilters.inStock !== undefined) {
       const inStockVariantIds = await InventoryService.getVariantIdsByAvailability({
         minAvailable: 1,
         onlyActiveVariants: true,
@@ -370,7 +341,6 @@ export class AdminProductService {
    * Get global product stats for admin products page
    */
   static async getProductStats(): Promise<AdminProductStatsResult> {
-    const lowStockThreshold = 10;
     const now = new Date();
     const startOfTodayUtc = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
     const startOfYesterdayUtc = new Date(startOfTodayUtc);
@@ -403,14 +373,11 @@ export class AdminProductService {
 
     let totalProducts = 0;
     let activeProducts = 0;
-    let lowStockProducts = 0;
     let outOfStockProducts = 0;
     let todayTotalProducts = 0;
     let yesterdayTotalProducts = 0;
     let todayActiveProducts = 0;
     let yesterdayActiveProducts = 0;
-    let todayLowStockProducts = 0;
-    let yesterdayLowStockProducts = 0;
     let todayOutOfStockProducts = 0;
     let yesterdayOutOfStockProducts = 0;
 
@@ -420,22 +387,18 @@ export class AdminProductService {
       const activeVariants = product.variants.filter((variant) => variant.isActive);
       const activeVariantStocks = activeVariants.map((variant) => stockMap.get(variant.id) ?? 0);
       const isActive = activeVariants.length > 0;
-      const isLowStock = activeVariantStocks.some((stock) => stock > 0 && stock <= lowStockThreshold);
       const isOutOfStock = activeVariantStocks.some((stock) => stock <= 0);
 
       if (isActive) activeProducts += 1;
-      if (isLowStock) lowStockProducts += 1;
       if (isOutOfStock) outOfStockProducts += 1;
 
       if (product.createdAt >= startOfTodayUtc) {
         todayTotalProducts += 1;
         if (isActive) todayActiveProducts += 1;
-        if (isLowStock) todayLowStockProducts += 1;
         if (isOutOfStock) todayOutOfStockProducts += 1;
       } else if (product.createdAt >= startOfYesterdayUtc && product.createdAt < startOfTodayUtc) {
         yesterdayTotalProducts += 1;
         if (isActive) yesterdayActiveProducts += 1;
-        if (isLowStock) yesterdayLowStockProducts += 1;
         if (isOutOfStock) yesterdayOutOfStockProducts += 1;
       }
     }
@@ -444,11 +407,9 @@ export class AdminProductService {
       metrics: {
         totalProducts,
         activeProducts,
-        lowStockProducts,
         outOfStockProducts,
         totalProductsTrend: calculateTrendPercent(todayTotalProducts, yesterdayTotalProducts),
         activeProductsTrend: calculateTrendPercent(todayActiveProducts, yesterdayActiveProducts),
-        lowStockProductsTrend: calculateTrendPercent(todayLowStockProducts, yesterdayLowStockProducts),
         outOfStockProductsTrend: calculateTrendPercent(todayOutOfStockProducts, yesterdayOutOfStockProducts),
       },
     };
@@ -500,7 +461,7 @@ export class AdminProductService {
         skuCode: v.skuCode,
         salePrice: Number(v.salePrice),
         costPrice: v.costPrice !== null && v.costPrice !== undefined ? Number(v.costPrice) : null,
-        baseStock: stockMap.get(v.id) ?? 0,
+        stock: stockMap.get(v.id) ?? 0,
         isActive: v.isActive,
         attributes: parseAttributes(v.attributes)
       })),
@@ -523,7 +484,6 @@ export class AdminProductService {
       throw new Error('At least one variant is required');
     }
 
-    const defaultWarehouse = await WarehouseService.getDefaultWarehouse();
     const product = await prisma.$transaction(async (tx) => {
       const created = await tx.product.create({
         data: {
@@ -540,12 +500,13 @@ export class AdminProductService {
       });
 
       for (const [index, variant] of variantsToCreate.entries()) {
-        const normalizedStock = Math.max(0, Math.trunc(Number(variant.baseStock ?? 0)));
+        const normalizedStock = Math.max(0, Math.trunc(Number(variant.stock ?? 0)));
         const salePrice = resolveVariantSalePrice(variant);
         const createdVariant = await tx.productVariant.create({
           data: {
             productId: created.id,
             name: variant.name,
+            stock: normalizedStock,
             salePrice,
             ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
             skuCode: variant.skuCode,
@@ -556,12 +517,6 @@ export class AdminProductService {
           select: { id: true },
         });
 
-        await InventoryService.setStock(
-          tx,
-          createdVariant.id,
-          normalizedStock,
-          defaultWarehouse.id
-        );
       }
 
       return created;
@@ -601,7 +556,6 @@ export class AdminProductService {
     if (data.requiresShipping !== undefined) updateData.requiresShipping = data.requiresShipping;
     if (data.images !== undefined) updateData.typeData = { images: data.images };
 
-    const defaultWarehouse = await WarehouseService.getDefaultWarehouse();
 
     await prisma.$transaction(async (tx) => {
       // Update product core fields
@@ -633,7 +587,7 @@ export class AdminProductService {
 
         // 3. Upsert variants
         for (const variant of variantsToProcess) {
-          const normalizedStock = Math.max(0, Math.trunc(Number(variant.baseStock ?? 0)));
+          const normalizedStock = Math.max(0, Math.trunc(Number(variant.stock ?? 0)));
           const salePrice = resolveVariantSalePrice(variant);
           if (variant.id && existingIds.includes(variant.id)) {
             // Update
@@ -641,6 +595,7 @@ export class AdminProductService {
               where: { id: variant.id },
               data: {
                 name: variant.name,
+                stock: normalizedStock,
                 salePrice,
                 ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
                 skuCode: variant.skuCode,
@@ -649,18 +604,13 @@ export class AdminProductService {
               }
             });
 
-            await InventoryService.setStock(
-              tx,
-              variant.id,
-              normalizedStock,
-              defaultWarehouse.id
-            );
           } else {
             // Create
             const createdVariant = await tx.productVariant.create({
               data: {
                 productId,
                 name: variant.name,
+                stock: normalizedStock,
                 salePrice,
                 ...(variant.costPrice !== undefined ? { costPrice: variant.costPrice } : {}),
                 skuCode: variant.skuCode,
@@ -669,12 +619,6 @@ export class AdminProductService {
               }
             });
 
-            await InventoryService.setStock(
-              tx,
-              createdVariant.id,
-              normalizedStock,
-              defaultWarehouse.id
-            );
           }
         }
       }

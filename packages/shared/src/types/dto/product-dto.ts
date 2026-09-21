@@ -29,7 +29,7 @@ export interface ShopProductDetailDTO {
     name: string;
     skuCode: string | null;
     salePrice: number;
-    baseStock: number;
+    stock: number;
     isActive: boolean;
     attributes: Record<string, any>;
   }>;
@@ -80,7 +80,7 @@ export interface ProductVariantDTO {
   name: string;
   skuCode: string | null;
   salePrice: number;
-  baseStock: number;
+  stock: number;
   isActive: boolean;
   attributes: Record<string, any>;
 }

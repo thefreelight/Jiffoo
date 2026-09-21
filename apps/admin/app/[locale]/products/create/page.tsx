@@ -39,7 +39,7 @@ interface ProductFormData {
     tempId?: string
     name: string
     salePrice: number
-    baseStock: number
+    stock: number
     skuCode?: string
     isActive?: boolean
   }>
@@ -71,7 +71,7 @@ export default function CreateProductPage() {
       tempId: generateId(),
       name: 'Base Variant',
       salePrice: 0,
-      baseStock: 0,
+      stock: 0,
       isActive: true,
       skuCode: ''
     }]

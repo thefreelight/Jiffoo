@@ -52,79 +52,15 @@ function getInventoryStatusForProduct(
   return DEMO_PRODUCT_STOCK_STATUS[productId] ?? 'in_stock';
 }
 
-function buildWarehouseInventorySeed(
+function buildStockSeed(
   profile: SeedInventoryProfile,
   status: SeedInventoryStatus,
-  warehouseCode: string,
   variantIndex: number
-): { quantity: number; reserved: number; available: number; lowStock: number } {
-  if (profile === 'legacy_random') {
-    if (warehouseCode === 'MAIN') {
-      const quantity = 50 + ((variantIndex * 17) % 51);
-      const reserved = (variantIndex * 3) % 10;
-      return {
-        quantity,
-        reserved,
-        available: Math.max(0, quantity - reserved),
-        lowStock: 20,
-      };
-    }
-
-    if (warehouseCode === 'WEST') {
-      const quantity = 20 + ((variantIndex * 11) % 31);
-      const reserved = (variantIndex * 2) % 5;
-      return {
-        quantity,
-        reserved,
-        available: Math.max(0, quantity - reserved),
-        lowStock: 15,
-      };
-    }
-
-    const quantity = (variantIndex * 7) % 30;
-    const reserved = quantity > 5 ? ((variantIndex + 1) % 3) : 0;
-    return {
-      quantity,
-      reserved,
-      available: Math.max(0, quantity - reserved),
-      lowStock: 10,
-    };
-  }
-
-  const baseByStatus: Record<
-    SeedInventoryStatus,
-    Record<string, { quantity: number; reserved: number; lowStock: number }>
-  > = {
-    in_stock: {
-      MAIN: { quantity: 48, reserved: 4, lowStock: 20 },
-      WEST: { quantity: 18, reserved: 2, lowStock: 12 },
-      EAST: { quantity: 10, reserved: 1, lowStock: 8 },
-    },
-    low_stock: {
-      MAIN: { quantity: 9, reserved: 1, lowStock: 10 },
-      WEST: { quantity: 3, reserved: 0, lowStock: 6 },
-      EAST: { quantity: 1, reserved: 0, lowStock: 4 },
-    },
-    out_of_stock: {
-      MAIN: { quantity: 0, reserved: 0, lowStock: 5 },
-      WEST: { quantity: 0, reserved: 0, lowStock: 5 },
-      EAST: { quantity: 0, reserved: 0, lowStock: 5 },
-    },
-  };
-
-  const fallback = baseByStatus[status].MAIN;
-  const seed = baseByStatus[status][warehouseCode] ?? fallback;
-  const quantity = status === 'out_of_stock'
-    ? 0
-    : Math.max(0, seed.quantity + (variantIndex % 3));
-  const reserved = Math.min(quantity, seed.reserved);
-
-  return {
-    quantity,
-    reserved,
-    available: Math.max(0, quantity - reserved),
-    lowStock: seed.lowStock,
-  };
+): number {
+  if (profile === 'legacy_random') return 50 + ((variantIndex * 17) % 51);
+  if (status === 'out_of_stock') return 0;
+  const quantity = status === 'low_stock' ? 9 : 48;
+  return quantity + (variantIndex % 3);
 }
 
 async function getExistingPublicTables(): Promise<Set<string>> {
@@ -433,7 +369,7 @@ async function main() {
           update: {
             name: `${prod.name} - ${variant.nameSuffix}`,
             salePrice: variant.price,
-            baseStock: variant.stock,
+            stock: variant.stock,
             skuCode: `SKU-${prod.id.toUpperCase()}-${variant.skuSuffix}`,
             sortOrder: variant.sortOrder ?? 0,
             isActive: true,
@@ -444,7 +380,7 @@ async function main() {
             productId: prod.id,
             name: `${prod.name} - ${variant.nameSuffix}`,
             salePrice: variant.price,
-            baseStock: variant.stock,
+            stock: variant.stock,
             skuCode: `SKU-${prod.id.toUpperCase()}-${variant.skuSuffix}`,
             sortOrder: variant.sortOrder ?? 0,
             isActive: true,
@@ -556,12 +492,6 @@ async function main() {
       create: { id: 'pay-001', orderId: 'cmlm24wtk0001vx08ishhwclg', paymentMethod: 'mock', amount: 199.99, currency: 'USD', status: 'SUCCEEDED', attemptNumber: 1 },
     });
 
-    await prisma.inventoryReservation.upsert({
-      where: { id: 'invres-001' },
-      update: { orderId: 'cmlm24wtk0001vx08ishhwclg', productId: 'prod-001', variantId: 'var-prod-001-black', quantity: 1, status: 'ACTIVE', expiresAt: new Date(Date.now() + 30 * 60 * 1000) },
-      create: { id: 'invres-001', orderId: 'cmlm24wtk0001vx08ishhwclg', productId: 'prod-001', variantId: 'var-prod-001-black', quantity: 1, status: 'ACTIVE', expiresAt: new Date(Date.now() + 30 * 60 * 1000) },
-    });
-
     await prisma.shipment.upsert({
       where: { id: 'ship-001' },
       update: { orderId: 'cmlm24wtk0001vx08ishhwclg', carrier: 'UPS', trackingNumber: '1Z999AA10123456784', status: 'SHIPPED', shippedAt: new Date() },
@@ -633,128 +563,30 @@ async function main() {
       create: { id: 'refund-001', paymentId: 'pay-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', amount: 178.0, currency: 'USD', status: 'COMPLETED', provider: 'mock', providerRefundId: 're_0000000001', idempotencyKey: 'refund-order-002' },
     });
 
-    await prisma.inventoryReservation.upsert({
-      where: { id: 'invres-002' },
-      update: { orderId: 'cmlm25xyk0002vx08jkppqwmn', productId: 'prod-003', variantId: 'var-prod-003-navy', quantity: 2, status: 'RELEASED', expiresAt: new Date(Date.now() + 30 * 60 * 1000) },
-      create: { id: 'invres-002', orderId: 'cmlm25xyk0002vx08jkppqwmn', productId: 'prod-003', variantId: 'var-prod-003-navy', quantity: 2, status: 'RELEASED', expiresAt: new Date(Date.now() + 30 * 60 * 1000) },
-    });
-
     console.log('✅ Demo orders created');
 
-    // 8) Create warehouses for multi-warehouse inventory management
-    console.log('🏭 Creating warehouses...');
-    const warehouses = [
-      {
-        id: 'warehouse-main',
-        name: 'Main Warehouse',
-        code: 'MAIN',
-        address: '123 Main St, City, Country',
-        isActive: true,
-        isDefault: true,
-      },
-      {
-        id: 'warehouse-west',
-        name: 'West Coast Warehouse',
-        code: 'WEST',
-        address: '456 West Ave, City, Country',
-        isActive: true,
-        isDefault: false,
-      },
-      {
-        id: 'warehouse-east',
-        name: 'East Coast Warehouse',
-        code: 'EAST',
-        address: '789 East Blvd, City, Country',
-        isActive: true,
-        isDefault: false,
-      },
-    ];
-
-    const warehouseRecords = [];
-    for (const warehouse of warehouses) {
-      const warehouseRecord = await prisma.warehouse.upsert({
-        where: { code: warehouse.code },
-        update: { name: warehouse.name, address: warehouse.address, isActive: warehouse.isActive, isDefault: warehouse.isDefault },
-        create: warehouse,
-      });
-      warehouseRecords.push(warehouseRecord);
-    }
-    console.log(`✅ Created ${warehouseRecords.length} warehouses`);
-
-    // 9) Create multi-warehouse inventory for existing products
-    console.log('📊 Creating warehouse inventory...');
+    // 8) Set stock for existing products.
     const variants = await prisma.productVariant.findMany({
       select: { id: true, skuCode: true, productId: true },
       orderBy: [{ productId: 'asc' }, { id: 'asc' }],
     });
 
-    let inventoryCount = 0;
     for (const [index, variant] of variants.entries()) {
       const status = getInventoryStatusForProduct(inventoryProfile, variant.productId);
-
-      const mainInventory = buildWarehouseInventorySeed(inventoryProfile, status, 'MAIN', index);
-      await prisma.warehouseInventory.upsert({
-        where: {
-          warehouseId_variantId: {
-            warehouseId: warehouseRecords[0].id,
-            variantId: variant.id,
-          },
-        },
-        update: mainInventory,
-        create: {
-          warehouseId: warehouseRecords[0].id,
-          variantId: variant.id,
-          ...mainInventory,
-        },
+      await prisma.productVariant.update({
+        where: { id: variant.id },
+        data: { stock: buildStockSeed(inventoryProfile, status, index) },
       });
-      inventoryCount++;
-
-      const westInventory = buildWarehouseInventorySeed(inventoryProfile, status, 'WEST', index);
-      await prisma.warehouseInventory.upsert({
-        where: {
-          warehouseId_variantId: {
-            warehouseId: warehouseRecords[1].id,
-            variantId: variant.id,
-          },
-        },
-        update: westInventory,
-        create: {
-          warehouseId: warehouseRecords[1].id,
-          variantId: variant.id,
-          ...westInventory,
-        },
-      });
-      inventoryCount++;
-
-      const eastInventory = buildWarehouseInventorySeed(inventoryProfile, status, 'EAST', index);
-      await prisma.warehouseInventory.upsert({
-        where: {
-          warehouseId_variantId: {
-            warehouseId: warehouseRecords[2].id,
-            variantId: variant.id,
-          },
-        },
-        update: eastInventory,
-        create: {
-          warehouseId: warehouseRecords[2].id,
-          variantId: variant.id,
-          ...eastInventory,
-        },
-      });
-      inventoryCount++;
     }
-    console.log(`✅ Created ${inventoryCount} warehouse inventory records`);
 
-    // 10) Create sample inventory adjustments (audit trail)
+    // 9) Create sample inventory adjustments (audit trail)
     console.log('📝 Creating inventory adjustments...');
     const sampleVariants = variants.slice(0, 3);
     let adjustmentCount = 0;
 
     for (const variant of sampleVariants) {
-      // Initial stock adjustment for main warehouse
       await prisma.inventoryAdjustment.create({
         data: {
-          warehouseId: warehouseRecords[0].id,
           variantId: variant.id,
           type: 'initial',
           quantity: 100,
@@ -765,10 +597,8 @@ async function main() {
       });
       adjustmentCount++;
 
-      // Damage adjustment for west warehouse
       await prisma.inventoryAdjustment.create({
         data: {
-          warehouseId: warehouseRecords[1].id,
           variantId: variant.id,
           type: 'damage',
           quantity: -5,
@@ -781,54 +611,6 @@ async function main() {
     }
     console.log(`✅ Created ${adjustmentCount} inventory adjustments`);
 
-    // 11) Create sample inventory transfers
-    console.log('🚚 Creating inventory transfers...');
-    const transferVariants = variants.slice(0, 2);
-
-    // Completed transfer: Main -> West
-    await prisma.inventoryTransfer.create({
-      data: {
-        fromWarehouseId: warehouseRecords[0].id,
-        toWarehouseId: warehouseRecords[1].id,
-        variantId: transferVariants[0].id,
-        quantity: 20,
-        status: 'COMPLETED',
-        reason: 'Rebalancing stock levels',
-        notes: 'Stock rebalancing between warehouses',
-        userId: admin.id,
-        completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
-      },
-    });
-
-    // Pending transfer: West -> East
-    await prisma.inventoryTransfer.create({
-      data: {
-        fromWarehouseId: warehouseRecords[1].id,
-        toWarehouseId: warehouseRecords[2].id,
-        variantId: transferVariants[1].id,
-        quantity: 15,
-        status: 'PENDING',
-        reason: 'Replenishing east coast inventory',
-        notes: 'Awaiting approval',
-        userId: admin.id,
-      },
-    });
-
-    // In-transit transfer: Main -> East
-    await prisma.inventoryTransfer.create({
-      data: {
-        fromWarehouseId: warehouseRecords[0].id,
-        toWarehouseId: warehouseRecords[2].id,
-        variantId: transferVariants[0].id,
-        quantity: 10,
-        status: 'IN_TRANSIT',
-        reason: 'Emergency restock',
-        notes: 'Urgent transfer for low stock items',
-        userId: admin.id,
-      },
-    });
-    console.log('✅ Created 3 inventory transfers');
-
     console.log('\n🎉 Database seeding completed successfully!');
     console.log('\n📋 Summary:');
     console.log('   - System settings initialized');
@@ -839,10 +621,7 @@ async function main() {
     console.log('   - Variants and product translations created');
     console.log('   - Themes installed (active/previous stored in SystemSettings)');
     console.log('   - Cart + demo orders created');
-    console.log(`   - ${warehouseRecords.length} warehouses created`);
-    console.log(`   - ${inventoryCount} warehouse inventory records created`);
     console.log(`   - ${adjustmentCount} inventory adjustments created`);
-    console.log('   - 3 inventory transfers created');
     console.log('   - 4 stock alerts created');
 
   } catch (error) {

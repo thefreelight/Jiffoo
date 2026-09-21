@@ -146,7 +146,7 @@ describe('E2E: Multi-Store Dashboard and Reporting', () => {
           {
             name: 'Default Variant',
             basePrice: 100.00,
-            baseStock: 50,
+            stock: 50,
             isDefault: true,
             isActive: true,
           }
@@ -173,7 +173,7 @@ describe('E2E: Multi-Store Dashboard and Reporting', () => {
           {
             name: 'Default Variant',
             basePrice: 80.00,
-            baseStock: 30,
+            stock: 30,
             isDefault: true,
             isActive: true,
           }
@@ -200,7 +200,7 @@ describe('E2E: Multi-Store Dashboard and Reporting', () => {
           {
             name: 'Default Variant',
             basePrice: 10000.00,
-            baseStock: 20,
+            stock: 20,
             isDefault: true,
             isActive: true,
           }

@@ -48,7 +48,7 @@ async function createProductViaApi(request: APIRequestContext, token: string, na
     data: {
       name,
       description: 'Seeded for UI click e2e',
-      variants: [{ name: 'Base', salePrice: 13.5, baseStock: 1, isActive: true }],
+      variants: [{ name: 'Base', salePrice: 13.5, stock: 1, isActive: true }],
     },
   });
   expect(response.ok()).toBeTruthy();
@@ -56,13 +56,13 @@ async function createProductViaApi(request: APIRequestContext, token: string, na
   return body.data.id as string;
 }
 
-async function createLowStockProductViaApi(request: APIRequestContext, token: string, name: string): Promise<string> {
+async function createLimitedStockProductViaApi(request: APIRequestContext, token: string, name: string): Promise<string> {
   const response = await request.post(`${apiBaseUrl}/api/admin/products`, {
     headers: { authorization: `Bearer ${token}` },
     data: {
       name,
       description: 'Seeded low-stock product for inventory UI click e2e',
-      variants: [{ name: 'Base', salePrice: 9.9, baseStock: 0, isActive: true }],
+      variants: [{ name: 'Base', salePrice: 9.9, stock: 0, isActive: true }],
     },
   });
   expect(response.ok()).toBeTruthy();

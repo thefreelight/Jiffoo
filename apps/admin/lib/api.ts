@@ -103,11 +103,9 @@ export interface ProductStatsData {
   metrics: {
     totalProducts: number;
     activeProducts: number;
-    lowStockProducts: number;
     outOfStockProducts: number;
     totalProductsTrend: number;
     activeProductsTrend: number;
-    lowStockProductsTrend: number;
     outOfStockProductsTrend: number;
   };
 }
@@ -268,7 +266,6 @@ export const productsApi = {
   getStats: (params?: {
     search?: string;
     categoryId?: string;
-    lowStockThreshold?: number;
   }): Promise<ApiResponse<ProductStatsData>> =>
     apiClient.get('/admin/products/stats', { params }),
 

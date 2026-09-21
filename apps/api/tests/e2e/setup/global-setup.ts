@@ -244,7 +244,7 @@ async function ensureE2EOrderSeed(prisma: PrismaClient): Promise<void> {
       productId: product.id,
       name: 'Default',
       salePrice: 19.99,
-      baseStock: 100,
+      stock: 100,
       isActive: true,
     },
     create: {
@@ -252,52 +252,9 @@ async function ensureE2EOrderSeed(prisma: PrismaClient): Promise<void> {
       productId: product.id,
       name: 'Default',
       salePrice: 19.99,
-      baseStock: 100,
+      stock: 100,
       isActive: true,
       sortOrder: 0,
-    },
-  });
-
-  // Order stock checks read the single default warehouse; other suites (api
-  // vitest helpers) may have left their own default behind in a shared test
-  // database, so demote every other warehouse before claiming the flag.
-  await prisma.warehouse.updateMany({
-    where: { code: { not: 'E2E' } },
-    data: { isDefault: false },
-  });
-
-  const warehouse = await prisma.warehouse.upsert({
-    where: { code: 'E2E' },
-    update: { isDefault: true },
-    create: {
-      id: 'e2e-warehouse',
-      name: 'E2E Warehouse',
-      code: 'E2E',
-      isActive: true,
-      isDefault: true,
-    },
-  });
-
-  await prisma.warehouseInventory.upsert({
-    where: {
-      warehouseId_variantId: {
-        warehouseId: warehouse.id,
-        variantId: variant.id,
-      },
-    },
-    update: {
-      quantity: 100,
-      reserved: 0,
-      available: 100,
-      lowStock: 10,
-    },
-    create: {
-      warehouseId: warehouse.id,
-      variantId: variant.id,
-      quantity: 100,
-      reserved: 0,
-      available: 100,
-      lowStock: 10,
     },
   });
 
@@ -412,26 +369,6 @@ async function writeStorageState(name: 'admin' | 'shop', storageState: unknown):
   await fs.writeFile(storageStatePath, JSON.stringify(storageState, null, 2), 'utf-8');
 }
 
-async function clearWarehouseCache(): Promise<void> {
-  const redisUrl = process.env.REDIS_URL;
-  if (!redisUrl) {
-    return;
-  }
-
-  const redis = new Redis(redisUrl, { maxRetriesPerRequest: 1, lazyConnect: true });
-  try {
-    await redis.connect();
-    const keys = await redis.keys('warehouse:*');
-    if (keys.length > 0) {
-      await redis.del(...keys);
-    }
-  } catch (error) {
-    console.warn('E2E setup: unable to clear warehouse cache in Redis:', error);
-  } finally {
-    redis.disconnect();
-  }
-}
-
 export default async function globalSetup(config: FullConfig) {
   loadEnvFiles();
   const testDatabaseUrl = resolveSafeTestDatabaseUrl();
@@ -457,11 +394,6 @@ export default async function globalSetup(config: FullConfig) {
   } finally {
     await prisma.$disconnect();
   }
-
-  // The API caches the default warehouse in Redis (warehouse:default); a
-  // stale entry from an earlier suite outlives the seed's demotion above and
-  // makes order stock checks read a warehouse with no e2e inventory.
-  await clearWarehouseCache();
 
   await ensureE2EThemeFixtures();
 

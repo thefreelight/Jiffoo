@@ -29,7 +29,6 @@ import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
 import { healthMonitoringRoutes } from '@/core/admin/health-monitoring/routes';
 import { adminStoreManagementRoutes } from '@/core/admin/store-management/routes';
 
-import { adminWarehouseRoutes } from '@/core/warehouse/routes';
 import { adminInventoryRoutes } from '@/core/inventory/routes';
 
 // Extension installer routes
@@ -70,7 +69,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(adminProductRoutes, { prefix: '/api/admin/products' });
   await fastify.register(adminOrderRoutes, { prefix: '/api/admin/orders' });
   await fastify.register(adminThemeRoutes, { prefix: '/api/admin/themes' });
-  await fastify.register(adminWarehouseRoutes, { prefix: '/api/admin/warehouses' });
   await fastify.register(adminInventoryRoutes, { prefix: '/api/admin/inventory' });
   await fastify.register(systemSettingsRoutes, { prefix: '/api/admin' });
   await fastify.register(adminStoreManagementRoutes, { prefix: '/api/admin/stores' });

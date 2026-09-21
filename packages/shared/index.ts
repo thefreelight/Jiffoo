@@ -93,49 +93,13 @@ export {
   type UpdateProfileFormData,
 } from './src/schemas/auth';
 
-// Warehouse Schemas
-export {
-  warehouseSchema,
-  warehouseInventorySchema,
-  createWarehouseSchema,
-  updateWarehouseSchema,
-  setDefaultWarehouseSchema,
-  warehouseFiltersSchema,
-  warehouseInventoryFiltersSchema,
-  bulkInventoryUpdateSchema,
-  importInventorySchema,
-  type WarehouseSchema,
-  type WarehouseInventorySchema,
-  type CreateWarehouseFormData,
-  type UpdateWarehouseFormData,
-  type SetDefaultWarehouseFormData,
-  type WarehouseFiltersFormData,
-  type WarehouseInventoryFiltersFormData,
-  type BulkInventoryUpdateFormData,
-} from './src/schemas/warehouse';
-
 // Inventory Schemas
 export {
   inventoryAdjustmentTypeSchema,
-  inventoryTransferStatusSchema,
   inventoryAdjustmentSchema,
-  inventoryTransferSchema,
   createInventoryAdjustmentSchema,
-  createInventoryTransferSchema,
-  updateInventoryTransferSchema,
-  approveInventoryTransferSchema,
-  cancelInventoryTransferSchema,
-  inventoryAdjustmentFiltersSchema,
-  inventoryTransferFiltersSchema,
   type InventoryAdjustmentSchema,
-  type InventoryTransferSchema,
   type CreateInventoryAdjustmentFormData,
-  type CreateInventoryTransferFormData,
-  type UpdateInventoryTransferFormData,
-  type ApproveInventoryTransferFormData,
-  type CancelInventoryTransferFormData,
-  type InventoryAdjustmentFiltersFormData,
-  type InventoryTransferFiltersFormData,
 } from './src/schemas/inventory';
 
 
@@ -195,37 +159,10 @@ export type {
 } from './src/types/dto';
 
 
-// Warehouse Types
-export type {
-  Warehouse,
-  WarehouseInventory,
-  WarehouseWithInventory,
-  WarehouseInventoryDetail,
-  WarehouseStats,
-  WarehouseFilters,
-  WarehouseInventoryFilters,
-  CreateWarehouseRequest,
-  UpdateWarehouseRequest,
-  SetDefaultWarehouseRequest,
-  BulkInventoryUpdate,
-  ImportInventoryResult,
-} from './src/types/warehouse';
-
 // Inventory Types
 export type {
   InventoryAdjustment,
   InventoryAdjustmentType,
-  InventoryTransfer,
-  InventoryTransferStatus,
-  InventoryAdjustmentDetail,
-  InventoryTransferDetail,
-  InventoryStats,
-  InventoryAdjustmentFilters,
-  InventoryTransferFilters,
   CreateInventoryAdjustmentRequest,
-  CreateInventoryTransferRequest,
-  UpdateInventoryTransferRequest,
-  ApproveInventoryTransferRequest,
-  CancelInventoryTransferRequest,
 } from './src/types/inventory';
 

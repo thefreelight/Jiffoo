@@ -28,7 +28,6 @@ export const createProductSchema = z.object({
   specifications: z.array(productSpecificationSchema).default([]),
   inventory: z.object({
     quantity: z.number().min(0, 'Quantity must be 0 or greater'),
-    lowStockThreshold: z.number().min(0, 'Low stock threshold must be 0 or greater'),
     trackInventory: z.boolean().default(true),
   }),
   isActive: z.boolean().default(true),

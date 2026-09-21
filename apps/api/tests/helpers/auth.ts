@@ -256,7 +256,6 @@ export async function deleteAllTestUsers(): Promise<void> {
     prisma.shipment.deleteMany({ where: { id: { in: shipmentIds } } }),
     prisma.refund.deleteMany({ where: { orderId: { in: orderIds } } }),
     prisma.payment.deleteMany({ where: { orderId: { in: orderIds } } }),
-    prisma.inventoryReservation.deleteMany({ where: { orderId: { in: orderIds } } }),
     prisma.orderItem.deleteMany({ where: { orderId: { in: orderIds } } }),
     prisma.orderShippingAddress.deleteMany({ where: { orderId: { in: orderIds } } }),
     prisma.order.deleteMany({ where: { id: { in: orderIds } } }),

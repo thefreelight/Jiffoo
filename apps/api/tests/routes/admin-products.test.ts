@@ -172,7 +172,7 @@ describe('Admin Products Endpoints', () => {
         url: '/api/admin/products/',
         payload: {
           name: 'New Product',
-          variants: [{ name: 'Default', basePrice: 99.99, baseStock: 100 }],
+          variants: [{ name: 'Default', basePrice: 99.99, stock: 100 }],
         },
       });
 
@@ -186,7 +186,7 @@ describe('Admin Products Endpoints', () => {
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           name: 'New Product',
-          variants: [{ name: 'Default', basePrice: 99.99, baseStock: 100 }],
+          variants: [{ name: 'Default', basePrice: 99.99, stock: 100 }],
         },
       });
 
@@ -199,7 +199,7 @@ describe('Admin Products Endpoints', () => {
         url: '/api/admin/products/',
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
-          variants: [{ name: 'Base Variant', salePrice: 99.99, baseStock: 100 }],
+          variants: [{ name: 'Base Variant', salePrice: 99.99, stock: 100 }],
         },
       });
 
@@ -249,7 +249,7 @@ describe('Admin Products Endpoints', () => {
             {
               name: 'Base Variant',
               salePrice: 149.99,
-              baseStock: 75,
+              stock: 75,
               isActive: true,
             },
           ],
@@ -328,7 +328,7 @@ describe('Admin Products Endpoints', () => {
         url: `/api/admin/products/${testProduct.id}`,
         payload: {
           name: 'Updated Product Name',
-          variants: [{ name: 'Default', basePrice: 99.99, baseStock: 100 }],
+          variants: [{ name: 'Default', basePrice: 99.99, stock: 100 }],
         },
       });
 
@@ -342,7 +342,7 @@ describe('Admin Products Endpoints', () => {
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           name: 'Updated Product Name',
-          variants: [{ name: 'Default', basePrice: 99.99, baseStock: 100 }],
+          variants: [{ name: 'Default', basePrice: 99.99, stock: 100 }],
         },
       });
 
@@ -362,7 +362,7 @@ describe('Admin Products Endpoints', () => {
               id: firstVariant.id,
               name: firstVariant.name,
               salePrice: 159.99,
-              baseStock: firstVariant.baseStock,
+              stock: firstVariant.stock,
               isActive: firstVariant.isActive,
             },
           ],
@@ -381,7 +381,7 @@ describe('Admin Products Endpoints', () => {
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           name: 'Updated Name',
-          variants: [{ name: 'Base Variant', salePrice: 99.99, baseStock: 10 }],
+          variants: [{ name: 'Base Variant', salePrice: 99.99, stock: 10 }],
         },
       });
 

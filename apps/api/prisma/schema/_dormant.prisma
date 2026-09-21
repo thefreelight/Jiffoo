@@ -140,34 +140,6 @@ model ShipmentItem {
 }
 
 // ============================================================
-// DORMANT: INVENTORY RESERVATION
-// Placeholder — reservation logic uses WarehouseInventory atomic updates
-// ============================================================
-// DORMANT since 2026-07: no code references, do not use
-model InventoryReservation {
-  id        String                     @id @default(cuid())
-  orderId   String
-  productId String
-  variantId String
-  quantity  Int
-  expiresAt DateTime
-  status    InventoryReservationStatus @default(ACTIVE)
-  createdAt DateTime                   @default(now())
-  updatedAt DateTime                   @updatedAt
-
-  order   Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product        @relation(fields: [productId], references: [id])
-  variant ProductVariant @relation(fields: [variantId], references: [id])
-
-  @@unique([orderId, productId, variantId])
-  @@index([expiresAt, status])
-  @@index([productId, status])
-  @@index([variantId, status])
-  @@map("inventory_reservations")
-  @@schema("public")
-}
-
-// ============================================================
 // DORMANT: REFUND LEDGER
 // Placeholder for double-entry ledger, never wired
 // ============================================================

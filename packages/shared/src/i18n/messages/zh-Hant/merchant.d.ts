@@ -93,7 +93,6 @@ export declare const merchant: {
         actions: string;
         product: string;
         inStock: string;
-        lowStock: string;
         outOfStock: string;
         deleteConfirm: string;
         adjustStock: string;
@@ -148,7 +147,6 @@ export declare const merchant: {
             inventoryDesc: string;
             trackQuantity: string;
             quantityLabel: string;
-            lowStockThreshold: string;
             skuLabel: string;
             skuPlaceholder: string;
             barcodeLabel: string;

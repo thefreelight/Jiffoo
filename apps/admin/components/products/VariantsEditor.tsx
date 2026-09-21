@@ -18,7 +18,7 @@ interface Variant {
     name: string
     salePrice: number
     costPrice?: number | null
-    baseStock: number
+    stock: number
     skuCode?: string
     isActive?: boolean
 }
@@ -35,7 +35,7 @@ export function VariantsEditor({ variants, onChange }: VariantsEditorProps) {
             tempId: generateId(),
             name: '',
             salePrice: 0,
-            baseStock: 0,
+            stock: 0,
             skuCode: '',
             isActive: true,
         }
@@ -108,10 +108,10 @@ export function VariantsEditor({ variants, onChange }: VariantsEditorProps) {
                                 <Label className="text-[9px] font-bold text-gray-400 uppercase tracking-widest pl-1 block">Stock</Label>
                                 <Input
                                     type="number"
-                                    value={variant.baseStock === 0 ? '' : variant.baseStock}
+                                    value={variant.stock === 0 ? '' : variant.stock}
                                     onChange={(e) => {
                                         const val = e.target.value;
-                                        handleUpdateVariant(index, { baseStock: val === '' ? 0 : parseInt(val) || 0 })
+                                        handleUpdateVariant(index, { stock: val === '' ? 0 : parseInt(val) || 0 })
                                     }}
                                     className="h-10 text-sm font-black border-gray-100 bg-white rounded-lg px-4 text-left focus:ring-2 focus:ring-blue-500/10 focus:bg-white transition-all"
                                     placeholder="0"

@@ -81,7 +81,7 @@ export async function createTestProduct(options: CreateProductOptions = {}) {
           {
             name: 'Base Variant',
             salePrice: options.price ?? 99.99,
-            baseStock: options.stock ?? 100,
+            stock: options.stock ?? 100,
             isActive: true,
             skuCode: options.skuCode,
           }
@@ -92,53 +92,6 @@ export async function createTestProduct(options: CreateProductOptions = {}) {
       variants: true
     }
   });
-
-  // Order stock checks read the single default warehouse; the playwright E2E
-  // suites share this database and claim their own default (E2E), so demote
-  // every other warehouse before claiming the flag.
-  await prisma.warehouse.updateMany({
-    where: { code: { not: 'TEST' } },
-    data: { isDefault: false },
-  });
-
-  const defaultWarehouse = await prisma.warehouse.upsert({
-    where: { code: 'TEST' },
-    update: { isDefault: true },
-    create: {
-      id: 'test-warehouse',
-      name: 'Test Warehouse',
-      code: 'TEST',
-      isActive: true,
-      isDefault: true,
-    },
-  });
-
-  const variant = product.variants[0];
-  if (variant) {
-    const stock = Math.max(0, Math.trunc(Number(options.stock ?? 100)));
-    await prisma.warehouseInventory.upsert({
-      where: {
-        warehouseId_variantId: {
-          warehouseId: defaultWarehouse.id,
-          variantId: variant.id,
-        },
-      },
-      update: {
-        quantity: stock,
-        reserved: 0,
-        available: stock,
-        lowStock: 10,
-      },
-      create: {
-        warehouseId: defaultWarehouse.id,
-        variantId: variant.id,
-        quantity: stock,
-        reserved: 0,
-        available: stock,
-        lowStock: 10,
-      },
-    });
-  }
 
   return product;
 }
@@ -419,8 +372,7 @@ export async function deleteAllTestOrders() {
   await prisma.shipment.deleteMany({});
   await prisma.refund.deleteMany({});
   await prisma.payment.deleteMany({});
-  await prisma.inventoryReservation.deleteMany({});
-  await prisma.orderItem.deleteMany({});
+  await prisma.  await prisma.orderItem.deleteMany({});
   await prisma.orderShippingAddress.deleteMany({});
   await prisma.order.deleteMany({});
 }

@@ -35,8 +35,28 @@ const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKn
 import { systemSettingsService } from '../admin/system-settings/service';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { InventoryService } from '@/core/inventory/service';
-import { WarehouseService } from '@/core/warehouse/service';
 import { OutboxService } from '@/infra/outbox';
+
+type JsonRecord = Record<string, unknown>;
+
+export function parseJsonRecord(value: unknown): JsonRecord | null {
+  if (!value) return null;
+  if (typeof value === 'object' && !Array.isArray(value)) {
+    return value as JsonRecord;
+  }
+  if (typeof value !== 'string') return null;
+
+  try {
+    const parsed = JSON.parse(value);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return parsed as JsonRecord;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
 
 const shipmentItemSelect = {
   id: true,
@@ -180,10 +200,8 @@ export class OrderService {
       );
     }
 
-    const defaultWarehouse = await WarehouseService.getDefaultWarehouse();
     const stockMap = await InventoryService.getAvailableStockByVariantIds(
-      [...requestedQuantityByVariant.keys()],
-      { warehouseId: defaultWarehouse.id }
+      [...requestedQuantityByVariant.keys()]
     );
 
     for (const item of data.items) {

@@ -56,16 +56,6 @@ enum ShipmentStatus {
   @@schema("public")
 }
 
-enum InventoryReservationStatus {
-  ACTIVE
-  RELEASED
-  CONSUMED
-  EXPIRED
-  CANCELLED
-
-  @@schema("public")
-}
-
 // ============================================================
 // ENUMS: PAYMENT
 // ============================================================

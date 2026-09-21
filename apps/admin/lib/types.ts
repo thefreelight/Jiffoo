@@ -26,7 +26,6 @@ export interface ProductVariant {
   price?: number
   salePrice?: number
   stock?: number
-  baseStock?: number
   sku?: string
   skuCode?: string
   isActive?: boolean
@@ -294,7 +293,7 @@ export interface ProductForm {
     name: string
     salePrice: number
     costPrice?: number | null
-    baseStock: number
+    stock: number
     skuCode?: string
     isActive?: boolean
   }>

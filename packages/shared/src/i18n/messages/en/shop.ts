@@ -183,7 +183,6 @@ export const shop = {
     buyNow: 'Buy Now',
     outOfStock: 'Out of Stock',
     inStock: 'In Stock',
-    lowStock: 'Low Stock',
     quantity: 'Quantity',
     price: 'Price',
     originalPrice: 'Original Price',

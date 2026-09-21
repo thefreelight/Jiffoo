@@ -260,7 +260,7 @@ describe('ProductService', () => {
         name: 'Small',
         skuCode: 'WDG-S',
         salePrice: 9.99,
-        baseStock: 50,
+        stock: 50,
         attributes: { size: 'S' },
       });
     });

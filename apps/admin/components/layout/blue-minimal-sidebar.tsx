@@ -19,7 +19,6 @@ import {
   FileText,
   Sliders,
   Palette,
-  Warehouse,
   X,
   User,
   Settings,
@@ -68,7 +67,7 @@ const baseNavigationConfig: NavigationItem[] = [
     nameKey: 'merchant.inventory.title',
     fallback: 'Inventory',
     href: '/inventory',
-    icon: Warehouse,
+    icon: Package,
   },
   {
     id: 'orders',

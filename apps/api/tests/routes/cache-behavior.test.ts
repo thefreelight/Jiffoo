@@ -746,7 +746,7 @@ describe('Cache Behavior Tests', () => {
         id: defaultVariant.id,
         name: defaultVariant.name,
         salePrice: Number(defaultVariant.salePrice),
-        baseStock: defaultVariant.baseStock,
+        stock: defaultVariant.stock,
       };
 
       // 1. Fill product list cache
@@ -794,7 +794,7 @@ describe('Cache Behavior Tests', () => {
         id: defaultVariant.id,
         name: defaultVariant.name,
         salePrice: Number(defaultVariant.salePrice),
-        baseStock: defaultVariant.baseStock,
+        stock: defaultVariant.stock,
       };
 
       // Fill detail cache

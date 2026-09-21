@@ -54,9 +54,7 @@ export interface ProductInventory {
   quantity: number;
   reserved: number;
   available: number;
-  lowStockThreshold: number;
   isInStock: boolean;
-  isLowStock: boolean;
   trackInventory: boolean;
 }
 
@@ -100,7 +98,6 @@ export interface ProductStats {
   totalProducts: number;
   activeProducts: number;
   outOfStockProducts: number;
-  lowStockProducts: number;
   featuredProducts: number;
   averagePrice: number;
   topCategories: Array<{

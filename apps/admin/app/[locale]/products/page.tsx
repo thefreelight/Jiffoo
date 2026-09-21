@@ -104,8 +104,6 @@ export default function ProductsPage() {
   const getStatusStyle = (stock: number) => {
     if (stock === 0) {
       return { text: getText('merchant.products.outOfStock', 'Out of Stock'), class: 'text-red-600 bg-red-50 border-red-100' }
-    } else if (stock < 10) {
-      return { text: getText('merchant.products.lowStock', 'Low Stock'), class: 'text-yellow-600 bg-yellow-50 border-yellow-100' }
     } else {
       return { text: getText('merchant.products.inStock', 'In Stock'), class: 'text-green-600 bg-green-50 border-green-100' }
     }
@@ -191,15 +189,6 @@ export default function ProductsPage() {
             comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
             color="green"
             icon={<CheckCircle className="w-5 h-5" />}
-          />
-          <StatsCard
-            title={getText('merchant.products.lowStock', 'Low Stock')}
-            value={(productStats?.metrics.lowStockProducts ?? 0).toLocaleString()}
-            change={toTrendDisplay(productStats?.metrics.lowStockProductsTrend).change}
-            changeType={toTrendDisplay(productStats?.metrics.lowStockProductsTrend).changeType}
-            comparisonLabel={getText('merchant.dashboard.vsYesterday', 'vs yesterday')}
-            color="orange"
-            icon={<AlertTriangle className="w-5 h-5" />}
           />
           <StatsCard
             title={getText('merchant.products.outOfStock', 'Out of Stock')}

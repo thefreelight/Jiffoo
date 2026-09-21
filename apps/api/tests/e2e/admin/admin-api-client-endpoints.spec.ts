@@ -129,7 +129,7 @@ test.describe.serial('Admin API Client Endpoints E2E', () => {
         {
           name: 'Default',
           salePrice: 19.99,
-          baseStock: 100,
+          stock: 100,
           isActive: true,
         },
       ],
@@ -150,7 +150,7 @@ test.describe.serial('Admin API Client Endpoints E2E', () => {
           id: createdVariantId,
           name: 'Default',
           salePrice: 29.99,
-          baseStock: 90,
+          stock: 90,
           isActive: true,
         },
       ];

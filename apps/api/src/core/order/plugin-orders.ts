@@ -113,7 +113,7 @@ export async function createPluginOrderCheckout(input: PluginOrderCheckoutInput)
         productId,
         name: 'Plugin entitlement',
         salePrice: input.amount,
-        baseStock: 0,
+        stock: 0,
         isActive: false,
       },
     });

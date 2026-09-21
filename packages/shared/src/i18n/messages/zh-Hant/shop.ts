@@ -183,7 +183,6 @@ export const shop = {
     buyNow: '立即購買',
     outOfStock: '缺貨',
     inStock: '有庫存',
-    lowStock: '庫存不足',
     quantity: '數量',
     price: '價格',
     originalPrice: '原價',

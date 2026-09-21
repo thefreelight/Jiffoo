@@ -366,7 +366,7 @@ export class ProductService {
         name: v.name,
         skuCode: v.skuCode,
         salePrice: Number(v.salePrice),
-        baseStock: stockMap.get(v.id) ?? 0,
+        stock: stockMap.get(v.id) ?? 0,
         isActive: v.isActive,
         attributes: parseAttributes(v.attributes)
       }))
@@ -521,7 +521,7 @@ export class ProductService {
           name: v.name,
           skuCode: v.skuCode,
           salePrice: Number(v.salePrice),
-          baseStock: stockMap.get(v.id) ?? 0,
+          stock: stockMap.get(v.id) ?? 0,
           isActive: v.isActive,
           attributes: parseAttributes(v.attributes)
         }))

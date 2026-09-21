@@ -21,11 +21,11 @@ const productVariantSchema = {
     name: { type: 'string' },
     skuCode: { type: 'string', nullable: true },
     salePrice: { type: 'number' },
-    baseStock: { type: 'number' },
+    stock: { type: 'number' },
     isActive: { type: 'boolean' },
     attributes: { type: 'object', additionalProperties: true },
   },
-  required: ['id', 'name', 'salePrice', 'baseStock', 'isActive'],
+  required: ['id', 'name', 'salePrice', 'stock', 'isActive'],
 } as const;
 
 const productListItemSchema = {

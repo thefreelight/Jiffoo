@@ -85,7 +85,7 @@ export default function EditProductPage() {
           name: v.name ?? '',
           salePrice: Number(v.salePrice || 0),
           costPrice: v.costPrice ?? null,
-          baseStock: Number(v.baseStock || 0),
+          stock: Number(v.stock || 0),
           skuCode: v.skuCode ?? '',
           isActive: !!v.isActive
         })) || [],

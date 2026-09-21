@@ -23,7 +23,7 @@ const productVariantSchema = {
     name: { type: 'string', description: 'Variant name' },
     salePrice: { type: 'number', description: 'Sale price' },
     costPrice: { type: 'number', nullable: true, description: 'Source cost price' },
-    baseStock: { type: 'number', description: 'Base stock quantity' },
+    stock: { type: 'number', description: 'Stock quantity' },
     skuCode: { type: 'string', nullable: true, description: 'SKU code' },
     isActive: { type: 'boolean', description: 'Is active' },
     sourceIsActive: { type: 'boolean', nullable: true, description: 'Source active state' },
@@ -31,7 +31,7 @@ const productVariantSchema = {
     pendingChangeSummary: { type: 'object', nullable: true, additionalProperties: true, description: 'Source change summary' },
     attributes: { type: 'object', additionalProperties: true, description: 'Variant attributes' },
   },
-  required: ['id', 'name', 'salePrice', 'baseStock'],
+  required: ['id', 'name', 'salePrice', 'stock'],
 } as const;
 
 // ============================================================================
@@ -127,21 +127,17 @@ const productStatsSchema = {
       properties: {
         totalProducts: { type: 'integer' },
         activeProducts: { type: 'integer' },
-        lowStockProducts: { type: 'integer' },
         outOfStockProducts: { type: 'integer' },
         totalProductsTrend: { type: 'number' },
         activeProductsTrend: { type: 'number' },
-        lowStockProductsTrend: { type: 'number' },
         outOfStockProductsTrend: { type: 'number' },
       },
       required: [
         'totalProducts',
         'activeProducts',
-        'lowStockProducts',
         'outOfStockProducts',
         'totalProductsTrend',
         'activeProductsTrend',
-        'lowStockProductsTrend',
         'outOfStockProductsTrend',
       ],
     },
@@ -162,8 +158,6 @@ export const adminProductSchemas = {
         minPrice: { type: 'number', description: 'Minimum variant price filter' },
         maxPrice: { type: 'number', description: 'Maximum variant price filter' },
         inStock: { type: 'boolean', description: 'Filter by in-stock variants' },
-        lowStock: { type: 'boolean', description: 'Filter by low stock variants' },
-        lowStockThreshold: { type: 'integer', minimum: 1, description: 'Low stock threshold (default: 10)' },
         sortBy: { type: 'string', enum: ['name', 'createdAt', 'updatedAt'], description: 'Sort field' },
         sortOrder: { type: 'string', enum: ['asc', 'desc'], description: 'Sort order' },
       },
@@ -204,7 +198,7 @@ export const adminProductSchemas = {
           minItems: 1,
           items: {
             type: 'object',
-            required: ['name', 'baseStock'],
+            required: ['name', 'stock'],
             anyOf: [
               { required: ['salePrice'] },
               { required: ['basePrice'] },
@@ -214,7 +208,7 @@ export const adminProductSchemas = {
               salePrice: { type: 'number' },
               basePrice: { type: 'number', description: 'Legacy alias of salePrice' },
               costPrice: { type: 'number', nullable: true },
-              baseStock: { type: 'integer' },
+              stock: { type: 'integer' },
               skuCode: { type: 'string' },
               isActive: { type: 'boolean' },
               attributes: { type: 'object', additionalProperties: true },
@@ -250,7 +244,7 @@ export const adminProductSchemas = {
           minItems: 1,
           items: {
             type: 'object',
-            required: ['name', 'baseStock'],
+            required: ['name', 'stock'],
             anyOf: [
               { required: ['salePrice'] },
               { required: ['basePrice'] },
@@ -261,7 +255,7 @@ export const adminProductSchemas = {
               salePrice: { type: 'number' },
               basePrice: { type: 'number', description: 'Legacy alias of salePrice' },
               costPrice: { type: 'number', nullable: true },
-              baseStock: { type: 'integer' },
+              stock: { type: 'integer' },
               skuCode: { type: 'string' },
               isActive: { type: 'boolean' },
               attributes: { type: 'object', additionalProperties: true },

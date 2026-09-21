@@ -74,12 +74,6 @@ vi.mock('@/core/inventory/service', () => ({
   },
 }));
 
-vi.mock('@/core/warehouse/service', () => ({
-  WarehouseService: {
-    getDefaultWarehouse: vi.fn().mockResolvedValue({ id: 'wh-1' }),
-  },
-}));
-
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
@@ -255,7 +249,7 @@ describe('OrderService', () => {
     });
 
     it('should throw when a variant has insufficient stock', async () => {
-      const lowStockProduct = {
+      const insufficientStockProduct = {
         ...TEST_PRODUCT,
         variants: [
           { id: 'var-1', name: 'Default', salePrice: 25, isActive: true },
@@ -263,7 +257,7 @@ describe('OrderService', () => {
       };
 
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER);
-      mockPrisma.product.findMany.mockResolvedValue([lowStockProduct]);
+      mockPrisma.product.findMany.mockResolvedValue([insufficientStockProduct]);
       mockInventory.getAvailableStockByVariantIds.mockResolvedValue(new Map([['var-1', 1]]));
 
       await expect(

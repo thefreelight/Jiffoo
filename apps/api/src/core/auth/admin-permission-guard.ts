@@ -88,12 +88,6 @@ function resolveRequiredPermission(method: string, pathname: string): AdminPermi
       : ADMIN_PERMISSIONS.ORDERS_WRITE;
   }
 
-  if (pathname.startsWith('/admin/warehouses')) {
-    return isReadMethod(method)
-      ? ADMIN_PERMISSIONS.INVENTORY_READ
-      : ADMIN_PERMISSIONS.INVENTORY_WRITE;
-  }
-
   if (pathname.startsWith('/admin/inventory')) {
     return isReadMethod(method)
       ? ADMIN_PERMISSIONS.INVENTORY_READ
