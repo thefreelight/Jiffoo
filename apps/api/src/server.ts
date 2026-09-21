@@ -24,7 +24,6 @@ import 'module-alias/register';
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-// @ts-ignore - optional dependency
 import helmet from '@fastify/helmet';
 import multipart from '@fastify/multipart';
 import staticFiles from '@fastify/static';

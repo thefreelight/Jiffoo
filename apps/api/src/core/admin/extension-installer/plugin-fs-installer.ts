@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Plugin File System Installer Service
  *

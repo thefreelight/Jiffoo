@@ -159,7 +159,6 @@ export const getAdminClient = (options?: Omit<CreateClientOptions, 'appId'>) =>
 export function useApiClient(appId: AppType, options: Omit<CreateClientOptions, 'appId'> = {}): AuthClient {
   // Use useMemo optimization in React environment
   if (typeof window !== 'undefined' && 'React' in window) {
-    // @ts-ignore
     const { useMemo } = window.React;
     return useMemo(() => ApiClientManager.getInstance(appId, options), [appId, JSON.stringify(options)]);
   }
