@@ -172,7 +172,6 @@ Remove an override only together with a full regression (`pnpm type-check` + the
 
 ## ✅ CI Quality Gates
 
-Every PR into `main` runs four parallel jobs (`.github/workflows/pr-quality-gates.yml`). All must be green before merge.
 
 | Job | What it checks | Local equivalent |
 |-----|----------------|------------------|

@@ -67,23 +67,6 @@ pids
 coverage/
 *.lcov
 
-# Extensions (runtime installation directory)
-# 运行时安装的插件和主题默认不进 git；官方 package-managed 插件源码除外
-extensions/plugins/*
-extensions/themes/*
-!extensions/plugins/.gitkeep
-!extensions/themes/.gitkeep
-!extensions/plugins/stripe/
-!extensions/plugins/stripe/**
-!extensions/plugins/i18n/
-!extensions/plugins/i18n/**
-!extensions/plugins/odoo/
-!extensions/plugins/odoo/**
-extensions/plugins/*/.installed.json
-extensions/plugins/*/checksums.json
-extensions/plugins/*/node_modules/
-extensions/plugins/*/dist/
-
 # Theme/Plugin zip artifacts (build products, should not be committed)
 *.zip
 
@@ -97,7 +80,6 @@ playwright/.cache/
 apps/api/tests/e2e/.auth/
 apps/api/tests/e2e/playwright-report/
 apps/api/tests/e2e/playwright-report-*/
-e2e/visual/baselines/*.png
 
 # Vercel local project metadata
 .vercel/

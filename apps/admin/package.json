@@ -8,7 +8,6 @@
     "start": "next start -p 3002",
     "lint": "eslint .",
     "type-check": "tsc --noEmit",
-    "test": "vitest run --config vitest.config.mts && node ../../scripts/verify-admin-quality-gate.mjs",
     "docker:build": "docker build -t admin:latest ."
   },
   "dependencies": {

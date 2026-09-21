@@ -56,9 +56,5 @@ packages/    plugin-sdk, shared, ui
 - [Core V1 Product Charter](docs/agentra-001-core-v1-product-charter.md) — what Core V1 is
 - [V1 Execution Plan](docs/agentra-002-v1-execution-plan.md) — acceptance status
 - [Contributing](CONTRIBUTING.md)
-- [Licence boundary](LICENSE-EXCEPTIONS.md)
 
 ## Licence
-
-GPL v2.0 or later. The SDK packages (`@jiffoo/plugin-sdk`, `@jiffoo/ui`) are MIT — see
-[LICENSE-EXCEPTIONS.md](LICENSE-EXCEPTIONS.md).
