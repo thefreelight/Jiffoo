@@ -1165,8 +1165,8 @@ export const upgradeApi = {
     } | null;
     releaseDate?: string | null;
     releaseChannel: 'stable' | 'prerelease';
-    deploymentMode: 'single-host' | 'docker-compose' | 'k8s' | 'unsupported';
-    deploymentModeSource: 'env' | 'k8s-signals' | 'compose-signals' | 'single-host-signals' | 'fallback';
+    deploymentMode: 'single-host' | 'docker-compose' | 'unsupported';
+    deploymentModeSource: 'env' | 'compose-signals' | 'single-host-signals' | 'fallback';
     deploymentModeReason?: string | null;
     oneClickUpgradeSupported: boolean;
     oneClickUpgradeAvailable?: boolean;

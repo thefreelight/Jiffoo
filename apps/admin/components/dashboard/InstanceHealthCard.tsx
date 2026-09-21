@@ -24,7 +24,7 @@ interface VersionInfo {
   latestVersion: string
   updateAvailable: boolean
   releaseChannel: 'stable' | 'prerelease'
-  deploymentMode: 'single-host' | 'docker-compose' | 'k8s' | 'unsupported'
+  deploymentMode: 'single-host' | 'docker-compose' | 'unsupported'
   oneClickUpgradeSupported: boolean
   manifestStatus: 'available' | 'missing' | 'unreachable' | 'invalid'
 }
@@ -33,7 +33,6 @@ function formatDeploymentMode(mode: string): string {
   switch (mode) {
     case 'single-host': return 'Single Host'
     case 'docker-compose': return 'Docker Compose'
-    case 'k8s': return 'Kubernetes'
     default: return mode
   }
 }

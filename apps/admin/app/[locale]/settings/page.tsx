@@ -207,8 +207,8 @@ function SettingsPageContent() {
     repository?: string | null
     releaseDate?: string | null
     releaseChannel: 'stable' | 'prerelease'
-    deploymentMode: 'single-host' | 'docker-compose' | 'k8s' | 'unsupported'
-    deploymentModeSource: 'env' | 'k8s-signals' | 'compose-signals' | 'single-host-signals' | 'fallback'
+    deploymentMode: 'single-host' | 'docker-compose' | 'unsupported'
+    deploymentModeSource: 'env' | 'compose-signals' | 'single-host-signals' | 'fallback'
     deploymentModeReason?: string | null
     oneClickUpgradeSupported: boolean
     oneClickUpgradeAvailable?: boolean
@@ -240,8 +240,6 @@ function SettingsPageContent() {
         return getText('merchant.systemUpdates.singleHost', 'Single-host')
       case 'docker-compose':
         return getText('merchant.systemUpdates.dockerCompose', 'Docker Compose')
-      case 'k8s':
-        return getText('merchant.systemUpdates.k8s', 'Kubernetes / Helm')
       default:
         return getText('merchant.systemUpdates.unsupportedMode', 'Unsupported / custom')
     }

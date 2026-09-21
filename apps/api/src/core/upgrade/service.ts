@@ -63,7 +63,7 @@ export class UpgradeService {
   private static updatedAt: string | null = null;
 
   private static supportsExternalUpdaterBridge(mode: DeploymentMode): boolean {
-    return Boolean(process.env.JIFFOO_UPDATER_URL) && (mode === 'docker-compose' || mode === 'k8s');
+    return Boolean(process.env.JIFFOO_UPDATER_URL) && mode === 'docker-compose';
   }
 
   private static async ensureSystemSettings() {
@@ -330,10 +330,7 @@ export class UpgradeService {
       }
 
       if (this.supportsExternalUpdaterBridge(deployment.mode)) {
-        const acceptedStep = deployment.mode === 'k8s'
-          ? 'Upgrade accepted by cluster updater bridge'
-          : 'Upgrade accepted by updater agent';
-        this.reportProgress('preparing', acceptedStep, 15);
+        this.reportProgress('preparing', 'Upgrade accepted by updater agent', 15);
         return {
           success: true,
           result: {
@@ -497,19 +494,11 @@ export class UpgradeService {
 
   private static detectDeploymentMode(): DeploymentModeDetection {
     const override = process.env.JIFFOO_DEPLOYMENT_MODE;
-    if (override === 'single-host' || override === 'docker-compose' || override === 'k8s' || override === 'unsupported') {
+    if (override === 'single-host' || override === 'docker-compose' || override === 'unsupported') {
       return {
         mode: override,
         source: 'env',
         reason: `Detected from JIFFOO_DEPLOYMENT_MODE=${override}`,
-      };
-    }
-
-    if (process.env.KUBERNETES_SERVICE_HOST || process.env.HELM_RELEASE_NAME || process.env.ARGOCD_APP_NAME) {
-      return {
-        mode: 'k8s',
-        source: 'k8s-signals',
-        reason: 'Detected Kubernetes runtime signals (KUBERNETES_SERVICE_HOST/HELM_RELEASE_NAME/ARGOCD_APP_NAME)',
       };
     }
 

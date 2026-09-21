@@ -1,10 +1,9 @@
-export type DeploymentMode = 'single-host' | 'docker-compose' | 'k8s' | 'unsupported';
+export type DeploymentMode = 'single-host' | 'docker-compose' | 'unsupported';
 export type UpdateSource = 'env-manifest' | 'local-fallback';
 export type UpdateManifestStatus = 'available' | 'missing' | 'unreachable' | 'invalid';
 export type CoreUpdateDeliveryMode = 'image-first' | 'source-archive';
 export type DeploymentModeSource =
   | 'env'
-  | 'k8s-signals'
   | 'compose-signals'
   | 'single-host-signals'
   | 'fallback';

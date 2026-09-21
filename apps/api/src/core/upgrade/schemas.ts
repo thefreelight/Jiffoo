@@ -46,12 +46,12 @@ const versionInfoSchema = {
     },
     deploymentMode: {
       type: 'string',
-      enum: ['single-host', 'docker-compose', 'k8s', 'unsupported'],
+      enum: ['single-host', 'docker-compose', 'unsupported'],
       description: 'Detected self-hosted deployment mode',
     },
     deploymentModeSource: {
       type: 'string',
-      enum: ['env', 'k8s-signals', 'compose-signals', 'single-host-signals', 'fallback'],
+      enum: ['env', 'compose-signals', 'single-host-signals', 'fallback'],
       description: 'How the deployment mode was detected',
     },
     deploymentModeReason: { type: 'string', nullable: true, description: 'Human-readable deployment mode detection reason' },
