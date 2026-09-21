@@ -6,7 +6,6 @@ const mocks = vi.hoisted(() => ({
   cacheGet: vi.fn(),
   cacheSet: vi.fn(),
   cacheDelete: vi.fn(),
-  incrementStoreContextVersion: vi.fn(),
   getThemeAppInstance: vi.fn(),
   startThemeApp: vi.fn(),
   checkThemeAppHealth: vi.fn(),
@@ -25,7 +24,6 @@ vi.mock('@/core/cache/service', () => ({
     get: mocks.cacheGet,
     set: mocks.cacheSet,
     delete: mocks.cacheDelete,
-    incrementStoreContextVersion: mocks.incrementStoreContextVersion,
   },
 }));
 
@@ -85,7 +83,6 @@ describe('ThemeManagementService', () => {
     mocks.cacheGet.mockResolvedValue(null);
     mocks.cacheSet.mockResolvedValue(true);
     mocks.cacheDelete.mockResolvedValue(true);
-    mocks.incrementStoreContextVersion.mockResolvedValue(1);
     mocks.getThemeAppInstance.mockReturnValue(null);
     mocks.startThemeApp.mockResolvedValue(undefined);
     mocks.checkThemeAppHealth.mockResolvedValue({ success: true });

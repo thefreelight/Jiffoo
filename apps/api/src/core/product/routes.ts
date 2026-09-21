@@ -1,5 +1,5 @@
 /**
- * Product Routes (Multi-Store Version)
+ * Product Routes
  */
 
 import { createHash } from 'crypto';
@@ -9,7 +9,6 @@ import { DEFAULT_LOCALE } from '@/utils/i18n';
 import { sendSuccess, sendError } from '@/utils/response';
 import { productSchemas } from './schemas';
 import { CacheService } from '@/core/cache/service';
-import { storeContextMiddleware } from '@/middleware/store-context';
 
 function setHttpCache(reply: FastifyReply, data: any, maxAge: number, swr: number) {
   const etag = `"${createHash('md5').update(JSON.stringify(data)).digest('hex')}"`;
@@ -19,9 +18,6 @@ function setHttpCache(reply: FastifyReply, data: any, maxAge: number, swr: numbe
 }
 
 export async function productRoutes(fastify: FastifyInstance) {
-  // Apply store context middleware to all product routes
-  fastify.addHook('onRequest', storeContextMiddleware);
-
   // Get products list
   fastify.get('/', {
     schema: {

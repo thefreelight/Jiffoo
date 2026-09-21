@@ -111,7 +111,7 @@ export class AdminOrderService {
    * Get orders list - flattened response for UI display
    * Returns: { items: [...], pagination: {...} }
    */
-  static async getOrders(page = 1, limit = 10, status?: string, search?: string, storeId?: string) {
+  static async getOrders(page = 1, limit = 10, status?: string, search?: string) {
     const skip = (page - 1) * limit;
     const where: any = {};
     const searchText = search?.trim();
@@ -147,12 +147,9 @@ export class AdminOrderService {
       ];
     }
 
-    if (storeId) {
-      where.storeId = storeId;
-    }
 
     // Try cache
-    const cached = await CacheService.getOrderList(page, limit, { status, search: searchText || undefined, storeId });
+    const cached = await CacheService.getOrderList(page, limit, { status, search: searchText || undefined });
     if (cached) return cached;
 
     // Fetch currency once for all items (same store = same currency, cached)

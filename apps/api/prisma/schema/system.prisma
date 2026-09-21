@@ -12,7 +12,6 @@ model User {
   avatar    String?
   role      String   @default("USER")
   isActive  Boolean  @default(true)
-  storeId   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -22,14 +21,12 @@ model User {
   verificationTokenExpiry DateTime?
 
   // E-commerce relations
-  orders            Order[]
-  carts             Cart[]
-  store             Store?             @relation(fields: [storeId], references: [id])
-  adminMembership   AdminMembership?
+  orders          Order[]
+  carts           Cart[]
+  adminMembership AdminMembership?
 
   @@index([email])
   @@index([role])
-  @@index([storeId])
   @@map("users")
   @@schema("public")
 }
@@ -44,9 +41,9 @@ model SystemSettings {
   installedAt DateTime?
   installedBy String?
 
-  version       String    @default("1.0.0")
-  lastUpdatedAt DateTime?
-  pluginRegistryVersion Int @default(0)
+  version               String    @default("1.0.0")
+  lastUpdatedAt         DateTime?
+  pluginRegistryVersion Int       @default(0)
 
   siteName        String  @default("Jiffoo Mall")
   siteDescription String?

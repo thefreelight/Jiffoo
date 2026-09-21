@@ -13,6 +13,7 @@
  */
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { ArrowUpCircle, CheckCircle2, Server, Activity } from 'lucide-react'
 import { useT } from 'shared/src/i18n/react'
 import { cn } from '@/lib/utils'
@@ -118,13 +119,13 @@ export function InstanceHealthCard() {
           </div>
 
           {hasUpdate ? (
-            <a
+            <Link
               href="/settings"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 text-amber-700 text-xs font-bold hover:bg-amber-100 transition-colors"
             >
               <ArrowUpCircle className="h-3.5 w-3.5" />
               Update available: {versionInfo.latestVersion}
-            </a>
+            </Link>
           ) : (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-xs font-bold">
               <CheckCircle2 className="h-3.5 w-3.5" />

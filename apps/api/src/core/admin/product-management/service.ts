@@ -168,13 +168,10 @@ export class AdminProductService {
       }, {} as Record<string, any>);
   }
 
-  private static buildWhere(normalizedFilters: Record<string, any>, storeId?: string) {
+  private static buildWhere(normalizedFilters: Record<string, any>) {
     const where: any = {};
 
     // Filter by store if provided
-    if (storeId) {
-      where.storeId = storeId;
-    }
 
     if (normalizedFilters.search) {
       where.OR = [
@@ -205,14 +202,14 @@ export class AdminProductService {
   /**
    * Get product list (Optimized for Admin List View)
    */
-  static async getProducts(page = 1, limit = 10, filters: AdminProductSearchFilters = {}, storeId?: string) {
+  static async getProducts(page = 1, limit = 10, filters: AdminProductSearchFilters = {}) {
     const safePage = Math.max(1, Number(page) || 1);
     const safeLimit = Math.min(100, Math.max(1, Number(limit) || 10));
     const normalizedFilters = this.normalizeFilters(filters);
 
     const skip = (safePage - 1) * safeLimit;
 
-    const where = this.buildWhere(normalizedFilters, storeId);
+    const where = this.buildWhere(normalizedFilters);
 
     if (normalizedFilters.inStock !== undefined) {
       const inStockVariantIds = await InventoryService.getVariantIdsByAvailability({
@@ -477,7 +474,7 @@ export class AdminProductService {
   /**
    * Create product
    */
-  static async createProduct(data: CreateProductData, storeId: string) {
+  static async createProduct(data: CreateProductData) {
     let variantsToCreate = data.variants;
 
     if (!variantsToCreate || variantsToCreate.length === 0) {
@@ -494,7 +491,6 @@ export class AdminProductService {
           productType: data.productType || 'physical',
           requiresShipping: data.requiresShipping ?? true,
           typeData: { images: data.images ?? [] },
-          storeId: storeId,
         } as any,
         select: { id: true }
       });

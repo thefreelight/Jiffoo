@@ -50,13 +50,11 @@ async function requireEnabledPaymentPlugin(paymentMethod: string): Promise<strin
 }
 
 export async function createPluginOrderCheckout(input: PluginOrderCheckoutInput) {
-  const [user, store, pluginInstance] = await Promise.all([
+  const [user, pluginInstance] = await Promise.all([
     prisma.user.findUnique({ where: { id: input.userId }, select: { id: true, email: true } }),
-    prisma.store.findFirst({ orderBy: { createdAt: 'asc' } }),
     PluginManagementService.getDefaultInstance(input.sourcePlugin),
   ]);
   if (!user) throw new Error('User not found');
-  if (!store) throw new Error('No store configured. Cannot create order.');
   if (!pluginInstance || !pluginInstance.enabled || pluginInstance.deletedAt) {
     throw new Error(`Source plugin "${input.sourcePlugin}" is not enabled`);
   }
@@ -96,7 +94,6 @@ export async function createPluginOrderCheckout(input: PluginOrderCheckoutInput)
       update: { name: `${input.sourcePlugin} entitlement`, typeData: { sourcePlugin: input.sourcePlugin } },
       create: {
         id: productId,
-        storeId: store.id,
         slug: `plugin-${input.sourcePlugin}-entitlement`,
         name: `${input.sourcePlugin} entitlement`,
         productType: 'digital',
@@ -139,7 +136,6 @@ export async function createPluginOrderCheckout(input: PluginOrderCheckoutInput)
       data: {
         id: orderId,
         userId: input.userId,
-        storeId: store.id,
         customerEmail: user.email,
         subtotalAmount: input.amount,
         totalAmount: input.amount,

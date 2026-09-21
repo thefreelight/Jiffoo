@@ -2,33 +2,6 @@
 //                   Order, OrderItem, Cart, CartItem
 
 // ============================================================
-// STORE
-// ============================================================
-model Store {
-  id               String   @id @default(cuid())
-  name             String
-  slug             String   @unique
-  domain           String?  @unique
-  status           String   @default("active")
-  currency         String   @default("USD")
-  defaultLocale    String   @default("en")
-  supportedLocales Json?
-  settings         Json?
-  logo             String?
-  themeConfig      Json?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-
-  users     User[]
-  products  Product[]
-  orders    Order[]
-
-  @@index([status])
-  @@map("stores")
-  @@schema("public")
-}
-
-// ============================================================
 // CATEGORY
 // ============================================================
 model Category {
@@ -67,7 +40,6 @@ model Product {
   slug        String   @unique
   description String?
   isActive    Boolean  @default(true)
-  storeId     String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -90,17 +62,15 @@ model Product {
   structuredData  Json?
 
   // Relations
-  store                 Store                  @relation(fields: [storeId], references: [id])
-  categoryId            String?
-  category              Category?              @relation(fields: [categoryId], references: [id])
-  orderItems            OrderItem[]
-  cartItems             CartItem[]
-  translations          ProductTranslation[]
-  variants              ProductVariant[]
+  categoryId   String?
+  category     Category?            @relation(fields: [categoryId], references: [id])
+  orderItems   OrderItem[]
+  cartItems    CartItem[]
+  translations ProductTranslation[]
+  variants     ProductVariant[]
 
   @@index([categoryId])
   @@index([productType])
-  @@index([storeId])
   @@map("products")
   @@schema("public")
 }
@@ -123,10 +93,10 @@ model ProductVariant {
   updatedAt  DateTime @updatedAt
 
   // Relations
-  product               Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orderItems            OrderItem[]
-  cartItems             CartItem[]
-  inventoryAdjustments  InventoryAdjustment[]
+  product              Product               @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems           OrderItem[]
+  cartItems            CartItem[]
+  inventoryAdjustments InventoryAdjustment[]
 
   @@index([productId])
   @@index([skuCode])
@@ -159,10 +129,9 @@ model ProductTranslation {
 // ORDER
 // ============================================================
 model Order {
-  id      String      @id @default(cuid())
-  userId  String
-  storeId String
-  status  OrderStatus @default(PENDING)
+  id     String      @id @default(cuid())
+  userId String
+  status OrderStatus @default(PENDING)
 
   // Payment status fields
   paymentStatus        OrderPaymentStatus @default(PENDING)
@@ -184,22 +153,20 @@ model Order {
   updatedAt     DateTime @updatedAt
 
   // Relations
-  user                  User                   @relation(fields: [userId], references: [id])
-  store                 Store                  @relation(fields: [storeId], references: [id])
-  shippingAddress       OrderShippingAddress?
-  items                 OrderItem[]
-  payments              Payment[]
-  refunds               Refund[]
-  paymentLedgers        PaymentLedger[]
-  refundLedgers         RefundLedger[]
-  shipments             Shipment[]
-  statusHistory         OrderStatusHistory[]
+  user            User                  @relation(fields: [userId], references: [id])
+  shippingAddress OrderShippingAddress?
+  items           OrderItem[]
+  payments        Payment[]
+  refunds         Refund[]
+  paymentLedgers  PaymentLedger[]
+  refundLedgers   RefundLedger[]
+  shipments       Shipment[]
+  statusHistory   OrderStatusHistory[]
 
   @@index([status])
   @@index([paymentStatus])
   @@index([expiresAt])
   @@index([userId])
-  @@index([storeId])
   @@map("orders")
   @@schema("public")
 }
@@ -233,10 +200,10 @@ model OrderItem {
   fulfillmentData   Json?
 
   // Relations
-  order              Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product            Product             @relation(fields: [productId], references: [id])
-  variant            ProductVariant      @relation(fields: [variantId], references: [id])
-  shipments          ShipmentItem[]
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product        @relation(fields: [productId], references: [id])
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  shipments ShipmentItem[]
 
   @@index([orderId])
   @@index([variantId])
@@ -302,4 +269,3 @@ model CartItem {
   @@map("cart_items")
   @@schema("public")
 }
-

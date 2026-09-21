@@ -5,7 +5,6 @@
 import { FastifyInstance } from 'fastify';
 import { AdminProductService } from './service';
 import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
-import { storeContextMiddleware } from '@/middleware/store-context';
 import { sendSuccess, sendError } from '@/utils/response';
 import { UploadService } from '@/core/upload/service';
 import { adminProductSchemas } from './schemas';
@@ -14,7 +13,6 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
   // Apply auth middleware to all admin product routes (before schema validation)
   fastify.addHook('onRequest', authMiddleware);
   fastify.addHook('onRequest', requireAdmin);
-  fastify.addHook('onRequest', storeContextMiddleware);
 
   // Get products list
   fastify.get('/', {
@@ -28,8 +26,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { page, limit, ...filters } = request.query as any;
-      const storeId = request.storeContext?.id;
-      const result = await AdminProductService.getProducts(page, limit, filters, storeId);
+      const result = await AdminProductService.getProducts(page, limit, filters);
       return sendSuccess(reply, result);
     } catch (error: any) {
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
@@ -87,11 +84,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     try {
-      const storeId = request.storeContext?.id;
-      if (!storeId) {
-        return sendError(reply, 400, 'STORE_REQUIRED', 'Store context is required');
-      }
-      const product = await AdminProductService.createProduct(request.body as any, storeId);
+      const product = await AdminProductService.createProduct(request.body as any);
       return sendSuccess(reply, product, undefined, 201);
     } catch (error: any) {
       if (error.message.includes('variants') || error.message.includes('at least 1')) {

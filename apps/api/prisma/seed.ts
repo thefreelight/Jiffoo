@@ -82,23 +82,6 @@ async function main() {
     const inventoryProfile = getSeedInventoryProfile();
     console.log(`📦 Inventory seed profile: ${inventoryProfile}`);
 
-    // 0) Create default store
-    console.log('🏪 Creating default store...');
-    const defaultStore = await prisma.store.upsert({
-      where: { slug: 'default-store' },
-      update: { name: 'Jiffoo Default Store', domain: 'jiffoo-shop.chfastpay.com' },
-      create: {
-        id: 'store-default',
-        name: 'Jiffoo Default Store',
-        slug: 'default-store',
-        domain: 'jiffoo-shop.chfastpay.com',
-        status: 'active',
-        currency: 'USD',
-        defaultLocale: 'en',
-      },
-    });
-    console.log(`✅ Default store created: ${defaultStore.name} (${defaultStore.id})`);
-
     // 1) Initialize system settings (including theme rollback state)
     console.log('⚙️ Initializing system settings...');
     const themeSettings = {
@@ -139,7 +122,7 @@ async function main() {
     // Admin user (for Admin UI)
     const admin = await prisma.user.upsert({
       where: { email: 'admin@jiffoo.com' },
-      update: { role: 'ADMIN', password: hashedPassword, emailVerified: true, storeId: defaultStore.id },
+      update: { role: 'ADMIN', password: hashedPassword, emailVerified: true },
       create: {
         email: 'admin@jiffoo.com',
         username: 'admin',
@@ -147,7 +130,6 @@ async function main() {
         role: 'ADMIN',
         emailVerified: true,
         avatar: null,
-        storeId: defaultStore.id,
       },
     });
     console.log(`✅ Admin user created: ${admin.email}`);
@@ -155,7 +137,7 @@ async function main() {
     console.log('Creating owner user...');
     const owner = await prisma.user.upsert({
       where: { email: 'admin@jiffoo.com' },
-      update: { role: 'OWNER', password: hashedPassword, emailVerified: true, storeId: defaultStore.id },
+      update: { role: 'OWNER', password: hashedPassword, emailVerified: true },
       create: {
         email: 'admin@jiffoo.com',
         username: 'admin',
@@ -163,7 +145,6 @@ async function main() {
         role: 'OWNER',
         emailVerified: true,
         avatar: null,
-        storeId: defaultStore.id,
       },
     });
     console.log(`Owner user created: ${owner.email}`);
@@ -172,7 +153,7 @@ async function main() {
     console.log('👤 Creating sample user...');
     const sampleUser = await prisma.user.upsert({
       where: { email: 'user@jiffoo.com' },
-      update: { role: 'USER', password: hashedPassword, emailVerified: true, storeId: defaultStore.id },
+      update: { role: 'USER', password: hashedPassword, emailVerified: true },
       create: {
         email: 'user@jiffoo.com',
         username: 'sample-user',
@@ -180,7 +161,6 @@ async function main() {
         role: 'USER',
         emailVerified: true,
         avatar: null,
-        storeId: defaultStore.id,
       },
     });
     console.log(`✅ Sample user created: ${sampleUser.email}`);
@@ -347,7 +327,6 @@ async function main() {
           slug: prod.slug,
           description: prod.description,
           categoryId: actualCategoryId,
-          storeId: defaultStore.id,
           typeData: { images: prod.images },
         },
         create: {
@@ -356,7 +335,6 @@ async function main() {
           slug: prod.slug,
           description: prod.description,
           categoryId: actualCategoryId,
-          storeId: defaultStore.id,
           typeData: { images: prod.images },
         },
       });
@@ -448,7 +426,6 @@ async function main() {
       where: { id: 'cmlm24wtk0001vx08ishhwclg' },
       update: {
         userId: sampleUser.id,
-        storeId: defaultStore.id,
         status: 'SHIPPED',
         paymentStatus: 'PAID',
         subtotalAmount: 189.99,
@@ -460,7 +437,6 @@ async function main() {
       create: {
         id: 'cmlm24wtk0001vx08ishhwclg',
         userId: sampleUser.id,
-        storeId: defaultStore.id,
         status: 'SHIPPED',
         paymentStatus: 'PAID',
         subtotalAmount: 189.99,
@@ -509,7 +485,6 @@ async function main() {
       where: { id: 'cmlm25xyk0002vx08jkppqwmn' },
       update: {
         userId: sampleUser.id,
-        storeId: defaultStore.id,
         status: 'REFUNDED',
         paymentStatus: 'REFUNDED',
         subtotalAmount: 178.0,
@@ -523,7 +498,6 @@ async function main() {
       create: {
         id: 'cmlm25xyk0002vx08jkppqwmn',
         userId: sampleUser.id,
-        storeId: defaultStore.id,
         status: 'REFUNDED',
         paymentStatus: 'REFUNDED',
         subtotalAmount: 178.0,

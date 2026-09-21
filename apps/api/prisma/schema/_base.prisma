@@ -94,4 +94,3 @@ enum RefundLedgerEventType {
 
   @@schema("public")
 }
-

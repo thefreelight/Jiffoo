@@ -9,8 +9,7 @@ import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { ThemeManagementService } from '@/core/admin/theme-management/service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { createTypedReadResponses } from '@/types/common-dto';
-import { CacheService } from '@/core/cache/service';
-import { storeContextMiddleware } from '@/middleware/store-context';
+import { STORE_SUPPORTED_LOCALES } from './localization';
 
 function setHttpCache(reply: FastifyReply, data: any, maxAge: number, swr: number) {
   const etag = `"${createHash('md5').update(JSON.stringify(data)).digest('hex')}"`;
@@ -22,7 +21,6 @@ function setHttpCache(reply: FastifyReply, data: any, maxAge: number, swr: numbe
 const storeContextSchema = {
     type: 'object',
     properties: {
-        storeId: { type: 'string' },
         storeName: { type: 'string' },
         logo: { type: ['string', 'null'] },
         domain: { type: ['string', 'null'] },
@@ -54,7 +52,6 @@ const storeContextSchema = {
         }
     },
     required: [
-        'storeId',
         'storeName',
         'logo',
         'domain',
@@ -71,7 +68,6 @@ const storeContextSchema = {
 
 export async function storeRoutes(fastify: FastifyInstance) {
     fastify.get('/context', {
-        preHandler: storeContextMiddleware,
         schema: {
             tags: ['store'],
             summary: 'Get store context (theme, locale, settings)',
@@ -82,18 +78,6 @@ export async function storeRoutes(fastify: FastifyInstance) {
         }
     }, async (request, reply) => {
         try {
-            // Read-through cache for store context
-            const storeCtxVersion = await CacheService.getStoreContextVersion();
-            const cacheKey = `pub:store:context:v${storeCtxVersion}`;
-            const cached = await CacheService.get<any>(cacheKey);
-            if (cached) {
-                const etag = setHttpCache(reply, cached, 60, 120);
-                if (request.headers['if-none-match'] === etag) {
-                    return reply.code(304).send();
-                }
-                return sendSuccess(reply, cached);
-            }
-
             // Parallel fetch settings and theme
             const [platformName, activeTheme, currency, logo, defaultLocale] = await Promise.all([
                 systemSettingsService.getString('branding.platform_name', 'Jiffoo Store'),
@@ -104,12 +88,11 @@ export async function storeRoutes(fastify: FastifyInstance) {
             ]);
 
             const contextData = {
-                storeId: '1', // Single merchant version
                 storeName: platformName as string,
                 logo: logo as string | null,
                 domain: null, // Single merchant version
                 platformBranding: {
-                    mode: 'self_hosted',
+                    mode: 'oss',
                     showPoweredByJiffoo: true,
                     poweredByHref: 'https://jiffoo.com',
                     poweredByLabel: 'Jiffoo',
@@ -117,12 +100,11 @@ export async function storeRoutes(fastify: FastifyInstance) {
                 status: 'active',
                 currency,
                 defaultLocale,
-                supportedLocales: ['en', 'zh-Hant'], // Alpha Gate: Only En + zh-Hant
+                supportedLocales: STORE_SUPPORTED_LOCALES,
                 theme: activeTheme, // Includes slug & config
                 settings: null, // Reserved for future use
             };
 
-            await CacheService.set(cacheKey, contextData, { ttl: 60 });
             const etag = setHttpCache(reply, contextData, 60, 120);
             if (request.headers['if-none-match'] === etag) {
                 return reply.code(304).send();

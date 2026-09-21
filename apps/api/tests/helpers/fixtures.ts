@@ -36,7 +36,6 @@ export interface CreateProductOptions {
 export async function createTestProduct(options: CreateProductOptions = {}) {
   const prisma = getTestPrisma();
   const id = uuidv4();
-  const store = await getOrCreateTestStore(prisma);
 
   let categoryId: string | undefined;
   if (options.category) {
@@ -73,7 +72,6 @@ export async function createTestProduct(options: CreateProductOptions = {}) {
       productType: options.productType || 'physical',
       requiresShipping: options.requiresShipping ?? true,
       typeData: options.typeData ?? (options.images ? { images: options.images } : null),
-      storeId: store.id,
       // price/stock moved to ProductVariant
       categoryId,
       variants: {
@@ -197,38 +195,15 @@ export interface CreateOrderOptions {
   total?: number; // kept for backward compat, mapped to totalAmount
 }
 
-async function getOrCreateTestStore(prisma: ReturnType<typeof getTestPrisma>) {
-  const storeId = process.env.STORE_DEFAULT_ID || 'test-store';
-  return prisma.store.upsert({
-    where: { slug: 'test-store' },
-    update: {
-      name: 'Test Store',
-      status: 'active',
-      currency: 'USD',
-      defaultLocale: 'en',
-    },
-    create: {
-      id: storeId,
-      name: 'Test Store',
-      slug: 'test-store',
-      status: 'active',
-      currency: 'USD',
-      defaultLocale: 'en',
-    },
-  });
-}
-
 export async function createTestOrder(options: CreateOrderOptions) {
   const prisma = getTestPrisma();
   const id = uuidv4();
-  const store = await getOrCreateTestStore(prisma);
   const totalAmount = options.total ?? 0;
 
   return prisma.order.create({
     data: {
       id,
       userId: options.userId,
-      storeId: store.id,
       status: options.status || 'PENDING',
       paymentStatus: 'PENDING',
       subtotalAmount: totalAmount,

@@ -264,13 +264,6 @@ export class OrderService {
       await this.validateShippingAddress(normalizedShippingAddress);
     }
 
-    // Lookup default store for order association
-    const defaultStore = await prisma.store.findFirst({ orderBy: { createdAt: 'asc' } });
-    if (!defaultStore) {
-      throw new Error('No store configured. Cannot create order.');
-    }
-    const storeId = defaultStore.id;
-
     // Unified currency from settings
     const currency = await systemSettingsService.getShopCurrency();
 
@@ -279,7 +272,6 @@ export class OrderService {
       const created = await tx.order.create({
         data: {
           user: { connect: { id: userId } },
-          store: { connect: { id: storeId } },
           customerEmail: data.customerEmail?.trim() || user.email,
           status: OrderStatus.PENDING,
           paymentStatus: PaymentStatus.PENDING,

@@ -5,7 +5,6 @@
 import { FastifyInstance } from 'fastify';
 import { AdminOrderService } from './service';
 import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
-import { storeContextMiddleware } from '@/middleware/store-context';
 import { sendSuccess, sendError } from '@/utils/response';
 import { adminOrderSchemas } from './schemas';
 import { mapAdminOrderRouteError } from '@/utils/route-error-mapper';
@@ -14,7 +13,6 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
   // Apply auth middleware to all admin order routes (before schema validation)
   fastify.addHook('onRequest', authMiddleware);
   fastify.addHook('onRequest', requireAdmin);
-  fastify.addHook('onRequest', storeContextMiddleware);
 
   // Get orders list
   fastify.get('/', {
@@ -28,8 +26,7 @@ export async function adminOrderRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { page, limit, status, search } = request.query as any;
-      const storeId = request.storeContext?.id;
-      const result = await AdminOrderService.getOrders(page, limit, status, search, storeId);
+      const result = await AdminOrderService.getOrders(page, limit, status, search);
       return sendSuccess(reply, result);
     } catch (error: unknown) {
       const mapped = mapAdminOrderRouteError(error, {

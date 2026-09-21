@@ -285,12 +285,6 @@ export function ErrorDetail({ error, onResolve, isResolving }: ErrorDetailProps)
               <p className="text-gray-600">{getText('merchant.errors.errorHash', 'Error Hash')}</p>
               <p className="font-mono text-gray-900 text-xs break-all">{error.errorHash}</p>
             </div>
-            {error.storeId && (
-              <div>
-                <p className="text-gray-600">{getText('merchant.errors.storeId', 'Store ID')}</p>
-                <p className="font-mono text-gray-900 text-xs break-all">{error.storeId}</p>
-              </div>
-            )}
             {error.storeName && (
               <div>
                 <p className="text-gray-600">{getText('merchant.errors.storeName', 'Store Name')}</p>

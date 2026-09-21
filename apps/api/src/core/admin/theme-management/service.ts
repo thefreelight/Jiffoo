@@ -49,11 +49,10 @@ function getSettingKeys(target: ThemeTarget) {
   };
 }
 
-// Invalidate theme cache and bump store context version
+// Invalidate theme cache
 async function invalidateThemeCache(target: ThemeTarget): Promise<void> {
   await CacheService.delete(`themes:installed:${target}`);
   await CacheService.delete(`themes:active:${target}`);
-  await CacheService.incrementStoreContextVersion();
 }
 
 // ============================================================================

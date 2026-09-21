@@ -27,7 +27,6 @@ vi.mock('@/config/database', () => ({
       update: vi.fn(),
       count: vi.fn(),
     },
-    store: { findFirst: vi.fn() },
     refund: { create: vi.fn(), findUnique: vi.fn() },
     refundLedger: { create: vi.fn() },
     paymentLedger: { create: vi.fn() },
@@ -99,7 +98,6 @@ const mockPrisma = prisma as unknown as {
     update: ReturnType<typeof vi.fn>;
     count: ReturnType<typeof vi.fn>;
   };
-  store: { findFirst: ReturnType<typeof vi.fn> };
   refund: { create: ReturnType<typeof vi.fn>; findUnique: ReturnType<typeof vi.fn> };
   refundLedger: { create: ReturnType<typeof vi.fn> };
   paymentLedger: { create: ReturnType<typeof vi.fn> };
@@ -120,8 +118,6 @@ const mockInventory = InventoryService as unknown as {
 const NOW = new Date('2025-06-01T12:00:00Z');
 
 const TEST_USER = { email: 'buyer@example.com' };
-
-const TEST_STORE = { id: 'store-1', createdAt: new Date('2025-01-01') };
 
 const TEST_PRODUCT = {
   id: 'prod-1',
@@ -168,7 +164,6 @@ describe('OrderService', () => {
     vi.clearAllMocks();
 
     // Re-apply default mock returns that are needed across most tests
-    mockPrisma.store.findFirst.mockResolvedValue(TEST_STORE);
     mockPrisma.refund.findUnique.mockResolvedValue(null);
     mockPrisma.refundLedger.create.mockResolvedValue({});
     mockPrisma.paymentLedger.create.mockResolvedValue({});

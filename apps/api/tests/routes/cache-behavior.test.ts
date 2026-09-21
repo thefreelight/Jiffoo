@@ -2,7 +2,7 @@
  * Cache Behavior Tests
  *
  * Coverage:
- * - Redis read-through cache hit for products, store context, payment methods
+ * - Redis read-through cache hit for products and payment methods
  * - Categories endpoint cache behavior and HTTP caching headers
  * - Cache invalidation after write operations (product version bump)
  * - HTTP 304 Not Modified with ETag / If-None-Match
@@ -353,30 +353,6 @@ describe('Cache Behavior Tests', () => {
   });
 
   // =========================================================================
-  // Store Context Cache Tests
-  // =========================================================================
-  describe('Store Context Cache', () => {
-    it('should cache store context and serve from cache', async () => {
-      const res1 = await app.inject({ method: 'GET', url: '/api/store/context' });
-      expect(res1.statusCode).toBe(200);
-
-      const contextKeys = [...store.keys()].filter(k => k.startsWith('pub:store:context:'));
-      expect(contextKeys.length).toBeGreaterThan(0);
-
-      const res2 = await app.inject({ method: 'GET', url: '/api/store/context' });
-      expect(res2.statusCode).toBe(200);
-      expect(JSON.parse(res2.body).data).toEqual(JSON.parse(res1.body).data);
-    });
-
-    it('should return Cache-Control and ETag for store context', async () => {
-      const res = await app.inject({ method: 'GET', url: '/api/store/context' });
-      expect(res.statusCode).toBe(200);
-      expect(res.headers['cache-control']).toContain('max-age=60');
-      expect(res.headers['etag']).toBeDefined();
-    });
-  });
-
-  // =========================================================================
   // Payment Methods Cache Tests
   // =========================================================================
   describe('Payment Methods Cache', () => {
@@ -471,31 +447,6 @@ describe('Cache Behavior Tests', () => {
 
       const methodKeysAfter = [...store.keys()].filter(k => k.startsWith('pub:payments:methods:'));
       const hasNewVersion = methodKeysAfter.some(k => k.includes(`:v${vAfter}`));
-      expect(hasNewVersion).toBe(true);
-    });
-
-    it('should invalidate store context cache when store context version is bumped', async () => {
-      const { CacheService } = await import('../../src/core/cache/service');
-
-      // Fill store context cache
-      const res1 = await app.inject({ method: 'GET', url: '/api/store/context' });
-      expect(res1.statusCode).toBe(200);
-
-      const contextKeysBefore = [...store.keys()].filter(k => k.startsWith('pub:store:context:'));
-      expect(contextKeysBefore.length).toBeGreaterThan(0);
-
-      // Bump store context version (simulates settings or theme change)
-      const vBefore = await CacheService.getStoreContextVersion();
-      await CacheService.incrementStoreContextVersion();
-      const vAfter = await CacheService.getStoreContextVersion();
-      expect(vAfter).toBe(vBefore + 1);
-
-      // New request should create a cache key with the bumped version
-      const res2 = await app.inject({ method: 'GET', url: '/api/store/context' });
-      expect(res2.statusCode).toBe(200);
-
-      const contextKeysAfter = [...store.keys()].filter(k => k.startsWith('pub:store:context:'));
-      const hasNewVersion = contextKeysAfter.some(k => k.includes(`:v${vAfter}`));
       expect(hasNewVersion).toBe(true);
     });
 
@@ -643,35 +594,6 @@ describe('Cache Behavior Tests', () => {
         expect(Date.now()).toBeGreaterThan(entry60s!.expiresAt!);
 
         const cachedAfterExpiry = await CacheService.get(categoryKeys[0]);
-        expect(cachedAfterExpiry).toBeNull();
-      } finally {
-        vi.useRealTimers();
-      }
-    });
-
-    it('should serve from cache within 60s TTL for store context, miss after TTL', async () => {
-      vi.useFakeTimers();
-      try {
-        const { CacheService } = await import('../../src/core/cache/service');
-
-        // Fill cache (store context TTL = 60s)
-        const res1 = await app.inject({ method: 'GET', url: '/api/store/context' });
-        expect(res1.statusCode).toBe(200);
-
-        const contextKeys = [...store.keys()].filter(k => k.startsWith('pub:store:context:'));
-        expect(contextKeys.length).toBeGreaterThan(0);
-
-        // Advance 30s - still within TTL
-        vi.advanceTimersByTime(30_000);
-        const entry30s = store.get(contextKeys[0]);
-        expect(entry30s).toBeDefined();
-        expect(Date.now()).toBeLessThan(entry30s!.expiresAt!);
-
-        // Advance another 35s (total 65s) - past 60s TTL
-        vi.advanceTimersByTime(35_000);
-        expect(Date.now()).toBeGreaterThan(entry30s!.expiresAt!);
-
-        const cachedAfterExpiry = await CacheService.get(contextKeys[0]);
         expect(cachedAfterExpiry).toBeNull();
       } finally {
         vi.useRealTimers();
@@ -829,48 +751,5 @@ describe('Cache Behavior Tests', () => {
       });
     });
 
-    it('should invalidate store context cache after admin updates system settings', async () => {
-      const { CacheService } = await import('../../src/core/cache/service');
-
-      // 1. Fill store context cache
-      const res1 = await app.inject({ method: 'GET', url: '/api/store/context' });
-      expect(res1.statusCode).toBe(200);
-      const etag1 = res1.headers['etag'] as string;
-      const body1 = JSON.parse(res1.body);
-      const originalName = body1.data.storeName;
-
-      const versionBefore = await CacheService.getStoreContextVersion();
-
-      // 2. Admin updates platform name via settings batch API
-      const settingsRes = await app.inject({
-        method: 'PUT',
-        url: '/api/admin/settings/batch',
-        headers: adminAuth.authHeader,
-        payload: { settings: { 'branding.platform_name': 'E2E Updated Store' } },
-      });
-      expect(settingsRes.statusCode).toBe(200);
-
-      // 3. Verify store context version was bumped
-      const versionAfter = await CacheService.getStoreContextVersion();
-      expect(versionAfter).toBeGreaterThan(versionBefore);
-
-      // 4. Store context should reflect new settings (fresh cache miss → DB query)
-      const res2 = await app.inject({ method: 'GET', url: '/api/store/context' });
-      expect(res2.statusCode).toBe(200);
-      const body2 = JSON.parse(res2.body);
-      expect(body2.data.storeName).toBe('E2E Updated Store');
-
-      // 5. ETag should differ
-      const etag2 = res2.headers['etag'] as string;
-      expect(etag2).not.toBe(etag1);
-
-      // 6. Restore original setting
-      await app.inject({
-        method: 'PUT',
-        url: '/api/admin/settings/batch',
-        headers: adminAuth.authHeader,
-        payload: { settings: { 'branding.platform_name': originalName || 'Jiffoo Store' } },
-      });
-    });
   });
 });

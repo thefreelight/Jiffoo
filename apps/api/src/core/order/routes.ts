@@ -1,18 +1,16 @@
 /**
- * Order Routes (Multi-Store Version)
+ * Order Routes
  */
 
 import { FastifyInstance } from 'fastify';
 import { OrderService } from './service';
 import { dualAuthMiddleware } from '@/core/auth/middleware';
-import { storeContextMiddleware } from '@/middleware/store-context';
 import { sendSuccess, sendError } from '@/utils/response';
 import { orderSchemas } from './schemas';
 
 export async function orderRoutes(fastify: FastifyInstance) {
-  // Apply dual auth (JWT or API token with checkout:create scope) and store context
+  // Apply dual auth (JWT or API token with checkout:create scope)
   fastify.addHook('onRequest', dualAuthMiddleware('checkout:create'));
-  fastify.addHook('onRequest', storeContextMiddleware);
 
   // Create order
   fastify.post('/', {

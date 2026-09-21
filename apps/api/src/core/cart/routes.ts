@@ -1,18 +1,16 @@
 /**
- * Cart Routes (Multi-Store Version)
+ * Cart Routes
  */
 
 import { FastifyInstance } from 'fastify';
 import { CartService } from './service';
 import { dualAuthMiddleware } from '@/core/auth/middleware';
-import { storeContextMiddleware } from '@/middleware/store-context';
 import { sendSuccess, sendError } from '@/utils/response';
 import { cartSchemas } from './schemas';
 
 export async function cartRoutes(fastify: FastifyInstance) {
-  // Apply dual auth (JWT or API token with cart:write scope) and store context
+  // Apply dual auth (JWT or API token with cart:write scope)
   fastify.addHook('onRequest', dualAuthMiddleware('cart:write'));
-  fastify.addHook('onRequest', storeContextMiddleware);
 
   // Get cart
   fastify.get('/', {

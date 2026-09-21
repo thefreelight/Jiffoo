@@ -27,7 +27,6 @@ import { adminThemeRoutes, publicThemeRoutes } from '@/core/admin/theme-manageme
 import systemSettingsRoutes from '@/core/admin/system-settings/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
 import { healthMonitoringRoutes } from '@/core/admin/health-monitoring/routes';
-import { adminStoreManagementRoutes } from '@/core/admin/store-management/routes';
 
 import { adminInventoryRoutes } from '@/core/inventory/routes';
 
@@ -71,7 +70,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(adminThemeRoutes, { prefix: '/api/admin/themes' });
   await fastify.register(adminInventoryRoutes, { prefix: '/api/admin/inventory' });
   await fastify.register(systemSettingsRoutes, { prefix: '/api/admin' });
-  await fastify.register(adminStoreManagementRoutes, { prefix: '/api/admin/stores' });
 
   // Dashboard routes
   await fastify.register(adminDashboardRoutes, { prefix: '/api/admin' });

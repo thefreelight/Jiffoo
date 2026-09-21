@@ -94,8 +94,6 @@ export class SystemSettingsService {
         // Invalidate cache after update
         await CacheService.delete(SETTINGS_CACHE_KEY);
         await CacheService.delete(LOCALIZATION_CACHE_KEY);
-        // Bump store context version so /api/store/context cache refreshes
-        await CacheService.incrementStoreContextVersion();
     }
 
     /**

@@ -284,18 +284,6 @@ export class CacheService {
     return await redisCache.incr(key);
   }
 
-  // Store Context Versioning for Cache Invalidation
-  static async getStoreContextVersion(): Promise<number> {
-    const key = 'store:context:version';
-    const version = await redisCache.get<number | string>(key);
-    return version ? Number(version) : 0;
-  }
-
-  static async incrementStoreContextVersion(): Promise<number> {
-    const key = 'store:context:version';
-    return await redisCache.incr(key);
-  }
-
   /**
    * Get the underlying Redis client for advanced operations
    * Use with caution - primarily for health monitoring and diagnostics

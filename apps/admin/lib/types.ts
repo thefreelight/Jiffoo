@@ -458,11 +458,9 @@ export interface ErrorLog {
   resolvedBy?: string | null
   userId?: string | null
   username?: string | null
-  storeId?: string | null
   storeName?: string | null
   requestContext?: any
   userContext?: any
-  storeContext?: any
   tags?: any
   metadata?: any
 }

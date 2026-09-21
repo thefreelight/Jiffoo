@@ -187,24 +187,9 @@ declare module 'fastify' {
     traceContext?: TraceContext;
     apiVersion?: string;
     versionMetadata?: any;
-    storeContext?: StoreContext;
   }
 }
 
-// Store context type
-interface StoreContext {
-  id: string;
-  name: string;
-  slug: string;
-  domain: string;
-  status: string;
-  currency: string;
-  defaultLocale: string;
-  supportedLocales: string[];
-  settings?: any;
-  logo?: string | null;
-  themeConfig?: any;
-}
 
 // Trace context type
 interface TraceContext {

@@ -23,4 +23,3 @@ model OutboxEvent {
   @@map("outbox_events")
   @@schema("public")
 }
-

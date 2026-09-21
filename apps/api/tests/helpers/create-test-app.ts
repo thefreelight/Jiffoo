@@ -196,7 +196,6 @@ export async function createTestApp(options: CreateTestAppOptions = {}): Promise
   process.env.DISABLE_REDIS = disableRedis ? 'true' : 'false';
   process.env.DISABLE_DYNAMIC_PLUGINS = disableDynamicPlugins ? 'true' : 'false';
   process.env.DISABLE_FILE_SYSTEM = disableFileSystem ? 'true' : 'false';
-  process.env.STORE_DEFAULT_ID = process.env.STORE_DEFAULT_ID || 'test-store';
 
   // Apply custom env vars
   Object.entries(env).forEach(([key, value]) => {
@@ -279,25 +278,6 @@ export async function createTestApp(options: CreateTestAppOptions = {}): Promise
     // Add Prisma to Fastify instance
     const prisma = getTestPrisma();
     fastify.decorate('prisma', prisma);
-
-    await prisma.store.upsert({
-      where: { id: process.env.STORE_DEFAULT_ID },
-      update: {
-        name: 'Test Store',
-        slug: 'test-store',
-        status: 'active',
-        currency: 'USD',
-        defaultLocale: 'en',
-      },
-      create: {
-        id: process.env.STORE_DEFAULT_ID,
-        name: 'Test Store',
-        slug: 'test-store',
-        status: 'active',
-        currency: 'USD',
-        defaultLocale: 'en',
-      },
-    });
 
     // Register trace context plugin (simplified for tests)
     fastify.addHook('onRequest', async (request) => {
