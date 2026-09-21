@@ -3,7 +3,6 @@
 This document defines the **required** request/response contract for `apps/api` (api-core). It exists to make:
 
 - OpenAPI (`apps/api/openapi.json`) a *true* source of truth
-- The generated npm SDK (`packages/core-api-sdk`) strongly typed and stable
 - Errors/pagination consistent across all modules
 
 If an endpoint cannot follow these rules (e.g., proxy/gateway passthrough), it must be explicitly classified as an exception in **“Passthrough Endpoints”** below.

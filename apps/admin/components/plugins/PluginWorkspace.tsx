@@ -1,21 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { AlertCircle, AlertTriangle, CheckCircle2, Cloud, Loader2, RefreshCw, Send, Settings2, ShieldCheck, Truck, Workflow } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, CheckCircle2, Loader2, Settings2 } from 'lucide-react';
 import { useLocale, useT } from 'shared/src/i18n/react';
-import { apiClient, unwrapApiResponse } from '@/lib/api';
-import type { PluginInstance } from '@/lib/api';
 import type { PluginConfigMeta } from '@/lib/types';
 import {
-  useAffiliateNativeOverview,
   useCreatePluginInstance,
   useInstalledPlugins,
   useOfficialCatalog,
   usePluginConfig,
   usePluginInstances,
   useUpdatePluginInstance,
-  type AffiliateNativeOverviewData,
 } from '@/lib/hooks/use-api';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -29,8 +25,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRail';
 import { OfficialBadge } from '@/components/extensions/ExtensionVisuals';
 import { PluginInstanceManager } from '@/components/plugins/PluginInstanceManager';
-import { RemoteRadarJobsNativeWorkspace } from '@/components/plugins/RemoteRadarJobsNativeWorkspace';
-import { useJobsAdminCapability } from '@/hooks/use-jobs-admin-capability';
 import { toast } from 'sonner';
 
 type PluginConfigDescriptor = {
@@ -43,1254 +37,100 @@ type PluginConfigDescriptor = {
 
 type PluginConfigSchema = Record<string, PluginConfigDescriptor>;
 
-type PluginConfigReadiness = {
-  configRequired: boolean;
-  configReady: boolean;
-  missingConfigFields: string[];
-};
-
-type OdooConfig = {
-  mode?: 'test' | 'production';
-  test?: {
-    channelId?: string;
-    authSecret?: string;
-  };
-  production?: {
-    channelId?: string;
-    authSecret?: string;
-  };
-};
-
-type I18nLocalizationState = {
-  availableLocales: Array<{ code: string; name: string }>;
-  store: {
-    defaultLocale?: string;
-    supportedLocales?: string[];
-  };
-};
-
-type OdooHealthPayload = {
-  status?: string;
-  plugin?: string;
-  version?: string;
-  timestamp?: string;
-};
-
-type OdooJobPayload = {
-  jobId: string;
-  status?: string;
-  progressDone?: number | null;
-  progressTotal?: number | null;
-  productType?: string | null;
-  lastError?: string | null;
-};
-
-type ShippingProvider = 'kuaidi100' | 'fourpx';
-
-type ShippingProviderAction = {
-  value: string;
-  label: string;
-  endpoint: string;
-  needsMerchantReference?: boolean;
-};
-
-const shippingProviderActions: Record<ShippingProvider, ShippingProviderAction[]> = {
-  kuaidi100: [
-    { value: 'label-order', label: 'Create label order', endpoint: 'kuaidi100/label-orders', needsMerchantReference: true },
-    { value: 'pickup-order', label: 'Create pickup order', endpoint: 'kuaidi100/pickup-orders', needsMerchantReference: true },
-    { value: 'tracking-query', label: 'Query tracking', endpoint: 'kuaidi100/tracking/query' },
-    { value: 'tracking-subscribe', label: 'Subscribe to tracking', endpoint: 'kuaidi100/tracking/subscribe' },
-  ],
-  fourpx: [
-    { value: 'create-order', label: 'Create shipment order', endpoint: 'fourpx/orders', needsMerchantReference: true },
-    { value: 'get-order', label: 'Get shipment order', endpoint: 'fourpx/orders/get' },
-    { value: 'cancel-order', label: 'Cancel shipment order', endpoint: 'fourpx/orders/cancel' },
-    { value: 'get-label', label: 'Get shipping label', endpoint: 'fourpx/labels' },
-    { value: 'get-tracking', label: 'Query tracking', endpoint: 'fourpx/tracking' },
-  ],
-};
-
-function isPlainObject(value: unknown): value is Record<string, any> {
+function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function getDescriptorType(descriptor: PluginConfigDescriptor | undefined): string {
-  return typeof descriptor?.type === 'string' ? descriptor.type : 'string';
+function descriptorType(descriptor: PluginConfigDescriptor): string {
+  return descriptor.type || 'string';
 }
 
-function getConfigFieldLabel(field: string, descriptor: PluginConfigDescriptor | undefined): string {
-  return descriptor?.label || field;
-}
-
-function buildJsonFieldDrafts(
+function configReadiness(
   schema: PluginConfigSchema | undefined,
-  config: Record<string, unknown>
-): Record<string, string> {
-  if (!schema) return {};
-
-  return Object.fromEntries(
-    Object.entries(schema)
-      .filter(([, descriptor]) => {
-        const type = getDescriptorType(descriptor);
-        return type === 'object' || type === 'array';
-      })
-      .map(([key, descriptor]) => {
-        const type = getDescriptorType(descriptor);
-        const fallback = type === 'array' ? [] : {};
-        return [key, JSON.stringify(config[key] ?? fallback, null, 2)];
-      })
-  );
-}
-
-function evaluateConfigReadiness(
-  configSchema: PluginConfigSchema | undefined,
   config: Record<string, unknown>,
-  configMeta?: PluginConfigMeta
-): PluginConfigReadiness {
-  if (!configSchema || Object.keys(configSchema).length === 0) {
-    return {
-      configRequired: false,
-      configReady: true,
-      missingConfigFields: [],
-    };
-  }
-
-  const missingConfigFields: string[] = [];
-  let configRequired = false;
-
-  for (const [key, descriptor] of Object.entries(configSchema)) {
-    if (!descriptor?.required) {
-      continue;
-    }
-
-    configRequired = true;
+  meta?: PluginConfigMeta
+) {
+  const missing = Object.entries(schema || {}).flatMap(([key, descriptor]) => {
+    if (!descriptor.required) return [];
     const value = config[key];
-    const type = getDescriptorType(descriptor);
-    const secretConfigured = Boolean(configMeta?.secretFields?.[key]?.configured);
-
-    if (value === undefined || value === null) {
-      if (type === 'secret' && secretConfigured) {
-        continue;
-      }
-      missingConfigFields.push(key);
-      continue;
-    }
-
-    if (type === 'string' && (typeof value !== 'string' || value.trim().length === 0)) {
-      missingConfigFields.push(key);
-      continue;
-    }
-
-    if (type === 'secret' && ((typeof value !== 'string' || value.trim().length === 0) && !secretConfigured)) {
-      missingConfigFields.push(key);
-      continue;
-    }
-
-    if (type === 'object' && (!isPlainObject(value) || Object.keys(value).length === 0)) {
-      missingConfigFields.push(key);
-      continue;
-    }
-
-    if (type === 'array' && (!Array.isArray(value) || value.length === 0)) {
-      missingConfigFields.push(key);
-      continue;
-    }
-  }
-
-  return {
-    configRequired,
-    configReady: !configRequired || missingConfigFields.length === 0,
-    missingConfigFields,
-  };
+    const secretConfigured = Boolean(meta?.secretFields?.[key]?.configured);
+    if (descriptorType(descriptor) === 'secret' && secretConfigured && !value) return [];
+    if (value === undefined || value === null || value === '') return [key];
+    return [];
+  });
+  return { required: missing.length > 0, ready: missing.length === 0, missing };
 }
 
-function formatDate(value?: string): string {
-  if (!value) return 'n/a';
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return date.toLocaleString();
-}
-
-function buildOdooConfig(input: {
-  mode: 'test' | 'production';
-  testChannelId: string;
-  testAuthSecret: string;
-  productionChannelId: string;
-  productionAuthSecret: string;
-}): OdooConfig {
-  const test = {
-    ...(input.testChannelId.trim() ? { channelId: input.testChannelId.trim() } : {}),
-    ...(input.testAuthSecret.trim() ? { authSecret: input.testAuthSecret.trim() } : {}),
-  };
-  const production = {
-    ...(input.productionChannelId.trim() ? { channelId: input.productionChannelId.trim() } : {}),
-    ...(input.productionAuthSecret.trim() ? { authSecret: input.productionAuthSecret.trim() } : {}),
-  };
-
-  return {
-    mode: input.mode,
-    test,
-    production,
-  };
-}
-
-function GenericConfigEditor(props: {
-  configSchema: PluginConfigSchema;
-  configDraft: Record<string, unknown>;
-  configMeta?: PluginConfigMeta;
-  jsonFieldDrafts: Record<string, string>;
-  jsonFieldErrors: Record<string, string>;
-  onUpdateField: (field: string, value: unknown) => void;
-  onUpdateJsonField: (field: string, rawValue: string, expectedType: 'object' | 'array') => void;
-  onSave: () => void;
+function GenericConfigEditor({
+  schema,
+  draft,
+  meta,
+  saving,
+  onChange,
+  onSave,
+}: {
+  schema: PluginConfigSchema;
+  draft: Record<string, unknown>;
+  meta?: PluginConfigMeta;
   saving: boolean;
+  onChange: (field: string, value: unknown) => void;
+  onSave: () => void;
 }) {
-  const {
-    configSchema,
-    configDraft,
-    configMeta,
-    jsonFieldDrafts,
-    jsonFieldErrors,
-    onUpdateField,
-    onUpdateJsonField,
-    onSave,
-    saving,
-  } = props;
-
   return (
     <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-      <CardHeader className="px-7 pt-7">
-        <CardTitle className="text-2xl tracking-tight">Configuration</CardTitle>
-        <CardDescription>
-          Update plugin settings from a native Merchant Admin form. iframe-based plugin pages are no longer used here.
-        </CardDescription>
+      <CardHeader>
+        <CardTitle className="text-lg tracking-tight">Configuration</CardTitle>
+        <CardDescription>Configuration fields are declared by this extension.</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-6 px-7 pb-7">
-        {Object.entries(configSchema).map(([field, descriptor]) => {
-          const type = getDescriptorType(descriptor);
-          const label = getConfigFieldLabel(field, descriptor);
-          const description = descriptor?.description;
-          const required = Boolean(descriptor?.required);
-          const value = configDraft[field];
-          const secretConfigured = Boolean(configMeta?.secretFields?.[field]?.configured);
-
-          if (Array.isArray(descriptor?.enum) && descriptor.enum.length > 0) {
-            const normalizedValue =
-              typeof value === 'string' && descriptor.enum.includes(value)
-                ? value
-                : descriptor.enum[0];
-
-            return (
-              <div key={field} className="space-y-2">
-                <Label>
-                  {label}
-                  {required ? ' *' : ''}
-                </Label>
-                <Select value={normalizedValue} onValueChange={(nextValue) => onUpdateField(field, nextValue)}>
-                  <SelectTrigger className="h-11 rounded-xl">
-                    <SelectValue placeholder={label} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {descriptor.enum.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-              </div>
-            );
-          }
-
-          if (type === 'boolean') {
-            return (
-              <div key={field} className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3">
-                <div className="space-y-1 pr-4">
-                  <Label className="text-sm font-medium">
-                    {label}
-                    {required ? ' *' : ''}
-                  </Label>
-                  {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-                </div>
-                <Switch checked={Boolean(value)} onCheckedChange={(checked) => onUpdateField(field, checked)} />
-              </div>
-            );
-          }
-
-          if (type === 'object' || type === 'array') {
-            const error = jsonFieldErrors[field];
-
-            return (
-              <div key={field} className="space-y-2">
-                <Label>
-                  {label}
-                  {required ? ' *' : ''}
-                </Label>
-                <Textarea
-                  value={jsonFieldDrafts[field] ?? JSON.stringify(value ?? (type === 'array' ? [] : {}), null, 2)}
-                  onChange={(event) => onUpdateJsonField(field, event.target.value, type)}
-                  className="min-h-[180px] rounded-xl font-mono"
-                />
-                {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-                {error ? <p className="text-xs text-red-600">{error}</p> : null}
-              </div>
-            );
-          }
-
-          if (type === 'number' || type === 'integer') {
-            return (
-              <div key={field} className="space-y-2">
-                <Label>
-                  {label}
-                  {required ? ' *' : ''}
-                </Label>
-                  <Input
-                    type="number"
-                    value={typeof value === 'number' || value === '' ? value : ''}
-                    onChange={(event) =>
-                      onUpdateField(field, event.target.value === '' ? '' : Number(event.target.value))
-                    }
-                    className="h-11 rounded-xl"
-                  />
-                {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-              </div>
-            );
-          }
-
-          const inputType = type === 'secret' ? 'password' : 'text';
-
+      <CardContent className="space-y-5">
+        {Object.entries(schema).map(([field, descriptor]) => {
+          const type = descriptorType(descriptor);
+          const configured = Boolean(meta?.secretFields?.[field]?.configured);
+          const label = descriptor.label || field;
+          const value = draft[field];
           return (
             <div key={field} className="space-y-2">
-              <Label>
-                {label}
-                {required ? ' *' : ''}
+              <Label htmlFor={`plugin-config-${field}`}>
+                {label}{descriptor.required ? ' *' : ''}
               </Label>
-              <Input
-                type={inputType}
-                value={value == null ? '' : String(value)}
-                onChange={(event) => onUpdateField(field, event.target.value)}
-                placeholder={
-                  type === 'secret' && secretConfigured
-                    ? 'Stored securely. Leave blank to keep the current value.'
-                    : undefined
-                }
-                className="h-11 rounded-xl"
-              />
-              {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
-              {type === 'secret' && secretConfigured ? (
-                <p className="text-xs text-muted-foreground">
-                  A secure value is already stored. Enter a new value only if you want to replace it.
-                </p>
-              ) : null}
+              {descriptor.description ? <p className="text-sm text-muted-foreground">{descriptor.description}</p> : null}
+              {type === 'boolean' ? (
+                <Switch checked={Boolean(value)} onCheckedChange={(checked) => onChange(field, checked)} />
+              ) : type === 'enum' && descriptor.enum ? (
+                <Select value={typeof value === 'string' ? value : ''} onValueChange={(next) => onChange(field, next)}>
+                  <SelectTrigger id={`plugin-config-${field}`}><SelectValue placeholder={`Select ${label}`} /></SelectTrigger>
+                  <SelectContent>{descriptor.enum.map((option) => <SelectItem key={option} value={option}>{option}</SelectItem>)}</SelectContent>
+                </Select>
+              ) : type === 'object' || type === 'array' ? (
+                <Textarea
+                  id={`plugin-config-${field}`}
+                  value={typeof value === 'string' ? value : JSON.stringify(value ?? (type === 'array' ? [] : {}), null, 2)}
+                  onChange={(event) => {
+                    try {
+                      const parsed: unknown = JSON.parse(event.target.value);
+                      if ((type === 'array' && Array.isArray(parsed)) || (type === 'object' && isPlainObject(parsed))) onChange(field, parsed);
+                    } catch {
+                      onChange(field, event.target.value);
+                    }
+                  }}
+                  className="min-h-32 font-mono text-xs"
+                />
+              ) : (
+                <Input
+                  id={`plugin-config-${field}`}
+                  type={type === 'secret' ? 'password' : type === 'number' ? 'number' : 'text'}
+                  value={typeof value === 'string' || typeof value === 'number' ? String(value) : ''}
+                  placeholder={type === 'secret' && configured ? 'Configured. Enter a new value to replace it.' : undefined}
+                  onChange={(event) => onChange(field, type === 'number' ? Number(event.target.value) : event.target.value)}
+                />
+              )}
             </div>
           );
         })}
-
-        <div className="flex justify-end">
-          <Button onClick={onSave} disabled={saving} className="rounded-xl px-6">
-            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Save configuration
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function NativeConnectionTest({ slug, disabled, onEnable }: { slug: string; disabled: boolean; onEnable: () => Promise<void> }) {
-  const [recipient, setRecipient] = useState('');
-  const [testing, setTesting] = useState(false);
-  const [message, setMessage] = useState('Save configuration, then enable this plugin to run a live test.');
-  const [tone, setTone] = useState<'default' | 'success' | 'error'>('default');
-  const [enabling, setEnabling] = useState(false);
-
-  const enablePlugin = async () => {
-    setEnabling(true);
-    setTone('default');
-    setMessage('Enabling plugin...');
-    try {
-      await onEnable();
-      setMessage('Plugin enabled. Enter a recipient and run the test.');
-    } catch (error) {
-      setTone('error');
-      setMessage(error instanceof Error ? error.message : 'Could not enable plugin.');
-    } finally {
-      setEnabling(false);
-    }
-  };
-
-  const testConnection = async () => {
-    if (slug === 'smtp-email' && !recipient.trim()) {
-      setTone('error');
-      setMessage('Enter a recipient for the SMTP delivery test.');
-      return;
-    }
-    setTesting(true);
-    setTone('default');
-    setMessage('Testing connection...');
-    try {
-      const response = await apiClient.post(`/extensions/plugin/${slug}/api/admin/test`, slug === 'smtp-email' ? { to: recipient.trim() } : {});
-      const data = unwrapApiResponse<Record<string, unknown>>(response);
-      const detail = slug === 'stripe' && typeof data.accountId === 'string'
-        ? ` Stripe account ${data.accountId}.`
-        : slug === 'odoo' && typeof data.database === 'string'
-          ? ` Odoo database ${data.database}.`
-          : slug === 'smtp-email'
-            ? ` Test email accepted for ${recipient.trim()}.`
-            : '';
-      setTone('success');
-      setMessage(`Connection successful.${detail}`);
-    } catch (error) {
-      setTone('error');
-      setMessage(error instanceof Error ? error.message : 'Connection test failed.');
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  return (
-    <Card className="rounded-lg border-gray-100 shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-xl tracking-tight">Connection test</CardTitle>
-        <CardDescription>Validate the saved production configuration without exposing stored credentials.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {slug === 'smtp-email' ? (
-          <div className="space-y-2">
-            <Label htmlFor="smtp-test-recipient">Test recipient</Label>
-            <Input
-              id="smtp-test-recipient"
-              type="email"
-              value={recipient}
-              onChange={(event) => setRecipient(event.target.value)}
-              placeholder="you@example.com"
-              disabled={disabled || testing || enabling}
-              className="rounded-lg"
-            />
-          </div>
-        ) : null}
-        <div className="flex items-center justify-between gap-4">
-          <p className={tone === 'error' ? 'text-sm text-red-600' : tone === 'success' ? 'text-sm text-emerald-700' : 'text-sm text-slate-600'}>
-            {message}
-          </p>
-          {disabled ? (
-            <Button type="button" onClick={() => void enablePlugin()} disabled={enabling} className="shrink-0 rounded-lg">
-              {enabling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Save and enable
-            </Button>
-          ) : (
-            <Button type="button" variant="outline" onClick={() => void testConnection()} disabled={testing} className="shrink-0 rounded-lg">
-            {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Test connection
-            </Button>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function I18nNativeWorkspace(props: {
-  installationId: string;
-  disabled: boolean;
-}) {
-  const { installationId, disabled } = props;
-  const [state, setState] = useState<I18nLocalizationState | null>(null);
-  const [defaultLocale, setDefaultLocale] = useState('');
-  const [supportedLocales, setSupportedLocales] = useState<string[]>([]);
-  const [statusMessage, setStatusMessage] = useState('Loading storefront localization...');
-  const [statusTone, setStatusTone] = useState<'default' | 'error' | 'success'>('default');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-
-  const loadLocalizationState = useCallback(async () => {
-    setIsLoading(true);
-    setStatusMessage('Loading storefront localization...');
-    setStatusTone('default');
-
-    try {
-      const response = await apiClient.get('/extensions/plugin/i18n/api/localization', {
-        params: { installationId },
-      });
-      const data = unwrapApiResponse<I18nLocalizationState>(response);
-      const nextDefaultLocale = data.store.defaultLocale || data.availableLocales[0]?.code || '';
-      const nextSupportedLocales = Array.isArray(data.store.supportedLocales)
-        ? data.store.supportedLocales
-        : nextDefaultLocale
-          ? [nextDefaultLocale]
-          : [];
-
-      setState(data);
-      setDefaultLocale(nextDefaultLocale);
-      setSupportedLocales(nextSupportedLocales);
-      setStatusMessage('Localization settings loaded.');
-      setStatusTone('success');
-    } catch (error) {
-      setStatusMessage(error instanceof Error ? error.message : 'Failed to load storefront localization.');
-      setStatusTone('error');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [installationId]);
-
-  useEffect(() => {
-    if (disabled) {
-      setState(null);
-      setStatusMessage('Create or select a plugin instance to manage storefront localization.');
-      setStatusTone('default');
-      setIsLoading(false);
-      return;
-    }
-
-    void loadLocalizationState();
-  }, [disabled, loadLocalizationState]);
-
-  const toggleLocale = (code: string, enabled: boolean) => {
-    setSupportedLocales((current) => {
-      if (enabled) {
-        return current.includes(code) ? current : [...current, code];
-      }
-
-      if (code === defaultLocale) {
-        return current;
-      }
-
-      return current.filter((entry) => entry !== code);
-    });
-  };
-
-  const saveLocalization = async () => {
-    if (!defaultLocale) {
-      toast.error('Choose a default locale before saving.');
-      return;
-    }
-
-    setIsSaving(true);
-    setStatusMessage('Saving storefront localization...');
-    setStatusTone('default');
-
-    try {
-      const nextSupportedLocales = supportedLocales.includes(defaultLocale)
-        ? supportedLocales
-        : [...supportedLocales, defaultLocale];
-      const response = await apiClient.put('/extensions/plugin/i18n/api/localization', {
-        defaultLocale,
-        supportedLocales: nextSupportedLocales,
-      }, {
-        params: { installationId },
-      });
-      unwrapApiResponse(response);
-      setSupportedLocales(nextSupportedLocales);
-      setStatusMessage('Localization updated successfully.');
-      setStatusTone('success');
-      toast.success('Localization updated successfully');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to update storefront localization.';
-      setStatusMessage(message);
-      setStatusTone('error');
-      toast.error(message);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <Card className="rounded-lg border-gray-100 shadow-sm">
-      <CardHeader>
-        <CardTitle className="text-xl tracking-tight">Localization workspace</CardTitle>
-        <CardDescription>
-          Manage storefront default language and shopper-visible locales directly inside Merchant Admin.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="space-y-2">
-          <Label htmlFor="i18n-default-locale">Default locale</Label>
-          <Select value={defaultLocale} onValueChange={setDefaultLocale} disabled={disabled || isLoading}>
-            <SelectTrigger id="i18n-default-locale" className="rounded-lg">
-              <SelectValue placeholder="Select default locale" />
-            </SelectTrigger>
-            <SelectContent>
-              {(state?.availableLocales || []).map((locale) => (
-                <SelectItem key={locale.code} value={locale.code}>
-                  {locale.name} ({locale.code})
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-3">
-          <Label>Supported locales</Label>
-          <div className="grid gap-3 md:grid-cols-2">
-            {(state?.availableLocales || []).map((locale) => {
-              const checked = supportedLocales.includes(locale.code) || locale.code === defaultLocale;
-              return (
-                <div
-                  key={locale.code}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 px-4 py-3"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-slate-900">{locale.name}</p>
-                    <p className="text-xs text-slate-500">{locale.code}</p>
-                  </div>
-                  <Switch
-                    checked={checked}
-                    disabled={disabled || isLoading || locale.code === defaultLocale}
-                    onCheckedChange={(nextValue) => toggleLocale(locale.code, nextValue)}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-          <p className="font-medium text-slate-900">Status</p>
-          <p
-            className={
-              statusTone === 'error'
-                ? 'mt-1 text-red-600'
-                : statusTone === 'success'
-                  ? 'mt-1 text-emerald-700'
-                  : 'mt-1 text-slate-600'
-            }
-          >
-            {statusMessage}
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <Button onClick={() => void saveLocalization()} disabled={disabled || isSaving || isLoading} className="rounded-lg">
-            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Save localization
-          </Button>
-          <Button variant="outline" onClick={() => void loadLocalizationState()} disabled={isSaving || isLoading} className="rounded-lg">
-            {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-            Reload
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function OdooNativeWorkspace(props: {
-  installationId: string;
-  selectedInstance: PluginInstance | null;
-  onSaveConfig: (config: Record<string, unknown>) => Promise<void>;
-}) {
-  const { installationId, selectedInstance, onSaveConfig } = props;
-  const persistedConfig = useMemo(
-    () => (
-      isPlainObject(selectedInstance?.config)
-        ? (selectedInstance.config as OdooConfig)
-        : {}
-    ),
-    [selectedInstance?.config]
-  );
-  const [mode, setMode] = useState<'test' | 'production'>('test');
-  const [testChannelId, setTestChannelId] = useState('');
-  const [testAuthSecret, setTestAuthSecret] = useState('');
-  const [productionChannelId, setProductionChannelId] = useState('');
-  const [productionAuthSecret, setProductionAuthSecret] = useState('');
-  const [configMessage, setConfigMessage] = useState('Save Odoo credentials to enable native sync actions.');
-  const [configTone, setConfigTone] = useState<'default' | 'error' | 'success'>('default');
-  const [healthMessage, setHealthMessage] = useState('Health has not been checked yet.');
-  const [healthTone, setHealthTone] = useState<'default' | 'error' | 'success'>('default');
-  const [healthPayload, setHealthPayload] = useState<OdooHealthPayload | null>(null);
-  const [productType, setProductType] = useState('all');
-  const [jobId, setJobId] = useState('');
-  const [syncMessage, setSyncMessage] = useState('Ready to submit a product sync job.');
-  const [syncTone, setSyncTone] = useState<'default' | 'error' | 'success'>('default');
-  const [jobPayload, setJobPayload] = useState<OdooJobPayload | null>(null);
-  const [isSavingConfig, setIsSavingConfig] = useState(false);
-  const [isLoadingHealth, setIsLoadingHealth] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [isLoadingJob, setIsLoadingJob] = useState(false);
-
-  useEffect(() => {
-    setMode(persistedConfig.mode === 'production' ? 'production' : 'test');
-    setTestChannelId(typeof persistedConfig.test?.channelId === 'string' ? persistedConfig.test.channelId : '');
-    setTestAuthSecret(typeof persistedConfig.test?.authSecret === 'string' ? persistedConfig.test.authSecret : '');
-    setProductionChannelId(
-      typeof persistedConfig.production?.channelId === 'string' ? persistedConfig.production.channelId : ''
-    );
-    setProductionAuthSecret(
-      typeof persistedConfig.production?.authSecret === 'string' ? persistedConfig.production.authSecret : ''
-    );
-    setConfigMessage('Save Odoo credentials to enable native sync actions.');
-    setConfigTone('default');
-  }, [selectedInstance?.installationId, persistedConfig]);
-
-  const saveConfiguration = async () => {
-    const nextConfig = buildOdooConfig({
-      mode,
-      testChannelId,
-      testAuthSecret,
-      productionChannelId,
-      productionAuthSecret,
-    });
-    const activeConfig = nextConfig.mode === 'production' ? nextConfig.production : nextConfig.test;
-
-    if (!activeConfig?.channelId || !activeConfig?.authSecret) {
-      const message = 'Channel ID and Auth Secret are required for the selected environment.';
-      setConfigMessage(message);
-      setConfigTone('error');
-      toast.error(message);
-      return;
-    }
-
-    setIsSavingConfig(true);
-    setConfigMessage('Saving Odoo configuration...');
-    setConfigTone('default');
-
-    try {
-      await onSaveConfig(nextConfig as Record<string, unknown>);
-      setConfigMessage('Odoo configuration saved successfully.');
-      setConfigTone('success');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to save Odoo configuration.';
-      setConfigMessage(message);
-      setConfigTone('error');
-    } finally {
-      setIsSavingConfig(false);
-    }
-  };
-
-  const checkHealth = async () => {
-    setIsLoadingHealth(true);
-    setHealthMessage('Checking Odoo plugin health...');
-    setHealthTone('default');
-
-    try {
-      const response = await apiClient.get('/extensions/plugin/odoo/health', {
-        params: { installationId },
-      });
-      const data = unwrapApiResponse<OdooHealthPayload>(response);
-      setHealthPayload(data);
-      setHealthMessage(`Health check passed${data.status ? `: ${data.status}` : '.'}`);
-      setHealthTone('success');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to load Odoo health.';
-      setHealthMessage(message);
-      setHealthTone('error');
-    } finally {
-      setIsLoadingHealth(false);
-    }
-  };
-
-  const startSync = async () => {
-    if (!selectedInstance?.enabled) {
-      const message = 'Enable the selected Odoo instance before starting a sync.';
-      setSyncMessage(message);
-      setSyncTone('error');
-      toast.error(message);
-      return;
-    }
-
-    setIsSyncing(true);
-    setSyncMessage('Submitting sync job...');
-    setSyncTone('default');
-
-    try {
-      const response = await apiClient.post('/extensions/plugin/odoo/api/sync/products', {
-        productType,
-      }, {
-        params: { installationId },
-      });
-      const data = unwrapApiResponse<{ jobId?: string }>(response);
-      if (data.jobId) {
-        setJobId(data.jobId);
-      }
-      setSyncMessage(data.jobId ? `Sync accepted. Job: ${data.jobId}` : 'Sync accepted.');
-      setSyncTone('success');
-      toast.success('Odoo sync job started');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to submit Odoo sync job.';
-      setSyncMessage(message);
-      setSyncTone('error');
-      toast.error(message);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const loadJob = async () => {
-    if (!jobId.trim()) {
-      const message = 'Enter a sync job id first.';
-      setSyncMessage(message);
-      setSyncTone('error');
-      toast.error(message);
-      return;
-    }
-
-    setIsLoadingJob(true);
-    setSyncMessage('Loading sync job status...');
-    setSyncTone('default');
-
-    try {
-      const response = await apiClient.get(`/extensions/plugin/odoo/api/sync/jobs/${encodeURIComponent(jobId.trim())}`, {
-        params: { installationId },
-      });
-      const data = unwrapApiResponse<OdooJobPayload>(response);
-      const progress =
-        typeof data.progressDone === 'number' && typeof data.progressTotal === 'number'
-          ? ` (${data.progressDone}/${data.progressTotal})`
-          : '';
-      setJobPayload(data);
-      setSyncMessage(`Job ${data.jobId} is ${String(data.status || 'unknown').toLowerCase()}${progress}.`);
-      setSyncTone(String(data.status || '').toUpperCase() === 'FAILED' ? 'error' : 'success');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to load sync job status.';
-      setSyncMessage(message);
-      setSyncTone('error');
-      toast.error(message);
-    } finally {
-      setIsLoadingJob(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      <Card className="rounded-lg border-gray-100 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-xl tracking-tight">Odoo configuration</CardTitle>
-          <CardDescription>
-            Manage Odoo credentials and mode from a native Merchant Admin form instead of a plugin iframe.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="odoo-mode">Environment mode</Label>
-            <Select value={mode} onValueChange={(value) => setMode(value === 'production' ? 'production' : 'test')}>
-              <SelectTrigger id="odoo-mode" className="rounded-lg">
-                <SelectValue placeholder="Select environment mode" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="test">test</SelectItem>
-                <SelectItem value="production">production</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2 rounded-lg border border-slate-200 p-4">
-              <p className="text-sm font-semibold text-slate-900">Test credentials</p>
-              <div className="space-y-2">
-                <Label htmlFor="odoo-test-channel-id">Channel ID</Label>
-                <Input
-                  id="odoo-test-channel-id"
-                  value={testChannelId}
-                  onChange={(event) => setTestChannelId(event.target.value)}
-                  className="rounded-lg"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="odoo-test-auth-secret">Auth Secret</Label>
-                <Input
-                  id="odoo-test-auth-secret"
-                  type="password"
-                  value={testAuthSecret}
-                  onChange={(event) => setTestAuthSecret(event.target.value)}
-                  className="rounded-lg"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2 rounded-lg border border-slate-200 p-4">
-              <p className="text-sm font-semibold text-slate-900">Production credentials</p>
-              <div className="space-y-2">
-                <Label htmlFor="odoo-production-channel-id">Channel ID</Label>
-                <Input
-                  id="odoo-production-channel-id"
-                  value={productionChannelId}
-                  onChange={(event) => setProductionChannelId(event.target.value)}
-                  className="rounded-lg"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="odoo-production-auth-secret">Auth Secret</Label>
-                <Input
-                  id="odoo-production-auth-secret"
-                  type="password"
-                  value={productionAuthSecret}
-                  onChange={(event) => setProductionAuthSecret(event.target.value)}
-                  className="rounded-lg"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-            <p className="font-medium text-slate-900">Configuration</p>
-            <p
-              className={
-                configTone === 'error'
-                  ? 'mt-1 text-red-600'
-                  : configTone === 'success'
-                    ? 'mt-1 text-emerald-700'
-                    : 'mt-1 text-slate-600'
-              }
-            >
-              {configMessage}
-            </p>
-          </div>
-
-          <div className="flex justify-end">
-            <Button onClick={() => void saveConfiguration()} disabled={isSavingConfig} className="rounded-lg">
-              {isSavingConfig ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Save Odoo configuration
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Card className="rounded-lg border-gray-100 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg tracking-tight">Health</CardTitle>
-            <CardDescription>Check whether the Odoo plugin runtime is reachable through the extension gateway.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-              <p className="font-medium text-slate-900">Status</p>
-              <p
-                className={
-                  healthTone === 'error'
-                    ? 'mt-1 text-red-600'
-                    : healthTone === 'success'
-                      ? 'mt-1 text-emerald-700'
-                      : 'mt-1 text-slate-600'
-                }
-              >
-                {healthMessage}
-              </p>
-            </div>
-
-            {healthPayload ? (
-              <div className="grid gap-3 rounded-lg border border-slate-200 p-4 text-sm text-slate-600">
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-500">Plugin</span>
-                  <span className="font-medium text-slate-900">{healthPayload.plugin || 'odoo'}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-500">Version</span>
-                  <span className="font-medium text-slate-900">{healthPayload.version || 'n/a'}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-500">Reported at</span>
-                  <span className="font-medium text-slate-900">{formatDate(healthPayload.timestamp)}</span>
-                </div>
-              </div>
-            ) : null}
-
-            <Button variant="outline" onClick={() => void checkHealth()} disabled={isLoadingHealth} className="rounded-lg">
-              {isLoadingHealth ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
-              Check health
-            </Button>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-lg border-gray-100 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-lg tracking-tight">Product sync</CardTitle>
-            <CardDescription>Trigger sync jobs and inspect their runtime status from Merchant Admin.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="odoo-product-type">Product type</Label>
-              <Select value={productType} onValueChange={setProductType}>
-                <SelectTrigger id="odoo-product-type" className="rounded-lg">
-                  <SelectValue placeholder="Select product type" />
-                </SelectTrigger>
-                <SelectContent>
-                  {['all', 'esim', 'data', 'esim-card', 'ota-card', 'effective_date', 'external_data', 'sign_data'].map((option) => (
-                    <SelectItem key={option} value={option}>
-                      {option}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Button onClick={() => void startSync()} disabled={isSyncing} className="rounded-lg">
-                {isSyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Workflow className="mr-2 h-4 w-4" />}
-                Start sync
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="odoo-job-id">Job ID</Label>
-              <Input
-                id="odoo-job-id"
-                value={jobId}
-                onChange={(event) => setJobId(event.target.value)}
-                placeholder="Paste a sync job id"
-                className="rounded-lg"
-              />
-            </div>
-
-            <Button variant="outline" onClick={() => void loadJob()} disabled={isLoadingJob} className="rounded-lg">
-              {isLoadingJob ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Load job status
-            </Button>
-
-            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-              <p className="font-medium text-slate-900">Sync status</p>
-              <p
-                className={
-                  syncTone === 'error'
-                    ? 'mt-1 text-red-600'
-                    : syncTone === 'success'
-                      ? 'mt-1 text-emerald-700'
-                      : 'mt-1 text-slate-600'
-                }
-              >
-                {syncMessage}
-              </p>
-            </div>
-
-            {jobPayload ? (
-              <div className="grid gap-3 rounded-lg border border-slate-200 p-4 text-sm text-slate-600">
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-500">Job</span>
-                  <span className="font-medium text-slate-900">{jobPayload.jobId}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-500">Status</span>
-                  <span className="font-medium text-slate-900">{jobPayload.status || 'unknown'}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-500">Product type</span>
-                  <span className="font-medium text-slate-900">{jobPayload.productType || 'n/a'}</span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-slate-500">Progress</span>
-                  <span className="font-medium text-slate-900">
-                    {typeof jobPayload.progressDone === 'number' && typeof jobPayload.progressTotal === 'number'
-                      ? `${jobPayload.progressDone}/${jobPayload.progressTotal}`
-                      : 'n/a'}
-                  </span>
-                </div>
-                {jobPayload.lastError ? (
-                  <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-red-700">
-                    {jobPayload.lastError}
-                  </div>
-                ) : null}
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  );
-}
-
-function ShippingNativeWorkspace(props: {
-  installationId: string;
-  enabled: boolean;
-}) {
-  const { installationId, enabled } = props;
-  const [provider, setProvider] = useState<ShippingProvider>('kuaidi100');
-  const [action, setAction] = useState(shippingProviderActions.kuaidi100[0].value);
-  const [merchantReference, setMerchantReference] = useState('');
-  const [orderId, setOrderId] = useState('');
-  const [requestDraft, setRequestDraft] = useState('{}');
-  const [responseDraft, setResponseDraft] = useState('');
-  const [statusMessage, setStatusMessage] = useState('Ready');
-  const [statusTone, setStatusTone] = useState<'default' | 'error' | 'success'>('default');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const availableActions = shippingProviderActions[provider];
-  const selectedAction = availableActions.find((item) => item.value === action) || availableActions[0];
-
-  const selectProvider = (nextProvider: ShippingProvider) => {
-    setProvider(nextProvider);
-    setAction(shippingProviderActions[nextProvider][0].value);
-    setResponseDraft('');
-    setStatusMessage('Ready');
-    setStatusTone('default');
-  };
-
-  const submitProviderAction = async () => {
-    if (!enabled) {
-      const message = 'Enable the Shipping instance before running provider operations.';
-      setStatusMessage(message);
-      setStatusTone('error');
-      toast.error(message);
-      return;
-    }
-
-    if (selectedAction.needsMerchantReference && !merchantReference.trim()) {
-      const message = 'Merchant reference is required for create operations.';
-      setStatusMessage(message);
-      setStatusTone('error');
-      toast.error(message);
-      return;
-    }
-    if (selectedAction.needsMerchantReference && !orderId.trim()) {
-      const message = 'Bokmoo order ID is required for create operations.';
-      setStatusMessage(message);
-      setStatusTone('error');
-      toast.error(message);
-      return;
-    }
-
-    let payload: Record<string, unknown>;
-    try {
-      const parsed = JSON.parse(requestDraft);
-      if (!isPlainObject(parsed)) throw new Error('Request body must be a JSON object.');
-      payload = parsed;
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Request body is not valid JSON.';
-      setStatusMessage(message);
-      setStatusTone('error');
-      toast.error(message);
-      return;
-    }
-
-    setIsSubmitting(true);
-    setResponseDraft('');
-    setStatusMessage(`Running ${selectedAction.label.toLowerCase()}...`);
-    setStatusTone('default');
-
-    try {
-      const requestBody = selectedAction.needsMerchantReference
-        ? { reference: merchantReference.trim(), orderId: orderId.trim(), input: payload }
-        : ['tracking-subscribe', 'cancel-order', 'get-tracking'].includes(selectedAction.value)
-          ? payload
-          : { input: payload };
-      const response = await apiClient.post(
-        `/extensions/plugin/shipping/api/admin/providers/${selectedAction.endpoint}`,
-        requestBody,
-        { params: { installationId }, timeout: 120000 }
-      );
-      const data = unwrapApiResponse<unknown>(response);
-      setResponseDraft(JSON.stringify(data, null, 2));
-      setStatusMessage(`${selectedAction.label} completed.`);
-      setStatusTone('success');
-      toast.success(`${selectedAction.label} completed`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : `${selectedAction.label} failed.`;
-      setStatusMessage(message);
-      setStatusTone('error');
-      toast.error(message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <Card className="rounded-lg border-gray-100 shadow-sm">
-      <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
-            <Truck className="h-5 w-5" />
-          </div>
-          <div>
-            <CardTitle className="text-xl tracking-tight">Fulfillment operations</CardTitle>
-            <CardDescription>Run provider operations through the selected Shipping instance.</CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-5">
-        <div className="grid gap-4 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="shipping-provider">Provider</Label>
-            <Select value={provider} onValueChange={(value) => selectProvider(value === 'fourpx' ? 'fourpx' : 'kuaidi100')}>
-              <SelectTrigger id="shipping-provider" className="rounded-lg">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="kuaidi100">Kuaidi100</SelectItem>
-                <SelectItem value="fourpx">4PX</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="shipping-action">Operation</Label>
-            <Select value={selectedAction.value} onValueChange={setAction}>
-              <SelectTrigger id="shipping-action" className="rounded-lg">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {availableActions.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        {selectedAction.needsMerchantReference ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="shipping-order-id">Bokmoo order ID</Label>
-              <Input
-                id="shipping-order-id"
-                value={orderId}
-                onChange={(event) => setOrderId(event.target.value)}
-                placeholder="ord_..."
-                className="rounded-lg"
-              />
-            </div>
-            <div className="space-y-2">
-            <Label htmlFor="shipping-merchant-reference">Merchant reference</Label>
-            <Input
-              id="shipping-merchant-reference"
-              value={merchantReference}
-              onChange={(event) => setMerchantReference(event.target.value)}
-              placeholder="Stable provider operation reference"
-              className="rounded-lg"
-            />
-            </div>
-          </div>
-        ) : null}
-
-        <div className="space-y-2">
-          <Label htmlFor="shipping-request-body">Provider request</Label>
-          <Textarea
-            id="shipping-request-body"
-            value={requestDraft}
-            onChange={(event) => setRequestDraft(event.target.value)}
-            className="min-h-48 rounded-lg font-mono text-xs"
-            spellCheck={false}
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={() => void submitProviderAction()} disabled={isSubmitting || !enabled} className="rounded-lg">
-            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
-            Run operation
-          </Button>
-          <Badge
-            variant="outline"
-            className={
-              statusTone === 'error'
-                ? 'border-red-200 bg-red-50 text-red-700'
-                : statusTone === 'success'
-                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
-                  : 'border-slate-200 bg-slate-50 text-slate-600'
-            }
-          >
-            {statusMessage}
-          </Badge>
-        </div>
-
-        {responseDraft ? (
-          <div className="space-y-2">
-            <Label>Response</Label>
-            <pre className="max-h-80 overflow-auto rounded-lg bg-slate-950 p-4 text-xs leading-5 text-slate-100">
-              {responseDraft}
-            </pre>
-          </div>
-        ) : null}
+        <Button onClick={onSave} disabled={saving} className="rounded-lg">
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Save configuration
+        </Button>
       </CardContent>
     </Card>
   );
@@ -1300,659 +140,97 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   const locale = useLocale();
   const t = useT();
   const { data, isLoading, error } = usePluginConfig(slug);
-  const jobsAdminAvailable = useJobsAdminCapability();
-  const affiliateOverviewQuery = useAffiliateNativeOverview(slug);
-  const { data: instancesData, isLoading: isInstancesLoading } = usePluginInstances(slug);
+  const { data: instancesData, isLoading: instancesLoading } = usePluginInstances(slug);
   const { data: installedPluginsData } = useInstalledPlugins();
   const { data: officialCatalogData } = useOfficialCatalog();
-  const { mutateAsync: createInstance, isPending: isCreatingInstance } = useCreatePluginInstance();
-  const { mutateAsync: updateInstance, isPending: isUpdatingInstance } = useUpdatePluginInstance();
-  const [selectedInstallationId, setSelectedInstallationId] = useState('default');
-  const [configDraft, setConfigDraft] = useState<Record<string, unknown>>({});
-  const [jsonFieldDrafts, setJsonFieldDrafts] = useState<Record<string, string>>({});
-  const [jsonFieldErrors, setJsonFieldErrors] = useState<Record<string, string>>({});
+  const { mutateAsync: createInstance, isPending: creating } = useCreatePluginInstance();
+  const { mutateAsync: updateInstance, isPending: updating } = useUpdatePluginInstance();
+  const [selectedId, setSelectedId] = useState('default');
+  const [draft, setDraft] = useState<Record<string, unknown>>({});
 
-  const getText = (key: string, fallback: string): string => {
-    if (!t) return fallback;
-    const translated = t(key);
-    return translated === key ? fallback : translated;
+  const getText = (key: string, fallback: string) => {
+    const translated = t?.(key);
+    return translated && translated !== key ? translated : fallback;
   };
-
   const instances = useMemo(() => instancesData?.items || [], [instancesData?.items]);
-  const installedPlugins = installedPluginsData?.items || [];
-  const officialPluginSlugs = useMemo(
-    () =>
-      new Set(
-        (officialCatalogData?.items || [])
-          .filter((item) => item.kind === 'plugin')
-          .map((item) => item.slug)
-      ),
-    [officialCatalogData?.items]
-  );
-  const configSchema = isPlainObject(data?.configSchema) ? (data?.configSchema as PluginConfigSchema) : undefined;
+  const selected = instances.find((instance) => instance.installationId === selectedId) || instances[0] || null;
+  const schema = isPlainObject(data?.configSchema) ? data.configSchema as PluginConfigSchema : undefined;
+  const config = isPlainObject(selected?.config) ? selected.config : {};
+  const meta = selected?.configMeta || data?.configMeta;
+  const readiness = configReadiness(schema, config, meta);
+  const saving = creating || updating;
+  const officialSlugs = useMemo(() => new Set((officialCatalogData?.items || []).filter((item) => item.kind === 'plugin').map((item) => item.slug)), [officialCatalogData?.items]);
 
   useEffect(() => {
-    if (instances.length === 0) {
-      setSelectedInstallationId('default');
+    setDraft(config);
+    if (selected) setSelectedId(selected.installationId);
+  }, [selected?.installationId, selected?.updatedAt]);
+
+  const save = async () => {
+    try {
+      if (selected) {
+        await updateInstance({ slug, installationId: selected.installationId, enabled: selected.enabled, config: draft });
+      } else {
+        const created = await createInstance({ slug, instanceKey: 'default', enabled: false, config: draft });
+        setSelectedId(created.installationId);
+      }
+    } catch {
+      // Mutation hooks present save errors.
+    }
+  };
+
+  const toggle = async () => {
+    if (!selected && !readiness.ready) {
+      toast.error(`This plugin requires configuration before enabling: ${readiness.missing.join(', ')}`);
       return;
     }
-
-    const defaultInstance = instances.find((instance) => instance.instanceKey === 'default') || instances[0];
-    setSelectedInstallationId((current) => {
-      const exists = instances.some((instance) => instance.installationId === current);
-      return exists ? current : defaultInstance.installationId;
-    });
-  }, [instances]);
-
-  const selectedInstance = instances.find((instance) => instance.installationId === selectedInstallationId)
-    || instances.find((instance) => instance.instanceKey === 'default')
-    || instances[0]
-    || null;
-
-  const selectedConfig = useMemo(
-    () => (
-      isPlainObject(selectedInstance?.config)
-        ? (selectedInstance.config as Record<string, unknown>)
-        : {}
-    ),
-    [selectedInstance?.config]
-  );
-  const selectedConfigMeta = selectedInstance?.configMeta || data?.configMeta;
-  const selectedReadiness = evaluateConfigReadiness(configSchema, selectedConfig, selectedConfigMeta);
-  const hasNativeWorkspace = slug === 'odoo' || slug === 'i18n' || slug === 'remoteradar-jobs' || Boolean(configSchema);
-
-  useEffect(() => {
-    setConfigDraft(selectedConfig);
-    setJsonFieldDrafts(buildJsonFieldDrafts(configSchema, selectedConfig));
-    setJsonFieldErrors({});
-  }, [selectedInstance?.installationId, selectedInstance?.updatedAt, configSchema, selectedConfig]);
-
-  const updateConfigField = (field: string, value: unknown) => {
-    setConfigDraft((current) => ({
-      ...current,
-      [field]: value,
-    }));
-  };
-
-  const updateJsonConfigField = (field: string, rawValue: string, expectedType: 'object' | 'array') => {
-    setJsonFieldDrafts((current) => ({
-      ...current,
-      [field]: rawValue,
-    }));
-
-    const trimmed = rawValue.trim();
-    if (!trimmed) {
-      updateConfigField(field, expectedType === 'array' ? [] : {});
-      setJsonFieldErrors((current) => ({
-        ...current,
-        [field]: '',
-      }));
-      return;
-    }
-
     try {
-      const parsed = JSON.parse(rawValue);
-      const valid = expectedType === 'array' ? Array.isArray(parsed) : isPlainObject(parsed);
-      if (!valid) {
-        throw new Error(`Value must be a JSON ${expectedType}`);
+      if (selected) {
+        if (!selected.enabled && !readiness.ready) {
+          toast.error(`This plugin requires configuration before enabling: ${readiness.missing.join(', ')}`);
+          return;
+        }
+        await updateInstance({ slug, installationId: selected.installationId, enabled: !selected.enabled, config });
+      } else {
+        const created = await createInstance({ slug, instanceKey: 'default', enabled: true, config: draft });
+        setSelectedId(created.installationId);
       }
-      updateConfigField(field, parsed);
-      setJsonFieldErrors((current) => ({
-        ...current,
-        [field]: '',
-      }));
-    } catch (error) {
-      setJsonFieldErrors((current) => ({
-        ...current,
-        [field]: error instanceof Error ? error.message : 'Invalid JSON',
-      }));
-    }
-  };
-
-  const persistSelectedConfig = async (nextConfig: Record<string, unknown>) => {
-    if (Object.values(jsonFieldErrors).some(Boolean)) {
-      const message = getText('common.validation.invalidFormat', 'Invalid format');
-      toast.error(message);
-      throw new Error(message);
-    }
-
-    if (selectedInstance) {
-      await updateInstance({
-        slug,
-        installationId: selectedInstance.installationId,
-        enabled: selectedInstance.enabled,
-        config: nextConfig,
-      });
-      return;
-    }
-
-    const created = await createInstance({
-      slug,
-      instanceKey: 'default',
-      enabled: false,
-      config: nextConfig,
-    });
-    setSelectedInstallationId(created.installationId);
-  };
-
-  const handleSaveGenericConfig = async () => {
-    try {
-      await persistSelectedConfig(configDraft);
     } catch {
-      // Toast is surfaced through the mutation hooks.
+      // Mutation hooks present save errors.
     }
   };
 
-  const handleCreateDefaultInstance = async () => {
-    try {
-      const created = await createInstance({
-        slug,
-        instanceKey: 'default',
-        enabled: false,
-        config: {},
-      });
-      setSelectedInstallationId(created.installationId);
-    } catch {
-      // Toast is surfaced through the mutation hook.
-    }
-  };
-
-  const handleToggleSelectedInstance = async () => {
-    try {
-      const nextEnabled = !selectedInstance?.enabled;
-      const readiness = evaluateConfigReadiness(configSchema, selectedConfig, selectedConfigMeta);
-
-      if (nextEnabled && readiness.configRequired && !readiness.configReady) {
-        const detail = readiness.missingConfigFields.length > 0
-          ? `: ${readiness.missingConfigFields.join(', ')}`
-          : '';
-        toast.error(`This plugin requires configuration before enabling${detail}`);
-        return;
-      }
-
-      if (selectedInstance) {
-        await updateInstance({
-          slug,
-          installationId: selectedInstance.installationId,
-          enabled: nextEnabled,
-          config: selectedConfig,
-        });
-        return;
-      }
-
-      const created = await createInstance({
-        slug,
-        instanceKey: 'default',
-        enabled: true,
-        config: selectedConfig,
-      });
-      setSelectedInstallationId(created.installationId);
-    } catch {
-      // Toast is surfaced through the mutation hook.
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center text-muted-foreground gap-2">
-        <Loader2 className="h-4 w-4 animate-spin" />
-        <span>Loading plugin workspace...</span>
-      </div>
-    );
-  }
-
-  // The native affiliate adapter serves live partners/commissions/attributions
-  // from native_affiliate_* tables through its own admin overview endpoint, so
-  // the affiliate workspace renders that data view before the generic
-  // config-driven workspace (the generic detail endpoint is still used on
-  // platform deployments where the overview route does not exist).
-  if (slug === 'affiliate' && !isLoading && affiliateOverviewQuery.isSuccess) {
-    return (
-      <div className="min-h-screen w-full bg-[#f8fafc]">
-        <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-8 lg:px-10">
-          <AffiliateNativeWorkspace data={affiliateOverviewQuery.data} />
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !data) {
-    // The RemoteRadar jobs administration reads live connector/source data
-    // through the dedicated Core admin proxy, so it does not depend on the
-    // plugin-detail endpoint (which Cloudflare-native instances do not
-    // implement). Keep the panel available even when the generic workspace
-    // cannot load — but only on instances that actually configure the jobs
-    // service, so generic deployments still see the standard failure surface.
-    if (slug === 'remoteradar-jobs' && jobsAdminAvailable) {
-      return (
-        <div className="min-h-screen w-full bg-[#f8fafc]">
-          <div className="mx-auto w-full max-w-[1540px] px-5 py-6 sm:px-8 lg:px-10">
-            <RemoteRadarJobsNativeWorkspace installationId="default" />
-          </div>
-        </div>
-      );
-    }
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="max-w-md rounded-lg border bg-white p-6 shadow-sm">
-          <div className="flex items-center gap-3 text-red-600">
-            <AlertTriangle className="h-5 w-5" />
-            <h1 className="text-lg font-semibold">Plugin unavailable</h1>
-          </div>
-          <p className="mt-3 text-sm text-muted-foreground">
-            The plugin details could not be loaded.
-          </p>
-          <div className="mt-6">
-            <Link href={`/${locale}/plugins`}>
-              <Button variant="outline">Back to plugins</Button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  if (isLoading) return <div className="flex min-h-screen items-center justify-center gap-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Loading plugin workspace...</div>;
+  if (error || !data) return <div className="flex min-h-screen items-center justify-center p-6"><Alert className="max-w-md"><AlertTriangle className="h-4 w-4" /><AlertTitle>Plugin unavailable</AlertTitle><AlertDescription>The plugin details could not be loaded.</AlertDescription></Alert></div>;
 
   return (
     <div className="min-h-screen bg-[#f8fafc] p-5 sm:p-7 lg:p-10">
       <div className="mx-auto grid max-w-[1600px] gap-5 lg:grid-cols-[260px,minmax(0,1fr)]">
-        <InstalledPluginsRail
-          locale={locale}
-          plugins={installedPlugins}
-          selectedSlug={slug}
-          officialSlugs={officialPluginSlugs}
-          getText={getText}
-        />
-
+        <InstalledPluginsRail locale={locale} plugins={installedPluginsData?.items || []} selectedSlug={slug} officialSlugs={officialSlugs} getText={getText} />
         <div className="space-y-5">
-          <div className="rounded-2xl border border-slate-200/80 bg-white px-7 py-6 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-              <div className="min-w-0">
-                <div className="mb-2 flex items-center gap-2 text-sm text-slate-500">
-                  <Link href={`/${locale}/plugins`} className="hover:text-blue-600">Plugins</Link>
-                  <span>/</span>
-                  <span>Installed</span>
-                  <span>/</span>
-                  <span className="truncate text-slate-900">{data.name || slug}</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {officialPluginSlugs.has(slug) ? <OfficialBadge compact /> : null}
-                </div>
-                <h1 className="mt-2 text-[30px] font-bold tracking-tight text-slate-950">
-                  {data.name || slug}
-                </h1>
-                <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">
-                  {getText(
-                    'merchant.plugins.workspaceDescription',
-                    'Manage plugin-specific configuration, instance targeting, and native Admin controls from a dedicated workspace.'
-                  )}
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-3 xl:justify-end">
-                <div className="min-w-[220px]">
-                  <Select
-                    value={selectedInstance?.installationId || selectedInstallationId}
-                    onValueChange={setSelectedInstallationId}
-                    disabled={isInstancesLoading || instances.length === 0}
-                  >
-                    <SelectTrigger className="h-10 rounded-lg bg-white">
-                      <SelectValue placeholder={isInstancesLoading ? 'Loading instances...' : 'Select instance'} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {instances.length === 0 ? (
-                        <SelectItem value="default">default</SelectItem>
-                      ) : (
-                        instances.map((instance) => (
-                          <SelectItem key={instance.installationId} value={instance.installationId}>
-                            {instance.instanceKey}
-                            {instance.enabled ? '' : ' (disabled)'}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button asChild variant="outline" className="rounded-lg">
-                  <Link href={`/${locale}/plugins`}>
-                    {getText('merchant.plugins.backToMarketplace', 'Back to plugins')}
-                  </Link>
-                </Button>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid gap-3 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)] sm:grid-cols-4">
-            {[
-              ['Runtime', data.runtimeType || 'n/a'],
-              ['Instance', selectedInstance?.instanceKey || 'default'],
-              ['Config readiness', selectedReadiness.configReady ? 'Ready' : 'Needs config'],
-              ['Last updated', selectedInstance?.updatedAt ? new Date(selectedInstance.updatedAt).toLocaleDateString() : 'n/a'],
-            ].map(([label, value], index) => (
-              <div key={label} className="flex items-center gap-3 border-slate-200 sm:border-r sm:px-3 first:pl-0 last:border-0">
-                {index === 0 ? <Cloud className="h-5 w-5 text-slate-500" /> : index === 2 ? <CheckCircle2 className="h-5 w-5 text-emerald-600" /> : <Settings2 className="h-5 w-5 text-slate-500" />}
-                <div><p className="text-xs text-slate-500">{label}</p><p className="text-sm font-semibold text-slate-900">{value}</p></div>
-              </div>
-            ))}
-          </div>
-
-          <Alert className="border-blue-200 bg-blue-50 text-blue-950">
-            <CheckCircle2 className="h-4 w-4" />
-            <AlertTitle>Native workspace</AlertTitle>
-            <AlertDescription>
-              Merchant Admin now renders plugin controls as native UI. iframe-based plugin consoles are not embedded in this workspace.
-            </AlertDescription>
-          </Alert>
-
-          <div className="rounded-2xl border border-slate-200/80 bg-white px-6 py-5 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-            <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
-              <span>
-                <strong className="text-slate-900">Plugin:</strong> {data.name || slug}
-              </span>
-              <span>
-                <strong className="text-slate-900">Version:</strong> {data.version || 'n/a'}
-              </span>
-              <span>
-                <strong className="text-slate-900">Source:</strong> {data.source || 'installed'}
-              </span>
-              <span>
-                <strong className="text-slate-900">Instance:</strong> {selectedInstance?.instanceKey || 'default'}
-              </span>
-              <span>
-                <strong className="text-slate-900">Installation ID:</strong> {selectedInstance?.installationId || 'default'}
-              </span>
-            </div>
-          </div>
-
+          <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
+            <CardHeader>
+              <div className="flex items-center gap-2 text-sm text-slate-500"><Link href={`/${locale}/plugins`} className="hover:text-blue-600">Plugins</Link><span>/</span><span>{data.name || slug}</span></div>
+              <CardTitle className="flex items-center gap-2 text-2xl">{data.name || slug}{officialSlugs.has(slug) ? <OfficialBadge compact /> : null}</CardTitle>
+              <CardDescription>{data.description || 'Manage the extension configuration and instances.'}</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap items-center gap-3">
+              <Select value={selected?.installationId || selectedId} onValueChange={setSelectedId} disabled={instancesLoading || instances.length === 0}>
+                <SelectTrigger className="w-56"><SelectValue placeholder="Select instance" /></SelectTrigger>
+                <SelectContent>{instances.length ? instances.map((instance) => <SelectItem key={instance.installationId} value={instance.installationId}>{instance.instanceKey}</SelectItem>) : <SelectItem value="default">default</SelectItem>}</SelectContent>
+              </Select>
+              <Badge variant={selected?.enabled ? 'default' : 'outline'}>{selected?.enabled ? 'Enabled' : 'Disabled'}</Badge>
+              <Badge variant={readiness.ready ? 'default' : 'outline'}>{readiness.ready ? 'Configuration ready' : 'Configuration required'}</Badge>
+            </CardContent>
+          </Card>
           <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr),360px]">
             <div className="space-y-5">
-              {slug === 'i18n' ? (
-                <I18nNativeWorkspace
-                  installationId={selectedInstance?.installationId || 'default'}
-                  disabled={!selectedInstance}
-                />
-              ) : null}
-
-              {slug === 'odoo' && data.runtimeType !== 'cloudflare-native' ? (
-                <OdooNativeWorkspace
-                  installationId={selectedInstance?.installationId || 'default'}
-                  selectedInstance={selectedInstance}
-                  onSaveConfig={persistSelectedConfig}
-                />
-              ) : null}
-
-              {slug === 'shipping' && data.runtimeType === 'cloudflare-native' ? (
-                <ShippingNativeWorkspace
-                  installationId={selectedInstance?.installationId || 'default'}
-                  enabled={Boolean(selectedInstance?.enabled)}
-                />
-              ) : null}
-
-              {slug === 'remoteradar-jobs' ? (
-                <RemoteRadarJobsNativeWorkspace
-                  installationId={selectedInstance?.installationId || 'default'}
-                  disabled={!selectedInstance}
-                />
-              ) : null}
-
-              {slug !== 'i18n' && (slug !== 'odoo' || data.runtimeType === 'cloudflare-native') && configSchema ? (
-                <div className="space-y-4">
-                  {slug === 'stripe' ? (
-                    configDraft.mode === 'live' ? (
-                      <Alert className="border-red-200 bg-red-50 text-red-950">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertTitle>Live mode</AlertTitle>
-                        <AlertDescription>Stripe will create real charges after this configuration is saved.</AlertDescription>
-                      </Alert>
-                    ) : (
-                      <Alert className="border-amber-300 bg-amber-50 text-amber-950">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertTitle>Test mode</AlertTitle>
-                        <AlertDescription>Stripe test data is active. No real charges will be created.</AlertDescription>
-                      </Alert>
-                    )
-                  ) : null}
-                  <GenericConfigEditor
-                    configSchema={configSchema}
-                    configDraft={configDraft}
-                    configMeta={selectedConfigMeta}
-                    jsonFieldDrafts={jsonFieldDrafts}
-                    jsonFieldErrors={jsonFieldErrors}
-                    onUpdateField={updateConfigField}
-                    onUpdateJsonField={updateJsonConfigField}
-                    onSave={() => void handleSaveGenericConfig()}
-                    saving={isCreatingInstance || isUpdatingInstance}
-                  />
-                </div>
-              ) : null}
-
-              {data.runtimeType === 'cloudflare-native' && ['smtp-email', 'stripe', 'odoo'].includes(slug) ? (
-                <NativeConnectionTest slug={slug} disabled={!selectedInstance?.enabled} onEnable={handleToggleSelectedInstance} />
-              ) : null}
-
-              {!hasNativeWorkspace ? (
-                <Alert className="border-amber-200 bg-amber-50 text-amber-900">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>No native controls yet</AlertTitle>
-                  <AlertDescription>
-                    This plugin does not declare a config schema or a native Admin adapter yet. Merchant Admin will not embed its legacy HTML surface in an iframe.
-                  </AlertDescription>
-                </Alert>
-              ) : null}
+              {schema ? <GenericConfigEditor schema={schema} draft={draft} meta={meta} saving={saving} onChange={(field, value) => setDraft((current) => ({ ...current, [field]: value }))} onSave={() => void save()} /> : <Alert><Settings2 className="h-4 w-4" /><AlertTitle>No configuration declared</AlertTitle><AlertDescription>This extension does not declare configuration fields.</AlertDescription></Alert>}
             </div>
-
             <div className="space-y-5">
-              <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
-                <CardHeader>
-                  <CardTitle className="text-lg tracking-tight">Instance status</CardTitle>
-                  <CardDescription>
-                    Native Admin controls operate on the selected plugin instance.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm">
-                  <div className="grid gap-3 border border-slate-200 p-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-slate-500">Enabled</span>
-                      <Badge variant={selectedInstance?.enabled ? 'default' : 'outline'}>
-                        {selectedInstance?.enabled ? 'Enabled' : 'Disabled'}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-slate-500">Config readiness</span>
-                      <Badge variant={selectedReadiness.configReady ? 'default' : 'outline'}>
-                        {selectedReadiness.configReady ? 'Ready' : 'Needs config'}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-slate-500">Runtime</span>
-                      <span className="font-medium text-slate-900">{data.runtimeType || 'n/a'}</span>
-                    </div>
-                    <div className="flex items-center justify-between gap-4">
-                      <span className="text-slate-500">Admin surface</span>
-                      <span className="font-medium text-slate-900">Native</span>
-                    </div>
-                  </div>
-
-                  {selectedReadiness.missingConfigFields.length > 0 ? (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900">
-                      Missing required fields: {selectedReadiness.missingConfigFields.join(', ')}
-                    </div>
-                  ) : null}
-
-                  <div className="flex flex-wrap gap-3">
-                    <Button
-                      onClick={() => void handleToggleSelectedInstance()}
-                      disabled={isCreatingInstance || isUpdatingInstance}
-                      className="rounded-lg"
-                    >
-                      {isCreatingInstance || isUpdatingInstance ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      {selectedInstance?.enabled ? 'Disable instance' : 'Enable instance'}
-                    </Button>
-
-                    {!selectedInstance ? (
-                      <Button
-                        variant="outline"
-                        onClick={() => void handleCreateDefaultInstance()}
-                        disabled={isCreatingInstance}
-                        className="rounded-lg"
-                      >
-                        Create default instance
-                      </Button>
-                    ) : null}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <PluginInstanceManager
-                pluginSlug={slug}
-                pluginName={data.name || slug}
-              />
+              <Card><CardHeader><CardTitle>Instance status</CardTitle><CardDescription>Core manages this extension instance.</CardDescription></CardHeader><CardContent className="space-y-4"><Button onClick={() => void toggle()} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{selected?.enabled ? 'Disable instance' : 'Enable instance'}</Button><PluginInstanceManager pluginSlug={slug} pluginName={data.name || slug} /></CardContent></Card>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function affiliateText(value: unknown, fallback = '—'): string {
-  if (value === null || value === undefined || value === '') return fallback;
-  return String(value);
-}
-
-function affiliateMoney(value: unknown, currency: unknown): string {
-  const amount = Number(value || 0);
-  return `${affiliateText(currency, 'USD')} ${amount.toFixed(2)}`;
-}
-
-export function AffiliateNativeWorkspace({ data }: { data: AffiliateNativeOverviewData }) {
-  const partners = data.partners || [];
-  const commissions = data.commissions || [];
-  const attributions = data.attributions || [];
-  const totals = data.totals || {};
-
-  return (
-    <div className="space-y-6">
-      <div className="rounded-lg border bg-white p-5 shadow-sm">
-        <h1 className="text-lg font-semibold">Affiliate workspace</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Live partner, attribution, and commission data served by the native core adapter.
-        </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-4">
-          <div className="rounded-md border p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Partners</p>
-            <p className="mt-1 text-xl font-semibold">{Number(totals.partnerCount || 0)}</p>
-          </div>
-          <div className="rounded-md border p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Commission entries</p>
-            <p className="mt-1 text-xl font-semibold">{Number(totals.commissionCount || 0)}</p>
-          </div>
-          <div className="rounded-md border p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Commission total</p>
-            <p className="mt-1 text-xl font-semibold">{affiliateMoney(totals.commissionTotal, 'USD')}</p>
-          </div>
-          <div className="rounded-md border p-3">
-            <p className="text-xs uppercase tracking-wide text-muted-foreground">Pending payout</p>
-            <p className="mt-1 text-xl font-semibold">{affiliateMoney(totals.commissionPending, 'USD')}</p>
-          </div>
-        </div>
-      </div>
-
-      <div className="rounded-lg border bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold">Partners</h2>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="py-2 pr-4">Code</th>
-                <th className="py-2 pr-4">Partner</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Rate</th>
-                <th className="py-2 pr-4">Commissions</th>
-                <th className="py-2 pr-4">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {partners.map((partner) => (
-                <tr key={affiliateText(partner.id)} className="border-b last:border-0">
-                  <td className="py-2 pr-4 font-medium">{affiliateText(partner.code)}</td>
-                  <td className="py-2 pr-4">{affiliateText(partner.display_name || partner.email)}</td>
-                  <td className="py-2 pr-4">{affiliateText(partner.status)}</td>
-                  <td className="py-2 pr-4">{Number(partner.commission_rate || 0)}%</td>
-                  <td className="py-2 pr-4">{Number(partner.commission_count || 0)}</td>
-                  <td className="py-2 pr-4">{affiliateMoney(partner.commission_total, partner.currency)}</td>
-                </tr>
-              ))}
-              {partners.length === 0 ? (
-                <tr><td colSpan={6} className="py-3 text-muted-foreground">No partners yet.</td></tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="rounded-lg border bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold">Commissions</h2>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="py-2 pr-4">Order</th>
-                <th className="py-2 pr-4">Partner</th>
-                <th className="py-2 pr-4">Order amount</th>
-                <th className="py-2 pr-4">Rate</th>
-                <th className="py-2 pr-4">Commission</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {commissions.map((commission) => (
-                <tr key={affiliateText(commission.id)} className="border-b last:border-0">
-                  <td className="py-2 pr-4 font-medium">{affiliateText(commission.order_id)}</td>
-                  <td className="py-2 pr-4">{affiliateText(commission.partner_code)}</td>
-                  <td className="py-2 pr-4">{affiliateMoney(commission.order_amount, commission.currency)}</td>
-                  <td className="py-2 pr-4">{Number(commission.commission_rate || 0)}%</td>
-                  <td className="py-2 pr-4">{affiliateMoney(commission.amount, commission.currency)}</td>
-                  <td className="py-2 pr-4">{affiliateText(commission.status)}</td>
-                  <td className="py-2 pr-4">{affiliateText(commission.created_at)}</td>
-                </tr>
-              ))}
-              {commissions.length === 0 ? (
-                <tr><td colSpan={7} className="py-3 text-muted-foreground">No commissions yet.</td></tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div className="rounded-lg border bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold">Referral attributions</h2>
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
-                <th className="py-2 pr-4">Partner code</th>
-                <th className="py-2 pr-4">Visitor</th>
-                <th className="py-2 pr-4">Status</th>
-                <th className="py-2 pr-4">User</th>
-                <th className="py-2 pr-4">Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attributions.map((attribution) => (
-                <tr key={affiliateText(attribution.id)} className="border-b last:border-0">
-                  <td className="py-2 pr-4 font-medium">{affiliateText(attribution.partner_code)}</td>
-                  <td className="py-2 pr-4">{affiliateText(attribution.visitor_id)}</td>
-                  <td className="py-2 pr-4">{affiliateText(attribution.status)}</td>
-                  <td className="py-2 pr-4">{affiliateText(attribution.user_id)}</td>
-                  <td className="py-2 pr-4">{affiliateText(attribution.created_at)}</td>
-                </tr>
-              ))}
-              {attributions.length === 0 ? (
-                <tr><td colSpan={5} className="py-3 text-muted-foreground">No attributions yet.</td></tr>
-              ) : null}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
