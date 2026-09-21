@@ -1,5 +1,5 @@
 /**
- * Admin Application Proxy (Next.js 16)
+ * Admin Application Middleware
  *
  * Handles:
  * 1. Theme App forwarding (L4): When activeTheme.type === 'app', proxy all requests to Theme App
@@ -7,7 +7,10 @@
  *
  * Priority: Theme App forwarding > Locale redirect > Pass through
  *
- * @see https://nextjs.org/docs/app/api-reference/file-conventions/proxy
+ * Named middleware.ts (not the Next 16 proxy.ts convention) because
+ * @cloudflare/next-on-pages only recognizes the classic middleware contract.
+ *
+ * @see https://nextjs.org/docs/app/api-reference/file-conventions/middleware
  */
 
 import { LOCALES, DEFAULT_LOCALE } from 'shared/src/i18n';
@@ -31,7 +34,7 @@ const adminProxyConfig: ProxyConfig = {
  * 3. Handle locale redirect if no locale prefix
  * 4. Pass through
  */
-export const proxy = createProxyHandler(adminProxyConfig);
+export const middleware = createProxyHandler(adminProxyConfig);
 
 /**
  * Matcher configuration
@@ -49,5 +52,5 @@ export const proxy = createProxyHandler(adminProxyConfig);
  * NOTE: Next.js requires matcher to be a static literal, cannot be imported.
  */
 export const config = {
-  matcher: ['/((?!api/|extensions/|uploads/|theme-app/|favicon.ico).*)'],
+  matcher: ['/((?!api/|extensions/|uploads/|theme-app/|favicon.ico|health).*)'],
 };

@@ -19,6 +19,10 @@ import { ToastProvider } from '@/components/ui/toast';
 import { LoggerProvider } from '@/components/logger-provider';
 import { SkipToMain } from '@/components/skip-to-main';
 
+// next-on-pages (Cloudflare Pages) requires every server-rendered route to
+// declare the edge runtime; this layout-level export covers all [locale] pages.
+export const runtime = 'edge';
+
 interface Props {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
@@ -48,12 +52,5 @@ export default async function LocaleLayout({ children, params }: Props) {
       </LoggerProvider>
     </I18nProvider>
   );
-}
-
-/**
- * Generate static params for all supported locales
- */
-export function generateStaticParams() {
-  return [{ locale: 'en' }, { locale: 'zh-Hant' }];
 }
 
