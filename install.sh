@@ -4,10 +4,6 @@ set -euo pipefail
 
 REPO_URL="${JIFFOO_REPO_URL:-https://github.com/thefreelight/Jiffoo.git}"
 REF="${JIFFOO_REF:-main}"
-LEGACY_UPDATE_MANIFEST_URL="https://api.jiffoo.com/api/upgrade/manifest.json"
-DEFAULT_UPDATE_MANIFEST_URL="https://get.jiffoo.com/releases/core/manifest.json"
-DEFAULT_SOURCE_ARCHIVE_URL="https://get.jiffoo.com/jiffoo-source.tar.gz"
-SOURCE_ARCHIVE_URL="${JIFFOO_SOURCE_ARCHIVE_URL:-${DEFAULT_SOURCE_ARCHIVE_URL}}"
 INSTALL_DIR="${JIFFOO_INSTALL_DIR:-/opt/jiffoo}"
 APP_DIR="${INSTALL_DIR}/current"
 ENV_FILE="${APP_DIR}/.env.production.local"
@@ -85,23 +81,18 @@ install_updater_binary() {
   log_ok "Installed local updater to ${target_path}"
 }
 
-normalize_manifest_url() {
-  local manifest_url
-  manifest_url="$1"
-
-  if [ "${manifest_url}" = "${LEGACY_UPDATE_MANIFEST_URL}" ]; then
-    printf '%s' "${DEFAULT_UPDATE_MANIFEST_URL}"
-    return 0
-  fi
-
-  printf '%s' "${manifest_url}"
-}
-
 resolve_default_app_version() {
-  local manifest_url version
-  manifest_url="${JIFFOO_CORE_UPDATE_MANIFEST_URL:-${JIFFOO_UPDATE_MANIFEST_URL:-${DEFAULT_UPDATE_MANIFEST_URL}}}"
-  manifest_url="$(normalize_manifest_url "${manifest_url}")"
-  version="$(curl -fsSL "${manifest_url}" 2>/dev/null | python3 -c 'import json,sys; data=json.load(sys.stdin); print(data.get("latestVersion",""))' 2>/dev/null || true)"
+  local version
+  version="$(python3 - "${APP_DIR}/package.json" <<'PY'
+import json
+import sys
+
+try:
+    print(json.load(open(sys.argv[1], encoding='utf-8')).get('version', ''))
+except (OSError, ValueError):
+    pass
+PY
+)"
 
   if printf '%s' "${version}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.]+)?$'; then
     printf '%s' "${version}"
@@ -113,11 +104,9 @@ resolve_default_app_version() {
 
 write_env_file() {
   local public_ip domain shop_url admin_url api_url cors_origin
-  local default_app_version manifest_url
+  local default_app_version
   public_ip="$(detect_public_ip)"
   domain="${JIFFOO_DOMAIN:-}"
-  manifest_url="${JIFFOO_CORE_UPDATE_MANIFEST_URL:-${JIFFOO_UPDATE_MANIFEST_URL:-${DEFAULT_UPDATE_MANIFEST_URL}}}"
-  manifest_url="$(normalize_manifest_url "${manifest_url}")"
   default_app_version="${APP_VERSION:-$(resolve_default_app_version)}"
 
   if [ -n "${domain}" ]; then
@@ -178,9 +167,8 @@ BUILD_SHA=${BUILD_SHA:-install-${REF}}
 BUILD_TIME=${BUILD_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}
 APP_VERSION=${default_app_version}
 JIFFOO_DEPLOYMENT_MODE=${JIFFOO_DEPLOYMENT_MODE:-docker-compose}
-JIFFOO_CORE_UPDATE_MANIFEST_URL=${manifest_url}
+JIFFOO_CORE_UPDATE_MANIFEST_URL=${JIFFOO_CORE_UPDATE_MANIFEST_URL:-${JIFFOO_UPDATE_MANIFEST_URL:-}}
 JIFFOO_UPDATE_CHANNEL=${JIFFOO_UPDATE_CHANNEL:-stable}
-JIFFOO_SOURCE_ARCHIVE_URL=${SOURCE_ARCHIVE_URL}
 COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-current}
 JIFFOO_SEED_DEMO_DATA=${SEED_DEMO_DATA}
 JIFFOO_DEMO_MODE=${DEMO_MODE}
@@ -201,24 +189,6 @@ prepare_source_tree() {
   fi
 
   mkdir -p "${INSTALL_DIR}"
-
-  if [ -n "${SOURCE_ARCHIVE_URL}" ] && ! [ -d "${APP_DIR}/.git" ]; then
-    log_info "Downloading Jiffoo source archive from ${SOURCE_ARCHIVE_URL}"
-    rm -rf "${APP_DIR}"
-    mkdir -p "${APP_DIR}"
-    if curl -fsSL "${SOURCE_ARCHIVE_URL}" | tar -xzf - -C "${APP_DIR}" --strip-components=1; then
-      if [ -f "${APP_DIR}/package.json" ] && [ -f "${APP_DIR}/docker-compose.prod.yml" ]; then
-        log_ok "Installed Jiffoo source archive into ${APP_DIR}"
-        return 0
-      fi
-
-      log_warn "Downloaded archive is missing expected project files, falling back to git clone"
-      rm -rf "${APP_DIR}"
-    else
-      log_warn "Source archive download failed, falling back to git clone"
-      rm -rf "${APP_DIR}"
-    fi
-  fi
 
   if [ -d "${APP_DIR}/.git" ]; then
     log_info "Updating existing Jiffoo checkout in ${APP_DIR}"

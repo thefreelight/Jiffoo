@@ -58,7 +58,7 @@ const versionInfoSchema = {
     oneClickUpgradeSupported: { type: 'boolean', description: 'Whether one-click core upgrade is supported for this deployment mode' },
     updateSource: {
       type: 'string',
-      enum: ['env-manifest', 'default-public-manifest', 'local-fallback'],
+      enum: ['env-manifest', 'local-fallback'],
       description: 'Where latest-version information came from',
     },
     manifestUrl: { type: 'string', nullable: true, description: 'Manifest URL consulted for update checks' },

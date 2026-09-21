@@ -1171,7 +1171,7 @@ export const upgradeApi = {
     oneClickUpgradeSupported: boolean;
     oneClickUpgradeAvailable?: boolean;
     oneClickUpgradeBlockedReason?: string | null;
-    updateSource: 'env-manifest' | 'default-public-manifest' | 'local-fallback';
+    updateSource: 'env-manifest' | 'local-fallback';
     manifestUrl?: string | null;
     manifestStatus: 'available' | 'missing' | 'unreachable' | 'invalid';
     manifestError?: string | null;

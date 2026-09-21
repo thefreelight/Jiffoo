@@ -7,21 +7,8 @@ import { UpgradeService } from './service';
 import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 import { sendSuccess, sendError } from '@/utils/response';
 import { upgradeSchemas } from './schemas';
-import { PUBLIC_CORE_UPDATE_MANIFEST } from 'shared';
 
 export async function upgradeRoutes(fastify: FastifyInstance) {
-  fastify.get('/manifest.json', {
-    schema: {
-      tags: ['upgrade'],
-      summary: 'Get Public Upgrade Manifest',
-      description: 'Public self-hosted core update manifest consumed by installer and updater clients',
-      ...upgradeSchemas.getPublicManifest,
-    },
-  }, async (_request, reply: FastifyReply) => {
-    reply.type('application/json; charset=utf-8');
-    return reply.send(PUBLIC_CORE_UPDATE_MANIFEST);
-  });
-
   await fastify.register(async (protectedFastify) => {
     protectedFastify.addHook('onRequest', authMiddleware);
     protectedFastify.addHook('onRequest', requireAdmin);

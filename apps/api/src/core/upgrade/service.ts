@@ -8,11 +8,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { prisma } from '@/config/database';
 import { createUpdateExecutor } from './executors';
-import {
-  DEFAULT_PUBLIC_CORE_UPDATE_MANIFEST_URL,
-  LEGACY_PUBLIC_CORE_UPDATE_MANIFEST_URL,
-  PUBLIC_CORE_UPDATE_MANIFEST,
-} from 'shared';
 import type {
   BackupInfo,
   CoreUpdateManifest,
@@ -407,13 +402,6 @@ export class UpgradeService {
       return CURRENT_VERSION;
     }
 
-    if (
-      PUBLIC_CORE_UPDATE_MANIFEST?.latestStableVersion &&
-      this.isValidReleaseVersion(PUBLIC_CORE_UPDATE_MANIFEST.latestStableVersion)
-    ) {
-      return PUBLIC_CORE_UPDATE_MANIFEST.latestStableVersion;
-    }
-
     return CURRENT_VERSION;
   }
 
@@ -442,15 +430,8 @@ export class UpgradeService {
 
   private static async fetchUpdateManifest(preferredChannel: ReleaseChannel): Promise<ManifestResolution> {
     const explicitManifestUrl = process.env.JIFFOO_CORE_UPDATE_MANIFEST_URL || process.env.JIFFOO_UPDATE_MANIFEST_URL;
-    const normalizedExplicitManifestUrl =
-      explicitManifestUrl === LEGACY_PUBLIC_CORE_UPDATE_MANIFEST_URL
-        ? DEFAULT_PUBLIC_CORE_UPDATE_MANIFEST_URL
-        : explicitManifestUrl;
-    const manifestUrl = normalizedExplicitManifestUrl || null;
-    const source: UpdateSource =
-      explicitManifestUrl && explicitManifestUrl !== LEGACY_PUBLIC_CORE_UPDATE_MANIFEST_URL
-        ? 'env-manifest'
-        : 'default-public-manifest';
+    const manifestUrl = explicitManifestUrl || null;
+    const source: UpdateSource = 'env-manifest';
 
     if (!manifestUrl) {
       return {

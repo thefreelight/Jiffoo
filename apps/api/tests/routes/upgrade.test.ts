@@ -15,11 +15,27 @@ import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
-import { PUBLIC_CORE_UPDATE_MANIFEST } from 'shared';
 
-const PUBLIC_MANIFEST_URL = 'https://get.jiffoo.com/releases/core/manifest.json';
-const PUBLIC_MANIFEST = PUBLIC_CORE_UPDATE_MANIFEST;
-const TEST_LATEST_VERSION = PUBLIC_MANIFEST.latestVersion;
+const TEST_LATEST_VERSION = '1.0.154';
+const TEST_MANIFEST = {
+  latestVersion: TEST_LATEST_VERSION,
+  latestStableVersion: TEST_LATEST_VERSION,
+  latestPrereleaseVersion: null,
+  channel: 'stable',
+  deliveryMode: 'image-first',
+  images: {
+    api: `registry.example.com/api:${TEST_LATEST_VERSION}`,
+    admin: `registry.example.com/admin:${TEST_LATEST_VERSION}`,
+    shop: `registry.example.com/shop:${TEST_LATEST_VERSION}`,
+    updater: `registry.example.com/updater:${TEST_LATEST_VERSION}`,
+  },
+  releaseDate: '2026-04-11T00:00:00.000Z',
+  changelogUrl: `https://example.com/changelog/${TEST_LATEST_VERSION}`,
+  minimumCompatibleVersion: '1.0.0',
+  minimumAutoUpgradableVersion: '1.0.0',
+  requiresManualIntervention: false,
+  releaseNotes: 'Test release manifest',
+};
 
 describe('Upgrade Endpoints', () => {
   let app: FastifyInstance;
@@ -42,19 +58,6 @@ describe('Upgrade Endpoints', () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
-  });
-
-  describe('GET /api/upgrade/manifest.json', () => {
-    it('should return the public manifest without authentication', async () => {
-      const response = await app.inject({
-        method: 'GET',
-        url: '/api/upgrade/manifest.json',
-      });
-
-      expect(response.statusCode).toBe(200);
-      expect(response.headers['content-type']).toContain('application/json');
-      expect(response.json()).toEqual(PUBLIC_MANIFEST);
-    });
   });
 
   describe('Security - 401 without token', () => {
@@ -172,42 +175,14 @@ describe('Upgrade Endpoints', () => {
       });
     });
 
-    it('should transparently remap the legacy api.jiffoo.com manifest URL', async () => {
-      vi.stubEnv('JIFFOO_CORE_UPDATE_MANIFEST_URL', 'https://api.jiffoo.com/api/upgrade/manifest.json');
-      vi.stubGlobal(
-        'fetch',
-        vi.fn(async (input: RequestInfo | URL) => ({
-          ok: true,
-          json: async () => PUBLIC_MANIFEST,
-        })) as typeof fetch,
-      );
-
-      const response = await app.inject({
-        method: 'GET',
-        url: '/api/upgrade/version',
-        headers: { authorization: `Bearer ${adminToken}` },
-      });
-
-      expect(response.statusCode).toBe(200);
-      const body = response.json();
-      expect(body.data.manifestUrl).toBe(PUBLIC_MANIFEST_URL);
-      expect(body.data.updateSource).toBe('default-public-manifest');
-      expect(fetch).toHaveBeenCalledWith(
-        PUBLIC_MANIFEST_URL,
-        expect.objectContaining({
-          method: 'GET',
-          headers: { accept: 'application/json' },
-        }),
-      );
-    });
-
-    it('should normalize -opensource runtime versions before comparing against the public feed', async () => {
+    it('should normalize -opensource runtime versions before comparing against a configured manifest', async () => {
       vi.stubEnv('JIFFOO_DEPLOYMENT_MODE', 'docker-compose');
+      vi.stubEnv('JIFFOO_CORE_UPDATE_MANIFEST_URL', 'https://updates.example.com/releases/core/manifest.json');
       vi.stubGlobal(
         'fetch',
         vi.fn(async () => ({
           ok: true,
-          json: async () => PUBLIC_MANIFEST,
+          json: async () => TEST_MANIFEST,
         })) as typeof fetch,
       );
 
