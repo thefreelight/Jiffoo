@@ -39,7 +39,11 @@ describe('generatePublicPageMetadata', () => {
 
   it('uses summary_large_image twitter cards and per-page OG urls', () => {
     const page = generatePublicPageMetadata({ route: 'help', locale: 'en', origin: ORIGIN });
-    expect(page.twitter?.card).toBe('summary_large_image');
+    const twitter = page.twitter;
+    if (!twitter || !('card' in twitter)) {
+      throw new Error('Expected Twitter card metadata');
+    }
+    expect(twitter.card).toBe('summary_large_image');
     expect(page.openGraph?.url).toBe('https://remoteradar.cc/en/help');
   });
 
