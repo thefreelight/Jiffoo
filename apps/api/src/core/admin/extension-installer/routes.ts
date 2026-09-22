@@ -777,6 +777,67 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     }
   });
 
+  /**
+   * GET /api/extensions/plugin
+   * List installed plugin packages.
+   */
+  fastify.get<{ Params: ListParams; Querystring: PaginationQuery }>('/:kind', {
+    onRequest: [authMiddleware, adminMiddleware],
+    schema: {
+      tags: ['admin-plugins'],
+      summary: 'List installed plugins',
+      description: 'Get the installed plugin packages (Admin only)',
+      security: [{ bearerAuth: [] }],
+      ...extensionInstallerSchemas.listPlugins,
+    },
+  }, async (request, reply) => {
+    try {
+      const safePage = Math.max(1, Number(request.query?.page) || 1);
+      const safeLimit = Math.min(100, Math.max(1, Number(request.query?.limit) || 20));
+      const extensions = await extensionInstaller.listInstalled(request.params.kind);
+      const total = extensions.length;
+      const items = extensions.slice((safePage - 1) * safeLimit, safePage * safeLimit);
+      return sendSuccess(reply, {
+        items,
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages: Math.ceil(total / safeLimit),
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to list plugins';
+      fastify.log.error({ err: error }, 'Failed to list plugins');
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', message);
+    }
+  });
+
+  /**
+   * GET /api/extensions/plugin/:slug
+   * Get an installed plugin package.
+   */
+  fastify.get<{ Params: GetParams }>('/:kind/:slug', {
+    onRequest: [authMiddleware, adminMiddleware],
+    schema: {
+      tags: ['admin-plugins'],
+      summary: 'Get installed plugin',
+      description: 'Get an installed plugin package (Admin only)',
+      security: [{ bearerAuth: [] }],
+      ...extensionInstallerSchemas.getPlugin,
+    },
+  }, async (request, reply) => {
+    try {
+      const extension = await extensionInstaller.getInstalled(request.params.kind, request.params.slug);
+      if (!extension) {
+        return sendError(reply, 404, 'NOT_FOUND', `plugin "${request.params.slug}" not found`);
+      }
+      return sendSuccess(reply, extension);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to get plugin';
+      fastify.log.error({ err: error }, 'Failed to get plugin');
+      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', message);
+    }
+  });
+
   // ============================================================================
   // Plugin Service Token Management API (Phase 2, Section 4.6)
   // ============================================================================

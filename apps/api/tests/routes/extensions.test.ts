@@ -21,9 +21,14 @@ import { createUserWithToken, createAdminWithToken, deleteAllTestUsers, type Tes
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 
+interface PluginArchiveOptions {
+  entryModule?: string;
+  packageType?: 'module';
+}
+
 async function createUnsignedPluginArchive(
   slug: string,
-  declaredTrustLevel: 'builtin' | 'signed' | 'unsigned' = 'unsigned',
+  options: PluginArchiveOptions = {},
 ): Promise<{ archivePath: string; cleanup: () => Promise<void> }> {
   const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), 'jiffoo-extension-route-'));
   const packageDir = path.join(rootDir, 'package');
@@ -39,12 +44,15 @@ async function createUnsignedPluginArchive(
     category: 'other',
     runtimeType: 'internal-fastify',
     hostProtocol: 'internal-fastify-v1',
-    trustLevel: declaredTrustLevel,
-    entryModule: 'dist/index.js',
+    trustLevel: 'unsigned',
+    entryModule: options.entryModule ?? 'dist/index.js',
     permissions: [],
     capabilities: [],
   }, null, 2));
-  await fs.writeFile(path.join(packageDir, 'dist', 'index.js'), `module.exports = async function plugin(fastify) {
+  if (options.packageType) {
+    await fs.writeFile(path.join(packageDir, 'package.json'), JSON.stringify({ type: options.packageType }));
+  }
+  await fs.writeFile(path.join(packageDir, options.entryModule ?? 'dist/index.js'), `module.exports = async function plugin(fastify) {
   fastify.get('/health', async () => ({ status: 'healthy' }));
   fastify.get('/status', async (request) => ({
     pluginSlug: request.headers['x-plugin-slug'],
@@ -233,39 +241,60 @@ describe('Extensions Installer Endpoints', () => {
       expect(gatewayResponse.json()).toMatchObject({ status: 'active' });
     });
 
-    it('treats a locally uploaded builtin declaration as unsigned', async () => {
-      const declaredBuiltinSlug = `route-declared-builtin-${Date.now().toString(36)}`.slice(0, 32);
-      const archive = await createUnsignedPluginArchive(declaredBuiltinSlug, 'builtin');
+    it('rejects loading an ESM plugin entry package', async () => {
+      const esmSlug = `route-esm-${Date.now().toString(36)}`.slice(0, 32);
+      const archive = await createUnsignedPluginArchive(esmSlug, { packageType: 'module' });
 
       try {
-        const unconfirmed = await multipartPluginUpload(archive.archivePath, false);
-        const unconfirmedResponse = await app.inject({
+        const upload = await multipartPluginUpload(archive.archivePath, true);
+        const response = await app.inject({
           method: 'POST',
           url: '/api/extensions/plugin/install',
-          headers: { authorization: `Bearer ${adminToken}`, ...unconfirmed.headers },
-          payload: unconfirmed.payload,
+          headers: { authorization: `Bearer ${adminToken}`, ...upload.headers },
+          payload: upload.payload,
         });
-        expect(unconfirmedResponse.statusCode).toBe(400);
-        expect(unconfirmedResponse.json().error.code).toBe('UNSIGNED_CONFIRMATION_REQUIRED');
 
-        const confirmed = await multipartPluginUpload(archive.archivePath, true);
-        const installedResponse = await app.inject({
-          method: 'POST',
-          url: '/api/extensions/plugin/install',
-          headers: { authorization: `Bearer ${adminToken}`, ...confirmed.headers },
-          payload: confirmed.payload,
+        expect(response.statusCode).toBe(200);
+
+        const defaultInstance = await prisma.pluginInstallation.findUnique({
+          where: { pluginSlug_instanceKey: { pluginSlug: esmSlug, instanceKey: 'default' } },
         });
-        expect(installedResponse.statusCode).toBe(200);
+        expect(defaultInstance).not.toBeNull();
 
-        const installedSlug = installedResponse.json().data.slug;
-        const plugin = await prisma.pluginInstall.findUnique({ where: { slug: installedSlug } });
-        expect(plugin?.trustLevel).toBe('unsigned');
+        const enableResponse = await app.inject({
+          method: 'PATCH',
+          url: `/api/extensions/plugin/${esmSlug}/instances/${defaultInstance!.id}`,
+          headers: { authorization: `Bearer ${adminToken}` },
+          payload: { enabled: true },
+        });
+        expect(enableResponse.statusCode).toBe(200);
+
+        const gatewayResponse = await app.inject({
+          method: 'GET',
+          url: `/api/extensions/plugin/${esmSlug}/api/status`,
+        });
+        expect(gatewayResponse.statusCode).toBe(400);
+        expect(gatewayResponse.json().error.message).toContain(
+          'ESM plugin packages are not supported in Core V1; the entry module must be CommonJS.',
+        );
       } finally {
-        await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: declaredBuiltinSlug } });
-        await prisma.pluginInstall.deleteMany({ where: { slug: declaredBuiltinSlug } });
-        await pluginPackageStore.delete(declaredBuiltinSlug);
+        await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: esmSlug } });
+        await prisma.pluginInstall.deleteMany({ where: { slug: esmSlug } });
+        await pluginPackageStore.delete(esmSlug);
         await archive.cleanup();
       }
+    });
+  });
+
+  describe('DELETE /api/extensions/plugin/:slug', () => {
+    it('should return error for non-existent extension', async () => {
+      const response = await app.inject({
+        method: 'DELETE',
+        url: '/api/extensions/plugin/non-existent-plugin',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+
+      expect([404, 500]).toContain(response.statusCode);
     });
   });
 

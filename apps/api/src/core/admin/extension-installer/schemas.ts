@@ -292,6 +292,38 @@ export const extensionInstallerSchemas = {
     },
   },
 
+  // GET /api/extensions/plugin
+  listPlugins: {
+    params: {
+      type: 'object',
+      required: ['kind'],
+      properties: {
+        kind: { type: 'string', enum: ['plugin'], description: 'Extension kind' },
+      },
+    },
+    querystring: {
+      type: 'object',
+      properties: {
+        page: { type: 'integer', default: 1, minimum: 1, description: 'Page number' },
+        limit: { type: 'integer', default: 20, minimum: 1, maximum: 100, description: 'Page size' },
+      },
+    },
+    response: createTypedReadResponses(createPageResultSchema(extensionMetaSchema)),
+  },
+
+  // GET /api/extensions/plugin/:slug
+  getPlugin: {
+    params: {
+      type: 'object',
+      required: ['kind', 'slug'],
+      properties: {
+        kind: { type: 'string', enum: ['plugin'], description: 'Extension kind' },
+        slug: { type: 'string', description: 'Plugin slug' },
+      },
+    },
+    response: createTypedReadResponses(extensionMetaSchema),
+  },
+
   // DELETE /api/extensions/plugin/:slug
   uninstallPlugin: {
     params: {

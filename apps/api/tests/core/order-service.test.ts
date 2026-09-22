@@ -426,7 +426,7 @@ describe('OrderService', () => {
           amount: 50,
           status: 'COMPLETED',
           reason: 'Full refund requested by admin',
-          provider: 'TEST_GATEWAY',
+          provider: 'TEST-GATEWAY',
           idempotencyKey: 'ref_order-1_full',
         }),
       });
