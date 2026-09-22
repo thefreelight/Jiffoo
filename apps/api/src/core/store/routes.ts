@@ -6,7 +6,6 @@
 import { createHash } from 'crypto';
 import { FastifyInstance, FastifyReply } from 'fastify';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
-import { ThemeManagementService } from '@/core/admin/theme-management/service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { createTypedReadResponses } from '@/types/common-dto';
 import { STORE_SUPPORTED_LOCALES } from './localization';
@@ -42,10 +41,6 @@ const storeContextSchema = {
             type: 'array',
             items: { type: 'string' }
         },
-        theme: {
-            type: ['object', 'null'],
-            additionalProperties: true
-        },
         settings: {
             type: ['object', 'null'],
             additionalProperties: true
@@ -60,7 +55,6 @@ const storeContextSchema = {
         'currency',
         'defaultLocale',
         'supportedLocales',
-        'theme',
         'settings'
     ],
     additionalProperties: false,
@@ -70,7 +64,7 @@ export async function storeRoutes(fastify: FastifyInstance) {
     fastify.get('/context', {
         schema: {
             tags: ['store'],
-            summary: 'Get store context (theme, locale, settings)',
+            summary: 'Get store context (locale and settings)',
             response: {
               304: { type: 'null' },
               ...(createTypedReadResponses(storeContextSchema) as any),
@@ -78,10 +72,8 @@ export async function storeRoutes(fastify: FastifyInstance) {
         }
     }, async (request, reply) => {
         try {
-            // Parallel fetch settings and theme
-            const [platformName, activeTheme, currency, logo, defaultLocale] = await Promise.all([
+            const [platformName, currency, logo, defaultLocale] = await Promise.all([
                 systemSettingsService.getString('branding.platform_name', 'Jiffoo Store'),
-                ThemeManagementService.getActiveTheme('shop'),
                 systemSettingsService.getShopCurrency(),
                 systemSettingsService.getString('branding.logo', null),
                 systemSettingsService.getShopLocale(),
@@ -101,7 +93,6 @@ export async function storeRoutes(fastify: FastifyInstance) {
                 currency,
                 defaultLocale,
                 supportedLocales: STORE_SUPPORTED_LOCALES,
-                theme: activeTheme, // Includes slug & config
                 settings: null, // Reserved for future use
             };
 

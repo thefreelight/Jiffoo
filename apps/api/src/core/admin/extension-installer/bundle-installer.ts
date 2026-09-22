@@ -4,13 +4,10 @@
  * Handles installation of Bundle ZIP files containing multiple extensions.
  *
  * Bundle format (per EXTENSIONS_BLUEPRINT.md v1):
- * - bundle.json (installation plan with install.plugins[] and install.theme)
+ * - bundle.json (installation plan with install.plugins[])
  * - Plugin ZIPs referenced by install.plugins[].zip
- * - Theme ZIP referenced by install.theme.zip
  *
  * Constraints:
- * - Bundle only supports single target (shop OR admin), not both simultaneously
- * - Installation is atomic: if any step fails, active theme is NOT changed
  * - Idempotency: re-uploading same bundle (by hash) skips redundant installs
  * - Plugin instances: must have "default" instance, supports multiple instances
  * - Instance config: max 64KB, max 10 layers deep
@@ -19,8 +16,6 @@
  * 1. Install plugins in order (following install.plugins[] array order)
  * 2. Create/configure plugin instances (following instances[] array order)
  * 3. Enable plugins (if enable=true)
- * 4. Install theme (if install.theme exists)
- * 5. Activate theme (if install.theme.enable=true, includes health check for Theme App)
  */
 
 import { Readable } from 'stream';
@@ -55,8 +50,6 @@ interface BundleManifest {
   name: string;
   /** Bundle version */
   version: string;
-  /** Target: shop or admin (Bundle only supports single target) */
-  target: 'shop' | 'admin';
   /** Bundle description */
   description?: string;
   /** Author */
@@ -65,8 +58,6 @@ interface BundleManifest {
   install: {
     /** Plugins to install (in order) */
     plugins?: BundlePluginEntry[];
-    /** Theme to install */
-    theme?: BundleThemeEntry;
   };
 }
 
@@ -97,20 +88,6 @@ interface BundlePluginInstance {
 }
 
 /**
- * Theme entry in bundle install plan
- */
-interface BundleThemeEntry {
-  /** Theme type: 'pack' or 'app' */
-  type: 'pack' | 'app';
-  /** ZIP file path relative to the bundle root. */
-  zip: string;
-  /** Expected slug (for validation, optional) */
-  slug?: string;
-  /** Whether to activate this theme after installation (default: false) */
-  enable?: boolean;
-}
-
-/**
  * Bundle installation result
  */
 interface BundleInstallResult {
@@ -126,11 +103,6 @@ interface BundleInstallResult {
     success: boolean;
     error?: string;
   }>;
-  /** Whether theme was activated */
-  themeActivated?: {
-    target: 'shop' | 'admin';
-    slug: string;
-  };
 }
 
 // ============================================================================
@@ -171,7 +143,6 @@ export async function installBundle(zipStream: Readable): Promise<BundleInstallR
     validateBundleManifest(manifest);
 
     const installed: BundleInstallResult['installed'] = [];
-    const target = manifest.target;
 
     // Step 1: Install plugins in order (following install.plugins[] array order)
     if (manifest.install.plugins && manifest.install.plugins.length > 0) {
@@ -271,78 +242,11 @@ export async function installBundle(zipStream: Readable): Promise<BundleInstallR
       }
     }
 
-    // Step 2: Install theme (if specified)
-    let themeSlug: string | null = null;
-    let themeActivated: BundleInstallResult['themeActivated'];
-
-    if (manifest.install.theme) {
-      const themeEntry = manifest.install.theme;
-      console.log(`[BundleInstaller] Installing theme (type=${themeEntry.type}) from ${themeEntry.zip}`);
-
-      // Determine theme kind based on type and target
-      let themeKind: ExtensionKind;
-      if (themeEntry.type === 'pack') {
-        themeKind = target === 'shop' ? 'theme-shop' : 'theme-admin';
-      } else {
-        throw new ExtensionInstallerError(
-          `Invalid theme type: "${themeEntry.type}"`,
-          { code: 'INVALID_BUNDLE', statusCode: 400 }
-        );
-      }
-
-      // Read theme ZIP
-      const themeZipPath = path.join(tempDir, themeEntry.zip);
-      const themeZipContent = await fs.readFile(themeZipPath);
-      const themeStream = bufferToStream(themeZipContent);
-
-      // Install theme
-      const result = await extensionInstaller.installFromZip(themeKind, themeStream);
-      themeSlug = result.slug;
-
-      // Validate slug matches (if specified)
-      if (themeEntry.slug && result.slug !== themeEntry.slug) {
-        throw new ExtensionInstallerError(
-          `Theme slug mismatch: expected "${themeEntry.slug}", got "${result.slug}"`,
-          { code: 'BUNDLE_INSTALL_FAILED', statusCode: 400 }
-        );
-      }
-
-      installed.push({
-        kind: themeKind,
-        slug: result.slug,
-        version: result.version,
-        success: true,
-      });
-
-      // Step 2.1: Activate theme if enable=true (atomic guarantee)
-      if (themeEntry.enable) {
-        console.log(`[BundleInstaller] Activating theme "${result.slug}"`);
-
-        // Import ThemeManagementService dynamically to avoid circular dependency
-        const { ThemeManagementService } = await import('../theme-management/service');
-
-        try {
-          // Atomic activation: includes Theme App health check if type=app
-          // If health check fails, activateTheme will throw error and active theme won't change
-          await ThemeManagementService.activateTheme(result.slug, target);
-          themeActivated = { target, slug: result.slug };
-          console.log(`[BundleInstaller] Theme "${result.slug}" activated successfully`);
-        } catch (error: any) {
-          // Activation failure is FATAL for bundle installation (atomic guarantee)
-          throw new ExtensionInstallerError(
-            `Bundle installation failed: theme activation failed for "${result.slug}": ${error.message}`,
-            { code: 'BUNDLE_INSTALL_FAILED', statusCode: 400, cause: error }
-          );
-        }
-      }
-    }
-
     // Prepare result
     const result: BundleInstallResult = {
       manifest,
       bundleHash,
       installed,
-      themeActivated,
     };
 
     // Save bundle installation record for idempotency (only on success)
@@ -357,7 +261,6 @@ export async function installBundle(zipStream: Readable): Promise<BundleInstallR
   } catch (error: any) {
     console.error(`[BundleInstaller] Bundle installation failed:`, error);
     // Re-throw to ensure caller knows installation failed
-    // Active theme will NOT be changed due to atomic guarantee
     throw error;
   } finally {
     // Clean up temp directory
@@ -405,14 +308,6 @@ function validateBundleManifest(manifest: BundleManifest): void {
   if (!manifest.version || typeof manifest.version !== 'string') {
     throw new ExtensionInstallerError(
       'Invalid bundle manifest: missing or invalid "version"',
-      { code: 'INVALID_BUNDLE', statusCode: 400 }
-    );
-  }
-
-  // Required: target
-  if (!manifest.target || !['shop', 'admin'].includes(manifest.target)) {
-    throw new ExtensionInstallerError(
-      'Invalid bundle manifest: "target" must be "shop" or "admin"',
       { code: 'INVALID_BUNDLE', statusCode: 400 }
     );
   }
@@ -498,26 +393,6 @@ function validateBundleManifest(manifest: BundleManifest): void {
     }
   }
 
-  // Validate install.theme (if specified)
-  if (manifest.install.theme) {
-    const theme = manifest.install.theme;
-
-    // Required: type
-    if (!theme.type || !['pack', 'app'].includes(theme.type)) {
-      throw new ExtensionInstallerError(
-        'Invalid bundle manifest: theme.type must be "pack" or "app"',
-        { code: 'INVALID_BUNDLE', statusCode: 400 }
-      );
-    }
-
-    // Required: zip
-    if (!theme.zip || typeof theme.zip !== 'string') {
-      throw new ExtensionInstallerError(
-        'Invalid bundle manifest: theme.zip is required',
-        { code: 'INVALID_BUNDLE', statusCode: 400 }
-      );
-    }
-  }
 }
 
 // ============================================================================

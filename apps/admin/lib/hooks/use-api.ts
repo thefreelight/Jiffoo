@@ -5,9 +5,9 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, themesApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, errorsApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
+import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, errorsApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
 import { toast } from 'sonner';
-import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, ThemeMeta, ActiveTheme, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
+import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
 import { PageResult } from 'shared';
 import { UseQueryResult } from '@tanstack/react-query';
 import { useT } from 'shared/src/i18n/react';
@@ -1229,74 +1229,6 @@ export function useRevokePluginInstanceToken() {
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-// --- Theme Management Hooks ---
-
-const themeQueryKeys = {
-  all: ['themes'] as const,
-  installed: (target: string) => [...themeQueryKeys.all, 'installed', target] as const,
-  active: (target: string) => [...themeQueryKeys.all, 'active', target] as const,
-};
-
-export function useThemes(target: 'shop' | 'admin' = 'shop'): UseQueryResult<PageResult<ThemeMeta>> {
-  return useQuery({
-    queryKey: themeQueryKeys.installed(target),
-    queryFn: async () => {
-      const response = await themesApi.getInstalled(target);
-      return unwrapApiResponse(response);
-    },
-  });
-}
-
-export function useActiveTheme(target: 'shop' | 'admin' = 'shop'): UseQueryResult<ActiveTheme> {
-  return useQuery({
-    queryKey: themeQueryKeys.active(target),
-    queryFn: async () => {
-      const response = await themesApi.getActive(target);
-      return unwrapApiResponse(response);
-    },
-  });
-}
-
-export function useActivateTheme() {
-  const queryClient = useQueryClient();
-  const { getText, getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({ slug, target, type }: { slug: string; target: 'shop' | 'admin'; type?: 'pack' | 'app' }) => {
-      const response = await themesApi.activate(slug, target, undefined, type);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success(getText('merchant.themes.activateSuccess', 'Theme activated successfully'));
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, 'merchant.themes.activateFailed', 'Failed to activate theme'));
-    },
-  });
-}
-
-export function useRollbackTheme() {
-  const queryClient = useQueryClient();
-  const { getText, getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async (target: 'shop' | 'admin') => {
-      const response = await themesApi.rollback(target);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: themeQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
-      toast.success(getText('merchant.themes.rollbackSuccess', 'Theme rolled back successfully'));
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error, 'merchant.themes.rollbackFailed', 'Failed to rollback theme'));
     },
   });
 }

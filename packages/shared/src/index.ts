@@ -6,7 +6,6 @@ export * from './types/product';
 export * from './types/order';
 export * from './types/cart';
 export * from './types/common';
-export * from './types/theme';
 export * from './extensions/plugin-contract';
 
 export * from './events/core-events';
@@ -15,7 +14,6 @@ export * from './events/core-events';
 export * from './schemas/auth';
 export * from './schemas/product';
 export * from './schemas/order';
-export * from './schemas/theme-config';
 export * from './security/admin-rbac';
 
 // Utilities

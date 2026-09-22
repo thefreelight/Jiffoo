@@ -111,20 +111,6 @@ const purgePluginResultSchema = {
   required: ['kind', 'slug', 'purged'],
 } as const;
 
-const uninstallExtensionResultSchema = {
-  type: 'object',
-  properties: {
-    kind: {
-      type: 'string',
-      enum: ['theme-shop', 'theme-admin', 'plugin'],
-      description: 'Extension kind',
-    },
-    slug: { type: 'string', description: 'Uninstalled extension slug' },
-    uninstalled: { type: 'boolean', description: 'Whether uninstallation succeeded' },
-  },
-  required: ['kind', 'slug', 'uninstalled'],
-} as const;
-
 // ============================================================================
 // Bundle Install Result Schema
 // ============================================================================
@@ -148,15 +134,6 @@ const bundleInstallResultSchema = {
         },
       },
       description: 'Installation results for each extension',
-    },
-    themeActivated: {
-      type: 'object',
-      nullable: true,
-      properties: {
-        slug: { type: 'string' },
-        target: { type: 'string' },
-      },
-      description: 'Theme that was auto-activated',
     },
   },
   required: ['name', 'version', 'bundleHash', 'installed'],
@@ -304,7 +281,7 @@ export const extensionInstallerSchemas = {
       properties: {
         kind: {
           type: 'string',
-          enum: ['theme-shop', 'theme-admin', 'plugin'],
+          enum: ['plugin'],
           description: 'Extension kind',
         },
       },
@@ -351,60 +328,4 @@ export const extensionInstallerSchemas = {
     response: createTypedDeleteResponses(purgePluginResultSchema),
   },
 
-  // DELETE /api/extensions/:kind/:slug
-  uninstallExtension: {
-    params: {
-      type: 'object',
-      required: ['kind', 'slug'],
-      properties: {
-        kind: {
-          type: 'string',
-          enum: ['theme-shop', 'theme-admin', 'plugin'],
-          description: 'Extension kind',
-        },
-        slug: { type: 'string', description: 'Extension slug to uninstall' },
-      },
-    },
-    response: createTypedDeleteResponses(uninstallExtensionResultSchema),
-  },
-
-  // GET /api/extensions/:kind
-  listExtensions: {
-    params: {
-      type: 'object',
-      required: ['kind'],
-      properties: {
-        kind: {
-          type: 'string',
-          enum: ['theme-shop', 'theme-admin', 'plugin'],
-          description: 'Extension kind',
-        },
-      },
-    },
-    querystring: {
-      type: 'object',
-      properties: {
-        page: { type: 'integer', default: 1, minimum: 1, description: 'Page number' },
-        limit: { type: 'integer', default: 20, minimum: 1, maximum: 100, description: 'Items per page' },
-      },
-    },
-    response: createTypedReadResponses(createPageResultSchema(extensionMetaSchema)),
-  },
-
-  // GET /api/extensions/:kind/:slug
-  getExtension: {
-    params: {
-      type: 'object',
-      required: ['kind', 'slug'],
-      properties: {
-        kind: {
-          type: 'string',
-          enum: ['theme-shop', 'theme-admin', 'plugin'],
-          description: 'Extension kind',
-        },
-        slug: { type: 'string', description: 'Extension slug' },
-      },
-    },
-    response: createTypedReadResponses(extensionMetaSchema),
-  },
 } as const;

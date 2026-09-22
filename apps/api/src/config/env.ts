@@ -67,11 +67,6 @@ const envSchema = z.object({
   CDN_IMAGE_FORMATS: z.string().default('webp,avif,jpeg,png'),
   CDN_IMAGE_QUALITY: z.string().transform(Number).default('80'),
 
-  // Extension Package Signing (Phase 5, Section 4.8)
-  EXTENSION_SIGNATURE_VERIFY: z.enum(['required', 'optional', 'disabled']).default('optional'),
-
-
-
   // Worker deployment mode: embedded (default), standalone, off
   WORKER_MODE: z.enum(['embedded', 'standalone', 'off']).default('embedded'),
 });

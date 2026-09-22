@@ -24,7 +24,7 @@ function PluginsPageContent() {
             {getText('merchant.plugins.management', 'Plugins')}
           </h1>
           <span className="mt-1 text-[10px] font-bold uppercase tracking-widest text-blue-600">
-            {getText('merchant.plugins.subtitle', 'Installed apps, official marketplace, and settings in one place.')}
+            {getText('merchant.plugins.subtitle', 'Installed apps and settings in one place.')}
           </span>
         </div>
       </div>

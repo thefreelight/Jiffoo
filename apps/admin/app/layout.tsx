@@ -7,7 +7,6 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
-import { AdminThemePackWrapper } from '@/components/admin-theme-pack-wrapper';
 
 
 export const metadata: Metadata = {
@@ -23,9 +22,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="font-sans antialiased">
-        <AdminThemePackWrapper>
-          {children}
-        </AdminThemePackWrapper>
+        {children}
       </body>
     </html>
   );

@@ -103,9 +103,6 @@ export function getRequiredPermissionsForAdminPath(
     return [ADMIN_PERMISSIONS.PLUGINS_READ];
   }
 
-  if (path.startsWith('/themes')) {
-    return [ADMIN_PERMISSIONS.THEMES_READ];
-  }
 
   if (path.startsWith('/package') || path.startsWith('/settings') || path.startsWith('/seo')) {
     return [ADMIN_PERMISSIONS.SETTINGS_READ];
@@ -143,7 +140,6 @@ export function getFirstAccessibleAdminPath(user: AdminUser, locale: string): st
     { href: `/${locale}/customers`, permissions: [ADMIN_PERMISSIONS.CUSTOMERS_READ] },
     { href: `/${locale}/staff`, permissions: [ADMIN_PERMISSIONS.STAFF_READ] },
     { href: `/${locale}/plugins`, permissions: [ADMIN_PERMISSIONS.PLUGINS_READ] },
-    { href: `/${locale}/themes`, permissions: [ADMIN_PERMISSIONS.THEMES_READ] },
     { href: `/${locale}/settings`, permissions: [ADMIN_PERMISSIONS.SETTINGS_READ] },
     { href: `/${locale}/system/health`, permissions: [ADMIN_PERMISSIONS.HEALTH_READ] },
   ];

@@ -119,29 +119,6 @@ export interface OrderDetail {
   expiresAt?: string | null
 }
 
-// Theme types
-export interface ThemeMeta {
-  slug: string
-  name: string
-  version: string
-  description?: string
-  author?: string
-  previewImage?: string
-  source: 'builtin' | 'installed' | 'local-zip' | 'official-market'
-  type?: 'pack' | 'app'
-  target: 'shop' | 'admin'
-}
-
-export interface ActiveTheme {
-  slug: string
-  version: string
-  source: string
-  type?: 'pack' | 'app'
-  config: Record<string, any>
-  activatedAt: string
-  previousSlug?: string
-}
-
 // Plugin types
 export interface PluginMetaWithState {
   slug: string
@@ -149,7 +126,7 @@ export interface PluginMetaWithState {
   version: string
   description?: string
   author?: string
-  source: 'installed' | 'builtin' | 'local-zip' | 'official-market'
+  source: 'installed' | 'builtin' | 'local-zip'
   enabled: boolean
   deletedAt?: string | null
   uninstalled?: boolean

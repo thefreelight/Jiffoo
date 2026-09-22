@@ -1,7 +1,7 @@
 /**
  * Extension Installer Types
  * 
- * Core types for extension installer, supporting ZIP installation of themes and plugins
+ * Core types for extension installer, supporting ZIP installation of plugins.
  * Based on docs/agentra-001-core-v1-product-charter.md
  */
 
@@ -18,27 +18,20 @@ import type {
 
 /**
  * Extension type enum - all installable content types
- * - theme-shop: Theme Pack for shop frontend
- * - theme-admin: Theme Pack for admin frontend
  * - plugin: Plugin for backend functionality
  * - bundle: Bundle containing multiple extensions
  */
 export type ExtensionKind =
-  | 'theme-shop'
-  | 'theme-admin'
   | 'plugin'
   | 'bundle';
 
-/** Theme target platform */
-export type ThemeTarget = 'shop' | 'admin';
-
 /** Extension source */
-export type ExtensionSource = 'local-zip' | 'official-market' | 'builtin';
+export type ExtensionSource = 'local-zip' | 'builtin';
 
 /** Plugin runtime type */
 export type PluginRuntimeType = SharedPluginRuntimeType;
 
-/** Plugin trust level (derived from signature verification at install time) */
+/** Plugin trust level assigned at installation. */
 export type PluginTrustLevel = SharedPluginTrustLevel;
 
 // ============================================================================
@@ -65,26 +58,6 @@ export interface UninstallResult {
 // Installed Extension Metadata
 // ============================================================================
 
-/** Installed theme information */
-export interface InstalledTheme {
-  id: string;
-  slug: string;
-  name: string;
-  version: string;
-  description: string;
-  category: string;
-  target: ThemeTarget;
-  source: ExtensionSource;
-  fsPath: string;  // extensions/themes/{target}/{slug}
-  thumbnail?: string;
-  author?: string;
-  authorUrl?: string;
-  signatureVerified?: boolean;
-  signedBy?: string;
-  installedAt: Date;
-  updatedAt: Date;
-}
-
 /** Installed plugin package information (corresponds to PluginInstall in DB) */
 export interface InstalledPlugin {
   id: string;
@@ -94,7 +67,7 @@ export interface InstalledPlugin {
   description: string;
   category: string;
   runtimeType: PluginRuntimeType;
-  /** Trust level assigned at install time (builtin | official | third-party) */
+  /** Trust level assigned at install time (builtin | signed | unsigned). */
   trustLevel?: PluginTrustLevel;
   entryModule?: string;        // For internal-fastify, e.g. 'server/index.js'
   source: ExtensionSource;
@@ -104,8 +77,6 @@ export interface InstalledPlugin {
   authorUrl?: string;
   zipHash?: string;            // SHA-256 hash of the installed ZIP file
   manifestJson?: Record<string, unknown> | string;       // Full manifest.json content
-  signatureVerified?: boolean; // Whether the package signature was verified
-  signedBy?: string;           // Key identifier that signed the package
   deletedAt?: Date | null;     // Soft uninstall marker
   installedAt: Date;
   updatedAt: Date;
@@ -146,83 +117,7 @@ export interface UpdatePluginInstanceRequest {
 }
 
 /** Universal installed extension metadata (used for lists) */
-export type InstalledExtensionMeta = InstalledTheme | InstalledPlugin;
-
-// ============================================================================
-// Manifest Types (Descriptor files within the ZIP package)
-// ============================================================================
-
-/** Theme Pack entry points (paths relative to theme root) */
-export interface ThemePackEntry {
-  /** CSS tokens file path, e.g., "tokens.css" */
-  tokensCSS?: string;
-  /** Templates directory path, e.g., "templates" */
-  templatesDir?: string;
-  /** Assets directory path, e.g., "assets" */
-  assetsDir?: string;
-  /** Settings schema file path, e.g., "schemas/settings.schema.json" */
-  settingsSchema?: string;
-  /** Presets directory path, e.g., "presets" */
-  presetsDir?: string;
-}
-
-/** Theme Pack compatibility requirements */
-export interface ThemeCompatibility {
-  /** Minimum core version required */
-  minCoreVersion?: string;
-}
-
-/**
- * Theme engines field (theme.json engines)
- * Declares which SDK versions the theme is compatible with.
- * Uses semver range syntax (e.g., "^0.2.0", ">=1.0.0 <2.0.0").
- */
-export interface ThemeEngines {
-  /** Compatible @jiffoo/theme-api-sdk version range */
-  'jiffoo-theme-sdk'?: string;
-  /** Minimum Jiffoo core version (alias for compatibility.minCoreVersion) */
-  jiffoo?: string;
-  /** Node.js version range */
-  node?: string;
-}
-
-/** Theme manifest (theme.json) - Theme Pack v1 specification */
-export interface ThemeManifest {
-  /** Schema version, must be 1 for v1 */
-  schemaVersion: number;
-  /** Theme slug (lowercase letters, numbers, hyphens only) */
-  slug: string;
-  /** Display name */
-  name: string;
-  /** Semantic version */
-  version: string;
-  /** Target platform: 'shop' or 'admin' */
-  target: 'shop' | 'admin';
-  /** Theme description */
-  description?: string;
-  /** Theme category */
-  category?: string;
-  /** Author name */
-  author?: string;
-  /** Author URL */
-  authorUrl?: string;
-  /** Thumbnail/preview image path */
-  thumbnail?: string;
-  /** Screenshot paths */
-  screenshots?: string[];
-  /** Entry points configuration */
-  entry?: ThemePackEntry;
-  /** Compatibility requirements */
-  compatibility?: ThemeCompatibility;
-  /** Engine version requirements (semver ranges) */
-  engines?: ThemeEngines;
-  /** Default configuration for the theme */
-  defaultConfig?: Record<string, unknown>;
-  /** Tags for categorization */
-  tags?: string[];
-  /** Vendor-specific extensions (x-* fields) */
-  [key: `x-${string}`]: unknown;
-}
+export type InstalledExtensionMeta = InstalledPlugin;
 
 /** Plugin manifest (manifest.json) */
 export type PluginManifest = SharedPluginManifest;
@@ -241,14 +136,6 @@ export interface IExtensionInstaller {
   listInstalled(kind: ExtensionKind): Promise<InstalledExtensionMeta[]>;
   /** Get extension details */
   getInstalled(kind: ExtensionKind, slug: string): Promise<InstalledExtensionMeta | null>;
-}
-
-/** Theme Installer Interface */
-export interface IThemeInstaller {
-  install(target: ThemeTarget, zipStream: Readable): Promise<InstalledTheme>;
-  uninstall(target: ThemeTarget, slug: string): Promise<void>;
-  list(target: ThemeTarget): Promise<InstalledTheme[]>;
-  get(target: ThemeTarget, slug: string): Promise<InstalledTheme | null>;
 }
 
 /** Plugin Installer Interface */

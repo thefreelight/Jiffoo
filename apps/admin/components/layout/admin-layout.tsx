@@ -48,7 +48,6 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       'analytics': { key: 'common.labels.analytics', fallback: 'Analytics' },
       'finance': { key: 'common.labels.finance', fallback: 'Finance' },
       'plugins': { key: 'merchant.nav.plugins', fallback: 'Plugins' },
-      'themes': { key: 'merchant.nav.themes', fallback: 'Themes' },
       'settings': { key: 'merchant.settings.title', fallback: 'Settings' }
     }
 

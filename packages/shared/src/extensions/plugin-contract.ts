@@ -2,7 +2,6 @@ export const PLUGIN_CATEGORIES = [
   'payment',
   'email',
   'integration',
-  'theme',
   'analytics',
   'marketing',
   'shipping',
@@ -46,11 +45,6 @@ export const PLUGIN_LIFECYCLE_HOOKS = [
   'onUpgrade',
 ] as const;
 
-export const PLUGIN_THEME_EMBED_TARGETS = [
-  'head-end',
-  'body-end',
-] as const;
-
 export type PluginRuntimeType = 'internal-fastify';
 
 export const INTERNAL_FASTIFY_HOST_PROTOCOL = 'internal-fastify-v1';
@@ -72,8 +66,6 @@ export type PluginTrustLevel = 'builtin' | 'signed' | 'unsigned';
 export type PluginCategory = (typeof PLUGIN_CATEGORIES)[number];
 export type PluginCapability = (typeof PLUGIN_CAPABILITIES)[number];
 export type LifecycleHookName = (typeof PLUGIN_LIFECYCLE_HOOKS)[number];
-export type ThemeExtensionKind = 'app_block' | 'app_embed';
-export type PluginThemeEmbedTarget = (typeof PLUGIN_THEME_EMBED_TARGETS)[number];
 
 export interface PluginApiVersionRange {
   min?: string;
@@ -87,26 +79,6 @@ export interface PluginLifecycleDeclaration {
   onDisable?: boolean;
   onUninstall?: boolean;
   onUpgrade?: boolean;
-}
-
-export interface PluginThemeBlockExtension {
-  extensionId: string;
-  name: string;
-  schema?: Record<string, unknown>;
-  dataEndpoint?: string;
-}
-
-export interface PluginThemeEmbedExtension {
-  extensionId: string;
-  name: string;
-  targetPosition: PluginThemeEmbedTarget;
-  schema?: Record<string, unknown>;
-  dataEndpoint?: string;
-}
-
-export interface PluginThemeExtensions {
-  blocks?: PluginThemeBlockExtension[];
-  embeds?: PluginThemeEmbedExtension[];
 }
 
 export interface PluginWebhookDeclaration {
@@ -154,7 +126,6 @@ export interface PluginManifest {
   requiredScopes?: string[];
   webhooks?: PluginWebhookDeclaration;
   lifecycle?: PluginLifecycleDeclaration;
-  themeExtensions?: PluginThemeExtensions;
 }
 
 export interface PluginManifestIssue {
@@ -224,45 +195,6 @@ function validateApiVersionRange(
       );
     }
   });
-}
-
-function validateThemeExtensionItem(
-  issues: PluginManifestIssue[],
-  item: unknown,
-  path: string,
-  kind: ThemeExtensionKind
-): void {
-  if (!isRecord(item)) {
-    pushIssue(issues, path, `${path} must be an object`, 'INVALID_THEME_EXTENSION');
-    return;
-  }
-
-  if (typeof item.extensionId !== 'string' || !item.extensionId.trim()) {
-    pushIssue(issues, `${path}.extensionId`, 'extensionId is required', 'INVALID_THEME_EXTENSION');
-  }
-
-  if (typeof item.name !== 'string' || !item.name.trim()) {
-    pushIssue(issues, `${path}.name`, 'name is required', 'INVALID_THEME_EXTENSION');
-  }
-
-  if (item.schema !== undefined && !isRecord(item.schema)) {
-    pushIssue(issues, `${path}.schema`, 'schema must be an object', 'INVALID_THEME_EXTENSION');
-  }
-
-  if (item.dataEndpoint !== undefined && (typeof item.dataEndpoint !== 'string' || !item.dataEndpoint.startsWith('/'))) {
-    pushIssue(issues, `${path}.dataEndpoint`, 'dataEndpoint must start with "/"', 'INVALID_THEME_EXTENSION');
-  }
-
-  if (kind === 'app_embed') {
-    if (!PLUGIN_THEME_EMBED_TARGETS.includes(item.targetPosition as PluginThemeEmbedTarget)) {
-      pushIssue(
-        issues,
-        `${path}.targetPosition`,
-        'targetPosition must be "head-end" or "body-end"',
-        'INVALID_THEME_EXTENSION'
-      );
-    }
-  }
 }
 
 export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[] {
@@ -459,32 +391,6 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
           pushIssue(issues, `lifecycle.${hookName}`, `${hookName} must be a boolean`, 'INVALID_LIFECYCLE');
         }
       });
-    }
-  }
-
-  if (manifest.themeExtensions !== undefined) {
-    if (!isRecord(manifest.themeExtensions)) {
-      pushIssue(issues, 'themeExtensions', 'themeExtensions must be an object', 'INVALID_THEME_EXTENSION');
-    } else {
-      if (manifest.themeExtensions.blocks !== undefined) {
-        if (!Array.isArray(manifest.themeExtensions.blocks)) {
-          pushIssue(issues, 'themeExtensions.blocks', 'blocks must be an array', 'INVALID_THEME_EXTENSION');
-        } else {
-          manifest.themeExtensions.blocks.forEach((block, index) => {
-            validateThemeExtensionItem(issues, block, `themeExtensions.blocks[${index}]`, 'app_block');
-          });
-        }
-      }
-
-      if (manifest.themeExtensions.embeds !== undefined) {
-        if (!Array.isArray(manifest.themeExtensions.embeds)) {
-          pushIssue(issues, 'themeExtensions.embeds', 'embeds must be an array', 'INVALID_THEME_EXTENSION');
-        } else {
-          manifest.themeExtensions.embeds.forEach((embed, index) => {
-            validateThemeExtensionItem(issues, embed, `themeExtensions.embeds[${index}]`, 'app_embed');
-          });
-        }
-      }
     }
   }
 

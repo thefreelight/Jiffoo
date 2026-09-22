@@ -692,26 +692,6 @@ export declare const merchant: {
             uninstalling: string;
         };
     };
-    themes: {
-        title: string;
-        subtitle: string;
-        management: string;
-        myThemes: string;
-        active: string;
-        activate: string;
-        customize: string;
-        refresh: string;
-        loading: string;
-        noThemesAvailable: string;
-        checkBackSoon: string;
-        noThemesInstalled: string;
-        manageThemes: string;
-        install: string;
-        preview: string;
-        version: string;
-        installs: string;
-        free: string;
-    };
     marketing: {
         title: string;
         subtitle: string;

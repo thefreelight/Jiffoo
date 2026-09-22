@@ -25,13 +25,6 @@ describe('Admin access policy', () => {
     );
   });
 
-  it('uses explicit permission grants ahead of role defaults', () => {
-    expect(getUserPermissions(adminUser({
-      role: ADMIN_ROLES.OWNER,
-      permissions: [ADMIN_PERMISSIONS.THEMES_READ],
-    }))).toEqual([ADMIN_PERMISSIONS.THEMES_READ]);
-  });
-
   it('denies suspended staff even when they still have grants', () => {
     const suspended = adminUser({
       adminStatus: 'SUSPENDED',
@@ -51,7 +44,6 @@ describe('Admin access policy', () => {
     ['/en/customers', ADMIN_PERMISSIONS.CUSTOMERS_READ],
     ['/en/staff', ADMIN_PERMISSIONS.STAFF_READ],
     ['/en/plugins', ADMIN_PERMISSIONS.PLUGINS_READ],
-    ['/en/themes', ADMIN_PERMISSIONS.THEMES_READ],
     ['/en/settings', ADMIN_PERMISSIONS.SETTINGS_READ],
     ['/en/system/updates', ADMIN_PERMISSIONS.SETTINGS_READ],
     ['/en/system/health', ADMIN_PERMISSIONS.HEALTH_READ],

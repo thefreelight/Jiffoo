@@ -1,7 +1,7 @@
 /**
  * Jiffoo Shared - Validation Utilities
  *
- * Common validation types and helper functions used across plugin tooling and theme contracts.
+ * Common validation types and helper functions used across plugin tooling.
  * This provides a lightweight, dependency-free validation layer for runtime checks.
  */
 

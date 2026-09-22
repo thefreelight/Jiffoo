@@ -5,14 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { PluginMetaWithState } from '@/lib/types';
-import { ExtensionAvatar, OfficialBadge } from '@/components/extensions/ExtensionVisuals';
+import { ExtensionAvatar } from '@/components/extensions/ExtensionVisuals';
 import { ChevronRight, Settings2 } from 'lucide-react';
 
 interface InstalledPluginsRailProps {
   locale: string;
   plugins: PluginMetaWithState[];
   selectedSlug?: string;
-  officialSlugs?: Set<string>;
   getText: (key: string, fallback: string) => string;
 }
 
@@ -32,7 +31,6 @@ export function InstalledPluginsRail({
   locale,
   plugins,
   selectedSlug,
-  officialSlugs,
   getText,
 }: InstalledPluginsRailProps) {
   return (
@@ -49,7 +47,7 @@ export function InstalledPluginsRail({
             <p className="mt-1 text-sm leading-6 text-slate-500">
               {getText(
                 'merchant.plugins.pluginCenterDescription',
-                'Jump straight into each plugin workspace, keep configuration close, and manage the official catalog from one place.'
+                'Jump straight into each plugin workspace and keep configuration close.'
               )}
             </p>
           </div>
@@ -79,7 +77,6 @@ export function InstalledPluginsRail({
           <div className="space-y-2">
             {plugins.map((plugin) => {
               const isSelected = plugin.slug === selectedSlug;
-              const isOfficial = officialSlugs?.has(plugin.slug) || plugin.source === 'official-market';
 
               return (
                 <Link
@@ -95,14 +92,12 @@ export function InstalledPluginsRail({
                   <ExtensionAvatar
                     slug={plugin.slug}
                     name={plugin.name}
-                    kind="plugin"
                     className="h-11 w-11 shrink-0"
                   />
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className="truncate font-semibold text-slate-950">{plugin.name}</p>
-                      {isOfficial ? <OfficialBadge compact /> : null}
                     </div>
                     <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
                       <span className="truncate">v{plugin.version}</span>

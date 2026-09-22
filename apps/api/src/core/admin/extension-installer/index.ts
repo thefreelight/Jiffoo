@@ -2,7 +2,7 @@
 /**
  * Extension Installer Service
  * 
- * Unified extension installer entry point, supporting ZIP installation for themes and plugins
+ * Unified extension installer entry point, supporting ZIP installation for plugins.
  * Based on docs/agentra-001-core-v1-product-charter.md
  */
 
@@ -14,9 +14,7 @@ import {
   InstallResult,
   UninstallResult,
   InstalledExtensionMeta,
-  ThemeTarget,
 } from './types';
-import { themeInstaller } from './theme-installer';
 import { pluginFsInstaller } from './plugin-fs-installer';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 
@@ -50,31 +48,11 @@ export class ExtensionInstaller implements IExtensionInstaller {
    * 
    * Internally performs three steps:
    * 1. Extract to correct directory - destination path determined by kind
-   * 2. Read and validate manifest - theme.json / manifest.json
+   * 2. Read and validate manifest.json
    * 3. Save metadata - .installed.json
    */
   async installFromZip(kind: ExtensionKind, zipStream: Readable, options?: { source?: string; confirmUnsigned?: boolean; actorUserId?: string }): Promise<InstallResult> {
     switch (kind) {
-      case 'theme-shop': {
-        const theme = await themeInstaller.install('shop', zipStream);
-        return {
-          kind,
-          slug: theme.slug,
-          version: theme.version,
-          source: theme.source,
-          fsPath: theme.fsPath,
-        };
-      }
-      case 'theme-admin': {
-        const theme = await themeInstaller.install('admin', zipStream);
-        return {
-          kind,
-          slug: theme.slug,
-          version: theme.version,
-          source: theme.source,
-          fsPath: theme.fsPath,
-        };
-      }
       case 'plugin': {
         const plugin = await pluginFsInstaller.install(zipStream, options);
         return {
@@ -95,12 +73,6 @@ export class ExtensionInstaller implements IExtensionInstaller {
    */
   async uninstall(kind: ExtensionKind, slug: string): Promise<UninstallResult> {
     switch (kind) {
-      case 'theme-shop':
-        await themeInstaller.uninstall('shop', slug);
-        break;
-      case 'theme-admin':
-        await themeInstaller.uninstall('admin', slug);
-        break;
       case 'plugin': {
         // CRITICAL: Use soft delete (consistent with routes behavior)
         const { PluginManagementService } = await import('@/core/admin/plugin-management/service');
@@ -118,10 +90,6 @@ export class ExtensionInstaller implements IExtensionInstaller {
    */
   async listInstalled(kind: ExtensionKind): Promise<InstalledExtensionMeta[]> {
     switch (kind) {
-      case 'theme-shop':
-        return themeInstaller.list('shop');
-      case 'theme-admin':
-        return themeInstaller.list('admin');
       case 'plugin': {
         // Read from DB instead of disk scan (exclude soft-uninstalled packages from admin list)
         const { PluginManagementService } = await import('@/core/admin/plugin-management/service');
@@ -138,7 +106,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
           category: pkg.category || 'general',
           runtimeType: 'internal-fastify',
           entryModule: pkg.entryModule || undefined,
-          source: (pkg.source === 'builtin' || pkg.source === 'local-zip' || pkg.source === 'official-market' 
+          source: (pkg.source === 'builtin' || pkg.source === 'local-zip'
             ? pkg.source 
             : 'local-zip') as ExtensionSource, // Map DB source to ExtensionSource
           fsPath: pluginPackage.getEntryPath(''),
@@ -162,10 +130,6 @@ export class ExtensionInstaller implements IExtensionInstaller {
    */
   async getInstalled(kind: ExtensionKind, slug: string): Promise<InstalledExtensionMeta | null> {
     switch (kind) {
-      case 'theme-shop':
-        return themeInstaller.get('shop', slug);
-      case 'theme-admin':
-        return themeInstaller.get('admin', slug);
       case 'plugin': {
         // Read from DB instead of disk (filters deletedAt=null)
         const { PluginManagementService } = await import('@/core/admin/plugin-management/service');
@@ -184,7 +148,7 @@ export class ExtensionInstaller implements IExtensionInstaller {
           category: pkg.category || 'general',
           runtimeType: 'internal-fastify',
           entryModule: pkg.entryModule || undefined,
-          source: (pkg.source === 'builtin' || pkg.source === 'local-zip' || pkg.source === 'official-market' 
+          source: (pkg.source === 'builtin' || pkg.source === 'local-zip'
             ? pkg.source 
             : 'local-zip') as ExtensionSource, // Map DB source to ExtensionSource
           fsPath: pluginPackage.getEntryPath(''),
@@ -206,6 +170,5 @@ export class ExtensionInstaller implements IExtensionInstaller {
 /** Singleton instance */
 export const extensionInstaller = new ExtensionInstaller();
 
-// Export sub-installers (for direct invocation)
-export { themeInstaller } from './theme-installer';
+// Export sub-installer for direct invocation.
 export { pluginFsInstaller } from './plugin-fs-installer';

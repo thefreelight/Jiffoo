@@ -20,7 +20,6 @@ import { adminUserRoutes } from '@/core/admin/user-management/routes';
 import { adminStaffRoutes } from '@/core/admin/staff-management/routes';
 import { adminProductRoutes } from '@/core/admin/product-management/routes';
 import { adminOrderRoutes } from '@/core/admin/order-management/routes';
-import { adminThemeRoutes, publicThemeRoutes } from '@/core/admin/theme-management/routes';
 import systemSettingsRoutes from '@/core/admin/system-settings/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
 import { healthMonitoringRoutes } from '@/core/admin/health-monitoring/routes';
@@ -58,7 +57,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(adminStaffRoutes, { prefix: '/api/admin/staff' });
   await fastify.register(adminProductRoutes, { prefix: '/api/admin/products' });
   await fastify.register(adminOrderRoutes, { prefix: '/api/admin/orders' });
-  await fastify.register(adminThemeRoutes, { prefix: '/api/admin/themes' });
   await fastify.register(adminInventoryRoutes, { prefix: '/api/admin/inventory' });
   await fastify.register(systemSettingsRoutes, { prefix: '/api/admin' });
 
@@ -79,7 +77,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
   await fastify.register(cartRoutes, { prefix: '/api/cart' });
   await fastify.register(orderRoutes, { prefix: '/api/orders' });
   await fastify.register(legacyPaymentRoutes, { prefix: '/api/payments' });
-  await fastify.register(publicThemeRoutes, { prefix: '/api/themes' });
   // Extension installer routes
   await fastify.register(extensionInstallerRoutes, { prefix: '/api/extensions' });
 

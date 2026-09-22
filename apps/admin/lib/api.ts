@@ -25,8 +25,6 @@ import type {
   Product,
   Order,
   OrderDetail,
-  ThemeMeta,
-  ActiveTheme,
   PluginMetaWithState,
   PluginConfigMeta,
   PluginState,
@@ -91,10 +89,6 @@ export interface DashboardData {
   };
   ordersByStatus: Record<string, number>;
   recentOrders: Order[];
-}
-
-export interface ThemeTargetsResponse {
-  targets: Array<'shop' | 'admin'>;
 }
 
 export type SystemSettingsMap = Record<string, unknown>;
@@ -170,7 +164,7 @@ const getApiClient = () => {
     _apiClient = createAdminClient({
       storageType: 'hybrid',
       customConfig: {
-        // Theme App ZIP installs can take longer than typical API calls (upload + unzip + validation)
+        // Plugin ZIP installs can take longer than typical API calls (upload + unzip + validation)
         timeout: 120000,
       }
     });
@@ -816,54 +810,6 @@ export const pluginsApi = {
     revoked: boolean;
   }>> =>
     apiClient.delete(`/extensions/plugin/${slug}/instances/${installationId}/token`),
-};
-
-// Themes Management API
-export const themesApi = {
-  getTargets: (): Promise<ApiResponse<ThemeTargetsResponse>> =>
-    apiClient.get('/admin/themes'),
-
-  getInstalled: (
-    target: 'shop' | 'admin' = 'shop',
-    page = 1,
-    limit = 20
-  ): Promise<ApiResponse<PageResult<ThemeMeta>>> =>
-    apiClient.get(`/admin/themes/${target}/installed`, { params: { page, limit } }),
-
-  getActive: (target: 'shop' | 'admin' = 'shop'): Promise<ApiResponse<ActiveTheme>> =>
-    apiClient.get(`/admin/themes/${target}/active`),
-
-  activate: (
-    slug: string,
-    target: 'shop' | 'admin' = 'shop',
-    config?: Record<string, unknown>,
-    type?: 'pack' | 'app'
-  ): Promise<ApiResponse<ActiveTheme>> => {
-    const body: Record<string, unknown> = {};
-    if (config) body.config = config;
-    if (type) body.type = type;
-    return apiClient.post(`/admin/themes/${target}/${slug}/activate`, body);
-  },
-
-  rollback: (target: 'shop' | 'admin' = 'shop'): Promise<ApiResponse<ActiveTheme>> =>
-    apiClient.post(`/admin/themes/${target}/rollback`, {}),
-
-  updateConfig: (config: any, target: 'shop' | 'admin' = 'shop'): Promise<ApiResponse<ActiveTheme>> =>
-    apiClient.put(`/admin/themes/${target}/config`, config),
-
-  installFromZip: (target: 'shop' | 'admin', file: File): Promise<ApiResponse<{ slug: string; version: string }>> => {
-    const formData = new FormData();
-    formData.append('file', file);
-    const kind = `theme-${target}`;
-    return apiClient.post(`/extensions/${kind}/install`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  },
-
-  uninstall: (target: 'shop' | 'admin', slug: string): Promise<ApiResponse<void>> => {
-    const kind = `theme-${target}`;
-    return apiClient.delete(`/extensions/${kind}/${slug}`);
-  },
 };
 
 // Upload API

@@ -125,7 +125,6 @@ export const common = {
     rateLimited: '请求过于频繁，请稍后再试。',
     timeout: '请求逾时，请重试。',
     unknown: '发生未知错误',
-    themeUnavailable: '主题组件不可用',
     componentUnavailable: '无法载入组件',
     cartUnavailable: '无法载入购物车组件',
     productsUnavailable: '无法载入商品组件',

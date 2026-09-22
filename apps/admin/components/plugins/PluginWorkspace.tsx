@@ -202,7 +202,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   return (
     <div className="min-h-screen bg-[#f8fafc] p-5 sm:p-7 lg:p-10">
       <div className="mx-auto grid max-w-[1600px] gap-5 lg:grid-cols-[260px,minmax(0,1fr)]">
-        <InstalledPluginsRail locale={locale} plugins={installedPluginsData?.items || []} selectedSlug={slug} officialSlugs={new Set()} getText={getText} />
+        <InstalledPluginsRail locale={locale} plugins={installedPluginsData?.items || []} selectedSlug={slug} getText={getText} />
         <div className="space-y-5">
           <Card className="rounded-2xl border-slate-200/80 shadow-[0_8px_30px_rgba(15,23,42,0.04)]">
             <CardHeader>

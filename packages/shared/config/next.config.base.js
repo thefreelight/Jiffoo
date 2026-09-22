@@ -145,14 +145,6 @@ function createNextConfig(options = {}) {
           source: '/uploads/:path*',
           destination: `${apiServiceUrl}/uploads/:path*`,
         },
-        // Theme App Gateway proxy
-        // Routes requests to running Theme App instances through the API server
-        // This solves the network topology problem where Theme Apps run on 127.0.0.1
-        // which is only reachable from the API server, not from frontend containers
-        {
-          source: '/theme-app/:path*',
-          destination: `${apiServiceUrl}/theme-app/:path*`,
-        },
       ];
     },
 

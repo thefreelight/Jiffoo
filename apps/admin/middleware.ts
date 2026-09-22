@@ -1,5 +1,5 @@
 /**
- * Admin request middleware for locale and theme routing.
+ * Admin request middleware for locale routing.
  */
 import { LOCALES, DEFAULT_LOCALE } from 'shared/src/i18n';
 import { createProxyHandler, type ProxyConfig } from 'shared/src/proxy';

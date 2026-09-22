@@ -26,7 +26,6 @@ import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import multipart from '@fastify/multipart';
-import staticFiles from '@fastify/static';
 import cookie from '@fastify/cookie';
 import swagger from '@fastify/swagger';
 import swaggerUI from '@fastify/swagger-ui';
@@ -74,7 +73,7 @@ async function buildApp() {
     // Register multipart for file uploads
     await fastify.register(multipart, {
       limits: {
-        // Extension installs can be large (Theme App / Bundle). We enforce stricter per-kind limits in the installer routes.
+        // Extension installs can be large. We enforce stricter per-kind limits in the installer routes.
         fileSize: 500 * 1024 * 1024, // 500MB (Bundle v1 max)
         files: 1
       }
@@ -107,30 +106,6 @@ async function buildApp() {
       await fs.mkdir(extensionsPath, { recursive: true });
       LoggerService.logSystem(`Created extensions directory at ${extensionsPath}`);
     }
-
-    // Ensure themes subdirectory exists
-    const themesPath = path.join(extensionsPath, 'themes');
-    try {
-      await fs.access(themesPath);
-    } catch {
-      await fs.mkdir(themesPath, { recursive: true });
-      LoggerService.logSystem(`Created themes directory at ${themesPath}`);
-    }
-
-    // SECURITY: Only expose themes directory, NOT plugins directory
-    // Plugins contain business logic code that should not be publicly downloadable
-    // Theme packs contain only CSS, images, and JSON config which are safe to expose
-    await fastify.register(staticFiles, {
-      root: themesPath,
-      prefix: '/extensions/themes/',
-      decorateReply: false,
-      setHeaders: (res) => {
-        // Alpha: Conservative caching strategy - no-store to ensure upgrades always take effect
-        // This prevents browser caching issues when same slug is upgraded to new version
-        // Future: Can switch to long cache with ?v= query params once frontend consistently adds version
-        res.setHeader('Cache-Control', 'no-store');
-      }
-    });
 
     // Register CORS
     if (env.CORS_ENABLED) {

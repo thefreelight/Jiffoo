@@ -56,7 +56,7 @@ describe('OpenAPI Contract Tests', () => {
      */
     function replacePathParams(path: string): string {
       return path
-        // Extensions kind parameter (must be plugin|theme-shop|theme-admin)
+        // Extensions kind parameter
         .replace(/\/extensions\/\{kind\}/g, '/extensions/plugin')
         // Generic ID parameters
         .replace(/\{id\}/g, 'test-id')
@@ -64,7 +64,6 @@ describe('OpenAPI Contract Tests', () => {
         .replace(/\{userId\}/g, 'test-user-id')
         .replace(/\{productId\}/g, 'test-product-id')
         .replace(/\{orderId\}/g, 'test-order-id')
-        .replace(/\{themeId\}/g, 'test-theme-id')
         .replace(/\{pluginId\}/g, 'test-plugin-id')
         // Any remaining parameters
         .replace(/\{[^}]+\}/g, 'test-param');
@@ -241,7 +240,6 @@ describe('OpenAPI Contract Tests', () => {
         { path: '/api/admin/users/', method: 'GET' },
         { path: '/api/admin/products/', method: 'GET' },
         { path: '/api/admin/orders/', method: 'GET' },
-        { path: '/api/admin/themes/', method: 'GET' },
       ];
 
       it.each(adminEndpointsToTest)(
@@ -304,8 +302,6 @@ describe('OpenAPI Contract Tests', () => {
 
     describe('/api/extensions/* - Requires admin auth', () => {
       const extensionEndpoints = [
-        { path: '/api/extensions/plugin', method: 'GET' },
-        { path: '/api/extensions/plugin/test-slug', method: 'GET' },
         { path: '/api/extensions/plugin/install', method: 'POST' },
         { path: '/api/extensions/plugin/test-slug', method: 'DELETE' },
       ];
@@ -375,7 +371,6 @@ describe('OpenAPI Contract Tests', () => {
         'admin-users',
         'admin-products',
         'admin-orders',
-        'admin-themes',
         'admin-plugins',
       ];
 

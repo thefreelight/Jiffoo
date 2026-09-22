@@ -11,45 +11,8 @@ import { ExtensionInstallerError } from './errors';
 // File Type Validation
 // ============================================================================
 
-/** Allowed file extensions for theme/plugin packages */
-// Theme Pack (L3.5) is strictly allow-listed.
-export const ALLOWED_EXTENSIONS = [
-    '.json',
-    '.png',
-    '.jpg',
-    '.jpeg',
-    '.webp',
-    '.svg',
-    '.css',
-    '.md',
-    '.txt',
-    '.woff',
-    '.woff2',
-] as const;
-
-/** Forbidden file extensions (executable scripts and binary) */
-export const FORBIDDEN_EXTENSIONS = [
-    '.js',
-    '.ts',
-    '.tsx',
-    '.jsx',
-    '.mjs',
-    '.cjs',
-    '.exe',
-    '.sh',
-    '.bat',
-    '.cmd',
-    '.ps1',
-    '.dll',
-    '.so',
-    '.dylib',
-    '.node',
-    '.wasm',
-    '.map',
-] as const;
-
 /**
- * For executable extensions (Theme App / Bundle / Plugin), we only forbid high-risk source/script/binary types,
+ * For executable extensions, we only forbid high-risk source/script/binary types,
  * and do NOT enforce a strict allow-list, because build artifacts legitimately contain many extensions.
  */
 const EXECUTABLE_FORBIDDEN_EXTENSIONS = [
@@ -92,19 +55,6 @@ function isAllowedPluginRuntimeBinary(filename: string, kind?: string): boolean 
     );
 }
 
-function isThemePackKind(kind?: string): boolean {
-    return kind === 'theme-shop' || kind === 'theme-admin';
-}
-
-function isAllowedThemeRuntimeScript(filename: string, kind?: string): boolean {
-    if (!isThemePackKind(kind)) {
-        return false;
-    }
-
-    const normalized = filename.replace(/\\/g, '/').toLowerCase();
-    return normalized === 'runtime/theme-runtime.js';
-}
-
 /**
  * Validate file extension
  * @throws Error if file type is forbidden or not allowed
@@ -112,27 +62,7 @@ function isAllowedThemeRuntimeScript(filename: string, kind?: string): boolean {
 export function validateFileExtension(filename: string, kind?: string): void {
     const ext = path.extname(filename).toLowerCase();
 
-    // Theme Pack (L3.5): strict allow-list + strict forbidden-list
-    if (isThemePackKind(kind)) {
-        if (isAllowedThemeRuntimeScript(filename, kind)) {
-            return;
-        }
-        if (FORBIDDEN_EXTENSIONS.includes(ext as any)) {
-            throw new ExtensionInstallerError(
-                `Forbidden file type detected: ${ext}. Executable scripts are not allowed for ${kind} security reasons.`,
-                { code: 'FORBIDDEN_FILE_TYPE', statusCode: 400 }
-            );
-        }
-        if (ext && !ALLOWED_EXTENSIONS.includes(ext as any)) {
-            throw new ExtensionInstallerError(
-                `Unsupported file type: ${ext}. Only ${ALLOWED_EXTENSIONS.join(', ')} are allowed.`,
-                { code: 'UNSUPPORTED_FILE_TYPE', statusCode: 400 }
-            );
-        }
-        return;
-    }
-
-    // Theme App / Bundle / Plugin: forbid only high-risk types; allow everything else (including .js/.mjs/.cjs and nested .zip files in bundles)
+    // Bundles and plugins allow built artifacts, including JavaScript and nested ZIP files.
     if (isTypeDeclarationFile(filename)) {
         return;
     }
@@ -208,8 +138,6 @@ export function validateZipSize(size: number): void {
  * @throws Error if size exceeds limit
  */
 function getMaxFileSize(kind?: string): number {
-    // Theme Pack is intentionally strict.
-    if (isThemePackKind(kind)) return MAX_FILE_SIZE;
     // Executable bundles/apps may legitimately include larger JS/WASM assets.
     if (kind === 'bundle') return 100 * 1024 * 1024; // 100MB
     if (kind === 'plugin') return 50 * 1024 * 1024; // 50MB
@@ -279,7 +207,7 @@ export function sanitizeFilename(filename: string): string {
  */
 export async function validateManifestExists(
     dirPath: string,
-    manifestName: 'theme.json' | 'manifest.json'
+    manifestName: 'manifest.json'
 ): Promise<void> {
     const fs = await import('fs/promises');
     const manifestPath = path.join(dirPath, manifestName);
@@ -327,5 +255,5 @@ export const SECURITY_ERROR_MESSAGES = {
     FILE_TOO_LARGE: 'File size exceeds maximum allowed size.',
     ZIP_TOO_LARGE: 'ZIP file size exceeds maximum allowed size.',
     PATH_TRAVERSAL: 'Directory traversal detected. Invalid file path.',
-    MISSING_MANIFEST: 'Missing required manifest file (theme.json or manifest.json).',
+    MISSING_MANIFEST: 'Missing required manifest file (manifest.json).',
 } as const;

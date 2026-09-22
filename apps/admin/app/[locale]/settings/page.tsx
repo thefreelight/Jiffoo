@@ -103,19 +103,6 @@ const TIMEZONE_OPTIONS = [
   { value: 'Asia/Tokyo', label: 'Asia/Tokyo (JST)' },
 ]
 
-const THEME_FIELDS: SettingField[] = [
-  {
-    key: 'theme.active.shop.slug',
-    labelKey: 'merchant.settings.sections.themes',
-    labelFallback: 'Active Shop Theme',
-  },
-  {
-    key: 'theme.active.admin.slug',
-    labelKey: 'merchant.settings.sections.adminTheme',
-    labelFallback: 'Active Admin Theme',
-  },
-]
-
 function toMap(input: unknown): SystemSettingsMap {
   return input && typeof input === 'object' ? (input as SystemSettingsMap) : {}
 }
@@ -399,33 +386,6 @@ function SettingsPageContent() {
             <p className="text-xs text-gray-500">
               Use comma or newline separated country codes. Example: <code>US, CA, AU, CN, GB</code>
             </p>
-          </div>
-        </div>
-
-        {/* Active Themes Card */}
-        <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-8 py-6 border-b border-gray-50">
-            <h3 className="text-lg font-bold text-gray-900">
-              {getText('merchant.settings.sections.themes', 'Active Themes')}
-            </h3>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-              {getText('merchant.settings.themeManagedHint', 'Theme activation is managed on the Themes page.')}
-            </span>
-          </div>
-          <div className="p-8 grid gap-6 md:grid-cols-2">
-            {THEME_FIELDS.map((field) => (
-              <div key={field.key} className="space-y-2">
-                <Label htmlFor={field.key} className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                  {getText(field.labelKey, field.labelFallback)}
-                </Label>
-                <Input
-                  id={field.key}
-                  value={getString(settingsMap[field.key]) || '-'}
-                  disabled
-                  className="h-11 rounded-xl border-gray-100 bg-gray-50/50"
-                />
-              </div>
-            ))}
           </div>
         </div>
 

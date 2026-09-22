@@ -20,7 +20,6 @@ import { paymentRoutes } from '@/core/payment/routes';
 import { adminUserRoutes } from '@/core/admin/user-management/routes';
 import { adminProductRoutes } from '@/core/admin/product-management/routes';
 import { adminOrderRoutes } from '@/core/admin/order-management/routes';
-import { adminThemeRoutes, publicThemeRoutes } from '@/core/admin/theme-management/routes';
 import systemSettingsRoutes from '@/core/admin/system-settings/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
 
@@ -44,7 +43,6 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(adminUserRoutes, { prefix: '/admin/users' });
   await fastify.register(adminProductRoutes, { prefix: '/admin/products' });
   await fastify.register(adminOrderRoutes, { prefix: '/admin/orders' });
-  await fastify.register(adminThemeRoutes, { prefix: '/admin/themes' });
   await fastify.register(systemSettingsRoutes, { prefix: '/admin' });
 
   // API Token management (admin only)
@@ -61,7 +59,6 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(cartRoutes, { prefix: '/cart' });
   await fastify.register(orderRoutes, { prefix: '/orders' });
   await fastify.register(paymentRoutes, { prefix: '/payments' });
-  await fastify.register(publicThemeRoutes, { prefix: '/themes' });
 
 
   // Extension installer routes

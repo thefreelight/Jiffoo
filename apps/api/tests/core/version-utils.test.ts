@@ -1,8 +1,7 @@
 /**
  * Version Range Matching Tests (Task 6.2.x)
  *
- * Tests the semver range matching logic used for
- * theme engines["jiffoo-theme-sdk"] validation.
+ * Tests the semver range matching logic used for plugin compatibility validation.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -173,16 +172,14 @@ describe('Version Utilities', () => {
       });
     });
 
-    describe('real-world theme SDK scenarios', () => {
-      it('should validate current SDK version 0.2.0', () => {
-        // Current SDK is 0.2.0
+    describe('plugin compatibility scenarios', () => {
+      it('should validate a compatible plugin version', () => {
         expect(satisfiesRange('0.2.0', '^0.2.0')).toBe(true);
         expect(satisfiesRange('0.2.0', '>=0.2.0')).toBe(true);
         expect(satisfiesRange('0.2.0', '0.2.0')).toBe(true);
       });
 
-      it('should reject incompatible SDK versions', () => {
-        // Theme requires ^0.2.0
+      it('should reject incompatible plugin versions', () => {
         expect(satisfiesRange('0.3.0', '^0.2.0')).toBe(false);
         expect(satisfiesRange('0.1.0', '^0.2.0')).toBe(false);
         expect(satisfiesRange('1.0.0', '^0.2.0')).toBe(false);

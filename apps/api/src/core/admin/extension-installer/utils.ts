@@ -13,8 +13,6 @@ import { createHash } from 'crypto';
 import { Parse } from 'unzip-stream';
 import {
   ExtensionKind,
-  ThemeTarget,
-  ThemeManifest,
   PluginManifest,
 } from './types';
 import { ExtensionInstallerError } from './errors';
@@ -38,12 +36,6 @@ function getExtensionsRoot(): string {
 /** Extension root directory (resolved absolute path) */
 export const EXTENSIONS_ROOT = getExtensionsRoot();
 
-/** Get theme directory path */
-export function getThemeDir(target: ThemeTarget, slug?: string): string {
-  const base = path.join(EXTENSIONS_ROOT, 'themes', target);
-  return slug ? path.join(base, slug) : base;
-}
-
 // ============================================================================
 // ZIP Extraction
 // ============================================================================
@@ -57,7 +49,7 @@ export async function extractZipToTemp(zipStream: Readable, kind?: ExtensionKind
   await fs.mkdir(tempDir, { recursive: true });
 
   const { validateZipEntry, MAX_FONT_FILES, MAX_FONT_FILE_SIZE, MAX_TOTAL_FONT_SIZE } = await import('./security');
-  const enforceFontLimits = kind === 'theme-shop' || kind === 'theme-admin';
+  const enforceFontLimits = false;
 
   return new Promise((resolve, reject) => {
     let entryCount = 0;
@@ -292,154 +284,7 @@ export async function resolveExtractedPackageRoot(
  * Get manifest filename
  */
 export function getManifestFileName(kind: ExtensionKind): string {
-  switch (kind) {
-    case 'plugin':
-      return 'manifest.json';
-    case 'bundle':
-      return 'bundle.json';
-    case 'theme-shop':
-    case 'theme-admin':
-    default:
-      return 'theme.json';
-  }
-}
-
-/**
- * Validate theme manifest (Theme Pack v1 specification)
- * @param manifest - The theme manifest to validate
- * @param expectedTarget - Optional expected target to validate against (from install kind)
- */
-export function validateThemeManifest(manifest: ThemeManifest, expectedTarget?: 'shop' | 'admin'): void {
-  // Required: schemaVersion must be 1 for v1
-  if (manifest.schemaVersion !== 1) {
-    throw new ExtensionInstallerError(
-      'Invalid theme manifest: schemaVersion must be 1',
-      { code: 'INVALID_SCHEMA_VERSION', statusCode: 400 }
-    );
-  }
-
-  // Required: slug
-  if (!manifest.slug || typeof manifest.slug !== 'string') {
-    throw new ExtensionInstallerError(
-      'Invalid theme manifest: missing or invalid "slug"',
-      { code: 'INVALID_MANIFEST', statusCode: 400 }
-    );
-  }
-
-  // Slug format validation (only lowercase letters, numbers, and hyphens allowed)
-  if (!/^[a-z0-9-]+$/.test(manifest.slug)) {
-    throw new ExtensionInstallerError(
-      'Invalid theme manifest: slug must contain only lowercase letters, numbers, and hyphens',
-      { code: 'INVALID_SLUG_FORMAT', statusCode: 400 }
-    );
-  }
-
-  // Required: name
-  if (!manifest.name || typeof manifest.name !== 'string') {
-    throw new ExtensionInstallerError(
-      'Invalid theme manifest: missing or invalid "name"',
-      { code: 'INVALID_MANIFEST', statusCode: 400 }
-    );
-  }
-
-  // Required: version
-  if (!manifest.version || typeof manifest.version !== 'string') {
-    throw new ExtensionInstallerError(
-      'Invalid theme manifest: missing or invalid "version"',
-      { code: 'INVALID_MANIFEST', statusCode: 400 }
-    );
-  }
-
-  // Validate version format (strict semver: MAJOR.MINOR.PATCH)
-  validateVersionFormat(manifest.version);
-
-  // Required: target must be 'shop' or 'admin'
-  if (!manifest.target || !['shop', 'admin'].includes(manifest.target)) {
-    throw new ExtensionInstallerError(
-      'Invalid theme manifest: target must be "shop" or "admin"',
-      { code: 'INVALID_TARGET', statusCode: 400 }
-    );
-  }
-
-  // Validate target matches expected (from install kind)
-  if (expectedTarget && manifest.target !== expectedTarget) {
-    throw new ExtensionInstallerError(
-      `Theme target mismatch: theme.json declares target "${manifest.target}" but installing as "${expectedTarget}"`,
-      { code: 'TARGET_MISMATCH', statusCode: 400 }
-    );
-  }
-
-  // Validate entry paths if provided
-  if (manifest.entry) {
-    const { tokensCSS, templatesDir, assetsDir, settingsSchema, presetsDir } = manifest.entry;
-
-    // All entry paths must be strings if provided
-    if (tokensCSS !== undefined && typeof tokensCSS !== 'string') {
-      throw new ExtensionInstallerError(
-        'Invalid theme manifest: entry.tokensCSS must be a string',
-        { code: 'INVALID_ENTRY', statusCode: 400 }
-      );
-    }
-    if (templatesDir !== undefined && typeof templatesDir !== 'string') {
-      throw new ExtensionInstallerError(
-        'Invalid theme manifest: entry.templatesDir must be a string',
-        { code: 'INVALID_ENTRY', statusCode: 400 }
-      );
-    }
-    if (assetsDir !== undefined && typeof assetsDir !== 'string') {
-      throw new ExtensionInstallerError(
-        'Invalid theme manifest: entry.assetsDir must be a string',
-        { code: 'INVALID_ENTRY', statusCode: 400 }
-      );
-    }
-    if (settingsSchema !== undefined && typeof settingsSchema !== 'string') {
-      throw new ExtensionInstallerError(
-        'Invalid theme manifest: entry.settingsSchema must be a string',
-        { code: 'INVALID_ENTRY', statusCode: 400 }
-      );
-    }
-    if (presetsDir !== undefined && typeof presetsDir !== 'string') {
-      throw new ExtensionInstallerError(
-        'Invalid theme manifest: entry.presetsDir must be a string',
-        { code: 'INVALID_ENTRY', statusCode: 400 }
-      );
-    }
-  }
-
-  // Validate engines field (Task 6.2.1)
-  if (manifest.engines) {
-    const { 'jiffoo-theme-sdk': sdkRange, jiffoo: coreRange, node: nodeRange } = manifest.engines;
-
-    if (sdkRange !== undefined) {
-      if (typeof sdkRange !== 'string') {
-        throw new ExtensionInstallerError(
-          'Invalid theme manifest: engines["jiffoo-theme-sdk"] must be a string',
-          { code: 'INVALID_ENGINES', statusCode: 400 }
-        );
-      }
-      validateVersionRange(sdkRange);
-    }
-
-    if (coreRange !== undefined) {
-      if (typeof coreRange !== 'string') {
-        throw new ExtensionInstallerError(
-          'Invalid theme manifest: engines.jiffoo must be a string',
-          { code: 'INVALID_ENGINES', statusCode: 400 }
-        );
-      }
-      validateVersionRange(coreRange);
-    }
-
-    if (nodeRange !== undefined) {
-      if (typeof nodeRange !== 'string') {
-        throw new ExtensionInstallerError(
-          'Invalid theme manifest: engines.node must be a string',
-          { code: 'INVALID_ENGINES', statusCode: 400 }
-        );
-      }
-      validateVersionRange(nodeRange);
-    }
-  }
+  return kind === 'bundle' ? 'bundle.json' : 'manifest.json';
 }
 
 /**

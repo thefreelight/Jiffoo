@@ -1,7 +1,7 @@
 /**
  * Extension Installer Routes
  * 
- * API Routes: Support ZIP upload and installation of themes and plugins
+ * API Routes: Support ZIP upload and installation of plugins.
  */
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
@@ -15,26 +15,13 @@ import { PluginManagementService } from '@/core/admin/plugin-management/service'
 import { handlePluginGateway, PluginGatewayError, warmPluginRuntime } from './plugin-runtime';
 import { bundleInstaller } from './bundle-installer';
 import { PluginTokenService } from '@/core/admin/plugin-management/token-service';
-import { ThemeExtensionsService } from '@/core/admin/plugin-management/theme-extensions-service';
-import { isOfficialMarketOnly } from './official-only';
 import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/config-secrets';
 
 // Per spec (EXTENSIONS_IMPLEMENTATION.md) size limits for offline ZIP installs
 const ZIP_SIZE_LIMITS: Record<ExtensionKind, number> = {
-  'theme-shop': 10 * 1024 * 1024, // 10MB
-  'theme-admin': 10 * 1024 * 1024, // 10MB
   'plugin': 50 * 1024 * 1024, // 50MB
   'bundle': 500 * 1024 * 1024, // 500MB
 };
-
-function rejectLocalInstall(reply: FastifyReply) {
-  return sendError(
-    reply,
-    403,
-    'OFFICIAL_MARKET_ONLY',
-    'Local ZIP installation is disabled. Please install extensions from the official market.'
-  );
-}
 
 function formatBytes(bytes: number): string {
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -552,9 +539,6 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     }
   }, async (request: FastifyRequest, reply: FastifyReply) => {
     try {
-      if (isOfficialMarketOnly()) {
-        return rejectLocalInstall(reply);
-      }
       // Get uploaded file
       const data = await request.file();
       if (!data) {
@@ -578,9 +562,6 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       if (failureCount > 0) {
         message += ` (${failureCount} optional extensions failed)`;
       }
-      if (result.themeActivated) {
-        message += `. Theme "${result.themeActivated.slug}" activated for ${result.themeActivated.target}.`;
-      }
 
       return sendSuccess(reply, {
         filename: data.filename || 'bundle.zip',
@@ -592,7 +573,6 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         version: result.manifest.version,
         bundleHash: result.bundleHash,
         installed: result.installed,
-        themeActivated: result.themeActivated,
       }, message);
     } catch (error: any) {
       const statusCode =
@@ -622,14 +602,14 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
    * POST /api/extensions/:kind/install
    * Install extension from ZIP
    *
-   * kind: 'theme-shop' | 'theme-admin' | 'plugin'
+   * kind: 'plugin'
    */
   fastify.post<{ Params: InstallParams }>('/:kind/install', {
     onRequest: [authMiddleware, adminMiddleware],
     schema: {
       tags: ['admin-plugins'],
       summary: 'Install extension from ZIP',
-      description: 'Upload and install a theme or plugin from a ZIP file (Admin only)',
+      description: 'Upload and install a plugin from a ZIP file (Admin only)',
       security: [{ bearerAuth: [] }],
       consumes: ['multipart/form-data'],
       ...extensionInstallerSchemas.installExtension,
@@ -639,12 +619,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       const { kind } = request.params;
 
       // Validate kind
-      if (!['theme-shop', 'theme-admin', 'plugin'].includes(kind)) {
-        return sendError(reply, 400, 'BAD_REQUEST', 'Invalid extension kind. Must be: theme-shop, theme-admin, or plugin');
-      }
-
-      if (isOfficialMarketOnly()) {
-        return rejectLocalInstall(reply);
+      if (kind !== 'plugin') {
+        return sendError(reply, 400, 'BAD_REQUEST', 'Invalid extension kind. Must be: plugin');
       }
 
       // Get uploaded file
@@ -669,9 +645,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         actorUserId: request.user!.id,
       });
 
-      // Plugins: ensure default instance exists
-      if (kind === 'plugin') {
-        try {
+      try {
           // Create default instance if not exists
           const defaultInstance = await PluginManagementService.getDefaultInstance(result.slug);
           if (!defaultInstance) {
@@ -687,24 +661,14 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
             url: `/api/extensions/${kind}/install`,
             ...result,
           }, `${kind} "${result.slug}" v${result.version} installed successfully`);
-        } catch (e: any) {
+      } catch (e) {
           // If runtime warm fails, disable the default instance
           const defaultInstance = await PluginManagementService.getDefaultInstance(result.slug);
           if (defaultInstance) {
             await PluginManagementService.updateInstance(defaultInstance.id, { enabled: false });
           }
           throw e;
-        }
       }
-
-      return sendSuccess(reply, {
-        filename: data.filename || `${result.slug}.zip`,
-        originalName: data.filename || `${result.slug}.zip`,
-        size: getTotalBytes(),
-        mimetype: data.mimetype || 'application/zip',
-        url: `/api/extensions/${kind}/install`,
-        ...result,
-      }, `${kind} "${result.slug}" v${result.version} installed successfully`);
     } catch (error: any) {
       const statusCode =
         typeof error?.statusCode === 'number' && Number.isFinite(error.statusCode)
@@ -811,106 +775,6 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     } catch (error: any) {
       const statusCode = error?.message?.includes('not found') ? 404 : 400;
       return sendError(reply, statusCode, 'PURGE_ERROR', error.message || 'Failed to purge plugin');
-    }
-  });
-
-  /**
-   * DELETE /api/extensions/:kind/:slug
-   * Uninstall extension
-   */
-  fastify.delete<{ Params: UninstallParams }>('/:kind/:slug', {
-    onRequest: [authMiddleware, adminMiddleware],
-    schema: {
-      tags: ['admin-plugins'],
-      summary: 'Uninstall extension',
-      description: 'Uninstall a theme or plugin by slug (Admin only)',
-      security: [{ bearerAuth: [] }],
-      ...extensionInstallerSchemas.uninstallExtension,
-    }
-  }, async (request: FastifyRequest<{ Params: UninstallParams }>, reply: FastifyReply) => {
-    try {
-      const { kind, slug } = request.params;
-      if (kind === 'plugin') {
-        await PluginManagementService.uninstallPlugin(slug);
-        return sendSuccess(reply, {
-          kind,
-          slug,
-          uninstalled: true,
-        }, `${kind} "${slug}" uninstalled successfully`);
-      }
-
-      await extensionInstaller.uninstall(kind, slug);
-      return sendSuccess(reply, {
-        kind,
-        slug,
-        uninstalled: true,
-      }, `${kind} "${slug}" uninstalled successfully`);
-    } catch (error: any) {
-      fastify.log.error({ err: error }, 'Failed to uninstall extension');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to uninstall extension');
-    }
-  });
-
-  /**
-   * GET /api/extensions/:kind
-   * List installed extensions
-   */
-  fastify.get<{ Params: ListParams; Querystring: PaginationQuery }>('/:kind', {
-    onRequest: [authMiddleware, adminMiddleware],
-    schema: {
-      tags: ['admin-plugins'],
-      summary: 'List installed extensions',
-      description: 'Get list of installed themes or plugins (Admin only)',
-      security: [{ bearerAuth: [] }],
-      ...extensionInstallerSchemas.listExtensions,
-    }
-  }, async (request: FastifyRequest<{ Params: ListParams; Querystring: PaginationQuery }>, reply: FastifyReply) => {
-    try {
-      const { kind } = request.params;
-      const safePage = Math.max(1, Number(request.query?.page) || 1);
-      const safeLimit = Math.min(100, Math.max(1, Number(request.query?.limit) || 20));
-      const extensions = await extensionInstaller.listInstalled(kind);
-      const total = extensions.length;
-      const items = extensions.slice((safePage - 1) * safeLimit, safePage * safeLimit);
-      return sendSuccess(reply, {
-        items,
-        page: safePage,
-        limit: safeLimit,
-        total,
-        totalPages: Math.ceil(total / safeLimit),
-      });
-    } catch (error: any) {
-      fastify.log.error({ err: error }, 'Failed to list extensions');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to list extensions');
-    }
-  });
-
-  /**
-   * GET /api/extensions/:kind/:slug
-   * Get extension details
-   */
-  fastify.get<{ Params: GetParams }>('/:kind/:slug', {
-    onRequest: [authMiddleware, adminMiddleware],
-    schema: {
-      tags: ['admin-plugins'],
-      summary: 'Get extension details',
-      description: 'Get details of an installed theme or plugin (Admin only)',
-      security: [{ bearerAuth: [] }],
-      ...extensionInstallerSchemas.getExtension,
-    }
-  }, async (request: FastifyRequest<{ Params: GetParams }>, reply: FastifyReply) => {
-    try {
-      const { kind, slug } = request.params;
-      const extension = await extensionInstaller.getInstalled(kind, slug);
-
-      if (!extension) {
-        return sendError(reply, 404, 'NOT_FOUND', `${kind} "${slug}" not found`);
-      }
-
-      return sendSuccess(reply, extension);
-    } catch (error: any) {
-      fastify.log.error({ err: error }, 'Failed to get extension');
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to get extension');
     }
   });
 
@@ -1289,160 +1153,4 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
     },
   );
 
-  // ============================================================================
-  // Theme Extension API (Section 10 - Phase 7)
-  // ============================================================================
-
-  /**
-   * GET /api/extensions/theme-extensions/blocks
-   * List all active app blocks (filtered to enabled installations)
-   */
-  fastify.get('/theme-extensions/blocks', {
-    schema: {
-      tags: ['theme-extensions'],
-      summary: 'List active app blocks',
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: {
-              type: 'object',
-              properties: {
-                items: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      id: { type: 'string' },
-                      extensionId: { type: 'string' },
-                      name: { type: 'string' },
-                      pluginSlug: { type: 'string' },
-                      schema: {},
-                      dataEndpoint: { type: 'string', nullable: true },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  }, async (_request, reply) => {
-    const blocks = await ThemeExtensionsService.getActiveBlocks();
-    const filtered = blocks.filter(b => b.installation.enabled);
-    return sendSuccess(reply, {
-      items: filtered.map(b => ({
-        id: b.id,
-        extensionId: b.extensionId,
-        name: b.name,
-        pluginSlug: b.installation.pluginSlug,
-        schema: b.schema,
-        dataEndpoint: b.dataEndpoint,
-      })),
-    });
-  });
-
-  /**
-   * GET /api/extensions/theme-extensions/embeds
-   * List all active app embeds (filtered to enabled installations)
-   */
-  fastify.get('/theme-extensions/embeds', {
-    schema: {
-      tags: ['theme-extensions'],
-      summary: 'List active app embeds',
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: {
-              type: 'object',
-              properties: {
-                items: {
-                  type: 'array',
-                  items: {
-                    type: 'object',
-                    properties: {
-                      id: { type: 'string' },
-                      extensionId: { type: 'string' },
-                      name: { type: 'string' },
-                      pluginSlug: { type: 'string' },
-                      targetPosition: { type: 'string' },
-                      schema: {},
-                      dataEndpoint: { type: 'string', nullable: true },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    },
-  }, async (_request, reply) => {
-    const embeds = await ThemeExtensionsService.getActiveEmbeds();
-    const filtered = embeds.filter(e => e.installation.enabled);
-    return sendSuccess(reply, {
-      items: filtered.map(e => ({
-        id: e.id,
-        extensionId: e.extensionId,
-        name: e.name,
-        pluginSlug: e.installation.pluginSlug,
-        targetPosition: e.targetPosition,
-        schema: e.schema,
-        dataEndpoint: e.dataEndpoint,
-      })),
-    });
-  });
-
-  /**
-   * PATCH /api/extensions/theme-extensions/:id
-   * Toggle theme extension active state (admin only)
-   */
-  fastify.patch<{ Params: { id: string }; Body: { active?: boolean } }>('/theme-extensions/:id', {
-    onRequest: [authMiddleware, adminMiddleware],
-    schema: {
-      tags: ['theme-extensions'],
-      summary: 'Toggle theme extension active state',
-      security: [{ bearerAuth: [] }],
-      params: {
-        type: 'object',
-        properties: {
-          id: { type: 'string' },
-        },
-        required: ['id'],
-      },
-      body: {
-        type: 'object',
-        properties: {
-          active: { type: 'boolean' },
-        },
-        required: ['active'],
-      },
-      response: {
-        200: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean' },
-            data: { type: 'object' },
-          },
-        },
-        400: errorResponseSchema,
-      },
-    },
-  }, async (request, reply) => {
-    const { id } = request.params;
-    const { active } = request.body;
-    if (active === undefined) {
-      return sendError(reply, 400, 'BAD_REQUEST', 'active field is required');
-    }
-    try {
-      const updated = await ThemeExtensionsService.setActive(id, active);
-      return sendSuccess(reply, updated);
-    } catch (error: any) {
-      return sendError(reply, 400, 'BAD_REQUEST', error.message || 'Failed to update theme extension');
-    }
-  });
 };

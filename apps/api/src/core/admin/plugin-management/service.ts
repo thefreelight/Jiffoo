@@ -15,7 +15,6 @@ import { incrementPluginRegistryVersion } from '@/core/admin/extension-installer
 import { assertPluginConfigReadyForEnable } from '@/core/admin/extension-installer/config-readiness';
 import type { PluginInstall, PluginInstallation } from '@prisma/client';
 import { executeLifecycleHook, hasLifecycleHook } from './lifecycle-hooks';
-import { isAllowedExtensionSource, isOfficialMarketOnly } from '@/core/admin/extension-installer/official-only';
 import { mergeSecretConfigForUpdate } from './config-secrets';
 
 // instanceKey validation regex: ^[a-z0-9-]{1,32}$
@@ -77,10 +76,6 @@ async function getPluginPackage(slug: string): Promise<PluginInstall | null> {
     return null;
   }
 
-  if (plugin && !isAllowedExtensionSource(plugin.source)) {
-    return null;
-  }
-
   return plugin;
 }
 
@@ -95,11 +90,7 @@ async function getAllPluginPackages(options?: { includeDeleted?: boolean }): Pro
     orderBy: { installedAt: 'desc' },
   });
 
-  if (!isOfficialMarketOnly()) {
-    return rows;
-  }
-
-  return rows.filter((row) => isAllowedExtensionSource(row.source));
+  return rows;
 }
 
 // ============================================================================

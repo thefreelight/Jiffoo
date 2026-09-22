@@ -94,12 +94,6 @@ function resolveRequiredPermission(method: string, pathname: string): AdminPermi
       : ADMIN_PERMISSIONS.INVENTORY_WRITE;
   }
 
-  if (pathname.startsWith('/admin/themes')) {
-    return isReadMethod(method)
-      ? ADMIN_PERMISSIONS.THEMES_READ
-      : ADMIN_PERMISSIONS.THEMES_WRITE;
-  }
-
   if (pathname.startsWith('/extensions')) {
     return isReadMethod(method)
       ? ADMIN_PERMISSIONS.PLUGINS_READ

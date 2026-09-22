@@ -13,7 +13,7 @@ import { getAllOperations, loadOpenApiSpec, type Operation } from '../helpers/op
 
 type JsonSchema = Record<string, any>;
 
-const PASSTHROUGH_TAGS = new Set(['plugin-gateway', 'theme-app-gateway']);
+const PASSTHROUGH_TAGS = new Set(['plugin-gateway']);
 const NON_BUSINESS_PATHS = new Set([
   '/',
   '/openapi.json',
@@ -31,7 +31,6 @@ function isBusinessJsonOperation(path: string, operation: Operation): boolean {
   const tags = operation.tags || [];
   if (tags.some((tag) => PASSTHROUGH_TAGS.has(tag))) return false;
   if (path.startsWith('/api/extensions/plugin/{slug}/api')) return false;
-  if (path.startsWith('/theme-app/')) return false;
   return true;
 }
 

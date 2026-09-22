@@ -18,7 +18,6 @@ import {
   Package,
   FileText,
   Sliders,
-  Palette,
   X,
   User,
   Settings,
@@ -88,13 +87,6 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Plugins',
     href: '/plugins',
     icon: Sliders,
-  },
-  {
-    id: 'themes',
-    nameKey: 'merchant.nav.themes',
-    fallback: 'Themes',
-    href: '/themes',
-    icon: Palette,
   },
   {
     id: 'system',

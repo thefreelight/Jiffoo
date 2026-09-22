@@ -125,7 +125,6 @@ export const common = {
     rateLimited: 'Too many requests. Please try again later.',
     timeout: 'Request timed out. Please try again.',
     unknown: 'An unknown error occurred',
-    themeUnavailable: 'Theme Component Unavailable',
     componentUnavailable: 'Unable to load component',
     cartUnavailable: 'Unable to load cart component',
     productsUnavailable: 'Unable to load products component',

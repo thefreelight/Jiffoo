@@ -62,7 +62,7 @@ describe('Gateway Metrics (Task 2.6.2)', () => {
   });
 
   it('tracks trustLevel in recordRequest (for audit logging)', () => {
-    gatewayMetrics.recordRequest('plugin-f', 200, 50, 'official');
+    gatewayMetrics.recordRequest('plugin-f', 200, 50, 'signed');
     // The trustLevel is passed through — we just verify it doesn't throw
     const snap = gatewayMetrics.snapshot();
     expect(snap.requestsTotal.get('plugin-f|200')).toBe(1);

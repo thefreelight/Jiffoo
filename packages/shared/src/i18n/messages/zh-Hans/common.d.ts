@@ -91,7 +91,6 @@ export declare const common: {
         networkError: string;
         timeout: string;
         unknown: string;
-        themeUnavailable: string;
         componentUnavailable: string;
         cartUnavailable: string;
         productsUnavailable: string;

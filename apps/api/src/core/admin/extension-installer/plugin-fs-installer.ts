@@ -33,11 +33,6 @@ import { pluginPackageStore, type PluginPackageDeployment } from '@/core/storage
 import { incrementPluginRegistryVersion } from './plugin-registry-version';
 import { evaluatePluginConfigReadiness } from './config-readiness';
 import {
-  verifyPackageFromZipFile,
-  getSignatureVerifyMode,
-  type SignatureVerifyResult,
-} from './signature-verifier';
-import {
   deriveTrustLevel,
 } from './trust-level';
 import {
@@ -45,7 +40,6 @@ import {
   hasLifecycleHook,
 } from '@/core/admin/plugin-management/lifecycle-hooks';
 import { WebhookSubscriptionService } from '@/core/webhooks/subscription-service';
-import { ThemeExtensionsService } from '@/core/admin/plugin-management/theme-extensions-service';
 
 function parseJsonArray(value: unknown): string[] {
   if (!value) return [];
@@ -160,27 +154,9 @@ export class PluginFsInstaller implements IPluginInstaller {
       // 5. Validate manifest
       validatePluginManifest(manifest);
 
-      // 5b. Signature verification (Phase 5, Section 4.8)
-      const sigFilePath = path.join(rootDir, 'package.sig');
-      let signatureResult: SignatureVerifyResult;
-      try {
-        await import('fs/promises').then(({ access }) => access(sigFilePath));
-        signatureResult = await verifyPackageFromZipFile(zipFilePath, sigFilePath);
-      } catch {
-        // No .sig file found in the package
-        signatureResult = await verifyPackageFromZipFile(zipFilePath);
-      }
-
-      if (getSignatureVerifyMode() === 'required' && !signatureResult.verified) {
-        throw new Error(`Signature verification failed: ${signatureResult.error}`);
-      }
-
-      // 5c. Trust level enforcement (Task 2.3.1–2.3.2)
-      // Derive trust level from source + signature result, then check if
-      // installation is allowed under the two-tier trust model.
+      // Uploaded packages always use the established unsigned confirmation and audit flow.
       const trustLevel = deriveTrustLevel(
         options?.source || 'local-zip',
-        signatureResult,
         manifest.trustLevel,
       );
 
@@ -280,7 +256,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             return updatedInstall;
           });
 
-          // Re-register webhook subscriptions and theme extensions on upgrade (§4.7, §10)
+          // Re-register webhook subscriptions on upgrade.
           try {
             const defaultInstance = await prisma.pluginInstallation.findUnique({
               where: {
@@ -292,11 +268,10 @@ export class PluginFsInstaller implements IPluginInstaller {
             });
             if (defaultInstance) {
               await WebhookSubscriptionService.createFromManifest(defaultInstance.id, manifest);
-              await ThemeExtensionsService.registerFromManifest(defaultInstance.id, manifest);
             }
           } catch (integrationError: any) {
             console.warn(
-              `Non-fatal: Failed to re-register webhooks/theme-extensions on upgrade for ${manifest.slug}:`,
+              `Non-fatal: Failed to re-register webhooks on upgrade for ${manifest.slug}:`,
               integrationError.message
             );
           }
@@ -317,8 +292,6 @@ export class PluginFsInstaller implements IPluginInstaller {
             permissions: manifest.permissions,
             author: manifest.author,
             authorUrl: manifest.authorUrl,
-            signatureVerified: signatureResult?.verified ?? false,
-            signedBy: signatureResult?.signedBy,
             installedAt: existingBySlug.installedAt,
             updatedAt: now,
             zipHash,
@@ -435,11 +408,10 @@ export class PluginFsInstaller implements IPluginInstaller {
           try {
             if (defaultInstance) {
               await WebhookSubscriptionService.createFromManifest(defaultInstance.id, manifest);
-              await ThemeExtensionsService.registerFromManifest(defaultInstance.id, manifest);
             }
           } catch (integrationError: any) {
             console.warn(
-              `Non-fatal: Failed to register webhooks/theme-extensions for ${manifest.slug}:`,
+              `Non-fatal: Failed to register webhooks for ${manifest.slug}:`,
               integrationError.message
             );
           }
@@ -460,8 +432,6 @@ export class PluginFsInstaller implements IPluginInstaller {
             permissions: manifest.permissions,
             author: manifest.author,
             authorUrl: manifest.authorUrl,
-            signatureVerified: signatureResult?.verified ?? false,
-            signedBy: signatureResult?.signedBy,
             installedAt: pluginInstall.installedAt,
             updatedAt: now,
             zipHash,

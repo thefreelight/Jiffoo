@@ -27,7 +27,6 @@ import {
   X,
   Sliders,
   Activity,
-  Palette,
   ShieldCheck,
 } from 'lucide-react'
 
@@ -45,7 +44,7 @@ interface NavigationItem {
 }
 
 // Base navigation configuration - Shopify style flat menu
-// Main items: Dashboard / Products / Orders / Customers / Plugins / Themes / System Health
+// Main items: Dashboard / Products / Orders / Customers / Plugins / System Health
 const baseNavigationConfig: NavigationItem[] = [
   {
     nameKey: 'merchant.nav.dashboard',
@@ -88,13 +87,6 @@ const baseNavigationConfig: NavigationItem[] = [
     href: '/plugins',
     icon: Sliders,
     requiredPermissions: [ADMIN_PERMISSIONS.PLUGINS_READ],
-  },
-  {
-    nameKey: 'merchant.nav.themes',
-    fallback: 'Themes',
-    href: '/themes',
-    icon: Palette,
-    requiredPermissions: [ADMIN_PERMISSIONS.THEMES_READ],
   },
   {
     nameKey: 'merchant.nav.systemHealth',

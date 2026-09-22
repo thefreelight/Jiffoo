@@ -36,10 +36,6 @@ const settingsSchema = {
     'localization.currency': { type: 'string', description: 'Localization currency code' },
     'localization.locale': { type: 'string', description: 'Default locale (e.g. en-US)' },
     'localization.timezone': { type: 'string', description: 'Default timezone (e.g. UTC)' },
-    'theme.active.shop.slug': { type: 'string', description: 'Active shop theme slug' },
-    'theme.active.admin.slug': { type: 'string', description: 'Active admin theme slug' },
-    'theme.previous.shop.slug': { type: 'string', nullable: true, description: 'Previous shop theme slug' },
-    'theme.previous.admin.slug': { type: 'string', nullable: true, description: 'Previous admin theme slug' },
     'checkout.address.countries_require_state_postal': {
       type: 'array',
       items: { type: 'string' },
