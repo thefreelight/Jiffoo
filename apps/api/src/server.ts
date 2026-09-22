@@ -469,17 +469,6 @@ async function start() {
       }
     }
 
-    // Start backup health checks (Optional)
-    if (process.env.ENABLE_BACKUP_HEALTH_JOB === 'true') {
-      try {
-        const { BackupHealthJob } = await import('@/jobs/backup-health');
-        const intervalMs = Number(process.env.BACKUP_HEALTH_INTERVAL_MS || 86_400_000) || 86_400_000;
-        BackupHealthJob.start({ intervalMs });
-        LoggerService.logSystem('Backup health job started', { intervalMs });
-      } catch (backupError) {
-        LoggerService.logError(backupError as Error, { context: 'Backup health job startup' });
-      }
-    }
   } catch (error) {
     LoggerService.logError(error as Error, { context: 'Server startup' });
     console.error('Error starting server:', error);

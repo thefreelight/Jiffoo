@@ -13,13 +13,12 @@ export type { Locale };
 /**
  * Application names for namespace organization
  */
-export type AppName = 'merchant' | 'shop';
+export type AppName = 'merchant';
 
 /**
  * Message namespace identifiers
  * - common: Cross-app common messages (buttons, system prompts, error states)
  * - merchant: Merchant Admin messages
- * - shop: Shop frontend messages
  */
 export type MessageNamespace = 'common' | 'merchant' | AppName;
 

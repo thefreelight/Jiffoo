@@ -6,19 +6,13 @@
  */
 
 import { beforeAll, afterAll, beforeEach, afterEach } from 'vitest';
-import dotenv from 'dotenv';
-import path from 'path';
-
-// Load tests/.env.test before importing db helpers
-dotenv.config({ path: path.resolve(__dirname, './.env.test') });
-
 const dbUrl = process.env.DATABASE_URL_TEST;
 if (!dbUrl) {
   throw new Error('DATABASE_URL_TEST must be set.');
 }
 
 if (!/(^|[_-])test([^a-zA-Z0-9]|$)/i.test(dbUrl)) {
-  console.warn(`Unsafe test database URL detected: ${dbUrl}. Continuing in fallback mode.`);
+  throw new Error(`Unsafe test database URL detected: ${dbUrl}. Continuing in fallback mode.`);
 }
 
 process.env.DATABASE_URL_TEST = dbUrl;

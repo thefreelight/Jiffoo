@@ -31,7 +31,7 @@ process.env.GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || 'mock_client_id';
 process.env.GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || 'mock_client_secret';
 process.env.GOOGLE_REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3000/auth/google/callback';
 
-process.env.EMAIL_FROM = process.env.EMAIL_FROM || 'onboarding@resend.dev';
+process.env.EMAIL_FROM = process.env.EMAIL_FROM || 'noreply@example.com';
 process.env.EMAIL_FROM_NAME = process.env.EMAIL_FROM_NAME || 'Jiffoo';
 process.env.EMAIL_REPLY_TO = process.env.EMAIL_REPLY_TO || 'support@jiffoo.com';
 

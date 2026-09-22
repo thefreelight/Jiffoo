@@ -145,25 +145,6 @@ declare module 'fastify' {
       meta?: Record<string, any>
     ): void;
 
-    // ============================================
-    // Prometheus Metrics Decorators
-    // ============================================
-
-    recordDbQuery(operation: string, durationMs: number): void;
-
-    recordRedisOp(operation: string, hit?: boolean): void;
-
-    setRedisStatus(connected: boolean): void;
-
-    setPluginMetrics(loaded: number, failed: number): void;
-
-    recordPluginApiRequest(pluginId: string): void;
-
-    recordPluginError(pluginId: string): void;
-
-    recordPluginExecution(pluginId: string, durationMs: number): void;
-
-    recordRateLimitExceeded(identifier: string): void;
   }
 
   interface FastifySchema {

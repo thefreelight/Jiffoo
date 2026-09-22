@@ -20,17 +20,14 @@ import * as zhHantMessages from './zh-Hant';
 const allMessages: Record<Locale, Messages> = {
   en: {
     common: enMessages.common,
-    shop: enMessages.shop,
     merchant: enMessages.merchant,
   },
   'zh-Hans': {
     common: zhHansMessages.common,
-    shop: zhHansMessages.shop,
     merchant: zhHansMessages.merchant,
   },
   'zh-Hant': {
     common: zhHantMessages.common,
-    shop: zhHantMessages.shop,
     merchant: zhHantMessages.merchant,
   },
 };

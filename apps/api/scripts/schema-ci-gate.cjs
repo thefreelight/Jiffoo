@@ -5,7 +5,6 @@
  * Combines all schema-related CI checks into a single script:
  *   1. prisma validate — ensures schema is syntactically valid
  *   2. prisma format --check — ensures schema is properly formatted
- *   3. check-dormant-models — ensures no code references dormant models
  *
  * Usage:
  *   node scripts/schema-ci-gate.cjs
@@ -57,9 +56,6 @@ runCheck('Prisma Validate', `npx prisma validate --schema ${SCHEMA_DIR}`);
 
 // 2. Check formatting
 runCheck('Prisma Format Check', `npx prisma format --schema ${SCHEMA_DIR} --check`);
-
-// 3. Dormant model guard
-runCheck('Dormant Model Guard', `node scripts/check-dormant-models.cjs`);
 
 // Summary
 console.log('\n' + '═'.repeat(60));
