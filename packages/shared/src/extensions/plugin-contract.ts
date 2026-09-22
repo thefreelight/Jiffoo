@@ -1,37 +1,10 @@
 export const PLUGIN_CATEGORIES = [
   'payment',
-  'email',
-  'integration',
-  'analytics',
-  'marketing',
   'shipping',
-  'social',
-  'security',
-  'other',
-] as const;
-
-export const PLUGIN_CAPABILITIES = [
-  'webhook.receive',
-  'webhook.send',
-  'api.read',
-  'api.write',
-  'admin.panel',
-  'storefront.widget',
-  'checkout.modify',
-  'order.process',
-  'payment.process',
-  'payment.session.v1',
-  'payment.refund',
-  'shipping.calculate',
-  'shipping.track',
-  'email.send',
-  'email.template',
-  'sms.send',
-  'analytics.track',
-  'analytics.report',
-  'customer.sync',
-  'inventory.sync',
-  'product.sync',
+  'tax',
+  'fulfillment',
+  'notification',
+  'integration',
 ] as const;
 
 export const PLUGIN_LIFECYCLE_HOOKS = [
@@ -61,8 +34,26 @@ export type PluginHostProtocol = typeof INTERNAL_FASTIFY_HOST_PROTOCOL;
 export type PluginTrustLevel = 'builtin' | 'signed' | 'unsigned';
 
 export type PluginCategory = (typeof PLUGIN_CATEGORIES)[number];
-export type PluginCapability = (typeof PLUGIN_CAPABILITIES)[number];
 export type LifecycleHookName = (typeof PLUGIN_LIFECYCLE_HOOKS)[number];
+
+export interface PluginContractDeclaration {
+  name: 'payment';
+  version: 1;
+}
+
+export interface PluginContext {
+  plugin: { slug: string; installationId: string; version: string };
+  config: Readonly<Record<string, unknown>>;
+  logger: { info(message: string, data?: unknown): void; warn(message: string, data?: unknown): void; error(message: string, data?: unknown): void };
+  http: { route(route: { method: string; path: string; handler: (...args: any[]) => unknown }): void };
+  events: { subscribe(eventType: string, handler: (payload: unknown) => Promise<unknown> | unknown): () => void };
+  contracts: { implement(name: string, version: number, implementation: Record<string, (input: unknown) => Promise<unknown> | unknown>): void };
+}
+
+export interface PluginEntryModule {
+  register(ctx: PluginContext): void | Promise<void>;
+  migrations?: Array<{ id: string; sql: string }>;
+}
 
 export interface PluginApiVersionRange {
   min?: string;
@@ -113,7 +104,7 @@ export interface PluginManifest {
   dependencies?: Record<string, string>;
   tags?: string[];
   configSchema?: Record<string, unknown>;
-  capabilities?: string[];
+  contracts?: PluginContractDeclaration[];
   requiredScopes?: string[];
   webhooks?: PluginWebhookDeclaration;
   lifecycle?: PluginLifecycleDeclaration;
@@ -304,15 +295,27 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
   }
 
   if (manifest.capabilities !== undefined) {
-    if (!isStringArray(manifest.capabilities)) {
-      pushIssue(issues, 'capabilities', 'capabilities must be an array of strings', 'INVALID_CAPABILITIES');
+    pushIssue(issues, 'capabilities', 'capabilities has been removed; use contracts instead', 'MANIFEST_FIELD_REMOVED');
+  }
+
+  if (manifest.contracts !== undefined) {
+    if (!Array.isArray(manifest.contracts)) {
+      pushIssue(issues, 'contracts', 'contracts must be an array', 'INVALID_CONTRACTS');
     } else {
-      manifest.capabilities.forEach((capability, index) => {
-        if (!PLUGIN_CAPABILITIES.includes(capability as PluginCapability)) {
-          pushIssue(issues, `capabilities[${index}]`, `unsupported capability "${capability}"`, 'INVALID_CAPABILITIES');
+      manifest.contracts.forEach((contract, index) => {
+        if (!isRecord(contract) || contract.name !== 'payment' || contract.version !== 1) {
+          pushIssue(issues, `contracts[${index}]`, 'only payment contract version 1 is supported', 'INVALID_CONTRACTS');
         }
       });
     }
+  }
+
+  const contracts = Array.isArray(manifest.contracts) ? manifest.contracts : [];
+  if (manifest.category === 'payment' && !contracts.some((contract) => isRecord(contract) && contract.name === 'payment' && contract.version === 1)) {
+    pushIssue(issues, 'contracts', 'payment category requires payment contract version 1', 'MISSING_CATEGORY_CONTRACT');
+  }
+  if (manifest.category && manifest.category !== 'integration' && contracts.length === 0) {
+    pushIssue(issues, 'contracts', `${manifest.category} category requires a contract declaration`, 'MISSING_CATEGORY_CONTRACT');
   }
 
   if (manifest.requiredScopes !== undefined && !isStringArray(manifest.requiredScopes)) {

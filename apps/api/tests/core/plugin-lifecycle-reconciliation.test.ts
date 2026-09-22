@@ -16,7 +16,6 @@ import {
   resetBreaker,
   resetRateLimiter,
 } from '@/core/admin/extension-installer/gateway-protection';
-import { callPaymentPlugin } from '@/core/payment/plugin-gateway';
 
 const prisma = getTestPrisma();
 
@@ -83,26 +82,12 @@ module.exports = {
     expect(isRateLimitAllowed(slug, 1)).toBe(true);
     expect(isRateLimitAllowed(slug, 1)).toBe(false);
 
-    const originalApiUrl = process.env.API_SERVICE_URL;
-    process.env.API_SERVICE_URL = 'http://127.0.0.1:1';
-    try {
-      for (let index = 0; index < 5; index += 1) {
-        await callPaymentPlugin({ pluginSlug: slug, path: '/payments', timeoutMs: 20, retryOptions: { retries: 0 } });
-      }
-      expect((await callPaymentPlugin({ pluginSlug: slug, path: '/payments', timeoutMs: 20, retryOptions: { retries: 0 } })).status).toBe(503);
-
-      await PluginManagementService.updateInstance(installationId, { enabled: false });
-      expect(await dispatchContractV1Event(installationId, 'order.created', {})).toBe(0);
-      expect(getBreakerState(slug)).toBe('closed');
-      expect(isRateLimitAllowed(slug, 1)).toBe(true);
-      expect((await callPaymentPlugin({ pluginSlug: slug, path: '/payments', timeoutMs: 20, retryOptions: { retries: 0 } })).status).toBe(502);
-
-      await PluginManagementService.updateInstance(installationId, { enabled: true });
-      expect(await dispatchContractV1Event(installationId, 'order.created', {})).toBe(1);
-    } finally {
-      if (originalApiUrl === undefined) delete process.env.API_SERVICE_URL;
-      else process.env.API_SERVICE_URL = originalApiUrl;
-    }
+    await PluginManagementService.updateInstance(installationId, { enabled: false });
+    expect(await dispatchContractV1Event(installationId, 'order.created', {})).toBe(0);
+    expect(getBreakerState(slug)).toBe('closed');
+    expect(isRateLimitAllowed(slug, 1)).toBe(true);
+    await PluginManagementService.updateInstance(installationId, { enabled: true });
+    expect(await dispatchContractV1Event(installationId, 'order.created', {})).toBe(1);
   });
 
   it('rejects an enable when runtime loading fails without changing the database state', async () => {
@@ -115,7 +100,7 @@ module.exports = {
 
   it('increments the registry version for restore and purge', async () => {
     const slug = `registry-${Date.now().toString(36)}`.slice(0, 30);
-    await createPlugin(slug, 'module.exports = async function plugin() {};');
+    await createPlugin(slug, 'module.exports = { register() {} };');
     const before = (await prisma.systemSettings.findUnique({ where: { id: 'system' } }))?.pluginRegistryVersion ?? 0;
 
     await PluginManagementService.uninstallPlugin(slug);
@@ -133,10 +118,9 @@ module.exports = {
     const badSlug = `startup-bad-${Date.now().toString(36)}`.slice(0, 30);
     const goodId = await createPlugin(goodSlug, `
 module.exports = {
-  manifest: { id: ${JSON.stringify(goodSlug)}, version: '1.0.0', contract: 'v1' },
   register(ctx) { ctx.events.subscribe('startup.event', () => undefined); },
 };`);
-    await createPlugin(badSlug, 'module.exports = async function plugin() {};');
+    await createPlugin(badSlug, 'module.exports = { register() {} };');
     await prisma.pluginInstall.update({ where: { slug: badSlug }, data: { manifestJson: {} } });
 
     await loadEnabledPluginRuntimes();
@@ -151,7 +135,7 @@ module.exports = {
 
   it('refuses a package manifest whose version differs from the installed record', async () => {
     const slug = `manifest-version-${Date.now().toString(36)}`.slice(0, 30);
-    const installationId = await createPlugin(slug, 'module.exports = async function plugin() {};');
+    const installationId = await createPlugin(slug, 'module.exports = { register() {} };');
     const pluginPackage = await pluginPackageStore.get(slug);
     await pluginPackage!.writeText('manifest.json', JSON.stringify({
       schemaVersion: 1,
@@ -180,13 +164,11 @@ module.exports = {
     markerPaths.push(marker);
     const failingId = await createPlugin(failingSlug, `
 module.exports = {
-  manifest: { id: ${JSON.stringify(failingSlug)}, version: '1.0.0', contract: 'v1' },
   register(ctx) { ctx.events.subscribe('shared.event', () => { throw new Error('handler failed'); }); },
 };`);
     const healthyId = await createPlugin(healthySlug, `
 const fs = require('fs');
 module.exports = {
-  manifest: { id: ${JSON.stringify(healthySlug)}, version: '1.0.0', contract: 'v1' },
   register(ctx) { ctx.events.subscribe('shared.event', () => fs.appendFileSync(${JSON.stringify(marker)}, 'handled\\n')); },
 };`);
 

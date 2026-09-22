@@ -65,10 +65,10 @@ describe('Plugin Runtime - Integration', () => {
     await fs.writeFile(
       path.join(pluginDir, entryModule),
       `
-module.exports = async function plugin(fastify, opts) {
-  fastify.get('/echo', async (request) => {
+module.exports = { register(ctx) {
+  ctx.http.route({ method: 'GET', path: '/echo', handler: async (request) => {
     return {
-      config: opts || {},
+      config: ctx.config,
       query: request.query || {},
       headers: {
         pluginSlug: request.headers['x-plugin-slug'] || '',
@@ -81,8 +81,8 @@ module.exports = async function plugin(fastify, opts) {
         locale: request.headers['x-locale'] || '',
       },
     };
-  });
-};
+  } });
+} };
       `.trim(),
       'utf-8'
     );
@@ -93,7 +93,7 @@ module.exports = async function plugin(fastify, opts) {
         name: 'Integration Test Plugin',
         version: '1.0.0',
         description: 'Plugin runtime integration tests',
-        category: 'general',
+        category: 'integration',
         runtimeType: 'internal-fastify',
         entryModule,
         source: 'local-zip',

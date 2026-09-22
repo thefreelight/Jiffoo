@@ -1,7 +1,7 @@
 import { prisma } from '@/config/database';
 import { OrderStatus, PaymentStatus } from '@/core/order/types';
 import { recordOrderStatusHistory } from '@/core/order/status-history';
-import { callPaymentPlugin } from '@/core/payment/plugin-gateway';
+import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { emitOrderPaidEvent } from '@/core/payment/order-paid-event';
 import { OutboxService } from '@/infra/outbox';
 import { OrderPaymentStatus as PrismaOrderPaymentStatus, OrderStatus as PrismaOrderStatus, Prisma } from '@prisma/client';
@@ -136,21 +136,10 @@ export async function syncPaymentFromPlugin(sessionId: string): Promise<boolean>
     return false;
   }
 
-  const verifyResult = await callPaymentPlugin({
-    pluginSlug: payment.paymentMethod,
-    path: '/api/payments/verify-session?installation=default',
-    body: { sessionId },
-    retryOptions: { retries: 1, minDelayMs: 200, maxDelayMs: 1500 },
-  });
-
-  if (!verifyResult.ok) {
-    return false;
-  }
-
-  const rawData = verifyResult.payload?.data ?? verifyResult.payload;
-  const data = (typeof rawData === 'object' && rawData ? rawData : {}) as Record<string, unknown>;
-  const status = normalizeMethodKey(data?.status || data?.paymentStatus || '');
-  const providerEventId = (data?.eventId as string) || sessionId;
+  let data: { status: string; providerEventId?: string };
+  try { data = await callContract(payment.paymentMethod, 'payment', 1, 'getSessionStatus', { sessionId }) as typeof data; } catch { return false; }
+  const status = normalizeMethodKey(data.status);
+  const providerEventId = data.providerEventId || sessionId;
 
   if (payment.providerEventId && payment.providerEventId === providerEventId) {
     return false;
@@ -167,7 +156,7 @@ export async function syncPaymentFromPlugin(sessionId: string): Promise<boolean>
     return recordPaymentSucceeded({
       paymentId: payment.id,
       providerEventId,
-      paymentIntentId: (data?.paymentIntentId as string) || null,
+      paymentIntentId: null,
     });
   }
 

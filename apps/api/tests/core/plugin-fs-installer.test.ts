@@ -27,13 +27,15 @@ async function createPluginArchive(
     hostProtocol: 'internal-fastify-v1',
     entryModule: 'dist/index.js',
     permissions: [],
+    category: 'integration',
+    contracts: [],
     lifecycle: options.lifecycle,
   }, null, 2));
   await fs.writeFile(path.join(sourceDir, 'package.json'), JSON.stringify({ name: slug, version: '1.0.0' }));
   await fs.writeFile(path.join(sourceDir, 'LICENSE'), 'GPL-3.0');
   await fs.writeFile(
     path.join(sourceDir, 'dist', 'index.js'),
-    options.entrySource ?? "module.exports = async function plugin(fastify) { fastify.get('/status', async () => ({ status: 'active' })); };\n",
+    options.entrySource ?? "module.exports = { register(ctx) { ctx.http.route({ method: 'GET', path: '/status', handler: async () => ({ status: 'active' }) }); } };\n",
   );
 
   await new Promise<void>((resolve, reject) => {
@@ -104,7 +106,7 @@ describe('PluginFsInstaller unsigned packages', () => {
     const markerPath = path.join(os.tmpdir(), `${hookSlug}.txt`);
     const entrySource = `
 const fs = require('fs/promises');
-module.exports = async function plugin() {};
+module.exports = { register() {} };
 module.exports.__lifecycle_onUpgrade = async function onUpgrade() { await fs.appendFile(${JSON.stringify(markerPath)}, 'upgrade\\n'); };
 module.exports.__lifecycle_onUninstall = async function onUninstall() { await fs.appendFile(${JSON.stringify(markerPath)}, 'uninstall\\n'); };
 `;

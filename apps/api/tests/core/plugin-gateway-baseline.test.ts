@@ -50,7 +50,7 @@ describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
       runtimeType: 'internal-fastify',
       hostProtocol: 'internal-fastify-v1',
       entryModule,
-      permissions: [],
+      permissions: [], category: 'integration', contracts: [],
     };
     await fs.writeFile(
       path.join(pluginDir, 'manifest.json'),
@@ -68,16 +68,16 @@ describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
     await fs.writeFile(
       path.join(pluginDir, entryModule),
       `
-module.exports = async function plugin(fastify) {
-  fastify.get('/health', async () => ({ status: 'ok', slug: '${slug}' }));
-  fastify.post('/echo', async (request) => ({ received: request.body }));
-  fastify.get('/headers', async (request) => ({
+module.exports = { register(ctx) {
+  ctx.http.route({ method: 'GET', path: '/health', handler: async () => ({ status: 'ok', slug: '${slug}' }) });
+  ctx.http.route({ method: 'POST', path: '/echo', handler: async (request) => ({ received: request.body }) });
+  ctx.http.route({ method: 'GET', path: '/headers', handler: async (request) => ({
     caller: request.headers['x-caller'] || null,
     userId: request.headers['x-user-id'] || null,
     userRole: request.headers['x-user-role'] || null,
     platformId: request.headers['x-platform-id'] || null
-  }));
-};
+  }) });
+} };
       `.trim(),
       'utf-8',
     );
@@ -88,7 +88,7 @@ module.exports = async function plugin(fastify) {
         name: 'Baseline Gateway Test Plugin',
         version: '1.0.0',
         description: 'Plugin gateway baseline tests',
-        category: 'general',
+        category: 'integration',
         runtimeType: 'internal-fastify',
         entryModule,
         source: 'local-zip',

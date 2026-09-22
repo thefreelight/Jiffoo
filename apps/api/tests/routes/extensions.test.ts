@@ -42,24 +42,24 @@ async function createUnsignedPluginArchive(
     version: '1.0.0',
     description: 'Exercises the normal in-process upload path.',
     author: 'Jiffoo Test',
-    category: 'other',
+    category: 'integration',
     runtimeType: 'internal-fastify',
     hostProtocol: 'internal-fastify-v1',
     ...(options.manifestTrustLevel === undefined ? {} : { trustLevel: options.manifestTrustLevel }),
     entryModule: options.entryModule ?? 'dist/index.js',
     permissions: [],
-    capabilities: [],
+    contracts: [],
   }, null, 2));
   if (options.packageType) {
     await fs.writeFile(path.join(packageDir, 'package.json'), JSON.stringify({ type: options.packageType }));
   }
-  await fs.writeFile(path.join(packageDir, options.entryModule ?? 'dist/index.js'), `module.exports = async function plugin(fastify) {
-  fastify.get('/health', async () => ({ status: 'healthy' }));
-  fastify.get('/status', async (request) => ({
+  await fs.writeFile(path.join(packageDir, options.entryModule ?? 'dist/index.js'), `module.exports = { register(ctx) {
+  ctx.http.route({ method: 'GET', path: '/health', handler: async () => ({ status: 'healthy' }) });
+  ctx.http.route({ method: 'GET', path: '/status', handler: async (request) => ({
     pluginSlug: request.headers['x-plugin-slug'],
     status: 'active',
-  }));
-};
+  }) });
+} };
 `);
 
   await new Promise<void>((resolve, reject) => {

@@ -61,8 +61,8 @@ vi.mock('@/core/logger/unified-logger', () => ({
   },
 }));
 
-vi.mock('@/core/payment/plugin-gateway', () => ({
-  callPaymentPlugin: vi.fn(),
+vi.mock('@/core/admin/extension-installer/plugin-runtime', () => ({
+  callContract: vi.fn(),
 }));
 
 // ---------------------------------------------------------------------------
@@ -75,7 +75,7 @@ import { PluginManagementService } from '@/core/admin/plugin-management/service'
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { CacheService } from '@/core/cache/service';
 import { authMiddleware } from '@/core/auth/middleware';
-import { callPaymentPlugin } from '@/core/payment/plugin-gateway';
+import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -95,7 +95,7 @@ const TEST_GATEWAY_PACKAGE = {
     hostProtocol: 'internal-fastify-v1',
     entryModule: 'server/index.js',
     permissions: [],
-    supportedCurrencies: ['USD', 'EUR'],
+    contracts: [{ name: 'payment', version: 1 }],
   },
 };
 
@@ -117,6 +117,9 @@ function setupDefaultMocks() {
   (PluginManagementService.getDefaultInstance as ReturnType<typeof vi.fn>).mockResolvedValue(
     ENABLED_INSTANCE,
   );
+  (callContract as ReturnType<typeof vi.fn>).mockResolvedValue({
+    displayName: 'Test Gateway', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD', 'EUR'],
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -264,11 +267,9 @@ describe('Payment Routes', () => {
         paymentAttempts: 0,
       });
       (prisma.payment.findUnique as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-      (callPaymentPlugin as ReturnType<typeof vi.fn>).mockResolvedValue({
-        ok: true,
-        status: 200,
-        payload: { data: { sessionId: 'test-gateway-session-1', url: 'https://gateway.example/session' } },
-      });
+      (callContract as ReturnType<typeof vi.fn>).mockImplementation(async (_slug: string, _name: string, _version: number, method: string) => method === 'describe'
+        ? { displayName: 'Test Gateway', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD', 'EUR'] }
+        : { sessionId: 'test-gateway-session-1', action: { type: 'redirect', url: 'https://gateway.example/session' } });
       const tx = {
         payment: { create: vi.fn().mockResolvedValue({ id: 'payment-1' }) },
         paymentLedger: { create: vi.fn().mockResolvedValue({}) },
@@ -283,7 +284,7 @@ describe('Payment Routes', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(callPaymentPlugin).toHaveBeenCalledWith(expect.objectContaining({ pluginSlug: 'test-gateway-payment' }));
+      expect(callContract).toHaveBeenCalledWith('test-gateway-payment', 'payment', 1, 'createSession', expect.objectContaining({ amountMinor: 1234 }));
       expect(tx.payment.create).toHaveBeenCalledWith(expect.objectContaining({
         data: expect.objectContaining({ paymentMethod: 'test-gateway-payment' }),
       }));

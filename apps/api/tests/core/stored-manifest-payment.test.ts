@@ -61,11 +61,11 @@ describe('stored payment manifests', () => {
     await prisma.pluginInstall.deleteMany({ where: { slug: { in: [validSlug, invalidSlug] } } });
   });
 
-  it('excludes a plugin whose stored manifest is invalid from available payment methods', async () => {
+  it('excludes stored manifests that cannot provide a payment v1 contract runtime', async () => {
     const response = await app.inject({ method: 'GET', url: '/api/v1/payments/available-methods' });
 
     expect(response.statusCode).toBe(200);
-    expect(response.json().data.map((method: { pluginSlug: string }) => method.pluginSlug)).toContain(validSlug);
+    expect(response.json().data.map((method: { pluginSlug: string }) => method.pluginSlug)).not.toContain(validSlug);
     expect(response.json().data.map((method: { pluginSlug: string }) => method.pluginSlug)).not.toContain(invalidSlug);
   });
 });

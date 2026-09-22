@@ -12,18 +12,17 @@ import { FastifyInstance, FastifyReply } from 'fastify';
 import { authMiddleware } from '@/core/auth/middleware';
 import { prisma } from '@/config/database';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
-import { readStoredPluginManifest } from '@/core/admin/extension-installer/stored-manifest';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { paymentSchemas } from './schemas';
 import { CacheService } from '@/core/cache/service';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { PaymentStatus } from '@/core/order/types';
-import type { PluginManifest } from '@jiffoo/shared';
 import { syncPaymentFromPlugin } from '@/core/payment/reconciliation';
-import { callPaymentPlugin } from '@/core/payment/plugin-gateway';
+import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { builtinManualPaymentDriver, MANUAL_PAYMENT_METHOD } from '@/core/payment/manual-payment';
 import { Prisma } from '@prisma/client';
+import { decimalToMinor } from './minor-units';
 
 function setHttpCache(reply: FastifyReply, data: unknown, maxAge: number, swr: number) {
   const etag = `"${createHash('md5').update(JSON.stringify(data)).digest('hex')}"`;
@@ -48,31 +47,8 @@ type PaymentMethodDescriptor = {
   };
 };
 
-function parseManifestJson(manifestJson: unknown): Record<string, unknown> | null {
-  if (!manifestJson) return null;
-  if (typeof manifestJson === 'object' && !Array.isArray(manifestJson)) {
-    return manifestJson as Record<string, unknown>;
-  }
-  if (typeof manifestJson !== 'string') return null;
-  try {
-    const parsed = JSON.parse(manifestJson);
-    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null;
-  } catch {
-    return null;
-  }
-}
-
 function normalizeMethodKey(value: unknown): string {
   return String(value || '').trim().toLowerCase();
-}
-
-function normalizeCurrencies(manifest: Record<string, unknown> | null): string[] {
-  const raw = manifest?.supportedCurrencies;
-  if (!Array.isArray(raw)) return ['USD'];
-  const values = raw
-    .map((item: unknown) => String(item || '').toUpperCase())
-    .filter((item: string) => /^[A-Z]{3}$/.test(item));
-  return values.length > 0 ? values : ['USD'];
 }
 
 function parseConfigJson(configJson: unknown): Record<string, unknown> {
@@ -114,21 +90,18 @@ async function getEnabledPaymentMethods(): Promise<PaymentMethodDescriptor[]> {
       continue;
     }
 
-    let manifest: PluginManifest;
+    if (!(pkg.manifestJson as any)?.contracts?.some((contract: any) => contract?.name === 'payment' && contract?.version === 1)) continue;
     try {
-      manifest = readStoredPluginManifest(pkg);
-    } catch {
-      continue;
-    }
-    const manifestRecord = parseManifestJson(manifest);
+      const description = await callContract(pkg.slug, 'payment', 1, 'describe', {} as any) as any;
     methods.push({
       pluginSlug: pkg.slug,
       name: pkg.slug,
-      displayName: pkg.name || pkg.slug,
-      icon: manifestRecord?.icon ? String(manifestRecord.icon) : `/icons/${pkg.slug}.svg`,
-      supportedCurrencies: normalizeCurrencies(manifestRecord),
+      displayName: description.displayName,
+      icon: `/icons/${pkg.slug}.svg`,
+      supportedCurrencies: description.supportedCurrencies,
       isLive: isLiveMode(parseConfigJson(defaultInstance.configJson)),
     });
+    } catch { continue; }
   }
 
   return methods;
@@ -339,42 +312,16 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         }
       }
 
-      const pluginResult = await callPaymentPlugin({
-        pluginSlug: pluginSlug!,
-        path: '/api/payments/create-session?installation=default',
-        body: {
+      const session = await callContract(pluginSlug!, 'payment', 1, 'createSession', {
           orderId: order.id,
-          amount: Number(order.totalAmount),
+          amountMinor: decimalToMinor(order.totalAmount as unknown as string | number, currency),
           currency,
-          successUrl,
-          cancelUrl,
+          customer: { id: request.user!.id, email: request.user!.email },
+          returnUrl: successUrl || `${getShopOrigin()}/payment/return`,
+          cancelUrl: cancelUrl || `${getShopOrigin()}/payment/cancel`,
           idempotencyKey,
-          metadata: {
-            userId: request.user!.id,
-            idempotencyKey,
-          },
-        },
-        headers: {
-          ...(request.headers.authorization ? { authorization: request.headers.authorization as string } : {}),
-          ...(request.headers.cookie ? { cookie: request.headers.cookie as string } : {}),
-        },
-      });
-
-      if (!pluginResult.ok) {
-        const reason = getPluginErrorMessage(pluginResult.payload, pluginResult.status);
-        if ([400, 401, 403, 404, 409, 422].includes(pluginResult.status)) {
-          return sendError(reply, pluginResult.status, 'PAYMENT_PLUGIN_FAILED', reason);
-        }
-        if (pluginResult.status === 503 && pluginResult.payload?.error === 'payment_plugin_circuit_open') {
-          return sendError(reply, 503, 'PAYMENT_PLUGIN_UNAVAILABLE', reason);
-        }
-        return sendError(reply, 502, 'PAYMENT_PLUGIN_FAILED', reason);
-      }
-
-      const session = (pluginResult.payload?.data ?? pluginResult.payload) as Record<string, unknown>;
-      if (!session?.sessionId || !session?.url) {
-        return sendError(reply, 502, 'PAYMENT_PLUGIN_INVALID_RESPONSE', 'Payment plugin returned invalid create-session response');
-      }
+        }) as any;
+      const sessionUrl = session.action.type === 'redirect' ? session.action.url : undefined;
 
       const expiresAt = session.expiresAt ? new Date(String(session.expiresAt)) : new Date(Date.now() + 30 * 60 * 1000);
 
@@ -388,8 +335,8 @@ export async function paymentRoutes(fastify: FastifyInstance) {
               currency,
               status: 'PENDING',
               sessionId: session.sessionId as string,
-              sessionUrl: session.url as string,
-              paymentIntentId: (session.paymentIntentId as string) || null,
+              sessionUrl: sessionUrl || null,
+              paymentIntentId: null,
               attemptNumber,
               idempotencyKey,
               expiresAt,
@@ -448,7 +395,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
 
       return sendSuccess(reply, {
         sessionId: session.sessionId as string,
-        url: session.url as string,
+        url: sessionUrl,
         expiresAt: expiresAt.toISOString(),
       });
     } catch (error: any) {
@@ -513,7 +460,10 @@ export async function paymentRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const { provider } = request.params as { provider: string };
     LoggerService.logPayment('webhook-received', undefined, undefined, { provider });
-
+    const rawBody = typeof request.body === 'string' ? request.body : JSON.stringify(request.body || {});
+    const result = await callContract(provider, 'payment', 1, 'handleWebhook', { headers: request.headers as Record<string, string>, query: request.query as Record<string, string>, rawBody }) as any;
+    const { applyNormalizedPluginWebhook } = await import('./plugin-webhook');
+    await Promise.all(result.events.map((event: any) => applyNormalizedPluginWebhook(provider, { received: true, handled: true, providerEventId: event.providerEventId, sessionId: event.sessionId, normalizedStatus: event.status })));
     return sendSuccess(reply, { received: true });
   });
 }

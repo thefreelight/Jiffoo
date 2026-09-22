@@ -1,239 +1,63 @@
 import { createHash } from 'crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { prisma } from '@/config/database';
-import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
+import { paymentV1Methods, type PluginContext, type PluginEntryModule } from '@jiffoo/shared';
 
 type JsonObject = Record<string, unknown>;
-
-type ContractMigration = {
-  id: string;
-  sql: string;
-};
-
-type ContractRoute = {
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
-  path: string;
-  handler(request: FastifyRequest, reply: FastifyReply): unknown;
-};
-
-type PaymentDriver = {
-  createSession?(input: JsonObject): Promise<unknown> | unknown;
-  verifySession?(sessionId: string): Promise<unknown> | unknown;
-  capture?(input: JsonObject): Promise<unknown> | unknown;
-  refund?(input: JsonObject): Promise<unknown> | unknown;
-  handleWebhook?(input: JsonObject): Promise<unknown> | unknown;
-};
-
-export type ContractV1Runtime = {
-  manifest: {
-    id: string;
-    version: string;
-    contract: 'v1';
-  };
-  migrations?: ContractMigration[];
-  register(ctx: JsonObject): void;
-};
-
-type RuntimeOptions = {
-  slug: string;
-  installationId: string;
-  config: JsonObject;
-};
-
-const services = new Map<string, unknown>();
+type RuntimeOptions = { slug: string; installationId: string; version: string; config: JsonObject; declaredContracts: Array<{ name: string; version: number }> };
 type EventHandler = (payload: unknown) => Promise<unknown> | unknown;
 const eventHandlers = new Map<string, Map<string, Set<EventHandler>>>();
 
-export async function dispatchContractV1Event(
-  installationId: string,
-  eventType: string,
-  payload: unknown,
-): Promise<number> {
+export async function dispatchContractV1Event(installationId: string, eventType: string, payload: unknown): Promise<number> {
   const handlers = eventHandlers.get(installationId)?.get(eventType);
-  if (!handlers || handlers.size === 0) return 0;
+  if (!handlers?.size) return 0;
   const results = await Promise.allSettled([...handlers].map((handler) => handler(payload)));
   const failures = results.filter((result) => result.status === 'rejected');
-  if (failures.length > 0) {
-    throw new AggregateError(failures.map((failure) => failure.reason), `Plugin event handler failures for installation ${installationId}`);
-  }
+  if (failures.length) throw new AggregateError(failures.map((failure) => failure.reason), `Plugin event handler failures for installation ${installationId}`);
   return handlers.size;
 }
-
-export function clearContractV1EventHandlers(installationId: string): void {
-  eventHandlers.delete(installationId);
-}
-
-function checksum(sql: string): string {
-  return createHash('sha256').update(sql).digest('hex');
-}
-
-function settingValue(slug: string, config: JsonObject, key: string): unknown {
-  if (Object.prototype.hasOwnProperty.call(config, key)) return config[key];
-  const prefix = `${slug}.`;
-  const unprefixed = key.startsWith(prefix) ? key.slice(prefix.length) : key;
-  return config[unprefixed];
-}
-
-export function isContractV1Runtime(value: unknown): value is ContractV1Runtime {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as Partial<ContractV1Runtime>;
-  return candidate.manifest?.contract === 'v1' && typeof candidate.register === 'function';
-}
-
-async function ensureMigrationLedger(): Promise<void> {
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS plugin_runtime_migrations (
-      plugin_slug TEXT NOT NULL,
-      migration_id TEXT NOT NULL,
-      checksum TEXT NOT NULL,
-      applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      PRIMARY KEY (plugin_slug, migration_id)
-    )
-  `);
-}
-
-export async function runContractV1Migrations(
-  slug: string,
-  migrations: ContractMigration[] = [],
-): Promise<void> {
-  if (migrations.length === 0) return;
+export function clearContractV1EventHandlers(installationId: string): void { eventHandlers.delete(installationId); }
+export function isContractV1Runtime(value: unknown): value is PluginEntryModule { return !!value && typeof value === 'object' && typeof (value as PluginEntryModule).register === 'function'; }
+function checksum(sql: string): string { return createHash('sha256').update(sql).digest('hex'); }
+async function ensureMigrationLedger(): Promise<void> { await prisma.$executeRawUnsafe('CREATE TABLE IF NOT EXISTS plugin_runtime_migrations (plugin_slug TEXT NOT NULL, migration_id TEXT NOT NULL, checksum TEXT NOT NULL, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), PRIMARY KEY (plugin_slug, migration_id))'); }
+export async function runContractV1Migrations(slug: string, migrations: Array<{ id: string; sql: string }> = []): Promise<void> {
+  if (!migrations.length) return;
   await ensureMigrationLedger();
-
   for (const migration of migrations) {
     const expectedChecksum = checksum(migration.sql);
     await prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', slug);
-      const existing = await tx.$queryRawUnsafe<Array<{ checksum: string }>>(
-        'SELECT checksum FROM plugin_runtime_migrations WHERE plugin_slug = $1 AND migration_id = $2',
-        slug,
-        migration.id,
-      );
-      if (existing[0]) {
-        if (existing[0].checksum !== expectedChecksum) {
-          throw new Error(`PLUGIN_MIGRATION_DRIFT:${slug}:${migration.id}`);
-        }
-        return;
-      }
-
+      const existing = await tx.$queryRawUnsafe<Array<{ checksum: string }>>('SELECT checksum FROM plugin_runtime_migrations WHERE plugin_slug = $1 AND migration_id = $2', slug, migration.id);
+      if (existing[0]) { if (existing[0].checksum !== expectedChecksum) throw new Error(`PLUGIN_MIGRATION_DRIFT:${slug}:${migration.id}`); return; }
       await tx.$executeRawUnsafe(migration.sql);
-      await tx.$executeRawUnsafe(
-        'INSERT INTO plugin_runtime_migrations (plugin_slug, migration_id, checksum) VALUES ($1, $2, $3)',
-        slug,
-        migration.id,
-        expectedChecksum,
-      );
+      await tx.$executeRawUnsafe('INSERT INTO plugin_runtime_migrations (plugin_slug, migration_id, checksum) VALUES ($1, $2, $3)', slug, migration.id, expectedChecksum);
     });
   }
 }
-
-function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver, pluginSlug: string): void {
-  if (driver.createSession) {
-    app.post('/api/payments/create-session', async (request, reply) => {
-      const body = (request.body || {}) as JsonObject;
-      const amount = Number(body.amount || 0);
-      const result = await driver.createSession!({
-        orderId: String(body.orderId || ''),
-        amountMinor: Math.round(amount * 100),
-        currency: String(body.currency || 'USD'),
-        successUrl: body.successUrl,
-        cancelUrl: body.cancelUrl,
-        idempotencyKey: body.idempotencyKey,
-        metadata: body.metadata && typeof body.metadata === 'object' ? body.metadata : {},
-      });
-      return reply.send({ success: true, data: result });
-    });
-  }
-
-  if (driver.verifySession) {
-    app.get('/api/payments/verify-session', async (request, reply) => {
-      const { sessionId } = request.query as { sessionId?: string };
-      if (!sessionId) return reply.code(400).send({ success: false, error: 'sessionId is required' });
-      return reply.send({ success: true, data: await driver.verifySession!(sessionId) });
-    });
-    app.get('/api/payments/verify/:sessionId', async (request, reply) => {
-      const { sessionId } = request.params as { sessionId: string };
-      return reply.send({ success: true, data: await driver.verifySession!(sessionId) });
-    });
-  }
-
-  if (driver.handleWebhook) {
-    app.post('/api/payments/webhook', async (request, reply) => {
-      const result = await driver.handleWebhook!({
-        headers: request.headers,
-        payload: request.body || {},
-      });
-      if (result && typeof result === 'object') {
-        await applyNormalizedPluginWebhook(pluginSlug, result as Record<string, unknown>);
-      }
-      return reply.send({ success: true, data: result });
-    });
-  }
+function subscribe(installationId: string, eventType: string, handler: EventHandler): () => void {
+  let installation = eventHandlers.get(installationId); if (!installation) { installation = new Map(); eventHandlers.set(installationId, installation); }
+  let handlers = installation.get(eventType); if (!handlers) { handlers = new Set(); installation.set(eventType, handlers); }
+  handlers.add(handler); return () => handlers!.delete(handler);
 }
-
-export async function registerContractV1Runtime(
-  app: FastifyInstance,
-  runtime: ContractV1Runtime,
-  options: RuntimeOptions,
-): Promise<void> {
+export async function registerContractV1Runtime(app: FastifyInstance, runtime: PluginEntryModule, options: RuntimeOptions): Promise<void> {
   await runContractV1Migrations(options.slug, runtime.migrations);
   clearContractV1EventHandlers(options.installationId);
-
-  const context: JsonObject = {
-    db: {
-      execute: (sql: string) => prisma.$executeRawUnsafe(sql),
-      query: <Row extends JsonObject>(sql: string) => prisma.$queryRawUnsafe<Row[]>(sql),
-    },
-    settings: {
-      get: (key: string) => settingValue(options.slug, options.config, key),
-      set: async (key: string, value: unknown) => {
-        const prefix = `${options.slug}.`;
-        const normalizedKey = key.startsWith(prefix) ? key.slice(prefix.length) : key;
-        options.config[normalizedKey] = value;
-        await prisma.pluginInstallation.update({
-          where: { id: options.installationId },
-          data: { configJson: options.config },
-        });
-      },
-    },
-    logger: {
-      info: (message: string, data?: unknown) => console.info(`[plugin:${options.slug}] ${message}`, data || ''),
-      warn: (message: string, data?: unknown) => console.warn(`[plugin:${options.slug}] ${message}`, data || ''),
-      error: (message: string, data?: unknown) => console.error(`[plugin:${options.slug}] ${message}`, data || ''),
-    },
-    events: {
-      subscribe: (eventType: string, handler: EventHandler) => {
-        let installationHandlers = eventHandlers.get(options.installationId);
-        if (!installationHandlers) {
-          installationHandlers = new Map();
-          eventHandlers.set(options.installationId, installationHandlers);
-        }
-        let handlers = installationHandlers.get(eventType);
-        if (!handlers) {
-          handlers = new Set();
-          installationHandlers.set(eventType, handlers);
-        }
-        handlers.add(handler);
-        return () => handlers!.delete(handler);
-      },
-      publish: async () => undefined,
-    },
-    registerRoute: (route: ContractRoute) => {
-      app.route({
-        method: route.method,
-        url: route.path,
-        handler: route.handler,
-      });
-    },
-    registerDriver: (kind: string, driver: PaymentDriver) => {
-      if (kind === 'payment') registerPaymentDriver(app, driver, options.slug);
-    },
-    registerJob: () => undefined,
-    registerAdminUI: () => undefined,
-    registerStorefrontSlot: () => undefined,
-    exposeService: (name: string, service: unknown) => services.set(name, service),
-    useService: (name: string) => services.get(name),
-    core: {},
+  const implemented = new Set<string>();
+  const context: PluginContext = {
+    plugin: { slug: options.slug, installationId: options.installationId, version: options.version }, config: Object.freeze({ ...options.config }),
+    logger: { info: (message, data) => console.info(`[plugin:${options.slug}] ${message}`, data ?? ''), warn: (message, data) => console.warn(`[plugin:${options.slug}] ${message}`, data ?? ''), error: (message, data) => console.error(`[plugin:${options.slug}] ${message}`, data ?? '') },
+    http: { route: (route) => app.route({ method: route.method as any, url: route.path, handler: route.handler as any }) },
+    events: { subscribe: (eventType, handler) => subscribe(options.installationId, eventType, handler) },
+    contracts: { implement: (name, version, implementation) => {
+      if (name !== 'payment' || version !== 1) throw new Error(`Unsupported contract ${name} v${version}`);
+      if (!options.declaredContracts.some((contract) => contract.name === name && contract.version === version)) throw new Error(`Plugin implements undeclared contract ${name} v${version}`);
+      implemented.add(`${name}:v${version}`);
+      for (const [method, handler] of Object.entries(implementation)) {
+        if (!(method in paymentV1Methods) || typeof handler !== 'function') throw new Error(`Unknown payment v1 method ${method}`);
+        app.post(`/__contracts/payment/v1/${method}`, async (request: FastifyRequest, reply: FastifyReply) => reply.send(await handler(request.body)));
+      }
+    } },
   };
-
-  runtime.register(context);
+  await runtime.register(context);
+  for (const contract of options.declaredContracts) if (!implemented.has(`${contract.name}:v${contract.version}`)) throw new Error(`Plugin declared but did not implement contract ${contract.name} v${contract.version}`);
 }

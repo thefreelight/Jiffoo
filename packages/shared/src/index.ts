@@ -7,6 +7,7 @@ export * from './types/order';
 export * from './types/cart';
 export * from './types/common';
 export * from './extensions/plugin-contract';
+export * from './extensions/contracts';
 
 export * from './events/core-events';
 

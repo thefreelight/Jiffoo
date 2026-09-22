@@ -36,9 +36,10 @@ import {
 import { registerPluginStateReset } from './plugin-state';
 import { recordPluginFailure } from './plugin-failure';
 import { readStoredPluginManifest } from './stored-manifest';
-import { getPluginManifestIssues, isPluginManifest } from '@jiffoo/shared';
+import { getPluginManifestIssues, isPluginManifest, paymentV1Methods, type PaymentV1Method } from '@jiffoo/shared';
 import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from './plugin-registry-freshness';
+import { getPluginTimeoutMs, isBreakerAllowed, recordBreakerResult } from './gateway-protection';
 
 // ============================================================================
 // Constants
@@ -589,8 +590,8 @@ async function ensureInternalRuntime(
   try {
     const mod = await loadPluginEntryModule(entryPath, { version: manifest.version });
     const pluginEntry = (mod as any).default || mod;
-    if (typeof pluginEntry !== 'function' && !isContractV1Runtime(pluginEntry)) {
-      throw new Error('Plugin does not export a Fastify plugin function');
+    if (!isContractV1Runtime(pluginEntry)) {
+      throw new Error('Plugin entry module must export an object with register(ctx)');
     }
 
     // Phase 1: Create candidate runtime (new Fastify instance)
@@ -598,15 +599,13 @@ async function ensureInternalRuntime(
     const config = ctx.config || {};
     
     // Phase 2: Register and ready (may fail here)
-    if (isContractV1Runtime(pluginEntry)) {
-      await registerContractV1Runtime(candidateApp, pluginEntry, {
-        slug,
-        installationId: ctx.installationId,
-        config,
-      });
-    } else {
-      await candidateApp.register(pluginEntry, config as any);
-    }
+    await registerContractV1Runtime(candidateApp, pluginEntry, {
+      slug,
+      installationId: ctx.installationId,
+      version: manifest.version,
+      config,
+      declaredContracts: manifest.contracts || [],
+    });
     await candidateApp.ready();
 
     // Phase 3: Candidate succeeded - create runtime object
@@ -633,6 +632,7 @@ async function ensureInternalRuntime(
 
     return newRuntime;
   } catch (error: any) {
+    await recordPluginFailure(slug, error, 'load');
     // Candidate failed: old runtime (if exists) remains in map and continues serving
     throw new PluginGatewayError(
       `Failed to load plugin "${slug}" for instance "${ctx.instanceKey}": ${error?.message || 'Unknown error'}`,
@@ -659,6 +659,47 @@ export async function dropInternalRuntime(installationId: string): Promise<boole
     return true;
   }
   return false;
+}
+
+export class ContractCallError extends Error {
+  constructor(public readonly code: 'CONTRACT_RESPONSE_INVALID' | 'CONTRACT_CALL_FAILED', message: string) { super(message); }
+}
+
+export async function callContract<M extends PaymentV1Method>(
+  slug: string,
+  contractName: 'payment',
+  version: 1,
+  method: M,
+  input: unknown,
+): Promise<unknown> {
+  await ensurePluginRegistryFresh();
+  if (contractName !== 'payment' || version !== 1 || !(method in paymentV1Methods)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Unsupported contract ${contractName} v${version}/${method}`);
+  const pkg = await PluginManagementService.getPluginPackage(slug);
+  const instance = await PluginManagementService.getDefaultInstance(slug);
+  if (!pkg || !instance?.enabled || instance.deletedAt) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} is not enabled`);
+  let manifest: PluginManifest;
+  try { manifest = await readPluginManifest(pkg); } catch (error) { await recordPluginFailure(slug, error, 'contract'); throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} manifest is invalid`); }
+  if (!manifest.contracts?.some((contract) => contract.name === contractName && contract.version === version)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} does not declare ${contractName} v${version}`);
+  if (!isBreakerAllowed(slug)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} circuit breaker is open`);
+  try {
+    const runtime = await ensureInternalRuntime(slug, manifest, { slug, installationId: instance.id, instanceKey: instance.instanceKey, config: parseJsonObject(instance.configJson) });
+    const response = await Promise.race([
+      runtime.app.inject({ method: 'POST', url: `/__contracts/${contractName}/v${version}/${method}`, payload: input as Record<string, unknown> }),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Contract call timed out')), getPluginTimeoutMs())),
+    ]);
+    if (response.statusCode >= 400) throw new Error(`Contract route returned ${response.statusCode}`);
+    const parsed = paymentV1Methods[method].output.safeParse(response.json());
+    if (!parsed.success) {
+      const error = new ContractCallError('CONTRACT_RESPONSE_INVALID', `Invalid ${contractName} v${version} ${method} response: ${parsed.error.message}`);
+      await recordPluginFailure(slug, error, 'contract'); recordBreakerResult(slug, false); throw error;
+    }
+    recordBreakerResult(slug, true);
+    return parsed.data;
+  } catch (error) {
+    if (error instanceof ContractCallError) throw error;
+    await recordPluginFailure(slug, error, 'contract'); recordBreakerResult(slug, false);
+    throw new ContractCallError('CONTRACT_CALL_FAILED', `Contract call failed for ${slug}: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 registerPluginStateReset('internal-runtimes', async (slug, installationId) => {
