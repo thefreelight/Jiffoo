@@ -203,7 +203,7 @@ describe('Payment Routes', () => {
       (systemSettingsService.getShopCurrency as ReturnType<typeof vi.fn>).mockResolvedValue('USD');
       (prisma.order.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'order-1',
-        totalAmount: 12.34,
+        totalAmount: 19.99,
         paymentStatus: 'PENDING',
         paymentAttempts: 0,
       });
@@ -262,7 +262,7 @@ describe('Payment Routes', () => {
       setupDefaultMocks();
       (prisma.order.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
         id: 'order-1',
-        totalAmount: 12.34,
+        totalAmount: 19.99,
         paymentStatus: 'PENDING',
         paymentAttempts: 0,
       });
@@ -284,10 +284,36 @@ describe('Payment Routes', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(callContract).toHaveBeenCalledWith('test-gateway-payment', 'payment', 1, 'createSession', expect.objectContaining({ amountMinor: 1234 }));
+      expect(callContract).toHaveBeenLastCalledWith('test-gateway-payment', 'payment', 1, 'createSession', expect.objectContaining({ amountMinor: 1999 }));
       expect(tx.payment.create).toHaveBeenCalledWith(expect.objectContaining({
         data: expect.objectContaining({ paymentMethod: 'test-gateway-payment' }),
       }));
+    });
+
+    it('applies a payment v1 webhook event to the matching order', async () => {
+      (callContract as ReturnType<typeof vi.fn>).mockResolvedValue({
+        events: [{ providerEventId: 'provider-event-1', sessionId: 'plugin-session-1', status: 'succeeded' }],
+      });
+      const tx = {
+        paymentLedger: { findUnique: vi.fn().mockResolvedValue(null), create: vi.fn().mockResolvedValue({}) },
+        payment: { update: vi.fn().mockResolvedValue({ id: 'payment-1', sessionId: 'plugin-session-1' }) },
+        order: {
+          findUnique: vi.fn().mockResolvedValue(null),
+          update: vi.fn().mockResolvedValue({ id: 'order-1', status: 'PROCESSING', paymentStatus: 'PAID' }),
+        },
+        orderStatusHistory: { create: vi.fn().mockResolvedValue({}) },
+        outboxEvent: { create: vi.fn().mockResolvedValue({}) },
+      };
+      (prisma.payment.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue({
+        id: 'payment-1', orderId: 'order-1', amount: 19.99, currency: 'USD', metadata: {},
+        order: { status: 'PENDING', paymentStatus: 'PENDING' },
+      });
+      (prisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation((callback: (client: typeof tx) => unknown) => callback(tx));
+
+      const response = await app.inject({ method: 'POST', url: '/api/v1/payments/webhook/test-gateway-payment', payload: { event: 'paid' } });
+
+      expect(response.statusCode).toBe(200);
+      expect(tx.order.update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ paymentStatus: 'PAID' }) }));
     });
   });
 

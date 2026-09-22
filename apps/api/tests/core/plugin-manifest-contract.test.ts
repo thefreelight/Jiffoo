@@ -61,4 +61,16 @@ describe('Plugin manifest contract', () => {
       message: 'Core decides the trust tier; manifest trustLevel is not allowed',
     }));
   });
+
+  it('rejects the removed capabilities field', () => {
+    const issues = getPluginManifestIssues({ ...inProcessManifest, capabilities: ['payment'] });
+
+    expect(issues).toContainEqual(expect.objectContaining({ path: 'capabilities', code: 'MANIFEST_FIELD_REMOVED' }));
+  });
+
+  it('requires the payment v1 contract for payment-category manifests', () => {
+    const issues = getPluginManifestIssues({ ...inProcessManifest, category: 'payment', contracts: [] });
+
+    expect(issues).toContainEqual(expect.objectContaining({ path: 'contracts', code: 'MISSING_CATEGORY_CONTRACT' }));
+  });
 });

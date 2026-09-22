@@ -6,6 +6,7 @@ import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { dispatchPluginRuntimeEvent } from '@/core/admin/extension-installer/plugin-runtime';
+import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { dispatchContractV1Event } from '@/core/admin/extension-installer/contract-v1-runtime';
 import { resetPluginRegistryFreshness } from '@/core/admin/extension-installer/plugin-registry-freshness';
 import { loadEnabledPluginRuntimes } from '@/core/admin/extension-installer/plugin-reconciliation';
@@ -37,7 +38,7 @@ describe('Plugin lifecycle reconciliation', () => {
     resetPluginRegistryFreshness();
   });
 
-  async function createPlugin(slug: string, source: string, enabled = true): Promise<string> {
+  async function createPlugin(slug: string, source: string, enabled = true, contracts: Array<{ name: string; version: number }> = []): Promise<string> {
     slugs.push(slug);
     const sourceDirectory = await fs.mkdtemp(path.join(os.tmpdir(), '.plugin-lifecycle-reconciliation-'));
     sourceDirectories.push(sourceDirectory);
@@ -53,6 +54,7 @@ describe('Plugin lifecycle reconciliation', () => {
       hostProtocol: 'internal-fastify-v1',
       entryModule: 'server/index.js',
       permissions: [],
+      contracts,
     };
     await fs.writeFile(path.join(sourceDirectory, 'manifest.json'), JSON.stringify(manifest), 'utf-8');
     await fs.writeFile(path.join(sourceDirectory, 'server', 'index.js'), source, 'utf-8');
@@ -96,6 +98,67 @@ module.exports = {
 
     await expect(PluginManagementService.updateInstance(installationId, { enabled: true })).rejects.toThrow('Plugin runtime failed to load');
     expect((await prisma.pluginInstallation.findUnique({ where: { id: installationId } }))?.enabled).toBe(false);
+  });
+
+  it('rejects a raw Fastify plugin entry and records the load failure', async () => {
+    const slug = `raw-entry-${Date.now().toString(36)}`.slice(0, 30);
+    const installationId = await createPlugin(slug, 'module.exports = async function plugin() {};');
+
+    await loadEnabledPluginRuntimes();
+
+    const installation = await prisma.pluginInstallation.findUnique({ where: { id: installationId } });
+    expect(installation?.lastFailureMessage).toContain('must export an object with register(ctx)');
+  });
+
+  it('records contract output validation failures from the dispatcher', async () => {
+    const slug = `invalid-output-${Date.now().toString(36)}`.slice(0, 30);
+    const installationId = await createPlugin(slug, `
+module.exports = { register(ctx) {
+  ctx.contracts.implement('payment', 1, {
+    describe: () => ({ displayName: '' }),
+    createSession: () => ({ sessionId: 'session', action: { type: 'instructions', text: 'Pay' } }),
+    getSessionStatus: () => ({ status: 'pending' }),
+  });
+} };`, true, [{ name: 'payment', version: 1 }]);
+
+    await expect(callContract(slug, 'payment', 1, 'describe', {})).rejects.toMatchObject({ code: 'CONTRACT_RESPONSE_INVALID' });
+    const installation = await prisma.pluginInstallation.findUnique({ where: { id: installationId } });
+    expect(installation?.lastFailureMessage).toContain('Invalid payment v1 describe response');
+  });
+
+  it('rejects declared-but-unimplemented and implemented-but-undeclared contracts', async () => {
+    const declaredSlug = `declared-${Date.now().toString(36)}`.slice(0, 30);
+    const undeclaredSlug = `undeclared-${Date.now().toString(36)}`.slice(0, 30);
+    const declaredId = await createPlugin(declaredSlug, 'module.exports = { register() {} };', true, [{ name: 'payment', version: 1 }]);
+    const undeclaredId = await createPlugin(undeclaredSlug, `
+module.exports = { register(ctx) {
+  ctx.contracts.implement('payment', 1, {
+    describe: () => ({ displayName: 'Gateway', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD'] }),
+    createSession: () => ({ sessionId: 'session', action: { type: 'instructions', text: 'Pay' } }),
+    getSessionStatus: () => ({ status: 'pending' }),
+  });
+} };`);
+
+    await loadEnabledPluginRuntimes();
+
+    const [declared, undeclared] = await Promise.all([
+      prisma.pluginInstallation.findUnique({ where: { id: declaredId } }),
+      prisma.pluginInstallation.findUnique({ where: { id: undeclaredId } }),
+    ]);
+    expect(declared?.lastFailureMessage).toContain('declared but did not implement contract payment v1');
+    expect(undeclared?.lastFailureMessage).toContain('implements undeclared contract payment v1');
+  });
+
+  it('requires every mandatory payment v1 method at load time', async () => {
+    const slug = `missing-method-${Date.now().toString(36)}`.slice(0, 30);
+    const installationId = await createPlugin(slug, `
+module.exports = { register(ctx) {
+  ctx.contracts.implement('payment', 1, { describe: () => ({}) });
+} };`, true, [{ name: 'payment', version: 1 }]);
+
+    await loadEnabledPluginRuntimes();
+
+    expect((await prisma.pluginInstallation.findUnique({ where: { id: installationId } }))?.lastFailureMessage).toContain('Payment v1 contract requires createSession');
   });
 
   it('increments the registry version for restore and purge', async () => {

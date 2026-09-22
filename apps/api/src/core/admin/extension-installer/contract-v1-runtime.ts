@@ -51,6 +51,9 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
     contracts: { implement: (name, version, implementation) => {
       if (name !== 'payment' || version !== 1) throw new Error(`Unsupported contract ${name} v${version}`);
       if (!options.declaredContracts.some((contract) => contract.name === name && contract.version === version)) throw new Error(`Plugin implements undeclared contract ${name} v${version}`);
+      for (const method of ['describe', 'createSession', 'getSessionStatus']) {
+        if (typeof implementation[method] !== 'function') throw new Error(`Payment v1 contract requires ${method}`);
+      }
       implemented.add(`${name}:v${version}`);
       for (const [method, handler] of Object.entries(implementation)) {
         if (!(method in paymentV1Methods) || typeof handler !== 'function') throw new Error(`Unknown payment v1 method ${method}`);
