@@ -82,11 +82,9 @@ async function main() {
     const inventoryProfile = getSeedInventoryProfile();
     console.log(`📦 Inventory seed profile: ${inventoryProfile}`);
 
-    // 1) Initialize system settings (including theme rollback state)
+    // 1) Initialize system settings
     console.log('⚙️ Initializing system settings...');
-    const themeSettings = {
-      'theme.active.shop': { slug: 'default', source: 'builtin', version: '1.0.0', config: {}, activatedAt: new Date().toISOString() },
-      'theme.active.admin': { slug: 'default', source: 'builtin', version: '1.0.0', config: {}, activatedAt: new Date().toISOString() },
+    const systemSettings = {
       'localization.currency': 'USD',
       'localization.locale': 'en',
       'localization.timezone': 'UTC',
@@ -100,7 +98,7 @@ async function main() {
     };
     await prisma.systemSettings.upsert({
       where: { id: 'system' },
-      update: { isInstalled: true, settings: themeSettings },
+      update: { isInstalled: true, settings: systemSettings },
       create: {
         id: 'system',
         isInstalled: true,
@@ -110,7 +108,7 @@ async function main() {
         requireEmailVerification: false,
         maintenanceMode: false,
         version: '1.0.0',
-        settings: themeSettings,
+        settings: systemSettings,
       },
     });
     console.log('✅ System settings initialized');
@@ -381,9 +379,6 @@ async function main() {
     }
     console.log(`✅ Created ${sampleProducts.length} sample products`);
 
-    // 5) Create installed themes (metadata) - REMOVED for Open Source compliance (only builtin default)
-    console.log('🎨 Installed themes skipped (using builtin default only)...');
-
     // 6) Create a sample cart with items
     console.log('🛒 Creating sample cart...');
     const cart = await prisma.cart.upsert({
@@ -593,7 +588,6 @@ async function main() {
     console.log(`   - ${sampleProducts.length} sample products created`);
     console.log('   - 5 categories created');
     console.log('   - Variants and product translations created');
-    console.log('   - Themes installed (active/previous stored in SystemSettings)');
     console.log('   - Cart + demo orders created');
     console.log(`   - ${adjustmentCount} inventory adjustments created`);
     console.log('   - 4 stock alerts created');

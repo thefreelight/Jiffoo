@@ -298,14 +298,6 @@ export interface Role {
   permissions: Permission[]
 }
 
-// Cache types
-export interface CacheStats {
-  totalKeys: number
-  memoryUsage: number
-  hitRate: number
-  missRate: number
-}
-
 // Plugin types
 export interface Plugin {
   name: string
@@ -325,105 +317,19 @@ export interface NavItem {
   children?: NavItem[]
 }
 
-// Health Monitoring types
-export interface SystemMetrics {
-  cpu: {
-    usage: number
-    cores: number
-  }
-  memory: {
-    usage: number
-    total: number
-    used: number
-    free: number
-  }
-  disk?: {
-    usage: number
-    total: number
-    used: number
-    free: number
-    path: string
-  }
-  timestamp: string
-  uptime: number
-}
-
-export interface CheckMetrics {
-  name: string
-  totalCalls: number
-  errorCount: number
-  successCount: number
-  errorRate: number
-  avgResponseTime: number
-  minResponseTime: number
-  maxResponseTime: number
-  lastError?: {
-    message: string
-    timestamp: string
-  }
-}
-
-export interface RedisCacheStats {
-  hitRate: number
-  missRate: number
-  keyCount: number
-  memoryUsed: number
-  memoryPeak: number
-  evictedKeys: number
-  connectedClients: number
-  uptime: number
-}
-
-export interface HealthCheckResult {
-  status: 'HEALTHY' | 'DEGRADED' | 'UNHEALTHY'
-  checks: Record<string, {
-    status: 'HEALTHY' | 'DEGRADED' | 'UNHEALTHY'
-    message?: string
-    timestamp: string
-  }>
-  timestamp: string
-}
-
-export interface DatabasePoolStatus {
-  size: number
-  active: number
-  idle: number
-  max: number
-  waiting: number
-  usage: number
-}
-
-export interface HealthMetricsResponse {
-  system: SystemMetrics
-  health: HealthCheckResult
-  database: DatabasePoolStatus
-  cache: RedisCacheStats
-  responseMetrics: CheckMetrics[]
-  uptimePercent: number
-  timestamp: string
-}
-
-export interface AlertStatus {
-  type: 'cpu' | 'memory' | 'disk' | 'error_rate' | 'response_time' | 'cache_hit_rate'
-  value: number
-  threshold: number
-  severity: 'warning' | 'critical'
-  message: string
-  triggeredAt: string
-}
-
 export interface HealthSummaryResponse {
   status: 'healthy' | 'degraded' | 'unhealthy'
-  alerts: AlertStatus[]
-  uptime: number
-  stats: {
-    cpuUsage: number
-    memoryUsage: number
-    diskUsage: number
-    errorRate: number
-    avgResponseTime: number
-    cacheHitRate: number
+  database: {
+    status: 'ok' | 'error'
   }
-  timestamp: string
+  redis: {
+    status: 'ok' | 'error'
+  }
+  pluginRuntime: {
+    status: 'ok'
+    loaded: number
+  }
+  version: string
+  uptime: number
 }
 

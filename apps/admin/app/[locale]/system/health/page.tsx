@@ -1,52 +1,23 @@
-/**
- * Health Monitoring Dashboard Page
- *
- * Real-time system health monitoring with metrics, charts, and alerts.
- * Displays CPU, memory, disk usage, API response times, error rates, and cache statistics.
- */
-
 'use client'
 
-import { useState } from 'react'
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { AlertTriangle, Database, Plug, RefreshCw, Server } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useT } from 'shared/src/i18n/react'
-import { useHealthMetrics, useHealthSummary } from '@/lib/hooks/use-api'
-import { MetricsOverview } from '@/components/health-dashboard/metrics-overview'
-import { CpuMemoryChart } from '@/components/health-dashboard/cpu-memory-chart'
-import { ResponseTimeChart } from '@/components/health-dashboard/response-time-chart'
-import { ErrorRateChart } from '@/components/health-dashboard/error-rate-chart'
-import { CacheStats } from '@/components/health-dashboard/cache-stats'
-import { DatabaseStatus } from '@/components/health-dashboard/database-status'
-import { AlertConfig } from '@/components/health-dashboard/alert-config'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useHealthSummary } from '@/lib/hooks/use-api'
 
 export default function HealthMonitoringPage() {
   const t = useT()
-  const [activeTab, setActiveTab] = useState('overview')
+  const { data: summary, isLoading, error, refetch } = useHealthSummary()
 
-  // Helper function for translations with fallback
-  const getText = (key: string, fallback: string): string => {
-    return t ? t(key) : fallback
-  }
-
-  // Fetch health metrics and summary with auto-refresh
-  const { data: metrics, isLoading, error, refetch } = useHealthMetrics()
-  const { data: summary, isLoading: summaryLoading } = useHealthSummary()
-
-  const loading = isLoading || summaryLoading
+  const getText = (key: string, fallback: string): string => t ? t(key) : fallback
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex h-64 items-center justify-center">
         <div className="text-center">
-          <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-gray-600">{getText('admin.health.loadFailed', 'Failed to load health monitoring data')}</p>
-          <Button
-            variant="outline"
-            className="mt-4"
-            onClick={() => refetch()}
-          >
+          <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-red-500" />
+          <p className="text-gray-600">{getText('admin.health.loadFailed', 'Failed to load health status')}</p>
+          <Button className="mt-4" onClick={() => refetch()} variant="outline">
             {getText('common.retry', 'Retry')}
           </Button>
         </div>
@@ -54,121 +25,73 @@ export default function HealthMonitoringPage() {
     )
   }
 
+  const components = summary ? [
+    { label: getText('admin.health.database', 'Database'), icon: Database, status: summary.database.status },
+    { label: getText('admin.health.redis', 'Redis'), icon: Server, status: summary.redis.status },
+    { label: getText('admin.health.pluginRuntime', 'Plugin runtime'), icon: Plug, status: summary.pluginRuntime.status },
+  ] : []
+
+  const statusClass = summary?.status === 'healthy'
+    ? 'bg-green-100 text-green-800'
+    : summary?.status === 'degraded'
+      ? 'bg-yellow-100 text-yellow-800'
+      : 'bg-red-100 text-red-800'
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-[#0F172A]">
-            {getText('admin.health.title', 'System Health Monitoring')}
+            {getText('admin.health.title', 'System Health')}
           </h1>
           <p className="text-[#64748B]">
-            {getText('admin.health.subtitle', 'Monitor real-time system performance and health metrics')}
+            {getText('admin.health.subtitle', 'Component status summary')}
           </p>
         </div>
         <Button
-          variant="outline"
-          size="sm"
-          onClick={() => refetch()}
-          disabled={loading}
           className="border-[#E2E8F0] text-[#0F172A] hover:border-[#3B82F6] hover:text-[#3B82F6]"
+          disabled={isLoading}
+          onClick={() => refetch()}
+          size="sm"
+          variant="outline"
         >
-          <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           {getText('common.refresh', 'Refresh')}
         </Button>
       </div>
 
-      {/* Health Status Summary */}
       {summary && (
-        <div className="bg-white rounded-xl border border-[#E2E8F0] p-6">
-          <div className="flex items-center justify-between">
+        <div className="border border-[#E2E8F0] bg-white p-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <h3 className="text-lg font-semibold text-[#0F172A] mb-2">
-                {getText('admin.health.overallStatus', 'Overall Health Status')}
-              </h3>
-              <div className="flex items-center space-x-4">
-                <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                  summary.status === 'healthy'
-                    ? 'bg-green-100 text-green-800'
-                    : summary.status === 'degraded'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {summary.status.charAt(0).toUpperCase() + summary.status.slice(1)}
-                </div>
-                <span className="text-sm text-[#64748B]">
-                  {summary.alerts?.length ?? 0} {getText('admin.health.activeAlerts', 'active alert(s)')}
-                </span>
-              </div>
+              <p className="text-sm text-[#64748B]">{getText('admin.health.overallStatus', 'Overall status')}</p>
+              <span className={`mt-2 inline-flex rounded px-3 py-1 text-sm font-medium ${statusClass}`}>
+                {summary.status}
+              </span>
             </div>
-            {summary.alerts && summary.alerts.length > 0 && (
-              <div className="text-right">
-                <p className="text-sm text-[#64748B] mb-1">
-                  {getText('admin.health.recentAlerts', 'Recent Alerts')}
-                </p>
-                <div className="space-y-1">
-                  {summary.alerts.slice(0, 3).map((alert, index) => (
-                    <div
-                      key={index}
-                      className={`text-sm px-2 py-1 rounded ${
-                        alert.severity === 'critical'
-                          ? 'bg-red-50 text-red-700'
-                          : 'bg-yellow-50 text-yellow-700'
-                      }`}
-                    >
-                      {alert.type}: {alert.message}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            <div className="text-sm text-[#64748B]">
+              <p>{getText('admin.health.version', 'Version')}: {summary.version}</p>
+              <p>{getText('admin.health.uptime', 'Uptime')}: {summary.uptime}s</p>
+            </div>
           </div>
+
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            {components.map(({ label, icon: Icon, status }) => (
+              <div className="flex items-center justify-between border border-[#E2E8F0] p-4" key={label}>
+                <span className="flex items-center gap-2 text-sm font-medium text-[#0F172A]">
+                  <Icon className="h-4 w-4 text-[#3B82F6]" />
+                  {label}
+                </span>
+                <span className={status === 'ok' ? 'text-sm text-green-700' : 'text-sm text-red-700'}>{status}</span>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-4 text-sm text-[#64748B]">
+            {getText('admin.health.loadedPlugins', 'Loaded plugin runtimes')}: {summary.pluginRuntime.loaded}
+          </p>
         </div>
       )}
-
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="bg-white border border-[#E2E8F0]">
-          <TabsTrigger value="overview">
-            {getText('admin.health.tabs.overview', 'Overview')}
-          </TabsTrigger>
-          <TabsTrigger value="details">
-            {getText('admin.health.tabs.details', 'Details')}
-          </TabsTrigger>
-          <TabsTrigger value="alerts">
-            {getText('admin.health.tabs.alerts', 'Alert Settings')}
-          </TabsTrigger>
-        </TabsList>
-
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* Metrics Overview Cards */}
-          <MetricsOverview metrics={metrics} isLoading={loading} />
-
-          {/* Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <CpuMemoryChart metrics={metrics} isLoading={loading} />
-            <ResponseTimeChart metrics={metrics} isLoading={loading} />
-          </div>
-        </TabsContent>
-
-        {/* Details Tab */}
-        <TabsContent value="details" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ErrorRateChart metrics={metrics} isLoading={loading} />
-            <CacheStats metrics={metrics} isLoading={loading} />
-          </div>
-          <DatabaseStatus metrics={metrics} isLoading={loading} />
-        </TabsContent>
-
-        {/* Alert Settings Tab */}
-        <TabsContent value="alerts">
-          <AlertConfig
-            initialThresholds={(summary as any)?.thresholds}
-            isLoading={loading}
-          />
-        </TabsContent>
-      </Tabs>
     </div>
   )
 }

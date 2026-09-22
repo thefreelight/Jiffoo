@@ -2,9 +2,6 @@
  * Admin Plugins Endpoints Tests
  * 
  * Coverage:
- * - GET /api/v1/admin/plugins/marketplace
- * - GET /api/v1/admin/plugins/marketplace/search
- * - GET /api/v1/admin/plugins/marketplace/:slug
  * - GET /api/v1/admin/plugins/categories
  * - GET /api/v1/admin/plugins/installed
  * - GET /api/v1/admin/plugins/
@@ -46,8 +43,6 @@ describe('Admin Plugins Endpoints', () => {
 
   describe('Authentication & Authorization', () => {
     const endpoints = [
-      { method: 'GET', url: '/api/v1/admin/plugins/marketplace' },
-      { method: 'GET', url: '/api/v1/admin/plugins/marketplace/search' },
       { method: 'GET', url: '/api/v1/admin/plugins/categories' },
       { method: 'GET', url: '/api/v1/admin/plugins/installed' },
       { method: 'GET', url: '/api/v1/admin/plugins/' },
@@ -67,65 +62,6 @@ describe('Admin Plugins Endpoints', () => {
       });
       // Route may not be implemented (404)
       expect([403, 404]).toContain(response.statusCode);
-    });
-  });
-
-  describe('GET /api/v1/admin/plugins/marketplace', () => {
-    it('should return marketplace plugins for admin', async () => {
-      const response = await app.inject({
-        method: 'GET',
-        url: '/api/v1/admin/plugins/marketplace',
-        headers: { authorization: `Bearer ${adminToken}` },
-      });
-
-      // Allow 501 not implemented or 404 if marketplace is disabled/unavailable
-      expect([200, 404, 501]).toContain(response.statusCode);
-    });
-  });
-
-  describe('GET /api/v1/admin/plugins/marketplace/search', () => {
-    it('should search marketplace plugins for admin', async () => {
-      const response = await app.inject({
-        method: 'GET',
-        url: '/api/v1/admin/plugins/marketplace/search?q=payment',
-        headers: { authorization: `Bearer ${adminToken}` },
-      });
-
-      // Allow 501 not implemented or 404 if not available
-      expect([200, 404, 501]).toContain(response.statusCode);
-    });
-  });
-
-  describe('GET /api/v1/admin/plugins/marketplace/:slug', () => {
-    it('should return 401 without token (or 404 if not implemented)', async () => {
-      const response = await app.inject({
-        method: 'GET',
-        url: '/api/v1/admin/plugins/marketplace/test-plugin',
-      });
-
-      // Route may not be implemented (404)
-      expect([401, 404]).toContain(response.statusCode);
-    });
-
-    it('should return 403 for regular user (or 404 if not implemented)', async () => {
-      const response = await app.inject({
-        method: 'GET',
-        url: '/api/v1/admin/plugins/marketplace/test-plugin',
-        headers: { authorization: `Bearer ${userToken}` },
-      });
-
-      // Route may not be implemented (404)
-      expect([403, 404]).toContain(response.statusCode);
-    });
-
-    it('should return plugin details or 404 for admin', async () => {
-      const response = await app.inject({
-        method: 'GET',
-        url: '/api/v1/admin/plugins/marketplace/test-plugin',
-        headers: { authorization: `Bearer ${adminToken}` },
-      });
-
-      expect([200, 404, 501]).toContain(response.statusCode);
     });
   });
 
@@ -197,7 +133,7 @@ describe('Admin Plugins Endpoints', () => {
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
-      // May succeed or fail depending on marketplace availability
+      // The local plugin may not be installed.
       expect([200, 400, 404]).toContain(response.statusCode);
     });
   });

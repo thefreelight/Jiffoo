@@ -1,1 +1,1 @@
-export const STORE_SUPPORTED_LOCALES = ['en', 'zh-Hant'] as const;
+export const STORE_SUPPORTED_LOCALES = ['en', 'zh-Hans', 'zh-Hant'] as const;

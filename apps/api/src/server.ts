@@ -33,7 +33,6 @@ import { env } from '@/config/env';
 import { prisma } from '@/config/database';
 import { redisCache } from '@/core/cache/redis';
 import { LoggerService, logger, unifiedLogger } from '@/core/logger/unified-logger';
-import { logMonitor } from '@/core/logger/log-monitor';
 import { accessLogMiddleware, errorLogMiddleware } from '@/core/logger/middleware';
 import { registerRoutes } from '@/routes';
 import { performHealthCheck, livenessCheck, readinessCheck } from '@/utils/health-check';
@@ -431,8 +430,6 @@ async function start() {
     app.log.info(`Server running on http://${env.API_HOST}:${env.API_PORT}`);
     app.log.info(`API Documentation available at http://${env.API_HOST}:${env.API_PORT}/docs`);
 
-    logMonitor.start(60000);
-
     LoggerService.logSystem('Server started successfully', {
       port: env.API_PORT,
       host: env.API_HOST,
@@ -480,8 +477,6 @@ const gracefulShutdown = async (signal: string) => {
   LoggerService.logSystem(`Received ${signal}, shutting down gracefully`);
 
   try {
-    logMonitor.stop();
-
     await redisCache.disconnect();
     await prisma.$disconnect();
 

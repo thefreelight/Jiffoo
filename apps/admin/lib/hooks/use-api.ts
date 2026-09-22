@@ -7,7 +7,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
 import { toast } from 'sonner';
-import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, HealthMetricsResponse, HealthSummaryResponse } from '../types';
+import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, HealthSummaryResponse } from '../types';
 import { PageResult } from 'shared';
 import { UseQueryResult } from '@tanstack/react-query';
 import { useT } from 'shared/src/i18n/react';
@@ -1119,21 +1119,8 @@ export function useDeletePluginInstance() {
 // ==================== Health Monitoring Hooks ====================
 
 const healthQueryKeys = {
-  metrics: ['health-metrics'] as const,
   summary: ['health-summary'] as const,
 };
-
-export function useHealthMetrics() {
-  return useQuery({
-    queryKey: healthQueryKeys.metrics,
-    queryFn: async () => {
-      const response = await healthApi.getMetrics();
-      return unwrapApiResponse(response);
-    },
-    staleTime: 30 * 1000, // 30 seconds
-    refetchInterval: 60 * 1000, // Refetch every minute
-  });
-}
 
 export function useHealthSummary() {
   return useQuery({

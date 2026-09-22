@@ -67,7 +67,7 @@ pids
 coverage/
 *.lcov
 
-# Theme/Plugin zip artifacts (build products, should not be committed)
+# Plugin zip artifacts (build products, should not be committed)
 *.zip
 
 # API extensions runtime directory (should use EXTENSIONS_PATH env var)
@@ -121,7 +121,6 @@ imagerAI/
 .security-key
 logs/security/
 
-# Theme package scratch files
 .codex-worktrees/
 tmp/
 .env.bak

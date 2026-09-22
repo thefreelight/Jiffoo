@@ -70,7 +70,7 @@ export interface I18nContextValue {
 export interface MallContextLocaleFields {
   /** Default locale for the merchant (currently always 'en') */
   defaultLocale: Locale;
-  /** Supported locales for the merchant (currently always ['en', 'zh-Hant']) */
+  /** Supported locales for the merchant. */
   supportedLocales: Locale[];
 }
 

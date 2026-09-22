@@ -28,7 +28,6 @@ import type {
   PluginMetaWithState,
   PluginConfigMeta,
   PluginState,
-  HealthMetricsResponse,
   HealthSummaryResponse,
 } from './types';
 
@@ -348,9 +347,6 @@ export const dashboardApi = {
 
 // Health Monitoring API
 export const healthApi = {
-  getMetrics: (): Promise<ApiResponse<HealthMetricsResponse>> =>
-    apiClient.get('/admin/health/metrics'),
-
   getSummary: (): Promise<ApiResponse<HealthSummaryResponse>> =>
     apiClient.get('/admin/health/summary'),
 };

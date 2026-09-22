@@ -159,6 +159,10 @@ interface GatewayAuditLog {
 
 const internalRuntimes = new Map<string, InternalRuntime>();
 
+export function getPluginRuntimeState(): { loaded: number } {
+  return { loaded: internalRuntimes.size };
+}
+
 // ============================================================================
 // Helper Functions
 // ============================================================================

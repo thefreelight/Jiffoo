@@ -18,9 +18,6 @@ export const merchant = {
 
   // Extensions
   extensions: {
-    subtitle: 'Official marketplace access and install status for your store.',
-    marketOffline: 'Official market is offline',
-    marketOfflineDescription: 'Marketplace metadata is currently unavailable. Installed plugins continue to work, but new installs are paused.',
     releasePublished: 'Published',
     releaseOffline: 'Offline',
     releaseCatalogOnly: 'Catalog only',
@@ -60,8 +57,6 @@ export const merchant = {
     systemStatus: 'System Status',
     systemStatusDesc: 'Current system health',
     activePlugins: 'Active Plugins',
-    cacheKeys: 'Cache Keys',
-    cacheHitRate: 'Cache Hit Rate',
     unknown: 'Unknown',
     fromLastMonth: 'from last month',
     vsYesterday: 'vs yesterday',
@@ -739,7 +734,6 @@ export const merchant = {
     installed: 'Installed',
     management: 'Plugins',
     pluginCenter: 'Plugin center',
-    pluginCenterIntro: 'Installed plugins live in a dedicated control rail, while the official marketplace stays ready for the next capability you want to add.',
     pluginCenterDescription: 'Jump straight into each plugin workspace, keep configuration close, and manage the official catalog from one place.',
     installedCollection: 'Installed plugins',
     installedCollectionDescription: 'Open a plugin workspace, toggle availability, or finish configuration without leaving the plugin center.',
@@ -774,7 +768,6 @@ export const merchant = {
     browsePlugins: 'Manage Plugins',
     disabled: 'Disabled',
     pluginManagement: 'Plugins',
-    discoverNewPlugins: 'Official plugin marketplace',
     browseAll: 'View All',
     gettingStarted: 'Getting Started with Plugins',
     gettingStartedDesc: "Plugins extend your store's functionality. Use the 'Upload ZIP' feature to install plugins offline.",
@@ -788,7 +781,6 @@ export const merchant = {
     loadingPluginDetails: 'Loading plugin details...',
     failedToLoadDetails: 'Failed to load plugin details',
     backToPlugins: 'Back',
-    backToMarketplace: 'Back to plugins',
     availableFeatures: 'Available Features',
     readyToInstall: 'Ready to install?',
     readyToInstallDesc: 'Install this plugin to get started.',
@@ -801,7 +793,6 @@ export const merchant = {
     pluginWorkspace: 'Plugin workspace',
     workspaceDescription: 'Manage plugin-specific configuration, instance targeting, and native Admin controls from a dedicated workspace.',
     defaultDescription: 'A merchant-facing plugin that extends your store operations.',
-    marketplace: 'Official plugin marketplace',
     needsConfiguration: 'Needs configuration before enabling',
     // Plugin status labels
     statusLabels: {

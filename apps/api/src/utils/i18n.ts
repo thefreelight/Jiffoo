@@ -6,7 +6,7 @@
  */
 
 // Supported locales
-export const LOCALES = ['en', 'zh-Hant'] as const;
+export const LOCALES = ['en', 'zh-Hans', 'zh-Hant'] as const;
 export type Locale = typeof LOCALES[number];
 export const DEFAULT_LOCALE: Locale = 'en';
 
@@ -19,7 +19,7 @@ export function isSupportedLocale(locale: string): locale is Locale {
 
 /**
  * Map browser language codes to supported locales
- * All zh-* variants map to zh-Hant
+ * Simplified Chinese variants map to zh-Hans, while Taiwan and Hong Kong map to zh-Hant.
  */
 export function mapBrowserLanguageToLocale(browserLang: string): Locale {
   const lang = browserLang.toLowerCase().trim();
@@ -29,9 +29,13 @@ export function mapBrowserLanguageToLocale(browserLang: string): Locale {
     return lang;
   }
 
-  // Map all Chinese variants to zh-Hant
-  if (lang.startsWith('zh')) {
+  if (lang === 'zh-hant' || lang === 'zh-tw' || lang === 'zh-hk') {
     return 'zh-Hant';
+  }
+
+  // Map other Chinese variants to zh-Hans
+  if (lang.startsWith('zh')) {
+    return 'zh-Hans';
   }
 
   // Map English variants to en

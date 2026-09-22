@@ -86,6 +86,7 @@ describe('Store Endpoints', () => {
         }
         if (body.data?.supportedLocales) {
           expect(Array.isArray(body.data.supportedLocales)).toBe(true);
+          expect(body.data.supportedLocales).toContain('zh-Hans');
         }
       }
     });
