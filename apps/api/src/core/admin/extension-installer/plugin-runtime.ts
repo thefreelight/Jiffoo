@@ -180,19 +180,6 @@ function logAudit(entry: GatewayAuditLog, fastify?: FastifyInstance): void {
     ...entry,
   };
 
-  // Record metrics (Task 2.6.2)
-  try {
-    const { gatewayMetrics } = require('./gateway-metrics');
-    gatewayMetrics.recordRequest(
-      entry.pluginSlug,
-      entry.statusCode,
-      entry.latencyMs,
-      entry.trustLevel,
-    );
-  } catch {
-    // Metrics recording is best-effort — don't fail the request
-  }
-
   if (fastify?.log) {
     fastify.log.info(logData);
   } else {
@@ -540,10 +527,7 @@ function toForwardUrl(pathPart: string, query: string): string {
  * Ensure internal runtime exists for a specific installation
  * Key is now installationId (not slug) to support multi-instance
  *
- * HOT UPGRADE IMPLEMENTATION (CRITICAL):
- * - Uses file:// URL + cache-bust query params to force ESM cache miss on version/config change
- * - This allows upgrading plugins WITHOUT restarting Core API
- * - Cache-bust params: version + installedAt timestamp (from DB or current time)
+ * Recreates the CommonJS runtime when its version or configuration changes.
  */
 async function ensureInternalRuntime(
   slug: string,

@@ -326,7 +326,7 @@ export async function isBreakerAllowedAsync(slug: string): Promise<boolean> {
 }
 
 /**
- * Get breaker stats for metrics/observability.
+ * Get breaker statistics.
  */
 export function getBreakerStats(slug: string): {
   state: BreakerState;

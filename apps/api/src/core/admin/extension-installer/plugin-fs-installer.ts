@@ -157,7 +157,6 @@ export class PluginFsInstaller implements IPluginInstaller {
       // Uploaded packages always use the established unsigned confirmation and audit flow.
       const trustLevel = deriveTrustLevel(
         options?.source || 'local-zip',
-        manifest.trustLevel,
       );
 
       if (trustLevel === 'unsigned') {

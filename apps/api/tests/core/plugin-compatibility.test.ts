@@ -418,9 +418,9 @@ describe('Plugin Loader - Version Checking', () => {
         authorUrl: 'https://example.com',
         minApiVersion: 'v1',
         dependencies: {
-          'stripe': '^12.0.0'
+          'test-gateway': '^12.0.0'
         },
-        tags: ['payments', 'stripe']
+        tags: ['payments', 'test-gateway']
       };
 
       expect(() => validatePluginCompatibility(manifest)).not.toThrow();

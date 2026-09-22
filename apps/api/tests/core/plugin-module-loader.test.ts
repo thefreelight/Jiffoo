@@ -12,15 +12,6 @@ async function createTempPluginDir(prefix: string): Promise<string> {
   return dir;
 }
 
-async function supportsNativeDynamicImport(): Promise<boolean> {
-  try {
-    await new Function('return import("data:text/javascript,export const ok = true;");')();
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 describe('Plugin module loader', () => {
   afterAll(async () => {
     await Promise.all(tempDirs.map((dir) => fs.rm(dir, { recursive: true, force: true })));
@@ -44,29 +35,5 @@ describe('Plugin module loader', () => {
 
     const secondLoad = await loadPluginEntryModule(entryPath, { version: '1.0.1' });
     expect((secondLoad.default || secondLoad).value).toBe(2);
-  });
-
-  it('supports ESM plugin entry modules with cache busting', async () => {
-    if (!(await supportsNativeDynamicImport())) {
-      return;
-    }
-
-    const pluginDir = await createTempPluginDir('plugin-loader-esm-');
-    const entryPath = path.join(pluginDir, 'index.mjs');
-
-    await fs.writeFile(
-      path.join(pluginDir, 'package.json'),
-      JSON.stringify({ name: 'plugin-loader-esm', version: '1.0.0', type: 'module' }, null, 2),
-      'utf-8',
-    );
-    await fs.writeFile(entryPath, 'export const value = 1;', 'utf-8');
-
-    const firstLoad = await loadPluginEntryModule(entryPath, { version: '1.0.0' });
-    expect(firstLoad.value).toBe(1);
-
-    await fs.writeFile(entryPath, 'export const value = 2;', 'utf-8');
-
-    const secondLoad = await loadPluginEntryModule(entryPath, { version: '1.0.1' });
-    expect(secondLoad.value).toBe(2);
   });
 });

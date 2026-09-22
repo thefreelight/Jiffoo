@@ -65,7 +65,6 @@ const PLUGIN_CATEGORIES = [
   { id: 'shipping', name: 'Shipping', count: 0 },
   { id: 'marketing', name: 'Marketing', count: 0 },
   { id: 'analytics', name: 'Analytics', count: 0 },
-  { id: 'seo', name: 'SEO', count: 0 },
   { id: 'social', name: 'Social', count: 0 },
 ];
 

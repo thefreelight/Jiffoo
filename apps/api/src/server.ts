@@ -20,8 +20,6 @@
 // Register module aliases for production runtime (must be first import)
 import 'module-alias/register';
 
-// Initialize telemetry before anything else (R5)
-
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
@@ -422,8 +420,6 @@ async function start() {
   try {
     const app = await buildApp();
 
-    // Initialize telemetry (R5) — must be before DB connect for instrumentation
-
     await prisma.$connect();
     app.log.info('Database connected successfully');
 
@@ -499,8 +495,6 @@ const gracefulShutdown = async (signal: string) => {
 
     await redisCache.disconnect();
     await prisma.$disconnect();
-
-    // Shutdown telemetry
 
     LoggerService.logSystem('Server shutdown completed');
     process.exit(0);

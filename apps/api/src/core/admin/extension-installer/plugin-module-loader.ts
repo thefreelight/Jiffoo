@@ -36,12 +36,13 @@ function assertCommonJsModule(entryPath: string): void {
     return;
   }
 
+  let packageJson: { type?: string };
   try {
-    const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as { type?: string };
-    if (packageJson.type === 'module') throw new Error(ESM_PLUGIN_ERROR);
+    packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as { type?: string };
   } catch {
     return;
   }
+  if (packageJson.type === 'module') throw new Error(ESM_PLUGIN_ERROR);
 }
 
 export async function loadPluginEntryModule(

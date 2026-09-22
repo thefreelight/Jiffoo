@@ -23,7 +23,6 @@ import {
   Settings,
   LogOut,
   ChevronUp,
-  Monitor,
 } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import {
@@ -61,13 +60,6 @@ const baseNavigationConfig: NavigationItem[] = [
     icon: Package,
   },
   {
-    id: 'inventory',
-    nameKey: 'merchant.inventory.title',
-    fallback: 'Inventory',
-    href: '/inventory',
-    icon: Package,
-  },
-  {
     id: 'orders',
     nameKey: 'merchant.orders.title',
     fallback: 'Orders',
@@ -87,13 +79,6 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Plugins',
     href: '/plugins',
     icon: Sliders,
-  },
-  {
-    id: 'system',
-    nameKey: 'merchant.nav.system',
-    fallback: 'System',
-    href: '/system/updates',
-    icon: Monitor,
   },
 ];
 

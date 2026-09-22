@@ -29,8 +29,8 @@ import { deliverInternalWebhook } from '@/core/webhooks/delivery-worker';
 describe('internal webhook delivery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.API_SERVICE_URL = 'https://api.bokmoo.com';
-    delete process.env.BOKMOO_JIFFOO_WEBHOOK_SECRET;
+    process.env.API_SERVICE_URL = 'https://api.example.test';
+    delete process.env.TEST_GATEWAY_WEBHOOK_SECRET;
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
       status: 200,
@@ -41,7 +41,7 @@ describe('internal webhook delivery', () => {
   it('signs plugin webhook delivery with the plugin webhook secret', async () => {
     pluginManagementServiceMock.getInstanceById.mockResolvedValue({
       id: 'ins_1',
-      pluginSlug: 'bokmoo-connect',
+      pluginSlug: 'test-gateway-connect',
       enabled: true,
       configJson: JSON.stringify({
         jiffooWebhookSecret: 'secret_123',
@@ -72,7 +72,7 @@ describe('internal webhook delivery', () => {
     const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('https://api.bokmoo.com/api/extensions/plugin/bokmoo-connect/api/webhooks/jiffoo/order-paid?installationId=ins_1');
+    expect(url).toBe('https://api.example.test/api/extensions/plugin/test-gateway-connect/api/webhooks/jiffoo/order-paid?installationId=ins_1');
 
     const headers = init.headers as Record<string, string>;
     expect(headers['X-Jiffoo-Timestamp']).toEqual(expect.any(String));

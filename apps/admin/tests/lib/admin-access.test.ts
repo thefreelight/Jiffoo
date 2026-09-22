@@ -45,9 +45,7 @@ describe('Admin access policy', () => {
     ['/en/staff', ADMIN_PERMISSIONS.STAFF_READ],
     ['/en/plugins', ADMIN_PERMISSIONS.PLUGINS_READ],
     ['/en/settings', ADMIN_PERMISSIONS.SETTINGS_READ],
-    ['/en/system/updates', ADMIN_PERMISSIONS.SETTINGS_READ],
     ['/en/system/health', ADMIN_PERMISSIONS.HEALTH_READ],
-    ['/en/errors', ADMIN_PERMISSIONS.HEALTH_READ],
   ])('maps %s to %s', (pathname, permission) => {
     expect(getRequiredPermissionsForAdminPath(pathname, 'en')).toEqual([permission]);
   });
@@ -59,7 +57,7 @@ describe('Admin access policy', () => {
   it('routes system navigation to the first surface the staff member can actually read', () => {
     expect(getSystemNavHref(adminUser({
       permissions: [ADMIN_PERMISSIONS.SETTINGS_READ],
-    }), 'en')).toBe('/en/system/updates');
+    }), 'en')).toBe('/en/dashboard');
 
     expect(getSystemNavHref(adminUser({
       permissions: [ADMIN_PERMISSIONS.HEALTH_READ],

@@ -840,39 +840,6 @@ export const settingsApi = {
     apiClient.put('/admin/settings/batch', { settings }),
 };
 
-// Errors API
-export const errorsApi = {
-  getAll: (params: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    severity?: string;
-    resolved?: boolean;
-    startDate?: string;
-    endDate?: string;
-    sortBy?: string;
-    sortOrder?: string;
-  } = {}): Promise<ApiResponse<PageResult<any>>> => {
-    const { page = 1, limit = 10, ...filters } = params;
-    return apiClient.get('/admin/errors', { params: { page, limit, ...filters } });
-  },
-
-  getById: (id: string): Promise<ApiResponse<any>> =>
-    apiClient.get(`/admin/errors/${id}`),
-
-  resolve: (id: string): Promise<ApiResponse<any>> =>
-    apiClient.patch(`/admin/errors/${id}/resolve`, { resolved: true }),
-
-  unresolve: (id: string): Promise<ApiResponse<any>> =>
-    apiClient.patch(`/admin/errors/${id}/resolve`, { resolved: false }),
-
-  getStats: (): Promise<ApiResponse<any>> =>
-    apiClient.get('/admin/errors/stats'),
-
-  getTrends: (timeRange?: string): Promise<ApiResponse<any>> =>
-    apiClient.get('/admin/errors/trends', { params: { timeRange } }),
-};
-
 // ============================================================
 // Staff Management (Admin RBAC)
 // ============================================================

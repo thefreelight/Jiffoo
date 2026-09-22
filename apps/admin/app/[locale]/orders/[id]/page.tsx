@@ -349,10 +349,10 @@ export default function OrderDetailPage() {
               )}
             </div>
 
-            {/* System Telemetry */}
+            {/* Order Activity */}
             <div className="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-8 space-y-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Temporal Telemetry</h3>
+                <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest">Order Activity</h3>
                 <Activity className="w-4 h-4 text-gray-300" />
               </div>
 

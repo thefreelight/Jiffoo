@@ -11,7 +11,6 @@ import { AlertTriangle, Box, DollarSign, ShoppingBag, Users, Eye, Plus } from 'l
 import { useRouter } from 'next/navigation'
 import { StatsCard } from '@/components/dashboard/stats-card'
 import { SalesChannelChart, RealTimeOrdersChart } from '@/components/dashboard/charts'
-import { ErrorStatsWidget } from '@/components/error-stats'
 import { Button } from '@/components/ui/button'
 import { formatCurrency, cn } from '@/lib/utils'
 import { useAdminDashboard } from '@/lib/hooks/use-api'

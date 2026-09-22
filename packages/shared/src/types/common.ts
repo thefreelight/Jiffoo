@@ -75,14 +75,6 @@ export interface SocialLinks {
   youtube?: string;
 }
 
-export interface SEOData {
-  title?: string;
-  description?: string;
-  keywords?: string[];
-  ogImage?: string;
-  canonicalUrl?: string;
-}
-
 export interface Currency {
   code: string;
   name: string;

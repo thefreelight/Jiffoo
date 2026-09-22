@@ -10,7 +10,7 @@ export interface PluginItemProps {
   /** Plugin icon element */
   icon?: React.ReactNode;
   /** Icon background color */
-  iconColor?: 'default' | 'stripe' | 'paypal' | 'wechat' | 'alipay' | string;
+  iconColor?: 'default' | 'paypal' | 'wechat' | 'alipay' | string;
   /** Plugin status */
   status: 'active' | 'inactive' | 'free' | 'paid' | 'pending';
   /** Click handler */
@@ -37,7 +37,6 @@ export function PluginItem({
   // Predefined icon background colors
   const iconBgColors: Record<string, string> = {
     default: 'bg-[#EFF6FF] text-[#3B82F6]',
-    stripe: 'bg-[#635BFF] text-white',
     paypal: 'bg-[#003087] text-white',
     wechat: 'bg-[#07C160] text-white',
     alipay: 'bg-[#1677FF] text-white',

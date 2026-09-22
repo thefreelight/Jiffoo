@@ -136,7 +136,7 @@ describe('AuthService', () => {
       const createdGuest = {
         ...TEST_USER,
         id: 'guest-user-id',
-        email: '8a91375e84c389c8a7c3827a313ac363@guest.bokmoo.invalid',
+        email: '8a91375e84c389c8a7c3827a313ac363@guest.example.invalid',
         username: 'guest_8a91375e84c389c8a7c3827a313ac363',
         role: 'GUEST',
       };
@@ -160,7 +160,7 @@ describe('AuthService', () => {
     it('resumes a guest using the returned guest id', async () => {
       const guest = {
         ...TEST_USER,
-        email: '55c52f20c115c1877104893650a70d62@guest.bokmoo.invalid',
+        email: '55c52f20c115c1877104893650a70d62@guest.example.invalid',
         username: 'guest_55c52f20c115c1877104893650a70d62',
         role: 'GUEST',
       };
@@ -370,7 +370,7 @@ describe('AuthService', () => {
       };
       const converted = {
         ...guest,
-        email: 'member@bokmoo.com',
+        email: 'member@example.test',
         username: 'member',
         role: 'USER',
         emailVerified: true,

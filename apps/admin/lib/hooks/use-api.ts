@@ -5,9 +5,9 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, errorsApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
+import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
 import { toast } from 'sonner';
-import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, HealthMetricsResponse, HealthSummaryResponse, ErrorLog, ErrorListParams } from '../types';
+import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, HealthMetricsResponse, HealthSummaryResponse } from '../types';
 import { PageResult } from 'shared';
 import { UseQueryResult } from '@tanstack/react-query';
 import { useT } from 'shared/src/i18n/react';
@@ -38,7 +38,6 @@ export interface PaginatedApiResponse<T> {
 
 // Re-export types for convenience
 export type { DashboardStats, Product, Order, OrderDetail, User, OrderItem, OrderDetailItem } from '../types';
-export type { ErrorLog, ErrorListParams } from '../types';
 
 // Query keys
 export const queryKeys = {
@@ -1261,93 +1260,6 @@ export function useHealthSummary() {
     },
     staleTime: 30 * 1000,
     refetchInterval: 60 * 1000,
-  });
-}
-
-// ==================== Error Tracking Hooks ====================
-
-const errorQueryKeys = {
-  all: ['errors'] as const,
-  list: (params?: any) => ['errors', 'list', params] as const,
-  detail: (id: string) => ['errors', id] as const,
-  stats: ['errors', 'stats'] as const,
-};
-
-export function useErrors(params: {
-  page?: number;
-  limit?: number;
-  search?: string;
-  severity?: string;
-  resolved?: boolean;
-  startDate?: string;
-  endDate?: string;
-  sortBy?: string;
-  sortOrder?: string;
-} = {}) {
-  return useQuery({
-    queryKey: errorQueryKeys.list(params),
-    queryFn: async (): Promise<{ data: any[]; pagination: { page: number; limit: number; total: number; totalPages: number } }> => {
-      const response = await errorsApi.getAll(params);
-      const data = unwrapApiResponse(response);
-      // Transform PageResult to PaginatedResponse format
-      if (data.items && typeof data.total === 'number') {
-        return {
-          data: data.items,
-          pagination: {
-            page: params.page || 1,
-            limit: params.limit || 10,
-            total: data.total,
-            totalPages: Math.ceil(data.total / (params.limit || 10)),
-          },
-        };
-      }
-      return data as any;
-    },
-    staleTime: 1 * 60 * 1000, // 1 minute
-  });
-}
-
-export function useError(id: string) {
-  return useQuery({
-    queryKey: errorQueryKeys.detail(id),
-    queryFn: async () => {
-      const response = await errorsApi.getById(id);
-      return unwrapApiResponse(response);
-    },
-    enabled: !!id,
-  });
-}
-
-export function useErrorStats() {
-  return useQuery({
-    queryKey: errorQueryKeys.stats,
-    queryFn: async () => {
-      const response = await errorsApi.getStats();
-      return unwrapApiResponse(response);
-    },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-  });
-}
-
-export function useResolveError() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({ id, resolved }: { id: string; resolved: boolean }) => {
-      const response = resolved
-        ? await errorsApi.resolve(id)
-        : await errorsApi.unresolve(id);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, { id }) => {
-      queryClient.invalidateQueries({ queryKey: errorQueryKeys.all });
-      queryClient.invalidateQueries({ queryKey: errorQueryKeys.detail(id) });
-      queryClient.invalidateQueries({ queryKey: errorQueryKeys.stats });
-      toast.success('Error status updated successfully');
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to update error status');
-    },
   });
 }
 

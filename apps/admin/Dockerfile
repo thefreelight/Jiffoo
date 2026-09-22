@@ -73,7 +73,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 # Set backend URL for build-time rewrites configuration
 # This URL is used by Next.js rewrites to proxy /api/* requests to the backend
-# For production: uses K8s internal service name 'api' in jiffoo-mall namespace
 # Build ARG allows override during docker build if needed
 ARG API_SERVICE_URL=http://api:80
 ENV API_SERVICE_URL=${API_SERVICE_URL}

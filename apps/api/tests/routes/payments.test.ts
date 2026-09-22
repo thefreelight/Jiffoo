@@ -5,7 +5,7 @@
  * - GET /api/payments/available-methods
  * - POST /api/payments/create-session
  * - GET /api/payments/verify/:sessionId
- * - POST /api/payments/stripe/webhook
+ * - POST /api/payments/webhook/:provider
  */
 
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
@@ -14,13 +14,11 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { createTestProduct, deleteAllTestProducts, deleteAllTestOrders } from '../helpers/fixtures';
 import { v4 as uuidv4 } from 'uuid';
-import { getTestPrisma } from '../helpers/db';
 
 describe('Payments Endpoints', () => {
   let app: FastifyInstance;
   let userToken: string;
   let testProduct: Awaited<ReturnType<typeof createTestProduct>>;
-  let supplierProduct: Awaited<ReturnType<typeof createTestProduct>>;
   let testOrderId: string;
   const originalFetch = global.fetch;
   const validShippingAddress = {
@@ -44,23 +42,6 @@ describe('Payments Endpoints', () => {
       price: 59.99,
       stock: 100,
     });
-    supplierProduct = await createTestProduct({
-      name: 'Supplier Payment Product',
-      price: 49.99,
-      stock: 50,
-      productType: 'digital',
-      requiresShipping: false,
-      skuCode: 'odoo-payment-sku',
-      typeData: {
-        provider: 'odoo',
-        installationId: 'ins_payment_supplier',
-        sourceProductType: 'esim',
-        externalProductCode: `ODOO-PAYMENT-${uuidv4()}`,
-      },
-    });
-    const prisma = getTestPrisma();
-    const supplierExternalCode = `ODOO-PAYMENT-${supplierProduct.id}`;
-    const supplierVariantCode = `odoo-payment-sku-${supplierProduct.variants[0].id}`;
     // Create a test order
     const orderResponse = await app.inject({
       method: 'POST',
@@ -115,7 +96,7 @@ describe('Payments Endpoints', () => {
         method: 'POST',
         url: '/api/payments/create-session',
         payload: {
-          paymentMethod: 'stripe',
+          paymentMethod: 'test-gateway',
           orderId: testOrderId,
         },
       });
@@ -142,7 +123,7 @@ describe('Payments Endpoints', () => {
         url: '/api/payments/create-session',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
-          paymentMethod: 'stripe',
+          paymentMethod: 'test-gateway',
         },
       });
 
@@ -157,7 +138,7 @@ describe('Payments Endpoints', () => {
         url: '/api/payments/create-session',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
-          paymentMethod: 'stripe',
+          paymentMethod: 'test-gateway',
           orderId: fakeOrderId,
         },
       });
@@ -173,14 +154,14 @@ describe('Payments Endpoints', () => {
         url: '/api/payments/create-session',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
-          paymentMethod: 'stripe',
+          paymentMethod: 'test-gateway',
           orderId: testOrderId,
           successUrl: 'http://localhost:3000/success',
           cancelUrl: 'http://localhost:3000/cancel',
         },
       });
 
-      // May fail if Stripe is not configured in test environment,
+      // May fail if a payment provider is not configured in the test environment,
       // or return conflict when payment state is not eligible.
       expect([200, 400, 409, 500]).toContain(response.statusCode);
     });
@@ -214,10 +195,10 @@ describe('Payments Endpoints', () => {
   });
 
   describe('POST /api/payments/webhook/:provider', () => {
-    it('should handle webhook for stripe provider', async () => {
+    it('should handle webhook for a generic provider', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/payments/webhook/stripe',
+        url: '/api/payments/webhook/test-gateway',
         payload: {
           type: 'checkout.session.completed',
           data: {
@@ -235,9 +216,9 @@ describe('Payments Endpoints', () => {
     it('should handle webhook with signature header', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/payments/webhook/stripe',
+        url: '/api/payments/webhook/test-gateway',
         headers: {
-          'stripe-signature': 'test-signature',
+          'x-provider-signature': 'test-signature',
         },
         payload: {
           type: 'checkout.session.completed',
@@ -256,9 +237,9 @@ describe('Payments Endpoints', () => {
     it('should not require JWT authentication', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/payments/webhook/stripe',
+        url: '/api/payments/webhook/test-gateway',
         headers: {
-          'stripe-signature': 'test-signature',
+          'x-provider-signature': 'test-signature',
         },
         payload: {
           type: 'checkout.session.completed',

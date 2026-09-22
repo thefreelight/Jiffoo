@@ -121,11 +121,6 @@ export function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export function calculateDiscount(originalPrice: number, salePrice: number): number {
-  if (originalPrice <= 0 || salePrice >= originalPrice) return 0;
-  return Math.round(((originalPrice - salePrice) / originalPrice) * 100);
-}
-
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
 

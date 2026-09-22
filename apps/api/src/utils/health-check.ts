@@ -141,7 +141,7 @@ export async function performHealthCheck(fastify?: any): Promise<HealthCheckResu
 
 /**
  * Liveness check - only checks if process is alive
- * Used for K8s liveness probe
+ * Used by the liveness endpoint.
  */
 export function livenessCheck(): { status: 'ok'; timestamp: string } {
   return {
@@ -152,7 +152,7 @@ export function livenessCheck(): { status: 'ok'; timestamp: string } {
 
 /**
  * Readiness check - checks if app can serve traffic
- * Used for K8s readiness probe  
+ * Used by the readiness endpoint.
  */
 export async function readinessCheck(): Promise<{
   status: 'ok' | 'not_ready';

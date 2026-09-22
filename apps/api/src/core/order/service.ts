@@ -10,7 +10,6 @@
  * - Order state machine (PENDING -> PROCESSING -> SHIPPED -> DELIVERED)
  * - Payment status tracking (PENDING -> PAID/REFUNDED)
  * - Event emission via Transactional Outbox pattern
- * - Push notification integration
  * - Order completion and refund hooks
  */
 
@@ -460,8 +459,7 @@ export class OrderService {
   /**
    * Update the status of an order
    *
-   * Changes order status and sends a push notification to the user
-   * informing them of the status change.
+   * Changes the order status.
    *
    * Valid status transitions:
    * - PENDING -> PROCESSING | CANCELLED

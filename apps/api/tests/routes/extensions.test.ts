@@ -21,7 +21,10 @@ import { createUserWithToken, createAdminWithToken, deleteAllTestUsers, type Tes
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 
-async function createUnsignedPluginArchive(slug: string): Promise<{ archivePath: string; cleanup: () => Promise<void> }> {
+async function createUnsignedPluginArchive(
+  slug: string,
+  declaredTrustLevel: 'builtin' | 'signed' | 'unsigned' = 'unsigned',
+): Promise<{ archivePath: string; cleanup: () => Promise<void> }> {
   const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), 'jiffoo-extension-route-'));
   const packageDir = path.join(rootDir, 'package');
   const archivePath = path.join(rootDir, `${slug}.zip`);
@@ -36,7 +39,7 @@ async function createUnsignedPluginArchive(slug: string): Promise<{ archivePath:
     category: 'other',
     runtimeType: 'internal-fastify',
     hostProtocol: 'internal-fastify-v1',
-    trustLevel: 'unsigned',
+    trustLevel: declaredTrustLevel,
     entryModule: 'dist/index.js',
     permissions: [],
     capabilities: [],
@@ -228,6 +231,41 @@ describe('Extensions Installer Endpoints', () => {
       const gatewayResponse = await app.inject({ method: 'GET', url: `/api/extensions/plugin/${uploadSlug}/api/status` });
       expect(gatewayResponse.statusCode).toBe(200);
       expect(gatewayResponse.json()).toMatchObject({ status: 'active' });
+    });
+
+    it('treats a locally uploaded builtin declaration as unsigned', async () => {
+      const declaredBuiltinSlug = `route-declared-builtin-${Date.now().toString(36)}`.slice(0, 32);
+      const archive = await createUnsignedPluginArchive(declaredBuiltinSlug, 'builtin');
+
+      try {
+        const unconfirmed = await multipartPluginUpload(archive.archivePath, false);
+        const unconfirmedResponse = await app.inject({
+          method: 'POST',
+          url: '/api/extensions/plugin/install',
+          headers: { authorization: `Bearer ${adminToken}`, ...unconfirmed.headers },
+          payload: unconfirmed.payload,
+        });
+        expect(unconfirmedResponse.statusCode).toBe(400);
+        expect(unconfirmedResponse.json().error.code).toBe('UNSIGNED_CONFIRMATION_REQUIRED');
+
+        const confirmed = await multipartPluginUpload(archive.archivePath, true);
+        const installedResponse = await app.inject({
+          method: 'POST',
+          url: '/api/extensions/plugin/install',
+          headers: { authorization: `Bearer ${adminToken}`, ...confirmed.headers },
+          payload: confirmed.payload,
+        });
+        expect(installedResponse.statusCode).toBe(200);
+
+        const installedSlug = installedResponse.json().data.slug;
+        const plugin = await prisma.pluginInstall.findUnique({ where: { slug: installedSlug } });
+        expect(plugin?.trustLevel).toBe('unsigned');
+      } finally {
+        await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: declaredBuiltinSlug } });
+        await prisma.pluginInstall.deleteMany({ where: { slug: declaredBuiltinSlug } });
+        await pluginPackageStore.delete(declaredBuiltinSlug);
+        await archive.cleanup();
+      }
     });
   });
 

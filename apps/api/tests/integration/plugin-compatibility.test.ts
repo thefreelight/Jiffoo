@@ -543,10 +543,10 @@ describe('Plugin Compatibility Integration', () => {
     it('should handle payment gateway plugin scenario', () => {
       const manifest: PluginManifest = {
         schemaVersion: 1,
-        slug: 'stripe-payment-gateway',
-        name: 'Stripe Payment Gateway',
+        slug: 'test-payment-gateway',
+        name: 'Test Payment Gateway',
         version: '3.2.1',
-        description: 'Stripe integration for payments',
+        description: 'Payment integration',
         runtimeType: 'internal-fastify',
         permissions: ['payments.process', 'webhooks.receive'],
         minApiVersion: 'v1',

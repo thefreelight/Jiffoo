@@ -104,11 +104,11 @@ export function getRequiredPermissionsForAdminPath(
   }
 
 
-  if (path.startsWith('/package') || path.startsWith('/settings') || path.startsWith('/seo')) {
+  if (path.startsWith('/package') || path.startsWith('/settings')) {
     return [ADMIN_PERMISSIONS.SETTINGS_READ];
   }
 
-  if (path.startsWith('/system/health') || path.startsWith('/errors')) {
+  if (path.startsWith('/system/health')) {
     return [ADMIN_PERMISSIONS.HEALTH_READ];
   }
 
@@ -121,14 +121,14 @@ export function getRequiredPermissionsForAdminPath(
 
 export function getSystemNavHref(user: AdminUser, locale: string): string {
   if (canAccessAnyPermission(user, [ADMIN_PERMISSIONS.SETTINGS_READ])) {
-    return `/${locale}/system/updates`;
+    return `/${locale}/dashboard`;
   }
 
   if (canAccessAnyPermission(user, [ADMIN_PERMISSIONS.HEALTH_READ])) {
     return `/${locale}/system/health`;
   }
 
-  return `/${locale}/system/updates`;
+  return `/${locale}/dashboard`;
 }
 
 export function getFirstAccessibleAdminPath(user: AdminUser, locale: string): string {

@@ -4,10 +4,10 @@ import { evaluatePluginConfigReadiness } from '@/core/admin/extension-installer/
 function createManifestWithSchema(configSchema: Record<string, unknown>): string {
   return JSON.stringify({
     schemaVersion: 1,
-    slug: 'stripe',
-    name: 'Stripe',
+    slug: 'test-gateway',
+    name: 'Test Gateway',
     version: '1.0.0',
-    description: 'Stripe payment plugin',
+    description: 'Test payment plugin',
     runtimeType: 'internal-fastify',
     hostProtocol: 'internal-fastify-v1',
     trustLevel: 'unsigned',
@@ -39,7 +39,7 @@ describe('Plugin Config Readiness', () => {
     expect(readiness.missingFields).toEqual([]);
   });
 
-  it('detects missing required fields for stripe-like schema', () => {
+  it('detects missing required fields for a payment schema', () => {
     const manifest = createManifestWithSchema({
       mode: { type: 'string', required: true, enum: ['test', 'live'] },
       test: { type: 'object', required: true },

@@ -2,7 +2,7 @@
  * Jiffoo Design System
  *
  * A modern, minimalist design system for e-commerce applications.
- * Inspired by Apple and Stripe design language.
+ * Inspired by polished product design language.
  *
  * @packageDocumentation
  */

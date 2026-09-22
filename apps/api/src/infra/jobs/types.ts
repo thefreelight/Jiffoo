@@ -55,7 +55,7 @@ export interface JobHandler<TData extends BaseJobData = BaseJobData> {
 }
 
 /**
- * Job result metrics for observability.
+ * Job result measurements.
  */
 export interface JobMetrics {
   queueDepth: number;

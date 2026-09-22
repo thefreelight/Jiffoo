@@ -1,6 +1,6 @@
 /**
  * Jiffoo Design System - Color Tokens
- * Based on Apple/Stripe design language
+ * Based on polished product design language
  */
 
 export const colors = {

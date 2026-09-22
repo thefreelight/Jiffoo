@@ -393,7 +393,7 @@ describe('OrderService', () => {
       const paidOrder = {
         ...makeCreatedOrder({ status: 'COMPLETED', paymentStatus: 'PAID', totalAmount: 50 }),
         payments: [
-          { id: 'pay-1', status: 'SUCCEEDED', paymentMethod: 'stripe', currency: 'USD', createdAt: NOW },
+          { id: 'pay-1', status: 'SUCCEEDED', paymentMethod: 'test-gateway', currency: 'USD', createdAt: NOW },
         ],
       };
       const refundedOrder = makeCreatedOrder({
@@ -426,7 +426,7 @@ describe('OrderService', () => {
           amount: 50,
           status: 'COMPLETED',
           reason: 'Full refund requested by admin',
-          provider: 'STRIPE',
+          provider: 'TEST_GATEWAY',
           idempotencyKey: 'ref_order-1_full',
         }),
       });

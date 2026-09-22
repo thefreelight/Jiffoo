@@ -81,9 +81,9 @@ import { callPaymentPlugin } from '@/core/payment/plugin-gateway';
 // Helpers
 // ---------------------------------------------------------------------------
 
-const STRIPE_PACKAGE = {
-  slug: 'stripe-payment',
-  name: 'Stripe',
+const TEST_GATEWAY_PACKAGE = {
+  slug: 'test-gateway-payment',
+  name: 'Test Gateway',
   category: 'payment',
   manifestJson: '{"supportedCurrencies":["USD","EUR"]}',
 };
@@ -94,14 +94,14 @@ const ENABLED_INSTANCE = {
   configJson: '{"mode":"test"}',
 };
 
-/** Configure the standard "happy-path" mocks for a single Stripe plugin. */
+/** Configure the standard "happy-path" mocks for a single payment plugin. */
 function setupDefaultMocks() {
   (CacheService.getPluginVersion as ReturnType<typeof vi.fn>).mockResolvedValue('1');
   (CacheService.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
   (CacheService.set as ReturnType<typeof vi.fn>).mockResolvedValue(true);
   (systemSettingsService.getShopCurrency as ReturnType<typeof vi.fn>).mockResolvedValue('USD');
   (PluginManagementService.getAllPluginPackages as ReturnType<typeof vi.fn>).mockResolvedValue([
-    STRIPE_PACKAGE,
+    TEST_GATEWAY_PACKAGE,
   ]);
   (PluginManagementService.getDefaultInstance as ReturnType<typeof vi.fn>).mockResolvedValue(
     ENABLED_INSTANCE,
@@ -147,8 +147,8 @@ describe('Payment Routes', () => {
       expect(body.data).toHaveLength(1);
 
       const method = body.data[0];
-      expect(method.pluginSlug).toBe('stripe-payment');
-      expect(method.displayName).toBe('Stripe');
+      expect(method.pluginSlug).toBe('test-gateway-payment');
+      expect(method.displayName).toBe('Test Gateway');
       expect(method.supportedCurrencies).toEqual(['USD', 'EUR']);
       expect(method.isLive).toBe(false); // mode is "test"
     });
@@ -205,7 +205,7 @@ describe('Payment Routes', () => {
         method: 'POST',
         url: '/api/payments/create-session',
         payload: {
-          paymentMethod: 'stripe-payment',
+          paymentMethod: 'test-gateway-payment',
           orderId: 'order-1',
           successUrl: 'https://shop.example/en/order-success',
         },
@@ -236,7 +236,7 @@ describe('Payment Routes', () => {
         method: 'POST',
         url: '/api/payments/create-session',
         payload: {
-          paymentMethod: 'stripe-payment',
+          paymentMethod: 'test-gateway-payment',
           orderId: 'order-1',
         },
       });
@@ -256,7 +256,7 @@ describe('Payment Routes', () => {
       (callPaymentPlugin as ReturnType<typeof vi.fn>).mockResolvedValue({
         ok: true,
         status: 200,
-        payload: { data: { sessionId: 'stripe-session-1', url: 'https://stripe.example/session' } },
+        payload: { data: { sessionId: 'test-gateway-session-1', url: 'https://gateway.example/session' } },
       });
       const tx = {
         payment: { create: vi.fn().mockResolvedValue({ id: 'payment-1' }) },
@@ -268,13 +268,13 @@ describe('Payment Routes', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/payments/create-session',
-        payload: { paymentMethod: 'stripe-payment', orderId: 'order-1' },
+        payload: { paymentMethod: 'test-gateway-payment', orderId: 'order-1' },
       });
 
       expect(response.statusCode).toBe(200);
-      expect(callPaymentPlugin).toHaveBeenCalledWith(expect.objectContaining({ pluginSlug: 'stripe-payment' }));
+      expect(callPaymentPlugin).toHaveBeenCalledWith(expect.objectContaining({ pluginSlug: 'test-gateway-payment' }));
       expect(tx.payment.create).toHaveBeenCalledWith(expect.objectContaining({
-        data: expect.objectContaining({ paymentMethod: 'stripe-payment' }),
+        data: expect.objectContaining({ paymentMethod: 'test-gateway-payment' }),
       }));
     });
   });
@@ -314,7 +314,7 @@ describe('Payment Routes', () => {
         orderId: 'order-1',
         sessionId: 'sess-abc',
         status: 'SUCCEEDED',
-        paymentMethod: 'stripe-payment',
+        paymentMethod: 'test-gateway-payment',
         updatedAt: new Date('2025-06-01T12:00:00Z'),
         paymentIntentId: 'pi_123',
       };
@@ -336,7 +336,7 @@ describe('Payment Routes', () => {
       expect(body.data.sessionId).toBe('sess-abc');
       expect(body.data.orderId).toBe('order-1');
       expect(body.data.status).toBe('paid');
-      expect(body.data.paymentMethod).toBe('stripe-payment');
+      expect(body.data.paymentMethod).toBe('test-gateway-payment');
     });
 
     it('should return pending status when session is not found', async () => {
