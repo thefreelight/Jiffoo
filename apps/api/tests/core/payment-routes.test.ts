@@ -165,6 +165,7 @@ describe('Payment Routes', () => {
       expect(method.displayName).toBe('Test Gateway');
       expect(method.supportedCurrencies).toEqual(['USD', 'EUR']);
       expect(method.isLive).toBe(false); // mode is "test"
+      expect(callContract).toHaveBeenCalledWith('test-gateway-payment', 'payment', 1, 'describe', { storeCurrency: 'USD' });
     });
 
     it('should return an empty array when no payment plugins are installed', async () => {

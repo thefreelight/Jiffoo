@@ -16,6 +16,7 @@ import type { PluginInstall, PluginInstallation } from '@prisma/client';
 import { executeLifecycleHook, hasLifecycleHook } from './lifecycle-hooks';
 import { mergeSecretConfigForUpdate } from './config-secrets';
 import { readStoredPluginManifest } from '@/core/admin/extension-installer/stored-manifest';
+import { getPluginManifestIssues } from '@jiffoo/shared';
 
 type ProviderContract = 'payment' | 'shipping' | 'tax' | 'fulfillment' | 'notification';
 type UpdatedInstance = PluginInstallation & { replacedPlugins: string[] };
@@ -89,6 +90,29 @@ async function listProviders(contract: 'payment' | 'shipping'): Promise<PluginIn
 async function resolveSingleProvider(contract: 'tax' | 'fulfillment' | 'notification'): Promise<PluginInstallation | null> {
   const installations = await prisma.pluginInstallation.findMany({ where: { enabled: true, deletedAt: null, plugin: { deletedAt: null } }, include: { plugin: true } });
   return installations.find((installation) => declaresContract(installation.plugin.manifestJson, contract)) ?? null;
+}
+
+async function assertNotLastEnabledProvider(pluginSlug: string, enabled: boolean, manifestJson: unknown): Promise<void> {
+  if (!enabled || getPluginManifestIssues(manifestJson).length > 0) return;
+  const contracts = (['payment', 'shipping', 'tax', 'fulfillment', 'notification'] as const)
+    .filter((contract) => declaresContract(manifestJson, contract));
+  for (const contract of contracts) {
+    const providers = await prisma.pluginInstallation.findMany({
+      where: { enabled: true, deletedAt: null, plugin: { deletedAt: null } },
+      include: { plugin: true },
+    });
+    const validProviders = providers.filter((provider) =>
+      declaresContract(provider.plugin.manifestJson, contract)
+      && getPluginManifestIssues(provider.plugin.manifestJson).length === 0,
+    );
+    if (validProviders.length === 1 && validProviders[0].pluginSlug === pluginSlug) {
+      const error = new Error(`The last enabled ${contract} provider cannot be disabled`) as Error & { statusCode?: number; code?: string; contract?: string };
+      error.statusCode = 409;
+      error.code = 'LAST_PROVIDER_REQUIRED';
+      error.contract = contract;
+      throw error;
+    }
+  }
 }
 
 
@@ -256,6 +280,7 @@ async function updateInstance(
     enabled?: boolean;
     config?: Record<string, unknown>;
     grantedPermissions?: string[];
+    replacingProvider?: boolean;
   }
 ): Promise<UpdatedInstance> {
 
@@ -307,6 +332,10 @@ async function updateInstance(
   const isEnabling = updates.enabled === true && !existing.enabled;
   const isDisabling = updates.enabled === false && existing.enabled;
 
+  if (isDisabling && !updates.replacingProvider) {
+    await assertNotLastEnabledProvider(existing.pluginSlug, existing.enabled, pluginPackage.manifestJson);
+  }
+
   // Parse manifest for lifecycle hook checks
   // If enabling: execute onEnable lifecycle hook BEFORE the DB update.
   // If onEnable fails, the enable is rejected (hook throws).
@@ -334,7 +363,7 @@ async function updateInstance(
       if (!declaresContract(manifest, contract)) continue;
       const providers = await prisma.pluginInstallation.findMany({ where: { enabled: true, deletedAt: null, pluginSlug: { not: existing.pluginSlug }, plugin: { deletedAt: null } }, include: { plugin: true } });
       for (const provider of providers.filter((candidate) => declaresContract(candidate.plugin.manifestJson, contract))) {
-        await updateInstance(provider.id, { enabled: false });
+        await updateInstance(provider.id, { enabled: false, replacingProvider: true });
         replacedPlugins.push(provider.pluginSlug);
       }
     }
@@ -469,6 +498,7 @@ export async function uninstallPlugin(slug: string): Promise<void> {
 
   const defaultInstance = await getDefaultInstance(slug);
   const manifest = readStoredPluginManifest(pluginPackage);
+  await assertNotLastEnabledProvider(slug, Boolean(defaultInstance?.enabled), pluginPackage.manifestJson);
   if (defaultInstance && hasLifecycleHook(manifest, 'onUninstall')) {
     await executeLifecycleHook('onUninstall', {
       installationId: defaultInstance.id,
@@ -586,6 +616,9 @@ export async function purgePlugin(slug: string): Promise<void> {
   if (pluginPackage.source === 'builtin') {
     throw new Error('Cannot purge built-in plugins');
   }
+
+  const defaultInstance = await getDefaultInstance(slug);
+  await assertNotLastEnabledProvider(slug, Boolean(defaultInstance?.enabled), pluginPackage.manifestJson);
 
   await pluginPackageStore.delete(slug);
 

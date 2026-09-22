@@ -1,0 +1,1 @@
+{"schemaVersion":1,"slug":"manual-fulfillment","name":"Manual fulfillment","version":"1.0.0","description":"Builtin manual fulfillment","category":"fulfillment","runtimeType":"internal-fastify","hostProtocol":"internal-fastify-v1","entryModule":"index.js","permissions":[],"contracts":[{"name":"fulfillment","version":1}],"configSchema":{"type":"object","properties":{}}}

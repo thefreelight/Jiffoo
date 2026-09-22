@@ -1,0 +1,4 @@
+{
+  "compilerOptions": { "allowJs": true, "checkJs": true, "noEmit": true, "strict": true, "target": "ES2022", "moduleResolution": "node", "baseUrl": "../../..", "paths": { "@jiffoo/shared": ["packages/shared/src/index.ts"] } },
+  "include": ["**/*.js"]
+}

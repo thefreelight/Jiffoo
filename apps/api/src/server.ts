@@ -40,6 +40,7 @@ import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { loadEnabledPluginRuntimes } from '@/core/admin/extension-installer/plugin-reconciliation';
+import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { registerPluginProcessFailureHandlers } from '@/core/admin/extension-installer/plugin-process-failure';
 
 const fastify = Fastify({
@@ -415,6 +416,7 @@ async function start() {
     await prisma.$connect();
     app.log.info('Database connected successfully');
 
+    await syncBuiltinPlugins(path.join(process.cwd(), 'builtin-plugins'));
     await loadEnabledPluginRuntimes();
 
     await app.listen({

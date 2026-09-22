@@ -381,6 +381,23 @@ describe('Extensions Installer Endpoints', () => {
     });
   });
 
+  it('rejects an uploaded package that uses a builtin plugin slug', async () => {
+    const archive = await createUnsignedPluginArchive('manual-payment');
+    try {
+      const upload = await multipartPluginUpload(archive.archivePath, true);
+      const response = await app.inject({
+        method: 'POST',
+        url: '/api/v1/extensions/plugin/install',
+        headers: { authorization: `Bearer ${adminToken}`, ...upload.headers },
+        payload: upload.payload,
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error.code).toBe('SLUG_RESERVED');
+    } finally {
+      await archive.cleanup();
+    }
+  });
+
   describe('DELETE /api/v1/extensions/plugin/:slug', () => {
     it('should return error for non-existent extension', async () => {
       const response = await app.inject({

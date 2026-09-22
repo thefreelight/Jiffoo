@@ -5,7 +5,7 @@ const minor = z.number().int();
 
 export const paymentV1Methods = {
   describe: {
-    input: z.object({}).strict(),
+    input: z.object({ storeCurrency: currency }).strict(),
     output: z.object({
       displayName: z.string().min(1),
       requiresManualConfirmation: z.boolean(),

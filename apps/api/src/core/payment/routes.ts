@@ -92,7 +92,7 @@ async function getEnabledPaymentMethods(): Promise<PaymentMethodDescriptor[]> {
 
     if (!(pkg.manifestJson as any)?.contracts?.some((contract: any) => contract?.name === 'payment' && contract?.version === 1)) continue;
     try {
-      const description = await callContract(pkg.slug, 'payment', 1, 'describe', {} as any) as any;
+      const description = await callContract(pkg.slug, 'payment', 1, 'describe', { storeCurrency: await systemSettingsService.getShopCurrency() }) as any;
     methods.push({
       pluginSlug: pkg.slug,
       name: pkg.slug,

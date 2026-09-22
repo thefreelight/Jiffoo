@@ -1,0 +1,1 @@
+{"schemaVersion":1,"slug":"console-email","name":"Console email","version":"1.0.0","description":"Builtin console email","category":"notification","runtimeType":"internal-fastify","hostProtocol":"internal-fastify-v1","entryModule":"index.js","permissions":[],"contracts":[{"name":"notification","version":1}],"configSchema":{"type":"object","properties":{}}}

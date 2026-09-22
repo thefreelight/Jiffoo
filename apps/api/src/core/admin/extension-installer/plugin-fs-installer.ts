@@ -12,6 +12,7 @@
 
 import { Readable } from 'stream';
 import { createReadStream } from 'fs';
+import archiver from 'archiver';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '@/config/database';
@@ -74,11 +75,29 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
 
 /** Metadata filename for installed plugins */
 const INSTALLED_META_FILE = '.installed.json';
+const BUILTIN_PLUGIN_SLUGS = new Set([
+  'manual-payment',
+  'free-shipping',
+  'zero-tax',
+  'manual-fulfillment',
+  'console-email',
+]);
 
 /**
  * Plugin file system installer implementation
  */
 export class PluginFsInstaller implements IPluginInstaller {
+  async installFromDirectory(
+    directory: string,
+    options: { source?: string; confirmUnsigned?: boolean; actorUserId?: string } = {},
+  ): Promise<InstalledPlugin> {
+    const archive = archiver('zip', { zlib: { level: 9 } });
+    archive.directory(directory, false);
+    const installed = this.install(archive, options);
+    await archive.finalize();
+    return installed;
+  }
+
   /**
    * Install plugin from ZIP to file system
    *
@@ -154,6 +173,13 @@ export class PluginFsInstaller implements IPluginInstaller {
 
       // 5. Validate manifest
       validatePluginManifest(manifest);
+
+      if (options?.source !== 'builtin' && BUILTIN_PLUGIN_SLUGS.has(manifest.slug)) {
+        const error = new Error(`Plugin slug "${manifest.slug}" is reserved for a built-in plugin`) as Error & { statusCode?: number; code?: string };
+        error.statusCode = 400;
+        error.code = 'SLUG_RESERVED';
+        throw error;
+      }
 
       // Uploaded packages always use the established unsigned confirmation and audit flow.
       const trustLevel = deriveTrustLevel(

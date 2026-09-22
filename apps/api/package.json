@@ -14,7 +14,7 @@
     "start": "node dist/server.js",
     "worker": "node dist/worker.js",
     "lint": "eslint src --ext .ts",
-    "type-check": "tsc --noEmit",
+    "type-check": "tsc --noEmit && tsc -p builtin-plugins/tsconfig.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",

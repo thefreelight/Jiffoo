@@ -1,0 +1,1 @@
+{"schemaVersion":1,"slug":"zero-tax","name":"Zero tax","version":"1.0.0","description":"Builtin zero tax","category":"tax","runtimeType":"internal-fastify","hostProtocol":"internal-fastify-v1","entryModule":"index.js","permissions":[],"contracts":[{"name":"tax","version":1}],"configSchema":{"type":"object","properties":{}}}
