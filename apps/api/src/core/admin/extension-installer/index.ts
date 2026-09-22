@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Extension Installer Service
  * 
@@ -17,6 +16,8 @@ import {
 } from './types';
 import { pluginFsInstaller } from './plugin-fs-installer';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { InvalidStoredManifestError, readStoredPluginManifest } from './stored-manifest';
+import type { PluginInstall } from '@prisma/client';
 
 // Re-export types
 export * from './types';
@@ -37,6 +38,17 @@ function parseJsonArray(value: unknown): string[] {
     }
   }
   return [];
+}
+
+function getManifestResponse(pkg: PluginInstall) {
+  try {
+    return { manifestJson: readStoredPluginManifest(pkg) };
+  } catch (error) {
+    if (error instanceof InvalidStoredManifestError) {
+      return { manifestError: { issues: error.issues } };
+    }
+    throw error;
+  }
 }
 
 /**
@@ -116,7 +128,8 @@ export class ExtensionInstaller implements IExtensionInstaller {
           installedAt: pkg.installedAt,
           updatedAt: pkg.updatedAt,
           zipHash: pkg.zipHash || undefined,
-          manifestJson: pkg.manifestJson || undefined,
+          ...getManifestResponse(pkg),
+          trustLevel: pkg.trustLevel,
           };
         }));
       }
@@ -158,7 +171,8 @@ export class ExtensionInstaller implements IExtensionInstaller {
           installedAt: pkg.installedAt,
           updatedAt: pkg.updatedAt,
           zipHash: pkg.zipHash || undefined,
-          manifestJson: pkg.manifestJson || undefined,
+          ...getManifestResponse(pkg),
+          trustLevel: pkg.trustLevel,
         };
       }
       default:

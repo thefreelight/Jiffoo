@@ -568,7 +568,6 @@ describe('Plugin Compatibility Integration', () => {
         description: 'Google Analytics tracking',
         runtimeType: 'internal-fastify',
         hostProtocol: 'internal-fastify-v1',
-        trustLevel: 'unsigned',
         entryModule: 'dist/index.js',
         permissions: ['analytics.track'],
       };
@@ -588,7 +587,6 @@ describe('Plugin Compatibility Integration', () => {
         description: 'CRM integration package',
         runtimeType: 'internal-fastify',
         hostProtocol: 'internal-fastify-v1',
-        trustLevel: 'unsigned',
         entryModule: 'dist/index.js',
         permissions: ['customers.read', 'customers.write'],
         minApiVersion: 'v1',

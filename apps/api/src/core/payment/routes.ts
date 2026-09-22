@@ -12,12 +12,14 @@ import { FastifyInstance, FastifyReply } from 'fastify';
 import { authMiddleware } from '@/core/auth/middleware';
 import { prisma } from '@/config/database';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { readStoredPluginManifest } from '@/core/admin/extension-installer/stored-manifest';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { sendSuccess, sendError } from '@/utils/response';
 import { paymentSchemas } from './schemas';
 import { CacheService } from '@/core/cache/service';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { PaymentStatus } from '@/core/order/types';
+import type { PluginManifest } from '@jiffoo/shared';
 import { syncPaymentFromPlugin } from '@/core/payment/reconciliation';
 import { callPaymentPlugin } from '@/core/payment/plugin-gateway';
 import { builtinManualPaymentDriver, MANUAL_PAYMENT_METHOD } from '@/core/payment/manual-payment';
@@ -112,13 +114,19 @@ async function getEnabledPaymentMethods(): Promise<PaymentMethodDescriptor[]> {
       continue;
     }
 
-    const manifest = parseManifestJson(pkg.manifestJson);
+    let manifest: PluginManifest;
+    try {
+      manifest = readStoredPluginManifest(pkg);
+    } catch {
+      continue;
+    }
+    const manifestRecord = parseManifestJson(manifest);
     methods.push({
       pluginSlug: pkg.slug,
       name: pkg.slug,
       displayName: pkg.name || pkg.slug,
-      icon: manifest?.icon ? String(manifest.icon) : `/icons/${pkg.slug}.svg`,
-      supportedCurrencies: normalizeCurrencies(manifest),
+      icon: manifestRecord?.icon ? String(manifestRecord.icon) : `/icons/${pkg.slug}.svg`,
+      supportedCurrencies: normalizeCurrencies(manifestRecord),
       isLive: isLiveMode(parseConfigJson(defaultInstance.configJson)),
     });
   }

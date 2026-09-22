@@ -10,7 +10,6 @@ const inProcessManifest = {
   description: 'Adds upsell blocks and storefront tracking',
   runtimeType: 'internal-fastify',
   hostProtocol: 'internal-fastify-v1',
-  trustLevel: 'unsigned',
   entryModule: 'dist/index.js',
   permissions: [],
   category: 'marketing',
@@ -47,9 +46,18 @@ describe('Plugin manifest contract', () => {
     expect(issues).toContainEqual(expect.objectContaining({ path: 'entryModule', code: 'MISSING_ENTRY_MODULE' }));
   });
 
-  it('requires a declared accountability tier', () => {
-    const issues = getPluginManifestIssues({ ...inProcessManifest, trustLevel: undefined });
+  it('rejects a manifest-declared trust tier', () => {
+    const issues = getPluginManifestIssues({ ...inProcessManifest, trustLevel: 'unsigned' });
 
-    expect(issues).toContainEqual(expect.objectContaining({ path: 'trustLevel', code: 'MISSING_TRUST_LEVEL' }));
+    expect(issues).toContainEqual(expect.objectContaining({ path: 'trustLevel', code: 'MANIFEST_TRUST_LEVEL_NOT_ALLOWED' }));
+  });
+
+  it('explains that Core decides the trust tier', () => {
+    const issues = getPluginManifestIssues({ ...inProcessManifest, trustLevel: 'builtin' });
+
+    expect(issues).toContainEqual(expect.objectContaining({
+      path: 'trustLevel',
+      message: 'Core decides the trust tier; manifest trustLevel is not allowed',
+    }));
   });
 });

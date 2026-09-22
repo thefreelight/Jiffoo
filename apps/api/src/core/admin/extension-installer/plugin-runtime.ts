@@ -35,6 +35,9 @@ import {
 } from './contract-v1-runtime';
 import { registerPluginStateReset } from './plugin-state';
 import { recordPluginFailure } from './plugin-failure';
+import { readStoredPluginManifest } from './stored-manifest';
+import { getPluginManifestIssues, isPluginManifest } from '@jiffoo/shared';
+import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from './plugin-registry-freshness';
 
 // ============================================================================
@@ -83,6 +86,7 @@ const FORBIDDEN_HEADER_PREFIXES = [
 
 export type PluginGatewayErrorCode =
   | 'PLUGIN_NOT_FOUND'
+  | 'PLUGIN_MANIFEST_MISMATCH'
   | 'PLUGIN_DISABLED'
   | 'INSTANCE_NOT_FOUND'
   | 'INSTANCE_DISABLED'
@@ -195,20 +199,27 @@ function logAudit(entry: GatewayAuditLog, fastify?: FastifyInstance): void {
   }
 }
 
-async function readPluginManifest(slug: string): Promise<PluginManifest> {
-  let content: string;
+async function readPluginManifest(plugin: PluginInstall): Promise<PluginManifest> {
   try {
-    const pluginPackage = await pluginPackageStore.get(slug);
+    readStoredPluginManifest(plugin);
+    const pluginPackage = await pluginPackageStore.get(plugin.slug);
     if (!pluginPackage) throw new Error('Plugin package not found');
-    content = await pluginPackage.readText('manifest.json');
-  } catch {
-    throw new PluginGatewayError(`Plugin "${slug}" not found`, 'PLUGIN_NOT_FOUND', 404);
-  }
-
-  try {
-    return JSON.parse(content) as PluginManifest;
-  } catch {
-    throw new PluginGatewayError(`Invalid manifest.json for plugin "${slug}"`, 'PLUGIN_INVALID_MANIFEST', 400);
+    const packageManifest: unknown = JSON.parse(await pluginPackage.readText('manifest.json'));
+    const issues = getPluginManifestIssues(packageManifest);
+    if (issues.length > 0 || !isPluginManifest(packageManifest)) {
+      throw new PluginGatewayError(`Invalid manifest.json for plugin "${plugin.slug}"`, 'PLUGIN_INVALID_MANIFEST', 400);
+    }
+    if (packageManifest.slug !== plugin.slug || packageManifest.version !== plugin.version) {
+      throw new PluginGatewayError(
+        `Package manifest for plugin "${plugin.slug}" must match the installed slug and version`,
+        'PLUGIN_MANIFEST_MISMATCH',
+        400,
+      );
+    }
+    return packageManifest;
+  } catch (error) {
+    await recordPluginFailure(plugin.slug, error, 'manifest');
+    throw error;
   }
 }
 
@@ -670,7 +681,12 @@ export async function dispatchPluginRuntimeEvent(eventType: string, payload: unk
 
   for (const pkg of packages) {
     if (pkg.runtimeType !== 'internal-fastify') continue;
-    const manifest = await readPluginManifest(pkg.slug);
+    let manifest: PluginManifest;
+    try {
+      manifest = await readPluginManifest(pkg);
+    } catch {
+      continue;
+    }
     const instances = await PluginManagementService.getPluginInstances(pkg.slug);
     for (const instance of instances) {
       if (!instance.enabled || instance.deletedAt) continue;
@@ -766,7 +782,9 @@ async function forwardToInternalFastify(
  * With hot upgrade support, restartRequired is ALWAYS false (no restart needed)
  */
 export async function warmPluginRuntime(slug: string): Promise<{ restartRequired: boolean }> {
-  const manifest = await readPluginManifest(slug);
+  const plugin = await PluginManagementService.getPluginPackage(slug);
+  if (!plugin) throw new PluginGatewayError(`Plugin "${slug}" not found`, 'PLUGIN_NOT_FOUND', 404);
+  const manifest = await readPluginManifest(plugin);
   if (manifest.runtimeType !== 'internal-fastify') {
     return { restartRequired: false };
   }
@@ -806,7 +824,9 @@ export async function warmPluginInstanceRuntime(
   installationId: string,
   config?: Record<string, unknown>,
 ): Promise<{ restartRequired: boolean }> {
-  const manifest = await readPluginManifest(slug);
+  const plugin = await PluginManagementService.getPluginPackage(slug);
+  if (!plugin) throw new PluginGatewayError(`Plugin "${slug}" not found`, 'PLUGIN_NOT_FOUND', 404);
+  const manifest = await readPluginManifest(plugin);
   if (manifest.runtimeType !== 'internal-fastify') {
     return { restartRequired: false };
   }
@@ -849,6 +869,7 @@ export async function handlePluginGateway(
   let ctx: GatewayContext | null = null;
   let statusCode = 500;
   let errorMessage: string | undefined;
+  let trustLevel: string | undefined;
   const caller = inferCaller(request);
 
   try {
@@ -856,7 +877,10 @@ export async function handlePluginGateway(
     ctx = await resolveGatewayContext(slug, request, options);
 
     // Read manifest
-    const manifest = await readPluginManifest(slug);
+    const plugin = await PluginManagementService.getPluginPackage(slug);
+    if (!plugin) throw new PluginGatewayError(`Plugin "${slug}" not found`, 'PLUGIN_NOT_FOUND', 404);
+    trustLevel = plugin.trustLevel;
+    const manifest = await readPluginManifest(plugin);
 
     await forwardToInternalFastify(slug, manifest, request, reply, forwardPath, ctx, requestId, caller);
     statusCode = reply.statusCode;
@@ -885,6 +909,7 @@ export async function handlePluginGateway(
       latencyMs,
       caller,
       requestId,
+      trustLevel,
       error: errorMessage,
     }, fastify);
   }

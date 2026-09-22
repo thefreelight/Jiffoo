@@ -76,7 +76,10 @@ export interface InstalledPlugin {
   author?: string;
   authorUrl?: string;
   zipHash?: string;            // SHA-256 hash of the installed ZIP file
-  manifestJson?: Record<string, unknown> | string;       // Full manifest.json content
+  manifestJson?: SharedPluginManifest | string;          // Full manifest.json content
+  manifestError?: {
+    issues: Array<{ path: string; message: string; code: string }>;
+  };
   deletedAt?: Date | null;     // Soft uninstall marker
   installedAt: Date;
   updatedAt: Date;

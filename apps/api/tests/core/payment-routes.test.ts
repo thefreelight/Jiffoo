@@ -85,7 +85,18 @@ const TEST_GATEWAY_PACKAGE = {
   slug: 'test-gateway-payment',
   name: 'Test Gateway',
   category: 'payment',
-  manifestJson: '{"supportedCurrencies":["USD","EUR"]}',
+  manifestJson: {
+    schemaVersion: 1,
+    slug: 'test-gateway-payment',
+    name: 'Test Gateway',
+    version: '1.0.0',
+    description: 'Test payment gateway',
+    runtimeType: 'internal-fastify',
+    hostProtocol: 'internal-fastify-v1',
+    entryModule: 'server/index.js',
+    permissions: [],
+    supportedCurrencies: ['USD', 'EUR'],
+  },
 };
 
 const ENABLED_INSTANCE = {

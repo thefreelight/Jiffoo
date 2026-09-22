@@ -37,20 +37,22 @@ describe('Plugin Runtime - Integration', () => {
 
     pluginDir = await fs.mkdtemp(path.join(process.cwd(), '.plugin-runtime-'));
     await fs.mkdir(path.join(pluginDir, 'server'), { recursive: true });
+    const manifest = {
+      schemaVersion: 1,
+      slug,
+      name: 'Integration Test Plugin',
+      version: '1.0.0',
+      description: 'Plugin runtime integration tests',
+      author: 'test-suite',
+      runtimeType: 'internal-fastify',
+      hostProtocol: 'internal-fastify-v1',
+      entryModule,
+      permissions: [],
+    };
     await fs.writeFile(
       path.join(pluginDir, 'manifest.json'),
       JSON.stringify(
-        {
-          schemaVersion: 1,
-          slug,
-          name: 'Integration Test Plugin',
-          version: '1.0.0',
-          description: 'Plugin runtime integration tests',
-          author: 'test-suite',
-          runtimeType: 'internal-fastify',
-          entryModule,
-          permissions: [],
-        },
+        manifest,
         null,
         2
       ),
@@ -95,6 +97,7 @@ module.exports = async function plugin(fastify, opts) {
         runtimeType: 'internal-fastify',
         entryModule,
         source: 'local-zip',
+        manifestJson: manifest,
         permissions: JSON.stringify([]),
       },
     });

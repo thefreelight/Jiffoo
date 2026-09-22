@@ -20,6 +20,7 @@ model PluginInstall {
   externalBaseUrl String?
 
   source      String  @default("local-zip")
+  trustLevel  PluginTrustLevel @default(unsigned)
   installPath String?
 
   zipHash      String?
@@ -39,6 +40,14 @@ model PluginInstall {
   @@index([zipHash])
   @@index([deletedAt])
   @@map("plugin_installs")
+  @@schema("public")
+}
+
+enum PluginTrustLevel {
+  builtin
+  signed
+  unsigned
+
   @@schema("public")
 }
 

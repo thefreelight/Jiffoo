@@ -24,7 +24,7 @@ import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 interface PluginArchiveOptions {
   entryModule?: string;
   packageType?: 'module';
-  declaredTrustLevel?: 'builtin' | 'unsigned';
+  manifestTrustLevel?: 'builtin' | 'unsigned';
 }
 
 async function createUnsignedPluginArchive(
@@ -45,7 +45,7 @@ async function createUnsignedPluginArchive(
     category: 'other',
     runtimeType: 'internal-fastify',
     hostProtocol: 'internal-fastify-v1',
-    trustLevel: options.declaredTrustLevel ?? 'unsigned',
+    ...(options.manifestTrustLevel === undefined ? {} : { trustLevel: options.manifestTrustLevel }),
     entryModule: options.entryModule ?? 'dist/index.js',
     permissions: [],
     capabilities: [],
@@ -223,6 +223,7 @@ describe('Extensions Installer Endpoints', () => {
       ]);
       expect(audit?.metadata).toMatchObject({ slug: uploadSlug, version: '1.0.0', source: 'local-zip' });
       expect(plugin).not.toBeNull();
+      expect(plugin?.trustLevel).toBe('unsigned');
       expect(audit!.createdAt.getTime()).toBeLessThanOrEqual(plugin!.installedAt.getTime());
 
       const defaultInstance = await prisma.pluginInstallation.findUnique({
@@ -257,11 +258,59 @@ describe('Extensions Installer Endpoints', () => {
         lastFailureAt: failureAt.toISOString(),
         lastFailureMessage: 'plugin runtime failure',
       });
+
+      const unsignedDetail = await app.inject({
+        method: 'GET',
+        url: `/api/v1/extensions/plugin/${uploadSlug}`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+      expect(unsignedDetail.statusCode).toBe(200);
+      expect(unsignedDetail.json().data.trustLevel).toBe('unsigned');
+
+      await prisma.pluginInstall.update({
+        where: { slug: uploadSlug },
+        data: { source: 'builtin', trustLevel: 'builtin' },
+      });
+      const builtinDetail = await app.inject({
+        method: 'GET',
+        url: `/api/v1/extensions/plugin/${uploadSlug}`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+      expect(builtinDetail.statusCode).toBe(200);
+      expect(builtinDetail.json().data.trustLevel).toBe('builtin');
+
+      await prisma.pluginInstall.update({ where: { slug: uploadSlug }, data: { manifestJson: {} } });
+      const listResponse = await app.inject({
+        method: 'GET',
+        url: '/api/v1/extensions/plugin',
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+      expect(listResponse.statusCode).toBe(200);
+      expect(listResponse.json().data.items.find((item: { slug: string }) => item.slug === uploadSlug).manifestError.issues).toEqual(
+        expect.arrayContaining([expect.objectContaining({ path: 'schemaVersion' })]),
+      );
+      const invalidDetail = await app.inject({
+        method: 'GET',
+        url: `/api/v1/extensions/plugin/${uploadSlug}`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+      expect(invalidDetail.statusCode).toBe(200);
+      expect(invalidDetail.json().data.manifestError.issues).toEqual(expect.any(Array));
+
+      const unchangedEnabled = (await prisma.pluginInstallation.findUnique({ where: { id: defaultInstance!.id } }))?.enabled;
+      const invalidEnable = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/extensions/plugin/${uploadSlug}/instances/${defaultInstance!.id}`,
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { enabled: !unchangedEnabled },
+      });
+      expect(invalidEnable.statusCode).toBe(422);
+      expect((await prisma.pluginInstallation.findUnique({ where: { id: defaultInstance!.id } }))?.enabled).toBe(unchangedEnabled);
     });
 
-    it('requires unsigned confirmation when a package declares builtin trust', async () => {
+    it('rejects a package whose manifest declares a trust tier', async () => {
       const builtinSlug = `route-builtin-${Date.now().toString(36)}`.slice(0, 32);
-      const archive = await createUnsignedPluginArchive(builtinSlug, { declaredTrustLevel: 'builtin' });
+      const archive = await createUnsignedPluginArchive(builtinSlug, { manifestTrustLevel: 'builtin' });
 
       try {
         await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: builtinSlug } });
@@ -277,25 +326,12 @@ describe('Extensions Installer Endpoints', () => {
           payload: unconfirmed.payload,
         });
         expect(unconfirmedResponse.statusCode).toBe(400);
-        expect(unconfirmedResponse.json().error.code).toBe('UNSIGNED_CONFIRMATION_REQUIRED');
+        expect(unconfirmedResponse.json().error.code).toBe('MANIFEST_TRUST_LEVEL_NOT_ALLOWED');
         expect(await prisma.adminStaffAuditLog.count({
           where: { staffUserId: adminUser.id, action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED' },
         })).toBe(0);
 
-        const confirmed = await multipartPluginUpload(archive.archivePath, true);
-        const installedResponse = await app.inject({
-          method: 'POST',
-          url: '/api/v1/extensions/plugin/install',
-          headers: { authorization: `Bearer ${adminToken}`, ...confirmed.headers },
-          payload: confirmed.payload,
-        });
-        expect(installedResponse.statusCode).toBe(200);
-        expect(installedResponse.json().data.slug).toBe(builtinSlug);
-
-        const installedData = installedResponse.json().data;
-        if ('trustLevel' in installedData) {
-          expect(installedData.trustLevel).toBe('unsigned');
-        }
+        expect(await prisma.pluginInstall.findUnique({ where: { slug: builtinSlug } })).toBeNull();
       } finally {
         await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: builtinSlug } });
         await prisma.pluginInstall.deleteMany({ where: { slug: builtinSlug } });

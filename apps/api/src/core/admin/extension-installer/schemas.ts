@@ -36,6 +36,25 @@ const extensionMetaSchema = {
         { type: 'null' },
       ],
     },
+    manifestError: {
+      type: 'object',
+      nullable: true,
+      properties: {
+        issues: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              path: { type: 'string' },
+              message: { type: 'string' },
+              code: { type: 'string' },
+            },
+            required: ['path', 'message', 'code'],
+          },
+        },
+      },
+      required: ['issues'],
+    },
     deletedAt: { type: 'string', format: 'date-time', nullable: true, description: 'Soft-delete timestamp for uninstalled plugin' },
   },
   required: ['slug', 'name', 'version'],

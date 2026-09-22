@@ -40,7 +40,7 @@ describe('Plugin lifecycle reconciliation', () => {
     const sourceDirectory = await fs.mkdtemp(path.join(process.cwd(), '.plugin-lifecycle-reconciliation-'));
     sourceDirectories.push(sourceDirectory);
     await fs.mkdir(path.join(sourceDirectory, 'server'), { recursive: true });
-    await fs.writeFile(path.join(sourceDirectory, 'manifest.json'), JSON.stringify({
+    const manifest = {
       schemaVersion: 1,
       slug,
       name: slug,
@@ -49,15 +49,15 @@ describe('Plugin lifecycle reconciliation', () => {
       author: 'test-suite',
       runtimeType: 'internal-fastify',
       hostProtocol: 'internal-fastify-v1',
-      trustLevel: 'unsigned',
       entryModule: 'server/index.js',
       permissions: [],
-    }), 'utf-8');
+    };
+    await fs.writeFile(path.join(sourceDirectory, 'manifest.json'), JSON.stringify(manifest), 'utf-8');
     await fs.writeFile(path.join(sourceDirectory, 'server', 'index.js'), source, 'utf-8');
     const deployment = await pluginPackageStore.put(slug, sourceDirectory);
     await deployment.commit();
     await prisma.pluginInstall.create({
-      data: { slug, name: slug, version: '1.0.0', runtimeType: 'internal-fastify', source: 'local-zip' },
+      data: { slug, name: slug, version: '1.0.0', runtimeType: 'internal-fastify', source: 'local-zip', manifestJson: manifest },
     });
     const installation = await prisma.pluginInstallation.create({
       data: { pluginSlug: slug, instanceKey: 'default', enabled },
@@ -125,7 +125,7 @@ module.exports = {
     expect(afterPurge).toBe(afterRestore + 1);
   });
 
-  it('loads healthy enabled plugins at startup while recording failed plugin loads', async () => {
+  it('skips an invalid stored manifest at startup while loading healthy plugins', async () => {
     const goodSlug = `startup-good-${Date.now().toString(36)}`.slice(0, 30);
     const badSlug = `startup-bad-${Date.now().toString(36)}`.slice(0, 30);
     const goodId = await createPlugin(goodSlug, `
@@ -133,7 +133,8 @@ module.exports = {
   manifest: { id: ${JSON.stringify(goodSlug)}, version: '1.0.0', contract: 'v1' },
   register(ctx) { ctx.events.subscribe('startup.event', () => undefined); },
 };`);
-    await createPlugin(badSlug, 'module.exports = {};');
+    await createPlugin(badSlug, 'module.exports = async function plugin() {};');
+    await prisma.pluginInstall.update({ where: { slug: badSlug }, data: { manifestJson: {} } });
 
     await loadEnabledPluginRuntimes();
 
@@ -142,7 +143,31 @@ module.exports = {
       where: { pluginSlug_instanceKey: { pluginSlug: badSlug, instanceKey: 'default' } },
     });
     expect(failed?.lastFailureAt).not.toBeNull();
-    expect(failed?.lastFailureMessage).toContain('Failed to load plugin');
+    expect(failed?.lastFailureMessage).toContain('Stored manifest');
+  });
+
+  it('refuses a package manifest whose version differs from the installed record', async () => {
+    const slug = `manifest-version-${Date.now().toString(36)}`.slice(0, 30);
+    const installationId = await createPlugin(slug, 'module.exports = async function plugin() {};');
+    const pluginPackage = await pluginPackageStore.get(slug);
+    await pluginPackage!.writeText('manifest.json', JSON.stringify({
+      schemaVersion: 1,
+      slug,
+      name: slug,
+      version: '2.0.0',
+      description: 'Mismatched package manifest',
+      author: 'test-suite',
+      runtimeType: 'internal-fastify',
+      hostProtocol: 'internal-fastify-v1',
+      entryModule: 'server/index.js',
+      permissions: [],
+    }));
+
+    await loadEnabledPluginRuntimes();
+
+    const installation = await prisma.pluginInstallation.findUnique({ where: { id: installationId } });
+    expect(installation?.lastFailureAt).not.toBeNull();
+    expect(installation?.lastFailureMessage).toContain('must match the installed slug and version');
   });
 
   it('continues event dispatch after a handler failure and refreshes after an external registry change', async () => {

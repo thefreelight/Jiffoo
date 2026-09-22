@@ -39,21 +39,22 @@ describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
     // Create a minimal internal-fastify plugin for gateway testing
     pluginDir = await fs.mkdtemp(path.join(process.cwd(), '.plugin-gateway-'));
     await fs.mkdir(path.join(pluginDir, 'server'), { recursive: true });
+    const manifest = {
+      schemaVersion: 1,
+      slug,
+      name: 'Baseline Gateway Test Plugin',
+      version: '1.0.0',
+      description: 'Plugin gateway baseline tests',
+      author: 'test-suite',
+      runtimeType: 'internal-fastify',
+      hostProtocol: 'internal-fastify-v1',
+      entryModule,
+      permissions: [],
+    };
     await fs.writeFile(
       path.join(pluginDir, 'manifest.json'),
       JSON.stringify(
-        {
-          schemaVersion: 1,
-          slug,
-          name: 'Baseline Gateway Test Plugin',
-          version: '1.0.0',
-          description: 'Plugin gateway baseline tests',
-          author: 'test-suite',
-          runtimeType: 'internal-fastify',
-          trustLevel: 'builtin',
-          entryModule,
-          permissions: [],
-        },
+        manifest,
         null,
         2,
       ),
@@ -90,6 +91,7 @@ module.exports = async function plugin(fastify) {
         runtimeType: 'internal-fastify',
         entryModule,
         source: 'local-zip',
+        manifestJson: manifest,
         permissions: JSON.stringify([]),
       },
     });

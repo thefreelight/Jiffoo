@@ -48,12 +48,22 @@ describe('internal webhook delivery', () => {
       }),
     });
     pluginManagementServiceMock.getPluginPackage.mockResolvedValue({
-      manifestJson: JSON.stringify({
+      slug: 'test-gateway-connect',
+      manifestJson: {
+        schemaVersion: 1,
+        slug: 'test-gateway-connect',
+        name: 'Test Gateway Connect',
+        version: '1.0.0',
+        description: 'Webhook test gateway',
+        runtimeType: 'internal-fastify',
+        hostProtocol: 'internal-fastify-v1',
+        entryModule: 'server/index.js',
+        permissions: [],
         webhooks: {
           url: '/webhooks/jiffoo/order-paid',
           events: ['order.paid'],
         },
-      }),
+      },
     });
     prismaMock.webhookDeliveryLog.create.mockResolvedValue({});
 
@@ -101,9 +111,19 @@ describe('internal webhook delivery', () => {
       configJson: null,
     });
     pluginManagementServiceMock.getPluginPackage.mockResolvedValue({
-      manifestJson: JSON.stringify({
+      slug: 'smtp-email',
+      manifestJson: {
+        schemaVersion: 1,
+        slug: 'smtp-email',
+        name: 'SMTP Email',
+        version: '1.0.0',
+        description: 'SMTP webhook gateway',
+        runtimeType: 'internal-fastify',
+        hostProtocol: 'internal-fastify-v1',
+        entryModule: 'server/index.js',
+        permissions: [],
         webhooks: { url: '/webhooks', events: ['email.send'] },
-      }),
+      },
     });
     prismaMock.webhookDeliveryLog.create.mockResolvedValue({});
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({

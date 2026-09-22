@@ -1,4 +1,3 @@
-// @ts-nocheck
 /**
  * Plugin Management Service
  *
@@ -16,6 +15,7 @@ import { assertPluginConfigReadyForEnable } from '@/core/admin/extension-install
 import type { PluginInstall, PluginInstallation } from '@prisma/client';
 import { executeLifecycleHook, hasLifecycleHook } from './lifecycle-hooks';
 import { mergeSecretConfigForUpdate } from './config-secrets';
+import { readStoredPluginManifest } from '@/core/admin/extension-installer/stored-manifest';
 
 // instanceKey validation regex: ^[a-z0-9-]{1,32}$
 const INSTANCE_KEY_REGEX = /^[a-z0-9-]{1,32}$/;
@@ -187,8 +187,9 @@ async function createInstance(
   const effectiveEnabled = options?.enabled ?? true;
   const effectiveConfig = (options?.config ?? {}) as Record<string, unknown>;
   if (effectiveEnabled) {
+    const manifest = readStoredPluginManifest(pluginPackage);
     try {
-      assertPluginConfigReadyForEnable(slug, pluginPackage.manifestJson, effectiveConfig);
+      assertPluginConfigReadyForEnable(slug, manifest, effectiveConfig);
     } catch (error: any) {
       throw new Error(error.message);
     }
@@ -266,14 +267,15 @@ async function updateInstance(
   }
 
   const existingConfig = parseJsonObject(existing.configJson);
+  const manifest = readStoredPluginManifest(pluginPackage);
   const nextConfig = updates.config !== undefined
-    ? mergeSecretConfigForUpdate(pluginPackage.manifestJson, existingConfig, updates.config)
+    ? mergeSecretConfigForUpdate(manifest, existingConfig, updates.config)
     : existingConfig;
   const nextEnabled = updates.enabled !== undefined ? updates.enabled : existing.enabled;
 
   if (nextEnabled) {
     try {
-      assertPluginConfigReadyForEnable(existing.pluginSlug, pluginPackage.manifestJson, nextConfig);
+      assertPluginConfigReadyForEnable(existing.pluginSlug, manifest, nextConfig);
     } catch (error: any) {
       throw new Error(error.message);
     }
@@ -284,13 +286,9 @@ async function updateInstance(
   const isDisabling = updates.enabled === false && existing.enabled;
 
   // Parse manifest for lifecycle hook checks
-  const manifest = Object.keys(parseJsonObject(pluginPackage.manifestJson)).length > 0
-    ? parseJsonObject(pluginPackage.manifestJson)
-    : null;
-
   // If enabling: execute onEnable lifecycle hook BEFORE the DB update.
   // If onEnable fails, the enable is rejected (hook throws).
-  if (isEnabling && manifest && hasLifecycleHook(manifest, 'onEnable')) {
+  if (isEnabling && hasLifecycleHook(manifest, 'onEnable')) {
     await executeLifecycleHook('onEnable', {
       installationId,
       pluginSlug: existing.pluginSlug,
@@ -330,7 +328,7 @@ async function updateInstance(
 
   // If disabling: execute onDisable lifecycle hook AFTER the DB update.
   // Failure is non-blocking — just logs a warning.
-  if (isDisabling && manifest && hasLifecycleHook(manifest, 'onDisable')) {
+  if (isDisabling && hasLifecycleHook(manifest, 'onDisable')) {
     await executeLifecycleHook('onDisable', {
       installationId,
       pluginSlug: existing.pluginSlug,
@@ -468,7 +466,7 @@ export async function uninstallPlugin(slug: string): Promise<void> {
   }
 
   const defaultInstance = await getDefaultInstance(slug);
-  const manifest = parseJsonObject(pluginPackage.manifestJson);
+  const manifest = readStoredPluginManifest(pluginPackage);
   if (defaultInstance && hasLifecycleHook(manifest, 'onUninstall')) {
     await executeLifecycleHook('onUninstall', {
       installationId: defaultInstance.id,
@@ -526,6 +524,7 @@ export async function restorePlugin(slug: string): Promise<void> {
     throw new Error(`Plugin "${slug}" files are missing. Please reinstall from ZIP.`);
   }
 
+  const manifest = readStoredPluginManifest(pluginPackage);
   await prisma.$transaction(async (tx) => {
     await tx.pluginInstall.update({
       where: { slug },
@@ -545,7 +544,7 @@ export async function restorePlugin(slug: string): Promise<void> {
       const defaultConfig = parseJsonObject(defaultInstance.configJson);
       const canEnable = (() => {
         try {
-          assertPluginConfigReadyForEnable(slug, pluginPackage.manifestJson, defaultConfig);
+          assertPluginConfigReadyForEnable(slug, manifest, defaultConfig);
           return true;
         } catch {
           return false;

@@ -25,7 +25,6 @@ async function createPluginArchive(
     description: 'Installs through the Core in-process gateway.',
     runtimeType: 'internal-fastify',
     hostProtocol: 'internal-fastify-v1',
-    trustLevel: 'unsigned',
     entryModule: 'dist/index.js',
     permissions: [],
     lifecycle: options.lifecycle,

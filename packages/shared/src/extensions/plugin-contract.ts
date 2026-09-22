@@ -98,12 +98,6 @@ export interface PluginManifest {
    * built for another plugin runtime before loading their entry module.
    */
   hostProtocol?: PluginHostProtocol;
-  /**
-   * Declared trust level for the plugin.
-   *
-   * Required when `runtimeType` is `internal-fastify`.
-   */
-  trustLevel?: PluginTrustLevel;
   entryModule?: string;
   permissions: string[];
   author?: string;
@@ -238,31 +232,12 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
     );
   }
 
-  // Trust is mandatory so Core can display package accountability before install.
   if (manifest.trustLevel !== undefined) {
-    if (
-      manifest.trustLevel !== 'builtin' &&
-      manifest.trustLevel !== 'signed' &&
-      manifest.trustLevel !== 'unsigned'
-    ) {
-      pushIssue(
-        issues,
-        'trustLevel',
-        'trustLevel must be "builtin", "signed", or "unsigned"',
-        'INVALID_TRUST_LEVEL'
-      );
-    }
-  }
-
-  if (
-    manifest.runtimeType === 'internal-fastify' &&
-    manifest.trustLevel === undefined
-  ) {
     pushIssue(
       issues,
       'trustLevel',
-      'trustLevel is required for internal-fastify plugins',
-      'MISSING_TRUST_LEVEL'
+      'Core decides the trust tier; manifest trustLevel is not allowed',
+      'MANIFEST_TRUST_LEVEL_NOT_ALLOWED'
     );
   }
 
@@ -392,4 +367,8 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
   }
 
   return issues;
+}
+
+export function isPluginManifest(manifest: unknown): manifest is PluginManifest {
+  return getPluginManifestIssues(manifest).length === 0;
 }

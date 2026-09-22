@@ -126,6 +126,7 @@ export class PluginFsInstaller implements IPluginInstaller {
         description: existingByHash.description || '',
         category: existingByHash.category || 'general',
         runtimeType: 'internal-fastify',
+        trustLevel: existingByHash.trustLevel,
         entryModule: existingByHash.entryModule || undefined,
         source: 'local-zip',
         fsPath: existingPackage.getEntryPath(''),
@@ -200,6 +201,13 @@ export class PluginFsInstaller implements IPluginInstaller {
       // Phase 3: For UPGRADE scenario, warm all enabled instances BEFORE DB commit
       if (existingBySlug) {
         try {
+          // The runtime validates the package manifest against the stored record.
+          // Persist the new identity before warming so that validation remains strict during upgrades.
+          await prisma.pluginInstall.update({
+            where: { slug: manifest.slug },
+            data: { version: manifest.version, manifestJson: manifest, trustLevel },
+          });
+
           // Import warmPluginInstanceRuntime
           const { warmPluginInstanceRuntime } = await import('./plugin-runtime');
 
@@ -226,7 +234,7 @@ export class PluginFsInstaller implements IPluginInstaller {
                 name: manifest.name, version: manifest.version, description: manifest.description,
                 author: manifest.author, authorUrl: manifest.authorUrl, category: manifest.category,
                 runtimeType: manifest.runtimeType, entryModule: manifest.entryModule, zipHash,
-                manifestJson: manifest, permissions: manifest.permissions ?? null, deletedAt: null, updatedAt: now,
+                manifestJson: manifest, permissions: manifest.permissions ?? null, trustLevel, deletedAt: null, updatedAt: now,
               },
             });
             if (existingBySlug.deletedAt !== null) {
@@ -284,7 +292,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             description: manifest.description || '',
             category: manifest.category || 'general',
             runtimeType: manifest.runtimeType,
-            trustLevel: trustLevel,
+            trustLevel: pluginInstall.trustLevel,
             entryModule: manifest.entryModule,
             source: 'local-zip',
             fsPath: targetDir,
@@ -323,7 +331,15 @@ export class PluginFsInstaller implements IPluginInstaller {
           await deployment?.rollback().catch(() => {});
           deployment = null;
 
-          // DB is NOT updated (old version remains)
+          await prisma.pluginInstall.update({
+            where: { slug: existingBySlug.slug },
+            data: {
+              version: existingBySlug.version,
+              manifestJson: existingBySlug.manifestJson,
+              trustLevel: existingBySlug.trustLevel,
+            },
+          });
+
           throw new Error(
             `Plugin upgrade failed: ${warmError.message}. Old version restored.`
           );
@@ -343,7 +359,8 @@ export class PluginFsInstaller implements IPluginInstaller {
                 category: manifest.category,
                 runtimeType: manifest.runtimeType,
                 entryModule: manifest.entryModule,
-                source: 'local-zip',
+                source: options?.source || 'local-zip',
+                trustLevel,
                 zipHash,
                 manifestJson: manifest,
                 permissions: manifest.permissions ?? null,
@@ -438,7 +455,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             description: manifest.description || '',
             category: manifest.category || 'general',
             runtimeType: manifest.runtimeType,
-            trustLevel: trustLevel,
+            trustLevel: pluginInstall.trustLevel,
             entryModule: manifest.entryModule,
             source: 'local-zip',
             fsPath: targetDir,

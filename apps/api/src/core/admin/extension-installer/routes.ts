@@ -15,6 +15,7 @@ import { PluginManagementService } from '@/core/admin/plugin-management/service'
 import { handlePluginGateway, PluginGatewayError, warmPluginRuntime } from './plugin-runtime';
 import { bundleInstaller } from './bundle-installer';
 import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/config-secrets';
+import { readStoredPluginManifest } from './stored-manifest';
 
 // Per spec (EXTENSIONS_IMPLEMENTATION.md) size limits for offline ZIP installs
 const ZIP_SIZE_LIMITS: Record<ExtensionKind, number> = {
@@ -301,7 +302,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
 
       // Transform to API response format
       const items = instances.map((inst) => {
-        const adminConfig = sanitizePluginConfigForAdmin(pluginPackage.manifestJson, parseJsonObject(inst.configJson));
+        const adminConfig = sanitizePluginConfigForAdmin(readStoredPluginManifest(pluginPackage), parseJsonObject(inst.configJson));
         return {
           installationId: inst.id,
           pluginSlug: inst.pluginSlug,
@@ -377,7 +378,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         config,
         grantedPermissions,
       });
-      const adminConfig = sanitizePluginConfigForAdmin(pluginPackage.manifestJson, parseJsonObject(instance.configJson));
+      const adminConfig = sanitizePluginConfigForAdmin(readStoredPluginManifest(pluginPackage), parseJsonObject(instance.configJson));
 
       return sendSuccess(reply, {
         installationId: instance.id,
@@ -454,7 +455,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         config,
         grantedPermissions,
       });
-      const adminConfig = sanitizePluginConfigForAdmin(pluginPackage.manifestJson, parseJsonObject(instance.configJson));
+      const adminConfig = sanitizePluginConfigForAdmin(readStoredPluginManifest(pluginPackage), parseJsonObject(instance.configJson));
 
       return sendSuccess(reply, {
         installationId: instance.id,
@@ -749,8 +750,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
       }, `plugin "${slug}" restored successfully`);
     } catch (error: any) {
       const message = error?.message || 'Failed to restore plugin';
-      const statusCode = message.includes('not found') ? 404 : 400;
-      return sendError(reply, statusCode, 'RESTORE_ERROR', message);
+      const statusCode = typeof error?.statusCode === 'number' ? error.statusCode : message.includes('not found') ? 404 : 400;
+      return sendError(reply, statusCode, error?.code || 'RESTORE_ERROR', message);
     }
   });
 

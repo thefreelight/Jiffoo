@@ -10,7 +10,6 @@ function createManifestWithSchema(configSchema: Record<string, unknown>): string
     description: 'Test payment plugin',
     runtimeType: 'internal-fastify',
     hostProtocol: 'internal-fastify-v1',
-    trustLevel: 'unsigned',
     entryModule: 'dist/index.js',
     permissions: [],
     configSchema,
@@ -27,7 +26,6 @@ describe('Plugin Config Readiness', () => {
       description: 'No config plugin',
       runtimeType: 'internal-fastify',
       hostProtocol: 'internal-fastify-v1',
-      trustLevel: 'unsigned',
       entryModule: 'dist/index.js',
       permissions: [],
     });

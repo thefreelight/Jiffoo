@@ -12,6 +12,9 @@
 import { createHmac } from 'crypto';
 import { prisma } from '@/config/database';
 import { LoggerService, logger } from '@/core/logger/unified-logger';
+import { readStoredPluginManifest } from '@/core/admin/extension-installer/stored-manifest';
+import { recordPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
+import type { PluginManifest } from '@jiffoo/shared';
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -239,7 +242,14 @@ export async function deliverInternalWebhook(params: InternalDeliveryParams): Pr
     }
 
     const pluginPackage = await PluginManagementService.getPluginPackage(instance.pluginSlug);
-    const manifest = parseJsonRecord(pluginPackage?.manifestJson);
+    if (!pluginPackage) throw new Error(`Plugin package ${instance.pluginSlug} not found`);
+    let manifest: PluginManifest;
+    try {
+      manifest = readStoredPluginManifest(pluginPackage);
+    } catch (error) {
+      await recordPluginFailure(instance.pluginSlug, error, 'manifest');
+      return;
+    }
     const webhooks = parseJsonRecord(manifest.webhooks);
     const webhookPath = typeof webhooks.url === 'string' ? webhooks.url : null;
     const webhookEvents = Array.isArray(webhooks.events) ? webhooks.events : [];
