@@ -2,8 +2,11 @@ import { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { InventoryService } from './service';
 import { sendError, sendSuccess } from '@/utils/response';
+import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
 
 export async function adminInventoryRoutes(fastify: FastifyInstance) {
+  fastify.addHook('onRequest', authMiddleware);
+  fastify.addHook('onRequest', requireAdmin);
   fastify.get('/', async (request, reply) => {
     const { page = 1, limit = 20 } = request.query as { page?: number; limit?: number };
     return sendSuccess(reply, await InventoryService.listStock(Number(page), Number(limit)));

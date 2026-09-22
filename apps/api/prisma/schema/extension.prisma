@@ -1,4 +1,4 @@
-// extension.prisma — PluginInstall, PluginInstallation, PluginServiceToken,
+// extension.prisma — PluginInstall, PluginInstallation,
 //                    WebhookSubscription, WebhookDeliveryLog, WebhookDeadLetter
 
 // ============================================================
@@ -64,7 +64,6 @@ model PluginInstallation {
   updatedAt DateTime @updatedAt
 
   plugin               PluginInstall          @relation(fields: [pluginSlug], references: [slug], onDelete: Cascade)
-  serviceTokens        PluginServiceToken[]
   webhookSubscriptions WebhookSubscription[]
 
   @@unique([pluginSlug, instanceKey])
@@ -72,27 +71,6 @@ model PluginInstallation {
   @@index([enabled])
   @@index([deletedAt])
   @@map("plugin_installations")
-  @@schema("public")
-}
-
-// ============================================================
-// PLUGIN SERVICE TOKEN
-// ============================================================
-model PluginServiceToken {
-  id             String    @id @default(cuid())
-  installationId String
-  tokenHash      String
-  status         String    @default("active")
-  expiresAt      DateTime
-  issuedAt       DateTime  @default(now())
-  lastUsedAt     DateTime?
-
-  installation PluginInstallation @relation(fields: [installationId], references: [id], onDelete: Cascade)
-
-  @@index([installationId])
-  @@index([tokenHash])
-  @@index([status])
-  @@map("plugin_service_tokens")
   @@schema("public")
 }
 

@@ -28,7 +28,7 @@
     "test:gate:pr": "npm run test:gate:fast && npm run test:integration",
     "test:gate:full": "npm run test:gate:pr && npm run test:coverage",
     "test:ci": "npm run test:gate:full",
-    "clean": "rm -rf dist",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "db:generate": "dotenv -e .env -- prisma generate",
     "db:migrate": "dotenv -e .env -- prisma migrate dev",
     "db:migrate-deploy": "prisma migrate deploy",
@@ -37,10 +37,7 @@
     "db:reset": "dotenv -e .env -- prisma migrate reset",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:production": "prisma db seed",
-    "db:mode:test": "dotenv -e tests/.env.test -- node scripts/run-test-migrate.js",
-    "db:check-drift": "bash scripts/check-drift.sh",
     "schema:check": "node scripts/schema-ci-gate.cjs",
-    "docker:build": "docker build -t api:latest .",
     "export:openapi": "tsx scripts/export-openapi.ts"
   },
   "keywords": [

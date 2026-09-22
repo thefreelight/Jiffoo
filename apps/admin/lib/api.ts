@@ -195,7 +195,7 @@ export const authApi = {
       token_type: string;
       expires_in: number;
       refresh_token?: string;
-    }>('/admin/auth/login', { identifier, password }, { withCredentials: true });
+    }>('/auth/login', { identifier, password }, { withCredentials: true });
     if (response.success && response.data?.access_token) {
       apiClient.setToken(response.data.access_token);
       if (response.data.refresh_token) {
@@ -215,25 +215,25 @@ export const authApi = {
   }>> =>
     apiClient.get('/auth/login-config'),
 
-  me: (): Promise<ApiResponse<UserProfile>> => apiClient.get('/admin/auth/me'),
+  me: (): Promise<ApiResponse<UserProfile>> => apiClient.get('/auth/me'),
 
   bootstrapStatus: (): Promise<ApiResponse<AuthBootstrapStatus>> =>
     apiClient.get('/auth/bootstrap-status'),
 
   logout: async () => {
     try {
-      return await apiClient.post<void>('/admin/auth/logout', {}, { withCredentials: true });
+      return await apiClient.post<void>('/auth/logout', {}, { withCredentials: true });
     } finally {
       apiClient.clearAuth();
     }
   },
 
-  refreshToken: () => apiClient.post('/admin/auth/refresh', {
+  refreshToken: () => apiClient.post('/auth/refresh', {
     refresh_token: apiClient.getRefreshToken(),
   }, { withCredentials: true }),
 
   changePassword: (currentPassword: string, newPassword: string): Promise<ApiResponse<{ passwordChanged: boolean; changedAt: string }>> =>
-    apiClient.post('/admin/auth/change-password', { currentPassword, newPassword }),
+    apiClient.post('/auth/change-password', { currentPassword, newPassword }),
 };
 
 export const accountApi = {
@@ -380,16 +380,6 @@ export interface UpdateInstanceRequest {
   config?: Record<string, unknown>;
   grantedPermissions?: string[];
 }
-
-export interface PluginServiceTokenStatus {
-  installationId: string;
-  pluginSlug: string;
-  status: 'active' | 'suspended' | 'revoked';
-  issuedAt: string;
-  expiresAt: string;
-  lastUsedAt?: string | null;
-}
-
 
 const DEFAULT_PLUGIN_INSTANCE_KEY = 'default';
 
@@ -767,49 +757,6 @@ export const pluginsApi = {
   }>> =>
     apiClient.delete(`/extensions/plugin/${slug}/instances/${installationId}`),
 
-  /** Get latest service token status for an instance */
-  getInstanceTokenStatus: (slug: string, installationId: string): Promise<ApiResponse<PluginServiceTokenStatus | null>> =>
-    apiClient.get(`/extensions/plugin/${slug}/instances/${installationId}/token/status`),
-
-  /** Issue a new service token for an instance */
-  issueInstanceToken: (slug: string, installationId: string): Promise<ApiResponse<{
-    token: string;
-    installationId: string;
-    pluginSlug: string;
-  }>> =>
-    apiClient.post(`/extensions/plugin/${slug}/instances/${installationId}/token`),
-
-  /** Refresh an existing service token for an instance */
-  refreshInstanceToken: (slug: string, installationId: string): Promise<ApiResponse<{
-    token: string;
-    installationId: string;
-    pluginSlug: string;
-  }>> =>
-    apiClient.post(`/extensions/plugin/${slug}/instances/${installationId}/token/refresh`),
-
-  /** Suspend the active service token for an instance */
-  suspendInstanceToken: (slug: string, installationId: string): Promise<ApiResponse<{
-    installationId: string;
-    pluginSlug: string;
-    suspended: boolean;
-  }>> =>
-    apiClient.post(`/extensions/plugin/${slug}/instances/${installationId}/token/suspend`),
-
-  /** Resume the suspended service token for an instance */
-  resumeInstanceToken: (slug: string, installationId: string): Promise<ApiResponse<{
-    installationId: string;
-    pluginSlug: string;
-    resumed: boolean;
-  }>> =>
-    apiClient.post(`/extensions/plugin/${slug}/instances/${installationId}/token/resume`),
-
-  /** Revoke the latest service token for an instance */
-  revokeInstanceToken: (slug: string, installationId: string): Promise<ApiResponse<{
-    installationId: string;
-    pluginSlug: string;
-    revoked: boolean;
-  }>> =>
-    apiClient.delete(`/extensions/plugin/${slug}/instances/${installationId}/token`),
 };
 
 // Upload API

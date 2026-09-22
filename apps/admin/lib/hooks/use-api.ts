@@ -867,11 +867,6 @@ const pluginQueryKeys = {
   instances: (slug: string) => [...pluginQueryKeys.all, 'instances', slug] as const,
 };
 
-const pluginTokenQueryKeys = {
-  all: ['plugin-token'] as const,
-  status: (slug: string, installationId: string) => [...pluginTokenQueryKeys.all, slug, installationId, 'status'] as const,
-};
-
 const marketQueryKeys = { all: ['extensions'] as const };
 
 // Get installed plugins
@@ -1114,117 +1109,6 @@ export function useDeletePluginInstance() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: pluginQueryKeys.instances(variables.slug) });
       toast.success('Instance deleted successfully');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-export function usePluginInstanceTokenStatus(slug: string, installationId: string) {
-  return useQuery({
-    queryKey: pluginTokenQueryKeys.status(slug, installationId || 'default'),
-    queryFn: async () => {
-      const response = await pluginsApi.getInstanceTokenStatus(slug, installationId);
-      return unwrapApiResponse(response);
-    },
-    enabled: Boolean(slug && installationId && installationId !== 'default'),
-    staleTime: 30 * 1000,
-  });
-}
-
-function invalidatePluginTokenStatus(queryClient: ReturnType<typeof useQueryClient>, slug: string, installationId: string) {
-  queryClient.invalidateQueries({ queryKey: pluginTokenQueryKeys.status(slug, installationId) });
-}
-
-export function useIssuePluginInstanceToken() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
-      const response = await pluginsApi.issueInstanceToken(slug, installationId);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, variables) => {
-      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
-      toast.success('Gateway access token issued');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-export function useRefreshPluginInstanceToken() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
-      const response = await pluginsApi.refreshInstanceToken(slug, installationId);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, variables) => {
-      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
-      toast.success('Gateway access token rotated');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-export function useSuspendPluginInstanceToken() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
-      const response = await pluginsApi.suspendInstanceToken(slug, installationId);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, variables) => {
-      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
-      toast.success('Gateway access token suspended');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-export function useResumePluginInstanceToken() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
-      const response = await pluginsApi.resumeInstanceToken(slug, installationId);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, variables) => {
-      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
-      toast.success('Gateway access token resumed');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-export function useRevokePluginInstanceToken() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
-      const response = await pluginsApi.revokeInstanceToken(slug, installationId);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, variables) => {
-      invalidatePluginTokenStatus(queryClient, variables.slug, variables.installationId);
-      toast.success('Gateway access token revoked');
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));

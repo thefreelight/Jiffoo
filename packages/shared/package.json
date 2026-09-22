@@ -79,7 +79,7 @@
     "dev": "node ../../node_modules/typescript/bin/tsc --watch",
     "lint": "eslint src --ext .ts",
     "type-check": "node ../../node_modules/typescript/bin/tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "keywords": [
     "typescript",
