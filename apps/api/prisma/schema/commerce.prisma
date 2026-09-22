@@ -15,12 +15,6 @@ model Category {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  // SEO fields
-  metaTitle       String?
-  metaDescription String?
-  canonicalUrl    String?
-  structuredData  Json?
-
   // Relations
   parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
   children Category[] @relation("CategoryHierarchy")
@@ -54,12 +48,6 @@ model Product {
   height           Float?
   requiresShipping Boolean @default(true)
   shippingClass    String?
-
-  // SEO fields
-  metaTitle       String?
-  metaDescription String?
-  canonicalUrl    String?
-  structuredData  Json?
 
   // Relations
   categoryId   String?

@@ -1,46 +1,8 @@
-// _dormant.prisma — Frozen models (zero code references as of 2026-07 audit)
-// DORMANT since 2026-07: no code references, do not use
-// These models are kept in schema to avoid breaking deployed instances,
-// but no new code should reference them via prisma.<model>.
+// _dormant.prisma — order and payment models retained for current runtime use.
 
 // ============================================================
-// DORMANT: INSTALLED THEME
-// Superseded by file-system-based theme registry
+// ORDER SHIPPING ADDRESS
 // ============================================================
-// DORMANT since 2026-07: no code references, do not use
-model InstalledTheme {
-  id String @id @default(cuid())
-
-  slug   String
-  target String
-
-  name        String
-  version     String
-  author      String?
-  description String?
-
-  source      String @default("local-zip")
-  installPath String
-
-  isActive Boolean @default(false)
-
-  config Json?
-
-  installedAt DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@unique([slug, target])
-  @@index([target])
-  @@index([isActive])
-  @@map("installed_themes")
-  @@schema("public")
-}
-
-// ============================================================
-// DORMANT: ORDER SHIPPING ADDRESS
-// Superseded by embedded JSON in Order model
-// ============================================================
-// DORMANT since 2026-07: no code references, do not use
 model OrderShippingAddress {
   id           String   @id @default(cuid())
   orderId      String   @unique
@@ -65,10 +27,8 @@ model OrderShippingAddress {
 }
 
 // ============================================================
-// DORMANT: ORDER STATUS HISTORY
-// Placeholder — status history tracked via Order.status + audit logs
+// ORDER STATUS HISTORY
 // ============================================================
-// DORMANT since 2026-07: no code references, do not use
 model OrderStatusHistory {
   id                String              @id @default(cuid())
   orderId           String
@@ -91,10 +51,8 @@ model OrderStatusHistory {
 }
 
 // ============================================================
-// DORMANT: SHIPMENT
-// Superseded by Order.shipmentStatus enum
+// SHIPMENT
 // ============================================================
-// DORMANT since 2026-07: no code references, do not use
 model Shipment {
   id             String         @id @default(cuid())
   orderId        String
@@ -118,10 +76,8 @@ model Shipment {
 }
 
 // ============================================================
-// DORMANT: SHIPMENT ITEM
-// Superseded by embedded OrderItem fields
+// SHIPMENT ITEM
 // ============================================================
-// DORMANT since 2026-07: no code references, do not use
 model ShipmentItem {
   id          String   @id @default(cuid())
   shipmentId  String
@@ -140,10 +96,8 @@ model ShipmentItem {
 }
 
 // ============================================================
-// DORMANT: REFUND LEDGER
-// Placeholder for double-entry ledger, never wired
+// REFUND LEDGER
 // ============================================================
-// DORMANT since 2026-07: no code references, do not use
 model RefundLedger {
   id               String                @id @default(cuid())
   refundId         String

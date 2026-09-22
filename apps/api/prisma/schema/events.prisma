@@ -1,6 +1,4 @@
-// ============================================================
-// OUTBOX EVENT (transactional outbox pattern)
-// ============================================================
+// events.prisma — transactional outbox events
 model OutboxEvent {
   id          String @id @default(uuid())
   type        String
