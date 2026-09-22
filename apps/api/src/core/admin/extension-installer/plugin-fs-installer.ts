@@ -299,6 +299,8 @@ export class PluginFsInstaller implements IPluginInstaller {
           await this.saveInstalledMeta(manifest.slug, installedPlugin);
           await deployment.commit();
           deployment = null;
+          const { reconcilePluginState } = await import('./plugin-reconciliation');
+          await reconcilePluginState(manifest.slug);
           const upgradedDefaultInstance = await prisma.pluginInstallation.findUnique({
             where: { pluginSlug_instanceKey: { pluginSlug: manifest.slug, instanceKey: 'default' } },
           });
@@ -452,6 +454,8 @@ export class PluginFsInstaller implements IPluginInstaller {
           await deployment.commit();
           deployment = null;
           await CacheService.incrementPluginVersion();
+          const { reconcilePluginState } = await import('./plugin-reconciliation');
+          await reconcilePluginState(manifest.slug);
           return installedPlugin;
 
         } catch (dbError) {

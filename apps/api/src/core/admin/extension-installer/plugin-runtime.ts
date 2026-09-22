@@ -795,7 +795,8 @@ export async function warmPluginRuntime(slug: string): Promise<{ restartRequired
  */
 export async function warmPluginInstanceRuntime(
   slug: string,
-  installationId: string
+  installationId: string,
+  config?: Record<string, unknown>,
 ): Promise<{ restartRequired: boolean }> {
   const manifest = await readPluginManifest(slug);
   if (manifest.runtimeType !== 'internal-fastify') {
@@ -815,7 +816,7 @@ export async function warmPluginInstanceRuntime(
     slug,
     installationId: instance.id,
     instanceKey: instance.instanceKey,
-    config: parseJsonObject(instance.configJson),
+    config: config ?? parseJsonObject(instance.configJson),
   };
 
   // ensureInternalRuntime will handle hot upgrade automatically (version change triggers new import)

@@ -296,9 +296,9 @@ async function updateInstance(
     // If executeLifecycleHook threw, we never reach here — enable is rejected
   }
 
-  if (isEnabling) {
+  if (isEnabling || (updates.config !== undefined && existing.enabled)) {
     try {
-      await warmPluginInstanceRuntime(existing.pluginSlug, existing.id);
+      await warmPluginInstanceRuntime(existing.pluginSlug, existing.id, nextConfig);
     } catch (error: any) {
       throw new Error(`Plugin runtime failed to load: ${error.message}`);
     }
