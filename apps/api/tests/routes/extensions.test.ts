@@ -240,6 +240,23 @@ describe('Extensions Installer Endpoints', () => {
       const gatewayResponse = await app.inject({ method: 'GET', url: `/api/v1/extensions/plugin/${uploadSlug}/api/status` });
       expect(gatewayResponse.statusCode).toBe(200);
       expect(gatewayResponse.json()).toMatchObject({ status: 'active' });
+
+      const failureAt = new Date('2026-09-22T10:00:00.000Z');
+      await prisma.pluginInstallation.update({
+        where: { id: defaultInstance!.id },
+        data: { lastFailureAt: failureAt, lastFailureMessage: 'plugin runtime failure' },
+      });
+      const instancesResponse = await app.inject({
+        method: 'GET',
+        url: `/api/v1/extensions/plugin/${uploadSlug}/instances`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+      expect(instancesResponse.statusCode).toBe(200);
+      expect(instancesResponse.json().data.items[0]).toMatchObject({
+        installationId: defaultInstance!.id,
+        lastFailureAt: failureAt.toISOString(),
+        lastFailureMessage: 'plugin runtime failure',
+      });
     });
 
     it('requires unsigned confirmation when a package declares builtin trust', async () => {

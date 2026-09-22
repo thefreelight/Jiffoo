@@ -1,0 +1,178 @@
+import { afterEach, describe, expect, it } from 'vitest';
+import path from 'path';
+import { promises as fs } from 'fs';
+import { getTestPrisma } from '../helpers/db';
+import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { dispatchPluginRuntimeEvent } from '@/core/admin/extension-installer/plugin-runtime';
+import { dispatchContractV1Event } from '@/core/admin/extension-installer/contract-v1-runtime';
+import { resetPluginRegistryFreshness } from '@/core/admin/extension-installer/plugin-registry-freshness';
+import { loadEnabledPluginRuntimes } from '@/core/admin/extension-installer/plugin-reconciliation';
+import {
+  getBreakerState,
+  isRateLimitAllowed,
+  recordBreakerFailure,
+  resetBreaker,
+  resetRateLimiter,
+} from '@/core/admin/extension-installer/gateway-protection';
+import { callPaymentPlugin } from '@/core/payment/plugin-gateway';
+
+const prisma = getTestPrisma();
+
+describe('Plugin lifecycle reconciliation', () => {
+  const slugs: string[] = [];
+  const sourceDirectories: string[] = [];
+
+  afterEach(async () => {
+    await Promise.all(slugs.splice(0).map(async (slug) => {
+      resetBreaker(slug);
+      resetRateLimiter(slug);
+      await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
+      await prisma.pluginInstall.deleteMany({ where: { slug } });
+      await pluginPackageStore.delete(slug);
+    }));
+    await Promise.all(sourceDirectories.splice(0).map((directory) => fs.rm(directory, { recursive: true, force: true })));
+    resetPluginRegistryFreshness();
+  });
+
+  async function createPlugin(slug: string, source: string, enabled = true): Promise<string> {
+    slugs.push(slug);
+    const sourceDirectory = await fs.mkdtemp(path.join(process.cwd(), '.plugin-lifecycle-reconciliation-'));
+    sourceDirectories.push(sourceDirectory);
+    await fs.mkdir(path.join(sourceDirectory, 'server'), { recursive: true });
+    await fs.writeFile(path.join(sourceDirectory, 'manifest.json'), JSON.stringify({
+      schemaVersion: 1,
+      slug,
+      name: slug,
+      version: '1.0.0',
+      description: 'Plugin lifecycle reconciliation test',
+      author: 'test-suite',
+      runtimeType: 'internal-fastify',
+      hostProtocol: 'internal-fastify-v1',
+      trustLevel: 'unsigned',
+      entryModule: 'server/index.js',
+      permissions: [],
+    }), 'utf-8');
+    await fs.writeFile(path.join(sourceDirectory, 'server', 'index.js'), source, 'utf-8');
+    const deployment = await pluginPackageStore.put(slug, sourceDirectory);
+    await deployment.commit();
+    await prisma.pluginInstall.create({
+      data: { slug, name: slug, version: '1.0.0', runtimeType: 'internal-fastify', source: 'local-zip' },
+    });
+    const installation = await prisma.pluginInstallation.create({
+      data: { pluginSlug: slug, instanceKey: 'default', enabled },
+    });
+    return installation.id;
+  }
+
+  it('drops runtime event handlers and protection state on disable, then loads a fresh runtime on enable', async () => {
+    const slug = `reconcile-${Date.now().toString(36)}`.slice(0, 30);
+    const installationId = await createPlugin(slug, `
+module.exports = {
+  manifest: { id: ${JSON.stringify(slug)}, version: '1.0.0', contract: 'v1' },
+  register(ctx) { ctx.events.subscribe('order.created', () => undefined); },
+};`);
+
+    await dispatchPluginRuntimeEvent('order.created', {});
+    expect(await dispatchContractV1Event(installationId, 'order.created', {})).toBe(1);
+    for (let index = 0; index < 10; index += 1) recordBreakerFailure(slug);
+    expect(getBreakerState(slug)).toBe('open');
+    expect(isRateLimitAllowed(slug, 1)).toBe(true);
+    expect(isRateLimitAllowed(slug, 1)).toBe(false);
+
+    const originalApiUrl = process.env.API_SERVICE_URL;
+    process.env.API_SERVICE_URL = 'http://127.0.0.1:1';
+    try {
+      for (let index = 0; index < 5; index += 1) {
+        await callPaymentPlugin({ pluginSlug: slug, path: '/payments', timeoutMs: 20, retryOptions: { retries: 0 } });
+      }
+      expect((await callPaymentPlugin({ pluginSlug: slug, path: '/payments', timeoutMs: 20, retryOptions: { retries: 0 } })).status).toBe(503);
+
+      await PluginManagementService.updateInstance(installationId, { enabled: false });
+      expect(await dispatchContractV1Event(installationId, 'order.created', {})).toBe(0);
+      expect(getBreakerState(slug)).toBe('closed');
+      expect(isRateLimitAllowed(slug, 1)).toBe(true);
+      expect((await callPaymentPlugin({ pluginSlug: slug, path: '/payments', timeoutMs: 20, retryOptions: { retries: 0 } })).status).toBe(502);
+
+      await PluginManagementService.updateInstance(installationId, { enabled: true });
+      expect(await dispatchContractV1Event(installationId, 'order.created', {})).toBe(1);
+    } finally {
+      if (originalApiUrl === undefined) delete process.env.API_SERVICE_URL;
+      else process.env.API_SERVICE_URL = originalApiUrl;
+    }
+  });
+
+  it('rejects an enable when runtime loading fails without changing the database state', async () => {
+    const slug = `load-fail-${Date.now().toString(36)}`.slice(0, 30);
+    const installationId = await createPlugin(slug, 'module.exports = {};', false);
+
+    await expect(PluginManagementService.updateInstance(installationId, { enabled: true })).rejects.toThrow('Plugin runtime failed to load');
+    expect((await prisma.pluginInstallation.findUnique({ where: { id: installationId } }))?.enabled).toBe(false);
+  });
+
+  it('increments the registry version for restore and purge', async () => {
+    const slug = `registry-${Date.now().toString(36)}`.slice(0, 30);
+    await createPlugin(slug, 'module.exports = async function plugin() {};');
+    const before = (await prisma.systemSettings.findUnique({ where: { id: 'system' } }))?.pluginRegistryVersion ?? 0;
+
+    await PluginManagementService.uninstallPlugin(slug);
+    await PluginManagementService.restorePlugin(slug);
+    const afterRestore = (await prisma.systemSettings.findUnique({ where: { id: 'system' } }))?.pluginRegistryVersion ?? 0;
+    expect(afterRestore).toBe(before + 2);
+
+    await PluginManagementService.purgePlugin(slug);
+    const afterPurge = (await prisma.systemSettings.findUnique({ where: { id: 'system' } }))?.pluginRegistryVersion ?? 0;
+    expect(afterPurge).toBe(afterRestore + 1);
+  });
+
+  it('loads healthy enabled plugins at startup while recording failed plugin loads', async () => {
+    const goodSlug = `startup-good-${Date.now().toString(36)}`.slice(0, 30);
+    const badSlug = `startup-bad-${Date.now().toString(36)}`.slice(0, 30);
+    const goodId = await createPlugin(goodSlug, `
+module.exports = {
+  manifest: { id: ${JSON.stringify(goodSlug)}, version: '1.0.0', contract: 'v1' },
+  register(ctx) { ctx.events.subscribe('startup.event', () => undefined); },
+};`);
+    await createPlugin(badSlug, 'module.exports = {};');
+
+    await loadEnabledPluginRuntimes();
+
+    expect(await dispatchContractV1Event(goodId, 'startup.event', {})).toBe(1);
+    const failed = await prisma.pluginInstallation.findUnique({
+      where: { pluginSlug_instanceKey: { pluginSlug: badSlug, instanceKey: 'default' } },
+    });
+    expect(failed?.lastFailureAt).not.toBeNull();
+    expect(failed?.lastFailureMessage).toContain('Failed to load plugin');
+  });
+
+  it('continues event dispatch after a handler failure and refreshes after an external registry change', async () => {
+    const failingSlug = `event-fail-${Date.now().toString(36)}`.slice(0, 30);
+    const healthySlug = `event-good-${Date.now().toString(36)}`.slice(0, 30);
+    const marker = path.join(process.cwd(), `.plugin-event-${healthySlug}.txt`);
+    const failingId = await createPlugin(failingSlug, `
+module.exports = {
+  manifest: { id: ${JSON.stringify(failingSlug)}, version: '1.0.0', contract: 'v1' },
+  register(ctx) { ctx.events.subscribe('shared.event', () => { throw new Error('handler failed'); }); },
+};`);
+    const healthyId = await createPlugin(healthySlug, `
+const fs = require('fs');
+module.exports = {
+  manifest: { id: ${JSON.stringify(healthySlug)}, version: '1.0.0', contract: 'v1' },
+  register(ctx) { ctx.events.subscribe('shared.event', () => fs.appendFileSync(${JSON.stringify(marker)}, 'handled\\n')); },
+};`);
+
+    await expect(dispatchPluginRuntimeEvent('shared.event', {})).rejects.toThrow(failingSlug);
+    expect(await fs.readFile(marker, 'utf-8')).toBe('handled\n');
+    expect((await prisma.pluginInstallation.findUnique({ where: { id: failingId } }))?.lastFailureMessage).toContain('handler failed');
+
+    await prisma.pluginInstallation.update({ where: { id: healthyId }, data: { enabled: false } });
+    await prisma.systemSettings.upsert({
+      where: { id: 'system' },
+      create: { id: 'system', pluginRegistryVersion: 1 },
+      update: { pluginRegistryVersion: { increment: 1 } },
+    });
+    await expect(dispatchPluginRuntimeEvent('shared.event', {})).rejects.toThrow(failingSlug);
+    expect(await fs.readFile(marker, 'utf-8')).toBe('handled\n');
+    await fs.rm(marker, { force: true });
+  });
+});

@@ -30,9 +30,13 @@ async function reconcilePluginState(slug: string): Promise<void> {
   await reconcile(slug);
 }
 
-async function warmPluginInstanceRuntime(slug: string, installationId: string): Promise<void> {
+async function warmPluginInstanceRuntime(
+  slug: string,
+  installationId: string,
+  config?: Record<string, unknown>,
+): Promise<void> {
   const { warmPluginInstanceRuntime: warm } = await import('@/core/admin/extension-installer/plugin-runtime');
-  await warm(slug, installationId);
+  await warm(slug, installationId, config);
 }
 
 /**

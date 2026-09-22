@@ -650,8 +650,16 @@ export async function dropInternalRuntime(installationId: string): Promise<boole
   return false;
 }
 
-registerPluginStateReset('internal-runtimes', async (_slug, installationId) => {
-  if (installationId) await dropInternalRuntime(installationId);
+registerPluginStateReset('internal-runtimes', async (slug, installationId) => {
+  if (installationId) {
+    await dropInternalRuntime(installationId);
+    return;
+  }
+
+  const runtimeIds = [...internalRuntimes.entries()]
+    .filter(([, runtime]) => runtime.manifest.slug === slug)
+    .map(([runtimeId]) => runtimeId);
+  await Promise.all(runtimeIds.map((runtimeId) => dropInternalRuntime(runtimeId)));
 });
 
 export async function dispatchPluginRuntimeEvent(eventType: string, payload: unknown): Promise<number> {

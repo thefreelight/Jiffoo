@@ -64,6 +64,8 @@ const pluginInstanceSchema = {
       items: { type: 'string' },
       description: 'Granted permissions',
     },
+    lastFailureAt: { type: 'string', format: 'date-time', nullable: true, description: 'Most recent runtime failure time' },
+    lastFailureMessage: { type: 'string', nullable: true, description: 'Most recent runtime failure message' },
     createdAt: { type: 'string', format: 'date-time', description: 'Creation time' },
     updatedAt: { type: 'string', format: 'date-time', description: 'Last update time' },
   },

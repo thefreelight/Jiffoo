@@ -4,11 +4,15 @@ import os from 'os';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { PluginFsInstaller } from '@/core/admin/extension-installer/plugin-fs-installer';
+import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { createAdminUser, deleteTestUser, type TestUser } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 
-async function createPluginArchive(slug: string): Promise<{ archivePath: string; cleanup: () => Promise<void> }> {
+async function createPluginArchive(
+  slug: string,
+  options: { version?: string; lifecycle?: Record<string, boolean>; entrySource?: string } = {},
+): Promise<{ archivePath: string; cleanup: () => Promise<void> }> {
   const rootDir = await fs.mkdtemp(path.join(os.tmpdir(), 'jiffoo-plugin-package-'));
   const sourceDir = path.join(rootDir, 'package');
   const archivePath = path.join(rootDir, `${slug}.zip`);
@@ -17,17 +21,21 @@ async function createPluginArchive(slug: string): Promise<{ archivePath: string;
     schemaVersion: 1,
     slug,
     name: 'Unsigned In-Process Test Plugin',
-    version: '1.0.0',
+    version: options.version ?? '1.0.0',
     description: 'Installs through the Core in-process gateway.',
     runtimeType: 'internal-fastify',
     hostProtocol: 'internal-fastify-v1',
     trustLevel: 'unsigned',
     entryModule: 'dist/index.js',
     permissions: [],
+    lifecycle: options.lifecycle,
   }, null, 2));
   await fs.writeFile(path.join(sourceDir, 'package.json'), JSON.stringify({ name: slug, version: '1.0.0' }));
   await fs.writeFile(path.join(sourceDir, 'LICENSE'), 'GPL-3.0');
-  await fs.writeFile(path.join(sourceDir, 'dist', 'index.js'), "module.exports = async function plugin(fastify) { fastify.get('/status', async () => ({ status: 'active' })); };\n");
+  await fs.writeFile(
+    path.join(sourceDir, 'dist', 'index.js'),
+    options.entrySource ?? "module.exports = async function plugin(fastify) { fastify.get('/status', async () => ({ status: 'active' })); };\n",
+  );
 
   await new Promise<void>((resolve, reject) => {
     const output = require('fs').createWriteStream(archivePath);
@@ -90,5 +98,40 @@ describe('PluginFsInstaller unsigned packages', () => {
     expect(audit?.metadata).toMatchObject({ slug, version: '1.0.0', source: 'local-zip' });
     const registryAfter = await prisma.systemSettings.findUnique({ where: { id: 'system' } });
     expect(registryAfter?.pluginRegistryVersion).toBe((registryBefore?.pluginRegistryVersion ?? 0) + 1);
+  });
+
+  it('runs onUpgrade on a version-changing upload and onUninstall on package delete', async () => {
+    const hookSlug = `hooks-${Date.now().toString(36)}`.slice(0, 30);
+    const markerPath = path.join(os.tmpdir(), `${hookSlug}.txt`);
+    const entrySource = `
+const fs = require('fs/promises');
+module.exports = async function plugin() {};
+module.exports.__lifecycle_onUpgrade = async function onUpgrade() { await fs.appendFile(${JSON.stringify(markerPath)}, 'upgrade\\n'); };
+module.exports.__lifecycle_onUninstall = async function onUninstall() { await fs.appendFile(${JSON.stringify(markerPath)}, 'uninstall\\n'); };
+`;
+    const first = await createPluginArchive(hookSlug, {
+      lifecycle: { onUpgrade: true, onUninstall: true },
+      entrySource,
+    });
+    const second = await createPluginArchive(hookSlug, {
+      version: '2.0.0',
+      lifecycle: { onUpgrade: true, onUninstall: true },
+      entrySource,
+    });
+
+    try {
+      await installer.install(createReadStream(first.archivePath), { confirmUnsigned: true, actorUserId: admin.id });
+      await installer.install(createReadStream(second.archivePath), { confirmUnsigned: true, actorUserId: admin.id });
+      await PluginManagementService.uninstallPlugin(hookSlug);
+
+      expect(await fs.readFile(markerPath, 'utf-8')).toBe('upgrade\nuninstall\n');
+    } finally {
+      await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: hookSlug } });
+      await prisma.pluginInstall.deleteMany({ where: { slug: hookSlug } });
+      await pluginPackageStore.delete(hookSlug);
+      await fs.rm(markerPath, { force: true });
+      await first.cleanup();
+      await second.cleanup();
+    }
   });
 });
