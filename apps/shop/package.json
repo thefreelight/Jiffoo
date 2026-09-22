@@ -13,6 +13,8 @@
     "upload:cloudflare": "opennextjs-cloudflare build && opennextjs-cloudflare upload",
     "workers:build:bokmoo": "rm -rf .next .open-next && NEXT_PUBLIC_API_URL=/api API_SERVICE_URL=https://api.bokmoo.com SERVER_STORE_CONTEXT_TIMEOUT_MS=2000 THEME_APP_PROXY_DISABLED=1 THEME_APP_PROXY_TIMEOUT_MS=1000 opennextjs-cloudflare build --config wrangler.bokmoo.toml --dangerouslyUseUnsupportedNextVersion",
     "workers:deploy:bokmoo": "pnpm workers:build:bokmoo && opennextjs-cloudflare deploy --config wrangler.bokmoo.toml",
+    "workers:build:remoteradar": "rm -rf .next .open-next && NEXT_PUBLIC_API_URL=/api API_SERVICE_URL=https://api.remoteradar.cc SERVER_STORE_CONTEXT_TIMEOUT_MS=2000 THEME_APP_PROXY_DISABLED=1 NEXT_PUBLIC_FALLBACK_STORE_NAME=RemoteRadar NEXT_PUBLIC_FALLBACK_THEME_SLUG=remoteradar next build --webpack && opennextjs-cloudflare build --config wrangler.remoteradar.toml --skipNextBuild",
+    "workers:deploy:remoteradar": "pnpm workers:build:remoteradar && opennextjs-cloudflare deploy --config wrangler.remoteradar.toml",
     "start": "next start -p 3003",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
