@@ -57,14 +57,6 @@
       "types": "./dist/shared/src/security/*.d.ts",
       "default": "./dist/shared/src/security/*.js"
     },
-    "./observability": {
-      "types": "./dist/shared/src/observability/index.d.ts",
-      "default": "./dist/shared/src/observability/index.js"
-    },
-    "./observability/*": {
-      "types": "./dist/shared/src/observability/*.d.ts",
-      "default": "./dist/shared/src/observability/*.js"
-    },
     "./src/proxy": {
       "types": "./dist/shared/src/proxy/index.d.ts",
       "default": "./dist/shared/src/proxy/index.js"
@@ -80,10 +72,6 @@
     "./versioning/*": {
       "types": "./dist/shared/src/versioning/*.d.ts",
       "default": "./dist/shared/src/versioning/*.js"
-    },
-    "./core-update/public-manifest": {
-      "types": "./dist/shared/src/core-update/public-manifest.d.ts",
-      "default": "./dist/shared/src/core-update/public-manifest.js"
     }
   },
   "scripts": {

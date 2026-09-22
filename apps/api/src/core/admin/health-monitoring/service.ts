@@ -6,18 +6,18 @@
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import { performHealthCheck } from '@/utils/health-check';
-// @ts-ignore - path may not resolve at compile time
-import { collectSystemMetrics } from '@jiffoo/shared/observability';
+import * as os from 'node:os';
 import type {
+  CheckMetrics,
   HealthMetricsResponse,
   DatabasePoolStatus,
   AlertThresholds,
   AlertStatus,
   HealthSummaryResponse,
+  RedisCacheStats,
+  SystemMetrics,
 } from './types';
 import { DEFAULT_ALERT_THRESHOLDS } from './types';
-// @ts-ignore - path may not resolve at compile time
-import type { RedisCacheStats } from '@jiffoo/shared/observability';
 
 // Track service start time for uptime calculation
 const serviceStartTime = Date.now();
@@ -37,7 +37,7 @@ export class HealthMonitoringService {
     // 1. Collect all metrics in parallel
     const [systemMetrics, healthCheckResult, databasePool, cacheStats, responseMetrics] = await Promise.all([
       // System metrics (CPU, memory, disk)
-      collectSystemMetrics(),
+      this.collectSystemMetrics(),
       // Health check result
       performHealthCheck(),
       // Database connection pool
@@ -91,9 +91,9 @@ export class HealthMonitoringService {
 
     // 2. Extract quick stats
     const stats = {
-      cpuUsage: Number((metrics.system as any).cpu?.usage ?? (metrics.system as any).cpu?.usagePercent ?? 0),
-      memoryUsage: Number((metrics.system as any).memory?.usage ?? (metrics.system as any).memory?.usagePercent ?? 0),
-      diskUsage: Number((metrics.system as any).disk?.usage ?? (metrics.system as any).disk?.usagePercent ?? 0),
+      cpuUsage: metrics.system.cpu.usage,
+      memoryUsage: metrics.system.memory.usage,
+      diskUsage: metrics.system.disk?.usage ?? 0,
       errorRate: this.calculateErrorRate(metrics.responseMetrics),
       avgResponseTime: this.calculateAvgResponseTime(metrics.responseMetrics),
       cacheHitRate: metrics.cache.hitRate ?? 0,
@@ -159,7 +159,7 @@ export class HealthMonitoringService {
         waiting,
         usage: Number(usage.toFixed(2)),
       };
-    } catch (error) {
+    } catch {
       // Fallback to estimated values if query fails
       return {
         size: 1,
@@ -225,7 +225,7 @@ export class HealthMonitoringService {
         connectedClients: parseInt(clients.connected_clients || '0', 10),
         uptime: parseInt(stats.uptime_in_seconds || '0', 10),
       };
-    } catch (error) {
+    } catch {
       // Return zeros on error (Redis not available)
       return {
         hitRate: 0,
@@ -243,7 +243,7 @@ export class HealthMonitoringService {
   /**
    * Calculate error rate from response metrics
    */
-  private static calculateErrorRate(metrics: any[]): number {
+  private static calculateErrorRate(metrics: CheckMetrics[]): number {
     if (metrics.length === 0) return 0;
 
     const totalCalls = metrics.reduce((sum, m) => sum + (m.totalCalls || 0), 0);
@@ -255,7 +255,7 @@ export class HealthMonitoringService {
   /**
    * Calculate average response time from metrics
    */
-  private static calculateAvgResponseTime(metrics: any[]): number {
+  private static calculateAvgResponseTime(metrics: CheckMetrics[]): number {
     if (metrics.length === 0) return 0;
 
     const avgTimes = metrics.map(m => m.avgResponseTime || 0).filter(t => t > 0);
@@ -356,5 +356,32 @@ export class HealthMonitoringService {
   static resetStatistics(): void {
     totalHealthChecks = 0;
     failedHealthChecks = 0;
+  }
+
+  private static async collectSystemMetrics(): Promise<SystemMetrics> {
+    const cpus = os.cpus();
+    const cpuTotal = cpus.reduce(
+      (total, cpu) => total + cpu.times.user + cpu.times.nice + cpu.times.sys + cpu.times.idle + cpu.times.irq,
+      0,
+    );
+    const cpuIdle = cpus.reduce((total, cpu) => total + cpu.times.idle, 0);
+    const totalMemory = os.totalmem();
+    const freeMemory = os.freemem();
+    const usedMemory = totalMemory - freeMemory;
+
+    return {
+      cpu: {
+        usage: cpuTotal === 0 ? 0 : Number(((1 - cpuIdle / cpuTotal) * 100).toFixed(2)),
+        cores: cpus.length,
+      },
+      memory: {
+        usage: totalMemory === 0 ? 0 : Number(((usedMemory / totalMemory) * 100).toFixed(2)),
+        total: totalMemory,
+        used: usedMemory,
+        free: freeMemory,
+      },
+      timestamp: new Date().toISOString(),
+      uptime: os.uptime() * 1000,
+    };
   }
 }

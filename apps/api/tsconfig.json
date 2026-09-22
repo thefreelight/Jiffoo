@@ -54,12 +54,6 @@
       "@shared/security/*": [
         "../../packages/shared/dist/shared/src/security/*"
       ],
-      "@shared/observability": [
-        "../../packages/shared/dist/shared/src/observability/index"
-      ],
-      "@shared/observability/*": [
-        "../../packages/shared/dist/shared/src/observability/*"
-      ],
       "@jiffoo/shared": [
         "../../packages/shared/dist/shared/index"
       ],

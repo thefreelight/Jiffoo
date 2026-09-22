@@ -10,8 +10,6 @@ export * from './types/theme';
 export * from './extensions/plugin-contract';
 
 export * from './events/core-events';
-export * from './core-update/public-manifest';
-
 
 // Validation Schemas
 export * from './schemas/auth';

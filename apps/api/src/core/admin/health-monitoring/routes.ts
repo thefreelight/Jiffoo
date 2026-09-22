@@ -115,12 +115,13 @@ export async function healthMonitoringRoutes(fastify: FastifyInstance) {
                 }
             }
         }
-    }, async (request, reply) => {
+    }, async (_request, reply) => {
         try {
             const data = await HealthMonitoringService.getHealthMetrics();
             return sendSuccess(reply, data);
-        } catch (error: any) {
-            return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to fetch health metrics');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to fetch health metrics';
+            return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', message);
         }
     });
 
@@ -218,8 +219,9 @@ export async function healthMonitoringRoutes(fastify: FastifyInstance) {
 
             const data = await HealthMonitoringService.getHealthSummary(thresholds);
             return sendSuccess(reply, data);
-        } catch (error: any) {
-            return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message || 'Failed to fetch health summary');
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'Failed to fetch health summary';
+            return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', message);
         }
     });
 }

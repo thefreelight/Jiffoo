@@ -1,14 +1,47 @@
-// @ts-nocheck
 /**
  * Admin Health Monitoring Types
  */
 
-import type {
-  SystemMetrics,
-  CheckMetrics,
-  RedisCacheStats,
-  HealthCheckResult,
-} from '@jiffoo/shared/observability';
+import type { HealthCheckResult } from '@/utils/health-check';
+
+export interface SystemMetrics {
+  cpu: {
+    usage: number;
+    cores: number;
+  };
+  memory: {
+    usage: number;
+    total: number;
+    used: number;
+    free: number;
+  };
+  disk?: {
+    usage: number;
+    total: number;
+    used: number;
+    free: number;
+    path: string;
+  };
+  timestamp: string;
+  uptime: number;
+}
+
+export interface CheckMetrics {
+  totalCalls: number;
+  errorCount: number;
+  avgResponseTime: number;
+}
+
+export interface RedisCacheStats {
+  hitRate: number;
+  missRate: number;
+  keyCount: number;
+  memoryUsed: number;
+  memoryPeak: number;
+  evictedKeys: number;
+  connectedClients: number;
+  uptime: number;
+}
 
 /**
  * Database Connection Pool Status

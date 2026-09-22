@@ -4,7 +4,6 @@
   "description": "Jiffoo open-source core for self-hosted commerce deployments",
   "_moduleAliases": {
     "@shared/security": "packages/shared/dist/shared/src/security",
-    "@shared/observability": "packages/shared/dist/shared/src/observability",
     "shared/logger": "packages/shared/dist/shared/src/logger",
     "@jiffoo/shared": "packages/shared/dist/shared/src"
   },
@@ -36,8 +35,6 @@
     "test": "turbo run test",
     "test:api:quality": "pnpm --filter api test:quality",
     "test:e2e:all": "pnpm test:e2e:admin",
-    "test:self-hosted-detection": "pnpm --filter api test -- tests/routes/upgrade.test.ts tests/core/upgrade-executors.test.ts",
-    "test:admin-market-theme-upgrade": "pnpm --filter api test -- tests/routes/admin-staff.test.ts tests/core/official-catalog.test.ts tests/core/market-update-checker.test.ts tests/core/official-package-recovery.test.ts tests/core/theme-installer-upgrade.test.ts tests/core/theme-management-service.test.ts tests/routes/upgrade.test.ts tests/core/upgrade-executors.test.ts",
     "changeset": "changeset",
     "version:bump": "changeset version",
     "release": "pnpm version:bump && pnpm build"

@@ -6,7 +6,6 @@
   "_moduleAliases": {
     "@jiffoo/shared": "../../packages/shared/dist/shared/src",
     "@shared/security": "../../packages/shared/dist/shared/src/security",
-    "@shared/observability": "../../packages/shared/dist/shared/src/observability",
     "shared/logger": "../../packages/shared/dist/shared/src/logger"
   },
   "scripts": {

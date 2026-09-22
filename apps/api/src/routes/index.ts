@@ -15,8 +15,6 @@ import { cartRoutes } from '@/core/cart/routes';
 import { orderRoutes } from '@/core/order/routes';
 import { paymentRoutes as legacyPaymentRoutes } from '@/core/payment/routes';
 
-import { upgradeRoutes } from '@/core/upgrade/routes';
-
 // Admin routes
 import { adminUserRoutes } from '@/core/admin/user-management/routes';
 import { adminStaffRoutes } from '@/core/admin/staff-management/routes';
@@ -48,9 +46,6 @@ export async function registerRoutes(fastify: FastifyInstance) {
 
   // Backward compatibility: Register unversioned routes
   // These will eventually be deprecated in favor of versioned routes
-
-  // Upgrade routes (admin only)
-  await fastify.register(upgradeRoutes, { prefix: '/api/upgrade' });
 
   // Authentication routes
   await fastify.register(authRoutes, { prefix: '/api/auth' });

@@ -16,8 +16,6 @@ import { cartRoutes } from '@/core/cart/routes';
 import { orderRoutes } from '@/core/order/routes';
 import { paymentRoutes } from '@/core/payment/routes';
 
-import { upgradeRoutes } from '@/core/upgrade/routes';
-
 // Admin routes
 import { adminUserRoutes } from '@/core/admin/user-management/routes';
 import { adminProductRoutes } from '@/core/admin/product-management/routes';
@@ -36,9 +34,6 @@ import { storeRoutes } from '@/core/store/routes';
  * Note: Parent router adds /api/v1 prefix, so routes here are relative to that
  */
 export async function registerV1Routes(fastify: FastifyInstance) {
-  // Upgrade routes (admin only)
-  await fastify.register(upgradeRoutes, { prefix: '/upgrade' });
-
   // Authentication routes
   await fastify.register(authRoutes, { prefix: '/auth' });
 

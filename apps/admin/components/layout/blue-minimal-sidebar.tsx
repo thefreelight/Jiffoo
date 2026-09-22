@@ -35,7 +35,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
-import { useUpdateCheck } from '@/hooks/use-update-check'
 import { UserAvatar } from '../ui/user-avatar'
 
 interface NavigationItem {
@@ -117,7 +116,6 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
   const t = useT()
   const router = useRouter()
   const { user, logout } = useAuthStore()
-  const { hasUpdate } = useUpdateCheck()
   const navigationConfig = baseNavigationConfig
 
   // Helper function for translations with fallback
@@ -220,13 +218,6 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
               >
                 <Icon className={cn("w-5 h-5 transition-transform", isActive && "scale-110")} />
                 <span>{getText(item.nameKey, item.fallback)}</span>
-                {/* Update badge for System menu */}
-                {item.id === 'system' && hasUpdate && (
-                  <span
-                    className="w-2 h-2 rounded-full bg-[#3B82F6] ml-auto"
-                    aria-label="Update available"
-                  />
-                )}
               </Link>
             )
           })}

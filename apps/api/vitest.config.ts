@@ -98,7 +98,6 @@ export default defineConfig({
       'shared': path.resolve(__dirname, '../../packages/shared/src'),
       '@jiffoo/shared': path.resolve(__dirname, '../../packages/shared/src'),
       '@shared/security': path.resolve(__dirname, '../../packages/shared/src/security'),
-      '@shared/observability': path.resolve(__dirname, '../../packages/shared/src/observability'),
     },
   },
 });

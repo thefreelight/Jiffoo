@@ -349,9 +349,27 @@ export interface NavItem {
 }
 
 // Health Monitoring types
-// Import SystemMetrics from shared package to avoid duplicate definitions
-import type { SystemMetrics } from 'shared/observability'
-export type { SystemMetrics }
+export interface SystemMetrics {
+  cpu: {
+    usage: number
+    cores: number
+  }
+  memory: {
+    usage: number
+    total: number
+    used: number
+    free: number
+  }
+  disk?: {
+    usage: number
+    total: number
+    used: number
+    free: number
+    path: string
+  }
+  timestamp: string
+  uptime: number
+}
 
 export interface CheckMetrics {
   name: string

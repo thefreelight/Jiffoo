@@ -167,12 +167,6 @@ Rules:
 
 The following endpoint groups are **passthrough** and are NOT required to return `ApiResponse<T>` on success:
 
-- **Theme App Gateway** (`tags: theme-app-gateway`): `/theme-app/...`
-
-> Not a Core V1 surface. Charter §4 excludes theme gateways and executable theme
-> runtimes; this route exists in the current code and is scheduled for removal. Do not
-> treat it as a supported passthrough group or add endpoints to it.
-
 - **Plugin Gateway** (`tags: plugin-gateway`): `/api/extensions/plugin/{slug}/api...`
 - **System/Docs** endpoints returning non-business payloads (e.g. `/openapi.json`, health checks)
 

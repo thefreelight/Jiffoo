@@ -20,7 +20,7 @@ describe('Admin API response unwrap', () => {
       error: {
         code: 'MISSING_RELEASE_ASSETS',
         message: 'Release assets are missing',
-        details: { missing: ['core-update-manifest.json'] },
+        details: { missing: ['release-manifest.json'] },
       },
     })).toThrow(AdminApiError);
 
@@ -30,7 +30,7 @@ describe('Admin API response unwrap', () => {
         error: {
           code: 'MISSING_RELEASE_ASSETS',
           message: 'Release assets are missing',
-          details: { missing: ['core-update-manifest.json'] },
+          details: { missing: ['release-manifest.json'] },
         },
       });
     } catch (error) {
@@ -38,7 +38,7 @@ describe('Admin API response unwrap', () => {
       expect(error).toMatchObject({
         code: 'MISSING_RELEASE_ASSETS',
         message: 'Release assets are missing',
-        details: { missing: ['core-update-manifest.json'] },
+        details: { missing: ['release-manifest.json'] },
       });
     }
   });

@@ -84,11 +84,6 @@ describe('OpenAPI Contract Tests', () => {
         return { paymentMethod: 'mock', orderId: 'test-order-id' };
       }
 
-      // Upgrade endpoints
-      if (path.includes('/upgrade/check') || path.includes('/upgrade/perform')) {
-        return { targetVersion: '1.0.0' };
-      }
-
       // Default minimal payload
       return {};
     }
@@ -305,43 +300,6 @@ describe('OpenAPI Contract Tests', () => {
 
         expect(response.statusCode).toBe(401);
       });
-    });
-
-    describe('/api/upgrade/* - Requires admin auth', () => {
-      const upgradeEndpoints = [
-        { path: '/api/upgrade/version', method: 'GET' },
-        { path: '/api/upgrade/status', method: 'GET' },
-        { path: '/api/upgrade/check', method: 'POST', body: { targetVersion: '1.0.0' } },
-        { path: '/api/upgrade/backup', method: 'POST' },
-        { path: '/api/upgrade/perform', method: 'POST', body: { targetVersion: '1.0.0' } },
-      ];
-
-      it.each(upgradeEndpoints)(
-        '$method $path should return 401 without token',
-        async ({ path, method, body }) => {
-          const response = await app.inject({
-            method: method as any,
-            url: path,
-            payload: body,
-          });
-
-          expect(response.statusCode).toBe(401);
-        }
-      );
-
-      it.each(upgradeEndpoints)(
-        '$method $path should return 403 for regular user',
-        async ({ path, method, body }) => {
-          const response = await app.inject({
-            method: method as any,
-            url: path,
-            payload: body,
-            headers: { authorization: `Bearer ${userToken}` },
-          });
-
-          expect(response.statusCode).toBe(403);
-        }
-      );
     });
 
     describe('/api/extensions/* - Requires admin auth', () => {
