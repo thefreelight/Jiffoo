@@ -1,5 +1,6 @@
 import { afterAll, describe, expect, it, vi } from 'vitest';
 import path from 'path';
+import os from 'os';
 import { promises as fs } from 'fs';
 import { getTestPrisma } from '../helpers/db';
 import { recordPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
@@ -10,15 +11,18 @@ import { resetPluginState } from '@/core/admin/extension-installer/plugin-state'
 describe('Plugin failure containment', () => {
   const prisma = getTestPrisma();
   const slug = `failure-${Date.now().toString(36)}`.slice(0, 30);
+  const sourceDirectories: string[] = [];
 
   afterAll(async () => {
     await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: slug } });
     await prisma.pluginInstall.deleteMany({ where: { slug } });
     await pluginPackageStore.delete(slug);
+    await Promise.all(sourceDirectories.map((directory) => fs.rm(directory, { recursive: true, force: true })));
   });
 
   async function createPlugin(): Promise<string> {
-    const source = await fs.mkdtemp(path.join(process.cwd(), '.plugin-failure-'));
+    const source = await fs.mkdtemp(path.join(os.tmpdir(), '.plugin-failure-'));
+    sourceDirectories.push(source);
     await fs.writeFile(path.join(source, 'manifest.json'), '{}', 'utf-8');
     await pluginPackageStore.put(slug, source);
     await prisma.pluginInstall.create({

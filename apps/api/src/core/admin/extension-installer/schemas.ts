@@ -91,17 +91,6 @@ const pluginInstanceSchema = {
   required: ['installationId', 'pluginSlug', 'instanceKey', 'enabled', 'createdAt', 'updatedAt'],
 } as const;
 
-const deletePluginInstanceResultSchema = {
-  type: 'object',
-  properties: {
-    pluginSlug: { type: 'string', description: 'Plugin slug' },
-    installationId: { type: 'string', description: 'Deleted installation ID' },
-    instanceKey: { type: 'string', description: 'Deleted instance key' },
-    deleted: { type: 'boolean', description: 'Whether deletion succeeded' },
-  },
-  required: ['pluginSlug', 'installationId', 'instanceKey', 'deleted'],
-} as const;
-
 const uninstallPluginResultSchema = {
   type: 'object',
   properties: {
@@ -218,36 +207,6 @@ export const extensionInstallerSchemas = {
     response: createTypedReadResponses(createPageResultSchema(pluginInstanceSchema)),
   },
 
-  // POST /api/extensions/plugin/:slug/instances
-  createInstance: {
-    params: {
-      type: 'object',
-      required: ['slug'],
-      properties: {
-        slug: { type: 'string', description: 'Plugin slug' },
-      },
-    },
-    body: {
-      type: 'object',
-      required: ['instanceKey'],
-      properties: {
-        instanceKey: {
-          type: 'string',
-          pattern: '^[a-z0-9-]{1,32}$',
-          description: 'Instance key (lowercase letters, numbers, hyphens only)',
-        },
-        enabled: { type: 'boolean', default: true, description: 'Enable instance on creation' },
-        config: { type: 'object', additionalProperties: true, description: 'Initial configuration' },
-        grantedPermissions: {
-          type: 'array',
-          items: { type: 'string' },
-          description: 'Initial granted permissions',
-        },
-      },
-    },
-    response: createTypedCreateResponses(pluginInstanceSchema),
-  },
-
   // PATCH /api/extensions/plugin/:slug/instances/:installationId
   updateInstance: {
     params: {
@@ -271,19 +230,6 @@ export const extensionInstallerSchemas = {
       },
     },
     response: createTypedUpdateResponses(pluginInstanceSchema),
-  },
-
-  // DELETE /api/extensions/plugin/:slug/instances/:installationId
-  deleteInstance: {
-    params: {
-      type: 'object',
-      required: ['slug', 'installationId'],
-      properties: {
-        slug: { type: 'string', description: 'Plugin slug' },
-        installationId: { type: 'string', description: 'Installation ID to delete' },
-      },
-    },
-    response: createTypedDeleteResponses(deletePluginInstanceResultSchema),
   },
 
   // POST /api/extensions/bundle/install

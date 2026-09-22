@@ -2,20 +2,22 @@
  * Plugin Runtime Integration Tests
  *
  * Real integration coverage for:
- * - Gateway instance routing behavior
+ * - Gateway default-instance routing behavior
  * - Header sanitization/injection
  * - Instance-level enable/disable soft blocking
- * - Admin instance management endpoints
+ * - Admin default-instance management endpoint
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import path from 'path';
+import os from 'os';
 import { promises as fs } from 'fs';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { PluginManagementService } from '@/core/admin/plugin-management/service';
 
 describe('Plugin Runtime - Integration', () => {
   let app: FastifyInstance;
@@ -27,15 +29,13 @@ describe('Plugin Runtime - Integration', () => {
   const entryModule = 'server/index.js';
 
   let defaultInstallationId = '';
-  let alphaInstallationId = '';
-  let betaInstallationId = '';
 
   beforeAll(async () => {
     app = await createTestApp({ disableFileSystem: false });
     const { token } = await createAdminWithToken();
     adminToken = token;
 
-    pluginDir = await fs.mkdtemp(path.join(process.cwd(), '.plugin-runtime-'));
+    pluginDir = await fs.mkdtemp(path.join(os.tmpdir(), '.plugin-runtime-'));
     await fs.mkdir(path.join(pluginDir, 'server'), { recursive: true });
     const manifest = {
       schemaVersion: 1,
@@ -112,15 +112,6 @@ module.exports = async function plugin(fastify, opts) {
     });
     defaultInstallationId = defaultInstance.id;
 
-    const alphaInstance = await prisma.pluginInstallation.create({
-      data: {
-        pluginSlug: slug,
-        instanceKey: 'alpha',
-        enabled: true,
-        configJson: JSON.stringify({ marker: 'alpha' }),
-      },
-    });
-    alphaInstallationId = alphaInstance.id;
   });
 
   afterAll(async () => {
@@ -142,28 +133,6 @@ module.exports = async function plugin(fastify, opts) {
     expect(body.config.marker).toBe('default');
     expect(body.headers.installationId).toBe(defaultInstallationId);
     expect(body.headers.installationKey).toBe('default');
-  });
-
-  it('supports instance routing by installation key and by installationId', async () => {
-    const byKey = await app.inject({
-      method: 'GET',
-      url: `/api/v1/extensions/plugin/${slug}/api/echo?installation=alpha`,
-    });
-    expect(byKey.statusCode).toBe(200);
-    const byKeyBody = byKey.json();
-    expect(byKeyBody.config.marker).toBe('alpha');
-    expect(byKeyBody.headers.installationId).toBe(alphaInstallationId);
-    expect(byKeyBody.headers.installationKey).toBe('alpha');
-
-    const byIdPriority = await app.inject({
-      method: 'GET',
-      url: `/api/v1/extensions/plugin/${slug}/api/echo?installation=alpha&installationId=${defaultInstallationId}`,
-    });
-    expect(byIdPriority.statusCode).toBe(200);
-    const byIdBody = byIdPriority.json();
-    expect(byIdBody.config.marker).toBe('default');
-    expect(byIdBody.headers.installationId).toBe(defaultInstallationId);
-    expect(byIdBody.headers.installationKey).toBe('default');
   });
 
   it('sanitizes spoofed inbound headers and injects platform context headers', async () => {
@@ -191,67 +160,61 @@ module.exports = async function plugin(fastify, opts) {
     expect(body.headers.requestId).toBeTruthy();
   });
 
-  it('returns 404 soft block when instance is disabled', async () => {
-    await prisma.pluginInstallation.update({
-      where: { id: alphaInstallationId },
-      data: { enabled: false },
-    });
-
-    const response = await app.inject({
-      method: 'GET',
-      url: `/api/v1/extensions/plugin/${slug}/api/echo?installation=alpha`,
-    });
-
-    expect(response.statusCode).toBe(404);
-    const body = response.json();
-    expect(body.error.code).toBe('INSTANCE_DISABLED');
-  });
-
-  it('supports admin instance create/update/delete API with gateway effect', async () => {
-    const createResp = await app.inject({
+  it('returns 404 for removed instance create and delete routes', async () => {
+    const createResponse = await app.inject({
       method: 'POST',
       url: `/api/v1/extensions/plugin/${slug}/instances`,
       headers: { authorization: `Bearer ${adminToken}` },
-      payload: {
-        instanceKey: 'beta',
-        enabled: true,
-        config: { marker: 'beta' },
-      },
+      payload: { instanceKey: 'another' },
     });
-    expect(createResp.statusCode).toBe(200);
-    betaInstallationId = createResp.json().data.installationId;
-
-    const gwOk = await app.inject({
-      method: 'GET',
-      url: `/api/v1/extensions/plugin/${slug}/api/echo?installation=beta`,
-    });
-    expect(gwOk.statusCode).toBe(200);
-    expect(gwOk.json().config.marker).toBe('beta');
-
-    const registryBeforeDisable = await prisma.systemSettings.findUnique({ where: { id: 'system' } });
-
-    const disableResp = await app.inject({
-      method: 'PATCH',
-      url: `/api/v1/extensions/plugin/${slug}/instances/${betaInstallationId}`,
-      headers: { authorization: `Bearer ${adminToken}` },
-      payload: { enabled: false },
-    });
-    expect(disableResp.statusCode).toBe(200);
-    const registryAfterDisable = await prisma.systemSettings.findUnique({ where: { id: 'system' } });
-    expect(registryAfterDisable?.pluginRegistryVersion).toBe((registryBeforeDisable?.pluginRegistryVersion ?? 0) + 1);
-
-    const gwBlocked = await app.inject({
-      method: 'GET',
-      url: `/api/v1/extensions/plugin/${slug}/api/echo?installation=beta`,
-    });
-    expect(gwBlocked.statusCode).toBe(404);
-
-    const deleteResp = await app.inject({
+    const deleteResponse = await app.inject({
       method: 'DELETE',
-      url: `/api/v1/extensions/plugin/${slug}/instances/${betaInstallationId}`,
+      url: `/api/v1/extensions/plugin/${slug}/instances/${defaultInstallationId}`,
       headers: { authorization: `Bearer ${adminToken}` },
     });
-    expect(deleteResp.statusCode).toBe(200);
-    expect(deleteResp.json().data.deleted).toBe(true);
+    expect(createResponse.statusCode).toBe(404);
+    expect(deleteResponse.statusCode).toBe(404);
+  });
+
+  it('returns only the default instance from the instances route', async () => {
+    const nonDefault = await prisma.pluginInstallation.create({
+      data: { pluginSlug: slug, instanceKey: 'legacy-list', enabled: false },
+    });
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/v1/extensions/plugin/${slug}/instances`,
+        headers: { authorization: `Bearer ${adminToken}` },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().data.items).toHaveLength(1);
+      expect(response.json().data.items[0].instanceKey).toBe('default');
+    } finally {
+      await prisma.pluginInstallation.delete({ where: { id: nonDefault.id } });
+    }
+  });
+
+  it('rejects non-default instance keys at the service boundary', async () => {
+    await expect(PluginManagementService.getInstanceByKey(slug, 'legacy')).rejects.toThrow(
+      'Only the default plugin instance is supported',
+    );
+  });
+
+  it('rejects updates to a non-default instance', async () => {
+    const nonDefault = await prisma.pluginInstallation.create({
+      data: { pluginSlug: slug, instanceKey: 'legacy', enabled: false },
+    });
+    try {
+      const response = await app.inject({
+        method: 'PATCH',
+        url: `/api/v1/extensions/plugin/${slug}/instances/${nonDefault.id}`,
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { enabled: true },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error.message).toContain('Only the default plugin instance is supported');
+    } finally {
+      await prisma.pluginInstallation.delete({ where: { id: nonDefault.id } });
+    }
   });
 });

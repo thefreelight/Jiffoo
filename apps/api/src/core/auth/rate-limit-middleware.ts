@@ -72,6 +72,7 @@ function handleRedisFallback(
     // Fail-closed mode: use in-memory fallback
     console.warn(`Rate limiter using in-memory fallback for IP: ${request.ip}`);
 
+    // Deliberate documented exception to no mutable in-process state: Redis outages degrade rate limiting instead of rejecting all traffic; single-instance V1 only.
     const count = inMemoryRateLimiter.increment(key, windowMs);
 
     if (count > maxRequests) {

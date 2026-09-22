@@ -28,7 +28,6 @@ import cookie from '@fastify/cookie';
 import swagger from '@fastify/swagger';
 import swaggerUI from '@fastify/swagger-ui';
 import path from 'path';
-import fs from 'fs/promises';
 import { env } from '@/config/env';
 import { prisma } from '@/config/database';
 import { redisCache } from '@/core/cache/redis';
@@ -38,6 +37,7 @@ import { registerRoutes } from '@/routes';
 import { performHealthCheck, livenessCheck, readinessCheck } from '@/utils/health-check';
 import traceContextPlugin from '@/core/logger/trace-context';
 import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
+import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { loadEnabledPluginRuntimes } from '@/core/admin/extension-installer/plugin-reconciliation';
 import { registerPluginProcessFailureHandlers } from '@/core/admin/extension-installer/plugin-process-failure';
@@ -95,19 +95,7 @@ async function buildApp() {
       return reply.send(file);
     });
 
-    // Ensure extensions directory exists
-    // Use EXTENSIONS_PATH env var for consistency across all modules
-    // Default: 'extensions' relative to cwd (typically project root when running from apps/api)
-    const extensionsPathEnv = process.env.EXTENSIONS_PATH || 'extensions';
-    const extensionsPath = path.isAbsolute(extensionsPathEnv)
-      ? extensionsPathEnv
-      : path.join(process.cwd(), extensionsPathEnv);
-    try {
-      await fs.access(extensionsPath);
-    } catch {
-      await fs.mkdir(extensionsPath, { recursive: true });
-      LoggerService.logSystem(`Created extensions directory at ${extensionsPath}`);
-    }
+    await pluginPackageStore.ensureRoot();
 
     // Register CORS
     if (env.CORS_ENABLED) {

@@ -364,13 +364,6 @@ export interface PluginInstance {
   updatedAt: string;
 }
 
-export interface CreateInstanceRequest {
-  instanceKey: string;
-  enabled?: boolean;
-  config?: Record<string, unknown>;
-  grantedPermissions?: string[];
-}
-
 export interface UpdateInstanceRequest {
   enabled?: boolean;
   config?: Record<string, unknown>;
@@ -729,13 +722,6 @@ export const pluginsApi = {
   getInstances: (slug: string, page = 1, limit = 20): Promise<ApiResponse<PageResult<PluginInstance>>> =>
     apiClient.get(`/extensions/plugin/${slug}/instances`, { params: { page, limit } }),
 
-  /** Create a new instance for a plugin */
-  createInstance: (
-    slug: string,
-    data: CreateInstanceRequest
-  ): Promise<ApiResponse<PluginInstance>> =>
-    apiClient.post(`/extensions/plugin/${slug}/instances`, data),
-
   /** Update an instance */
   updateInstance: (
     slug: string,
@@ -743,15 +729,6 @@ export const pluginsApi = {
     data: UpdateInstanceRequest
   ): Promise<ApiResponse<PluginInstance>> =>
     apiClient.patch(`/extensions/plugin/${slug}/instances/${installationId}`, data),
-
-  /** Delete (soft-delete) an instance */
-  deleteInstance: (slug: string, installationId: string): Promise<ApiResponse<{
-    pluginSlug: string;
-    installationId: string;
-    instanceKey: string;
-    deleted: boolean;
-  }>> =>
-    apiClient.delete(`/extensions/plugin/${slug}/instances/${installationId}`),
 
 };
 

@@ -49,11 +49,9 @@ export async function loadPluginEntryModule(
   entryPath: string,
   options?: { version?: string; bustCache?: boolean },
 ): Promise<any> {
-  const absolutePath = path.resolve(entryPath);
+  assertCommonJsModule(entryPath);
 
-  assertCommonJsModule(absolutePath);
-
-  const resolvedPath = runtimeRequire.resolve(absolutePath);
+  const resolvedPath = runtimeRequire.resolve(entryPath);
   if (options?.bustCache !== false) {
     delete runtimeRequire.cache[resolvedPath];
   }

@@ -14,6 +14,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import path from 'path';
+import os from 'os';
 import { promises as fs } from 'fs';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
@@ -37,7 +38,7 @@ describe('Plugin Gateway — Baseline (Task 2.1.2)', () => {
     adminUserId = user.id;
 
     // Create a minimal internal-fastify plugin for gateway testing
-    pluginDir = await fs.mkdtemp(path.join(process.cwd(), '.plugin-gateway-'));
+    pluginDir = await fs.mkdtemp(path.join(os.tmpdir(), '.plugin-gateway-'));
     await fs.mkdir(path.join(pluginDir, 'server'), { recursive: true });
     const manifest = {
       schemaVersion: 1,

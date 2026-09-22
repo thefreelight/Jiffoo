@@ -6,7 +6,6 @@ import { AlertTriangle, CheckCircle2, Loader2, Settings2 } from 'lucide-react';
 import { useLocale, useT } from 'shared/src/i18n/react';
 import type { PluginConfigMeta } from '@/lib/types';
 import {
-  useCreatePluginInstance,
   useInstalledPlugins,
   usePluginConfig,
   usePluginInstances,
@@ -22,7 +21,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { InstalledPluginsRail } from '@/components/extensions/InstalledPluginsRail';
-import { PluginInstanceManager } from '@/components/plugins/PluginInstanceManager';
 import { toast } from 'sonner';
 
 type PluginConfigDescriptor = {
@@ -138,11 +136,9 @@ export function PluginWorkspace({ slug }: { slug: string }) {
   const locale = useLocale();
   const t = useT();
   const { data, isLoading, error } = usePluginConfig(slug);
-  const { data: instancesData, isLoading: instancesLoading } = usePluginInstances(slug);
+  const { data: instancesData } = usePluginInstances(slug);
   const { data: installedPluginsData } = useInstalledPlugins();
-  const { mutateAsync: createInstance, isPending: creating } = useCreatePluginInstance();
   const { mutateAsync: updateInstance, isPending: updating } = useUpdatePluginInstance();
-  const [selectedId, setSelectedId] = useState('default');
   const [draft, setDraft] = useState<Record<string, unknown>>({});
 
   const getText = (key: string, fallback: string) => {
@@ -150,47 +146,37 @@ export function PluginWorkspace({ slug }: { slug: string }) {
     return translated && translated !== key ? translated : fallback;
   };
   const instances = useMemo(() => instancesData?.items || [], [instancesData?.items]);
-  const selected = instances.find((instance) => instance.installationId === selectedId) || instances[0] || null;
+  const selected = instances[0] || null;
   const schema = isPlainObject(data?.configSchema) ? data.configSchema as PluginConfigSchema : undefined;
   const config = isPlainObject(selected?.config) ? selected.config : {};
   const meta = selected?.configMeta || data?.configMeta;
   const readiness = configReadiness(schema, config, meta);
-  const saving = creating || updating;
+  const saving = updating;
 
   useEffect(() => {
     setDraft(config);
-    if (selected) setSelectedId(selected.installationId);
   }, [selected?.installationId, selected?.updatedAt]);
 
   const save = async () => {
     try {
-      if (selected) {
-        await updateInstance({ slug, installationId: selected.installationId, enabled: selected.enabled, config: draft });
-      } else {
-        const created = await createInstance({ slug, instanceKey: 'default', enabled: false, config: draft });
-        setSelectedId(created.installationId);
-      }
+      if (!selected) throw new Error('Default plugin instance is unavailable');
+      await updateInstance({ slug, installationId: selected.installationId, enabled: selected.enabled, config: draft });
     } catch {
       // Mutation hooks present save errors.
     }
   };
 
   const toggle = async () => {
-    if (!selected && !readiness.ready) {
+    if (!selected) {
+      toast.error('Default plugin instance is unavailable.');
+      return;
+    }
+    if (!selected.enabled && !readiness.ready) {
       toast.error(`This plugin requires configuration before enabling: ${readiness.missing.join(', ')}`);
       return;
     }
     try {
-      if (selected) {
-        if (!selected.enabled && !readiness.ready) {
-          toast.error(`This plugin requires configuration before enabling: ${readiness.missing.join(', ')}`);
-          return;
-        }
-        await updateInstance({ slug, installationId: selected.installationId, enabled: !selected.enabled, config });
-      } else {
-        const created = await createInstance({ slug, instanceKey: 'default', enabled: true, config: draft });
-        setSelectedId(created.installationId);
-      }
+      await updateInstance({ slug, installationId: selected.installationId, enabled: !selected.enabled, config });
     } catch {
       // Mutation hooks present save errors.
     }
@@ -208,13 +194,9 @@ export function PluginWorkspace({ slug }: { slug: string }) {
             <CardHeader>
               <div className="flex items-center gap-2 text-sm text-slate-500"><Link href={`/${locale}/plugins`} className="hover:text-blue-600">Plugins</Link><span>/</span><span>{data.name || slug}</span></div>
               <CardTitle className="flex items-center gap-2 text-2xl">{data.name || slug}</CardTitle>
-              <CardDescription>{data.description || 'Manage the extension configuration and instances.'}</CardDescription>
+              <CardDescription>{data.description || 'Manage the extension configuration.'}</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap items-center gap-3">
-              <Select value={selected?.installationId || selectedId} onValueChange={setSelectedId} disabled={instancesLoading || instances.length === 0}>
-                <SelectTrigger className="w-56"><SelectValue placeholder="Select instance" /></SelectTrigger>
-                <SelectContent>{instances.length ? instances.map((instance) => <SelectItem key={instance.installationId} value={instance.installationId}>{instance.instanceKey}</SelectItem>) : <SelectItem value="default">default</SelectItem>}</SelectContent>
-              </Select>
               <Badge variant={selected?.enabled ? 'default' : 'outline'}>{selected?.enabled ? 'Enabled' : 'Disabled'}</Badge>
               <Badge variant={readiness.ready ? 'default' : 'outline'}>{readiness.ready ? 'Configuration ready' : 'Configuration required'}</Badge>
             </CardContent>
@@ -224,7 +206,7 @@ export function PluginWorkspace({ slug }: { slug: string }) {
               {schema ? <GenericConfigEditor schema={schema} draft={draft} meta={meta} saving={saving} onChange={(field, value) => setDraft((current) => ({ ...current, [field]: value }))} onSave={() => void save()} /> : <Alert><Settings2 className="h-4 w-4" /><AlertTitle>No configuration declared</AlertTitle><AlertDescription>This extension does not declare configuration fields.</AlertDescription></Alert>}
             </div>
             <div className="space-y-5">
-              <Card><CardHeader><CardTitle>Instance status</CardTitle><CardDescription>Core manages this extension instance.</CardDescription></CardHeader><CardContent className="space-y-4"><Button onClick={() => void toggle()} disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{selected?.enabled ? 'Disable instance' : 'Enable instance'}</Button><PluginInstanceManager pluginSlug={slug} pluginName={data.name || slug} /></CardContent></Card>
+              <Card><CardHeader><CardTitle>Plugin status</CardTitle><CardDescription>Core manages the default plugin configuration.</CardDescription></CardHeader><CardContent className="space-y-4"><Button onClick={() => void toggle()} disabled={saving || !selected}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}{selected?.enabled ? 'Disable plugin' : 'Enable plugin'}</Button></CardContent></Card>
             </div>
           </div>
         </div>

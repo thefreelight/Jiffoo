@@ -21,6 +21,9 @@ export interface PluginPackageStore {
   list(): Promise<string[]>;
   delete(slug: string): Promise<void>;
   findSlugByFilePath(filePath: string): Promise<string | null>;
+  ensureRoot(): Promise<void>;
+  createTemporaryDirectory(prefix: string): Promise<string>;
+  createTemporaryFile(prefix: string, fileName: string): Promise<{ directory: string; filePath: string }>;
 }
 
 class LocalPluginPackage implements PluginPackage {
@@ -109,6 +112,21 @@ class LocalPluginPackageStore implements PluginPackageStore {
     const [slug] = relativePath.split(path.sep);
     if (!slug) return null;
     return (await this.get(slug)) ? slug : null;
+  }
+
+  async ensureRoot(): Promise<void> {
+    await fs.mkdir(this.root, { recursive: true });
+  }
+
+  async createTemporaryDirectory(prefix: string): Promise<string> {
+    const temporaryRoot = path.join(this.root, '.tmp');
+    await fs.mkdir(temporaryRoot, { recursive: true });
+    return fs.mkdtemp(path.join(temporaryRoot, `${prefix}-`));
+  }
+
+  async createTemporaryFile(prefix: string, fileName: string): Promise<{ directory: string; filePath: string }> {
+    const directory = await this.createTemporaryDirectory(prefix);
+    return { directory, filePath: path.join(directory, fileName) };
   }
 
   private async pathExists(target: string): Promise<boolean> {

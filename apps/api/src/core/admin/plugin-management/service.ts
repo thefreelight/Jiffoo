@@ -2,7 +2,7 @@
  * Plugin Management Service
  *
  * Manages plugin installations and instances using database as the single source of truth.
- * Supports multi-instance per plugin (installationId/instanceKey model).
+ * Stores one default configuration instance per plugin.
  */
 
 import { prisma } from '@/config/database';
@@ -17,8 +17,6 @@ import { executeLifecycleHook, hasLifecycleHook } from './lifecycle-hooks';
 import { mergeSecretConfigForUpdate } from './config-secrets';
 import { readStoredPluginManifest } from '@/core/admin/extension-installer/stored-manifest';
 
-// instanceKey validation regex: ^[a-z0-9-]{1,32}$
-const INSTANCE_KEY_REGEX = /^[a-z0-9-]{1,32}$/;
 // slug validation regex: ^[a-z][a-z0-9-]{0,30}[a-z0-9]$
 const SLUG_REGEX = /^[a-z][a-z0-9-]{0,30}[a-z0-9]$/;
 
@@ -43,6 +41,9 @@ async function warmPluginInstanceRuntime(
  * Validate instanceKey format (delegates to utils for consistency)
  */
 function validateInstanceKey(instanceKey: string): void {
+  if (instanceKey !== 'default') {
+    throw new Error('Only the default plugin instance is supported');
+  }
   try {
     validateInstanceKeyFormat(instanceKey);
   } catch (error: any) {
@@ -124,6 +125,7 @@ async function getInstanceById(installationId: string): Promise<PluginInstallati
  * Get plugin instance by slug and instanceKey
  */
 async function getInstanceByKey(slug: string, instanceKey: string): Promise<PluginInstallation | null> {
+  validateInstanceKey(instanceKey);
   return prisma.pluginInstallation.findUnique({
     where: {
       pluginSlug_instanceKey: {
@@ -148,6 +150,7 @@ async function getPluginInstances(slug: string): Promise<PluginInstallation[]> {
   return prisma.pluginInstallation.findMany({
     where: {
       pluginSlug: slug,
+      instanceKey: 'default',
       deletedAt: null,
     },
     orderBy: { createdAt: 'asc' },
@@ -155,11 +158,10 @@ async function getPluginInstances(slug: string): Promise<PluginInstallation[]> {
 }
 
 /**
- * Create a new plugin instance
+ * Create the default plugin instance during installation.
  */
-async function createInstance(
+async function createDefaultInstance(
   slug: string,
-  instanceKey: string,
   options?: {
     enabled?: boolean;
     config?: Record<string, unknown>;
@@ -167,7 +169,7 @@ async function createInstance(
   }
 ): Promise<PluginInstallation> {
   validateSlug(slug);
-  validateInstanceKey(instanceKey);
+  const instanceKey = 'default';
 
   // Validate config size and depth (Blueprint 5.4: 64KB max, 10 layers max)
   if (options?.config !== undefined) {
@@ -207,7 +209,7 @@ async function createInstance(
 
   if (existing) {
     if (existing.deletedAt) {
-      throw new Error(`Instance "${instanceKey}" was deleted and cannot be recreated. Use a different key.`);
+      throw new Error('The default plugin instance was deleted and cannot be recreated.');
     }
     throw new Error(`Instance "${instanceKey}" already exists for plugin "${slug}"`);
   }
@@ -255,6 +257,8 @@ async function updateInstance(
   if (!existing) {
     throw new Error(`Installation "${installationId}" not found`);
   }
+
+  validateInstanceKey(existing.instanceKey);
 
   if (existing.deletedAt) {
     throw new Error(`Installation "${installationId}" has been deleted`);
@@ -342,42 +346,6 @@ async function updateInstance(
   return updated;
 }
 
-/**
- * Soft delete plugin instance
- * Note: 'default' instance cannot be deleted
- */
-async function deleteInstance(installationId: string): Promise<PluginInstallation> {
-
-  const existing = await prisma.pluginInstallation.findUnique({
-    where: { id: installationId },
-  });
-
-  if (!existing) {
-    throw new Error(`Installation "${installationId}" not found`);
-  }
-
-  if (existing.instanceKey === 'default') {
-    throw new Error('Cannot delete the default instance');
-  }
-
-  if (existing.deletedAt) {
-    throw new Error(`Installation "${installationId}" is already deleted`);
-  }
-
-  const deleted = await prisma.$transaction(async (tx) => {
-    const next = await tx.pluginInstallation.update({
-      where: { id: installationId },
-      data: { enabled: false, deletedAt: new Date() },
-    });
-    await incrementPluginRegistryVersion(tx);
-    return next;
-  });
-
-  await CacheService.incrementPluginVersion();
-  await reconcilePluginState(existing.pluginSlug);
-  return deleted;
-}
-
 // ============================================================================
 // Instance-level Plugin Operations (Only API - No Legacy Compatibility)
 // ============================================================================
@@ -407,6 +375,8 @@ export async function isPluginEnabled(
   if (!instance) {
     return false;
   }
+
+  validateInstanceKey(instance.instanceKey);
 
   if (!instance.enabled || instance.deletedAt) {
     return false;
@@ -439,6 +409,8 @@ export async function getInstanceConfig(
   if (!instance) {
     return null;
   }
+
+  validateInstanceKey(instance.instanceKey);
 
   return parseJsonObject(instance.configJson);
 }
@@ -610,9 +582,8 @@ export const PluginManagementService = {
   getInstanceByKey,
   getDefaultInstance,
   getPluginInstances,
-  createInstance,
+  createDefaultInstance,
   updateInstance,
-  deleteInstance,
   getInstanceConfig,
   isPluginEnabled,
   uninstallPlugin,

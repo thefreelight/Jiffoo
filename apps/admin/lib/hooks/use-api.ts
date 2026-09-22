@@ -1022,43 +1022,6 @@ export function usePluginInstances(slug: string) {
   });
 }
 
-// Create plugin instance mutation
-export function useCreatePluginInstance() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({
-      slug,
-      instanceKey,
-      enabled,
-      config,
-      grantedPermissions,
-    }: {
-      slug: string;
-      instanceKey: string;
-      enabled?: boolean;
-      config?: Record<string, unknown>;
-      grantedPermissions?: string[];
-    }) => {
-      const response = await pluginsApi.createInstance(slug, {
-        instanceKey,
-        enabled,
-        config,
-        grantedPermissions,
-      });
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.instances(variables.slug) });
-      toast.success(`Instance "${variables.instanceKey}" created successfully`);
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
 // Update plugin instance mutation
 export function useUpdatePluginInstance() {
   const queryClient = useQueryClient();
@@ -1089,26 +1052,6 @@ export function useUpdatePluginInstance() {
       queryClient.invalidateQueries({ queryKey: pluginQueryKeys.instances(variables.slug) });
       queryClient.invalidateQueries({ queryKey: marketQueryKeys.all });
       toast.success('Instance updated successfully');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-// Delete plugin instance mutation
-export function useDeletePluginInstance() {
-  const queryClient = useQueryClient();
-  const { getErrorMessage } = useLocalizedApiFeedback();
-
-  return useMutation({
-    mutationFn: async ({ slug, installationId }: { slug: string; installationId: string }) => {
-      const response = await pluginsApi.deleteInstance(slug, installationId);
-      return unwrapApiResponse(response);
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: pluginQueryKeys.instances(variables.slug) });
-      toast.success('Instance deleted successfully');
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));

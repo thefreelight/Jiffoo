@@ -334,78 +334,6 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
   });
 
   /**
-   * POST /api/extensions/plugin/:slug/instances
-   * Create a new plugin instance
-   */
-  fastify.post<{
-    Params: { slug: string };
-    Body: {
-      instanceKey: string;
-      enabled?: boolean;
-      config?: Record<string, unknown>;
-      grantedPermissions?: string[];
-    };
-  }>('/plugin/:slug/instances', {
-    onRequest: [authMiddleware, adminMiddleware],
-    schema: {
-      tags: ['admin-plugins'],
-      summary: 'Create plugin instance',
-      description: 'Create a new instance for a plugin with unique instanceKey',
-      security: [{ bearerAuth: [] }],
-      ...extensionInstallerSchemas.createInstance,
-    }
-  }, async (request: FastifyRequest<{
-    Params: { slug: string };
-    Body: {
-      instanceKey: string;
-      enabled?: boolean;
-      config?: Record<string, unknown>;
-      grantedPermissions?: string[];
-    };
-  }>, reply: FastifyReply) => {
-    try {
-      const { slug } = request.params;
-      const { instanceKey, enabled, config, grantedPermissions } = request.body;
-
-      // CRITICAL: Verify plugin exists and is not soft-deleted (consistent with list route)
-      const pluginPackage = await PluginManagementService.getPluginPackage(slug);
-      if (!pluginPackage) {
-        return sendError(reply, 404, 'NOT_FOUND', `Plugin "${slug}" not found`);
-      }
-
-      const instance = await PluginManagementService.createInstance(slug, instanceKey, {
-        enabled,
-        config,
-        grantedPermissions,
-      });
-      const adminConfig = sanitizePluginConfigForAdmin(readStoredPluginManifest(pluginPackage), parseJsonObject(instance.configJson));
-
-      return sendSuccess(reply, {
-        installationId: instance.id,
-        pluginSlug: instance.pluginSlug,
-        instanceKey: instance.instanceKey,
-        enabled: instance.enabled,
-        config: adminConfig.config,
-        configMeta: adminConfig.configMeta,
-        grantedPermissions: parseJsonArray(instance.grantedPermissions),
-        lastFailureAt: instance.lastFailureAt?.toISOString() ?? null,
-        lastFailureMessage: instance.lastFailureMessage,
-        createdAt: instance.createdAt.toISOString(),
-        updatedAt: instance.updatedAt.toISOString(),
-      }, `Instance "${instanceKey}" created for plugin "${slug}"`);
-    } catch (error: any) {
-      const statusCode =
-        typeof error?.statusCode === 'number' && Number.isFinite(error.statusCode)
-          ? error.statusCode
-          : error?.message?.includes('not found')
-            ? 404
-            : 400;
-      const code = typeof error?.code === 'string' ? error.code : 'CREATE_ERROR';
-      return sendError(reply, statusCode, code, error.message, error?.details);
-    }
-  });
-
-  /**
    * PATCH /api/extensions/plugin/:slug/instances/:installationId
    * Update a plugin instance (enable/disable, config, permissions)
    */
@@ -477,46 +405,6 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
           : 400;
       const code = typeof error?.code === 'string' ? error.code : 'UPDATE_ERROR';
       return sendError(reply, statusCode, code, error.message, error?.details);
-    }
-  });
-
-  /**
-   * DELETE /api/extensions/plugin/:slug/instances/:installationId
-   * Soft-delete a plugin instance (installationId cannot be reused)
-   */
-  fastify.delete<{ Params: { slug: string; installationId: string } }>('/plugin/:slug/instances/:installationId', {
-    onRequest: [authMiddleware, adminMiddleware],
-    schema: {
-      tags: ['admin-plugins'],
-      summary: 'Delete plugin instance',
-      description: 'Soft-delete an instance (installationId cannot be reused). Default instance cannot be deleted.',
-      security: [{ bearerAuth: [] }],
-      ...extensionInstallerSchemas.deleteInstance,
-    }
-  }, async (request: FastifyRequest<{ Params: { slug: string; installationId: string } }>, reply: FastifyReply) => {
-    try {
-      const { slug, installationId } = request.params;
-
-      // Verify the installation belongs to this plugin
-      const existing = await PluginManagementService.getInstanceById(installationId);
-      if (!existing) {
-        return sendError(reply, 404, 'NOT_FOUND', `Installation "${installationId}" not found`);
-      }
-      if (existing.pluginSlug !== slug) {
-        return sendError(reply, 400, 'BAD_REQUEST', `Installation "${installationId}" does not belong to plugin "${slug}"`);
-      }
-
-      await PluginManagementService.deleteInstance(installationId);
-
-      return sendSuccess(reply, {
-        pluginSlug: slug,
-        installationId,
-        instanceKey: existing.instanceKey,
-        deleted: true,
-      }, `Instance "${existing.instanceKey}" deleted (soft)`);
-    } catch (error: any) {
-      const statusCode = error.message.includes('default') ? 400 : 500;
-      return sendError(reply, statusCode, 'DELETE_ERROR', error.message);
     }
   });
 
@@ -654,7 +542,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
           // Create default instance if not exists
           const defaultInstance = await PluginManagementService.getDefaultInstance(result.slug);
           if (!defaultInstance) {
-            await PluginManagementService.createInstance(result.slug, 'default', { enabled: false });
+            await PluginManagementService.createDefaultInstance(result.slug, { enabled: false });
           }
           // Warm up runtime (hot upgrade supported, no restart needed)
           await warmPluginRuntime(result.slug);

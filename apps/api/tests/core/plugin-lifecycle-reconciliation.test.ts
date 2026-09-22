@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import path from 'path';
+import os from 'os';
 import { promises as fs } from 'fs';
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
@@ -22,6 +23,7 @@ const prisma = getTestPrisma();
 describe('Plugin lifecycle reconciliation', () => {
   const slugs: string[] = [];
   const sourceDirectories: string[] = [];
+  const markerPaths: string[] = [];
 
   afterEach(async () => {
     await Promise.all(slugs.splice(0).map(async (slug) => {
@@ -32,12 +34,13 @@ describe('Plugin lifecycle reconciliation', () => {
       await pluginPackageStore.delete(slug);
     }));
     await Promise.all(sourceDirectories.splice(0).map((directory) => fs.rm(directory, { recursive: true, force: true })));
+    await Promise.all(markerPaths.splice(0).map((marker) => fs.rm(marker, { force: true })));
     resetPluginRegistryFreshness();
   });
 
   async function createPlugin(slug: string, source: string, enabled = true): Promise<string> {
     slugs.push(slug);
-    const sourceDirectory = await fs.mkdtemp(path.join(process.cwd(), '.plugin-lifecycle-reconciliation-'));
+    const sourceDirectory = await fs.mkdtemp(path.join(os.tmpdir(), '.plugin-lifecycle-reconciliation-'));
     sourceDirectories.push(sourceDirectory);
     await fs.mkdir(path.join(sourceDirectory, 'server'), { recursive: true });
     const manifest = {
@@ -173,7 +176,8 @@ module.exports = {
   it('continues event dispatch after a handler failure and refreshes after an external registry change', async () => {
     const failingSlug = `event-fail-${Date.now().toString(36)}`.slice(0, 30);
     const healthySlug = `event-good-${Date.now().toString(36)}`.slice(0, 30);
-    const marker = path.join(process.cwd(), `.plugin-event-${healthySlug}.txt`);
+    const marker = path.join(os.tmpdir(), `.plugin-event-${healthySlug}.txt`);
+    markerPaths.push(marker);
     const failingId = await createPlugin(failingSlug, `
 module.exports = {
   manifest: { id: ${JSON.stringify(failingSlug)}, version: '1.0.0', contract: 'v1' },
@@ -198,6 +202,5 @@ module.exports = {
     });
     await expect(dispatchPluginRuntimeEvent('shared.event', {})).rejects.toThrow(failingSlug);
     expect(await fs.readFile(marker, 'utf-8')).toBe('handled\n');
-    await fs.rm(marker, { force: true });
   });
 });

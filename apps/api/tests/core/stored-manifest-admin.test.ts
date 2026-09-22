@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import path from 'path';
+import os from 'os';
 import { promises as fs } from 'fs';
 import { createTestApp } from '../helpers/create-test-app';
 import { createAdminWithToken, deleteAllTestUsers } from '../helpers/auth';
@@ -16,7 +17,7 @@ describe('stored manifest admin responses', () => {
   let sourceDirectory = '';
 
   beforeAll(async () => {
-    sourceDirectory = await fs.mkdtemp(path.join(process.cwd(), '.stored-manifest-admin-'));
+    sourceDirectory = await fs.mkdtemp(path.join(os.tmpdir(), '.stored-manifest-admin-'));
     await fs.writeFile(path.join(sourceDirectory, 'manifest.json'), '{}', 'utf-8');
     const deployment = await pluginPackageStore.put(slug, sourceDirectory);
     await deployment.commit();

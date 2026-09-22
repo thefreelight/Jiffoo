@@ -18,23 +18,7 @@ import {
 import { ExtensionInstallerError } from './errors';
 import { validateVersionFormat, validateVersionRange } from './version-utils';
 import { getPluginManifestIssues } from '@jiffoo/shared';
-
-// ============================================================================
-// Path Constants
-// ============================================================================
-
-/**
- * Extension root directory
- * Uses EXTENSIONS_PATH env var for consistency across all modules.
- * Can be absolute path or relative to process.cwd().
- */
-function getExtensionsRoot(): string {
-  const envPath = process.env.EXTENSIONS_PATH || 'extensions';
-  return path.isAbsolute(envPath) ? envPath : path.join(process.cwd(), envPath);
-}
-
-/** Extension root directory (resolved absolute path) */
-export const EXTENSIONS_ROOT = getExtensionsRoot();
+import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 
 // ============================================================================
 // ZIP Extraction
@@ -45,8 +29,7 @@ export const EXTENSIONS_ROOT = getExtensionsRoot();
  * @returns Temporary directory path
  */
 export async function extractZipToTemp(zipStream: Readable, kind?: ExtensionKind): Promise<string> {
-  const tempDir = path.join(EXTENSIONS_ROOT, '.tmp', `extract-${Date.now()}`);
-  await fs.mkdir(tempDir, { recursive: true });
+  const tempDir = await pluginPackageStore.createTemporaryDirectory(`extract-${kind || 'extension'}`);
 
   const { validateZipEntry, MAX_FONT_FILES, MAX_FONT_FILE_SIZE, MAX_TOTAL_FONT_SIZE } = await import('./security');
   const enforceFontLimits = false;
@@ -593,11 +576,7 @@ export async function spoolStreamToTempFileAndHash(
   stream: Readable,
   prefix: string,
 ): Promise<{ hash: string; filePath: string; cleanup: () => Promise<void> }> {
-  const tempRoot = path.join(EXTENSIONS_ROOT, '.tmp');
-  await fs.mkdir(tempRoot, { recursive: true });
-
-  const tempDir = await fs.mkdtemp(path.join(tempRoot, `${prefix}-`));
-  const filePath = path.join(tempDir, 'package.zip');
+  const { directory: tempDir, filePath } = await pluginPackageStore.createTemporaryFile(prefix, 'package.zip');
   const hash = createHash('sha256');
   const output = createWriteStream(filePath);
 
