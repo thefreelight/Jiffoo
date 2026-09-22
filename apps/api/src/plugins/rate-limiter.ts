@@ -57,13 +57,13 @@ const rateLimiterPlugin: FastifyPluginAsync<RateLimiterPluginOptions> = async (f
     routes = {},
     store: customStore,
     enabled = true,
-    skipPaths = ['/health', '/metrics', '/api/health'],
+    skipPaths = ['/health', '/metrics', '/api/v1/health'],
     keyGenerator = defaultKeyGenerator,
   } = options;
 
   const defaultRouteLimits: Record<string, Partial<RateLimitConfig>> = {
-    '/api/auth/login': RateLimitPresets.login,
-    '/api/auth/register': RateLimitPresets.register,
+    '/api/v1/auth/login': RateLimitPresets.login,
+    '/api/v1/auth/register': RateLimitPresets.register,
     '/login': RateLimitPresets.login,
     '/register': RateLimitPresets.register,
   };

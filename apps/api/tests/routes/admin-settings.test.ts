@@ -2,8 +2,8 @@
  * Admin Settings Endpoints Tests
  *
  * Coverage:
- * - GET /api/admin/settings
- * - PUT /api/admin/settings/batch
+ * - GET /api/v1/admin/settings
+ * - PUT /api/v1/admin/settings/batch
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -34,27 +34,27 @@ describe('Admin Settings Endpoints', () => {
     await app.close();
   });
 
-  it('GET /api/admin/settings should return 401 without token', async () => {
+  it('GET /api/v1/admin/settings should return 401 without token', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/admin/settings',
+      url: '/api/v1/admin/settings',
     });
     expect(response.statusCode).toBe(401);
   });
 
-  it('GET /api/admin/settings should return 403 for regular user', async () => {
+  it('GET /api/v1/admin/settings should return 403 for regular user', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/admin/settings',
+      url: '/api/v1/admin/settings',
       headers: { authorization: `Bearer ${userToken}` },
     });
     expect(response.statusCode).toBe(403);
   });
 
-  it('GET /api/admin/settings should return settings for admin', async () => {
+  it('GET /api/v1/admin/settings should return settings for admin', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/admin/settings',
+      url: '/api/v1/admin/settings',
       headers: { authorization: `Bearer ${adminToken}` },
     });
 
@@ -65,29 +65,29 @@ describe('Admin Settings Endpoints', () => {
     expect(typeof body.data).toBe('object');
   });
 
-  it('PUT /api/admin/settings/batch should return 401 without token', async () => {
+  it('PUT /api/v1/admin/settings/batch should return 401 without token', async () => {
     const response = await app.inject({
       method: 'PUT',
-      url: '/api/admin/settings/batch',
+      url: '/api/v1/admin/settings/batch',
       payload: { settings: { 'test.flag': true } },
     });
     expect(response.statusCode).toBe(401);
   });
 
-  it('PUT /api/admin/settings/batch should return 403 for regular user', async () => {
+  it('PUT /api/v1/admin/settings/batch should return 403 for regular user', async () => {
     const response = await app.inject({
       method: 'PUT',
-      url: '/api/admin/settings/batch',
+      url: '/api/v1/admin/settings/batch',
       headers: { authorization: `Bearer ${userToken}` },
       payload: { settings: { 'test.flag': true } },
     });
     expect(response.statusCode).toBe(403);
   });
 
-  it('PUT /api/admin/settings/batch should update settings for admin', async () => {
+  it('PUT /api/v1/admin/settings/batch should update settings for admin', async () => {
     const response = await app.inject({
       method: 'PUT',
-      url: '/api/admin/settings/batch',
+      url: '/api/v1/admin/settings/batch',
       headers: { authorization: `Bearer ${adminToken}` },
       payload: {
         settings: {
@@ -115,10 +115,10 @@ describe('Admin Settings Endpoints', () => {
     expect(body.error).toHaveProperty('message');
   });
 
-  it('PUT /api/admin/settings/batch should accept string url-like custom branding keys', async () => {
+  it('PUT /api/v1/admin/settings/batch should accept string url-like custom branding keys', async () => {
     const response = await app.inject({
       method: 'PUT',
-      url: '/api/admin/settings/batch',
+      url: '/api/v1/admin/settings/batch',
       headers: { authorization: `Bearer ${adminToken}` },
       payload: {
         settings: {

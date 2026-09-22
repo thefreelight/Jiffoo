@@ -117,7 +117,7 @@ module.exports = async function plugin(fastify) {
   it('routes GET to internal-fastify plugin and returns 200', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${slug}/api/health`,
+      url: `/api/v1/extensions/plugin/${slug}/api/health`,
     });
 
     expect(response.statusCode).toBe(200);
@@ -129,7 +129,7 @@ module.exports = async function plugin(fastify) {
   it('routes POST to internal-fastify plugin with body', async () => {
     const response = await app.inject({
       method: 'POST',
-      url: `/api/extensions/plugin/${slug}/api/echo`,
+      url: `/api/v1/extensions/plugin/${slug}/api/echo`,
       payload: { message: 'hello' },
     });
 
@@ -141,7 +141,7 @@ module.exports = async function plugin(fastify) {
   it('allows anonymous public plugin routes and strips spoofed platform headers', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${slug}/api/headers`,
+      url: `/api/v1/extensions/plugin/${slug}/api/headers`,
       headers: {
         'x-caller': 'admin',
         'x-user-id': 'spoofed-user',
@@ -159,7 +159,7 @@ module.exports = async function plugin(fastify) {
   it('injects authenticated user context when a bearer token is present', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${slug}/api/headers`,
+      url: `/api/v1/extensions/plugin/${slug}/api/headers`,
       headers: { authorization: `Bearer ${adminToken}` },
     });
 
@@ -174,7 +174,7 @@ module.exports = async function plugin(fastify) {
   it('returns 404 for non-existent plugin slug', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/non-existent-plugin-slug/api/health`,
+      url: `/api/v1/extensions/plugin/non-existent-plugin-slug/api/health`,
     });
 
     expect(response.statusCode).toBe(404);
@@ -185,7 +185,7 @@ module.exports = async function plugin(fastify) {
   it('rejects invalid slug format (uppercase)', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/InvalidSlug/api/health`,
+      url: `/api/v1/extensions/plugin/InvalidSlug/api/health`,
     });
 
     // Gateway should reject or 404 — either is acceptable baseline behavior
@@ -195,7 +195,7 @@ module.exports = async function plugin(fastify) {
   it('rejects invalid slug format (special chars)', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/invalid_slug/api/health`,
+      url: `/api/v1/extensions/plugin/invalid_slug/api/health`,
     });
 
     expect([400, 404]).toContain(response.statusCode);
@@ -203,10 +203,10 @@ module.exports = async function plugin(fastify) {
 
   // --- Admin endpoints baseline ---
 
-  it('GET /api/extensions/plugin lists installed plugins (admin only)', async () => {
+  it('GET /api/v1/extensions/plugin lists installed plugins (admin only)', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/extensions/plugin',
+      url: '/api/v1/extensions/plugin',
       headers: { authorization: `Bearer ${adminToken}` },
     });
 
@@ -216,10 +216,10 @@ module.exports = async function plugin(fastify) {
     expect(Array.isArray(body.data.items)).toBe(true);
   });
 
-  it('GET /api/extensions/plugin/:slug returns plugin detail', async () => {
+  it('GET /api/v1/extensions/plugin/:slug returns plugin detail', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${slug}`,
+      url: `/api/v1/extensions/plugin/${slug}`,
       headers: { authorization: `Bearer ${adminToken}` },
     });
 

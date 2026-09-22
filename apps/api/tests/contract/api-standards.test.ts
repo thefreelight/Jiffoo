@@ -22,15 +22,15 @@ const NON_BUSINESS_PATHS = new Set([
   '/health/ready',
 ]);
 const NON_PAGE_RESULT_PATHS = new Set([
-  '/api/admin/inventory/dashboard',
+  '/api/v1/admin/inventory/dashboard',
 ]);
 
 function isBusinessJsonOperation(path: string, operation: Operation): boolean {
-  if (!path.startsWith('/api/')) return false;
+  if (!path.startsWith('/api/v1/')) return false;
   if (NON_BUSINESS_PATHS.has(path)) return false;
   const tags = operation.tags || [];
   if (tags.some((tag) => PASSTHROUGH_TAGS.has(tag))) return false;
-  if (path.startsWith('/api/extensions/plugin/{slug}/api')) return false;
+  if (path.startsWith('/api/v1/extensions/plugin/{slug}/api')) return false;
   return true;
 }
 

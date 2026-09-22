@@ -176,7 +176,7 @@ export async function callPaymentPlugin(options: PluginCallOptions): Promise<Plu
 
   const gatewayBase = process.env.API_SERVICE_URL || 'http://127.0.0.1:3001';
   const path = options.path.startsWith('/') ? options.path : `/${options.path}`;
-  const url = `${gatewayBase}/api/extensions/plugin/${options.pluginSlug}${path}`;
+  const url = `${gatewayBase}/api/v1/extensions/plugin/${options.pluginSlug}${path}`;
 
   const retryOptions: RetryOptions = {
     ...defaultRetryOptions,

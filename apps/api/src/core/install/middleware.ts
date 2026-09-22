@@ -7,8 +7,8 @@ const CACHE_TTL = 60000; // 60 seconds
 
 /**
  * Installation status check middleware
- * - When not installed, only allow access to /api/install endpoints
- * - When installed, prevent access to /api/install/complete
+ * - When not installed, only allow access to /api/v1/install endpoints
+ * - When installed, prevent access to /api/v1/install/complete
  */
 export async function installationCheckMiddleware(
   request: FastifyRequest,
@@ -17,7 +17,7 @@ export async function installationCheckMiddleware(
   const path = request.url;
 
   // Skip health check and installation status check
-  if (path === '/health' || path === '/api/install/status' || path === '/api/install/check-database') {
+  if (path === '/health' || path === '/api/v1/install/status' || path === '/api/v1/install/check-database') {
     return;
   }
 
@@ -32,7 +32,7 @@ export async function installationCheckMiddleware(
   }
 
   const isInstalled = cachedInstallStatus.isInstalled;
-  const isInstallPath = path.startsWith('/api/install');
+  const isInstallPath = path.startsWith('/api/v1/install');
 
   // Handle when not installed
   if (!isInstalled) {
@@ -49,8 +49,8 @@ export async function installationCheckMiddleware(
     });
   }
 
-  // When installed, prevent access to /api/install/complete
-  if (isInstalled && path === '/api/install/complete') {
+  // When installed, prevent access to /api/v1/install/complete
+  if (isInstalled && path === '/api/v1/install/complete') {
     return reply.status(400).send({
       success: false,
       error: 'Already installed',

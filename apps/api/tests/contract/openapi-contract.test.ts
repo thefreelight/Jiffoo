@@ -114,10 +114,10 @@ describe('OpenAPI Contract Tests', () => {
       // Skip endpoints that need request body
       op.method === 'GET' &&
       // Skip endpoints with complex path params that need real data
-      !op.path.includes('/api/products/{id}') &&
-      !op.path.includes('/api/extensions/') &&
+      !op.path.includes('/api/v1/products/{id}') &&
+      !op.path.includes('/api/v1/extensions/') &&
       // Skip all admin endpoints (they all require auth)
-      !op.path.includes('/api/admin/')
+      !op.path.includes('/api/v1/admin/')
     );
 
     it.each(
@@ -172,10 +172,10 @@ describe('OpenAPI Contract Tests', () => {
     });
 
     describe('Products Endpoints', () => {
-      it('GET /api/products/ should return valid response', async () => {
+      it('GET /api/v1/products/ should return valid response', async () => {
         const response = await app.inject({
           method: 'GET',
-          url: '/api/products/'
+          url: '/api/v1/products/'
         });
 
         expect(response.statusCode).toBe(200);
@@ -192,19 +192,19 @@ describe('OpenAPI Contract Tests', () => {
         expect(Array.isArray(body.data.items)).toBe(true);
       });
 
-      it('GET /api/products/categories should return valid response', async () => {
+      it('GET /api/v1/products/categories should return valid response', async () => {
         const response = await app.inject({
           method: 'GET',
-          url: '/api/products/categories'
+          url: '/api/v1/products/categories'
         });
 
         expect(response.statusCode).toBe(200);
       });
 
-      it('GET /api/products/search should require query param', async () => {
+      it('GET /api/v1/products/search should require query param', async () => {
         const response = await app.inject({
           method: 'GET',
-          url: '/api/products/search'
+          url: '/api/v1/products/search'
         });
 
         // Should fail validation without required 'q' param
@@ -213,16 +213,16 @@ describe('OpenAPI Contract Tests', () => {
     });
 
     describe('Store Endpoints', () => {
-      it('GET /api/store/context should return valid schema', async () => {
+      it('GET /api/v1/store/context should return valid schema', async () => {
         const response = await app.inject({
           method: 'GET',
-          url: '/api/store/context'
+          url: '/api/v1/store/context'
         });
 
         expect([200, 500]).toContain(response.statusCode);
 
         if (response.statusCode === 200) {
-          const validation = validateResponse('/api/store/context', 'GET', 200, response.json());
+          const validation = validateResponse('/api/v1/store/context', 'GET', 200, response.json());
           expect(validation.valid).toBe(true);
         }
       });
@@ -231,15 +231,15 @@ describe('OpenAPI Contract Tests', () => {
 
   describe('Admin Endpoints - Role Check', () => {
     const adminOperations = getAllOperations().filter(op =>
-      op.path.includes('/api/admin/')
+      op.path.includes('/api/v1/admin/')
     );
 
     describe('Should return 403 for non-admin user', () => {
       // Test a few key admin endpoints
       const adminEndpointsToTest = [
-        { path: '/api/admin/users/', method: 'GET' },
-        { path: '/api/admin/products/', method: 'GET' },
-        { path: '/api/admin/orders/', method: 'GET' },
+        { path: '/api/v1/admin/users/', method: 'GET' },
+        { path: '/api/v1/admin/products/', method: 'GET' },
+        { path: '/api/v1/admin/orders/', method: 'GET' },
       ];
 
       it.each(adminEndpointsToTest)(
@@ -258,9 +258,9 @@ describe('OpenAPI Contract Tests', () => {
 
     describe('Should be accessible for admin user', () => {
       const adminEndpointsToTest = [
-        { path: '/api/admin/users/', method: 'GET' },
-        { path: '/api/admin/products/', method: 'GET' },
-        { path: '/api/admin/orders/', method: 'GET' },
+        { path: '/api/v1/admin/users/', method: 'GET' },
+        { path: '/api/v1/admin/products/', method: 'GET' },
+        { path: '/api/v1/admin/orders/', method: 'GET' },
       ];
 
       it.each(adminEndpointsToTest)(
@@ -279,11 +279,11 @@ describe('OpenAPI Contract Tests', () => {
   });
 
   describe('Security Verification - Previously Identified Issues (Now Fixed)', () => {
-    describe('/api/account/profile - Requires auth', () => {
+    describe('/api/v1/account/profile - Requires auth', () => {
       it('GET should return 401 without token', async () => {
         const response = await app.inject({
           method: 'GET',
-          url: '/api/account/profile',
+          url: '/api/v1/account/profile',
         });
 
         expect(response.statusCode).toBe(401);
@@ -292,7 +292,7 @@ describe('OpenAPI Contract Tests', () => {
       it('PUT should return 401 without token', async () => {
         const response = await app.inject({
           method: 'PUT',
-          url: '/api/account/profile',
+          url: '/api/v1/account/profile',
           payload: { username: 'test' },
         });
 
@@ -300,10 +300,10 @@ describe('OpenAPI Contract Tests', () => {
       });
     });
 
-    describe('/api/extensions/* - Requires admin auth', () => {
+    describe('/api/v1/extensions/* - Requires admin auth', () => {
       const extensionEndpoints = [
-        { path: '/api/extensions/plugin/install', method: 'POST' },
-        { path: '/api/extensions/plugin/test-slug', method: 'DELETE' },
+        { path: '/api/v1/extensions/plugin/install', method: 'POST' },
+        { path: '/api/v1/extensions/plugin/test-slug', method: 'DELETE' },
       ];
 
       it.each(extensionEndpoints)(

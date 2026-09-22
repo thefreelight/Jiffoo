@@ -167,7 +167,7 @@ Rules:
 
 The following endpoint groups are **passthrough** and are NOT required to return `ApiResponse<T>` on success:
 
-- **Plugin Gateway** (`tags: plugin-gateway`): `/api/extensions/plugin/{slug}/api...`
+- **Plugin Gateway** (`tags: plugin-gateway`): `/api/v1/extensions/plugin/{slug}/api...`
 - **System/Docs** endpoints returning non-business payloads (e.g. `/openapi.json`, health checks)
 
 Rules for passthrough endpoints:
@@ -200,7 +200,7 @@ OpenAPI must be sufficiently specific to generate useful types.
 
 ### Example: Account Profile (read)
 
-`GET /api/account/profile`
+`GET /api/v1/account/profile`
 
 Success `200`:
 
@@ -228,7 +228,7 @@ Success `200`:
 
 ### Example: Products List (paged)
 
-`GET /api/products?page=1&limit=10`
+`GET /api/v1/products?page=1&limit=10`
 
 Success `200`:
 

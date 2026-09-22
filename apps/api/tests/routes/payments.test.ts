@@ -2,10 +2,10 @@
  * Payments Endpoints Tests
  * 
  * Coverage:
- * - GET /api/payments/available-methods
- * - POST /api/payments/create-session
- * - GET /api/payments/verify/:sessionId
- * - POST /api/payments/webhook/:provider
+ * - GET /api/v1/payments/available-methods
+ * - POST /api/v1/payments/create-session
+ * - GET /api/v1/payments/verify/:sessionId
+ * - POST /api/v1/payments/webhook/:provider
  */
 
 import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
@@ -45,7 +45,7 @@ describe('Payments Endpoints', () => {
     // Create a test order
     const orderResponse = await app.inject({
       method: 'POST',
-      url: '/api/orders/',
+      url: '/api/v1/orders/',
       headers: { authorization: `Bearer ${userToken}` },
       payload: {
         items: [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
@@ -70,11 +70,11 @@ describe('Payments Endpoints', () => {
     vi.restoreAllMocks();
   });
 
-  describe('GET /api/payments/available-methods', () => {
+  describe('GET /api/v1/payments/available-methods', () => {
     it('should return available payment methods', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/payments/available-methods',
+        url: '/api/v1/payments/available-methods',
       });
 
       expect(response.statusCode).toBe(200);
@@ -83,18 +83,18 @@ describe('Payments Endpoints', () => {
     it('should be accessible without authentication', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/payments/available-methods',
+        url: '/api/v1/payments/available-methods',
       });
 
       expect(response.statusCode).not.toBe(401);
     });
   });
 
-  describe('POST /api/payments/create-session', () => {
+  describe('POST /api/v1/payments/create-session', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/payments/create-session',
+        url: '/api/v1/payments/create-session',
         payload: {
           paymentMethod: 'test-gateway',
           orderId: testOrderId,
@@ -107,7 +107,7 @@ describe('Payments Endpoints', () => {
     it('should return 400 for missing paymentMethod', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/payments/create-session',
+        url: '/api/v1/payments/create-session',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           orderId: testOrderId,
@@ -120,7 +120,7 @@ describe('Payments Endpoints', () => {
     it('should return 400 for missing orderId', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/payments/create-session',
+        url: '/api/v1/payments/create-session',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           paymentMethod: 'test-gateway',
@@ -135,7 +135,7 @@ describe('Payments Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/api/payments/create-session',
+        url: '/api/v1/payments/create-session',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           paymentMethod: 'test-gateway',
@@ -151,7 +151,7 @@ describe('Payments Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/api/payments/create-session',
+        url: '/api/v1/payments/create-session',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           paymentMethod: 'test-gateway',
@@ -167,13 +167,13 @@ describe('Payments Endpoints', () => {
     });
   });
 
-  describe('GET /api/payments/verify/:sessionId', () => {
+  describe('GET /api/v1/payments/verify/:sessionId', () => {
     it('should return pending status for non-existent session', async () => {
       const fakeSessionId = 'cs_test_invalid_session_id';
 
       const response = await app.inject({
         method: 'GET',
-        url: `/api/payments/verify/${fakeSessionId}`,
+        url: `/api/v1/payments/verify/${fakeSessionId}`,
       });
 
       // API returns 200 with pending status for non-existent sessions
@@ -185,7 +185,7 @@ describe('Payments Endpoints', () => {
     it('should be accessible without authentication', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/payments/verify/test-session-id',
+        url: '/api/v1/payments/verify/test-session-id',
       });
 
       // Should not return 401 (payment verification is public)
@@ -194,11 +194,11 @@ describe('Payments Endpoints', () => {
 
   });
 
-  describe('POST /api/payments/webhook/:provider', () => {
+  describe('POST /api/v1/payments/webhook/:provider', () => {
     it('should handle webhook for a generic provider', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/payments/webhook/test-gateway',
+        url: '/api/v1/payments/webhook/test-gateway',
         payload: {
           type: 'checkout.session.completed',
           data: {
@@ -216,7 +216,7 @@ describe('Payments Endpoints', () => {
     it('should handle webhook with signature header', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/payments/webhook/test-gateway',
+        url: '/api/v1/payments/webhook/test-gateway',
         headers: {
           'x-provider-signature': 'test-signature',
         },
@@ -237,7 +237,7 @@ describe('Payments Endpoints', () => {
     it('should not require JWT authentication', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/payments/webhook/test-gateway',
+        url: '/api/v1/payments/webhook/test-gateway',
         headers: {
           'x-provider-signature': 'test-signature',
         },

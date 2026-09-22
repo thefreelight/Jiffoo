@@ -2,10 +2,10 @@
  * Orders Endpoints Tests
  * 
  * Coverage:
- * - POST /api/orders/
- * - GET /api/orders/
- * - GET /api/orders/:id
- * - POST /api/orders/:id/cancel
+ * - POST /api/v1/orders/
+ * - GET /api/v1/orders/
+ * - GET /api/v1/orders/:id
+ * - POST /api/v1/orders/:id/cancel
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
@@ -60,11 +60,11 @@ describe('Orders Endpoints', () => {
     await app.close();
   });
 
-  describe('POST /api/orders/', () => {
+  describe('POST /api/v1/orders/', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/orders/',
+        url: '/api/v1/orders/',
         payload: {
           items: [
             { productId: testProduct.id, variantId: testVariantId, quantity: 1 },
@@ -78,7 +78,7 @@ describe('Orders Endpoints', () => {
     it('should return 400 for missing items', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/orders/',
+        url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {},
       });
@@ -89,7 +89,7 @@ describe('Orders Endpoints', () => {
     it('should return 400 for empty items array', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/orders/',
+        url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [],
@@ -103,7 +103,7 @@ describe('Orders Endpoints', () => {
     it('should create order with valid items', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/orders/',
+        url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -126,7 +126,7 @@ describe('Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/api/orders/',
+        url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -141,7 +141,7 @@ describe('Orders Endpoints', () => {
     it('should support shipping address', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/orders/',
+        url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -156,12 +156,12 @@ describe('Orders Endpoints', () => {
 
   });
 
-  describe('GET /api/orders/', () => {
+  describe('GET /api/v1/orders/', () => {
     beforeEach(async () => {
       // Create an order for testing
       await app.inject({
         method: 'POST',
-        url: '/api/orders/',
+        url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -175,7 +175,7 @@ describe('Orders Endpoints', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/orders/',
+        url: '/api/v1/orders/',
       });
 
       expect(response.statusCode).toBe(401);
@@ -184,7 +184,7 @@ describe('Orders Endpoints', () => {
     it('should return user orders', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/orders/',
+        url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -200,7 +200,7 @@ describe('Orders Endpoints', () => {
     it('should support pagination', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/orders/?page=1&limit=5',
+        url: '/api/v1/orders/?page=1&limit=5',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -213,7 +213,7 @@ describe('Orders Endpoints', () => {
     it('should support status filter', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/orders/?status=PENDING',
+        url: '/api/v1/orders/?status=PENDING',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -226,7 +226,7 @@ describe('Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: '/api/orders/',
+        url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${otherToken}` },
       });
 
@@ -238,13 +238,13 @@ describe('Orders Endpoints', () => {
     });
   });
 
-  describe('GET /api/orders/:id', () => {
+  describe('GET /api/v1/orders/:id', () => {
     let orderId: string;
 
     beforeEach(async () => {
       const createResponse = await app.inject({
         method: 'POST',
-        url: '/api/orders/',
+        url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -263,7 +263,7 @@ describe('Orders Endpoints', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/orders/${orderId}`,
+        url: `/api/v1/orders/${orderId}`,
       });
 
       expect(response.statusCode).toBe(401);
@@ -274,7 +274,7 @@ describe('Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/api/orders/${orderId}`,
+        url: `/api/v1/orders/${orderId}`,
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -290,7 +290,7 @@ describe('Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/api/orders/${fakeOrderId}`,
+        url: `/api/v1/orders/${fakeOrderId}`,
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -304,7 +304,7 @@ describe('Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/api/orders/${orderId}`,
+        url: `/api/v1/orders/${orderId}`,
         headers: { authorization: `Bearer ${otherToken}` },
       });
 
@@ -312,13 +312,13 @@ describe('Orders Endpoints', () => {
     });
   });
 
-  describe('POST /api/orders/:id/cancel', () => {
+  describe('POST /api/v1/orders/:id/cancel', () => {
     let orderId: string;
 
     beforeEach(async () => {
       const createResponse = await app.inject({
         method: 'POST',
-        url: '/api/orders/',
+        url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -337,7 +337,7 @@ describe('Orders Endpoints', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `/api/orders/${orderId}/cancel`,
+        url: `/api/v1/orders/${orderId}/cancel`,
       });
 
       expect(response.statusCode).toBe(401);
@@ -348,7 +348,7 @@ describe('Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/orders/${orderId}/cancel`,
+        url: `/api/v1/orders/${orderId}/cancel`,
         headers: { authorization: `Bearer ${userToken}` },
         payload: { cancelReason: 'Test cancel' },
       });
@@ -361,7 +361,7 @@ describe('Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/orders/${fakeOrderId}/cancel`,
+        url: `/api/v1/orders/${fakeOrderId}/cancel`,
         headers: { authorization: `Bearer ${userToken}` },
         payload: { cancelReason: 'Test cancel' },
       });
@@ -376,7 +376,7 @@ describe('Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/orders/${orderId}/cancel`,
+        url: `/api/v1/orders/${orderId}/cancel`,
         headers: { authorization: `Bearer ${otherToken}` },
         payload: { cancelReason: 'Test cancel' },
       });

@@ -30,19 +30,19 @@ describe('Admin Staff Endpoints', () => {
     await app.close();
   });
 
-  it('GET /api/admin/staff should require authentication', async () => {
+  it('GET /api/v1/admin/staff should require authentication', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/admin/staff',
+      url: '/api/v1/admin/staff',
     });
 
     expect(response.statusCode).toBe(401);
   });
 
-  it('POST /api/admin/staff should allow admin to grant non-manager staff access', async () => {
+  it('POST /api/v1/admin/staff should allow admin to grant non-manager staff access', async () => {
     const response = await app.inject({
       method: 'POST',
-      url: '/api/admin/staff',
+      url: '/api/v1/admin/staff',
       headers: {
         authorization: `Bearer ${adminToken}`,
       },
@@ -74,10 +74,10 @@ describe('Admin Staff Endpoints', () => {
     expect(invitedUser?.verificationTokenExpiry?.getTime()).toBeGreaterThan(Date.now());
   });
 
-  it('POST /api/admin/staff should block admin from granting another staff manager', async () => {
+  it('POST /api/v1/admin/staff should block admin from granting another staff manager', async () => {
     const response = await app.inject({
       method: 'POST',
-      url: '/api/admin/staff',
+      url: '/api/v1/admin/staff',
       headers: {
         authorization: `Bearer ${adminToken}`,
       },
@@ -93,10 +93,10 @@ describe('Admin Staff Endpoints', () => {
     expect(response.json()).toHaveProperty('error.code', 'FORBIDDEN');
   });
 
-  it('GET /api/admin/staff should list staff memberships', async () => {
+  it('GET /api/v1/admin/staff should list staff memberships', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/admin/staff',
+      url: '/api/v1/admin/staff',
       headers: {
         authorization: `Bearer ${adminToken}`,
       },
@@ -109,7 +109,7 @@ describe('Admin Staff Endpoints', () => {
     expect(body.data.items.some((item: any) => item.email === 'analyst-staff@test.com')).toBe(true);
   });
 
-  it('GET /api/admin/staff/:userId/audit should return structured staff audit entries', async () => {
+  it('GET /api/v1/admin/staff/:userId/audit should return structured staff audit entries', async () => {
     const prisma = getTestPrisma();
     const staffUser = await prisma.user.findUnique({
       where: { email: 'analyst-staff@test.com' },
@@ -120,7 +120,7 @@ describe('Admin Staff Endpoints', () => {
 
     const response = await app.inject({
       method: 'GET',
-      url: `/api/admin/staff/${staffUser!.id}/audit`,
+      url: `/api/v1/admin/staff/${staffUser!.id}/audit`,
       headers: {
         authorization: `Bearer ${adminToken}`,
       },
@@ -139,7 +139,7 @@ describe('Admin Staff Endpoints', () => {
   });
 
   // Expected to fail until charter scenario 1 ships the console email builtin (TransactionalEmailService throws without an email plugin). Remove .fails then.
-  it.fails('POST /api/admin/staff/:userId/invite should resend invitation and audit the action', async () => {
+  it.fails('POST /api/v1/admin/staff/:userId/invite should resend invitation and audit the action', async () => {
     const prisma = getTestPrisma();
     const staffUser = await prisma.user.findUnique({
       where: { email: 'analyst-staff@test.com' },
@@ -150,7 +150,7 @@ describe('Admin Staff Endpoints', () => {
 
     const response = await app.inject({
       method: 'POST',
-      url: `/api/admin/staff/${staffUser!.id}/invite`,
+      url: `/api/v1/admin/staff/${staffUser!.id}/invite`,
       headers: {
         authorization: `Bearer ${adminToken}`,
       },
@@ -176,7 +176,7 @@ describe('Admin Staff Endpoints', () => {
     expect(auditEntry).toBeTruthy();
   });
 
-  it('DELETE /api/admin/staff/:userId should protect the last active owner', async () => {
+  it('DELETE /api/v1/admin/staff/:userId should protect the last active owner', async () => {
     const prisma = getTestPrisma();
     await prisma.adminMembership.upsert({
       where: { userId: ownerUserId },
@@ -195,7 +195,7 @@ describe('Admin Staff Endpoints', () => {
 
     const response = await app.inject({
       method: 'DELETE',
-      url: `/api/admin/staff/${ownerUserId}`,
+      url: `/api/v1/admin/staff/${ownerUserId}`,
       headers: {
         authorization: `Bearer ${ownerToken}`,
       },

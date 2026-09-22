@@ -120,11 +120,11 @@ function createNextConfig(options = {}) {
 
       return [
 
-        // Core API proxy. Apps with a route handler must own /api themselves so
+        // Core API proxy. Apps with a route handler must own /api/v1 themselves so
         // OpenNext does not preempt the handler with an external rewrite.
         ...(!apiRouteHandler ? [{
-          source: '/api/:path*',
-          destination: `${apiServiceUrl}/api/:path*`,
+          source: '/api/v1/:path*',
+          destination: `${apiServiceUrl}/api/v1/:path*`,
         }] : []),
         // Extension static files proxy
         {
@@ -150,7 +150,7 @@ function createNextConfig(options = {}) {
 
     // Explicitly declare environment variables (Required for Next.js 16 + Turbopack)
     env: {
-      NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '/api',
+      NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || '/api/v1',
     },
 
     // Merge other user custom configurations

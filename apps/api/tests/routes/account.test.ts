@@ -2,8 +2,8 @@
  * Account Endpoints Tests
  * 
  * Coverage:
- * - GET /api/account/profile - Authenticated users only
- * - PUT /api/account/profile - Authenticated users only
+ * - GET /api/v1/account/profile - Authenticated users only
+ * - PUT /api/v1/account/profile - Authenticated users only
  * 
  * All account endpoints require authentication.
  */
@@ -36,29 +36,29 @@ describe('Account Endpoints', () => {
   });
 
   describe('Security - 401 without token', () => {
-    it('GET /api/account/profile should return 401 without token', async () => {
+    it('GET /api/v1/account/profile should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/account/profile',
+        url: '/api/v1/account/profile',
       });
 
       expect(response.statusCode).toBe(401);
     });
 
-    it('PUT /api/account/profile should return 401 without token', async () => {
+    it('PUT /api/v1/account/profile should return 401 without token', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: '/api/account/profile',
+        url: '/api/v1/account/profile',
         payload: { username: 'newname' },
       });
 
       expect(response.statusCode).toBe(401);
     });
 
-    it('PUT /api/account/email should return 401 without token', async () => {
+    it('PUT /api/v1/account/email should return 401 without token', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: '/api/account/email',
+        url: '/api/v1/account/email',
         payload: {
           newEmail: `updated-${Date.now()}@example.com`,
           currentPassword: 'dummy',
@@ -69,12 +69,12 @@ describe('Account Endpoints', () => {
     });
   });
 
-  describe('GET /api/account/profile', () => {
+  describe('GET /api/v1/account/profile', () => {
 
     it('should return user profile with valid token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/account/profile',
+        url: '/api/v1/account/profile',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -91,18 +91,18 @@ describe('Account Endpoints', () => {
     it('should match OpenAPI schema', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/account/profile',
+        url: '/api/v1/account/profile',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
-      const validation = validateResponse('/api/account/profile', 'GET', 200, response.json());
+      const validation = validateResponse('/api/v1/account/profile', 'GET', 200, response.json());
       expect(validation.valid).toBe(true);
     });
 
     it('should not expose password', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/account/profile',
+        url: '/api/v1/account/profile',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -113,7 +113,7 @@ describe('Account Endpoints', () => {
     it('should include language preferences if available', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/account/profile',
+        url: '/api/v1/account/profile',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -125,13 +125,13 @@ describe('Account Endpoints', () => {
     });
   });
 
-  describe('PUT /api/account/profile', () => {
+  describe('PUT /api/v1/account/profile', () => {
     it('should update username', async () => {
       const newUsername = `updated-${Date.now()}`;
       
       const response = await app.inject({
         method: 'PUT',
-        url: '/api/account/profile',
+        url: '/api/v1/account/profile',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           username: newUsername,
@@ -144,7 +144,7 @@ describe('Account Endpoints', () => {
     it('should update avatar', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: '/api/account/profile',
+        url: '/api/v1/account/profile',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           avatar: 'https://example.com/new-avatar.jpg',
@@ -157,7 +157,7 @@ describe('Account Endpoints', () => {
     it('should return 400 for short username', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: '/api/account/profile',
+        url: '/api/v1/account/profile',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           username: 'ab', // Min 3 characters
@@ -170,7 +170,7 @@ describe('Account Endpoints', () => {
     it('should return 400 for too long username', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: '/api/account/profile',
+        url: '/api/v1/account/profile',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           username: 'a'.repeat(51), // Max 50 characters
@@ -183,7 +183,7 @@ describe('Account Endpoints', () => {
     it('should accept empty payload (no changes)', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: '/api/account/profile',
+        url: '/api/v1/account/profile',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {},
       });
@@ -192,11 +192,11 @@ describe('Account Endpoints', () => {
     });
   });
 
-  describe('PUT /api/account/email', () => {
+  describe('PUT /api/v1/account/email', () => {
     it('should return 400 when currentPassword is missing', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: '/api/account/email',
+        url: '/api/v1/account/email',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           newEmail: `missing-password-${Date.now()}@example.com`,
@@ -212,7 +212,7 @@ describe('Account Endpoints', () => {
     it('should return 400 when currentPassword is incorrect', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: '/api/account/email',
+        url: '/api/v1/account/email',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           newEmail: `wrong-password-${Date.now()}@example.com`,
@@ -232,7 +232,7 @@ describe('Account Endpoints', () => {
 
       const response = await app.inject({
         method: 'PUT',
-        url: '/api/account/email',
+        url: '/api/v1/account/email',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           newEmail,

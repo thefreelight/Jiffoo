@@ -117,7 +117,7 @@ const cacheControlPlugin: FastifyPluginAsync<CacheControlPluginOptions> = async 
     },
     routes = {},
     enabled = true,
-    skipPaths = ['/health', '/metrics', '/api/health'],
+    skipPaths = ['/health', '/metrics', '/api/v1/health'],
   } = options;
 
   // Decorate fastify instance

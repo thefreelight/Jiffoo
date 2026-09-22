@@ -63,7 +63,7 @@ export interface DateRangeParams {
   endDate?: string;
 }
 
-// API Endpoints - Remove /api prefix, provided by baseURL
+// API Endpoints - Remove /api/v1 prefix, provided by baseURL
 export interface ApiEndpoints {
   // Auth
   login: '/auth/login';
@@ -94,7 +94,7 @@ export interface ApiEndpoints {
   users: '/users';
   userById: '/users/:id';
 
-  // Admin - baseURL already contains /api, so no /api prefix needed
+  // Admin - baseURL already contains /api/v1, so no prefix needed
   adminStats: '/admin/stats';
   adminUsers: '/admin/users';
   adminOrders: '/admin/orders';

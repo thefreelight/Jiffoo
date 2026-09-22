@@ -566,7 +566,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         originalName: data.filename || 'bundle.zip',
         size: getTotalBytes(),
         mimetype: data.mimetype || 'application/zip',
-        url: '/api/extensions/bundle/install',
+        url: '/api/v1/extensions/bundle/install',
         name: result.manifest.name,
         version: result.manifest.version,
         bundleHash: result.bundleHash,
@@ -656,7 +656,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
             originalName: data.filename || `${result.slug}.zip`,
             size: getTotalBytes(),
             mimetype: data.mimetype || 'application/zip',
-            url: `/api/extensions/${kind}/install`,
+            url: `/api/v1/extensions/${kind}/install`,
             ...result,
           }, `${kind} "${result.slug}" v${result.version} installed successfully`);
       } catch (e) {

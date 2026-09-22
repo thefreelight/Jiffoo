@@ -2,8 +2,8 @@
  * Admin Health Monitoring Routes Tests
  *
  * Coverage:
- * - GET /api/admin/health/metrics
- * - GET /api/admin/health/summary
+ * - GET /api/v1/admin/health/metrics
+ * - GET /api/v1/admin/health/summary
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -34,11 +34,11 @@ describe('Admin Health Monitoring Routes', () => {
     await app.close();
   });
 
-  describe('GET /api/admin/health/metrics', () => {
+  describe('GET /api/v1/admin/health/metrics', () => {
     it('should return health metrics for admin', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/health/metrics',
+        url: '/api/v1/admin/health/metrics',
         headers: {
           authorization: `Bearer ${adminToken}`
         }
@@ -60,7 +60,7 @@ describe('Admin Health Monitoring Routes', () => {
     it('should require authentication', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/health/metrics'
+        url: '/api/v1/admin/health/metrics'
       });
 
       expect(response.statusCode).toBe(401);
@@ -77,7 +77,7 @@ describe('Admin Health Monitoring Routes', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/health/metrics',
+        url: '/api/v1/admin/health/metrics',
         headers: {
           authorization: `Bearer ${userToken}`
         }
@@ -87,11 +87,11 @@ describe('Admin Health Monitoring Routes', () => {
     });
   });
 
-  describe('GET /api/admin/health/summary', () => {
+  describe('GET /api/v1/admin/health/summary', () => {
     it('should return health summary', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/health/summary',
+        url: '/api/v1/admin/health/summary',
         headers: {
           authorization: `Bearer ${adminToken}`
         }
@@ -110,7 +110,7 @@ describe('Admin Health Monitoring Routes', () => {
     it('should accept custom alert thresholds', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/health/summary',
+        url: '/api/v1/admin/health/summary',
         headers: {
           authorization: `Bearer ${adminToken}`
         },
@@ -130,7 +130,7 @@ describe('Admin Health Monitoring Routes', () => {
     it('should require authentication', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/health/summary'
+        url: '/api/v1/admin/health/summary'
       });
 
       expect(response.statusCode).toBe(401);

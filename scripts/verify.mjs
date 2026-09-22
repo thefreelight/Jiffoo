@@ -54,6 +54,7 @@ const steps = quick
       ['Reset test database', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']]],
       ['Check Prisma migration drift', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'diff', '--from-url', databaseUrl, '--to-schema-datamodel', 'prisma/schema', '--exit-code']]],
       ['Run API tests', [['--filter', 'api', 'exec', 'vitest', 'run']]],
+      ['Run Admin tests', [['--filter', 'admin', 'exec', 'vitest', 'run']]],
     ];
 
 const results = [];

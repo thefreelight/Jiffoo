@@ -270,7 +270,7 @@ function resolvePlatformApiBaseUrl(request: FastifyRequest): string {
   const protocol = getHeaderValue(request, 'x-forwarded-proto') || request.protocol || 'http';
   const host = getHeaderValue(request, 'host') || getHeaderValue(request, 'x-forwarded-host');
   if (!host) return '';
-  return `${protocol}://${host}/api`;
+  return `${protocol}://${host}/api/v1`;
 }
 
 /**

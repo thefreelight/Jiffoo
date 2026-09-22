@@ -10,7 +10,7 @@ export interface ProxyConfig {
 }
 
 export function shouldNeverForward(pathname: string): boolean {
-  return ['/api/', '/plugins/', '/extensions/', '/uploads/'].some((prefix) => pathname.startsWith(prefix));
+  return ['/api/v1/', '/plugins/', '/extensions/', '/uploads/'].some((prefix) => pathname.startsWith(prefix));
 }
 
 export function getLocaleFromPathname(pathname: string, locales: readonly string[]): string | undefined {
@@ -19,7 +19,7 @@ export function getLocaleFromPathname(pathname: string, locales: readonly string
 }
 
 export function shouldSkipLocaleHandling(pathname: string): boolean {
-  return pathname.startsWith('/api/') || pathname.startsWith('/_next/') || /\.(?:ico|png|jpg|jpeg|gif|svg|webp|css|js|json|xml|txt|pdf|woff2?|ttf|eot)$/.test(pathname);
+  return pathname.startsWith('/api/v1/') || pathname.startsWith('/_next/') || /\.(?:ico|png|jpg|jpeg|gif|svg|webp|css|js|json|xml|txt|pdf|woff2?|ttf|eot)$/.test(pathname);
 }
 
 export function handleLocaleRedirect(request: NextRequest, config: ProxyConfig): NextResponse | null {
@@ -37,4 +37,4 @@ export function createProxyHandler(config: ProxyConfig) {
   };
 }
 
-export const UNIFIED_PROXY_MATCHER = ['/((?!api/|extensions/|uploads/|favicon.ico).*)'];
+export const UNIFIED_PROXY_MATCHER = ['/((?!api/v1/|extensions/|uploads/|favicon.ico).*)'];

@@ -118,7 +118,7 @@ describe('Payment Routes', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     app = Fastify();
-    await app.register(paymentRoutes, { prefix: '/api/payments' });
+    await app.register(paymentRoutes, { prefix: '/api/v1/payments' });
     await app.ready();
   });
 
@@ -127,16 +127,16 @@ describe('Payment Routes', () => {
   });
 
   // -----------------------------------------------------------------------
-  // GET /api/payments/available-methods
+  // GET /api/v1/payments/available-methods
   // -----------------------------------------------------------------------
 
-  describe('GET /api/payments/available-methods', () => {
+  describe('GET /api/v1/payments/available-methods', () => {
     it('should return payment methods from installed plugins', async () => {
       setupDefaultMocks();
 
       const response = await app.inject({
         method: 'GET',
-        url: '/api/payments/available-methods',
+        url: '/api/v1/payments/available-methods',
       });
 
       expect(response.statusCode).toBe(200);
@@ -163,7 +163,7 @@ describe('Payment Routes', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: '/api/payments/available-methods',
+        url: '/api/v1/payments/available-methods',
       });
 
       expect(response.statusCode).toBe(200);
@@ -175,10 +175,10 @@ describe('Payment Routes', () => {
   });
 
   // -----------------------------------------------------------------------
-  // POST /api/payments/create-session
+  // POST /api/v1/payments/create-session
   // -----------------------------------------------------------------------
 
-  describe('POST /api/payments/create-session', () => {
+  describe('POST /api/v1/payments/create-session', () => {
     it('should use the built-in manual payment when no payment plugins are available', async () => {
       (CacheService.getPluginVersion as ReturnType<typeof vi.fn>).mockResolvedValue('1');
       (CacheService.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
@@ -203,7 +203,7 @@ describe('Payment Routes', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/api/payments/create-session',
+        url: '/api/v1/payments/create-session',
         payload: {
           paymentMethod: 'test-gateway-payment',
           orderId: 'order-1',
@@ -234,7 +234,7 @@ describe('Payment Routes', () => {
 
       await app.inject({
         method: 'POST',
-        url: '/api/payments/create-session',
+        url: '/api/v1/payments/create-session',
         payload: {
           paymentMethod: 'test-gateway-payment',
           orderId: 'order-1',
@@ -267,7 +267,7 @@ describe('Payment Routes', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/api/payments/create-session',
+        url: '/api/v1/payments/create-session',
         payload: { paymentMethod: 'test-gateway-payment', orderId: 'order-1' },
       });
 
@@ -280,10 +280,10 @@ describe('Payment Routes', () => {
   });
 
   // -----------------------------------------------------------------------
-  // GET /api/payments/verify/:sessionId
+  // GET /api/v1/payments/verify/:sessionId
   // -----------------------------------------------------------------------
 
-  describe('GET /api/payments/verify/:sessionId', () => {
+  describe('GET /api/v1/payments/verify/:sessionId', () => {
     it('should resolve a manual payment without calling a payment extension', async () => {
       const manualPayment = {
         id: 'payment-1',
@@ -297,7 +297,7 @@ describe('Payment Routes', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: '/api/payments/verify/manual_order-1_1',
+        url: '/api/v1/payments/verify/manual_order-1_1',
       });
 
       expect(response.statusCode).toBe(200);
@@ -326,7 +326,7 @@ describe('Payment Routes', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: '/api/payments/verify/sess-abc',
+        url: '/api/v1/payments/verify/sess-abc',
       });
 
       expect(response.statusCode).toBe(200);
@@ -344,7 +344,7 @@ describe('Payment Routes', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: '/api/payments/verify/sess-unknown',
+        url: '/api/v1/payments/verify/sess-unknown',
       });
 
       expect(response.statusCode).toBe(200);

@@ -31,7 +31,7 @@ export function getLocaleFromPathname(pathname: string): Locale | undefined {
  */
 export function shouldSkipLocaleHandling(pathname: string): boolean {
   // Skip API routes
-  if (pathname.startsWith('/api/')) {
+  if (pathname.startsWith('/api/v1/')) {
     return true;
   }
 

@@ -2,10 +2,10 @@
  * Extensions Installer Endpoints Tests
  * 
  * Coverage:
- * - POST /api/extensions/:kind/install - Admin only
- * - DELETE /api/extensions/:kind/:slug - Admin only
- * - GET /api/extensions/:kind/:slug - Admin only
- * - GET /api/extensions/:kind - Admin only
+ * - POST /api/v1/extensions/:kind/install - Admin only
+ * - DELETE /api/v1/extensions/:kind/:slug - Admin only
+ * - GET /api/v1/extensions/:kind/:slug - Admin only
+ * - GET /api/v1/extensions/:kind - Admin only
  * 
  * All extension installer endpoints require admin authentication.
  */
@@ -125,10 +125,10 @@ describe('Extensions Installer Endpoints', () => {
 
   describe('Security - 401 without token', () => {
     const endpoints = [
-      { method: 'POST', url: '/api/extensions/plugin/install' },
-      { method: 'DELETE', url: '/api/extensions/plugin/test-slug' },
-      { method: 'POST', url: '/api/extensions/plugin/test-slug/restore' },
-      { method: 'DELETE', url: '/api/extensions/plugin/test-slug/purge' },
+      { method: 'POST', url: '/api/v1/extensions/plugin/install' },
+      { method: 'DELETE', url: '/api/v1/extensions/plugin/test-slug' },
+      { method: 'POST', url: '/api/v1/extensions/plugin/test-slug/restore' },
+      { method: 'DELETE', url: '/api/v1/extensions/plugin/test-slug/purge' },
     ];
 
     it.each(endpoints)('$method $url should return 401 without token', async ({ method, url }) => {
@@ -139,10 +139,10 @@ describe('Extensions Installer Endpoints', () => {
 
   describe('Security - 403 for non-admin user', () => {
     const endpoints = [
-      { method: 'POST', url: '/api/extensions/plugin/install' },
-      { method: 'DELETE', url: '/api/extensions/plugin/test-slug' },
-      { method: 'POST', url: '/api/extensions/plugin/test-slug/restore' },
-      { method: 'DELETE', url: '/api/extensions/plugin/test-slug/purge' },
+      { method: 'POST', url: '/api/v1/extensions/plugin/install' },
+      { method: 'DELETE', url: '/api/v1/extensions/plugin/test-slug' },
+      { method: 'POST', url: '/api/v1/extensions/plugin/test-slug/restore' },
+      { method: 'DELETE', url: '/api/v1/extensions/plugin/test-slug/purge' },
     ];
 
     it.each(endpoints)('$method $url should return 403 for regular user', async ({ method, url }) => {
@@ -155,13 +155,13 @@ describe('Extensions Installer Endpoints', () => {
     });
   });
 
-  describe('POST /api/extensions/:kind/install', () => {
+  describe('POST /api/v1/extensions/:kind/install', () => {
     const kinds = ['plugin'];
 
     it.each(kinds)('should require file upload for %s (400 without file)', async (kind) => {
       const response = await app.inject({
         method: 'POST',
-        url: `/api/extensions/${kind}/install`,
+        url: `/api/v1/extensions/${kind}/install`,
         headers: {
           authorization: `Bearer ${adminToken}`,
           'content-type': 'multipart/form-data; boundary=---boundary'
@@ -176,7 +176,7 @@ describe('Extensions Installer Endpoints', () => {
     it('should return 400 for invalid kind', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/extensions/invalid-kind/install',
+        url: '/api/v1/extensions/invalid-kind/install',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -194,7 +194,7 @@ describe('Extensions Installer Endpoints', () => {
       const unconfirmed = await multipartPluginUpload(archive.archivePath, false);
       const unconfirmedResponse = await app.inject({
         method: 'POST',
-        url: '/api/extensions/plugin/install',
+        url: '/api/v1/extensions/plugin/install',
         headers: { authorization: `Bearer ${adminToken}`, ...unconfirmed.headers },
         payload: unconfirmed.payload,
       });
@@ -207,7 +207,7 @@ describe('Extensions Installer Endpoints', () => {
       const confirmed = await multipartPluginUpload(archive.archivePath, true);
       const installedResponse = await app.inject({
         method: 'POST',
-        url: '/api/extensions/plugin/install',
+        url: '/api/v1/extensions/plugin/install',
         headers: { authorization: `Bearer ${adminToken}`, ...confirmed.headers },
         payload: confirmed.payload,
       });
@@ -231,13 +231,13 @@ describe('Extensions Installer Endpoints', () => {
       expect(defaultInstance).not.toBeNull();
       const enableResponse = await app.inject({
         method: 'PATCH',
-        url: `/api/extensions/plugin/${uploadSlug}/instances/${defaultInstance!.id}`,
+        url: `/api/v1/extensions/plugin/${uploadSlug}/instances/${defaultInstance!.id}`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: { enabled: true },
       });
       expect(enableResponse.statusCode).toBe(200);
 
-      const gatewayResponse = await app.inject({ method: 'GET', url: `/api/extensions/plugin/${uploadSlug}/api/status` });
+      const gatewayResponse = await app.inject({ method: 'GET', url: `/api/v1/extensions/plugin/${uploadSlug}/api/status` });
       expect(gatewayResponse.statusCode).toBe(200);
       expect(gatewayResponse.json()).toMatchObject({ status: 'active' });
     });
@@ -255,7 +255,7 @@ describe('Extensions Installer Endpoints', () => {
         const unconfirmed = await multipartPluginUpload(archive.archivePath, false);
         const unconfirmedResponse = await app.inject({
           method: 'POST',
-          url: '/api/extensions/plugin/install',
+          url: '/api/v1/extensions/plugin/install',
           headers: { authorization: `Bearer ${adminToken}`, ...unconfirmed.headers },
           payload: unconfirmed.payload,
         });
@@ -268,7 +268,7 @@ describe('Extensions Installer Endpoints', () => {
         const confirmed = await multipartPluginUpload(archive.archivePath, true);
         const installedResponse = await app.inject({
           method: 'POST',
-          url: '/api/extensions/plugin/install',
+          url: '/api/v1/extensions/plugin/install',
           headers: { authorization: `Bearer ${adminToken}`, ...confirmed.headers },
           payload: confirmed.payload,
         });
@@ -295,7 +295,7 @@ describe('Extensions Installer Endpoints', () => {
         const upload = await multipartPluginUpload(archive.archivePath, true);
         const response = await app.inject({
           method: 'POST',
-          url: '/api/extensions/plugin/install',
+          url: '/api/v1/extensions/plugin/install',
           headers: { authorization: `Bearer ${adminToken}`, ...upload.headers },
           payload: upload.payload,
         });
@@ -309,7 +309,7 @@ describe('Extensions Installer Endpoints', () => {
 
         const enableResponse = await app.inject({
           method: 'PATCH',
-          url: `/api/extensions/plugin/${esmSlug}/instances/${defaultInstance!.id}`,
+          url: `/api/v1/extensions/plugin/${esmSlug}/instances/${defaultInstance!.id}`,
           headers: { authorization: `Bearer ${adminToken}` },
           payload: { enabled: true },
         });
@@ -317,7 +317,7 @@ describe('Extensions Installer Endpoints', () => {
 
         const gatewayResponse = await app.inject({
           method: 'GET',
-          url: `/api/extensions/plugin/${esmSlug}/api/status`,
+          url: `/api/v1/extensions/plugin/${esmSlug}/api/status`,
         });
         expect(gatewayResponse.statusCode).toBe(400);
         expect(gatewayResponse.json().error.message).toContain(
@@ -332,11 +332,11 @@ describe('Extensions Installer Endpoints', () => {
     });
   });
 
-  describe('DELETE /api/extensions/plugin/:slug', () => {
+  describe('DELETE /api/v1/extensions/plugin/:slug', () => {
     it('should return error for non-existent extension', async () => {
       const response = await app.inject({
         method: 'DELETE',
-        url: '/api/extensions/plugin/non-existent-plugin',
+        url: '/api/v1/extensions/plugin/non-existent-plugin',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -344,11 +344,11 @@ describe('Extensions Installer Endpoints', () => {
     });
   });
 
-  describe('DELETE /api/extensions/plugin/:slug/purge', () => {
+  describe('DELETE /api/v1/extensions/plugin/:slug/purge', () => {
     it('should return 404 for non-existent plugin purge', async () => {
       const response = await app.inject({
         method: 'DELETE',
-        url: '/api/extensions/plugin/non-existent-plugin/purge',
+        url: '/api/v1/extensions/plugin/non-existent-plugin/purge',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -356,11 +356,11 @@ describe('Extensions Installer Endpoints', () => {
     });
   });
 
-  describe('POST /api/extensions/plugin/:slug/restore', () => {
+  describe('POST /api/v1/extensions/plugin/:slug/restore', () => {
     it('should return 404 for non-existent plugin restore', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/extensions/plugin/non-existent-plugin/restore',
+        url: '/api/v1/extensions/plugin/non-existent-plugin/restore',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 

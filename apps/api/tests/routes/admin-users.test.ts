@@ -2,13 +2,13 @@
  * Admin Users Endpoints Tests
  * 
  * Coverage:
- * - GET /api/admin/users/
- * - GET /api/admin/users/stats
- * - POST /api/admin/users/
- * - GET /api/admin/users/:id
- * - PUT /api/admin/users/:id
- * - DELETE /api/admin/users/:id
- * - POST /api/admin/users/:id/reset-password
+ * - GET /api/v1/admin/users/
+ * - GET /api/v1/admin/users/stats
+ * - POST /api/v1/admin/users/
+ * - GET /api/v1/admin/users/:id
+ * - PUT /api/v1/admin/users/:id
+ * - DELETE /api/v1/admin/users/:id
+ * - POST /api/v1/admin/users/:id/reset-password
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -44,29 +44,29 @@ describe('Admin Users Endpoints', () => {
   });
 
   describe('Authentication & Authorization', () => {
-    it('GET /api/admin/users/ should return 401 without token', async () => {
+    it('GET /api/v1/admin/users/ should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/users/',
+        url: '/api/v1/admin/users/',
       });
 
       expect(response.statusCode).toBe(401);
     });
 
-    it('GET /api/admin/users/ should return 403 for regular user', async () => {
+    it('GET /api/v1/admin/users/ should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/users/',
+        url: '/api/v1/admin/users/',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
       expect(response.statusCode).toBe(403);
     });
 
-    it('GET /api/admin/users/ should return 200 for admin', async () => {
+    it('GET /api/v1/admin/users/ should return 200 for admin', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/users/',
+        url: '/api/v1/admin/users/',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -74,11 +74,11 @@ describe('Admin Users Endpoints', () => {
     });
   });
 
-  describe('GET /api/admin/users/', () => {
+  describe('GET /api/v1/admin/users/', () => {
     it('should return users list', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/users/',
+        url: '/api/v1/admin/users/',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -92,7 +92,7 @@ describe('Admin Users Endpoints', () => {
     it('should support pagination', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/users/?page=1&limit=5',
+        url: '/api/v1/admin/users/?page=1&limit=5',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -105,7 +105,7 @@ describe('Admin Users Endpoints', () => {
     it('should support search', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/users/?search=test',
+        url: '/api/v1/admin/users/?search=test',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -113,11 +113,11 @@ describe('Admin Users Endpoints', () => {
     });
   });
 
-  describe('GET /api/admin/users/stats', () => {
+  describe('GET /api/v1/admin/users/stats', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/users/stats',
+        url: '/api/v1/admin/users/stats',
       });
       expect(response.statusCode).toBe(401);
     });
@@ -125,7 +125,7 @@ describe('Admin Users Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/users/stats',
+        url: '/api/v1/admin/users/stats',
         headers: { authorization: `Bearer ${userToken}` },
       });
       expect(response.statusCode).toBe(403);
@@ -134,7 +134,7 @@ describe('Admin Users Endpoints', () => {
     it('should return global user stats for admin', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/users/stats',
+        url: '/api/v1/admin/users/stats',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -153,11 +153,11 @@ describe('Admin Users Endpoints', () => {
     });
   });
 
-  describe('POST /api/admin/users/', () => {
+  describe('POST /api/v1/admin/users/', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/users/',
+        url: '/api/v1/admin/users/',
         payload: {
           email: 'newadminuser@example.com',
           password: 'Test123456!',
@@ -170,7 +170,7 @@ describe('Admin Users Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/users/',
+        url: '/api/v1/admin/users/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           email: 'newadminuser@example.com',
@@ -184,7 +184,7 @@ describe('Admin Users Endpoints', () => {
     it('should return 400 for missing email', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/users/',
+        url: '/api/v1/admin/users/',
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           password: 'Test123456!',
@@ -197,7 +197,7 @@ describe('Admin Users Endpoints', () => {
     it('should return 400 for missing password', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/users/',
+        url: '/api/v1/admin/users/',
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           email: 'newadminuser@example.com',
@@ -212,7 +212,7 @@ describe('Admin Users Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/users/',
+        url: '/api/v1/admin/users/',
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           email: `admin-created-${uniqueId}@example.com`,
@@ -226,11 +226,11 @@ describe('Admin Users Endpoints', () => {
     });
   });
 
-  describe('GET /api/admin/users/:id', () => {
+  describe('GET /api/v1/admin/users/:id', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/admin/users/${adminUserId}`,
+        url: `/api/v1/admin/users/${adminUserId}`,
       });
 
       expect(response.statusCode).toBe(401);
@@ -239,7 +239,7 @@ describe('Admin Users Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/admin/users/${adminUserId}`,
+        url: `/api/v1/admin/users/${adminUserId}`,
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -249,7 +249,7 @@ describe('Admin Users Endpoints', () => {
     it('should return user details for admin', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/admin/users/${adminUserId}`,
+        url: `/api/v1/admin/users/${adminUserId}`,
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -264,7 +264,7 @@ describe('Admin Users Endpoints', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/api/admin/users/${fakeUserId}`,
+        url: `/api/v1/admin/users/${fakeUserId}`,
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -272,7 +272,7 @@ describe('Admin Users Endpoints', () => {
     });
   });
 
-  describe('PUT /api/admin/users/:id', () => {
+  describe('PUT /api/v1/admin/users/:id', () => {
     let targetUserId: string;
 
     beforeAll(async () => {
@@ -285,7 +285,7 @@ describe('Admin Users Endpoints', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/admin/users/${targetUserId}`,
+        url: `/api/v1/admin/users/${targetUserId}`,
         payload: { username: 'updated-username' },
       });
 
@@ -295,7 +295,7 @@ describe('Admin Users Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/admin/users/${targetUserId}`,
+        url: `/api/v1/admin/users/${targetUserId}`,
         headers: { authorization: `Bearer ${userToken}` },
         payload: { username: 'updated-username' },
       });
@@ -306,7 +306,7 @@ describe('Admin Users Endpoints', () => {
     it('should update user for admin', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/admin/users/${targetUserId}`,
+        url: `/api/v1/admin/users/${targetUserId}`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: { username: `updated-${uuidv4().substring(0, 8)}` },
       });
@@ -315,7 +315,7 @@ describe('Admin Users Endpoints', () => {
     });
   });
 
-  describe('DELETE /api/admin/users/:id', () => {
+  describe('DELETE /api/v1/admin/users/:id', () => {
     let targetUserId: string;
 
     beforeAll(async () => {
@@ -328,7 +328,7 @@ describe('Admin Users Endpoints', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'DELETE',
-        url: `/api/admin/users/${targetUserId}`,
+        url: `/api/v1/admin/users/${targetUserId}`,
       });
 
       expect(response.statusCode).toBe(401);
@@ -337,7 +337,7 @@ describe('Admin Users Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'DELETE',
-        url: `/api/admin/users/${targetUserId}`,
+        url: `/api/v1/admin/users/${targetUserId}`,
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -347,7 +347,7 @@ describe('Admin Users Endpoints', () => {
     it('should delete user for admin', async () => {
       const response = await app.inject({
         method: 'DELETE',
-        url: `/api/admin/users/${targetUserId}`,
+        url: `/api/v1/admin/users/${targetUserId}`,
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -359,7 +359,7 @@ describe('Admin Users Endpoints', () => {
 
       const response = await app.inject({
         method: 'DELETE',
-        url: `/api/admin/users/${fakeUserId}`,
+        url: `/api/v1/admin/users/${fakeUserId}`,
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -367,7 +367,7 @@ describe('Admin Users Endpoints', () => {
     });
   });
 
-  describe('POST /api/admin/users/:id/reset-password', () => {
+  describe('POST /api/v1/admin/users/:id/reset-password', () => {
     let targetUserId: string;
 
     beforeAll(async () => {
@@ -380,7 +380,7 @@ describe('Admin Users Endpoints', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/users/${targetUserId}/reset-password`,
+        url: `/api/v1/admin/users/${targetUserId}/reset-password`,
         payload: { newPassword: 'NewPassword123!' },
       });
 
@@ -390,7 +390,7 @@ describe('Admin Users Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/users/${targetUserId}/reset-password`,
+        url: `/api/v1/admin/users/${targetUserId}/reset-password`,
         headers: { authorization: `Bearer ${userToken}` },
         payload: { newPassword: 'NewPassword123!' },
       });
@@ -401,7 +401,7 @@ describe('Admin Users Endpoints', () => {
     it('should return 400 for missing password', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/users/${targetUserId}/reset-password`,
+        url: `/api/v1/admin/users/${targetUserId}/reset-password`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {},
       });
@@ -412,7 +412,7 @@ describe('Admin Users Endpoints', () => {
     it('should return 400 for short password', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/users/${targetUserId}/reset-password`,
+        url: `/api/v1/admin/users/${targetUserId}/reset-password`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: { newPassword: '123' },
       });
@@ -423,7 +423,7 @@ describe('Admin Users Endpoints', () => {
     it('should reset password for admin', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/users/${targetUserId}/reset-password`,
+        url: `/api/v1/admin/users/${targetUserId}/reset-password`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: { newPassword: 'NewPassword123!' },
       });

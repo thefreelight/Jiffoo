@@ -2,12 +2,12 @@
  * Admin Orders Endpoints Tests
  * 
  * Coverage:
- * - GET /api/admin/orders/
- * - GET /api/admin/orders/:id
- * - PUT /api/admin/orders/:id/status
- * - POST /api/admin/orders/:id/ship
- * - POST /api/admin/orders/:id/refund
- * - POST /api/admin/orders/:id/cancel
+ * - GET /api/v1/admin/orders/
+ * - GET /api/v1/admin/orders/:id
+ * - PUT /api/v1/admin/orders/:id/status
+ * - POST /api/v1/admin/orders/:id/ship
+ * - POST /api/v1/admin/orders/:id/refund
+ * - POST /api/v1/admin/orders/:id/cancel
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -51,7 +51,7 @@ describe('Admin Orders Endpoints', () => {
     // Create a test order
     const orderResponse = await app.inject({
       method: 'POST',
-      url: '/api/orders/',
+      url: '/api/v1/orders/',
       headers: { authorization: `Bearer ${userToken}` },
       payload: {
         items: [{ productId: testProduct.id, quantity: 1 }],
@@ -71,29 +71,29 @@ describe('Admin Orders Endpoints', () => {
   });
 
   describe('Authentication & Authorization', () => {
-    it('GET /api/admin/orders/ should return 401 without token', async () => {
+    it('GET /api/v1/admin/orders/ should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/orders/',
+        url: '/api/v1/admin/orders/',
       });
 
       expect(response.statusCode).toBe(401);
     });
 
-    it('GET /api/admin/orders/ should return 403 for regular user', async () => {
+    it('GET /api/v1/admin/orders/ should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/orders/',
+        url: '/api/v1/admin/orders/',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
       expect(response.statusCode).toBe(403);
     });
 
-    it('GET /api/admin/orders/ should return 200 for admin', async () => {
+    it('GET /api/v1/admin/orders/ should return 200 for admin', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/orders/',
+        url: '/api/v1/admin/orders/',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -101,11 +101,11 @@ describe('Admin Orders Endpoints', () => {
     });
   });
 
-  describe('GET /api/admin/orders/', () => {
+  describe('GET /api/v1/admin/orders/', () => {
     it('should return orders list', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/orders/',
+        url: '/api/v1/admin/orders/',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -119,7 +119,7 @@ describe('Admin Orders Endpoints', () => {
     it('should support pagination', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/orders/?page=1&limit=5',
+        url: '/api/v1/admin/orders/?page=1&limit=5',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -129,7 +129,7 @@ describe('Admin Orders Endpoints', () => {
     it('should support status filter', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/orders/?status=PENDING',
+        url: '/api/v1/admin/orders/?status=PENDING',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -137,13 +137,13 @@ describe('Admin Orders Endpoints', () => {
     });
   });
 
-  describe('GET /api/admin/orders/:id', () => {
+  describe('GET /api/v1/admin/orders/:id', () => {
     it('should return 401 without token', async () => {
       if (!testOrderId) return;
 
       const response = await app.inject({
         method: 'GET',
-        url: `/api/admin/orders/${testOrderId}`,
+        url: `/api/v1/admin/orders/${testOrderId}`,
       });
 
       expect(response.statusCode).toBe(401);
@@ -154,7 +154,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/api/admin/orders/${testOrderId}`,
+        url: `/api/v1/admin/orders/${testOrderId}`,
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -166,7 +166,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/api/admin/orders/${testOrderId}`,
+        url: `/api/v1/admin/orders/${testOrderId}`,
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -181,7 +181,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/api/admin/orders/${fakeOrderId}`,
+        url: `/api/v1/admin/orders/${fakeOrderId}`,
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -189,13 +189,13 @@ describe('Admin Orders Endpoints', () => {
     });
   });
 
-  describe('PUT /api/admin/orders/:id/status', () => {
+  describe('PUT /api/v1/admin/orders/:id/status', () => {
     it('should return 401 without token', async () => {
       if (!testOrderId) return;
 
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/admin/orders/${testOrderId}/status`,
+        url: `/api/v1/admin/orders/${testOrderId}/status`,
         payload: { status: 'PROCESSING' },
       });
 
@@ -207,7 +207,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/admin/orders/${testOrderId}/status`,
+        url: `/api/v1/admin/orders/${testOrderId}/status`,
         headers: { authorization: `Bearer ${userToken}` },
         payload: { status: 'PROCESSING' },
       });
@@ -220,7 +220,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/admin/orders/${testOrderId}/status`,
+        url: `/api/v1/admin/orders/${testOrderId}/status`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {},
       });
@@ -233,7 +233,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/admin/orders/${testOrderId}/status`,
+        url: `/api/v1/admin/orders/${testOrderId}/status`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: { status: 'PROCESSING' },
       });
@@ -242,7 +242,7 @@ describe('Admin Orders Endpoints', () => {
     });
   });
 
-  describe('POST /api/admin/orders/:id/record-manual-payment', () => {
+  describe('POST /api/v1/admin/orders/:id/record-manual-payment', () => {
     it('should register the v1 admin route', async () => {
       const response = await app.inject({
         method: 'POST',
@@ -272,7 +272,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/orders/${testOrderId}/record-manual-payment`,
+        url: `/api/v1/admin/orders/${testOrderId}/record-manual-payment`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: { reference: 'cash-receipt-001' },
       });
@@ -300,11 +300,11 @@ describe('Admin Orders Endpoints', () => {
     });
   });
 
-  describe('GET /api/admin/orders/stats', () => {
+  describe('GET /api/v1/admin/orders/stats', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/orders/stats',
+        url: '/api/v1/admin/orders/stats',
       });
       expect(response.statusCode).toBe(401);
     });
@@ -312,7 +312,7 @@ describe('Admin Orders Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/orders/stats',
+        url: '/api/v1/admin/orders/stats',
         headers: { authorization: `Bearer ${userToken}` },
       });
       expect(response.statusCode).toBe(403);
@@ -321,7 +321,7 @@ describe('Admin Orders Endpoints', () => {
     it('should return global order stats for admin', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/orders/stats',
+        url: '/api/v1/admin/orders/stats',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -340,13 +340,13 @@ describe('Admin Orders Endpoints', () => {
     });
   });
 
-  describe('POST /api/admin/orders/:id/ship', () => {
+  describe('POST /api/v1/admin/orders/:id/ship', () => {
     it('should return 401 without token', async () => {
       if (!testOrderId) return;
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/orders/${testOrderId}/ship`,
+        url: `/api/v1/admin/orders/${testOrderId}/ship`,
         payload: {
           carrier: 'FedEx',
           trackingNumber: 'TRACK123456',
@@ -361,7 +361,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/orders/${testOrderId}/ship`,
+        url: `/api/v1/admin/orders/${testOrderId}/ship`,
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           carrier: 'FedEx',
@@ -377,7 +377,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/orders/${testOrderId}/ship`,
+        url: `/api/v1/admin/orders/${testOrderId}/ship`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           trackingNumber: 'TRACK123456',
@@ -392,7 +392,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/orders/${testOrderId}/ship`,
+        url: `/api/v1/admin/orders/${testOrderId}/ship`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           carrier: 'FedEx',
@@ -407,7 +407,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/orders/${testOrderId}/ship`,
+        url: `/api/v1/admin/orders/${testOrderId}/ship`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           carrier: 'FedEx',
@@ -420,13 +420,13 @@ describe('Admin Orders Endpoints', () => {
     });
   });
 
-  describe('POST /api/admin/orders/:id/refund', () => {
+  describe('POST /api/v1/admin/orders/:id/refund', () => {
     it('should return 401 without token', async () => {
       if (!testOrderId) return;
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/orders/${testOrderId}/refund`,
+        url: `/api/v1/admin/orders/${testOrderId}/refund`,
         payload: {
           idempotencyKey: uuidv4(),
         },
@@ -440,7 +440,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/orders/${testOrderId}/refund`,
+        url: `/api/v1/admin/orders/${testOrderId}/refund`,
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           idempotencyKey: uuidv4(),
@@ -455,7 +455,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/orders/${testOrderId}/refund`,
+        url: `/api/v1/admin/orders/${testOrderId}/refund`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {},
       });
@@ -468,7 +468,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/orders/${testOrderId}/refund`,
+        url: `/api/v1/admin/orders/${testOrderId}/refund`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           idempotencyKey: uuidv4(),
@@ -481,13 +481,13 @@ describe('Admin Orders Endpoints', () => {
     });
   });
 
-  describe('POST /api/admin/orders/:id/cancel', () => {
+  describe('POST /api/v1/admin/orders/:id/cancel', () => {
     it('should return 401 without token', async () => {
       if (!testOrderId) return;
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/orders/${testOrderId}/cancel`,
+        url: `/api/v1/admin/orders/${testOrderId}/cancel`,
         payload: {
           cancelReason: 'Admin cancellation',
         },
@@ -501,7 +501,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/orders/${testOrderId}/cancel`,
+        url: `/api/v1/admin/orders/${testOrderId}/cancel`,
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           cancelReason: 'Admin cancellation',
@@ -516,7 +516,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/orders/${testOrderId}/cancel`,
+        url: `/api/v1/admin/orders/${testOrderId}/cancel`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {},
       });
@@ -529,7 +529,7 @@ describe('Admin Orders Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: `/api/admin/orders/${testOrderId}/cancel`,
+        url: `/api/v1/admin/orders/${testOrderId}/cancel`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           cancelReason: 'Admin cancellation test',

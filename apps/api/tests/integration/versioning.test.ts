@@ -96,15 +96,14 @@ describe('Core API Versioning Integration', () => {
     });
   });
 
-  describe('Default Version Fallback', () => {
-    it('should use default version for unversioned routes', async () => {
+  describe('Unversioned Route Rejection', () => {
+    it('should return 404 for unversioned routes', async () => {
       const response = await app.inject({
         method: 'GET',
         url: '/api/products',
       });
 
-      expect(response.statusCode).toBe(200);
-      expect(response.headers['x-api-version']).toBe('v1');
+      expect(response.statusCode).toBe(404);
     });
 
     it('should return default version in header for root endpoint', async () => {
@@ -247,52 +246,41 @@ describe('Core API Versioning Integration', () => {
     });
   });
 
-  describe('Backward Compatibility', () => {
-    it('should support unversioned product routes', async () => {
+  describe('Unversioned Alias Rejection', () => {
+    it('should reject unversioned product routes', async () => {
       const response = await app.inject({
         method: 'GET',
         url: '/api/products',
       });
 
-      expect(response.statusCode).toBe(200);
-
-      const body = response.json();
-      expect(body).toHaveProperty('data');
-      // The response format may use 'items' or 'products' depending on the route handler
-      expect(body.data).toHaveProperty('items');
-      expect(Array.isArray(body.data.items)).toBe(true);
+      expect(response.statusCode).toBe(404);
     });
 
-    it('should support unversioned product detail routes', async () => {
+    it('should reject unversioned product detail routes', async () => {
       const response = await app.inject({
         method: 'GET',
         url: `/api/products/${testProduct.id}`,
       });
 
-      expect(response.statusCode).toBe(200);
-
-      const body = response.json();
-      expect(body.data).toHaveProperty('id', testProduct.id);
+      expect(response.statusCode).toBe(404);
     });
 
-    it('should support unversioned auth routes', async () => {
+    it('should reject unversioned auth routes', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/auth/logout',
       });
 
-      // Logout typically returns 200
-      expect(response.statusCode).toBe(200);
+      expect(response.statusCode).toBe(404);
     });
 
-    it('should support unversioned cart routes', async () => {
+    it('should reject unversioned cart routes', async () => {
       const response = await app.inject({
         method: 'GET',
         url: '/api/cart',
       });
 
-      // Cart endpoint may require auth (401) or return data
-      expect([200, 401]).toContain(response.statusCode);
+      expect(response.statusCode).toBe(404);
     });
   });
 

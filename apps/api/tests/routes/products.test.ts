@@ -2,10 +2,10 @@
  * Products Endpoints Tests
  * 
  * Coverage:
- * - GET /api/products/
- * - GET /api/products/:id
- * - GET /api/products/categories
- * - GET /api/products/search
+ * - GET /api/v1/products/
+ * - GET /api/v1/products/:id
+ * - GET /api/v1/products/categories
+ * - GET /api/v1/products/search
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -34,11 +34,11 @@ describe('Products Endpoints', () => {
     await app.close();
   });
 
-  describe('GET /api/products/', () => {
+  describe('GET /api/v1/products/', () => {
     it('should return products list', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/',
+        url: '/api/v1/products/',
       });
 
       expect(response.statusCode).toBe(200);
@@ -54,7 +54,7 @@ describe('Products Endpoints', () => {
     it('should support pagination', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/?page=1&limit=5',
+        url: '/api/v1/products/?page=1&limit=5',
       });
 
       expect(response.statusCode).toBe(200);
@@ -67,7 +67,7 @@ describe('Products Endpoints', () => {
     it('should support search query', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/products/?search=${encodeURIComponent('Test Product')}`,
+        url: `/api/v1/products/?search=${encodeURIComponent('Test Product')}`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -79,7 +79,7 @@ describe('Products Endpoints', () => {
     it('should support category filter', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/?category=electronics',
+        url: '/api/v1/products/?category=electronics',
       });
 
       expect(response.statusCode).toBe(200);
@@ -91,7 +91,7 @@ describe('Products Endpoints', () => {
     it('should support price range filter', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/?minPrice=10&maxPrice=200',
+        url: '/api/v1/products/?minPrice=10&maxPrice=200',
       });
 
       expect(response.statusCode).toBe(200);
@@ -103,7 +103,7 @@ describe('Products Endpoints', () => {
     it('should support inStock filter', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/?inStock=true',
+        url: '/api/v1/products/?inStock=true',
       });
 
       expect(response.statusCode).toBe(200);
@@ -115,7 +115,7 @@ describe('Products Endpoints', () => {
     it('should support sorting', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/?sortBy=price&sortOrder=desc',
+        url: '/api/v1/products/?sortBy=price&sortOrder=desc',
       });
 
       expect(response.statusCode).toBe(200);
@@ -127,7 +127,7 @@ describe('Products Endpoints', () => {
     it('should support locale parameter', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/?locale=zh',
+        url: '/api/v1/products/?locale=zh',
       });
 
       expect(response.statusCode).toBe(200);
@@ -136,7 +136,7 @@ describe('Products Endpoints', () => {
     it('should be accessible without authentication', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/',
+        url: '/api/v1/products/',
       });
 
       // Should not return 401
@@ -144,11 +144,11 @@ describe('Products Endpoints', () => {
     });
   });
 
-  describe('GET /api/products/:id', () => {
+  describe('GET /api/v1/products/:id', () => {
     it('should return product details', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/products/${testProduct.id}`,
+        url: `/api/v1/products/${testProduct.id}`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -168,7 +168,7 @@ describe('Products Endpoints', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/api/products/${fakeId}`,
+        url: `/api/v1/products/${fakeId}`,
       });
 
       expect(response.statusCode).toBe(404);
@@ -177,7 +177,7 @@ describe('Products Endpoints', () => {
     it('should support locale parameter', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/products/${testProduct.id}?locale=zh`,
+        url: `/api/v1/products/${testProduct.id}?locale=zh`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -186,18 +186,18 @@ describe('Products Endpoints', () => {
     it('should be accessible without authentication', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/products/${testProduct.id}`,
+        url: `/api/v1/products/${testProduct.id}`,
       });
 
       expect(response.statusCode).not.toBe(401);
     });
   });
 
-  describe('GET /api/products/categories', () => {
+  describe('GET /api/v1/products/categories', () => {
     it('should return categories list', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/categories',
+        url: '/api/v1/products/categories',
       });
 
       expect(response.statusCode).toBe(200);
@@ -211,18 +211,18 @@ describe('Products Endpoints', () => {
     it('should be accessible without authentication', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/categories',
+        url: '/api/v1/products/categories',
       });
 
       expect(response.statusCode).not.toBe(401);
     });
   });
 
-  describe('GET /api/products/search', () => {
+  describe('GET /api/v1/products/search', () => {
     it('should require query parameter', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/search',
+        url: '/api/v1/products/search',
       });
 
       // Should fail validation without 'q' param
@@ -232,7 +232,7 @@ describe('Products Endpoints', () => {
     it('should search products by query', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/products/search?q=${encodeURIComponent('Test')}`,
+        url: `/api/v1/products/search?q=${encodeURIComponent('Test')}`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -244,7 +244,7 @@ describe('Products Endpoints', () => {
     it('should support limit parameter', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/search?q=test&limit=5',
+        url: '/api/v1/products/search?q=test&limit=5',
       });
 
       expect(response.statusCode).toBe(200);
@@ -253,7 +253,7 @@ describe('Products Endpoints', () => {
     it('should support locale parameter', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/search?q=test&locale=zh',
+        url: '/api/v1/products/search?q=test&locale=zh',
       });
 
       expect(response.statusCode).toBe(200);
@@ -262,7 +262,7 @@ describe('Products Endpoints', () => {
     it('should return empty array for no matches', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/search?q=nonexistentproductxyz123',
+        url: '/api/v1/products/search?q=nonexistentproductxyz123',
       });
 
       expect(response.statusCode).toBe(200);
@@ -271,7 +271,7 @@ describe('Products Endpoints', () => {
     it('should be accessible without authentication', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/products/search?q=test',
+        url: '/api/v1/products/search?q=test',
       });
 
       expect(response.statusCode).not.toBe(401);

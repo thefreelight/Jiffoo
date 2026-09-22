@@ -171,7 +171,7 @@ describe('Cache Behavior Tests', () => {
   describe('Cache Hit - Products List', () => {
     it('should cache product list and serve from cache on second request', async () => {
       // First request - cache miss, fills cache
-      const res1 = await app.inject({ method: 'GET', url: '/api/products' });
+      const res1 = await app.inject({ method: 'GET', url: '/api/v1/products' });
       expect(res1.statusCode).toBe(200);
       const body1 = JSON.parse(res1.body);
       expect(body1.success).toBe(true);
@@ -181,20 +181,20 @@ describe('Cache Behavior Tests', () => {
       expect(cacheKeys.length).toBeGreaterThan(0);
 
       // Second request - should hit cache and return same data
-      const res2 = await app.inject({ method: 'GET', url: '/api/products' });
+      const res2 = await app.inject({ method: 'GET', url: '/api/v1/products' });
       expect(res2.statusCode).toBe(200);
       const body2 = JSON.parse(res2.body);
       expect(body2.data).toEqual(body1.data);
     });
 
     it('should cache product detail and serve from cache on second request', async () => {
-      const res1 = await app.inject({ method: 'GET', url: `/api/products/${testProduct.id}` });
+      const res1 = await app.inject({ method: 'GET', url: `/api/v1/products/${testProduct.id}` });
       expect(res1.statusCode).toBe(200);
 
       const detailKeys = [...store.keys()].filter(k => k.startsWith('pub:products:detail:'));
       expect(detailKeys.length).toBeGreaterThan(0);
 
-      const res2 = await app.inject({ method: 'GET', url: `/api/products/${testProduct.id}` });
+      const res2 = await app.inject({ method: 'GET', url: `/api/v1/products/${testProduct.id}` });
       expect(res2.statusCode).toBe(200);
       const body1 = JSON.parse(res1.body);
       const body2 = JSON.parse(res2.body);
@@ -202,13 +202,13 @@ describe('Cache Behavior Tests', () => {
     });
 
     it('should cache search results and serve from cache', async () => {
-      const res1 = await app.inject({ method: 'GET', url: '/api/products/search?q=Cache' });
+      const res1 = await app.inject({ method: 'GET', url: '/api/v1/products/search?q=Cache' });
       expect(res1.statusCode).toBe(200);
 
       const searchKeys = [...store.keys()].filter(k => k.startsWith('pub:products:search:'));
       expect(searchKeys.length).toBeGreaterThan(0);
 
-      const res2 = await app.inject({ method: 'GET', url: '/api/products/search?q=Cache' });
+      const res2 = await app.inject({ method: 'GET', url: '/api/v1/products/search?q=Cache' });
       expect(res2.statusCode).toBe(200);
       const body1 = JSON.parse(res1.body);
       const body2 = JSON.parse(res2.body);
@@ -216,13 +216,13 @@ describe('Cache Behavior Tests', () => {
     });
 
     it('should cache categories list and serve from cache', async () => {
-      const res1 = await app.inject({ method: 'GET', url: '/api/products/categories?limit=10' });
+      const res1 = await app.inject({ method: 'GET', url: '/api/v1/products/categories?limit=10' });
       expect(res1.statusCode).toBe(200);
 
       const categoryKeys = [...store.keys()].filter(k => k.startsWith('pub:products:categories:'));
       expect(categoryKeys.length).toBeGreaterThan(0);
 
-      const res2 = await app.inject({ method: 'GET', url: '/api/products/categories?limit=10' });
+      const res2 = await app.inject({ method: 'GET', url: '/api/v1/products/categories?limit=10' });
       expect(res2.statusCode).toBe(200);
       const body1 = JSON.parse(res1.body);
       const body2 = JSON.parse(res2.body);
@@ -236,7 +236,7 @@ describe('Cache Behavior Tests', () => {
   describe('Cache Invalidation - Product Version Bump', () => {
     it('should invalidate product list cache when product version is incremented', async () => {
       // Fill cache
-      const res1 = await app.inject({ method: 'GET', url: '/api/products' });
+      const res1 = await app.inject({ method: 'GET', url: '/api/v1/products' });
       expect(res1.statusCode).toBe(200);
 
       const keysBeforeBump = [...store.keys()].filter(k => k.startsWith('pub:products:list:'));
@@ -247,7 +247,7 @@ describe('Cache Behavior Tests', () => {
       await CacheService.incrementProductVersion();
 
       // New request should miss old cache (different version in key)
-      const res2 = await app.inject({ method: 'GET', url: '/api/products' });
+      const res2 = await app.inject({ method: 'GET', url: '/api/v1/products' });
       expect(res2.statusCode).toBe(200);
 
       // Verify new cache key was created with bumped version
@@ -262,7 +262,7 @@ describe('Cache Behavior Tests', () => {
   // =========================================================================
   describe('HTTP Cache Headers', () => {
     it('should return Cache-Control and ETag headers for product list', async () => {
-      const res = await app.inject({ method: 'GET', url: '/api/products' });
+      const res = await app.inject({ method: 'GET', url: '/api/v1/products' });
       expect(res.statusCode).toBe(200);
       expect(res.headers['cache-control']).toContain('public');
       expect(res.headers['cache-control']).toContain('max-age=30');
@@ -270,21 +270,21 @@ describe('Cache Behavior Tests', () => {
     });
 
     it('should return Cache-Control and ETag headers for product detail', async () => {
-      const res = await app.inject({ method: 'GET', url: `/api/products/${testProduct.id}` });
+      const res = await app.inject({ method: 'GET', url: `/api/v1/products/${testProduct.id}` });
       expect(res.statusCode).toBe(200);
       expect(res.headers['cache-control']).toContain('max-age=60');
       expect(res.headers['etag']).toBeDefined();
     });
 
     it('should return Cache-Control and ETag headers for product search', async () => {
-      const res = await app.inject({ method: 'GET', url: '/api/products/search?q=test' });
+      const res = await app.inject({ method: 'GET', url: '/api/v1/products/search?q=test' });
       expect(res.statusCode).toBe(200);
       expect(res.headers['cache-control']).toContain('max-age=20');
       expect(res.headers['etag']).toBeDefined();
     });
 
     it('should return Cache-Control and ETag headers for categories', async () => {
-      const res = await app.inject({ method: 'GET', url: '/api/products/categories' });
+      const res = await app.inject({ method: 'GET', url: '/api/v1/products/categories' });
       expect(res.statusCode).toBe(200);
       expect(res.headers['cache-control']).toContain('max-age=60');
       expect(res.headers['etag']).toBeDefined();
@@ -297,7 +297,7 @@ describe('Cache Behavior Tests', () => {
   describe('304 Not Modified with ETag', () => {
     it('should return 304 when If-None-Match matches ETag for product list', async () => {
       // First request to get ETag
-      const res1 = await app.inject({ method: 'GET', url: '/api/products' });
+      const res1 = await app.inject({ method: 'GET', url: '/api/v1/products' });
       expect(res1.statusCode).toBe(200);
       const etag = res1.headers['etag'] as string;
       expect(etag).toBeDefined();
@@ -305,47 +305,47 @@ describe('Cache Behavior Tests', () => {
       // Second request with If-None-Match
       const res2 = await app.inject({
         method: 'GET',
-        url: '/api/products',
+        url: '/api/v1/products',
         headers: { 'if-none-match': etag },
       });
       expect(res2.statusCode).toBe(304);
     });
 
     it('should return 304 when If-None-Match matches ETag for product detail', async () => {
-      const res1 = await app.inject({ method: 'GET', url: `/api/products/${testProduct.id}` });
+      const res1 = await app.inject({ method: 'GET', url: `/api/v1/products/${testProduct.id}` });
       expect(res1.statusCode).toBe(200);
       const etag = res1.headers['etag'] as string;
 
       const res2 = await app.inject({
         method: 'GET',
-        url: `/api/products/${testProduct.id}`,
+        url: `/api/v1/products/${testProduct.id}`,
         headers: { 'if-none-match': etag },
       });
       expect(res2.statusCode).toBe(304);
     });
 
     it('should return 304 when If-None-Match matches ETag for categories', async () => {
-      const res1 = await app.inject({ method: 'GET', url: '/api/products/categories' });
+      const res1 = await app.inject({ method: 'GET', url: '/api/v1/products/categories' });
       expect(res1.statusCode).toBe(200);
       const etag = res1.headers['etag'] as string;
       expect(etag).toBeDefined();
 
       const res2 = await app.inject({
         method: 'GET',
-        url: '/api/products/categories',
+        url: '/api/v1/products/categories',
         headers: { 'if-none-match': etag },
       });
       expect(res2.statusCode).toBe(304);
     });
 
     it('should NOT return 304 when ETag differs (data changed)', async () => {
-      const res1 = await app.inject({ method: 'GET', url: '/api/products' });
+      const res1 = await app.inject({ method: 'GET', url: '/api/v1/products' });
       expect(res1.statusCode).toBe(200);
 
       // Request with a different ETag
       const res2 = await app.inject({
         method: 'GET',
-        url: '/api/products',
+        url: '/api/v1/products',
         headers: { 'if-none-match': '"outdated-etag-value"' },
       });
       expect(res2.statusCode).toBe(200);
@@ -357,19 +357,19 @@ describe('Cache Behavior Tests', () => {
   // =========================================================================
   describe('Payment Methods Cache', () => {
     it('should cache available payment methods and serve from cache', async () => {
-      const res1 = await app.inject({ method: 'GET', url: '/api/payments/available-methods' });
+      const res1 = await app.inject({ method: 'GET', url: '/api/v1/payments/available-methods' });
       expect(res1.statusCode).toBe(200);
 
       const methodKeys = [...store.keys()].filter(k => k.startsWith('pub:payments:methods:'));
       expect(methodKeys.length).toBeGreaterThan(0);
 
-      const res2 = await app.inject({ method: 'GET', url: '/api/payments/available-methods' });
+      const res2 = await app.inject({ method: 'GET', url: '/api/v1/payments/available-methods' });
       expect(res2.statusCode).toBe(200);
       expect(JSON.parse(res2.body).data).toEqual(JSON.parse(res1.body).data);
     });
 
     it('should return Cache-Control and ETag for payment methods', async () => {
-      const res = await app.inject({ method: 'GET', url: '/api/payments/available-methods' });
+      const res = await app.inject({ method: 'GET', url: '/api/v1/payments/available-methods' });
       expect(res.statusCode).toBe(200);
       expect(res.headers['cache-control']).toContain('max-age=30');
       expect(res.headers['etag']).toBeDefined();
@@ -384,7 +384,7 @@ describe('Cache Behavior Tests', () => {
       const { CacheService } = await import('../../src/core/cache/service');
 
       // Fill cache
-      const res1 = await app.inject({ method: 'GET', url: `/api/products/${testProduct.id}` });
+      const res1 = await app.inject({ method: 'GET', url: `/api/v1/products/${testProduct.id}` });
       expect(res1.statusCode).toBe(200);
 
       const detailKeysBefore = [...store.keys()].filter(k => k.startsWith('pub:products:detail:'));
@@ -397,7 +397,7 @@ describe('Cache Behavior Tests', () => {
       expect(vAfter).toBe(vBefore + 1);
 
       // New request should create a new cache key with the bumped version
-      const res2 = await app.inject({ method: 'GET', url: `/api/products/${testProduct.id}` });
+      const res2 = await app.inject({ method: 'GET', url: `/api/v1/products/${testProduct.id}` });
       expect(res2.statusCode).toBe(200);
 
       const detailKeysAfter = [...store.keys()].filter(k => k.startsWith('pub:products:detail:'));
@@ -410,7 +410,7 @@ describe('Cache Behavior Tests', () => {
       const { CacheService } = await import('../../src/core/cache/service');
 
       // Fill search cache
-      await app.inject({ method: 'GET', url: '/api/products/search?q=Cache' });
+      await app.inject({ method: 'GET', url: '/api/v1/products/search?q=Cache' });
       const searchKeysBefore = [...store.keys()].filter(k => k.startsWith('pub:products:search:'));
       expect(searchKeysBefore.length).toBeGreaterThan(0);
 
@@ -419,7 +419,7 @@ describe('Cache Behavior Tests', () => {
       const vAfter = await CacheService.getProductVersion();
 
       // New search should create key with new version
-      await app.inject({ method: 'GET', url: '/api/products/search?q=Cache' });
+      await app.inject({ method: 'GET', url: '/api/v1/products/search?q=Cache' });
       const searchKeysAfter = [...store.keys()].filter(k => k.startsWith('pub:products:search:'));
       const hasNewVersion = searchKeysAfter.some(k => k.includes(`:v${vAfter}:`));
       expect(hasNewVersion).toBe(true);
@@ -429,7 +429,7 @@ describe('Cache Behavior Tests', () => {
       const { CacheService } = await import('../../src/core/cache/service');
 
       // Fill payment methods cache
-      const res1 = await app.inject({ method: 'GET', url: '/api/payments/available-methods' });
+      const res1 = await app.inject({ method: 'GET', url: '/api/v1/payments/available-methods' });
       expect(res1.statusCode).toBe(200);
 
       const methodKeysBefore = [...store.keys()].filter(k => k.startsWith('pub:payments:methods:'));
@@ -442,7 +442,7 @@ describe('Cache Behavior Tests', () => {
       expect(vAfter).toBe(vBefore + 1);
 
       // New request should create a cache key with the bumped version
-      const res2 = await app.inject({ method: 'GET', url: '/api/payments/available-methods' });
+      const res2 = await app.inject({ method: 'GET', url: '/api/v1/payments/available-methods' });
       expect(res2.statusCode).toBe(200);
 
       const methodKeysAfter = [...store.keys()].filter(k => k.startsWith('pub:payments:methods:'));
@@ -454,7 +454,7 @@ describe('Cache Behavior Tests', () => {
       const { CacheService } = await import('../../src/core/cache/service');
 
       // Get initial ETag
-      const res1 = await app.inject({ method: 'GET', url: '/api/products' });
+      const res1 = await app.inject({ method: 'GET', url: '/api/v1/products' });
       expect(res1.statusCode).toBe(200);
       const etagBefore = res1.headers['etag'] as string;
       expect(etagBefore).toBeDefined();
@@ -466,7 +466,7 @@ describe('Cache Behavior Tests', () => {
       // (data might be same but the response could differ due to timing, at minimum cache key changes)
       const res2 = await app.inject({
         method: 'GET',
-        url: '/api/products',
+        url: '/api/v1/products',
         headers: { 'if-none-match': etagBefore },
       });
       // After version bump, the endpoint re-queries DB and generates a fresh response.
@@ -486,7 +486,7 @@ describe('Cache Behavior Tests', () => {
         const { CacheService } = await import('../../src/core/cache/service');
 
         // Fill cache (product list TTL = 30s)
-        const res1 = await app.inject({ method: 'GET', url: '/api/products' });
+        const res1 = await app.inject({ method: 'GET', url: '/api/v1/products' });
         expect(res1.statusCode).toBe(200);
 
         const listKeys = [...store.keys()].filter(k => k.startsWith('pub:products:list:'));
@@ -519,7 +519,7 @@ describe('Cache Behavior Tests', () => {
         const { CacheService } = await import('../../src/core/cache/service');
 
         // Fill cache (search TTL = 20s)
-        const res1 = await app.inject({ method: 'GET', url: '/api/products/search?q=Cache' });
+        const res1 = await app.inject({ method: 'GET', url: '/api/v1/products/search?q=Cache' });
         expect(res1.statusCode).toBe(200);
 
         const searchKeys = [...store.keys()].filter(k => k.startsWith('pub:products:search:'));
@@ -548,7 +548,7 @@ describe('Cache Behavior Tests', () => {
         const { CacheService } = await import('../../src/core/cache/service');
 
         // Fill cache (product detail TTL = 60s)
-        const res1 = await app.inject({ method: 'GET', url: `/api/products/${testProduct.id}` });
+        const res1 = await app.inject({ method: 'GET', url: `/api/v1/products/${testProduct.id}` });
         expect(res1.statusCode).toBe(200);
 
         const detailKeys = [...store.keys()].filter(k => k.startsWith('pub:products:detail:'));
@@ -577,7 +577,7 @@ describe('Cache Behavior Tests', () => {
         const { CacheService } = await import('../../src/core/cache/service');
 
         // Fill cache (categories TTL = 120s)
-        const res1 = await app.inject({ method: 'GET', url: '/api/products/categories' });
+        const res1 = await app.inject({ method: 'GET', url: '/api/v1/products/categories' });
         expect(res1.statusCode).toBe(200);
 
         const categoryKeys = [...store.keys()].filter(k => k.startsWith('pub:products:categories:'));
@@ -606,7 +606,7 @@ describe('Cache Behavior Tests', () => {
         const { CacheService } = await import('../../src/core/cache/service');
 
         // Fill cache (payment methods TTL = 30s)
-        const res1 = await app.inject({ method: 'GET', url: '/api/payments/available-methods' });
+        const res1 = await app.inject({ method: 'GET', url: '/api/v1/payments/available-methods' });
         expect(res1.statusCode).toBe(200);
 
         const methodKeys = [...store.keys()].filter(k => k.startsWith('pub:payments:methods:'));
@@ -634,9 +634,9 @@ describe('Cache Behavior Tests', () => {
     it('should return real cache counts after warming cache', async () => {
       const { CacheService } = await import('../../src/core/cache/service');
 
-      await app.inject({ method: 'GET', url: '/api/products' });
-      await app.inject({ method: 'GET', url: '/api/products/search?q=Cache' });
-      await app.inject({ method: 'GET', url: '/api/products/categories' });
+      await app.inject({ method: 'GET', url: '/api/v1/products' });
+      await app.inject({ method: 'GET', url: '/api/v1/products/search?q=Cache' });
+      await app.inject({ method: 'GET', url: '/api/v1/products/categories' });
 
       const stats = await CacheService.getCacheStats();
       expect(stats.connected).toBe(true);
@@ -672,7 +672,7 @@ describe('Cache Behavior Tests', () => {
       };
 
       // 1. Fill product list cache
-      const res1 = await app.inject({ method: 'GET', url: '/api/products' });
+      const res1 = await app.inject({ method: 'GET', url: '/api/v1/products' });
       expect(res1.statusCode).toBe(200);
 
       const versionBefore = await CacheService.getProductVersion();
@@ -680,7 +680,7 @@ describe('Cache Behavior Tests', () => {
       // 2. Admin updates product name (must include variants)
       const updateRes = await app.inject({
         method: 'PUT',
-        url: `/api/admin/products/${testProduct.id}`,
+        url: `/api/v1/admin/products/${testProduct.id}`,
         headers: adminAuth.authHeader,
         payload: { name: 'Cache Test Product Updated', variants: [variantPayload] },
       });
@@ -691,7 +691,7 @@ describe('Cache Behavior Tests', () => {
       expect(versionAfter).toBeGreaterThan(versionBefore);
 
       // 4. Product list should use new cache key (version-based invalidation)
-      const res2 = await app.inject({ method: 'GET', url: '/api/products' });
+      const res2 = await app.inject({ method: 'GET', url: '/api/v1/products' });
       expect(res2.statusCode).toBe(200);
 
       // New cache keys should contain the bumped version
@@ -702,7 +702,7 @@ describe('Cache Behavior Tests', () => {
       // 5. Restore product name for other tests
       await app.inject({
         method: 'PUT',
-        url: `/api/admin/products/${testProduct.id}`,
+        url: `/api/v1/admin/products/${testProduct.id}`,
         headers: adminAuth.authHeader,
         payload: { name: 'Cache Test Product', variants: [variantPayload] },
       });
@@ -720,20 +720,20 @@ describe('Cache Behavior Tests', () => {
       };
 
       // Fill detail cache
-      const res1 = await app.inject({ method: 'GET', url: `/api/products/${testProduct.id}` });
+      const res1 = await app.inject({ method: 'GET', url: `/api/v1/products/${testProduct.id}` });
       expect(res1.statusCode).toBe(200);
       const etag1 = res1.headers['etag'] as string;
 
       // Admin updates product (must include variants)
       await app.inject({
         method: 'PUT',
-        url: `/api/admin/products/${testProduct.id}`,
+        url: `/api/v1/admin/products/${testProduct.id}`,
         headers: adminAuth.authHeader,
         payload: { name: 'Cache Test Product E2E', variants: [variantPayload] },
       });
 
       // Fetch again — new version key means cache miss, fresh data
-      const res2 = await app.inject({ method: 'GET', url: `/api/products/${testProduct.id}` });
+      const res2 = await app.inject({ method: 'GET', url: `/api/v1/products/${testProduct.id}` });
       expect(res2.statusCode).toBe(200);
       const body2 = JSON.parse(res2.body);
       expect(body2.data.name).toBe('Cache Test Product E2E');
@@ -745,7 +745,7 @@ describe('Cache Behavior Tests', () => {
       // Restore
       await app.inject({
         method: 'PUT',
-        url: `/api/admin/products/${testProduct.id}`,
+        url: `/api/v1/admin/products/${testProduct.id}`,
         headers: adminAuth.authHeader,
         payload: { name: 'Cache Test Product', variants: [variantPayload] },
       });

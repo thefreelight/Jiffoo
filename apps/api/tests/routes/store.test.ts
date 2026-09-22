@@ -2,7 +2,7 @@
  * Store Endpoints Tests
  * 
  * Coverage:
- * - GET /api/store/context
+ * - GET /api/v1/store/context
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -21,11 +21,11 @@ describe('Store Endpoints', () => {
     await app.close();
   });
 
-  describe('GET /api/store/context', () => {
+  describe('GET /api/v1/store/context', () => {
     it('should return store context', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/store/context',
+        url: '/api/v1/store/context',
       });
 
       expect([200, 500]).toContain(response.statusCode);
@@ -39,11 +39,11 @@ describe('Store Endpoints', () => {
     it('should match OpenAPI schema on success', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/store/context',
+        url: '/api/v1/store/context',
       });
 
       if (response.statusCode === 200) {
-        const validation = validateResponse('/api/store/context', 'GET', 200, response.json());
+        const validation = validateResponse('/api/v1/store/context', 'GET', 200, response.json());
         expect(validation.valid).toBe(true);
       }
     });
@@ -51,7 +51,7 @@ describe('Store Endpoints', () => {
     it('should be accessible without authentication', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/store/context',
+        url: '/api/v1/store/context',
       });
 
       expect(response.statusCode).not.toBe(401);
@@ -60,7 +60,7 @@ describe('Store Endpoints', () => {
     it('should include store name when available', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/store/context',
+        url: '/api/v1/store/context',
       });
 
       if (response.statusCode === 200) {
@@ -75,7 +75,7 @@ describe('Store Endpoints', () => {
     it('should include locale information when available', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/store/context',
+        url: '/api/v1/store/context',
       });
 
       if (response.statusCode === 200) {
@@ -93,7 +93,7 @@ describe('Store Endpoints', () => {
     it('should include currency information when available', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/store/context',
+        url: '/api/v1/store/context',
       });
 
       if (response.statusCode === 200) {

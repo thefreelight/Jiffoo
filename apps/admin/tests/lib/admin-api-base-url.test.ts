@@ -8,7 +8,6 @@ describe('Admin API base URL normalization', () => {
     ['/api/v1/admin/', '/api/v1'],
     ['https://api.example.com/api/v1/admin', 'https://api.example.com/api/v1'],
     ['/api/v1', '/api/v1'],
-    ['/api', '/api'],
   ])('normalizes %s to %s', (configured, expected) => {
     expect(normalizeAdminApiBaseUrl(configured)).toBe(expected);
   });

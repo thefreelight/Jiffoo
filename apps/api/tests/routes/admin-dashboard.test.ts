@@ -2,7 +2,7 @@
  * Admin Dashboard Endpoints Tests
  *
  * Coverage:
- * - GET /api/admin/dashboard
+ * - GET /api/v1/admin/dashboard
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -33,27 +33,27 @@ describe('Admin Dashboard Endpoints', () => {
     await app.close();
   });
 
-  it('GET /api/admin/dashboard should return 401 without token', async () => {
+  it('GET /api/v1/admin/dashboard should return 401 without token', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/admin/dashboard',
+      url: '/api/v1/admin/dashboard',
     });
     expect(response.statusCode).toBe(401);
   });
 
-  it('GET /api/admin/dashboard should return 403 for regular user', async () => {
+  it('GET /api/v1/admin/dashboard should return 403 for regular user', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/admin/dashboard',
+      url: '/api/v1/admin/dashboard',
       headers: { authorization: `Bearer ${userToken}` },
     });
     expect(response.statusCode).toBe(403);
   });
 
-  it('GET /api/admin/dashboard should return aggregated data for admin', async () => {
+  it('GET /api/v1/admin/dashboard should return aggregated data for admin', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/admin/dashboard',
+      url: '/api/v1/admin/dashboard',
       headers: { authorization: `Bearer ${adminToken}` },
     });
 
@@ -74,10 +74,10 @@ describe('Admin Dashboard Endpoints', () => {
     expect(body.data).toHaveProperty('recentOrders');
   });
 
-  it('GET /api/admin/dashboard?include=metrics,recentOrders should be accepted for admin', async () => {
+  it('GET /api/v1/admin/dashboard?include=metrics,recentOrders should be accepted for admin', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: '/api/admin/dashboard?include=metrics,recentOrders',
+      url: '/api/v1/admin/dashboard?include=metrics,recentOrders',
       headers: { authorization: `Bearer ${adminToken}` },
     });
 

@@ -2,8 +2,8 @@
  * Email Verification Endpoints Tests
  *
  * Coverage:
- * - GET /api/auth/verify-email?token=xxx
- * - POST /api/auth/resend-verification
+ * - GET /api/v1/auth/verify-email?token=xxx
+ * - POST /api/v1/auth/resend-verification
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
@@ -30,7 +30,7 @@ describe('Email Verification Endpoints', () => {
     await app.close();
   });
 
-  describe('GET /api/auth/verify-email', () => {
+  describe('GET /api/v1/auth/verify-email', () => {
     let testUser: Awaited<ReturnType<typeof createTestUser>>;
     let validToken: string;
     let expiredToken: string;
@@ -68,7 +68,7 @@ describe('Email Verification Endpoints', () => {
     it('should verify email successfully with valid token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/auth/verify-email?token=${validToken}`,
+        url: `/api/v1/auth/verify-email?token=${validToken}`,
       });
 
       expect(response.statusCode).toBe(200);
@@ -89,7 +89,7 @@ describe('Email Verification Endpoints', () => {
     it('should return 400 for missing token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/auth/verify-email',
+        url: '/api/v1/auth/verify-email',
       });
 
       expect(response.statusCode).toBe(400);
@@ -102,7 +102,7 @@ describe('Email Verification Endpoints', () => {
     it('should return 400 for empty token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/auth/verify-email?token=',
+        url: '/api/v1/auth/verify-email?token=',
       });
 
       expect(response.statusCode).toBe(400);
@@ -116,7 +116,7 @@ describe('Email Verification Endpoints', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/api/auth/verify-email?token=${invalidToken}`,
+        url: `/api/v1/auth/verify-email?token=${invalidToken}`,
       });
 
       expect(response.statusCode).toBe(400);
@@ -147,7 +147,7 @@ describe('Email Verification Endpoints', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/api/auth/verify-email?token=${expiredToken}`,
+        url: `/api/v1/auth/verify-email?token=${expiredToken}`,
       });
 
       expect(response.statusCode).toBe(400);
@@ -162,13 +162,13 @@ describe('Email Verification Endpoints', () => {
       // First verification (should succeed)
       await app.inject({
         method: 'GET',
-        url: `/api/auth/verify-email?token=${validToken}`,
+        url: `/api/v1/auth/verify-email?token=${validToken}`,
       });
 
       // Second verification attempt (should fail)
       const response = await app.inject({
         method: 'GET',
-        url: `/api/auth/verify-email?token=${validToken}`,
+        url: `/api/v1/auth/verify-email?token=${validToken}`,
       });
 
       expect(response.statusCode).toBe(400);
@@ -179,7 +179,7 @@ describe('Email Verification Endpoints', () => {
     });
   });
 
-  describe('POST /api/auth/resend-verification', () => {
+  describe('POST /api/v1/auth/resend-verification', () => {
     let unverifiedUser: Awaited<ReturnType<typeof createTestUser>>;
     let verifiedUser: Awaited<ReturnType<typeof createTestUser>>;
 
@@ -219,7 +219,7 @@ describe('Email Verification Endpoints', () => {
     it.fails('should resend verification email successfully', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/resend-verification',
+        url: '/api/v1/auth/resend-verification',
         payload: {
           email: unverifiedUser.email,
         },
@@ -247,7 +247,7 @@ describe('Email Verification Endpoints', () => {
     it('should return 400 for missing email', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/resend-verification',
+        url: '/api/v1/auth/resend-verification',
         payload: {},
       });
 
@@ -261,7 +261,7 @@ describe('Email Verification Endpoints', () => {
     it('should return 400 for empty email', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/resend-verification',
+        url: '/api/v1/auth/resend-verification',
         payload: {
           email: '',
         },
@@ -276,7 +276,7 @@ describe('Email Verification Endpoints', () => {
     it('should return 400 for non-existent user', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/resend-verification',
+        url: '/api/v1/auth/resend-verification',
         payload: {
           email: 'nonexistent@example.com',
         },
@@ -293,7 +293,7 @@ describe('Email Verification Endpoints', () => {
     it('should return 400 when email is already verified', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/resend-verification',
+        url: '/api/v1/auth/resend-verification',
         payload: {
           email: verifiedUser.email,
         },
@@ -310,7 +310,7 @@ describe('Email Verification Endpoints', () => {
     it('should handle invalid email format gracefully', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/resend-verification',
+        url: '/api/v1/auth/resend-verification',
         payload: {
           email: 'not-a-valid-email',
         },
@@ -338,7 +338,7 @@ describe('Email Verification Endpoints', () => {
       // Resend verification
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/resend-verification',
+        url: '/api/v1/auth/resend-verification',
         payload: {
           email: unverifiedUser.email,
         },
@@ -377,7 +377,7 @@ describe('Email Verification Endpoints', () => {
       // 2. Request verification email
       const resendResponse = await app.inject({
         method: 'POST',
-        url: '/api/auth/resend-verification',
+        url: '/api/v1/auth/resend-verification',
         payload: {
           email: user.email,
         },
@@ -396,7 +396,7 @@ describe('Email Verification Endpoints', () => {
       // 4. Verify email with token
       const verifyResponse = await app.inject({
         method: 'GET',
-        url: `/api/auth/verify-email?token=${token}`,
+        url: `/api/v1/auth/verify-email?token=${token}`,
       });
 
       expect(verifyResponse.statusCode).toBe(200);
@@ -411,7 +411,7 @@ describe('Email Verification Endpoints', () => {
       // 6. Attempting to resend should now fail
       const resendAfterVerifyResponse = await app.inject({
         method: 'POST',
-        url: '/api/auth/resend-verification',
+        url: '/api/v1/auth/resend-verification',
         payload: {
           email: user.email,
         },

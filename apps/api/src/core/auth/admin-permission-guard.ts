@@ -19,10 +19,6 @@ function normalizeAdminPath(requestUrl: string): string {
     return pathname.slice('/api/v1'.length) || '/';
   }
 
-  if (pathname.startsWith('/api/')) {
-    return pathname.slice('/api'.length) || '/';
-  }
-
   return pathname;
 }
 

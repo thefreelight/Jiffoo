@@ -2,7 +2,7 @@
  * Cart Batch Endpoints Tests
  *
  * Coverage:
- * - POST /api/cart/items/batch
+ * - POST /api/v1/cart/items/batch
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
@@ -55,16 +55,16 @@ describe('Cart Batch Endpoints', () => {
     // Clear cart before each test
     await app.inject({
       method: 'DELETE',
-      url: '/api/cart/',
+      url: '/api/v1/cart/',
       headers: { authorization: `Bearer ${userToken}` },
     });
   });
 
-  describe('POST /api/cart/items/batch', () => {
+  describe('POST /api/v1/cart/items/batch', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items/batch',
+        url: '/api/v1/cart/items/batch',
         payload: {
           items: [
             { productId: testProduct1.id, quantity: 1 },
@@ -78,7 +78,7 @@ describe('Cart Batch Endpoints', () => {
     it('should add multiple items to cart in a single request', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items/batch',
+        url: '/api/v1/cart/items/batch',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -100,7 +100,7 @@ describe('Cart Batch Endpoints', () => {
     it('should return 400 for missing items field', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items/batch',
+        url: '/api/v1/cart/items/batch',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {},
       });
@@ -111,7 +111,7 @@ describe('Cart Batch Endpoints', () => {
     it('should return 400 for empty items array', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items/batch',
+        url: '/api/v1/cart/items/batch',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [],
@@ -124,7 +124,7 @@ describe('Cart Batch Endpoints', () => {
     it('should return 400 for missing productId in items', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items/batch',
+        url: '/api/v1/cart/items/batch',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -139,7 +139,7 @@ describe('Cart Batch Endpoints', () => {
     it('should use default quantity of 1 for items without quantity', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items/batch',
+        url: '/api/v1/cart/items/batch',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -160,7 +160,7 @@ describe('Cart Batch Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items/batch',
+        url: '/api/v1/cart/items/batch',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -176,7 +176,7 @@ describe('Cart Batch Endpoints', () => {
     it('should handle batch add with different quantities', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items/batch',
+        url: '/api/v1/cart/items/batch',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -208,7 +208,7 @@ describe('Cart Batch Endpoints', () => {
     it('should return updated cart with correct totals after batch add', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items/batch',
+        url: '/api/v1/cart/items/batch',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -231,7 +231,7 @@ describe('Cart Batch Endpoints', () => {
       // First, add an item through regular endpoint
       await app.inject({
         method: 'POST',
-        url: '/api/cart/items',
+        url: '/api/v1/cart/items',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           productId: testProduct1.id,
@@ -242,7 +242,7 @@ describe('Cart Batch Endpoints', () => {
       // Then batch add more items
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items/batch',
+        url: '/api/v1/cart/items/batch',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -257,7 +257,7 @@ describe('Cart Batch Endpoints', () => {
       // Verify cart now has all items
       const getCartResponse = await app.inject({
         method: 'GET',
-        url: '/api/cart/',
+        url: '/api/v1/cart/',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -268,7 +268,7 @@ describe('Cart Batch Endpoints', () => {
     it('should handle single item in batch', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items/batch',
+        url: '/api/v1/cart/items/batch',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -298,7 +298,7 @@ describe('Cart Batch Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items/batch',
+        url: '/api/v1/cart/items/batch',
         headers: { authorization: `Bearer ${userToken}` },
         payload: { items },
       });
@@ -315,7 +315,7 @@ describe('Cart Batch Endpoints', () => {
       // This should fail due to non-existent product
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items/batch',
+        url: '/api/v1/cart/items/batch',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [
@@ -332,7 +332,7 @@ describe('Cart Batch Endpoints', () => {
       // Verify cart is still empty (transaction rolled back)
       const getCartResponse = await app.inject({
         method: 'GET',
-        url: '/api/cart/',
+        url: '/api/v1/cart/',
         headers: { authorization: `Bearer ${userToken}` },
       });
 

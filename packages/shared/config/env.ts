@@ -86,12 +86,12 @@ class EnvironmentConfig {
   }
 
   /**
-   * Get API Service Base URL (Includes /api path, for axios baseURL)
+   * Get API Service Base URL (Includes /api/v1 path, for axios baseURL)
    */
   getApiServiceBaseUrl(): string {
     if (this.isServer) {
       const baseUrl = this.getRequired('API_SERVICE_URL');
-      return `${baseUrl}/api`;
+      return `${baseUrl}/api/v1`;
     } else {
       return this.getRequired('NEXT_PUBLIC_API_URL');
     }
@@ -130,7 +130,7 @@ class EnvironmentConfig {
     if (this.isClient && key.startsWith('NEXT_PUBLIC_')) {
       if (!value || value === '') {
         const defaults: Record<string, string> = {
-          'NEXT_PUBLIC_API_URL': '/api',
+          'NEXT_PUBLIC_API_URL': '/api/v1',
           'NEXT_PUBLIC_SHOP_URL': 'http://localhost:3003',
           'NEXT_PUBLIC_ADMIN_URL': 'http://localhost:3002',
         };

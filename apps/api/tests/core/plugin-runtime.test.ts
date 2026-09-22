@@ -131,7 +131,7 @@ module.exports = async function plugin(fastify, opts) {
   it('routes to default instance when no installation query is provided', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${slug}/api/echo`,
+      url: `/api/v1/extensions/plugin/${slug}/api/echo`,
     });
 
     expect(response.statusCode).toBe(200);
@@ -144,7 +144,7 @@ module.exports = async function plugin(fastify, opts) {
   it('supports instance routing by installation key and by installationId', async () => {
     const byKey = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${slug}/api/echo?installation=alpha`,
+      url: `/api/v1/extensions/plugin/${slug}/api/echo?installation=alpha`,
     });
     expect(byKey.statusCode).toBe(200);
     const byKeyBody = byKey.json();
@@ -154,7 +154,7 @@ module.exports = async function plugin(fastify, opts) {
 
     const byIdPriority = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${slug}/api/echo?installation=alpha&installationId=${defaultInstallationId}`,
+      url: `/api/v1/extensions/plugin/${slug}/api/echo?installation=alpha&installationId=${defaultInstallationId}`,
     });
     expect(byIdPriority.statusCode).toBe(200);
     const byIdBody = byIdPriority.json();
@@ -166,7 +166,7 @@ module.exports = async function plugin(fastify, opts) {
   it('sanitizes spoofed inbound headers and injects platform context headers', async () => {
     const response = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${slug}/api/echo`,
+      url: `/api/v1/extensions/plugin/${slug}/api/echo`,
       headers: {
         referer: 'http://localhost:3001/admin/plugins',
         'accept-language': 'zh-CN,zh;q=0.9,en;q=0.8',
@@ -196,7 +196,7 @@ module.exports = async function plugin(fastify, opts) {
 
     const response = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${slug}/api/echo?installation=alpha`,
+      url: `/api/v1/extensions/plugin/${slug}/api/echo?installation=alpha`,
     });
 
     expect(response.statusCode).toBe(404);
@@ -207,7 +207,7 @@ module.exports = async function plugin(fastify, opts) {
   it('supports admin instance create/update/delete API with gateway effect', async () => {
     const createResp = await app.inject({
       method: 'POST',
-      url: `/api/extensions/plugin/${slug}/instances`,
+      url: `/api/v1/extensions/plugin/${slug}/instances`,
       headers: { authorization: `Bearer ${adminToken}` },
       payload: {
         instanceKey: 'beta',
@@ -220,7 +220,7 @@ module.exports = async function plugin(fastify, opts) {
 
     const gwOk = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${slug}/api/echo?installation=beta`,
+      url: `/api/v1/extensions/plugin/${slug}/api/echo?installation=beta`,
     });
     expect(gwOk.statusCode).toBe(200);
     expect(gwOk.json().config.marker).toBe('beta');
@@ -229,7 +229,7 @@ module.exports = async function plugin(fastify, opts) {
 
     const disableResp = await app.inject({
       method: 'PATCH',
-      url: `/api/extensions/plugin/${slug}/instances/${betaInstallationId}`,
+      url: `/api/v1/extensions/plugin/${slug}/instances/${betaInstallationId}`,
       headers: { authorization: `Bearer ${adminToken}` },
       payload: { enabled: false },
     });
@@ -239,13 +239,13 @@ module.exports = async function plugin(fastify, opts) {
 
     const gwBlocked = await app.inject({
       method: 'GET',
-      url: `/api/extensions/plugin/${slug}/api/echo?installation=beta`,
+      url: `/api/v1/extensions/plugin/${slug}/api/echo?installation=beta`,
     });
     expect(gwBlocked.statusCode).toBe(404);
 
     const deleteResp = await app.inject({
       method: 'DELETE',
-      url: `/api/extensions/plugin/${slug}/instances/${betaInstallationId}`,
+      url: `/api/v1/extensions/plugin/${slug}/instances/${betaInstallationId}`,
       headers: { authorization: `Bearer ${adminToken}` },
     });
     expect(deleteResp.statusCode).toBe(200);

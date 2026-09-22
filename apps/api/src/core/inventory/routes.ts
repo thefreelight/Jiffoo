@@ -2,17 +2,17 @@ import { FastifyInstance } from 'fastify';
 import { prisma } from '@/config/database';
 import { InventoryService } from './service';
 import { sendError, sendSuccess } from '@/utils/response';
-import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
+import { authMiddleware, requirePermission } from '@/core/auth/middleware';
+import { ADMIN_PERMISSIONS } from '@shared/security';
 
 export async function adminInventoryRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', authMiddleware);
-  fastify.addHook('onRequest', requireAdmin);
-  fastify.get('/', async (request, reply) => {
+  fastify.get('/', { preHandler: [requirePermission(ADMIN_PERMISSIONS.INVENTORY_READ)] }, async (request, reply) => {
     const { page = 1, limit = 20 } = request.query as { page?: number; limit?: number };
     return sendSuccess(reply, await InventoryService.listStock(Number(page), Number(limit)));
   });
 
-  fastify.post('/set', async (request, reply) => {
+  fastify.post('/set', { preHandler: [requirePermission(ADMIN_PERMISSIONS.INVENTORY_WRITE)] }, async (request, reply) => {
     const { variantId, quantity } = request.body as { variantId?: string; quantity?: number };
     if (!variantId || !Number.isInteger(quantity) || quantity < 0) {
       return sendError(reply, 400, 'VALIDATION_ERROR', 'variantId and a non-negative integer quantity are required');
@@ -26,6 +26,7 @@ export async function adminInventoryRoutes(fastify: FastifyInstance) {
   });
 
   fastify.post('/adjustments', {
+    preHandler: [requirePermission(ADMIN_PERMISSIONS.INVENTORY_WRITE)],
     schema: {
       body: {
         type: 'object',

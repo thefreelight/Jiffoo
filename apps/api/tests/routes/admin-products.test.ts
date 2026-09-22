@@ -2,12 +2,12 @@
  * Admin Products Endpoints Tests
  *
  * Coverage:
- * - GET /api/admin/products/
- * - POST /api/admin/products/
- * - GET /api/admin/products/:id
- * - PUT /api/admin/products/:id
- * - DELETE /api/admin/products/:id
- * - GET /api/admin/products/categories
+ * - GET /api/v1/admin/products/
+ * - POST /api/v1/admin/products/
+ * - GET /api/v1/admin/products/:id
+ * - PUT /api/v1/admin/products/:id
+ * - DELETE /api/v1/admin/products/:id
+ * - GET /api/v1/admin/products/categories
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
@@ -52,40 +52,40 @@ describe('Admin Products Endpoints', () => {
   });
 
   describe('Authentication & Authorization', () => {
-    it('GET /api/admin/products/ should return 401 without token', async () => {
+    it('GET /api/v1/admin/products/ should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/products/',
+        url: '/api/v1/admin/products/',
       });
 
       expect(response.statusCode).toBe(401);
     });
 
-    it('GET /api/admin/products/ should return 403 for regular user', async () => {
+    it('GET /api/v1/admin/products/ should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/products/',
+        url: '/api/v1/admin/products/',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
       expect(response.statusCode).toBe(403);
     });
 
-    it('GET /api/admin/products/ should return 200 for admin', async () => {
+    it('GET /api/v1/admin/products/ should return 200 for admin', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/products/',
+        url: '/api/v1/admin/products/',
         headers: { authorization: `Bearer ${adminToken}` },
       });
       expect(response.statusCode).toBe(200);
     });
   });
 
-  describe('GET /api/admin/products/', () => {
+  describe('GET /api/v1/admin/products/', () => {
     it('should return products list', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/products/',
+        url: '/api/v1/admin/products/',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -100,7 +100,7 @@ describe('Admin Products Endpoints', () => {
     it('should support pagination', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/products/?page=1&limit=5',
+        url: '/api/v1/admin/products/?page=1&limit=5',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -110,7 +110,7 @@ describe('Admin Products Endpoints', () => {
     it('should support search', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/products/?search=Admin',
+        url: '/api/v1/admin/products/?search=Admin',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -120,7 +120,7 @@ describe('Admin Products Endpoints', () => {
     it('should support category filter', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/admin/products/?categoryId=${testProduct.categoryId}`,
+        url: `/api/v1/admin/products/?categoryId=${testProduct.categoryId}`,
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -130,7 +130,7 @@ describe('Admin Products Endpoints', () => {
     it('should support price filters', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/products/?minPrice=50&maxPrice=200',
+        url: '/api/v1/admin/products/?minPrice=50&maxPrice=200',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -140,7 +140,7 @@ describe('Admin Products Endpoints', () => {
     it('should support stock filter', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/products/?inStock=true',
+        url: '/api/v1/admin/products/?inStock=true',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -150,7 +150,7 @@ describe('Admin Products Endpoints', () => {
     it('should support sorting', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/products/?sortBy=createdAt&sortOrder=desc',
+        url: '/api/v1/admin/products/?sortBy=createdAt&sortOrder=desc',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -158,11 +158,11 @@ describe('Admin Products Endpoints', () => {
     });
   });
 
-  describe('POST /api/admin/products/', () => {
+  describe('POST /api/v1/admin/products/', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/products/',
+        url: '/api/v1/admin/products/',
         payload: {
           name: 'New Product',
           variants: [{ name: 'Default', basePrice: 99.99, stock: 100 }],
@@ -175,7 +175,7 @@ describe('Admin Products Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/products/',
+        url: '/api/v1/admin/products/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           name: 'New Product',
@@ -189,7 +189,7 @@ describe('Admin Products Endpoints', () => {
     it('should return 400 for missing name', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/products/',
+        url: '/api/v1/admin/products/',
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           variants: [{ name: 'Base Variant', salePrice: 99.99, stock: 100 }],
@@ -202,7 +202,7 @@ describe('Admin Products Endpoints', () => {
     it('should return 400 for missing variants', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/products/',
+        url: '/api/v1/admin/products/',
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           name: 'New Product',
@@ -215,7 +215,7 @@ describe('Admin Products Endpoints', () => {
     it('should return 400 for empty variants', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/products/',
+        url: '/api/v1/admin/products/',
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           name: 'New Product',
@@ -231,7 +231,7 @@ describe('Admin Products Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/api/admin/products/',
+        url: '/api/v1/admin/products/',
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           name: `Admin Created Product ${uniqueId}`,
@@ -258,11 +258,11 @@ describe('Admin Products Endpoints', () => {
     });
   });
 
-  describe('GET /api/admin/products/:id', () => {
+  describe('GET /api/v1/admin/products/:id', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/admin/products/${testProduct.id}`,
+        url: `/api/v1/admin/products/${testProduct.id}`,
       });
 
       expect(response.statusCode).toBe(401);
@@ -271,7 +271,7 @@ describe('Admin Products Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/admin/products/${testProduct.id}`,
+        url: `/api/v1/admin/products/${testProduct.id}`,
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -281,7 +281,7 @@ describe('Admin Products Endpoints', () => {
     it('should return product details for admin', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/admin/products/${testProduct.id}`,
+        url: `/api/v1/admin/products/${testProduct.id}`,
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -299,7 +299,7 @@ describe('Admin Products Endpoints', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: `/api/admin/products/${fakeProductId}`,
+        url: `/api/v1/admin/products/${fakeProductId}`,
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -307,11 +307,11 @@ describe('Admin Products Endpoints', () => {
     });
   });
 
-  describe('PUT /api/admin/products/:id', () => {
+  describe('PUT /api/v1/admin/products/:id', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/admin/products/${testProduct.id}`,
+        url: `/api/v1/admin/products/${testProduct.id}`,
         payload: {
           name: 'Updated Product Name',
           variants: [{ name: 'Default', basePrice: 99.99, stock: 100 }],
@@ -324,7 +324,7 @@ describe('Admin Products Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/admin/products/${testProduct.id}`,
+        url: `/api/v1/admin/products/${testProduct.id}`,
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           name: 'Updated Product Name',
@@ -339,7 +339,7 @@ describe('Admin Products Endpoints', () => {
       const firstVariant = testProduct.variants[0];
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/admin/products/${testProduct.id}`,
+        url: `/api/v1/admin/products/${testProduct.id}`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           name: `Updated Admin Product ${uuidv4().substring(0, 8)}`,
@@ -363,7 +363,7 @@ describe('Admin Products Endpoints', () => {
 
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/admin/products/${fakeProductId}`,
+        url: `/api/v1/admin/products/${fakeProductId}`,
         headers: { authorization: `Bearer ${adminToken}` },
         payload: {
           name: 'Updated Name',
@@ -375,7 +375,7 @@ describe('Admin Products Endpoints', () => {
     });
   });
 
-  describe('DELETE /api/admin/products/:id', () => {
+  describe('DELETE /api/v1/admin/products/:id', () => {
     let productToDelete: Awaited<ReturnType<typeof createTestProduct>>;
 
     beforeAll(async () => {
@@ -389,7 +389,7 @@ describe('Admin Products Endpoints', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'DELETE',
-        url: `/api/admin/products/${productToDelete.id}`,
+        url: `/api/v1/admin/products/${productToDelete.id}`,
       });
 
       expect(response.statusCode).toBe(401);
@@ -398,7 +398,7 @@ describe('Admin Products Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'DELETE',
-        url: `/api/admin/products/${productToDelete.id}`,
+        url: `/api/v1/admin/products/${productToDelete.id}`,
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -408,7 +408,7 @@ describe('Admin Products Endpoints', () => {
     it('should delete product for admin', async () => {
       const response = await app.inject({
         method: 'DELETE',
-        url: `/api/admin/products/${productToDelete.id}`,
+        url: `/api/v1/admin/products/${productToDelete.id}`,
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -420,7 +420,7 @@ describe('Admin Products Endpoints', () => {
 
       const response = await app.inject({
         method: 'DELETE',
-        url: `/api/admin/products/${fakeProductId}`,
+        url: `/api/v1/admin/products/${fakeProductId}`,
         headers: { authorization: `Bearer ${adminToken}` },
       });
 
@@ -428,11 +428,11 @@ describe('Admin Products Endpoints', () => {
     });
   });
 
-  describe('GET /api/admin/products/categories', () => {
+  describe('GET /api/v1/admin/products/categories', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/products/categories',
+        url: '/api/v1/admin/products/categories',
       });
 
       expect(response.statusCode).toBe(401);
@@ -441,7 +441,7 @@ describe('Admin Products Endpoints', () => {
     it('should return 403 for regular user', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/products/categories',
+        url: '/api/v1/admin/products/categories',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -451,7 +451,7 @@ describe('Admin Products Endpoints', () => {
     it('should return categories for admin', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/admin/products/categories',
+        url: '/api/v1/admin/products/categories',
         headers: { authorization: `Bearer ${adminToken}` },
       });
 

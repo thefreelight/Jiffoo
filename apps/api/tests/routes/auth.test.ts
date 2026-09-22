@@ -2,12 +2,12 @@
  * Auth Endpoints Tests
  * 
  * Coverage:
- * - POST /api/auth/register
- * - POST /api/auth/login
- * - GET /api/auth/me
- * - POST /api/auth/refresh
- * - POST /api/auth/logout
- * - POST /api/auth/change-password
+ * - POST /api/v1/auth/register
+ * - POST /api/v1/auth/login
+ * - GET /api/v1/auth/me
+ * - POST /api/v1/auth/refresh
+ * - POST /api/v1/auth/logout
+ * - POST /api/v1/auth/change-password
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
@@ -38,7 +38,7 @@ describe('Auth Endpoints', () => {
     await app.close();
   });
 
-  describe('POST /api/auth/register', () => {
+  describe('POST /api/v1/auth/register', () => {
     beforeEach(async () => {
       await deleteAllTestUsers();
     });
@@ -48,7 +48,7 @@ describe('Auth Endpoints', () => {
       const uniqueId = uuidv4().substring(0, 8);
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/api/v1/auth/register',
         payload: {
           email: `newuser-${uniqueId}@example.com`,
           username: `newuser-${uniqueId}`,
@@ -84,7 +84,7 @@ describe('Auth Endpoints', () => {
 
         const register = await app.inject({
           method: 'POST',
-          url: '/api/auth/register',
+          url: '/api/v1/auth/register',
           payload: {
             email,
             username: `mvp-register-${uniqueId}`,
@@ -98,7 +98,7 @@ describe('Auth Endpoints', () => {
 
         const login = await app.inject({
           method: 'POST',
-          url: '/api/auth/login',
+          url: '/api/v1/auth/login',
           payload: {
             email,
             password,
@@ -112,7 +112,7 @@ describe('Auth Endpoints', () => {
 
         const logout = await app.inject({
           method: 'POST',
-          url: '/api/auth/logout',
+          url: '/api/v1/auth/logout',
           headers: {
             authorization: `Bearer ${loginBody.data.token}`,
           },
@@ -132,7 +132,7 @@ describe('Auth Endpoints', () => {
     it('should return 400 for missing email', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/api/v1/auth/register',
         payload: {
           username: 'testuser',
           password: 'Test123456!',
@@ -145,7 +145,7 @@ describe('Auth Endpoints', () => {
     it('should return 400 for missing username', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/api/v1/auth/register',
         payload: {
           email: 'test@example.com',
           password: 'Test123456!',
@@ -158,7 +158,7 @@ describe('Auth Endpoints', () => {
     it('should return 400 for missing password', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/api/v1/auth/register',
         payload: {
           email: 'test@example.com',
           username: 'testuser',
@@ -171,7 +171,7 @@ describe('Auth Endpoints', () => {
     it('should return 400 for invalid email format', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/api/v1/auth/register',
         payload: {
           email: 'invalid-email',
           username: 'testuser',
@@ -185,7 +185,7 @@ describe('Auth Endpoints', () => {
     it('should return 400 for short password', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/api/v1/auth/register',
         payload: {
           email: 'test@example.com',
           username: 'testuser',
@@ -199,7 +199,7 @@ describe('Auth Endpoints', () => {
     it('should return 400 for short username', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/api/v1/auth/register',
         payload: {
           email: 'test@example.com',
           username: 'ab', // Too short (min 3)
@@ -217,7 +217,7 @@ describe('Auth Endpoints', () => {
       // Register first user
       await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/api/v1/auth/register',
         payload: {
           email,
           username: `user1-${uniqueId}`,
@@ -228,7 +228,7 @@ describe('Auth Endpoints', () => {
       // Try to register with same email
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/register',
+        url: '/api/v1/auth/register',
         payload: {
           email,
           username: `user2-${uniqueId}`,
@@ -246,7 +246,7 @@ describe('Auth Endpoints', () => {
     });
   });
 
-  describe('POST /api/auth/login', () => {
+  describe('POST /api/v1/auth/login', () => {
     let testUser: Awaited<ReturnType<typeof createTestUser>>;
 
     beforeAll(async () => {
@@ -260,7 +260,7 @@ describe('Auth Endpoints', () => {
     it('should login successfully with correct credentials', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/api/v1/auth/login',
         payload: {
           email: testUser.email,
           password: testUser.password,
@@ -281,7 +281,7 @@ describe('Auth Endpoints', () => {
     it('should login successfully with a username', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/api/v1/auth/login',
         payload: {
           identifier: testUser.username,
           password: testUser.password,
@@ -301,7 +301,7 @@ describe('Auth Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/api/v1/auth/login',
         payload: {
           email: unverifiedUser.email,
           password: unverifiedUser.password,
@@ -320,7 +320,7 @@ describe('Auth Endpoints', () => {
     it('should return 401 for wrong password', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/api/v1/auth/login',
         payload: {
           email: testUser.email,
           password: 'WrongPassword123!',
@@ -333,7 +333,7 @@ describe('Auth Endpoints', () => {
     it('should return 401 for non-existent user', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/api/v1/auth/login',
         payload: {
           email: 'nonexistent@example.com',
           password: 'SomePassword123!',
@@ -346,7 +346,7 @@ describe('Auth Endpoints', () => {
     it('should return 400 for missing email', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/api/v1/auth/login',
         payload: {
           password: 'SomePassword123!',
         },
@@ -358,7 +358,7 @@ describe('Auth Endpoints', () => {
     it('should return 400 for missing password', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/api/v1/auth/login',
         payload: {
           email: 'test@example.com',
         },
@@ -368,7 +368,7 @@ describe('Auth Endpoints', () => {
     });
   });
 
-  describe('GET /api/auth/me', () => {
+  describe('GET /api/v1/auth/me', () => {
     let testUser: Awaited<ReturnType<typeof createTestUser>>;
     let validToken: string;
 
@@ -380,7 +380,7 @@ describe('Auth Endpoints', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/auth/me',
+        url: '/api/v1/auth/me',
       });
 
       expect(response.statusCode).toBe(401);
@@ -389,7 +389,7 @@ describe('Auth Endpoints', () => {
     it('should return 401 with invalid token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/auth/me',
+        url: '/api/v1/auth/me',
         headers: {
           authorization: 'Bearer invalid-token',
         },
@@ -403,7 +403,7 @@ describe('Auth Endpoints', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: '/api/auth/me',
+        url: '/api/v1/auth/me',
         headers: {
           authorization: `Bearer ${expiredToken}`,
         },
@@ -417,7 +417,7 @@ describe('Auth Endpoints', () => {
 
       const response = await app.inject({
         method: 'GET',
-        url: '/api/auth/me',
+        url: '/api/v1/auth/me',
         headers: {
           authorization: `Bearer ${invalidToken}`,
         },
@@ -429,7 +429,7 @@ describe('Auth Endpoints', () => {
     it('should return user info with valid token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/auth/me',
+        url: '/api/v1/auth/me',
         headers: {
           authorization: `Bearer ${validToken}`,
         },
@@ -451,7 +451,7 @@ describe('Auth Endpoints', () => {
     it('should not return password in response', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/auth/me',
+        url: '/api/v1/auth/me',
         headers: {
           authorization: `Bearer ${validToken}`,
         },
@@ -463,7 +463,7 @@ describe('Auth Endpoints', () => {
     });
   });
 
-  describe('GET /api/auth/bootstrap-status', () => {
+  describe('GET /api/v1/auth/bootstrap-status', () => {
     beforeEach(async () => {
       await prisma.systemSettings.upsert({
         where: { id: 'system' },
@@ -497,7 +497,7 @@ describe('Auth Endpoints', () => {
     it('should return bootstrap credentials when bootstrap mode is active', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/auth/bootstrap-status',
+        url: '/api/v1/auth/bootstrap-status',
       });
 
       expect(response.statusCode).toBe(200);
@@ -512,7 +512,7 @@ describe('Auth Endpoints', () => {
     });
   });
 
-  describe('POST /api/auth/refresh', () => {
+  describe('POST /api/v1/auth/refresh', () => {
     let testUser: Awaited<ReturnType<typeof createTestUser>>;
     let validRefreshToken: string;
 
@@ -524,7 +524,7 @@ describe('Auth Endpoints', () => {
     it('should return 400 without token', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/refresh',
+        url: '/api/v1/auth/refresh',
       });
 
       expect(response.statusCode).toBe(400);
@@ -533,7 +533,7 @@ describe('Auth Endpoints', () => {
     it('should return new token with valid refresh token', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/refresh',
+        url: '/api/v1/auth/refresh',
         payload: {
           refresh_token: validRefreshToken,
         },
@@ -554,11 +554,11 @@ describe('Auth Endpoints', () => {
     });
   });
 
-  describe('POST /api/auth/logout', () => {
+  describe('POST /api/v1/auth/logout', () => {
     it('should logout successfully', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/logout',
+        url: '/api/v1/auth/logout',
       });
 
       // Logout typically returns 200 regardless of auth state
@@ -566,7 +566,7 @@ describe('Auth Endpoints', () => {
     });
   });
 
-  describe('POST /api/auth/change-password', () => {
+  describe('POST /api/v1/auth/change-password', () => {
     let testUser: Awaited<ReturnType<typeof createTestUser>>;
     let validToken: string;
 
@@ -580,7 +580,7 @@ describe('Auth Endpoints', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/change-password',
+        url: '/api/v1/auth/change-password',
         payload: {
           currentPassword: 'OldPassword123!',
           newPassword: 'NewPassword123!',
@@ -593,7 +593,7 @@ describe('Auth Endpoints', () => {
     it('should return 400 for missing current password', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/change-password',
+        url: '/api/v1/auth/change-password',
         headers: {
           authorization: `Bearer ${validToken}`,
         },
@@ -608,7 +608,7 @@ describe('Auth Endpoints', () => {
     it('should return 400 for missing new password', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/change-password',
+        url: '/api/v1/auth/change-password',
         headers: {
           authorization: `Bearer ${validToken}`,
         },
@@ -623,7 +623,7 @@ describe('Auth Endpoints', () => {
     it('should return 400 for short new password', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/change-password',
+        url: '/api/v1/auth/change-password',
         headers: {
           authorization: `Bearer ${validToken}`,
         },
@@ -639,7 +639,7 @@ describe('Auth Endpoints', () => {
     it('should change password successfully', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/change-password',
+        url: '/api/v1/auth/change-password',
         headers: {
           authorization: `Bearer ${validToken}`,
         },
@@ -654,7 +654,7 @@ describe('Auth Endpoints', () => {
       // Verify can login with new password
       const loginResponse = await app.inject({
         method: 'POST',
-        url: '/api/auth/login',
+        url: '/api/v1/auth/login',
         payload: {
           email: testUser.email,
           password: 'NewPassword123!',
@@ -703,7 +703,7 @@ describe('Auth Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/change-password',
+        url: '/api/v1/auth/change-password',
         headers: {
           authorization: `Bearer ${seededToken}`,
         },
@@ -717,7 +717,7 @@ describe('Auth Endpoints', () => {
 
       const bootstrapStatus = await app.inject({
         method: 'GET',
-        url: '/api/auth/bootstrap-status',
+        url: '/api/v1/auth/bootstrap-status',
       });
 
       expect(bootstrapStatus.statusCode).toBe(200);
@@ -730,7 +730,7 @@ describe('Auth Endpoints', () => {
     it('should reject wrong current password', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/auth/change-password',
+        url: '/api/v1/auth/change-password',
         headers: {
           authorization: `Bearer ${validToken}`,
         },

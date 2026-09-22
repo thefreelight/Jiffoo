@@ -2,11 +2,11 @@
  * Cart Endpoints Tests
  * 
  * Coverage:
- * - GET /api/cart/
- * - POST /api/cart/items
- * - PUT /api/cart/items/:itemId
- * - DELETE /api/cart/items/:itemId
- * - DELETE /api/cart/
+ * - GET /api/v1/cart/
+ * - POST /api/v1/cart/items
+ * - PUT /api/v1/cart/items/:itemId
+ * - DELETE /api/v1/cart/items/:itemId
+ * - DELETE /api/v1/cart/
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
@@ -47,16 +47,16 @@ describe('Cart Endpoints', () => {
     // Clear cart before each test
     await app.inject({
       method: 'DELETE',
-      url: '/api/cart/',
+      url: '/api/v1/cart/',
       headers: { authorization: `Bearer ${userToken}` },
     });
   });
 
-  describe('GET /api/cart/', () => {
+  describe('GET /api/v1/cart/', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/cart/',
+        url: '/api/v1/cart/',
       });
 
       expect(response.statusCode).toBe(401);
@@ -65,7 +65,7 @@ describe('Cart Endpoints', () => {
     it('should return empty cart for new user', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/cart/',
+        url: '/api/v1/cart/',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -79,7 +79,7 @@ describe('Cart Endpoints', () => {
       // First add an item
       await app.inject({
         method: 'POST',
-        url: '/api/cart/items',
+        url: '/api/v1/cart/items',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           productId: testProduct.id,
@@ -91,7 +91,7 @@ describe('Cart Endpoints', () => {
       // Then get cart
       const response = await app.inject({
         method: 'GET',
-        url: '/api/cart/',
+        url: '/api/v1/cart/',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -102,11 +102,11 @@ describe('Cart Endpoints', () => {
     });
   });
 
-  describe('POST /api/cart/items', () => {
+  describe('POST /api/v1/cart/items', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items',
+        url: '/api/v1/cart/items',
         payload: {
           productId: testProduct.id,
           variantId: testVariantId,
@@ -120,7 +120,7 @@ describe('Cart Endpoints', () => {
     it('should add item to cart', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items',
+        url: '/api/v1/cart/items',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           productId: testProduct.id,
@@ -135,7 +135,7 @@ describe('Cart Endpoints', () => {
     it('should return 400 for missing productId', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items',
+        url: '/api/v1/cart/items',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           quantity: 1,
@@ -148,7 +148,7 @@ describe('Cart Endpoints', () => {
     it('should use default quantity of 1', async () => {
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items',
+        url: '/api/v1/cart/items',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           productId: testProduct.id,
@@ -164,7 +164,7 @@ describe('Cart Endpoints', () => {
 
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items',
+        url: '/api/v1/cart/items',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           productId: fakeProductId,
@@ -180,7 +180,7 @@ describe('Cart Endpoints', () => {
       // Add first time
       await app.inject({
         method: 'POST',
-        url: '/api/cart/items',
+        url: '/api/v1/cart/items',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           productId: testProduct.id,
@@ -192,7 +192,7 @@ describe('Cart Endpoints', () => {
       // Add same product again
       const response = await app.inject({
         method: 'POST',
-        url: '/api/cart/items',
+        url: '/api/v1/cart/items',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           productId: testProduct.id,
@@ -207,14 +207,14 @@ describe('Cart Endpoints', () => {
 
   });
 
-  describe('PUT /api/cart/items/:itemId', () => {
+  describe('PUT /api/v1/cart/items/:itemId', () => {
     let cartItemId: string;
 
     beforeEach(async () => {
       // Add item to cart first
       const addResponse = await app.inject({
         method: 'POST',
-        url: '/api/cart/items',
+        url: '/api/v1/cart/items',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           productId: testProduct.id,
@@ -226,7 +226,7 @@ describe('Cart Endpoints', () => {
       // Get the item ID from cart
       const cartResponse = await app.inject({
         method: 'GET',
-        url: '/api/cart/',
+        url: '/api/v1/cart/',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -237,7 +237,7 @@ describe('Cart Endpoints', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/cart/items/${cartItemId}`,
+        url: `/api/v1/cart/items/${cartItemId}`,
         payload: {
           quantity: 5,
         },
@@ -249,7 +249,7 @@ describe('Cart Endpoints', () => {
     it('should return 400 for missing quantity', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/cart/items/${cartItemId}`,
+        url: `/api/v1/cart/items/${cartItemId}`,
         headers: { authorization: `Bearer ${userToken}` },
         payload: {},
       });
@@ -260,7 +260,7 @@ describe('Cart Endpoints', () => {
     it('should update item quantity', async () => {
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/cart/items/${cartItemId}`,
+        url: `/api/v1/cart/items/${cartItemId}`,
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           quantity: 5,
@@ -275,7 +275,7 @@ describe('Cart Endpoints', () => {
 
       const response = await app.inject({
         method: 'PUT',
-        url: `/api/cart/items/${fakeItemId}`,
+        url: `/api/v1/cart/items/${fakeItemId}`,
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           quantity: 5,
@@ -286,14 +286,14 @@ describe('Cart Endpoints', () => {
     });
   });
 
-  describe('DELETE /api/cart/items/:itemId', () => {
+  describe('DELETE /api/v1/cart/items/:itemId', () => {
     let cartItemId: string;
 
     beforeEach(async () => {
       // Add item to cart first
       await app.inject({
         method: 'POST',
-        url: '/api/cart/items',
+        url: '/api/v1/cart/items',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           productId: testProduct.id,
@@ -304,7 +304,7 @@ describe('Cart Endpoints', () => {
 
       const cartResponse = await app.inject({
         method: 'GET',
-        url: '/api/cart/',
+        url: '/api/v1/cart/',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -315,7 +315,7 @@ describe('Cart Endpoints', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'DELETE',
-        url: `/api/cart/items/${cartItemId}`,
+        url: `/api/v1/cart/items/${cartItemId}`,
       });
 
       expect(response.statusCode).toBe(401);
@@ -324,7 +324,7 @@ describe('Cart Endpoints', () => {
     it('should remove item from cart', async () => {
       const response = await app.inject({
         method: 'DELETE',
-        url: `/api/cart/items/${cartItemId}`,
+        url: `/api/v1/cart/items/${cartItemId}`,
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -336,7 +336,7 @@ describe('Cart Endpoints', () => {
 
       const response = await app.inject({
         method: 'DELETE',
-        url: `/api/cart/items/${fakeItemId}`,
+        url: `/api/v1/cart/items/${fakeItemId}`,
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -344,12 +344,12 @@ describe('Cart Endpoints', () => {
     });
   });
 
-  describe('DELETE /api/cart/', () => {
+  describe('DELETE /api/v1/cart/', () => {
     beforeEach(async () => {
       // Add items to cart first
       await app.inject({
         method: 'POST',
-        url: '/api/cart/items',
+        url: '/api/v1/cart/items',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           productId: testProduct.id,
@@ -362,7 +362,7 @@ describe('Cart Endpoints', () => {
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'DELETE',
-        url: '/api/cart/',
+        url: '/api/v1/cart/',
       });
 
       expect(response.statusCode).toBe(401);
@@ -371,7 +371,7 @@ describe('Cart Endpoints', () => {
     it('should clear cart', async () => {
       const response = await app.inject({
         method: 'DELETE',
-        url: '/api/cart/',
+        url: '/api/v1/cart/',
         headers: { authorization: `Bearer ${userToken}` },
       });
 
@@ -380,7 +380,7 @@ describe('Cart Endpoints', () => {
       // Verify cart is empty
       const cartResponse = await app.inject({
         method: 'GET',
-        url: '/api/cart/',
+        url: '/api/v1/cart/',
         headers: { authorization: `Bearer ${userToken}` },
       });
 

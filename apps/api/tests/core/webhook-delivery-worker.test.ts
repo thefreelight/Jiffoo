@@ -72,7 +72,7 @@ describe('internal webhook delivery', () => {
     const fetchMock = global.fetch as unknown as ReturnType<typeof vi.fn>;
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('https://api.example.test/api/extensions/plugin/test-gateway-connect/api/webhooks/jiffoo/order-paid?installationId=ins_1');
+    expect(url).toBe('https://api.example.test/api/v1/extensions/plugin/test-gateway-connect/api/webhooks/jiffoo/order-paid?installationId=ins_1');
 
     const headers = init.headers as Record<string, string>;
     expect(headers['X-Jiffoo-Timestamp']).toEqual(expect.any(String));

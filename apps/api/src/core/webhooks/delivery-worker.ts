@@ -247,7 +247,7 @@ export async function deliverInternalWebhook(params: InternalDeliveryParams): Pr
     if (webhookPath && webhookEvents.includes(eventType)) {
       const apiOrigin = (process.env.API_SERVICE_URL || 'http://localhost:8001').replace(/\/+$/, '');
       const deliveryUrl =
-        `${apiOrigin}/api/extensions/plugin/${instance.pluginSlug}/api${webhookPath}` +
+        `${apiOrigin}/api/v1/extensions/plugin/${instance.pluginSlug}/api${webhookPath}` +
         `?installationId=${encodeURIComponent(installationId)}`;
 
       const body = JSON.stringify({

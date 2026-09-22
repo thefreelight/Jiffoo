@@ -80,7 +80,7 @@ export const loggerConfig = {
   // Privacy configuration
   privacy: {
     enableDataSanitization: true,
-    excludeUrls: ['/api/auth', '/api/admin/sensitive'],
+    excludeUrls: ['/api/v1/auth', '/api/v1/admin/sensitive'],
     excludeHeaders: ['authorization', 'cookie', 'x-api-key', 'x-admin-token']
   }
 };

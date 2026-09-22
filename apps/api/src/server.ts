@@ -304,14 +304,14 @@ async function buildApp() {
         timestamp: new Date().toISOString(),
         endpoints: {
           health: '/health',
-          auth: '/api/auth',
-          products: '/api/products',
-          cart: '/api/cart',
-          orders: '/api/orders',
+          auth: '/api/v1/auth',
+          products: '/api/v1/products',
+          cart: '/api/v1/cart',
+          orders: '/api/v1/orders',
           admin: {
-            users: '/api/admin/users',
-            products: '/api/admin/products',
-            orders: '/api/admin/orders'
+            users: '/api/v1/admin/users',
+            products: '/api/v1/admin/products',
+            orders: '/api/v1/admin/orders'
           }
         }
       };

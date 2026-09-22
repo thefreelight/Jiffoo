@@ -22,6 +22,11 @@ import { adminProductRoutes } from '@/core/admin/product-management/routes';
 import { adminOrderRoutes } from '@/core/admin/order-management/routes';
 import systemSettingsRoutes from '@/core/admin/system-settings/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
+import { adminStaffRoutes } from '@/core/admin/staff-management/routes';
+import { healthMonitoringRoutes } from '@/core/admin/health-monitoring/routes';
+import { adminInventoryRoutes } from '@/core/inventory/routes';
+import { webhookRoutes } from '@/core/webhooks/routes';
+import { installRoutes } from '@/core/install/routes';
 
 // Extension installer routes
 import { extensionInstallerRoutes } from '@/core/admin/extension-installer/routes';
@@ -43,6 +48,8 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(adminUserRoutes, { prefix: '/admin/users' });
   await fastify.register(adminProductRoutes, { prefix: '/admin/products' });
   await fastify.register(adminOrderRoutes, { prefix: '/admin/orders' });
+  await fastify.register(adminStaffRoutes, { prefix: '/admin/staff' });
+  await fastify.register(adminInventoryRoutes, { prefix: '/admin/inventory' });
   await fastify.register(systemSettingsRoutes, { prefix: '/admin' });
 
   // API Token management (admin only)
@@ -50,6 +57,8 @@ export async function registerV1Routes(fastify: FastifyInstance) {
 
   // Dashboard routes
   await fastify.register(adminDashboardRoutes, { prefix: '/admin' });
+  await fastify.register(healthMonitoringRoutes, { prefix: '/admin' });
+  await fastify.register(webhookRoutes, { prefix: '/admin/webhooks' });
 
   // Store context routes
   await fastify.register(storeRoutes, { prefix: '/store' });
@@ -63,5 +72,5 @@ export async function registerV1Routes(fastify: FastifyInstance) {
 
   // Extension installer routes
   await fastify.register(extensionInstallerRoutes, { prefix: '/extensions' });
-
+  await fastify.register(installRoutes, { prefix: '/install' });
 }

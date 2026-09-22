@@ -12,8 +12,7 @@ type DatabaseStatus = { connected: boolean; error?: string }
 type InstallResult = { success: boolean; error?: string }
 
 function getApiBaseUrl() {
-  const base = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/$/, '')
-  return base === '/api' || base.endsWith('/api') ? `${base}/v1` : base
+  return (process.env.NEXT_PUBLIC_API_URL || '/api/v1').replace(/\/$/, '')
 }
 
 async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {

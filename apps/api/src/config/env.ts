@@ -33,7 +33,7 @@ const envSchema = z.object({
 
   // URLs
   API_SERVICE_URL: z.string().default('http://localhost:3001'),
-  NEXT_PUBLIC_API_URL: z.string().default('http://localhost:3001/api'),
+  NEXT_PUBLIC_API_URL: z.string().default('http://localhost:3001/api/v1'),
   NEXT_PUBLIC_ADMIN_URL: z.string().default('http://localhost:3002'),
   NEXT_PUBLIC_SHOP_URL: z.string().default('http://localhost:3003'),
 
