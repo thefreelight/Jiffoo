@@ -51,7 +51,11 @@ export async function dispatchContractV1Event(
 ): Promise<number> {
   const handlers = eventHandlers.get(installationId)?.get(eventType);
   if (!handlers || handlers.size === 0) return 0;
-  await Promise.all([...handlers].map((handler) => handler(payload)));
+  const results = await Promise.allSettled([...handlers].map((handler) => handler(payload)));
+  const failures = results.filter((result) => result.status === 'rejected');
+  if (failures.length > 0) {
+    throw new AggregateError(failures.map((failure) => failure.reason), `Plugin event handler failures for installation ${installationId}`);
+  }
   return handlers.size;
 }
 

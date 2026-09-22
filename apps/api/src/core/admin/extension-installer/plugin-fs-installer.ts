@@ -265,9 +265,9 @@ export class PluginFsInstaller implements IPluginInstaller {
                 },
               },
             });
-            if (defaultInstance) {
-              await WebhookSubscriptionService.createFromManifest(defaultInstance.id, manifest);
-            }
+          if (defaultInstance) {
+            await WebhookSubscriptionService.createFromManifest(defaultInstance.id, manifest);
+          }
           } catch (integrationError: any) {
             console.warn(
               `Non-fatal: Failed to re-register webhooks on upgrade for ${manifest.slug}:`,
@@ -299,6 +299,18 @@ export class PluginFsInstaller implements IPluginInstaller {
           await this.saveInstalledMeta(manifest.slug, installedPlugin);
           await deployment.commit();
           deployment = null;
+          const upgradedDefaultInstance = await prisma.pluginInstallation.findUnique({
+            where: { pluginSlug_instanceKey: { pluginSlug: manifest.slug, instanceKey: 'default' } },
+          });
+          if (existingBySlug.version !== manifest.version && upgradedDefaultInstance && hasLifecycleHook(manifest, 'onUpgrade')) {
+            await executeLifecycleHook('onUpgrade', {
+              installationId: upgradedDefaultInstance.id,
+              pluginSlug: manifest.slug,
+              instanceKey: upgradedDefaultInstance.instanceKey,
+              config: parseJsonObject(upgradedDefaultInstance.configJson),
+              previousVersion: existingBySlug.version,
+            }, manifest);
+          }
           return installedPlugin;
 
         } catch (warmError: any) {

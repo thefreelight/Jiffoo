@@ -313,16 +313,12 @@ describe('Extensions Installer Endpoints', () => {
           headers: { authorization: `Bearer ${adminToken}` },
           payload: { enabled: true },
         });
-        expect(enableResponse.statusCode).toBe(200);
+        expect(enableResponse.statusCode).toBe(400);
 
-        const gatewayResponse = await app.inject({
-          method: 'GET',
-          url: `/api/v1/extensions/plugin/${esmSlug}/api/status`,
+        const unchangedInstance = await prisma.pluginInstallation.findUnique({
+          where: { pluginSlug_instanceKey: { pluginSlug: esmSlug, instanceKey: 'default' } },
         });
-        expect(gatewayResponse.statusCode).toBe(400);
-        expect(gatewayResponse.json().error.message).toContain(
-          'ESM plugin packages are not supported in Core V1; the entry module must be CommonJS.',
-        );
+        expect(unchangedInstance?.enabled).toBe(false);
       } finally {
         await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: esmSlug } });
         await prisma.pluginInstall.deleteMany({ where: { slug: esmSlug } });

@@ -38,11 +38,17 @@ import { registerRoutes } from '@/routes';
 import { performHealthCheck, livenessCheck, readinessCheck } from '@/utils/health-check';
 import traceContextPlugin from '@/core/logger/trace-context';
 import { uploadedFileStore } from '@/core/storage/uploaded-file-store';
+import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { warmPluginInstanceRuntime } from '@/core/admin/extension-installer/plugin-runtime';
+import { recordPluginFailure } from '@/core/admin/extension-installer/plugin-failure';
+import { registerPluginProcessFailureHandlers } from '@/core/admin/extension-installer/plugin-process-failure';
 
 const fastify = Fastify({
   logger: false,
   disableRequestLogging: false
 });
+
+registerPluginProcessFailureHandlers();
 
 async function buildApp() {
   try {
@@ -421,6 +427,17 @@ async function start() {
 
     await prisma.$connect();
     app.log.info('Database connected successfully');
+
+    const plugins = await PluginManagementService.getAllPluginPackages();
+    for (const plugin of plugins) {
+      const installation = await PluginManagementService.getDefaultInstance(plugin.slug);
+      if (!installation?.enabled || installation.deletedAt) continue;
+      try {
+        await warmPluginInstanceRuntime(plugin.slug, installation.id);
+      } catch (error) {
+        await recordPluginFailure(plugin.slug, error, 'startup');
+      }
+    }
 
     await app.listen({
       port: env.API_PORT,

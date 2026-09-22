@@ -1,4 +1,5 @@
 import { LoggerService } from '@/core/logger/unified-logger';
+import { registerPluginStateReset } from '@/core/admin/extension-installer/plugin-state';
 
 type CircuitState = 'closed' | 'open' | 'half-open';
 
@@ -81,6 +82,14 @@ class CircuitBreaker {
 }
 
 const circuitBreakers = new Map<string, CircuitBreaker>();
+
+export function resetPaymentPluginCircuitBreaker(pluginSlug: string): void {
+  circuitBreakers.delete(pluginSlug);
+}
+
+registerPluginStateReset('payment-circuit-breaker', (slug) => {
+  resetPaymentPluginCircuitBreaker(slug);
+});
 
 function getCircuitBreaker(pluginSlug: string): CircuitBreaker {
   const failureThreshold = Number(process.env.PAYMENT_PLUGIN_CB_THRESHOLD || 5) || 5;

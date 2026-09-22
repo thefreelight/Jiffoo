@@ -15,6 +15,7 @@
 import 'dotenv/config';
 import { queueManager, workerManager, registerAllHandlers } from './infra/jobs';
 import { winstonLogger } from './core/logger/unified-logger';
+import { registerPluginProcessFailureHandlers } from './core/admin/extension-installer/plugin-process-failure';
 
 async function main(): Promise<void> {
   winstonLogger.info('Starting standalone worker process', {
@@ -56,6 +57,8 @@ async function main(): Promise<void> {
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
   process.on('SIGINT', () => void shutdown('SIGINT'));
 }
+
+registerPluginProcessFailureHandlers();
 
 main().catch((error) => {
   winstonLogger.error('Worker process fatal error', {

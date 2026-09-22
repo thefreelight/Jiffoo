@@ -33,6 +33,9 @@ import {
   isContractV1Runtime,
   registerContractV1Runtime,
 } from './contract-v1-runtime';
+import { registerPluginStateReset } from './plugin-state';
+import { recordPluginFailure } from './plugin-failure';
+import { ensurePluginRegistryFresh } from './plugin-registry-freshness';
 
 // ============================================================================
 // Constants
@@ -647,9 +650,15 @@ export async function dropInternalRuntime(installationId: string): Promise<boole
   return false;
 }
 
+registerPluginStateReset('internal-runtimes', async (_slug, installationId) => {
+  if (installationId) await dropInternalRuntime(installationId);
+});
+
 export async function dispatchPluginRuntimeEvent(eventType: string, payload: unknown): Promise<number> {
+  await ensurePluginRegistryFresh();
   const packages = await PluginManagementService.getAllPluginPackages();
   let delivered = 0;
+  const failures: { slug: string; error: unknown }[] = [];
 
   for (const pkg of packages) {
     if (pkg.runtimeType !== 'internal-fastify') continue;
@@ -657,14 +666,23 @@ export async function dispatchPluginRuntimeEvent(eventType: string, payload: unk
     const instances = await PluginManagementService.getPluginInstances(pkg.slug);
     for (const instance of instances) {
       if (!instance.enabled || instance.deletedAt) continue;
-      await ensureInternalRuntime(pkg.slug, manifest, {
-        slug: pkg.slug,
-        installationId: instance.id,
-        instanceKey: instance.instanceKey,
-        config: parseJsonObject(instance.configJson),
-      });
-      delivered += await dispatchContractV1Event(instance.id, eventType, payload);
+      try {
+        await ensureInternalRuntime(pkg.slug, manifest, {
+          slug: pkg.slug,
+          installationId: instance.id,
+          instanceKey: instance.instanceKey,
+          config: parseJsonObject(instance.configJson),
+        });
+        delivered += await dispatchContractV1Event(instance.id, eventType, payload);
+      } catch (error) {
+        await recordPluginFailure(pkg.slug, error, 'event');
+        failures.push({ slug: pkg.slug, error });
+      }
     }
+  }
+
+  if (failures.length > 0) {
+    throw new AggregateError(failures.map((failure) => failure.error), `Plugin event dispatch failed for: ${failures.map((failure) => failure.slug).join(', ')}`);
   }
 
   return delivered;
@@ -814,6 +832,7 @@ export async function handlePluginGateway(
   fastify?: FastifyInstance,
   options?: GatewayResolutionOptions
 ): Promise<void> {
+  await ensurePluginRegistryFresh();
   const slug = (request.params as any).slug as string;
   const requestId = generateRequestId();
   const startTime = Date.now();

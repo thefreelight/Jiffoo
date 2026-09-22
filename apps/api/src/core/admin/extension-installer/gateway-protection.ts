@@ -13,6 +13,7 @@
  */
 
 import type { FastifyReply } from 'fastify';
+import { registerPluginStateReset } from './plugin-state';
 
 // ============================================================================
 // Constants
@@ -424,6 +425,13 @@ export function resetRateLimiter(slug?: string): void {
     rateLimitStore.clear();
   }
 }
+
+registerPluginStateReset('gateway-breaker', (slug) => {
+  resetBreaker(slug);
+});
+registerPluginStateReset('gateway-rate-limiter', (slug) => {
+  resetRateLimiter(slug);
+});
 
 // ============================================================================
 // Timeout Configuration (Task 2.4.1)

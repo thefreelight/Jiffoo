@@ -290,6 +290,8 @@ export const extensionInstallerSchemas = {
       ...createTypedCreateResponses(extensionInstallWithUploadSchema),
       413: errorResponseSchema,
     },
+    lastFailureAt: { type: 'string', format: 'date-time', nullable: true, description: 'Last plugin failure timestamp' },
+    lastFailureMessage: { type: 'string', nullable: true, description: 'Last plugin failure message' },
   },
 
   // GET /api/extensions/plugin

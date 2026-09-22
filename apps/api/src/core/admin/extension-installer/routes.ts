@@ -310,6 +310,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
           config: adminConfig.config,
           configMeta: adminConfig.configMeta,
           grantedPermissions: parseJsonArray(inst.grantedPermissions),
+          lastFailureAt: inst.lastFailureAt?.toISOString() ?? null,
+          lastFailureMessage: inst.lastFailureMessage,
           createdAt: inst.createdAt.toISOString(),
           updatedAt: inst.updatedAt.toISOString(),
         };
@@ -385,6 +387,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         config: adminConfig.config,
         configMeta: adminConfig.configMeta,
         grantedPermissions: parseJsonArray(instance.grantedPermissions),
+        lastFailureAt: instance.lastFailureAt?.toISOString() ?? null,
+        lastFailureMessage: instance.lastFailureMessage,
         createdAt: instance.createdAt.toISOString(),
         updatedAt: instance.updatedAt.toISOString(),
       }, `Instance "${instanceKey}" created for plugin "${slug}"`);
@@ -460,6 +464,8 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         config: adminConfig.config,
         configMeta: adminConfig.configMeta,
         grantedPermissions: parseJsonArray(instance.grantedPermissions),
+        lastFailureAt: instance.lastFailureAt?.toISOString() ?? null,
+        lastFailureMessage: instance.lastFailureMessage,
         createdAt: instance.createdAt.toISOString(),
         updatedAt: instance.updatedAt.toISOString(),
       });

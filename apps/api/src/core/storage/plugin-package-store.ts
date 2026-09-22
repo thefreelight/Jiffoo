@@ -20,6 +20,7 @@ export interface PluginPackageStore {
   get(slug: string): Promise<PluginPackage | null>;
   list(): Promise<string[]>;
   delete(slug: string): Promise<void>;
+  findSlugByFilePath(filePath: string): Promise<string | null>;
 }
 
 class LocalPluginPackage implements PluginPackage {
@@ -98,6 +99,16 @@ class LocalPluginPackageStore implements PluginPackageStore {
 
   async delete(slug: string): Promise<void> {
     await fs.rm(path.join(this.root, slug), { recursive: true, force: true });
+  }
+
+  async findSlugByFilePath(filePath: string): Promise<string | null> {
+    const resolvedPath = path.resolve(filePath);
+    const rootPath = path.resolve(this.root);
+    const relativePath = path.relative(rootPath, resolvedPath);
+    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) return null;
+    const [slug] = relativePath.split(path.sep);
+    if (!slug) return null;
+    return (await this.get(slug)) ? slug : null;
   }
 
   private async pathExists(target: string): Promise<boolean> {

@@ -25,6 +25,16 @@ const SLUG_REGEX = /^[a-z][a-z0-9-]{0,30}[a-z0-9]$/;
 // Reserved instance keys
 const RESERVED_INSTANCE_KEYS = ['default'];
 
+async function reconcilePluginState(slug: string): Promise<void> {
+  const { reconcilePluginState: reconcile } = await import('@/core/admin/extension-installer/plugin-reconciliation');
+  await reconcile(slug);
+}
+
+async function warmPluginInstanceRuntime(slug: string, installationId: string): Promise<void> {
+  const { warmPluginInstanceRuntime: warm } = await import('@/core/admin/extension-installer/plugin-runtime');
+  await warm(slug, installationId);
+}
+
 /**
  * Validate instanceKey format (delegates to utils for consistency)
  */
@@ -208,6 +218,7 @@ async function createInstance(
   });
 
   await CacheService.incrementPluginVersion();
+  await reconcilePluginState(slug);
   return instance;
 }
 
@@ -285,6 +296,14 @@ async function updateInstance(
     // If executeLifecycleHook threw, we never reach here — enable is rejected
   }
 
+  if (isEnabling) {
+    try {
+      await warmPluginInstanceRuntime(existing.pluginSlug, existing.id);
+    } catch (error: any) {
+      throw new Error(`Plugin runtime failed to load: ${error.message}`);
+    }
+  }
+
   const updateData: any = {};
 
   if (updates.enabled !== undefined) {
@@ -301,9 +320,7 @@ async function updateInstance(
 
   const updated = await prisma.$transaction(async (tx) => {
     const next = await tx.pluginInstallation.update({ where: { id: installationId }, data: updateData });
-    if (updates.enabled !== undefined && updates.enabled !== existing.enabled) {
-      await incrementPluginRegistryVersion(tx);
-    }
+    await incrementPluginRegistryVersion(tx);
     return next;
   });
 
@@ -319,6 +336,7 @@ async function updateInstance(
   }
 
   await CacheService.incrementPluginVersion();
+  await reconcilePluginState(existing.pluginSlug);
   return updated;
 }
 
@@ -354,6 +372,7 @@ async function deleteInstance(installationId: string): Promise<PluginInstallatio
   });
 
   await CacheService.incrementPluginVersion();
+  await reconcilePluginState(existing.pluginSlug);
   return deleted;
 }
 
@@ -444,6 +463,17 @@ export async function uninstallPlugin(slug: string): Promise<void> {
     throw new Error(`Plugin "${slug}" is already uninstalled`);
   }
 
+  const defaultInstance = await getDefaultInstance(slug);
+  const manifest = parseJsonObject(pluginPackage.manifestJson);
+  if (defaultInstance && hasLifecycleHook(manifest, 'onUninstall')) {
+    await executeLifecycleHook('onUninstall', {
+      installationId: defaultInstance.id,
+      pluginSlug: slug,
+      instanceKey: defaultInstance.instanceKey,
+      config: parseJsonObject(defaultInstance.configJson),
+    }, manifest);
+  }
+
   // Soft delete: set deletedAt on package and disable all non-deleted instances
   await prisma.$transaction(async (tx) => {
     // Set deletedAt on plugin package
@@ -468,6 +498,7 @@ export async function uninstallPlugin(slug: string): Promise<void> {
   await CacheService.delete('plugins:installed');
   await CacheService.delete(`plugins:config:${slug}`);
   await CacheService.incrementPluginVersion();
+  await reconcilePluginState(slug);
 }
 
 /**
@@ -531,6 +562,7 @@ export async function restorePlugin(slug: string): Promise<void> {
   await CacheService.delete('plugins:installed');
   await CacheService.delete(`plugins:config:${slug}`);
   await CacheService.incrementPluginVersion();
+  await reconcilePluginState(slug);
 }
 
 /**
@@ -552,13 +584,15 @@ export async function purgePlugin(slug: string): Promise<void> {
 
   await pluginPackageStore.delete(slug);
 
-  await prisma.pluginInstall.delete({
-    where: { slug },
+  await prisma.$transaction(async (tx) => {
+    await tx.pluginInstall.delete({ where: { slug } });
+    await incrementPluginRegistryVersion(tx);
   });
 
   await CacheService.delete('plugins:installed');
   await CacheService.delete(`plugins:config:${slug}`);
   await CacheService.incrementPluginVersion();
+  await reconcilePluginState(slug);
 }
 
 // ============================================================================
