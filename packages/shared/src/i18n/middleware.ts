@@ -66,7 +66,7 @@ export function shouldSkipLocaleHandling(pathname: string): boolean {
   }
 
   // Skip manifest and favicon
-  if (pathname === '/manifest.json' || pathname === '/robots.txt' || pathname === '/sitemap.xml') {
+  if (pathname === '/manifest.json' || pathname === '/robots.txt') {
     return true;
   }
 

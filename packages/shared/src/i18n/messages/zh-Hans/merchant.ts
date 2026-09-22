@@ -325,7 +325,6 @@ export const merchant = {
     next: '下页',
     overview: '交易矩阵',
     loading: '正在载入交易数据...',
-    statusUpdated: '状态遥测已更新',
     updateFailed: '终端更新失败',
     analytics: '查看分析',
     retry: '重新连接信号',

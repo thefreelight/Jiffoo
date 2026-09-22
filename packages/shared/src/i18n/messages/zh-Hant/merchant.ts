@@ -314,7 +314,6 @@ export const merchant = {
     next: '下頁',
     overview: '交易矩陣',
     loading: '正在載入交易數據...',
-    statusUpdated: '狀態遙測已更新',
     updateFailed: '終端更新失敗',
     analytics: '查看分析',
     retry: '重新連接信號',

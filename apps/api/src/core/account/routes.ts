@@ -56,7 +56,11 @@ export async function accountRoutes(fastify: FastifyInstance) {
   // Apply auth middleware to all account routes (before schema validation)
   fastify.addHook('onRequest', authMiddleware);
 
-  fastify.get('', async (request, reply) => {
+  fastify.get('', {
+    schema: {
+      security: [{ bearerAuth: [] }],
+    },
+  }, async (request, reply) => {
     try {
       const profile = await AccountService.getProfile(request.user!.id);
       const isGuest = profile.role === 'GUEST' || profile.email.endsWith('@guest.invalid');

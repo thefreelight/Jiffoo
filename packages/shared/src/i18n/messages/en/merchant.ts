@@ -315,7 +315,6 @@ export const merchant = {
     next: 'Next',
     overview: 'Transaction Matrix',
     loading: 'Loading Transaction Data...',
-    statusUpdated: 'Status telemetry updated',
     updateFailed: 'Terminal update failed',
     analytics: 'View Analytics',
     retry: 'Reconnect Signal',

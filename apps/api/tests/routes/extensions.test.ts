@@ -24,6 +24,7 @@ import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 interface PluginArchiveOptions {
   entryModule?: string;
   packageType?: 'module';
+  declaredTrustLevel?: 'builtin' | 'unsigned';
 }
 
 async function createUnsignedPluginArchive(
@@ -44,7 +45,7 @@ async function createUnsignedPluginArchive(
     category: 'other',
     runtimeType: 'internal-fastify',
     hostProtocol: 'internal-fastify-v1',
-    trustLevel: 'unsigned',
+    trustLevel: options.declaredTrustLevel ?? 'unsigned',
     entryModule: options.entryModule ?? 'dist/index.js',
     permissions: [],
     capabilities: [],
@@ -239,6 +240,51 @@ describe('Extensions Installer Endpoints', () => {
       const gatewayResponse = await app.inject({ method: 'GET', url: `/api/extensions/plugin/${uploadSlug}/api/status` });
       expect(gatewayResponse.statusCode).toBe(200);
       expect(gatewayResponse.json()).toMatchObject({ status: 'active' });
+    });
+
+    it('requires unsigned confirmation when a package declares builtin trust', async () => {
+      const builtinSlug = `route-builtin-${Date.now().toString(36)}`.slice(0, 32);
+      const archive = await createUnsignedPluginArchive(builtinSlug, { declaredTrustLevel: 'builtin' });
+
+      try {
+        await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: builtinSlug } });
+        await prisma.pluginInstall.deleteMany({ where: { slug: builtinSlug } });
+        await prisma.adminStaffAuditLog.deleteMany({ where: { staffUserId: adminUser.id } });
+        await pluginPackageStore.delete(builtinSlug);
+
+        const unconfirmed = await multipartPluginUpload(archive.archivePath, false);
+        const unconfirmedResponse = await app.inject({
+          method: 'POST',
+          url: '/api/extensions/plugin/install',
+          headers: { authorization: `Bearer ${adminToken}`, ...unconfirmed.headers },
+          payload: unconfirmed.payload,
+        });
+        expect(unconfirmedResponse.statusCode).toBe(400);
+        expect(unconfirmedResponse.json().error.code).toBe('UNSIGNED_CONFIRMATION_REQUIRED');
+        expect(await prisma.adminStaffAuditLog.count({
+          where: { staffUserId: adminUser.id, action: 'PLUGIN_UNSIGNED_INSTALL_CONFIRMED' },
+        })).toBe(0);
+
+        const confirmed = await multipartPluginUpload(archive.archivePath, true);
+        const installedResponse = await app.inject({
+          method: 'POST',
+          url: '/api/extensions/plugin/install',
+          headers: { authorization: `Bearer ${adminToken}`, ...confirmed.headers },
+          payload: confirmed.payload,
+        });
+        expect(installedResponse.statusCode).toBe(200);
+        expect(installedResponse.json().data.slug).toBe(builtinSlug);
+
+        const installedData = installedResponse.json().data;
+        if ('trustLevel' in installedData) {
+          expect(installedData.trustLevel).toBe('unsigned');
+        }
+      } finally {
+        await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: builtinSlug } });
+        await prisma.pluginInstall.deleteMany({ where: { slug: builtinSlug } });
+        await pluginPackageStore.delete(builtinSlug);
+        await archive.cleanup();
+      }
     });
 
     it('rejects loading an ESM plugin entry package', async () => {
