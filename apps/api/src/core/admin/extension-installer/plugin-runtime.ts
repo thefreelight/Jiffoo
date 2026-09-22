@@ -36,7 +36,7 @@ import {
 import { registerPluginStateReset } from './plugin-state';
 import { recordPluginFailure } from './plugin-failure';
 import { readStoredPluginManifest } from './stored-manifest';
-import { getPluginManifestIssues, isPluginManifest, paymentV1Methods, type PaymentV1Method } from '@jiffoo/shared';
+import { fulfillmentV1Methods, getPluginManifestIssues, isPluginManifest, notificationV1Methods, paymentV1Methods, shippingV1Methods, taxV1Methods } from '@jiffoo/shared';
 import type { PluginInstall } from '@prisma/client';
 import { ensurePluginRegistryFresh } from './plugin-registry-freshness';
 import { getPluginTimeoutMs, isBreakerAllowed, recordBreakerResult } from './gateway-protection';
@@ -665,15 +665,28 @@ export class ContractCallError extends Error {
   constructor(public readonly code: 'CONTRACT_RESPONSE_INVALID' | 'CONTRACT_CALL_FAILED', message: string) { super(message); }
 }
 
-export async function callContract<M extends PaymentV1Method>(
+const contractMethods = { payment: paymentV1Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
+type ContractName = keyof typeof contractMethods;
+
+function isValidTaxResult(input: unknown, output: unknown): boolean {
+  if (!input || typeof input !== 'object' || !output || typeof output !== 'object') return false;
+  const inputLines = (input as { lines?: Array<{ lineId: string }> }).lines;
+  const result = output as { lines?: Array<{ lineId: string; taxMinor: number }>; shippingTaxMinor?: number; totalTaxMinor?: number };
+  if (!Array.isArray(inputLines) || !Array.isArray(result.lines) || result.shippingTaxMinor === undefined || result.totalTaxMinor === undefined) return false;
+  if (result.shippingTaxMinor < 0 || result.totalTaxMinor < 0 || result.lines.some((line) => line.taxMinor < 0)) return false;
+  if (new Set(result.lines.map((line) => line.lineId)).size !== inputLines.length || !inputLines.every((line) => result.lines!.some((resultLine) => resultLine.lineId === line.lineId))) return false;
+  return result.totalTaxMinor === result.shippingTaxMinor + result.lines.reduce((sum, line) => sum + line.taxMinor, 0);
+}
+
+export async function callContract(
   slug: string,
-  contractName: 'payment',
+  contractName: ContractName,
   version: 1,
-  method: M,
+  method: string,
   input: unknown,
 ): Promise<unknown> {
   await ensurePluginRegistryFresh();
-  if (contractName !== 'payment' || version !== 1 || !(method in paymentV1Methods)) throw new ContractCallError('CONTRACT_CALL_FAILED', `Unsupported contract ${contractName} v${version}/${method}`);
+  if (version !== 1 || !(contractName in contractMethods) || !(method in contractMethods[contractName])) throw new ContractCallError('CONTRACT_CALL_FAILED', `Unsupported contract ${contractName} v${version}/${method}`);
   const pkg = await PluginManagementService.getPluginPackage(slug);
   const instance = await PluginManagementService.getDefaultInstance(slug);
   if (!pkg || !instance?.enabled || instance.deletedAt) throw new ContractCallError('CONTRACT_CALL_FAILED', `Plugin ${slug} is not enabled`);
@@ -688,9 +701,9 @@ export async function callContract<M extends PaymentV1Method>(
       new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Contract call timed out')), getPluginTimeoutMs())),
     ]);
     if (response.statusCode >= 400) throw new Error(`Contract route returned ${response.statusCode}`);
-    const parsed = paymentV1Methods[method].output.safeParse(response.json());
-    if (!parsed.success) {
-      const error = new ContractCallError('CONTRACT_RESPONSE_INVALID', `Invalid ${contractName} v${version} ${method} response: ${parsed.error.message}`);
+    const parsed = (contractMethods[contractName][method as keyof typeof contractMethods[typeof contractName]] as { output: { safeParse(value: unknown): { success: boolean; data?: unknown; error?: { message: string } } } }).output.safeParse(response.json());
+    if (!parsed.success || (contractName === 'tax' && !isValidTaxResult(input, parsed.data))) {
+      const error = new ContractCallError('CONTRACT_RESPONSE_INVALID', `Invalid ${contractName} v${version} ${method} response: ${parsed.success ? 'tax totals or lines are inconsistent' : parsed.error?.message}`);
       await recordPluginFailure(slug, error, 'contract'); recordBreakerResult(slug, false); throw error;
     }
     recordBreakerResult(slug, true);

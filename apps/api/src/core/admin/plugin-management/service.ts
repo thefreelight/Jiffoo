@@ -17,6 +17,9 @@ import { executeLifecycleHook, hasLifecycleHook } from './lifecycle-hooks';
 import { mergeSecretConfigForUpdate } from './config-secrets';
 import { readStoredPluginManifest } from '@/core/admin/extension-installer/stored-manifest';
 
+type ProviderContract = 'payment' | 'shipping' | 'tax' | 'fulfillment' | 'notification';
+type UpdatedInstance = PluginInstallation & { replacedPlugins: string[] };
+
 // slug validation regex: ^[a-z][a-z0-9-]{0,30}[a-z0-9]$
 const SLUG_REGEX = /^[a-z][a-z0-9-]{0,30}[a-z0-9]$/;
 
@@ -71,6 +74,21 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
     }
   }
   return typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function declaresContract(manifestJson: unknown, contract: ProviderContract): boolean {
+  return Array.isArray((manifestJson as { contracts?: unknown[] } | null)?.contracts)
+    && (manifestJson as { contracts: Array<{ name?: unknown; version?: unknown }> }).contracts.some((declaration) => declaration.name === contract && declaration.version === 1);
+}
+
+async function listProviders(contract: 'payment' | 'shipping'): Promise<PluginInstallation[]> {
+  const installations = await prisma.pluginInstallation.findMany({ where: { enabled: true, deletedAt: null, plugin: { deletedAt: null } }, include: { plugin: true } });
+  return installations.filter((installation) => declaresContract(installation.plugin.manifestJson, contract));
+}
+
+async function resolveSingleProvider(contract: 'tax' | 'fulfillment' | 'notification'): Promise<PluginInstallation | null> {
+  const installations = await prisma.pluginInstallation.findMany({ where: { enabled: true, deletedAt: null, plugin: { deletedAt: null } }, include: { plugin: true } });
+  return installations.find((installation) => declaresContract(installation.plugin.manifestJson, contract)) ?? null;
 }
 
 
@@ -239,7 +257,7 @@ async function updateInstance(
     config?: Record<string, unknown>;
     grantedPermissions?: string[];
   }
-): Promise<PluginInstallation> {
+): Promise<UpdatedInstance> {
 
   // Validate config size and depth if being updated (Blueprint 5.4: 64KB max, 10 layers max)
   if (updates.config !== undefined) {
@@ -310,6 +328,18 @@ async function updateInstance(
     }
   }
 
+  const replacedPlugins: string[] = [];
+  if (isEnabling) {
+    for (const contract of ['tax', 'fulfillment', 'notification'] as const) {
+      if (!declaresContract(manifest, contract)) continue;
+      const providers = await prisma.pluginInstallation.findMany({ where: { enabled: true, deletedAt: null, pluginSlug: { not: existing.pluginSlug }, plugin: { deletedAt: null } }, include: { plugin: true } });
+      for (const provider of providers.filter((candidate) => declaresContract(candidate.plugin.manifestJson, contract))) {
+        await updateInstance(provider.id, { enabled: false });
+        replacedPlugins.push(provider.pluginSlug);
+      }
+    }
+  }
+
   const updateData: any = {};
 
   if (updates.enabled !== undefined) {
@@ -343,7 +373,7 @@ async function updateInstance(
 
   await CacheService.incrementPluginVersion();
   await reconcilePluginState(existing.pluginSlug);
-  return updated;
+  return Object.assign(updated, { replacedPlugins });
 }
 
 // ============================================================================
@@ -584,6 +614,8 @@ export const PluginManagementService = {
   getPluginInstances,
   createDefaultInstance,
   updateInstance,
+  listProviders,
+  resolveSingleProvider,
   getInstanceConfig,
   isPluginEnabled,
   uninstallPlugin,

@@ -38,7 +38,7 @@ describe('Plugin lifecycle reconciliation', () => {
     resetPluginRegistryFreshness();
   });
 
-  async function createPlugin(slug: string, source: string, enabled = true, contracts: Array<{ name: string; version: number }> = []): Promise<string> {
+  async function createPlugin(slug: string, source: string, enabled = true, contracts: Array<{ name: string; version: number }> = [], lifecycle?: { onDisable?: boolean }): Promise<string> {
     slugs.push(slug);
     const sourceDirectory = await fs.mkdtemp(path.join(os.tmpdir(), '.plugin-lifecycle-reconciliation-'));
     sourceDirectories.push(sourceDirectory);
@@ -55,6 +55,7 @@ describe('Plugin lifecycle reconciliation', () => {
       entryModule: 'server/index.js',
       permissions: [],
       contracts,
+      lifecycle,
     };
     await fs.writeFile(path.join(sourceDirectory, 'manifest.json'), JSON.stringify(manifest), 'utf-8');
     await fs.writeFile(path.join(sourceDirectory, 'server', 'index.js'), source, 'utf-8');
@@ -159,6 +160,82 @@ module.exports = { register(ctx) {
     await loadEnabledPluginRuntimes();
 
     expect((await prisma.pluginInstallation.findUnique({ where: { id: installationId } }))?.lastFailureMessage).toContain('Payment v1 contract requires createSession');
+  });
+
+  it('resolves the enabled tax provider and lists every enabled shipping provider', async () => {
+    const taxSlug = `tax-provider-${Date.now().toString(36)}`.slice(0, 30);
+    const shippingOneSlug = `ship-one-${Date.now().toString(36)}`.slice(0, 30);
+    const shippingTwoSlug = `ship-two-${Date.now().toString(36)}`.slice(0, 30);
+    await createPlugin(taxSlug, 'module.exports = { register() {} };', true, [{ name: 'tax', version: 1 }]);
+    await createPlugin(shippingOneSlug, 'module.exports = { register() {} };', true, [{ name: 'shipping', version: 1 }]);
+    await createPlugin(shippingTwoSlug, 'module.exports = { register() {} };', true, [{ name: 'shipping', version: 1 }]);
+
+    expect(await PluginManagementService.resolveSingleProvider('fulfillment')).toBeNull();
+    expect((await PluginManagementService.resolveSingleProvider('tax'))?.pluginSlug).toBe(taxSlug);
+    expect((await PluginManagementService.listProviders('shipping')).map((provider) => provider.pluginSlug)).toEqual(expect.arrayContaining([shippingOneSlug, shippingTwoSlug]));
+  });
+
+  it('dispatches shipping quotes and rejects invalid shipping output', async () => {
+    const validSlug = `shipping-valid-${Date.now().toString(36)}`.slice(0, 30);
+    const invalidSlug = `shipping-invalid-${Date.now().toString(36)}`.slice(0, 30);
+    await createPlugin(validSlug, "module.exports = { register(ctx) { ctx.contracts.implement('shipping', 1, { quote: () => ({ options: [{ id: 'standard', label: 'Standard', amountMinor: 499 }] }) }); } };", true, [{ name: 'shipping', version: 1 }]);
+    await createPlugin(invalidSlug, "module.exports = { register(ctx) { ctx.contracts.implement('shipping', 1, { quote: () => ({ options: [{ id: 'broken', amountMinor: 0 }] }) }); } };", true, [{ name: 'shipping', version: 1 }]);
+
+    await expect(callContract(validSlug, 'shipping', 1, 'quote', {})).resolves.toEqual({ options: [{ id: 'standard', label: 'Standard', amountMinor: 499 }] });
+    await expect(callContract(invalidSlug, 'shipping', 1, 'quote', {})).rejects.toMatchObject({ code: 'CONTRACT_RESPONSE_INVALID' });
+  });
+
+  it('dispatches tax calculations and rejects inconsistent tax results', async () => {
+    const validSlug = `tax-valid-${Date.now().toString(36)}`.slice(0, 30);
+    const totalSlug = `tax-total-${Date.now().toString(36)}`.slice(0, 30);
+    const lineSlug = `tax-line-${Date.now().toString(36)}`.slice(0, 30);
+    const source = (result: string) => `module.exports = { register(ctx) { ctx.contracts.implement('tax', 1, { calculate: () => (${result}) }); } };`;
+    await createPlugin(validSlug, source("{ pricesIncludeTax: false, lines: [{ lineId: 'line-1', taxMinor: 100 }], shippingTaxMinor: 20, totalTaxMinor: 120 }"), true, [{ name: 'tax', version: 1 }]);
+    await createPlugin(totalSlug, source("{ pricesIncludeTax: false, lines: [{ lineId: 'line-1', taxMinor: 100 }], shippingTaxMinor: 20, totalTaxMinor: 119 }"), true, [{ name: 'tax', version: 1 }]);
+    await createPlugin(lineSlug, source("{ pricesIncludeTax: false, lines: [], shippingTaxMinor: 20, totalTaxMinor: 20 }"), true, [{ name: 'tax', version: 1 }]);
+    const input = { lines: [{ lineId: 'line-1' }] };
+
+    await expect(callContract(validSlug, 'tax', 1, 'calculate', input)).resolves.toMatchObject({ totalTaxMinor: 120 });
+    await expect(callContract(totalSlug, 'tax', 1, 'calculate', input)).rejects.toMatchObject({ code: 'CONTRACT_RESPONSE_INVALID' });
+    await expect(callContract(lineSlug, 'tax', 1, 'calculate', input)).rejects.toMatchObject({ code: 'CONTRACT_RESPONSE_INVALID' });
+  });
+
+  it('dispatches fulfillment and notification contracts', async () => {
+    const fulfillmentSlug = `fulfillment-${Date.now().toString(36)}`.slice(0, 30);
+    const notificationSlug = `notification-${Date.now().toString(36)}`.slice(0, 30);
+    await createPlugin(fulfillmentSlug, "module.exports = { register(ctx) { ctx.contracts.implement('fulfillment', 1, { createFulfillment: () => ({ fulfillmentId: 'fulfillment-1', status: 'pending' }) }); } };", true, [{ name: 'fulfillment', version: 1 }]);
+    await createPlugin(notificationSlug, "module.exports = { register(ctx) { ctx.contracts.implement('notification', 1, { send: () => ({ accepted: true, providerMessageId: 'message-1' }) }); } };", true, [{ name: 'notification', version: 1 }]);
+
+    await expect(callContract(fulfillmentSlug, 'fulfillment', 1, 'createFulfillment', {})).resolves.toMatchObject({ fulfillmentId: 'fulfillment-1' });
+    await expect(callContract(notificationSlug, 'notification', 1, 'send', {})).resolves.toEqual({ accepted: true, providerMessageId: 'message-1' });
+  });
+
+  it('replaces the enabled tax provider through its disable lifecycle path', async () => {
+    const firstSlug = `tax-first-${Date.now().toString(36)}`.slice(0, 30);
+    const secondSlug = `tax-second-${Date.now().toString(36)}`.slice(0, 30);
+    const marker = path.join(os.tmpdir(), `.tax-disabled-${firstSlug}`); markerPaths.push(marker);
+    const source = (includeHook: boolean) => `const fs = require('fs'); module.exports = { ${includeHook ? `__lifecycle_onDisable: () => fs.writeFileSync(${JSON.stringify(marker)}, 'disabled'),` : ''} register(ctx) { ctx.contracts.implement('tax', 1, { calculate: () => ({ pricesIncludeTax: false, lines: [], shippingTaxMinor: 0, totalTaxMinor: 0 }) }); } };`;
+    const firstId = await createPlugin(firstSlug, source(true), true, [{ name: 'tax', version: 1 }], { onDisable: true });
+    const secondId = await createPlugin(secondSlug, source(false), false, [{ name: 'tax', version: 1 }]);
+
+    const updated = await PluginManagementService.updateInstance(secondId, { enabled: true });
+    expect(updated.replacedPlugins).toContain(firstSlug);
+    expect((await prisma.pluginInstallation.findUnique({ where: { id: firstId } }))?.enabled).toBe(false);
+    expect(await fs.readFile(marker, 'utf8')).toBe('disabled');
+  });
+
+  it('replaces the enabled notification provider through its disable lifecycle path', async () => {
+    const firstSlug = `notify-first-${Date.now().toString(36)}`.slice(0, 30);
+    const secondSlug = `notify-second-${Date.now().toString(36)}`.slice(0, 30);
+    const marker = path.join(os.tmpdir(), `.notification-disabled-${firstSlug}`); markerPaths.push(marker);
+    const source = (includeHook: boolean) => `const fs = require('fs'); module.exports = { ${includeHook ? `__lifecycle_onDisable: () => fs.writeFileSync(${JSON.stringify(marker)}, 'disabled'),` : ''} register(ctx) { ctx.contracts.implement('notification', 1, { send: () => ({ accepted: true }) }); } };`;
+    const firstId = await createPlugin(firstSlug, source(true), true, [{ name: 'notification', version: 1 }], { onDisable: true });
+    const secondId = await createPlugin(secondSlug, source(false), false, [{ name: 'notification', version: 1 }]);
+
+    const updated = await PluginManagementService.updateInstance(secondId, { enabled: true });
+    expect(updated.replacedPlugins).toContain(firstSlug);
+    expect((await prisma.pluginInstallation.findUnique({ where: { id: firstId } }))?.enabled).toBe(false);
+    expect(await fs.readFile(marker, 'utf8')).toBe('disabled');
   });
 
   it('increments the registry version for restore and purge', async () => {

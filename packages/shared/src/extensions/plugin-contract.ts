@@ -37,7 +37,7 @@ export type PluginCategory = (typeof PLUGIN_CATEGORIES)[number];
 export type LifecycleHookName = (typeof PLUGIN_LIFECYCLE_HOOKS)[number];
 
 export interface PluginContractDeclaration {
-  name: 'payment';
+  name: 'payment' | 'shipping' | 'tax' | 'fulfillment' | 'notification';
   version: 1;
 }
 
@@ -303,20 +303,23 @@ export function getPluginManifestIssues(manifest: unknown): PluginManifestIssue[
       pushIssue(issues, 'contracts', 'contracts must be an array', 'INVALID_CONTRACTS');
     } else {
       manifest.contracts.forEach((contract, index) => {
-        if (!isRecord(contract) || contract.name !== 'payment' || contract.version !== 1) {
-          pushIssue(issues, `contracts[${index}]`, 'only payment contract version 1 is supported', 'INVALID_CONTRACTS');
+        if (!isRecord(contract) || !['payment', 'shipping', 'tax', 'fulfillment', 'notification'].includes(String(contract.name)) || contract.version !== 1) {
+          pushIssue(issues, `contracts[${index}]`, 'only supported contract version 1 declarations are allowed', 'INVALID_CONTRACTS');
         }
       });
     }
   }
 
   const contracts = Array.isArray(manifest.contracts) ? manifest.contracts : [];
-  if (manifest.category === 'payment' && !contracts.some((contract) => isRecord(contract) && contract.name === 'payment' && contract.version === 1)) {
-    pushIssue(issues, 'contracts', 'payment category requires payment contract version 1', 'MISSING_CATEGORY_CONTRACT');
+  const category = typeof manifest.category === 'string' ? manifest.category : undefined;
+  if (category && ['payment', 'shipping', 'tax', 'fulfillment', 'notification'].includes(category) && !contracts.some((contract) => isRecord(contract) && contract.name === category && contract.version === 1)) {
+    pushIssue(issues, 'contracts', `${category} category requires its version 1 contract`, 'MISSING_CATEGORY_CONTRACT');
   }
   if (manifest.category && manifest.category !== 'integration' && contracts.length === 0) {
     pushIssue(issues, 'contracts', `${manifest.category} category requires a contract declaration`, 'MISSING_CATEGORY_CONTRACT');
   }
+  const singleProviderContracts = contracts.filter((contract) => isRecord(contract) && ['tax', 'fulfillment', 'notification'].includes(String(contract.name)));
+  if (singleProviderContracts.length > 1) pushIssue(issues, 'contracts', 'only one single-provider contract may be declared', 'MANIFEST_MULTIPLE_SINGLE_PROVIDER_CONTRACTS');
 
   if (manifest.requiredScopes !== undefined && !isStringArray(manifest.requiredScopes)) {
     pushIssue(issues, 'requiredScopes', 'requiredScopes must be an array of strings', 'INVALID_REQUIRED_SCOPES');

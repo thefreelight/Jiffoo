@@ -1,11 +1,13 @@
 import { createHash } from 'crypto';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { prisma } from '@/config/database';
-import { paymentV1Methods, type PluginContext, type PluginEntryModule } from '@jiffoo/shared';
+import { fulfillmentV1Methods, notificationV1Methods, paymentV1Methods, shippingV1Methods, taxV1Methods, type PluginContext, type PluginEntryModule } from '@jiffoo/shared';
 
 type JsonObject = Record<string, unknown>;
 type RuntimeOptions = { slug: string; installationId: string; version: string; config: JsonObject; declaredContracts: Array<{ name: string; version: number }> };
 type EventHandler = (payload: unknown) => Promise<unknown> | unknown;
+const contractMethods = { payment: paymentV1Methods, shipping: shippingV1Methods, tax: taxV1Methods, fulfillment: fulfillmentV1Methods, notification: notificationV1Methods } as const;
+const requiredMethods: Record<keyof typeof contractMethods, string[]> = { payment: ['describe', 'createSession', 'getSessionStatus'], shipping: ['quote'], tax: ['calculate'], fulfillment: ['createFulfillment'], notification: ['send'] };
 const eventHandlers = new Map<string, Map<string, Set<EventHandler>>>();
 
 export async function dispatchContractV1Event(installationId: string, eventType: string, payload: unknown): Promise<number> {
@@ -49,15 +51,17 @@ export async function registerContractV1Runtime(app: FastifyInstance, runtime: P
     http: { route: (route) => app.route({ method: route.method as any, url: route.path, handler: route.handler as any }) },
     events: { subscribe: (eventType, handler) => subscribe(options.installationId, eventType, handler) },
     contracts: { implement: (name, version, implementation) => {
-      if (name !== 'payment' || version !== 1) throw new Error(`Unsupported contract ${name} v${version}`);
+      if (!(name in contractMethods) || version !== 1) throw new Error(`Unsupported contract ${name} v${version}`);
       if (!options.declaredContracts.some((contract) => contract.name === name && contract.version === version)) throw new Error(`Plugin implements undeclared contract ${name} v${version}`);
-      for (const method of ['describe', 'createSession', 'getSessionStatus']) {
-        if (typeof implementation[method] !== 'function') throw new Error(`Payment v1 contract requires ${method}`);
+      const methods = contractMethods[name as keyof typeof contractMethods];
+      for (const method of requiredMethods[name as keyof typeof contractMethods]) {
+        const label = name === 'payment' ? 'Payment' : name;
+        if (typeof implementation[method] !== 'function') throw new Error(`${label} v1 contract requires ${method}`);
       }
       implemented.add(`${name}:v${version}`);
       for (const [method, handler] of Object.entries(implementation)) {
-        if (!(method in paymentV1Methods) || typeof handler !== 'function') throw new Error(`Unknown payment v1 method ${method}`);
-        app.post(`/__contracts/payment/v1/${method}`, async (request: FastifyRequest, reply: FastifyReply) => reply.send(await handler(request.body)));
+        if (!(method in methods) || typeof handler !== 'function') throw new Error(`Unknown ${name} v1 method ${method}`);
+        app.post(`/__contracts/${name}/v1/${method}`, async (request: FastifyRequest, reply: FastifyReply) => reply.send(await handler(request.body)));
       }
     } },
   };

@@ -397,6 +397,7 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         lastFailureMessage: instance.lastFailureMessage,
         createdAt: instance.createdAt.toISOString(),
         updatedAt: instance.updatedAt.toISOString(),
+        replacedPlugins: instance.replacedPlugins,
       });
     } catch (error: any) {
       const statusCode =
