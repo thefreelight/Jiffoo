@@ -90,3 +90,33 @@ model PaymentLedger {
   @@map("payment_ledger")
   @@schema("public")
 }
+
+// ============================================================
+// REFUND LEDGER
+// ============================================================
+model RefundLedger {
+  id               String                @id @default(cuid())
+  refundId         String
+  paymentId        String
+  orderId          String
+  eventType        RefundLedgerEventType
+  amount           Decimal               @db.Decimal(18, 2)
+  currency         String
+  provider         String?
+  providerRefundId String?
+  idempotencyKey   String?
+  metadata         Json?
+  createdAt        DateTime              @default(now())
+
+  refund  Refund  @relation(fields: [refundId], references: [id], onDelete: Cascade)
+  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([providerRefundId])
+  @@unique([idempotencyKey])
+  @@index([refundId])
+  @@index([paymentId])
+  @@index([orderId])
+  @@map("refund_ledger")
+  @@schema("public")
+}

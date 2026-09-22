@@ -35,6 +35,8 @@
     "test": "turbo run test",
     "test:api:quality": "pnpm --filter api test:quality",
     "test:e2e:all": "pnpm test:e2e:admin",
+    "verify": "node scripts/verify.mjs",
+    "verify:quick": "node scripts/verify.mjs --quick",
     "changeset": "changeset",
     "version:bump": "changeset version",
     "release": "pnpm version:bump && pnpm build"

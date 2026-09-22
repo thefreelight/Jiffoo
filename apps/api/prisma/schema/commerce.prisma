@@ -257,3 +257,98 @@ model CartItem {
   @@map("cart_items")
   @@schema("public")
 }
+
+// ============================================================
+// ORDER SHIPPING ADDRESS
+// ============================================================
+model OrderShippingAddress {
+  id           String   @id @default(cuid())
+  orderId      String   @unique
+  firstName    String
+  lastName     String
+  phone        String?
+  email        String?
+  addressLine1 String
+  addressLine2 String?
+  city         String
+  state        String?
+  country      String
+  postalCode   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_shipping_addresses")
+  @@schema("public")
+}
+
+// ============================================================
+// ORDER STATUS HISTORY
+// ============================================================
+model OrderStatusHistory {
+  id                String              @id @default(cuid())
+  orderId           String
+  fromStatus        OrderStatus?
+  toStatus          OrderStatus
+  fromPaymentStatus OrderPaymentStatus?
+  toPaymentStatus   OrderPaymentStatus?
+  reason            String?
+  actorType         String?
+  actorId           String?
+  metadata          Json?
+  createdAt         DateTime            @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("order_status_history")
+  @@schema("public")
+}
+
+// ============================================================
+// SHIPMENT
+// ============================================================
+model Shipment {
+  id             String         @id @default(cuid())
+  orderId        String
+  carrier        String?
+  trackingNumber String?
+  status         ShipmentStatus @default(PENDING)
+  shippedAt      DateTime?
+  deliveredAt    DateTime?
+  metadata       Json?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  order Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items ShipmentItem[]
+
+  @@index([orderId])
+  @@index([trackingNumber])
+  @@index([status])
+  @@map("shipments")
+  @@schema("public")
+}
+
+// ============================================================
+// SHIPMENT ITEM
+// ============================================================
+model ShipmentItem {
+  id          String   @id @default(cuid())
+  shipmentId  String
+  orderItemId String
+  quantity    Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+
+  shipment  Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  orderItem OrderItem @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([shipmentId])
+  @@index([orderItemId])
+  @@map("shipment_items")
+  @@schema("public")
+}

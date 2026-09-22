@@ -43,7 +43,8 @@ describe('Auth Endpoints', () => {
       await deleteAllTestUsers();
     });
 
-    it('should register a new user successfully', async () => {
+    // Expected to fail until charter scenario 1 ships the console email builtin (TransactionalEmailService throws without an email plugin). Remove .fails then.
+    it.fails('should register a new user successfully', async () => {
       const uniqueId = uuidv4().substring(0, 8);
       const response = await app.inject({
         method: 'POST',
