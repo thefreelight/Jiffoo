@@ -10,7 +10,7 @@
 import * as React from 'react';
 import { useShopTheme } from '@/lib/themes/provider';
 import { useCartStore } from '@/store/cart';
-import { useAuthStore } from '@/store/auth';
+import { associateAffiliateVisitor, useAuthStore } from '@/store/auth';
 import { useStoreContext } from '@/store/store';
 import { useLocalizedNavigation } from '@/hooks/use-localized-navigation';
 import { apiClient, ordersApi, paymentApi } from '@/lib/api';
@@ -65,6 +65,17 @@ export default function CheckoutPage() {
   const [stripeOrderId, setStripeOrderId] = React.useState<string | null>(null);
   const [stripePublishableKey, setStripePublishableKey] = React.useState<string | null>(null);
   const [isStripeModalOpen, setIsStripeModalOpen] = React.useState(false);
+  const [savedAddress, setSavedAddress] = React.useState<{
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    addressLine1?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  } | null>(null);
   const fallbackStripePublishableKey = (process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '').trim();
 
   // Helper function for translations with fallback
@@ -75,6 +86,37 @@ export default function CheckoutPage() {
   React.useEffect(() => {
     setSelectedCartItemIds(readSelectedCartItemIds());
   }, []);
+
+  // Remembered address: prefill checkout from the most recent order so the
+  // buyer does not re-type their details every time.
+  const isAuthenticated = Boolean(user);
+  React.useEffect(() => {
+    if (!isAuthenticated || savedAddress) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await ordersApi.getOrders({ page: 1, limit: 1 });
+        const latest = response.data?.items?.[0]?.shippingAddress;
+        if (cancelled || !latest) return;
+        setSavedAddress({
+          email: user?.email,
+          firstName: latest.firstName,
+          lastName: latest.lastName,
+          phone: latest.phone,
+          addressLine1: latest.addressLine1 || latest.street || latest.address,
+          city: latest.city,
+          state: latest.state,
+          postalCode: latest.postalCode,
+          country: latest.country,
+        });
+      } catch {
+        // Prefill is best-effort.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, savedAddress, user?.email]);
 
   const checkoutItems = React.useMemo(() => {
     if (!selectedCartItemIds || selectedCartItemIds.length === 0) {
@@ -223,6 +265,14 @@ export default function CheckoutPage() {
 
       const order = orderResponse.data as { id: string };
       const orderId = order.id;
+      // Attribute a referral click at the moment of checkout: the buyer may
+      // never pass through the login action, so this is the last reliable
+      // moment to bind the visitor cookie to the account.
+      try {
+        await associateAffiliateVisitor();
+      } catch {
+        // Attribution is best-effort; never block checkout.
+      }
 
       if (
         availablePaymentMethods.length > 0 &&
@@ -373,6 +423,7 @@ export default function CheckoutPage() {
         requireShippingAddress={requireShippingAddress}
         countriesRequireStatePostal={countriesRequireStatePostal}
         currentUserEmail={user?.email}
+        savedAddress={savedAddress}
         locale={nav.locale}
         t={t}
         availablePaymentMethods={availablePaymentMethods}

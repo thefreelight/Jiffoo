@@ -490,5 +490,9 @@ export async function tryNativeCheckout(
   if (cancel) return cancelOrder(request, env, user, cancel[1]);
   if (url.pathname === '/api/v1/payments/sessions') return createPaymentSession(request, env, user);
   const verify = url.pathname.match(/^\/api\/v1\/payments\/sessions\/([^/]+)$/);
-  return verify ? verifyPaymentSession(env, user, verify[1]) : null;
+  if (verify) return verifyPaymentSession(env, user, verify[1]);
+  // Legacy shop-client path: /payments/verify/:sessionId
+  const legacyVerify = url.pathname.match(/^\/api\/v1\/payments\/verify\/([^/]+)$/);
+  if (legacyVerify) return verifyPaymentSession(env, user, legacyVerify[1]);
+  return null;
 }

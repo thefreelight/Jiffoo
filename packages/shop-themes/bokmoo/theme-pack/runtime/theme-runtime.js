@@ -13356,7 +13356,8 @@
     currentUserEmail,
     availablePaymentMethods,
     onSubmit,
-    onBack
+    onBack,
+    savedAddress
   }) {
     const countriesRequireStatePostalSet = react_default.useMemo(() => {
       const source = countriesRequireStatePostal && countriesRequireStatePostal.length > 0 ? countriesRequireStatePostal : ["US", "CA", "AU", "CN", "GB"];
@@ -13364,15 +13365,15 @@
     }, [countriesRequireStatePostal]);
     const paymentMethods = react_default.useMemo(() => availablePaymentMethods || [], [availablePaymentMethods]);
     const [formData, setFormData] = react_default.useState({
-      email: currentUserEmail || "",
-      firstName: "",
-      lastName: "",
-      addressLine1: "",
-      city: "",
-      state: "",
-      postalCode: "",
-      country: "",
-      phone: "",
+      email: savedAddress?.email || currentUserEmail || "",
+      firstName: savedAddress?.firstName || "",
+      lastName: savedAddress?.lastName || "",
+      addressLine1: savedAddress?.addressLine1 || "",
+      city: savedAddress?.city || "",
+      state: savedAddress?.state || "",
+      postalCode: savedAddress?.postalCode || "",
+      country: savedAddress?.country || "",
+      phone: savedAddress?.phone || "",
       paymentMethod: paymentMethods[0]?.name || "",
       promoCode: ""
     });
@@ -17011,7 +17012,7 @@
     meta: {
       ...existingMeta,
       slug: "bokmoo",
-      version: "1.1.10",
+      version: "1.1.11",
       target: "shop"
     }
   };

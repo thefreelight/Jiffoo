@@ -287,6 +287,17 @@ export interface CheckoutPageProps extends ThemeI18nProps {
     displayName: string;
     icon?: string;
   }>;
+  savedAddress?: {
+    email?: string;
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    addressLine1?: string;
+    city?: string;
+    state?: string;
+    postalCode?: string;
+    country?: string;
+  } | null;
   onSubmit: (data: CheckoutFormData) => Promise<void>;
   onBack: () => void;
 }
@@ -410,7 +421,7 @@ export interface OrderDetailPageProps extends ThemeI18nProps {
  */
 export interface OrderSuccessPageProps extends ThemeI18nProps {
   orderNumber: string;
-  order?: ShopOrderDetailDTO | null;
+  order?: { id?: string } | null;
   isVerifying?: boolean;
   config?: ThemeConfig;
   onContinueShopping: () => void;

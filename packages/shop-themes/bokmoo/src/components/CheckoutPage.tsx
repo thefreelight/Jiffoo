@@ -13,7 +13,7 @@ export const CheckoutPage = React.memo(function CheckoutPage({
   availablePaymentMethods,
   onSubmit,
   onBack,
-}: CheckoutPageProps) {
+  savedAddress,}: CheckoutPageProps) {
   const countriesRequireStatePostalSet = React.useMemo(() => {
     const source = countriesRequireStatePostal && countriesRequireStatePostal.length > 0
       ? countriesRequireStatePostal
@@ -23,15 +23,15 @@ export const CheckoutPage = React.memo(function CheckoutPage({
 
   const paymentMethods = React.useMemo(() => availablePaymentMethods || [], [availablePaymentMethods]);
   const [formData, setFormData] = React.useState({
-    email: currentUserEmail || '',
-    firstName: '',
-    lastName: '',
-    addressLine1: '',
-    city: '',
-    state: '',
-    postalCode: '',
-    country: '',
-    phone: '',
+    email: savedAddress?.email || currentUserEmail || '',
+    firstName: savedAddress?.firstName || '',
+    lastName: savedAddress?.lastName || '',
+    addressLine1: savedAddress?.addressLine1 || '',
+    city: savedAddress?.city || '',
+    state: savedAddress?.state || '',
+    postalCode: savedAddress?.postalCode || '',
+    country: savedAddress?.country || '',
+    phone: savedAddress?.phone || '',
     paymentMethod: paymentMethods[0]?.name || '',
     promoCode: '',
   });
