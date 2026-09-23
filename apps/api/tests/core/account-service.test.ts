@@ -72,8 +72,6 @@ describe('AccountService.updateEmail', () => {
       data: expect.objectContaining({
         email: 'new@example.com',
         emailVerified: false,
-        verificationToken: null,
-        verificationTokenExpiry: null,
       }),
     }));
     expect(queueVerificationMock).toHaveBeenCalledWith(

@@ -1,422 +1,98 @@
-/**
- * Email Verification Endpoints Tests
- *
- * Coverage:
- * - GET /api/v1/auth/verify-email?token=xxx
- * - POST /api/v1/auth/resend-verification
- */
-
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
-import {
-  createTestUser,
-  deleteAllTestUsers,
-} from '../helpers/auth';
+import { createTestUser, deleteAllTestUsers } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
-import { v4 as uuidv4 } from 'uuid';
-import crypto from 'crypto';
+import { hashAuthToken } from '@/core/auth/auth-token';
+import { EmailVerificationService } from '@/services/email-verification.service';
+import { randomUUID } from 'node:crypto';
 
 describe('Email Verification Endpoints', () => {
   let app: FastifyInstance;
   const prisma = getTestPrisma();
 
-  beforeAll(async () => {
-    app = await createTestApp();
+  async function unverifiedUser() {
+    return createTestUser({ email: `verify-${randomUUID()}@example.com`, emailVerified: false });
+  }
+
+  async function latestToken(userId: string) {
+    const notification = await prisma.notification.findFirst({
+      where: { recipientUserId: userId, type: 'email_verification' }, orderBy: { createdAt: 'desc' },
+    });
+    const secret = notification?.secretJson as { link?: string; code?: string } | null;
+    expect(secret?.link).toBeTruthy();
+    return { token: new URL(secret!.link!).searchParams.get('token')!, code: secret!.code! };
+  }
+
+  beforeAll(async () => { app = await createTestApp(); });
+  afterAll(async () => { await deleteAllTestUsers(); await app.close(); });
+  beforeEach(async () => { await deleteAllTestUsers(); });
+
+  it('verifies a token within 24 hours and consumes its hashed row', async () => {
+    const user = await unverifiedUser();
+    expect((await EmailVerificationService.sendVerificationEmail(user.id, user.email, user.username)).success).toBe(true);
+    const { token } = await latestToken(user.id);
+    const row = await prisma.authToken.findUniqueOrThrow({ where: { tokenHash: hashAuthToken(token) } });
+    expect(row.expiresAt.getTime() - row.createdAt.getTime()).toBeGreaterThan(24 * 60 * 60 * 1000 - 1000);
+    expect(JSON.stringify(row)).not.toContain(token);
+
+    const response = await app.inject({ method: 'GET', url: `/api/v1/auth/verify-email?token=${token}` });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ success: true, message: 'Email verified successfully' });
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).emailVerified).toBe(true);
+    expect((await prisma.authToken.findUniqueOrThrow({ where: { id: row.id } })).consumedAt).not.toBeNull();
+    const again = await app.inject({ method: 'GET', url: `/api/v1/auth/verify-email?token=${token}` });
+    expect(again.statusCode).toBe(400);
+    expect(again.json().error.code).toBe('VERIFICATION_FAILED');
+    const resend = await app.inject({
+      method: 'POST', url: '/api/v1/auth/resend-verification', payload: { email: user.email },
+    });
+    expect(resend.statusCode).toBe(400);
+    expect(resend.json().error.message).toContain('already verified');
   });
 
-  afterAll(async () => {
-    await deleteAllTestUsers();
-    await app.close();
+  it('rejects missing, empty, and invalid tokens', async () => {
+    const missing = await app.inject({ method: 'GET', url: '/api/v1/auth/verify-email' });
+    expect(missing.statusCode).toBe(400);
+    expect(missing.json().error.code).toBe('TOKEN_REQUIRED');
+    expect((await app.inject({ method: 'GET', url: '/api/v1/auth/verify-email?token=' })).statusCode).toBe(400);
+    const invalid = await app.inject({ method: 'GET', url: '/api/v1/auth/verify-email?token=invalid' });
+    expect(invalid.statusCode).toBe(400);
+    expect(invalid.json().error.code).toBe('VERIFICATION_FAILED');
   });
 
-  describe('GET /api/v1/auth/verify-email', () => {
-    let testUser: Awaited<ReturnType<typeof createTestUser>>;
-    let validToken: string;
-    let expiredToken: string;
-
-    beforeEach(async () => {
-      await deleteAllTestUsers();
-
-      // Create a test user with a verification token
-      testUser = await createTestUser({
-        email: `verify-test-${uuidv4().substring(0, 8)}@example.com`,
-      });
-
-      // Generate valid verification token
-      validToken = crypto.randomBytes(32).toString('base64url');
-      const expiry = new Date();
-      expiry.setHours(expiry.getHours() + 24); // 24 hours from now
-
-      await prisma.user.update({
-        where: { id: testUser.id },
-        data: {
-          verificationToken: validToken,
-          verificationTokenExpiry: expiry,
-          emailVerified: false,
-        },
-      });
-
-      // Generate expired token
-      expiredToken = crypto.randomBytes(32).toString('base64url');
-      const expiredDate = new Date();
-      expiredDate.setHours(expiredDate.getHours() - 1); // 1 hour ago
-
-      // We'll create a separate user for expired token test
-    });
-
-    it('should verify email successfully with valid token', async () => {
-      const response = await app.inject({
-        method: 'GET',
-        url: `/api/v1/auth/verify-email?token=${validToken}`,
-      });
-
-      expect(response.statusCode).toBe(200);
-
-      const body = response.json();
-      expect(body).toHaveProperty('success', true);
-      expect(body).toHaveProperty('message', 'Email verified successfully');
-
-      // Verify user is marked as verified in database
-      const updatedUser = await prisma.user.findUnique({
-        where: { id: testUser.id },
-      });
-      expect(updatedUser?.emailVerified).toBe(true);
-      expect(updatedUser?.verificationToken).toBeNull();
-      expect(updatedUser?.verificationTokenExpiry).toBeNull();
-    });
-
-    it('should return 400 for missing token', async () => {
-      const response = await app.inject({
-        method: 'GET',
-        url: '/api/v1/auth/verify-email',
-      });
-
-      expect(response.statusCode).toBe(400);
-
-      const body = response.json();
-      expect(body).toHaveProperty('success', false);
-      expect(body.error).toHaveProperty('code', 'TOKEN_REQUIRED');
-    });
-
-    it('should return 400 for empty token', async () => {
-      const response = await app.inject({
-        method: 'GET',
-        url: '/api/v1/auth/verify-email?token=',
-      });
-
-      expect(response.statusCode).toBe(400);
-
-      const body = response.json();
-      expect(body).toHaveProperty('success', false);
-    });
-
-    it('should return 400 for invalid token', async () => {
-      const invalidToken = 'invalid-token-that-does-not-exist';
-
-      const response = await app.inject({
-        method: 'GET',
-        url: `/api/v1/auth/verify-email?token=${invalidToken}`,
-      });
-
-      expect(response.statusCode).toBe(400);
-
-      const body = response.json();
-      expect(body).toHaveProperty('success', false);
-      expect(body.error).toHaveProperty('code', 'VERIFICATION_FAILED');
-      expect(body.error.message).toContain('Invalid verification token');
-    });
-
-    it('should return 400 for expired token', async () => {
-      // Create a user with an expired token
-      const expiredUser = await createTestUser({
-        email: `expired-${uuidv4().substring(0, 8)}@example.com`,
-      });
-
-      const expiredDate = new Date();
-      expiredDate.setHours(expiredDate.getHours() - 1); // 1 hour ago
-
-      await prisma.user.update({
-        where: { id: expiredUser.id },
-        data: {
-          verificationToken: expiredToken,
-          verificationTokenExpiry: expiredDate,
-          emailVerified: false,
-        },
-      });
-
-      const response = await app.inject({
-        method: 'GET',
-        url: `/api/v1/auth/verify-email?token=${expiredToken}`,
-      });
-
-      expect(response.statusCode).toBe(400);
-
-      const body = response.json();
-      expect(body).toHaveProperty('success', false);
-      expect(body.error).toHaveProperty('code', 'VERIFICATION_FAILED');
-      expect(body.error.message).toContain('expired');
-    });
-
-    it('should return 400 when email is already verified', async () => {
-      // First verification (should succeed)
-      await app.inject({
-        method: 'GET',
-        url: `/api/v1/auth/verify-email?token=${validToken}`,
-      });
-
-      // Second verification attempt (should fail)
-      const response = await app.inject({
-        method: 'GET',
-        url: `/api/v1/auth/verify-email?token=${validToken}`,
-      });
-
-      expect(response.statusCode).toBe(400);
-
-      const body = response.json();
-      expect(body).toHaveProperty('success', false);
-      expect(body.error.message).toContain('Invalid verification token');
-    });
+  it('rejects an expired token', async () => {
+    const user = await unverifiedUser();
+    await EmailVerificationService.sendVerificationEmail(user.id, user.email, user.username);
+    const { token } = await latestToken(user.id);
+    await prisma.authToken.update({ where: { tokenHash: hashAuthToken(token) }, data: { expiresAt: new Date(Date.now() - 1) } });
+    const response = await app.inject({ method: 'GET', url: `/api/v1/auth/verify-email?token=${token}` });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error.message).toContain('expired');
   });
 
-  describe('POST /api/v1/auth/resend-verification', () => {
-    let unverifiedUser: Awaited<ReturnType<typeof createTestUser>>;
-    let verifiedUser: Awaited<ReturnType<typeof createTestUser>>;
-
-    beforeEach(async () => {
-      await deleteAllTestUsers();
-
-      // Create unverified user
-      unverifiedUser = await createTestUser({
-        email: `unverified-${uuidv4().substring(0, 8)}@example.com`,
-      });
-
-      await prisma.user.update({
-        where: { id: unverifiedUser.id },
-        data: {
-          emailVerified: false,
-          verificationToken: null,
-          verificationTokenExpiry: null,
-        },
-      });
-
-      // Create verified user
-      verifiedUser = await createTestUser({
-        email: `verified-${uuidv4().substring(0, 8)}@example.com`,
-      });
-
-      await prisma.user.update({
-        where: { id: verifiedUser.id },
-        data: {
-          emailVerified: true,
-          verificationToken: null,
-          verificationTokenExpiry: null,
-        },
-      });
-    });
-
-    it('should resend verification email successfully', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/v1/auth/resend-verification',
-        payload: {
-          email: unverifiedUser.email,
-        },
-      });
-
-      expect(response.statusCode).toBe(200);
-
-      const body = response.json();
-      expect(body).toHaveProperty('success', true);
-      expect(body).toHaveProperty('message', 'Verification requested');
-
-      // Verify that a new token was generated
-      const updatedUser = await prisma.user.findUnique({
-        where: { id: unverifiedUser.id },
-      });
-      expect(updatedUser?.verificationToken).not.toBeNull();
-      expect(updatedUser?.verificationTokenExpiry).not.toBeNull();
-
-      // Verify token expiry is in the future
-      if (updatedUser?.verificationTokenExpiry) {
-        expect(updatedUser.verificationTokenExpiry.getTime()).toBeGreaterThan(Date.now());
-      }
-    });
-
-    it('should return 400 for missing email', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/v1/auth/resend-verification',
-        payload: {},
-      });
-
-      expect(response.statusCode).toBe(400);
-
-      const body = response.json();
-      expect(body).toHaveProperty('success', false);
-      expect(body.error).toHaveProperty('code', 'EMAIL_REQUIRED');
-    });
-
-    it('should return 400 for empty email', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/v1/auth/resend-verification',
-        payload: {
-          email: '',
-        },
-      });
-
-      expect(response.statusCode).toBe(400);
-
-      const body = response.json();
-      expect(body).toHaveProperty('success', false);
-    });
-
-    it('should return 400 for non-existent user', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/v1/auth/resend-verification',
-        payload: {
-          email: 'nonexistent@example.com',
-        },
-      });
-
-      expect(response.statusCode).toBe(400);
-
-      const body = response.json();
-      expect(body).toHaveProperty('success', false);
-      expect(body.error).toHaveProperty('code', 'VERIFICATION_NOT_AVAILABLE');
-      expect(body.error.message).toContain('User not found');
-    });
-
-    it('should return 400 when email is already verified', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/v1/auth/resend-verification',
-        payload: {
-          email: verifiedUser.email,
-        },
-      });
-
-      expect(response.statusCode).toBe(400);
-
-      const body = response.json();
-      expect(body).toHaveProperty('success', false);
-      expect(body.error).toHaveProperty('code', 'VERIFICATION_NOT_AVAILABLE');
-      expect(body.error.message).toContain('already verified');
-    });
-
-    it('should handle invalid email format gracefully', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/v1/auth/resend-verification',
-        payload: {
-          email: 'not-a-valid-email',
-        },
-      });
-
-      // Should return 400 for non-existent user (since invalid email won't exist)
-      expect(response.statusCode).toBe(400);
-
-      const body = response.json();
-      expect(body).toHaveProperty('success', false);
-    });
-
-    it('should generate a new token when resending', async () => {
-      // Set an initial token
-      const initialToken = crypto.randomBytes(32).toString('base64url');
-      await prisma.user.update({
-        where: { id: unverifiedUser.id },
-        data: {
-          verificationToken: initialToken,
-          verificationTokenExpiry: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        },
-      });
-
-      // Resend verification
-      const response = await app.inject({
-        method: 'POST',
-        url: '/api/v1/auth/resend-verification',
-        payload: {
-          email: unverifiedUser.email,
-        },
-      });
-
-      expect(response.statusCode).toBe(200);
-
-      // Verify that a new token was generated (different from the initial one)
-      const updatedUser = await prisma.user.findUnique({
-        where: { id: unverifiedUser.id },
-      });
-      expect(updatedUser?.verificationToken).not.toBeNull();
-      expect(updatedUser?.verificationToken).not.toBe(initialToken);
-    });
+  it('resends a new token and invalidates only the previous verification token', async () => {
+    const user = await unverifiedUser();
+    await EmailVerificationService.sendVerificationEmail(user.id, user.email, user.username);
+    const first = (await latestToken(user.id)).token;
+    const response = await app.inject({ method: 'POST', url: '/api/v1/auth/resend-verification', payload: { email: user.email } });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({ success: true, message: 'Verification requested' });
+    const second = (await latestToken(user.id)).token;
+    expect(second).not.toBe(first);
+    expect((await prisma.authToken.findUniqueOrThrow({ where: { tokenHash: hashAuthToken(first) } })).consumedAt).not.toBeNull();
+    const secondRow = await prisma.authToken.findUniqueOrThrow({ where: { tokenHash: hashAuthToken(second) } });
+    expect(secondRow.consumedAt).toBeNull();
+    expect(secondRow.expiresAt.getTime()).toBeGreaterThan(Date.now());
+    expect((await app.inject({ method: 'GET', url: `/api/v1/auth/verify-email?token=${first}` })).statusCode).toBe(400);
+    expect((await app.inject({ method: 'GET', url: `/api/v1/auth/verify-email?token=${second}` })).statusCode).toBe(200);
   });
 
-  describe('Integration: Full verification workflow', () => {
-    it('should complete full verification workflow', async () => {
-      await deleteAllTestUsers();
-
-      // 1. Create unverified user
-      const user = await createTestUser({
-        email: `workflow-${uuidv4().substring(0, 8)}@example.com`,
-      });
-
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          emailVerified: false,
-          verificationToken: null,
-          verificationTokenExpiry: null,
-        },
-      });
-
-      // 2. Request verification email
-      const resendResponse = await app.inject({
-        method: 'POST',
-        url: '/api/v1/auth/resend-verification',
-        payload: {
-          email: user.email,
-        },
-      });
-
-      expect(resendResponse.statusCode).toBe(200);
-
-      // 3. Get the token from database
-      const userWithToken = await prisma.user.findUnique({
-        where: { id: user.id },
-      });
-      expect(userWithToken?.verificationToken).not.toBeNull();
-
-      const token = userWithToken!.verificationToken!;
-
-      // 4. Verify email with token
-      const verifyResponse = await app.inject({
-        method: 'GET',
-        url: `/api/v1/auth/verify-email?token=${token}`,
-      });
-
-      expect(verifyResponse.statusCode).toBe(200);
-
-      // 5. Verify user is now verified
-      const verifiedUser = await prisma.user.findUnique({
-        where: { id: user.id },
-      });
-      expect(verifiedUser?.emailVerified).toBe(true);
-      expect(verifiedUser?.verificationToken).toBeNull();
-
-      // 6. Attempting to resend should now fail
-      const resendAfterVerifyResponse = await app.inject({
-        method: 'POST',
-        url: '/api/v1/auth/resend-verification',
-        payload: {
-          email: user.email,
-        },
-      });
-
-      expect(resendAfterVerifyResponse.statusCode).toBe(400);
-      const body = resendAfterVerifyResponse.json();
-      expect(body.error.message).toContain('already verified');
-    });
+  it('rejects resend for missing or already verified accounts', async () => {
+    const verified = await createTestUser({ email: `verified-${randomUUID()}@example.com`, emailVerified: true });
+    for (const email of ['missing@example.com', verified.email, '', 'not-a-valid-email']) {
+      expect((await app.inject({ method: 'POST', url: '/api/v1/auth/resend-verification', payload: { email } })).statusCode).toBe(400);
+    }
+    expect((await app.inject({ method: 'POST', url: '/api/v1/auth/resend-verification', payload: {} })).statusCode).toBe(400);
   });
 });

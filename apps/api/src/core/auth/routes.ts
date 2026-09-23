@@ -13,32 +13,87 @@ import { sendSuccess, sendError } from '@/utils/response';
 import { authSchemas } from './schemas';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { completeBootstrapPasswordRotation, getPublicAuthBootstrapStatus } from './bootstrap';
+import { acceptStaffInvite, requestPasswordReset, resetPassword } from './account-recovery';
+import { rateLimitMiddleware } from './rate-limit-middleware';
+import { createSuccessResponseSchema, createTypedUpdateResponses, errorResponseSchema } from '@/types/common-dto';
 
 export async function authRoutes(fastify: FastifyInstance) {
-  fastify.post('/guest', async (request, reply) => {
-    try {
-      const body = (request.body || {}) as { guestId?: string; installId?: string; deviceId?: string };
-      const result = await AuthService.guest(body);
-      return sendSuccess(reply, {
-        account: {
-          id: result.user.id,
-          name: result.user.username,
-          displayName: result.user.username,
-          email: '',
-          phone: null,
-          membership: 'Guest',
-          accountType: 'guest',
-          guestId: result.guestId,
+  const acknowledgementSchema = {
+    type: 'object', properties: { requested: { type: 'boolean' } }, required: ['requested'],
+  } as const;
+  const completionSchema = {
+    type: 'object', properties: { completed: { type: 'boolean' } }, required: ['completed'],
+  } as const;
+
+  fastify.post('/forgot-password', {
+    preHandler: [rateLimitMiddleware],
+    schema: {
+      tags: ['auth'], summary: 'Request a password reset',
+      body: {
+        type: 'object', required: ['email'], additionalProperties: false,
+        properties: {
+          email: { type: 'string', format: 'email' },
+          app: { type: 'string', enum: ['storefront', 'admin'] },
         },
-        accountType: 'guest',
-        guestId: result.guestId,
-        accessToken: result.access_token,
-        token: result.token,
-        tokenType: result.token_type,
-        refreshToken: result.refresh_token,
-      }, 'Guest session created', 201);
-    } catch (error: any) {
-      return sendError(reply, 400, 'GUEST_SESSION_FAILED', error.message);
+      },
+      response: {
+        200: createSuccessResponseSchema(acknowledgementSchema),
+        400: errorResponseSchema,
+        429: {
+          type: 'object',
+          properties: { success: { type: 'boolean', enum: [false] }, error: { type: 'string' } },
+          required: ['success', 'error'],
+        },
+        500: errorResponseSchema,
+      },
+    },
+  }, async (request, reply) => {
+    const { email, app = 'storefront' } = request.body as { email: string; app?: 'storefront' | 'admin' };
+    await requestPasswordReset(email, app);
+    return sendSuccess(reply, { requested: true }, 'If the account exists, a reset link has been requested');
+  });
+
+  fastify.post('/reset-password', {
+    schema: {
+      tags: ['auth'], summary: 'Reset password with a one-time token',
+      body: {
+        type: 'object', required: ['token', 'newPassword'], additionalProperties: false,
+        properties: {
+          token: { type: 'string', minLength: 1 },
+          newPassword: { type: 'string', minLength: 6 },
+        },
+      },
+      response: createTypedUpdateResponses(completionSchema),
+    },
+  }, async (request, reply) => {
+    const { token, newPassword } = request.body as { token: string; newPassword: string };
+    try {
+      await resetPassword(token, newPassword);
+      return sendSuccess(reply, { completed: true });
+    } catch {
+      return sendError(reply, 400, 'INVALID_RESET_TOKEN', 'Invalid or expired reset token');
+    }
+  });
+
+  fastify.post('/accept-invite', {
+    schema: {
+      tags: ['auth'], summary: 'Accept a staff invitation',
+      body: {
+        type: 'object', required: ['token', 'password'], additionalProperties: false,
+        properties: {
+          token: { type: 'string', minLength: 1 },
+          password: { type: 'string', minLength: 6 },
+        },
+      },
+      response: createTypedUpdateResponses(completionSchema),
+    },
+  }, async (request, reply) => {
+    const { token, password } = request.body as { token: string; password: string };
+    try {
+      await acceptStaffInvite(token, password);
+      return sendSuccess(reply, { completed: true });
+    } catch {
+      return sendError(reply, 400, 'INVALID_INVITE_TOKEN', 'Invalid or expired invitation');
     }
   });
 
@@ -70,19 +125,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const { email, username, password, locale } = request.body as { email: string; username: string; password: string; locale?: 'en' | 'zh-Hans' | 'zh-Hant' };
-      const authorization = request.headers.authorization;
-      let guestUserId: string | undefined;
-      if (authorization?.startsWith('Bearer ')) {
-        try {
-          const payload = AuthService.verifyToken(authorization.slice(7));
-          guestUserId = payload?.role === 'GUEST' ? payload.userId : undefined;
-        } catch {
-          guestUserId = undefined;
-        }
-      }
-      const result = guestUserId
-        ? await AuthService.convertGuest(guestUserId, { email, username, password, locale })
-        : await AuthService.register({ email, username, password, locale }, request.headers['accept-language']);
+      const result = await AuthService.register({ email, username, password, locale }, request.headers['accept-language']);
       return sendSuccess(reply, result, 'Registration successful', 201);
     } catch (error: any) {
       if (error.code === 'EMAIL_NOT_VERIFIED') {

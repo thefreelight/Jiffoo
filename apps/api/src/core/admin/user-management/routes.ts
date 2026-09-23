@@ -134,27 +134,4 @@ export async function adminUserRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Reset password
-  fastify.post('/:id/reset-password', {
-    schema: {
-      tags: ['admin-users'],
-      summary: 'Reset user password',
-      description: 'Reset password for a specific user (admin only)',
-      security: [{ bearerAuth: [] }],
-      ...adminUserSchemas.resetPassword,
-    }
-  }, async (request, reply) => {
-    try {
-      const { id } = request.params as any;
-      const { newPassword } = request.body as any;
-      await AdminUserService.resetPassword(id, newPassword);
-      return sendSuccess(reply, {
-        userId: id,
-        passwordReset: true,
-        resetAt: new Date().toISOString(),
-      }, 'Password reset successfully');
-    } catch (error: any) {
-      return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
-    }
-  });
 }

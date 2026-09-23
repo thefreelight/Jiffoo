@@ -64,16 +64,14 @@ export async function accountRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     try {
       const profile = await AccountService.getProfile(request.user!.id);
-      const isGuest = profile.role === 'GUEST' || profile.email.endsWith('@guest.invalid');
       const account = {
         id: profile.id,
         name: profile.username,
         displayName: profile.username,
-        email: isGuest ? '' : profile.email,
+        email: profile.email,
         phone: null,
-        membership: isGuest ? 'Guest' : (profile.role === 'ADMIN' ? 'Admin' : 'Member'),
-        accountType: isGuest ? 'guest' : 'customer',
-        ...(isGuest ? { guestId: profile.username } : {}),
+        membership: profile.role === 'ADMIN' ? 'Admin' : 'Member',
+        accountType: 'customer',
       };
       return sendSuccess(reply, { account, profile: account });
     } catch (error: unknown) {

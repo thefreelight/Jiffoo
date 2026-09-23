@@ -234,7 +234,7 @@ describe('Persisted notifications', () => {
   });
 
   it('renders every type in all languages with the store name and only absolute logos', () => {
-    const types: NotificationType[] = ['email_verification', 'staff_invite', 'order_confirmation', 'payment_received', 'shipped', 'cancelled'];
+    const types: NotificationType[] = ['email_verification', 'staff_invite', 'password_reset', 'order_confirmation', 'payment_received', 'shipped', 'cancelled'];
     for (const type of types) for (const locale of ['en', 'zh-Hans', 'zh-Hant'] as const) {
       const valid = renderNotification(type, locale, 'Test Store', 'https://example.test/logo.png', { name: 'Buyer', orderId: 'order-1' }, true, true);
       expect(valid.subject).toContain('Test Store');
@@ -242,6 +242,26 @@ describe('Persisted notifications', () => {
       expect(valid.text).not.toMatch(/\{(?:name|orderId|instructions|reason|code)\}/);
       expect(renderNotification(type, locale, 'Test Store', '/logo.png', {}, false).html).not.toContain('<img');
     }
+  });
+
+  it('redacts password reset links and forbids Admin resend', async () => {
+    const request = await app.inject({
+      method: 'POST', url: '/api/v1/auth/forgot-password',
+      payload: { email: (await prisma.user.findUniqueOrThrow({ where: { id: customerId } })).email },
+    });
+    expect(request.statusCode).toBe(200);
+    const item = await prisma.notification.findFirstOrThrow({
+      where: { recipientUserId: customerId, type: 'password_reset' },
+    });
+    const link = (item.secretJson as { link: string }).link;
+    expect(item.text).not.toContain(link);
+    expect(item.html).not.toContain(link);
+    const response = await app.inject({
+      method: 'POST', url: `/api/v1/admin/notifications/${item.id}/resend`,
+      headers: { authorization: `Bearer ${adminToken}` },
+    });
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error.code).toBe('NOT_RESENDABLE');
   });
 
   it('requires STOREFRONT_URL in production and builds verification links from it', () => {
@@ -253,7 +273,7 @@ describe('Persisted notifications', () => {
     expect(envSchema.safeParse({
       ...process.env, NODE_ENV: 'production',
       DATABASE_URL: 'postgresql://postgres:postgres@localhost:5432/jiffoo_core_test',
-      JWT_SECRET: 'notification-test-secret', STOREFRONT_URL: 'https://store.example',
+      JWT_SECRET: 'notification-test-secret', STOREFRONT_URL: 'https://store.example', ADMIN_URL: 'https://admin.example',
     }).success).toBe(true);
     const original = env.STOREFRONT_URL;
     try {

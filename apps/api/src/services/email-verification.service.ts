@@ -1,239 +1,106 @@
-/**
- * Email Verification Service
- *
- * Handles user email verification tokens and queues persisted notifications.
- */
-
-import crypto from 'crypto';
+import crypto from 'node:crypto';
 import { prisma } from '@/config/database';
-import { env } from '@/config/env';
 import { createNotification, verificationLink, type NotificationTransaction } from '@/core/notifications/service';
+import { consumeAuthToken, hashVerificationCode, issueAuthToken } from '@/core/auth/auth-token';
+import { staffInviteLink } from '@/core/auth/account-recovery';
 
 export class EmailVerificationService {
-  private static readonly CODE_TTL_MINUTES = 10;
-  private static readonly MAX_CODE_ATTEMPTS = 5;
-  private static readonly CODE_TOKEN_PREFIX = 'v1';
-
-  /**
-   * Generate a cryptographically secure verification token
-   */
-  static generateToken(): string {
-    return crypto.randomBytes(32).toString('base64url');
-  }
-
-  /**
-   * Calculate token expiry time (24 hours from now)
-   */
-  static getTokenExpiry(): Date {
-    const expiry = new Date();
-    expiry.setHours(expiry.getHours() + 24);
-    return expiry;
-  }
-
   static generateCode(): string {
     return crypto.randomInt(0, 1_000_000).toString().padStart(6, '0');
   }
 
-  private static getCodeExpiry(): Date {
-    return new Date(Date.now() + this.CODE_TTL_MINUTES * 60 * 1000);
-  }
-
-  private static hashCode(token: string, code: string): string {
-    return crypto.createHmac('sha256', env.JWT_SECRET).update(`${token}:${code}`).digest('hex');
-  }
-
-  private static encodeCodeToken(token: string, code: string, attempts = 0): string {
-    return [this.CODE_TOKEN_PREFIX, token, this.hashCode(token, code), attempts].join(':');
-  }
-
-  private static decodeCodeToken(value: string | null): { token: string; codeHash: string; attempts: number } | null {
-    if (!value) return null;
-    const [prefix, token, codeHash, attemptsValue] = value.split(':');
-    const attempts = Number(attemptsValue);
-    if (prefix !== this.CODE_TOKEN_PREFIX || !token || !/^[a-f0-9]{64}$/.test(codeHash || '') || !Number.isInteger(attempts) || attempts < 0) {
-      return null;
-    }
-    return { token, codeHash, attempts };
-  }
-
-  /**
-   * Queue verification notification for a user
-   */
-  static async sendVerificationEmail(
-    userId: string,
-    email: string,
-    username: string
-  ): Promise<{ success: boolean; error?: string }> {
+  static async sendVerificationEmail(userId: string, email: string, username: string): Promise<{ success: boolean; error?: string }> {
     try {
       await prisma.$transaction((tx) => this.createVerification(tx, userId, email, username));
       return { success: true };
-    } catch (error: unknown) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to queue verification email',
-      };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to queue verification' };
     }
   }
 
   static async createVerification(tx: NotificationTransaction, userId: string, email: string, username: string, resentFromId?: string): Promise<void> {
-    const token = this.generateToken();
     const code = this.generateCode();
-    await tx.user.update({
-      where: { id: userId },
-      data: { verificationToken: this.encodeCodeToken(token, code), verificationTokenExpiry: this.getCodeExpiry() },
-    });
+    const token = await issueAuthToken(tx, userId, 'EMAIL_VERIFICATION', code);
     await createNotification(tx, 'email_verification', userId, email, { name: username }, {
       secret: { link: verificationLink(token), code },
       relatedType: 'user', relatedId: userId, resentFromId,
     });
   }
 
-  /**
-   * Verify email token and mark user as verified
-   */
   static async verifyToken(token: string): Promise<{ success: boolean; error?: string }> {
     try {
-      if (!token) {
-        throw new Error('Verification token is required');
-      }
-
-      let user = await prisma.user.findFirst({
-        where: { verificationToken: token },
+      await prisma.$transaction(async (tx) => {
+        const row = await consumeAuthToken(tx, token, 'EMAIL_VERIFICATION');
+        const updated = await tx.user.updateMany({ where: { id: row.userId, emailVerified: false }, data: { emailVerified: true } });
+        if (updated.count !== 1) throw new Error('Email is already verified');
       });
-
-      if (!user) {
-        user = await prisma.user.findFirst({
-          where: { verificationToken: { startsWith: `${this.CODE_TOKEN_PREFIX}:${token}:` } },
-        });
-      }
-
-      if (!user) {
-        throw new Error('Invalid verification token');
-      }
-
-      if (user.emailVerified) {
-        return {
-          success: false,
-          error: 'Email is already verified',
-        };
-      }
-
-      if (!user.verificationTokenExpiry || user.verificationTokenExpiry < new Date()) {
-        throw new Error('Verification token has expired');
-      }
-
-      await prisma.user.update({
-        where: { id: user.id },
-        data: {
-          emailVerified: true,
-          verificationToken: null,
-          verificationTokenExpiry: null,
-        },
-      });
-
       return { success: true };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message || 'Failed to verify email',
-      };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to verify email' };
     }
   }
 
   static async verifyCode(email: string, code: string): Promise<{ success: boolean; error?: string }> {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !/^\d{6}$/.test(code.trim())) {
+      return { success: false, error: 'Invalid email or verification code' };
+    }
+    const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+    if (!user) return { success: false, error: 'Invalid email or verification code' };
+    if (user.emailVerified) return { success: false, error: 'Email is already verified' };
+    const row = await prisma.authToken.findFirst({
+      where: { userId: user.id, purpose: 'EMAIL_VERIFICATION', consumedAt: null },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (!row || row.expiresAt <= new Date() || row.attempts >= 5 || !row.codeHash) {
+      return { success: false, error: 'Verification code has expired' };
+    }
+    const expected = hashVerificationCode(row.tokenHash, code.trim());
+    if (!crypto.timingSafeEqual(Buffer.from(row.codeHash, 'hex'), Buffer.from(expected, 'hex'))) {
+      const result = await prisma.authToken.updateMany({
+        where: { id: row.id, consumedAt: null, attempts: row.attempts },
+        data: { attempts: { increment: 1 }, ...(row.attempts >= 4 ? { consumedAt: new Date() } : {}) },
+      });
+      if (result.count !== 1) return { success: false, error: 'Invalid email or verification code' };
+      return { success: false, error: row.attempts >= 4 ? 'Too many attempts. Request a new verification code' : 'Invalid email or verification code' };
+    }
     try {
-      const normalizedEmail = email.trim().toLowerCase();
-      const normalizedCode = code.trim();
-      if (!normalizedEmail) throw new Error('Email address is required');
-      if (!/^\d{6}$/.test(normalizedCode)) throw new Error('Verification code must be 6 digits');
-
-      const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
-      if (!user) throw new Error('Invalid email or verification code');
-      if (user.emailVerified) throw new Error('Email is already verified');
-      if (!user.verificationTokenExpiry || user.verificationTokenExpiry < new Date()) throw new Error('Verification code has expired');
-
-      const stored = this.decodeCodeToken(user.verificationToken);
-      if (!stored) throw new Error('Request a new verification code');
-      const expectedHash = this.hashCode(stored.token, normalizedCode);
-      const matches = crypto.timingSafeEqual(Buffer.from(stored.codeHash, 'hex'), Buffer.from(expectedHash, 'hex'));
-
-      if (!matches) {
-        const attempts = stored.attempts + 1;
-        await prisma.user.update({
-          where: { id: user.id },
-          data: attempts >= this.MAX_CODE_ATTEMPTS
-            ? { verificationToken: null, verificationTokenExpiry: null }
-            : { verificationToken: [this.CODE_TOKEN_PREFIX, stored.token, stored.codeHash, attempts].join(':') },
+      await prisma.$transaction(async (tx) => {
+        const claimed = await tx.authToken.updateMany({
+          where: { id: row.id, consumedAt: null, expiresAt: { gt: new Date() }, attempts: { lt: 5 } },
+          data: { consumedAt: new Date() },
         });
-        if (attempts >= this.MAX_CODE_ATTEMPTS) throw new Error('Too many attempts. Request a new verification code');
-        throw new Error('Invalid email or verification code');
-      }
-
-      await prisma.user.update({
-        where: { id: user.id },
-        data: { emailVerified: true, verificationToken: null, verificationTokenExpiry: null },
+        if (claimed.count !== 1) throw new Error('Invalid email or verification code');
+        await tx.user.update({ where: { id: user.id }, data: { emailVerified: true } });
       });
       return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error.message || 'Failed to verify email' };
+    } catch {
+      return { success: false, error: 'Invalid email or verification code' };
     }
   }
 
-  /**
-   * Queue a fresh verification notification for a user
-   */
   static async resendVerificationEmail(email: string): Promise<{ success: boolean; error?: string }> {
-    try {
-      const user = await prisma.user.findUnique({
-        where: { email },
-      });
-
-      if (!user) {
-        throw new Error('User not found');
-      }
-
-      if (user.emailVerified) {
-        throw new Error('Email is already verified');
-      }
-
-      return await this.sendVerificationEmail(user.id, user.email, user.username);
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message || 'Failed to resend verification email',
-      };
-    }
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return { success: false, error: 'User not found' };
+    if (user.emailVerified) return { success: false, error: 'Email is already verified' };
+    return this.sendVerificationEmail(user.id, user.email, user.username);
   }
 
-  /**
-   * Queue a staff invitation notification.
-   */
-  static async sendStaffInvitationEmail(
-    userId: string,
-    email: string,
-    username: string
-  ): Promise<{ success: boolean; error?: string }> {
+  static async sendStaffInvitationEmail(userId: string, email: string, username: string): Promise<{ success: boolean; error?: string }> {
     try {
       await prisma.$transaction((tx) => this.createStaffInvitation(tx, userId, email, username));
       return { success: true };
-    } catch (error: unknown) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to queue staff invitation',
-      };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to queue invitation' };
     }
   }
 
   static async createStaffInvitation(tx: NotificationTransaction, userId: string, email: string, username: string, resentFromId?: string): Promise<void> {
-    const token = this.generateToken();
-    await tx.user.update({
-      where: { id: userId },
-      data: { verificationToken: token, verificationTokenExpiry: this.getTokenExpiry() },
-    });
+    const token = await issueAuthToken(tx, userId, 'STAFF_INVITE');
+    const user = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { locale: true } });
     await createNotification(tx, 'staff_invite', userId, email, { name: username }, {
-      secret: { link: verificationLink(token) },
+      secret: { link: staffInviteLink(token, user.locale) },
       relatedType: 'user', relatedId: userId, resentFromId,
     });
   }
-
 }

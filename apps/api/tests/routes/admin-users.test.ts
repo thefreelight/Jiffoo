@@ -8,10 +8,10 @@
  * - GET /api/v1/admin/users/:id
  * - PUT /api/v1/admin/users/:id
  * - DELETE /api/v1/admin/users/:id
- * - POST /api/v1/admin/users/:id/reset-password
+ * - POST /api/v1/admin/customers/:id/password-reset-link
  */
 
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import {
@@ -20,6 +20,9 @@ import {
   deleteAllTestUsers,
 } from '../helpers/auth';
 import { v4 as uuidv4 } from 'uuid';
+import { getTestPrisma } from '../helpers/db';
+import { hashAuthToken } from '@/core/auth/auth-token';
+import { ADMIN_PERMISSIONS, DEFAULT_ADMIN_ROLE_PERMISSIONS } from 'shared';
 
 describe('Admin Users Endpoints', () => {
   let app: FastifyInstance;
@@ -367,68 +370,81 @@ describe('Admin Users Endpoints', () => {
     });
   });
 
-  describe('POST /api/v1/admin/users/:id/reset-password', () => {
+  describe('POST /api/v1/admin/customers/:id/password-reset-link', () => {
     let targetUserId: string;
 
-    beforeAll(async () => {
+    beforeEach(async () => {
       const { user } = await createUserWithToken({
         email: `reset-pw-${uuidv4().substring(0, 8)}@example.com`,
       });
       targetUserId = user.id;
     });
 
-    it('should return 401 without token', async () => {
+    const url = () => `/api/v1/admin/customers/${targetUserId}/password-reset-link`;
+
+    it('rejects the removed direct set-password endpoint', async () => {
       const response = await app.inject({
         method: 'POST',
         url: `/api/v1/admin/users/${targetUserId}/reset-password`,
         payload: { newPassword: 'NewPassword123!' },
       });
-
-      expect(response.statusCode).toBe(401);
+      expect(response.statusCode).toBe(404);
     });
 
-    it('should return 403 for regular user', async () => {
-      const response = await app.inject({
+    it('requires authentication', async () => {
+      expect((await app.inject({ method: 'POST', url: url() })).statusCode).toBe(401);
+    });
+
+    it('requires customers.credentials.reset even when the actor has customers.write', async () => {
+      const regular = await app.inject({
         method: 'POST',
-        url: `/api/v1/admin/users/${targetUserId}/reset-password`,
+        url: url(),
         headers: { authorization: `Bearer ${userToken}` },
-        payload: { newPassword: 'NewPassword123!' },
       });
+      expect(regular.statusCode).toBe(403);
 
-      expect(response.statusCode).toBe(403);
+      const actor = await createAdminWithToken();
+      const prisma = getTestPrisma();
+      await prisma.adminMembership.create({
+        data: { userId: actor.user.id, role: 'OPERATIONS_MANAGER' },
+      });
+      expect(DEFAULT_ADMIN_ROLE_PERMISSIONS.OPERATIONS_MANAGER).toContain(ADMIN_PERMISSIONS.CUSTOMERS_WRITE);
+      expect(DEFAULT_ADMIN_ROLE_PERMISSIONS.OPERATIONS_MANAGER).not.toContain(ADMIN_PERMISSIONS.CUSTOMERS_CREDENTIALS_RESET);
+      const headers = { authorization: `Bearer ${actor.token}` };
+      const forbidden = await app.inject({ method: 'POST', url: url(), headers });
+      expect(forbidden.statusCode).toBe(403);
+      expect(forbidden.json().error.message).toContain(ADMIN_PERMISSIONS.CUSTOMERS_CREDENTIALS_RESET);
+
+      await prisma.adminMembership.update({
+        where: { userId: actor.user.id }, data: { role: 'SUPPORT_AGENT' },
+      });
+      expect(DEFAULT_ADMIN_ROLE_PERMISSIONS.SUPPORT_AGENT).toContain(ADMIN_PERMISSIONS.CUSTOMERS_CREDENTIALS_RESET);
+      const allowed = await app.inject({ method: 'POST', url: url(), headers });
+      expect(allowed.statusCode).toBe(201);
+      expect(allowed.json().data.link).toContain('/reset-password?token=');
     });
 
-    it('should return 400 for missing password', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: `/api/v1/admin/users/${targetUserId}/reset-password`,
-        headers: { authorization: `Bearer ${adminToken}` },
-        payload: {},
+    it('returns a one-time link, invalidates the previous link, audits without secrets and queues no notification', async () => {
+      const prisma = getTestPrisma();
+      const headers = { authorization: `Bearer ${adminToken}` };
+      const first = await app.inject({ method: 'POST', url: url(), headers });
+      expect(first.statusCode).toBe(201);
+      const firstLink = first.json().data.link as string;
+      const second = await app.inject({ method: 'POST', url: url(), headers });
+      expect(second.statusCode).toBe(201);
+      const secondLink = second.json().data.link as string;
+      const firstToken = new URL(firstLink).searchParams.get('token')!;
+      const secondToken = new URL(secondLink).searchParams.get('token')!;
+      expect(firstLink).toContain('/reset-password?token=');
+      expect(secondToken).not.toBe(firstToken);
+      expect((await prisma.authToken.findUniqueOrThrow({ where: { tokenHash: hashAuthToken(firstToken) } })).consumedAt).not.toBeNull();
+      expect((await prisma.authToken.findUniqueOrThrow({ where: { tokenHash: hashAuthToken(secondToken) } })).consumedAt).toBeNull();
+      const audits = await prisma.adminStaffAuditLog.findMany({
+        where: { staffUserId: targetUserId, action: 'CUSTOMER_PASSWORD_RESET_LINK_GENERATED' },
       });
-
-      expect(response.statusCode).toBe(400);
-    });
-
-    it('should return 400 for short password', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: `/api/v1/admin/users/${targetUserId}/reset-password`,
-        headers: { authorization: `Bearer ${adminToken}` },
-        payload: { newPassword: '123' },
-      });
-
-      expect(response.statusCode).toBe(400);
-    });
-
-    it('should reset password for admin', async () => {
-      const response = await app.inject({
-        method: 'POST',
-        url: `/api/v1/admin/users/${targetUserId}/reset-password`,
-        headers: { authorization: `Bearer ${adminToken}` },
-        payload: { newPassword: 'NewPassword123!' },
-      });
-
-      expect(response.statusCode).toBe(200);
+      expect(audits).toHaveLength(2);
+      expect(JSON.stringify(audits)).not.toContain(secondToken);
+      expect(await prisma.notification.count({ where: { recipientUserId: targetUserId, type: 'password_reset' } })).toBe(0);
     });
   });
 });

@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ArrowLeft, Mail, ShieldCheck, User as UserIcon, Clock3, History } from 'lucide-react'
+import { ArrowLeft, Mail, ShieldCheck, User as UserIcon, Clock3, History, Link2, Copy } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { useLocale, useT } from 'shared/src/i18n/react'
 import { Badge } from '@/components/ui/badge'
@@ -16,6 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { useResendStaffInvite, useStaffAuditLogs, useStaffMember } from '@/lib/hooks/use-api'
+import { staffApi, unwrapApiResponse } from '@/lib/api'
 
 function formatDateTime(value: string) {
   return new Date(value).toLocaleString()
@@ -35,6 +36,22 @@ export default function StaffDetailPage() {
   const t = useT()
   const userId = params.id as string
   const [auditPage, setAuditPage] = useState(1)
+  const [inviteLink, setInviteLink] = useState('')
+  const [linkBusy, setLinkBusy] = useState(false)
+  const [linkError, setLinkError] = useState('')
+
+  const showInviteLink = async () => {
+    setLinkBusy(true)
+    setLinkError('')
+    setInviteLink('')
+    try {
+      setInviteLink(unwrapApiResponse(await staffApi.generateInviteLink(userId)).link)
+    } catch (caught) {
+      setLinkError(caught instanceof Error ? caught.message : 'Unable to generate invitation link')
+    } finally {
+      setLinkBusy(false)
+    }
+  }
 
   const getText = (key: string, fallback: string): string => {
     if (!t) return fallback
@@ -100,6 +117,11 @@ export default function StaffDetailPage() {
         </div>
         <div className="flex items-center gap-2">
           {!membership.emailVerified && (
+            <Button variant="outline" size="sm" disabled={linkBusy} onClick={() => void showInviteLink()}>
+              <Link2 className="mr-2 h-4 w-4" />Show invite link
+            </Button>
+          )}
+          {!membership.emailVerified && (
             <Button
               variant="outline"
               size="sm"
@@ -118,6 +140,15 @@ export default function StaffDetailPage() {
       </div>
 
       <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 py-6 space-y-6">
+        {inviteLink && (
+          <div className="flex max-w-2xl items-center gap-2">
+            <input aria-label="Invite link" readOnly value={inviteLink} className="min-w-0 flex-1 rounded border p-2 text-sm" />
+            <Button size="icon" title="Copy invite link" aria-label="Copy invite link" onClick={() => void navigator.clipboard.writeText(inviteLink)}>
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+        {linkError && <p role="alert" className="text-sm text-red-600">{linkError}</p>}
         <div className="grid gap-6 lg:grid-cols-[360px,1fr]">
           <Card className="rounded-3xl border-gray-100 shadow-sm">
             <CardHeader>

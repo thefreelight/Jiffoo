@@ -8,7 +8,7 @@ stored here. Update it only when a scenario's status actually changes.
 ## Scenario 1 — disconnected installation completes a baseline order
 
 Charter text: A disconnected installation completes a baseline order with no extension.
-Status: PARTIAL (assessed 2026-09-22)
+Status: COMPLETE (assessed 2026-09-23)
 Prerequisites:
 manual payment
 free shipping
@@ -60,7 +60,7 @@ Blocked by: persisted trust tier; marketplace download sharing the identical ins
 
 Charter text: A tax contract participates in checkout and is reflected in the order total
 before order placement.
-Status: NOT STARTED (assessed 2026-09-22)
+Status: COMPLETE (assessed 2026-09-23)
 Prerequisites:
 tax
 checkout
@@ -142,7 +142,7 @@ Blocked by: Shop; Extension SDK; capability contracts
 Charter text: No code outside the storage abstraction resolves a plugin package or
 uploaded file path, and no request-scoped state is held in process memory.
 This is a static audit, not a runtime test.
-Status: PARTIAL (assessed 2026-09-22)
+Status: PARTIAL (assessed 2026-09-23)
 Prerequisites:
 State and Storage Boundaries
 PluginPackageStore interface
@@ -179,7 +179,7 @@ Charter text: An enumeration of every module-level container in Core that holds
 plugin-derived state is checked against the rebuild path of each extension
 lifecycle action, with every container accounted for under every action.
 This is a static audit, not a runtime test.
-Status: PARTIAL (assessed 2026-09-22)
+Status: PARTIAL (assessed 2026-09-23)
 Prerequisites:
 State and Storage Boundaries
 Extension Lifecycle
@@ -190,7 +190,7 @@ Blocked by: lifecycle rebuild of every plugin-derived container
 Charter text: An enabled extension raises an unhandled asynchronous error. The Core
 process continues serving, the failure is recorded with its originating
 extension, and no other extension's capability is affected.
-Status: PARTIAL (assessed 2026-09-22)
+Status: PARTIAL (assessed 2026-09-23)
 Prerequisites:
 Failure Containment
 Blocked by: process-level exception handlers with extension attribution

@@ -44,15 +44,6 @@ const deleteUserResultSchema = {
   required: ['userId', 'deleted'],
 } as const;
 
-const resetPasswordResultSchema = {
-  type: 'object',
-  properties: {
-    userId: { type: 'string', description: 'User ID whose password was reset' },
-    passwordReset: { type: 'boolean', description: 'Whether password reset succeeded' },
-    resetAt: { type: 'string', format: 'date-time', description: 'Password reset completion time' },
-  },
-  required: ['userId', 'passwordReset', 'resetAt'],
-} as const;
 
 const userStatsSchema = {
   type: 'object',
@@ -167,22 +158,4 @@ export const adminUserSchemas = {
     response: createTypedDeleteResponses(deleteUserResultSchema),
   },
 
-  // POST /api/admin/users/:id/reset-password
-  resetPassword: {
-    params: {
-      type: 'object',
-      required: ['id'],
-      properties: {
-        id: { type: 'string', description: 'User ID' },
-      },
-    },
-    body: {
-      type: 'object',
-      required: ['newPassword'],
-      properties: {
-        newPassword: { type: 'string', minLength: 6, description: 'New password (min 6 characters)' },
-      },
-    },
-    response: createTypedUpdateResponses(resetPasswordResultSchema),
-  },
 } as const;

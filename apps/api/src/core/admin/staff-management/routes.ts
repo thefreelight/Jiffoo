@@ -3,6 +3,8 @@ import { authMiddleware, requirePermission } from '@/core/auth/middleware';
 import { ADMIN_PERMISSIONS } from 'shared';
 import { sendError, sendSuccess } from '@/utils/response';
 import { StaffManagementError, StaffManagementService } from './service';
+import { generateStaffInviteLink } from '@/core/auth/account-recovery';
+import { createTypedCreateResponses } from '@/types/common-dto';
 
 function mapStaffError(error: unknown, reply: any) {
   if (error instanceof StaffManagementError) {
@@ -14,6 +16,25 @@ function mapStaffError(error: unknown, reply: any) {
 
 export async function adminStaffRoutes(fastify: FastifyInstance) {
   fastify.addHook('onRequest', authMiddleware);
+
+  fastify.post('/:userId/invite-link', {
+    preHandler: [requirePermission(ADMIN_PERMISSIONS.STAFF_WRITE)],
+    schema: {
+      tags: ['admin-staff'], security: [{ bearerAuth: [] }],
+      params: { type: 'object', required: ['userId'], properties: { userId: { type: 'string' } } },
+      response: createTypedCreateResponses({
+        type: 'object', properties: { link: { type: 'string', format: 'uri' } },
+        required: ['link'], additionalProperties: false,
+      }),
+    },
+  }, async (request, reply) => {
+    try {
+      const { userId } = request.params as { userId: string };
+      return sendSuccess(reply, { link: await generateStaffInviteLink(userId) }, 'Invite link generated', 201);
+    } catch {
+      return sendError(reply, 409, 'INVITE_NOT_AVAILABLE', 'Staff invitation not available');
+    }
+  });
 
   fastify.get('/roles', {
     preHandler: [requirePermission(ADMIN_PERMISSIONS.STAFF_READ)],

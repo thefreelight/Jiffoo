@@ -8,6 +8,7 @@ export const notificationLocales = ['en', 'zh-Hans', 'zh-Hant'] as const;
 export type NotificationLocale = typeof notificationLocales[number];
 export type NotificationType =
   | 'email_verification'
+  | 'password_reset'
   | 'staff_invite'
   | 'order_confirmation'
   | 'payment_received'
@@ -20,6 +21,7 @@ type LocaleCopy = Record<NotificationType, Copy>;
 const translations: Record<NotificationLocale, LocaleCopy> = {
   en: {
     email_verification: { subject: 'Verify your email', body: 'Hello {name}, verify your email with code {code}.', linkLabel: 'Verify email' },
+    password_reset: { subject: 'Reset your password', body: 'Hello {name}, use this link to reset your password.', linkLabel: 'Reset password' },
     staff_invite: { subject: 'Staff invitation', body: 'Hello {name}, you have been invited to the staff team.', linkLabel: 'Activate account' },
     order_confirmation: { subject: 'Order confirmation', body: 'Order {orderId} is confirmed. {instructions}' },
     payment_received: { subject: 'Payment received', body: 'We received payment for order {orderId}.' },
@@ -28,6 +30,7 @@ const translations: Record<NotificationLocale, LocaleCopy> = {
   },
   'zh-Hans': {
     email_verification: { subject: '验证邮箱', body: '{name}，请使用验证码 {code} 验证邮箱。', linkLabel: '验证邮箱' },
+    password_reset: { subject: '重置密码', body: '{name}，请使用此链接重置密码。', linkLabel: '重置密码' },
     staff_invite: { subject: '员工邀请', body: '{name}，您已获邀加入管理团队。', linkLabel: '激活账户' },
     order_confirmation: { subject: '订单确认', body: '订单 {orderId} 已确认。{instructions}' },
     payment_received: { subject: '已收到付款', body: '我们已收到订单 {orderId} 的付款。' },
@@ -36,6 +39,7 @@ const translations: Record<NotificationLocale, LocaleCopy> = {
   },
   'zh-Hant': {
     email_verification: { subject: '驗證電子郵件', body: '{name}，請使用驗證碼 {code} 驗證電子郵件。', linkLabel: '驗證電子郵件' },
+    password_reset: { subject: '重設密碼', body: '{name}，請使用此連結重設密碼。', linkLabel: '重設密碼' },
     staff_invite: { subject: '員工邀請', body: '{name}，您已獲邀加入管理團隊。', linkLabel: '啟用帳戶' },
     order_confirmation: { subject: '訂單確認', body: '訂單 {orderId} 已確認。{instructions}' },
     payment_received: { subject: '已收到付款', body: '我們已收到訂單 {orderId} 的付款。' },

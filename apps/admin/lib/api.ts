@@ -207,10 +207,13 @@ export { getAdminClient };
 // Auth API
 export const authApi = {
   forgotPassword: (email: string): Promise<ApiResponse<void>> =>
-    apiClient.forgotPassword(email),
+    apiClient.forgotPassword(email, 'admin'),
 
-  resetPassword: (data: { email: string; code: string; password: string }): Promise<ApiResponse<void>> =>
+  resetPassword: (data: { token: string; newPassword: string }): Promise<ApiResponse<void>> =>
     apiClient.resetPassword(data),
+
+  acceptInvite: (token: string, password: string): Promise<ApiResponse<{ completed: boolean }>> =>
+    apiClient.post('/auth/accept-invite', { token, password }),
 
   login: async (identifier: string, password: string) => {
     const response = await apiClient.post<{
@@ -363,8 +366,8 @@ export const usersApi = {
 
   delete: (id: string): Promise<ApiResponse<void>> => apiClient.delete(`/admin/users/${id}`),
 
-  resetPassword: (id: string, newPassword: string): Promise<ApiResponse<{ message: string }>> =>
-    apiClient.post(`/admin/users/${id}/reset-password`, { newPassword }),
+  generateResetLink: (id: string): Promise<ApiResponse<{ link: string }>> =>
+    apiClient.post(`/admin/customers/${id}/password-reset-link`, {}),
 };
 
 // Dashboard API
@@ -901,6 +904,9 @@ export const staffApi = {
 
   resendInvite: (userId: string): Promise<ApiResponse<{ success: boolean }>> =>
     apiClient.post(`/admin/staff/${userId}/invite`, {}),
+
+  generateInviteLink: (userId: string): Promise<ApiResponse<{ link: string }>> =>
+    apiClient.post(`/admin/staff/${userId}/invite-link`, {}),
 };
 
 export default apiClient;

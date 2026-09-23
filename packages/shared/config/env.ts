@@ -27,6 +27,7 @@ export interface FrontendEnv {
   NEXT_PUBLIC_API_URL: string;
   NEXT_PUBLIC_ADMIN_URL: string;
   STOREFRONT_URL: string;
+  ADMIN_URL: string;
 }
 
 /**

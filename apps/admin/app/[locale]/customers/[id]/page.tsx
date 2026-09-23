@@ -20,7 +20,10 @@ import { useT } from 'shared/src/i18n/react'
 import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 import { UserRole } from '@/lib/types'
-import { ResetPasswordDialog } from '@/components/customers/reset-password-dialog'
+import { GenerateResetLinkDialog } from '@/components/customers/generate-reset-link-dialog'
+import { ADMIN_PERMISSIONS } from 'shared'
+import { canAccessAnyPermission } from '@/lib/admin-access'
+import { useAuthStore } from '@/lib/store'
 import { resolveApiErrorMessage } from '@/lib/error-utils'
 import { UserAvatar } from '@/components/ui/user-avatar'
 
@@ -31,6 +34,8 @@ export default function CustomerDetailPage() {
   const userId = params.id as string
   const t = useT()
   const { toast } = useToast()
+  const { user: currentUser } = useAuthStore()
+  const canGenerateResetLink = canAccessAnyPermission(currentUser, [ADMIN_PERMISSIONS.CUSTOMERS_CREDENTIALS_RESET])
   const { data: dashboardData } = useAdminDashboard()
   const currency = dashboardData?.metrics?.currency
 
@@ -63,7 +68,7 @@ export default function CustomerDetailPage() {
         isActive: user.isActive ?? true
       })
     }
-  }, [user, isEditing])
+  }, [user?.id, user?.username, user?.role, user?.avatar, user?.isActive, isEditing])
 
   const handleEdit = () => {
     setIsEditing(true)
@@ -188,14 +193,16 @@ export default function CustomerDetailPage() {
             </>
           ) : (
             <>
-              <Button
-                variant="outline"
-                className="h-10 px-6 rounded-xl border border-gray-200 font-semibold text-sm hover:bg-gray-50 flex items-center gap-2"
-                onClick={() => setResetPasswordDialogOpen(true)}
-              >
-                <Key className="w-4 h-4 text-gray-500" />
-                {getText('merchant.customers.resetPassword.submit', 'Reset Password')}
-              </Button>
+              {canGenerateResetLink && (
+                <Button
+                  variant="outline"
+                  className="h-10 px-6 rounded-xl border border-gray-200 font-semibold text-sm hover:bg-gray-50 flex items-center gap-2"
+                  onClick={() => setResetPasswordDialogOpen(true)}
+                >
+                  <Key className="w-4 h-4 text-gray-500" />
+                  Generate reset link
+                </Button>
+              )}
               <Button
                 className="h-10 px-6 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 transition-all flex items-center gap-2 bg-blue-600 hover:bg-blue-700"
                 onClick={handleEdit}
@@ -449,17 +456,13 @@ export default function CustomerDetailPage() {
         </div>
       </div>
 
-      <ResetPasswordDialog
-        open={resetPasswordDialogOpen}
-        onOpenChange={setResetPasswordDialogOpen}
-        user={user}
-        onSuccess={() => {
-          toast({
-            title: getText('merchant.customers.success', 'Success'),
-            description: getText('merchant.customers.resetPassword.success', 'Password reset'),
-          })
-        }}
-      />
+      {canGenerateResetLink && (
+        <GenerateResetLinkDialog
+          open={resetPasswordDialogOpen}
+          onOpenChange={setResetPasswordDialogOpen}
+          user={user}
+        />
+      )}
     </div>
   )
 }

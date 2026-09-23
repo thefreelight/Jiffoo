@@ -131,7 +131,7 @@ export default function NotificationsPage() {
               <dt>{label('error', 'Last error')}</dt><dd className="break-words">{selected.lastError || '-'}</dd>
             </dl>
             <div><h2 className="font-medium">{label('content', 'Content')}</h2><p className="mt-2 font-medium">{selected.subject}</p><pre className="mt-2 whitespace-pre-wrap break-words font-sans">{selected.text}</pre></div>
-            {canResend && <Button onClick={() => void resend()} disabled={resending}><RotateCw className="mr-2 h-4 w-4" />{label('resend', 'Resend')}</Button>}
+            {canResend && selected.type !== 'password_reset' && <Button onClick={() => void resend()} disabled={resending}><RotateCw className="mr-2 h-4 w-4" />{label('resend', 'Resend')}</Button>}
           </div>}
         </DialogContent>
       </Dialog>

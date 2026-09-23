@@ -292,14 +292,4 @@ export class AdminUserService {
     };
   }
 
-  static async resetPassword(userId: string, newPassword: string) {
-    const hashedPassword = await PasswordUtils.hash(newPassword);
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword }
-    });
-
-    // Invalidate specific user cache (password change doesn't affect list)
-    await CacheService.deleteUser(userId);
-  }
 }

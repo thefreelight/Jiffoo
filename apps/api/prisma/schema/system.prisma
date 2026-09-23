@@ -16,20 +16,43 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Email verification fields
-  emailVerified           Boolean   @default(false)
-  verificationToken       String?
-  verificationTokenExpiry DateTime?
+  emailVerified Boolean @default(false)
 
   // E-commerce relations
   orders          Order[]
   carts           Cart[]
   adminMembership AdminMembership?
   notifications   Notification[]
+  authTokens      AuthToken[]
 
   @@index([email])
   @@index([role])
   @@map("users")
+  @@schema("public")
+}
+
+enum AuthTokenPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+  STAFF_INVITE
+
+  @@schema("public")
+}
+
+model AuthToken {
+  id         String           @id @default(cuid())
+  userId     String
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose    AuthTokenPurpose
+  tokenHash  String           @unique
+  codeHash   String?
+  attempts   Int              @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime         @default(now())
+
+  @@index([userId, purpose])
+  @@map("auth_tokens")
   @@schema("public")
 }
 

@@ -5,7 +5,7 @@ import { prisma } from '@/config/database';
 import { authMiddleware, requirePermission } from '@/core/auth/middleware';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { sendError, sendSuccess } from '@/utils/response';
-import { createTypedCreateResponses, createTypedReadResponses } from '@/types/common-dto';
+import { createTypedCreateResponses, createTypedReadResponses, errorResponseSchema } from '@/types/common-dto';
 
 const statusValues = ['PENDING', 'SENDING', 'SENT', 'FAILED'] as const;
 const detailSchema = {
@@ -88,12 +88,15 @@ export async function adminNotificationRoutes(fastify: FastifyInstance) {
     schema: {
       tags: ['admin-notifications'], security: [{ bearerAuth: [] }],
       params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
-      response: createTypedCreateResponses(detailSchema),
+      response: { ...createTypedCreateResponses(detailSchema), 404: errorResponseSchema },
     },
   }, async (request, reply) => {
     const { id } = request.params as { id: string };
     const original = await prisma.notification.findUnique({ where: { id } });
     if (!original) return sendError(reply, 404, 'NOT_FOUND', 'Notification not found');
+    if (original.type === 'password_reset') {
+      return sendError(reply, 409, 'NOT_RESENDABLE', 'Password reset notifications cannot be resent');
+    }
     const permission = original.type === 'staff_invite'
       ? ADMIN_PERMISSIONS.STAFF_WRITE
       : original.type === 'email_verification'

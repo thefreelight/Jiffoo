@@ -19,6 +19,7 @@ import { checkoutRoutes } from '@/core/checkout/routes';
 
 // Admin routes
 import { adminUserRoutes } from '@/core/admin/user-management/routes';
+import { customerPasswordResetLinkRoutes } from '@/core/admin/user-management/password-reset-link-routes';
 import { adminProductRoutes } from '@/core/admin/product-management/routes';
 import { adminOrderRoutes } from '@/core/admin/order-management/routes';
 import { adminNotificationRoutes } from '@/core/admin/notifications/routes';
@@ -48,6 +49,7 @@ export async function registerV1Routes(fastify: FastifyInstance) {
 
   // Admin routes
   await fastify.register(adminUserRoutes, { prefix: '/admin/users' });
+  await fastify.register(customerPasswordResetLinkRoutes, { prefix: '/admin/customers' });
   await fastify.register(adminProductRoutes, { prefix: '/admin/products' });
   await fastify.register(adminOrderRoutes, { prefix: '/admin/orders' });
   await fastify.register(adminNotificationRoutes, { prefix: '/admin/notifications' });

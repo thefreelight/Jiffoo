@@ -7,6 +7,8 @@ import {
   deleteAllTestUsers,
 } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
+import { hashAuthToken } from '@/core/auth/auth-token';
+import { env } from '@/config/env';
 
 describe('Admin Staff Endpoints', () => {
   let app: FastifyInstance;
@@ -64,14 +66,16 @@ describe('Admin Staff Endpoints', () => {
     const invitedUser = await prisma.user.findUnique({
       where: { email: 'analyst-staff@test.com' },
       select: {
+        id: true,
         emailVerified: true,
-        verificationToken: true,
-        verificationTokenExpiry: true,
       },
     });
     expect(invitedUser?.emailVerified).toBe(false);
-    expect(invitedUser?.verificationToken).toBeTruthy();
-    expect(invitedUser?.verificationTokenExpiry?.getTime()).toBeGreaterThan(Date.now());
+    const invitation = await prisma.authToken.findFirst({
+      where: { userId: invitedUser!.id, purpose: 'STAFF_INVITE', consumedAt: null },
+    });
+    expect(invitation?.tokenHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(invitation?.expiresAt.getTime()).toBeGreaterThan(Date.now());
   });
 
   it('POST /api/v1/admin/staff should block admin from granting another staff manager', async () => {
@@ -173,6 +177,30 @@ describe('Admin Staff Endpoints', () => {
       },
     });
     expect(auditEntry).toBeTruthy();
+  });
+
+  it('POST /api/v1/admin/staff/:userId/invite-link requires staff.write and replaces the old invitation', async () => {
+    const prisma = getTestPrisma();
+    const staff = await prisma.user.findUniqueOrThrow({ where: { email: 'analyst-staff@test.com' } });
+    const url = `/api/v1/admin/staff/${staff.id}/invite-link`;
+    expect((await app.inject({ method: 'POST', url })).statusCode).toBe(401);
+    const customer = await createUserWithToken();
+    expect((await app.inject({
+      method: 'POST', url, headers: { authorization: `Bearer ${customer.token}` },
+    })).statusCode).toBe(403);
+    const headers = { authorization: `Bearer ${adminToken}` };
+    const first = await app.inject({ method: 'POST', url, headers });
+    expect(first.statusCode).toBe(201);
+    const firstLink = first.json().data.link as string;
+    expect(firstLink.startsWith(env.ADMIN_URL)).toBe(true);
+    expect(firstLink).toContain('/auth/accept-invite?token=');
+    const second = await app.inject({ method: 'POST', url, headers });
+    expect(second.statusCode).toBe(201);
+    const firstToken = new URL(firstLink).searchParams.get('token')!;
+    const secondToken = new URL(second.json().data.link).searchParams.get('token')!;
+    expect(firstToken).not.toBe(secondToken);
+    expect((await prisma.authToken.findUniqueOrThrow({ where: { tokenHash: hashAuthToken(firstToken) } })).consumedAt).not.toBeNull();
+    expect((await prisma.authToken.findUniqueOrThrow({ where: { tokenHash: hashAuthToken(secondToken) } })).consumedAt).toBeNull();
   });
 
   it('DELETE /api/v1/admin/staff/:userId should protect the last active owner', async () => {

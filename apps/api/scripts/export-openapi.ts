@@ -26,6 +26,7 @@ process.env.API_SERVICE_URL = process.env.API_SERVICE_URL || 'http://localhost:3
 process.env.NEXT_PUBLIC_API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 process.env.NEXT_PUBLIC_ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
 process.env.STOREFRONT_URL = process.env.STOREFRONT_URL || 'http://localhost:3003';
+process.env.ADMIN_URL = process.env.ADMIN_URL || 'http://localhost:3002';
 // 3rd Party Services (Mocked)
 process.env.GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || 'mock_client_id';
 process.env.GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || 'mock_client_secret';

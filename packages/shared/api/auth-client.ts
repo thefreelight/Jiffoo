@@ -145,22 +145,15 @@ export class AuthClient extends ApiClient {
     return this.post(API_ENDPOINTS.AUTH.CHANGE_PASSWORD, data);
   }
 
-  // Forgot password - Not implemented, return error
-  public async forgotPassword(email: string): Promise<ApiResponse<void>> {
-    return this.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email });
+  public async forgotPassword(email: string, app: 'storefront' | 'admin' = 'storefront'): Promise<ApiResponse<void>> {
+    return this.post(API_ENDPOINTS.AUTH.FORGOT_PASSWORD, { email, app });
   }
 
-  // Reset password with the code delivered by forgotPassword()
   public async resetPassword(data: {
-    email: string;
-    code: string;
-    password: string;
+    token: string;
+    newPassword: string;
   }): Promise<ApiResponse<void>> {
-    return this.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, {
-      email: data.email,
-      code: data.code,
-      newPassword: data.password,
-    });
+    return this.post(API_ENDPOINTS.AUTH.RESET_PASSWORD, data);
   }
 
   // Refresh token

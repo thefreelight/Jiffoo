@@ -110,8 +110,6 @@ export class AccountService {
         data: {
           email: normalizedEmail,
           emailVerified: false,
-          verificationToken: null,
-          verificationTokenExpiry: null,
           updatedAt: new Date(),
         },
         select: this.profileSelect,

@@ -49,13 +49,15 @@ function resolveRequiredPermission(method: string, pathname: string): AdminPermi
   }
 
   if (pathname.startsWith('/admin/users')) {
-    if (pathname.endsWith('/reset-password')) {
-      return ADMIN_PERMISSIONS.CUSTOMERS_CREDENTIALS_RESET;
-    }
-
     return isReadMethod(method)
       ? ADMIN_PERMISSIONS.CUSTOMERS_READ
       : ADMIN_PERMISSIONS.CUSTOMERS_WRITE;
+  }
+  if (pathname.startsWith('/admin/customers')) {
+    if (method.toUpperCase() === 'POST' && /^\/admin\/customers\/[^/]+\/password-reset-link$/.test(pathname)) {
+      return ADMIN_PERMISSIONS.CUSTOMERS_CREDENTIALS_RESET;
+    }
+    return isReadMethod(method) ? ADMIN_PERMISSIONS.CUSTOMERS_READ : ADMIN_PERMISSIONS.CUSTOMERS_WRITE;
   }
 
   if (pathname.startsWith('/admin/staff')) {

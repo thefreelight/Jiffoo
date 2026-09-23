@@ -36,6 +36,7 @@ export const envSchema = z.object({
   NEXT_PUBLIC_API_URL: z.string().default('http://localhost:3001/api/v1'),
   NEXT_PUBLIC_ADMIN_URL: z.string().default('http://localhost:3002'),
   STOREFRONT_URL: z.string().url().optional(),
+  ADMIN_URL: z.string().url().optional(),
 
   VAULT_ADDR: z.string().optional(),
   VAULT_TOKEN: z.string().optional(),
@@ -77,10 +78,18 @@ export const envSchema = z.object({
       message: 'STOREFRONT_URL is required in production',
     });
   }
+  if (value.NODE_ENV === 'production' && !value.ADMIN_URL) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['ADMIN_URL'],
+      message: 'ADMIN_URL is required in production',
+    });
+  }
 });
 
 export const env = {
   ...envSchema.parse(process.env),
   STOREFRONT_URL: process.env.STOREFRONT_URL || 'http://localhost:3003',
+  ADMIN_URL: process.env.ADMIN_URL || 'http://localhost:3002',
 };
 export type Env = z.infer<typeof envSchema>;

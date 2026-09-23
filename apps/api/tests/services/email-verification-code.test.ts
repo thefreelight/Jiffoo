@@ -1,137 +1,60 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { randomUUID } from 'node:crypto';
+import { prisma } from '@/config/database';
+import { createTestUser, deleteAllTestUsers } from '../helpers/auth';
+import { EmailVerificationService } from '@/services/email-verification.service';
 
-vi.hoisted(() => {
-  process.env.JWT_SECRET ||= "test-email-verification-secret";
-});
+describe('EmailVerificationService code flow', () => {
+  beforeEach(async () => { await deleteAllTestUsers(); });
+  afterAll(async () => { await deleteAllTestUsers(); });
 
-const { prismaMock, createNotificationMock } = vi.hoisted(() => ({
-  prismaMock: {
-    $transaction: vi.fn(),
-    user: {
-      update: vi.fn(),
-      findFirst: vi.fn(),
-      findUnique: vi.fn(),
-    },
-  },
-  createNotificationMock: vi.fn(),
-}));
+  async function issue() {
+    const user = await createTestUser({ email: `code-${randomUUID()}@example.com`, emailVerified: false });
+    expect((await EmailVerificationService.sendVerificationEmail(user.id, user.email, user.username)).success).toBe(true);
+    const notification = await prisma.notification.findFirstOrThrow({
+      where: { recipientUserId: user.id, type: 'email_verification' },
+      orderBy: { createdAt: 'desc' },
+    });
+    const { code, link } = notification.secretJson as { code: string; link: string };
+    const row = await prisma.authToken.findFirstOrThrow({
+      where: { userId: user.id, purpose: 'EMAIL_VERIFICATION', consumedAt: null },
+    });
+    return { user, row, code, link };
+  }
 
-vi.mock("@/config/database", () => ({ prisma: prismaMock }));
-vi.mock("@/core/notifications/service", () => ({
-  createNotification: createNotificationMock,
-  verificationLink: (token: string) => `http://localhost:3003/verify-email?token=${token}`,
-}));
-
-import { EmailVerificationService } from "@/services/email-verification.service";
-
-describe("EmailVerificationService code flow", () => {
-  const user = {
-    id: "user-1",
-    email: "buyer@example.com",
-    username: "buyer",
-    emailVerified: false,
-    verificationToken: null as string | null,
-    verificationTokenExpiry: new Date(Date.now() + 10 * 60 * 1000),
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-    prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof prismaMock) => Promise<unknown>) => callback(prismaMock));
-    prismaMock.user.update.mockResolvedValue(user);
-    createNotificationMock.mockResolvedValue({ id: "notification-1" });
-  });
-
-  it("generates six-digit codes", () => {
-    expect(EmailVerificationService.generateCode()).toMatch(/^\d{6}$/);
-  });
-
-  it("stores a code digest and queues the code in secret notification content", async () => {
-    const result = await EmailVerificationService.sendVerificationEmail(
-      user.id,
-      user.email,
-      user.username
-    );
-
-    expect(result).toEqual({ success: true });
-    const update = prismaMock.user.update.mock.calls[0][0];
-    expect(update.data.verificationToken).toMatch(/^v1:[^:]+:[a-f0-9]{64}:0$/);
-    expect(update.data.verificationToken).not.toMatch(/:\d{6}:/);
-    const options = createNotificationMock.mock.calls[0][5];
-    const code = options.secret.code;
+  it('stores a code digest and queues the six-digit code only in secret content', async () => {
+    const { row, code, link } = await issue();
     expect(code).toMatch(/^\d{6}$/);
-    expect(createNotificationMock.mock.calls[0][1]).toBe("email_verification");
+    expect(row.codeHash).toMatch(/^[a-f0-9]{64}$/);
+    expect(JSON.stringify(row)).not.toContain(code);
+    expect(JSON.stringify(row)).not.toContain(new URL(link).searchParams.get('token'));
   });
 
-  it("verifies the emailed code and clears the token", async () => {
-    await EmailVerificationService.sendVerificationEmail(
-      user.id,
-      user.email,
-      user.username
-    );
-    const update = prismaMock.user.update.mock.calls[0][0];
-    user.verificationToken = update.data.verificationToken;
-    user.verificationTokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
-    prismaMock.user.findUnique.mockResolvedValue(user);
-    const code = createNotificationMock.mock.calls[0][5].secret.code;
-
-    const result = await EmailVerificationService.verifyCode(user.email, code);
-
-    expect(result).toEqual({ success: true });
-    const verificationUpdate = prismaMock.user.update.mock.calls.at(-1)?.[0];
-    expect(verificationUpdate.data).toEqual({
-      emailVerified: true,
-      verificationToken: null,
-      verificationTokenExpiry: null,
-    });
+  it('verifies the emailed code and consumes its token', async () => {
+    const { user, row, code } = await issue();
+    expect(await EmailVerificationService.verifyCode(user.email, code)).toEqual({ success: true });
+    expect((await prisma.authToken.findUniqueOrThrow({ where: { id: row.id } })).consumedAt).not.toBeNull();
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).emailVerified).toBe(true);
   });
 
-  it("invalidates the code after five failed attempts", async () => {
-    await EmailVerificationService.sendVerificationEmail(
-      user.id,
-      user.email,
-      user.username
-    );
-    user.verificationToken =
-      prismaMock.user.update.mock.calls[0][0].data.verificationToken;
-    prismaMock.user.findUnique.mockResolvedValue(user);
-    const sentCode = createNotificationMock.mock.calls[0][5].secret.code;
-    const wrongCode = sentCode === "000000" ? "999999" : "000000";
-
-    for (let attempt = 1; attempt <= 5; attempt += 1) {
-      const result = await EmailVerificationService.verifyCode(
-        user.email,
-        wrongCode
-      );
-      expect(result.success).toBe(false);
-      if (attempt < 5) {
-        user.verificationToken =
-          prismaMock.user.update.mock.calls.at(-1)?.[0].data.verificationToken;
-      }
+  it('locks the code after five wrong attempts', async () => {
+    const { user, row, code } = await issue();
+    const wrong = code === '000000' ? '999999' : '000000';
+    for (let attempt = 0; attempt < 5; attempt++) {
+      expect((await EmailVerificationService.verifyCode(user.email, wrong)).success).toBe(false);
     }
-
-    expect(prismaMock.user.update.mock.calls.at(-1)?.[0].data).toEqual({
-      verificationToken: null,
-      verificationTokenExpiry: null,
-    });
-    expect(
-      prismaMock.user.update.mock.calls.at(-1)?.[0].data
-    ).not.toHaveProperty("emailVerified");
+    expect((await prisma.authToken.findUniqueOrThrow({ where: { id: row.id } })).attempts).toBe(5);
+    expect((await EmailVerificationService.verifyCode(user.email, code)).success).toBe(false);
+    expect((await prisma.user.findUniqueOrThrow({ where: { id: user.id } })).emailVerified).toBe(false);
   });
 
-  it("rejects an expired code before checking the digest", async () => {
-    user.verificationToken = "v1:token:00".padEnd(71, "0");
-    user.verificationTokenExpiry = new Date(Date.now() - 1);
-    prismaMock.user.findUnique.mockResolvedValue(user);
-
-    const result = await EmailVerificationService.verifyCode(
-      user.email,
-      "123456"
-    );
-
-    expect(result).toEqual({
-      success: false,
-      error: "Verification code has expired",
+  it('rejects an expired code', async () => {
+    const { user, row, code } = await issue();
+    await prisma.authToken.update({ where: { id: row.id }, data: { expiresAt: new Date(Date.now() - 1) } });
+    const wrong = code === '000000' ? '999999' : '000000';
+    expect(await EmailVerificationService.verifyCode(user.email, wrong)).toEqual({
+      success: false, error: 'Verification code has expired',
     });
-    expect(prismaMock.user.update).not.toHaveBeenCalled();
+    expect((await prisma.authToken.findUniqueOrThrow({ where: { id: row.id } })).attempts).toBe(0);
   });
 });
