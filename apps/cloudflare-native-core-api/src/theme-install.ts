@@ -132,10 +132,10 @@ export async function readActiveThemeSnapshot(env: ThemeInstallEnv): Promise<Act
 export async function writeActiveThemeSnapshot(env: ThemeInstallEnv, payload: ActiveThemePayload): Promise<void> {
   const body = JSON.stringify(payload);
   await env.DB.prepare(
-    `INSERT INTO core_api_snapshots (cache_key, payload, status_code, content_type, updated_at)
-     VALUES (?1, ?2, 200, 'application/json', CURRENT_TIMESTAMP)
+    `INSERT INTO core_api_snapshots (cache_key, request_path, payload, status_code, content_type, source_updated_at, refreshed_at)
+     VALUES (?1, '/api/v1/themes/active', ?2, 200, 'application/json', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
      ON CONFLICT(cache_key) DO UPDATE SET payload = ?2, status_code = 200,
-       content_type = 'application/json', updated_at = CURRENT_TIMESTAMP`,
+       content_type = 'application/json', source_updated_at = CURRENT_TIMESTAMP, refreshed_at = CURRENT_TIMESTAMP`,
   ).bind(ACTIVE_SNAPSHOT_KEY, body).run();
 }
 
