@@ -79,8 +79,8 @@ export default defineConfig({
     // Run test files sequentially
     fileParallelism: false,
     
-    // Retry failed tests
-    retry: 1,
+    // Surface failures without retries
+    retry: 0,
     
     // Snapshot configuration
     snapshotFormat: {

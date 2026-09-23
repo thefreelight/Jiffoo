@@ -9,6 +9,7 @@ model User {
   phone     String?  @unique
   username  String
   password  String
+  sessionVersion Int @default(0)
   avatar    String?
   locale    String?
   role      String   @default("USER")

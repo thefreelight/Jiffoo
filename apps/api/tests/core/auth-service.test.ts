@@ -113,6 +113,7 @@ const TEST_USER = {
   isActive: true,
   emailVerified: true,
   avatar: null,
+  sessionVersion: 0,
   createdAt: new Date('2025-01-01T00:00:00Z'),
 };
 
@@ -337,6 +338,7 @@ describe('AuthService', () => {
           isActive: true,
           emailVerified: true,
           avatar: true,
+          sessionVersion: true,
         },
       });
       expect(mockPasswordUtils.verify).toHaveBeenCalledWith(
@@ -382,6 +384,7 @@ describe('AuthService', () => {
           isActive: true,
           emailVerified: true,
           avatar: true,
+          sessionVersion: true,
         },
       });
       expect(result.user.username).toBe(TEST_USER.username);
@@ -448,6 +451,7 @@ describe('AuthService', () => {
         role: TEST_USER.role,
         isActive: TEST_USER.isActive,
         avatar: TEST_USER.avatar,
+        sessionVersion: TEST_USER.sessionVersion,
       };
 
       mockPrismaUser.findUnique
@@ -470,6 +474,7 @@ describe('AuthService', () => {
           isActive: true,
           emailVerified: true,
           avatar: true,
+          sessionVersion: true,
         },
       });
       expect(mockPrismaUser.findUnique).toHaveBeenNthCalledWith(2, {
@@ -482,6 +487,7 @@ describe('AuthService', () => {
           role: true,
           isActive: true,
           avatar: true,
+          sessionVersion: true,
         },
       });
       expect(result.user.emailVerified).toBe(true);
@@ -557,7 +563,7 @@ describe('AuthService', () => {
 
   describe('refreshSession', () => {
     it('should return new tokens when given a valid refresh token', async () => {
-      const refreshPayload = { userId: TEST_USER.id, type: 'refresh' as const };
+      const refreshPayload = { userId: TEST_USER.id, type: 'refresh' as const, sv: 0 };
 
       mockJwtUtils.verify.mockReturnValue(refreshPayload);
       mockPrismaUser.findUnique.mockResolvedValue(TEST_USER);
@@ -578,6 +584,7 @@ describe('AuthService', () => {
           isActive: true,
           emailVerified: true,
           avatar: true,
+          sessionVersion: true,
         },
       });
 
@@ -599,7 +606,7 @@ describe('AuthService', () => {
     });
 
     it('should refresh sessions against legacy user rows when emailVerified is unavailable', async () => {
-      const refreshPayload = { userId: TEST_USER.id, type: 'refresh' as const };
+      const refreshPayload = { userId: TEST_USER.id, type: 'refresh' as const, sv: 0 };
       const legacyUser = {
         id: TEST_USER.id,
         email: TEST_USER.email,
@@ -608,6 +615,7 @@ describe('AuthService', () => {
         role: TEST_USER.role,
         isActive: TEST_USER.isActive,
         avatar: TEST_USER.avatar,
+        sessionVersion: TEST_USER.sessionVersion,
       };
 
       mockJwtUtils.verify.mockReturnValue(refreshPayload);

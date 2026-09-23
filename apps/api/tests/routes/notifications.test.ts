@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
@@ -230,6 +230,18 @@ describe('Persisted notifications', () => {
     } finally {
       await setEnabled(slug, fixture.id, true);
       await setEnabled('console-email', consoleEmail.id, false);
+    }
+  });
+
+  it('delivers a new notification when the Node clock lags behind the database', async () => {
+    const item = await pending();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(Date.now() - 60_000));
+    try {
+      expect(await deliverPendingNotifications()).toBe(1);
+      expect((await prisma.notification.findUniqueOrThrow({ where: { id: item.id } })).status).toBe('SENT');
+    } finally {
+      vi.useRealTimers();
     }
   });
 

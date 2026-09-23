@@ -258,7 +258,7 @@ export const authApi = {
     refresh_token: apiClient.getRefreshToken(),
   }, { withCredentials: true }),
 
-  changePassword: (currentPassword: string, newPassword: string): Promise<ApiResponse<{ passwordChanged: boolean; changedAt: string }>> =>
+  changePassword: (currentPassword: string, newPassword: string): Promise<ApiResponse<{ passwordChanged: boolean; changedAt: string; access_token: string; refresh_token: string }>> =>
     apiClient.post('/auth/change-password', { currentPassword, newPassword }),
 };
 

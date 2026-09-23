@@ -38,6 +38,9 @@ export async function authMiddleware(
     if (!user) {
       return sendError(reply, 401, 'UNAUTHORIZED', 'User not found');
     }
+    if (payload.sv !== user.sessionVersion) {
+      return sendError(reply, 401, 'SESSION_REVOKED', 'Session revoked');
+    }
     if (!user.isActive) {
       return sendError(reply, 403, 'FORBIDDEN', 'Account is inactive');
     }
@@ -82,7 +85,7 @@ export async function optionalAuthMiddleware(
 
     const user = await findAuthIdentityById(payload.userId);
 
-    if (user && user.isActive) {
+    if (user && user.isActive && payload.sv === user.sessionVersion) {
       request.user = {
         id: user.id,
         userId: user.id,

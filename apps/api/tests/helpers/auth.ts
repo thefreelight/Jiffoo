@@ -96,6 +96,7 @@ export function signJwt(
       userId: user.id,
       email: user.email,
       role: user.role,
+      sv: 0,
     },
     TEST_JWT_SECRET,
     {
@@ -114,6 +115,7 @@ export function signExpiredJwt(user: Pick<TestUser, 'id' | 'email' | 'role'>): s
       userId: user.id,
       email: user.email,
       role: user.role,
+      sv: 0,
     },
     TEST_JWT_SECRET,
     {
@@ -131,6 +133,7 @@ export function signRefreshToken(userId: string): string {
     {
       userId,
       type: 'refresh',
+      sv: 0,
     },
     TEST_JWT_SECRET,
     {
@@ -156,6 +159,7 @@ export function signInvalidJwt(user: Pick<TestUser, 'id' | 'email' | 'role'>): s
       userId: user.id,
       email: user.email,
       role: user.role,
+      sv: 0,
     },
     'wrong-secret-key',
     {

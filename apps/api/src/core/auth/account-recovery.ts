@@ -30,7 +30,7 @@ export async function resetPassword(token: string, newPassword: string): Promise
   const password = await PasswordUtils.hash(newPassword);
   await prisma.$transaction(async (tx) => {
     const row = await consumeAuthToken(tx, token, 'PASSWORD_RESET');
-    await tx.user.update({ where: { id: row.userId }, data: { password } });
+    await tx.user.update({ where: { id: row.userId }, data: { password, sessionVersion: { increment: 1 } } });
     await tx.authToken.updateMany({
       where: { userId: row.userId, purpose: 'PASSWORD_RESET', consumedAt: null },
       data: { consumedAt: new Date() },
@@ -42,7 +42,7 @@ export async function acceptStaffInvite(token: string, passwordInput: string): P
   const password = await PasswordUtils.hash(passwordInput);
   await prisma.$transaction(async (tx) => {
     const row = await consumeAuthToken(tx, token, 'STAFF_INVITE');
-    await tx.user.update({ where: { id: row.userId }, data: { password, emailVerified: true } });
+    await tx.user.update({ where: { id: row.userId }, data: { password, emailVerified: true, sessionVersion: { increment: 1 } } });
   });
 }
 

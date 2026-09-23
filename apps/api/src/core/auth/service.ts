@@ -54,6 +54,7 @@ const authUserSelect = {
   isActive: true,
   emailVerified: true,
   avatar: true,
+  sessionVersion: true,
 } as const;
 
 export class AuthService {
@@ -188,11 +189,13 @@ export class AuthService {
     const token = JwtUtils.sign({
       userId: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
+      sv: user.sessionVersion,
     });
 
     const refreshToken = JwtUtils.signRefresh({
-      userId: user.id
+      userId: user.id,
+      sv: user.sessionVersion,
     });
 
     return {
@@ -247,11 +250,13 @@ export class AuthService {
     const token = JwtUtils.sign({
       userId: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
+      sv: user.sessionVersion,
     });
 
     const refreshToken = JwtUtils.signRefresh({
-      userId: user.id
+      userId: user.id,
+      sv: user.sessionVersion,
     });
 
     return {
@@ -337,7 +342,8 @@ export class AuthService {
     const token = JwtUtils.sign({
       userId: user.id,
       email: user.email,
-      role: user.role
+      role: user.role,
+      sv: user.sessionVersion,
     });
 
     return { token };
@@ -354,50 +360,39 @@ export class AuthService {
    * @throws Error if the refresh token is invalid, expired, or the user is not found
    */
   static async refreshSession(refreshToken: string): Promise<AuthResponse> {
+    let payload;
     try {
-      const payload = JwtUtils.verify(refreshToken);
-      if (!payload || !payload.userId || payload.type !== 'refresh') {
-        throw new Error('Invalid refresh token');
-      }
-
-      const user = await findAuthUserById(payload.userId);
-
-      if (!user) {
-        throw new Error('User not found');
-      }
-      if (!user.isActive) {
-        throw new Error('Account is inactive');
-      }
-
-      // Generate new tokens
-      const accessToken = JwtUtils.sign({
-        userId: user.id,
-        email: user.email,
-        role: user.role
-      });
-
-      // Optional: Rotate refresh token? (Return new one, same expiry or extended)
-      // For now, let's keep the same or issue a new one. OAuth2 usually issues a new one.
-      const newRefreshToken = JwtUtils.signRefresh({ userId: user.id });
-
-      return {
-        user: {
-          id: user.id,
-          email: user.email,
-          username: user.username,
-          role: user.role,
-          emailVerified: user.emailVerified,
-          avatar: user.avatar
-        },
-        access_token: accessToken,
-        token_type: 'Bearer',
-        expires_in: 604800,
-        refresh_token: newRefreshToken,
-        token: accessToken
-      };
-    } catch (error) {
+      payload = JwtUtils.verify(refreshToken);
+    } catch {
       throw new Error('Invalid refresh token');
     }
+    if (!payload.userId || payload.type !== 'refresh') {
+      throw new Error('Invalid refresh token');
+    }
+
+    const user = await findAuthUserById(payload.userId);
+    if (!user) throw new Error('User not found');
+    if (payload.sv !== user.sessionVersion) {
+      throw Object.assign(new Error('Session revoked'), { code: 'SESSION_REVOKED' });
+    }
+    if (!user.isActive) throw new Error('Account is inactive');
+
+    const accessToken = JwtUtils.sign({
+      userId: user.id, email: user.email, role: user.role, sv: user.sessionVersion,
+    });
+    const newRefreshToken = JwtUtils.signRefresh({ userId: user.id, sv: user.sessionVersion });
+
+    return {
+      user: {
+        id: user.id, email: user.email, username: user.username, role: user.role,
+        emailVerified: user.emailVerified, avatar: user.avatar,
+      },
+      access_token: accessToken,
+      token_type: 'Bearer',
+      expires_in: 604800,
+      refresh_token: newRefreshToken,
+      token: accessToken,
+    };
   }
 
   /**

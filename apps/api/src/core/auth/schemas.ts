@@ -61,8 +61,10 @@ const changePasswordResultSchema = {
   properties: {
     passwordChanged: { type: 'boolean', description: 'Whether password was changed successfully' },
     changedAt: { type: 'string', format: 'date-time', description: 'Password change time' },
+    access_token: { type: 'string' },
+    refresh_token: { type: 'string' },
   },
-  required: ['passwordChanged', 'changedAt'],
+  required: ['passwordChanged', 'changedAt', 'access_token', 'refresh_token'],
 } as const;
 
 const loginConfigSchema = {

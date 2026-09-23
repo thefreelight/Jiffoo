@@ -5,7 +5,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
+import { apiClient, PaginationParams, productsApi, ordersApi, usersApi, pluginsApi, uploadApi, dashboardApi, accountApi, authApi, healthApi, staffApi, unwrapApiResponse, ProductStatsData, OrderStatsData, UserStatsData, type StaffCreatePayload, type StaffMutationPayload } from '../api';
 import { toast } from 'sonner';
 import { ProductForm, DashboardStats, Product, Order, OrderDetail, User, OrderItem, HealthSummaryResponse } from '../types';
 import { PageResult } from 'shared';
@@ -836,7 +836,9 @@ export function useChangePassword() {
       const response = await authApi.changePassword(currentPassword, newPassword);
       return unwrapApiResponse(response);
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      apiClient.setToken(result.access_token);
+      (apiClient as unknown as { setRefreshToken: (token: string) => void }).setRefreshToken(result.refresh_token);
       const { user, updateUser } = useAuthStore.getState();
       if (user) {
         updateUser({

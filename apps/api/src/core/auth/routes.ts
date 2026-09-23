@@ -15,6 +15,7 @@ import { EmailVerificationService } from '@/services/email-verification.service'
 import { completeBootstrapPasswordRotation, getPublicAuthBootstrapStatus } from './bootstrap';
 import { acceptStaffInvite, requestPasswordReset, resetPassword } from './account-recovery';
 import { rateLimitMiddleware } from './rate-limit-middleware';
+import { JwtUtils } from '@/utils/jwt';
 import { createSuccessResponseSchema, createTypedUpdateResponses, errorResponseSchema } from '@/types/common-dto';
 
 export async function authRoutes(fastify: FastifyInstance) {
@@ -209,6 +210,9 @@ export async function authRoutes(fastify: FastifyInstance) {
       const result = await AuthService.refreshSession(refresh_token);
       return sendSuccess(reply, result);
     } catch (error: any) {
+      if (error.code === 'SESSION_REVOKED') {
+        return sendError(reply, 401, 'SESSION_REVOKED', error.message);
+      }
       if (error.message === 'Account is inactive') {
         return sendError(reply, 403, 'ACCOUNT_INACTIVE', error.message);
       }
@@ -388,16 +392,20 @@ export async function authRoutes(fastify: FastifyInstance) {
       }
 
       const hashedPassword = await PasswordUtils.hash(newPassword);
-      await prisma.user.update({
+      const updated = await prisma.$transaction((tx) => tx.user.update({
         where: { id: user.id },
-        data: { password: hashedPassword }
-      });
+        data: { password: hashedPassword, sessionVersion: { increment: 1 } },
+      }));
 
       await completeBootstrapPasswordRotation(user.email);
 
       return sendSuccess(reply, {
         passwordChanged: true,
         changedAt: new Date().toISOString(),
+        access_token: JwtUtils.sign({
+          userId: updated.id, email: updated.email, role: updated.role, sv: updated.sessionVersion,
+        }),
+        refresh_token: JwtUtils.signRefresh({ userId: updated.id, sv: updated.sessionVersion }),
       }, 'Password changed successfully');
     } catch (error: any) {
       return sendError(reply, 500, 'CHANGE_PASSWORD_FAILED', error.message);

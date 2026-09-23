@@ -5,6 +5,7 @@ export interface JwtPayload {
   userId: string;
   email: string;
   role: string;
+  sv: number;
   type?: 'access' | 'refresh';
 }
 
@@ -16,7 +17,7 @@ export class JwtUtils {
     });
   }
 
-  static signRefresh(payload: { userId: string }, expiresIn: string | number = '7d'): string {
+  static signRefresh(payload: { userId: string; sv: number }, expiresIn: string | number = '7d'): string {
     return jwt.sign({ ...payload, type: 'refresh' }, env.JWT_SECRET, {
       expiresIn: expiresIn as any,
       issuer: 'jiffoo-mall',

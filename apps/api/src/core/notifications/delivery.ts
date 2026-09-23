@@ -14,7 +14,7 @@ export async function deliverPendingNotifications(): Promise<number> {
   const claimed = await prisma.$transaction(async (tx) => {
     const lock = await tx.$queryRaw<Array<{ locked: boolean }>>`SELECT pg_try_advisory_xact_lock(918202) AS locked`;
     if (!lock[0]?.locked) return [];
-    const now = new Date();
+    const [{ now }] = await tx.$queryRaw<Array<{ now: Date }>>`SELECT CURRENT_TIMESTAMP AS now`;
     await tx.notification.updateMany({
       where: { status: 'SENDING', updatedAt: { lt: new Date(now.getTime() - 5 * 60_000) } },
       data: { status: 'PENDING', nextAttemptAt: now },
