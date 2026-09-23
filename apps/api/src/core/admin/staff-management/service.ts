@@ -420,80 +420,67 @@ export class StaffManagementService {
         ? await prisma.user.findUnique({ where: { email: normalizedEmail } })
         : null;
 
-    let userId = existingUser?.id;
+    if (!existingUser && (!normalizedEmail || !normalizedUsername)) {
+      throw createStaffError(
+        'email and username are required when creating a new staff account',
+        'VALIDATION_ERROR',
+        400,
+      );
+    }
+    const password = existingUser ? null : await PasswordUtils.hash(input.password || `staff-${crypto.randomUUID()}-${Date.now()}`);
 
-    if (!existingUser) {
-      if (!normalizedEmail || !normalizedUsername) {
-        throw createStaffError(
-          'email and username are required when creating a new staff account',
-          'VALIDATION_ERROR',
-          400,
-        );
-      }
-
-      const temporaryPassword = input.password || `staff-${crypto.randomUUID()}-${Date.now()}`;
-      const password = await PasswordUtils.hash(temporaryPassword);
-      const createdUser = await prisma.user.create({
+    const membership = await prisma.$transaction(async (tx) => {
+      const userId = existingUser?.id || (await tx.user.create({
         data: {
-          email: normalizedEmail,
-          username: normalizedUsername,
-          password,
+          email: normalizedEmail!,
+          username: normalizedUsername!,
+          password: password!,
           role: 'USER',
           emailVerified: false,
         },
         select: { id: true },
+      })).id;
+      const existingMembership = await tx.adminMembership.findUnique({
+        where: { userId },
+        select: { id: true },
       });
-      userId = createdUser.id;
-    }
-
-    if (!userId) {
-      throw createStaffError('Unable to resolve user account for staff membership', 'INTERNAL_SERVER_ERROR', 500);
-    }
-
-    const existingMembership = await prisma.adminMembership.findUnique({
-      where: { userId },
-      select: { id: true },
-    });
-    if (existingMembership) {
-      throw createStaffError('User already has staff access', 'CONFLICT', 409);
-    }
-
-    const membership = await prisma.adminMembership.create({
-      data: {
-        userId,
-        role: resolvedAccess.role,
-        status: resolvedAccess.status,
-        isOwner: resolvedAccess.isOwner,
-        extraPermissions: resolvedAccess.extraPermissions,
-        revokedPermissions: resolvedAccess.revokedPermissions,
-        createdByUserId: actor.userId,
-        updatedByUserId: actor.userId,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            email: true,
-            username: true,
-            avatar: true,
-            role: true,
-            isActive: true,
-            emailVerified: true,
-            createdAt: true,
-            updatedAt: true,
+      if (existingMembership) {
+        throw createStaffError('User already has staff access', 'CONFLICT', 409);
+      }
+      const created = await tx.adminMembership.create({
+        data: {
+          userId,
+          role: resolvedAccess.role,
+          status: resolvedAccess.status,
+          isOwner: resolvedAccess.isOwner,
+          extraPermissions: resolvedAccess.extraPermissions,
+          revokedPermissions: resolvedAccess.revokedPermissions,
+          createdByUserId: actor.userId,
+          updatedByUserId: actor.userId,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              email: true,
+              username: true,
+              avatar: true,
+              role: true,
+              isActive: true,
+              emailVerified: true,
+              createdAt: true,
+              updatedAt: true,
+            },
           },
         },
-      },
+      });
+      if (!created.user.emailVerified) {
+        await EmailVerificationService.createStaffInvitation(tx, created.userId, created.user.email, created.user.username);
+      }
+      return created;
     });
 
     const serialized = serializeStaffMembership(membership);
-    const invitation = serialized.emailVerified
-      ? { success: true, skipped: 'already_verified' }
-      : await EmailVerificationService.sendStaffInvitationEmail(
-          serialized.userId,
-          serialized.email,
-          serialized.username,
-        );
 
     await writeStaffAuditLog({
       staffUserId: serialized.userId,
@@ -508,9 +495,8 @@ export class StaffManagementService {
         effectivePermissions: serialized.effectivePermissions,
         extraPermissions: serialized.extraPermissions,
         revokedPermissions: serialized.revokedPermissions,
-        invitationSent: invitation.success && !('skipped' in invitation),
-        invitationSkipped: 'skipped' in invitation ? invitation.skipped : null,
-        invitationError: 'error' in invitation ? invitation.error ?? null : null,
+        invitationQueued: !serialized.emailVerified,
+        invitationSkipped: serialized.emailVerified ? 'already_verified' : null,
       },
     });
 
@@ -671,9 +657,7 @@ export class StaffManagementService {
       existingMembership.user.username,
     );
 
-    if (!invitation.success) {
-      throw createStaffError(invitation.error || 'Failed to send staff invitation', 'INVITE_SEND_FAILED', 502);
-    }
+    if (!invitation.success) throw createStaffError(invitation.error || 'Failed to queue staff invitation', 'INVITE_QUEUE_FAILED', 500);
 
     const serialized = serializeStaffMembership(existingMembership);
     await writeStaffAuditLog({
@@ -690,7 +674,7 @@ export class StaffManagementService {
 
     return {
       userId,
-      invited: true,
+      queued: true,
       invitedAt: new Date().toISOString(),
     };
   }

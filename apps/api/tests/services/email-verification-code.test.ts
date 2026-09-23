@@ -4,20 +4,22 @@ vi.hoisted(() => {
   process.env.JWT_SECRET ||= "test-email-verification-secret";
 });
 
-const { prismaMock, sendMock } = vi.hoisted(() => ({
+const { prismaMock, createNotificationMock } = vi.hoisted(() => ({
   prismaMock: {
+    $transaction: vi.fn(),
     user: {
       update: vi.fn(),
       findFirst: vi.fn(),
       findUnique: vi.fn(),
     },
   },
-  sendMock: vi.fn(),
+  createNotificationMock: vi.fn(),
 }));
 
 vi.mock("@/config/database", () => ({ prisma: prismaMock }));
-vi.mock("@/services/transactional-email.service", () => ({
-  TransactionalEmailService: { send: sendMock },
+vi.mock("@/core/notifications/service", () => ({
+  createNotification: createNotificationMock,
+  verificationLink: (token: string) => `http://localhost:3003/verify-email?token=${token}`,
 }));
 
 import { EmailVerificationService } from "@/services/email-verification.service";
@@ -34,15 +36,16 @@ describe("EmailVerificationService code flow", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof prismaMock) => Promise<unknown>) => callback(prismaMock));
     prismaMock.user.update.mockResolvedValue(user);
-    sendMock.mockResolvedValue({ messageId: "message-1" });
+    createNotificationMock.mockResolvedValue({ id: "notification-1" });
   });
 
   it("generates six-digit codes", () => {
     expect(EmailVerificationService.generateCode()).toMatch(/^\d{6}$/);
   });
 
-  it("stores a code digest and sends the code in the verification email", async () => {
+  it("stores a code digest and queues the code in secret notification content", async () => {
     const result = await EmailVerificationService.sendVerificationEmail(
       user.id,
       user.email,
@@ -53,9 +56,10 @@ describe("EmailVerificationService code flow", () => {
     const update = prismaMock.user.update.mock.calls[0][0];
     expect(update.data.verificationToken).toMatch(/^v1:[^:]+:[a-f0-9]{64}:0$/);
     expect(update.data.verificationToken).not.toMatch(/:\d{6}:/);
-    const email = sendMock.mock.calls[0][0];
-    const code = email.html.match(/letter-spacing: 8px[^>]*>(\d{6})</)?.[1];
+    const options = createNotificationMock.mock.calls[0][5];
+    const code = options.secret.code;
     expect(code).toMatch(/^\d{6}$/);
+    expect(createNotificationMock.mock.calls[0][1]).toBe("email_verification");
   });
 
   it("verifies the emailed code and clears the token", async () => {
@@ -68,9 +72,7 @@ describe("EmailVerificationService code flow", () => {
     user.verificationToken = update.data.verificationToken;
     user.verificationTokenExpiry = new Date(Date.now() + 10 * 60 * 1000);
     prismaMock.user.findUnique.mockResolvedValue(user);
-    const code = sendMock.mock.calls[0][0].html.match(
-      /letter-spacing: 8px[^>]*>(\d{6})</
-    )?.[1];
+    const code = createNotificationMock.mock.calls[0][5].secret.code;
 
     const result = await EmailVerificationService.verifyCode(user.email, code);
 
@@ -92,9 +94,7 @@ describe("EmailVerificationService code flow", () => {
     user.verificationToken =
       prismaMock.user.update.mock.calls[0][0].data.verificationToken;
     prismaMock.user.findUnique.mockResolvedValue(user);
-    const sentCode = sendMock.mock.calls[0][0].html.match(
-      /letter-spacing: 8px[^>]*>(\d{6})</
-    )?.[1];
+    const sentCode = createNotificationMock.mock.calls[0][5].secret.code;
     const wrongCode = sentCode === "000000" ? "999999" : "000000";
 
     for (let attempt = 1; attempt <= 5; attempt += 1) {

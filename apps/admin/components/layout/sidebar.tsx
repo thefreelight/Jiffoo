@@ -28,6 +28,7 @@ import {
   Sliders,
   Activity,
   ShieldCheck,
+  Bell,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -65,6 +66,13 @@ const baseNavigationConfig: NavigationItem[] = [
     fallback: 'Orders',
     href: '/orders',
     icon: FileText,
+    requiredPermissions: [ADMIN_PERMISSIONS.ORDERS_READ],
+  },
+  {
+    nameKey: 'merchant.notifications.title',
+    fallback: 'Notifications',
+    href: '/notifications',
+    icon: Bell,
     requiredPermissions: [ADMIN_PERMISSIONS.ORDERS_READ],
   },
   {

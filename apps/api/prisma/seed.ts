@@ -85,6 +85,7 @@ async function main() {
     // 1) Initialize system settings
     console.log('⚙️ Initializing system settings...');
     const systemSettings = {
+      'branding.platform_name': 'Jiffoo Mall',
       'localization.currency': 'USD',
       'localization.locale': 'en',
       'localization.timezone': 'UTC',
@@ -102,7 +103,6 @@ async function main() {
       create: {
         id: 'system',
         isInstalled: true,
-        siteName: 'Jiffoo Mall',
         siteDescription: 'Modern E-commerce Platform',
         allowRegistration: true,
         requireEmailVerification: false,

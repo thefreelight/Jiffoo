@@ -439,6 +439,10 @@ describe('Orders Endpoints', () => {
       expect(await prisma.outboxEvent.count({ where: { aggregateId: expiredId, type: 'order.cancelled' } })).toBe(1);
       expect(await prisma.outboxEvent.count({ where: { aggregateId: unexpiredId, type: 'order.cancelled' } })).toBe(0);
       expect(await prisma.outboxEvent.count({ where: { aggregateId: paidId, type: 'order.cancelled' } })).toBe(0);
+      const cancellation = await prisma.notification.findMany({ where: { type: 'cancelled', relatedId: expiredId } });
+      expect(cancellation).toHaveLength(1);
+      expect(cancellation[0].text).toContain('non-payment');
+      expect(await prisma.notification.count({ where: { type: 'cancelled', relatedId: unexpiredId } })).toBe(0);
     });
 
     it('keeps a timed-out order cancelled when a late payment succeeds and records refund required', async () => {
@@ -455,6 +459,7 @@ describe('Orders Endpoints', () => {
         expect((await prisma.payment.findFirstOrThrow({ where: { orderId } })).status).toBe('SUCCEEDED');
         expect(await prisma.paymentLedger.count({ where: { orderId, eventType: 'SUCCEEDED' } })).toBe(1);
         expect(await prisma.orderStatusHistory.count({ where: { orderId, reason: 'refund_required_after_cancelled_order_payment' } })).toBe(1);
+        expect(await prisma.notification.count({ where: { type: 'payment_received', relatedId: orderId } })).toBe(0);
       } finally { await resetFixtures(); }
     });
   });
@@ -660,6 +665,9 @@ describe('Orders Endpoints', () => {
       });
 
       expect(response.statusCode).toBe(200);
+      const cancellations = await prisma.notification.findMany({ where: { type: 'cancelled', relatedId: orderId } });
+      expect(cancellations).toHaveLength(1);
+      expect(cancellations[0].text).toContain('Test cancel');
     });
 
     it('should return 404 for non-existent order', async () => {

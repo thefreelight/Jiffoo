@@ -106,39 +106,39 @@ describe('internal webhook delivery', () => {
   it('propagates plugin delivery failures after recording them', async () => {
     pluginManagementServiceMock.getInstanceById.mockResolvedValue({
       id: 'ins_1',
-      pluginSlug: 'smtp-email',
+      pluginSlug: 'order-webhook',
       enabled: true,
       configJson: null,
     });
     pluginManagementServiceMock.getPluginPackage.mockResolvedValue({
-      slug: 'smtp-email',
+      slug: 'order-webhook',
       manifestJson: {
         schemaVersion: 1,
-        slug: 'smtp-email',
-        name: 'SMTP Email',
+        slug: 'order-webhook',
+        name: 'Order Webhook',
         version: '1.0.0',
-        description: 'SMTP webhook gateway',
+        description: 'Order webhook gateway',
         runtimeType: 'internal-fastify',
         hostProtocol: 'internal-fastify-v1',
         entryModule: 'server/index.js',
         permissions: [],
-        webhooks: { url: '/webhooks', events: ['email.send'] },
+        webhooks: { url: '/webhooks', events: ['order.created'] },
       },
     });
     prismaMock.webhookDeliveryLog.create.mockResolvedValue({});
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: false,
       status: 502,
-      text: vi.fn().mockResolvedValue('{"success":false,"error":{"code":"EMAIL_SEND_FAILED"}}'),
+      text: vi.fn().mockResolvedValue('{"success":false,"error":{"code":"WEBHOOK_FAILED"}}'),
     }));
 
     await expect(deliverInternalWebhook({
       subscriptionId: 'sub_1',
       eventId: 'evt_1',
-      eventType: 'email.send',
-      aggregateId: 'user_1',
+      eventType: 'order.created',
+      aggregateId: 'order_1',
       installationId: 'ins_1',
-      payload: { to: 'user@example.com', subject: 'Verify email', text: 'Code: 123456' },
+      payload: { orderId: 'order_1' },
     })).rejects.toThrow('Plugin webhook delivery failed with 502');
 
     expect(prismaMock.webhookDeliveryLog.create).toHaveBeenCalledWith({

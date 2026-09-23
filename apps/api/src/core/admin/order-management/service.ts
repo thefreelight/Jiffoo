@@ -4,6 +4,7 @@
  */
 
 import { prisma } from '@/config/database';
+import { createOrderNotification } from '@/core/notifications/service';
 import { OrderPaymentStatus as PrismaOrderPaymentStatus, OrderStatus as PrismaOrderStatus, Prisma } from '@prisma/client';
 import { systemSettingsService } from '../system-settings/service';
 import { CacheService } from '@/core/cache/service';
@@ -373,6 +374,12 @@ export class AdminOrderService {
         where: { id: orderId },
         data: { status }
       });
+      if (existing.status !== status && status === 'CANCELLED') {
+        await createOrderNotification(tx, 'cancelled', orderId, { reason: 'Order status updated by staff' });
+      }
+      if (existing.status !== status && status === 'SHIPPED') {
+        await createOrderNotification(tx, 'shipped', orderId);
+      }
 
       await recordOrderStatusHistory(tx, {
         orderId: updated.id,
@@ -482,6 +489,9 @@ export class AdminOrderService {
         where: { id: orderId },
         data: { status: OrderStatus.SHIPPED }
       });
+      if (order.status !== OrderStatus.SHIPPED) {
+        await createOrderNotification(tx, 'shipped', orderId);
+      }
 
       await recordOrderStatusHistory(tx, {
         orderId: updated.id,
@@ -664,6 +674,7 @@ export class AdminOrderService {
           cancelledAt: new Date(),
         }
       });
+      await createOrderNotification(tx, 'cancelled', orderId, { reason: data.cancelReason });
 
       await recordOrderStatusHistory(tx, {
         orderId: updated.id,

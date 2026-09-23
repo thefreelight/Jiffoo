@@ -1,15 +1,13 @@
 /**
  * Email Verification Service
  *
- * Handles user email verification tokens and notification sending.
- * Sends through the installed email plugin and fails explicitly when delivery
- * cannot be accepted.
+ * Handles user email verification tokens and queues persisted notifications.
  */
 
 import crypto from 'crypto';
 import { prisma } from '@/config/database';
 import { env } from '@/config/env';
-import { TransactionalEmailService } from './transactional-email.service';
+import { createNotification, verificationLink, type NotificationTransaction } from '@/core/notifications/service';
 
 export class EmailVerificationService {
   private static readonly CODE_TTL_MINUTES = 10;
@@ -59,7 +57,7 @@ export class EmailVerificationService {
   }
 
   /**
-   * Send verification email to user
+   * Queue verification notification for a user
    */
   static async sendVerificationEmail(
     userId: string,
@@ -67,37 +65,27 @@ export class EmailVerificationService {
     username: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const token = this.generateToken();
-      const code = this.generateCode();
-      const expiry = this.getCodeExpiry();
-
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          verificationToken: this.encodeCodeToken(token, code),
-          verificationTokenExpiry: expiry,
-        },
-      });
-
-      const verificationUrl = `${env.NEXT_PUBLIC_SHOP_URL}/verify-email?token=${token}`;
-
-      await TransactionalEmailService.send({
-        aggregateId: userId,
-        to: email,
-        subject: 'Verify your email address',
-        html: this.getVerificationEmailHtml(username, code, verificationUrl),
-        text: this.getVerificationEmailText(username, code, verificationUrl),
-        eventType: 'user.email_verification',
-        metadata: { userId },
-      });
-
+      await prisma.$transaction((tx) => this.createVerification(tx, userId, email, username));
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error.message || 'Failed to send verification email',
+        error: error instanceof Error ? error.message : 'Failed to queue verification email',
       };
     }
+  }
+
+  static async createVerification(tx: NotificationTransaction, userId: string, email: string, username: string, resentFromId?: string): Promise<void> {
+    const token = this.generateToken();
+    const code = this.generateCode();
+    await tx.user.update({
+      where: { id: userId },
+      data: { verificationToken: this.encodeCodeToken(token, code), verificationTokenExpiry: this.getCodeExpiry() },
+    });
+    await createNotification(tx, 'email_verification', userId, email, { name: username }, {
+      secret: { link: verificationLink(token), code },
+      relatedType: 'user', relatedId: userId, resentFromId,
+    });
   }
 
   /**
@@ -192,7 +180,7 @@ export class EmailVerificationService {
   }
 
   /**
-   * Resend verification email to a user
+   * Queue a fresh verification notification for a user
    */
   static async resendVerificationEmail(email: string): Promise<{ success: boolean; error?: string }> {
     try {
@@ -218,11 +206,7 @@ export class EmailVerificationService {
   }
 
   /**
-   * Send a staff invitation email.
-   *
-   * Reuses the email-verification token flow: verifying the link both
-   * confirms the address and activates the staff account. Best-effort like
-   * sendVerificationEmail — succeeds silently when no provider is configured.
+   * Queue a staff invitation notification.
    */
   static async sendStaffInvitationEmail(
     userId: string,
@@ -230,98 +214,26 @@ export class EmailVerificationService {
     username: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      const token = this.generateToken();
-      const expiry = this.getTokenExpiry();
-
-      await prisma.user.update({
-        where: { id: userId },
-        data: {
-          verificationToken: token,
-          verificationTokenExpiry: expiry,
-        },
-      });
-
-      const verificationUrl = `${env.NEXT_PUBLIC_SHOP_URL}/verify-email?token=${token}`;
-
-      await TransactionalEmailService.send({
-        aggregateId: userId,
-        to: email,
-        subject: 'You have been invited to the Jiffoo admin team',
-        html: this.getStaffInvitationEmailHtml(username, verificationUrl),
-        text: this.getStaffInvitationEmailText(username, verificationUrl),
-        eventType: 'staff.invitation',
-        metadata: { userId },
-      });
-
+      await prisma.$transaction((tx) => this.createStaffInvitation(tx, userId, email, username));
       return { success: true };
-    } catch (error: any) {
+    } catch (error: unknown) {
       return {
         success: false,
-        error: error.message || 'Failed to send staff invitation email',
+        error: error instanceof Error ? error.message : 'Failed to queue staff invitation',
       };
     }
   }
 
-  private static getStaffInvitationEmailHtml(name: string, verificationUrl: string): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Admin Team Invitation</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h1 style="color: #111;">You're invited</h1>
-          <p>Hi ${name},</p>
-          <p>You have been granted staff access to the Jiffoo admin dashboard. Verify your email address to activate your account.</p>
-          <p style="margin: 24px 0;">
-            <a href="${verificationUrl}" style="background-color: #111; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 4px;">
-              Activate Account
-            </a>
-          </p>
-          <p>If the button does not work, copy and paste this link into your browser:</p>
-          <p style="word-break: break-all;">${verificationUrl}</p>
-          <p>This link expires in 24 hours.</p>
-        </body>
-      </html>
-    `;
+  static async createStaffInvitation(tx: NotificationTransaction, userId: string, email: string, username: string, resentFromId?: string): Promise<void> {
+    const token = this.generateToken();
+    await tx.user.update({
+      where: { id: userId },
+      data: { verificationToken: token, verificationTokenExpiry: this.getTokenExpiry() },
+    });
+    await createNotification(tx, 'staff_invite', userId, email, { name: username }, {
+      secret: { link: verificationLink(token) },
+      relatedType: 'user', relatedId: userId, resentFromId,
+    });
   }
 
-  private static getStaffInvitationEmailText(name: string, verificationUrl: string): string {
-    return `Hi ${name},\n\nYou have been granted staff access to the Jiffoo admin dashboard. Activate your account:\n${verificationUrl}\n\nThis link expires in 24 hours.`;
-  }
-
-  private static getVerificationEmailHtml(name: string, code: string, verificationUrl: string): string {
-    return `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Verify Your Email</title>
-        </head>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h1 style="color: #111;">Welcome to Jiffoo</h1>
-          <p>Hi ${name},</p>
-          <p>Use this verification code to activate your account:</p>
-          <p style="font-size: 32px; font-weight: 700; letter-spacing: 8px; margin: 24px 0;">${code}</p>
-          <p>This code expires in ${this.CODE_TTL_MINUTES} minutes.</p>
-          <p>You can also verify with the secure link below.</p>
-          <p style="margin: 24px 0;">
-            <a href="${verificationUrl}" style="background-color: #111; color: #fff; padding: 12px 20px; text-decoration: none; border-radius: 4px;">
-              Verify Email
-            </a>
-          </p>
-          <p>If the button does not work, copy and paste this link into your browser:</p>
-          <p style="word-break: break-all;">${verificationUrl}</p>
-          <p>This link expires in ${this.CODE_TTL_MINUTES} minutes.</p>
-        </body>
-      </html>
-    `;
-  }
-
-  private static getVerificationEmailText(name: string, code: string, verificationUrl: string): string {
-    return `Hi ${name},\n\nYour verification code is ${code}. It expires in ${this.CODE_TTL_MINUTES} minutes.\n\nYou can also verify your email with this link:\n${verificationUrl}`;
-  }
 }

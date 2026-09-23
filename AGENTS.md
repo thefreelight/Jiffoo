@@ -1,6 +1,6 @@
 # Global Rules
 
-- Stop immediately if any database drift is detected.
+- If drift is caused by a schema change the current task requires, generate the migration with the migrate diff command below. Stop immediately on any other drift.
 
 ## Verification
 

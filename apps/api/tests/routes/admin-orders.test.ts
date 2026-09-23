@@ -251,6 +251,32 @@ describe('Admin Orders Endpoints', () => {
 
       expect(response.statusCode).toBe(200);
     });
+
+    it('queues cancellation and shipping notifications from Admin status transitions', async () => {
+      const created = await app.inject({
+        method: 'POST', url: '/api/v1/orders/',
+        headers: { authorization: `Bearer ${userToken}` },
+        payload: {
+          items: [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
+          shippingAddress: validShippingAddress,
+          shippingOptionId: 'free-shipping:free',
+          paymentMethod: 'manual-payment',
+        },
+      });
+      expect(created.statusCode).toBe(201);
+      const id = created.json().data.id as string;
+      const headers = { authorization: `Bearer ${adminToken}` };
+      const cancelled = await app.inject({
+        method: 'PUT', url: `/api/v1/admin/orders/${id}/status`, headers, payload: { status: 'CANCELLED' },
+      });
+      expect(cancelled.statusCode).toBe(200);
+      expect(await prisma.notification.count({ where: { relatedId: id, type: 'cancelled' } })).toBe(1);
+      const shipped = await app.inject({
+        method: 'PUT', url: `/api/v1/admin/orders/${id}/status`, headers, payload: { status: 'SHIPPED' },
+      });
+      expect(shipped.statusCode).toBe(200);
+      expect(await prisma.notification.count({ where: { relatedId: id, type: 'shipped' } })).toBe(1);
+    });
   });
 
   describe('POST /api/v1/admin/orders/:id/record-manual-payment', () => {
@@ -352,6 +378,25 @@ describe('Admin Orders Endpoints', () => {
   });
 
   describe('POST /api/v1/admin/orders/:id/ship', () => {
+    it('queues one shipped notification on the shipped transition', async () => {
+      const created = await app.inject({
+        method: 'POST', url: '/api/v1/orders/',
+        headers: { authorization: `Bearer ${userToken}` },
+        payload: {
+          items: [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
+          shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment',
+        },
+      });
+      expect(created.statusCode).toBe(201);
+      const id = created.json().data.id as string;
+      const shipped = await app.inject({
+        method: 'POST', url: `/api/v1/admin/orders/${id}/ship`,
+        headers: { authorization: `Bearer ${adminToken}` },
+        payload: { carrier: 'FedEx', trackingNumber: `TRACK-${uuidv4()}` },
+      });
+      expect(shipped.statusCode).toBe(200);
+      expect(await prisma.notification.count({ where: { relatedId: id, type: 'shipped' } })).toBe(1);
+    });
     it('should return 401 without token', async () => {
       if (!testOrderId) return;
 
@@ -493,6 +538,26 @@ describe('Admin Orders Endpoints', () => {
   });
 
   describe('POST /api/v1/admin/orders/:id/cancel', () => {
+    it('queues a cancellation notification on Admin cancellation', async () => {
+      const created = await app.inject({
+        method: 'POST', url: '/api/v1/orders/',
+        headers: { authorization: `Bearer ${userToken}` },
+        payload: {
+          items: [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
+          shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment',
+        },
+      });
+      expect(created.statusCode).toBe(201);
+      const id = created.json().data.id as string;
+      const cancelled = await app.inject({
+        method: 'POST', url: `/api/v1/admin/orders/${id}/cancel`,
+        headers: { authorization: `Bearer ${adminToken}` }, payload: { cancelReason: 'Admin requested cancellation' },
+      });
+      expect(cancelled.statusCode).toBe(200);
+      const notifications = await prisma.notification.findMany({ where: { relatedId: id, type: 'cancelled' } });
+      expect(notifications).toHaveLength(1);
+      expect(notifications[0].text).toContain('Admin requested cancellation');
+    });
     it('should return 401 without token', async () => {
       if (!testOrderId) return;
 

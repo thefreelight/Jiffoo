@@ -83,6 +83,7 @@ export function getRequiredPermissionsForAdminPath(
     return [ADMIN_PERMISSIONS.PRODUCTS_READ];
   }
 
+  if (path.startsWith('/notifications')) return [ADMIN_PERMISSIONS.ORDERS_READ]
   if (path.startsWith('/orders')) {
     return [ADMIN_PERMISSIONS.ORDERS_READ];
   }
@@ -132,6 +133,7 @@ export function getFirstAccessibleAdminPath(user: AdminUser, locale: string): st
     { href: `/${locale}/dashboard`, permissions: [ADMIN_PERMISSIONS.DASHBOARD_READ] },
     { href: `/${locale}/products`, permissions: [ADMIN_PERMISSIONS.PRODUCTS_READ] },
     { href: `/${locale}/orders`, permissions: [ADMIN_PERMISSIONS.ORDERS_READ] },
+    { href: `/${locale}/notifications`, permissions: [ADMIN_PERMISSIONS.ORDERS_READ] },
     { href: `/${locale}/customers`, permissions: [ADMIN_PERMISSIONS.CUSTOMERS_READ] },
     { href: `/${locale}/staff`, permissions: [ADMIN_PERMISSIONS.STAFF_READ] },
     { href: `/${locale}/plugins`, permissions: [ADMIN_PERMISSIONS.PLUGINS_READ] },

@@ -37,11 +37,15 @@ function normalizeCountryCode(country: string): string {
 export class SystemSettingsService {
     private sanitizeSettings(settings: Record<string, any>): Record<string, any> {
         const sanitized = { ...settings };
+        delete sanitized['branding.store_url'];
         delete sanitized['general.currency'];
         delete sanitized['admin.localization.currency'];
         const currency = sanitized['localization.currency'];
         if (typeof currency !== 'string' || currency.trim().length === 0) {
             sanitized['localization.currency'] = 'USD';
+        }
+        if (!['en', 'zh-Hans', 'zh-Hant'].includes(sanitized['localization.locale'])) {
+            sanitized['localization.locale'] = 'en';
         }
         return sanitized;
     }
@@ -60,20 +64,20 @@ export class SystemSettingsService {
             where: { id: SYSTEM_ID }
         });
 
-        if (!system?.settings) return {};
+        if (!system?.settings) return { 'localization.locale': 'en' };
         try {
             const parsed = typeof system.settings === 'string'
                 ? JSON.parse(system.settings)
                 : system.settings;
             if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-                return {};
+                return this.sanitizeSettings({});
             }
             const settings = this.sanitizeSettings(parsed as Record<string, any>);
             // Cache for TTL seconds
             await CacheService.set(SETTINGS_CACHE_KEY, settings, { ttl: CACHE_TTL });
             return settings;
         } catch {
-            return {};
+            return this.sanitizeSettings({});
         }
     }
 
@@ -88,7 +92,6 @@ export class SystemSettingsService {
             create: {
                 id: SYSTEM_ID,
                 settings: sanitized,
-                siteName: 'Jiffoo Mall'
             }
         });
         // Invalidate cache after update
@@ -110,7 +113,7 @@ export class SystemSettingsService {
         const settings = await this.getSettingsObject();
         const context: LocalizationContext = {
             currency: settings['localization.currency'] || 'USD',
-            locale: settings['localization.locale'] || 'en-US',
+            locale: settings['localization.locale'] || 'en',
             timezone: settings['localization.timezone'] || 'UTC'
         };
 
@@ -176,6 +179,10 @@ export class SystemSettingsService {
      * Set a single setting
      */
     async setSetting(key: string, value: SettingValue): Promise<void> {
+        if (key === 'branding.store_url') throw new Error('Storefront URL is configured through STOREFRONT_URL');
+        if (key === 'localization.locale' && !['en', 'zh-Hans', 'zh-Hant'].includes(String(value))) {
+            throw new Error('Invalid store locale');
+        }
         const settings = await this.getSettingsObject();
         settings[key] = value;
         await this.saveSettingsObject(settings);
@@ -198,6 +205,10 @@ export class SystemSettingsService {
      * Batch update settings - returns full settings Map
      */
     async batchUpdate(updates: Record<string, SettingValue>): Promise<Record<string, any>> {
+        if ('branding.store_url' in updates) throw new Error('Storefront URL is configured through STOREFRONT_URL');
+        if ('localization.locale' in updates && !['en', 'zh-Hans', 'zh-Hant'].includes(String(updates['localization.locale']))) {
+            throw new Error('Invalid store locale');
+        }
         const settings = await this.getSettingsObject();
         Object.assign(settings, updates);
         await this.saveSettingsObject(settings);

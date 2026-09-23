@@ -73,47 +73,6 @@ const webhookDeliveryHandler: JobHandler = {
 };
 
 // ============================================================
-// Email Handler
-// ============================================================
-
-/**
- * Processes email-sending events.
- */
-const emailHandler: JobHandler = {
-  queue: QUEUE_NAMES.EMAIL,
-  eventTypes: [
-    'email.send',
-    'user.registered',
-    'order.confirmation',
-    'order.paid',
-    'password.reset',
-  ],
-  async handle(data: BaseJobData): Promise<void> {
-    const { outboxEventId, eventType } = data;
-
-    const event = await prisma.outboxEvent.findUnique({
-      where: { id: outboxEventId },
-    });
-
-    if (!event) {
-      winstonLogger.warn('Outbox event not found for email', {
-        component: 'emailHandler',
-        outboxEventId,
-      });
-      return;
-    }
-
-    winstonLogger.info('Email job processed', {
-      component: 'emailHandler',
-      eventType,
-      outboxEventId,
-      aggregateId: event.aggregateId,
-    });
-
-  },
-};
-
-// ============================================================
 // Fulfillment Handler
 // ============================================================
 
@@ -160,18 +119,16 @@ const fulfillmentHandler: JobHandler = {
 
 export function registerAllHandlers(): void {
   workerManager.register(webhookDeliveryHandler);
-  workerManager.register(emailHandler);
   workerManager.register(fulfillmentHandler);
 
   winstonLogger.info('All job handlers registered', {
     component: 'JobHandlers',
-    count: 3,
+    count: 2,
   });
 }
 
 export {
   webhookDeliveryHandler,
-  emailHandler,
   fulfillmentHandler,
 };
 

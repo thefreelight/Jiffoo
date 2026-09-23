@@ -13,6 +13,7 @@ import { EmailVerificationService } from '@/services/email-verification.service'
 import { shouldRequirePasswordRotation } from './bootstrap';
 import { createAuthUser, findAuthUserByEmail, findAuthUserById, findAuthUserByIdentifier } from './user-compat';
 import crypto from 'node:crypto';
+import { negotiateNotificationLocale, normalizeNotificationLocale } from '@/core/notifications/service';
 
 const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
 const DEFAULT_DEMO_ADMIN_PASSWORD = 'admin123';
@@ -25,6 +26,7 @@ export interface AuthResponse {
     role: string;
     emailVerified?: boolean;
     avatar?: string | null;
+    locale?: string | null;
     requiresPasswordRotation?: boolean;
   };
   // OAuth2 standard fields
@@ -186,7 +188,7 @@ export class AuthService {
    * @returns Authentication response with user details and OAuth2-compliant tokens
    * @throws Error if a user with the same email or username already exists
    */
-  static async register(data: RegisterRequest): Promise<AuthResponse> {
+  static async register(data: RegisterRequest, acceptLanguage?: string): Promise<AuthResponse> {
     const existingEmailUser = await findAuthUserByEmail(data.email);
     if (existingEmailUser) {
       if (!existingEmailUser.emailVerified) {
@@ -205,26 +207,23 @@ export class AuthService {
 
     const hashedPassword = await PasswordUtils.hash(data.password);
     const requireEmailVerification = this.shouldRequireEmailVerification();
-    // createAuthUser tolerates legacy databases without the emailVerified column
-    const user = await createAuthUser({
-      email: data.email,
-      username: data.username,
-      password: hashedPassword,
-      role: 'USER',
-      emailVerified: !requireEmailVerification,
-    });
-
-    if (requireEmailVerification) {
-      // Send verification email
-      const verificationDelivery = await EmailVerificationService.sendVerificationEmail(
-        user.id,
-        user.email,
-        user.username
-      );
-      if (!verificationDelivery.success) {
-        throw new Error(verificationDelivery.error || 'Verification email could not be sent');
+    const user = await prisma.$transaction(async (tx) => {
+      const system = await tx.systemSettings.findUnique({ where: { id: 'system' }, select: { settings: true } });
+      const settings = system?.settings && typeof system.settings === 'object' && !Array.isArray(system.settings)
+        ? system.settings as Record<string, unknown> : {};
+      const locale = data.locale || negotiateNotificationLocale(acceptLanguage)
+        || normalizeNotificationLocale(settings['localization.locale']) || 'en';
+      const created = await tx.user.create({
+        data: {
+          email: data.email, username: data.username, password: hashedPassword,
+          role: 'USER', locale, emailVerified: !requireEmailVerification,
+        },
+      });
+      if (requireEmailVerification) {
+        await EmailVerificationService.createVerification(tx, created.id, created.email, created.username);
       }
-    }
+      return created;
+    });
 
     const token = JwtUtils.sign({
       userId: user.id,
@@ -244,6 +243,7 @@ export class AuthService {
         role: user.role,
         emailVerified: user.emailVerified,
         avatar: user.avatar,
+        locale: user.locale,
         requiresPasswordRotation: false,
       },
       // OAuth2 standard fields
@@ -279,14 +279,7 @@ export class AuthService {
       select: authUserSelect,
     });
     if (!user.emailVerified) {
-      const verificationDelivery = await EmailVerificationService.sendVerificationEmail(
-        user.id,
-        user.email,
-        user.username
-      );
-      if (!verificationDelivery.success) {
-        throw new Error(verificationDelivery.error || 'Verification email could not be sent');
-      }
+      await EmailVerificationService.sendVerificationEmail(user.id, user.email, user.username);
     }
     const token = JwtUtils.sign({ userId: user.id, email: user.email, role: user.role });
     const refreshToken = JwtUtils.signRefresh({ userId: user.id });
@@ -331,11 +324,6 @@ export class AuthService {
     }
     if (!user.isActive) {
       throw new Error('Account is inactive');
-    }
-
-    // Check if email is verified
-    if (!user.emailVerified) {
-      throw new Error('Email not verified. Please check your email for verification link.');
     }
 
     const requiresPasswordRotation = await shouldRequirePasswordRotation(user.email);

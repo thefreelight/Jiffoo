@@ -43,8 +43,7 @@ describe('Auth Endpoints', () => {
       await deleteAllTestUsers();
     });
 
-    // Expected to fail until charter scenario 1 ships the console email builtin (TransactionalEmailService throws without an email plugin). Remove .fails then.
-    it.fails('should register a new user successfully', async () => {
+    it('should register a new user successfully', async () => {
       const uniqueId = uuidv4().substring(0, 8);
       const response = await app.inject({
         method: 'POST',
@@ -292,9 +291,9 @@ describe('Auth Endpoints', () => {
       expect(response.json().data.user.username).toBe(testUser.username);
     });
 
-    it('should return 400 for unverified email', async () => {
+    it('should allow an unverified account to log in', async () => {
       const unverifiedUser = await createTestUser({
-        email: 'unverified@example.com',
+        email: `unverified-${uuidv4().substring(0, 8)}@example.com`,
         password: 'TestPassword123!',
         emailVerified: false,
       });
@@ -308,13 +307,12 @@ describe('Auth Endpoints', () => {
         },
       });
 
-      expect(response.statusCode).toBe(400);
+      expect(response.statusCode).toBe(200);
 
       const body = response.json();
-      expect(body).toHaveProperty('success', false);
-      expect(body).toHaveProperty('error');
-      expect(body.error).toHaveProperty('message');
-      expect(body.error.message).toContain('Email not verified');
+      expect(body).toHaveProperty('success', true);
+      expect(body.data.user.emailVerified).toBe(false);
+      expect(body.data.access_token).toBeTruthy();
     });
 
     it('should return 401 for wrong password', async () => {
@@ -480,7 +478,6 @@ describe('Auth Endpoints', () => {
         },
         create: {
           id: 'system',
-          siteName: 'Test Store',
           settings: {
             'auth.bootstrap.admin': {
               mode: 'bootstrap',
@@ -688,7 +685,6 @@ describe('Auth Endpoints', () => {
         },
         create: {
           id: 'system',
-          siteName: 'Test Store',
           settings: {
             'auth.bootstrap.admin': {
               mode: 'bootstrap',

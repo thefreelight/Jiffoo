@@ -19,6 +19,7 @@ import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-syn
 import { prisma } from '@/config/database';
 import { checkoutPaymentFixtureSource, installFixturePlugin, removeFixturePlugin } from '../helpers/fixture-plugin';
 import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
+import { env } from '@/config/env';
 
 describe('Payments Endpoints', () => {
   let app: FastifyInstance;
@@ -138,6 +139,20 @@ describe('Payments Endpoints', () => {
   });
 
   describe('POST /api/v1/payments/create-session', () => {
+    it('uses STOREFRONT_URL for payment return and cancel URLs', async () => {
+      await installPaymentFixture();
+      const original = env.STOREFRONT_URL;
+      try {
+        env.STOREFRONT_URL = 'https://store.example';
+        const orderId = await createOrder(paymentFixtureSlug);
+        const result = await createSession(orderId, paymentFixtureSlug);
+        const url = new URL((result.action as { type: 'redirect'; url: string }).url);
+        expect(url.searchParams.get('return')).toBe('https://store.example/payment/return');
+        expect(url.searchParams.get('cancel')).toBe('https://store.example/payment/cancel');
+      } finally {
+        env.STOREFRONT_URL = original;
+      }
+    });
     it('should return 401 without token', async () => {
       const response = await app.inject({
         method: 'POST',
@@ -210,11 +225,15 @@ describe('Payments Endpoints', () => {
       expect(response.json().data.action).toEqual({ type: 'instructions', text: 'Pay manually.' });
       const stored = await prisma.payment.findUniqueOrThrow({ where: { idempotencyKey: payload.idempotencyKey } });
       expect(stored.actionJson).toEqual(response.json().data.action);
+      const confirmations = await prisma.notification.findMany({ where: { type: 'order_confirmation', relatedId: testOrderId } });
+      expect(confirmations).toHaveLength(1);
+      expect(confirmations[0].text).toContain('Pay manually.');
 
       const replay = await app.inject({ method: 'POST', url: '/api/v1/payments/create-session', headers: { authorization: `Bearer ${userToken}` }, payload });
       expect(replay.statusCode).toBe(200);
       expect(replay.json().data).toMatchObject({ sessionId: stored.sessionId, action: stored.actionJson });
       expect(await prisma.payment.count({ where: { idempotencyKey: payload.idempotencyKey } })).toBe(1);
+      expect(await prisma.notification.count({ where: { type: 'order_confirmation', relatedId: testOrderId } })).toBe(1);
     });
   });
 
@@ -254,6 +273,10 @@ describe('Payments Endpoints', () => {
       const recorded = await app.inject({ method: 'POST', url: `/api/v1/admin/orders/${manualOrderId}/record-manual-payment`, headers: { authorization: `Bearer ${adminToken}` }, payload: { reference: 'verified-transfer' } });
       expect(recorded.statusCode).toBe(200);
       expect(await applyNormalizedPluginWebhook(paymentFixtureSlug, { received: true, handled: true, sessionId: cardSession.sessionId, providerEventId: `success:${cardOrderId}`, normalizedStatus: 'succeeded' })).toBe(true);
+      expect(await prisma.notification.count({ where: { type: 'payment_received', relatedId: manualOrderId } })).toBe(1);
+      expect(await prisma.notification.count({ where: { type: 'payment_received', relatedId: cardOrderId } })).toBe(1);
+      expect(await applyNormalizedPluginWebhook(paymentFixtureSlug, { received: true, handled: true, sessionId: cardSession.sessionId, providerEventId: `success:${cardOrderId}`, normalizedStatus: 'succeeded' })).toBe(false);
+      expect(await prisma.notification.count({ where: { type: 'payment_received', relatedId: cardOrderId } })).toBe(1);
 
       const snapshot = async (orderId: string) => {
         const [order, payment, ledger, history, events] = await Promise.all([

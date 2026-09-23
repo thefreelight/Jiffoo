@@ -65,6 +65,10 @@ vi.mock('@/core/admin/extension-installer/plugin-runtime', () => ({
   callContract: vi.fn(),
 }));
 
+vi.mock('@/core/notifications/service', () => ({
+  createNotification: vi.fn().mockResolvedValue(undefined),
+}));
+
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
@@ -251,7 +255,7 @@ describe('Payment Routes', () => {
         ? { displayName: 'Test Gateway', requiresManualConfirmation: false, unpaidTimeoutMinutes: 30, supportedCurrencies: ['USD', 'EUR'] }
         : { sessionId: 'test-gateway-session-1', action: { type: 'redirect', url: 'https://gateway.example/session' } });
       const tx = {
-        payment: { create: vi.fn().mockResolvedValue({ id: 'payment-1' }) },
+        payment: { create: vi.fn().mockResolvedValue({ id: 'payment-1' }), count: vi.fn().mockResolvedValue(1) },
         paymentLedger: { create: vi.fn().mockResolvedValue({}) },
         order: { update: vi.fn().mockResolvedValue({}) },
       };

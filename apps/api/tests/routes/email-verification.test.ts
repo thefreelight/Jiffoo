@@ -215,8 +215,7 @@ describe('Email Verification Endpoints', () => {
       });
     });
 
-    // Expected to fail until charter scenario 1 ships the console email builtin (TransactionalEmailService throws without an email plugin). Remove .fails then.
-    it.fails('should resend verification email successfully', async () => {
+    it('should resend verification email successfully', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/v1/auth/resend-verification',
@@ -229,7 +228,7 @@ describe('Email Verification Endpoints', () => {
 
       const body = response.json();
       expect(body).toHaveProperty('success', true);
-      expect(body).toHaveProperty('message', 'Verification email sent successfully');
+      expect(body).toHaveProperty('message', 'Verification requested');
 
       // Verify that a new token was generated
       const updatedUser = await prisma.user.findUnique({
@@ -286,7 +285,7 @@ describe('Email Verification Endpoints', () => {
 
       const body = response.json();
       expect(body).toHaveProperty('success', false);
-      expect(body.error).toHaveProperty('code', 'RESEND_FAILED');
+      expect(body.error).toHaveProperty('code', 'VERIFICATION_NOT_AVAILABLE');
       expect(body.error.message).toContain('User not found');
     });
 
@@ -303,7 +302,7 @@ describe('Email Verification Endpoints', () => {
 
       const body = response.json();
       expect(body).toHaveProperty('success', false);
-      expect(body.error).toHaveProperty('code', 'RESEND_FAILED');
+      expect(body.error).toHaveProperty('code', 'VERIFICATION_NOT_AVAILABLE');
       expect(body.error.message).toContain('already verified');
     });
 
@@ -323,8 +322,7 @@ describe('Email Verification Endpoints', () => {
       expect(body).toHaveProperty('success', false);
     });
 
-    // Expected to fail until charter scenario 1 ships the console email builtin (TransactionalEmailService throws without an email plugin). Remove .fails then.
-    it.fails('should generate a new token when resending', async () => {
+    it('should generate a new token when resending', async () => {
       // Set an initial token
       const initialToken = crypto.randomBytes(32).toString('base64url');
       await prisma.user.update({
@@ -356,8 +354,7 @@ describe('Email Verification Endpoints', () => {
   });
 
   describe('Integration: Full verification workflow', () => {
-    // Expected to fail until charter scenario 1 ships the console email builtin (TransactionalEmailService throws without an email plugin). Remove .fails then.
-    it.fails('should complete full verification workflow', async () => {
+    it('should complete full verification workflow', async () => {
       await deleteAllTestUsers();
 
       // 1. Create unverified user

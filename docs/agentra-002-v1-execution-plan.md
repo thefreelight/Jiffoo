@@ -215,6 +215,9 @@ Blocked by: process-level exception handlers with extension attribution
 - Installing a plugin never enables it; enabling goes through the single Admin enable transition. Builtins are enabled on first install only.
 - Builtin trust is decided only by source (shipped with Core), never by the package manifest.
 - Store locales: en, zh-Hans, zh-Hant.
+- Each account has a preferred language (en, zh-Hans, zh-Hant) used for all its notifications.
+- Admin cannot set a customer's password; it can only generate a reset link.
+- ADMIN_URL is a second required production env var, used for staff links.
 - The Admin system health page is a status summary; there is no metrics dashboard.
 - Verification runs locally with pnpm verify; GitHub CI runs only when triggered manually.
 

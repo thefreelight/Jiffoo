@@ -8,7 +8,7 @@ import { prisma } from '@/config/database';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
 import { extensionInstaller } from '@/core/admin/extension-installer';
 
-export type FixtureContract = { name: 'shipping' | 'tax' | 'payment'; version: 1 };
+export type FixtureContract = { name: 'shipping' | 'tax' | 'payment' | 'notification'; version: 1 };
 
 export const checkoutPaymentFixtureSource = `module.exports = { register(ctx) {
   ctx.contracts.implement('payment', 1, {
@@ -19,7 +19,7 @@ export const checkoutPaymentFixtureSource = `module.exports = { register(ctx) {
     }),
     createSession: (input) => ({
       sessionId: 'fixture_' + input.orderId + '_' + input.idempotencyKey,
-      action: { type: 'redirect', url: 'https://example.test/pay/' + input.orderId },
+      action: { type: 'redirect', url: 'https://example.test/pay/' + input.orderId + '?return=' + encodeURIComponent(input.returnUrl) + '&cancel=' + encodeURIComponent(input.cancelUrl) },
     }),
     getSessionStatus: () => ({ status: 'pending' }),
     handleWebhook: (input) => {
@@ -38,7 +38,7 @@ interface FixturePluginInstallOptions {
 export async function installFixturePlugin(
   options: FixturePluginInstallOptions,
   slug: string,
-  category: 'shipping' | 'tax' | 'payment',
+  category: 'shipping' | 'tax' | 'payment' | 'notification',
   contracts: FixtureContract[],
   source: string,
 ): Promise<void> {

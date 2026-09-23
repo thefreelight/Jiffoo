@@ -17,6 +17,7 @@ import { queueManager, workerManager, registerAllHandlers } from './infra/jobs';
 import { winstonLogger } from './core/logger/unified-logger';
 import { registerPluginProcessFailureHandlers } from './core/admin/extension-installer/plugin-process-failure';
 import { OrderService } from './core/order/service';
+import { deliverPendingNotifications } from './core/notifications/delivery';
 
 async function main(): Promise<void> {
   winstonLogger.info('Starting standalone worker process', {
@@ -52,6 +53,18 @@ async function main(): Promise<void> {
   };
   await cancelExpiredUnpaidOrders();
   const unpaidTimeoutTimer = setInterval(() => void cancelExpiredUnpaidOrders(), 60_000);
+  const deliverNotifications = async () => {
+    try {
+      await deliverPendingNotifications();
+    } catch (error) {
+      winstonLogger.error('Notification delivery failed', {
+        component: 'Worker',
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+  await deliverNotifications();
+  const notificationTimer = setInterval(() => void deliverNotifications(), 10_000);
 
   winstonLogger.info('Standalone worker ready', {
     component: 'Worker',
@@ -65,6 +78,7 @@ async function main(): Promise<void> {
     });
     await workerManager.stop();
     clearInterval(unpaidTimeoutTimer);
+    clearInterval(notificationTimer);
     await queueManager.disconnect();
     process.exit(0);
   };

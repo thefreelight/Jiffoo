@@ -21,6 +21,7 @@ import { checkoutRoutes } from '@/core/checkout/routes';
 import { adminUserRoutes } from '@/core/admin/user-management/routes';
 import { adminProductRoutes } from '@/core/admin/product-management/routes';
 import { adminOrderRoutes } from '@/core/admin/order-management/routes';
+import { adminNotificationRoutes } from '@/core/admin/notifications/routes';
 import systemSettingsRoutes from '@/core/admin/system-settings/routes';
 import { adminDashboardRoutes } from '@/core/admin/dashboard/routes';
 import { adminStaffRoutes } from '@/core/admin/staff-management/routes';
@@ -49,6 +50,7 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(adminUserRoutes, { prefix: '/admin/users' });
   await fastify.register(adminProductRoutes, { prefix: '/admin/products' });
   await fastify.register(adminOrderRoutes, { prefix: '/admin/orders' });
+  await fastify.register(adminNotificationRoutes, { prefix: '/admin/notifications' });
   await fastify.register(adminStaffRoutes, { prefix: '/admin/staff' });
   await fastify.register(adminInventoryRoutes, { prefix: '/admin/inventory' });
   await fastify.register(systemSettingsRoutes, { prefix: '/admin' });

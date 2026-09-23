@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { prismaMock, verifyPasswordMock, sendVerificationMock } = vi.hoisted(() => ({
+const { prismaMock, verifyPasswordMock, queueVerificationMock } = vi.hoisted(() => ({
   prismaMock: {
+    $transaction: vi.fn(),
     user: {
       findUnique: vi.fn(),
       findFirst: vi.fn(),
@@ -13,7 +14,7 @@ const { prismaMock, verifyPasswordMock, sendVerificationMock } = vi.hoisted(() =
     },
   },
   verifyPasswordMock: vi.fn(),
-  sendVerificationMock: vi.fn(),
+  queueVerificationMock: vi.fn(),
 }));
 
 vi.mock('@/config/database', () => ({ prisma: prismaMock }));
@@ -21,7 +22,7 @@ vi.mock('@/utils/password', () => ({
   PasswordUtils: { verify: verifyPasswordMock },
 }));
 vi.mock('@/services/email-verification.service', () => ({
-  EmailVerificationService: { sendVerificationEmail: sendVerificationMock },
+  EmailVerificationService: { createVerification: queueVerificationMock },
 }));
 
 import { AccountService } from '@/core/account/service';
@@ -51,11 +52,12 @@ describe('AccountService.updateEmail', () => {
     });
     prismaMock.order.count.mockResolvedValue(0);
     prismaMock.order.aggregate.mockResolvedValue({ _sum: { totalAmount: null } });
+    prismaMock.$transaction.mockImplementation(async (callback: (tx: typeof prismaMock) => Promise<unknown>) => callback(prismaMock));
     verifyPasswordMock.mockResolvedValue(true);
-    sendVerificationMock.mockResolvedValue({ success: true });
+    queueVerificationMock.mockResolvedValue(undefined);
   });
 
-  it('revokes verification and sends a code to the normalized new address', async () => {
+  it('revokes verification and queues a code to the normalized new address', async () => {
     const result = await AccountService.updateEmail(user.id, {
       newEmail: ' NEW@Example.com ',
       currentPassword: 'password',
@@ -74,7 +76,8 @@ describe('AccountService.updateEmail', () => {
         verificationTokenExpiry: null,
       }),
     }));
-    expect(sendVerificationMock).toHaveBeenCalledWith(
+    expect(queueVerificationMock).toHaveBeenCalledWith(
+      prismaMock,
       user.id,
       'new@example.com',
       user.username,
@@ -82,12 +85,12 @@ describe('AccountService.updateEmail', () => {
     expect(result.emailVerified).toBe(false);
   });
 
-  it('fails explicitly when the verification email cannot be accepted', async () => {
-    sendVerificationMock.mockResolvedValue({ success: false, error: 'provider unavailable' });
-
-    await expect(AccountService.updateEmail(user.id, {
+  it('updates the email without invoking a delivery provider', async () => {
+    const result = await AccountService.updateEmail(user.id, {
       newEmail: 'new@example.com',
       currentPassword: 'password',
-    })).rejects.toThrow('provider unavailable');
+    });
+    expect(result.email).toBe('new@example.com');
+    expect(queueVerificationMock).toHaveBeenCalledOnce();
   });
 });

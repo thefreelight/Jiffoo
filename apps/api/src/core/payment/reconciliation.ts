@@ -4,6 +4,7 @@ import { recordOrderStatusHistory } from '@/core/order/status-history';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { emitOrderPaidEvent } from '@/core/payment/order-paid-event';
 import { OutboxService } from '@/infra/outbox';
+import { createNotification } from '@/core/notifications/service';
 import { OrderPaymentStatus as PrismaOrderPaymentStatus, OrderStatus as PrismaOrderStatus, Prisma } from '@prisma/client';
 
 const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
@@ -69,13 +70,23 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput)
         },
       });
 
-      const cancelledForNonPayment = order.status === OrderStatus.CANCELLED;
-      const updatedOrder = await tx.order.update({
-        where: { id: payment.orderId },
-        data: cancelledForNonPayment
-          ? { paymentStatus: PaymentStatus.PAID }
-          : { paymentStatus: PaymentStatus.PAID, status: OrderStatus.PROCESSING },
+      const firstPaid = await tx.order.updateMany({
+        where: { id: payment.orderId, paymentStatus: { not: PaymentStatus.PAID }, status: { not: OrderStatus.CANCELLED } },
+        data: { paymentStatus: PaymentStatus.PAID, status: OrderStatus.PROCESSING },
       });
+      const updatedOrder = firstPaid.count
+        ? await tx.order.findUniqueOrThrow({ where: { id: payment.orderId } })
+        : await tx.order.update({ where: { id: payment.orderId }, data: { paymentStatus: PaymentStatus.PAID } });
+      const cancelledForNonPayment = updatedOrder.status === OrderStatus.CANCELLED;
+      if (firstPaid.count) {
+        const recipient = await tx.order.findUniqueOrThrow({
+          where: { id: payment.orderId },
+          select: { userId: true, customerEmail: true, user: { select: { email: true } } },
+        });
+        await createNotification(tx, 'payment_received', recipient.userId, recipient.customerEmail || recipient.user.email, {
+          orderId: payment.orderId,
+        }, { relatedType: 'order', relatedId: payment.orderId });
+      }
 
       await recordOrderStatusHistory(tx, {
         orderId: updatedOrder.id,

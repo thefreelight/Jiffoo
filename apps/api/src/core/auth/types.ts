@@ -14,6 +14,7 @@ export const RegisterSchema = z.object({
   username: z.string().min(3, 'Username must be at least 3 characters'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
   avatar: z.string().url().optional(),
+  locale: z.enum(['en', 'zh-Hans', 'zh-Hant']).optional(),
 });
 
 export type LoginRequest = z.infer<typeof LoginSchema>;

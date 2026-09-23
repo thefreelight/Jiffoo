@@ -26,7 +26,7 @@ export interface FrontendEnv {
   NODE_ENV: 'development' | 'production' | 'test';
   NEXT_PUBLIC_API_URL: string;
   NEXT_PUBLIC_ADMIN_URL: string;
-  NEXT_PUBLIC_SHOP_URL: string;
+  STOREFRONT_URL: string;
 }
 
 /**
@@ -101,7 +101,7 @@ class EnvironmentConfig {
    * Get Shop Frontend Application URL
    */
   getShopUrl(): string {
-    return this.getRequired('NEXT_PUBLIC_SHOP_URL');
+    return this.getRequired('STOREFRONT_URL');
   }
 
   /**
@@ -122,7 +122,6 @@ class EnvironmentConfig {
     const publicEnv: Record<string, string | undefined> = {
       NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
       NEXT_PUBLIC_ADMIN_URL: process.env.NEXT_PUBLIC_ADMIN_URL,
-      NEXT_PUBLIC_SHOP_URL: process.env.NEXT_PUBLIC_SHOP_URL,
     };
     const value = key.startsWith('NEXT_PUBLIC_') ? publicEnv[key] : process.env[key];
 
@@ -131,7 +130,6 @@ class EnvironmentConfig {
       if (!value || value === '') {
         const defaults: Record<string, string> = {
           'NEXT_PUBLIC_API_URL': '/api/v1',
-          'NEXT_PUBLIC_SHOP_URL': 'http://localhost:3003',
           'NEXT_PUBLIC_ADMIN_URL': 'http://localhost:3002',
         };
 

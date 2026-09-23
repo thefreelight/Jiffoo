@@ -16,6 +16,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 vi.mock('@/config/database', () => ({
   prisma: {
+    $transaction: vi.fn(async (callback: (tx: unknown) => Promise<unknown>) => callback(prisma)),
+    systemSettings: { findUnique: vi.fn() },
     user: {
       findFirst: vi.fn(),
       findUnique: vi.fn(),
@@ -44,6 +46,7 @@ vi.mock('@/utils/jwt', () => ({
 vi.mock('@/services/email-verification.service', () => ({
   EmailVerificationService: {
     sendVerificationEmail: vi.fn(),
+    createVerification: vi.fn(),
   },
 }));
 
@@ -94,6 +97,7 @@ const mockJwtUtils = JwtUtils as {
 
 const mockEmailVerification = EmailVerificationService as {
   sendVerificationEmail: ReturnType<typeof vi.fn>;
+  createVerification: ReturnType<typeof vi.fn>;
 };
 
 // ---------------------------------------------------------------------------
@@ -195,12 +199,13 @@ describe('AuthService', () => {
         role: 'USER',
         avatar: null,
         emailVerified: false,
+        locale: 'en',
       };
 
       mockPrismaUser.findUnique.mockResolvedValue(null);
       mockPasswordUtils.hash.mockResolvedValue('hashed-pw');
       mockPrismaUser.create.mockResolvedValue(createdUser);
-      mockEmailVerification.sendVerificationEmail.mockResolvedValue({ success: true });
+      mockEmailVerification.createVerification.mockResolvedValue(undefined);
       mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
       mockJwtUtils.signRefresh.mockReturnValue(REFRESH_TOKEN);
 
@@ -227,25 +232,17 @@ describe('AuthService', () => {
           password: 'hashed-pw',
           role: 'USER',
           emailVerified: false,
-        },
-        select: {
-          id: true,
-          email: true,
-          username: true,
-          password: true,
-          role: true,
-          isActive: true,
-          emailVerified: true,
-          avatar: true,
+          locale: 'en',
         },
       });
 
-      // Verify verification email was sent
-      expect(mockEmailVerification.sendVerificationEmail).toHaveBeenCalledWith(
+      expect(mockEmailVerification.createVerification).toHaveBeenCalledWith(
+        expect.objectContaining({ user: expect.any(Object) }),
         createdUser.id,
         createdUser.email,
         createdUser.username
       );
+      expect(mockEmailVerification.sendVerificationEmail).not.toHaveBeenCalled();
 
       // Verify JWT tokens were generated
       expect(mockJwtUtils.sign).toHaveBeenCalledWith({
@@ -266,6 +263,7 @@ describe('AuthService', () => {
           role: createdUser.role,
           emailVerified: false,
           avatar: null,
+          locale: 'en',
           requiresPasswordRotation: false,
         },
         access_token: ACCESS_TOKEN,
@@ -276,17 +274,21 @@ describe('AuthService', () => {
       });
     });
 
-    it('does not issue an authenticated session when verification delivery fails', async () => {
+    it('issues an authenticated session without calling a delivery provider during registration', async () => {
       mockPrismaUser.findUnique.mockResolvedValue(null);
       mockPasswordUtils.hash.mockResolvedValue('hashed-pw');
       mockPrismaUser.create.mockResolvedValue({
         id: 'failed-email-user', email: registerData.email, username: registerData.username,
-        password: 'hashed-pw', role: 'USER', avatar: null, emailVerified: false,
+        password: 'hashed-pw', role: 'USER', avatar: null, emailVerified: false, locale: 'en',
       });
       mockEmailVerification.sendVerificationEmail.mockResolvedValue({ success: false, error: 'SMTP unavailable' });
+      mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
+      mockJwtUtils.signRefresh.mockReturnValue(REFRESH_TOKEN);
 
-      await expect(AuthService.register(registerData)).rejects.toThrow('SMTP unavailable');
-      expect(mockJwtUtils.sign).not.toHaveBeenCalled();
+      const result = await AuthService.register(registerData);
+      expect(result.access_token).toBe(ACCESS_TOKEN);
+      expect(mockEmailVerification.createVerification).toHaveBeenCalledOnce();
+      expect(mockEmailVerification.sendVerificationEmail).not.toHaveBeenCalled();
     });
 
     it('should throw when a user with the same email or username already exists', async () => {
@@ -327,6 +329,7 @@ describe('AuthService', () => {
         role: 'USER',
         avatar: null,
         emailVerified: true,
+        locale: 'en',
       };
 
       mockPrismaUser.findUnique.mockResolvedValue(null);
@@ -344,19 +347,10 @@ describe('AuthService', () => {
           password: 'hashed-pw',
           role: 'USER',
           emailVerified: true,
-        },
-        select: {
-          id: true,
-          email: true,
-          username: true,
-          password: true,
-          role: true,
-          isActive: true,
-          emailVerified: true,
-          avatar: true,
+          locale: 'en',
         },
       });
-      expect(mockEmailVerification.sendVerificationEmail).not.toHaveBeenCalled();
+      expect(mockEmailVerification.createVerification).not.toHaveBeenCalled();
       expect(result.user.emailVerified).toBe(true);
     });
   });
@@ -513,14 +507,16 @@ describe('AuthService', () => {
       );
     });
 
-    it('should throw when the email is not verified', async () => {
+    it('allows login when the email is not verified', async () => {
       const unverifiedUser = { ...TEST_USER, emailVerified: false };
       mockPrismaUser.findUnique.mockResolvedValue(unverifiedUser);
       mockPasswordUtils.verify.mockResolvedValue(true);
+      mockJwtUtils.sign.mockReturnValue(ACCESS_TOKEN);
+      mockJwtUtils.signRefresh.mockReturnValue(REFRESH_TOKEN);
 
-      await expect(AuthService.login(loginData)).rejects.toThrow(
-        'Email not verified. Please check your email for verification link.'
-      );
+      const result = await AuthService.login(loginData);
+      expect(result.access_token).toBe(ACCESS_TOKEN);
+      expect(result.user.emailVerified).toBe(false);
     });
 
     it('should fall back to legacy user records when emailVerified column is unavailable', async () => {

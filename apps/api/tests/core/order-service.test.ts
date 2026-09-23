@@ -52,6 +52,10 @@ vi.mock('@/core/order/status-history', () => ({
   recordOrderStatusHistory: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/core/notifications/service', () => ({
+  createOrderNotification: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('@/core/logger/unified-logger', () => ({
   LoggerService: {
     logError: vi.fn(),

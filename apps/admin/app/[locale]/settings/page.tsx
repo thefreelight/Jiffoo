@@ -48,12 +48,6 @@ const BRANDING_FIELDS: SettingField[] = [
     placeholder: 'https://cdn.example.com/logo.png',
   },
   {
-    key: 'branding.store_url',
-    labelKey: 'merchant.settings.general.storeUrl',
-    labelFallback: 'Store URL',
-    placeholder: 'https://shop.example.com',
-  },
-  {
     key: 'branding.store_description',
     labelKey: 'merchant.settings.general.storeDescription',
     labelFallback: 'Store Description',

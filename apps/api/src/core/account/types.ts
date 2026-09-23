@@ -9,6 +9,7 @@ import { z } from 'zod';
 export const UpdateProfileSchema = z.object({
   username: z.string().min(3).max(50).optional(),
   avatar: z.string().url().optional(),
+  locale: z.enum(['en', 'zh-Hans', 'zh-Hant']).optional(),
 });
 
 export const UpdateEmailSchema = z.object({
@@ -26,6 +27,7 @@ export interface UserProfileResponse {
   email: string;
   username: string;
   avatar?: string;
+  locale: string | null;
   role: string;
   isActive: boolean;
   emailVerified: boolean;

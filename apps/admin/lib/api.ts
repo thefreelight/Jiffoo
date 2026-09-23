@@ -20,6 +20,30 @@ import type { AuthBootstrapStatus } from 'shared/src/types/auth';
 
 export type { ApiResponse, ListResult, PageResult, UserProfile };
 
+export type AdminNotification = {
+  id: string;
+  type: string;
+  channel: string;
+  recipientUserId: string | null;
+  toAddress: string;
+  locale: string;
+  subject: string;
+  html: string;
+  text: string;
+  status: 'PENDING' | 'SENDING' | 'SENT' | 'FAILED';
+  attempts: number;
+  nextAttemptAt: string;
+  lastError: string | null;
+  providerSlug: string | null;
+  providerMessageId: string | null;
+  relatedType: string | null;
+  relatedId: string | null;
+  resentFromId: string | null;
+  createdAt: string;
+  updatedAt: string;
+  sentAt: string | null;
+};
+
 import type {
   ProductForm,
   Product,
@@ -733,6 +757,15 @@ export const pluginsApi = {
   ): Promise<ApiResponse<PluginInstance>> =>
     apiClient.patch(`/extensions/plugin/${slug}/instances/${installationId}`, data),
 
+};
+
+export const notificationsApi = {
+  getAll: (page = 1, limit = 20, status?: AdminNotification['status']): Promise<ApiResponse<PageResult<AdminNotification>>> =>
+    apiClient.get('/admin/notifications', { params: { page, limit, status } }),
+  getById: (id: string): Promise<ApiResponse<AdminNotification>> =>
+    apiClient.get(`/admin/notifications/${id}`),
+  resend: (id: string): Promise<ApiResponse<AdminNotification>> =>
+    apiClient.post(`/admin/notifications/${id}/resend`),
 };
 
 // Upload API

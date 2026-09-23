@@ -5,7 +5,7 @@ import path from 'path';
 // Load .env from apps/api directory
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
-const envSchema = z.object({
+export const envSchema = z.object({
   // Environment
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   LOG_LEVEL: z.string().default('info'),
@@ -35,7 +35,7 @@ const envSchema = z.object({
   API_SERVICE_URL: z.string().default('http://localhost:3001'),
   NEXT_PUBLIC_API_URL: z.string().default('http://localhost:3001/api/v1'),
   NEXT_PUBLIC_ADMIN_URL: z.string().default('http://localhost:3002'),
-  NEXT_PUBLIC_SHOP_URL: z.string().default('http://localhost:3003'),
+  STOREFRONT_URL: z.string().url().optional(),
 
   VAULT_ADDR: z.string().optional(),
   VAULT_TOKEN: z.string().optional(),
@@ -69,7 +69,18 @@ const envSchema = z.object({
 
   // Worker deployment mode: embedded (default), standalone, off
   WORKER_MODE: z.enum(['embedded', 'standalone', 'off']).default('embedded'),
+}).superRefine((value, context) => {
+  if (value.NODE_ENV === 'production' && !value.STOREFRONT_URL) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['STOREFRONT_URL'],
+      message: 'STOREFRONT_URL is required in production',
+    });
+  }
 });
 
-export const env = envSchema.parse(process.env);
+export const env = {
+  ...envSchema.parse(process.env),
+  STOREFRONT_URL: process.env.STOREFRONT_URL || 'http://localhost:3003',
+};
 export type Env = z.infer<typeof envSchema>;

@@ -43,12 +43,6 @@ const EVENT_TYPE_TO_QUEUE: Record<string, QueueName> = {
   'product.created': QUEUE_NAMES.WEBHOOK_DELIVERY,
   'product.updated': QUEUE_NAMES.WEBHOOK_DELIVERY,
 
-  // Email events
-  'email.': QUEUE_NAMES.EMAIL,
-  'user.registered': QUEUE_NAMES.EMAIL,
-  'order.confirmation': QUEUE_NAMES.EMAIL,
-  'password.reset': QUEUE_NAMES.EMAIL,
-
   // Fulfillment events
   'fulfillment.': QUEUE_NAMES.FULFILLMENT,
   'order.paid': QUEUE_NAMES.FULFILLMENT,

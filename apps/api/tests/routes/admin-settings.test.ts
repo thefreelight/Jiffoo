@@ -91,31 +91,33 @@ describe('Admin Settings Endpoints', () => {
       headers: { authorization: `Bearer ${adminToken}` },
       payload: {
         settings: {
-          'localization.locale': 'en-US',
+          'localization.locale': 'en',
           'branding.platform_name': 'Test Mall',
-          'branding.store_url': 'https://example.com',
         },
       },
     });
 
-    expect([200, 400]).toContain(response.statusCode);
+    expect(response.statusCode).toBe(200);
     const body = response.json();
-    if (response.statusCode === 200) {
-      expect(body).toHaveProperty('success', true);
-      expect(body).toHaveProperty('data');
-      expect(body.data).toHaveProperty('localization.locale');
-      expect(body.data).toHaveProperty('branding.platform_name');
-      expect(body.data).toHaveProperty('branding.store_url');
-      return;
-    }
-
-    expect(body).toHaveProperty('success', false);
-    expect(body).toHaveProperty('error');
-    expect(body.error).toHaveProperty('code');
-    expect(body.error).toHaveProperty('message');
+    expect(body).toHaveProperty('success', true);
+    expect(body.data).toHaveProperty('localization.locale', 'en');
+    expect(body.data).toHaveProperty('branding.platform_name', 'Test Mall');
   });
 
-  it('PUT /api/v1/admin/settings/batch should accept string url-like custom branding keys', async () => {
+  it('PUT /api/v1/admin/settings/batch accepts a URL-like branding logo', async () => {
+    const logoUrl = 'https://example.com/store-logo.png';
+    const response = await app.inject({
+      method: 'PUT',
+      url: '/api/v1/admin/settings/batch',
+      headers: { authorization: `Bearer ${adminToken}` },
+      payload: { settings: { 'branding.logo': logoUrl } },
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data).toHaveProperty('branding.logo', logoUrl);
+  });
+
+  it('PUT /api/v1/admin/settings/batch rejects the removed storefront URL setting', async () => {
     const response = await app.inject({
       method: 'PUT',
       url: '/api/v1/admin/settings/batch',
@@ -128,10 +130,7 @@ describe('Admin Settings Endpoints', () => {
       },
     });
 
-    expect(response.statusCode).toBe(200);
-    const body = response.json();
-    expect(body).toHaveProperty('success', true);
-    expect(body.data).toHaveProperty('branding.store_url', 'https://localhost:3003');
-    expect(body.data).toHaveProperty('branding.store_description', 'Store description from test');
+    expect(response.statusCode).toBe(400);
+    expect(response.json()).toHaveProperty('success', false);
   });
 });

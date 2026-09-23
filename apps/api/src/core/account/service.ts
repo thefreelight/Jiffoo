@@ -13,6 +13,7 @@ export class AccountService {
     email: true,
     username: true,
     avatar: true,
+    locale: true,
     emailVerified: true,
     role: true,
     isActive: true,
@@ -103,26 +104,21 @@ export class AccountService {
       throw new Error('Email is already in use');
     }
 
-    const updatedProfile = await prisma.user.update({
-      where: { id: userId },
-      data: {
-        email: normalizedEmail,
-        emailVerified: false,
-        verificationToken: null,
-        verificationTokenExpiry: null,
-        updatedAt: new Date(),
-      },
-      select: this.profileSelect,
+    const updatedProfile = await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id: userId },
+        data: {
+          email: normalizedEmail,
+          emailVerified: false,
+          verificationToken: null,
+          verificationTokenExpiry: null,
+          updatedAt: new Date(),
+        },
+        select: this.profileSelect,
+      });
+      await EmailVerificationService.createVerification(tx, userId, updated.email, updated.username);
+      return updated;
     });
-
-    const verification = await EmailVerificationService.sendVerificationEmail(
-      userId,
-      updatedProfile.email,
-      updatedProfile.username,
-    );
-    if (!verification.success) {
-      throw new Error(verification.error || 'Failed to send email verification code');
-    }
 
     return {
       ...updatedProfile,

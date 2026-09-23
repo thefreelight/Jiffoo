@@ -10,6 +10,7 @@ model User {
   username  String
   password  String
   avatar    String?
+  locale    String?
   role      String   @default("USER")
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -24,6 +25,7 @@ model User {
   orders          Order[]
   carts           Cart[]
   adminMembership AdminMembership?
+  notifications   Notification[]
 
   @@index([email])
   @@index([role])
@@ -45,9 +47,7 @@ model SystemSettings {
   lastUpdatedAt         DateTime?
   pluginRegistryVersion Int       @default(0)
 
-  siteName        String  @default("Jiffoo Mall")
   siteDescription String?
-  logoUrl         String?
   faviconUrl      String?
 
   maintenanceMode          Boolean @default(false)
@@ -60,6 +60,47 @@ model SystemSettings {
   updatedAt DateTime @updatedAt
 
   @@map("system_settings")
+  @@schema("public")
+}
+
+enum NotificationStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+
+  @@schema("public")
+}
+
+model Notification {
+  id                String             @id @default(cuid())
+  type              String
+  channel           String             @default("email")
+  recipientUserId   String?
+  recipientUser     User?              @relation(fields: [recipientUserId], references: [id], onDelete: SetNull)
+  toAddress         String
+  locale            String
+  subject           String
+  html              String
+  text              String
+  secretJson        Json?
+  status            NotificationStatus @default(PENDING)
+  attempts          Int                @default(0)
+  nextAttemptAt     DateTime           @default(now())
+  lastError         String?
+  providerSlug      String?
+  providerMessageId String?
+  relatedType       String?
+  relatedId         String?
+  resentFromId      String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  sentAt            DateTime?
+
+  @@index([status, nextAttemptAt])
+  @@index([createdAt])
+  @@index([recipientUserId, createdAt])
+  @@map("notifications")
   @@schema("public")
 }
 

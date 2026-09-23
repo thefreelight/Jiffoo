@@ -11,6 +11,7 @@ import { createHash } from 'crypto';
 import { FastifyInstance, FastifyReply } from 'fastify';
 import { authMiddleware } from '@/core/auth/middleware';
 import { prisma } from '@/config/database';
+import { env } from '@/config/env';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { systemSettingsService } from '@/core/admin/system-settings/service';
 import { sendSuccess, sendError } from '@/utils/response';
@@ -22,6 +23,7 @@ import { syncPaymentFromPlugin } from '@/core/payment/reconciliation';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 import { Prisma } from '@prisma/client';
 import { decimalToMinor } from './minor-units';
+import { createNotification } from '@/core/notifications/service';
 
 function setHttpCache(reply: FastifyReply, data: unknown, maxAge: number, swr: number) {
   const etag = `"${createHash('md5').update(JSON.stringify(data)).digest('hex')}"`;
@@ -144,7 +146,7 @@ function getPluginErrorMessage(pluginPayload: Record<string, unknown>, fallbackS
 }
 
 function getShopOrigin(): string {
-  return process.env.SHOP_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
+  return env.STOREFRONT_URL;
 }
 
 function getShopLocale(successUrl?: string): string {
@@ -336,6 +338,12 @@ export async function paymentRoutes(fastify: FastifyInstance) {
               lastPaymentMethod: pluginSlug!
             }
           });
+          if (await tx.payment.count({ where: { orderId: order.id } }) === 1) {
+            await createNotification(tx, 'order_confirmation', order.userId, order.customerEmail || request.user!.email, {
+              orderId: order.id,
+              instructions: session.action.type === 'instructions' ? session.action.text : '',
+            }, { relatedType: 'order', relatedId: order.id });
+          }
         });
       } catch (error: any) {
         if (isUniqueConstraintError(error)) {

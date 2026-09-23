@@ -20,6 +20,7 @@ const userProfileSchema = {
     email: { type: 'string' },
     username: { type: 'string' },
     avatar: { type: ['string', 'null'] },
+    locale: { type: ['string', 'null'], enum: ['en', 'zh-Hans', 'zh-Hant', null] },
     role: { type: 'string' },
     isActive: { type: 'boolean' },
     emailVerified: { type: 'boolean' },
@@ -42,7 +43,7 @@ const userProfileSchema = {
       additionalProperties: false,
     },
   },
-  required: ['id', 'email', 'username', 'avatar', 'role', 'isActive', 'emailVerified', 'orderCount', 'totalOrders', 'totalSpent', 'createdAt', 'updatedAt'],
+  required: ['id', 'email', 'username', 'avatar', 'locale', 'role', 'isActive', 'emailVerified', 'orderCount', 'totalOrders', 'totalSpent', 'createdAt', 'updatedAt'],
   additionalProperties: false,
 } as const;
 
@@ -145,7 +146,8 @@ export async function accountRoutes(fastify: FastifyInstance) {
         type: 'object',
         properties: {
           username: { type: 'string', minLength: 3, maxLength: 50 },
-          avatar: { type: 'string' }
+          avatar: { type: 'string' },
+          locale: { type: 'string', enum: ['en', 'zh-Hans', 'zh-Hant'] },
         }
       },
       response: createTypedUpdateResponses(userProfileSchema),
@@ -192,7 +194,7 @@ export async function accountRoutes(fastify: FastifyInstance) {
     try {
       const updateData = UpdateEmailSchema.parse(request.body);
       const updatedProfile = await AccountService.updateEmail(request.user!.id, updateData);
-      return sendSuccess(reply, updatedProfile, 'Email updated. Verify the code sent to your new address.');
+      return sendSuccess(reply, updatedProfile, 'Email updated. Verify your new address using the verification instructions.');
     } catch (error: unknown) {
       const mapped = mapAccountRouteError(error, {
         defaultStatus: 500,

@@ -14,6 +14,7 @@
  */
 
 import { prisma } from '@/config/database';
+import { createOrderNotification } from '@/core/notifications/service';
 import { Prisma, OrderStatus as PrismaOrderStatus, OrderPaymentStatus as PrismaOrderPaymentStatus } from '@prisma/client';
 import {
   CreateOrderRequest,
@@ -549,6 +550,12 @@ export class OrderService {
           }
         }
       });
+      if (existing.status !== status && status === OrderStatus.CANCELLED) {
+        await createOrderNotification(tx, 'cancelled', orderId, { reason: 'Order status updated' });
+      }
+      if (existing.status !== status && status === OrderStatus.SHIPPED) {
+        await createOrderNotification(tx, 'shipped', orderId);
+      }
 
       await recordOrderStatusHistory(tx, {
         orderId: updated.id,
@@ -625,6 +632,7 @@ export class OrderService {
           }
         }
       });
+      await createOrderNotification(tx, 'cancelled', orderId, { reason: cancelReason });
 
       await recordOrderStatusHistory(tx, {
         orderId: updated.id,
@@ -682,6 +690,7 @@ export class OrderService {
           userId: order.userId,
           reason: 'unpaid timeout',
         });
+        await createOrderNotification(tx, 'cancelled', order.id, { reason: 'Cancelled for non-payment' });
         cancelled += 1;
       }
       return cancelled;

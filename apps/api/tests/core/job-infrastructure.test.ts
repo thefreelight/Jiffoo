@@ -73,8 +73,8 @@ describe('Unified Job Infrastructure', () => {
 
       expect(queueManager.resolveQueue('webhook.delivery')).toBe('webhook-delivery');
       expect(queueManager.resolveQueue('order.created')).toBe('webhook-delivery');
-      expect(queueManager.resolveQueue('email.send')).toBe('email');
-      expect(queueManager.resolveQueue('user.registered')).toBe('email');
+      expect(queueManager.resolveQueue('email.send')).toBe('webhook-delivery');
+      expect(queueManager.resolveQueue('user.registered')).toBe('webhook-delivery');
       expect(queueManager.resolveQueue('order.paid')).toBe('fulfillment');
     });
 
@@ -180,10 +180,10 @@ describe('Unified Job Infrastructure', () => {
       expect(queueManager.resolveQueue('payment.failed')).toBe('webhook-delivery');
     });
 
-    it('should route email events to email queue', async () => {
+    it('does not route removed email events to an email queue', async () => {
       const { queueManager } = await import('@/infra/jobs/queue-manager');
-      expect(queueManager.resolveQueue('email.send')).toBe('email');
-      expect(queueManager.resolveQueue('password.reset')).toBe('email');
+      expect(queueManager.resolveQueue('email.send')).toBe('webhook-delivery');
+      expect(queueManager.resolveQueue('password.reset')).toBe('webhook-delivery');
     });
 
     it('should route fulfillment events to fulfillment queue', async () => {

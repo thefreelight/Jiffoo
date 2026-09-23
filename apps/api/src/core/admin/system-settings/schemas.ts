@@ -28,13 +28,12 @@ const settingsSchema = {
   properties: {
     'branding.platform_name': { type: 'string', description: 'Store/platform display name' },
     'branding.logo': { type: 'string', nullable: true, description: 'Store logo URL' },
-    'branding.store_url': { type: 'string', nullable: true, description: 'Store public URL' },
     'branding.store_description': { type: 'string', nullable: true, description: 'Store description' },
     'contact.email': { type: 'string', nullable: true, description: 'Contact email' },
     'contact.phone': { type: 'string', nullable: true, description: 'Contact phone' },
     'contact.address': { type: 'string', nullable: true, description: 'Contact address' },
     'localization.currency': { type: 'string', description: 'Localization currency code' },
-    'localization.locale': { type: 'string', description: 'Default locale (e.g. en-US)' },
+    'localization.locale': { type: 'string', enum: ['en', 'zh-Hans', 'zh-Hant'], description: 'Default notification locale' },
     'localization.timezone': { type: 'string', description: 'Default timezone (e.g. UTC)' },
     'checkout.address.countries_require_state_postal': {
       type: 'array',

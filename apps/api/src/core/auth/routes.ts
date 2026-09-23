@@ -69,7 +69,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     try {
-      const { email, username, password } = request.body as any;
+      const { email, username, password, locale } = request.body as { email: string; username: string; password: string; locale?: 'en' | 'zh-Hans' | 'zh-Hant' };
       const authorization = request.headers.authorization;
       let guestUserId: string | undefined;
       if (authorization?.startsWith('Bearer ')) {
@@ -81,8 +81,8 @@ export async function authRoutes(fastify: FastifyInstance) {
         }
       }
       const result = guestUserId
-        ? await AuthService.convertGuest(guestUserId, { email, username, password })
-        : await AuthService.register({ email, username, password });
+        ? await AuthService.convertGuest(guestUserId, { email, username, password, locale })
+        : await AuthService.register({ email, username, password, locale }, request.headers['accept-language']);
       return sendSuccess(reply, result, 'Registration successful', 201);
     } catch (error: any) {
       if (error.code === 'EMAIL_NOT_VERIFIED') {
@@ -108,9 +108,6 @@ export async function authRoutes(fastify: FastifyInstance) {
     } catch (error: any) {
       if (error.message === 'Account is inactive') {
         return sendError(reply, 403, 'ACCOUNT_INACTIVE', error.message);
-      }
-      if (error.message === 'Email not verified. Please check your email for verification link.') {
-        return sendError(reply, 400, 'EMAIL_NOT_VERIFIED', error.message);
       }
       return sendError(reply, 401, 'LOGIN_FAILED', error.message);
     }
@@ -299,8 +296,8 @@ export async function authRoutes(fastify: FastifyInstance) {
         return reply.code(400).send({
           success: false,
           error: {
-            code: 'RESEND_FAILED',
-            message: result.error || 'Failed to resend verification email'
+            code: 'VERIFICATION_NOT_AVAILABLE',
+            message: result.error || 'Verification could not be requested'
           }
         });
       }
@@ -308,7 +305,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       return reply.send({
         success: true,
         data: null,
-        message: 'Verification email sent successfully'
+        message: 'Verification requested'
       });
     } catch (error: any) {
       return reply.code(500).send({

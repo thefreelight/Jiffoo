@@ -144,7 +144,7 @@ export class InstallService {
         isInstalled: settings.isInstalled,
         version: resolveInstalledVersion(settings.version, runtimeVersion),
         installedAt: settings.installedAt || undefined,
-        siteName: settings.siteName
+        siteName: (settings.settings as Record<string, unknown> | null)?.['branding.platform_name'] as string | undefined
       };
     } catch (error) {
       return { isInstalled: false };
@@ -198,16 +198,16 @@ export class InstallService {
           isInstalled: true,
           installedAt: new Date(),
           installedBy: adminUser.id,
-          siteName: data.siteName,
           siteDescription: data.siteDescription,
+          settings: { 'branding.platform_name': data.siteName, 'localization.locale': 'en' },
           version: runtimeVersion,
         },
         update: {
           isInstalled: true,
           installedAt: new Date(),
           installedBy: adminUser.id,
-          siteName: data.siteName,
           siteDescription: data.siteDescription,
+          settings: { 'branding.platform_name': data.siteName, 'localization.locale': 'en' },
           version: runtimeVersion,
         }
       });
@@ -223,9 +223,7 @@ export class InstallService {
   }
 
   static async updateSystemSettings(data: Partial<{
-    siteName: string;
     siteDescription: string;
-    logoUrl: string;
     faviconUrl: string;
     maintenanceMode: boolean;
     allowRegistration: boolean;

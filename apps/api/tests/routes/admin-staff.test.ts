@@ -138,8 +138,7 @@ describe('Admin Staff Endpoints', () => {
     );
   });
 
-  // Expected to fail until charter scenario 1 ships the console email builtin (TransactionalEmailService throws without an email plugin). Remove .fails then.
-  it.fails('POST /api/v1/admin/staff/:userId/invite should resend invitation and audit the action', async () => {
+  it('POST /api/v1/admin/staff/:userId/invite should resend invitation and audit the action', async () => {
     const prisma = getTestPrisma();
     const staffUser = await prisma.user.findUnique({
       where: { email: 'analyst-staff@test.com' },
@@ -162,7 +161,7 @@ describe('Admin Staff Endpoints', () => {
         success: true,
         data: expect.objectContaining({
           userId: staffUser!.id,
-          invited: true,
+      queued: true,
         }),
       }),
     );

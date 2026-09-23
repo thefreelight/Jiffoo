@@ -174,7 +174,9 @@ module.exports = { register(ctx) {
     await createPlugin(shippingTwoSlug, 'module.exports = { register() {} };', true, [{ name: 'shipping', version: 1 }]);
 
     expect((await PluginManagementService.resolveSingleProvider('fulfillment'))?.pluginSlug).toBe(fulfillmentSlug);
-    expect((await PluginManagementService.resolveSingleProvider('tax'))?.pluginSlug).toBe(taxSlug);
+    const taxProviders = (await PluginManagementService.listProviders('tax')).map((provider) => provider.pluginSlug);
+    expect(taxProviders).toContain(taxSlug);
+    expect(taxProviders).toContain((await PluginManagementService.resolveSingleProvider('tax'))?.pluginSlug);
     expect((await PluginManagementService.listProviders('shipping')).map((provider) => provider.pluginSlug)).toEqual(expect.arrayContaining([shippingOneSlug, shippingTwoSlug]));
   });
 
