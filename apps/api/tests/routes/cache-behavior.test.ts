@@ -481,7 +481,7 @@ describe('Cache Behavior Tests', () => {
   // =========================================================================
   describe('TTL Behavior', () => {
     it('should serve from cache within 30s TTL for product list, miss after TTL', async () => {
-      vi.useFakeTimers();
+      vi.useFakeTimers({ toFake: ['Date'] });
       try {
         const { CacheService } = await import('../../src/core/cache/service');
 
@@ -514,7 +514,7 @@ describe('Cache Behavior Tests', () => {
     });
 
     it('should serve from cache within 20s TTL for search, miss after TTL', async () => {
-      vi.useFakeTimers();
+      vi.useFakeTimers({ toFake: ['Date'] });
       try {
         const { CacheService } = await import('../../src/core/cache/service');
 
@@ -543,7 +543,7 @@ describe('Cache Behavior Tests', () => {
     });
 
     it('should serve from cache within 60s TTL for product detail, miss after TTL', async () => {
-      vi.useFakeTimers();
+      vi.useFakeTimers({ toFake: ['Date'] });
       try {
         const { CacheService } = await import('../../src/core/cache/service');
 
@@ -572,7 +572,7 @@ describe('Cache Behavior Tests', () => {
     });
 
     it('should serve from cache within 120s TTL for categories, miss after TTL', async () => {
-      vi.useFakeTimers();
+      vi.useFakeTimers({ toFake: ['Date'] });
       try {
         const { CacheService } = await import('../../src/core/cache/service');
 
@@ -601,7 +601,7 @@ describe('Cache Behavior Tests', () => {
     });
 
     it('should serve from cache within 30s TTL for payment methods, miss after TTL', async () => {
-      vi.useFakeTimers();
+      vi.useFakeTimers({ toFake: ['Date'] });
       try {
         const { CacheService } = await import('../../src/core/cache/service');
 

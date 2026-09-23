@@ -20,7 +20,6 @@ import { LoggerService } from '@/core/logger/unified-logger';
 import { PaymentStatus } from '@/core/order/types';
 import { syncPaymentFromPlugin } from '@/core/payment/reconciliation';
 import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
-import { builtinManualPaymentDriver, MANUAL_PAYMENT_METHOD } from '@/core/payment/manual-payment';
 import { Prisma } from '@prisma/client';
 import { decimalToMinor } from './minor-units';
 
@@ -216,9 +215,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         idempotencyKey?: string;
       };
       const pluginSlug = resolvePluginSlugByMethod(paymentMethod, availableMethods);
-      const useBuiltinManualPayment = availableMethods.length === 0;
-
-      if (!useBuiltinManualPayment && !pluginSlug) {
+      if (!pluginSlug) {
         return sendError(
           reply,
           400,
@@ -227,7 +224,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         );
       }
 
-      if (!useBuiltinManualPayment && !availableMethods.some((m) => m.pluginSlug === pluginSlug)) {
+      if (!availableMethods.some((m) => m.pluginSlug === pluginSlug)) {
         return sendError(
           reply,
           409,
@@ -259,11 +256,15 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         return sendError(reply, 409, 'ORDER_ALREADY_PAID', 'Order is already paid.');
       }
 
+      if (order.paymentMethod !== pluginSlug) {
+        return sendError(reply, 409, 'PAYMENT_METHOD_MISMATCH', 'Payment method does not match the order.');
+      }
+
       const attemptNumber = (order.paymentAttempts || 0) + 1;
       const normalizedIdempotencyKey = typeof rawIdempotencyKey === 'string' && rawIdempotencyKey.trim()
         ? rawIdempotencyKey.trim()
         : undefined;
-      const paymentProvider = useBuiltinManualPayment ? MANUAL_PAYMENT_METHOD : pluginSlug!;
+      const paymentProvider = pluginSlug;
       const idempotencyKey = normalizedIdempotencyKey || `order:${order.id}:attempt:${attemptNumber}:${paymentProvider}`;
 
       const existingPayment = await prisma.payment.findUnique({
@@ -277,40 +278,11 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         return sendSuccess(reply, {
           sessionId: existingPayment.sessionId,
           url: existingPayment.sessionUrl,
+          action: existingPayment.actionJson,
           expiresAt: existingPayment.expiresAt?.toISOString() || new Date(Date.now() + 30 * 60 * 1000).toISOString(),
         });
       }
       const currency = await systemSettingsService.getShopCurrency();
-      if (useBuiltinManualPayment) {
-        try {
-          const session = await builtinManualPaymentDriver.createSession({
-            orderId: order.id,
-            amountMinor: Math.round(Number(order.totalAmount) * 100),
-            currency,
-            successUrl,
-            cancelUrl,
-            idempotencyKey,
-            metadata: {
-              attemptNumber,
-              shopOrigin: getShopOrigin(),
-              locale: getShopLocale(successUrl),
-            },
-          });
-          return sendSuccess(reply, session);
-        } catch (error: any) {
-          if (isUniqueConstraintError(error)) {
-            const existing = await prisma.payment.findUnique({ where: { idempotencyKey } });
-            if (existing) {
-              return sendSuccess(reply, {
-                sessionId: existing.sessionId,
-                url: existing.sessionUrl,
-                expiresAt: existing.expiresAt?.toISOString() || new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-              });
-            }
-          }
-          throw error;
-        }
-      }
 
       const session = await callContract(pluginSlug!, 'payment', 1, 'createSession', {
           orderId: order.id,
@@ -336,6 +308,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
               status: 'PENDING',
               sessionId: session.sessionId as string,
               sessionUrl: sessionUrl || null,
+              actionJson: session.action,
               paymentIntentId: null,
               attemptNumber,
               idempotencyKey,
@@ -371,6 +344,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
             return sendSuccess(reply, {
               sessionId: existing.sessionId,
               url: existing.sessionUrl,
+              action: existing.actionJson,
               expiresAt: existing.expiresAt?.toISOString() || expiresAt.toISOString(),
             });
           }
@@ -386,6 +360,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
             return sendSuccess(reply, {
               sessionId: existingAttempt.sessionId,
               url: existingAttempt.sessionUrl,
+              action: existingAttempt.actionJson,
               expiresAt: existingAttempt.expiresAt?.toISOString() || expiresAt.toISOString(),
             });
           }
@@ -396,6 +371,7 @@ export async function paymentRoutes(fastify: FastifyInstance) {
       return sendSuccess(reply, {
         sessionId: session.sessionId as string,
         url: sessionUrl,
+        action: session.action,
         expiresAt: expiresAt.toISOString(),
       });
     } catch (error: any) {
@@ -414,18 +390,6 @@ export async function paymentRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     const { sessionId } = request.params as { sessionId: string };
-
-    const existingPayment = await prisma.payment.findFirst({ where: { sessionId } });
-    if (existingPayment?.paymentMethod === MANUAL_PAYMENT_METHOD) {
-      const session = await builtinManualPaymentDriver.verifySession(sessionId);
-      return sendSuccess(reply, {
-        sessionId,
-        orderId: session.orderId,
-        status: session.status === 'SUCCEEDED' ? 'paid' : session.status,
-        paidAt: existingPayment.status === 'SUCCEEDED' ? existingPayment.updatedAt : undefined,
-        paymentMethod: session.paymentMethod,
-      });
-    }
 
     await syncPaymentFromPlugin(sessionId);
     const payment = await prisma.payment.findFirst({ where: { sessionId } });

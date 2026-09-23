@@ -12,7 +12,7 @@ import { sendSuccess, sendError } from '@/utils/response';
 import { extensionInstallerSchemas } from './schemas';
 import { errorResponseSchema } from '@/utils/schema-helpers';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
-import { handlePluginGateway, PluginGatewayError, warmPluginRuntime } from './plugin-runtime';
+import { handlePluginGateway, PluginGatewayError } from './plugin-runtime';
 import { bundleInstaller } from './bundle-installer';
 import { sanitizePluginConfigForAdmin } from '@/core/admin/plugin-management/config-secrets';
 import { readStoredPluginManifest } from './stored-manifest';
@@ -539,30 +539,18 @@ export async function extensionInstallerRoutes(fastify: FastifyInstance) {
         actorUserId: request.user!.id,
       });
 
-      try {
-          // Create default instance if not exists
-          const defaultInstance = await PluginManagementService.getDefaultInstance(result.slug);
-          if (!defaultInstance) {
-            await PluginManagementService.createDefaultInstance(result.slug, { enabled: false });
-          }
-          // Warm up runtime (hot upgrade supported, no restart needed)
-          await warmPluginRuntime(result.slug);
-          return sendSuccess(reply, {
-            filename: data.filename || `${result.slug}.zip`,
-            originalName: data.filename || `${result.slug}.zip`,
-            size: getTotalBytes(),
-            mimetype: data.mimetype || 'application/zip',
-            url: `/api/v1/extensions/${kind}/install`,
-            ...result,
-          }, `${kind} "${result.slug}" v${result.version} installed successfully`);
-      } catch (e) {
-          // If runtime warm fails, disable the default instance
-          const defaultInstance = await PluginManagementService.getDefaultInstance(result.slug);
-          if (defaultInstance) {
-            await PluginManagementService.updateInstance(defaultInstance.id, { enabled: false });
-          }
-          throw e;
+      const defaultInstance = await PluginManagementService.getDefaultInstance(result.slug);
+      if (!defaultInstance) {
+        await PluginManagementService.createDefaultInstance(result.slug, { enabled: false });
       }
+      return sendSuccess(reply, {
+        filename: data.filename || `${result.slug}.zip`,
+        originalName: data.filename || `${result.slug}.zip`,
+        size: getTotalBytes(),
+        mimetype: data.mimetype || 'application/zip',
+        url: `/api/v1/extensions/${kind}/install`,
+        ...result,
+      }, `${kind} "${result.slug}" v${result.version} installed successfully`);
     } catch (error: any) {
       const statusCode =
         typeof error?.statusCode === 'number' && Number.isFinite(error.statusCode)

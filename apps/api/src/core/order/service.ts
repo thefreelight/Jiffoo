@@ -34,6 +34,10 @@ import { systemSettingsService } from '../admin/system-settings/service';
 import { LoggerService } from '@/core/logger/unified-logger';
 import { InventoryService } from '@/core/inventory/service';
 import { OutboxService } from '@/infra/outbox';
+import { CheckoutService } from '@/core/checkout/service';
+import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { callContract, ContractCallError } from '@/core/admin/extension-installer/plugin-runtime';
+import { decimalToMinor, minorToDecimal } from '@/core/payment/minor-units';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -253,17 +257,58 @@ export class OrderService {
       throw new Error('Shipping address is required for shippable items');
     }
 
-    const subtotalAmount = totalAmount;
-    const taxAmount = 0;
-    const shippingAmount = 0;
-    totalAmount = subtotalAmount + taxAmount + shippingAmount;
-
     if (normalizedShippingAddress) {
       await this.validateShippingAddress(normalizedShippingAddress);
     }
 
     // Unified currency from settings
     const currency = await systemSettingsService.getShopCurrency();
+    if (!normalizedShippingAddress) throw new Error('Shipping address is required');
+    const quote = await CheckoutService.quoteItems(currency, orderItems.map((item) => ({
+      productId: item.productId,
+      variantId: item.variantId,
+      quantity: item.quantity,
+      unitPriceMinor: decimalToMinor(item.unitPrice, currency),
+    })), {
+      shippingAddress: {
+        country: normalizedShippingAddress.country,
+        state: normalizedShippingAddress.state,
+        city: normalizedShippingAddress.city,
+        postalCode: normalizedShippingAddress.postalCode,
+        addressLine1: normalizedShippingAddress.addressLine1,
+        addressLine2: normalizedShippingAddress.addressLine2,
+      },
+      shippingOptionId: data.shippingOptionId,
+    });
+    const selectedShipping = quote.shippingOptions.find((option) => option.id === data.shippingOptionId);
+    if (!selectedShipping) {
+      const error = new Error('SHIPPING_OPTION_UNAVAILABLE') as Error & { statusCode?: number; code?: string };
+      error.statusCode = 409; error.code = 'SHIPPING_OPTION_UNAVAILABLE'; throw error;
+    }
+    const payment = quote.paymentMethods.find((method) => method.providerSlug === data.paymentMethod);
+    if (!payment) {
+      const error = new Error('PAYMENT_METHOD_UNAVAILABLE') as Error & { statusCode?: number; code?: string };
+      error.statusCode = 409; error.code = 'PAYMENT_METHOD_UNAVAILABLE'; throw error;
+    }
+    let description: { unpaidTimeoutMinutes: number; supportedCurrencies: string[] };
+    try {
+      description = await callContract(data.paymentMethod, 'payment', 1, 'describe', { storeCurrency: currency }) as { unpaidTimeoutMinutes: number; supportedCurrencies: string[] };
+    } catch (error) {
+      if (error instanceof ContractCallError) throw error;
+      throw error;
+    }
+    if (!description.supportedCurrencies.includes(currency)) throw new Error('PAYMENT_METHOD_UNAVAILABLE');
+    const taxProvider = await PluginManagementService.resolveSingleProvider('tax');
+    const taxLines = orderItems.map((item, index) => ({ lineId: String(index), productId: item.productId, variantId: item.variantId, quantity: item.quantity, amountMinor: decimalToMinor(item.unitPrice * item.quantity, currency) }));
+    const shippingMinor = selectedShipping.amountMinor;
+    const tax = taxProvider
+      ? await callContract(taxProvider.pluginSlug, 'tax', 1, 'calculate', { currency, lines: taxLines, shippingAmountMinor: shippingMinor, address: { country: normalizedShippingAddress.country, region: normalizedShippingAddress.state, city: normalizedShippingAddress.city, postalCode: normalizedShippingAddress.postalCode, line1: normalizedShippingAddress.addressLine1, line2: normalizedShippingAddress.addressLine2 } }) as { pricesIncludeTax: boolean; lines: Array<{ lineId: string; taxMinor: number }>; totalTaxMinor: number }
+      : { pricesIncludeTax: false, lines: taxLines.map((line) => ({ lineId: line.lineId, taxMinor: 0 })), totalTaxMinor: 0 };
+    const subtotalAmount = totalAmount;
+    const shippingAmount = Number(minorToDecimal(shippingMinor, currency));
+    const taxAmount = Number(minorToDecimal(tax.totalTaxMinor, currency));
+    totalAmount = subtotalAmount + shippingAmount + (tax.pricesIncludeTax ? 0 : taxAmount);
+    const unpaidExpiresAt = new Date(Date.now() + description.unpaidTimeoutMinutes * 60_000);
 
     // Create order + deduct stock atomically
     const order = await prisma.$transaction(async (tx) => {
@@ -274,8 +319,13 @@ export class OrderService {
           status: OrderStatus.PENDING,
           paymentStatus: PaymentStatus.PENDING,
           subtotalAmount,
+          shippingAmount,
+          shippingMethod: { providerSlug: selectedShipping.providerSlug, optionId: data.shippingOptionId.split(':').slice(1).join(':'), label: selectedShipping.label, amountMinor: shippingMinor },
           taxAmount,
+          taxInclusive: tax.pricesIncludeTax,
           totalAmount,
+          paymentMethod: data.paymentMethod,
+          unpaidExpiresAt,
           // Create order address relation
           shippingAddress: data.shippingAddress
             ? {
@@ -294,11 +344,12 @@ export class OrderService {
             }
             : undefined,
           items: {
-            create: orderItems.map(item => ({
+            create: orderItems.map((item, index) => ({
               productId: item.productId,
               variantId: item.variantId,
               quantity: item.quantity,
               unitPrice: item.unitPrice,
+              taxAmount: Number(minorToDecimal(tax.lines.find((line) => line.lineId === String(index))?.taxMinor ?? 0, currency)),
             }))
           },
         },
@@ -593,6 +644,50 @@ export class OrderService {
     return this.formatOrderResponse(updatedOrder, currency);
   }
 
+  static async cancelExpiredUnpaidOrders(limit = 100): Promise<number> {
+    return prisma.$transaction(async (tx) => {
+      const lock = await tx.$queryRaw<Array<{ locked: boolean }>>`SELECT pg_try_advisory_xact_lock(918201) AS locked`;
+      if (!lock[0]?.locked) return 0;
+      const expiredOrders = await tx.order.findMany({
+        where: {
+          status: OrderStatus.PENDING,
+          paymentStatus: PaymentStatus.PENDING,
+          unpaidExpiresAt: { lt: new Date() },
+        },
+        orderBy: { unpaidExpiresAt: 'asc' },
+        take: limit,
+        include: { items: true },
+      });
+      let cancelled = 0;
+      for (const order of expiredOrders) {
+        const result = await tx.order.updateMany({
+          where: { id: order.id, status: OrderStatus.PENDING, paymentStatus: PaymentStatus.PENDING, unpaidExpiresAt: { lt: new Date() } },
+          data: { status: OrderStatus.CANCELLED, cancelReason: 'unpaid timeout', cancelledAt: new Date() },
+        });
+        if (result.count === 0) continue;
+        for (const item of order.items) await InventoryService.incrementStock(tx, item.variantId, item.quantity);
+        await tx.payment.updateMany({ where: { orderId: order.id, status: 'PENDING' }, data: { status: 'CANCELLED' } });
+        await recordOrderStatusHistory(tx, {
+          orderId: order.id,
+          fromStatus: order.status as PrismaOrderStatus,
+          toStatus: PrismaOrderStatus.CANCELLED,
+          fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+          toPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
+          reason: 'unpaid timeout',
+          actorType: 'system',
+        });
+        await OutboxService.emit(tx, 'order.cancelled', order.id, {
+          id: order.id,
+          orderId: order.id,
+          userId: order.userId,
+          reason: 'unpaid timeout',
+        });
+        cancelled += 1;
+      }
+      return cancelled;
+    }, { timeout: 60_000 });
+  }
+
   /**
    * Mark an order as completed after successful payment
    *
@@ -873,7 +968,13 @@ export class OrderService {
       status: order.status as OrderStatusType,
       paymentStatus: order.paymentStatus,
       subtotalAmount: Number(order.subtotalAmount || 0),
+      shippingAmount: Number(order.shippingAmount || 0),
+      shippingMethod: order.shippingMethod || null,
+      taxAmount: Number(order.taxAmount || 0),
+      taxInclusive: order.taxInclusive,
       totalAmount: Number(order.totalAmount),
+      paymentMethod: order.paymentMethod,
+      unpaidExpiresAt: order.unpaidExpiresAt ? order.unpaidExpiresAt.toISOString() : null,
       currency: currency,
       shippingAddress: order.shippingAddress || null,
       shipments: (order.shipments || []).map((shipment) => {
@@ -903,6 +1004,7 @@ export class OrderService {
         variantAttributes: parseJsonRecord(item.variant?.attributes),
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
+        taxAmount: Number(item.taxAmount || 0),
         // Calculate totalPrice from unitPrice * quantity since it's not stored in DB
         totalPrice: Number(item.unitPrice) * item.quantity,
         fulfillmentData: parseJsonRecord(item.fulfillmentData),

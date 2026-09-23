@@ -893,6 +893,20 @@ export function usePluginConfig(slug: string) {
   });
 }
 
+export function useRecordManualPayment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ id, reference }: { id: string; reference?: string }) => {
+      const response = await ordersApi.recordManualPayment(id, reference)
+      return unwrapApiResponse(response)
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['order', variables.id] })
+      queryClient.invalidateQueries({ queryKey: ['orders'] })
+    },
+  })
+}
+
 // Update plugin configuration mutation
 export function useUpdatePluginConfig() {
   const queryClient = useQueryClient();

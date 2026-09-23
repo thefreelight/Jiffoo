@@ -45,6 +45,8 @@ export const CreateOrderSchema = z.object({
   customerEmail: z.string().email('Valid email is required').optional(),
   currency: z.string().optional().default('USD'),
   paymentTermId: z.string().optional(), // B2B payment terms
+  shippingOptionId: z.string().min(1),
+  paymentMethod: z.string().min(1),
 });
 
 // Order Status Enum
@@ -133,7 +135,13 @@ export interface OrderResponse {
   status: OrderStatusType;
   paymentStatus: PaymentStatusType;
   subtotalAmount?: number;
+  shippingAmount: number;
+  shippingMethod: { providerSlug: string; optionId: string; label: string; amountMinor: number } | null;
+  taxAmount: number;
+  taxInclusive: boolean;
   totalAmount: number;
+  paymentMethod: string | null;
+  unpaidExpiresAt: string | null;
   currency: string;
   shippingAddress: ShippingAddressResponse | null;
   items: OrderItemResponse[];
@@ -156,6 +164,7 @@ export interface OrderItemResponse {
   variantAttributes?: Record<string, unknown> | null;
   quantity: number;
   unitPrice: number;
+  taxAmount: number;
   totalPrice: number;
   /**
    * Fulfillment status for this order item.

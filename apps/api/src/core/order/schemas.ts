@@ -50,6 +50,7 @@ const orderItemResponseSchema = {
     variantAttributes: { type: 'object', nullable: true, additionalProperties: true, description: 'Variant attributes snapshot' },
     quantity: { type: 'number', description: 'Quantity ordered' },
     unitPrice: { type: 'number', description: 'Unit price at time of order' },
+    taxAmount: { type: 'number', description: 'Tax recorded for this item' },
     totalPrice: { type: 'number', description: 'Total price for this item' },
     fulfillmentStatus: {
       type: 'string',
@@ -98,7 +99,20 @@ const orderResponseSchema = {
     status: { type: 'string', enum: orderStatusEnum, description: 'Order status' },
     paymentStatus: { type: 'string', enum: paymentStatusEnum, description: 'Payment status' },
     subtotalAmount: { type: 'number', description: 'Subtotal before tax/shipping' },
+    shippingAmount: { type: 'number', description: 'Shipping amount' },
+    shippingMethod: {
+      type: 'object', nullable: true,
+      properties: {
+        providerSlug: { type: 'string' }, optionId: { type: 'string' },
+        label: { type: 'string' }, amountMinor: { type: 'integer' },
+      },
+      required: ['providerSlug', 'optionId', 'label', 'amountMinor'],
+    },
+    taxAmount: { type: 'number', description: 'Total tax recorded' },
+    taxInclusive: { type: 'boolean', description: 'Whether prices include tax' },
     totalAmount: { type: 'number', description: 'Total order amount' },
+    paymentMethod: { type: 'string', nullable: true },
+    unpaidExpiresAt: { type: 'string', format: 'date-time', nullable: true },
     currency: { type: 'string', description: 'Currency code (e.g., USD)' },
     shippingAddress: { type: 'object', nullable: true, additionalProperties: true, description: 'Shipping address snapshot' },
     shipments: { type: 'array', items: shipmentResponseSchema, description: 'Shipment records (if any)' },
@@ -120,7 +134,7 @@ export const orderSchemas = {
   createOrder: {
     body: {
       type: 'object',
-      required: ['items'],
+      required: ['items', 'shippingOptionId', 'paymentMethod'],
       properties: {
         items: {
           type: 'array',
@@ -161,6 +175,8 @@ export const orderSchemas = {
           format: 'email',
           description: 'Customer contact email (optional, defaults to authenticated user email)',
         },
+        shippingOptionId: { type: 'string', minLength: 1, description: 'Selected shipping option ID' },
+        paymentMethod: { type: 'string', minLength: 1, description: 'Selected payment provider slug' },
       },
     },
     response: createTypedCreateResponses(orderResponseSchema),

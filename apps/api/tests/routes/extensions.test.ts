@@ -20,11 +20,13 @@ import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, createAdminWithToken, deleteAllTestUsers, type TestUser } from '../helpers/auth';
 import { getTestPrisma } from '../helpers/db';
 import { pluginPackageStore } from '@/core/storage/plugin-package-store';
+import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 
 interface PluginArchiveOptions {
   entryModule?: string;
   packageType?: 'module';
   manifestTrustLevel?: 'builtin' | 'unsigned';
+  shippingContract?: boolean;
 }
 
 async function createUnsignedPluginArchive(
@@ -42,18 +44,19 @@ async function createUnsignedPluginArchive(
     version: '1.0.0',
     description: 'Exercises the normal in-process upload path.',
     author: 'Jiffoo Test',
-    category: 'integration',
+    category: options.shippingContract ? 'shipping' : 'integration',
     runtimeType: 'internal-fastify',
     hostProtocol: 'internal-fastify-v1',
     ...(options.manifestTrustLevel === undefined ? {} : { trustLevel: options.manifestTrustLevel }),
     entryModule: options.entryModule ?? 'dist/index.js',
     permissions: [],
-    contracts: [],
+    contracts: options.shippingContract ? [{ name: 'shipping', version: 1 }] : [],
   }, null, 2));
   if (options.packageType) {
     await fs.writeFile(path.join(packageDir, 'package.json'), JSON.stringify({ type: options.packageType }));
   }
   await fs.writeFile(path.join(packageDir, options.entryModule ?? 'dist/index.js'), `module.exports = { register(ctx) {
+  ${options.shippingContract ? "ctx.contracts.implement('shipping', 1, { quote: () => ({ options: [{ id: 'test', label: 'Test shipping', amountMinor: 500 }] }) });" : ''}
   ctx.http.route({ method: 'GET', path: '/health', handler: async () => ({ status: 'healthy' }) });
   ctx.http.route({ method: 'GET', path: '/status', handler: async (request) => ({
     pluginSlug: request.headers['x-plugin-slug'],
@@ -183,12 +186,12 @@ describe('Extensions Installer Endpoints', () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it('requires unsigned confirmation, audits it before persistence, and serves the installed in-process plugin', async () => {
+    it('installs a no-config ZIP disabled, then enables its shipping contract through Admin', async () => {
       await prisma.pluginInstallation.deleteMany({ where: { pluginSlug: uploadSlug } });
       await prisma.pluginInstall.deleteMany({ where: { slug: uploadSlug } });
       await prisma.adminStaffAuditLog.deleteMany({ where: { staffUserId: adminUser.id } });
       await pluginPackageStore.delete(uploadSlug);
-      const archive = await createUnsignedPluginArchive(uploadSlug);
+      const archive = await createUnsignedPluginArchive(uploadSlug, { shippingContract: true });
       cleanupArchive = archive.cleanup;
 
       const unconfirmed = await multipartPluginUpload(archive.archivePath, false);
@@ -230,6 +233,8 @@ describe('Extensions Installer Endpoints', () => {
         where: { pluginSlug_instanceKey: { pluginSlug: uploadSlug, instanceKey: 'default' } },
       });
       expect(defaultInstance).not.toBeNull();
+      expect(defaultInstance!.enabled).toBe(false);
+      await expect(callContract(uploadSlug, 'shipping', 1, 'quote', { currency: 'USD', items: [], subtotalMinor: 0, address: { country: 'US' } })).rejects.toMatchObject({ code: 'CONTRACT_CALL_FAILED', message: `Plugin ${uploadSlug} is not enabled` });
       const enableResponse = await app.inject({
         method: 'PATCH',
         url: `/api/v1/extensions/plugin/${uploadSlug}/instances/${defaultInstance!.id}`,
@@ -237,6 +242,8 @@ describe('Extensions Installer Endpoints', () => {
         payload: { enabled: true },
       });
       expect(enableResponse.statusCode).toBe(200);
+      expect(enableResponse.json().data.enabled).toBe(true);
+      expect(await callContract(uploadSlug, 'shipping', 1, 'quote', { currency: 'USD', items: [], subtotalMinor: 0, address: { country: 'US' } })).toMatchObject({ options: [{ id: 'test', amountMinor: 500 }] });
 
       const gatewayResponse = await app.inject({ method: 'GET', url: `/api/v1/extensions/plugin/${uploadSlug}/api/status` });
       expect(gatewayResponse.statusCode).toBe(200);

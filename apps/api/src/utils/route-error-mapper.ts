@@ -103,6 +103,10 @@ export function mapAdminOrderRouteError(
   const lowerMessage = message.toLowerCase();
   const rawCode = toErrorCode(error);
 
+  if (rawCode === 'MANUAL_CONFIRMATION_NOT_SUPPORTED') {
+    return { status: 409, code: rawCode, message };
+  }
+
   if (rawCode === 'P2025' || lowerMessage.includes('order not found')) {
     return { status: 404, code: 'NOT_FOUND', message: 'Order not found' };
   }

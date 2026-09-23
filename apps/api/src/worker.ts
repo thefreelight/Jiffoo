@@ -16,6 +16,7 @@ import 'dotenv/config';
 import { queueManager, workerManager, registerAllHandlers } from './infra/jobs';
 import { winstonLogger } from './core/logger/unified-logger';
 import { registerPluginProcessFailureHandlers } from './core/admin/extension-installer/plugin-process-failure';
+import { OrderService } from './core/order/service';
 
 async function main(): Promise<void> {
   winstonLogger.info('Starting standalone worker process', {
@@ -39,6 +40,19 @@ async function main(): Promise<void> {
   // Start workers
   await workerManager.start();
 
+  const cancelExpiredUnpaidOrders = async () => {
+    try {
+      await OrderService.cancelExpiredUnpaidOrders();
+    } catch (error) {
+      winstonLogger.error('Unpaid order timeout failed', {
+        component: 'Worker',
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+  await cancelExpiredUnpaidOrders();
+  const unpaidTimeoutTimer = setInterval(() => void cancelExpiredUnpaidOrders(), 60_000);
+
   winstonLogger.info('Standalone worker ready', {
     component: 'Worker',
     queues: ['webhook-delivery', 'email', 'fulfillment'],
@@ -50,6 +64,7 @@ async function main(): Promise<void> {
       component: 'Worker',
     });
     await workerManager.stop();
+    clearInterval(unpaidTimeoutTimer);
     await queueManager.disconnect();
     process.exit(0);
   };

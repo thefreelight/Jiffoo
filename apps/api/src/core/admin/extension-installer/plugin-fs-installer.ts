@@ -32,7 +32,6 @@ import {
 } from './utils';
 import { pluginPackageStore, type PluginPackageDeployment } from '@/core/storage/plugin-package-store';
 import { incrementPluginRegistryVersion } from './plugin-registry-version';
-import { evaluatePluginConfigReadiness } from './config-readiness';
 import {
   deriveTrustLevel,
 } from './trust-level';
@@ -168,8 +167,6 @@ export class PluginFsInstaller implements IPluginInstaller {
         'plugin'
       );
       const manifest = await readJsonFile<PluginManifest>(manifestPath);
-      const defaultConfigReadiness = evaluatePluginConfigReadiness(manifest, {});
-      const shouldEnableDefaultInstance = !defaultConfigReadiness.requiresConfiguration;
 
       // 5. Validate manifest
       validatePluginManifest(manifest);
@@ -274,12 +271,10 @@ export class PluginFsInstaller implements IPluginInstaller {
             });
 
               if (defaultInstance) {
-                const defaultConfig = parseJsonObject(defaultInstance.configJson);
-                const restoredReadiness = evaluatePluginConfigReadiness(manifest, defaultConfig);
                 await tx.pluginInstallation.update({
                 where: { id: defaultInstance.id },
                 data: {
-                  enabled: restoredReadiness.ready,
+                  enabled: false,
                   deletedAt: null, // Clear soft delete
                 },
               });
@@ -371,7 +366,7 @@ export class PluginFsInstaller implements IPluginInstaller {
           );
         }
       } else {
-        // NEW INSTALL: Create DB records, then warm default instance
+        // NEW INSTALL: Create a disabled instance; enablement is a separate transition.
         try {
           const result = await prisma.$transaction(async (tx) => {
             const install = await tx.pluginInstall.create({
@@ -397,7 +392,7 @@ export class PluginFsInstaller implements IPluginInstaller {
               data: {
                 pluginSlug: manifest.slug,
                 instanceKey: 'default',
-                enabled: shouldEnableDefaultInstance,
+                enabled: false,
                 configJson: null,
                 grantedPermissions: manifest.permissions ?? null,
               },
@@ -409,7 +404,7 @@ export class PluginFsInstaller implements IPluginInstaller {
           });
 
           const pluginInstall = result;
-          let defaultInstance = await prisma.pluginInstallation.findUnique({
+          const defaultInstance = await prisma.pluginInstallation.findUnique({
             where: {
               pluginSlug_instanceKey: {
                 pluginSlug: manifest.slug,
@@ -418,40 +413,7 @@ export class PluginFsInstaller implements IPluginInstaller {
             },
           });
 
-          // Warm default instance (if warm fails, disable it but keep files/records)
-          try {
-            const { warmPluginInstanceRuntime } = await import('./plugin-runtime');
-
-            if (defaultInstance) {
-              if (defaultInstance.enabled) {
-                await warmPluginInstanceRuntime(manifest.slug, defaultInstance.id);
-              }
-            }
-          } catch (warmError: any) {
-            // Warm failed for new install: disable default instance but keep files
-            console.warn(
-              `Warm failed for new plugin ${manifest.slug}, disabling default instance:`,
-              warmError
-            );
-            await prisma.$transaction(async (tx) => {
-              await tx.pluginInstallation.updateMany({
-                where: { pluginSlug: manifest.slug, instanceKey: 'default' },
-                data: { enabled: false },
-              });
-              await incrementPluginRegistryVersion(tx);
-            });
-            await CacheService.incrementPluginVersion();
-            defaultInstance = await prisma.pluginInstallation.findUnique({
-              where: {
-                pluginSlug_instanceKey: {
-                  pluginSlug: manifest.slug,
-                  instanceKey: 'default',
-                },
-              },
-            });
-          }
-
-          if (defaultInstance?.enabled && hasLifecycleHook(manifest, 'onInstall')) {
+          if (defaultInstance && hasLifecycleHook(manifest, 'onInstall')) {
             await executeLifecycleHook('onInstall', {
               installationId: defaultInstance.id,
               pluginSlug: manifest.slug,

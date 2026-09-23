@@ -294,6 +294,9 @@ export const ordersApi = {
   updateStatus: (id: string, status: string): Promise<ApiResponse<OrderDetail>> =>
     apiClient.put(`/admin/orders/${id}/status`, { status }),
 
+  recordManualPayment: (id: string, reference?: string): Promise<ApiResponse<OrderDetail>> =>
+    apiClient.post(`/admin/orders/${id}/record-manual-payment`, { reference }),
+
   shipOrder: (id: string, data: {
     carrier: string;
     trackingNumber: string;

@@ -12,8 +12,15 @@ import { OrderStatus, OrderStatusType, PaymentStatus } from '@/core/order/types'
 import { recordOrderStatusHistory } from '@/core/order/status-history';
 import { InventoryService } from '@/core/inventory/service';
 import { OutboxService } from '@/infra/outbox';
-import { MANUAL_PAYMENT_METHOD } from '@/core/payment/manual-payment';
 import { recordPaymentSucceeded } from '@/core/payment/reconciliation';
+import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
+
+function codedError(code: string, message: string): Error & { code: string; statusCode: number } {
+  const error = new Error(message) as Error & { code: string; statusCode: number };
+  error.code = code;
+  error.statusCode = 409;
+  return error;
+}
 
 const isUniqueConstraintError = (error: unknown): error is Prisma.PrismaClientKnownRequestError =>
   error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
@@ -225,6 +232,7 @@ export class AdminOrderService {
         lastPaymentAttemptAt: true,
         paymentAttempts: true,
         lastPaymentMethod: true,
+        paymentMethod: true,
         cancelReason: true,
         cancelledAt: true,
         createdAt: true,
@@ -299,6 +307,12 @@ export class AdminOrderService {
       country: order.shippingAddress.country
     } : null;
 
+    const canRecordManualPayment = order.paymentMethod
+      ? await callContract(order.paymentMethod, 'payment', 1, 'describe', {
+        storeCurrency: await systemSettingsService.getShopCurrency(),
+      }).then((description: { requiresManualConfirmation: boolean }) => description.requiresManualConfirmation).catch(() => false)
+      : false;
+
     return {
       id: order.id,
       status: order.status,
@@ -306,7 +320,8 @@ export class AdminOrderService {
       totalAmount: Number(order.totalAmount),
       currency: await systemSettingsService.getShopCurrency(),
       notes: null,
-      paymentMethod: order.lastPaymentMethod,
+      paymentMethod: order.paymentMethod,
+      canRecordManualPayment,
       paymentAttempts: order.paymentAttempts,
       lastPaymentAttemptAt: order.lastPaymentAttemptAt ? order.lastPaymentAttemptAt.toISOString() : null,
       expiresAt: order.expiresAt ? order.expiresAt.toISOString() : null,
@@ -379,7 +394,7 @@ export class AdminOrderService {
   static async recordManualPayment(orderId: string, actorId: string, reference?: string) {
     const order = await prisma.order.findUnique({
       where: { id: orderId },
-      select: { id: true, paymentStatus: true },
+      select: { id: true, paymentStatus: true, paymentMethod: true },
     });
     if (!order) {
       throw new Error('Order not found');
@@ -388,16 +403,26 @@ export class AdminOrderService {
       throw new Error('Order is already paid');
     }
 
+    if (!order.paymentMethod) {
+      throw codedError('MANUAL_CONFIRMATION_NOT_SUPPORTED', 'Manual confirmation is not supported for this order.');
+    }
+    const description = await callContract(order.paymentMethod, 'payment', 1, 'describe', {
+      storeCurrency: await systemSettingsService.getShopCurrency(),
+    }) as { requiresManualConfirmation: boolean };
+    if (!description.requiresManualConfirmation) {
+      throw codedError('MANUAL_CONFIRMATION_NOT_SUPPORTED', 'Manual confirmation is not supported for this order.');
+    }
+
     const payment = await prisma.payment.findFirst({
       where: {
         orderId,
-        paymentMethod: MANUAL_PAYMENT_METHOD,
+        paymentMethod: order.paymentMethod,
         status: 'PENDING',
       },
       orderBy: { createdAt: 'desc' },
     });
     if (!payment) {
-      throw new Error('No pending manual payment found for order');
+      throw new Error('No pending payment found for order');
     }
 
     await recordPaymentSucceeded({

@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { prisma } from '@/config/database';
 import { pluginFsInstaller } from './plugin-fs-installer';
+import { PluginManagementService } from '@/core/admin/plugin-management/service';
 
 const BUILTIN_SYNC_LOCK = 824_301_551;
 
@@ -17,6 +18,9 @@ export async function syncBuiltinPlugins(builtinRoot: string): Promise<void> {
       const wasInstalled = Boolean(installed);
       await pluginFsInstaller.installFromDirectory(directory, { source: 'builtin' });
       if (!wasInstalled) {
+        const instance = await PluginManagementService.getDefaultInstance(manifest.slug);
+        if (!instance) throw new Error(`Builtin plugin "${manifest.slug}" has no default installation`);
+        await PluginManagementService.updateInstance(instance.id, { enabled: true });
         await prisma.adminStaffAuditLog.create({
           data: {
             staffUserId: 'system',

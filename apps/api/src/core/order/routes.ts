@@ -30,6 +30,8 @@ export async function orderRoutes(fastify: FastifyInstance) {
       );
       return sendSuccess(reply, order, undefined, 201);
     } catch (error: any) {
+      if (error?.statusCode === 409) return sendError(reply, 409, error.code || 'CONFLICT', error.message);
+      if (error?.code === 'CONTRACT_RESPONSE_INVALID' || error?.code === 'CONTRACT_CALL_FAILED') return sendError(reply, 502, 'CONTRACT_CALL_FAILED', 'Checkout provider is temporarily unavailable');
       return sendError(reply, 400, 'BAD_REQUEST', error.message);
     }
   });

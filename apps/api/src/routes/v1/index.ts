@@ -15,6 +15,7 @@ import { productRoutes } from '@/core/product/routes';
 import { cartRoutes } from '@/core/cart/routes';
 import { orderRoutes } from '@/core/order/routes';
 import { paymentRoutes } from '@/core/payment/routes';
+import { checkoutRoutes } from '@/core/checkout/routes';
 
 // Admin routes
 import { adminUserRoutes } from '@/core/admin/user-management/routes';
@@ -68,6 +69,7 @@ export async function registerV1Routes(fastify: FastifyInstance) {
   await fastify.register(cartRoutes, { prefix: '/cart' });
   await fastify.register(orderRoutes, { prefix: '/orders' });
   await fastify.register(paymentRoutes, { prefix: '/payments' });
+  await fastify.register(checkoutRoutes, { prefix: '/checkout' });
 
 
   // Extension installer routes

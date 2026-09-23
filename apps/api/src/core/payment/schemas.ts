@@ -39,9 +39,15 @@ const paymentSessionSchema = {
   properties: {
     sessionId: { type: 'string', description: 'Payment session ID' },
     url: { type: 'string', description: 'Redirect URL for payment' },
+    action: {
+      oneOf: [
+        { type: 'object', properties: { type: { type: 'string', const: 'redirect' }, url: { type: 'string', format: 'uri' } }, required: ['type', 'url'], additionalProperties: false },
+        { type: 'object', properties: { type: { type: 'string', const: 'instructions' }, text: { type: 'string', minLength: 1 } }, required: ['type', 'text'], additionalProperties: false },
+      ],
+    },
     expiresAt: { type: 'string', format: 'date-time', description: 'Session expiration time' },
   },
-  required: ['sessionId', 'url', 'expiresAt'],
+  required: ['sessionId', 'action', 'expiresAt'],
 } as const;
 
 // ============================================================================

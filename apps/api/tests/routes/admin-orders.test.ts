@@ -25,6 +25,8 @@ import {
 } from '../helpers/fixtures';
 import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '@/config/database';
+import path from 'path';
+import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 
 describe('Admin Orders Endpoints', () => {
   let app: FastifyInstance;
@@ -32,8 +34,13 @@ describe('Admin Orders Endpoints', () => {
   let adminToken: string;
   let testProduct: Awaited<ReturnType<typeof createTestProduct>>;
   let testOrderId: string;
+  const validShippingAddress = {
+    firstName: 'Admin', lastName: 'Order', phone: '+1-555-0102', addressLine1: '1 Admin Way',
+    city: 'Test City', state: 'CA', postalCode: '94016', country: 'US',
+  };
 
   beforeAll(async () => {
+    await syncBuiltinPlugins(path.resolve(process.cwd(), 'builtin-plugins'));
     app = await createTestApp();
 
     const { token: uToken } = await createUserWithToken();
@@ -54,7 +61,10 @@ describe('Admin Orders Endpoints', () => {
       url: '/api/v1/orders/',
       headers: { authorization: `Bearer ${userToken}` },
       payload: {
-        items: [{ productId: testProduct.id, quantity: 1 }],
+        items: [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
+        shippingAddress: validShippingAddress,
+        shippingOptionId: 'free-shipping:free',
+        paymentMethod: 'manual-payment',
       },
     });
 
@@ -174,6 +184,7 @@ describe('Admin Orders Endpoints', () => {
 
       const body = response.json();
       expect(body.data).toHaveProperty('id');
+      expect(body.data).toMatchObject({ paymentMethod: 'manual-payment', canRecordManualPayment: true });
     });
 
     it('should return 404 for non-existent order', async () => {
@@ -259,7 +270,7 @@ describe('Admin Orders Endpoints', () => {
       const payment = await prisma.payment.create({
         data: {
           orderId: testOrderId,
-          paymentMethod: 'manual',
+          paymentMethod: 'manual-payment',
           amount: order.totalAmount,
           currency: order.currency,
           status: 'PENDING',

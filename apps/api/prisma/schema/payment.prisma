@@ -13,6 +13,7 @@ model Payment {
   paymentIntentId String?
   sessionId       String?
   sessionUrl      String?
+  actionJson      Json?
   amount          Decimal              @db.Decimal(18, 2)
   currency        String               @default("USD")
   status          PaymentAttemptStatus @default(PENDING)

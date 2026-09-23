@@ -1,9 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/config/database';
-import { OrderStatus, PaymentStatus } from '@/core/order/types';
-import { recordOrderStatusHistory } from '@/core/order/status-history';
-import { emitOrderPaidEvent } from './order-paid-event';
+import { recordPaymentSucceeded } from './reconciliation';
 import { OutboxService } from '@/infra/outbox';
+import { recordOrderStatusHistory } from '@/core/order/status-history';
 
 type NormalizedPluginWebhook = {
   received?: boolean;
@@ -29,6 +28,15 @@ export async function applyNormalizedPluginWebhook(
 
   const succeeded = normalizedStatus === 'succeeded';
   const providerEventId = result.providerEventId || `${pluginSlug}:${result.sessionId}:${normalizedStatus}`;
+  if (succeeded) {
+    return recordPaymentSucceeded({
+      paymentId: payment.id,
+      providerEventId,
+      reason: 'plugin_webhook_succeeded',
+      actorType: 'plugin',
+      actorId: pluginSlug,
+    });
+  }
   return prisma.$transaction(async (tx) => {
     const existing = await tx.paymentLedger.findUnique({ where: { providerEventId } });
     if (existing) return false;
@@ -36,7 +44,7 @@ export async function applyNormalizedPluginWebhook(
     const updatedPayment = await tx.payment.update({
       where: { id: payment.id },
       data: {
-        status: succeeded ? 'SUCCEEDED' : 'FAILED',
+        status: 'FAILED',
         providerEventId,
       },
     });
@@ -44,7 +52,7 @@ export async function applyNormalizedPluginWebhook(
       data: {
         paymentId: payment.id,
         orderId: payment.orderId,
-        eventType: succeeded ? 'SUCCEEDED' : 'FAILED',
+        eventType: 'FAILED',
         amount: payment.amount,
         currency: payment.currency,
         provider: pluginSlug,
@@ -54,9 +62,7 @@ export async function applyNormalizedPluginWebhook(
     });
     const updatedOrder = await tx.order.update({
       where: { id: payment.orderId },
-      data: succeeded
-        ? { status: OrderStatus.PROCESSING, paymentStatus: PaymentStatus.PAID }
-        : { paymentStatus: PaymentStatus.FAILED },
+      data: { paymentStatus: 'FAILED' },
     });
     await recordOrderStatusHistory(tx, {
       orderId: payment.orderId,
@@ -64,23 +70,13 @@ export async function applyNormalizedPluginWebhook(
       toStatus: updatedOrder.status,
       fromPaymentStatus: payment.order.paymentStatus,
       toPaymentStatus: updatedOrder.paymentStatus,
-      reason: succeeded ? 'plugin_webhook_succeeded' : 'plugin_webhook_failed',
+      reason: 'plugin_webhook_failed',
       actorType: 'plugin',
       actorId: pluginSlug,
       metadata: (payment.metadata || {}) as Record<string, unknown>,
     });
 
-    const eventType = succeeded ? 'payment.succeeded' : 'payment.failed';
-    if (succeeded && payment.order.paymentStatus !== PaymentStatus.PAID) {
-      await emitOrderPaidEvent(tx, payment.orderId, {
-        paymentId: updatedPayment.id,
-        paymentMethod: pluginSlug,
-        sessionId: updatedPayment.sessionId,
-        providerEventId,
-        metadata: (payment.metadata || {}) as Record<string, unknown>,
-      });
-    }
-    await OutboxService.emit(tx, eventType, payment.id, {
+    await OutboxService.emit(tx, 'payment.failed', payment.id, {
       paymentId: payment.id,
       orderId: payment.orderId,
       amount: Number(payment.amount),

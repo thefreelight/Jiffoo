@@ -8,7 +8,7 @@
 import { AlertTriangle, ArrowLeft, CreditCard, ShoppingBag, Truck, Box, Clock, ShieldCheck, Printer, RotateCcw, Info, MapPin, Hash, User, Activity, AlertCircle } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { useOrder } from '@/lib/hooks/use-api'
+import { useOrder, useRecordManualPayment } from '@/lib/hooks/use-api'
 import { OrderDetailItem, OrderShipment } from '@/lib/types'
 import { useT } from 'shared/src/i18n/react'
 import { useState } from 'react'
@@ -32,6 +32,7 @@ export default function OrderDetailPage() {
   }
 
   const { data: order, isLoading, error, refetch } = useOrder(orderId)
+  const recordManualPayment = useRecordManualPayment()
 
   if (isLoading) {
     return (
@@ -391,6 +392,17 @@ export default function OrderDetailPage() {
                 >
                   <Truck className="w-4 h-4 mr-2" />
                   Initiate Dispatch
+                </Button>
+              )}
+
+              {order.canRecordManualPayment && (
+                <Button
+                  className="w-full h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black uppercase tracking-widest text-[10px] shadow-lg active:scale-95 transition-all"
+                  disabled={recordManualPayment.isPending}
+                  onClick={() => recordManualPayment.mutate({ id: order.id })}
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Record Payment
                 </Button>
               )}
 

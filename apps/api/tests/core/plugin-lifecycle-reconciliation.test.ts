@@ -163,14 +163,17 @@ module.exports = { register(ctx) {
   });
 
   it('resolves the enabled tax provider and lists every enabled shipping provider', async () => {
+    const fulfillmentSlug = `fulfill-provider-${Date.now().toString(36)}`.slice(0, 30);
     const taxSlug = `tax-provider-${Date.now().toString(36)}`.slice(0, 30);
     const shippingOneSlug = `ship-one-${Date.now().toString(36)}`.slice(0, 30);
     const shippingTwoSlug = `ship-two-${Date.now().toString(36)}`.slice(0, 30);
+    const fulfillmentId = await createPlugin(fulfillmentSlug, 'module.exports = { register(ctx) { ctx.contracts.implement(\'fulfillment\', 1, { createFulfillment: () => ({ fulfillmentId: \'test\', status: \'pending\' }) }); } };', false, [{ name: 'fulfillment', version: 1 }]);
+    await PluginManagementService.updateInstance(fulfillmentId, { enabled: true });
     await createPlugin(taxSlug, 'module.exports = { register() {} };', true, [{ name: 'tax', version: 1 }]);
     await createPlugin(shippingOneSlug, 'module.exports = { register() {} };', true, [{ name: 'shipping', version: 1 }]);
     await createPlugin(shippingTwoSlug, 'module.exports = { register() {} };', true, [{ name: 'shipping', version: 1 }]);
 
-    expect(await PluginManagementService.resolveSingleProvider('fulfillment')).toBeNull();
+    expect((await PluginManagementService.resolveSingleProvider('fulfillment'))?.pluginSlug).toBe(fulfillmentSlug);
     expect((await PluginManagementService.resolveSingleProvider('tax'))?.pluginSlug).toBe(taxSlug);
     expect((await PluginManagementService.listProviders('shipping')).map((provider) => provider.pluginSlug)).toEqual(expect.arrayContaining([shippingOneSlug, shippingTwoSlug]));
   });

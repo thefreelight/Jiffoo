@@ -69,12 +69,12 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput)
         },
       });
 
+      const cancelledForNonPayment = order.status === OrderStatus.CANCELLED;
       const updatedOrder = await tx.order.update({
         where: { id: payment.orderId },
-        data: {
-          paymentStatus: PaymentStatus.PAID,
-          status: OrderStatus.PROCESSING,
-        },
+        data: cancelledForNonPayment
+          ? { paymentStatus: PaymentStatus.PAID }
+          : { paymentStatus: PaymentStatus.PAID, status: OrderStatus.PROCESSING },
       });
 
       await recordOrderStatusHistory(tx, {
@@ -83,7 +83,7 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput)
         toStatus: updatedOrder.status as PrismaOrderStatus,
         fromPaymentStatus: order.paymentStatus as PrismaOrderPaymentStatus,
         toPaymentStatus: updatedOrder.paymentStatus as PrismaOrderPaymentStatus,
-        reason: input.reason || 'payment_succeeded',
+        reason: cancelledForNonPayment ? 'refund_required_after_cancelled_order_payment' : input.reason || 'payment_succeeded',
         actorType: input.actorType || 'system',
         actorId: input.actorId,
         metadata: input.metadata,
@@ -123,10 +123,6 @@ export async function recordPaymentSucceeded(input: RecordPaymentSucceededInput)
 export async function syncPaymentFromPlugin(sessionId: string): Promise<boolean> {
   const payment = await prisma.payment.findFirst({ where: { sessionId } });
   if (!payment || !payment.paymentMethod) {
-    return false;
-  }
-
-  if (normalizeMethodKey(payment.paymentMethod) === 'manual') {
     return false;
   }
 
@@ -281,7 +277,7 @@ export async function reconcilePendingPayments(
   let failed = 0;
 
   for (const payment of payments) {
-    if (!payment.sessionId || normalizeMethodKey(payment.paymentMethod) === 'manual') {
+    if (!payment.sessionId) {
       continue;
     }
     try {

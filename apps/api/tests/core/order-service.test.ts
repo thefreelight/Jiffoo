@@ -73,6 +73,19 @@ vi.mock('@/core/inventory/service', () => ({
   },
 }));
 
+vi.mock('@/core/checkout/service', () => ({
+  CheckoutService: { quoteItems: vi.fn() },
+}));
+
+vi.mock('@/core/admin/plugin-management/service', () => ({
+  PluginManagementService: { resolveSingleProvider: vi.fn() },
+}));
+
+vi.mock('@/core/admin/extension-installer/plugin-runtime', () => ({
+  callContract: vi.fn(),
+  ContractCallError: class ContractCallError extends Error {},
+}));
+
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
@@ -82,6 +95,9 @@ import { prisma } from '@/config/database';
 import { getOrderHooks } from '@/core/order/hooks';
 import { InventoryService } from '@/core/inventory/service';
 import { OutboxService } from '@/infra/outbox';
+import { CheckoutService } from '@/core/checkout/service';
+import { PluginManagementService } from '@/core/admin/plugin-management/service';
+import { callContract } from '@/core/admin/extension-installer/plugin-runtime';
 
 // ---------------------------------------------------------------------------
 // Typed mock helpers
@@ -168,6 +184,12 @@ describe('OrderService', () => {
     mockPrisma.refundLedger.create.mockResolvedValue({});
     mockPrisma.paymentLedger.create.mockResolvedValue({});
     mockInventory.getAvailableStockByVariantIds.mockResolvedValue(new Map([['var-1', 10]]));
+    (CheckoutService.quoteItems as ReturnType<typeof vi.fn>).mockResolvedValue({
+      shippingOptions: [{ id: 'free-shipping:free', providerSlug: 'free-shipping', label: 'Free shipping', amountMinor: 0 }],
+      paymentMethods: [{ providerSlug: 'manual-payment' }],
+    });
+    (PluginManagementService.resolveSingleProvider as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (callContract as ReturnType<typeof vi.fn>).mockResolvedValue({ unpaidTimeoutMinutes: 4320, supportedCurrencies: ['USD'] });
     (mockPrisma.$transaction as ReturnType<typeof vi.fn>).mockImplementation(
       (fn: (tx: unknown) => unknown) => fn(mockPrisma)
     );
@@ -180,6 +202,9 @@ describe('OrderService', () => {
   describe('createOrder', () => {
     const orderData = {
       items: [{ productId: 'prod-1', variantId: 'var-1', quantity: 2 }],
+      shippingAddress: { firstName: 'Buyer', lastName: 'One', phone: '+1', addressLine1: '1 Test St', city: 'Test', state: 'CA', postalCode: '94016', country: 'US' },
+      shippingOptionId: 'free-shipping:free',
+      paymentMethod: 'manual-payment',
     };
 
     it('should validate products, calculate total, create order, emit event, and deduct stock', async () => {
@@ -258,6 +283,9 @@ describe('OrderService', () => {
       await expect(
         OrderService.createOrder('user-1', {
           items: [{ productId: 'prod-1', variantId: 'var-1', quantity: 5 }],
+          shippingAddress: orderData.shippingAddress,
+          shippingOptionId: 'free-shipping:free',
+          paymentMethod: 'manual-payment',
         })
       ).rejects.toThrow('Insufficient stock for variant Default of product: Widget');
 

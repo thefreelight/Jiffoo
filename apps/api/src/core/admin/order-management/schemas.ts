@@ -59,6 +59,8 @@ const adminOrderDetailSchema = {
     totalAmount: { type: 'number', description: 'Total order amount' },
     currency: { type: 'string', description: 'Currency code' },
     notes: { type: 'string', nullable: true },
+    paymentMethod: { type: 'string', nullable: true },
+    canRecordManualPayment: { type: 'boolean' },
     cancelReason: { type: 'string', nullable: true, description: 'Cancellation reason' },
     cancelledAt: { type: 'string', format: 'date-time', nullable: true },
     createdAt: { type: 'string', format: 'date-time' },

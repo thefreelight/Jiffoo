@@ -114,6 +114,7 @@ export interface OrderDetail {
   items: OrderDetailItem[]
   shipments?: OrderShipment[]
   paymentMethod?: string | null
+  canRecordManualPayment?: boolean
   paymentAttempts?: number
   lastPaymentAttemptAt?: string | null
   expiresAt?: string | null
