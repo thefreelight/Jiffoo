@@ -24,9 +24,25 @@ export type NativeCatalogItem = {
   versions?: Array<{ version: string; packageUrl?: string; minCoreVersion?: string | null; isCurrent?: boolean }>;
 };
 
+const GROWTH_SLUG_CATEGORIES: Record<string, string> = {
+  'visitor-identification': 'marketing',
+  'lead-capture': 'marketing',
+  'competitor-watch': 'marketing',
+  'abm-pages': 'marketing',
+  'ad-creative': 'marketing',
+  'programmatic-seo': 'seo',
+  'aeo-booster': 'seo',
+  'experiments': 'analytics',
+  'funnel-insights': 'analytics',
+  'email-campaigns': 'email',
+  'agentra-connect': 'integration',
+  'hubspot-sync': 'integration',
+};
+
 function category(item: NativeCatalogItem): string {
   if (item.kind === 'theme') return 'storefront';
   if (item.category) return item.category;
+  if (GROWTH_SLUG_CATEGORIES[item.slug]) return GROWTH_SLUG_CATEGORIES[item.slug];
   if (/stripe|payment|pay/i.test(item.slug)) return 'payment';
   if (/mail|smtp|email/i.test(item.slug)) return 'email';
   if (/ship/i.test(item.slug)) return 'shipping';
