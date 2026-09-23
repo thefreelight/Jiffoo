@@ -421,7 +421,7 @@ export interface OrderDetailPageProps extends ThemeI18nProps {
  */
 export interface OrderSuccessPageProps extends ThemeI18nProps {
   orderNumber: string;
-  order?: { id?: string } | null;
+  order?: { id?: string; items?: Array<{ productKind?: string; productName?: string; fulfillmentStatus?: string | null; fulfillmentData?: Record<string, unknown> | null }> } | null;
   isVerifying?: boolean;
   config?: ThemeConfig;
   onContinueShopping: () => void;

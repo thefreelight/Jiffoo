@@ -288,6 +288,7 @@ export const paymentApi = {
   verifySession: (sessionId: string): Promise<ApiResponse<{
     sessionId: string;
     orderId?: string;
+    orderNumber?: string;
     status: string;
     paidAt?: string;
     paymentMethod?: string;

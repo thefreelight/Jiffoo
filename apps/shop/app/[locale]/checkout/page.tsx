@@ -95,7 +95,7 @@ export default function CheckoutPage() {
     let cancelled = false;
     (async () => {
       try {
-        const response = await ordersApi.getOrders({ page: 1, limit: 1 });
+        const response = await ordersApi.getOrders({});
         const latest = response.data?.items?.[0]?.shippingAddress;
         if (cancelled || !latest) return;
         setSavedAddress({
