@@ -1,0 +1,40 @@
+import { expect, test } from './local-requests';
+import { deliveredLink, shopLogin, shopLogout } from './helpers';
+
+const email = 'shop-register@e2e.example';
+const password = 'ShopRegister123!';
+
+test('register and verify in zh-Hans, then log in from the product page', async ({ page, context }) => {
+  await page.goto('/zh-Hans/products/e2e-localized-product');
+  await page.getByRole('link', { name: '注册', exact: true }).click();
+  await page.getByLabel('姓名').fill('Shop Registration');
+  await page.getByLabel('邮箱').fill(email);
+  await page.getByLabel('密码', { exact: true }).fill(password);
+  await page.getByRole('button', { name: '创建账户' }).click();
+  await expect(page).toHaveURL(/\/zh-Hans\/account$/);
+  await expect(page.getByRole('link', { name: '账户', exact: true })).toBeVisible();
+  await expect(page.getByText('您的邮箱尚未验证。')).toBeVisible();
+  const firstLink = await deliveredLink(email, '/zh-Hans/verify-email');
+  await page.getByRole('button', { name: '重新发送验证邮件' }).click();
+  await expect(page.getByRole('status')).toHaveText('请求已收到，请检查收件箱。');
+  const link = await deliveredLink(email, '/zh-Hans/verify-email', firstLink);
+  expect(link).not.toBe(firstLink);
+  expect(new URL(link).pathname).toBe('/zh-Hans/verify-email');
+  await page.goto(link);
+  await expect(page.getByRole('heading', { name: '验证邮箱' })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole('heading', { name: '验证邮箱' })).toBeVisible();
+  await page.getByRole('button', { name: '验证我的邮箱', exact: true }).click();
+  await expect(page.getByText('邮箱已验证。')).toBeVisible();
+  await page.getByRole('link', { name: '账户', exact: true }).click();
+  await expect(page.getByText('您的邮箱尚未验证。')).toHaveCount(0);
+  const state = await context.storageState();
+  expect(state.origins.flatMap((origin) => origin.localStorage).filter((item) => /token|auth/i.test(item.name))).toEqual([]);
+  const cookies = await context.cookies();
+  expect(cookies.filter((cookie) => cookie.name === 'shop_access' || cookie.name === 'shop_refresh')).toHaveLength(2);
+  expect(cookies.filter((cookie) => cookie.name === 'shop_access' || cookie.name === 'shop_refresh').every((cookie) => cookie.httpOnly)).toBe(true);
+  await shopLogout(page, { locale: 'zh-Hans' });
+  await page.goto('/zh-Hans/products/e2e-localized-product');
+  await page.getByRole('link', { name: '登录', exact: true }).click();
+  await shopLogin(page, { locale: 'zh-Hans', email, password, expectedPath: '/zh-Hans/products/e2e-localized-product' });
+});

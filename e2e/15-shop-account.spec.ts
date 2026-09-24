@@ -1,0 +1,46 @@
+import { expect, test } from './local-requests';
+import { shopLogin, shopLogout } from './helpers';
+
+const email = 'shop-register@e2e.example';
+const password = 'ShopRegister123!';
+const newPassword = 'ShopChanged123!';
+
+test('manage profile and language, change password and delete account with confirmation', async ({ page }) => {
+  await page.goto('/en/login');
+  await shopLogin(page, { locale: 'en', email, password, expectedPath: '/en' });
+  await page.getByRole('link', { name: 'Account', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/account$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Account', exact: true })).toBeVisible();
+  const profile = page.getByRole('region', { name: 'Account' });
+  await profile.getByLabel('Name').fill('Updated Shop Customer');
+  await profile.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('status')).toHaveText('Account updated.');
+  const language = page.getByRole('region', { name: 'Email language' });
+  await language.getByLabel('Email language').selectOption('zh-Hant');
+  await language.getByRole('button', { name: 'Save' }).click();
+  await expect(page.getByRole('status')).toHaveText('Account updated.');
+  const changePassword = page.getByRole('region', { name: 'Change password' });
+  await changePassword.getByLabel('Current password').fill(password);
+  await changePassword.getByLabel('New password').fill(newPassword);
+  await changePassword.getByRole('button', { name: 'Change password' }).click();
+  await expect(page.getByRole('status')).toHaveText('Password updated.');
+  await shopLogout(page, { locale: 'en' });
+  await page.goto('/en/login');
+  await shopLogin(page, { locale: 'en', email, password: newPassword, expectedPath: '/en' });
+  await page.getByRole('link', { name: 'Account', exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/account$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Account', exact: true })).toBeVisible();
+  const deletion = page.getByRole('region', { name: 'Delete account' });
+  await deletion.getByLabel('Current password').fill(password);
+  await deletion.getByRole('button', { name: 'Delete account' }).click();
+  await expect(page.getByRole('alert').filter({ hasText: 'Current password is incorrect.' })).toHaveText('Current password is incorrect.');
+  await expect(deletion).toBeVisible();
+  await deletion.getByLabel('Current password').fill(newPassword);
+  await deletion.getByRole('button', { name: 'Delete account' }).click();
+  await expect(page).toHaveURL(/\/en\/login$/);
+  await expect(page.getByRole('link', { name: 'Login', exact: true })).toBeVisible();
+  await page.getByLabel('Email').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(newPassword);
+  await page.getByRole('button', { name: 'Login' }).click();
+  await expect(page.getByRole('status')).toHaveText('Invalid email or password.');
+});

@@ -5,8 +5,9 @@ import type { Category, StoreContext } from '@/lib/catalog';
 import { messages } from '@/lib/catalog';
 import { localePath, type ShopLocale } from '@/lib/locale';
 import { LanguageSwitcher } from './language-switcher';
+import { AuthLinks } from './auth-links';
 
-export function Header({ context, locale, categories }: { context: StoreContext; locale: ShopLocale; categories: Category[] }) {
+export function Header({ context, locale, categories, loggedIn }: { context: StoreContext; locale: ShopLocale; categories: Category[]; loggedIn: boolean }) {
   const t = messages(locale);
   return (
     <header className="border-b border-line bg-surface">
@@ -22,6 +23,7 @@ export function Header({ context, locale, categories }: { context: StoreContext;
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-3">
+          <AuthLinks locale={locale} loggedIn={loggedIn} labels={t.navigation} />
           <form action={localePath(locale, '/search')} role="search" className="flex items-center rounded-shop border border-line bg-canvas">
             <label htmlFor="shop-search" className="sr-only">{t.navigation.search}</label>
             <input id="shop-search" name="q" type="search" placeholder={t.navigation.search} className="w-28 bg-transparent px-3 py-2 text-sm outline-none sm:w-44" />

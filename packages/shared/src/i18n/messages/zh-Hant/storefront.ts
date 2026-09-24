@@ -7,6 +7,7 @@ export const storefront = {
     home: '首頁',
     language: '語言',
     localeNames: { en: '英語', 'zh-Hans': '簡體中文', 'zh-Hant': '繁體中文' },
+    login: '登入', register: '註冊', account: '帳戶', logout: '登出',
   },
   home: {
     categories: '瀏覽分類',
@@ -36,5 +37,20 @@ export const storefront = {
     title: '找不到頁面',
     message: '此頁面無法使用。',
     back: '返回首頁',
+  },
+  account: {
+    login: '登入', register: '建立帳戶', forgot: '忘記密碼', reset: '重設密碼',
+    verify: '驗證電子郵件', verifyAction: '驗證我的電子郵件', profile: '帳戶', unverified: '您的電子郵件尚未驗證。',
+    resend: '重新傳送驗證郵件', requestReceived: '已收到請求，請檢查收件匣。',
+    email: '電子郵件', username: '姓名', password: '密碼', currentPassword: '目前密碼',
+    newPassword: '新密碼', newEmail: '新電子郵件', code: '六位驗證碼',
+    submit: '儲存', sendReset: '請求重設連結', changeEmail: '變更電子郵件',
+    changePassword: '變更密碼', deleteAccount: '刪除帳戶',
+    deleteWarning: '刪除帳戶後將無法存取。請輸入目前密碼確認。',
+    language: '郵件語言', verificationSuccess: '電子郵件已驗證。',
+    verificationFailed: '驗證失敗。', passwordUpdated: '密碼已更新。',
+    accountUpdated: '帳戶已更新。', invalidLogin: '電子郵件或密碼錯誤。',
+    invalidPassword: '目前密碼不正確。', accountDeleted: '帳戶已刪除。',
+    back: '返回帳戶', alreadyAccount: '已有帳戶？',
   },
 } as const;

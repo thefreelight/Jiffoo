@@ -7,6 +7,7 @@ const areas = [
   '10-staff', '11-forgot-password',
   '12-translations',
   '13-shop',
+  '14-shop-registration', '15-shop-account',
 ];
 
 export default defineConfig({
@@ -27,7 +28,7 @@ export default defineConfig({
   projects: areas.map((name, index) => ({
     name,
     testMatch: `${name}.spec.ts`,
-    use: { baseURL: name === '13-shop' ? 'http://127.0.0.1:3003' : 'http://127.0.0.1:3002' },
+    use: { baseURL: ['13-shop', '14-shop-registration', '15-shop-account'].includes(name) ? 'http://127.0.0.1:3003' : 'http://127.0.0.1:3002' },
     dependencies: index ? [areas[index - 1]] : [],
   })),
 });

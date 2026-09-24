@@ -290,7 +290,7 @@ describe('Persisted notifications', () => {
     const original = env.STOREFRONT_URL;
     try {
       env.STOREFRONT_URL = 'https://store.example';
-      expect(verificationLink('live token')).toBe('https://store.example/verify-email?token=live%20token');
+      expect(verificationLink('live token', 'zh-Hans')).toBe('https://store.example/zh-Hans/verify-email?token=live%20token');
     } finally {
       env.STOREFRONT_URL = original;
     }

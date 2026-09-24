@@ -47,8 +47,9 @@ describe('Email Verification Endpoints', () => {
     const resend = await app.inject({
       method: 'POST', url: '/api/v1/auth/resend-verification', payload: { email: user.email },
     });
-    expect(resend.statusCode).toBe(400);
-    expect(resend.json().error.message).toContain('already verified');
+    expect(resend.statusCode).toBe(200);
+    expect(resend.json()).toMatchObject({ success: true, message: 'Verification requested' });
+    expect(await prisma.authToken.count({ where: { userId: user.id, purpose: 'EMAIL_VERIFICATION' } })).toBe(1);
   });
 
   it('rejects missing, empty, and invalid tokens', async () => {
@@ -88,11 +89,34 @@ describe('Email Verification Endpoints', () => {
     expect((await app.inject({ method: 'GET', url: `/api/v1/auth/verify-email?token=${second}` })).statusCode).toBe(200);
   });
 
-  it('rejects resend for missing or already verified accounts', async () => {
+  it('H returns identical resend responses and creates a verification only for unverified accounts', async () => {
     const verified = await createTestUser({ email: `verified-${randomUUID()}@example.com`, emailVerified: true });
-    for (const email of ['missing@example.com', verified.email, '', 'not-a-valid-email']) {
+    const unverified = await unverifiedUser();
+    const before = await prisma.authToken.count({ where: { purpose: 'EMAIL_VERIFICATION' } });
+    const responses = [];
+    for (const email of [`missing-${randomUUID()}@example.com`, verified.email, unverified.email]) {
+      const response = await app.inject({ method: 'POST', url: '/api/v1/auth/resend-verification', payload: { email } });
+      responses.push({ status: response.statusCode, body: response.json() });
+    }
+    expect(responses).toEqual([responses[0], responses[0], responses[0]]);
+    expect(responses[0].status).toBe(200);
+    expect(await prisma.authToken.count({ where: { purpose: 'EMAIL_VERIFICATION' } })).toBe(before + 1);
+    expect(await prisma.notification.count({ where: { recipientUserId: verified.id, type: 'email_verification' } })).toBe(0);
+    for (const email of ['', 'not-a-valid-email']) {
       expect((await app.inject({ method: 'POST', url: '/api/v1/auth/resend-verification', payload: { email } })).statusCode).toBe(400);
     }
     expect((await app.inject({ method: 'POST', url: '/api/v1/auth/resend-verification', payload: {} })).statusCode).toBe(400);
+  });
+
+  it('J builds the verification link in the recipient preferred locale', async () => {
+    const user = await unverifiedUser();
+    await prisma.user.update({ where: { id: user.id }, data: { locale: 'zh-Hans' } });
+    expect((await EmailVerificationService.sendVerificationEmail(user.id, user.email, user.username)).success).toBe(true);
+    const notification = await prisma.notification.findFirstOrThrow({
+      where: { recipientUserId: user.id, type: 'email_verification' },
+    });
+    const link = (notification.secretJson as { link: string }).link;
+    expect(new URL(link).pathname).toBe('/zh-Hans/verify-email');
+    expect(new URL(link).searchParams.get('token')).toBeTruthy();
   });
 });

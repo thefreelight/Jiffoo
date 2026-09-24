@@ -21,8 +21,9 @@ export class EmailVerificationService {
   static async createVerification(tx: NotificationTransaction, userId: string, email: string, username: string, resentFromId?: string): Promise<void> {
     const code = this.generateCode();
     const token = await issueAuthToken(tx, userId, 'EMAIL_VERIFICATION', code);
+    const user = await tx.user.findUniqueOrThrow({ where: { id: userId }, select: { locale: true } });
     await createNotification(tx, 'email_verification', userId, email, { name: username }, {
-      secret: { link: verificationLink(token), code },
+      secret: { link: verificationLink(token, user.locale), code },
       relatedType: 'user', relatedId: userId, resentFromId,
     });
   }
@@ -80,9 +81,8 @@ export class EmailVerificationService {
   }
 
   static async resendVerificationEmail(email: string): Promise<{ success: boolean; error?: string }> {
-    const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return { success: false, error: 'User not found' };
-    if (user.emailVerified) return { success: false, error: 'Email is already verified' };
+    const user = await prisma.user.findUnique({ where: { email: email.trim().toLowerCase() } });
+    if (!user || user.emailVerified) return { success: true };
     return this.sendVerificationEmail(user.id, user.email, user.username);
   }
 

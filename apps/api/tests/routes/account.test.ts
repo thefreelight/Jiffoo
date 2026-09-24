@@ -13,6 +13,7 @@ import type { FastifyInstance } from 'fastify';
 import { createTestApp } from '../helpers/create-test-app';
 import { createUserWithToken, deleteAllTestUsers } from '../helpers/auth';
 import { validateResponse } from '../helpers/openapi';
+import { getTestPrisma } from '../helpers/db';
 
 describe('Account Endpoints', () => {
   let app: FastifyInstance;
@@ -245,5 +246,21 @@ describe('Account Endpoints', () => {
       expect(body.data.email).toBe(newEmail);
       expect(body.data.id).toBe(userId);
     });
+  });
+
+  it('I requires the current password to delete an account and leaves rejected accounts active', async () => {
+    const headers = { authorization: `Bearer ${userToken}` };
+    const missing = await app.inject({ method: 'DELETE', url: '/api/v1/account', headers, payload: {} });
+    expect(missing.statusCode).toBe(400);
+    expect(missing.json().error.code).toBe('VALIDATION_ERROR');
+    expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: userId } })).isActive).toBe(true);
+    const wrong = await app.inject({ method: 'DELETE', url: '/api/v1/account', headers, payload: { currentPassword: 'wrong-password' } });
+    expect(wrong.statusCode).toBe(400);
+    expect(wrong.json().error.code).toBe('INVALID_PASSWORD');
+    expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: userId } })).isActive).toBe(true);
+    const correct = await app.inject({ method: 'DELETE', url: '/api/v1/account', headers, payload: { currentPassword: userPassword } });
+    expect(correct.statusCode).toBe(200);
+    expect(correct.json().data.deleted).toBe(true);
+    expect((await getTestPrisma().user.findUniqueOrThrow({ where: { id: userId } })).isActive).toBe(false);
   });
 });

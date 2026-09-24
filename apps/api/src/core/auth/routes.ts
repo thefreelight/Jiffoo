@@ -319,10 +319,17 @@ export async function authRoutes(fastify: FastifyInstance) {
       summary: 'Resend verification email',
       body: {
         type: 'object',
+        required: ['email'],
+        additionalProperties: false,
         properties: {
           email: { type: 'string', format: 'email' }
         }
-      }
+      },
+      response: {
+        200: createSuccessResponseSchema({ type: 'null' }),
+        400: errorResponseSchema,
+        500: errorResponseSchema,
+      },
     }
   }, async (request, reply) => {
     try {

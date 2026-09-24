@@ -9,6 +9,8 @@ const quick = process.argv.includes('--quick');
 const pnpmExecPath = process.env.npm_execpath;
 const pnpm = process.platform === 'win32' && pnpmExecPath ? process.execPath : process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 const pnpmPrefix = process.platform === 'win32' && pnpmExecPath ? [pnpmExecPath] : [];
+const summaryPath = resolve('verify-summary.txt');
+writeFileSync(summaryPath, '', 'utf8');
 const apiDirectory = resolve('apps/api');
 const apiRequire = createRequire(join(apiDirectory, 'package.json'));
 const prismaClientDirectory = join(dirname(dirname(dirname(apiRequire.resolve('@prisma/client/package.json')))), '.prisma', 'client');
@@ -190,16 +192,16 @@ for (const [name, commands] of steps) {
 if (!printSummary(results, testOutputs)) process.exitCode = 1;
 
 function printSummary(summary, outputs) {
-  console.log('\n=== Final test summary ===');
+  const lines = ['=== Final test summary ==='];
   let valid = true;
   for (const { name, kind, output } of outputs) {
-    console.log(`${name}:`);
-    const lines = output.replace(/\x1b\[[0-9;]*m/g, '').split(/\r?\n/);
+    lines.push(`${name}:`);
+    const outputLines = output.replace(/\x1b\[[0-9;]*m/g, '').split(/\r?\n/);
     const expected = kind === 'vitest'
       ? ['Start at', 'Test Files', 'Tests']
       : ['Playwright start time', 'Playwright results'];
     for (const label of expected) {
-      const line = lines.findLast((candidate) => candidate.trimStart().startsWith(`${label} `) || candidate.trimStart().startsWith(`${label}:`));
+      const line = outputLines.findLast((candidate) => candidate.trimStart().startsWith(`${label} `) || candidate.trimStart().startsWith(`${label}:`));
       if (!line) {
         console.error(`VERIFY SUMMARY ERROR: ${name} is missing its "${label}" line.`);
         valid = false;
@@ -207,14 +209,16 @@ function printSummary(summary, outputs) {
         console.error(`VERIFY SUMMARY ERROR: ${name} has no valid Playwright passed/failed/skipped counts.`);
         valid = false;
       } else {
-        console.log(line);
+        lines.push(line);
       }
     }
   }
-  console.log('\n| Step | Result | Duration |');
-  console.log('| --- | --- | --- |');
+  lines.push('', '| Step | Result | Duration |', '| --- | --- | --- |');
   for (const [name, result, duration] of summary) {
-    console.log(`| ${name} | ${result} | ${duration} |`);
+    lines.push(`| ${name} | ${result} | ${duration} |`);
   }
+  const block = `${lines.join('\n')}\n`;
+  writeFileSync(summaryPath, block, 'utf8');
+  process.stdout.write(`\n${block}`);
   return valid;
 }

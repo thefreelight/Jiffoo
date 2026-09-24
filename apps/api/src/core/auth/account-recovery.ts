@@ -7,7 +7,7 @@ import { normalizeNotificationLocale } from '@/core/notifications/service';
 
 export function passwordResetLink(token: string, app: 'storefront' | 'admin' = 'storefront', locale?: string | null): string {
   const base = app === 'admin' ? env.ADMIN_URL : env.STOREFRONT_URL;
-  const pathname = app === 'admin' ? `/${normalizeNotificationLocale(locale) || 'en'}/auth/reset-password` : '/reset-password';
+  const pathname = app === 'admin' ? `/${normalizeNotificationLocale(locale) || 'en'}/auth/reset-password` : `/${normalizeNotificationLocale(locale) || 'en'}/reset-password`;
   return `${base.replace(/\/$/, '')}${pathname}?token=${encodeURIComponent(token)}`;
 }
 

@@ -7,6 +7,7 @@ import { getTestPrisma } from '../helpers/db';
 import { hashAuthToken, issueAuthToken } from '@/core/auth/auth-token';
 import { env, envSchema } from '@/config/env';
 import { PasswordUtils } from '@/utils/password';
+import { generateCustomerResetLink, staffInviteLink } from '@/core/auth/account-recovery';
 
 describe('Account recovery', () => {
   const prisma = getTestPrisma();
@@ -40,7 +41,7 @@ describe('Account recovery', () => {
     expect(known.statusCode).toBe(200);
     expect(known.json()).toEqual(unknown.json());
     const storefront = await notificationLink(account.id);
-    expect(storefront).toMatch(/^http.*\/reset-password\?token=/);
+    expect(new URL(storefront).pathname).toBe('/en/reset-password');
     expect(storefront.startsWith(env.STOREFRONT_URL)).toBe(true);
     const token = new URL(storefront).searchParams.get('token')!;
     const row = await prisma.authToken.findUniqueOrThrow({ where: { tokenHash: hashAuthToken(token) } });
@@ -57,6 +58,20 @@ describe('Account recovery', () => {
     expect(adminLink.startsWith(env.ADMIN_URL)).toBe(true);
     expect(adminLink).toContain('/auth/reset-password?token=');
     expect((await prisma.authToken.findUniqueOrThrow({ where: { id: row.id } })).consumedAt).not.toBeNull();
+  });
+
+  it('K uses the customer locale for self-service and Admin reset links without changing staff links', async () => {
+    const account = await user();
+    const actor = await user();
+    await prisma.user.update({ where: { id: account.id }, data: { locale: 'zh-Hant' } });
+    const request = await app.inject({ method: 'POST', url: '/api/v1/auth/forgot-password', payload: { email: account.email } });
+    expect(request.statusCode).toBe(200);
+    expect(new URL(await notificationLink(account.id)).pathname).toBe('/zh-Hant/reset-password');
+    const generated = await generateCustomerResetLink(account.id, actor.id);
+    expect(new URL(generated).pathname).toBe('/zh-Hant/reset-password');
+    expect(new URL(generated).searchParams.get('token')).toBeTruthy();
+    expect(new URL(staffInviteLink('staff-token', 'zh-Hant')).pathname).toBe('/zh-Hant/auth/accept-invite');
+    expect(new URL(staffInviteLink('staff-token', 'zh-Hant')).origin).toBe(new URL(env.ADMIN_URL).origin);
   });
 
   it('resets the password once and rejects reuse and expiry', async () => {

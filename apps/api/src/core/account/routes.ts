@@ -6,6 +6,7 @@ import { sendSuccess, sendError } from '@/utils/response';
 import { UploadService } from '@/core/upload/service';
 import { mapAccountRouteError } from '@/utils/route-error-mapper';
 import { prisma } from '@/config/database';
+import { PasswordUtils } from '@/utils/password';
 import {
   uploadResultSchema,
   createTypedCrudResponses,
@@ -84,9 +85,33 @@ export async function accountRoutes(fastify: FastifyInstance) {
     }
   });
 
-  fastify.delete('', async (request, reply) => {
+  fastify.delete('', {
+    schema: {
+      tags: ['account'],
+      summary: 'Delete account after password confirmation',
+      security: [{ bearerAuth: [] }],
+      body: {
+        type: 'object',
+        required: ['currentPassword'],
+        additionalProperties: false,
+        properties: { currentPassword: { type: 'string', minLength: 1 } },
+      },
+      response: createTypedUpdateResponses({
+        type: 'object',
+        properties: {
+          deleted: { type: 'boolean' }, userId: { type: 'string' },
+          unboundCardIds: { type: 'array', items: { type: 'string' } },
+          message: { type: 'string' },
+        },
+        required: ['deleted', 'userId', 'unboundCardIds', 'message'],
+      }),
+    },
+  }, async (request, reply) => {
     try {
       const userId = request.user!.id;
+      const user = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+      const valid = await PasswordUtils.verify((request.body as { currentPassword: string }).currentPassword, user.password);
+      if (!valid) throw new Error('Current password is incorrect');
       await prisma.user.update({ where: { id: userId }, data: { isActive: false } });
       return sendSuccess(reply, {
         deleted: true,

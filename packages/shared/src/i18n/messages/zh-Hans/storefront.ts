@@ -7,6 +7,7 @@ export const storefront = {
     home: '首页',
     language: '语言',
     localeNames: { en: '英语', 'zh-Hans': '简体中文', 'zh-Hant': '繁体中文' },
+    login: '登录', register: '注册', account: '账户', logout: '退出登录',
   },
   home: {
     categories: '浏览分类',
@@ -36,5 +37,20 @@ export const storefront = {
     title: '页面不存在',
     message: '该页面无法访问。',
     back: '返回首页',
+  },
+  account: {
+    login: '登录', register: '创建账户', forgot: '忘记密码', reset: '重置密码',
+    verify: '验证邮箱', verifyAction: '验证我的邮箱', profile: '账户', unverified: '您的邮箱尚未验证。',
+    resend: '重新发送验证邮件', requestReceived: '请求已收到，请检查收件箱。',
+    email: '邮箱', username: '姓名', password: '密码', currentPassword: '当前密码',
+    newPassword: '新密码', newEmail: '新邮箱', code: '六位验证码',
+    submit: '保存', sendReset: '请求重置链接', changeEmail: '更改邮箱',
+    changePassword: '修改密码', deleteAccount: '删除账户',
+    deleteWarning: '删除账户后将无法访问。请输入当前密码确认。',
+    language: '邮件语言', verificationSuccess: '邮箱已验证。',
+    verificationFailed: '验证失败。', passwordUpdated: '密码已更新。',
+    accountUpdated: '账户已更新。', invalidLogin: '邮箱或密码错误。',
+    invalidPassword: '当前密码不正确。', accountDeleted: '账户已删除。',
+    back: '返回账户', alreadyAccount: '已有账户？',
   },
 } as const;

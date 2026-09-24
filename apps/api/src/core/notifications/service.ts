@@ -156,6 +156,6 @@ export async function createOrderNotification(
   }, { relatedType: 'order', relatedId: orderId });
 }
 
-export function verificationLink(token: string): string {
-  return `${env.STOREFRONT_URL.replace(/\/$/, '')}/verify-email?token=${encodeURIComponent(token)}`;
+export function verificationLink(token: string, locale?: string | null): string {
+  return `${env.STOREFRONT_URL.replace(/\/$/, '')}/${normalizeNotificationLocale(locale) || 'en'}/verify-email?token=${encodeURIComponent(token)}`;
 }
