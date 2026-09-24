@@ -8,6 +8,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useAuthStore } from '@/lib/store'
 import { authApi } from '@/lib/api'
@@ -121,14 +122,14 @@ export default function AdminLoginPage() {
 
     // Validation using shared Zod schema
     try {
-      loginSchema.parse({ email, password });
+      loginSchema.parse({ identifier: email, password });
       // Validation passed, proceed with login
       await login(email, password)
       // Redirect logic after successful login is handled in useEffect
     } catch (error: unknown) {
       if (error instanceof ZodError) {
         const firstPath = String(error.issues[0]?.path?.[0] || '')
-        if (firstPath === 'email') {
+        if (firstPath === 'identifier') {
           setError(getText('common.validation.invalidEmail', 'Please enter a valid email address'))
         } else {
           setError(getText('common.errors.validation', 'Validation Error'))
@@ -257,6 +258,9 @@ export default function AdminLoginPage() {
               </div>
 
               {/* Submit Button */}
+              <Link href={`/${locale}/auth/forgot-password`} className="block text-right text-sm text-blue-700 hover:underline">
+                Forgot password?
+              </Link>
               <Button
                 type="submit"
                 className="w-full h-11 rounded-xl font-semibold text-sm shadow-md shadow-blue-100 transition-all bg-blue-600 hover:bg-blue-700 mt-6"

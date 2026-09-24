@@ -6,6 +6,18 @@
  */
 
 export const merchant = {
+  health: {
+    loadFailed: 'Failed to load health status',
+    database: 'Database',
+    redis: 'Redis',
+    pluginRuntime: 'Plugin runtime',
+    title: 'System Health',
+    subtitle: 'Component status summary',
+    overallStatus: 'Overall status',
+    version: 'Version',
+    uptime: 'Uptime',
+    loadedPlugins: 'Loaded plugin runtimes',
+  },
   // Navigation
   nav: {
     dashboard: 'Dashboard',
@@ -703,6 +715,7 @@ export const merchant = {
 
   // Header
   header: {
+    accountMenu: 'Account menu',
     searchPlaceholder: 'Search...',
     notifications: 'Notifications',
     profile: 'Profile',

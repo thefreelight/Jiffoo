@@ -1,6 +1,19 @@
 import { promises as fs } from 'fs';
 import path from 'path';
 
+async function renameWithRetry(source: string, target: string): Promise<void> {
+  for (let attempt = 1; attempt <= 5; attempt += 1) {
+    try {
+      await fs.rename(source, target);
+      return;
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (!['EPERM', 'EBUSY', 'EACCES'].includes(code || '') || attempt === 5) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 100 * 2 ** (attempt - 1)));
+    }
+  }
+}
+
 export interface PluginPackage {
   getEntryPath(relativePath: string): string;
   readText(relativePath: string): Promise<string>;
@@ -73,9 +86,14 @@ class LocalPluginPackageStore implements PluginPackageStore {
 
     await fs.mkdir(this.root, { recursive: true });
     if (targetExists) {
-      await fs.rename(targetDirectory, backupDirectory);
+      await renameWithRetry(targetDirectory, backupDirectory);
     }
-    await fs.rename(sourceDirectory, targetDirectory);
+    try {
+      await renameWithRetry(sourceDirectory, targetDirectory);
+    } catch (error) {
+      if (targetExists) await renameWithRetry(backupDirectory, targetDirectory);
+      throw error;
+    }
 
     return {
       package: new LocalPluginPackage(targetDirectory),
@@ -84,7 +102,7 @@ class LocalPluginPackageStore implements PluginPackageStore {
       },
       rollback: async () => {
         await fs.rm(targetDirectory, { recursive: true, force: true });
-        if (targetExists) await fs.rename(backupDirectory, targetDirectory);
+        if (targetExists) await renameWithRetry(backupDirectory, targetDirectory);
       },
     };
   }

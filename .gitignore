@@ -76,6 +76,7 @@ apps/api/extensions/
 # Playwright
 playwright-report/
 test-results/
+e2e/test-results/
 playwright/.cache/
 apps/api/tests/e2e/.auth/
 apps/api/tests/e2e/playwright-report/

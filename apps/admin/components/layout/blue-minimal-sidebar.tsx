@@ -34,6 +34,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
 import { UserAvatar } from '../ui/user-avatar'
+import { AdminLanguageSwitcher } from '../i18n/admin-language-switcher'
 
 interface NavigationItem {
   id: string;
@@ -202,9 +203,10 @@ export function BlueMinimalSidebar({ isOpen = true, onClose }: BlueMinimalSideba
 
         {/* User Account Section */}
         <div className="mt-auto pt-6 border-t border-gray-50">
+          <AdminLanguageSwitcher />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-full flex items-center justify-between p-2 rounded-2xl border border-transparent hover:border-gray-100 hover:bg-gray-50 transition-all group">
+              <button aria-label={t('merchant.header.accountMenu')} className="w-full flex items-center justify-between p-2 rounded-2xl border border-transparent hover:border-gray-100 hover:bg-gray-50 transition-all group">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center overflow-hidden border border-blue-100">
                     <UserAvatar

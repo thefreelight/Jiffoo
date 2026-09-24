@@ -14,6 +14,7 @@ import {
 const ADMIN_LOCALES = [
   { value: 'en', label: 'English' },
   { value: 'zh-Hans', label: '简体中文' },
+  { value: 'zh-Hant', label: '繁體中文' },
 ] as const;
 
 function getLocalizedPath(pathname: string, locale: string): string {

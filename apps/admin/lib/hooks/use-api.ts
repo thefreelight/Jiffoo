@@ -903,8 +903,8 @@ export function useRecordManualPayment() {
       return unwrapApiResponse(response)
     },
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['order', variables.id] })
-      queryClient.invalidateQueries({ queryKey: ['orders'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.order(variables.id) })
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders })
     },
   })
 }

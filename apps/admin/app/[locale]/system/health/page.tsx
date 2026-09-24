@@ -9,16 +9,14 @@ export default function HealthMonitoringPage() {
   const t = useT()
   const { data: summary, isLoading, error, refetch } = useHealthSummary()
 
-  const getText = (key: string, fallback: string): string => t ? t(key) : fallback
-
   if (error) {
     return (
       <div className="flex h-64 items-center justify-center">
         <div className="text-center">
           <AlertTriangle className="mx-auto mb-4 h-12 w-12 text-red-500" />
-          <p className="text-gray-600">{getText('admin.health.loadFailed', 'Failed to load health status')}</p>
+          <p className="text-gray-600">{t('merchant.health.loadFailed')}</p>
           <Button className="mt-4" onClick={() => refetch()} variant="outline">
-            {getText('common.retry', 'Retry')}
+            {t('common.actions.retry')}
           </Button>
         </div>
       </div>
@@ -26,9 +24,9 @@ export default function HealthMonitoringPage() {
   }
 
   const components = summary ? [
-    { label: getText('admin.health.database', 'Database'), icon: Database, status: summary.database.status },
-    { label: getText('admin.health.redis', 'Redis'), icon: Server, status: summary.redis.status },
-    { label: getText('admin.health.pluginRuntime', 'Plugin runtime'), icon: Plug, status: summary.pluginRuntime.status },
+    { label: t('merchant.health.database'), icon: Database, status: summary.database.status },
+    { label: t('merchant.health.redis'), icon: Server, status: summary.redis.status },
+    { label: t('merchant.health.pluginRuntime'), icon: Plug, status: summary.pluginRuntime.status },
   ] : []
 
   const statusClass = summary?.status === 'healthy'
@@ -42,10 +40,10 @@ export default function HealthMonitoringPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-[#0F172A]">
-            {getText('admin.health.title', 'System Health')}
+            {t('merchant.health.title')}
           </h1>
           <p className="text-[#64748B]">
-            {getText('admin.health.subtitle', 'Component status summary')}
+            {t('merchant.health.subtitle')}
           </p>
         </div>
         <Button
@@ -56,7 +54,7 @@ export default function HealthMonitoringPage() {
           variant="outline"
         >
           <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          {getText('common.refresh', 'Refresh')}
+          {t('common.actions.refresh')}
         </Button>
       </div>
 
@@ -64,14 +62,14 @@ export default function HealthMonitoringPage() {
         <div className="border border-[#E2E8F0] bg-white p-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-sm text-[#64748B]">{getText('admin.health.overallStatus', 'Overall status')}</p>
+              <p className="text-sm text-[#64748B]">{t('merchant.health.overallStatus')}</p>
               <span className={`mt-2 inline-flex rounded px-3 py-1 text-sm font-medium ${statusClass}`}>
                 {summary.status}
               </span>
             </div>
             <div className="text-sm text-[#64748B]">
-              <p>{getText('admin.health.version', 'Version')}: {summary.version}</p>
-              <p>{getText('admin.health.uptime', 'Uptime')}: {summary.uptime}s</p>
+              <p>{t('merchant.health.version')}: {summary.version}</p>
+              <p>{t('merchant.health.uptime')}: {summary.uptime}s</p>
             </div>
           </div>
 
@@ -88,7 +86,7 @@ export default function HealthMonitoringPage() {
           </div>
 
           <p className="mt-4 text-sm text-[#64748B]">
-            {getText('admin.health.loadedPlugins', 'Loaded plugin runtimes')}: {summary.pluginRuntime.loaded}
+            {t('merchant.health.loadedPlugins')}: {summary.pluginRuntime.loaded}
           </p>
         </div>
       )}

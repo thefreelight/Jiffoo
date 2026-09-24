@@ -23,7 +23,7 @@ import {
 } from '@/components/ui/select'
 
 import { useCreateProduct, useUploadProductImage, useCategories } from '@/lib/hooks/use-api'
-import { useT } from 'shared/src/i18n/react'
+import { useT, useLocale } from 'shared/src/i18n/react'
 import { VariantsEditor } from '@/components/products/VariantsEditor'
 import { generateId } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -48,6 +48,7 @@ interface ProductFormData {
 export default function CreateProductPage() {
   const router = useRouter()
   const t = useT()
+  const locale = useLocale()
 
   const getText = (key: string, fallback: string): string => {
     if (!t) return fallback
@@ -122,7 +123,7 @@ export default function CreateProductPage() {
 
       await createProductMutation.mutateAsync(productData as any)
       toast.success('Product created successfully')
-      router.push('/products')
+      router.push(`/${locale}/products`)
     } catch (error) {
       console.error('Failed to create product:', error)
     }
@@ -144,7 +145,7 @@ export default function CreateProductPage() {
           </div>
         </div>
         <div className="flex items-center space-x-3">
-          <Button variant="outline" onClick={() => router.push('/products')} className="text-gray-500 border-gray-200 hover:bg-gray-50 font-semibold text-sm rounded-xl h-10 px-6">
+          <Button variant="outline" onClick={() => router.push(`/${locale}/products`)} className="text-gray-500 border-gray-200 hover:bg-gray-50 font-semibold text-sm rounded-xl h-10 px-6">
             Cancel
           </Button>
           <Button

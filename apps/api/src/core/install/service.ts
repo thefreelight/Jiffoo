@@ -190,7 +190,24 @@ export class InstallService {
         adminUser = existingAdmin;
       }
 
+      await prisma.adminMembership.upsert({
+        where: { userId: adminUser.id },
+        create: { userId: adminUser.id, role: 'OWNER', isOwner: true, status: 'ACTIVE' },
+        update: { role: 'OWNER', isOwner: true, status: 'ACTIVE' },
+      });
+
       // Update system settings
+      const installedSettings = {
+        'branding.platform_name': data.siteName,
+        'localization.locale': 'en',
+        'auth.bootstrap.admin': {
+          mode: 'normal',
+          showDemoCredentials: false,
+          requiresPasswordRotation: false,
+          email: data.adminEmail,
+          updatedAt: new Date().toISOString(),
+        },
+      };
       await prisma.systemSettings.upsert({
         where: { id: 'system' },
         create: {
@@ -199,7 +216,7 @@ export class InstallService {
           installedAt: new Date(),
           installedBy: adminUser.id,
           siteDescription: data.siteDescription,
-          settings: { 'branding.platform_name': data.siteName, 'localization.locale': 'en' },
+          settings: installedSettings,
           version: runtimeVersion,
         },
         update: {
@@ -207,7 +224,7 @@ export class InstallService {
           installedAt: new Date(),
           installedBy: adminUser.id,
           siteDescription: data.siteDescription,
-          settings: { 'branding.platform_name': data.siteName, 'localization.locale': 'en' },
+          settings: installedSettings,
           version: runtimeVersion,
         }
       });

@@ -12,6 +12,7 @@ import { LoginRequest, RegisterRequest } from './types';
 import { EmailVerificationService } from '@/services/email-verification.service';
 import { shouldRequirePasswordRotation } from './bootstrap';
 import { findAuthUserByEmail, findAuthUserById, findAuthUserByIdentifier } from './user-compat';
+import { findResolvedAdminAccessForUser } from './admin-membership-compat';
 import { negotiateNotificationLocale, normalizeNotificationLocale } from '@/core/notifications/service';
 
 const DEFAULT_DEMO_ADMIN_EMAIL = 'admin@jiffoo.com';
@@ -310,8 +311,13 @@ export class AuthService {
       throw new Error('Account is inactive');
     }
 
+    const access = await findResolvedAdminAccessForUser(user.id, user.role);
     return {
       ...user,
+      permissions: access?.permissions || [],
+      adminRole: access?.role || null,
+      adminStatus: access?.status || null,
+      isOwner: access?.isOwner || false,
       requiresPasswordRotation: await shouldRequirePasswordRotation(user.email),
     };
   }

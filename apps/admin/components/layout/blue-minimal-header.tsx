@@ -90,7 +90,7 @@ export function BlueMinimalHeader({ title = "Dashboard", onMenuClick }: BlueMini
         {/* Profile Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex items-center gap-3 p-1.5 pr-3 rounded-2xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100 group">
+            <button aria-label={t('merchant.header.accountMenu')} className="flex items-center gap-3 p-1.5 pr-3 rounded-2xl hover:bg-gray-50 transition-all border border-transparent hover:border-gray-100 group">
               <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center overflow-hidden border border-blue-100 group-hover:scale-105 transition-transform">
                 <UserAvatar
                   src={user?.avatar}

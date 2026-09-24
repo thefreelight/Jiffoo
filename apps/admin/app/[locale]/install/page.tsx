@@ -69,14 +69,14 @@ export default function InstallPage() {
     if (!databaseStatus?.connected) return setError('Database connection is not ready yet.')
     if (!siteName.trim()) return setError('Enter an instance name.')
     if (!/^[a-zA-Z0-9][a-zA-Z0-9._-]{1,63}$/.test(username.trim())) return setError('Use 2–64 letters, numbers, dots, dashes, or underscores for the login name.')
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError('Enter a valid email or leave it blank.')
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError('Enter a valid email address.')
     if (password.length < 8) return setError('Password must be at least 8 characters.')
     if (password !== confirmPassword) return setError('Passwords do not match.')
     setIsSubmitting(true)
     try {
       const result = await requestJson<InstallResult>('/install/complete', {
         method: 'POST',
-        body: JSON.stringify({ siteName: siteName.trim(), adminUsername: username.trim(), adminEmail: email.trim() || undefined, adminPassword: password }),
+        body: JSON.stringify({ siteName: siteName.trim(), adminUsername: username.trim(), adminEmail: email.trim(), adminPassword: password }),
       })
       if (!result.success) throw new Error(result.error || 'Installation failed')
       try {
@@ -104,7 +104,7 @@ export default function InstallPage() {
           <div className="mt-12 lg:mt-24">
             <p className="text-xs font-semibold uppercase text-emerald-400">Initial setup</p>
             <h1 className="mt-4 max-w-xs text-3xl font-semibold leading-tight">Make this store yours.</h1>
-            <p className="mt-3 max-w-xs text-sm leading-6 text-zinc-500">Create the owner account and open your workspace. Email is optional.</p>
+            <p className="mt-3 max-w-xs text-sm leading-6 text-zinc-500">Create the owner account and open your workspace.</p>
           </div>
 
           <ol className="mt-9 grid gap-3 sm:grid-cols-3 lg:mt-14 lg:grid-cols-1">
@@ -129,8 +129,8 @@ export default function InstallPage() {
               <Field label="Login name" hint="Required">
                 <input className={inputClass} value={username} onChange={(event) => setUsername(event.target.value)} placeholder="admin" autoComplete="username" required />
               </Field>
-              <Field label="Email" hint="Optional — add it later in Settings">
-                <input className={inputClass} type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" autoComplete="email" />
+              <Field label="Email" hint="Required">
+                <input className={inputClass} type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" autoComplete="email" required />
               </Field>
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Password" hint="8+ characters">

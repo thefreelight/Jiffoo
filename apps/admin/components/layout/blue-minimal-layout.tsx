@@ -13,6 +13,7 @@ import { usePathname } from 'next/navigation'
 import { Menu } from 'lucide-react'
 import { BlueMinimalSidebar } from './blue-minimal-sidebar'
 import ProtectedRoute from '../auth/ProtectedRoute'
+import { isPublicAdminRoute } from './public-routes'
 
 interface BlueMinimalLayoutProps {
   children: React.ReactNode
@@ -22,11 +23,7 @@ export function BlueMinimalLayout({ children }: BlueMinimalLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const pathname = usePathname()
 
-  // Public routes that don't need authentication
-  const publicRoutes = ['/auth/login', '/auth/register', '/install']
-  const isPublicRoute = publicRoutes.some(route => pathname.includes(route))
-
-  if (isPublicRoute) {
+  if (isPublicAdminRoute(pathname)) {
     return <>{children}</>
   }
 

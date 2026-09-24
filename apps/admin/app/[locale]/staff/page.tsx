@@ -522,7 +522,7 @@ export default function StaffPage() {
               <div className="space-y-2">
                 <Label>{getText('merchant.staff.role', 'Role')}</Label>
                 <Select value={form.role} onValueChange={handleRoleChange}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label={t('merchant.staff.role')}>
                     <SelectValue placeholder={getText('merchant.staff.selectRole', 'Select role')} />
                   </SelectTrigger>
                   <SelectContent>
@@ -538,7 +538,7 @@ export default function StaffPage() {
               <div className="space-y-2">
                 <Label>{getText('merchant.staff.status', 'Status')}</Label>
                 <Select value={form.status} onValueChange={(value) => setForm((current) => ({ ...current, status: value as 'ACTIVE' | 'SUSPENDED' }))}>
-                  <SelectTrigger>
+                  <SelectTrigger aria-label={t('merchant.staff.status')}>
                     <SelectValue placeholder={getText('merchant.staff.selectStatus', 'Select status')} />
                   </SelectTrigger>
                   <SelectContent>

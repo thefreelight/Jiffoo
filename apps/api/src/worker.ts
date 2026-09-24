@@ -12,6 +12,7 @@
  * - WORKER_MODE: Should be "standalone" when running this entry point
  */
 
+import 'module-alias/register';
 import 'dotenv/config';
 import { queueManager, workerManager, registerAllHandlers } from './infra/jobs';
 import { winstonLogger } from './core/logger/unified-logger';

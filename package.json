@@ -34,7 +34,8 @@
     "test": "turbo run test",
     "test:api:quality": "pnpm --filter api test:quality",
     "verify": "node scripts/verify.mjs",
-    "verify:quick": "node scripts/verify.mjs --quick"
+    "verify:quick": "node scripts/verify.mjs --quick",
+    "verify:e2e": "node scripts/verify-e2e.mjs"
   },
   "keywords": [
     "fastify",
@@ -45,6 +46,7 @@
   "author": "Jiffoo Team",
   "license": "GPL-2.0-or-later",
   "devDependencies": {
+    "@playwright/test": "1.57.0",
     "@types/node": "^22.9.0",
     "dotenv-cli": "^10.0.0",
     "turbo": "^2.5.5",

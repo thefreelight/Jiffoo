@@ -6,6 +6,18 @@
  */
 
 export const merchant = {
+  health: {
+    loadFailed: '載入健康狀態失敗',
+    database: '資料庫',
+    redis: 'Redis',
+    pluginRuntime: '外掛執行環境',
+    title: '系統健康狀態',
+    subtitle: '元件狀態概覽',
+    overallStatus: '整體狀態',
+    version: '版本',
+    uptime: '運行時間',
+    loadedPlugins: '已載入外掛執行環境',
+  },
   // Navigation
   nav: {
     dashboard: '儀表板',
@@ -703,6 +715,7 @@ export const merchant = {
 
   // Header
   header: {
+    accountMenu: '帳戶選單',
     searchPlaceholder: '搜尋...',
     notifications: '通知',
     profile: '個人資料',

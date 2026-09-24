@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useT } from 'shared/src/i18n/react'
+import { useT, useLocale } from 'shared/src/i18n/react'
 import { toast } from 'sonner'
 
 import {
@@ -49,6 +49,7 @@ export default function EditProductPage() {
   const params = useParams()
   const productId = params.id as string
   const t = useT()
+  const locale = useLocale()
 
   const getText = (key: string, fallback: string): string => {
     if (!t) return fallback
@@ -164,7 +165,7 @@ export default function EditProductPage() {
           </div>
         </div>
         <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
-          <Button variant="outline" onClick={() => router.push('/products')} className="hidden sm:flex text-gray-500 border-gray-200 hover:bg-gray-50 font-semibold text-sm rounded-xl h-10 px-6">
+          <Button variant="outline" onClick={() => router.push(`/${locale}/products`)} className="hidden sm:flex text-gray-500 border-gray-200 hover:bg-gray-50 font-semibold text-sm rounded-xl h-10 px-6">
             Cancel
           </Button>
           <Button

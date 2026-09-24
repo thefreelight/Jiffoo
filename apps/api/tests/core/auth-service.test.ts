@@ -528,6 +528,10 @@ describe('AuthService', () => {
       expect(result).toEqual({
         ...userProfile,
         requiresPasswordRotation: false,
+        permissions: [],
+        adminRole: null,
+        adminStatus: null,
+        isOwner: false,
       });
     });
 
