@@ -10,7 +10,21 @@ import {
   createTypedDeleteResponses,
   createPageResultSchema,
   uploadResultSchema,
+  errorResponseSchema,
 } from '@/types/common-dto';
+
+const translationSchema = {
+  type: 'object',
+  required: ['locale', 'name'],
+  properties: {
+    locale: { type: 'string', enum: ['en', 'zh-Hans', 'zh-Hant'] },
+    name: { type: 'string', minLength: 1 },
+    description: { type: 'string', nullable: true },
+  },
+  additionalProperties: false,
+} as const;
+
+const translationsSchema = { type: 'array', items: translationSchema, maxItems: 3, uniqueItems: true } as const;
 
 // ============================================================================
 // Product Variant Schema
@@ -72,6 +86,7 @@ const adminProductSchema = {
     name: { type: 'string', description: 'Product name' },
     description: { type: 'string', nullable: true, description: 'Product description' },
     images: { type: 'array', items: { type: 'string' }, description: 'Product image URLs' },
+    translations: translationsSchema,
     isActive: { type: 'boolean', description: 'Whether the product is active' },
     categoryId: { type: 'string', nullable: true, description: 'Category ID' },
     requiresShipping: { type: 'boolean', description: 'Whether this product requires shipping address' },
@@ -90,6 +105,8 @@ const categorySchema = {
     name: { type: 'string', description: 'Category name' },
     description: { type: 'string', nullable: true, description: 'Category description' },
     parentId: { type: 'string', nullable: true, description: 'Parent category ID' },
+    slug: { type: 'string' },
+    translations: translationsSchema,
   },
   required: ['id', 'name'],
 } as const;
@@ -177,6 +194,7 @@ export const adminProductSchemas = {
         categoryId: { type: 'string', nullable: true, description: 'Category ID' },
         requiresShipping: { type: 'boolean', description: 'Whether this product requires shipping address' },
         images: { type: 'array', items: { type: 'string' }, description: 'Image URLs' },
+        translations: translationsSchema,
         variants: {
           type: 'array',
           minItems: 1,
@@ -223,6 +241,7 @@ export const adminProductSchemas = {
         categoryId: { type: 'string', nullable: true, description: 'Category ID' },
         requiresShipping: { type: 'boolean', description: 'Whether this product requires shipping address' },
         images: { type: 'array', items: { type: 'string' }, description: 'Image URLs' },
+        translations: translationsSchema,
         variants: {
           type: 'array',
           minItems: 1,
@@ -278,5 +297,43 @@ export const adminProductSchemas = {
       },
     },
     response: createTypedReadResponses(createPageResultSchema(categorySchema)),
+  },
+  getCategory: {
+    params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+    response: createTypedReadResponses(categorySchema),
+  },
+  createCategory: {
+    body: {
+      type: 'object',
+      required: ['name', 'slug'],
+      properties: {
+        name: { type: 'string', minLength: 1 },
+        slug: { type: 'string', minLength: 1 },
+        description: { type: 'string', nullable: true },
+        translations: translationsSchema,
+      },
+    },
+    response: createTypedCreateResponses(categorySchema),
+  },
+  updateCategory: {
+    params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+    body: {
+      type: 'object',
+      properties: {
+        name: { type: 'string', minLength: 1 },
+        slug: { type: 'string', minLength: 1 },
+        description: { type: 'string', nullable: true },
+        translations: translationsSchema,
+      },
+    },
+    response: createTypedUpdateResponses(categorySchema),
+  },
+  deleteCategory: {
+    params: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } },
+    response: { ...createTypedDeleteResponses({
+      type: 'object',
+      properties: { categoryId: { type: 'string' }, deleted: { type: 'boolean' } },
+      required: ['categoryId', 'deleted'],
+    }), 409: errorResponseSchema },
   },
 } as const;

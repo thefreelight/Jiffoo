@@ -6,6 +6,25 @@
  */
 
 export const merchant = {
+  contentTranslations: {
+    title: 'Translations',
+    defaultContent: 'Default content',
+    name: 'Translated name',
+    description: 'Translated description',
+    baseName: 'Name',
+    baseDescription: 'Description',
+    locales: { en: 'English', 'zh-Hans': 'Simplified Chinese', 'zh-Hant': 'Traditional Chinese' },
+    categories: 'Categories',
+    createCategory: 'Create category',
+    editCategory: 'Edit category',
+    deleteCategory: 'Delete category',
+    categoryName: 'Category name',
+    slug: 'Slug',
+    save: 'Save',
+    cancel: 'Cancel',
+    deleteConfirmation: 'Delete this category?',
+    categoryNotEmpty: 'Remove products and child categories before deleting this category.',
+  },
   health: {
     loadFailed: 'Failed to load health status',
     database: 'Database',

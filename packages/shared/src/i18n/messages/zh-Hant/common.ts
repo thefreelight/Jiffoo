@@ -177,6 +177,7 @@ export const common = {
     select: '選擇語言',
     en: '英文',
     'zh-Hant': '繁體中文',
+    'zh-Hans': '簡體中文',
   },
 
   // Footer

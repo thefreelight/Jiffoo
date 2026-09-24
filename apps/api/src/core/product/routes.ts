@@ -5,7 +5,7 @@
 import { createHash } from 'crypto';
 import { FastifyInstance, FastifyReply } from 'fastify';
 import { ProductService } from './service';
-import { DEFAULT_LOCALE } from '@/utils/i18n';
+import { DEFAULT_LOCALE, type Locale } from '@/utils/i18n';
 import { sendSuccess, sendError } from '@/utils/response';
 import { productSchemas } from './schemas';
 import { CacheService } from '@/core/cache/service';
@@ -63,8 +63,8 @@ export async function productRoutes(fastify: FastifyInstance) {
     }
   }, async (request, reply) => {
     try {
-      const { page, limit } = request.query as { page?: number; limit?: number };
-      const categories = await ProductService.getCategories(page, limit);
+      const { page, limit, locale } = request.query as { page?: number; limit?: number; locale?: Locale };
+      const categories = await ProductService.getCategories(page, limit, locale || DEFAULT_LOCALE);
       const etag = setHttpCache(reply, categories, 60, 120);
       if (request.headers['if-none-match'] === etag) {
         return reply.code(304).send();
@@ -73,6 +73,19 @@ export async function productRoutes(fastify: FastifyInstance) {
     } catch (error: any) {
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
     }
+  });
+
+  fastify.get('/by-slug/:slug', {
+    schema: {
+      tags: ['products'],
+      summary: 'Get active product by slug',
+      ...productSchemas.getProductBySlug,
+    },
+  }, async (request, reply) => {
+    const { slug } = request.params as { slug: string };
+    const { locale } = request.query as { locale?: Locale };
+    const product = await ProductService.getProductBySlug(slug, locale || DEFAULT_LOCALE);
+    return product ? sendSuccess(reply, product) : sendError(reply, 404, 'NOT_FOUND', 'Product not found');
   });
 
   // Search products

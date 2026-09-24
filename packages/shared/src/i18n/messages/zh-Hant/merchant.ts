@@ -6,6 +6,25 @@
  */
 
 export const merchant = {
+  contentTranslations: {
+    title: '翻譯',
+    defaultContent: '預設內容',
+    name: '翻譯名稱',
+    description: '翻譯描述',
+    baseName: '名稱',
+    baseDescription: '描述',
+    locales: { en: '英語', 'zh-Hans': '簡體中文', 'zh-Hant': '繁體中文' },
+    categories: '分類',
+    createCategory: '建立分類',
+    editCategory: '編輯分類',
+    deleteCategory: '刪除分類',
+    categoryName: '分類名稱',
+    slug: '路徑識別',
+    save: '儲存',
+    cancel: '取消',
+    deleteConfirmation: '確定刪除此分類？',
+    categoryNotEmpty: '刪除此分類前，請先移除其商品和子分類。',
+  },
   health: {
     loadFailed: '載入健康狀態失敗',
     database: '資料庫',

@@ -7,6 +7,21 @@
 import { prisma } from '@/config/database';
 import { CacheService } from '@/core/cache/service';
 import { InventoryService } from '@/core/inventory/service';
+import { systemSettingsService } from '@/core/admin/system-settings/service';
+
+export class CatalogConflictError extends Error {
+  constructor(public readonly code: 'DEFAULT_LOCALE_TRANSLATION' | 'CATEGORY_NOT_EMPTY') {
+    super(code);
+  }
+}
+
+async function rejectDefaultLocaleTranslation(translations?: ContentTranslation[]) {
+  if (!translations?.length) return;
+  const defaultLocale = await systemSettingsService.getShopLocale();
+  if (translations.some((row) => row.locale === defaultLocale)) {
+    throw new CatalogConflictError('DEFAULT_LOCALE_TRANSLATION');
+  }
+}
 
 function calculateTrendPercent(current: number, previous: number): number {
   if (previous === 0) {
@@ -89,6 +104,12 @@ export interface ProductVariantData {
   attributes?: any;
 }
 
+export interface ContentTranslation {
+  locale: string;
+  name: string;
+  description?: string | null;
+}
+
 export interface CreateProductData {
   name: string;
   slug: string;
@@ -100,6 +121,7 @@ export interface CreateProductData {
   productType?: string;
   requiresShipping?: boolean;
   variants?: ProductVariantData[];
+  translations?: ContentTranslation[];
 }
 
 export interface UpdateProductData {
@@ -113,6 +135,7 @@ export interface UpdateProductData {
   productType?: string;
   requiresShipping?: boolean;
   variants?: ProductVariantData[];
+  translations?: ContentTranslation[];
 }
 
 export class AdminProductService {
@@ -429,6 +452,7 @@ export class AdminProductService {
         variants: {
           orderBy: { sortOrder: 'asc' }
         },
+        translations: true,
         category: true
       }
     });
@@ -449,6 +473,7 @@ export class AdminProductService {
       isActive: product.isActive,
       categoryId: product.categoryId,
       categoryName: product.category?.name || null,
+      translations: product.translations.map(({ locale, name, description }) => ({ locale, name, description })),
       images: parseImageList(product.typeData),
       requiresShipping: product.requiresShipping,
       variants: product.variants.map(v => ({
@@ -474,6 +499,7 @@ export class AdminProductService {
    * Create product
    */
   static async createProduct(data: CreateProductData) {
+    await rejectDefaultLocaleTranslation(data.translations);
     let variantsToCreate = data.variants;
 
     if (!variantsToCreate || variantsToCreate.length === 0) {
@@ -490,6 +516,7 @@ export class AdminProductService {
           productType: data.productType || 'physical',
           requiresShipping: data.requiresShipping ?? true,
           typeData: { images: data.images ?? [] },
+          translations: { create: (data.translations ?? []).map(({ locale, name, description }) => ({ locale, name, description })) },
         } as any,
         select: { id: true }
       });
@@ -526,6 +553,7 @@ export class AdminProductService {
    * Update product
    */
   static async updateProduct(productId: string, data: UpdateProductData) {
+    await rejectDefaultLocaleTranslation(data.translations);
     const updateData: any = {};
 
     if (data.name !== undefined) updateData.name = data.name;
@@ -558,6 +586,14 @@ export class AdminProductService {
         where: { id: productId },
         data: updateData,
       });
+      if (data.translations !== undefined) {
+        await tx.productTranslation.deleteMany({ where: { productId } });
+        if (data.translations.length) {
+          await tx.productTranslation.createMany({
+            data: data.translations.map(({ locale, name, description }) => ({ productId, locale, name, description })),
+          });
+        }
+      }
 
       // Handle Variants Upsert
       if (data.variants && data.variants.length > 0) {
@@ -665,7 +701,10 @@ export class AdminProductService {
         orderBy: { sortOrder: 'asc' },
         select: {
           id: true,
-          name: true
+          name: true,
+          slug: true,
+          description: true,
+          translations: { select: { locale: true, name: true, description: true } },
         }
       }),
       prisma.category.count(),
@@ -678,6 +717,63 @@ export class AdminProductService {
       total,
       totalPages: Math.ceil(total / safeLimit),
     };
+  }
+
+  static async getCategoryById(id: string) {
+    return prisma.category.findUnique({
+      where: { id },
+      select: {
+        id: true, name: true, slug: true, description: true, parentId: true,
+        translations: { select: { locale: true, name: true, description: true } },
+      },
+    });
+  }
+
+  static async createCategory(data: { name: string; slug: string; description?: string; translations?: ContentTranslation[] }) {
+    await rejectDefaultLocaleTranslation(data.translations);
+    const category = await prisma.category.create({
+      data: {
+        name: data.name, slug: data.slug, description: data.description,
+        translations: { create: data.translations ?? [] },
+      },
+      select: { id: true },
+    });
+    await CacheService.incrementProductVersion();
+    return this.getCategoryById(category.id);
+  }
+
+  static async updateCategory(id: string, data: { name?: string; slug?: string; description?: string; translations?: ContentTranslation[] }) {
+    await rejectDefaultLocaleTranslation(data.translations);
+    await prisma.$transaction(async (tx) => {
+      await tx.category.update({
+        where: { id },
+        data: {
+          name: data.name, slug: data.slug, description: data.description,
+        },
+      });
+      if (data.translations !== undefined) {
+        await tx.categoryTranslation.deleteMany({ where: { categoryId: id } });
+        if (data.translations.length) {
+          await tx.categoryTranslation.createMany({
+            data: data.translations.map(({ locale, name, description }) => ({ categoryId: id, locale, name, description })),
+          });
+        }
+      }
+    });
+    await CacheService.incrementProductVersion();
+    return this.getCategoryById(id);
+  }
+
+  static async deleteCategory(id: string) {
+    await prisma.$transaction(async (tx) => {
+      const [products, children] = await Promise.all([
+        tx.product.count({ where: { categoryId: id } }),
+        tx.category.count({ where: { parentId: id } }),
+      ]);
+      if (products || children) throw new CatalogConflictError('CATEGORY_NOT_EMPTY');
+      await tx.category.delete({ where: { id } });
+    });
+    await CacheService.incrementProductVersion();
   }
 
 }

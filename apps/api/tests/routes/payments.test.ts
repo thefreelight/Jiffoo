@@ -139,6 +139,46 @@ describe('Payments Endpoints', () => {
   });
 
   describe('POST /api/v1/payments/create-session', () => {
+    it('L rejects a foreign-origin successUrl with a stable code', async () => {
+      const { token } = await createUserWithToken();
+      const response = await app.inject({
+        method: 'POST', url: '/api/v1/payments/create-session',
+        headers: { authorization: `Bearer ${token}` },
+        payload: {
+          orderId: uuidv4(), paymentMethod: 'manual-payment',
+          successUrl: 'https://foreign.example/return',
+        },
+      });
+      expect(response.statusCode).toBe(400);
+      expect(response.json().error.code).toBe('INVALID_PAYMENT_RETURN_ORIGIN');
+    });
+
+    it('M accepts a successUrl under the storefront origin', async () => {
+      await installPaymentFixture();
+      const { token } = await createUserWithToken();
+      const ownProduct = await createTestProduct({ name: `Return URL ${uuidv4()}`, price: 20, stock: 5 });
+      const orderResponse = await app.inject({
+        method: 'POST', url: '/api/v1/orders/',
+        headers: { authorization: `Bearer ${token}` },
+        payload: {
+          items: [{ productId: ownProduct.id, variantId: ownProduct.variants[0].id, quantity: 1 }],
+          shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free',
+          paymentMethod: paymentFixtureSlug,
+        },
+      });
+      expect(orderResponse.statusCode).toBe(201);
+      const orderId = orderResponse.json().data.id as string;
+      const successUrl = `${env.STOREFRONT_URL}/order/confirmation`;
+      const response = await app.inject({
+        method: 'POST', url: '/api/v1/payments/create-session',
+        headers: { authorization: `Bearer ${token}` },
+        payload: { orderId, paymentMethod: paymentFixtureSlug, successUrl },
+      });
+      expect(response.statusCode).toBe(200);
+      const actionUrl = new URL(response.json().data.action.url);
+      expect(actionUrl.searchParams.get('return')).toBe(successUrl);
+    });
+
     it('uses STOREFRONT_URL for payment return and cancel URLs', async () => {
       await installPaymentFixture();
       const original = env.STOREFRONT_URL;

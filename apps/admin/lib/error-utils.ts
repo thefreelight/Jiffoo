@@ -16,6 +16,7 @@ const ERROR_CODE_TO_I18N_KEY: Record<string, { key: string; fallback: string }> 
   UNKNOWN_ERROR: { key: 'common.errors.unknown', fallback: 'An unknown error occurred' },
   RATE_LIMITED: { key: 'common.errors.rateLimited', fallback: 'Too many requests. Please try again later.' },
   PLUGIN_CONFIG_REQUIRED: { key: 'merchant.plugins.configRequired', fallback: 'Plugin configuration is required before enabling.' },
+  CATEGORY_NOT_EMPTY: { key: 'merchant.contentTranslations.categoryNotEmpty', fallback: 'Remove products and child categories before deleting this category.' },
 };
 
 const MESSAGE_RULES: Array<{

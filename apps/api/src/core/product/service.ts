@@ -9,6 +9,7 @@ import { prisma } from '@/config/database';
 import { Locale, DEFAULT_LOCALE } from '@/utils/i18n';
 import { CacheService } from '@/core/cache/service';
 import { InventoryService } from '@/core/inventory/service';
+import { systemSettingsService } from '@/core/admin/system-settings/service';
 
 interface ProductSearchFilters {
   search?: string;
@@ -78,10 +79,6 @@ function applyTranslation(
   translations: Array<{ productId: string; locale: string; name: string; description: string | null }>,
   locale: Locale
 ): typeof product {
-  if (locale === DEFAULT_LOCALE) {
-    return product;
-  }
-
   const translation = translations.find(
     (t) => t.productId === product.id && t.locale === locale
   );
@@ -222,8 +219,10 @@ export class ProductService {
         orderBy,
         select: {
           id: true,
+          slug: true,
           name: true,
           description: true,
+          category: { select: { name: true, slug: true, translations: { where: { locale } } } },
           typeData: true,
           createdAt: true,
           updatedAt: true,
@@ -245,7 +244,7 @@ export class ProductService {
 
     // Get translations if needed
     let translations: Array<{ productId: string; locale: string; name: string; description: string | null }> = [];
-    if (locale !== DEFAULT_LOCALE) {
+    if (locale !== await systemSettingsService.getShopLocale()) {
       translations = await prisma.productTranslation.findMany({
         where: {
           productId: { in: products.map(p => p.id) },
@@ -261,6 +260,7 @@ export class ProductService {
       filteredProducts.flatMap((product) => product.variants.map((variant) => variant.id))
     );
 
+    const useCategoryTranslation = locale !== await systemSettingsService.getShopLocale();
     const formattedProducts = (filteredProducts as any[]).map(product => {
       const translated = applyTranslation(product as any, translations, locale);
 
@@ -271,6 +271,8 @@ export class ProductService {
 
       return {
         ...translated,
+        categoryName: (useCategoryTranslation && product.category?.translations[0]?.name) || product.category?.name || null,
+        categorySlug: product.category?.slug || null,
         // In the new schema images are likely in metadata or typeData,
         // using typeData as fallback if we had images before
         typeData: parseTypeData(product.typeData),
@@ -308,15 +310,26 @@ export class ProductService {
     productId: string,
     locale: Locale = DEFAULT_LOCALE
   ) {
-    // Read-through cache
+    return this.getProductDetail({ id: productId }, locale);
+  }
+
+  static async getProductBySlug(slug: string, locale: Locale = DEFAULT_LOCALE) {
+    return this.getProductDetail({ slug }, locale);
+  }
+
+  private static async getProductDetail(
+    identifier: { id?: string; slug?: string },
+    locale: Locale
+  ) {
     const version = await CacheService.getProductVersion();
-    const cacheKey = `pub:products:detail:v${version}:${productId}:${locale}`;
+    const cacheKey = `pub:products:detail:v${version}:${identifier.id || identifier.slug}:${locale}`;
     const cached = await CacheService.get<Record<string, unknown>>(cacheKey);
     if (cached) return cached;
 
     const product = await prisma.product.findFirst({
-      where: { id: productId, isActive: true },
+      where: { ...identifier, isActive: true },
       include: {
+        category: { include: { translations: { where: { locale } } } },
         variants: {
           where: { isActive: true }
         }
@@ -331,10 +344,10 @@ export class ProductService {
 
     // Get translation if needed
     let translation = null;
-    if (locale !== DEFAULT_LOCALE) {
+    if (locale !== await systemSettingsService.getShopLocale()) {
       translation = await prisma.productTranslation.findUnique({
         where: {
-          productId_locale: { productId, locale }
+          productId_locale: { productId: product.id, locale }
         }
       });
     }
@@ -352,10 +365,14 @@ export class ProductService {
     images = parseImageList(product.typeData);
 
     // Return consumer-facing DTO (no Prisma fields, no typeData)
+    const categoryTranslation = locale === await systemSettingsService.getShopLocale() ? null : product.category?.translations[0];
     const dto = {
       id: filteredProduct.id,
+      slug: filteredProduct.slug,
       name: translation?.name || filteredProduct.name,
       description: translation?.description || filteredProduct.description,
+      categoryName: categoryTranslation?.name || product.category?.name || null,
+      categorySlug: product.category?.slug || null,
       typeData: parseTypeData(filteredProduct.typeData),
       images,
       price: displayPrice,
@@ -382,11 +399,11 @@ export class ProductService {
    * Retrieves all product categories sorted by sortOrder.
    * Includes product count for each category.
    */
-  static async getCategories(page = 1, limit = 20) {
+  static async getCategories(page = 1, limit = 20, locale: Locale = DEFAULT_LOCALE) {
     const safePage = Math.max(1, Number(page) || 1);
     const safeLimit = Math.min(100, Math.max(1, Number(limit) || 20));
     const version = await CacheService.getProductVersion();
-    const cacheKey = `pub:products:categories:v${version}:${safePage}:${safeLimit}`;
+    const cacheKey = `pub:products:categories:v${version}:${locale}:${safePage}:${safeLimit}`;
     const cached = await CacheService.get<Record<string, unknown>>(cacheKey);
     if (cached) return cached;
 
@@ -401,6 +418,8 @@ export class ProductService {
           id: true,
           name: true,
           slug: true,
+          description: true,
+          translations: { where: { locale }, select: { name: true, description: true } },
           _count: {
             select: { products: true }
           }
@@ -409,11 +428,13 @@ export class ProductService {
       prisma.category.count(),
     ]);
 
+    const useTranslation = locale !== await systemSettingsService.getShopLocale();
     const result = {
       items: categories.map((c) => ({
         id: c.id,
-        name: c.name,
+        name: (useTranslation && c.translations[0]?.name) || c.name,
         slug: c.slug,
+        description: useTranslation ? (c.translations[0]?.description ?? c.description) : c.description,
         productCount: c._count.products,
       })),
       page: safePage,
@@ -471,6 +492,7 @@ export class ProductService {
         skip,
         take: safeLimit,
         include: {
+          category: { include: { translations: { where: { locale } } } },
           variants: {
             where: { isActive: true }
           }
@@ -481,7 +503,7 @@ export class ProductService {
 
     // Get translations if needed
     let translations: Array<{ productId: string; locale: string; name: string; description: string | null }> = [];
-    if (locale !== DEFAULT_LOCALE) {
+    if (locale !== await systemSettingsService.getShopLocale()) {
       translations = await prisma.productTranslation.findMany({
         where: {
           productId: { in: products.map(p => p.id) },
@@ -497,6 +519,7 @@ export class ProductService {
       filteredProducts.flatMap((product) => product.variants.map((variant) => variant.id))
     );
 
+    const useCategoryTranslation = locale !== await systemSettingsService.getShopLocale();
     const items = (filteredProducts as any[]).map(product => {
       const translation = translations.find(t => t.productId === product.id);
       const displayPrice = product.variants.length > 0
@@ -510,8 +533,11 @@ export class ProductService {
 
       return {
         id: product.id,
+        slug: product.slug,
         name: translation?.name || product.name,
         description: translation?.description || product.description,
+        categoryName: (useCategoryTranslation && product.category?.translations[0]?.name) || product.category?.name || null,
+        categorySlug: product.category?.slug || null,
         typeData: parseTypeData(product.typeData),
         images,
         price: displayPrice,

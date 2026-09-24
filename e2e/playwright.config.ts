@@ -5,6 +5,7 @@ const areas = [
   '01-install', '02-login', '03-password', '04-language', '05-settings',
   '06-health-plugins', '07-products', '08-orders', '09-customers',
   '10-staff', '11-forgot-password',
+  '12-translations',
 ];
 
 export default defineConfig({

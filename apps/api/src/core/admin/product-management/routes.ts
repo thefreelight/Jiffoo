@@ -3,8 +3,9 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { AdminProductService } from './service';
-import { authMiddleware, requireAdmin } from '@/core/auth/middleware';
+import { AdminProductService, CatalogConflictError } from './service';
+import { authMiddleware, requirePermission } from '@/core/auth/middleware';
+import { ADMIN_PERMISSIONS } from '@shared/security';
 import { sendSuccess, sendError } from '@/utils/response';
 import { UploadService } from '@/core/upload/service';
 import { adminProductSchemas } from './schemas';
@@ -12,7 +13,7 @@ import { adminProductSchemas } from './schemas';
 export async function adminProductRoutes(fastify: FastifyInstance) {
   // Apply auth middleware to all admin product routes (before schema validation)
   fastify.addHook('onRequest', authMiddleware);
-  fastify.addHook('onRequest', requireAdmin);
+  fastify.addHook('onRequest', requirePermission());
 
   // Get products list
   fastify.get('/', {
@@ -75,6 +76,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
 
   // Create product
   fastify.post('/', {
+    preHandler: [requirePermission(ADMIN_PERMISSIONS.PRODUCTS_WRITE)],
     schema: {
       tags: ['admin-products'],
       summary: 'Create product',
@@ -87,6 +89,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
       const product = await AdminProductService.createProduct(request.body as any);
       return sendSuccess(reply, product, undefined, 201);
     } catch (error: any) {
+      if (error instanceof CatalogConflictError) return sendError(reply, 400, error.code, error.message);
       if (error.message.includes('variants') || error.message.includes('at least 1')) {
         return sendError(reply, 400, 'VALIDATION_ERROR', error.message);
       }
@@ -96,6 +99,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
 
   // Update product
   fastify.put('/:id', {
+    preHandler: [requirePermission(ADMIN_PERMISSIONS.PRODUCTS_WRITE)],
     schema: {
       tags: ['admin-products'],
       summary: 'Update product',
@@ -109,6 +113,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
       const product = await AdminProductService.updateProduct(id, request.body as any);
       return sendSuccess(reply, product);
     } catch (error: any) {
+      if (error instanceof CatalogConflictError) return sendError(reply, 400, error.code, error.message);
       if (error.code === 'P2025' || error.message === 'Product not found') {
         return sendError(reply, 404, 'NOT_FOUND', 'Product not found');
       }
@@ -118,6 +123,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
 
   // Delete product
   fastify.delete('/:id', {
+    preHandler: [requirePermission(ADMIN_PERMISSIONS.PRODUCTS_WRITE)],
     schema: {
       tags: ['admin-products'],
       summary: 'Delete product',
@@ -143,7 +149,7 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
 
   // Upload product image
   fastify.post('/upload-image', {
-    preHandler: [authMiddleware, requireAdmin],
+    preHandler: [requirePermission(ADMIN_PERMISSIONS.PRODUCTS_WRITE)],
     schema: {
       tags: ['admin-products'],
       summary: 'Upload Product Image',
@@ -183,6 +189,67 @@ export async function adminProductRoutes(fastify: FastifyInstance) {
       return sendSuccess(reply, categories);
     } catch (error: any) {
       return sendError(reply, 500, 'INTERNAL_SERVER_ERROR', error.message);
+    }
+  });
+
+  fastify.get('/categories/:id', {
+    schema: {
+      tags: ['admin-products'], summary: 'Get category by ID',
+      security: [{ bearerAuth: [] }], ...adminProductSchemas.getCategory,
+    },
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const category = await AdminProductService.getCategoryById(id);
+    return category ? sendSuccess(reply, category) : sendError(reply, 404, 'NOT_FOUND', 'Category not found');
+  });
+
+  fastify.post('/categories', {
+    preHandler: [requirePermission(ADMIN_PERMISSIONS.PRODUCTS_WRITE)],
+    schema: {
+      tags: ['admin-products'], summary: 'Create category',
+      security: [{ bearerAuth: [] }], ...adminProductSchemas.createCategory,
+    },
+  }, async (request, reply) => {
+    try {
+      const category = await AdminProductService.createCategory(request.body as any);
+      return sendSuccess(reply, category, undefined, 201);
+    } catch (error) {
+      if (error instanceof CatalogConflictError) return sendError(reply, 400, error.code, error.message);
+      throw error;
+    }
+  });
+
+  fastify.put('/categories/:id', {
+    preHandler: [requirePermission(ADMIN_PERMISSIONS.PRODUCTS_WRITE)],
+    schema: {
+      tags: ['admin-products'], summary: 'Update category',
+      security: [{ bearerAuth: [] }], ...adminProductSchemas.updateCategory,
+    },
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      const category = await AdminProductService.updateCategory(id, request.body as any);
+      return sendSuccess(reply, category);
+    } catch (error) {
+      if (error instanceof CatalogConflictError) return sendError(reply, 400, error.code, error.message);
+      throw error;
+    }
+  });
+
+  fastify.delete('/categories/:id', {
+    preHandler: [requirePermission(ADMIN_PERMISSIONS.PRODUCTS_WRITE)],
+    schema: {
+      tags: ['admin-products'], summary: 'Delete category',
+      security: [{ bearerAuth: [] }], ...adminProductSchemas.deleteCategory,
+    },
+  }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    try {
+      await AdminProductService.deleteCategory(id);
+      return sendSuccess(reply, { categoryId: id, deleted: true });
+    } catch (error) {
+      if (error instanceof CatalogConflictError) return sendError(reply, 409, error.code, error.message);
+      throw error;
     }
   });
 

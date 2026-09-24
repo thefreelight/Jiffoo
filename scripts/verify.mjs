@@ -137,9 +137,11 @@ const steps = quick
       ['Check Prisma migration drift', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'diff', '--from-url', databaseUrl, '--to-schema-datamodel', 'prisma/schema', '--exit-code']]],
       ['Run API tests', [['--filter', 'api', 'exec', 'vitest', 'run']]],
       ['Run Admin tests', [['--filter', 'admin', 'exec', 'vitest', 'run']]],
+      ['Run browser E2E', [['verify:e2e']]],
     ];
 
 const results = [];
+const testOutputs = [];
 for (const [name, commands] of steps) {
   console.log(`\n=== ${name} ===`);
   const startedAt = performance.now();
@@ -153,12 +155,21 @@ for (const [name, commands] of steps) {
       }
       continue;
     }
+    const capture = args.includes('vitest') || name === 'Run browser E2E';
     const result = spawnSync(pnpm, [...pnpmPrefix, ...args], {
       cwd: process.cwd(),
       env: childEnv,
-      stdio: 'inherit',
+      ...(capture ? { encoding: 'utf8', maxBuffer: 128 * 1024 * 1024 } : { stdio: 'inherit' }),
     });
+    if (capture) {
+      const output = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+      testOutputs.push({ name, kind: args.includes('vitest') ? 'vitest' : 'e2e', output });
+      if (result.status !== 0) {
+        process.stdout.write(output);
+      }
+    }
     if (result.status !== 0) {
+      if (result.error) console.error(`${name}: ${result.error.message}`);
       succeeded = false;
       break;
     }
@@ -166,17 +177,39 @@ for (const [name, commands] of steps) {
 
   results.push([name, succeeded ? 'PASS' : 'FAIL', `${((performance.now() - startedAt) / 1000).toFixed(2)}s`]);
   if (!succeeded) {
-    printSummary(results);
+    printSummary(results, testOutputs);
     process.exit(1);
   }
 }
 
-printSummary(results);
+if (!printSummary(results, testOutputs)) process.exitCode = 1;
 
-function printSummary(summary) {
+function printSummary(summary, outputs) {
+  console.log('\n=== Final test summary ===');
+  let valid = true;
+  for (const { name, kind, output } of outputs) {
+    console.log(`${name}:`);
+    const lines = output.replace(/\x1b\[[0-9;]*m/g, '').split(/\r?\n/);
+    const expected = kind === 'vitest'
+      ? ['Start at', 'Test Files', 'Tests']
+      : ['Playwright start time', 'Playwright results'];
+    for (const label of expected) {
+      const line = lines.findLast((candidate) => candidate.trimStart().startsWith(`${label} `) || candidate.trimStart().startsWith(`${label}:`));
+      if (!line) {
+        console.error(`VERIFY SUMMARY ERROR: ${name} is missing its "${label}" line.`);
+        valid = false;
+      } else if (label === 'Playwright results' && !/^Playwright results: \d+ passed, \d+ failed, \d+ skipped$/.test(line)) {
+        console.error(`VERIFY SUMMARY ERROR: ${name} has no valid Playwright passed/failed/skipped counts.`);
+        valid = false;
+      } else {
+        console.log(line);
+      }
+    }
+  }
   console.log('\n| Step | Result | Duration |');
   console.log('| --- | --- | --- |');
   for (const [name, result, duration] of summary) {
     console.log(`| ${name} | ${result} | ${duration} |`);
   }
+  return valid;
 }

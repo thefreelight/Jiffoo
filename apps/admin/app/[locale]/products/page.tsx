@@ -161,6 +161,9 @@ export default function ProductsPage() {
         </div>
 
         <div className="flex gap-3">
+          <Link href={`/${locale}/products/categories`}>
+            <Button variant="outline">{getText('merchant.contentTranslations.categories', 'Categories')}</Button>
+          </Link>
           <Link href={`/${locale}/products/create`}>
             <Button className="h-10 rounded-xl bg-blue-600 px-4 text-sm font-semibold shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-700 sm:px-6">
               <Plus className="mr-0 h-4 w-4 sm:mr-2" />

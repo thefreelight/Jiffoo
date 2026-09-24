@@ -49,6 +49,10 @@ vi.mock('@/core/inventory/service', () => ({
   },
 }));
 
+vi.mock('@/core/admin/system-settings/service', () => ({
+  systemSettingsService: { getShopLocale: vi.fn().mockResolvedValue('en') },
+}));
+
 // ---------------------------------------------------------------------------
 // Imports (after mocks)
 // ---------------------------------------------------------------------------
@@ -321,6 +325,7 @@ describe('ProductService', () => {
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           include: {
+            category: { include: { translations: { where: { locale: 'en' } } } },
             variants: {
               where: { isActive: true },
             },

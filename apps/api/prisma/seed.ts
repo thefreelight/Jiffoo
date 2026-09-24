@@ -365,12 +365,7 @@ async function main() {
         });
       }
 
-      // Create product translations (en, zh-Hant)
-      await prisma.productTranslation.upsert({
-        where: { productId_locale: { productId: prod.id, locale: 'en' } },
-        update: { name: prod.name, description: prod.description },
-        create: { productId: prod.id, locale: 'en', name: prod.name, description: prod.description },
-      });
+      // Keep base content in the default store locale.
       await prisma.productTranslation.upsert({
         where: { productId_locale: { productId: prod.id, locale: 'zh-Hant' } },
         update: { name: prod.zhName, description: prod.zhDescription },

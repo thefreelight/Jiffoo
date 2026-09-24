@@ -25,12 +25,14 @@ import {
 import { useCreateProduct, useUploadProductImage, useCategories } from '@/lib/hooks/use-api'
 import { useT, useLocale } from 'shared/src/i18n/react'
 import { VariantsEditor } from '@/components/products/VariantsEditor'
+import { ContentTranslations, useStoreDefaultLocale, type ContentTranslation } from '@/components/products/ContentTranslations'
 import { generateId } from '@/lib/utils'
 import { toast } from 'sonner'
 
 interface ProductFormData {
   name: string
   description: string
+  translations: ContentTranslation[]
   category: string
   requiresShipping: boolean
   images: string[]
@@ -60,11 +62,13 @@ export default function CreateProductPage() {
   const createProductMutation = useCreateProduct()
   const uploadImageMutation = useUploadProductImage()
   const { data: categories = [] } = useCategories()
+  const { data: defaultLocale = 'en' } = useStoreDefaultLocale()
   const [isUploading, setIsUploading] = useState(false)
 
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     description: '',
+    translations: [],
     category: 'none',
     requiresShipping: true,
     images: [],
@@ -115,6 +119,7 @@ export default function CreateProductPage() {
       const productData = {
         name: formData.name,
         description: formData.description,
+        translations: formData.translations.filter((row) => row.name.trim()),
         categoryId: formData.category === 'none' ? null : formData.category,
         requiresShipping: formData.requiresShipping,
         images: formData.images,
@@ -170,8 +175,9 @@ export default function CreateProductPage() {
 
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">Product Name</Label>
+                  <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter" htmlFor="product-base-name">{t('merchant.contentTranslations.baseName')} ({t('merchant.contentTranslations.defaultContent')}: {t(`merchant.contentTranslations.locales.${defaultLocale}`)})</Label>
                   <Input
+                    id="product-base-name"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     className="h-12 text-base font-medium border-gray-100 focus:border-blue-500 focus:ring-0 rounded-2xl bg-gray-50/50 px-6 transition-all"
@@ -183,7 +189,7 @@ export default function CreateProductPage() {
                   <div className="space-y-2">
                     <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">Category</Label>
                     <Select value={formData.category} onValueChange={(v) => handleInputChange('category', v)}>
-                      <SelectTrigger className="h-12 bg-gray-50/50 border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 flex items-center px-6 font-medium text-gray-900 transition-all">
+                      <SelectTrigger aria-label={t('merchant.contentTranslations.categories')} className="h-12 bg-gray-50/50 border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/10 focus:border-blue-500 flex items-center px-6 font-medium text-gray-900 transition-all">
                         <SelectValue placeholder="Select Category" />
                       </SelectTrigger>
                       <SelectContent className="rounded-2xl border-gray-100 shadow-2xl p-2 bg-white">
@@ -209,8 +215,9 @@ export default function CreateProductPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter">Description</Label>
+                  <Label className="text-xs font-bold text-gray-500 uppercase tracking-tighter" htmlFor="product-base-description">{t('merchant.contentTranslations.baseDescription')} ({t('merchant.contentTranslations.defaultContent')}: {t(`merchant.contentTranslations.locales.${defaultLocale}`)})</Label>
                   <Textarea
+                    id="product-base-description"
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     rows={6}
@@ -218,6 +225,11 @@ export default function CreateProductPage() {
                     placeholder="Full product details..."
                   />
                 </div>
+                <ContentTranslations
+                  defaultLocale={defaultLocale}
+                  translations={formData.translations}
+                  onChange={(translations) => handleInputChange('translations', translations)}
+                />
               </div>
             </div>
 

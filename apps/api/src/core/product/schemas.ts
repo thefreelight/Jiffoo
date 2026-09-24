@@ -32,6 +32,9 @@ const productListItemSchema = {
   type: 'object',
   properties: {
     id: { type: 'string', description: 'Product ID' },
+    slug: { type: 'string' },
+    categoryName: { type: 'string', nullable: true },
+    categorySlug: { type: 'string', nullable: true },
     name: { type: 'string', description: 'Product name' },
     description: { type: 'string', nullable: true, description: 'Product description' },
     typeData: { type: 'object', additionalProperties: true, description: 'Type-specific product data' },
@@ -56,6 +59,9 @@ const productDetailSchema = {
   type: 'object',
   properties: {
     id: { type: 'string', description: 'Product ID' },
+    slug: { type: 'string' },
+    categoryName: { type: 'string', nullable: true },
+    categorySlug: { type: 'string', nullable: true },
     name: { type: 'string', description: 'Product name' },
     description: { type: 'string', nullable: true, description: 'Product description' },
     typeData: { type: 'object', additionalProperties: true, description: 'Type-specific product data' },
@@ -88,6 +94,7 @@ const categorySchema = {
     id: { type: 'string', description: 'Category ID' },
     name: { type: 'string', description: 'Category name' },
     slug: { type: 'string', description: 'URL-friendly category slug' },
+    description: { type: 'string', nullable: true },
     productCount: { type: 'number', description: 'Number of products in this category' },
   },
   required: ['id', 'name', 'slug'],
@@ -98,6 +105,9 @@ const productSearchItemSchema = {
   type: 'object',
   properties: {
     id: { type: 'string', description: 'Product ID' },
+    slug: { type: 'string' },
+    categoryName: { type: 'string', nullable: true },
+    categorySlug: { type: 'string', nullable: true },
     name: { type: 'string', description: 'Product name' },
     description: { type: 'string', nullable: true, description: 'Product description' },
     typeData: { type: 'object', additionalProperties: true, description: 'Type-specific product data' },
@@ -151,6 +161,18 @@ export const productSchemas = {
     },
     response: createTypedReadResponses(productDetailSchema),
   },
+  getProductBySlug: {
+    params: {
+      type: 'object',
+      required: ['slug'],
+      properties: { slug: { type: 'string', minLength: 1 } },
+    },
+    querystring: {
+      type: 'object',
+      properties: { locale: { type: 'string', default: 'en' } },
+    },
+    response: createTypedReadResponses(productDetailSchema),
+  },
 
   // GET /api/products/categories
   getCategories: {
@@ -159,6 +181,7 @@ export const productSchemas = {
       properties: {
         page: { type: 'integer', default: 1, minimum: 1, description: 'Page number' },
         limit: { type: 'integer', default: 20, minimum: 1, maximum: 100, description: 'Items per page' },
+        locale: { type: 'string', default: 'en' },
       },
     },
     response: createTypedReadResponses(createPageResultSchema(categorySchema)),

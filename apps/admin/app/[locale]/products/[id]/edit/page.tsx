@@ -34,10 +34,12 @@ import {
   useCategories,
 } from '@/lib/hooks/use-api'
 import { VariantsEditor } from '@/components/products/VariantsEditor'
+import { ContentTranslations, useStoreDefaultLocale, type ContentTranslation } from '@/components/products/ContentTranslations'
 
 interface ProductFormData {
   name: string
   description: string
+  translations: ContentTranslation[]
   category: string
   requiresShipping: boolean
   images: string[]
@@ -59,6 +61,7 @@ export default function EditProductPage() {
 
   const { data: product, isLoading, error, refetch } = useProduct(productId)
   const { data: categories = [] } = useCategories()
+  const { data: defaultLocale = 'en' } = useStoreDefaultLocale()
   const updateProductMutation = useUpdateProduct()
   const uploadImageMutation = useUploadProductImage()
   const [isUploading, setIsUploading] = useState(false)
@@ -67,6 +70,7 @@ export default function EditProductPage() {
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     description: '',
+    translations: [],
     category: 'none',
     requiresShipping: true,
     images: [],
@@ -78,6 +82,7 @@ export default function EditProductPage() {
       setFormData({
         name: product.name ?? '',
         description: product.description ?? '',
+        translations: (product as typeof product & { translations?: ContentTranslation[] }).translations ?? [],
         category: product.categoryId || 'none',
         requiresShipping: product.requiresShipping !== false,
         images: Array.isArray(product.images) ? product.images : [],
@@ -126,6 +131,7 @@ export default function EditProductPage() {
       const productData = {
         name: formData.name,
         description: formData.description,
+        translations: formData.translations.filter((row) => row.name.trim()),
         categoryId: formData.category === 'none' ? null : formData.category,
         requiresShipping: formData.requiresShipping,
         images: formData.images,
@@ -192,8 +198,9 @@ export default function EditProductPage() {
 
               <div className="space-y-5">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Product Name</Label>
+                  <Label htmlFor="product-base-name" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">{t('merchant.contentTranslations.baseName')} ({t('merchant.contentTranslations.defaultContent')}: {t(`merchant.contentTranslations.locales.${defaultLocale}`)})</Label>
                   <Input
+                    id="product-base-name"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     className="h-11 text-sm font-medium border-gray-100 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/10 rounded-xl bg-gray-50/50 px-4 transition-all"
@@ -204,7 +211,7 @@ export default function EditProductPage() {
                 <div className="space-y-2">
                   <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Category</Label>
                   <Select value={formData.category} onValueChange={(v) => handleInputChange('category', v)}>
-                    <SelectTrigger className="h-11 bg-gray-50/50 border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/10 transition-all flex items-center px-4 font-medium text-gray-900 text-sm">
+                    <SelectTrigger aria-label={t('merchant.contentTranslations.categories')} className="h-11 bg-gray-50/50 border-gray-100 rounded-xl focus:ring-2 focus:ring-blue-500/10 transition-all flex items-center px-4 font-medium text-gray-900 text-sm">
                       <SelectValue placeholder="Select Category" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-gray-100 shadow-xl p-2 bg-white">
@@ -230,8 +237,9 @@ export default function EditProductPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">Description</Label>
+                  <Label htmlFor="product-base-description" className="text-[10px] font-bold text-gray-400 uppercase tracking-widest pl-1">{t('merchant.contentTranslations.baseDescription')} ({t('merchant.contentTranslations.defaultContent')}: {t(`merchant.contentTranslations.locales.${defaultLocale}`)})</Label>
                   <Textarea
+                    id="product-base-description"
                     value={formData.description}
                     onChange={(e) => handleInputChange('description', e.target.value)}
                     rows={4}
@@ -239,6 +247,11 @@ export default function EditProductPage() {
                     placeholder="Write a compelling product description..."
                   />
                 </div>
+                <ContentTranslations
+                  defaultLocale={defaultLocale}
+                  translations={formData.translations}
+                  onChange={(translations) => handleInputChange('translations', translations)}
+                />
               </div>
             </section>
 

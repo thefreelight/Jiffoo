@@ -100,8 +100,8 @@ export const paymentSchemas = {
       properties: {
         paymentMethod: { type: 'string', description: 'Payment method to use' },
         orderId: { type: 'string', description: 'Order ID to pay for' },
-        successUrl: { type: 'string', description: 'URL to redirect on successful payment' },
-        cancelUrl: { type: 'string', description: 'URL to redirect on cancelled payment' },
+        successUrl: { type: 'string', format: 'uri', description: 'Storefront-origin URL to redirect on successful payment' },
+        cancelUrl: { type: 'string', format: 'uri', description: 'Storefront-origin URL to redirect on cancelled payment' },
         idempotencyKey: { type: 'string', description: 'Idempotency key to avoid duplicate payment sessions' },
       },
     },

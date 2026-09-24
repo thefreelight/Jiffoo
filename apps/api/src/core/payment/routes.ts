@@ -216,6 +216,18 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         cancelUrl?: string;
         idempotencyKey?: string;
       };
+      const shopOrigin = new URL(getShopOrigin()).origin;
+      for (const url of [successUrl, cancelUrl]) {
+        if (url) {
+          try {
+            if (new URL(url).origin !== shopOrigin) {
+              return sendError(reply, 400, 'INVALID_PAYMENT_RETURN_ORIGIN', 'Payment return URL must use the storefront origin');
+            }
+          } catch {
+            return sendError(reply, 400, 'INVALID_PAYMENT_RETURN_ORIGIN', 'Payment return URL must use the storefront origin');
+          }
+        }
+      }
       const pluginSlug = resolvePluginSlugByMethod(paymentMethod, availableMethods);
       if (!pluginSlug) {
         return sendError(
