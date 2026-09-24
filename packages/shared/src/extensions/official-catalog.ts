@@ -108,6 +108,8 @@ export interface OfficialExtensionCatalogItem {
   slug: string;
   name: string;
   kind: OfficialExtensionKind;
+  /** Marketplace category for admin chips; matches the 14-value category enum. */
+  category?: string;
   target?: 'shop' | 'admin';
   listingDomain: MarketplaceListingDomain;
   listingKind: OfficialExtensionKind;
@@ -864,6 +866,7 @@ export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
   {
     slug: 'programmatic-seo',
     name: 'Programmatic SEO',
+    category: 'seo',
     kind: 'plugin',
     target: 'shop',
     listingDomain: 'app_marketplace',
@@ -887,6 +890,7 @@ export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
   {
     slug: 'visitor-identification',
     name: 'Visitor Identification',
+    category: 'marketing',
     kind: 'plugin',
     target: 'shop',
     listingDomain: 'app_marketplace',
@@ -910,6 +914,7 @@ export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
   {
     slug: 'aeo-booster',
     name: 'AEO Booster',
+    category: 'seo',
     kind: 'plugin',
     target: 'shop',
     listingDomain: 'app_marketplace',
@@ -933,6 +938,7 @@ export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
   {
     slug: 'lead-capture',
     name: 'Lead Capture',
+    category: 'marketing',
     kind: 'plugin',
     target: 'shop',
     listingDomain: 'app_marketplace',
@@ -956,6 +962,7 @@ export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
   {
     slug: 'competitor-watch',
     name: 'Competitor Watch',
+    category: 'marketing',
     kind: 'plugin',
     target: 'shop',
     listingDomain: 'app_marketplace',
@@ -979,6 +986,7 @@ export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
   {
     slug: 'experiments',
     name: 'Experiments',
+    category: 'analytics',
     kind: 'plugin',
     target: 'shop',
     listingDomain: 'app_marketplace',
@@ -1002,6 +1010,7 @@ export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
   {
     slug: 'funnel-insights',
     name: 'Funnel Insights',
+    category: 'analytics',
     kind: 'plugin',
     target: 'shop',
     listingDomain: 'app_marketplace',
@@ -1025,6 +1034,7 @@ export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
   {
     slug: 'email-campaigns',
     name: 'Email Campaigns',
+    category: 'email',
     kind: 'plugin',
     target: 'shop',
     listingDomain: 'app_marketplace',
@@ -1048,6 +1058,7 @@ export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
   {
     slug: 'hubspot-sync',
     name: 'HubSpot Sync',
+    category: 'integration',
     kind: 'plugin',
     target: 'shop',
     listingDomain: 'app_marketplace',
@@ -1071,6 +1082,7 @@ export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
   {
     slug: 'agentra-connect',
     name: 'Agentra Connect',
+    category: 'integration',
     kind: 'plugin',
     target: 'shop',
     listingDomain: 'app_marketplace',
@@ -1094,6 +1106,7 @@ export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
   {
     slug: 'abm-pages',
     name: 'ABM Pages',
+    category: 'marketing',
     kind: 'plugin',
     target: 'shop',
     listingDomain: 'app_marketplace',
@@ -1117,6 +1130,7 @@ export const OFFICIAL_LAUNCH_EXTENSIONS: OfficialCatalogEntry[] = [
   {
     slug: 'ad-creative',
     name: 'Ad Creative',
+    category: 'marketing',
     kind: 'plugin',
     target: 'shop',
     listingDomain: 'app_marketplace',
