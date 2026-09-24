@@ -21,14 +21,17 @@ const allMessages: Record<Locale, Messages> = {
   en: {
     common: enMessages.common,
     merchant: enMessages.merchant,
+    storefront: enMessages.storefront,
   },
   'zh-Hans': {
     common: zhHansMessages.common,
     merchant: zhHansMessages.merchant,
+    storefront: zhHansMessages.storefront,
   },
   'zh-Hant': {
     common: zhHantMessages.common,
     merchant: zhHantMessages.merchant,
+    storefront: zhHantMessages.storefront,
   },
 };
 

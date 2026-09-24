@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './local-requests';
 import { login, logout, originalPassword, ownerEmail } from './helpers';
 
 test('logout and login preserve the session across reload', async ({ page }) => {

@@ -122,21 +122,26 @@ function runPrismaGenerate() {
 const steps = quick
   ? [
       ['Prisma generate', [['--filter', 'api', 'exec', 'prisma', 'generate']]],
-      ['Type-check API and shared', [['exec', 'turbo', 'run', 'type-check', '--filter=api', '--filter=shared']]],
+      ['Type-check API, Shop and shared', [['exec', 'turbo', 'run', 'type-check', '--filter=api', '--filter=shop', '--filter=shared']]],
+      ['Lint Shop', [['--filter', 'shop', 'lint']]],
       ['Reset test database', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']]],
       ['Run changed API tests', [['--filter', 'api', 'exec', 'vitest', 'run', '--changed']]],
+      ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run']]],
     ]
   : [
       ['Install dependencies', [['install', '--frozen-lockfile']]],
       ['Validate and generate Prisma client', [['--filter', 'api', 'exec', 'prisma', 'validate'], ['--filter', 'api', 'exec', 'prisma', 'generate']]],
       ['Build shared package', [['--filter', 'shared', 'build']]],
       ['Build admin application', [['--filter', 'admin', 'build']]],
+      ['Build Shop application', [['--filter', 'shop', 'build']]],
       ['Type-check workspace', [['exec', 'turbo', 'run', 'type-check', '--continue=always', '--force']]],
+      ['Lint Shop', [['--filter', 'shop', 'lint']]],
       ['Export OpenAPI', [['--filter', 'api', 'export:openapi']]],
       ['Reset test database', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'reset', '--force', '--skip-seed']]],
       ['Check Prisma migration drift', [['--filter', 'api', 'exec', 'prisma', 'migrate', 'diff', '--from-url', databaseUrl, '--to-schema-datamodel', 'prisma/schema', '--exit-code']]],
       ['Run API tests', [['--filter', 'api', 'exec', 'vitest', 'run']]],
       ['Run Admin tests', [['--filter', 'admin', 'exec', 'vitest', 'run']]],
+      ['Run Shop tests', [['--filter', 'shop', 'exec', 'vitest', 'run']]],
       ['Run browser E2E', [['verify:e2e']]],
     ];
 

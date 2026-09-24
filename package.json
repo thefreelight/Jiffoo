@@ -10,6 +10,7 @@
   "workspaces": [
     "apps/api",
     "apps/admin",
+    "apps/shop",
     "packages/*"
   ],
   "scripts": {

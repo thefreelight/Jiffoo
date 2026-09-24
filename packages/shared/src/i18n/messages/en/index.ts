@@ -6,4 +6,5 @@
 
 export { common } from './common';
 export { merchant } from './merchant';
+export { storefront } from './storefront';
 

@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './local-requests';
 import { login } from './helpers';
 
 test('health overview and five enabled builtin plugins are visible', async ({ page }) => {

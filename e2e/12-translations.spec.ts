@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test'
+import { expect, test } from './local-requests'
 import { login, ownerEmail } from './helpers'
 
 test('create category and product translations, reopen and remove one translation', async ({ page }) => {

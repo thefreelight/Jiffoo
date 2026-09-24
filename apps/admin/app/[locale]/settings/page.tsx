@@ -45,7 +45,7 @@ const BRANDING_FIELDS: SettingField[] = [
     key: 'branding.logo',
     labelKey: 'merchant.settings.general.storeAvatar',
     labelFallback: 'Logo URL',
-    placeholder: 'https://cdn.example.com/logo.png',
+    placeholder: 'Logo image URL',
   },
   {
     key: 'branding.store_description',

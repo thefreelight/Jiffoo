@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './local-requests';
 import { login } from './helpers';
 
 test('store name persists after saving settings and reloading', async ({ page }) => {

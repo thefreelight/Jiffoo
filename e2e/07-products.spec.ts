@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './local-requests';
 import { login } from './helpers';
 
 test('create a stocked product and open its detail from the list', async ({ page }) => {

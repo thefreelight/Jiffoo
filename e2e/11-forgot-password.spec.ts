@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './local-requests';
 import { deliveredLink, login, ownerEmail } from './helpers';
 
 test('admin requests a reset email and signs in with the new password', async ({ page }) => {

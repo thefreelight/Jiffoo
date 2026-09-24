@@ -1,0 +1,40 @@
+export const storefront = {
+  navigation: {
+    products: 'All products',
+    categories: 'Categories',
+    search: 'Search products',
+    searchAction: 'Search',
+    home: 'Home',
+    language: 'Language',
+    localeNames: { en: 'English', 'zh-Hans': 'Simplified Chinese', 'zh-Hant': 'Traditional Chinese' },
+  },
+  home: {
+    categories: 'Browse categories',
+    products: 'Featured products',
+  },
+  catalog: {
+    title: 'All products',
+    category: 'Category',
+    results: 'Search results',
+    resultsFor: 'Results for',
+    empty: 'No products found.',
+    noCategories: 'No categories yet.',
+    previous: 'Previous page',
+    next: 'Next page',
+    page: 'Page',
+    of: 'of',
+  },
+  product: {
+    variants: 'Options',
+    stock: 'In stock',
+    outOfStock: 'Out of stock',
+    description: 'Description',
+    noImage: 'No image available',
+    sku: 'SKU',
+  },
+  notFound: {
+    title: 'Page not found',
+    message: 'This page is unavailable.',
+    back: 'Back to home',
+  },
+} as const;

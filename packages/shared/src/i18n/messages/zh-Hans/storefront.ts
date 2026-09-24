@@ -1,0 +1,40 @@
+export const storefront = {
+  navigation: {
+    products: '全部商品',
+    categories: '分类',
+    search: '搜索商品',
+    searchAction: '搜索',
+    home: '首页',
+    language: '语言',
+    localeNames: { en: '英语', 'zh-Hans': '简体中文', 'zh-Hant': '繁体中文' },
+  },
+  home: {
+    categories: '浏览分类',
+    products: '精选商品',
+  },
+  catalog: {
+    title: '全部商品',
+    category: '分类',
+    results: '搜索结果',
+    resultsFor: '搜索',
+    empty: '没有找到商品。',
+    noCategories: '暂无分类。',
+    previous: '上一页',
+    next: '下一页',
+    page: '第',
+    of: '页，共',
+  },
+  product: {
+    variants: '规格',
+    stock: '有货',
+    outOfStock: '缺货',
+    description: '商品介绍',
+    noImage: '暂无图片',
+    sku: '货号',
+  },
+  notFound: {
+    title: '页面不存在',
+    message: '该页面无法访问。',
+    back: '返回首页',
+  },
+} as const;

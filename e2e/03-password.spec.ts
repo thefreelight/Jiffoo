@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './local-requests';
 import { changedPassword, login, logout, originalPassword, ownerEmail } from './helpers';
 
 test('password change keeps the session and revokes the old password', async ({ page }) => {

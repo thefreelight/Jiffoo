@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './local-requests';
 import { originalPassword, ownerEmail } from './helpers';
 
 test('first-run install creates the owner and opens the dashboard', async ({ page }) => {

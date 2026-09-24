@@ -1,0 +1,7 @@
+@import './default-tokens.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body { background: var(--shop-canvas); color: var(--shop-ink); font-family: var(--shop-font); }
+*:focus-visible { outline: 2px solid var(--shop-action); outline-offset: 2px; }

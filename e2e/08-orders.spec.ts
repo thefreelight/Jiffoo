@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './local-requests';
 import { api, customerEmail, customerToken, login } from './helpers';
 
 test('record payment, ship an order, and resend its notification', async ({ page, request }) => {

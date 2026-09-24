@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './local-requests';
 import { login, staffEmail } from './helpers';
 
 test('invite a staff member in Admin and activate in a new browser context', async ({ page, browser }) => {

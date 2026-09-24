@@ -88,17 +88,19 @@ async function health() {
   for (let attempt = 0; attempt < 120; attempt += 1) {
     if (children.some((child) => child.exitCode !== null)) throw new Error('A service exited before health checks completed');
     try {
-      const [api, admin] = await Promise.all([
-        fetch('http://127.0.0.1:3001/health/live'),
+      const api = await fetch('http://127.0.0.1:3001/health/live');
+      if (!api.ok) throw new Error('API is not ready');
+      const [admin, shop] = await Promise.all([
         fetch('http://127.0.0.1:3002/en/auth/login'),
+        fetch('http://127.0.0.1:3003/'),
       ]);
-      if (api.ok && admin.ok) return;
+      if (admin.ok && shop.ok) return;
     } catch {
       // Services are still starting.
     }
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
-  throw new Error('API or Admin did not become healthy within 60 seconds');
+  throw new Error('API, Admin or Shop did not become healthy within 60 seconds');
 }
 
 async function stop() {
@@ -119,10 +121,12 @@ try {
   await step('Build shared package', () => command(['--filter', 'shared', 'build']));
   await step('Build API', () => command(['--filter', 'api', 'build']));
   await step('Build Admin', () => command(['--filter', 'admin', 'build']));
-  await step('Start API, worker and Admin', () => {
+  await step('Build Shop', () => command(['--filter', 'shop', 'build']));
+  await step('Start API, worker, Admin and Shop', () => {
     service('api', ['dist/server.js'], resolve(root, 'apps/api'), { WORKER_MODE: 'off', ENABLE_OUTBOX_WORKER: 'false' });
     service('worker', ['dist/worker.js'], resolve(root, 'apps/api'), { WORKER_MODE: 'standalone' });
     service('admin', [resolve(root, 'node_modules/next/dist/bin/next'), 'start', '-p', '3002', '-H', '127.0.0.1'], resolve(root, 'apps/admin'));
+    service('shop', [resolve(root, 'node_modules/next/dist/bin/next'), 'start', '-p', '3003', '-H', '127.0.0.1'], resolve(root, 'apps/shop'));
   });
   await step('Wait for health', health);
   console.log(`Playwright start time: ${new Date().toISOString()}`);

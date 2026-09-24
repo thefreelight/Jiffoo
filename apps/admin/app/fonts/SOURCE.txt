@@ -1,0 +1,4 @@
+Outfit Latin woff2, weights 400, 500, 600, 700 and 800:
+https://cdn.jsdelivr.net/npm/@fontsource/outfit@5.2.8/files/
+Original font and license:
+https://github.com/google/fonts/tree/main/ofl/outfit

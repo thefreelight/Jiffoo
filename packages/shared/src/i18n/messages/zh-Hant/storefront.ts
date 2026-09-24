@@ -1,0 +1,40 @@
+export const storefront = {
+  navigation: {
+    products: '所有商品',
+    categories: '分類',
+    search: '搜尋商品',
+    searchAction: '搜尋',
+    home: '首頁',
+    language: '語言',
+    localeNames: { en: '英語', 'zh-Hans': '簡體中文', 'zh-Hant': '繁體中文' },
+  },
+  home: {
+    categories: '瀏覽分類',
+    products: '精選商品',
+  },
+  catalog: {
+    title: '所有商品',
+    category: '分類',
+    results: '搜尋結果',
+    resultsFor: '搜尋',
+    empty: '找不到商品。',
+    noCategories: '暫無分類。',
+    previous: '上一頁',
+    next: '下一頁',
+    page: '第',
+    of: '頁，共',
+  },
+  product: {
+    variants: '規格',
+    stock: '有貨',
+    outOfStock: '缺貨',
+    description: '商品介紹',
+    noImage: '暫無圖片',
+    sku: '貨號',
+  },
+  notFound: {
+    title: '找不到頁面',
+    message: '此頁面無法使用。',
+    back: '返回首頁',
+  },
+} as const;
