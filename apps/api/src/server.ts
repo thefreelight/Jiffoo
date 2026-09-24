@@ -19,6 +19,7 @@
 
 // Register module aliases for production runtime (must be first import)
 import 'module-alias/register';
+import { parseTrustedProxies } from 'shared/trusted-proxies';
 
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
@@ -43,7 +44,10 @@ import { loadEnabledPluginRuntimes } from '@/core/admin/extension-installer/plug
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
 import { registerPluginProcessFailureHandlers } from '@/core/admin/extension-installer/plugin-process-failure';
 
+const trustedProxies = parseTrustedProxies(process.env.TRUSTED_PROXIES);
+console.info(`TRUSTED_PROXIES: ${trustedProxies.join(', ') || '(none)'}`);
 const fastify = Fastify({
+  trustProxy: trustedProxies,
   logger: false,
   disableRequestLogging: false
 });

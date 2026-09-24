@@ -32,6 +32,7 @@ const env = {
   JWT_SECRET: process.env.JWT_SECRET || 'e2e-local-secret',
   API_HOST: '127.0.0.1',
   API_PORT: '3001',
+  TRUSTED_PROXIES: '127.0.0.1,::1',
   API_SERVICE_URL: 'http://127.0.0.1:3001',
   NEXT_PUBLIC_API_URL: '/api/v1',
   ADMIN_URL: 'http://127.0.0.1:3002',
@@ -126,7 +127,7 @@ try {
     service('api', ['dist/server.js'], resolve(root, 'apps/api'), { WORKER_MODE: 'off', ENABLE_OUTBOX_WORKER: 'false' });
     service('worker', ['dist/worker.js'], resolve(root, 'apps/api'), { WORKER_MODE: 'standalone' });
     service('admin', [resolve(root, 'node_modules/next/dist/bin/next'), 'start', '-p', '3002', '-H', '127.0.0.1'], resolve(root, 'apps/admin'));
-    service('shop', [resolve(root, 'node_modules/next/dist/bin/next'), 'start', '-p', '3003', '-H', '127.0.0.1'], resolve(root, 'apps/shop'));
+    service('shop', ['server.mjs'], resolve(root, 'apps/shop'), { HOSTNAME: '127.0.0.1', PORT: '3003', TRUSTED_PROXIES: '' });
   });
   await step('Wait for health', health);
   console.log(`Playwright start time: ${new Date().toISOString()}`);

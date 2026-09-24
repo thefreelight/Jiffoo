@@ -4,6 +4,8 @@ import { join, resolve } from 'node:path';
 import { formatPrice } from '../lib/price';
 import { localePath, locales, switchLocalePath } from '../lib/locale';
 import { pagePath } from '../lib/page-path';
+import { clientIp, parseTrustedProxies } from 'shared/trusted-proxies';
+import { forwardedApiHeaders } from '../lib/outgoing-headers';
 
 describe('Shop browsing', () => {
   it('A builds and switches locale paths for every supported locale', () => {
@@ -55,5 +57,20 @@ describe('Shop browsing', () => {
 
   it('H preserves pagination query parameters', () => {
     expect(pagePath('/en/products?sort=name&page=1', 2)).toBe('/en/products?sort=name&page=2');
+  });
+
+  it('E extracts the rightmost untrusted IP and ignores spoofed chains from untrusted peers', () => {
+    const trusted = parseTrustedProxies('127.0.0.1,::1,192.0.2.0/24');
+    expect(clientIp('127.0.0.1', '198.51.100.5, 192.0.2.7', trusted)).toBe('198.51.100.5');
+    expect(clientIp('127.0.0.1', '198.51.100.5, 203.0.113.9', trusted)).toBe('203.0.113.9');
+    expect(clientIp('203.0.113.9', '198.51.100.5', trusted)).toBe('203.0.113.9');
+    expect(clientIp('::ffff:127.0.0.1', '198.51.100.5', trusted)).toBe('198.51.100.5');
+  });
+
+  it('F overwrites outgoing X-Forwarded-For with a single sanitized client IP', () => {
+    const headers = forwardedApiHeaders(new Headers({ 'x-forwarded-for': 'spoof, 192.0.2.1', accept: 'application/json' }), '198.51.100.5');
+    expect(headers.get('x-forwarded-for')).toBe('198.51.100.5');
+    expect(headers.get('accept')).toBe('application/json');
+    expect([...headers].filter(([key]) => key === 'x-forwarded-for')).toHaveLength(1);
   });
 });

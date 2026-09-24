@@ -47,8 +47,7 @@ const defaultKeyGenerator = (request: FastifyRequest): string => {
   const userId = (request as unknown as { user?: { id: string } }).user?.id;
   if (userId) return `user:${userId}`;
 
-  const ip = request.ip || request.headers['x-forwarded-for'] || 'unknown';
-  return `ip:${Array.isArray(ip) ? ip[0] : ip}`;
+  return `ip:${request.ip}`;
 };
 
 const rateLimiterPlugin: FastifyPluginAsync<RateLimiterPluginOptions> = async (fastify, options) => {

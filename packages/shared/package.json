@@ -57,6 +57,10 @@
       "types": "./dist/shared/src/security/*.d.ts",
       "default": "./dist/shared/src/security/*.js"
     },
+    "./trusted-proxies": {
+      "types": "./dist/shared/src/trusted-proxies.d.ts",
+      "default": "./dist/shared/src/trusted-proxies.js"
+    },
     "./src/proxy": {
       "types": "./dist/shared/src/proxy/index.d.ts",
       "default": "./dist/shared/src/proxy/index.js"
@@ -102,6 +106,7 @@
     "next": "^15.0.0 || ^16.0.0"
   },
   "dependencies": {
+    "@fastify/proxy-addr": "5.1.0",
     "axios": "^1.11.0",
     "zod": "^3.22.4"
   }

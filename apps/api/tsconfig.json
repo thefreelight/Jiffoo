@@ -48,6 +48,9 @@
       "shared/logger/*": [
         "../../packages/shared/dist/shared/src/logger/*"
       ],
+      "shared/trusted-proxies": [
+        "../../packages/shared/dist/shared/src/trusted-proxies"
+      ],
       "@shared/security": [
         "../../packages/shared/dist/shared/src/security/index"
       ],

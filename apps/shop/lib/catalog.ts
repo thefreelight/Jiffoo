@@ -2,6 +2,7 @@ import 'server-only';
 import { notFound } from 'next/navigation';
 import { getNamespaceMessages } from 'shared/src/i18n/messages';
 import { isShopLocale, type ShopLocale } from './locale';
+import { shopApiHeaders } from './api-headers';
 
 export type StoreContext = {
   storeName: string;
@@ -45,7 +46,7 @@ async function api<T>(path: string, params: Record<string, string | number> = {}
   const base = process.env.API_SERVICE_URL || 'http://127.0.0.1:3001';
   const url = new URL(`/api/v1${path}`, base);
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, String(value));
-  const response = await fetch(url, { cache: 'no-store' });
+  const response = await fetch(url, { cache: 'no-store', headers: await shopApiHeaders() });
   if (response.status === 404) return null;
   if (!response.ok) throw new Error(`Shop API request failed: ${response.status}`);
   const body = await response.json() as { data: T };
