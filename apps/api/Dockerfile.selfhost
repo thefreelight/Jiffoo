@@ -33,6 +33,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml .npmrc ./
 COPY apps/api/package.json ./apps/api/
 COPY packages/shared/package.json ./packages/shared/
 
+ENV SKIP_SHARED_BUILD=1
 RUN pnpm install --filter api... --frozen-lockfile
 
 COPY . .

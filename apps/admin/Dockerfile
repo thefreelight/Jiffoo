@@ -47,6 +47,8 @@ RUN pnpm config set fetch-retries 5 && \
     pnpm config set registry ${NPM_REGISTRY} && \
     pnpm config set network-concurrency 8 && \
     pnpm config set child-concurrency 4 && \
+ENV SKIP_SHARED_BUILD=1
+RUN pnpm config set fetch-retries 5 && \
     pnpm install --filter=admin... --frozen-lockfile
 
 # Rebuild the source code only when needed
