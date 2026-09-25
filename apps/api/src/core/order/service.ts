@@ -39,6 +39,7 @@ import { CheckoutService } from '@/core/checkout/service';
 import { PluginManagementService } from '@/core/admin/plugin-management/service';
 import { callContract, ContractCallError } from '@/core/admin/extension-installer/plugin-runtime';
 import { decimalToMinor, minorToDecimal } from '@/core/payment/minor-units';
+import { currentLinePrice } from './current-pricing';
 
 type JsonRecord = Record<string, unknown>;
 
@@ -170,6 +171,7 @@ export class OrderService {
     if (!user) {
       throw new Error('User not found');
     }
+    const currency = await systemSettingsService.getShopCurrency();
 
     // Verify products and calculate total amount
     let totalAmount = 0;
@@ -237,7 +239,7 @@ export class OrderService {
         requiresOrderShipping = true;
       }
 
-      const unitPrice = Number(variant.salePrice);
+      const unitPrice = currentLinePrice(variant, currency).unitPrice;
       const requestedQuantity = requestedQuantityByVariant.get(variantId) ?? item.quantity;
       const stock = stockMap.get(variantId) ?? 0;
 
@@ -263,7 +265,6 @@ export class OrderService {
     }
 
     // Unified currency from settings
-    const currency = await systemSettingsService.getShopCurrency();
     if (!normalizedShippingAddress) throw new Error('Shipping address is required');
     const quote = await CheckoutService.quoteItems(currency, orderItems.map((item) => ({
       productId: item.productId,
@@ -309,6 +310,11 @@ export class OrderService {
     const shippingAmount = Number(minorToDecimal(shippingMinor, currency));
     const taxAmount = Number(minorToDecimal(tax.totalTaxMinor, currency));
     totalAmount = subtotalAmount + shippingAmount + (tax.pricesIncludeTax ? 0 : taxAmount);
+    if (decimalToMinor(data.expectedTotal, currency) !==
+      decimalToMinor(subtotalAmount, currency) + shippingMinor + (tax.pricesIncludeTax ? 0 : tax.totalTaxMinor)) {
+      const error = new Error('QUOTE_CHANGED') as Error & { statusCode?: number; code?: string };
+      error.statusCode = 409; error.code = 'QUOTE_CHANGED'; throw error;
+    }
     const unpaidExpiresAt = new Date(Date.now() + description.unpaidTimeoutMinutes * 60_000);
 
     // Create order + deduct stock atomically
@@ -367,6 +373,20 @@ export class OrderService {
 
       for (const item of orderItems) {
         await InventoryService.decrementStock(tx, item.variantId, item.quantity);
+      }
+      const cart = await tx.cart.findUnique({ where: { userId }, include: { items: true } });
+      if (cart) {
+        for (const line of cart.items) {
+          const purchased = orderItems
+            .filter((item) => item.productId === line.productId && item.variantId === line.variantId)
+            .reduce((total, item) => total + item.quantity, 0);
+          if (!purchased) continue;
+          if (line.quantity <= purchased) {
+            await tx.cartItem.delete({ where: { id: line.id } });
+          } else {
+            await tx.cartItem.update({ where: { id: line.id }, data: { quantity: { decrement: purchased } } });
+          }
+        }
       }
 
       await recordOrderStatusHistory(tx, {
@@ -505,7 +525,19 @@ export class OrderService {
     }
 
     const currency = await systemSettingsService.getShopCurrency();
-    return this.formatOrderResponse(order, currency);
+    const payment = await prisma.payment.findFirst({
+      where: { orderId },
+      orderBy: { createdAt: 'desc' },
+      select: { sessionId: true, actionJson: true },
+    });
+    const response = this.formatOrderResponse(order, currency);
+    const action = payment?.actionJson;
+    response.paymentInstructions = order.paymentStatus === PaymentStatus.PENDING &&
+      order.status !== OrderStatus.CANCELLED && action && typeof action === 'object' &&
+      !Array.isArray(action) && action.type === 'instructions' && typeof action.text === 'string'
+      ? action.text : null;
+    response.paymentSessionId = payment?.sessionId ?? null;
+    return response;
   }
 
   /**

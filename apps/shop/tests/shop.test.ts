@@ -25,7 +25,12 @@ describe('Shop browsing', () => {
         .toBe(new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }).format(1234.5));
       expect(formatPrice(20, locale, 'CNY'))
         .toBe(new Intl.NumberFormat(locale, { style: 'currency', currency: 'CNY' }).format(20));
+      expect(formatPrice('0.30', locale, 'USD'))
+        .toBe(new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }).format(0.3));
+      expect(formatPrice('1234567.89', locale, 'USD'))
+        .toBe(new Intl.NumberFormat(locale, { style: 'currency', currency: 'USD' }).format(1234567.89));
     }
+    expect(formatPrice('9007199254740993.01', 'en', 'USD')).toBe('$9,007,199,254,740,993.01');
   });
 
   it('C contains no literal colors or Tailwind palette classes in app and components', () => {

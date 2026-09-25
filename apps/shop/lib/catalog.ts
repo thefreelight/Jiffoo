@@ -1,6 +1,6 @@
 import 'server-only';
 import { notFound } from 'next/navigation';
-import { getNamespaceMessages } from 'shared/src/i18n/messages';
+import { storefrontMessages } from './storefront-messages';
 import { isShopLocale, type ShopLocale } from './locale';
 import { shopApiHeaders } from './api-headers';
 
@@ -66,7 +66,7 @@ export async function requireLocale(value: string) {
 }
 
 export function messages(locale: ShopLocale) {
-  return getNamespaceMessages(locale, 'storefront') as typeof import('shared/src/i18n/messages/en/storefront').storefront;
+  return storefrontMessages(locale);
 }
 
 export async function categories(locale: ShopLocale): Promise<Category[]> {

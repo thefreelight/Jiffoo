@@ -127,7 +127,6 @@ export default function CreateProductPage() {
       }
 
       await createProductMutation.mutateAsync(productData as any)
-      toast.success('Product created successfully')
       router.push(`/${locale}/products`)
     } catch (error) {
       console.error('Failed to create product:', error)

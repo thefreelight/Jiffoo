@@ -254,7 +254,6 @@ model CartItem {
   cartId    String
   productId String
   quantity  Int
-  price     Decimal @db.Decimal(18, 2)
   variantId String
 
   // Shipping address draft (per item, nullable until user fills in)

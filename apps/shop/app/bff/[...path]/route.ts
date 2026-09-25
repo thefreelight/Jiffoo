@@ -46,7 +46,9 @@ async function handle(request: NextRequest, { params }: Params): Promise<NextRes
     clearTokens(response);
     return response;
   }
-  const authenticated = path.startsWith('/account') || path === '/auth/change-password';
+  const authenticated = path.startsWith('/account') || path === '/auth/change-password' ||
+    path.startsWith('/cart') || path.startsWith('/checkout') || path.startsWith('/orders') ||
+    path.startsWith('/payments');
   let renewed: Tokens | undefined;
   if (authenticated && !access && !refresh) return NextResponse.json({ success: false, error: { code: 'UNAUTHORIZED' } }, { status: 401 });
   let upstream = access || !authenticated ? await send(access) : new Response(null, { status: 401 });

@@ -162,7 +162,7 @@ export function useUpdateProduct() {
       queryClient.invalidateQueries({ queryKey: queryKeys.product(id) });
       queryClient.invalidateQueries({ queryKey: queryKeys.productStats });
       queryClient.invalidateQueries({ queryKey: queryKeys.adminDashboard });
-      toast.success('Product updated successfully');
+      toast.success('Product updated successfully', { id: 'product-update' });
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));

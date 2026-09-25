@@ -47,6 +47,7 @@ export const CreateOrderSchema = z.object({
   paymentTermId: z.string().optional(), // B2B payment terms
   shippingOptionId: z.string().min(1),
   paymentMethod: z.string().min(1),
+  expectedTotal: z.string().regex(/^\d+(?:\.\d+)?$/),
 });
 
 // Order Status Enum
@@ -141,6 +142,8 @@ export interface OrderResponse {
   taxInclusive: boolean;
   totalAmount: number;
   paymentMethod: string | null;
+  paymentInstructions?: string | null;
+  paymentSessionId?: string | null;
   unpaidExpiresAt: string | null;
   currency: string;
   shippingAddress: ShippingAddressResponse | null;

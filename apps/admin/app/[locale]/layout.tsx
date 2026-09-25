@@ -42,7 +42,7 @@ export default async function LocaleLayout({ children, params }: Props) {
           <QueryProvider>
             <SkipToMain />
             <BlueMinimalLayout>{children}</BlueMinimalLayout>
-            <Toaster position="top-right" richColors />
+            <Toaster position="bottom-right" richColors />
           </QueryProvider>
         </ToastProvider>
       </LoggerProvider>

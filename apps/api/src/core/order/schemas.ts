@@ -112,6 +112,8 @@ const orderResponseSchema = {
     taxInclusive: { type: 'boolean', description: 'Whether prices include tax' },
     totalAmount: { type: 'number', description: 'Total order amount' },
     paymentMethod: { type: 'string', nullable: true },
+    paymentInstructions: { type: 'string', nullable: true },
+    paymentSessionId: { type: 'string', nullable: true },
     unpaidExpiresAt: { type: 'string', format: 'date-time', nullable: true },
     currency: { type: 'string', description: 'Currency code (e.g., USD)' },
     shippingAddress: { type: 'object', nullable: true, additionalProperties: true, description: 'Shipping address snapshot' },
@@ -134,7 +136,7 @@ export const orderSchemas = {
   createOrder: {
     body: {
       type: 'object',
-      required: ['items', 'shippingOptionId', 'paymentMethod'],
+      required: ['items', 'shippingOptionId', 'paymentMethod', 'expectedTotal'],
       properties: {
         items: {
           type: 'array',
@@ -177,6 +179,7 @@ export const orderSchemas = {
         },
         shippingOptionId: { type: 'string', minLength: 1, description: 'Selected shipping option ID' },
         paymentMethod: { type: 'string', minLength: 1, description: 'Selected payment provider slug' },
+        expectedTotal: { type: 'string', pattern: '^\\d+(?:\\.\\d+)?$', description: 'Confirmed quote total' },
       },
     },
     response: createTypedCreateResponses(orderResponseSchema),

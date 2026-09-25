@@ -130,7 +130,6 @@ export interface CreateCartItemOptions {
   productId: string;
   variantId?: string;
   quantity?: number;
-  price?: number;
 }
 
 export async function createTestCartItem(options: CreateCartItemOptions) {
@@ -139,9 +138,7 @@ export async function createTestCartItem(options: CreateCartItemOptions) {
 
   // If no variantId provided, use the first available variant for product
   let variantId = options.variantId;
-  let price = options.price;
-
-  if (!variantId || !price) {
+  if (!variantId) {
     const product = await prisma.product.findUnique({
       where: { id: options.productId },
       include: { variants: true }
@@ -151,7 +148,6 @@ export async function createTestCartItem(options: CreateCartItemOptions) {
     }
     const variant = product.variants[0];
     variantId = variantId || variant.id;
-    price = price || variant.salePrice;
   }
 
   return prisma.cartItem.create({
@@ -161,7 +157,6 @@ export async function createTestCartItem(options: CreateCartItemOptions) {
       productId: options.productId,
       variantId: variantId!,
       quantity: options.quantity ?? 1,
-      price: price!,
     },
   });
 }

@@ -15,7 +15,6 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useOrders, useOrderStats, useUpdateOrderStatus, type Order } from '@/lib/hooks/use-api'
-import { toast } from 'sonner'
 import { StatsCard } from '@/components/dashboard/stats-card'
 import { Input } from '@/components/ui/input'
 import {
@@ -67,7 +66,6 @@ export default function OrdersPage() {
     try {
       await updateOrderStatusMutation.mutateAsync({ id: orderId, status: newStatus })
       refetch()
-      toast.success(getText('merchant.orders.statusUpdated', 'Status updated'))
     } catch {
       // Error toast is already handled by the mutation hook.
     }

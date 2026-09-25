@@ -44,6 +44,10 @@ export function safeNextPath(value: string | null | undefined, locale: ShopLocal
 }
 
 export function allowedBffRoute(method: string, path: string): boolean {
+  if (/(?:%|\\|\/\/|\.\.)/i.test(path)) return false;
+  if (/^\/cart\/items\/c[a-z0-9]{24}$/.test(path)) return ['PUT', 'DELETE'].includes(method);
+  if (/^\/orders\/c[a-z0-9]{24}$/.test(path)) return method === 'GET';
+  if (/^\/payments\/verify\/[a-zA-Z0-9:_-]{1,200}$/.test(path)) return method === 'GET';
   return new Set([
     'POST /auth/login', 'POST /auth/register', 'POST /auth/refresh',
     'POST /auth/logout', 'POST /auth/forgot-password', 'POST /auth/reset-password',
@@ -51,5 +55,8 @@ export function allowedBffRoute(method: string, path: string): boolean {
     'GET /auth/verify-email', 'GET /account/profile',
     'PUT /account/profile', 'PUT /account/email',
     'POST /auth/change-password', 'DELETE /account',
+    'GET /cart', 'POST /cart/items', 'DELETE /cart',
+    'POST /checkout/quote', 'POST /orders', 'GET /orders',
+    'GET /payments/available-methods', 'POST /payments/create-session',
   ]).has(`${method} ${path}`);
 }

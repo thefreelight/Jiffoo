@@ -27,6 +27,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { prisma } from '@/config/database';
 import path from 'path';
 import { syncBuiltinPlugins } from '@/core/admin/extension-installer/builtin-sync';
+import { checkoutTotal } from '../helpers/checkout-total';
 
 describe('Admin Orders Endpoints', () => {
   let app: FastifyInstance;
@@ -54,6 +55,9 @@ describe('Admin Orders Endpoints', () => {
       price: 99.99,
       stock: 100,
     });
+    const expectedTotal = await checkoutTotal(app, userToken,
+      [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
+      validShippingAddress, 'free-shipping:free');
 
     // Create a test order
     const orderResponse = await app.inject({
@@ -65,6 +69,7 @@ describe('Admin Orders Endpoints', () => {
         shippingAddress: validShippingAddress,
         shippingOptionId: 'free-shipping:free',
         paymentMethod: 'manual-payment',
+        expectedTotal,
       },
     });
 
@@ -253,6 +258,9 @@ describe('Admin Orders Endpoints', () => {
     });
 
     it('queues cancellation and shipping notifications from Admin status transitions', async () => {
+      const expectedTotal = await checkoutTotal(app, userToken,
+        [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
+        validShippingAddress, 'free-shipping:free');
       const created = await app.inject({
         method: 'POST', url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
@@ -261,6 +269,7 @@ describe('Admin Orders Endpoints', () => {
           shippingAddress: validShippingAddress,
           shippingOptionId: 'free-shipping:free',
           paymentMethod: 'manual-payment',
+          expectedTotal,
         },
       });
       expect(created.statusCode).toBe(201);
@@ -379,12 +388,15 @@ describe('Admin Orders Endpoints', () => {
 
   describe('POST /api/v1/admin/orders/:id/ship', () => {
     it('queues one shipped notification on the shipped transition', async () => {
+      const expectedTotal = await checkoutTotal(app, userToken,
+        [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
+        validShippingAddress, 'free-shipping:free');
       const created = await app.inject({
         method: 'POST', url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
-          shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment',
+          shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal,
         },
       });
       expect(created.statusCode).toBe(201);
@@ -539,12 +551,15 @@ describe('Admin Orders Endpoints', () => {
 
   describe('POST /api/v1/admin/orders/:id/cancel', () => {
     it('queues a cancellation notification on Admin cancellation', async () => {
+      const expectedTotal = await checkoutTotal(app, userToken,
+        [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
+        validShippingAddress, 'free-shipping:free');
       const created = await app.inject({
         method: 'POST', url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
           items: [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
-          shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment',
+          shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'manual-payment', expectedTotal,
         },
       });
       expect(created.statusCode).toBe(201);

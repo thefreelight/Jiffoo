@@ -26,6 +26,7 @@ import { decimalToMinor } from '@/core/payment/minor-units';
 import { checkoutPaymentFixtureSource, installFixturePlugin, removeFixturePlugin } from '../helpers/fixture-plugin';
 import { OrderService } from '@/core/order/service';
 import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
+import { checkoutTotal } from '../helpers/checkout-total';
 
 describe('Orders Endpoints', () => {
   let app: FastifyInstance;
@@ -76,9 +77,11 @@ describe('Orders Endpoints', () => {
   }
 
   async function createCheckoutOrder(paymentMethod = 'manual-payment'): Promise<string> {
+    const items = [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }];
+    const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, 'free-shipping:free');
     const response = await app.inject({
       method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` },
-      payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod },
+      payload: { items, shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod, expectedTotal },
     });
     expect(response.statusCode).toBe(201);
     return response.json().data.id as string;
@@ -159,16 +162,17 @@ describe('Orders Endpoints', () => {
     });
 
     it('should create order with valid items', async () => {
+      const items = [{ productId: testProduct.id, variantId: testVariantId, quantity: 2 }];
+      const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, checkoutSelection.shippingOptionId);
       const response = await app.inject({
         method: 'POST',
         url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
-          items: [
-            { productId: testProduct.id, variantId: testVariantId, quantity: 2 },
-          ],
+          items,
           shippingAddress: validShippingAddress,
           ...checkoutSelection,
+          expectedTotal,
         },
       });
 
@@ -198,16 +202,17 @@ describe('Orders Endpoints', () => {
     });
 
     it('should support shipping address', async () => {
+      const items = [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }];
+      const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, checkoutSelection.shippingOptionId);
       const response = await app.inject({
         method: 'POST',
         url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
-          items: [
-            { productId: testProduct.id, variantId: testVariantId, quantity: 1 },
-          ],
+          items,
           shippingAddress: validShippingAddress,
           ...checkoutSelection,
+          expectedTotal,
         },
       });
 
@@ -303,6 +308,7 @@ describe('Orders Endpoints', () => {
           items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }],
           shippingAddress: validShippingAddress,
           ...checkoutSelection,
+          expectedTotal: quote.total,
         },
       });
       expect(orderResponse.statusCode).toBe(201);
@@ -327,7 +333,7 @@ describe('Orders Endpoints', () => {
         const quoteResponse = await app.inject({ method: 'POST', url: '/api/v1/checkout/quote', headers: { authorization: `Bearer ${userToken}` }, payload: { shippingAddress: validShippingAddress, shippingOptionId: 'checkout-paid-shipping:standard' } });
         expect(quoteResponse.statusCode).toBe(200);
         expect(quoteResponse.json().data).toMatchObject({ subtotal: '79.99', tax: '8.50', taxInclusive: false, total: '93.49' });
-        const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'checkout-paid-shipping:standard', paymentMethod: 'manual-payment' } });
+        const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'checkout-paid-shipping:standard', paymentMethod: 'manual-payment', expectedTotal: quoteResponse.json().data.total } });
         expect(response.statusCode).toBe(201);
         expect(response.json().data).toMatchObject({
           subtotalAmount: 79.99, shippingAmount: 5, taxAmount: 8.5, taxInclusive: false,
@@ -351,7 +357,9 @@ describe('Orders Endpoints', () => {
     it('records inclusive tax without adding it to the total', async () => {
       await installFixture('checkout-inclusive-tax', 'tax', "module.exports = { register(ctx) { ctx.contracts.implement('tax', 1, { calculate: (input) => { const lines = input.lines.map((line) => ({ lineId: line.lineId, taxMinor: 727 })); return { pricesIncludeTax: true, lines, shippingTaxMinor: 45, totalTaxMinor: lines.reduce((total, line) => total + line.taxMinor, 45) }; } }); } };");
       try {
-        const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, ...checkoutSelection } });
+        const items = [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }];
+        const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, checkoutSelection.shippingOptionId);
+        const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items, shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal } });
         expect(response.statusCode).toBe(201);
         expect(response.json().data).toMatchObject({ taxInclusive: true, taxAmount: 7.72, totalAmount: 79.99, items: [expect.objectContaining({ taxAmount: 7.27 })] });
         const order = await prisma.order.findUniqueOrThrow({ where: { id: response.json().data.id }, include: { items: true } });
@@ -363,7 +371,9 @@ describe('Orders Endpoints', () => {
     });
 
     it('ignores client-sent amounts and persists product and contract amounts', async () => {
-      const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1, unitPrice: 0 }], shippingAddress: validShippingAddress, ...checkoutSelection, subtotalAmount: 0, totalAmount: 0, shippingAmount: 999 } });
+      const items = [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }];
+      const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, checkoutSelection.shippingOptionId);
+      const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ ...items[0], unitPrice: 0 }], shippingAddress: validShippingAddress, ...checkoutSelection, subtotalAmount: 0, totalAmount: 0, shippingAmount: 999, expectedTotal } });
       expect(response.statusCode).toBe(201);
       const order = await prisma.order.findUniqueOrThrow({ where: { id: response.json().data.id } });
       expect(order.subtotalAmount.toString()).toBe('79.99');
@@ -373,7 +383,7 @@ describe('Orders Endpoints', () => {
     it('rejects unknown shipping options before changing stock or creating an order', async () => {
       const stockBefore = (await prisma.productVariant.findUniqueOrThrow({ where: { id: testVariantId } })).stock;
       const countBefore = await prisma.order.count();
-      const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:missing', paymentMethod: 'manual-payment' } });
+      const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:missing', paymentMethod: 'manual-payment', expectedTotal: '0.00' } });
       expect(response.statusCode).toBe(409);
       expect(response.json().error.code).toBe('SHIPPING_OPTION_UNAVAILABLE');
       expect(await prisma.order.count()).toBe(countBefore);
@@ -385,7 +395,7 @@ describe('Orders Endpoints', () => {
       const stockBefore = (await prisma.productVariant.findUniqueOrThrow({ where: { id: testVariantId } })).stock;
       const countBefore = await prisma.order.count();
       try {
-        const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, ...checkoutSelection } });
+        const response = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, ...checkoutSelection, expectedTotal: '0.00' } });
         expect(response.statusCode).toBe(502);
         expect(response.json().error.code).toBe('CONTRACT_CALL_FAILED');
         expect(response.json().error.message).toBe('Checkout provider is temporarily unavailable');
@@ -402,12 +412,12 @@ describe('Orders Endpoints', () => {
         const instance = await prisma.pluginInstallation.findUniqueOrThrow({ where: { pluginSlug_instanceKey: { pluginSlug: 'checkout-card-payment', instanceKey: 'default' } } });
         const configResponse = await app.inject({ method: 'PATCH', url: `/api/v1/extensions/plugin/checkout-card-payment/instances/${instance.id}`, headers: { authorization: `Bearer ${adminToken}` }, payload: { config: { supported: false } } });
         expect(configResponse.statusCode).toBe(200);
-        const unsupported = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'checkout-card-payment' } });
+        const unsupported = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'checkout-card-payment', expectedTotal: '0.00' } });
         expect(unsupported.statusCode).toBe(409);
         expect(unsupported.json().error.code).toBe('PAYMENT_METHOD_UNAVAILABLE');
         const disabled = await app.inject({ method: 'PATCH', url: `/api/v1/extensions/plugin/checkout-card-payment/instances/${instance.id}`, headers: { authorization: `Bearer ${adminToken}` }, payload: { enabled: false } });
         expect(disabled.statusCode).toBe(200);
-        const unavailable = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'checkout-card-payment' } });
+        const unavailable = await app.inject({ method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` }, payload: { items: [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }], shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod: 'checkout-card-payment', expectedTotal: '0.00' } });
         expect(unavailable.statusCode).toBe(409);
         expect(unavailable.json().error.code).toBe('PAYMENT_METHOD_UNAVAILABLE');
       } finally { await resetFixtures(); }
@@ -466,17 +476,18 @@ describe('Orders Endpoints', () => {
 
   describe('GET /api/v1/orders/', () => {
     beforeEach(async () => {
+      const items = [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }];
+      const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, checkoutSelection.shippingOptionId);
       // Create an order for testing
       await app.inject({
         method: 'POST',
         url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
-          items: [
-            { productId: testProduct.id, variantId: testVariantId, quantity: 1 },
-          ],
+          items,
           shippingAddress: validShippingAddress,
           ...checkoutSelection,
+          expectedTotal,
         },
       });
     });
@@ -551,16 +562,17 @@ describe('Orders Endpoints', () => {
     let orderId: string;
 
     beforeEach(async () => {
+      const items = [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }];
+      const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, checkoutSelection.shippingOptionId);
       const createResponse = await app.inject({
         method: 'POST',
         url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
-          items: [
-            { productId: testProduct.id, variantId: testVariantId, quantity: 1 },
-          ],
+          items,
           shippingAddress: validShippingAddress,
           ...checkoutSelection,
+          expectedTotal,
         },
       });
 
@@ -626,16 +638,17 @@ describe('Orders Endpoints', () => {
     let orderId: string;
 
     beforeEach(async () => {
+      const items = [{ productId: testProduct.id, variantId: testVariantId, quantity: 1 }];
+      const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, checkoutSelection.shippingOptionId);
       const createResponse = await app.inject({
         method: 'POST',
         url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${userToken}` },
         payload: {
-          items: [
-            { productId: testProduct.id, variantId: testVariantId, quantity: 1 },
-          ],
+          items,
           shippingAddress: validShippingAddress,
           ...checkoutSelection,
+          expectedTotal,
         },
       });
 

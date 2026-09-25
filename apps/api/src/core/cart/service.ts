@@ -1,6 +1,16 @@
-import { CacheService } from '@/core/cache/service';
 import { prisma } from '@/config/database';
 import { InventoryService } from '@/core/inventory/service';
+import { currentLinePrice } from '@/core/order/current-pricing';
+import { systemSettingsService } from '@/core/admin/system-settings/service';
+
+export class InsufficientCartStockError extends Error {
+  readonly statusCode = 409;
+  readonly code = 'INSUFFICIENT_STOCK';
+
+  constructor(readonly availableQuantity: number) {
+    super(`Only ${availableQuantity} available`);
+  }
+}
 
 function parseJsonRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === 'object' && !Array.isArray(value)
@@ -44,8 +54,6 @@ export interface Cart {
  * Handles cart item management including adding, updating, removing items and cart totals calculation.
  */
 export class CartService {
-  private static CART_CACHE_PREFIX = 'user_cart:';
-  private static CART_CACHE_TTL = 86400 * 7; // 7 days
 
   /**
    * Get user cart with caching
@@ -66,26 +74,8 @@ export class CartService {
    */
   static async getCart(userId: string): Promise<Cart> {
     try {
-      const cacheKey = this.buildCacheKey(userId);
-
-      // 1. Try to get from Redis cache first
-      const cachedCart = await CacheService.get<unknown>(cacheKey);
-      if (cachedCart) {
-        // Backward-compatible normalization for old cached payloads.
-        const parsed = typeof cachedCart === 'string' ? JSON.parse(cachedCart) : cachedCart;
-        const normalized = this.normalizeCart(parsed, userId);
-        return normalized;
-      }
-
-      // 2. Get from database
       const dbCart = await this.getCartFromDatabase(userId);
-
-      if (dbCart) {
-        await CacheService.set(cacheKey, dbCart, { ttl: this.CART_CACHE_TTL });
-        return dbCart;
-      }
-
-      return this.createEmptyCart(userId);
+      return dbCart ?? this.createEmptyCart(userId);
     } catch (error) {
       console.error('Error getting cart:', error);
       return this.createEmptyCart(userId);
@@ -170,6 +160,10 @@ export class CartService {
           item.productId === productId &&
           item.variantId === variant.id
       );
+      const availableQuantity = (await InventoryService.getAvailableStockByVariantIds([variant.id])).get(variant.id) ?? 0;
+      if ((existingItem?.quantity ?? 0) + quantity > availableQuantity) {
+        throw new InsufficientCartStockError(availableQuantity);
+      }
 
       if (existingItem) {
         // Update quantity
@@ -185,13 +179,11 @@ export class CartService {
             productId,
             variantId: variant.id,
             quantity,
-            price: variant.salePrice,
           }
         });
       }
 
       // Invalidate cache and return updated cart
-      await this.invalidateCache(userId);
       return this.getCart(userId);
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -286,14 +278,12 @@ export class CartService {
               productId: item.productId,
               variantId: variant.id,
               quantity: normalizedQuantity,
-              price: variant.salePrice,
             },
           });
         }
       }
     });
 
-    await this.invalidateCache(userId);
     return this.getCart(userId);
   }
 
@@ -343,13 +333,14 @@ export class CartService {
       if (quantity <= 0) {
         await prisma.cartItem.delete({ where: { id: itemId } });
       } else {
+        const availableQuantity = (await InventoryService.getAvailableStockByVariantIds([item.variantId])).get(item.variantId) ?? 0;
+        if (quantity > availableQuantity) throw new InsufficientCartStockError(availableQuantity);
         await prisma.cartItem.update({
           where: { id: itemId },
           data: { quantity }
         });
       }
 
-      await this.invalidateCache(userId);
       return this.getCart(userId);
     } catch (error) {
       console.error('Error updating cart item:', error);
@@ -378,7 +369,6 @@ export class CartService {
   static async removeFromCart(userId: string, itemId: string): Promise<Cart> {
     try {
       await prisma.cartItem.deleteMany({ where: { id: itemId } });
-      await this.invalidateCache(userId);
       return this.getCart(userId);
     } catch (error) {
       console.error('Error removing from cart:', error);
@@ -409,7 +399,6 @@ export class CartService {
       if (cart) {
         await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
       }
-      await this.invalidateCache(userId);
       return this.createEmptyCart(userId);
     } catch (error) {
       console.error('Error clearing cart:', error);
@@ -420,31 +409,6 @@ export class CartService {
   // ============================================
   // Private Methods
   // ============================================
-
-  /**
-   * Build Redis cache key for user cart
-   *
-   * @param userId - The unique identifier of the user
-   * @returns Formatted cache key string
-   * @private
-   */
-  private static buildCacheKey(userId: string): string {
-    return `${this.CART_CACHE_PREFIX}${userId}`;
-  }
-
-  /**
-   * Invalidate cached cart for user
-   *
-   * Deletes the cart from Redis cache to force fresh data on next retrieval.
-   *
-   * @param userId - The unique identifier of the user
-   * @returns Promise that resolves when cache is invalidated
-   * @private
-   */
-  private static async invalidateCache(userId: string): Promise<void> {
-    const cacheKey = this.buildCacheKey(userId);
-    await CacheService.delete(cacheKey);
-  }
 
   /**
    * Retrieve cart from database with full item details
@@ -475,6 +439,7 @@ export class CartService {
 
     const variantIds = cart.items.map(item => item.variantId).filter(Boolean);
     const stockMap = await InventoryService.getAvailableStockByVariantIds(variantIds);
+    const currency = await systemSettingsService.getShopCurrency();
 
     const items: CartItem[] = cart.items.map(item => {
       const typeData = parseJsonRecord(item.product?.typeData);
@@ -482,19 +447,20 @@ export class CartService {
         ? typeData?.images.filter((image): image is string => typeof image === 'string')
         : [];
       const availableStock = stockMap.get(item.variantId) ?? 0;
+      const unitPrice = currentLinePrice(item.variant, currency).unitPrice;
       return {
         id: item.id,
         productId: item.productId,
         productName: item.product?.name || 'Unknown Product',
         productImage: images[0] || '',
-        price: Number(item.price),
+        price: unitPrice,
         quantity: item.quantity,
         variantId: item.variantId,
         variantName: item.variant?.name || undefined,
         variantAttributes: parseJsonRecord(item.variant?.attributes),
         requiresShipping: item.product?.requiresShipping ?? true,
         maxQuantity: availableStock,
-        subtotal: Number(item.price) * item.quantity,
+        subtotal: unitPrice * item.quantity,
       };
     });
 
@@ -542,27 +508,4 @@ export class CartService {
     };
   }
 
-  private static normalizeCart(raw: any, userId: string): Cart {
-    const now = new Date().toISOString();
-    const items = Array.isArray(raw?.items) ? raw.items : [];
-    const subtotal = Number(raw?.subtotal ?? 0);
-    const tax = Number(raw?.tax ?? 0);
-    const shipping = Number(raw?.shipping ?? 0);
-    const total = Number(raw?.total ?? (subtotal + tax + shipping));
-    const itemCount = Number(raw?.itemCount ?? items.reduce((sum: number, item: any) => sum + Number(item?.quantity || 0), 0));
-
-    return {
-      id: typeof raw?.id === 'string' ? raw.id : '',
-      userId: typeof raw?.userId === 'string' ? raw.userId : userId,
-      items,
-      subtotal,
-      tax,
-      shipping,
-      total,
-      itemCount,
-      status: typeof raw?.status === 'string' ? raw.status : 'ACTIVE',
-      createdAt: typeof raw?.createdAt === 'string' ? raw.createdAt : now,
-      updatedAt: typeof raw?.updatedAt === 'string' ? raw.updatedAt : now,
-    };
-  }
 }

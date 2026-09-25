@@ -1,13 +1,13 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search } from 'lucide-react';
+import { Search, ShoppingCart } from 'lucide-react';
 import type { Category, StoreContext } from '@/lib/catalog';
 import { messages } from '@/lib/catalog';
 import { localePath, type ShopLocale } from '@/lib/locale';
 import { LanguageSwitcher } from './language-switcher';
 import { AuthLinks } from './auth-links';
 
-export function Header({ context, locale, categories, loggedIn }: { context: StoreContext; locale: ShopLocale; categories: Category[]; loggedIn: boolean }) {
+export function Header({ context, locale, categories, loggedIn, cartCount }: { context: StoreContext; locale: ShopLocale; categories: Category[]; loggedIn: boolean; cartCount: number }) {
   const t = messages(locale);
   return (
     <header className="border-b border-line bg-surface">
@@ -23,6 +23,8 @@ export function Header({ context, locale, categories, loggedIn }: { context: Sto
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-3">
+          {loggedIn && <Link href={localePath(locale, '/cart')} aria-label={`${t.navigation.cart} (${cartCount})`}
+            className="flex items-center gap-1 text-sm text-action"><ShoppingCart size={18} />{t.navigation.cart} ({cartCount})</Link>}
           <AuthLinks locale={locale} loggedIn={loggedIn} labels={t.navigation} />
           <form action={localePath(locale, '/search')} role="search" className="flex items-center rounded-shop border border-line bg-canvas">
             <label htmlFor="shop-search" className="sr-only">{t.navigation.search}</label>

@@ -30,6 +30,7 @@ vi.mock('@/config/database', () => ({
     refund: { create: vi.fn(), findUnique: vi.fn() },
     refundLedger: { create: vi.fn() },
     paymentLedger: { create: vi.fn() },
+    cart: { findUnique: vi.fn().mockResolvedValue(null) },
     $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn(prisma)),
   },
 }));
@@ -209,6 +210,7 @@ describe('OrderService', () => {
       shippingAddress: { firstName: 'Buyer', lastName: 'One', phone: '+1', addressLine1: '1 Test St', city: 'Test', state: 'CA', postalCode: '94016', country: 'US' },
       shippingOptionId: 'free-shipping:free',
       paymentMethod: 'manual-payment',
+      expectedTotal: '50.00',
     };
 
     it('should validate products, calculate total, create order, emit event, and deduct stock', async () => {
@@ -266,7 +268,7 @@ describe('OrderService', () => {
       mockPrisma.user.findUnique.mockResolvedValue(TEST_USER);
 
       await expect(
-        OrderService.createOrder('user-1', { items: [] })
+        OrderService.createOrder('user-1', { items: [], expectedTotal: '0.00' } as any)
       ).rejects.toThrow('Order must contain at least one item');
 
       expect(mockPrisma.order.create).not.toHaveBeenCalled();
@@ -290,6 +292,7 @@ describe('OrderService', () => {
           shippingAddress: orderData.shippingAddress,
           shippingOptionId: 'free-shipping:free',
           paymentMethod: 'manual-payment',
+          expectedTotal: '125.00',
         })
       ).rejects.toThrow('Insufficient stock for variant Default of product: Widget');
 

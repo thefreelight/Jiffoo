@@ -142,7 +142,6 @@ export default function EditProductPage() {
       // Key: Stay on page, provide feedback
       setSuccessMode(true)
       refetch()
-      toast.success('Product updated successfully')
 
       // Restore button text after 3 seconds
       setTimeout(() => setSuccessMode(false), 3000)

@@ -3,7 +3,7 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { CartService } from './service';
+import { CartService, InsufficientCartStockError } from './service';
 import { dualAuthMiddleware } from '@/core/auth/middleware';
 import { sendSuccess, sendError } from '@/utils/response';
 import { cartSchemas } from './schemas';
@@ -51,6 +51,9 @@ export async function cartRoutes(fastify: FastifyInstance) {
       );
       return sendSuccess(reply, cart);
     } catch (error: any) {
+      if (error instanceof InsufficientCartStockError) {
+        return sendError(reply, 409, error.code, error.message, { availableQuantity: error.availableQuantity });
+      }
       const message = error.message;
       if (message === 'Product or variant not found') {
         return sendError(reply, 404, 'NOT_FOUND', message);
@@ -80,6 +83,9 @@ export async function cartRoutes(fastify: FastifyInstance) {
       const cart = await (CartService as any).batchAddToCart(request.user!.id, items);
       return sendSuccess(reply, cart);
     } catch (error: any) {
+      if (error instanceof InsufficientCartStockError) {
+        return sendError(reply, 409, error.code, error.message, { availableQuantity: error.availableQuantity });
+      }
       const message = error.message;
       if (message.includes('Product or variant not found')) {
         return sendError(reply, 404, 'NOT_FOUND', message);
@@ -108,6 +114,9 @@ export async function cartRoutes(fastify: FastifyInstance) {
       );
       return sendSuccess(reply, cart);
     } catch (error: any) {
+      if (error instanceof InsufficientCartStockError) {
+        return sendError(reply, 409, error.code, error.message, { availableQuantity: error.availableQuantity });
+      }
       const message = error.message;
       if (message === 'Cart not found' || message === 'Cart item not found') {
         return sendError(reply, 404, 'NOT_FOUND', message);

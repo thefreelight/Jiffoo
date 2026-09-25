@@ -10,6 +10,25 @@ import {
   createTypedUpdateResponses,
   createTypedDeleteResponses,
 } from '@/types/common-dto';
+import { errorResponseSchema } from '@/types/common-dto';
+
+const stockErrorSchema = {
+  ...errorResponseSchema,
+  properties: {
+    ...errorResponseSchema.properties,
+    error: {
+      ...errorResponseSchema.properties.error,
+      properties: {
+        ...errorResponseSchema.properties.error.properties,
+        details: {
+          type: 'object',
+          properties: { availableQuantity: { type: 'integer' } },
+          required: ['availableQuantity'],
+        },
+      },
+    },
+  },
+} as const;
 
 // ============================================================================
 // Cart Item Schema (Matches CartService output)
@@ -111,7 +130,7 @@ export const cartSchemas = {
         },
       },
     },
-    response: createTypedCrudResponses(cartSchema),
+    response: { ...createTypedCrudResponses(cartSchema), 409: stockErrorSchema },
   },
 
   // POST /api/cart/items/batch
@@ -155,7 +174,7 @@ export const cartSchemas = {
         quantity: { type: 'integer', minimum: 1, description: 'New quantity for the cart item' },
       },
     },
-    response: createTypedUpdateResponses(cartSchema),
+    response: { ...createTypedUpdateResponses(cartSchema), 409: stockErrorSchema },
   },
 
   // DELETE /api/cart/items/:itemId

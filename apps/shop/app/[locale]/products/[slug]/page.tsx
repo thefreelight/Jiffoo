@@ -6,6 +6,7 @@ import { messages, productBySlug, requireLocale } from '@/lib/catalog';
 import { localePath } from '@/lib/locale';
 import { VariantPicker } from '@/components/variant-picker';
 import { formatPrice } from '@/lib/price';
+import { accountProfile } from '@/lib/server-account';
 
 export default async function ProductPage({ params }: { params: Promise<{ locale: string; slug: string }> }) {
   const { locale: segment, slug } = await params;
@@ -13,6 +14,7 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
   const product = await productBySlug(locale, slug);
   if (!product) notFound();
   const t = messages(locale);
+  const loggedIn = !!(await accountProfile());
   return (
     <main className="mx-auto grid max-w-7xl gap-10 px-4 py-10 md:grid-cols-2 md:px-8">
       <section aria-label={product.name}>
@@ -34,7 +36,8 @@ export default async function ProductPage({ params }: { params: Promise<{ locale
         <h1 className="mt-3 text-3xl font-semibold">{product.name}</h1>
         <div className="mt-7">
           {product.variants?.length
-            ? <VariantPicker variants={product.variants} locale={locale} currency={context.currency} labels={t.product} />
+            ? <VariantPicker variants={product.variants} locale={locale} currency={context.currency} labels={t.product}
+                productId={product.id} slug={slug} loggedIn={loggedIn} />
             : <><p className="text-2xl font-semibold">{formatPrice(product.price, locale, context.currency)}</p><p>{product.stock > 0 ? t.product.stock : t.product.outOfStock}</p></>}
         </div>
         {product.description && <section className="mt-12 border-t border-line pt-6">

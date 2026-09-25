@@ -20,6 +20,7 @@ import { prisma } from '@/config/database';
 import { checkoutPaymentFixtureSource, installFixturePlugin, removeFixturePlugin } from '../helpers/fixture-plugin';
 import { applyNormalizedPluginWebhook } from '@/core/payment/plugin-webhook';
 import { env } from '@/config/env';
+import { checkoutTotal } from '../helpers/checkout-total';
 
 describe('Payments Endpoints', () => {
   let app: FastifyInstance;
@@ -47,11 +48,12 @@ describe('Payments Endpoints', () => {
   let paymentFixtureInstalled = false;
 
   async function createOrder(paymentMethod: string): Promise<string> {
+    const items = [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }];
+    const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, 'free-shipping:free');
     const response = await app.inject({
       method: 'POST', url: '/api/v1/orders/', headers: { authorization: `Bearer ${userToken}` },
       payload: {
-        items: [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
-        shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod,
+        items, shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free', paymentMethod, expectedTotal,
       },
     });
     expect(response.statusCode).toBe(201);
@@ -88,15 +90,18 @@ describe('Payments Endpoints', () => {
       price: 59.99,
       stock: 100,
     });
+    const items = [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }];
+    const expectedTotal = await checkoutTotal(app, userToken, items, validShippingAddress, checkoutSelection.shippingOptionId);
     // Create a test order
     const orderResponse = await app.inject({
       method: 'POST',
       url: '/api/v1/orders/',
       headers: { authorization: `Bearer ${userToken}` },
       payload: {
-        items: [{ productId: testProduct.id, variantId: testProduct.variants[0].id, quantity: 1 }],
+        items,
         shippingAddress: validShippingAddress,
         ...checkoutSelection,
+        expectedTotal,
       },
     });
 
@@ -157,13 +162,15 @@ describe('Payments Endpoints', () => {
       await installPaymentFixture();
       const { token } = await createUserWithToken();
       const ownProduct = await createTestProduct({ name: `Return URL ${uuidv4()}`, price: 20, stock: 5 });
+      const items = [{ productId: ownProduct.id, variantId: ownProduct.variants[0].id, quantity: 1 }];
+      const expectedTotal = await checkoutTotal(app, token, items, validShippingAddress, 'free-shipping:free');
       const orderResponse = await app.inject({
         method: 'POST', url: '/api/v1/orders/',
         headers: { authorization: `Bearer ${token}` },
         payload: {
-          items: [{ productId: ownProduct.id, variantId: ownProduct.variants[0].id, quantity: 1 }],
+          items,
           shippingAddress: validShippingAddress, shippingOptionId: 'free-shipping:free',
-          paymentMethod: paymentFixtureSlug,
+          paymentMethod: paymentFixtureSlug, expectedTotal,
         },
       });
       expect(orderResponse.statusCode).toBe(201);
