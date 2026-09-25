@@ -27,7 +27,7 @@
     "build:core": "turbo run build --filter=api --filter=shop --filter=admin",
     "pages:build:shop": "pnpm --filter shared build && pnpm --filter shop pages:build",
     "pages:build:admin": "pnpm --filter shared build && pnpm --filter admin pages:build",
-    "postinstall": "pnpm --filter shared build",
+    "postinstall": "node -e \"if(process.env.SKIP_SHARED_BUILD==='1'){console.log('[postinstall] SKIP_SHARED_BUILD=1, skipping shared build');process.exit(0)};const{status}=require('node:child_process').spawnSync('pnpm',['--filter','shared','build'],{stdio:'inherit'});process.exit(status??1)\"",
     "pages:build:all": "pnpm pages:build:shop && pnpm pages:build:admin",
     "pages:preview:shop": "pnpm --filter shop exec npx wrangler pages dev .vercel/output/static --port 3003",
     "pages:preview:admin": "pnpm --filter admin exec npx wrangler pages dev .vercel/output/static --port 3002",
