@@ -222,7 +222,9 @@ function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver, plug
   }
 
   if (driver.handleWebhook) {
-    app.post('/api/payments/webhook', async (request, reply) => {
+    // GET is required for epay-protocol gateways, whose async notifications
+    // arrive as query parameters on a plain GET rather than a POST body.
+    const handlePaymentWebhook = async (request: any, reply: any) => {
       const findHeader = (headers: Record<string, unknown> | undefined, name: string): unknown => {
         if (!headers) return undefined;
         const key = Object.keys(headers).find((candidate) => candidate.toLowerCase() === name);
@@ -251,13 +253,20 @@ function registerPaymentDriver(app: FastifyInstance, driver: PaymentDriver, plug
         payload: {
           rawBody: rawBody ?? request.body ?? {},
           signature,
+          // GET-style gateways (epay) deliver the entire notification as query
+          // parameters; expose them to drivers that expect them.
+          ...(request.query && typeof request.query === 'object'
+            ? { query: request.query as Record<string, unknown> }
+            : {}),
         },
       });
       if (result && typeof result === 'object') {
         await applyNormalizedPluginWebhook(pluginSlug, result as Record<string, unknown>);
       }
       return reply.send({ success: true, data: result });
-    });
+    };
+    app.post('/api/payments/webhook', handlePaymentWebhook);
+    app.get('/api/payments/webhook', handlePaymentWebhook);
   }
 }
 
