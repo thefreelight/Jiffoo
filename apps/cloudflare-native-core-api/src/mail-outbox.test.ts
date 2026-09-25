@@ -2,8 +2,9 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('cloudflare:sockets', () => ({ connect: vi.fn() }));
 vi.mock('./plugin-settings', () => ({ getNativePluginConfig: vi.fn() }));
+vi.mock('./smtp', () => ({ sendSmtpEmail: vi.fn(async () => '<sent@test.local>') }));
 
-const { commissionEmailCopy, orderPaidEmailCopy, refundEmailCopy, shipmentEmailCopy } = await import('./mail-outbox');
+const { commissionEmailCopy, orderPaidEmailCopy, processNativeEmailOutbox, refundEmailCopy, shipmentEmailCopy } = await import('./mail-outbox');
 const { checkoutLocale } = await import('./checkout');
 
 describe('native transactional email locales', () => {
@@ -98,5 +99,31 @@ describe('native transactional email locales', () => {
     expect(copy.text).toBe('你的 Bokmoo 订单 ord_3 已支付成功，我们会尽快处理。');
     expect(copy.html).not.toContain('商品明细');
     expect(copy.html).not.toContain('总计');
+  });
+
+  it('marks the row SENT without re-sending when sent-bookkeeping fails', async () => {
+    const executed: string[] = [];
+    const row = {
+      id: 'row-1', recipient: 'user@example.com', subject: 's',
+      text_body: 't', html_body: '<p>t</p>', attempt_count: 0,
+    };
+    const fakeDb = {
+      prepare: (sql: string) => ({
+        bind: () => ({
+          all: async () => ({ results: [row] }),
+          run: async () => {
+            executed.push(sql);
+            if (sql.includes('message_id = ?2')) throw new Error('D1_ERROR: no such column: message_id: SQLITE_ERROR');
+            return { meta: { changes: 1 } };
+          },
+        }),
+      }),
+    };
+    const env = { DB: fakeDb, JWT_SECRET: {} } as unknown as Parameters<typeof processNativeEmailOutbox>[0];
+    const result = await processNativeEmailOutbox(env);
+    expect(result.sent).toBe(1);
+    expect(result.failed).toBe(0);
+    expect(executed.some((sql) => sql.includes("status = 'SENT', sent_at") && !sql.includes('message_id'))).toBe(true);
+    expect(executed.some((sql) => sql.includes('next_attempt_at = ?2'))).toBe(false);
   });
 });

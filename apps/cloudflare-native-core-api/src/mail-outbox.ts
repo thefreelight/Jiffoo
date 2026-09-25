@@ -472,9 +472,25 @@ export async function processNativeEmailOutbox(env: MailEnv, limit = 25): Promis
     try {
       const messageId = await sendSmtpEmail(env, { to: row.recipient, subject: row.subject, text: row.text_body, html: row.html_body });
       const sentAt = new Date().toISOString();
-      await env.DB.prepare(
-        `UPDATE native_email_outbox SET status = 'SENT', sent_at = ?1, last_error = NULL, message_id = ?2, updated_at = ?1 WHERE id = ?3`,
-      ).bind(sentAt, messageId, row.id).run();
+      try {
+        await env.DB.prepare(
+          `UPDATE native_email_outbox SET status = 'SENT', sent_at = ?1, last_error = NULL, message_id = ?2, updated_at = ?1 WHERE id = ?3`,
+        ).bind(sentAt, messageId, row.id).run();
+      } catch (bookkeepingError) {
+        // The relay accepted the message (DATA 250), so this row must never be
+        // re-sent. If the full write fails against a drifted schema (for
+        // example a missing message_id column), mark the row SENT with only
+        // the columns that have existed since the original outbox table.
+        await env.DB.prepare(
+          `UPDATE native_email_outbox SET status = 'SENT', sent_at = ?1, updated_at = ?1 WHERE id = ?2`,
+        ).bind(sentAt, row.id).run();
+        console.error(JSON.stringify({
+          message: 'native email outbox sent-bookkeeping fell back to minimal update',
+          outboxId: row.id,
+          smtpMessageId: messageId,
+          error: bookkeepingError instanceof Error ? bookkeepingError.message : String(bookkeepingError),
+        }));
+      }
       result.sent += 1;
     } catch (error) {
       const attempt = row.attempt_count + 1;
