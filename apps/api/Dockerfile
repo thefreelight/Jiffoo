@@ -48,6 +48,7 @@ COPY packages/shared/package.json ./packages/shared/
 
 # Install dependencies using a public npm mirror by default.
 # CI can still override NPM_REGISTRY when an internal cache is healthy.
+ENV SKIP_SHARED_BUILD=1
 RUN pnpm config set fetch-retries 5 && \
     pnpm config set fetch-retry-mintimeout 20000 && \
     pnpm config set fetch-retry-maxtimeout 120000 && \
