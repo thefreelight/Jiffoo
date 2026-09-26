@@ -7,7 +7,7 @@ export const storefront = {
     home: 'Home',
     language: 'Language',
     localeNames: { en: 'English', 'zh-Hans': 'Simplified Chinese', 'zh-Hant': 'Traditional Chinese' },
-    login: 'Login', register: 'Register', account: 'Account', logout: 'Logout', cart: 'Cart',
+    login: 'Login', register: 'Register', account: 'Account', logout: 'Logout', cart: 'Cart', orders: 'My orders',
   },
   home: {
     categories: 'Browse categories',
@@ -49,6 +49,25 @@ export const storefront = {
     paymentInstructions: 'Payment instructions', pending: 'Payment pending',
     cancelled: 'Payment not completed; your order is still awaiting payment.',
     orderMissing: 'Order unavailable.',
+    viewOrder: 'View order',
+  },
+  orders: {
+    title: 'My orders', empty: 'No orders yet.', detail: 'Order details', date: 'Date',
+    view: 'View details', payBefore: 'Pay before', shippingMethod: 'Shipping method',
+    shipments: 'Shipments', carrier: 'Carrier', tracking: 'Tracking number',
+    cancel: 'Cancel order', confirmCancel: 'Confirm cancellation', reason: 'Reason',
+    otherReason: 'Other reason', cancelError: 'Unable to cancel this order.',
+    cancelReason: 'Cancellation reason', cancelledAt: 'Cancelled on',
+    previous: 'Previous page', next: 'Next page',
+    reasons: {
+      changedMind: 'Changed my mind', mistake: 'Ordered by mistake',
+      betterPrice: 'Found a better price', other: 'Other',
+    },
+    status: {
+      PENDING: 'Pending', PAID: 'Paid', PROCESSING: 'Processing', COMPLETED: 'Completed',
+      SHIPPED: 'Shipped', DELIVERED: 'Delivered', CANCELLED: 'Cancelled', REFUNDED: 'Refunded',
+    },
+    paymentStatus: { PENDING: 'Pending', PAID: 'Paid', FAILED: 'Failed', REFUNDED: 'Refunded' },
   },
   notFound: {
     title: 'Page not found',
@@ -68,6 +87,6 @@ export const storefront = {
     verificationFailed: 'Verification failed.', passwordUpdated: 'Password updated.',
     accountUpdated: 'Account updated.', invalidLogin: 'Invalid email or password.',
     invalidPassword: 'Current password is incorrect.', accountDeleted: 'Account deleted.',
-    back: 'Back to account', alreadyAccount: 'Already have an account?',
+    back: 'Back to account', alreadyAccount: 'Already have an account?', orders: 'My orders',
   },
 } as const;

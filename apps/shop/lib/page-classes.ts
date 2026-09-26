@@ -6,6 +6,8 @@ export const pageClasses = {
   '/verify-email': 'storefront',
   '/[locale]': 'storefront',
   '/[locale]/account': 'storefront',
+  '/[locale]/account/orders': 'storefront',
+  '/[locale]/account/orders/[id]': 'storefront',
   '/[locale]/categories/[slug]': 'storefront',
   '/[locale]/forgot-password': 'storefront',
   '/[locale]/login': 'storefront',

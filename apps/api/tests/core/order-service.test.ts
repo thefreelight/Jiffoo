@@ -30,6 +30,7 @@ vi.mock('@/config/database', () => ({
     refund: { create: vi.fn(), findUnique: vi.fn() },
     refundLedger: { create: vi.fn() },
     paymentLedger: { create: vi.fn() },
+    payment: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
     cart: { findUnique: vi.fn().mockResolvedValue(null) },
     $transaction: vi.fn((fn: (tx: unknown) => unknown) => fn(prisma)),
   },

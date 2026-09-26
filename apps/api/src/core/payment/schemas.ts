@@ -7,6 +7,7 @@
 import {
   createTypedCrudResponses,
   createTypedReadResponses,
+  errorResponseSchema,
 } from '@/types/common-dto';
 
 // ============================================================================
@@ -105,7 +106,7 @@ export const paymentSchemas = {
         idempotencyKey: { type: 'string', description: 'Idempotency key to avoid duplicate payment sessions' },
       },
     },
-    response: createTypedCrudResponses(paymentSessionSchema),
+    response: { ...createTypedCrudResponses(paymentSessionSchema), 409: errorResponseSchema },
   },
 
   // GET /api/payments/verify/:sessionId

@@ -7,10 +7,11 @@ import type { ShopLocale } from '@/lib/locale';
 export function AuthLinks({ locale, loggedIn, labels }: {
   locale: ShopLocale;
   loggedIn: boolean;
-  labels: { login: string; register: string; account: string; logout: string };
+  labels: { login: string; register: string; account: string; logout: string; orders: string };
 }) {
   const pathname = usePathname();
   if (loggedIn) return <>
+    <Link href={`/${locale}/account/orders`} className="text-sm text-action">{labels.orders}</Link>
     <Link href={`/${locale}/account`} className="text-sm text-action">{labels.account}</Link>
     <button type="button" className="text-sm text-ink" onClick={async () => {
       await fetch('/bff/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });

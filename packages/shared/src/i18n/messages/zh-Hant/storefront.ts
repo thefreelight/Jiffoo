@@ -7,7 +7,7 @@ export const storefront = {
     home: '首頁',
     language: '語言',
     localeNames: { en: '英語', 'zh-Hans': '簡體中文', 'zh-Hant': '繁體中文' },
-    login: '登入', register: '註冊', account: '帳戶', logout: '登出', cart: '購物車',
+    login: '登入', register: '註冊', account: '帳戶', logout: '登出', cart: '購物車', orders: '我的訂單',
   },
   home: {
     categories: '瀏覽分類',
@@ -49,6 +49,24 @@ export const storefront = {
     paymentInstructions: '付款說明', pending: '等待付款',
     cancelled: '付款未完成；訂單仍在等待付款。',
     orderMissing: '訂單無法使用。',
+    viewOrder: '查看訂單',
+  },
+  orders: {
+    title: '我的訂單', empty: '暫無訂單。', detail: '訂單詳情', date: '日期',
+    view: '查看詳情', payBefore: '請在此時間前付款', shippingMethod: '配送方式',
+    shipments: '包裹', carrier: '承運商', tracking: '追蹤號碼',
+    cancel: '取消訂單', confirmCancel: '確認取消', reason: '取消原因',
+    otherReason: '其他原因', cancelError: '無法取消該訂單。',
+    cancelReason: '取消原因', cancelledAt: '取消時間',
+    previous: '上一頁', next: '下一頁',
+    reasons: {
+      changedMind: '改變主意', mistake: '下錯單', betterPrice: '找到了更優惠的價格', other: '其他',
+    },
+    status: {
+      PENDING: '待處理', PAID: '已付款', PROCESSING: '處理中', COMPLETED: '已完成',
+      SHIPPED: '已出貨', DELIVERED: '已送達', CANCELLED: '已取消', REFUNDED: '已退款',
+    },
+    paymentStatus: { PENDING: '待付款', PAID: '已付款', FAILED: '付款失敗', REFUNDED: '已退款' },
   },
   notFound: {
     title: '找不到頁面',
@@ -68,6 +86,6 @@ export const storefront = {
     verificationFailed: '驗證失敗。', passwordUpdated: '密碼已更新。',
     accountUpdated: '帳戶已更新。', invalidLogin: '電子郵件或密碼錯誤。',
     invalidPassword: '目前密碼不正確。', accountDeleted: '帳戶已刪除。',
-    back: '返回帳戶', alreadyAccount: '已有帳戶？',
+    back: '返回帳戶', alreadyAccount: '已有帳戶？', orders: '我的訂單',
   },
 } as const;

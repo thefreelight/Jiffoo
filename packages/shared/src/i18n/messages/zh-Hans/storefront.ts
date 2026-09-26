@@ -7,7 +7,7 @@ export const storefront = {
     home: '首页',
     language: '语言',
     localeNames: { en: '英语', 'zh-Hans': '简体中文', 'zh-Hant': '繁体中文' },
-    login: '登录', register: '注册', account: '账户', logout: '退出登录', cart: '购物车',
+    login: '登录', register: '注册', account: '账户', logout: '退出登录', cart: '购物车', orders: '我的订单',
   },
   home: {
     categories: '浏览分类',
@@ -49,6 +49,24 @@ export const storefront = {
     paymentInstructions: '付款说明', pending: '等待付款',
     cancelled: '付款未完成；订单仍在等待付款。',
     orderMissing: '订单不可用。',
+    viewOrder: '查看订单',
+  },
+  orders: {
+    title: '我的订单', empty: '暂无订单。', detail: '订单详情', date: '日期',
+    view: '查看详情', payBefore: '请在此时间前付款', shippingMethod: '配送方式',
+    shipments: '包裹', carrier: '承运商', tracking: '运单号',
+    cancel: '取消订单', confirmCancel: '确认取消', reason: '取消原因',
+    otherReason: '其他原因', cancelError: '无法取消该订单。',
+    cancelReason: '取消原因', cancelledAt: '取消时间',
+    previous: '上一页', next: '下一页',
+    reasons: {
+      changedMind: '改变主意', mistake: '下错单', betterPrice: '找到了更优惠的价格', other: '其他',
+    },
+    status: {
+      PENDING: '待处理', PAID: '已付款', PROCESSING: '处理中', COMPLETED: '已完成',
+      SHIPPED: '已发货', DELIVERED: '已送达', CANCELLED: '已取消', REFUNDED: '已退款',
+    },
+    paymentStatus: { PENDING: '待付款', PAID: '已付款', FAILED: '付款失败', REFUNDED: '已退款' },
   },
   notFound: {
     title: '页面不存在',
@@ -68,6 +86,6 @@ export const storefront = {
     verificationFailed: '验证失败。', passwordUpdated: '密码已更新。',
     accountUpdated: '账户已更新。', invalidLogin: '邮箱或密码错误。',
     invalidPassword: '当前密码不正确。', accountDeleted: '账户已删除。',
-    back: '返回账户', alreadyAccount: '已有账户？',
+    back: '返回账户', alreadyAccount: '已有账户？', orders: '我的订单',
   },
 } as const;

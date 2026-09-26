@@ -646,6 +646,10 @@ export class OrderService {
       for (const item of order.items) {
         await InventoryService.incrementStock(tx, item.variantId, item.quantity);
       }
+      await tx.payment.updateMany({
+        where: { orderId, status: 'PENDING' },
+        data: { status: 'CANCELLED' },
+      });
 
       const updated = await tx.order.update({
         where: { id: orderId },

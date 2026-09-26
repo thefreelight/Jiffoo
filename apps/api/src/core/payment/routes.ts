@@ -270,6 +270,10 @@ export async function paymentRoutes(fastify: FastifyInstance) {
         return sendError(reply, 409, 'ORDER_ALREADY_PAID', 'Order is already paid.');
       }
 
+      if (order.status !== 'PENDING') {
+        return sendError(reply, 409, 'ORDER_NOT_PAYABLE', 'Only pending orders can be paid.');
+      }
+
       if (order.paymentMethod !== pluginSlug) {
         return sendError(reply, 409, 'PAYMENT_METHOD_MISMATCH', 'Payment method does not match the order.');
       }

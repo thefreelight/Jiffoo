@@ -40,6 +40,7 @@ export type Quote = {
 
 export type Order = {
   id: string;
+  createdAt: string;
   status: string;
   paymentStatus: string;
   paymentInstructions: string | null;
@@ -52,4 +53,9 @@ export type Order = {
   taxAmount: number;
   taxInclusive: boolean;
   totalAmount: number;
+  shippingMethod: { label: string } | null;
+  shipments: Array<{ id: string; carrier: string | null; trackingNumber: string | null }>;
+  cancelReason: string | null;
+  cancelledAt: string | null;
+  unpaidExpiresAt: string | null;
 };

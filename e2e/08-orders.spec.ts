@@ -61,8 +61,13 @@ test('record payment, ship a Shop checkout order, and resend its notification', 
     await page.getByRole('button', { name: 'Resend' }).click();
     await expect(page.getByText('Notification queued')).toBeVisible();
     await shop.reload();
-    await expect(shop.getByText('PAID', { exact: true })).toBeVisible();
+    await expect(shop.getByText('Paid', { exact: true })).toBeVisible();
     await expect(shop.getByText('Pay manually.')).toHaveCount(0);
+    await shop.getByRole('link', { name: 'View order' }).click();
+    await expect(shop.getByRole('heading', { name: 'Order details' })).toBeVisible();
+    await expect(shop.getByText('Shipped', { exact: true })).toBeVisible();
+    await expect(shop.getByText('Paid', { exact: true })).toBeVisible();
+    await expect(shop.getByText('E2E-TRACK-001')).toBeVisible();
   } finally {
     await shopContext.close();
   }

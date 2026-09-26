@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { requireLocale, messages } from '@/lib/catalog';
 import { customerOrder } from '@/lib/server-checkout';
 import { accountProfile } from '@/lib/server-account';
+import Link from 'next/link';
 
 export default async function CancelPage({ params, searchParams }: {
   params: Promise<{ locale: string }>;
@@ -16,5 +17,6 @@ export default async function CancelPage({ params, searchParams }: {
   return <main className="mx-auto max-w-4xl px-4 py-10 md:px-8">
     <h1 className="text-2xl font-semibold">{messages(locale).checkout.pending}</h1>
     <p className="mt-4">{messages(locale).checkout.cancelled}</p>
+    <Link href={`/${locale}/account/orders/${id}`} className="mt-4 inline-block text-action underline">{messages(locale).checkout.viewOrder}</Link>
   </main>;
 }

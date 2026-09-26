@@ -173,4 +173,80 @@ describe('Shop checkout contract', () => {
     const second = await app.inject({ method: 'GET', url: '/api/v1/cart/', headers: headers() });
     expect(second.json().data.items[0].price).toBe(31);
   });
+
+  it('SHOP-3b A rejects a payment session for a cancelled order without creating a payment', async () => {
+    const total = await checkoutTotal(app, token, [line()], address, 'free-shipping:free');
+    const id = (await order(total)).json().data.id as string;
+    const cancelled = await app.inject({
+      method: 'POST', url: `/api/v1/orders/${id}/cancel`, headers: headers(),
+      payload: { cancelReason: 'Changed my mind' },
+    });
+    expect(cancelled.statusCode).toBe(200);
+    const response = await app.inject({
+      method: 'POST', url: '/api/v1/payments/create-session', headers: headers(),
+      payload: { orderId: id, paymentMethod: 'manual-payment' },
+    });
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error.code).toBe('ORDER_NOT_PAYABLE');
+    expect(await prisma.payment.count({ where: { orderId: id } })).toBe(0);
+  });
+
+  it('SHOP-3b B cancels pending payments and restores stock with the customer order', async () => {
+    const total = await checkoutTotal(app, token, [line()], address, 'free-shipping:free');
+    const id = (await order(total)).json().data.id as string;
+    const session = await app.inject({
+      method: 'POST', url: '/api/v1/payments/create-session', headers: headers(),
+      payload: { orderId: id, paymentMethod: 'manual-payment' },
+    });
+    expect(session.statusCode).toBe(200);
+    const response = await app.inject({
+      method: 'POST', url: `/api/v1/orders/${id}/cancel`, headers: headers(),
+      payload: { cancelReason: 'Ordered by mistake' },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json().data.status).toBe('CANCELLED');
+    expect((await prisma.payment.findFirstOrThrow({ where: { orderId: id } })).status).toBe('CANCELLED');
+    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stock).toBe(5);
+  });
+
+  it('SHOP-3b C rejects customer cancellation of a paid order without changing stock, payments, or notifications', async () => {
+    const total = await checkoutTotal(app, token, [line()], address, 'free-shipping:free');
+    const created = await order(total);
+    expect(created.statusCode).toBe(201);
+    const id = created.json().data.id as string;
+    const session = await app.inject({
+      method: 'POST', url: '/api/v1/payments/create-session', headers: headers(),
+      payload: { orderId: id, paymentMethod: 'manual-payment' },
+    });
+    expect(session.statusCode).toBe(200);
+    const recorded = await app.inject({
+      method: 'POST', url: `/api/v1/admin/orders/${id}/record-manual-payment`,
+      headers: { authorization: `Bearer ${adminToken}` }, payload: { reference: `paid-cancel:${id}` },
+    });
+    expect(recorded.statusCode).toBe(200);
+    const paid = await app.inject({
+      method: 'PUT', url: `/api/v1/admin/orders/${id}/status`,
+      headers: { authorization: `Bearer ${adminToken}` }, payload: { status: 'PAID' },
+    });
+    expect(paid.statusCode).toBe(200);
+
+    const stockBefore = (await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stock;
+    const paymentsBefore = await prisma.payment.findMany({ where: { orderId: id }, orderBy: { id: 'asc' } });
+    const cancellationNoticesBefore = await prisma.notification.count({ where: { relatedId: id, type: 'cancelled' } });
+    const response = await app.inject({
+      method: 'POST', url: `/api/v1/orders/${id}/cancel`, headers: headers(),
+      payload: { cancelReason: 'Changed my mind' },
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().error).toMatchObject({
+      code: 'BAD_REQUEST', message: 'Only pending orders can be cancelled',
+    });
+    const unchanged = await prisma.order.findUniqueOrThrow({ where: { id } });
+    expect(unchanged.status).toBe('PAID');
+    expect(unchanged.paymentStatus).toBe('PAID');
+    expect((await prisma.productVariant.findUniqueOrThrow({ where: { id: variantId } })).stock).toBe(stockBefore);
+    expect(await prisma.payment.findMany({ where: { orderId: id }, orderBy: { id: 'asc' } })).toEqual(paymentsBefore);
+    expect(await prisma.notification.count({ where: { relatedId: id, type: 'cancelled' } })).toBe(cancellationNoticesBefore);
+    expect(cancellationNoticesBefore).toBe(0);
+  });
 });

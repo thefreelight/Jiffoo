@@ -247,6 +247,7 @@ describe('Payment Routes', () => {
         id: 'order-1',
         totalAmount: 19.99,
         paymentStatus: 'PENDING',
+        status: 'PENDING',
         paymentAttempts: 0,
         paymentMethod: 'test-gateway-payment',
       });

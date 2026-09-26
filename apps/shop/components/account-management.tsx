@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from 'react';
 import type { ShopLocale } from '@/lib/locale';
+import Link from 'next/link';
 
 type Profile = { username: string; email: string; locale: string | null; emailVerified: boolean };
 
@@ -55,6 +56,7 @@ export function AccountManagement({ locale, profile: initial, labels, locales }:
       required className="mt-1 w-full rounded-shop border border-line bg-surface p-2 text-ink" /></label>;
   return <main className="mx-auto max-w-3xl space-y-9 px-4 py-10">
     <h1 className="text-2xl font-semibold">{labels.profile}</h1>
+    <Link href={`/${locale}/account/orders`} className="inline-block text-action underline">{labels.orders}</Link>
     {!profile.emailVerified && <section aria-label={labels.unverified} className="border-l-2 border-action pl-4">
       <p>{labels.unverified}</p>
       <button type="button" onClick={resend} className="mt-2 text-sm text-action underline">{labels.resend}</button>
